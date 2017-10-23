@@ -1,0 +1,6 @@
+- Conform to kernel coding standards
+- Use existing EXPORT_SYMBOL_GPL kernel interfaces where appropriate
+- Refactor primitives (e.g. cryptographic) to appropriate kernel subsystems
+- Support non-x86-64 platforms
+- Refactor platform layer abstractions and other changes requested by upstream
+  maintainers

@@ -1,0 +1,247 @@
+/*
+ * Copyright (c) 2017 Red Hat, Inc.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA. 
+ *
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabJournalInternals.h#1 $
+ */
+
+#ifndef SLAB_JOURNAL_INTERNALS_H
+#define SLAB_JOURNAL_INTERNALS_H
+
+#include "slabJournal.h"
+
+#include "blockAllocatorInternals.h"
+#include "blockDescriptor.h"
+#include "blockMapEntry.h"
+#include "journalPoint.h"
+#include "slab.h"
+#include "slabSummary.h"
+#include "statistics.h"
+#include "waitQueue.h"
+
+/**
+ * Slab journal blocks may have one of two formats, depending upon whether or
+ * not any of the entries in the block are block map increments. Since the
+ * steady state for a VDO is that all of the necessary block map pages will
+ * be allocated, most slab journal blocks will have only data entries. Such
+ * blocks can hold more entries, hence the two formats.
+ **/
+
+/** A single slab journal entry */
+struct slabJournalEntry {
+  SlabBlockNumber  sbn;
+  JournalOperation operation;
+};
+
+/** A single slab journal entry in its on-disk form */
+typedef struct {
+  uint32_t offset    : 23;
+  uint32_t increment : 1;
+} __attribute__((packed)) PackedSlabJournalEntry;
+
+/** The header of a slab journal block */
+typedef struct {
+  /** Sequence number for head of journal */
+  SequenceNumber     head;
+  /** Sequence number for this block */
+  SequenceNumber     sequenceNumber;
+  /** Recovery journal point for last entry */
+  PackedJournalPoint recoveryPoint;
+  /** The nonce for a given VDO instance */
+  Nonce              nonce;
+  /** Metadata type */
+  VDOMetadataType    metadataType;
+  /** Whether this block contains block map increments */
+  bool               hasBlockMapIncrements;
+  /** The number of entries in the block */
+  JournalEntryCount  entryCount;
+} __attribute__((packed)) SlabJournalBlockHeader;
+
+enum {
+  SLAB_JOURNAL_PAYLOAD_SIZE = VDO_BLOCK_SIZE - sizeof(SlabJournalBlockHeader),
+  SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
+  SLAB_JOURNAL_ENTRY_TYPES_SIZE = ((SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1)
+                                   / 8) + 1,
+  SLAB_JOURNAL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE
+                                    / sizeof(PackedSlabJournalEntry)),
+};
+
+/** The payload of a slab journal block which has block map increments */
+typedef struct {
+  /* The entries themselves */
+  PackedSlabJournalEntry entries[SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
+  /* The bit map indicating which entries are block map increments */
+  byte                   entryTypes[SLAB_JOURNAL_ENTRY_TYPES_SIZE];
+} __attribute__((packed)) FullSlabJournalEntries;
+
+typedef union {
+  /* Entries which include block map increments */
+  FullSlabJournalEntries fullEntries;
+  /* Entries which are only data updates */
+  PackedSlabJournalEntry entries[SLAB_JOURNAL_ENTRIES_PER_BLOCK];
+  /* Ensure the payload fills to the end of the block */
+  byte                   space[SLAB_JOURNAL_PAYLOAD_SIZE];
+} __attribute__((packed)) SlabJournalPayload;
+
+typedef struct {
+  SlabJournalBlockHeader header;
+  SlabJournalPayload     payload;
+} __attribute__((packed)) PackedSlabJournalBlock;
+
+typedef enum {
+  NOT_FLUSHING,
+  FLUSH_REQUESTED,
+  FLUSH_INITIATED,
+} FlushState;
+
+typedef struct {
+  uint16_t       count;
+  SequenceNumber recoveryStart;
+} JournalLock;
+
+struct slabJournal {
+  /** The completion for load, flush, and close */
+  VDOCompletion                completion;
+
+  /** A waiter object for getting an extent or block descriptor */
+  Waiter                       resourceWaiter;
+  /** A waiter object for updating the slab summary */
+  Waiter                       slabSummaryWaiter;
+  /** A waiter object for getting an extent with which to flush */
+  Waiter                       flushWaiter;
+  /** The queue of VIOs waiting to make an entry */
+  WaitQueue                    entryWaiters;
+  /** The parent slab reference of this journal */
+  Slab                        *slab;
+
+  /** Whether a flush has been requested or initiated */
+  FlushState                   flushState;
+  /** Whether a request has been made to close the journal */
+  bool                         closeRequested;
+  /** Whether a tail block commit is pending */
+  bool                         waitingToCommit;
+  /** Whether a completion is waiting for slab journal space */
+  bool                         waitingForSpace;
+  /** Whether the journal is updating the slab summary */
+  bool                         updatingSlabSummary;
+  /** Whether the journal is adding entries from the entryWaiters queue */
+  bool                         addingEntries;
+  /** Whether a partial write is in progress */
+  bool                         partialWriteInProgress;
+
+  /** The oldest block in the journal on disk */
+  SequenceNumber               head;
+  /** The oldest block in the journal which may not be reaped */
+  SequenceNumber               unreapable;
+  /** The end of the half-open interval of the active journal */
+  SequenceNumber               tail;
+  /** The next journal block to be committed */
+  SequenceNumber               nextCommit;
+  /** The tail sequence number that is written in the slab summary */
+  SequenceNumber               summarized;
+  /** The tail sequence number that was last summarized in slab summary */
+  SequenceNumber               lastSummarized;
+
+  /** The sequence number of the recovery journal lock */
+  SequenceNumber               recoveryLock;
+  /** The recovery journal point of the newest entry in this journal */
+  JournalPoint                 recoveryPoint;
+
+  /**
+   * The number of entries which fit in a single block. Can't use the constant
+   * because unit tests change this number.
+   **/
+  JournalEntryCount            entriesPerBlock;
+  /**
+   * The number of full entries which fit in a single block. Can't use the
+   * constant because unit tests change this number.
+   **/
+  JournalEntryCount            fullEntriesPerBlock;
+
+  /** The recovery journal of the VDO (slab journal holds locks on it) */
+  RecoveryJournal             *recoveryJournal;
+
+  /** The slab summary to update tail block location */
+  SlabSummaryZone             *summary;
+  /** The statistics shared by all slab journals in our physical zone */
+  AtomicSlabJournalStatistics *events;
+  /** Block descriptor for writing a slab journal block */
+  BlockDescriptor             *descriptor;
+  /** A list of descriptors that are in use and not committed */
+  RingNode                     uncommittedBlocks;
+  /** A pointer to a block-sized buffer holding the packed block data */
+  PackedSlabJournalBlock      *block;
+
+  /** The number of blocks in the on-disk journal */
+  BlockCount                   size;
+  /** The number of blocks at which to start pushing reference blocks */
+  BlockCount                   flushingThreshold;
+  /** The number of blocks at which all reference blocks should be writing */
+  BlockCount                   flushingDeadline;
+  /** The number of blocks at which to wait for reference blocks to write */
+  BlockCount                   blockingThreshold;
+  /** The number of blocks at which to scrub the slab before coming online */
+  BlockCount                   scrubbingThreshold;
+
+  /** This node is for BlockAllocator to keep a queue of dirty journals */
+  RingNode                     dirtyNode;
+
+  /** The lock for the oldest unreaped block of the journal */
+  JournalLock                 *reapLock;
+  /** The locks for each on disk block */
+  JournalLock                  locks[];
+};
+
+/**
+ * Get the slab journal block offset of the given sequence number.
+ *
+ * @param journal   The slab journal
+ * @param sequence  The sequence number
+ *
+ * @return the offset corresponding to the sequence number
+ **/
+__attribute__((warn_unused_result))
+static inline TailBlockOffset
+getSlabJournalBlockOffset(SlabJournal *journal, SequenceNumber sequence)
+{
+  return (sequence % journal->size);
+}
+
+/**
+ * Encode a slab journal entry (exposed for unit tests).
+ *
+ * @param block      The journal block to hold the entry
+ * @param sbn        The slab block number of the entry to encode
+ * @param operation  The type of the entry
+ **/
+void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
+                            SlabBlockNumber         sbn,
+                            JournalOperation        operation);
+
+/**
+ * Decode a slab journal entry.
+ *
+ * @param block       The journal block holding the entry
+ * @param entryCount  The number of the entry
+ *
+ * @return The decoded entry
+ **/
+SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
+                                        JournalEntryCount       entryCount)
+  __attribute__((warn_unused_result));
+
+#endif // SLAB_JOURNAL_INTERNALS_H
