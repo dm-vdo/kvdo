@@ -6,7 +6,7 @@ block storage.
 ## Background
 
 VDO (which includes [kvdo](https://github.com/dm-vdo/kvdo) and
-[vdo](https://github.com/dm-vdo/vdo) is software that provides inline
+[vdo](https://github.com/dm-vdo/vdo)) is software that provides inline
 block-level deduplication, compression, and thin provisioning capabilities for
 primary storage. VDO installs within the Linux device mapper framework, where
 it takes ownership of existing physical block devices and remaps these to new,
@@ -41,11 +41,11 @@ for storing the new block data to ensure that other logical block addresses
 that are mapped to the shared physical block are not modified.
 
 This public source release of VDO includes two kernel modules, and a set of
-userspace tools for managing them. The `kvdo` module implements fine-grained
+userspace tools for managing them. The "kvdo" module implements fine-grained
 storage virtualization, thin provisioning, block sharing, and compression; the
-`uds` module provides memory-efficient duplicate identification. The userspace
-tools include a pair of python scripts, vdo for creating and managing VDO
-volumes, and vdostats for extracting statistics from those volumes.
+"uds" module provides memory-efficient duplicate identification. The userspace
+tools include a pair of python scripts, "vdo" for creating and managing VDO
+volumes, and "vdostats" for extracting statistics from those volumes.
 
 ## Documentation
 
@@ -81,7 +81,7 @@ technology itself is thoroughly tested, mature, and in production use since
 In order to build the kernel modules, invoke the following command
 from the top directory of this tree:
 
-  make -C /usr/src/kernels/<version> M=`pwd`
+  make -C /usr/src/kernels/<version> M=\`pwd\`
 
 ## Communication channels
 
