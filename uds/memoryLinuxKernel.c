@@ -24,6 +24,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>     // needed for SQUEEZE builds
 #include <linux/vmalloc.h>
+#include <linux/version.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -210,7 +211,11 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
    * measures to satisfy the request.  The extreme measure that we want to
    * avoid is the invocation of the OOM killer.
    */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  gfp_t gfpFlags = __GFP_NORETRY | __GFP_RETRY_MAYFAIL | __GFP_ZERO;
+#else
   gfp_t gfpFlags = __GFP_NORETRY | __GFP_REPEAT | __GFP_ZERO;
+#endif
   if (allocationsAllowed()) {
     /*
      * Setup or teardown, when the VDO device isn't active, or a non-critical
