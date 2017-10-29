@@ -96,7 +96,11 @@ void acquireSemaphore(Semaphore  *semaphore,
     waiter.up   = false;
     list_add_tail(&waiter.list, &sem->waitList);
     while (!waiter.up) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+      __set_current_state(TASK_INTERRUPTIBLE);
+#else
       __set_task_state(task, TASK_INTERRUPTIBLE);
+#endif
       RAW_SPIN_UNLOCK_IRQ(&sem->lock);
       schedule_timeout(MAX_SCHEDULE_TIMEOUT);
       RAW_SPIN_LOCK_IRQ(&sem->lock);
@@ -126,7 +130,11 @@ bool attemptSemaphore(Semaphore *semaphore,
     waiter.up   = false;
     list_add_tail(&waiter.list, &sem->waitList);
     ktime_t ktime = ktime_set(0, hrTimeout);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+      __set_current_state(TASK_INTERRUPTIBLE);
+#else
     __set_task_state(task, TASK_UNINTERRUPTIBLE);
+#endif
     RAW_SPIN_UNLOCK_IRQ(&sem->lock);
     schedule_hrtimeout(&ktime, HRTIMER_MODE_REL);
     RAW_SPIN_LOCK_IRQ(&sem->lock);
