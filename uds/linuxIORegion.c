@@ -199,7 +199,11 @@ static int lior_bio_submit(struct bio *bio, int rw)
   LinuxIOCompletion lioc = { .result = UDS_SUCCESS, .wait = &wait };
   bio->bi_end_io  = lior_endio;
   bio->bi_private = &lioc;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  submit_bio(bio);
+#else
   submit_bio(rw, bio);
+#endif
   wait_for_completion(&wait);
   return lioc.result;
 }
