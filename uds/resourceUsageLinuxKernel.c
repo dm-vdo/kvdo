@@ -20,6 +20,12 @@
  */
 
 #include <linux/sched.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+#include <linux/sched/signal.h>
+#endif
+
 #include <linux/task_io_accounting_ops.h>
 
 #include "logger.h"
