@@ -215,7 +215,9 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
   // Discard hints
   limits->max_discard_sectors = maxDiscardSectors;
   limits->discard_granularity = VDO_BLOCK_SIZE;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,12,0)
   limits->discard_zeroes_data = 1;
+#endif
 }
 
 /**********************************************************************/
@@ -246,6 +248,7 @@ static int vdoIterateDevices(struct dm_target           *ti,
 
   q->flush_flags = flush_flags;
   return result;
+
 #endif /* HAS_FLUSH_SUPPORTED */
 }
 
