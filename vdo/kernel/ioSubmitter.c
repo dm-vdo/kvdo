@@ -85,7 +85,9 @@ void completeAsyncBio(BIO *bio)
 void completeAsyncBio(BIO *bio, int error)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  int error = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   int error = bio->bi_error;
 #endif
   KVIO *kvio = (KVIO *) bio->bi_private;

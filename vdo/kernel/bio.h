@@ -110,6 +110,7 @@ static inline bool isFUABio(BIO *bio)
 /**********************************************************************/
 static inline bool isReadBio(BIO *bio)
 {
+
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return !bio_rw_flagged(bio, BIO_RW);
 #else
@@ -203,7 +204,10 @@ static inline sector_t getBioSector(BIO *bio)
  **/
 static inline void completeBio(BIO *bio, int error)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  bio->bi_status = error;
+  bio_endio(bio);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   bio->bi_error = error;
   bio_endio(bio);
 #else

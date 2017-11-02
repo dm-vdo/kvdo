@@ -167,7 +167,9 @@ static void lior_endio(struct bio *bio, int err)
 #endif
 {
   LinuxIOCompletion *lioc = (LinuxIOCompletion *)bio->bi_private;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  lioc->result = -bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   lioc->result = -bio->bi_error;
 #else
   lioc->result = -err;

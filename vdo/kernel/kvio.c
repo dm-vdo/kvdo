@@ -184,7 +184,9 @@ static void completeFlushBio(BIO *bio, int error)
   bio->bi_vcnt = 1;
   // Restore the bio's notion of its own data.
   resetBio(bio, kvio->layer);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  kvdoContinueKvio(kvio, bio->bi_status);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   kvdoContinueKvio(kvio, bio->bi_error);
 #else
   kvdoContinueKvio(kvio, error);

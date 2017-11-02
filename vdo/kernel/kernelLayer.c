@@ -429,7 +429,9 @@ static void endSyncRead(BIO *bio)
 static void endSyncRead(BIO *bio, int result)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  int result = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   int result = bio->bi_error;
 #endif
 
@@ -474,7 +476,9 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   setBioSector(bio, blockToSector(kernelLayer, startBlock));
   generic_make_request(bio);
   wait_for_completion(&bioWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  if (bio->bi_status != 0) {
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   if (bio->bi_error != 0) {
 #else
   if (!bio_flagged(bio, BIO_UPTODATE)) {
