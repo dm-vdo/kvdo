@@ -124,7 +124,11 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 
   int error
     = mapToSystemError(dataVIOAsCompletion(&dataKVIO->dataVIO)->result);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf = externalIORequest->rw;
+#else
   bio->bi_rw = externalIORequest->rw;
+#endif
   if (isFUABio(bio) && (error == 0) && shouldProcessFlush(layer)) {
     // The original I/O asked for Forced Unit Access.
     // Convert the bio into an empty flush and start it again.
@@ -133,7 +137,11 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
     // Restore the original I/O flags again so we can account properly for the
     // bio acknowledgement when the flush completes. It will be made into an
     // empty flush again after that.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio->bi_opf = externalIORequest->rw;
+#else
     bio->bi_rw = externalIORequest->rw;
+#endif
     launchKVDOFlush(layer, bio);
     return;
   }
@@ -367,7 +375,12 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
 
   KVIO *kvio  = dataVIOAsKVIO(dataVIO);
   BIO  *bio   = kvio->bio;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf |= WRITE;
+#else
   bio->bi_rw |= WRITE;
+#endif
   setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
   invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_DATA);
 }
@@ -391,7 +404,11 @@ void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
 
   dataVIO->isZeroBlock               = bioIsZeroData(dataKVIO->dataBlockBio);
   dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  dataKVIO->dataBlockBio->bi_opf     = bio->bi_opf & ~bioDiscardRWMask();
+#else
   dataKVIO->dataBlockBio->bi_rw      = bio->bi_rw & ~bioDiscardRWMask();
+#endif
 }
 
 /**********************************************************************/
@@ -542,12 +559,20 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
     .bio         = bio,
     .private     = bio->bi_private,
     .endIO       = bio->bi_end_io,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    .rw          = bio->bi_opf,
+#else
     .rw          = bio->bi_rw,
+#endif
   };
 
   // We will handle FUA at the end of the request (after we restore the
   // bi_rw field from externalIORequest.rw).
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf &= ~bioFuaRWMask();
+#else
   bio->bi_rw &= ~bioFuaRWMask();
+#endif
 
   DataKVIO *dataKVIO = NULL;
   int       result   = makeDataKVIO(layer, bio, &dataKVIO);
@@ -593,9 +618,17 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
      */
     dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
     if (dataKVIO->isPartial && isWriteBio(bio)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+      dataKVIO->dataBlockBio->bi_opf = READ;
+#else
       dataKVIO->dataBlockBio->bi_rw = READ;
+#endif
     } else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+      dataKVIO->dataBlockBio->bi_opf = bio->bi_opf;
+#else
       dataKVIO->dataBlockBio->bi_rw = bio->bi_rw;
+#endif
     }
     dataKVIOAsKVIO(dataKVIO)->bio = dataKVIO->dataBlockBio;
     dataKVIO->readBlock.data      = dataKVIO->dataBlock;
@@ -649,7 +682,11 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
   VIOOperation operation;
   if (dataKVIO->isPartial) {
     operation  = VIO_READ_MODIFY_WRITE;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio->bi_opf = READ;
+#else
     bio->bi_rw = READ;
+#endif
   } else {
     operation  = VIO_WRITE;
   }

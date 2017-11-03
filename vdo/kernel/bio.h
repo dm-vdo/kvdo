@@ -52,6 +52,8 @@ static inline unsigned long bioDiscardRWMask(void)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return BIO_DISCARD;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return REQ_OP_DISCARD;
 #else
   return REQ_DISCARD;
 #endif
@@ -82,6 +84,8 @@ static inline bool isDiscardBio(BIO *bio)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return (bio != NULL) && bio_rw_flagged(bio, BIO_RW_DISCARD);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
 #else
   return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
 #endif
@@ -92,6 +96,8 @@ static inline bool isFlushBio(BIO *bio)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW_FLUSH);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (bio->bi_opf & REQ_OP_FLUSH) != 0;
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
@@ -102,6 +108,8 @@ static inline bool isFUABio(BIO *bio)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW_FUA);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (bio->bi_opf & REQ_FUA) != 0;
 #else
   return (bio->bi_rw & REQ_FUA) != 0;
 #endif
@@ -113,6 +121,8 @@ static inline bool isReadBio(BIO *bio)
 
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return !bio_rw_flagged(bio, BIO_RW);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (op_is_write(bio_op(bio))) == 0;
 #else
   return (bio->bi_rw & REQ_WRITE) == 0;
 #endif
@@ -123,6 +133,8 @@ static inline bool isEmptyFlush(BIO *bio)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
   return bio_empty_barrier(bio) || bio_rw_flagged(bio, BIO_RW_FLUSH);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (bio->bi_opf & REQ_OP_FLUSH) != 0;
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
@@ -133,6 +145,8 @@ static inline bool isWriteBio(BIO *bio)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  return (op_is_write(bio_op(bio))) != 0;
 #else
   return (bio->bi_rw & REQ_WRITE) != 0;
 #endif

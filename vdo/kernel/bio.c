@@ -316,7 +316,14 @@ void prepareFlushBIO(BIO                 *bio,
                      struct block_device *device,
                      bio_end_io_t        *endIOCallback)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio_set_op_attrs(bio, 0, REQ_PREFLUSH);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf     = WRITE_FLUSH;
+#else
   bio->bi_rw      = WRITE_FLUSH;
+#endif
+
   bio->bi_end_io  = endIOCallback;
   bio->bi_private = context;
   bio->bi_vcnt    = 0;

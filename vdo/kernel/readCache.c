@@ -1099,7 +1099,13 @@ void kvdoReadBlock(DataVIO             *dataVIO,
     BIO *bio = readBlock->bio;
     resetBio(bio, layer);
     setBioSector(bio, blockToSector(layer, location));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+    bio_set_op_attrs(bio, REQ_OP_READ, 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio->bi_opf    = READ;
+#else
     bio->bi_rw     = READ;
+#endif
     bio->bi_end_io = readBioCallback;
     BUG_ON(bio->bi_bdev != layer->dev->bdev);
     submitBio(bio, action);
