@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/buffer.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/buffer.c#3 $
  */
 
 #include "buffer.h"
@@ -95,7 +95,7 @@ size_t bufferLength(Buffer *buffer)
 }
 
 /**********************************************************************/
-inline size_t contentLength(Buffer *buffer)
+size_t contentLength(Buffer *buffer)
 {
   return buffer->end - buffer->start;
 }
@@ -107,7 +107,7 @@ size_t uncompactedAmount(Buffer *buffer)
 }
 
 /**********************************************************************/
-inline size_t availableSpace(Buffer *buffer)
+size_t availableSpace(Buffer *buffer)
 {
   return buffer->length - buffer->end;
 }

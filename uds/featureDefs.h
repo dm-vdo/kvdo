@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/featureDefs.h#2 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/featureDefs.h#3 $
  */
 
 #ifndef LINUX_KERNEL_FEATURE_DEFS_H
@@ -24,7 +24,6 @@
 
 #define DESTRUCTOR     0 // No program destructors
 #define ENVIRONMENT    0 // No environment variables
-#define FLOATING_POINT 0 // No floating point
 #define GRID           0 // No grid
 #define HISTOGRAMS     0 // Include no histograms
 #define NAMESPACES     0 // No namespace support

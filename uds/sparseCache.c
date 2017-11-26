@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/sparseCache.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/sparseCache.c#3 $
  */
 
 /**
@@ -117,7 +117,6 @@
 #include "permassert.h"
 #include "searchList.h"
 #include "threads.h"
-#include "util/statistic.h"
 #include "zone.h"
 
 enum {
@@ -155,27 +154,6 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sparseCacheCounters {
 } SparseCacheCounters;
 
 /**
- * These statistic are essentially fields of the SparseCache, but are
- * segregated into this structure because they are frequently modified. We
- * group them and align them to keep them on different cache lines from the
- * cache fields that are accessed far more often than they are updated.
- **/
-struct __attribute__((aligned(CACHE_LINE_BYTES))) sparseCacheStatistics {
-  /** samples the total number of search hits in each cache entry */
-  Statistic searchHitsPerChapter;
-
-  /** samples the total number of search misses in each cache entry */
-  Statistic searchMissesPerChapter;
-
-  /** samples the number of chapters searched for each search hit */
-  Statistic chaptersSearchedPerHit;
-
-  /** samples the number of chapters searched for each search miss */
-  Statistic chaptersSearchedPerMiss;
-};
-typedef struct sparseCacheStatistics SparseCacheStatistics;
-
-/**
  * This is the private structure definition of a SparseCache.
  **/
 struct sparseCache {
@@ -200,9 +178,6 @@ struct sparseCache {
 
   /** frequently-updated counter fields (cache-aligned) */
   SparseCacheCounters    counters;
-
-  /** frequently-updated statistics (cache-aligned) */
-  SparseCacheStatistics  statistics;
 
   /** the counted array of chapter index cache entries (cache-aligned) */
   CachedChapterIndex     chapters[];
@@ -254,12 +229,6 @@ static int initializeSparseCache(SparseCache    *cache,
       return result;
     }
   }
-
-  resetStatistic(&cache->statistics.searchHitsPerChapter);
-  resetStatistic(&cache->statistics.searchMissesPerChapter);
-  resetStatistic(&cache->statistics.chaptersSearchedPerHit);
-  resetStatistic(&cache->statistics.chaptersSearchedPerMiss);
-
   return UDS_SUCCESS;
 }
 
@@ -337,15 +306,6 @@ static void scoreEviction(SparseCache        *cache,
   if (!chapter->invalid) {
     cache->counters.evictions += 1;
   }
-  /*
-   * Capture the hit/miss statistics from both evicted and invalidated
-   * chapters--there's really no need to distinguish them, and it's safe to do
-   * now since the zone zero thread is peforming the cache update.
-   */
-  sampleStatistic(&cache->statistics.searchHitsPerChapter,
-                  chapter->counters.searchHits);
-  sampleStatistic(&cache->statistics.searchMissesPerChapter,
-                  chapter->counters.searchMisses);
 }
 
 /**
@@ -400,15 +360,6 @@ void freeSparseCache(SparseCache *cache)
     scoreEviction(cache, chapter);
     destroyCachedChapterIndex(chapter);
   }
-
-  logStatistic(&cache->statistics.searchHitsPerChapter,
-               "sparseCache searchHitsPerChapter");
-  logStatistic(&cache->statistics.searchMissesPerChapter,
-               "sparseCache searchMissesPerChapter");
-  logStatistic(&cache->statistics.chaptersSearchedPerHit,
-               "sparseCache chaptersSearchedPerHit");
-  logStatistic(&cache->statistics.chaptersSearchedPerMiss,
-               "sparseCache chaptersSearchedPerMiss");
 
   destroyBarrier(&cache->beginCacheUpdate);
   destroyBarrier(&cache->endCacheUpdate);
@@ -612,8 +563,6 @@ int searchSparseCache(SparseCache        *cache,
     // Did we find an index entry for the name?
     if (*recordPagePtr != NO_CHAPTER_INDEX_ENTRY) {
       if (zoneNumber == ZONE_ZERO) {
-        sampleStatistic(&cache->statistics.chaptersSearchedPerHit,
-                        chaptersSearched);
         scoreSearchHit(cache, chapter);
       }
 
@@ -636,13 +585,6 @@ int searchSparseCache(SparseCache        *cache,
       // was no match, so we're done.
       break;
     }
-  }
-
-  // Don't bother sampling if we didn't search any chapters. Those misses are
-  // very cheap, and the statistic is more informative without all the zeros.
-  if ((zoneNumber == ZONE_ZERO) && (chaptersSearched > 0)) {
-    sampleStatistic(&cache->statistics.chaptersSearchedPerMiss,
-                    chaptersSearched);
   }
 
   // The name was not found in the cache.

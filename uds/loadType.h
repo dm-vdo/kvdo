@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/loadType.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/loadType.h#3 $
  */
 
 #ifndef LOAD_TYPE_H
@@ -25,7 +25,7 @@
 /**
  * Methods of starting the index.
  * Generally, higher valued flags take precedence over lower ones.
- * (Keep logLoadType() in sync.)
+ * (Keep getLoadType() in sync.)
  **/
 typedef enum {
   LOAD_UNDEFINED = 0,
@@ -36,10 +36,10 @@ typedef enum {
 } LoadType;
 
 /**
- * Log a message indicating how an index is to be loaded.
+ * get a string indicating how an index is to be loaded.
  *
  * @param loadType    The load type to log
  **/
-void logLoadType(LoadType loadType);
+const char *getLoadType(LoadType loadType);
 
 #endif /* LOAD_TYPE_H */

@@ -16,15 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/indexLayoutLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/indexLayoutLinuxKernel.c#5 $
  */
 
 #include "indexLayout.h"
 #include "indexLayoutParser.h"
+#include "linuxIORegion.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "singleFileLayout.h"
-#include "linuxIORegion.h"
+#ifdef TEST_INTERNAL
+#include "doryIORegion.h"
+#endif /* TEST_INTERNAL */
 
 /*****************************************************************************/
 int makeIndexLayout(const char              *name,
@@ -81,6 +84,14 @@ int makeIndexLayout(const char              *name,
     closeIORegion(&region);
     return result;
   }
+
+#ifdef TEST_INTERNAL
+  result = openDoryRegion(region, &region);
+  if (result != UDS_SUCCESS) {
+    closeIORegion(&region);
+    return result;
+  }
+#endif /* TEST_INTERNAL */
 
   if (newLayout) {
     result = createSingleFileLayout(region, offset, size, config, layoutPtr);

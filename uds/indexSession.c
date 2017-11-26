@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#4 $
  */
 
 #include "indexSession.h"
@@ -116,8 +116,8 @@ int saveAndFreeIndexSession(IndexSession *indexSession)
   if (result != UDS_SUCCESS) {
     logInfoWithStringError(result, "ignoring error from saveIndexSession");
   }
-  logNotice("Closed index session (%u, %p)",
-            indexSession->session.id, (void *) indexSession);
+  logDebug("Closed index session (%u, %p)", indexSession->session.id,
+           (void *) indexSession);
   FREE(indexSession);
   return result;
 }
@@ -137,8 +137,8 @@ int udsCloseIndexSession(UdsIndexSession session)
   IndexSession *indexSession
     = (IndexSession *) getSessionContents(baseSession);
 
-  logNotice("Closing index session (%u, %p)",
-            session.id, (void *) indexSession);
+  logDebug("Closing index session (%u, %p)", session.id,
+           (void *) indexSession);
   finishSession(indexSessionGroup, &indexSession->session);
   result = saveAndFreeIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);

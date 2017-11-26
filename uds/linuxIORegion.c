@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/linuxIORegion.c#3 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/linuxIORegion.c#4 $
  */
 
 #include "linuxIORegion.h"
@@ -314,20 +314,6 @@ static int lior_syncContents(IORegion *region __attribute__((unused)))
 }
 
 /*****************************************************************************/
-
-static const IORegionOps linuxIORegionOps = {
-  .close        = lior_close,
-  .getLimit     = lior_getLimit,
-  .getDataSize  = lior_getDataSize,
-  .clear        = lior_clear,
-  .write        = lior_write,
-  .read         = lior_read,
-  .getBlockSize = lior_getBlockSize,
-  .getBestSize  = lior_getBestSize,
-  .syncContents = lior_syncContents,
-};
-
-/*****************************************************************************/
 int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
 {
   if (size % SECTOR_SIZE != 0) {
@@ -357,10 +343,18 @@ int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
   }
   memset(buf, 0, PAGE_SIZE);
 
-  lior->common.ops = &linuxIORegionOps;
-  lior->bdev       = bdev;
-  lior->size       = size;
-  lior->zeroBlock  = buf;
-  *regionPtr       = &lior->common;
+  lior->common.clear        = lior_clear;
+  lior->common.close        = lior_close;
+  lior->common.getBestSize  = lior_getBestSize;
+  lior->common.getBlockSize = lior_getBlockSize;
+  lior->common.getDataSize  = lior_getDataSize;
+  lior->common.getLimit     = lior_getLimit;
+  lior->common.read         = lior_read;
+  lior->common.syncContents = lior_syncContents;
+  lior->common.write        = lior_write;
+  lior->bdev      = bdev;
+  lior->size      = size;
+  lior->zeroBlock = buf;
+  *regionPtr = &lior->common;
   return UDS_SUCCESS;
 }

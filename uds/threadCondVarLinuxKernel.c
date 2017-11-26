@@ -16,11 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadCondVarLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadCondVarLinuxKernel.c#3 $
  */
 
-#include "threadCondVar.h"
-#include "threadMutex.h"
+#include "threads.h"
 #include "timeUtils.h"
 #include "uds-error.h"
 

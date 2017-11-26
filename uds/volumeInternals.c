@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volumeInternals.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volumeInternals.c#3 $
  */
 
 #include "volumeInternals.h"
@@ -285,9 +285,7 @@ int doneWithVolume(Volume *volume)
 }
 
 /**********************************************************************/
-inline int mapToPhysicalPage(Geometry *geometry,
-                             int       chapter,
-                             int       page)
+int mapToPhysicalPage(Geometry *geometry, int chapter, int page)
 {
   // Page zero is the header page, so the first index page in the
   // first chapter is physical page one.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLayout.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLayout.c#2 $
  */
 
 #include "vdoLayout.h"
@@ -63,6 +63,13 @@ static int makeVDOFixedLayout(BlockCount            physicalBlocks,
                               BlockCount            summaryBlocks,
                               FixedLayout         **layoutPtr)
 {
+  BlockCount necessarySize
+    = (startingOffset + blockMapBlocks + journalBlocks + summaryBlocks);
+  if (necessarySize > physicalBlocks) {
+    return logErrorWithStringError(VDO_NO_SPACE, "Not enough space to"
+                                   " make a VDO");
+  }
+
   FixedLayout *layout;
   int result = makeFixedLayout(physicalBlocks - startingOffset,
                                startingOffset, &layout);
@@ -142,6 +149,7 @@ int makeVDOLayout(BlockCount            physicalBlocks,
                               journalBlocks, summaryBlocks, &vdoLayout->layout);
   if (result != VDO_SUCCESS) {
     freeVDOLayout(&vdoLayout);
+    return result;
   }
 
   vdoLayout->startingOffset = startingOffset;

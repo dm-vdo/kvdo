@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/vdoStringUtils.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/vdoStringUtils.c#3 $
  */
 
 #include "vdoStringUtils.h"
@@ -24,58 +24,9 @@
 #include "errors.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "stringUtils.h"
 
 #include "statusCodes.h"
-
-#ifdef NEVER
-
-/**********************************************************************/
-int wrapVsnprintf(const char *what,
-                  char       *buf,
-                  size_t      bufSize,
-                  int         error,
-                  const char *fmt,
-                  va_list     ap,
-                  size_t     *needed)
-{
-  if (buf == NULL) {
-    static char nobuf[1];
-    buf = nobuf;
-    bufSize = 0;
-  }
-  int n = vsnprintf(buf, bufSize, fmt, ap);
-  if (n < 0) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: vsnprintf failed", what);
-  }
-  if (needed) {
-    *needed = n;
-  }
-  if (((size_t) n >= bufSize) && (buf != NULL) && (error != UDS_SUCCESS)) {
-    return logErrorWithStringError(error, "%s: string too long", what);
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int fixedSprintf(const char *what,
-                 char       *buf,
-                 size_t      bufSize,
-                 int         error,
-                 const char *fmt,
-                 ...)
-{
-  if (buf == NULL) {
-    return UDS_INVALID_ARGUMENT;
-  }
-  va_list args;
-  va_start(args, fmt);
-  int result = wrapVsnprintf(what, buf, bufSize, error, fmt, args, NULL);
-  va_end(args);
-  return result;
-}
-
-#endif // NEVER
 
 /**********************************************************************/
 char *vAppendToBuffer(char       *buffer,
@@ -199,44 +150,18 @@ int joinStrings(char   **substringArray,
 }
 
 /**********************************************************************/
-int stringToUInt(const char *input, char **end, unsigned int *valuePtr)
+int stringToUInt(const char *input, unsigned int *valuePtr)
 {
-  // Result is 32 bits, interval values are 64 bits; this simplifies
-  // overflow checks.
-  STATIC_ASSERT(((UINT64_MAX - 9) / 10) > UINT_MAX);
-  const char *initialInput = input;
-  uint64_t value = 0;
-  while ((*input >= '0') && (*input <= '9')) {
-    unsigned int thisDigit = *input - '0';
-    value = value * 10 + thisDigit;
-    if (value > UINT_MAX) {
-      return -EINVAL;
-    }
-    input++;
-  }
-  if (input == initialInput) {
-    // No digits found at all.
-    return -EINVAL;
-  }
-  *end = (char *) input;
-  *valuePtr = value;
-  return UDS_SUCCESS;
-}
-
-#ifdef NEVER
-
-/**********************************************************************/
-int duplicateString(const char *string, const char *what, char **newString)
-{
-  size_t size = strlen(string) + 1;
-  char *dup;
-  int result = ALLOCATE(size, char, what, &dup);
-  if (result != UDS_SUCCESS) {
+  unsigned long longValue;
+  int result = kstrtoul(input, 10, &longValue);
+  if (result != 0) {
     return result;
   }
-  memcpy(dup, string, size);
-  *newString = dup;
+
+  if (longValue > UINT_MAX) {
+    return -ERANGE;
+  }
+
+  *valuePtr = longValue;
   return UDS_SUCCESS;
 }
-
-#endif // NEVER

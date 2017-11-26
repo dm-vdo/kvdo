@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/types.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/types.h#2 $
  */
 
 #ifndef TYPES_H
@@ -362,6 +362,7 @@ typedef struct flusher             Flusher;
 typedef struct forest              Forest;
 typedef struct hashLock            HashLock;
 typedef struct hashZone            HashZone;
+typedef struct indexConfig         IndexConfig;
 typedef struct inputBin            InputBin;
 typedef struct lbnLock             LBNLock;
 typedef struct lockCounter         LockCounter;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/deltaIndex.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/deltaIndex.c#3 $
  */
 #include "deltaIndex.h"
 
@@ -1156,7 +1156,7 @@ int nextDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
 }
 
 /**********************************************************************/
-inline int rememberDeltaIndexOffset(const DeltaIndexEntry *deltaEntry)
+int rememberDeltaIndexOffset(const DeltaIndexEntry *deltaEntry)
 {
   int result = ASSERT(!deltaEntry->isCollision, "entry is not a collision");
   if (result != UDS_SUCCESS) {

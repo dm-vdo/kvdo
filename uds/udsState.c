@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsState.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsState.c#5 $
  */
 
 #include "udsState.h"
@@ -131,7 +131,7 @@ static int initializeHashQueues(void)
     return result;
   }
   for (int i = 0; i < numCores; i++) {
-    result = makeRequestQueue("hashWorker", &computeHash, &hashQueues[i]);
+    result = makeRequestQueue("uds:hashW", &computeHash, &hashQueues[i]);
     if (result != UDS_SUCCESS) {
       for (int j = 0; j < i; j++) {
         requestQueueFinish(hashQueues[i]);
@@ -206,7 +206,7 @@ int initializeRemoteQueue(void)
   if (udsState.remoteQueue == NULL) {
     lockMutex(&udsState.mutex);
     if (udsState.remoteQueue == NULL) {
-      ret = makeRequestQueue("remoteIndexWorker", &remoteIndexRequestProcessor,
+      ret = makeRequestQueue("uds:remoteW", &remoteIndexRequestProcessor,
                              &udsState.remoteQueue);
     }
     unlockMutex(&udsState.mutex);
@@ -318,7 +318,7 @@ static void forceFreeIndexSession(SessionContents contents)
 /**********************************************************************/
 static int udsInitializeLocked(void)
 {
-  int result = makeRequestQueue("callbackWorker", &handleCallbacks,
+  int result = makeRequestQueue("uds:callbackW", &handleCallbacks,
                                 &udsState.callbackQueue);
   if (result != UDS_SUCCESS) {
     return result;
@@ -346,9 +346,6 @@ static int udsInitializeOnce(void)
   ensureStandardErrorBlocks();
   openLogger();
   createCallbackThread();
-
-  logNotice("UDS starting up (%s)", udsGetVersion());
-
   memset(&udsState, 0, sizeof(udsState));
   strncpy(udsState.cookie, "udsStateCookie", sizeof(udsState.cookie));
 #ifdef UDS_VERSION
@@ -424,8 +421,6 @@ static void udsShutdownOnce(void)
   requestQueueFinish(udsState.callbackQueue);
   udsState.callbackQueue = NULL;
   unlockMutex(&udsState.mutex);
-
-  logNotice("UDS shutting down (%s)", udsGetVersion());
 
   destroyMutex(&udsState.mutex);
   closeLogger();

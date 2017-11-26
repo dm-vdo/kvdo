@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#4 $
  */
 
 #include "localIndexRouter.h"
@@ -183,7 +183,7 @@ static int initializeLocalIndexQueues(LocalIndexRouter *router,
   }
 
   for (unsigned int i = 0; i < router->zoneCount; i++) {
-    result = makeRequestQueue("zoneIndexWorker", &executeZoneRequest,
+    result = makeRequestQueue("indexW", &executeZoneRequest,
                               &router->zoneQueues[i]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -192,8 +192,7 @@ static int initializeLocalIndexQueues(LocalIndexRouter *router,
 
   // The triage queue is only needed for sparse multi-zone indexes.
   if ((router->zoneCount > 1) && isSparse(geometry)) {
-    result = makeRequestQueue("triageWorker", &triageRequest,
-                              &router->triageQueue);
+    result = makeRequestQueue("triageW", &triageRequest, &router->triageQueue);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -371,7 +370,7 @@ static int getRouterStatistics(IndexRouter             *header,
   counters->collisions       = indexStats.collisions;
   counters->entriesDiscarded = indexStats.entriesDiscarded;
   counters->checkpoints      = indexStats.checkpoints;
-  addCacheCounters(&counters->volumeCache, indexStats.volumeCache);
+  addCacheCounters(&counters->volumeCache, &indexStats.volumeCache);
   return UDS_SUCCESS;
 }
 

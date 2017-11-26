@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/masterIndex005.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/masterIndex005.c#3 $
  */
 #include "masterIndex005.h"
 
@@ -630,11 +630,14 @@ static void removeNewestChapters(MasterIndex5 *mi5,
     range.chapterStart = convertVirtualToIndex(mi5, virtualChapter);
     range.chapterCount = (mi5->chapterMask + 1
                           - (virtualChapter - masterZone->virtualChapterLow));
-    MasterIndexRecord record;
     UdsChunkName name;
     memset(&name, 0, sizeof(UdsChunkName));
-    record.masterIndex = &mi5->common;
-    record.name        = &name;
+    MasterIndexRecord record = (MasterIndexRecord) {
+      .magic       = masterIndexRecordMagic,
+      .masterIndex = &mi5->common,
+      .name        = &name,
+      .zoneNumber  = zoneNumber,
+    };
     for (unsigned int i = firstList; i <= lastList; i++) {
       ChapterRange tempRange = range;
       getMasterIndexEntry(&record, i, 0, &tempRange);

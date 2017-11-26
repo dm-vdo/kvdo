@@ -16,13 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.h#2 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
 #define VOLUME_GEOMETRY_H
 
+#include "uds.h"
+
 #include "types.h"
+
+struct indexConfig {
+  uint32_t mem;
+  uint32_t checkpointFrequency;
+  bool     sparse;
+  } __attribute__((packed));
 
 typedef enum {
   INDEX_REGION = 0,
@@ -45,6 +53,8 @@ typedef struct {
   Nonce           nonce;
   /** The partitions in ID order */
   VolumePartition partitions[VOLUME_REGION_COUNT];
+  /** The index config */
+  IndexConfig     indexConfig;
 } __attribute__((packed)) VolumeGeometry;
 
 /**
@@ -59,15 +69,27 @@ __attribute__((warn_unused_result));
 /**
  * Write a geometry block for a VDO.
  *
- * @param layer      The layer for the VDO
- * @param nonce      The nonce for the VDO
- * @param indexSize  The size, in blocks, for the index
+ * @param layer        The layer for the VDO
+ * @param nonce        The nonce for the VDO
+ * @param indexConfig  The index config of the VDO.
  *
  * @return VDO_SUCCESS or an error
  **/
 int writeVolumeGeometry(PhysicalLayer *layer,
                         Nonce          nonce,
-                        BlockCount     indexSize)
+                        IndexConfig   *indexConfig)
+__attribute__((warn_unused_result));
+
+/**
+ * Convert a index config to a UDS configuration, which can be used by UDS.
+ *
+ * @param [in]  indexConfig   The index config to convert
+ * @param [out] udsConfigPtr  A pointer to return the UDS configuration
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
+                                  UdsConfiguration *udsConfigPtr)
 __attribute__((warn_unused_result));
 
 #endif // VOLUME_GEOMETRY_H

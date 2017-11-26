@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/context.c#3 $
  */
 
 #include "context.h"
@@ -175,9 +175,8 @@ int openContext(UdsIndexSession     session,
                                  &context->session,
                                  (SessionContents) context);
   context->id = *contextID;
-  logNotice("Opened %s context (%u)",
-            contextTypeToString(context->type),
-            *contextID);
+  logDebug("Opened %s context (%u)", contextTypeToString(context->type),
+           *contextID);
   releaseBaseContext(context);
   releaseSessionGroup(contextGroup);
   unlockGlobalStateMutex();
@@ -296,9 +295,8 @@ int closeContext(unsigned int contextId, ContextType contextType)
   }
 
   finishSession(contextGroup, &context->session);
-  logNotice("Closed %s context (%u)",
-            contextTypeToString(context->type),
-            contextId);
+  logDebug("Closed %s context (%u)", contextTypeToString(context->type),
+           contextId);
 
   freeContext(context);
   releaseSessionGroup(contextGroup);

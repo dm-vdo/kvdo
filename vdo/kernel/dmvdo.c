@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#2 $
  */
 
 #include "dmvdo.h"
@@ -680,11 +680,13 @@ static int vdoInitialize(struct dm_target *ti,
   }
 
   struct request_queue *requestQueue = bdev_get_queue(dev->bdev);
-  logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
-          (((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH)
-           ? "supported" : "not supported"),
-          (((requestQueue->flush_flags & REQ_FUA) == REQ_FUA)
-           ? "supported" : "not supported"));
+  logDebug("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
+           (((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH)
+            ? "supported"
+            : "not supported"),
+           (((requestQueue->flush_flags & REQ_FUA) == REQ_FUA)
+            ? "supported"
+            : "not supported"));
 
   uint64_t   blockSize      = VDO_BLOCK_SIZE;
   uint64_t   logicalSize    = to_bytes(ti->len);

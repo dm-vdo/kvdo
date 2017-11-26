@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/loadType.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/loadType.c#3 $
  */
 
 #include "loadType.h"
@@ -24,26 +24,18 @@
 #include "logger.h"
 
 /**********************************************************************/
-void logLoadType(LoadType loadType)
+const char *getLoadType(LoadType loadType)
 {
   switch (loadType) {
   case LOAD_CREATE:
-    logNotice("Creating new index.");
-    break;
-
+    return "creating index";
   case LOAD_LOAD:
-    logNotice("Loading index from saved state.");
-    break;
-
+    return "loading index";
   case LOAD_REBUILD:
-    logNotice("Loading index from saved state and rebuilding if necessary.");
-    break;
-
+    return "loading or rebuilding index";
   case LOAD_ATTACH:
-    logNotice("Attaching to a remote index.");
-    break;
-
+    return "attaching to remote index";
   default:
-    logNotice("No load method specified.");
+    return "no load method specified";
   }
 }

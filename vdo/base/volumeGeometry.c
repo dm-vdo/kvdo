@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.c#2 $
  */
 
 #include "volumeGeometry.h"
@@ -24,6 +24,7 @@
 #include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "numeric.h"
 #include "permassert.h"
 
 #include "constants.h"
@@ -36,10 +37,10 @@
 
 enum { GEOMETRY_BLOCK_LOCATION = 0 };
 
-static const Header GEOMETRY_BLOCK_HEADER_1_0 = {
+static const Header GEOMETRY_BLOCK_HEADER_2_0 = {
   .id = GEOMETRY_BLOCK,
   .version = {
-    .majorVersion = 1,
+    .majorVersion = 2,
     .minorVersion = 0,
   },
 
@@ -48,7 +49,7 @@ static const Header GEOMETRY_BLOCK_HEADER_1_0 = {
 };
 
 static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
-  = &GEOMETRY_BLOCK_HEADER_1_0;
+  = &GEOMETRY_BLOCK_HEADER_2_0;
 
 typedef struct {
   Header               header;
@@ -120,10 +121,46 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry **geometryPtr)
   return VDO_SUCCESS;
 }
 
+/**
+ * Compute the index size in blocks from the IndexConfig.
+ *
+ * @param [in]  indexConfig     The index config
+ * @param [out] indexBlocksPtr  A pointer to return the index size in blocks
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+static int computeIndexBlocks(IndexConfig *indexConfig,
+                              BlockCount  *indexBlocksPtr)
+{
+  UdsConfiguration udsConfiguration;
+  int result = indexConfigToUdsConfiguration(indexConfig, &udsConfiguration);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "error creating index config");
+  }
+
+  uint64_t indexBytes;
+  result = udsComputeIndexSize(udsConfiguration, 0, &indexBytes);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "error computing index size");
+  }
+
+  udsFreeConfiguration(udsConfiguration);
+
+  BlockCount indexBlocks = indexBytes / VDO_BLOCK_SIZE;
+  if ((((uint64_t) indexBlocks) * VDO_BLOCK_SIZE) != indexBytes) {
+    return logErrorWithStringError(VDO_PARAMETER_MISMATCH, "index size must be a"
+                                   " multiple of block size %d",
+                                   VDO_BLOCK_SIZE);
+  }
+
+  *indexBlocksPtr = indexBlocks;
+  return VDO_SUCCESS;
+}
+
 /************************************************************************/
 int writeVolumeGeometry(PhysicalLayer *layer,
                         Nonce          nonce,
-                        BlockCount     indexSize)
+                        IndexConfig   *indexConfig)
 {
   char *block;
   int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block",
@@ -133,6 +170,20 @@ int writeVolumeGeometry(PhysicalLayer *layer,
   }
 
   GeometryBlock *geometryBlock = (GeometryBlock *) block;
+
+  BlockCount indexSize = 0;
+  if (indexConfig != NULL) {
+    memcpy(&geometryBlock->geometry.indexConfig, indexConfig,
+           sizeof(*indexConfig));
+
+    result = computeIndexBlocks(indexConfig, &indexSize);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  } else {
+    memset(&geometryBlock->geometry.indexConfig, 0, sizeof(IndexConfig));
+    indexSize = 0;
+  }
 
   geometryBlock->header = *CURRENT_GEOMETRY_BLOCK_HEADER;
   geometryBlock->version = CURRENT_RELEASE_VERSION_NUMBER;
@@ -157,4 +208,27 @@ int writeVolumeGeometry(PhysicalLayer *layer,
   result = layer->writer(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
   FREE(block);
   return result;
+}
+
+/************************************************************************/
+int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
+                                  UdsConfiguration *udsConfigPtr)
+{
+  UdsConfiguration udsConfiguration;
+  int result = udsInitializeConfiguration(&udsConfiguration, indexConfig->mem);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "error initializing configuration");
+  }
+
+  udsConfigurationSetSparse(udsConfiguration, indexConfig->sparse);
+
+  uint32_t cfreq = indexConfig->checkpointFrequency;
+  result = udsConfigurationSetCheckpointFrequency(udsConfiguration, cfreq);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "error setting checkpoint"
+                                   " frequency");
+  }
+
+  *udsConfigPtr = udsConfiguration;
+  return VDO_SUCCESS;
 }

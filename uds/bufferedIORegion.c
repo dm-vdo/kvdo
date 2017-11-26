@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bufferedIORegion.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/bufferedIORegion.c#3 $
  */
 
 #include "bufferedIORegion.h"
@@ -34,48 +34,10 @@ typedef struct bufferedIORegion {
   off_t     position;
 } BufferedIORegion;
 
-static const IORegionOps *getBufferedIORegionOps(void);
-
 /*****************************************************************************/
 static INLINE BufferedIORegion *asBufferedIORegion(IORegion *region)
 {
   return container_of(region, BufferedIORegion, common);
-}
-
-/*****************************************************************************/
-int makeBufferedRegion(Buffer    *buffer,
-                       size_t     bufferSize,
-                       IORegion **regionPtr)
-{
-  BufferedIORegion *bufior = NULL;
-  int result = ALLOCATE(1, BufferedIORegion, "buffered IO region", &bufior);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = UDS_SUCCESS;
-  if (buffer == NULL) {
-    if (bufferSize == 0) {
-      bufferSize = 1024;
-    }
-    result = makeBuffer(bufferSize, &buffer);
-    bufior->myBuffer = true;
-  } else {
-    if (availableSpace(buffer) < bufferSize) {
-      result = growBuffer(buffer, bufferSize);
-    }
-  }
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  bufior->buffer     = buffer;
-  bufior->bufSize    = availableSpace(buffer);
-  bufior->common.ops = getBufferedIORegionOps();
-  bufior->position   = 0;
-
-  *regionPtr = &bufior->common;
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -269,20 +231,44 @@ static int bufior_syncContents(IORegion *region __attribute__((unused)))
 }
 
 /*****************************************************************************/
-
-static const IORegionOps bufferedIORegionOps = {
-  .close        = bufior_close,
-  .getLimit     = bufior_getLimit,
-  .getDataSize  = bufior_getDataSize,
-  .clear        = bufior_clear,
-  .write        = bufior_write,
-  .read         = bufior_read,
-  .getBlockSize = bufior_getBlockSize,
-  .getBestSize  = bufior_getBestSize,
-  .syncContents = bufior_syncContents,
-};
-
-static const IORegionOps *getBufferedIORegionOps(void)
+int makeBufferedRegion(Buffer    *buffer,
+                       size_t     bufferSize,
+                       IORegion **regionPtr)
 {
-  return &bufferedIORegionOps;
+  BufferedIORegion *bufior = NULL;
+  int result = ALLOCATE(1, BufferedIORegion, "buffered IO region", &bufior);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  if (buffer == NULL) {
+    if (bufferSize == 0) {
+      bufferSize = 1024;
+    }
+    result = makeBuffer(bufferSize, &buffer);
+    bufior->myBuffer = true;
+  } else {
+    if (availableSpace(buffer) < bufferSize) {
+      result = growBuffer(buffer, bufferSize);
+    }
+  }
+  if (result != UDS_SUCCESS) {
+    FREE(bufior);
+    return result;
+  }
+
+  bufior->common.clear        = bufior_clear;
+  bufior->common.close        = bufior_close;
+  bufior->common.getBestSize  = bufior_getBestSize;
+  bufior->common.getBlockSize = bufior_getBlockSize;
+  bufior->common.getDataSize  = bufior_getDataSize;
+  bufior->common.getLimit     = bufior_getLimit;
+  bufior->common.read         = bufior_read;
+  bufior->common.syncContents = bufior_syncContents;
+  bufior->common.write        = bufior_write;
+  bufior->buffer   = buffer;
+  bufior->bufSize  = availableSpace(buffer);
+  bufior->position = 0;
+  *regionPtr = &bufior->common;
+  return UDS_SUCCESS;
 }

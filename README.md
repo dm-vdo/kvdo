@@ -81,13 +81,21 @@ technology itself is thoroughly tested, mature, and in production use since
 In order to build the kernel modules, invoke the following command
 from the top directory of this tree:
 
-  make -C /usr/src/kernels/<version> M=\`pwd\`
+        make -C /usr/src/kernels/`uname -r` M=`pwd`
 
 ## Communication channels
 
 Community feedback, participation and patches are welcome to the
 vdo-devel@redhat.com mailing list -- subscribe
 [here](https://www.redhat.com/mailman/listinfo/vdo-devel).
+
+## Contributing
+
+This project is currently a stepping stone towards integration with the Linux
+kernel. As such, contributions are welcome via a process similar to that for
+Linux kernel development. Patches should be submitted to the
+vdo-devel@redhat.com mailing list, where they will be considered for
+inclusion. This project does not accept pull requests.
 
 ## Licensing
 
