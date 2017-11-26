@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bufferedWriter.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/bufferedWriter.c#3 $
  */
 
 #include "bufferedWriter.h"
@@ -99,7 +99,7 @@ static INLINE size_t spaceUsedInBuffer(BufferedWriter *bw)
 }
 
 /*****************************************************************************/
-inline size_t spaceRemainingInWriteBuffer(BufferedWriter *bw)
+size_t spaceRemainingInWriteBuffer(BufferedWriter *bw)
 {
   return bw->bw_size - spaceUsedInBuffer(bw);
 }

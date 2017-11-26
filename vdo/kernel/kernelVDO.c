@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#2 $
  */
 
 #include "kernelVDOInternals.h"
@@ -557,7 +557,6 @@ void enqueueKVIO(KVIO             *kvio,
                  unsigned int      action)
 {
   ThreadID threadID = vioAsCompletion(kvio->vio)->callbackThreadID;
-  BUG_ON(threadID < 0);
   BUG_ON(threadID >= kvio->layer->kvdo.initializedThreadCount);
   launchKVIO(kvio, work, statsFunction, action,
              kvio->layer->kvdo.threads[threadID].requestQueue);

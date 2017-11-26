@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.c#3 $
  */
 
 #include "cacheCounters.h"
@@ -46,19 +46,19 @@ static INLINE void addCacheCountsByPageType(CacheCountsByPageType *stats,
 }
 
 /**********************************************************************/
-void addCacheCounters(CacheCounters *stats, CacheCounters addend)
+void addCacheCounters(CacheCounters *stats, const CacheCounters *addend)
 {
-  addCacheCountsByPageType(&stats->firstTime, addend.firstTime);
-  addCacheCountsByPageType(&stats->retried,   addend.retried);
+  addCacheCountsByPageType(&stats->firstTime, addend->firstTime);
+  addCacheCountsByPageType(&stats->retried,   addend->retried);
 
-  stats->evictions   += addend.evictions;
-  stats->expirations += addend.expirations;
+  stats->evictions   += addend->evictions;
+  stats->expirations += addend->expirations;
 
-  addCacheCountsByKind(&stats->sparseChapters,  addend.sparseChapters);
-  addCacheCountsByKind(&stats->sparseSearches,  addend.sparseSearches);
+  addCacheCountsByKind(&stats->sparseChapters, addend->sparseChapters);
+  addCacheCountsByKind(&stats->sparseSearches, addend->sparseSearches);
 
-  stats->sparseEvictions   += addend.sparseEvictions;
-  stats->sparseExpirations += addend.sparseExpirations;
+  stats->sparseEvictions   += addend->sparseEvictions;
+  stats->sparseExpirations += addend->sparseExpirations;
 }
 
 /**********************************************************************/

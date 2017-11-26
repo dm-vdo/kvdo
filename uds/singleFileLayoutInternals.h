@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayoutInternals.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayoutInternals.h#3 $
  */
 
 #ifndef SINGLE_FILE_LAYOUT_INTERNALS_H
@@ -161,33 +161,6 @@ typedef struct saveLayoutSizes {
 } SaveLayoutSizes;
 
 /*****************************************************************************/
-int allocateSingleFileLayout(SingleFileLayout **sflPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Initialize a single file layout using the save layout sizes specified.
- *
- * @param sfl       the layout to initialize
- * @param region    the IO region for this layout
- * @param offset    the offset in bytes from the start of the backing storage
- * @param size      the size in bytes of the backing storage
- * @param sls       a populated SaveLayoutSizes object
- * @param ops       the index layout ops for this layout
- *
- * @return UDS_SUCCESS or an error code, potentially
- *         UDS_INSUFFICIENT_INDEX_SPACE if the size of the backing store
- *              is not sufficient for the index configuration,
- *         UDS_BAD_INDEX_ALIGNMENT if the offset specified does not
- *              align properly with the index block and page sizes]
- *         various other errors
- **/
-int initSingleFileLayout(SingleFileLayout     *sfl,
-                         IORegion             *region,
-                         uint64_t              offset,
-                         uint64_t              size,
-                         SaveLayoutSizes      *sls,
-                         const IndexLayoutOps *ops)
-  __attribute__((warn_unused_result));
 
 /**
  * Initialize a single file layout from the region table and super block data
@@ -199,7 +172,6 @@ int initSingleFileLayout(SingleFileLayout     *sfl,
  * @param blockSize     the block size to use
  * @param table         the region table read from the superblock
  * @param super         the super block data read from the superblock
- * @param ops           the index layout ops for this layout
  *
  * @return UDS_SUCCESS or an error code
  **/
@@ -207,8 +179,7 @@ int reconstituteSingleFileLayout(SingleFileLayout     *sfl,
                                  IORegion             *region,
                                  SuperBlockData       *super,
                                  RegionTable          *table,
-                                 uint64_t              firstBlock,
-                                 const IndexLayoutOps *ops)
+                                 uint64_t              firstBlock)
   __attribute__((warn_unused_result));
 
 /*****************************************************************************/
@@ -231,12 +202,6 @@ int getSingleFileLayoutRegion(SingleFileLayout  *sfl,
 int getSingleFileLayoutReader(SingleFileLayout  *sfl,
                               LayoutRegion      *lr,
                               BufferedReader   **readerPtr)
-  __attribute__((warn_unused_result));
-
-/*****************************************************************************/
-int getSingleFileLayoutWriter(SingleFileLayout  *sfl,
-                              LayoutRegion      *lr,
-                              BufferedWriter   **writerPtr)
   __attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/session.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/session.c#4 $
  */
 
 #include "session.h"
@@ -103,7 +103,7 @@ int getSession(SessionGroup *group, SessionID id,
 }
 
 /**********************************************************************/
-inline SessionContents getSessionContents(Session *session)
+SessionContents getSessionContents(Session *session)
 {
   return session->contents;
 }
@@ -231,6 +231,7 @@ void releaseSessionGroup(SessionGroup *group)
   unlockMutex(&group->mutex);
 }
 
+#ifdef TEST_INTERNAL
 /**********************************************************************/
 unsigned int countSessions(SessionGroup *group)
 {
@@ -243,6 +244,7 @@ unsigned int countSessions(SessionGroup *group)
   unlockMutex(&group->mutex);
   return sessionCount;
 }
+#endif /* TEST_INTERNAL */
 
 /**********************************************************************/
 void shutdownSessionGroup(SessionGroup *group)

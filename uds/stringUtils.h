@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/stringUtils.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/stringUtils.h#4 $
  */
 
 #ifndef STRING_UTILS_H
@@ -149,6 +149,17 @@ int parseUint64(const char *str, uint64_t *num)
   __attribute__((warn_unused_result));
 
 /**
+ * Attempt to convert a string to an integer (base 10)
+ *
+ * @param nptr  Pointer to string to convert
+ * @param num   The resulting integer
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int stringToSignedInt(const char *nptr, int *num)
+  __attribute__((warn_unused_result));
+
+/**
  * Attempt to convert a string to a long integer (base 10)
  *
  * @param nptr  Pointer to string to convert
@@ -157,6 +168,17 @@ int parseUint64(const char *str, uint64_t *num)
  * @return UDS_SUCCESS or an error code
  **/
 int stringToSignedLong(const char *nptr, long *num)
+  __attribute__((warn_unused_result));
+
+/**
+ * Attempt to convert a string to an unsigned integer (base 10).
+ *
+ * @param nptr  Pointer to string to convert
+ * @param num   The resulting unsigned integer
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int stringToUnsignedInt(const char *nptr, unsigned int *num)
   __attribute__((warn_unused_result));
 
 /**

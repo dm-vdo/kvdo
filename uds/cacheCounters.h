@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.h#3 $
  */
 
 #ifndef CACHE_COUNTERS_H
@@ -110,7 +110,7 @@ typedef enum cacheResultKind {
  * @param stats   accumulated stats
  * @param addend  additional values to be added in
  **/
-void addCacheCounters(CacheCounters *stats, CacheCounters addend);
+void addCacheCounters(CacheCounters *stats, const CacheCounters *addend);
 
 /**
  * Adds to one of the cache counters.

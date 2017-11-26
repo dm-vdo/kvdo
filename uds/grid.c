@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/grid.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/grid.c#3 $
  */
 
 #include "grid.h"
@@ -149,7 +149,7 @@ int getGridStatistics(Grid *grid, IndexRouterStatCounters *counters)
     counters->collisions       += routerStats.collisions;
     counters->entriesDiscarded += routerStats.entriesDiscarded;
     counters->checkpoints      += routerStats.checkpoints;
-    addCacheCounters(&counters->volumeCache, routerStats.volumeCache);
+    addCacheCounters(&counters->volumeCache, &routerStats.volumeCache);
   }
   return UDS_SUCCESS;
 }

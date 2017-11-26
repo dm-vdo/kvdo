@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#3 $
  */
 
 #include "pageCache.h"
@@ -107,34 +107,6 @@ static int getPageNoStats(PageCache     *cache,
   if (queueIndex != NULL) {
     *queueIndex = queued ? index : -1;
   }
-  return UDS_SUCCESS;
-}
-
-/**
- * Initialize a cache page, allocating memory for the cached data.
- *
- * @param cache         the cache
- * @param item          the item in the cache to initialize
- * @param pagePtr      a pointer to hold the newly allocated page
- *
- * @return UDS_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result))
-static int initializePage(PageCache     *cache,
-                          unsigned int   item,
-                          CachedPage   **pagePtr)
-{
-  CachedPage *page = &cache->cache[item];
-  if (page == NULL) {
-    *pagePtr = NULL;
-    return UDS_SUCCESS;
-  }
-
-  page->data = cache->data + (item * cache->geometry->bytesPerPage);
-
-  clearPage(cache, page);
-
-  *pagePtr = page;
   return UDS_SUCCESS;
 }
 
@@ -311,11 +283,9 @@ static int initializePageCache(PageCache      *cache,
   }
 
   for (unsigned int i = 0; i < cache->numCacheEntries; i++) {
-    CachedPage *page;
-    result = initializePage(cache, i, &page);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
+    CachedPage *page = &cache->cache[i];
+    page->data = cache->data + (i * cache->geometry->bytesPerPage);
+    clearPage(cache, page);
   }
 
   return UDS_SUCCESS;

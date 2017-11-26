@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabDepot.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabDepot.c#2 $
  */
 
 #include "slabDepot.h"
@@ -154,6 +154,9 @@ static int allocateSlabs(SlabDepot     *depot,
 /**********************************************************************/
 void abandonNewSlabs(SlabDepot *depot)
 {
+  if (depot->newSlabs == NULL) {
+    return;
+  }
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     freeSlab(&depot->newSlabs[i]);
   }
@@ -890,9 +893,7 @@ void updateSlabDepotSize(SlabDepot *depot, bool reverting)
 /**********************************************************************/
 int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
 {
-  if (depot->newSlabs != NULL) {
-    abandonNewSlabs(depot);
-  }
+  abandonNewSlabs(depot);
 
   if ((newSize >> depot->slabSizeShift) <= depot->slabCount) {
     return VDO_INCREMENT_TOO_SMALL;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayout.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayout.h#3 $
  */
 
 #ifndef SINGLE_FILE_LAYOUT_H
@@ -81,17 +81,5 @@ int loadSingleFileLayout(IORegion       *region,
                          uint64_t        offset,
                          IndexLayout   **layoutPtr)
   __attribute__((warn_unused_result));
-
-/**
- * Set the flag controlling whether a single file layout will automatically
- * close the underlying IORegion provided with createSingleFileLayout() or
- * loadSingleFileLayout() when freeIndexLayout() is called.
- *
- * @param layout        An IndexLayout provided by createSingleFileLayout() or
- *                        loadSingleFileLayout().
- * @param closeRegion   Whether to close the region.
- **/
-void setSingleFileLayoutCloseRegionOnFree(IndexLayout *layout,
-                                          bool         closeRegion);
 
 #endif // SINGLE_FILE_LAYOUT_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterIndex.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/chapterIndex.h#3 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -42,6 +42,14 @@ typedef struct chapterIndexPage {
   DeltaMemory deltaMemory;
 } ChapterIndexPage;
 
+#ifdef TEST_INTERNAL
+// The number of discards in the open chapter indices.
+extern long chapterIndexDiscardCount;
+// The number of discards used to reset the open chapter indices to empty.
+extern long chapterIndexEmptyCount;
+// The number of overflows in the open chapter indices.
+extern long chapterIndexOverflowCount;
+#endif /* TEST_INTERNAL */
 
 /**
  * Make a new open chapter index.

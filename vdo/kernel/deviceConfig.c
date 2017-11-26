@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/deviceConfig.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/deviceConfig.c#2 $
  */
 
 #include "deviceConfig.h"
@@ -184,20 +184,14 @@ static int parseOneThreadConfigSpec(const char        *spec,
     freeStringArray(fields);
     return -EINVAL;
   }
+
   unsigned int count;
-  char *stringEnd;
-  result = stringToUInt(fields[1], &stringEnd, &count);
+  result = stringToUInt(fields[1], &count);
   if (result != UDS_SUCCESS) {
     logError("thread config string error: integer value needed, found \"%s\"",
              fields[1]);
     freeStringArray(fields);
     return result;
-  }
-  if (*stringEnd != 0) {
-    logError("thread config string error: invalid numeric spec \"%s\"",
-             fields[1]);
-    freeStringArray(fields);
-    return -EINVAL;
   }
 
   result = processOneThreadConfigSpec(fields[0], count, config);
@@ -330,20 +324,23 @@ int parseDeviceConfig(int            argc,
   }
 
   // Get the number of extra blocks for the read cache.
-  if (sscanf(*argumentPtr++, "%u", &config->readCacheExtraBlocks) != 1) {
+  result = stringToUInt(*argumentPtr++, &config->readCacheExtraBlocks);
+  if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr,
                      "Invalid read cache extra block count");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the page cache size.
-  if (sscanf(*argumentPtr++, "%u", &config->cacheSize) != 1) {
+  result = stringToUInt(*argumentPtr++, &config->cacheSize);
+  if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid block map page cache size");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the block map era length.
-  if (sscanf(*argumentPtr++, "%u", &config->blockMapMaximumAge) != 1) {
+  result = stringToUInt(*argumentPtr++, &config->blockMapMaximumAge);
+  if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid block map maximum age");
     return VDO_BAD_CONFIGURATION;
   }

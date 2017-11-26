@@ -16,18 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.h#4 $
  */
 
 #ifndef CHAPTER_WRITER_H
 #define CHAPTER_WRITER_H
 
 #include "openChapterZone.h"
+#include "util/atomic.h"
 
 typedef struct chapterWriter ChapterWriter;
 
 // This opaque declaration breaks the dependency loop with index.h
 struct index;
+
+#ifdef TEST_INTERNAL
+extern Atomic32 chaptersWritten;
+#endif /* TEST_INTERNAL */
 
 /**
  * Create a chapter writer and start its thread.

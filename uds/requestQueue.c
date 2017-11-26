@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/requestQueue.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/requestQueue.c#3 $
  */
 
 #include "requestQueue.h"
@@ -30,7 +30,6 @@
 #include "util/atomic.h"
 #include "util/eventCount.h"
 #include "util/funnelQueue.h"
-#include "util/statistic.h"
 
 /*
  * Ordering:
@@ -87,62 +86,30 @@ struct requestQueue {
   const char            *name;       // name of queue
   RequestQueueProcessor *processOne; // function to process 1 request
 
-  FunnelQueue    *mainQueue;  // new incoming requests
-  FunnelQueue    *retryQueue; // old requests to retry first
-  EventCount     *workEvent;  // signal to wake the worker thread
+  FunnelQueue *mainQueue;       // new incoming requests
+  FunnelQueue *retryQueue;      // old requests to retry first
+  EventCount  *workEvent;       // signal to wake the worker thread
 
-  Thread          thread;     // thread id of the worker thread
-  bool            started;    // true if the worker was started
+  Thread thread;                // thread id of the worker thread
+  bool   started;               // true if the worker was started
 
-  volatile bool   alive;      // when true, requests can be enqueued
+  volatile bool alive;          // when true, requests can be enqueued
 
   /** A flag set when the worker is waiting without a timeout */
-  Atomic32        dormant;
+  Atomic32 dormant;
 
   // The following fields are mutable state private to the worker thread. The
   // first field is aligned to avoid cache line sharing with preceding fields.
 
   /** requests processed since last wait */
-  uint64_t        currentBatch __attribute__((aligned(CACHE_LINE_BYTES)));
+  uint64_t currentBatch __attribute__((aligned(CACHE_LINE_BYTES)));
 
   /** the amount of time to wait to accumulate a batch of requests */
-  uint64_t        waitNanoseconds;
+  uint64_t waitNanoseconds;
 
   /** the relative time at which to wake when waiting with a timeout */
-  RelTime         wakeRelTime;
-
-  /** statistic for the number of consecutive requests handled between waits */
-  Statistic       batchLengths;
-
-  /** statistic for the waitNanoseconds values used to set a wake-up time */
-  Statistic       waitTimes;
+  RelTime wakeRelTime;
 };
-
-/**
- * Log the accumulated statistics for a queue.
- *
- * @param queue     the request queue
- **/
-static void requestQueueLogStatistics(const RequestQueue *queue)
-{
-  char *batchString;
-  int result = formatStatistic(&queue->batchLengths, &batchString);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed to format batch stats");
-    return;
-  }
-  logInfo("queue '%s' batch lengths: %s", queue->name, batchString);
-  FREE(batchString);
-
-  char *waitString;
-  result = formatStatistic(&queue->waitTimes, &waitString);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed to format wait stats");
-    return;
-  }
-  logInfo("queue '%s' wait microseconds: %s", queue->name, waitString);
-  FREE(waitString);
-}
 
 /**
  * Adjust the wait time if the last batch of requests was larger or smaller
@@ -162,8 +129,6 @@ static void adjustWaitTime(RequestQueue *queue)
     // Batch too large, so decrease the wait a little.
     queue->waitNanoseconds -= delta;
   }
-
-  sampleStatistic(&queue->batchLengths, queue->currentBatch);
 }
 
 /**
@@ -194,8 +159,6 @@ static RelTime *getWakeTime(RequestQueue *queue)
     // promptly, waiting for very short times won't make the batches smaller.
     queue->waitNanoseconds = MINIMUM_WAIT_TIME;
   }
-
-  sampleStatistic(&queue->waitTimes, queue->waitNanoseconds / 1000);
 
   RelTime *wake = &queue->wakeRelTime;
   *wake = nanosecondsToRelTime(queue->waitNanoseconds);
@@ -315,9 +278,6 @@ static int initializeQueue(RequestQueue          *queue,
   queue->currentBatch    = 0;
   queue->waitNanoseconds = DEFAULT_WAIT_TIME;
 
-  resetStatistic(&queue->batchLengths);
-  resetStatistic(&queue->waitTimes);
-
   int result = makeFunnelQueue(&queue->mainQueue);
   if (result != UDS_SUCCESS) {
     return result;
@@ -402,8 +362,6 @@ void requestQueueFinish(RequestQueue *queue)
       logErrorWithStringError(result, "Failed to join worker thread");
     }
   }
-
-  requestQueueLogStatistics(queue);
 
   freeEventCount(queue->workEvent);
   freeFunnelQueue(queue->mainQueue);

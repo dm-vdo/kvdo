@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsMain.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsMain.c#4 $
  */
 
 #include "uds.h"
@@ -199,8 +199,7 @@ static int initializeIndexSession(IndexSession     *indexSession,
                                    "No locations specified");
   }
 
-  logGridConfig(gridConfig, "Initializing index session");
-  logLoadType(loadType);
+  logGridConfig(gridConfig, getLoadType(loadType));
 
   if (loadType == LOAD_ATTACH) {
 #if GRID
@@ -209,6 +208,10 @@ static int initializeIndexSession(IndexSession     *indexSession,
 #else /* !GRID */
     result = UDS_UNSUPPORTED;
 #endif /* GRID */
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Failed to initialize grid");
+      return result;
+    }
   } else {
     IndexLayout *layout;
     result = makeIndexLayout(gridConfig->locations[0].directory,
@@ -224,11 +227,10 @@ static int initializeIndexSession(IndexSession     *indexSession,
         freeIndexLayout(&layout);
       }
     }
-  }
-
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Failed to initialize grid");
-    return result;
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
+      return result;
+    }
   }
 
   setIndexSessionState(indexSession, IS_READY);
@@ -292,7 +294,7 @@ static int makeIndexSession(UdsGridConfig     gridConfig,
     return handleError(NULL, result);
   }
   *indexSessionID = id;
-  logNotice("Created index session (%u)", id);
+  logDebug("Created index session (%u)", id);
   releaseIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);
   unlockGlobalStateMutex();

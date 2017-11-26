@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.c#5 $
  */
 
 #include "chapterWriter.h"
@@ -29,6 +29,10 @@
 #include "memoryAlloc.h"
 #include "openChapter.h"
 #include "threads.h"
+
+#ifdef TEST_INTERNAL
+Atomic32 chaptersWritten;
+#endif /* TEST_INTERNAL */
 
 struct chapterWriter {
   /* The index to which we belong */
@@ -111,6 +115,9 @@ static void closeChapters(void *arg)
       result = processChapterWriterCheckpointSaves(writer->index);
     }
 
+#ifdef TEST_INTERNAL
+    atomicAdd32(&chaptersWritten, 1);
+#endif /* TEST_INTERNAL */
     lockMutex(&writer->mutex);
     // Note that the index is totally finished with the writing chapter
     advanceActiveChapters(writer->index);
@@ -158,9 +165,7 @@ int makeChapterWriter(Index *index, ChapterWriter **writerPtr)
   initCond(&writer->cond);
 
   // We're initialized, so now it's safe to start the writer thread.
-  static const char CHAPTER_WRITER_THREAD_NAME[] = "chapterWriter";
-  result = createThread(closeChapters, writer, CHAPTER_WRITER_THREAD_NAME, 0,
-                        &writer->thread);
+  result = createThread(closeChapters, writer, "writer", 0, &writer->thread);
   if (result != UDS_SUCCESS) {
     freeChapterWriter(writer);
     return makeUnrecoverable(result);

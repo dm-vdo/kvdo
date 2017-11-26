@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volume.c#4 $
  */
 
 #include "volume.h"
@@ -481,7 +481,6 @@ static void readThreadFunction(void *arg)
 /**********************************************************************/
 int createReaderThreads(Volume *volume, unsigned int numReaderThreads)
 {
-  static const char READER_THREAD_NAME[] = "volumeReader";
   volume->numReadThreads = numReaderThreads;
   int result = ALLOCATE(numReaderThreads, Thread,
                         "reader threads", &volume->readerThreads);
@@ -490,9 +489,8 @@ int createReaderThreads(Volume *volume, unsigned int numReaderThreads)
   }
 
   for (unsigned int i = 0; i < numReaderThreads; i++) {
-    result = createThread(readThreadFunction, (void *) volume,
-                          READER_THREAD_NAME, READER_STACK_SIZE,
-                          &volume->readerThreads[i]);
+    result = createThread(readThreadFunction, (void *) volume, "reader",
+                          READER_STACK_SIZE, &volume->readerThreads[i]);
     if (result != UDS_SUCCESS) {
       return UDS_ENOTHREADS;
     }
@@ -1245,7 +1243,8 @@ size_t getCacheSize(Volume *volume)
 void getCacheCounters(Volume *volume, CacheCounters *counters)
 {
   getPageCacheCounters(volume->pageCache, counters);
-  addCacheCounters(counters, getSparseCacheCounters(volume->sparseCache));
+  CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
+  addCacheCounters(counters, &sparseCounters);
 }
 
 /**********************************************************************/

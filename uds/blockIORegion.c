@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/blockIORegion.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/blockIORegion.c#3 $
  */
 
 #include "blockIORegion.h"
@@ -38,84 +38,10 @@ typedef struct blockIORegion {
   off_t          end;
 } BlockIORegion;
 
-static const IORegionOps *getBlockIORegionOps(void);
-
 /*****************************************************************************/
 static INLINE BlockIORegion *asBlockIORegion(IORegion *region)
 {
   return container_of(region, BlockIORegion, common);
-}
-
-/*****************************************************************************/
-int openBlockRegion(IORegion       *parent,
-                    IOAccessMode    access,
-                    off_t           start,
-                    off_t           end,
-                    IORegion      **regionPtr)
-{
-  if (start > end) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "end (%zd) preceeds start (%zd)", end,
-                                   start);
-  }
-
-  if (access & ~(IO_ACCESS_MASK)) {
-    // in reality we only care about the read and write bits
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "unknown access type %x", access);
-  }
-
-  off_t limit = 0;
-  int result = getRegionLimit(parent, &limit);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if (end > limit) {
-    return logErrorWithStringError(UDS_OUT_OF_RANGE, "end (%zd)"
-                                   " exceeds underlying device limit (%zd)",
-                                   end, limit);
-  }
-
-  size_t blockSize = 0;
-  size_t bestSize  = 0;
-  result = getRegionBlockSize(parent, &blockSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getRegionBestBufferSize(parent, &bestSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  if (start % blockSize != 0) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "start offset (%zd) not block aligned",
-                                   start);
-  }
-  if (end % blockSize != 0) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "end offset (%zd) not block aligned", end);
-  }
-
-  BlockIORegion *bior;
-  result = ALLOCATE(1, BlockIORegion, "open block region", &bior);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  *bior = (BlockIORegion) {
-    .parent    = parent,
-    .access    = access,
-    .blockSize = blockSize,
-    .bestSize  = bestSize,
-    .start     = start,
-    .end       = end
-  };
-
-  bior->common.ops = getBlockIORegionOps();
-
-  *regionPtr = &bior->common;
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -334,20 +260,76 @@ static int bior_syncContents(IORegion *region)
 }
 
 /*****************************************************************************/
-
-static const IORegionOps blockIORegionOps = {
-  .close        = bior_close,
-  .getLimit     = bior_getLimit,
-  .getDataSize  = bior_getDataSize,
-  .clear        = bior_clear,
-  .write        = bior_write,
-  .read         = bior_read,
-  .getBlockSize = bior_getBlockSize,
-  .getBestSize  = bior_getBestSize,
-  .syncContents = bior_syncContents,
-};
-
-static const IORegionOps *getBlockIORegionOps(void)
+int openBlockRegion(IORegion       *parent,
+                    IOAccessMode    access,
+                    off_t           start,
+                    off_t           end,
+                    IORegion      **regionPtr)
 {
-  return &blockIORegionOps;
+  if (start > end) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "end (%zd) preceeds start (%zd)", end,
+                                   start);
+  }
+
+  if (access & ~(IO_ACCESS_MASK)) {
+    // in reality we only care about the read and write bits
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "unknown access type %x", access);
+  }
+
+  off_t limit = 0;
+  int result = getRegionLimit(parent, &limit);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  if (end > limit) {
+    return logErrorWithStringError(UDS_OUT_OF_RANGE, "end (%zd)"
+                                   " exceeds underlying device limit (%zd)",
+                                   end, limit);
+  }
+
+  size_t blockSize = 0;
+  size_t bestSize  = 0;
+  result = getRegionBlockSize(parent, &blockSize);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getRegionBestBufferSize(parent, &bestSize);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  if (start % blockSize != 0) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "start offset (%zd) not block aligned",
+                                   start);
+  }
+  if (end % blockSize != 0) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "end offset (%zd) not block aligned", end);
+  }
+
+  BlockIORegion *bior;
+  result = ALLOCATE(1, BlockIORegion, "open block region", &bior);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  bior->common.clear        = bior_clear;
+  bior->common.close        = bior_close;
+  bior->common.getBestSize  = bior_getBestSize;
+  bior->common.getBlockSize = bior_getBlockSize;
+  bior->common.getDataSize  = bior_getDataSize;
+  bior->common.getLimit     = bior_getLimit;
+  bior->common.read         = bior_read;
+  bior->common.syncContents = bior_syncContents;
+  bior->common.write        = bior_write;
+  bior->parent    = parent;
+  bior->access    = access;
+  bior->blockSize = blockSize;
+  bior->bestSize  = bestSize;
+  bior->start     = start;
+  bior->end       = end;
+  *regionPtr = &bior->common;
+  return UDS_SUCCESS;
 }

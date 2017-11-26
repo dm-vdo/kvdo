@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterIndex.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/chapterIndex.c#3 $
  */
 
 #include "chapterIndex.h"
@@ -29,11 +29,21 @@
 #include "permassert.h"
 #include "uds.h"
 
+#ifdef TEST_INTERNAL
+long chapterIndexDiscardCount;
+long chapterIndexEmptyCount;
+long chapterIndexOverflowCount;
+#endif /* TEST_INTERNAL */
 
 /**********************************************************************/
 int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
                          const Geometry    *geometry)
 {
+#ifdef TEST_INTERNAL
+  chapterIndexDiscardCount  = 0;
+  chapterIndexEmptyCount    = 0;
+  chapterIndexOverflowCount = 0;
+#endif /* TEST_INTERNAL */
 
   int result = ALLOCATE(1, OpenChapterIndex, "open chapter index",
                         openChapterIndex);
@@ -64,6 +74,12 @@ void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex)
     return;
   }
 
+#ifdef TEST_INTERNAL
+  DeltaIndexStats deltaIndexStats;
+  getDeltaIndexStats(&openChapterIndex->deltaIndex, &deltaIndexStats);
+  chapterIndexDiscardCount  = deltaIndexStats.discardCount;
+  chapterIndexOverflowCount = deltaIndexStats.overflowCount;
+#endif /* TEST_INTERNAL */
 
   uninitializeDeltaIndex(&openChapterIndex->deltaIndex);
   FREE(openChapterIndex);
@@ -73,8 +89,17 @@ void freeOpenChapterIndex(OpenChapterIndex *openChapterIndex)
 void emptyOpenChapterIndex(OpenChapterIndex *openChapterIndex,
                            uint64_t          virtualChapterNumber)
 {
+#ifdef TEST_INTERNAL
+  DeltaIndexStats deltaIndexStats;
+  getDeltaIndexStats(&openChapterIndex->deltaIndex, &deltaIndexStats);
+  long beforeDiscardCount = deltaIndexStats.discardCount;
+#endif /* TEST_INTERNAL */
   emptyDeltaIndex(&openChapterIndex->deltaIndex);
   openChapterIndex->virtualChapterNumber = virtualChapterNumber;
+#ifdef TEST_INTERNAL
+  getDeltaIndexStats(&openChapterIndex->deltaIndex, &deltaIndexStats);
+  chapterIndexEmptyCount += deltaIndexStats.discardCount - beforeDiscardCount;
+#endif /* TEST_INTERNAL */
 }
 
 /**

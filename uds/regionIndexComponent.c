@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/regionIndexComponent.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/regionIndexComponent.c#3 $
  */
 
 #include "regionIndexComponentInternal.h"
@@ -161,6 +161,7 @@ static int ric_createReadPortal(IndexComponent  *component,
   result = initReadPortal(portal, component, ric->ris->loadZones);
   if (result != UDS_SUCCESS) {
     FREE(portal);
+    return result;
   }
 
   for (unsigned int z = 0; z < portal->zones; ++z) {

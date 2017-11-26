@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.h#3 $
  */
 
 #ifndef REQUEST_H
@@ -26,6 +26,7 @@
 #include "common.h"
 #include "compiler.h"
 #include "context.h"
+#include "featureDefs.h"
 #include "queue.h"
 #include "timeUtils.h"
 #include "uds.h"
@@ -386,4 +387,14 @@ static INLINE CacheProbeType cacheProbeType(Request *request,
   }
 }
 
+#ifdef HISTOGRAMS
+/**
+ * Start doing a histogram of the turnaround time, and arrange for it to
+ * be plotted at the program termination.
+ *
+ * @param name  Base name of the histogram file
+ **/
+void doTurnaroundHistogram(const char *name);
+
+#endif /* HISTOGRAMS */
 #endif /* REQUEST_H */

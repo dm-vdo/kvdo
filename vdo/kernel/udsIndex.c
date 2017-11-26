@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#3 $
  */
 
 #include "udsIndex.h"
@@ -75,6 +75,7 @@ enum {
 
 typedef struct udsIndex {
   DedupeIndex        common;
+  UdsConfiguration   udsConfiguration;
   struct kobject     dedupeObject;
   KvdoWorkItem       workItem;
   char              *indexName;
@@ -102,7 +103,7 @@ typedef struct udsIndex {
 static const char *const ERROR = "error";
 
 // For dedupeState, CLOSED means that there is no open block context.
-static const char *const CLOSED = "CLOSED";
+static const char *const CLOSED = "closed";
 
 // For dedupeState, OPENING means that we are opening a block context.
 static const char *const OPENING = "opening";
@@ -304,7 +305,6 @@ static void changeDedupeState(KvdoWorkItem *item)
     // Under the stateLock, advance to the next dedupeState and targetState.
     spin_lock(&index->stateLock);
     if (result != UDS_SUCCESS) {
-      result = UDS_SUCCESS;
       index->targetState = ERROR;
     }
     if (stateIn2(index->targetState, ONLINE, OFFLINE)) {
@@ -348,6 +348,11 @@ static void changeDedupeState(KvdoWorkItem *item)
       // Do the UDS calls to open the index
       if (!index->haveIndexSession) {
         result = udsRebuildLocalIndex(index->indexName, &index->indexSession);
+      }
+      if (result != UDS_SUCCESS) {
+        // Reformat the index.
+        result = udsCreateLocalIndex(index->indexName, index->udsConfiguration,
+                                     &index->indexSession);
       }
       if (result == UDS_SUCCESS) {
         index->haveIndexSession = true;
@@ -420,6 +425,7 @@ static void finishUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
   setTargetState(index, CLOSED);
+  udsFreeConfiguration(index->udsConfiguration);
   finishWorkQueue(index->udsQueue);
 }
 
@@ -587,7 +593,7 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
     return result;
   }
 
-  result = makeWorkQueue(layer->threadNamePrefix, "DedupeQ",
+  result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
                          &layer->wqDirectory, index, &udsQueueType, 1,
                          &index->udsQueue);
   if (result < 0) {
@@ -597,9 +603,19 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
     return result;
   }
 
+  result = indexConfigToUdsConfiguration(&layer->geometry->indexConfig,
+                                         &index->udsConfiguration);
+  if (result != VDO_SUCCESS) {
+    freeWorkQueue(&index->udsQueue);
+    FREE(index->indexName);
+    FREE(index);
+    return result;
+  }
+
   kobject_init(&index->dedupeObject, &dedupeKobjType);
   result = kobject_add(&index->dedupeObject, &layer->kobj, "dedupe");
   if (result != VDO_SUCCESS) {
+    udsFreeConfiguration(index->udsConfiguration);
     freeWorkQueue(&index->udsQueue);
     FREE(index->indexName);
     FREE(index);
@@ -619,13 +635,13 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   index->common.finish                    = finishUDSIndex;
   index->common.update                    = udsUpdate;
 
+  index->dedupeState = CLOSED;
+  index->targetState = NULL;
   INIT_LIST_HEAD(&index->pendingHead);
   spin_lock_init(&index->pendingLock);
   spin_lock_init(&index->stateLock);
   setup_timer(&index->pendingTimer, timeoutIndexOperations,
               (unsigned long) index);
-  index->dedupeState  = CLOSED;
-  index->targetState  = NULL;
 
   *indexPtr = &index->common;
   return VDO_SUCCESS;

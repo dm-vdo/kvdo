@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/threads.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/threads.h#3 $
  */
 
 #ifndef THREADS_H
@@ -24,13 +24,8 @@
 
 #include "threadCondVar.h"
 #include "threadDefs.h"
-#include "threadMutex.h"
 #include "threadOnce.h"
 #include "threadSemaphore.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * Create a thread, logging any cause of failure.
@@ -117,9 +112,5 @@ int enterBarrier(Barrier *barrier, bool *winner);
  * @return UDS_SUCCESS or an error code
  **/
 int yieldScheduler(void);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
 
 #endif /* THREADS_H */

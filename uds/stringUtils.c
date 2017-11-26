@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/stringUtils.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/stringUtils.c#3 $
  */
 
 #include "stringUtils.h"
@@ -27,7 +27,7 @@
 #include "permassert.h"
 #include "uds.h"
 
-/**********************************************************************/
+/*****************************************************************************/
 int allocSprintf(const char *what, char **strp, const char *fmt, ...)
 {
   if (strp == NULL) {
@@ -43,7 +43,7 @@ int allocSprintf(const char *what, char **strp, const char *fmt, ...)
   return result;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int wrapVsnprintf(const char *what, char *buf, size_t bufSize,
                   int error, const char *fmt, va_list ap, size_t *needed)
 {
@@ -66,7 +66,7 @@ int wrapVsnprintf(const char *what, char *buf, size_t bufSize,
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int fixedSprintf(const char *what,
                  char       *buf,
                  size_t      bufSize,
@@ -84,8 +84,11 @@ int fixedSprintf(const char *what,
   return result;
 }
 
-/**********************************************************************/
-char *vAppendToBuffer(char *buffer, char *bufEnd, const char *fmt, va_list args)
+/*****************************************************************************/
+char *vAppendToBuffer(char       *buffer,
+                      char       *bufEnd,
+                      const char *fmt,
+                      va_list     args)
 {
   size_t n = vsnprintf(buffer, bufEnd - buffer, fmt, args);
   if (n >= (size_t) (bufEnd - buffer)) {
@@ -96,7 +99,7 @@ char *vAppendToBuffer(char *buffer, char *bufEnd, const char *fmt, va_list args)
   return buffer;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 char *appendToBuffer(char *buffer, char *bufEnd, const char *fmt, ...)
 {
   va_list ap;
@@ -105,4 +108,34 @@ char *appendToBuffer(char *buffer, char *bufEnd, const char *fmt, ...)
   char *pos = vAppendToBuffer(buffer, bufEnd, fmt, ap);
   va_end(ap);
   return pos;
+}
+
+/*****************************************************************************/
+int stringToSignedInt(const char *nptr, int *num)
+{
+  long value;
+  int result = stringToSignedLong(nptr, &value);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  if ((value < INT_MIN) || (value > INT_MAX)) {
+    return ERANGE;
+  }
+  *num = (int) value;
+  return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
+int stringToUnsignedInt(const char *nptr, unsigned int *num)
+{
+  unsigned long value;
+  int result = stringToUnsignedLong(nptr, &value);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  if (value > UINT_MAX) {
+    return ERANGE;
+  }
+  *num = (unsigned int) value;
+  return UDS_SUCCESS;
 }

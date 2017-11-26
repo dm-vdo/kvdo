@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.h#3 $
  */
 
 #ifndef LOCAL_INDEX_ROUTER_H
 #define LOCAL_INDEX_ROUTER_H
 
 #include "config.h"
+#include "featureDefs.h"
 #include "indexLayout.h"
 #include "indexRouter.h"
 #include "loadType.h"
@@ -57,5 +58,14 @@ int makeLocalIndexRouter(IndexLayout          *layout,
                          IndexRouter         **newRouter)
   __attribute__((warn_unused_result));
 
+#ifdef HISTOGRAMS
+/**
+ * Start doing a histogram of the service time, and arrange for it to be
+ * plotted at the program termination.
+ *
+ * @param name  Base name of the histogram file
+ **/
+void doServiceHistogram(const char *name);
+#endif /* HISTOGRAMS */
 
 #endif /* LOCAL_INDEX_ROUTER_H */

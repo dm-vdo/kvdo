@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/vdoStringUtils.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/vdoStringUtils.h#3 $
  */
 
 #ifndef VDO_STRING_UTILS_H
@@ -24,73 +24,6 @@
 
 #include <stdarg.h>
 #include <linux/types.h>
-
-#ifdef NEVER
-
-/**
- * Convert a boolean value to its corresponding "true" or "false" string.
- *
- * @param value  The boolean value to convert
- *
- * @return "true" if value is true, "false" otherwise.
- **/
-static inline const char *boolToString(bool value)
-{
-  return (value ? "true" : "false");
-}
-
-/**
- * Write a printf-style string into a fixed-size buffer, returning
- * errors if it would not fit. (our version of snprintf)
- *
- * @param [in]  what    A description of what is being written, for error
- *                      logging; if NULL doesn't log anything.
- * @param [out] buf     The target buffer
- * @param [in]  bufSize The size of buf
- * @param [in]  error   Error code to return on overflow
- * @param [in]  fmt     The sprintf format parameter.
- *
- * @return <code>UDS_SUCCESS</code> or <code>error</code>
- **/
-int fixedSprintf(const char *what,
-                 char       *buf,
-                 size_t      bufSize,
-                 int         error,
-                 const char *fmt,
-                 ...)
-  __attribute__((format(printf, 5, 6), warn_unused_result));
-
-/**
- * Write printf-style string into an existing buffer, returning a specified
- * error code if it would not fit, and setting ``needed`` to the amount of
- * space that would be required.
- *
- * @param [in]  what    A description of what is being written, for logging.
- * @param [in]  buf     The buffer in which to write the string, or NULL to
- *                      merely determine the required space.
- * @param [in]  bufSize The size of buf.
- * @param [in]  error   The error code to return for exceeding the specified
- *                      space, UDS_SUCCESS if no logging required.
- * @param [in]  fmt     The sprintf format specification.
- * @param [in]  ap      The variable argument pointer (see <stdarg.h>).
- * @param [out] needed  If non-NULL, the actual amount of string space
- *                      required, which may be smaller or larger than bufSize.
- *
- * @return UDS_SUCCESS if the string fits, the value of the error parameter if
- *         the string does not fit and a buffer was supplied, or
- *         UDS_UNEXPECTED_RESULT if vsnprintf fails in some other undocumented
- *         way.
- **/
-int wrapVsnprintf(const char *what,
-                  char       *buf,
-                  size_t      bufSize,
-                  int         error,
-                  const char *fmt,
-                  va_list     ap,
-                  size_t     *needed)
-  __attribute__((format(printf, 5, 0), warn_unused_result));
-
-#endif // NEVER
 
 /**
  * Helper to append a string to a buffer.
@@ -172,35 +105,16 @@ int joinStrings(char   **substringArray,
 void freeStringArray(char **stringArray);
 
 /**
- * Parse the leading digits of a string as an "unsigned int" value,
- * yielding the value and the location of the next byte of the string.
- *
- * On overflow, -EINVAL is returned and the output parameters are not updated.
+ * Parse a string as an "unsigned int" value, yielding the value.
+ * On overflow, -ERANGE is returned. On invalid number, -EINVAL is
+ * returned.
  *
  * @param [in]  input     The string to be processed
- * @param [out] end       The byte following the parsed number
  * @param [out] valuePtr  The value of the number read
  *
- * @return  UDS_SUCCESS or -EINVAL
+ * @return  UDS_SUCCESS or -EINVAL or -ERANGE.
  **/
-int stringToUInt(const char *input, char **end, unsigned int *valuePtr)
+int stringToUInt(const char *input, unsigned int *valuePtr)
   __attribute__((warn_unused_result));
 
-#ifdef NEVER
-/**
- * Duplicate a string.
- *
- * Unlike kstrdup, this can be used with FREE and will track
- * allocation stats.
- *
- * @param string    The string to duplicate
- * @param what      What is being allocated (for error logging)
- * @param newString A pointer to hold the duplicated string
- *
- * @return UDS_SUCCESS or an error code
- **/
-int duplicateString(const char *string, const char *what, char **newString)
-  __attribute__((warn_unused_result));
-
-#endif // NEVER
 #endif /* VDO_STRING_UTILS_H */

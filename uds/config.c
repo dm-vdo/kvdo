@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/config.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/config.c#3 $
  */
 
 #include "config.h"
@@ -228,7 +228,7 @@ void logGridConfig(UdsGridConfig gridConfig, const char *message)
     logErrorWithStringError(result, "Failed to allocate grid config string");
     logNotice("%s", message);
   } else {
-    logNotice("%s for index: %s", message, gridConfigString);
+    logNotice("%s: %s", message, gridConfigString);
     FREE(gridConfigString);
   }
 }

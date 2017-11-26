@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadsLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadsLinuxKernel.c#3 $
  */
 
 #include <linux/kthread.h>
@@ -67,9 +67,11 @@ static int threadStarter(void *arg)
 int createThread(void      (*threadFunc)(void *),
                  void       *threadData,
                  const char *name,
-                 size_t      stackLimit __attribute__((unused)),
+                 size_t      stackLimit  __attribute__((unused)),
                  Thread     *newThread)
 {
+  char *nameColon = strchr(name, ':');
+  char *myNameColon = strchr(current->comm, ':');
   KernelThread *kt;
   int result = ALLOCATE(1, KernelThread, __func__, &kt);
   if (result != UDS_SUCCESS) {
@@ -78,7 +80,29 @@ int createThread(void      (*threadFunc)(void *),
   kt->threadFunc = threadFunc;
   kt->threadData = threadData;
   init_completion(&kt->threadDone);
-  struct task_struct *thread = kthread_run(threadStarter, kt, "%s", name);
+  struct task_struct *thread;
+  /*
+   * Start the thread, with an appropriate thread name.
+   *
+   * If the name supplied contains a colon character, use that name.  This
+   * causes uds module threads to have names like "uds:callbackW" and the main
+   * test runner thread to be named "zub:runtest".
+   *
+   * Otherwise if the current thread has a name containing a colon character,
+   * prefix the name supplied with the name of the current thread up to (and
+   * including) the colon character.  Thus when the "kvdo0:dedupeQ" thread
+   * opens an index session, all the threads associated with that index will
+   * have names like "kvdo0:foo".
+   *
+   * Otherwise just use the name supplied.  This should be a rare occurrence.
+   */
+  if ((nameColon == NULL) && (myNameColon != NULL)) {
+    thread = kthread_run(threadStarter, kt, "%.*s:%s",
+                         (int) (myNameColon - current->comm), current->comm,
+                         name);
+  } else {
+    thread = kthread_run(threadStarter, kt, "%s", name);
+  }
   if (IS_ERR(thread)) {
     FREE(kt);
     return UDS_ENOTHREADS;

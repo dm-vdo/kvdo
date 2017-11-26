@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadDefs.h#3 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadDefs.h#4 $
  */
 
 #ifndef LINUX_KERNEL_THREAD_DEFS_H
@@ -25,13 +25,15 @@
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
 
+#include "compiler.h"
+#include "uds-error.h"
 #include "util/eventCount.h"
 
 typedef struct kernelThread *Thread;
 typedef pid_t                ThreadId;
 
 typedef struct { EventCount *eventCount;    } CondVar;
-typedef struct { struct mutex *pmut;        } Mutex;
+typedef struct mutex                           Mutex;
 typedef struct { struct hr_semaphore *psem; } Semaphore;
 
 typedef struct {
@@ -40,6 +42,69 @@ typedef struct {
   int       arrived;     // Number of threads which have arrived
   int       threadCount; // Total number of threads using this barrier
 } Barrier;
+
+/**
+ * Initialize a mutex, optionally asserting if the mutex initialization fails.
+ * In user mode, this function should only be called directly in places where
+ * making assertions is not safe.  In kernel mode, it does not matter.
+ *
+ * @param mutex         the mutex to initialize
+ * @param assertOnError if <code>true</code>, an error initializing the
+ *                      mutex will make an assertion
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static INLINE int initializeMutex(Mutex *mutex,
+                                  bool   assertOnError __attribute__((unused)))
+{
+  mutex_init(mutex);
+  return UDS_SUCCESS;
+}
+
+/**
+ * Initialize the default type (error-checking during development) mutex.
+ *
+ * @param mutex the mutex to initialize
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static INLINE int initMutex(Mutex *mutex)
+{
+  mutex_init(mutex);
+  return UDS_SUCCESS;
+}
+
+/**
+ * Destroy a mutex (with error checking during development).
+ *
+ * @param mutex mutex to destroy
+ *
+ * @return UDS_SUCCESS or error code
+ **/
+static INLINE int destroyMutex(Mutex *mutex)
+{
+  return UDS_SUCCESS;
+}
+
+/**
+ * Lock a mutex, with optional error checking during development.
+ *
+ * @param mutex mutex to lock
+ **/
+static INLINE void lockMutex(Mutex *mutex)
+{
+  mutex_lock(mutex);
+}
+
+/**
+ * Unlock a mutex, with optional error checking during development.
+ *
+ * @param mutex mutex to unlock
+ **/
+static INLINE void unlockMutex(Mutex *mutex)
+{
+  mutex_unlock(mutex);
+}
 
 /**
  * Apply a function to every thread that we have created.

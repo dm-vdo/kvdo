@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#2 $
  */
 
 #include "kernelLayer.h"
@@ -112,13 +112,7 @@ static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 /**********************************************************************/
 static BlockCount kvdoGetDataRegionOffset(PhysicalLayer *header)
 {
-  VolumeGeometry *geometry = asKernelLayer(header)->geometry;
-  if (geometry == NULL) {
-    // The geometry block didn't look like a super block, so maybe this
-    // is an old system with the data region at block 0.
-    return 0;
-  }
-  return geometry->partitions[DATA_REGION].startBlock;
+  return asKernelLayer(header)->geometry->partitions[DATA_REGION].startBlock;
 }
 
 /**********************************************************************/
@@ -772,16 +766,9 @@ int makeKernelLayer(BlockCount      blockCount,
   result = loadVolumeGeometry(&layer->common, &layer->geometry);
   layer->common.reader = NULL;
   if (result != VDO_SUCCESS) {
-    if (result == VDO_INCORRECT_COMPONENT) {
-      // We tried to read the geometry block, but it didn't look like one.
-      // Carry on; we'll fail if vdo load decides it's not a super block.
-      logInfo("Could not parse geometry block; continuing assuming it's an"
-              " archaic superblock");
-    } else {
-     *reason = "Could not load geometry block";
-     freeKernelLayer(layer);
-     return result;
-    }
+    *reason = "Could not load geometry block";
+    freeKernelLayer(layer);
+    return result;
   }
 
   // Albireo Timeout Reporter

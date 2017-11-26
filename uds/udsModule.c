@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/udsModule.c#4 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/udsModule.c#8 $
  */
 
 #include <linux/module.h>
@@ -34,7 +34,7 @@
 static int __init dedupeInit(void)
 {
   memoryInit();
-  logInfo("%s starting", THIS_MODULE->name);
+  logInfo("loaded version %s", UDS_VERSION);
   initSysfs();
   return 0;
 }
@@ -45,7 +45,7 @@ static void __exit dedupeExit(void)
   udsShutdown();
   putSysfs();
   memoryExit();
-  logInfo("%s exiting", THIS_MODULE->name);
+  logInfo("unloaded version %s", UDS_VERSION);
 }
 
 /**********************************************************************/
@@ -102,6 +102,7 @@ EXPORT_SYMBOL(udsSetParameter);
 EXPORT_SYMBOL(udsStringValue);
 EXPORT_SYMBOL(udsUnsignedValue);
 
+EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);
 EXPORT_SYMBOL_GPL(assertionFailed);
 EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
@@ -130,10 +131,12 @@ EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
 
 /**********************************************************************/
 
-#ifdef UDS_TESTING
-
+#ifdef TEST_INTERNAL
 #include "blockIORegion.h"
 #include "bufferedIORegion.h"
+#include "chapterIndex.h"
+#include "chapterWriter.h"
+#include "doryIORegion.h"
 #include "hashUtils.h"
 #include "indexCheckpoint.h"
 #include "indexInternals.h"
@@ -165,13 +168,16 @@ EXPORT_SYMBOL_GPL(VOLUME_VERSION_LENGTH);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128_double);
 EXPORT_SYMBOL_GPL(acquireSemaphore);
-EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateIndex);
 EXPORT_SYMBOL_GPL(appendToBuffer);
 EXPORT_SYMBOL_GPL(assertPageInCache);
 EXPORT_SYMBOL_GPL(attemptSemaphore);
 EXPORT_SYMBOL_GPL(availableSpace);
 EXPORT_SYMBOL_GPL(broadcastCond);
+EXPORT_SYMBOL_GPL(chapterIndexDiscardCount);
+EXPORT_SYMBOL_GPL(chapterIndexEmptyCount);
+EXPORT_SYMBOL_GPL(chapterIndexOverflowCount);
+EXPORT_SYMBOL_GPL(chaptersWritten);
 EXPORT_SYMBOL_GPL(closeOpenChapter);
 EXPORT_SYMBOL_GPL(computeBits);
 EXPORT_SYMBOL_GPL(computeDeltaIndexSaveBytes);
@@ -181,11 +187,12 @@ EXPORT_SYMBOL_GPL(createRequest);
 EXPORT_SYMBOL_GPL(createThread);
 EXPORT_SYMBOL_GPL(destroyBarrier);
 EXPORT_SYMBOL_GPL(destroyCond);
-EXPORT_SYMBOL_GPL(destroyMutex);
 EXPORT_SYMBOL_GPL(destroySemaphore);
 EXPORT_SYMBOL_GPL(discardIndexStateData);
 EXPORT_SYMBOL_GPL(discardLastIndexStateSave);
 EXPORT_SYMBOL_GPL(dispatchIndexRequest);
+EXPORT_SYMBOL_GPL(doryForgetful);
+EXPORT_SYMBOL_GPL(doryInUse);
 EXPORT_SYMBOL_GPL(emptyOpenChapterIndex);
 EXPORT_SYMBOL_GPL(encodeRecordPage);
 EXPORT_SYMBOL_GPL(enqueuePageRead);
@@ -252,7 +259,6 @@ EXPORT_SYMBOL_GPL(getThreadStatistics);
 EXPORT_SYMBOL_GPL(getZoneCount);
 EXPORT_SYMBOL_GPL(hasSparseChapters);
 EXPORT_SYMBOL_GPL(initCond);
-EXPORT_SYMBOL_GPL(initMutex);
 EXPORT_SYMBOL_GPL(initializeBarrier);
 EXPORT_SYMBOL_GPL(initializeChapterIndexPage);
 EXPORT_SYMBOL_GPL(initializeDeltaIndex);
@@ -266,7 +272,6 @@ EXPORT_SYMBOL_GPL(isChapterSparse);
 EXPORT_SYMBOL_GPL(isRestoringDeltaIndexDone);
 EXPORT_SYMBOL_GPL(joinThreads);
 EXPORT_SYMBOL_GPL(loadOpenChapters);
-EXPORT_SYMBOL_GPL(lockMutex);
 EXPORT_SYMBOL_GPL(logDebug);
 EXPORT_SYMBOL_GPL(logError);
 EXPORT_SYMBOL_GPL(logErrorWithStringError);
@@ -358,7 +363,6 @@ EXPORT_SYMBOL_GPL(timedWaitCond);
 EXPORT_SYMBOL_GPL(udsShutdown);
 EXPORT_SYMBOL_GPL(uninitializeDeltaIndex);
 EXPORT_SYMBOL_GPL(uninitializeDeltaMemory);
-EXPORT_SYMBOL_GPL(unlockMutex);
 EXPORT_SYMBOL_GPL(updateVolumeSize);
 EXPORT_SYMBOL_GPL(vAppendToBuffer);
 EXPORT_SYMBOL_GPL(vLogMessage);
@@ -376,7 +380,7 @@ EXPORT_SYMBOL_GPL(writeRecordPages);
 EXPORT_SYMBOL_GPL(writeToBufferedWriter);
 EXPORT_SYMBOL_GPL(yieldScheduler);
 EXPORT_SYMBOL_GPL(zeroBytes);
-#endif /* UDS_TESTING */
+#endif /* TEST_INTERNAL */
 
 /**********************************************************************/
 

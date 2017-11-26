@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/session.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/session.h#4 $
  */
 
 /**
@@ -162,6 +162,7 @@ int makeSessionGroup(int notFoundResult, SessionFree free,
                      SessionGroup  **groupPtr)
   __attribute__((warn_unused_result));
 
+#ifdef TEST_INTERNAL
 /**
  * A test hook to count the number of sessions in the given session group.
  *
@@ -170,6 +171,7 @@ int makeSessionGroup(int notFoundResult, SessionFree free,
  * @return                the number of sessions
  **/
 unsigned int countSessions(SessionGroup *group);
+#endif /* TEST_INTERNAL */
 
 /**
  * Shut down a session group.  Prevents further session lookups, then waits
