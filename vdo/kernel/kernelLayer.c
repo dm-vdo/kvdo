@@ -48,6 +48,9 @@
 #include "stringUtils.h"
 #include "verify.h"
 
+#include "vdoInternal.h"
+#include "recoveryJournal.h"
+
 enum {
   DEDUPE_TIMEOUT_REPORT_INTERVAL = 1000,
 };
@@ -234,6 +237,12 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
   return DM_MAPIO_SUBMITTED;
 }
 
+static bool shouldProcessDiscards(KernelLayer *layer)
+{
+  VDO *vdo = getVDO(&layer->kvdo);
+  return getJournalLogicalBlocksUsed(vdo->recoveryJournal) > 0;
+}
+
 /**********************************************************************/
 int kvdoMapBio(KernelLayer *layer, BIO *bio)
 {
@@ -262,6 +271,14 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
   if (isDiscardBio(bio) && isReadBio(bio)) {
     // Read and Discard should never occur together
     return -EIO;
+  }
+
+  /* Take a shortcut for discard requests when we know that are all
+     no-ops.
+   */
+  if (isDiscardBio(bio) && !shouldProcessDiscards(layer)) {
+    completeBio(bio, 0);
+    return DM_MAPIO_SUBMITTED;
   }
 
   if (getCurrentWorkQueue() != NULL) {
