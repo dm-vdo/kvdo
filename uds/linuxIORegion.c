@@ -167,7 +167,9 @@ static void lior_endio(struct bio *bio, int err)
 #endif
 {
   LinuxIOCompletion *lioc = (LinuxIOCompletion *)bio->bi_private;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  lioc->result = -bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   lioc->result = -bio->bi_error;
 #else
   lioc->result = -err;
@@ -199,7 +201,11 @@ static int lior_bio_submit(struct bio *bio, int rw)
   LinuxIOCompletion lioc = { .result = UDS_SUCCESS, .wait = &wait };
   bio->bi_end_io  = lior_endio;
   bio->bi_private = &lioc;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  submit_bio(bio);
+#else
   submit_bio(rw, bio);
+#endif
   wait_for_completion(&wait);
   return lioc.result;
 }

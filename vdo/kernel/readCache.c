@@ -528,7 +528,9 @@ static void readBioCallback(BIO *bio, int result)
   dataKVIO->readBlock.data = dataKVIO->readBlock.buffer;
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   countCompletedBios(bio);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  completeRead(dataKVIO, bio->bi_status);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   completeRead(dataKVIO, bio->bi_error);
 #else
   completeRead(dataKVIO, result);
@@ -587,7 +589,9 @@ static void readCacheBioCallback(BIO *bio, int error)
   countCompletedBios(bio);
 
   // Set read block operation back to nothing so bio counting works
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  dataKVIO->readBlock.status = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   dataKVIO->readBlock.status = bio->bi_error;
 #else
   dataKVIO->readBlock.status = error;
@@ -723,7 +727,11 @@ static void invalidatePBNBioCallback(BIO *bio, int error)
   KVIO *kvio = (KVIO *) bio->bi_private;
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
   countCompletedBios(bio);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  if (unlikely(bio->bi_status)) {
+    setCompletionResult(vioAsCompletion(kvio->vio), bio->bi_status);
+  }
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   if (unlikely(bio->bi_error)) {
     setCompletionResult(vioAsCompletion(kvio->vio), bio->bi_error);
   }
@@ -1091,7 +1099,13 @@ void kvdoReadBlock(DataVIO             *dataVIO,
     BIO *bio = readBlock->bio;
     resetBio(bio, layer);
     setBioSector(bio, blockToSector(layer, location));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+    bio_set_op_attrs(bio, REQ_OP_READ, 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio->bi_opf    = READ;
+#else
     bio->bi_rw     = READ;
+#endif
     bio->bi_end_io = readBioCallback;
     BUG_ON(bio->bi_bdev != layer->dev->bdev);
     submitBio(bio, action);

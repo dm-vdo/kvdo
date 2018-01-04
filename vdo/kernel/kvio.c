@@ -112,7 +112,13 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   KVIO *kvio = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
-  bio->bi_rw = WRITE;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio_set_op_attrs(bio, REQ_OP_WRITE, 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf = WRITE;
+#else
+  bio->bi_rw  = WRITE;
+#endif
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
   invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
@@ -138,7 +144,11 @@ void kvdoSubmitMetadataVIO(VIO *vio)
   resetBio(bio, kvio->layer);
 
   if (vioRequiresFlushAfter(vio) && shouldProcessFlush(kvio->layer)) {
-    bio->bi_rw = bioFuaRWMask();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio->bi_opf = bioFuaRWMask();
+#else
+    bio->bi_rw  = bioFuaRWMask();
+#endif
   }
   setBioSector(bio, blockToSector(kvio->layer, vio->physical));
 
@@ -147,12 +157,26 @@ void kvdoSubmitMetadataVIO(VIO *vio)
     ASSERT_LOG_ONLY(!vioRequiresFlushBefore(vio),
                     "read VIO does not require flush before");
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio_set_op_attrs(bio, REQ_OP_READ, 0);
+#else
     bio->bi_rw |= READ;
+#endif
   } else if (vioRequiresFlushBefore(vio) && shouldProcessFlush(kvio->layer)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+    bio_set_op_attrs(bio, REQ_OP_WRITE, REQ_PREFLUSH);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio_set_op_attrs(bio, REQ_OP_WRITE, WRITE_FLUSH);
+#else
     bio->bi_rw |= WRITE_FLUSH;
+#endif
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
   } else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+    bio_set_op_attrs(bio, REQ_OP_WRITE, 0);
+#else
     bio->bi_rw |= WRITE;
+#endif
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
   }
 
@@ -184,7 +208,9 @@ static void completeFlushBio(BIO *bio, int error)
   bio->bi_vcnt = 1;
   // Restore the bio's notion of its own data.
   resetBio(bio, kvio->layer);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  kvdoContinueKvio(kvio, bio->bi_status);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   kvdoContinueKvio(kvio, bio->bi_error);
 #else
   kvdoContinueKvio(kvio, error);

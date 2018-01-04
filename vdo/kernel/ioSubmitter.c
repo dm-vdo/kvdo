@@ -85,7 +85,9 @@ void completeAsyncBio(BIO *bio)
 void completeAsyncBio(BIO *bio, int error)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  int error = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   int error = bio->bi_error;
 #endif
   KVIO *kvio = (KVIO *) bio->bi_private;
@@ -454,12 +456,20 @@ void enqueueBioMap(BIO                 *bio,
   if (layer->mdRaid5ModeEnabled) {
     if (isData(kvio)) {
       // Clear the bits for sync I/O RW flags on data block bios.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+      bio->bi_opf = bio->bi_opf & ~bioSyncIoRWMask();
+#else
       bio->bi_rw = bio->bi_rw & ~bioSyncIoRWMask();
+#endif
     } else if ((kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL)
                || (kvio->vio->type == VIO_TYPE_SLAB_JOURNAL)) {
       // Set the bits for sync I/O RW flags on all journal-related and
       // slab-journal-related bios.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+      bio->bi_opf = bio->bi_opf | bioSyncIoRWMask();
+#else
       bio->bi_rw = bio->bi_rw | bioSyncIoRWMask();
+#endif
     }
   }
 

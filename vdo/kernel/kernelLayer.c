@@ -429,7 +429,9 @@ static void endSyncRead(BIO *bio)
 static void endSyncRead(BIO *bio, int result)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  int result = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   int result = bio->bi_error;
 #endif
 
@@ -467,14 +469,20 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   if (result != VDO_SUCCESS) {
     return result;
   }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf     = READ;
+#else
   bio->bi_rw      = READ;
+#endif
   bio->bi_end_io  = endSyncRead;
   bio->bi_private = &bioWait;
   setBioBlockDevice(bio, kernelLayer->dev->bdev);
   setBioSector(bio, blockToSector(kernelLayer, startBlock));
   generic_make_request(bio);
   wait_for_completion(&bioWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  if (bio->bi_status != 0) {
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   if (bio->bi_error != 0) {
 #else
   if (!bio_flagged(bio, BIO_UPTODATE)) {
@@ -753,7 +761,11 @@ int makeKernelLayer(BlockCount      blockCount,
   }
 
   // BIO pool (needed before the geometry block)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  layer->bioset = bioset_create(0, 0, 0);
+#else
   layer->bioset = bioset_create(0, 0);
+#endif
   if (layer->bioset == NULL) {
     *reason = "Cannot allocate dedupe bioset";
     freeKernelLayer(layer);

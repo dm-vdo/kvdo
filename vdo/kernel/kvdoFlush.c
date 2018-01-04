@@ -199,7 +199,13 @@ static void kvdoCompleteFlushWork(KvdoWorkItem *item)
     // FUA bios aren't completely converted to empty flushes so we can do the
     // accounting above. Make sure such bios are empty now.
     if (!isEmptyFlush(bio)) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+      bio_set_op_attrs(bio, 0, REQ_PREFLUSH);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+      bio->bi_opf = WRITE_FLUSH;
+#else
       bio->bi_rw = WRITE_FLUSH;
+#endif
     }
     atomic64_inc(&layer->flushOut);
     generic_make_request(bio);
@@ -241,7 +247,9 @@ static void endSynchronousFlush(BIO *bio)
 static void endSynchronousFlush(BIO *bio, int result)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  int result = bio->bi_status;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   int result = bio->bi_error;
 #endif
 
@@ -271,7 +279,9 @@ int synchronousFlush(KernelLayer *layer)
   bio->bi_next = NULL;
   generic_make_request(bio);
   wait_for_completion(&layer->flushWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  if (bio->bi_status != 0) {
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   if (bio->bi_error != 0) {
 #else
   if (!bio_flagged(bio, BIO_UPTODATE)) {
