@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalZone.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalZone.c#2 $
  */
 
 #include "physicalZone.h"
@@ -27,7 +27,9 @@
 #include "blockMap.h"
 #include "completion.h"
 #include "constants.h"
+#include "dataVIO.h"
 #include "flush.h"
+#include "hashLock.h"
 #include "intMap.h"
 #include "pbnLock.h"
 #include "pbnLockPool.h"
@@ -174,15 +176,29 @@ void releasePBNLock(PhysicalZone         *zone,
   ASSERT_LOG_ONLY(isPBNLocked(lock),
                   "should not be releasing a lock that is not held");
 
+  // XXX VDOSTORY-190 this will have to be more complicated for compression
+  // slots holders and waiters.
+  lock->holder         = NULL;
+  lock->hashLockHolder = NULL;
+
+  // Transfer the lock to the first waiter willing to accept it. The waiter
+  // will always resume processing, with or without the lock.
+  while (hasWaiters(&lock->waiters)) {
+    DataVIO *dataVIO = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
+    if (inheritDuplicatePBNLock(dataVIO, lock)) {
+      return;
+    }
+  }
+
+  // XXX VDOSTORY-190 don't remove from the map if any of the compression
+  // slots are still locked by a hash lock.
+
   PBNLock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
   ASSERT_LOG_ONLY((lock == holder),
                   "physical block lock mismatch for block %" PRIu64,
                   lockedPBN);
 
   releaseProvisionalReference(lock, lockedPBN, zone->allocator);
-
-  // Give the lock waiters a chance to lock, transfer, or requeue.
-  notifyPBNLockWaiters(lock);
 
   returnPBNLockToPool(zone->lockPool, &lock);
 }

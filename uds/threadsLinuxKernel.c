@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,9 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadsLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadsLinuxKernel.c#5 $
  */
 
+#include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
@@ -67,7 +68,6 @@ static int threadStarter(void *arg)
 int createThread(void      (*threadFunc)(void *),
                  void       *threadData,
                  const char *name,
-                 size_t      stackLimit  __attribute__((unused)),
                  Thread     *newThread)
 {
   char *nameColon = strchr(name, ':');

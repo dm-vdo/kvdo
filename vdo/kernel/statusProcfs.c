@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/statusProcfs.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/statusProcfs.c#2 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -123,8 +123,6 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
   stats->dedupeAdviceStale = atomic64_read(&layer->dedupeAdviceStale);
   stats->dedupeAdviceTimeouts
     = getEventCount(&layer->albireoTimeoutReporter);
-  stats->currDedupeQueries = getNumberOutstanding(layer->dedupeIndex);
-  stats->maxDedupeQueries = getMaximumOutstanding(layer->dedupeIndex);
   stats->flushOut     = atomic64_read(&layer->flushOut);
   stats->logicalBlockSize = layer->logicalBlockSize;
   copyBioStat(&stats->biosIn, &layer->biosIn);
@@ -145,6 +143,7 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
                                            stats->biosAcknowledged);
   getBioWorkQueueReadCacheStats(layer->ioSubmitter, &stats->readCache);
   stats->memoryUsage = getMemoryUsage();
+  getIndexStatistics(layer->dedupeIndex, &stats->index);
 }
 
 /**********************************************************************/

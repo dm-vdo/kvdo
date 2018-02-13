@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.h#3 $
  */
 
 #ifndef KERNELLAYER_H
@@ -35,7 +35,6 @@
 #include "bufferPool.h"
 #include "deadlockQueue.h"
 #include "deviceConfig.h"
-#include "heartbeat.h"
 #include "histogram.h"
 #include "kernelStatistics.h"
 #include "kernelTypes.h"
@@ -56,9 +55,7 @@ typedef enum {
   LAYER_BIO_ACK_QUEUE_INITIALIZED,
   LAYER_BIO_DATA_INITIALIZED,
   LAYER_RUNNING,
-  LAYER_SUSPENDING,
   LAYER_SUSPENDED,
-  LAYER_RESUMING,
   LAYER_STOPPING,
   LAYER_STOPPED,
 } KernelLayerState;
@@ -164,7 +161,7 @@ struct kernelLayer {
   BlockCount              blockCount;
   BlockSize               logicalBlockSize;
   uint64_t                startingSectorOffset;
-  VolumeGeometry         *geometry;
+  VolumeGeometry          geometry;
   // Read cache
   unsigned int            readCacheBlocks;
   // Memory allocation

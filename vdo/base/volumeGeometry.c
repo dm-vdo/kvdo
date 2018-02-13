@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.c#7 $
  */
 
 #include "volumeGeometry.h"
@@ -35,31 +35,36 @@
 #include "superBlock.h"
 #include "types.h"
 
-enum { GEOMETRY_BLOCK_LOCATION = 0 };
-
-static const Header GEOMETRY_BLOCK_HEADER_2_0 = {
-  .id = GEOMETRY_BLOCK,
-  .version = {
-    .majorVersion = 2,
-    .minorVersion = 0,
-  },
-
-  .size = (ENCODED_HEADER_SIZE + sizeof(ReleaseVersionNumber)
-           + sizeof(VolumeGeometry) + sizeof(CRC32Checksum)),
+enum {
+  GEOMETRY_BLOCK_LOCATION = 0,
+  MAGIC_NUMBER_SIZE       = 8,
 };
 
-static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
-  = &GEOMETRY_BLOCK_HEADER_2_0;
-
 typedef struct {
+  char                 magicNumber[MAGIC_NUMBER_SIZE];
   Header               header;
   ReleaseVersionNumber version;
   VolumeGeometry       geometry;
   CRC32Checksum        checksum;
 } __attribute__((packed)) GeometryBlock;
 
-/************************************************************************/
-int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry **geometryPtr)
+static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
+  .id = GEOMETRY_BLOCK,
+  .version = {
+    .majorVersion = 4,
+    .minorVersion = 0,
+  },
+
+  .size = sizeof(GeometryBlock),
+};
+
+static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
+  = &GEOMETRY_BLOCK_HEADER_4_0;
+
+static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
+
+/**********************************************************************/
+int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 {
   int result = ASSERT(layer->reader != NULL, "Layer must have a sync reader");
   if (result != VDO_SUCCESS) {
@@ -80,6 +85,11 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry **geometryPtr)
   }
 
   GeometryBlock *geometryBlock = (GeometryBlock *) block;
+  if (memcmp(geometryBlock->magicNumber, MAGIC_NUMBER,
+             MAGIC_NUMBER_SIZE) != 0) {
+    FREE(block);
+    return VDO_BAD_MAGIC;
+  }
 
   result = validateHeader(CURRENT_GEOMETRY_BLOCK_HEADER,
                           &geometryBlock->header, true, __func__);
@@ -97,40 +107,22 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry **geometryPtr)
     return VDO_UNSUPPORTED_VERSION;
   }
 
-  VolumeGeometry *geometry;
-  result = ALLOCATE(1, VolumeGeometry, "geometry", &geometry);
-  if (result != VDO_SUCCESS) {
-    FREE(block);
-    return result;
-  }
-
-  memcpy(geometry, &geometryBlock->geometry, sizeof(VolumeGeometry));
-
   size_t checksummedBytes = sizeof(GeometryBlock) - sizeof(CRC32Checksum);
   CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
                                               (byte *) block,
                                               checksummedBytes);
   if (checksum != geometryBlock->checksum) {
-    FREE(geometry);
     FREE(block);
     return VDO_CHECKSUM_MISMATCH;
   }
 
-  *geometryPtr = geometry;
+  memcpy(geometry, &geometryBlock->geometry, sizeof(VolumeGeometry));
   FREE(block);
   return VDO_SUCCESS;
 }
 
-/**
- * Compute the index size in blocks from the IndexConfig.
- *
- * @param [in]  indexConfig     The index config
- * @param [out] indexBlocksPtr  A pointer to return the index size in blocks
- *
- * @return VDO_SUCCESS or an error
- **/
-static int computeIndexBlocks(IndexConfig *indexConfig,
-                              BlockCount  *indexBlocksPtr)
+/************************************************************************/
+int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 {
   UdsConfiguration udsConfiguration;
   int result = indexConfigToUdsConfiguration(indexConfig, &udsConfiguration);
@@ -157,10 +149,57 @@ static int computeIndexBlocks(IndexConfig *indexConfig,
   return VDO_SUCCESS;
 }
 
-/************************************************************************/
-int writeVolumeGeometry(PhysicalLayer *layer,
-                        Nonce          nonce,
-                        IndexConfig   *indexConfig)
+/**********************************************************************/
+int initializeVolumeGeometry(Nonce           nonce,
+                             UUID            uuid,
+                             IndexConfig    *indexConfig,
+                             VolumeGeometry *geometry)
+{
+  BlockCount indexSize = 0;
+  if (indexConfig != NULL) {
+    int result = computeIndexBlocks(indexConfig, &indexSize);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  }
+
+  geometry->nonce = nonce;
+  memcpy(geometry->uuid, uuid, sizeof(UUID));
+  geometry->partitions[INDEX_REGION] = (VolumePartition) {
+    .id         = INDEX_REGION,
+    .startBlock = 1,
+  };
+  geometry->partitions[DATA_REGION] = (VolumePartition) {
+    .id         = DATA_REGION,
+    .startBlock = 1 + indexSize,
+  };
+
+  if (indexSize > 0) {
+    memcpy(&geometry->indexConfig, indexConfig, sizeof(IndexConfig));
+  } else {
+    memset(&geometry->indexConfig, 0, sizeof(IndexConfig));
+  }
+
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int clearVolumeGeometry(PhysicalLayer *layer)
+{
+  char *block;
+  int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block",
+                                       &block);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = layer->writer(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
+  FREE(block);
+  return result;
+}
+
+/**********************************************************************/
+int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 {
   char *block;
   int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block",
@@ -170,33 +209,10 @@ int writeVolumeGeometry(PhysicalLayer *layer,
   }
 
   GeometryBlock *geometryBlock = (GeometryBlock *) block;
-
-  BlockCount indexSize = 0;
-  if (indexConfig != NULL) {
-    memcpy(&geometryBlock->geometry.indexConfig, indexConfig,
-           sizeof(*indexConfig));
-
-    result = computeIndexBlocks(indexConfig, &indexSize);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
-  } else {
-    memset(&geometryBlock->geometry.indexConfig, 0, sizeof(IndexConfig));
-    indexSize = 0;
-  }
-
-  geometryBlock->header = *CURRENT_GEOMETRY_BLOCK_HEADER;
-  geometryBlock->version = CURRENT_RELEASE_VERSION_NUMBER;
-
-  geometryBlock->geometry.nonce = nonce;
-  geometryBlock->geometry.partitions[INDEX_REGION] = (VolumePartition) {
-    .id         = INDEX_REGION,
-    .startBlock = 1,
-  };
-  geometryBlock->geometry.partitions[DATA_REGION] = (VolumePartition) {
-    .id         = DATA_REGION,
-    .startBlock = 1 + indexSize,
-  };
+  memcpy(geometryBlock->magicNumber, &MAGIC_NUMBER, MAGIC_NUMBER_SIZE);
+  geometryBlock->header   = *CURRENT_GEOMETRY_BLOCK_HEADER;
+  geometryBlock->version  = CURRENT_RELEASE_VERSION_NUMBER;
+  geometryBlock->geometry = *geometry;
 
   // Checksum everything.
   size_t checksummedBytes = sizeof(GeometryBlock) - sizeof(CRC32Checksum);
@@ -225,6 +241,7 @@ int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
   uint32_t cfreq = indexConfig->checkpointFrequency;
   result = udsConfigurationSetCheckpointFrequency(udsConfiguration, cfreq);
   if (result != UDS_SUCCESS) {
+    udsFreeConfiguration(udsConfiguration);
     return logErrorWithStringError(result, "error setting checkpoint"
                                    " frequency");
   }

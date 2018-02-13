@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/memoryLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/memoryLinuxKernel.c#5 $
  */
 
 #include <linux/delay.h>
@@ -24,6 +24,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>     // needed for SQUEEZE builds
 #include <linux/vmalloc.h>
+#include <linux/version.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -209,8 +210,17 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
    * trying to perform the allocation, but this flag suppresses extreme
    * measures to satisfy the request.  The extreme measure that we want to
    * avoid is the invocation of the OOM killer.
+   *
+   * Similarly, the RETRY_MAYFAIL flag means "The VM implementation will retry
+   * memory reclaim procedures that have previously failed if there is some
+   * indication that progress has been made else where". It is the new name
+   * of the GFP_REPEAT flag.
    */
-  gfp_t gfpFlags = __GFP_NORETRY | __GFP_REPEAT | __GFP_ZERO;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  gfp_t gfpFlags = __GFP_NORETRY | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
+#else
+  gfp_t gfpFlags = __GFP_NORETRY | __GFP_ZERO | __GFP_REPEAT;
+#endif
   if (allocationsAllowed()) {
     /*
      * Setup or teardown, when the VDO device isn't active, or a non-critical

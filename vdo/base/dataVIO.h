@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.h#3 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
+
+#include "util/atomic.h"
 
 #include "allocatingVIO.h"
 #include "blockMapEntry.h"
@@ -71,10 +73,7 @@ typedef enum __attribute__((packed)) {
   PUT_MAPPED_BLOCK,
   PUT_MAPPED_BLOCK_FOR_DEDUPE,
   READ_DATA,
-  UPDATE_ALBIREO_FOR_COMPRESSION,
-  UPDATE_ALBIREO_FOR_NON_BLOCK_MAP_DEDUPE,
-  UPDATE_ALBIREO_FOR_RECOVERY,
-  UPDATE_ALBIREO_FOR_ROLLOVER,
+  UPDATE_INDEX,
   VERIFY_DEDUPLICATION,
   WRITE_DATA,
   MAX_ASYNC_OPERATION_NUMBER,
@@ -190,9 +189,6 @@ struct dataVIO {
   /* Whether this VIO write is a duplicate */
   bool                 isDuplicate;
 
-  /* Whether the duplicate's reference count was already at maximum */
-  bool                 rolledOver;
-
   /*
    * Whether this VIO has received an allocation (needs to be atomic so it can
    * be examined from threads not in the allocation zone).
@@ -213,20 +209,6 @@ struct dataVIO {
 
   /* The block number in the partition of the albireo deduplication advice */
   ZonedPBN             duplicate;
-
-  /* The duplicate PBN in a form which may be read from any thread */
-  Atomic64             duplicatePBN;
-
-  /* If non-NULL, the pooled PBN read lock held on the duplicate block */
-  PBNLock             *duplicateLock;
-
-  /*
-   * The queue of waiters that were behind this VIO in the PBN lock queue
-   * when the lock was released and this VIO enqueued to retry the lock,
-   * potentially with a new PBN.
-   * XXX VDOSTORY-190 This should go away when HashLocks manage these waiters.
-   */
-  WaitQueue            lockRetryWaiters;
 
   /*
    * The sequence number of the recovery journal block containing the increment
@@ -924,7 +906,7 @@ void receiveDedupeAdvice(DataVIO *dataVIO, const DataLocation *advice);
 
 /**
  * Set the location of the duplicate block for a DataVIO, updating the
- * isDuplicate, duplicate, and duplicatePBN fields from a ZonedPBN.
+ * isDuplicate and duplicate fields from a ZonedPBN.
  *
  * @param dataVIO  The DataVIO to modify
  * @param source   The location of the duplicate

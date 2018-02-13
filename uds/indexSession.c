@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -24,7 +24,6 @@
 #include "grid.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "notificationDefs.h"
 #include "udsState.h"
 
 /**********************************************************************/
@@ -142,7 +141,6 @@ int udsCloseIndexSession(UdsIndexSession session)
   finishSession(indexSessionGroup, &indexSession->session);
   result = saveAndFreeIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);
-  notifyIndexClosed(session);
   return result;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,26 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.h#2 $
  */
 
 #ifndef KERNEL_VDO_H
 #define KERNEL_VDO_H
 
 #include "completion.h"
-#include "heartbeat.h"
 #include "kernelTypes.h"
 #include "threadRegistry.h"
+#include "workQueue.h"
 
 typedef struct {
   KVDO              *kvdo;
   ThreadID           threadID;
   KvdoWorkQueue     *requestQueue;
   RegisteredThread   allocatingThread;
-  // Heartbeat -- each base-code thread may have cache flushing or
-  // other operations to do regularly.
-  HeartbeatData      heartbeat;
-  struct completion  heartbeatWait;
 } KVDOThread;
 
 struct kvdo {
@@ -46,14 +42,11 @@ struct kvdo {
   VDOCompletion     *completion;
   // Base-code device info
   VDO               *vdo;
-  // For sanity-checking
-  bool               heartsBeating;
 };
 
 typedef enum reqQAction {
   REQ_Q_ACTION_COMPLETION,
   REQ_Q_ACTION_FLUSH,
-  REQ_Q_ACTION_HEARTBEAT,
   REQ_Q_ACTION_MAP_BIO,
   REQ_Q_ACTION_SHUTDOWN,
   REQ_Q_ACTION_SYNC,
@@ -114,20 +107,6 @@ void finishKVDO(KVDO *kvdo);
  * @param kvdo         The KVDO object to be destroyed
  **/
 void destroyKVDO(KVDO *kvdo);
-
-/**
- * Suspends the VDO instance
- *
- * @param kvdo          The KVDO to be suspended
- */
-void suspendKVDO(KVDO *kvdo);
-
-/**
- * Resumes the VDO instance
- *
- * @param kvdo          The KVDO to be resumed
- */
-void resumeKVDO(KVDO *kvdo);
 
 
 /**

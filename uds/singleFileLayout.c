@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayout.c#6 $
+ * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayout.c#7 $
  */
 
 #include "singleFileLayoutInternals.h"
@@ -1239,7 +1239,6 @@ static void sfl_freeMe(IndexLayout *layout)
 /*****************************************************************************/
 
 static const byte INDEX_SEAL_MAGIC[]          = "ALBIREO_INDEX_SEAL_";
-static const char INDEX_SEAL_VERSION_FORMAT[] = "%02u";
 static const byte INDEX_SEAL_CURRENT[]        = "ALBIREO_INDEX_SEAL_01";
 
 enum {
@@ -1248,7 +1247,6 @@ enum {
   INDEX_SEAL_HEADER_LENGTH =
     INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_VERSION_LENGTH,
 };
-static const byte INDEX_SEAL_V1 = 1;
 
 typedef struct indexSealData {
   byte     header[INDEX_SEAL_HEADER_LENGTH];

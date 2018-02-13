@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashZone.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashZone.c#2 $
  */
 
 #include "hashZone.h"
 
+#include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
 #include "permassert.h"
@@ -159,15 +160,6 @@ static void returnHashLockToPool(HashZone *zone, HashLock **lockPtr)
   HashLock *lock = *lockPtr;
   *lockPtr = NULL;
 
-  ASSERT_LOG_ONLY(((lock->state == HASH_LOCK_DESTROYING)
-                   || (lock->state == HASH_LOCK_INITIALIZING)),
-                  "returned hash lock must not be in use with state %s",
-                  getHashLockStateName(lock->state));
-  ASSERT_LOG_ONLY(isRingEmpty(&lock->poolNode),
-                  "hash lock returned to pool must not be in a pool ring");
-  ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicateRing),
-                  "hash lock returned to pool must not reference DataVIOs");
-
   memset(lock, 0, sizeof(*lock));
   initializeHashLock(lock);
   pushRingNode(&zone->lockPool, &lock->poolNode);
@@ -176,6 +168,7 @@ static void returnHashLockToPool(HashZone *zone, HashLock **lockPtr)
 /**********************************************************************/
 int acquireHashLockFromZone(HashZone            *zone,
                             const UdsChunkName  *hash,
+                            HashLock            *replaceLock,
                             HashLock           **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two
@@ -193,15 +186,25 @@ int acquireHashLockFromZone(HashZone            *zone,
 
   HashLock *lock;
   result = pointerMapPut(zone->hashLockMap, &newLock->hash, newLock,
-                         false, (void **) &lock);
+                         (replaceLock != NULL), (void **) &lock);
   if (result != VDO_SUCCESS) {
     returnHashLockToPool(zone, &newLock);
     return result;
   }
 
-  if (lock == NULL) {
-    // There was no existing lock, so newLock is now the lock on the hash.
+  if (replaceLock != NULL) {
+    // XXX on mismatch put the old lock back and return a severe error
+    ASSERT_LOG_ONLY(lock == replaceLock,
+                    "old lock must have been in the lock map");
+    // XXX check earlier and bail out?
+    ASSERT_LOG_ONLY(replaceLock->registered,
+                    "old lock must have been marked registered");
+    replaceLock->registered = false;
+  }
+
+  if (lock == replaceLock) {
     lock = newLock;
+    lock->registered = true;
   } else {
     // There's already a lock for the hash, so we don't need the borrowed lock.
     returnHashLockToPool(zone, &newLock);
@@ -217,9 +220,68 @@ void returnHashLockToZone(HashZone *zone, HashLock **lockPtr)
   HashLock *lock = *lockPtr;
   *lockPtr = NULL;
 
-  HashLock *removed = pointerMapRemove(zone->hashLockMap, &lock->hash);
-  ASSERT_LOG_ONLY(lock == removed,
-                  "hash lock being released must have been mapped");
+  if (lock->registered) {
+    HashLock *removed = pointerMapRemove(zone->hashLockMap, &lock->hash);
+    ASSERT_LOG_ONLY(lock == removed,
+                    "hash lock being released must have been mapped");
+  } else {
+    ASSERT_LOG_ONLY(lock != pointerMapGet(zone->hashLockMap, &lock->hash),
+                    "unregistered hash lock must not be in the lock map");
+  }
+
+  ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
+                  "hash lock returned to zone must have no waiters");
+  ASSERT_LOG_ONLY((lock->duplicateLock == NULL),
+                  "hash lock returned to zone must not reference a PBN lock");
+  ASSERT_LOG_ONLY((lock->state == HASH_LOCK_DESTROYING),
+                  "returned hash lock must not be in use with state %s",
+                  getHashLockStateName(lock->state));
+  ASSERT_LOG_ONLY(isRingEmpty(&lock->poolNode),
+                  "hash lock returned to zone must not be in a pool ring");
+  ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicateRing),
+                  "hash lock returned to zone must not reference DataVIOs");
 
   returnHashLockToPool(zone, &lock);
+}
+
+/**
+ * Dump a compact description of HashLock to the log if the lock is not on the
+ * free list.
+ *
+ * @param lock  The hash lock to dump
+ **/
+static void dumpHashLock(const HashLock *lock)
+{
+  if (!isRingEmpty(&lock->poolNode)) {
+    // This lock is on the free list.
+    return;
+  }
+
+  // Necessarily cryptic since we can log a lot of these. First three chars of
+  // state is unambiguous. 'U' indicates a lock not registered in the map.
+  const char *state = getHashLockStateName(lock->state);
+  logInfo("  hl %p: %3.3s %c%" PRIu64 "/%u rc=%u wc=%zu agt=%p",
+          (const void *) lock,
+          state,
+          (lock->registered ? 'D' : 'U'),
+          lock->duplicate.pbn,
+          lock->duplicate.state,
+          lock->referenceCount,
+          countWaiters(&lock->waiters),
+          (void *) lock->agent);
+}
+
+/**********************************************************************/
+void dumpHashZone(const HashZone *zone)
+{
+  if (zone->hashLockMap == NULL) {
+    logInfo("HashZone %u: NULL map", zone->zoneNumber);
+    return;
+  }
+    
+  logInfo("HashZone %u: mapSize=%zu",
+          zone->zoneNumber, pointerMapSize(zone->hashLockMap));
+  for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {
+    dumpHashLock(&zone->lockArray[i]);
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,35 +31,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#11 $
  */
 
 #include "udsIndex.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "murmur/MurmurHash3.h"
 #include "stringUtils.h"
 #include "uds-block.h"
 
-/**********************************************************************/
+/*****************************************************************************/
 
 typedef struct udsAttribute {
   struct attribute attr;
   const char *(*showString)(DedupeIndex *);
 } UDSAttribute;
 
-/**********************************************************************/
+/*****************************************************************************/
 
 enum { UDS_Q_ACTION };
 
 static const KvdoWorkQueueType udsQueueType = {
-  .needTimeouts = true,
   .actionTable  = {
     { .name = "uds_action", .code = UDS_Q_ACTION, .priority = 0 },
   },
 };
 
-/**********************************************************************/
+/*****************************************************************************/
 
 // These are the values in the atomic dedupeContext.requestState field
 enum {
@@ -71,55 +71,50 @@ enum {
   UR_TIMED_OUT = 2,
 };
 
-/**********************************************************************/
+/*****************************************************************************/
+
+typedef enum {
+  // The UDS index is closed
+  IS_CLOSED = 0,
+  // The UDS index is half-open.
+  // There is a UdsIndexSession, but no UdsBlockContext.
+  IS_INDEXSESSION = 1,
+  // The UDS index is open.  There is a UdsIndexSession and a UdsBlockContext.
+  IS_OPENED = 2,
+} IndexState;
+
+/*****************************************************************************/
 
 typedef struct udsIndex {
   DedupeIndex        common;
-  UdsConfiguration   udsConfiguration;
   struct kobject     dedupeObject;
   KvdoWorkItem       workItem;
   char              *indexName;
+  UdsConfiguration   configuration;
   UdsBlockContext    blockContext;
   UdsIndexSession    indexSession;
   atomic_t           active;
-  bool               haveBlockContext;
-  bool               haveIndexSession;
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
   spinlock_t         stateLock;
-  KvdoWorkQueue     *udsQueue;      // protected by stateLock
-  const char        *dedupeState;   // protected by stateLock
-  const char        *targetState;   // protected by stateLock
-  unsigned int       maximum;       // protected by stateLock
-  // This spinlock protects the pending list, the pending flag in each
-  // KVIO, and the timeout list.
+  KvdoWorkQueue     *udsQueue;    // protected by stateLock
+  unsigned int       maximum;     // protected by stateLock
+  IndexState         indexState;  // protected by stateLock
+  IndexState         indexTarget; // protected by stateLock
+  bool               changing;    // protected by stateLock
+  bool               createFlag;  // protected by stateLock
+  bool               dedupeFlag;  // protected by stateLock
+  bool               deduping;    // protected by stateLock
+  bool               errorFlag;   // protected by stateLock
+  // This spinlock protects the pending list, the pending flag in each KVIO,
+  // and the timeout list.
   spinlock_t         pendingLock;
-  struct list_head   pendingHead;   // protected by pendingLock
-  struct timer_list  pendingTimer;  // protected by pendingLock
-  bool               startedTimer;  // protected by pendingLock
+  struct list_head   pendingHead;  // protected by pendingLock
+  struct timer_list  pendingTimer; // protected by pendingLock
+  bool               startedTimer; // protected by pendingLock
 } UDSIndex;
 
-// For dedupeState, ERROR means that we had an error changing state.
-static const char *const ERROR = "error";
-
-// For dedupeState, CLOSED means that there is no open block context.
-static const char *const CLOSED = "closed";
-
-// For dedupeState, OPENING means that we are opening a block context.
-static const char *const OPENING = "opening";
-
-// For dedupeState, CLOSING means that we are closing a block context.
-static const char *const CLOSING = "closing";
-
-// For dedupeState, OFFLINE means that there is an open block context, but we
-//   are not sending dedupe requests to the index.
-static const char *const OFFLINE = "offline";
-
-// For dedupeState, ONLINE means that there is an open block context, and we.
-//   are sending dedupe requests to the index.
-static const char *const ONLINE = "online";
-
-/**********************************************************************/
+/*****************************************************************************/
 
 // Version 1:  user space albireo index (limited to 32 bytes)
 // Version 2:  kernel space albireo index (limited to 16 bytes)
@@ -131,22 +126,36 @@ typedef struct udsAdvice {
   PhysicalBlockNumber pbn;
 } __attribute__((__packed__)) UDSAdvice;
 
-/**********************************************************************/
-static inline bool stateIn2(const char *state, const char *s1, const char *s2)
+/*****************************************************************************/
+
+  // We want to ensure that there is only one copy of the following constants.
+static const char *CLOSED  = "closed";
+static const char *CLOSING = "closing";
+static const char *ERROR   = "error";
+static const char *OFFLINE = "offline";
+static const char *ONLINE  = "online";
+static const char *OPENING = "opening";
+static const char *UNKNOWN = "unknown";
+
+/*****************************************************************************/
+static const char *indexStateToString(UDSIndex *index, IndexState state)
 {
-  return (state == s1) || (state == s2);
+  switch (state) {
+  case IS_CLOSED:
+    // Closed.  The errorFlag tells if it is because of an error.
+    return index->errorFlag ? ERROR : CLOSED;
+  case IS_INDEXSESSION:
+    // The indexTarget tells if we are opening or closing the index.
+    return index->indexTarget == IS_OPENED ? OPENING : CLOSING;
+  case IS_OPENED:
+    // Opened.  The dedupeFlag tells if we are online or offline.
+    return index->dedupeFlag ? ONLINE : OFFLINE;
+  default:
+    return UNKNOWN;
+  }
 }
 
-/**********************************************************************/
-static inline bool stateIn3(const char *state,
-                            const char *s1,
-                            const char *s2,
-                            const char *s3)
-{
-  return (state == s1) || (state == s2) || (state == s3);
-}
-
-/**********************************************************************/
+/*****************************************************************************/
 static void finishIndexOperation(UdsRequest *udsRequest)
 {
   DataKVIO *dataKVIO = container_of(udsRequest, DataKVIO,
@@ -184,7 +193,7 @@ static void finishIndexOperation(UdsRequest *udsRequest)
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void startExpirationTimer(UDSIndex *index, DataKVIO *dataKVIO)
 {
   if (!index->startedTimer) {
@@ -194,14 +203,14 @@ static void startExpirationTimer(UDSIndex *index, DataKVIO *dataKVIO)
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void startIndexOperation(KvdoWorkItem *item)
 {
   KVIO *kvio = workItemAsKVIO(item);
   DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
   UDSIndex *index = container_of(kvio->layer->dedupeIndex, UDSIndex, common);
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
-  
+
   spin_lock_bh(&index->pendingLock);
   list_add_tail(&dedupeContext->pendingList, &index->pendingHead);
   dedupeContext->isPending = true;
@@ -216,7 +225,7 @@ static void startIndexOperation(KvdoWorkItem *item)
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void timeoutIndexOperations(unsigned long arg)
 {
   UDSIndex *index = (UDSIndex *) arg;
@@ -253,7 +262,7 @@ static void timeoutIndexOperations(unsigned long arg)
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void enqueueIndexOperation(DataKVIO        *dataKVIO,
                                   UdsCallbackType  operation)
 {
@@ -268,7 +277,7 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
     UDSAdvice advice = {
       .version = UDS_ADVICE_VERSION,
       .state   = dataKVIO->dataVIO.newMapped.state,
-      .pbn     = kvio->vio->physical,
+      .pbn     = dataKVIO->dataVIO.newMapped.pbn,
     };
     udsRequest->chunkName = *dedupeContext->chunkName;
     udsRequest->callback  = finishIndexOperation;
@@ -279,7 +288,7 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
     setupWorkItem(&kvio->enqueueable.workItem, startIndexOperation, NULL,
                   UDS_Q_ACTION);
     spin_lock(&index->stateLock);
-    if ((index->dedupeState == ONLINE) && (index->targetState == NULL)) {
+    if (index->deduping) {
       enqueueWorkQueue(index->udsQueue, &kvio->enqueueable.workItem);
       unsigned int active = atomic_inc_return(&index->active);
       if (active > index->maximum) {
@@ -296,120 +305,202 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
+static void closeContext(UDSIndex *index)
+{
+  // ASSERTION: We enter in IS_OPENED state.  Change the index state so that
+  // the it will be reported to the outside world as "closing".
+  index->indexState = IS_INDEXSESSION;
+  // Close the block context, while not holding the stateLock.
+  spin_unlock(&index->stateLock);
+  int result = udsCloseBlockContext(index->blockContext);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Error closing block context for %s",
+                            index->indexName);
+  }
+  spin_lock(&index->stateLock);
+  // ASSERTION: We leave in IS_INDEXSESSION state.
+}
+
+/*****************************************************************************/
+static void closeSession(UDSIndex *index)
+{
+  // ASSERTION: We enter in IS_INDEXSESSION state.
+  // Close the index session, while not holding the stateLock.
+  spin_unlock(&index->stateLock);
+  int result = udsCloseIndexSession(index->indexSession);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Error closing index %s",
+                            index->indexName);
+  }
+  spin_lock(&index->stateLock);
+  index->indexState = IS_CLOSED;
+  index->errorFlag = result != UDS_SUCCESS;
+  // ASSERTION: We leave in IS_CLOSED state.
+}
+
+/*****************************************************************************/
+static void openContext(UDSIndex *index)
+{
+  // ASSERTION: We enter in IS_INDEXSESSION state.
+  // Open the block context, while not holding the stateLock.
+  spin_unlock(&index->stateLock);
+  int result = udsOpenBlockContext(index->indexSession, sizeof(UDSAdvice),
+                                   &index->blockContext);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Error closing block context for %s",
+                            index->indexName);
+  } else {
+    UdsConfiguration configuration;
+    result = udsGetBlockContextConfiguration(index->blockContext,
+                                             &configuration);
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Error reading configuration for %s",
+                              index->indexName);
+    } else {
+      if (udsConfigurationGetNonce(index->configuration)
+          != udsConfigurationGetNonce(configuration)) {
+        logError("Index does not belong to this VDO device");
+        result = EINVAL;
+      }
+      udsFreeConfiguration(configuration);
+    }
+  }
+  spin_lock(&index->stateLock);
+  if (result == UDS_SUCCESS) {
+    index->indexState = IS_OPENED;
+    // ASSERTION: On success, we leave in IS_OPENED state.
+  } else {
+    index->indexTarget = IS_CLOSED;
+    index->errorFlag = true;
+    // ASSERTION: On failure, we leave in IS_CLOSED state.
+  }
+}
+
+/*****************************************************************************/
+static void openSession(UDSIndex *index)
+{
+  // ASSERTION: We enter in IS_CLOSED state.
+  bool createFlag = index->createFlag;
+  index->createFlag = false;
+  // Change the index state so that the it will be reported to the outside
+  // world as "opening".
+  index->indexState = IS_INDEXSESSION;
+  index->errorFlag = false;
+  // Open the index session, while not holding the stateLock
+  spin_unlock(&index->stateLock);
+  int result = (createFlag
+                ? udsCreateLocalIndex(index->indexName, index->configuration,
+                                      &index->indexSession)
+                : udsRebuildLocalIndex(index->indexName,
+                                       &index->indexSession));
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Error %s index %s",
+                            createFlag ? "creating" : "opening",
+                            index->indexName);
+  }
+  spin_lock(&index->stateLock);
+  if (!createFlag) {
+    switch (result) {
+    case UDS_CORRUPT_COMPONENT:
+    case UDS_NO_INDEX:
+      // Either there is no index, or there is no way we can recover the index.
+      // We will be called again and try to create a new index.
+      index->indexState = IS_CLOSED;
+      index->createFlag = true;
+      return;
+    default:
+      break;
+    }
+  }
+  if (result != UDS_SUCCESS) {
+    index->indexState  = IS_CLOSED;
+    index->indexTarget = IS_CLOSED;
+    index->errorFlag   = true;
+    spin_unlock(&index->stateLock);
+    logInfo("Setting UDS index target state to error");
+    spin_lock(&index->stateLock);
+  }
+  // ASSERTION: On success, we leave in IS_INDEXSESSION state.
+  // ASSERTION: On failure, we leave in IS_CLOSED state.
+}
+
+/*****************************************************************************/
 static void changeDedupeState(KvdoWorkItem *item)
 {
   UDSIndex *index = container_of(item, UDSIndex, workItem);
-  int result = UDS_SUCCESS;
-  for (bool workToDo = true; workToDo;) {
-    // Under the stateLock, advance to the next dedupeState and targetState.
-    spin_lock(&index->stateLock);
-    if (result != UDS_SUCCESS) {
-      index->targetState = ERROR;
-    }
-    if (stateIn2(index->targetState, ONLINE, OFFLINE)) {
-      // Pick the next state to drive us to being online/offline
-      if (stateIn3(index->dedupeState, CLOSING, CLOSED, ERROR)) {
-        index->dedupeState = OPENING;
-      } else if (stateIn3(index->dedupeState, OPENING, OFFLINE, ONLINE)) {
-        index->dedupeState = index->targetState;
-      } else {
-        index->dedupeState = ERROR;
-      }
-    } else if (stateIn2(index->targetState, CLOSED, ERROR)) {
-      // Pick the next state to drive us to being closed
-      if (stateIn3(index->dedupeState, OPENING, OFFLINE, ONLINE)) {
-        index->dedupeState = CLOSING;
-      } else if (stateIn3(index->dedupeState, CLOSING, CLOSED, ERROR)) {
-        index->dedupeState = index->targetState;
-      } else {
-        index->dedupeState = ERROR;
-      }
-    } else {
-      index->dedupeState = ERROR;
-    }
-    if (stateIn2(index->dedupeState, index->targetState, ERROR)) {
-      // We have arrived in either the target state or the error state
-      index->targetState = NULL;
-      workToDo = false;
-    }
-    const char *dedupeState = index->dedupeState;
-    spin_unlock(&index->stateLock);
-
-    if (dedupeState == ERROR) {
-      // We do logging while not holding the spinlock
-      if (result == UDS_SUCCESS) {
-        logWarning("setting UDS index target state to ERROR");
-      } else {
-        logWarningWithStringError(result,
-                                  "setting UDS index target state to ERROR");
-      }
-    } else if (dedupeState == OPENING) {
-      // Do the UDS calls to open the index
-      if (!index->haveIndexSession) {
-        result = udsRebuildLocalIndex(index->indexName, &index->indexSession);
-      }
-      if (result != UDS_SUCCESS) {
-        // Reformat the index.
-        result = udsCreateLocalIndex(index->indexName, index->udsConfiguration,
-                                     &index->indexSession);
-      }
-      if (result == UDS_SUCCESS) {
-        index->haveIndexSession = true;
-        result = udsOpenBlockContext(index->indexSession, sizeof(UDSAdvice),
-                                     &index->blockContext);
-      }
-      if (result == UDS_SUCCESS) {
-        index->haveBlockContext = true;
-      }
-    } else if (dedupeState == CLOSING) {
-      // Do the UDS calls to close the index
-      if (index->haveBlockContext) {
-        result = udsCloseBlockContext(index->blockContext);
-        index->haveBlockContext = false;
-      }
-      if (index->haveIndexSession) {
-        int result2 = udsCloseIndexSession(index->indexSession);
-        index->haveIndexSession = false;
-        if (result == UDS_SUCCESS) {
-          result = result2;
-        }
-      }
-    }
-  }
-}
-
-/**********************************************************************/
-static void setTargetState(UDSIndex *index, const char *target)
-{
-  logInfo("Setting UDS index target state to %s", target);
   spin_lock(&index->stateLock);
-  if (index->targetState != NULL) {
-    // A change is already in progress, just change the target of the change
-    index->targetState = target;
-  } else if (((index->dedupeState == OFFLINE) && (target == ONLINE))
-             || ((index->dedupeState == ONLINE) && (target == OFFLINE))) {
-    // Online vs. offline changes can happen immediately
-    index->dedupeState = target;
-  } else if (target != index->dedupeState) {
-    // Must start a change to a new state by enqueuing a work item that calls
-    // changeDedupeState.
-    index->targetState = target;
-    setupWorkItem(&index->workItem, changeDedupeState, NULL, UDS_Q_ACTION);
-    enqueueWorkQueue(index->udsQueue, &index->workItem);
+  // Loop until the index is in the target state and the create flag is clear.
+  while ((index->indexState != index->indexTarget) || index->createFlag) {
+    if (index->indexState == IS_OPENED) {
+      // We need to close the block context.  Either we want to be closed, or
+      // we need to close it in order to create a new index.
+      closeContext(index);
+    } else if (index->indexState == IS_CLOSED) {
+      // We need to open the index session.
+      openSession(index);
+    } else if ((index->indexTarget == IS_CLOSED) || index->createFlag) {
+      // We need to close the index session.  Either we want to be closed, or
+      // we need to close it in order to create a new index.
+      closeSession(index);
+    } else {
+      // We need to open the block context.
+      openContext(index);
+    }
   }
+  index->changing = false;
+  index->deduping = index->dedupeFlag && (index->indexState = IS_OPENED);
   spin_unlock(&index->stateLock);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
+static void setTargetState(UDSIndex   *index,
+                           IndexState  target,
+                           bool        changeDedupe,
+                           bool        dedupe,
+                           bool        setCreate)
+{
+  spin_lock(&index->stateLock);
+  const char *oldState = indexStateToString(index, index->indexTarget);
+  if (changeDedupe) {
+    index->dedupeFlag = dedupe;
+  }
+  if (setCreate) {
+    index->createFlag = true;
+  }
+  if (index->changing) {
+    // A change is already in progress, just change the target state
+    index->indexTarget = target;
+  } else if ((target != index->indexTarget) || setCreate) {
+    // Must start a state change by enqueuing a work item that calls
+    // changeDedupeState.
+    index->indexTarget = target;
+    index->changing = true;
+    index->deduping = false;
+    setupWorkItem(&index->workItem, changeDedupeState, NULL, UDS_Q_ACTION);
+    enqueueWorkQueue(index->udsQueue, &index->workItem);
+  } else {
+    // Online vs. offline changes happen immediately
+    index->deduping = index->dedupeFlag && (index->indexState == IS_OPENED);
+  }
+  const char *newState = indexStateToString(index, index->indexTarget);
+  spin_unlock(&index->stateLock);
+  if (oldState != newState) {
+    logInfo("Setting UDS index target state to %s", newState);
+  }
+}
 
-/**********************************************************************/
+/*****************************************************************************/
+
+/*****************************************************************************/
 static void dumpUDSIndex(DedupeIndex *dedupeIndex, bool showQueue)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
   spin_lock(&index->stateLock);
-  const char *state = index->dedupeState;
-  const char *target = index->targetState;
+  const char *state = indexStateToString(index, index->indexState);
+  const char *target = (index->changing
+                        ? indexStateToString(index, index->indexTarget)
+                        : NULL);
   spin_unlock(&index->stateLock);
   logInfo("UDS index: state: %s", state);
   if (target != NULL) {
@@ -420,16 +511,16 @@ static void dumpUDSIndex(DedupeIndex *dedupeIndex, bool showQueue)
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void finishUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  setTargetState(index, CLOSED);
-  udsFreeConfiguration(index->udsConfiguration);
+  setTargetState(index, IS_CLOSED, false, false, false);
+  udsFreeConfiguration(index->configuration);
   finishWorkQueue(index->udsQueue);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void freeUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
@@ -442,74 +533,101 @@ static void freeUDSIndex(DedupeIndex *dedupeIndex)
   kobject_put(&index->dedupeObject);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static const char *getUDSStateName(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  return index->dedupeState;
+  spin_lock(&index->stateLock);
+  const char *state = indexStateToString(index, index->indexState);
+  spin_unlock(&index->stateLock);
+  return state;
 }
 
-/**********************************************************************/
-static unsigned int getMaximumOutstandingUDS(DedupeIndex *dedupeIndex)
+/*****************************************************************************/
+static void getUDSStatistics(DedupeIndex *dedupeIndex, IndexStatistics *stats)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  return index->maximum;
-};
+  spin_lock(&index->stateLock);
+  UdsBlockContext blockContext = index->blockContext;
+  IndexState      indexState   = index->indexState;
+  stats->maxDedupeQueries      = index->maximum;
+  spin_unlock(&index->stateLock);
+  stats->currDedupeQueries     = atomic_read(&index->active);
+  if (indexState == IS_OPENED) {
+    UdsIndexStats indexStats;
+    int result = udsGetBlockContextIndexStats(blockContext, &indexStats);
+    if (result == UDS_SUCCESS) {
+      stats->entriesIndexed = indexStats.entriesIndexed;
+    } else {
+      logErrorWithStringError(result, "Error reading index stats");
+    }
+    UdsContextStats contextStats;
+    result = udsGetBlockContextStats(index->blockContext, &contextStats);
+    if (result == UDS_SUCCESS) {
+      stats->postsFound      = contextStats.postsFound;
+      stats->postsNotFound   = contextStats.postsNotFound;
+      stats->queriesFound    = contextStats.queriesFound;
+      stats->queriesNotFound = contextStats.queriesNotFound;
+      stats->updatesFound    = contextStats.updatesFound;
+      stats->updatesNotFound = contextStats.updatesNotFound;
+    } else {
+      logErrorWithStringError(result, "Error reading context stats");
+    }
+  }
+}
 
-/**********************************************************************/
-static unsigned int getNumberOutstandingUDS(DedupeIndex *dedupeIndex)
-{
-  UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  return atomic_read(&index->active);
-};
+/*****************************************************************************/
 
-/**********************************************************************/
+/*****************************************************************************/
 static int processMessage(DedupeIndex *dedupeIndex, const char *name)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  if (strcasecmp(name, "index-disable") == 0) {
-    setTargetState(index, OFFLINE);
+  if (strcasecmp(name, "index-create") == 0) {
+    setTargetState(index, IS_OPENED, false, false, true);
+    return 0;
+  } else if (strcasecmp(name, "index-disable") == 0) {
+    setTargetState(index, IS_OPENED, true, false, false);
     return 0;
   } else if (strcasecmp(name, "index-enable") == 0) {
-    setTargetState(index, ONLINE);
+    setTargetState(index, IS_OPENED, true, true, false);
     return 0;
   }
   return -EINVAL;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void udsPost(DataKVIO *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_POST);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void udsQuery(DataKVIO *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_QUERY);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void startUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  setTargetState(index, ONLINE);
+  setTargetState(index, IS_OPENED, true, true, false);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void stopUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  setTargetState(index, CLOSED);
+  setTargetState(index, IS_CLOSED, false, false, false);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void udsUpdate(DataKVIO *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_UPDATE);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static void dedupeKobjRelease(struct kobject *kobj)
 {
   UDSIndex *index = container_of(kobj, UDSIndex, dedupeObject);
@@ -517,7 +635,7 @@ static void dedupeKobjRelease(struct kobject *kobj)
   FREE(index);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static ssize_t dedupeStatusShow(struct kobject   *kobj,
                                 struct attribute *attr,
                                 char             *buf)
@@ -531,7 +649,7 @@ static ssize_t dedupeStatusShow(struct kobject   *kobj,
   }
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 static ssize_t dedupeStatusStore(struct kobject   *kobj,
                                  struct attribute *attr,
                                  const char       *buf,
@@ -540,7 +658,7 @@ static ssize_t dedupeStatusStore(struct kobject   *kobj,
   return -EINVAL;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 
 static struct sysfs_ops dedupeSysfsOps = {
   .show  = dedupeStatusShow,
@@ -563,7 +681,7 @@ static struct kobj_type dedupeKobjType = {
   .default_attrs = dedupeAttributes,
 };
 
-/**********************************************************************/
+/*****************************************************************************/
 int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
 {
   UDSIndex *index;
@@ -572,29 +690,18 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
     return result;
   }
 
-  result = ALLOCATE(strlen(layer->deviceConfig->parentDeviceName) + 50, char,
-                    "UDS index name", &index->indexName);
-  if (result < 0) {
-    FREE(index);
-    return result;
-  }
-
-  VolumeGeometry *geometry = layer->geometry;
-  BlockCount indexBlocks = (geometry->partitions[DATA_REGION].startBlock
-                            - geometry->partitions[INDEX_REGION].startBlock);
-  result = fixedSprintf("index name", index->indexName, VDO_BLOCK_SIZE,
-                        UDS_INDEX_PATH_TOO_LONG, "dev=%s offset=4096 size=%"
-                        PRIu64, layer->deviceConfig->parentDeviceName,
-                        indexBlocks * VDO_BLOCK_SIZE);
+  result = allocSprintf("index name", &index->indexName,
+                        "dev=%s offset=4096 size=%" PRIu64,
+                        layer->deviceConfig->parentDeviceName,
+                        getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
   if (result < 0) {
     logError("Creating index name failed (%d)", result);
-    FREE(index->indexName);
     FREE(index);
     return result;
   }
 
   result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
-                         &layer->wqDirectory, index, &udsQueueType, 1,
+                         &layer->wqDirectory, layer, index, &udsQueueType, 1,
                          &index->udsQueue);
   if (result < 0) {
     logError("UDS index queue initialization failed (%d)", result);
@@ -603,19 +710,21 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
     return result;
   }
 
-  result = indexConfigToUdsConfiguration(&layer->geometry->indexConfig,
-                                         &index->udsConfiguration);
+  result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
+                                         &index->configuration);
   if (result != VDO_SUCCESS) {
     freeWorkQueue(&index->udsQueue);
     FREE(index->indexName);
     FREE(index);
     return result;
   }
+  udsConfigurationSetNonce(index->configuration,
+                           (UdsNonce) layer->geometry.nonce);
 
   kobject_init(&index->dedupeObject, &dedupeKobjType);
   result = kobject_add(&index->dedupeObject, &layer->kobj, "dedupe");
   if (result != VDO_SUCCESS) {
-    udsFreeConfiguration(index->udsConfiguration);
+    udsFreeConfiguration(index->configuration);
     freeWorkQueue(&index->udsQueue);
     FREE(index->indexName);
     FREE(index);
@@ -625,8 +734,7 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   index->common.dump                      = dumpUDSIndex;
   index->common.free                      = freeUDSIndex;
   index->common.getDedupeStateName        = getUDSStateName;
-  index->common.getMaximumOutstanding     = getMaximumOutstandingUDS;
-  index->common.getNumberOutstanding      = getNumberOutstandingUDS;
+  index->common.getStatistics             = getUDSStatistics;
   index->common.message                   = processMessage;
   index->common.post                      = udsPost;
   index->common.query                     = udsQuery;
@@ -635,8 +743,6 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   index->common.finish                    = finishUDSIndex;
   index->common.update                    = udsUpdate;
 
-  index->dedupeState = CLOSED;
-  index->targetState = NULL;
   INIT_LIST_HEAD(&index->pendingHead);
   spin_lock_init(&index->pendingLock);
   spin_lock_init(&index->stateLock);

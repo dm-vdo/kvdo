@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/superBlock.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/superBlock.h#2 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -59,43 +59,57 @@ void freeSuperBlock(SuperBlock **superBlockPtr);
 /**
  * Save a super block.
  *
- * @param layer       The physical layer on which to save the super block
- * @param superBlock  The super block to save
+ * @param layer             The physical layer on which to save the super block
+ * @param superBlock        The super block to save
+ * @param superBlockOffset  The location of the super block
  *
  * @return VDO_SUCCESS or an error
  **/
-int saveSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
+int saveSuperBlock(PhysicalLayer       *layer,
+                   SuperBlock          *superBlock,
+                   PhysicalBlockNumber  superBlockOffset)
   __attribute__((warn_unused_result));
 
 /**
  * Save a super block asynchronously.
  *
- * @param superBlock  The super block to save
- * @param parent      The object to notify when the save is complete
+ * @param superBlock        The super block to save
+ * @param superBlockOffset  The location at which to write the super block
+ * @param parent            The object to notify when the save is complete
  **/
-void saveSuperBlockAsync(SuperBlock *superBlock, VDOCompletion *parent);
+void saveSuperBlockAsync(SuperBlock          *superBlock,
+                         PhysicalBlockNumber  superBlockOffset,
+                         VDOCompletion       *parent);
 
 /**
  * Allocate a super block and read its contents from storage.
  *
- * @param [in]  layer          The layer from which to load the super block
- * @param [out] superBlockPtr  A pointer to hold the loaded super block
+ * @param [in]  layer             The layer from which to load the super block
+ * @param [in]  superBlockOffset  The location from which to read the super
+ *                                block
+ * @param [out] superBlockPtr     A pointer to hold the loaded super block
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadSuperBlock(PhysicalLayer *layer, SuperBlock **superBlockPtr)
+int loadSuperBlock(PhysicalLayer        *layer,
+                   PhysicalBlockNumber   superBlockOffset,
+                   SuperBlock          **superBlockPtr)
   __attribute__((warn_unused_result));
 
 /**
  * Allocate a super block and read its contents from storage asynchronously. If
- * a load error occurs before the super block's own completion can be
- * allocated, the parent will be finished with the error.
+ * a load error occurs before the super block's own completion can be allocated,
+ * the parent will be finished with the error.
  *
- * @param [in]  parent         The completion to finish after loading the super
- *                             block
- * @param [out] superBlockPtr  A pointer to hold the super block
+ * @param [in]  parent            The completion to finish after loading the
+ *                                super block
+ * @param [in]  superBlockOffset  The location from which to read the super
+ *                                block
+ * @param [out] superBlockPtr     A pointer to hold the super block
  **/
-void loadSuperBlockAsync(VDOCompletion *parent, SuperBlock **superBlockPtr);
+void loadSuperBlockAsync(VDOCompletion        *parent,
+                         PhysicalBlockNumber   superBlockOffset,
+                         SuperBlock          **superBlockPtr);
 
 /**
  * Get a buffer which contains the component data from a super block.

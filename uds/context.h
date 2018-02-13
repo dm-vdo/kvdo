@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/context.h#5 $
  */
 
 #ifndef CONTEXT_H
@@ -38,13 +38,6 @@ typedef enum udsContextState {
   UDS_CS_READY     = 1,
   UDS_CS_DISABLED  = 2
 } UdsContextState;
-
-/**
- * valid context types
- **/
-typedef enum {
-  BLOCK_CONTEXT
-} ContextType;
 
 typedef struct statCounters {
   uint64_t postsFound;          /* Post calls that found an entry */
@@ -72,37 +65,14 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) contextStats {
   StatCounters    counters;
 } ContextStats;
 
-typedef union {
-  UdsDedupeBlockCallback  blockCallback;
-} IndexCallbackFunction;
-
-/**
- * A function to encode metadata for an index request.
- *
- * @param metadata The metadata to encode
- * @param request  The request in which to encode the metadata
- **/
-typedef void (*MetadataEncoder)(const void *metadata, Request *request);
-
-/**
- * Signature for functions which takes a completed request and passes it to
- * the user's registered dedupe callback.
- *
- * @param request The completed request
- **/
-typedef void (*CallbackHandler)(Request *request);
-
 /**
  * Context for uds client index requests.
  **/
 typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
   /* The id of this context */
   unsigned int             id;
-  /* The type of context (block, file, or stream) */
-  ContextType              type;
   /* The state of this context (whether or not it may be used) */
   UdsContextState          contextState;
-
   /* The index and session which own this context */
   IndexSession            *indexSession;
   Session                  session;
@@ -113,22 +83,15 @@ typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
 #endif /* NAMESPACES */
   /* Application metadata size; the library may store more! */
   unsigned int             metadataSize;
-  /**
-   * Encoder to provide context type specific metadata encoding into index
-   * requests
-   **/
-  MetadataEncoder          metadataEncoder;
-  /* Chunk size for modes that need it  */
-  unsigned int             chunkSize;
 
   /* true if turnaround time should be measured on requests to this context */
   bool                     timeRequestTurnaround;
 
   /* Callback for index requests */
   bool                     hasCallback;
-  CallbackHandler          callbackHandler;
-  IndexCallbackFunction    callbackFunction;
+  UdsDedupeBlockCallback   callbackFunction;
   void                    *callbackArgument;
+  RequestQueue            *callbackQueue;
 
   /** limit on the number of outstanding requests */
   RequestLimit            *requestLimit;
@@ -143,11 +106,6 @@ typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
   UdsChunkName           (*chunkNameGenerator)(const void *data, size_t size);
 } UdsContext;
 
-/**
- * Return a string literal describing the given context type.
- **/
-const char *contextTypeToString(ContextType contextType);
-
 #if NAMESPACES
 /**
  * Open a context.
@@ -155,12 +113,6 @@ const char *contextTypeToString(ContextType contextType);
  * @param [in]  session          The index session on which to open a context
  * @param [in]  namespace        The namespace to associate with the context
  * @param [in]  metadataSize     The application metadata size to copy
- * @param [in]  metadataEncoder  A function to encode application metadata
- *                               into an index request
- * @param [in]  chunkSize        The data chunk size, for file/stream contexts
- * @param [in]  contextType      The type of context to open
- * @param [in]  callbackHandler  The function that passes results in completed
- *                               requests back to the user's callback function
  * @param [out] contextID        A point to hold the id of the new context
  *
  * @return UDS_SUCCESS or an error
@@ -168,10 +120,6 @@ const char *contextTypeToString(ContextType contextType);
 int openContext(UdsIndexSession     session,
                 const UdsNamespace *namespace,
                 unsigned int        metadataSize,
-                MetadataEncoder     metadataEncoder,
-                unsigned int        chunkSize,
-                ContextType         contextType,
-                CallbackHandler     callbackHandler,
                 unsigned int       *contextID)
   __attribute__((warn_unused_result));
 #else /* NAMESPACES */
@@ -180,23 +128,13 @@ int openContext(UdsIndexSession     session,
  *
  * @param [in]  session          The index session on which to open a context
  * @param [in]  metadataSize     The application metadata size to copy
- * @param [in]  metadataEncoder  A function to encode application metadata
- *                               into an index request
- * @param [in]  chunkSize        The data chunk size, for file/stream contexts
- * @param [in]  contextType      The type of context to open
- * @param [in]  callbackHandler  The function that passes results in completed
- *                               requests back to the user's callback function
  * @param [out] contextID        A point to hold the id of the new context
  *
  * @return UDS_SUCCESS or an error
  **/
-int openContext(UdsIndexSession     session,
-                unsigned int        metadataSize,
-                MetadataEncoder     metadataEncoder,
-                unsigned int        chunkSize,
-                ContextType         contextType,
-                CallbackHandler     callbackHandler,
-                unsigned int       *contextID)
+int openContext(UdsIndexSession  session,
+                unsigned int     metadataSize,
+                unsigned int    *contextID)
   __attribute__((warn_unused_result));
 #endif /* NAMESPACES */
 
@@ -233,21 +171,11 @@ int handleErrorAndReleaseBaseContext(UdsContext *context, int errorCode)
  *                               opened
  * @param [in]  namespace        The namespace to associate with the context
  * @param [in]  metadataSize     The application metadata size to copy
- * @param [in]  metadataEncoder  A function to encode application metadata
- *                               into an index request
- * @param [in]  chunkSize        The data chunk size, for file/stream contexts
- * @param [in]  contextType      The type of context (block, file, or stream)
- * @param [in]  callbackHandler  The function that passes results in completed
- *                               requests back to the user's callback function
  * @param [out] contextPtr       The pointer to receive the new context
  **/
 int makeBaseContext(IndexSession        *indexSession,
                     const UdsNamespace  *namespace,
                     unsigned int         metadataSize,
-                    MetadataEncoder      metadataEncoder,
-                    unsigned int         chunkSize,
-                    ContextType          contextType,
-                    CallbackHandler      callbackHandler,
                     UdsContext         **contextPtr)
   __attribute__((warn_unused_result));
 #else /* NAMESPACES */
@@ -258,21 +186,11 @@ int makeBaseContext(IndexSession        *indexSession,
  * @param [in]  indexSession     The index session under which the context is
  *                               opened
  * @param [in]  metadataSize     The application metadata size to copy
- * @param [in]  metadataEncoder  A function to encode application metadata
- *                               into an index request
- * @param [in]  chunkSize        The data chunk size, for file/stream contexts
- * @param [in]  contextType      The type of context (block, file, or stream)
- * @param [in]  callbackHandler  The function that passes results in completed
- *                               requests back to the user's callback function
  * @param [out] contextPtr       The pointer to receive the new context
  **/
-int makeBaseContext(IndexSession        *indexSession,
-                    unsigned int         metadataSize,
-                    MetadataEncoder      metadataEncoder,
-                    unsigned int         chunkSize,
-                    ContextType          contextType,
-                    CallbackHandler      callbackHandler,
-                    UdsContext         **contextPtr)
+int makeBaseContext(IndexSession  *indexSession,
+                    unsigned int   metadataSize,
+                    UdsContext   **contextPtr)
   __attribute__((warn_unused_result));
 #endif /* NAMESPACES */
 
@@ -280,14 +198,11 @@ int makeBaseContext(IndexSession        *indexSession,
  * Get the non-type-specific underlying context for a given context.
  *
  * @param contextId   The id of the context making the request
- * @param contextType The type of context making the request
  * @param contextPtr  A pointer to receive the base context
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getBaseContext(unsigned int   contextId,
-                   ContextType    contextType,
-                   UdsContext   **contextPtr)
+int getBaseContext(unsigned int contextId, UdsContext **contextPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -315,103 +230,82 @@ void freeContext(UdsContext *context);
  * Flush all outstanding requests on a given context.
  *
  * @param contextId   The id of the context to flush
- * @param contextType The type of context being flushed
  *
  * @return UDS_SUCCESS or an error code
  **/
-int flushContext(unsigned int contextId, ContextType contextType)
-  __attribute__((warn_unused_result));
+int flushContext(unsigned int contextId) __attribute__((warn_unused_result));
 
 /**
  * Close a context.
  *
  * @param contextId   The id of the context to close
- * @param contextType The type of context to close
  **/
-int closeContext(unsigned int contextId, ContextType contextType)
-  __attribute__((warn_unused_result));
+int closeContext(unsigned int contextId) __attribute__((warn_unused_result));
 
 /**
  * Get the configuration associated with a given context.
  *
  * @param contextId   The id of the context
- * @param contextType The type of context to make
  * @param conf        A pointer to hold the configuration
  *
  * @return UDS_SUCCESS or an error
  **/
-int getConfiguration(unsigned int      contextId,
-                     ContextType       contextType,
-                     UdsConfiguration *conf)
+int getConfiguration(unsigned int contextId, UdsConfiguration *conf)
   __attribute__((warn_unused_result));
 
 /**
  * Get the index statistics for the index associated with a given context.
  *
  * @param contextId   The id of the context
- * @param contextType The type of context to make
  * @param stats       A pointer to hold the statistics
  *
  * @return UDS_SUCCESS or an error
  **/
-int getContextIndexStats(unsigned int   contextId,
-                         ContextType    contextType,
-                         UdsIndexStats *stats)
+int getContextIndexStats(unsigned int contextId, UdsIndexStats *stats)
   __attribute__((warn_unused_result));
 
 /**
  * Get statistics for a given context.
  *
  * @param contextId   The id of the context
- * @param contextType The type of context to make
  * @param stats       A pointer to hold the statistics
  *
  * @return UDS_SUCCESS or an error
  **/
-int getContextStats(unsigned int     contextId,
-                    ContextType      contextType,
-                    UdsContextStats *stats)
+int getContextStats(unsigned int contextId, UdsContextStats *stats)
   __attribute__((warn_unused_result));
 
 /**
  * Reset the statistics for a given context.
  *
  * @param contextId   The id of the context
- * @param contextType The type of context to make
  *
  * @return UDS_SUCCESS or an error
  **/
-int resetStats(unsigned int contextId, ContextType contextType)
-  __attribute__((warn_unused_result));
+int resetStats(unsigned int contextId) __attribute__((warn_unused_result));
 
 /**
  * Change the maximum number of outstanding requests.
  *
  * @param contextId    The id of the context making the request
- * @param contextType  The type of context
  * @param maxRequests  The new maximum number of pending requests
  *
  * @return              Either UDS_SUCCESS or an error code.
  *
  **/
-int setRequestQueueLimit(unsigned int contextId,
-                         ContextType  contextType,
-                         unsigned int maxRequests)
+int setRequestQueueLimit(unsigned int contextId, unsigned int maxRequests)
   __attribute__((warn_unused_result));
 
 /**
  * Change the function/algorithm used for hashing chunks of data.
  *
  * @param contextId    The id of the context making the request
- * @param contextType  The type of context
  * @param algorithm    The hash algorthim selection
  *
  * @return             Either UDS_SUCCESS or an error code.
  *
  **/
-int setChunkNameAlgorithm(unsigned int     contextId,
-                          ContextType      contextType,
-                          UdsHashAlgorithm algorithm)
+int setChunkNameAlgorithm(unsigned int contextId, UdsHashAlgorithm algorithm)
   __attribute__((warn_unused_result));
 
 /**
@@ -419,24 +313,21 @@ int setChunkNameAlgorithm(unsigned int     contextId,
  * the hashing function that was selected for a context.
  *
  * @param contextId    The id of the context making the request
- * @param contextType  The type of context
  * @param data         A pointer to the opaque data
  * @param size         The size of the data, in bytes
  *
  * @return             The calculated chunk name
  *
  **/
-UdsChunkName generateChunkName(unsigned int     contextId,
-                               ContextType      contextType,
-                               const void      *data,
-                               size_t           size)
+UdsChunkName generateChunkName(unsigned int  contextId,
+                               const void   *data,
+                               size_t        size)
   __attribute__((warn_unused_result));
 
 /**
  * Register a callback for deduplication advice on a context.
  *
  * @param contextID        The id of the context
- * @param contextType      The type of the context
  * @param callbackFunction The callback function (set to NULL to clear
  *                         the current callback)
  * @param callbackArgument Opaque, client supplied data which will be
@@ -445,10 +336,9 @@ UdsChunkName generateChunkName(unsigned int     contextId,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int registerDedupeCallback(unsigned int           contextID,
-                           ContextType            contextType,
-                           IndexCallbackFunction *callbackFunction,
-                           void                  *callbackArgument)
+int registerDedupeCallback(unsigned int            contextID,
+                           UdsDedupeBlockCallback  callbackFunction,
+                           void                   *callbackArgument)
   __attribute__((warn_unused_result));
 
 /**

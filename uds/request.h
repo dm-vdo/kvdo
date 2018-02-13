@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.h#4 $
  */
 
 #ifndef REQUEST_H
@@ -192,14 +192,11 @@ typedef void (*RequestRestarter)(Request *);
  * Create an index request.
  *
  * @param contextId   The id of the context making the request
- * @param contextType The type of context making the request
  * @param requestPtr  A pointer to hold the new request
  *
  * @return            UDS_SUCCESS or an error code
  **/
-int createRequest(unsigned int   contextId,
-                  ContextType    contextType,
-                  Request      **requestPtr)
+int createRequest(unsigned int contextId, Request **requestPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -208,7 +205,6 @@ int createRequest(unsigned int   contextId,
  * returning.
  *
  * @param contextId       The id of the context of the request
- * @param contextType     The type of the context of the request
  * @param callbackType    The type of the request
  * @param update          If <code>true</code>, move any found record
  *                        to the front of the index on a query request
@@ -221,7 +217,6 @@ int createRequest(unsigned int   contextId,
  * @return UDS_SUCCESS or an error code
  **/
 int launchClientRequest(unsigned int         contextId,
-                        ContextType          contextType,
                         UdsCallbackType      callbackType,
                         bool                 update,
                         const UdsChunkName  *chunkName,

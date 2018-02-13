@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,9 +25,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "singleFileLayout.h"
-#ifdef TEST_INTERNAL
-#include "doryIORegion.h"
-#endif /* TEST_INTERNAL */
 
 /*****************************************************************************/
 int makeIndexLayout(const char              *name,
@@ -85,13 +82,6 @@ int makeIndexLayout(const char              *name,
     return result;
   }
 
-#ifdef TEST_INTERNAL
-  result = openDoryRegion(region, &region);
-  if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
-    return result;
-  }
-#endif /* TEST_INTERNAL */
 
   if (newLayout) {
     result = createSingleFileLayout(region, offset, size, config, layoutPtr);

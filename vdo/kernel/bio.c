@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/bio.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/bio.c#2 $
  */
 
 #include "bio.h"
@@ -65,6 +65,27 @@ void bioCopyDataOut(BIO *bio, char *dataPtr)
     memcpy(getBufferForBiovec(biovec), dataPtr, biovec->bv_len);
     dataPtr += biovec->bv_len;
   }
+}
+
+/**********************************************************************/
+void setBioOperation(BIO *bio, unsigned int operation)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio->bi_opf &= ~REQ_OP_MASK;
+  bio->bi_opf |= operation;
+#else
+
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+  unsigned int OPERATION_MASK = WRITE | BIO_DISCARD | (1 << BIO_RW_FLUSH);
+#else
+  unsigned int OPERATION_MASK = WRITE | REQ_DISCARD | REQ_FLUSH;
+#endif
+
+  // Clear the relevant bits
+  bio->bi_rw &= ~OPERATION_MASK;
+  // Set the operation we care about
+  bio->bi_rw |= operation;
+#endif
 }
 
 /**********************************************************************/
@@ -200,6 +221,7 @@ void bioZeroData(BIO *bio)
   }
 }
 
+/**********************************************************************/
 static void setBioSize(BIO *bio, BlockSize bioSize)
 {
 #ifdef USE_BI_ITER
@@ -316,7 +338,8 @@ void prepareFlushBIO(BIO                 *bio,
                      struct block_device *device,
                      bio_end_io_t        *endIOCallback)
 {
-  bio->bi_rw      = WRITE_FLUSH;
+  clearBioOperationAndFlags(bio);
+  setBioOperationFlush(bio);
   bio->bi_end_io  = endIOCallback;
   bio->bi_private = context;
   bio->bi_vcnt    = 0;

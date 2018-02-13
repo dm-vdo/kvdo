@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueInternals.h#3 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -28,7 +28,6 @@
 #include <linux/spinlock.h>
 #include <linux/wait.h>
 
-#include "timer.h"
 #include "workItemStats.h"
 #include "workQueueStats.h"
 
@@ -55,6 +54,8 @@ struct kvdoWorkQueue {
   bool            roundRobinMode;
   /** A handle to a sysfs tree for reporting stats and other info */
   struct kobject  kobj;
+  /** The kernel layer owning this work queue */
+  KernelLayer    *owner;
 };
 
 typedef struct simpleWorkQueue     SimpleWorkQueue;
@@ -63,8 +64,6 @@ typedef struct roundRobinWorkQueue RoundRobinWorkQueue;
 struct simpleWorkQueue {
   /** Common work queue bits */
   KvdoWorkQueue            common;
-  /** Do we need to manage a timer for work item timeouts? */
-  bool                     timeoutSupport;
   /** A copy of .thread->pid, for safety in the sysfs support */
   atomic_t                 threadID;
   /**
@@ -91,14 +90,6 @@ struct simpleWorkQueue {
   KvdoWorkQueue           *parentQueue;
   /** Padding for cache line separation */
   char                     pad[CACHE_LINE_BYTES - sizeof(KvdoWorkQueue *)];
-  /**
-   * Lock protecting the funnel queues and statistics from contention between
-   * the regular worker thread and the timer-invoked callback to process work
-   * items sitting around past their timeout periods.
-   *
-   * Not used if timeouts are not enabled for the work queue.
-   **/
-  spinlock_t               consumerLock;
   /** Lock protecting delayedItems, priorityMap, numPriorityLists */
   spinlock_t               lock;
   /** Any worker threads (zero or one) waiting for new work to do */
@@ -127,19 +118,6 @@ struct simpleWorkQueue {
    * delayedItems is nonempty.
    **/
   struct timer_list        delayedItemsTimer;
-  /**
-   * Timer for checking enqueued items for timeouts.
-   *
-   * If an item's timeout expires, we want to dequeue it and invoke
-   * item->timeoutWork in whatever context is available. That'll generally just
-   * set a flag and add it to another queue, or something comparably cheap.
-   *
-   * Our simple timeout handling only checks things at the front of each
-   * priority queue, since everything with a timeout uses the same time
-   * interval from enqueue time, and everything in that queue+priority has a
-   * timeout.
-   **/
-  Timer                    timeoutTimer;
 
   /**
    * Timestamp (ns) from the submitting thread that decided to wake us up; also

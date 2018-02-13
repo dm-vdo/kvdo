@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,29 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/block.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/block.c#4 $
  */
 
 #include "uds-block.h"
 
 #include "context.h"
 #include "featureDefs.h"
-#include "notificationDefs.h"
 #include "request.h"
 #include "uds-error.h"
-
-static void handleBlockCallback(Request *request);
-
-/**
- * Encode block metadata.
- *
- * @param metadata     The metadata to encode
- * @param request      The request in which to encode the metadata
- **/
-static void encodeBlockMetadata(const void *metadata, Request *request)
-{
-  memcpy(request->newMetadata.data, metadata, request->context->metadataSize);
-}
 
 #if NAMESPACES
 /**********************************************************************/
@@ -50,13 +36,7 @@ int udsOpenBlockContext(UdsIndexSession     session,
   if (context == NULL) {
     return UDS_CONTEXT_PTR_REQUIRED;
   }
-  int result = openContext(session, namespace, metadataSize,
-                           encodeBlockMetadata, 0, BLOCK_CONTEXT,
-                           handleBlockCallback, &context->id);
-  if (result == UDS_SUCCESS) {
-    notifyBlockContextOpened(session, *context);
-  }
-  return result;
+  return openContext(session, namespace, metadataSize, &context->id);
 }
 #else
 /**********************************************************************/
@@ -67,30 +47,20 @@ int udsOpenBlockContext(UdsIndexSession     session,
   if (context == NULL) {
     return UDS_CONTEXT_PTR_REQUIRED;
   }
-  int result = openContext(session, metadataSize,
-                           encodeBlockMetadata, 0, BLOCK_CONTEXT,
-                           handleBlockCallback, &context->id);
-  if (result == UDS_SUCCESS) {
-    notifyBlockContextOpened(session, *context);
-  }
-  return result;
+  return openContext(session, metadataSize, &context->id);
 }
 #endif /* NAMESPACES */
 
 /**********************************************************************/
 int udsCloseBlockContext(UdsBlockContext context)
 {
-  int result = closeContext(context.id, BLOCK_CONTEXT);
-  if (result == UDS_SUCCESS) {
-    notifyBlockContextClosed(context);
-  }
-  return result;
+  return closeContext(context.id);
 }
 
 /**********************************************************************/
 int udsFlushBlockContext(UdsBlockContext context)
 {
-  return flushContext(context.id, BLOCK_CONTEXT);
+  return flushContext(context.id);
 }
 
 /**********************************************************************/
@@ -125,8 +95,8 @@ int udsUpdateBlockMapping(UdsBlockContext     context,
   if (blockAddress == NULL) {
     return UDS_BLOCK_ADDRESS_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_UPDATE, false,
-                             blockName, cookie, blockAddress, 0, NULL);
+  return launchClientRequest(context.id, UDS_UPDATE, false, blockName, cookie,
+                             blockAddress, 0, NULL);
 }
 
 /**********************************************************************/
@@ -137,8 +107,8 @@ int udsDeleteBlockMapping(UdsBlockContext     context,
   if (blockName == NULL) {
     return UDS_CHUNK_NAME_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_DELETE, false,
-                             blockName, cookie, NULL, 0, NULL);
+  return launchClientRequest(context.id, UDS_DELETE, false, blockName, cookie,
+                             NULL, 0, NULL);
 }
 
 /**********************************************************************/
@@ -154,8 +124,8 @@ int udsPostBlock(UdsBlockContext  context,
   if (data == NULL) {
     return UDS_CHUNK_DATA_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_POST, false, NULL,
-                             cookie, blockAddress, blockLength, data);
+  return launchClientRequest(context.id, UDS_POST, false, NULL, cookie,
+                             blockAddress, blockLength, data);
 }
 
 /**********************************************************************/
@@ -170,8 +140,8 @@ int udsPostBlockName(UdsBlockContext     context,
   if (chunkName == NULL) {
     return UDS_CHUNK_NAME_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_POST, false,
-                             chunkName, cookie, blockAddress, 0, NULL);
+  return launchClientRequest(context.id, UDS_POST, false, chunkName, cookie,
+                             blockAddress, 0, NULL);
 }
 
 /**********************************************************************/
@@ -184,8 +154,8 @@ int udsQueryBlockName(UdsBlockContext     context,
   if (blockName == NULL) {
     return UDS_CHUNK_NAME_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_QUERY, update,
-                             blockName, cookie, blockAddress, 0, NULL);
+  return launchClientRequest(context.id, UDS_QUERY, update, blockName, cookie,
+                             blockAddress, 0, NULL);
 }
 
 /**********************************************************************/
@@ -199,82 +169,55 @@ int udsCheckBlock(UdsBlockContext  context,
   if (data == NULL) {
     return UDS_CHUNK_DATA_REQUIRED;
   }
-  return launchClientRequest(context.id, BLOCK_CONTEXT, UDS_QUERY, update,
-                             NULL, cookie, blockAddress, blockLength, data);
+  return launchClientRequest(context.id, UDS_QUERY, update, NULL, cookie,
+                             blockAddress, blockLength, data);
 }
 
 /**********************************************************************/
 int udsRegisterDedupeBlockCallback(UdsBlockContext         context,
-                                   UdsDedupeBlockCallback  cb,
+                                   UdsDedupeBlockCallback  callbackFunction,
                                    void                   *callbackArgument)
 {
-  IndexCallbackFunction callbackFunction;
-  if (cb != NULL) {
-    callbackFunction.blockCallback = cb;
-  }
-  return registerDedupeCallback(context.id, BLOCK_CONTEXT,
-                                ((cb == NULL) ? NULL : &callbackFunction),
+  return registerDedupeCallback(context.id, callbackFunction,
                                 callbackArgument);
-}
-
-/**********************************************************************/
-static void handleBlockCallback(Request *request)
-{
-  UdsBlockAddress duplicateAddress = NULL;
-  if ((request->type != UDS_DELETE)) {
-    duplicateAddress = &request->newMetadata.data;
-  }
-
-  UdsBlockAddress canonicalAddress = NULL;
-  if (request->location != LOC_UNAVAILABLE) {
-    canonicalAddress = &request->oldMetadata.data;
-  }
-
-  UdsContext *context = request->context;
-  UdsBlockContext blockContext = { .id = context->id };
-  UdsDedupeBlockCallback callback = context->callbackFunction.blockCallback;
-  (*callback)(blockContext, request->type, request->status, request->cookie,
-              duplicateAddress, canonicalAddress,
-              &request->hash, request->dataLength, context->callbackArgument);
 }
 
 /**********************************************************************/
 int udsSetBlockContextRequestQueueLimit(UdsBlockContext context,
                                         unsigned int    maxRequests)
 {
-  return setRequestQueueLimit(context.id, BLOCK_CONTEXT, maxRequests);
+  return setRequestQueueLimit(context.id, maxRequests);
 }
 
 /**********************************************************************/
 int udsSetBlockContextHashAlgorithm(UdsBlockContext  context,
                                     UdsHashAlgorithm algorithm)
 {
-  return setChunkNameAlgorithm(context.id, BLOCK_CONTEXT, algorithm);
+  return setChunkNameAlgorithm(context.id, algorithm);
 }
 
 /**********************************************************************/
 int udsGetBlockContextConfiguration(UdsBlockContext   context,
                                     UdsConfiguration *conf)
 {
-  return getConfiguration(context.id, BLOCK_CONTEXT, conf);
+  return getConfiguration(context.id, conf);
 }
 
 /**********************************************************************/
 int udsGetBlockContextIndexStats(UdsBlockContext  context,
                                  UdsIndexStats   *stats)
 {
-  return getContextIndexStats(context.id, BLOCK_CONTEXT, stats);
+  return getContextIndexStats(context.id, stats);
 }
 
 /**********************************************************************/
-int udsGetBlockContextStats(UdsBlockContext  context,
-                            UdsContextStats *stats)
+int udsGetBlockContextStats(UdsBlockContext context, UdsContextStats *stats)
 {
-  return getContextStats(context.id, BLOCK_CONTEXT, stats);
+  return getContextStats(context.id, stats);
 }
 
 /**********************************************************************/
 int udsResetBlockContextStats(UdsBlockContext context)
 {
-  return resetStats(context.id, BLOCK_CONTEXT);
+  return resetStats(context.id);
 }

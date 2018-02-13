@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/deltaMemory.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/deltaMemory.c#3 $
  */
 #include "deltaMemory.h"
 
@@ -494,8 +494,8 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
                                      (const byte *) &dlsi,
                                      sizeof(DeltaListSaveInfo));
   if (result != UDS_SUCCESS) {
-    logWarningWithStringError(result, "failed to write delta list memory");
     if (deltaMemory->transferStatus == UDS_SUCCESS) {
+      logWarningWithStringError(result, "failed to write delta list memory");
       deltaMemory->transferStatus = result;
     }
   }
@@ -504,8 +504,8 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
                                  + getDeltaListByteStart(deltaList),
                                  dlsi.byteCount);
   if (result != UDS_SUCCESS) {
-    logWarningWithStringError(result, "failed to write delta list memory");
     if (deltaMemory->transferStatus == UDS_SUCCESS) {
+      logWarningWithStringError(result, "failed to write delta list memory");
       deltaMemory->transferStatus = result;
     }
   }

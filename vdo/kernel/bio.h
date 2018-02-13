@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/bio.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/bio.h#3 $
  */
 
 #ifndef BIO_H
 #define BIO_H
 
 #include <linux/bio.h>
+#include <linux/blkdev.h>
 #include <linux/version.h>
 
 #include "kernelTypes.h"
@@ -47,40 +48,134 @@ void bioCopyDataIn(BIO *bio, char *dataPtr);
  **/
 void bioCopyDataOut(BIO *bio, char *dataPtr);
 
+/**
+ * Set the bi_rw or equivalent field of a bio to a particular data
+ * operation. Intended to be called only by setBioOperationRead() etc.
+ *
+ * @param bio        The bio to modify
+ * @param operation  The operation to set it to
+ **/
+void setBioOperation(BIO *bio, unsigned int operation);
+
 /**********************************************************************/
-static inline unsigned long bioDiscardRWMask(void)
+static inline void setBioOperationRead(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return BIO_DISCARD;
+  setBioOperation(bio, READ);
+}
+
+/**********************************************************************/
+static inline void setBioOperationWrite(BIO *bio)
+{
+  setBioOperation(bio, WRITE);
+}
+
+/**********************************************************************/
+static inline void setBioOperationFlush(BIO *bio)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  setBioOperation(bio, REQ_OP_FLUSH);
 #else
-  return REQ_DISCARD;
+  setBioOperation(bio, WRITE_FLUSH);
 #endif
 }
 
 /**********************************************************************/
-static inline unsigned long bioFuaRWMask(void)
+static inline void clearBioOperationAndFlags(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return BIO_FUA;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio->bi_opf = 0;
 #else
-  return REQ_FUA;
+  bio->bi_rw = 0;
 #endif
 }
 
 /**********************************************************************/
-static inline unsigned long bioSyncIoRWMask(void)
+static inline void copyBioOperationAndFlags(BIO *to, BIO *from)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  to->bi_opf = from->bi_opf;
+#else
+  to->bi_rw = from->bi_rw;
+#endif
+}
+
+/**********************************************************************/
+static inline void setBioOperationFlag(BIO *bio, unsigned int flag)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio->bi_opf |= flag;
+#else
+  bio->bi_rw |= flag;
+#endif
+}
+
+/**********************************************************************/
+static inline void clearBioOperationFlag(BIO *bio, unsigned int flag)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio->bi_opf &= ~flag;
+#else
+  bio->bi_rw &= ~flag;
+#endif
+}
+
+/**********************************************************************/
+static inline void setBioOperationFlagPreflush(BIO *bio)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  setBioOperationFlag(bio, REQ_PREFLUSH);
+#else
+  // Preflushes and empty flushes are not currently distinguished.
+  setBioOperation(bio, WRITE_FLUSH);
+#endif
+}
+
+/**********************************************************************/
+static inline void setBioOperationFlagSync(BIO *bio)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return 1 << BIO_RW_SYNCIO;
+  setBioOperationFlag(bio, 1 << BIO_RW_SYNCIO);
 #else
-  return REQ_SYNC;
+  setBioOperationFlag(bio, REQ_SYNC);
+#endif
+}
+
+/**********************************************************************/
+static inline void clearBioOperationFlagSync(BIO *bio)
+{
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+  clearBioOperationFlag(bio, 1 << BIO_RW_SYNCIO);
+#else
+  clearBioOperationFlag(bio, REQ_SYNC);
+#endif
+}
+
+/**********************************************************************/
+static inline void setBioOperationFlagFua(BIO *bio)
+{
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+  setBioOperationFlag(bio, BIO_FUA);
+#else
+  setBioOperationFlag(bio, REQ_FUA);
+#endif
+}
+
+/**********************************************************************/
+static inline void clearBioOperationFlagFua(BIO *bio)
+{
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+  clearBioOperationFlag(bio, BIO_FUA);
+#else
+  clearBioOperationFlag(bio, REQ_FUA);
 #endif
 }
 
 /**********************************************************************/
 static inline bool isDiscardBio(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return (bio != NULL) && bio_rw_flagged(bio, BIO_RW_DISCARD);
 #else
   return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
@@ -90,7 +185,9 @@ static inline bool isDiscardBio(BIO *bio)
 /**********************************************************************/
 static inline bool isFlushBio(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW_FLUSH);
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
@@ -100,7 +197,9 @@ static inline bool isFlushBio(BIO *bio)
 /**********************************************************************/
 static inline bool isFUABio(BIO *bio)
 {
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  return (bio->bi_opf & REQ_FUA) != 0;
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW_FUA);
 #else
   return (bio->bi_rw & REQ_FUA) != 0;
@@ -113,14 +212,16 @@ static inline bool isReadBio(BIO *bio)
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return !bio_rw_flagged(bio, BIO_RW);
 #else
-  return (bio->bi_rw & REQ_WRITE) == 0;
+  return bio_data_dir(bio) == READ;
 #endif
 }
 
 /**********************************************************************/
 static inline bool isEmptyFlush(BIO *bio)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  return (bio_op(bio) == REQ_OP_FLUSH);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
   return bio_empty_barrier(bio) || bio_rw_flagged(bio, BIO_RW_FLUSH);
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
@@ -133,9 +234,27 @@ static inline bool isWriteBio(BIO *bio)
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
   return bio_rw_flagged(bio, BIO_RW);
 #else
-  return (bio->bi_rw & REQ_WRITE) != 0;
+  return bio_data_dir(bio) == WRITE;
 #endif
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+/**
+ * Get the error from the bio.
+ *
+ * @param bio  The bio
+ *
+ * @return the bio's error if any
+ **/
+static inline int getBioResult(BIO *bio)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  return blk_status_to_errno(bio->bi_status);
+#else
+  return bio->bi_error;
+#endif
+}
+#endif // newer than 4.4
 
 /**
  * Set the block device for a bio.
@@ -145,7 +264,11 @@ static inline bool isWriteBio(BIO *bio)
  **/
 static inline void setBioBlockDevice(BIO *bio, struct block_device *device)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+  bio_set_dev(bio, device);
+#else
   bio->bi_bdev = device;
+#endif
 }
 
 /**
@@ -203,7 +326,10 @@ static inline sector_t getBioSector(BIO *bio)
  **/
 static inline void completeBio(BIO *bio, int error)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  bio->bi_status = errno_to_blk_status(error);
+  bio_endio(bio);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   bio->bi_error = error;
   bio_endio(bio);
 #else

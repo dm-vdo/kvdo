@@ -33,6 +33,10 @@ enum { PREFETCH_ADVANCE = 512 }; // Permabit optimization in _double
 
 #else	// defined(_MSC_VER)
 
+#if __GNUC__ >= 7
+#pragma GCC diagnostic warning "-Wimplicit-fallthrough=0"
+#endif
+
 #define	FORCE_INLINE __attribute__((always_inline)) inline
 
 static inline uint32_t rotl32 ( uint32_t x, int8_t r )

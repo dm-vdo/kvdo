@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#4 $
  */
 
 #include "kernelVDOInternals.h"
@@ -39,13 +39,6 @@
 #include "logger.h"
 
 enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
-
-/**
- * Run work items in each worker thread to stop the heartbeats.
- *
- * @param kvdo      The KVDO object containing the worker threads
- **/
-static void stopAllHeartbeats(KVDO *kvdo);
 
 /**********************************************************************/
 static void startKVDORequestQueue(void *ptr)
@@ -74,9 +67,6 @@ static const KvdoWorkQueueType requestQueueType = {
       .priority = 1 },
     { .name = "req_flush",
       .code = REQ_Q_ACTION_FLUSH,
-      .priority = 2 },
-    { .name = "req_heartbeat",
-      .code = REQ_Q_ACTION_HEARTBEAT,
       .priority = 2 },
     { .name = "req_map_bio",
       .code = REQ_Q_ACTION_MAP_BIO,
@@ -112,12 +102,6 @@ int initializeKVDO(KVDO                *kvdo,
        kvdo->initializedThreadCount++) {
     KVDOThread *thread = &kvdo->threads[kvdo->initializedThreadCount];
 
-    // Used when waiting on heartbeat stop
-    init_completion(&thread->heartbeatWait);
-
-    // Setup heartbeat data
-    setupHeartbeat(&thread->heartbeat);
-
     thread->kvdo = kvdo;
     thread->threadID = kvdo->initializedThreadCount;
 
@@ -126,8 +110,8 @@ int initializeKVDO(KVDO                *kvdo,
     getVDOThreadName(threadConfig, kvdo->initializedThreadCount,
                      queueName, sizeof(queueName));
     int result = makeWorkQueue(layer->threadNamePrefix, queueName,
-                               &layer->wqDirectory, thread, &requestQueueType,
-                               1, &thread->requestQueue);
+                               &layer->wqDirectory, layer, thread,
+                               &requestQueueType, 1, &thread->requestQueue);
     if (result != VDO_SUCCESS) {
       *reason = "Cannot initialize request queue";
       while (kvdo->initializedThreadCount > 0) {
@@ -161,14 +145,6 @@ int startKVDO(KVDO                 *kvdo,
   }
 
   setVDOTracingFlags(kvdo->vdo, vioTraceRecording);
-
-  for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    startHeartbeat(&kvdo->threads[i].heartbeat);
-    // Stagger the heartbeats a bit.
-    msleep(50 / kvdo->initializedThreadCount);
-  }
-  kvdo->heartsBeating = true;
-
   return VDO_SUCCESS;
 }
 
@@ -177,11 +153,6 @@ int stopKVDO(KVDO *kvdo)
 {
   if (kvdo->vdo == NULL) {
     return VDO_SUCCESS;
-  }
-
-  // In case we haven't already been suspended.
-  if (kvdo->heartsBeating) {
-    stopAllHeartbeats(kvdo);
   }
 
   KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
@@ -256,80 +227,6 @@ static void performKVDOOperation(KVDO              *kvdo,
   init_completion(completion);
   enqueueKVDOWork(kvdo, &sync.workItem, threadID);
   wait_for_completion(completion);
-}
-
-/**
- * Initiate an arbitrary asynchronous base-code operation in a
- * specific thread and wait for it.
- *
- * An async queue operation is performed and we wait for completion.
- *
- * The thread specification is used so that the caller can iterate
- * over all threads.
- *
- * @param thread     The thread in which to run the action
- * @param action     The operation to perform
- * @param data       Unique data that can be used by the operation
- * @param completion The completion to wait on
- *
- * @return VDO_SUCCESS of an error code
- **/
-static void performKVDOThreadAction(KVDOThread        *thread,
-                                    KvdoWorkFunction   action,
-                                    void              *data,
-                                    struct completion *completion)
-{
-  SyncQueueWork  sync;
-
-  memset(&sync, 0, sizeof(sync));
-  setupWorkItem(&sync.workItem, action, NULL, REQ_Q_ACTION_SYNC);
-  sync.kvdo       = thread->kvdo;
-  sync.data       = data;
-  sync.completion = completion;
-
-  init_completion(completion);
-  enqueueWorkQueue(thread->requestQueue, &sync.workItem);
-  wait_for_completion(completion);
-}
-
-/**********************************************************************/
-static void stopHeartbeatWork(KvdoWorkItem *item)
-{
-  SyncQueueWork *suspend = container_of(item, SyncQueueWork, workItem);
-  KVDOThread *thread = (KVDOThread *) suspend->data;
-  // Remove the heartbeat timer here.  There is no race between stopHeartbeat()
-  // and kvdoHeartbeatWork() because both are called on the same thread.
-  stopHeartbeat(&thread->heartbeat);
-}
-
-/**********************************************************************/
-static void stopAllHeartbeats(KVDO *kvdo)
-{
-  // Stop the heartbeat so no recycler work is done afterwards. This
-  // must be done in the request queue thread so create a workitem and
-  // throw it on the queue, then wait for heartbeat to stop before
-  // doing rest of post suspend work
-  for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    performKVDOThreadAction(&kvdo->threads[i], stopHeartbeatWork,
-                            &kvdo->threads[i],
-                            &kvdo->threads[i].heartbeatWait);
-  }
-  kvdo->heartsBeating = false;
-}
-
-/**********************************************************************/
-void suspendKVDO(KVDO *kvdo)
-{
-  stopAllHeartbeats(kvdo);
-}
-
-/**********************************************************************/
-void resumeKVDO(KVDO *kvdo)
-{
-  for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    startHeartbeat(&kvdo->threads[i].heartbeat);
-  }
-  kvdo->heartsBeating = true;
 }
 
 /**********************************************************************/
@@ -464,13 +361,6 @@ int performKVDOExtendedCommand(KVDO *kvdo, int argc, char **argv)
 }
 
 /**********************************************************************/
-void heartbeatCallback(HeartbeatData *heartbeat, ThreadID threadID)
-{
-  KVDOThread *thread  = container_of(heartbeat, KVDOThread, heartbeat);
-  beat(thread->kvdo->vdo, threadID);
-}
-
-/**********************************************************************/
 void dumpKVDOStatus(KVDO *kvdo)
 {
   dumpVDOStatus(kvdo->vdo);
@@ -534,14 +424,6 @@ void enqueueKVDOThreadWork(KVDOThread    *thread,
                            KvdoWorkItem  *item)
 {
   enqueueWorkQueue(thread->requestQueue, item);
-}
-
-/**********************************************************************/
-void enqueueKVDOThreadWorkDelayed(KVDOThread   *thread,
-                                  KvdoWorkItem *item,
-                                  Jiffies       executionTime)
-{
-  enqueueWorkQueueDelayed(thread->requestQueue, item, executionTime);
 }
 
 /**********************************************************************/

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.c#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volume.c#5 $
  */
 
 #include "volume.h"
@@ -42,9 +42,8 @@
 #include "volumeInternals.h"
 
 enum {
-  MAX_BAD_CHAPTERS    = 100,    // max number of contiguous bad chapters
-  VOLUME_READ_THREADS = 2,      // Number of reader threads
-  READER_STACK_SIZE   = 1 * MEGABYTE // just a guess
+  MAX_BAD_CHAPTERS    = 100,   // max number of contiguous bad chapters
+  VOLUME_READ_THREADS = 2      // Number of reader threads
 };
 
 static const NumericValidationData validRange = {
@@ -490,7 +489,7 @@ int createReaderThreads(Volume *volume, unsigned int numReaderThreads)
 
   for (unsigned int i = 0; i < numReaderThreads; i++) {
     result = createThread(readThreadFunction, (void *) volume, "reader",
-                          READER_STACK_SIZE, &volume->readerThreads[i]);
+                          &volume->readerThreads[i]);
     if (result != UDS_SUCCESS) {
       return UDS_ENOTHREADS;
     }

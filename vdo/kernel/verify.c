@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/verify.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/verify.c#3 $
  */
 
 #include "verify.h"
@@ -24,7 +24,6 @@
 #include "logger.h"
 
 #include "dataKVIO.h"
-#include "dedupeIndex.h"
 #include "numeric.h"
 #include "readCache.h"
 
@@ -99,24 +98,10 @@ static void verifyDuplicationWork(KvdoWorkItem *item)
   if (likely(memoryEqual(dataKVIO->dataBlock, dataKVIO->readBlock.data,
                          VDO_BLOCK_SIZE))) {
     atomic64_inc(&layer->dedupeAdviceValid);
-    // Leave vio->isDuplicate set to true.
-    logDebug("%s: match - we win!", __func__);
+    // Leave dataKVIO->dataVIO.isDuplicate set to true.
   } else {
     atomic64_inc(&layer->dedupeAdviceStale);
-    logDebug("%s: different", __func__);
     dataKVIO->dataVIO.isDuplicate = false;
-    /*
-     * Don't do the callback yet.  We enqueue an update because we can't
-     * guarantee that there'll be room in the socket buffer.  Once it's
-     * sent, albireoWork will invoke the callback, without waiting for an
-     * answer.
-     *
-     * This sends dataVIO->newMapped again to replace dataVIO->duplicate.
-     */
-    if (hasAllocation(&dataKVIO->dataVIO)) {
-      updateDedupeAdvice(dataKVIO);
-      return;
-    }
   }
 
   kvdoEnqueueDataVIOCallback(dataKVIO);

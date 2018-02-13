@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/upgrade.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/upgrade.c#3 $
  */
 
 #include "upgrade.h"
@@ -32,12 +32,15 @@
 #include "statusCodes.h"
 #include "superBlock.h"
 #include "vdoInternal.h"
+#include "volumeGeometry.h"
 
 /* The latest supported Sodium version */
-static const VersionNumber SODIUM_MASTER_VERSION_67_0 = {
-  .majorVersion = 67,
-  .minorVersion =  0,
-};
+/* Commented out because not currently used.
+ * static const VersionNumber SODIUM_MASTER_VERSION_67_0 = {
+ * .majorVersion = 67,
+ * .minorVersion =  0,
+ * };
+ */
 
 /* The component data version for current Sodium */
 static const VersionNumber SODIUM_COMPONENT_DATA_41_0 = {
@@ -205,13 +208,20 @@ static int finishSodiumDecode(VDO *vdo)
 /**********************************************************************/
 int upgradePriorVDO(PhysicalLayer *layer)
 {
-  VDO *vdo;
-  int result = makeVDO(layer, &vdo);
+  VolumeGeometry geometry;
+  int result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = loadSuperBlock(vdo->layer, &vdo->superBlock);
+  VDO *vdo;
+  result = makeVDO(layer, &vdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = loadSuperBlock(vdo->layer, getDataRegionOffset(geometry),
+                          &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return logErrorWithStringError(result, "Could not load VDO super block");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.c#3 $
  */
 
 #include "kvio.h"
@@ -112,7 +112,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   KVIO *kvio = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
-  bio->bi_rw = WRITE;
+  setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
   invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
@@ -137,9 +137,6 @@ void kvdoSubmitMetadataVIO(VIO *vio)
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
 
-  if (vioRequiresFlushAfter(vio) && shouldProcessFlush(kvio->layer)) {
-    bio->bi_rw = bioFuaRWMask();
-  }
   setBioSector(bio, blockToSector(kvio->layer, vio->physical));
 
   // Metadata I/Os bypass the read cache.
@@ -147,15 +144,19 @@ void kvdoSubmitMetadataVIO(VIO *vio)
     ASSERT_LOG_ONLY(!vioRequiresFlushBefore(vio),
                     "read VIO does not require flush before");
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
-    bio->bi_rw |= READ;
-  } else if (vioRequiresFlushBefore(vio) && shouldProcessFlush(kvio->layer)) {
-    bio->bi_rw |= WRITE_FLUSH;
+    setBioOperationRead(bio);
+  } else if (vioRequiresFlushBefore(vio)) {
+    setBioOperationWrite(bio);
+    setBioOperationFlagPreflush(bio);
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
   } else {
-    bio->bi_rw |= WRITE;
+    setBioOperationWrite(bio);
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
   }
 
+  if (vioRequiresFlushAfter(vio)) {
+    setBioOperationFlagFua(bio);
+  }
   submitBio(bio, getMetadataAction(vio));
 }
 
@@ -185,7 +186,7 @@ static void completeFlushBio(BIO *bio, int error)
   // Restore the bio's notion of its own data.
   resetBio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  kvdoContinueKvio(kvio, bio->bi_error);
+  kvdoContinueKvio(kvio, getBioResult(bio));
 #else
   kvdoContinueKvio(kvio, error);
 #endif

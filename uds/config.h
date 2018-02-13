@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/config.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/config.h#3 $
  */
 
 #ifndef CONFIG_H
@@ -37,6 +37,30 @@ enum {
  * Data that are used for configuring a new index.
  **/
 struct udsConfiguration {
+  /** Smaller (16), Small (64) or large (256) indices */
+  unsigned int recordPagesPerChapter;
+  /** Total number of chapters per volume */
+  unsigned int chaptersPerVolume;
+  /** Number of sparse chapters per volume */
+  unsigned int sparseChaptersPerVolume;
+  /** Size of the page cache, in chapters */
+  unsigned int cacheChapters;
+  /** Frequency with which to checkpoint */
+  unsigned int checkpointFrequency;
+  /** The master index mean delta to use */
+  unsigned int masterIndexMeanDelta;
+  /** Size of a page, used for both record pages and index pages */
+  unsigned int bytesPerPage;
+  /** Sampling rate for sparse indexing */
+  unsigned int sparseSampleRate;
+  /** Index Owner's nonce */
+  UdsNonce     nonce;
+};
+
+/**
+ * Data that are used for a 6.01 index.
+ **/
+struct udsConfiguration6_01 {
   /** Smaller (16), Small (64) or large (256) indices */
   unsigned int recordPagesPerChapter;
   /** Total number of chapters per volume */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadSemaphoreLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadSemaphoreLinuxKernel.c#5 $
  */
 
 #include <linux/hrtimer.h>
@@ -27,24 +27,8 @@
 #include "memoryAlloc.h"
 #include "threadSemaphore.h"
 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
-#define RAW_SPIN_LOCK_INIT         raw_spin_lock_init
-#define RAW_SPIN_LOCK_IRQ          raw_spin_lock_irq
-#define RAW_SPIN_LOCK_IRQSAVE      raw_spin_lock_irqsave
-#define RAW_SPIN_UNLOCK_IRQ        raw_spin_unlock_irq
-#define RAW_SPIN_UNLOCK_IRQRESTORE raw_spin_unlock_irqrestore
-#define RAW_SPINLOCK_T             raw_spinlock_t
-#else
-#define RAW_SPIN_LOCK_INIT         spin_lock_init
-#define RAW_SPIN_LOCK_IRQ          spin_lock_irq
-#define RAW_SPIN_LOCK_IRQSAVE      spin_lock_irqsave
-#define RAW_SPIN_UNLOCK_IRQ        spin_unlock_irq
-#define RAW_SPIN_UNLOCK_IRQRESTORE spin_unlock_irqrestore
-#define RAW_SPINLOCK_T             spinlock_t
-#endif
-
 struct hr_semaphore {
-  RAW_SPINLOCK_T   lock;
+  raw_spinlock_t   lock;
   unsigned int     count;
   struct list_head waitList;
 };
@@ -64,7 +48,7 @@ int initializeSemaphore(Semaphore   *semaphore,
   int result = ALLOCATE(1, struct hr_semaphore, context, &sem);
   if (result == UDS_SUCCESS) {
     sem->count = value;
-    RAW_SPIN_LOCK_INIT(&sem->lock);
+    raw_spin_lock_init(&sem->lock);
     INIT_LIST_HEAD(&sem->waitList);
     semaphore->psem = sem;
   }
@@ -86,7 +70,7 @@ void acquireSemaphore(Semaphore  *semaphore,
 {
   struct hr_semaphore *sem = semaphore->psem;
   unsigned long flags;
-  RAW_SPIN_LOCK_IRQSAVE(&sem->lock, flags);
+  raw_spin_lock_irqsave(&sem->lock, flags);
   if (likely(sem->count > 0)) {
     sem->count--;
   } else {
@@ -96,13 +80,13 @@ void acquireSemaphore(Semaphore  *semaphore,
     waiter.up   = false;
     list_add_tail(&waiter.list, &sem->waitList);
     while (!waiter.up) {
-      __set_task_state(task, TASK_INTERRUPTIBLE);
-      RAW_SPIN_UNLOCK_IRQ(&sem->lock);
+      __set_current_state(TASK_INTERRUPTIBLE);
+      raw_spin_unlock_irq(&sem->lock);
       schedule_timeout(MAX_SCHEDULE_TIMEOUT);
-      RAW_SPIN_LOCK_IRQ(&sem->lock);
+      raw_spin_lock_irq(&sem->lock);
     }
   }
-  RAW_SPIN_UNLOCK_IRQRESTORE(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&sem->lock, flags);
 }
 
 /*****************************************************************************/
@@ -114,7 +98,7 @@ bool attemptSemaphore(Semaphore *semaphore,
   long hrTimeout = relTimeToNanoseconds(timeout);
   bool value = true;
   unsigned long flags;
-  RAW_SPIN_LOCK_IRQSAVE(&sem->lock, flags);
+  raw_spin_lock_irqsave(&sem->lock, flags);
   if (likely(sem->count > 0)) {
     sem->count--;
   } else if (hrTimeout <= 0) {
@@ -126,16 +110,16 @@ bool attemptSemaphore(Semaphore *semaphore,
     waiter.up   = false;
     list_add_tail(&waiter.list, &sem->waitList);
     ktime_t ktime = ktime_set(0, hrTimeout);
-    __set_task_state(task, TASK_UNINTERRUPTIBLE);
-    RAW_SPIN_UNLOCK_IRQ(&sem->lock);
+    __set_current_state(TASK_UNINTERRUPTIBLE);
+    raw_spin_unlock_irq(&sem->lock);
     schedule_hrtimeout(&ktime, HRTIMER_MODE_REL);
-    RAW_SPIN_LOCK_IRQ(&sem->lock);
+    raw_spin_lock_irq(&sem->lock);
     value = waiter.up;
     if (!value) {
       list_del(&waiter.list);
     }
   }
-  RAW_SPIN_UNLOCK_IRQRESTORE(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&sem->lock, flags);
   return value;
 }
 
@@ -145,7 +129,7 @@ void releaseSemaphore(Semaphore  *semaphore,
 {
   struct hr_semaphore *sem = semaphore->psem;
   unsigned long flags;
-  RAW_SPIN_LOCK_IRQSAVE(&sem->lock, flags);
+  raw_spin_lock_irqsave(&sem->lock, flags);
   if (likely(list_empty(&sem->waitList))) {
     sem->count++;
   } else {
@@ -155,5 +139,5 @@ void releaseSemaphore(Semaphore  *semaphore,
     waiter->up = true;
     wake_up_process(waiter->task);
   }
-  RAW_SPIN_UNLOCK_IRQRESTORE(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&sem->lock, flags);
 }

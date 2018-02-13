@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#4 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -86,7 +86,7 @@ void completeAsyncBio(BIO *bio, int error)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int error = bio->bi_error;
+  int error = getBioResult(bio);
 #endif
   KVIO *kvio = (KVIO *) bio->bi_private;
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
@@ -454,12 +454,12 @@ void enqueueBioMap(BIO                 *bio,
   if (layer->mdRaid5ModeEnabled) {
     if (isData(kvio)) {
       // Clear the bits for sync I/O RW flags on data block bios.
-      bio->bi_rw = bio->bi_rw & ~bioSyncIoRWMask();
+      clearBioOperationFlagSync(bio);
     } else if ((kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL)
                || (kvio->vio->type == VIO_TYPE_SLAB_JOURNAL)) {
       // Set the bits for sync I/O RW flags on all journal-related and
       // slab-journal-related bios.
-      bio->bi_rw = bio->bi_rw | bioSyncIoRWMask();
+      setBioOperationFlagSync(bio);
     }
   }
 
@@ -502,7 +502,8 @@ static int initializeBioQueue(BioQueueData *bioQueueData,
   bioQueueData->queueNumber = queueNumber;
 
   return makeWorkQueue(threadNamePrefix, queueName, &layer->wqDirectory,
-                       bioQueueData, &bioQueueType, 1, &bioQueueData->queue);
+                       layer, bioQueueData, &bioQueueType, 1,
+                       &bioQueueData->queue);
 }
 
 /**********************************************************************/

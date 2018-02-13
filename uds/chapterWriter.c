@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.c#5 $
+ * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.c#6 $
  */
 
 #include "chapterWriter.h"
@@ -30,9 +30,6 @@
 #include "openChapter.h"
 #include "threads.h"
 
-#ifdef TEST_INTERNAL
-Atomic32 chaptersWritten;
-#endif /* TEST_INTERNAL */
 
 struct chapterWriter {
   /* The index to which we belong */
@@ -115,9 +112,6 @@ static void closeChapters(void *arg)
       result = processChapterWriterCheckpointSaves(writer->index);
     }
 
-#ifdef TEST_INTERNAL
-    atomicAdd32(&chaptersWritten, 1);
-#endif /* TEST_INTERNAL */
     lockMutex(&writer->mutex);
     // Note that the index is totally finished with the writing chapter
     advanceActiveChapters(writer->index);
@@ -165,7 +159,7 @@ int makeChapterWriter(Index *index, ChapterWriter **writerPtr)
   initCond(&writer->cond);
 
   // We're initialized, so now it's safe to start the writer thread.
-  result = createThread(closeChapters, writer, "writer", 0, &writer->thread);
+  result = createThread(closeChapters, writer, "writer", &writer->thread);
   if (result != UDS_SUCCESS) {
     freeChapterWriter(writer);
     return makeUnrecoverable(result);

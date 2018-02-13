@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#8 $
  */
 
 #include "kernelLayer.h"
 
 #include <linux/crc32.h>
+#include <linux/blkdev.h>
 #include <linux/module.h>
 
 #include "logger.h"
@@ -110,12 +111,6 @@ static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 }
 
 /**********************************************************************/
-static BlockCount kvdoGetDataRegionOffset(PhysicalLayer *header)
-{
-  return asKernelLayer(header)->geometry->partitions[DATA_REGION].startBlock;
-}
-
-/**********************************************************************/
 int mapToSystemError(int error)
 {
   // 0 is success, negative a system error code
@@ -153,6 +148,12 @@ static void setKernelLayerState(KernelLayer *layer, KernelLayerState newState)
 /**********************************************************************/
 void waitForNoRequestsActive(KernelLayer *layer)
 {
+  // Do nothing if there are no requests active.  This check is not necessary
+  // for correctness but does reduce log message traffic.
+  if (limiterIsIdle(&layer->requestLimiter)) {
+    return;
+  }
+
   // We have to make sure to flush the packer before waiting. We do this
   // by turning off compression, which also means no new entries coming in
   // while waiting will end up in the packer.
@@ -264,12 +265,12 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
     return -EIO;
   }
 
-  if (getCurrentWorkQueue() != NULL) {
+  KvdoWorkQueue *currentWorkQueue = getCurrentWorkQueue();
+  if ((currentWorkQueue != NULL)
+      && (layer == getWorkQueueOwner(currentWorkQueue))) {
     /*
-     * This prohibits sleeping during I/O submission to VDO from any VDO
-     * thread, even in a different VDO device. The same-device case is the one
-     * we really care about, but having one VDO stacked atop another ought not
-     * to happen either.
+     * This prohibits sleeping during I/O submission to VDO from its own
+     * thread.
      */
     return launchDataKVIOFromVDOThread(layer, bio, arrivalTime);
   }
@@ -430,7 +431,7 @@ static void endSyncRead(BIO *bio, int result)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int result = bio->bi_error;
+  int result = getBioResult(bio);
 #endif
 
   if (result != 0) {
@@ -467,7 +468,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   if (result != VDO_SUCCESS) {
     return result;
   }
-  bio->bi_rw      = READ;
+  setBioOperationRead(bio);
   bio->bi_end_io  = endSyncRead;
   bio->bi_private = &bioWait;
   setBioBlockDevice(bio, kernelLayer->dev->bdev);
@@ -475,7 +476,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   generic_make_request(bio);
   wait_for_completion(&bioWait);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (bio->bi_error != 0) {
+  if (getBioResult(bio) != 0) {
 #else
   if (!bio_flagged(bio, BIO_UPTODATE)) {
 #endif
@@ -678,7 +679,6 @@ int makeKernelLayer(BlockCount      blockCount,
 
   layer->common.updateCRC32              = kvdoUpdateCRC32;
   layer->common.getBlockCount            = kvdoGetBlockCount;
-  layer->common.getDataRegionOffset      = kvdoGetDataRegionOffset;
   layer->common.isFlushRequired          = isFlushRequired;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
   layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
@@ -753,7 +753,11 @@ int makeKernelLayer(BlockCount      blockCount,
   }
 
   // BIO pool (needed before the geometry block)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  layer->bioset = bioset_create(0, 0, BIOSET_NEED_BVECS);
+#else
   layer->bioset = bioset_create(0, 0);
+#endif
   if (layer->bioset == NULL) {
     *reason = "Cannot allocate dedupe bioset";
     freeKernelLayer(layer);
@@ -867,7 +871,7 @@ int makeKernelLayer(BlockCount      blockCount,
   // Bio ack queue
   if (useBioAckQueue(layer)) {
     result = makeWorkQueue(layer->threadNamePrefix, "ackQ",
-                           &layer->wqDirectory, layer, &bioAckQType,
+                           &layer->wqDirectory, layer, layer, &bioAckQType,
                            config->threadCounts.bioAckThreads,
                            &layer->bioAckQueue);
     if (result != VDO_SUCCESS) {
@@ -881,8 +885,8 @@ int makeKernelLayer(BlockCount      blockCount,
 
   // CPU Queues
   result = makeWorkQueue(layer->threadNamePrefix, "cpuQ", &layer->wqDirectory,
-                         NULL, &cpuQType, config->threadCounts.cpuThreads,
-                         &layer->cpuQueue);
+                         layer, NULL, &cpuQType,
+                         config->threadCounts.cpuThreads, &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
     *reason = "Albireo CPU queue initialization failed";
     freeKernelLayer(layer);
@@ -965,6 +969,9 @@ int modifyKernelLayer(KernelLayer       *layer,
       return VDO_COMPONENT_BUSY;
     }
 
+    logInfo("Modifying device '%s' write policy from %s to %s",
+            config->poolName, getConfigWritePolicyString(layer->deviceConfig),
+            getConfigWritePolicyString(config));
     setWritePolicy(layer->kvdo.vdo, config->writePolicy);
     return VDO_SUCCESS;
   }
@@ -1009,11 +1016,6 @@ void freeKernelLayer(KernelLayer *layer)
     logError("re-entered freeKernelLayer while stopping");
     break;
 
-  case LAYER_SUSPENDING:
-  case LAYER_RESUMING:
-    logWarning("shutting down while still supending or resuming");
-    // fall through
-
   case LAYER_RUNNING:
   case LAYER_SUSPENDED:
     stopKernelLayer(layer);
@@ -1057,7 +1059,6 @@ void freeKernelLayer(KernelLayer *layer)
     if (layer->dedupeIndex != NULL) {
       finishDedupeIndex(layer->dedupeIndex);
     }
-    FREE(layer->geometry);
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
     freeBatchProcessor(&layer->dataKVIOReleaser);
@@ -1149,9 +1150,7 @@ int stopKernelLayer(KernelLayer *layer)
   }
 
   switch (getKernelLayerState(layer)) {
-  case LAYER_SUSPENDING:
   case LAYER_SUSPENDED:
-  case LAYER_RESUMING:
   case LAYER_RUNNING:
     setKernelLayerState(layer, LAYER_STOPPING);
     vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
@@ -1182,10 +1181,6 @@ int suspendKernelLayer(KernelLayer *layer)
     return -EINVAL;
   }
 
-  setKernelLayerState(layer, LAYER_SUSPENDING);
-  suspendKVDO(&layer->kvdo);
-
-  // Make sure we restart the heartbeat after it is stopped.
   setKernelLayerState(layer, LAYER_SUSPENDED);
 
   // Attempt to flush all I/O before completing post suspend work.
@@ -1197,8 +1192,6 @@ int suspendKernelLayer(KernelLayer *layer)
 int resumeKernelLayer(KernelLayer *layer)
 {
   if (getKernelLayerState(layer) == LAYER_SUSPENDED) {
-    setKernelLayerState(layer, LAYER_RESUMING);
-    resumeKVDO(&layer->kvdo);
     setKernelLayerState(layer, LAYER_RUNNING);
   }
   return VDO_SUCCESS;

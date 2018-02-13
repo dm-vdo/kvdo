@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -529,7 +529,7 @@ static void readBioCallback(BIO *bio, int result)
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   countCompletedBios(bio);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  completeRead(dataKVIO, bio->bi_error);
+  completeRead(dataKVIO, getBioResult(bio));
 #else
   completeRead(dataKVIO, result);
 #endif
@@ -588,7 +588,7 @@ static void readCacheBioCallback(BIO *bio, int error)
 
   // Set read block operation back to nothing so bio counting works
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  dataKVIO->readBlock.status = bio->bi_error;
+  dataKVIO->readBlock.status = getBioResult(bio);
 #else
   dataKVIO->readBlock.status = error;
 #endif
@@ -718,20 +718,18 @@ static void invalidatePBNBioCallback(BIO *bio)
 static void invalidatePBNBioCallback(BIO *bio, int error)
 #endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+  int error = getBioResult(bio);
+#endif
+
   bio->bi_end_io = completeAsyncBio;
 
   KVIO *kvio = (KVIO *) bio->bi_private;
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
   countCompletedBios(bio);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (unlikely(bio->bi_error)) {
-    setCompletionResult(vioAsCompletion(kvio->vio), bio->bi_error);
-  }
-#else
   if (unlikely(error)) {
     setCompletionResult(vioAsCompletion(kvio->vio), error);
   }
-#endif
 
   setupKVIOWork(kvio, invalidatePBNAndContinueVIO, NULL,
                 BIO_Q_ACTION_READCACHE);
@@ -748,7 +746,6 @@ void invalidateCacheAndSubmitBio(KVIO *kvio, BioQAction action)
     bio->bi_end_io = invalidatePBNBioCallback;
   }
   BUG_ON(bio->bi_private != kvio);
-  BUG_ON(bio->bi_bdev != kvio->layer->dev->bdev);
   submitBio(bio, action);
 }
 
@@ -1041,7 +1038,6 @@ static void readCacheBlockCallback(KvdoWorkItem *item)
 
   logDebug("%s: submitting read request for pbn %" PRIu64, __func__,
            readBlock->pbn);
-  ASSERT_LOG_ONLY(bio->bi_bdev == layer->dev->bdev, "bi_bdev already set");
 
   submitBioFromReadCache(dataKVIO, bio, THIS_LOCATION("$F($io)"));
 }
@@ -1091,9 +1087,8 @@ void kvdoReadBlock(DataVIO             *dataVIO,
     BIO *bio = readBlock->bio;
     resetBio(bio, layer);
     setBioSector(bio, blockToSector(layer, location));
-    bio->bi_rw     = READ;
+    setBioOperationRead(bio);
     bio->bi_end_io = readBioCallback;
-    BUG_ON(bio->bi_bdev != layer->dev->bdev);
     submitBio(bio, action);
     return;
   }

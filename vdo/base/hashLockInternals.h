@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLockInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLockInternals.h#2 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -36,6 +36,7 @@ typedef enum {
   HASH_LOCK_QUERYING,
   HASH_LOCK_WRITING,
   HASH_LOCK_UPDATING,
+  HASH_LOCK_DOWNGRADING,
 
   // The remaining states are typically used on the dedupe path in this order.
   HASH_LOCK_LOCKING,
@@ -76,6 +77,24 @@ struct hashLock {
 
   /** The current state of this lock */
   HashLockState  state;
+
+  /** True if the UDS index should be updated with new advice */
+  bool           updateAdvice;
+
+  /** True if the advice has been verified to be a true duplicate */
+  bool           verified;
+
+  /** True if this lock is registered in the lock map (cleared on rollover) */
+  bool           registered;
+
+  /**
+   * If verified is false, this is the location of a possible duplicate.
+   * If verified is true, is is the verified location of a true duplicate.
+   **/
+  ZonedPBN       duplicate;
+
+  /** The PBN lock on the block containing the duplicate data */
+  PBNLock       *duplicateLock;
 
   /** The DataVIO designated to act on behalf of the lock */
   DataVIO       *agent;

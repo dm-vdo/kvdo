@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,15 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#3 $
  */
 
 #include "dataKVIO.h"
+
 
 #include "logger.h"
 #include "memoryAlloc.h"
 
 #include "dataVIO.h"
+#include "hashLock.h"
 #include "lz4.h"
 #include "murmur/MurmurHash3.h"
 
@@ -124,22 +126,19 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 
   int error
     = mapToSystemError(dataVIOAsCompletion(&dataKVIO->dataVIO)->result);
-  bio->bi_rw = externalIORequest->rw;
+  bio->bi_end_io  = externalIORequest->endIO;
+  bio->bi_private = externalIORequest->private;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio->bi_opf     = externalIORequest->rw;
+#else
+  bio->bi_rw      = externalIORequest->rw;
+#endif
   if (isFUABio(bio) && (error == 0) && shouldProcessFlush(layer)) {
-    // The original I/O asked for Forced Unit Access.
-    // Convert the bio into an empty flush and start it again.
-    prepareFlushBIO(bio, externalIORequest->private, layer->dev->bdev,
-                    externalIORequest->endIO);
-    // Restore the original I/O flags again so we can account properly for the
-    // bio acknowledgement when the flush completes. It will be made into an
-    // empty flush again after that.
-    bio->bi_rw = externalIORequest->rw;
+    // The original I/O asked for Forced Unit Access. Start a flush.
     launchKVDOFlush(layer, bio);
     return;
   }
 
-  bio->bi_private = externalIORequest->private;
-  bio->bi_end_io  = externalIORequest->endIO;
   countBios(&layer->biosAcknowledged, bio);
   if (getBioSize(bio) < VDO_BLOCK_SIZE) {
     countBios(&layer->biosAcknowledgedPartial, bio);
@@ -367,7 +366,7 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
 
   KVIO *kvio  = dataVIOAsKVIO(dataVIO);
   BIO  *bio   = kvio->bio;
-  bio->bi_rw |= WRITE;
+  setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
   invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_DATA);
 }
@@ -391,7 +390,9 @@ void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
 
   dataVIO->isZeroBlock               = bioIsZeroData(dataKVIO->dataBlockBio);
   dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
-  dataKVIO->dataBlockBio->bi_rw      = bio->bi_rw & ~bioDiscardRWMask();
+  copyBioOperationAndFlags(dataKVIO->dataBlockBio, bio);
+  // Make the bio a write, not (potentially) a discard.
+  setBioOperationWrite(dataKVIO->dataBlockBio);
 }
 
 /**********************************************************************/
@@ -542,12 +543,16 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
     .bio         = bio,
     .private     = bio->bi_private,
     .endIO       = bio->bi_end_io,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+    .rw          = bio->bi_opf,
+#else
     .rw          = bio->bi_rw,
+#endif
   };
 
   // We will handle FUA at the end of the request (after we restore the
   // bi_rw field from externalIORequest.rw).
-  bio->bi_rw &= ~bioFuaRWMask();
+  clearBioOperationFlagFua(bio);
 
   DataKVIO *dataKVIO = NULL;
   int       result   = makeDataKVIO(layer, bio, &dataKVIO);
@@ -593,9 +598,10 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
      */
     dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
     if (dataKVIO->isPartial && isWriteBio(bio)) {
-      dataKVIO->dataBlockBio->bi_rw = READ;
+      clearBioOperationAndFlags(dataKVIO->dataBlockBio);
+      setBioOperationRead(dataKVIO->dataBlockBio);
     } else {
-      dataKVIO->dataBlockBio->bi_rw = bio->bi_rw;
+      copyBioOperationAndFlags(dataKVIO->dataBlockBio, bio);
     }
     dataKVIOAsKVIO(dataKVIO)->bio = dataKVIO->dataBlockBio;
     dataKVIO->readBlock.data      = dataKVIO->dataBlock;
@@ -649,7 +655,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
   VIOOperation operation;
   if (dataKVIO->isPartial) {
     operation  = VIO_READ_MODIFY_WRITE;
-    bio->bi_rw = READ;
+    setBioOperationRead(bio);
   } else {
     operation  = VIO_WRITE;
   }
@@ -1053,10 +1059,11 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
   if (dataVIO->allocatingVIO.writeLock != NULL) {
     dumpVIOWaiters(&dataVIO->allocatingVIO.writeLock->waiters, "pbn write");
   }
-  if (dataVIO->duplicateLock != NULL) {
-    dumpVIOWaiters(&dataVIO->duplicateLock->waiters, "pbn read");
+  // XXX VDOSTORY-190 redundantly dumps waiters for every DataVIO in the lock
+  PBNLock *duplicateLock = getDuplicateLock(dataVIO);
+  if (duplicateLock != NULL) {
+    dumpVIOWaiters(&duplicateLock->waiters, "pbn read");
   }
-  dumpVIOWaiters(&dataVIO->lockRetryWaiters, "pbn read retry");
 
   // might want to dump more info from VIO here
 }

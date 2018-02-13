@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workItemStats.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workItemStats.h#2 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -99,12 +99,8 @@ typedef struct kvdoWorkItemStats {
    * values.
    */
   atomic64_t             enqueued[NUM_WORK_QUEUE_ITEM_STATS + 1];
-  /*
-   * The .timedOut field is updated by producers (if the timeout has
-   * already passed) and a consumer; in this case the consumer is the
-   * alarm function (in whatever context). Updates should be rare.
-   */
-  atomic64_t             timedOut[NUM_WORK_QUEUE_ITEM_STATS + 1];
+  // Skip to (somewhere on) the next cache line
+  char                   pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
   /*
    * These values are updated only by the consumer (worker thread). We
    * overload the .times[].count field as a count of items processed,
@@ -200,16 +196,6 @@ static inline void updateWorkItemStatsForDequeue(KvdoWorkItemStats *stats,
     // In this case, updateWorkItemStatsForWorkTime will bump the counter.
   }
 }
-
-/**
- * Update all work queue statistics (work-item and otherwise) after
- * timing out on a work item.
- *
- * @param  stats  The statistics structure
- * @param  item   The work item enqueued
- **/
-void updateWorkItemStatsForTimeout(KvdoWorkItemStats *stats,
-                                   KvdoWorkItem      *item);
 
 /**
  * Record the starting time for processing a work item, if timing

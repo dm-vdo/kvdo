@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/types.h#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/types.h#5 $
  */
 
 #ifndef TYPES_H
@@ -45,11 +45,6 @@ typedef uint8_t CompressedFragmentCount;
  * A CRC-32 checksum
  **/
 typedef uint32_t CRC32Checksum;
-
-/**
- * A count of heart beats.
- **/
-typedef uint64_t HeartbeatCount;
 
 /**
  * A height within a tree.
@@ -258,6 +253,8 @@ typedef enum {
   WRITE_POLICY_ASYNC,   ///< Writes are acknowledged when the data is
                         ///< cached for writing to stable storage, subject
                         ///< to resiliency guarantees specified elsewhere.
+  WRITE_POLICY_AUTO,    ///< The appropriate policy is chosen based on the
+                        ///< underlying device
 } WritePolicy;
 
 typedef enum {
@@ -337,14 +334,16 @@ typedef struct vdoConfig {
  * The configuration parameters of the VDO service specified at load time.
  **/
 typedef struct vdoLoadConfig {
+  /** the offset on the physical layer where the VDO begins */
+  PhysicalBlockNumber  firstBlockOffset;
   /** the thread configuration of the VDO */
-  ThreadConfig  *threadConfig;
+  ThreadConfig        *threadConfig;
   /** the page cache size, in pages */
-  PageCount      cacheSize;
+  PageCount            cacheSize;
   /** whether writes are synchronous */
-  WritePolicy    writePolicy;
+  WritePolicy          writePolicy;
   /** the maximum age of a dirty block map page in recovery journal blocks */
-  BlockCount     maximumAge;
+  BlockCount           maximumAge;
 } VDOLoadConfig;
 
 /**

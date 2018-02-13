@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,7 +24,7 @@
 #include "types.h"
 
 enum {
-  STATISTICS_VERSION = 24,
+  STATISTICS_VERSION = 26,
 };
 
 typedef struct {
@@ -148,10 +148,6 @@ typedef struct {
 typedef struct {
   /** number of times VDO got an invalid dedupe advice PBN from albireo */
   uint64_t invalidAdvicePBNCount;
-  /** number of times VDO got an invalid rollover confirmation PBN from albireo */
-  uint64_t invalidRolloverPBNCount;
-  /** number of times the dedupe deadlock avoidance mechanism fired */
-  uint64_t dedupeDeadlockAvoidanceCount;
   /** number of times a VIO completed with a VDO_NO_SPACE error */
   uint64_t noSpaceErrorCount;
   /** number of times a VIO completed with a VDO_READ_ONLY error */

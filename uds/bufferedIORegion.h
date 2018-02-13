@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bufferedIORegion.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/bufferedIORegion.h#3 $
  */
 
 #ifndef BUFFERED_IO_REGION_H
@@ -34,7 +34,7 @@
  *                        new buffer is made.
  * @param bufferSize    The minimum size for the buffer. If specified as 0,
  *                        a default size is chosen for new buffers, and
- *                        existing buffers are not altered. Othewise the
+ *                        existing buffers are not altered. Otherwise the
  *                        existing buffer may be enlarged to the minimum size
  *                        if necessary.
  * @param regionPtr     Where to put the region.

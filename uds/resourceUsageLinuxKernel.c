@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,10 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/resourceUsageLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/resourceUsageLinuxKernel.c#3 $
  */
 
+#include <linux/version.h>
+
 #include <linux/sched.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+// Needed for task->signal definition after 4.11.0
+#include <linux/sched/signal.h>
+#endif
 #include <linux/task_io_accounting_ops.h>
 
 #include "logger.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvdoFlush.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvdoFlush.c#2 $
  */
 
 #include "kvdoFlush.h"
@@ -190,17 +190,12 @@ static void kvdoCompleteFlushWork(KvdoWorkItem *item)
 
   BIO *bio;
   while ((bio = bio_list_pop(&kvdoFlush->bios)) != NULL) {
-    setBioBlockDevice(bio, layer->dev->bdev);
-
     // We're not acknowledging this bio now, but we'll never touch it
     // again, so this is the last chance to account for it.
     countBios(&layer->biosAcknowledged, bio);
 
-    // FUA bios aren't completely converted to empty flushes so we can do the
-    // accounting above. Make sure such bios are empty now.
-    if (!isEmptyFlush(bio)) {
-      bio->bi_rw = WRITE_FLUSH;
-    }
+    // Make sure the bio is a empty flush bio.
+    prepareFlushBIO(bio, bio->bi_private, layer->dev->bdev, bio->bi_end_io);
     atomic64_inc(&layer->flushOut);
     generic_make_request(bio);
   }
@@ -242,7 +237,7 @@ static void endSynchronousFlush(BIO *bio, int result)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int result = bio->bi_error;
+  int result = getBioResult(bio);
 #endif
 
   if (result != 0) {
@@ -272,7 +267,7 @@ int synchronousFlush(KernelLayer *layer)
   generic_make_request(bio);
   wait_for_completion(&layer->flushWait);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (bio->bi_error != 0) {
+  if (getBioResult(bio) != 0) {
 #else
   if (!bio_flagged(bio, BIO_UPTODATE)) {
 #endif

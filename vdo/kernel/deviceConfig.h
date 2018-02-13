@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/deviceConfig.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/deviceConfig.h#2 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -87,5 +87,23 @@ int parseDeviceConfig(int            argc,
  * @param configPtr  The pointer holding the config, which will be nulled
  **/
 void freeDeviceConfig(DeviceConfig **configPtr);
+
+/**
+ * Get the text describing the write policy.
+ *
+ * @param config  The device config
+ *
+ * @returns a pointer to a string describing the write policy
+ **/
+const char *getConfigWritePolicyString(DeviceConfig *config)
+  __attribute__((warn_unused_result));
+
+/**
+ * Resolve the write policy if needed.
+ *
+ * @param [in,out] config          The config to resolve
+ * @param [in]     flushSupported  Whether flushes are supported.
+ **/
+void resolveConfigWithFlushSupport(DeviceConfig *config, bool flushSupported);
 
 #endif // DEVICE_CONFIG_H

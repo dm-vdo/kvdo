@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLock.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLock.h#2 $
  */
 
 #ifndef HASH_LOCK_H
@@ -25,13 +25,12 @@
 #include "types.h"
 
 /**
- * Get the PBN read lock on the duplicate data location for a DataVIO, which
- * which may be held by the DataVIO itself, or may be held by the HashLock the
- * DataVIO holds.
+ * Get the PBN lock on the duplicate data location for a DataVIO from the
+ * HashLock the DataVIO holds (if there is one).
  *
  * @param dataVIO  The DataVIO to query
  *
- * @return The PBN read lock on the DataVIO's duplicate location
+ * @return The PBN lock on the DataVIO's duplicate location
  **/
 PBNLock *getDuplicateLock(DataVIO *dataVIO)
   __attribute__((warn_unused_result));
@@ -88,5 +87,28 @@ void continueHashLockOnError(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO releasing its hash lock
  **/
 void releaseHashLock(DataVIO *dataVIO);
+
+/**
+ * Transfer a duplicate PBN read lock to a hash lock that has been waiting to
+ * acquire it, then asynchronously continue processing the hash lock using the
+ * provided DataVIO. The lock transfer may be rejected if the duplicate lock
+ * would no longer be of use to the waiter.
+ *
+ * @param dataVIO        The DataVIO that was queued to wait on the PBN lock
+ * @param duplicateLock  The duplicate PBN read lock that is being acquired
+ *
+ * @return <code>true</code> only if the transfer was accepted
+ **/
+bool inheritDuplicatePBNLock(DataVIO *dataVIO, PBNLock *duplicateLock)
+  __attribute__((warn_unused_result));
+
+/**
+ * Downgrade a DataVIO's allocation lock from a PBN write lock to a read lock,
+ * and transfer it to the DataVIO's hash lock, converting it to a duplicate
+ * PBN lock.
+ *
+ * @param dataVIO  The DataVIO holding the allocation lock to transfer
+ **/
+void transferPBNWriteLock(DataVIO *dataVIO);
 
 #endif // HASH_LOCK_H

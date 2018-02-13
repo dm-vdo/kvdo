@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds.h#6 $
+ * $Id: //eng/uds-releases/flanders/src/public/uds.h#7 $
  */
 
 /**
  * @mainpage UDS API Reference
- * <center>Copyright (c) 2017 Red Hat, Inc.</center>
+ * <center>Copyright (c) 2018 Red Hat, Inc.</center>
  **/
 
 /**
@@ -126,6 +126,7 @@ typedef void *UdsCookie;
  * The data used to configure a new index.
  **/
 typedef struct udsConfiguration *UdsConfiguration;
+typedef uint64_t UdsNonce;
 
 /**
  * Index statistics
@@ -346,6 +347,25 @@ void udsConfigurationSetSparse(UdsConfiguration conf, bool sparse);
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 bool udsConfigurationGetSparse(UdsConfiguration conf);
+
+/**
+ * Sets an index configuration's nonce.
+ *
+ * @param [in,out] conf  The configuration to change
+ * @param [in] nonce    The 64 bit nonce.
+ *
+ **/
+void udsConfigurationSetNonce(UdsConfiguration conf, UdsNonce nonce);
+
+/**
+ * Gets an index configuration's nonce.
+ *
+ * @param [in] conf  The configuration to check
+ *
+ * @return  The 64 bit nonce.
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+UdsNonce udsConfigurationGetNonce(UdsConfiguration conf);
 
 /**
  * Sets an index configuration's checkpoint frequency.

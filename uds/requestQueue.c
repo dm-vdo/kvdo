@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/requestQueue.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/requestQueue.c#4 $
  */
 
 #include "requestQueue.h"
@@ -293,8 +293,7 @@ static int initializeQueue(RequestQueue          *queue,
     return result;
   }
 
-  result = createThread(requestQueueWorker, queue, queueName, 0,
-                        &queue->thread);
+  result = createThread(requestQueueWorker, queue, queueName, &queue->thread);
   if (result != UDS_SUCCESS) {
     return result;
   }

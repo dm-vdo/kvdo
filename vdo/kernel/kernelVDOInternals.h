@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDOInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDOInternals.h#2 $
  */
 
 #ifndef KERNEL_VDO_INTERNALS_H
@@ -32,19 +32,5 @@
  * @param item           The work item to be run
  **/
 void enqueueKVDOThreadWork(KVDOThread *thread, KvdoWorkItem *item);
-
-/**
- * Enqueue a work item to be performed in the base code context at the
- * specified time.
- *
- * This is only exported for heartbeat.c.
- *
- * @param thread         The KVDO thread on which to run the work item
- * @param item           The work item to be run
- * @param executionTime  The time at which to run the work item
- **/
-void enqueueKVDOThreadWorkDelayed(KVDOThread   *thread,
-                                  KvdoWorkItem *item,
-                                  Jiffies       executionTime);
 
 #endif // KERNEL_VDO_INTERNALS_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#3 $
  */
 
 #include "workQueue.h"
 
 #include <linux/delay.h>
 #include <linux/kthread.h>
+#include <linux/version.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -35,15 +36,6 @@
 #include "workQueueInternals.h"
 #include "workQueueStats.h"
 #include "workQueueSysfs.h"
-
-typedef enum enqueueResult {
-  // Normal, boring enqueue operation
-  ENQUEUE_NORMAL,
-  // Not enqueued; caller should invoke timeout fn after releasing lock
-  ENQUEUE_TIMED_OUT,
-  // Enqueued, and caller may need to wake up the worker thread
-  ENQUEUE_NEEDS_WAKEUP
-} EnqueueResult;
 
 enum {
   // Time between work queue heartbeats in usec. The default kernel
@@ -186,23 +178,17 @@ static KvdoWorkItem *pollForWorkItem(SimpleWorkQueue *queue)
  * Add a work item into the queue, and inform the caller of any additional
  * processing necessary.
  *
- * If the work item has a timeout that has already passed, ENQUEUE_TIMED_OUT
- * will be returned and the item will not be enqueued; the caller must invoke
- * the timeout callback function. If the work item was successfully enqueued
- * but the worker thread may not be awake, ENQUEUE_NEEDS_WAKEUP is returned;
- * the caller should attempt a wakeup.
+ * If the worker thread may not be awake, true is returned, and the caller
+ * should attempt a wakeup.
  *
  * @param queue  The work queue
  * @param item   The work item to add
  *
- * @return  flags directing the caller as to further processing
+ * @return  true iff the caller should wake the worker thread
  **/
 __attribute__((warn_unused_result))
-static EnqueueResult enqueueWorkQueueItem(SimpleWorkQueue *queue,
-                                          KvdoWorkItem    *item)
+static bool enqueueWorkQueueItem(SimpleWorkQueue *queue, KvdoWorkItem *item)
 {
-  KvdoWorkFunction timeoutWorkAtStart = item->timeoutWork;
-
   ASSERT_LOG_ONLY(item->myQueue == NULL,
                   "item %p (fn %p/%p) to enqueue (%p) is not already queued "
                   "(%p)", item, item->work, item->statsFunction, queue,
@@ -213,29 +199,11 @@ static EnqueueResult enqueueWorkQueueItem(SimpleWorkQueue *queue,
   }
   unsigned int priority = queue->priorityMap[item->action];
 
-  if (ASSERT((queue->timeoutSupport == true || item->timeoutWork == NULL),
-             "timeout work item is invalid for work queue '%s' "
-             "in storing work item", queue->common.name) != UDS_SUCCESS) {
-    // Do not store work item; fail completely rather than intermittently in
-    // later processing.
-    return ENQUEUE_NORMAL;
-  }
-
   // Update statistics.
   updateStatsForEnqueue(&queue->stats, item, priority);
 
-  // Has it already timed out?
-  if ((item->timeoutWork != NULL) && (item->timeout <= jiffies)) {
-    updateWorkItemStatsForTimeout(&queue->stats.workItemStats, item);
-    return ENQUEUE_TIMED_OUT;
-  }
-
   item->myQueue = &queue->common;
 
-  // Add it to its priority list, in submission order.
-  EnqueueResult enqueueResult = ENQUEUE_NORMAL;
-  Jiffies       timeout       = item->timeout;
-  bool          mustSetTimer  = (timeoutWorkAtStart != NULL);
   // Funnel queue handles the synchronization for the put.
   funnelQueuePut(queue->priorityLists[priority], &item->workQueueEntryLink);
 
@@ -266,29 +234,8 @@ static EnqueueResult enqueueWorkQueueItem(SimpleWorkQueue *queue,
    * up, and if we don't get that either, we still have the timeout to fall
    * back on.
    */
-  enqueueResult = (((atomic_read(&queue->idle) == 1)
-                    && (atomic_cmpxchg(&queue->idle, 1, 0) == 1))
-                   ? ENQUEUE_NEEDS_WAKEUP
-                   : ENQUEUE_NORMAL);
-
-  /*
-   * Once the work item has been placed on the funnel queue, its information is
-   * no longer safe to access as the consumer thread can now act on it, and the
-   * embedded work function may alter the information inside the work item in
-   * unrestricted ways. This access is not synchronized except for atomic
-   * operations inside the funnelQueuePut() function.
-   */
-  item = NULL;
-  // We should try to be smarter about mustSetTimer.
-
-  /*
-   * Add to timeout list, if needed.
-   */
-  if (mustSetTimer) {
-    setTimerIfNotRunning(&queue->timeoutTimer, timeout);
-  }
-
-  return enqueueResult;
+  return ((atomic_read(&queue->idle) == 1)
+          && (atomic_cmpxchg(&queue->idle, 1, 0) == 1));
 }
 
 /**
@@ -307,7 +254,6 @@ static unsigned int getPendingCount(SimpleWorkQueue *queue)
   long long pending = 0;
   for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
     pending += atomic64_read(&stats->enqueued[i]);
-    pending -= atomic64_read(&stats->timedOut[i]);
     pending -= stats->times[i].count;
   }
   if (pending < 0) {
@@ -318,44 +264,6 @@ static unsigned int getPendingCount(SimpleWorkQueue *queue)
     pending = 1;
   }
   return pending;
-}
-
-/**
- * Lock the "consumer" lock on the work queue, if it's required for this work
- * queue.
- *
- * Work queues supporting timeouts need locking for coordination between the
- * worker thread and the timeout alarm routine. Work queues not supporting
- * timeouts do not.
- *
- * @param [in]  queue  The work queue
- * @param [out] flags  Spin lock flags, shared with the caller
- **/
-static inline void lockConsumerLock(SimpleWorkQueue *queue,
-                                    unsigned long   *flags)
-{
-  if (queue->timeoutSupport) {
-    spin_lock_irqsave(&queue->consumerLock, *flags);
-  }
-}
-
-/**
- * Unlock the "consumer" lock on the work queue, if it's required for this work
- * queue.
- *
- * Work queues supporting timeouts need locking for coordination between the
- * worker thread and the timeout alarm routine. Work queues not supporting
- * timeouts do not.
- *
- * @param queue  The work queue
- * @param flags  Spin lock flags, shared with the caller
- **/
-static inline void unlockConsumerLock(SimpleWorkQueue *queue,
-                                      unsigned long   *flags)
-{
-  if (queue->timeoutSupport) {
-    spin_unlock_irqrestore(&queue->consumerLock, *flags);
-  }
 }
 
 /**
@@ -386,30 +294,21 @@ static void runFinishHook(SimpleWorkQueue *queue)
  * If the work queue has a suspend hook, invoke it, and when it finishes, check
  * again for any pending work items.
  *
- * The "consumer" spin lock on the work queue, if it's needed, must be held on
- * entry and will be held on return, but will be released for the duration of
- * the suspend hook function, since the hook function is allowed to perform
- * potentially blocking actions like flushing a socket buffer.
- *
  * We assume a check for pending work items has just been done and turned up
  * empty; so, if no suspend hook exists, we can just return NULL without doing
  * another check.
  *
  * @param [in]     queue  The work queue preparing to suspend
- * @param [in,out] flags  Spin lock flags
  *
  * @return  the newly found work item, if any
  **/
-static KvdoWorkItem *runSuspendHook(SimpleWorkQueue *queue,
-                                    unsigned long   *flags)
+static KvdoWorkItem *runSuspendHook(SimpleWorkQueue *queue)
 {
   if (queue->type->suspend == NULL) {
     return NULL;
   }
 
-  unlockConsumerLock(queue, flags);
   queue->type->suspend(queue->private);
-  lockConsumerLock(queue, flags);
   return pollForWorkItem(queue);
 }
 
@@ -439,21 +338,15 @@ static bool hasDelayedWorkItems(SimpleWorkQueue *queue)
  *
  * Update statistics relating to scheduler interactions.
  *
- * The "consumer" spin lock on the work queue, if it's needed, must be held on
- * entry and will be held on return, but will be released for potentially
- * blocking operations like suspending the thread.
- *
  * @param [in]     queue            The work queue to wait on
- * @param [in,out] flags            Spin lock flags
  * @param [in]     timeoutInterval  How long to wait each iteration
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
-                                         unsigned long   *flags,
                                          TimeoutJiffies   timeoutInterval)
 {
-  KvdoWorkItem *item = runSuspendHook(queue, flags);
+  KvdoWorkItem *item = runSuspendHook(queue);
   if (item != NULL) {
     return item;
   }
@@ -511,7 +404,6 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
       break;
     }
 
-    unlockConsumerLock(queue, flags);
     /*
      * We don't need to update the wait count atomically since this is the only
      * place it is modified and there is only one thread involved.
@@ -526,7 +418,6 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
     uint64_t callDurationNS = queue->mostRecentWakeup - timeBeforeSchedule;
     enterHistogramSample(queue->stats.scheduleTimeHistogram,
                          callDurationNS / 1000);
-    lockConsumerLock(queue, flags);
 
     /*
      * Check again before resetting firstWakeup for more accurate
@@ -569,40 +460,30 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
  * If kthread_should_stop says it's time to stop but we have pending work
  * items, return a work item.
  *
- * The "consumer" spin lock on the work queue, if it's needed, must be held on
- * entry and will be held on return, but will be released for potentially
- * blocking operations like suspending the thread.
- *
  * @param [in]     queue            The work queue to wait on
- * @param [in,out] flags            Spin lock flags
  * @param [in]     timeoutInterval  How long to wait each iteration
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static KvdoWorkItem *getNextWorkItem(SimpleWorkQueue *queue,
-                                     unsigned long   *flags,
                                      TimeoutJiffies   timeoutInterval)
 {
   KvdoWorkItem *item = pollForWorkItem(queue);
   if (item != NULL) {
     return item;
   }
-  return waitForNextWorkItem(queue, flags, timeoutInterval);
+  return waitForNextWorkItem(queue, timeoutInterval);
 }
 
 /**
- * Execute a work item from a work queue, and do associated lock management and
- * bookkeeping.
+ * Execute a work item from a work queue, and do associated bookkeeping.
  *
  * @param [in]     queue  the work queue the item is from
  * @param [in]     item   the work item to run
- * @param [in,out] flags  spin lock flags
  **/
 static void processWorkItem(SimpleWorkQueue *queue,
-                            KvdoWorkItem    *item,
-                            unsigned long   *flags)
+                            KvdoWorkItem    *item)
 {
-  unlockConsumerLock(queue, flags);
   if (ASSERT(item->myQueue == &queue->common,
              "item %p from queue %p marked as being in this queue "
              "(%p)", item, queue, item->myQueue) == UDS_SUCCESS) {
@@ -647,7 +528,6 @@ static void processWorkItem(SimpleWorkQueue *queue,
     atomic64_add(callTimeNS, &queue->stats.rescheduleTime);
     queue->mostRecentWakeup = timeAfterReschedule;
   }
-  lockConsumerLock(queue, flags);
 }
 
 /**
@@ -659,25 +539,21 @@ static void processWorkItem(SimpleWorkQueue *queue,
  **/
 static void serviceWorkQueue(SimpleWorkQueue *queue)
 {
-  // Implements work queue thread.
   TimeoutJiffies timeoutInterval =
     maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
-  unsigned long flags = 0;
 
   runStartHook(queue);
-  lockConsumerLock(queue, &flags);
 
   while (true) {
-    KvdoWorkItem *item = getNextWorkItem(queue, &flags, timeoutInterval);
+    KvdoWorkItem *item = getNextWorkItem(queue, timeoutInterval);
     if (item == NULL) {
       // No work items but kthread_should_stop was triggered.
       break;
     }
     // Process the work item
-    processWorkItem(queue, item, &flags);
+    processWorkItem(queue, item);
   }
 
-  unlockConsumerLock(queue, &flags);
   runFinishHook(queue);
 }
 
@@ -716,17 +592,6 @@ void setupWorkItem(KvdoWorkItem     *item,
                    void             *statsFunction,
                    unsigned int      action)
 {
-  setupWorkItemWithTimeout(item, work, statsFunction, action, NULL, 0);
-}
-
-/**********************************************************************/
-void setupWorkItemWithTimeout(KvdoWorkItem     *item,
-                              KvdoWorkFunction  work,
-                              void             *statsFunction,
-                              unsigned int      action,
-                              KvdoWorkFunction  timeoutWork,
-                              Jiffies           timeout)
-{
   ASSERT_LOG_ONLY(item->myQueue == NULL,
                   "setupWorkItem not called on enqueued work item");
   item->work           = work;
@@ -735,8 +600,6 @@ void setupWorkItemWithTimeout(KvdoWorkItem     *item,
   item->action         = action;
   item->myQueue        = NULL;
   item->executionTime  = 0;
-  item->timeoutWork    = timeoutWork;
-  item->timeout        = timeout;
   item->next           = NULL;
 }
 
@@ -776,9 +639,7 @@ static void processDelayedWorkItems(unsigned long data)
     workItemListPoll(&queue->delayedItems);
     item->executionTime = 0;    // not actually looked at...
     item->myQueue = NULL;
-    EnqueueResult enqueueResult = enqueueWorkQueueItem(queue, item);
-    // We checked at submission time for delay+timeout.
-    needsWakeup |= (enqueueResult == ENQUEUE_NEEDS_WAKEUP);
+    needsWakeup |= enqueueWorkQueueItem(queue, item);
   }
   spin_unlock_irqrestore(&queue->lock, flags);
   if (reschedule) {
@@ -786,106 +647,6 @@ static void processDelayedWorkItems(unsigned long data)
   }
   if (needsWakeup) {
     wakeWorkerThread(queue);
-  }
-}
-
-// Timeouts
-
-/**
- * Remove the first work item with the specified priority and return it,
- * updating statistics to indicate a timeout.
- *
- * @param queue     The work queue
- * @param priority  The priority used to select a funnel queue
- *
- * @return  The removed work item
- **/
-static KvdoWorkItem *getTimedOutWorkItem(SimpleWorkQueue *queue, int priority)
-{
-  FunnelQueueEntry *entry = funnelQueuePoll(queue->priorityLists[priority]);
-  BUG_ON(entry == NULL);
-  KvdoWorkItem *item = container_of(entry, KvdoWorkItem, workQueueEntryLink);
-
-  if (item->myQueue == &queue->common) {
-    updateWorkItemStatsForTimeout(&queue->stats.workItemStats, item);
-    item->myQueue = NULL;
-  }
-  return item;
-}
-
-/**********************************************************************/
-static unsigned long fetchExpiredItems(SimpleWorkQueue  *queue,
-                                       KvdoWorkItemList *expiredItems)
-{
-  Jiffies       nextExpiration = -1UL;
-  unsigned long flags;
-  spin_lock_irqsave(&queue->consumerLock, flags);
-
-  int priority;
-  for (priority = queue->numPriorityLists - 1; priority >= 0; priority--) {
-    FunnelQueue *funnelQueue = queue->priorityLists[priority];
-
-    while (true) {
-      FunnelQueueEntry *entry = funnelQueuePeek(funnelQueue);
-      if (entry == NULL) {
-        break;
-      }
-
-      KvdoWorkItem *item = container_of(entry, KvdoWorkItem,
-                                        workQueueEntryLink);
-      if (item->timeoutWork == NULL) {
-        // This case ought not to come up.
-        break;
-      }
-      if (item->timeout <= jiffies) {
-        KvdoWorkItem *removedItem = getTimedOutWorkItem(queue, priority);
-        BUG_ON(removedItem != item);
-        addToWorkItemList(expiredItems, item);
-      } else {
-        if (item->timeout < nextExpiration) {
-          nextExpiration = item->timeout;
-        }
-        break;
-      }
-    }
-  }
-  spin_unlock_irqrestore(&queue->consumerLock, flags);
-  return nextExpiration;
-}
-
-/**********************************************************************/
-static void workQueueTimeout(Timer *timer)
-{
-  SimpleWorkQueue *queue = container_of(timer, SimpleWorkQueue, timeoutTimer);
-
-  if (ASSERT(queue->timeoutSupport == true,
-             "timeout support enabled for queue '%s'",
-             queue->common.name) != UDS_SUCCESS) {
-    return;
-  }
-
-  Jiffies          nextExpiration;
-  KvdoWorkItemList expiredItems;
-  initializeWorkItemList(&expiredItems);
-  int count = 0;
-
-  do {
-    nextExpiration = fetchExpiredItems(queue, &expiredItems);
-
-    // Now that we've unlocked the list, process the expired items.
-    while (!isWorkItemListEmpty(&expiredItems)) {
-      KvdoWorkItem *item = workItemListPoll(&expiredItems);
-      item->timeoutWork(item);
-    }
-    // If it took us a while to finish scanning and processing, check again.
-  } while ((nextExpiration != -1UL)
-           && (nextExpiration <= jiffies)
-           && (++count <= 10));
-
-  // Reschedule the timeout if necessary.
-  if (nextExpiration != -1UL) {
-    setTimerIfNotRunning(&queue->timeoutTimer,
-                         maxULong(nextExpiration, jiffies + 2));
   }
 }
 
@@ -897,6 +658,7 @@ static void workQueueTimeout(Timer *timer)
  * @param [in]  threadNamePrefix The per-device prefix to use in thread names
  * @param [in]  name             The queue name
  * @param [in]  parentKobject    The parent sysfs node
+ * @param [in]  owner            The kernel layer owning the work queue
  * @param [in]  private          Private data of the queue for use by work
  *                               items or other queue-specific functions
  * @param [in]  type             The work queue type defining the lifecycle
@@ -909,6 +671,7 @@ static void workQueueTimeout(Timer *timer)
 static int makeSimpleWorkQueue(const char               *threadNamePrefix,
                                const char               *name,
                                struct kobject           *parentKobject,
+                               KernelLayer              *owner,
                                void                     *private,
                                const KvdoWorkQueueType  *type,
                                SimpleWorkQueue         **queuePtr)
@@ -919,9 +682,9 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
     return result;
   }
 
-  queue->type           = type;
-  queue->private        = private;
-  queue->timeoutSupport = type->needTimeouts;
+  queue->type         = type;
+  queue->private      = private;
+  queue->common.owner = owner;
 
   unsigned int numPriorityLists = 1;
   for (int i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
@@ -975,12 +738,6 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
     }
   }
 
-  // Do not initialize the timeout timer without requested timer support, since
-  // it should never be set to run.
-  if (queue->timeoutSupport) {
-    initTimer(&queue->timeoutTimer, workQueueTimeout);
-  }
-
   kobject_init(&queue->common.kobj, &simpleWorkQueueKobjType);
   result = kobject_add(&queue->common.kobj, parentKobject, queue->common.name);
   if (result != 0) {
@@ -1026,6 +783,7 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
 int makeWorkQueue(const char               *threadNamePrefix,
                   const char               *name,
                   struct kobject           *parentKobject,
+                  KernelLayer              *owner,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
@@ -1034,7 +792,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
   if (threadCount == 1) {
     SimpleWorkQueue *simpleQueue;
     int result = makeSimpleWorkQueue(threadNamePrefix, name, parentKobject,
-                                     private, type, &simpleQueue);
+                                     owner, private, type, &simpleQueue);
     if (result == VDO_SUCCESS) {
       *queuePtr = &simpleQueue->common;
     }
@@ -1057,6 +815,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
 
   queue->numServiceQueues      = threadCount;
   queue->common.roundRobinMode = true;
+  queue->common.owner          = owner;
 
   result = duplicateString(name, "queue name", &queue->common.name);
   if (result != VDO_SUCCESS) {
@@ -1079,7 +838,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
   for (unsigned int i = 0; i < threadCount; i++) {
     snprintf(threadName, sizeof(threadName), "%s%u", name, i);
     result = makeSimpleWorkQueue(threadNamePrefix, threadName,
-                                 &queue->common.kobj, private, type,
+                                 &queue->common.kobj, owner, private, type,
                                  &queue->serviceQueues[i]);
     if (result != VDO_SUCCESS) {
       queue->numServiceQueues = i;
@@ -1101,19 +860,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
  **/
 static void finishSimpleWorkQueue(SimpleWorkQueue *queue)
 {
-  if (queue->timeoutSupport) {
-    /*
-     * If the timer action is running, this waits for it to complete,
-     * which in the timeoutTimer case means work items timing out have
-     * had their timeout callbacks invoked and completed. There could
-     * still be work items floating around that have timeouts, but the
-     * timeouts will be ignored.
-     */
-    cancelTimer(&queue->timeoutTimer);
-  }
-
-  // Timers should not be scheduled now. One last work item could be running
-  // though.
+  // Tell the worker thread to shut down.
   if (queue->thread != NULL) {
     atomic_set(&queue->threadID, 0);
     // Waits for thread to exit.
@@ -1210,6 +957,9 @@ static void dumpSimpleWorkQueue(SimpleWorkQueue *queue)
 
   char taskStateReport = '-';
   if (queueData.thread != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+    taskStateReport = task_state_to_char(queue->thread);
+#else
     unsigned int taskState = queue->thread->state & TASK_REPORT;
     taskState &= 0x1ff;
     unsigned int taskStateIndex;
@@ -1220,6 +970,7 @@ static void dumpSimpleWorkQueue(SimpleWorkQueue *queue)
       taskStateIndex = 0;
     }
     taskStateReport = TASK_STATE_TO_CHAR_STR[taskStateIndex];
+#endif
   }
 
   if (queueData.thread == NULL) {
@@ -1280,22 +1031,8 @@ void enqueueWorkQueue(KvdoWorkQueue *kvdoWorkQueue, KvdoWorkItem *item)
 
   item->executionTime = 0;
 
-  EnqueueResult enqueueResult = ENQUEUE_NORMAL;
-  enqueueResult = enqueueWorkQueueItem(queue, item);
-
-  switch (enqueueResult) {
-  case ENQUEUE_NORMAL:
-    break;
-  case ENQUEUE_NEEDS_WAKEUP:
+  if (enqueueWorkQueueItem(queue, item)) {
     wakeWorkerThread(queue);
-    break;
-  case ENQUEUE_TIMED_OUT:
-    item->timeoutWork(item);
-    break;
-  default:
-    ASSERT_LOG_ONLY(false, "enqueueResult (%d) among expected values",
-                    enqueueResult);
-    break;
   }
 }
 
@@ -1304,12 +1041,6 @@ void enqueueWorkQueueDelayed(KvdoWorkQueue *kvdoWorkQueue,
                              KvdoWorkItem  *item,
                              Jiffies        executionTime)
 {
-  if (ASSERT(item->timeoutWork == NULL,
-             "work item cannot have both delay and timeout") != UDS_SUCCESS) {
-    item->timeout = 0;
-    item->timeoutWork = NULL;
-  }
-
   if (executionTime <= jiffies) {
     enqueueWorkQueue(kvdoWorkQueue, item);
     return;
@@ -1350,6 +1081,12 @@ KvdoWorkQueue *getCurrentWorkQueue(void)
 {
   SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
   return (queue == NULL) ? NULL : &queue->common;
+}
+
+/**********************************************************************/
+KernelLayer *getWorkQueueOwner(KvdoWorkQueue *queue)
+{
+  return queue->owner;
 }
 
 /**********************************************************************/

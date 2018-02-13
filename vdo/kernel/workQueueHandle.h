@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueHandle.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueHandle.h#2 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
@@ -65,6 +65,15 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
                                     SimpleWorkQueue      *queue);
 
 /**
+ * Get the current bottom of the stack.
+ **/
+static char *getBottomOfStack(void)
+{
+  register unsigned long currentStackPointer asm("esp");
+  return (char *)(currentStackPointer & ~(THREAD_SIZE - 1));
+}
+
+/**
  * Return the work queue pointer recorded at initialization time in
  * the work-queue stack handle initialized on the stack of the current
  * thread, if any.
@@ -74,7 +83,7 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
 static inline SimpleWorkQueue *getCurrentThreadWorkQueue(void)
 {
   WorkQueueStackHandle *handle
-    = (WorkQueueStackHandle *)((char *)current_thread_info()
+    = (WorkQueueStackHandle *)(getBottomOfStack()
                                + workQueueStackHandleGlobals.offset);
   if (likely(handle->nonce == workQueueStackHandleGlobals.nonce)) {
     return handle->queue;

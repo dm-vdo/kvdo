@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/linuxIORegion.c#4 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/linuxIORegion.c#6 $
  */
 
 #include "linuxIORegion.h"
 
 #include <linux/bio.h>
+#include <linux/blkdev.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/task_io_accounting_ops.h>
@@ -31,28 +32,6 @@
 #include "memoryAlloc.h"
 #include "numeric.h"
 #include "timeUtils.h"
-
-/*
- * Between Linux 2.6.32 and Linux 3.0, the open_bdev_exclusive and
- * close_bdev_exclusive methods have been replaced by the blkdev_get_by_path
- * and blkdev_put methods.  This conditional define lets us run on RHEL6.
- */
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,32)
-struct block_device *blkdev_get_by_path(const char *path,
-                                        fmode_t     mode,
-                                        void       *h __attribute__((unused)))
-{
-  struct block_device *bdev = lookup_bdev(path);
-  if (bdev == NULL) {
-    return bdev;
-  }
-  int result = blkdev_get(bdev, mode);
-  if (result != 0) {
-    return NULL;
-  }
-  return bdev;
-}
-#endif
 
 // Size a bio to be able to read or write 64K in a single request.
 enum { BVEC_COUNT = 64 * 1024 / PAGE_SIZE };
@@ -167,7 +146,9 @@ static void lior_endio(struct bio *bio, int err)
 #endif
 {
   LinuxIOCompletion *lioc = (LinuxIOCompletion *)bio->bi_private;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  lioc->result = blk_status_to_errno(bio->bi_status);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   lioc->result = -bio->bi_error;
 #else
   lioc->result = -err;
@@ -188,18 +169,28 @@ static void lior_bio_init(struct bio *bio, LinuxIORegion *lior, off_t offset)
   bio->bi_size   = 0;
   bio->bi_vcnt   = 0;
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+  bio_set_dev(bio, lior->bdev);
+#else
   bio->bi_bdev = lior->bdev;
+#endif
 }
 
 /*****************************************************************************/
 static int lior_bio_submit(struct bio *bio, int rw)
 {
+  // XXX When we ditch Squeeze, we can use submit_bio_wait() instead of this pile.
   DECLARE_COMPLETION_ONSTACK(wait);
   init_completion(&wait);
   LinuxIOCompletion lioc = { .result = UDS_SUCCESS, .wait = &wait };
   bio->bi_end_io  = lior_endio;
   bio->bi_private = &lioc;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
+  bio->bi_opf = rw;
+  submit_bio(bio);
+#else
   submit_bio(rw, bio);
+#endif
   wait_for_completion(&wait);
   return lioc.result;
 }

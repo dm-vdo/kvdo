@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsMain.c#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsMain.c#6 $
  */
 
 #include "uds.h"
@@ -29,7 +29,6 @@
 #include "indexSession.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "notificationDefs.h"
 #include "udsState.h"
 
 const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX   = 1024;
@@ -88,8 +87,8 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
     return UDS_INVALID_MEMORY_SIZE;
   }
 
-  int result = ALLOCATE(1, struct udsConfiguration,
-                        "udsConfiguration", userConfig);
+  int result = ALLOCATE(1, struct udsConfiguration, "udsConfiguration",
+                        userConfig);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -102,6 +101,7 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
   (*userConfig)->masterIndexMeanDelta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
   (*userConfig)->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
   (*userConfig)->sparseSampleRate        = DEFAULT_SPARSE_SAMPLE_RATE;
+  (*userConfig)->nonce                   = 0;
   return UDS_SUCCESS;
 }
 
@@ -132,6 +132,18 @@ void udsConfigurationSetSparse(UdsConfiguration userConfig, bool sparse)
 bool udsConfigurationGetSparse(UdsConfiguration userConfig)
 {
   return userConfig->sparseChaptersPerVolume > 0;
+}
+
+/**********************************************************************/
+void udsConfigurationSetNonce(UdsConfiguration userConfig, UdsNonce nonce)
+{
+  userConfig->nonce = nonce;
+}
+
+/**********************************************************************/
+UdsNonce udsConfigurationGetNonce(UdsConfiguration userConfig)
+{
+  return userConfig->nonce;
 }
 
 /**********************************************************************/
@@ -344,9 +356,6 @@ static int makeLocalIndex(const char       *name,
 
   result = makeIndexSession(gridConfig, loadType, userConfig, &session->id);
   udsFreeGridConfig(gridConfig);
-  if (result == UDS_SUCCESS) {
-    notifyIndexOpened(*session, name);
-  }
   return result;
 }
 

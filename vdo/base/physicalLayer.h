@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalLayer.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalLayer.h#3 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -29,13 +29,6 @@ static const CRC32Checksum INITIAL_CHECKSUM = 0xffffffff;
 enum {
   /* The size of a CRC-32 checksum */
   CHECKSUM_SIZE = sizeof(CRC32Checksum),
-
-  /*
-   * Time between heartbeats in usec.
-   * The default kernel configuration has a 4ms tick rate, so let's
-   * make this a multiple for accuracy.
-   */
-  HEARTBEAT_INTERVAL = 52000,
 };
 
 /**
@@ -364,7 +357,6 @@ struct physicalLayer {
   // Synchronous interface
   CRC32Updater              *updateCRC32;
   BlockCountGetter          *getBlockCount;
-  BlockCountGetter          *getDataRegionOffset;
 
   // Synchronous IO interface
   BufferAllocator           *allocateIOBuffer;

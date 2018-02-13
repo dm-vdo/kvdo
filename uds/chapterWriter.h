@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,9 +30,6 @@ typedef struct chapterWriter ChapterWriter;
 // This opaque declaration breaks the dependency loop with index.h
 struct index;
 
-#ifdef TEST_INTERNAL
-extern Atomic32 chaptersWritten;
-#endif /* TEST_INTERNAL */
 
 /**
  * Create a chapter writer and start its thread.

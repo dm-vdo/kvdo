@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.h#3 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -43,10 +43,6 @@ struct kvdoWorkItem {
   KvdoWorkFunction  work;
   /** Optional alternate function for display in queue stats */
   void             *statsFunction;
-  /** Optional alternate function to be invoked on timeout */
-  KvdoWorkFunction  timeoutWork;
-  /** The point at which to time out (absolute time, in jiffies) */
-  Jiffies           timeout;
   /** An index into the statistics table; filled in by workQueueStats code */
   unsigned int      statTableIndex;
   /**
@@ -130,9 +126,6 @@ typedef struct kvdoWorkQueueType {
   /** A function to call in the new thread after running out of work */
   KvdoWorkQueueFunction suspend;
 
-  /** Whether this work queue may get work items with timeouts associated */
-  bool                  needTimeouts;
-
   /** Table of actions for this work queue */
   KvdoWorkQueueAction   actionTable[WORK_QUEUE_ACTION_COUNT];
 } KvdoWorkQueueType;
@@ -146,6 +139,7 @@ typedef struct kvdoWorkQueueType {
  * @param [in]  threadNamePrefix The per-device prefix to use in thread names
  * @param [in]  name             The queue name
  * @param [in]  parentKobject    The parent sysfs node
+ * @param [in]  owner            The kernel layer owning the work queue
  * @param [in]  private          Private data of the queue for use by work
  *                               items or other queue-specific functions
  * @param [in]  type             The work queue type defining the lifecycle
@@ -159,6 +153,7 @@ typedef struct kvdoWorkQueueType {
 int makeWorkQueue(const char               *threadNamePrefix,
                   const char               *name,
                   struct kobject           *parentKobject,
+                  KernelLayer              *owner,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
@@ -183,28 +178,6 @@ void setupWorkItem(KvdoWorkItem     *item,
                    KvdoWorkFunction  work,
                    void             *statsFunction,
                    unsigned int      action);
-
-/**
- * Set up the fields of a work queue item, as for setupWorkItem, but with a
- * timeout handler.
- *
- * The timeout handler runs in a kernel timer context, and should do as little
- * work as possible. Currently it sometimes runs with the work queue locked, so
- * it must not attempt to re-queue the work item on the same queue.
- *
- * @param item           The work item to initialize
- * @param work           The function pointer to execute
- * @param statsFunction  A function pointer to record for stats, or NULL
- * @param action         Action code, for determination of priority
- * @param timeoutWork    The function to invoke on timeout
- * @param timeout        The time at which to time out (absolute, in jiffies)
- **/
-void setupWorkItemWithTimeout(KvdoWorkItem     *item,
-                              KvdoWorkFunction  work,
-                              void             *statsFunction,
-                              unsigned int      action,
-                              KvdoWorkFunction  timeoutWork,
-                              Jiffies           timeout);
 
 /**
  * Add a work item to a work queue.
@@ -315,5 +288,14 @@ void setWorkQueuePrivateData(void *newData);
  * @return   The work queue pointer or NULL
  **/
 KvdoWorkQueue *getCurrentWorkQueue(void);
+
+/**
+ * Returns the kernel layer that owns the work queue.
+ *
+ * @param queue  The work queue
+ *
+ * @return   The owner pointer supplied at work queue creation
+ **/
+KernelLayer *getWorkQueueOwner(KvdoWorkQueue *queue);
 
 #endif /* ALBIREO_WORK_QUEUE_H */

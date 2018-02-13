@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/threads.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/threads.h#4 $
  */
 
 #ifndef THREADS_H
@@ -32,8 +32,7 @@
  *
  * @param threadFunc  function to run in new thread
  * @param threadData  private data for new thread
- * @param name        description of new thread, for logging
- * @param stackLimit  new thread's stack size limit, or zero
+ * @param name        name of the new thread
  * @param newThread   where to store the new thread id
  *
  * @return       success or failure indication
@@ -41,7 +40,6 @@
 int createThread(void       (*threadFunc)(void *),
                  void        *threadData,
                  const char  *name,
-                 size_t       stackLimit,
                  Thread      *newThread)
   __attribute__((warn_unused_result));
 

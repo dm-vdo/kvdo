@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workItemStats.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workItemStats.c#2 $
  */
 
 #include "workItemStats.h"
@@ -116,35 +116,29 @@ static unsigned int getStatTableIndex(KvdoWorkItemStats *stats,
  * @param [in]  index         The index
  * @param [out] enqueuedPtr   The total work items enqueued
  * @param [out] processedPtr  The number of work items processed
- * @param [out] timedOutPtr   The number of work items timed out before
- *                            processing
  * @param [out] pendingPtr    The number of work items still pending
  **/
 static void getWorkItemCountsByItem(const KvdoWorkItemStats *stats,
                                     unsigned int             index,
                                     uint64_t                *enqueuedPtr,
                                     uint64_t                *processedPtr,
-                                    uint64_t                *timedOutPtr,
                                     unsigned int            *pendingPtr)
 {
-  uint64_t enqueued            = atomic64_read(&stats->enqueued[index]);
-  uint64_t processed           = stats->times[index].count;
-  uint64_t timedOut            = atomic64_read(&stats->timedOut[index]);
-  uint64_t processedOrTimedOut = processed + timedOut;
+  uint64_t enqueued  = atomic64_read(&stats->enqueued[index]);
+  uint64_t processed = stats->times[index].count;
   unsigned int pending;
-  if (enqueued < processedOrTimedOut) {
+  if (enqueued < processed) {
     // Probably just out of sync.
     pending = 1;
   } else {
-    pending = enqueued - processedOrTimedOut;
+    pending = enqueued - processed;
     // Pedantic paranoia: Check for overflow of the 32-bit "pending".
-    if ((pending + processedOrTimedOut) < enqueued) {
+    if ((pending + processed) < enqueued) {
       pending = UINT_MAX;
     }
   }
   *enqueuedPtr  = enqueued;
   *processedPtr = processed;
-  *timedOutPtr  = timedOut;
   *pendingPtr   = pending;
 }
 
@@ -154,17 +148,14 @@ static void getWorkItemCountsByItem(const KvdoWorkItemStats *stats,
  * @param [in]  stats         The collected statistics
  * @param [out] enqueuedPtr   The total work items enqueued
  * @param [out] processedPtr  The number of work items processed
- * @param [out] timedOutPtr   The number of work items timed out before
- *                            processing
  **/
 static void getOtherWorkItemCounts(const KvdoWorkItemStats *stats,
                                    uint64_t                *enqueuedPtr,
-                                   uint64_t                *processedPtr,
-                                   uint64_t                *timedOutPtr)
+                                   uint64_t                *processedPtr)
 {
   unsigned int pending;
   getWorkItemCountsByItem(stats, NUM_WORK_QUEUE_ITEM_STATS,
-                          enqueuedPtr, processedPtr, timedOutPtr, &pending);
+                          enqueuedPtr, processedPtr, &pending);
 }
 
 /**
@@ -199,13 +190,6 @@ void updateWorkItemStatsForEnqueue(KvdoWorkItemStats *stats,
                                            priority);
   atomic64_add(1, &stats->enqueued[item->statTableIndex]);
   gccFence();
-}
-
-/**********************************************************************/
-void updateWorkItemStatsForTimeout(KvdoWorkItemStats *stats,
-                                   KvdoWorkItem      *item)
-{
-  atomic64_add(1, &stats->timedOut[item->statTableIndex]);
 }
 
 /**********************************************************************/
@@ -248,7 +232,7 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
   const KvdoWorkFunctionTable *functionIDs = &stats->functionTable;
   size_t currentOffset = 0;
 
-  uint64_t enqueued, processed, timedOut;
+  uint64_t enqueued, processed;
   int i;
   for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
     if (functionIDs->functions[i] == NULL) {
@@ -266,8 +250,7 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
      * we'll go ahead and print the not-necessarily-redundant values.
      */
     unsigned int pending;
-    getWorkItemCountsByItem(stats, i,
-                            &enqueued, &processed, &timedOut, &pending);
+    getWorkItemCountsByItem(stats, i, &enqueued, &processed, &pending);
 
     // Format: fn prio enq proc timeo [ min max mean ]
     if (ENABLE_PER_FUNCTION_TIMING_STATS) {
@@ -275,36 +258,36 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
       getWorkItemTimesByItem(stats, i, &min, &mean, &max);
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36ps %d %10" PRIu64 " %10" PRIu64 " %10" PRIu64
+                                "%-36ps %d %10" PRIu64 " %10" PRIu64
                                 " %10" PRIu64 " %10" PRIu64 " %10" PRIu64
                                 "\n",
                                 functionIDs->functions[i],
                                 functionIDs->priorities[i],
-                                enqueued, processed, timedOut,
+                                enqueued, processed,
                                 min, max, mean);
     } else {
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36ps %d %10" PRIu64 " %10" PRIu64 " %10" PRIu64
+                                "%-36ps %d %10" PRIu64 " %10" PRIu64
                                 "\n",
                                 functionIDs->functions[i],
                                 functionIDs->priorities[i],
-                                enqueued, processed, timedOut);
+                                enqueued, processed);
     }
     if (currentOffset >= length) {
       break;
     }
   }
   if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (currentOffset < length)) {
-    uint64_t enqueued, processed, timedOut;
-    getOtherWorkItemCounts(stats, &enqueued, &processed, &timedOut);
+    uint64_t enqueued, processed;
+    getOtherWorkItemCounts(stats, &enqueued, &processed);
     if (enqueued > 0) {
       currentOffset += snprintf(buffer + currentOffset,
                                 length - currentOffset,
-                                "%-36s %d %10" PRIu64 " %10" PRIu64 " %10" PRIu64
+                                "%-36s %d %10" PRIu64 " %10" PRIu64
                                 "\n",
                                 "OTHER", 0,
-                                enqueued, processed, timedOut);
+                                enqueued, processed);
     }
   }
   return currentOffset;
@@ -315,7 +298,6 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
 {
   uint64_t totalEnqueued = 0;
   uint64_t totalProcessed = 0;
-  uint64_t totalTimedOut = 0;
 
   const KvdoWorkFunctionTable *functionIDs = &stats->functionTable;
 
@@ -335,13 +317,11 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
      * a coding bug. This report is intended largely for debugging, so
      * we'll go ahead and print the not-necessarily-redundant values.
      */
-    uint64_t enqueued, processed, timedOut;
+    uint64_t enqueued, processed;
     unsigned int pending;
-    getWorkItemCountsByItem(stats, i,
-                            &enqueued, &processed, &timedOut, &pending);
+    getWorkItemCountsByItem(stats, i, &enqueued, &processed, &pending);
     totalEnqueued  += enqueued;
     totalProcessed += processed;
-    totalTimedOut  += timedOut;
 
     static char work[256]; // arbitrary size
     getFunctionName(functionIDs->functions[i], work, sizeof(work));
@@ -351,31 +331,29 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
       getWorkItemTimesByItem(stats, i, &min, &mean, &max);
       logInfo("  priority %d: %u pending"
               " %" PRIu64 " enqueued %" PRIu64 " processed"
-              " %" PRIu64 " timed out %s"
+              " %s"
               " times %" PRIu64 "/%" PRIu64 "/%" PRIu64 "ns",
               functionIDs->priorities[i],
-              pending, enqueued, processed, timedOut, work,
+              pending, enqueued, processed, work,
               min, mean, max);
     } else {
       logInfo("  priority %d: %u pending"
               " %" PRIu64 " enqueued %" PRIu64 " processed"
-              " %" PRIu64 " timed out %s",
+              " %s",
               functionIDs->priorities[i],
-              pending, enqueued, processed, timedOut, work);
+              pending, enqueued, processed, work);
     }
   }
   if (i == NUM_WORK_QUEUE_ITEM_STATS) {
-    uint64_t enqueued, processed, timedOut;
-    getOtherWorkItemCounts(stats, &enqueued, &processed, &timedOut);
+    uint64_t enqueued, processed;
+    getOtherWorkItemCounts(stats, &enqueued, &processed);
     if (enqueued > 0) {
       totalEnqueued  += enqueued;
       totalProcessed += processed;
-      totalTimedOut  += timedOut;
-      logInfo("  ... others: %" PRIu64 " enqueued %" PRIu64 " processed"
-              " %" PRIu64 " timed out",
-              enqueued, processed, timedOut);
+      logInfo("  ... others: %" PRIu64 " enqueued %" PRIu64 " processed",
+              enqueued, processed);
     }
   }
-  logInfo("  total: %llu enqueued %llu processed %llu timed out",
-          totalEnqueued, totalProcessed, totalTimedOut);
+  logInfo("  total: %llu enqueued %llu processed",
+          totalEnqueued, totalProcessed);
 }

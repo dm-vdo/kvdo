@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.c#4 $
  */
 
 #include "request.h"
@@ -121,8 +121,7 @@ static void awaitSynchronousRequest(SynchronousCallback *synchronous)
 /**********************************************************************/
 int launchAllocatedClientRequest(Request *request)
 {
-  int result = getBaseContext(request->blockContext.id, BLOCK_CONTEXT,
-                              &request->context);
+  int result = getBaseContext(request->blockContext.id, &request->context);
   if (result != UDS_SUCCESS) {
     return sansUnrecoverable(result);
   }
@@ -150,9 +149,7 @@ int launchAllocatedClientRequest(Request *request)
 }
 
 /**********************************************************************/
-int createRequest(unsigned int   contextId,
-                  ContextType    contextType,
-                  Request      **requestPtr)
+int createRequest(unsigned int contextId, Request **requestPtr)
 {
   if (requestPtr == NULL) {
     logWarningWithStringError(UDS_INVALID_ARGUMENT,
@@ -161,7 +158,7 @@ int createRequest(unsigned int   contextId,
   }
 
   UdsContext *context;
-  int result = getBaseContext(contextId, contextType, &context);
+  int result = getBaseContext(contextId, &context);
   if (result != UDS_SUCCESS) {
     return sansUnrecoverable(result);
   }
@@ -201,18 +198,17 @@ int createRequest(unsigned int   contextId,
 }
 
 /**********************************************************************/
-int launchClientRequest(unsigned int         contextId,
-                        ContextType          contextType,
-                        UdsCallbackType      callbackType,
-                        bool                 update,
-                        const UdsChunkName  *chunkName,
-                        UdsCookie            cookie,
-                        void                *metadata,
-                        size_t               dataLength,
-                        const void          *data)
+int launchClientRequest(unsigned int        contextId,
+                        UdsCallbackType     callbackType,
+                        bool                update,
+                        const UdsChunkName *chunkName,
+                        UdsCookie           cookie,
+                        void               *metadata,
+                        size_t              dataLength,
+                        const void         *data)
 {
   Request *request;
-  int result = createRequest(contextId, contextType, &request);
+  int result = createRequest(contextId, &request);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -240,7 +236,8 @@ int launchClientRequest(unsigned int         contextId,
   }
 
   if (metadata != NULL) {
-    (*request->context->metadataEncoder)(metadata, request);
+    memcpy(request->newMetadata.data, metadata,
+           request->context->metadataSize);
   }
 
   enqueueRequest(request, initialStage);
@@ -454,7 +451,7 @@ static RequestQueue *getNextStageQueue(Request      *request,
   }
 
   if (nextStage == STAGE_CALLBACK) {
-    return getCallbackQueue();
+    return request->context->callbackQueue;
   }
 
   // Local and remote index routers handle the rest of the pipeline

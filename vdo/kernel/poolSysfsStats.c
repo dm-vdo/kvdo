@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -985,40 +985,6 @@ static PoolStatsAttribute poolStatsErrorsInvalidAdvicePBNCountAttr = {
 };
 
 /**********************************************************************/
-/** number of times VDO got an invalid rollover confirmation PBN from albireo */
-static ssize_t poolStatsErrorsInvalidRolloverPBNCountShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->errors.invalidRolloverPBNCount);
-  spin_unlock(&layer->statsLock);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsErrorsInvalidRolloverPBNCountAttr = {
-  .attr  = { .name = "errors_invalid_rolloverPBNCount", .mode = 0444, },
-  .show  = poolStatsErrorsInvalidRolloverPBNCountShow,
-};
-
-/**********************************************************************/
-/** number of times the dedupe deadlock avoidance mechanism fired */
-static ssize_t poolStatsErrorsDedupeDeadlockAvoidanceCountShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->errors.dedupeDeadlockAvoidanceCount);
-  spin_unlock(&layer->statsLock);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsErrorsDedupeDeadlockAvoidanceCountAttr = {
-  .attr  = { .name = "errors_dedupe_deadlock_avoidance_count", .mode = 0444, },
-  .show  = poolStatsErrorsDedupeDeadlockAvoidanceCountShow,
-};
-
-/**********************************************************************/
 /** number of times a VIO completed with a VDO_NO_SPACE error */
 static ssize_t poolStatsErrorsNoSpaceErrorCountShow(KernelLayer *layer, char *buf)
 {
@@ -1101,40 +1067,6 @@ static ssize_t poolStatsMaxVIOsShow(KernelLayer *layer, char *buf)
 static PoolStatsAttribute poolStatsMaxVIOsAttr = {
   .attr  = { .name = "maxVIOs", .mode = 0444, },
   .show  = poolStatsMaxVIOsShow,
-};
-
-/**********************************************************************/
-/** Current number of Dedupe queries that are in flight */
-static ssize_t poolStatsCurrDedupeQueriesShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->currDedupeQueries);
-  spin_unlock(&layer->statsLock);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsCurrDedupeQueriesAttr = {
-  .attr  = { .name = "curr_dedupe_queries", .mode = 0444, },
-  .show  = poolStatsCurrDedupeQueriesShow,
-};
-
-/**********************************************************************/
-/** Maximum number of Dedupe queries that have been in flight */
-static ssize_t poolStatsMaxDedupeQueriesShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->maxDedupeQueries);
-  spin_unlock(&layer->statsLock);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsMaxDedupeQueriesAttr = {
-  .attr  = { .name = "max_dedupe_queries", .mode = 0444, },
-  .show  = poolStatsMaxDedupeQueriesShow,
 };
 
 /**********************************************************************/
@@ -2446,6 +2378,159 @@ static PoolStatsAttribute poolStatsMemoryUsagePeakBioCountAttr = {
   .show  = poolStatsMemoryUsagePeakBioCountShow,
 };
 
+/**********************************************************************/
+/** Number of chunk names stored in the index */
+static ssize_t poolStatsIndexEntriesIndexedShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.entriesIndexed);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexEntriesIndexedAttr = {
+  .attr  = { .name = "index_entries_indexed", .mode = 0444, },
+  .show  = poolStatsIndexEntriesIndexedShow,
+};
+
+/**********************************************************************/
+/** Number of post calls that found an existing entry */
+static ssize_t poolStatsIndexPostsFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.postsFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexPostsFoundAttr = {
+  .attr  = { .name = "index_posts_found", .mode = 0444, },
+  .show  = poolStatsIndexPostsFoundShow,
+};
+
+/**********************************************************************/
+/** Number of post calls that added a new entry */
+static ssize_t poolStatsIndexPostsNotFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.postsNotFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexPostsNotFoundAttr = {
+  .attr  = { .name = "index_posts_not_found", .mode = 0444, },
+  .show  = poolStatsIndexPostsNotFoundShow,
+};
+
+/**********************************************************************/
+/** Number of query calls that found an existing entry */
+static ssize_t poolStatsIndexQueriesFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.queriesFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexQueriesFoundAttr = {
+  .attr  = { .name = "index_queries_found", .mode = 0444, },
+  .show  = poolStatsIndexQueriesFoundShow,
+};
+
+/**********************************************************************/
+/** Number of query calls that added a new entry */
+static ssize_t poolStatsIndexQueriesNotFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.queriesNotFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexQueriesNotFoundAttr = {
+  .attr  = { .name = "index_queries_not_found", .mode = 0444, },
+  .show  = poolStatsIndexQueriesNotFoundShow,
+};
+
+/**********************************************************************/
+/** Number of update calls that found an existing entry */
+static ssize_t poolStatsIndexUpdatesFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.updatesFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexUpdatesFoundAttr = {
+  .attr  = { .name = "index_updates_found", .mode = 0444, },
+  .show  = poolStatsIndexUpdatesFoundShow,
+};
+
+/**********************************************************************/
+/** Number of update calls that added a new entry */
+static ssize_t poolStatsIndexUpdatesNotFoundShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.updatesNotFound);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexUpdatesNotFoundAttr = {
+  .attr  = { .name = "index_updates_not_found", .mode = 0444, },
+  .show  = poolStatsIndexUpdatesNotFoundShow,
+};
+
+/**********************************************************************/
+/** Current number of dedupe queries that are in flight */
+static ssize_t poolStatsIndexCurrDedupeQueriesShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->index.currDedupeQueries);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexCurrDedupeQueriesAttr = {
+  .attr  = { .name = "index_curr_dedupe_queries", .mode = 0444, },
+  .show  = poolStatsIndexCurrDedupeQueriesShow,
+};
+
+/**********************************************************************/
+/** Maximum number of dedupe queries that have been in flight */
+static ssize_t poolStatsIndexMaxDedupeQueriesShow(KernelLayer *layer, char *buf)
+{
+  ssize_t retval;
+  spin_lock(&layer->statsLock);
+  getKernelStats(layer, layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->index.maxDedupeQueries);
+  spin_unlock(&layer->statsLock);
+  return retval;
+}
+
+static PoolStatsAttribute poolStatsIndexMaxDedupeQueriesAttr = {
+  .attr  = { .name = "index_max_dedupe_queries", .mode = 0444, },
+  .show  = poolStatsIndexMaxDedupeQueriesShow,
+};
+
 static struct attribute *poolStatsAttrs[] = {
   &poolStatsDataBlocksUsedAttr.attr,
   &poolStatsOverheadBlocksUsedAttr.attr,
@@ -2502,15 +2587,11 @@ static struct attribute *poolStatsAttrs[] = {
   &poolStatsBlockMapPagesSavedAttr.attr,
   &poolStatsBlockMapFlushCountAttr.attr,
   &poolStatsErrorsInvalidAdvicePBNCountAttr.attr,
-  &poolStatsErrorsInvalidRolloverPBNCountAttr.attr,
-  &poolStatsErrorsDedupeDeadlockAvoidanceCountAttr.attr,
   &poolStatsErrorsNoSpaceErrorCountAttr.attr,
   &poolStatsErrorsReadOnlyErrorCountAttr.attr,
   &poolStatsInstanceAttr.attr,
   &poolStatsCurrentVIOsInProgressAttr.attr,
   &poolStatsMaxVIOsAttr.attr,
-  &poolStatsCurrDedupeQueriesAttr.attr,
-  &poolStatsMaxDedupeQueriesAttr.attr,
   &poolStatsDedupeAdviceValidAttr.attr,
   &poolStatsDedupeAdviceStaleAttr.attr,
   &poolStatsDedupeAdviceTimeoutsAttr.attr,
@@ -2588,6 +2669,15 @@ static struct attribute *poolStatsAttrs[] = {
   &poolStatsMemoryUsagePeakBytesUsedAttr.attr,
   &poolStatsMemoryUsageBiosUsedAttr.attr,
   &poolStatsMemoryUsagePeakBioCountAttr.attr,
+  &poolStatsIndexEntriesIndexedAttr.attr,
+  &poolStatsIndexPostsFoundAttr.attr,
+  &poolStatsIndexPostsNotFoundAttr.attr,
+  &poolStatsIndexQueriesFoundAttr.attr,
+  &poolStatsIndexQueriesNotFoundAttr.attr,
+  &poolStatsIndexUpdatesFoundAttr.attr,
+  &poolStatsIndexUpdatesNotFoundAttr.attr,
+  &poolStatsIndexCurrDedupeQueriesAttr.attr,
+  &poolStatsIndexMaxDedupeQueriesAttr.attr,
   NULL,
 };
 

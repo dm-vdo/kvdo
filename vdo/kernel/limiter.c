@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/limiter.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/limiter.c#2 $
  */
 
 #include "limiter.h"
@@ -42,6 +42,15 @@ void initializeLimiter(Limiter *limiter, uint32_t limit)
   limiter->maximum = 0;
   init_waitqueue_head(&limiter->waiterQueue);
   spin_lock_init(&limiter->lock);
+}
+
+/**********************************************************************/
+bool limiterIsIdle(Limiter *limiter)
+{
+  spin_lock(&limiter->lock);
+  bool idle = limiter->active == 0;
+  spin_unlock(&limiter->lock);
+  return idle;
 }
 
 /**********************************************************************/

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/superBlock.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/superBlock.c#2 $
  */
 
 #include "superBlock.h"
@@ -200,14 +200,16 @@ static int encodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
 }
 
 /**********************************************************************/
-int saveSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
+int saveSuperBlock(PhysicalLayer       *layer,
+                   SuperBlock          *superBlock,
+                   PhysicalBlockNumber  superBlockOffset)
 {
   int result = encodeSuperBlock(layer, superBlock);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return layer->writer(layer, layer->getDataRegionOffset(layer), 1,
+  return layer->writer(layer, superBlockOffset, 1,
                        (char *) superBlock->encodedSuperBlock, NULL);
 }
 
@@ -226,7 +228,9 @@ static void finishSuperBlockParent(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void saveSuperBlockAsync(SuperBlock *superBlock, VDOCompletion *parent)
+void saveSuperBlockAsync(SuperBlock          *superBlock,
+                         PhysicalBlockNumber  superBlockOffset,
+                         VDOCompletion       *parent)
 {
   if (superBlock->parent != NULL) {
     finishCompletion(parent, VDO_COMPONENT_BUSY);
@@ -242,8 +246,7 @@ void saveSuperBlockAsync(SuperBlock *superBlock, VDOCompletion *parent)
 
   superBlock->parent                           = parent;
   superBlock->vio->completion.callbackThreadID = parent->callbackThreadID;
-  launchWriteMetadataVIOWithFlush(superBlock->vio,
-                                  layer->getDataRegionOffset(layer),
+  launchWriteMetadataVIOWithFlush(superBlock->vio, superBlockOffset,
                                   finishSuperBlockParent,
                                   finishSuperBlockParent, true, true);
 }
@@ -329,7 +332,9 @@ static int decodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
 }
 
 /**********************************************************************/
-int loadSuperBlock(PhysicalLayer *layer, SuperBlock **superBlockPtr)
+int loadSuperBlock(PhysicalLayer        *layer,
+                   PhysicalBlockNumber   superBlockOffset,
+                   SuperBlock          **superBlockPtr)
 {
   SuperBlock *superBlock = NULL;
   int         result     = allocateSuperBlock(layer, &superBlock);
@@ -338,7 +343,7 @@ int loadSuperBlock(PhysicalLayer *layer, SuperBlock **superBlockPtr)
     return result;
   }
 
-  result = layer->reader(layer, layer->getDataRegionOffset(layer), 1,
+  result = layer->reader(layer, superBlockOffset, 1,
                          (char *) superBlock->encodedSuperBlock, NULL);
   if (result != VDO_SUCCESS) {
     freeSuperBlock(&superBlock);
@@ -370,7 +375,9 @@ static void finishReadingSuperBlock(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void loadSuperBlockAsync(VDOCompletion *parent, SuperBlock **superBlockPtr)
+void loadSuperBlockAsync(VDOCompletion        *parent,
+                         PhysicalBlockNumber   superBlockOffset,
+                         SuperBlock          **superBlockPtr)
 {
   PhysicalLayer *layer      = parent->layer;
   SuperBlock    *superBlock = NULL;
@@ -385,7 +392,7 @@ void loadSuperBlockAsync(VDOCompletion *parent, SuperBlock **superBlockPtr)
 
   superBlock->parent                           = parent;
   superBlock->vio->completion.callbackThreadID = parent->callbackThreadID;
-  launchReadMetadataVIO(superBlock->vio, layer->getDataRegionOffset(layer),
+  launchReadMetadataVIO(superBlock->vio, superBlockOffset,
                         finishReadingSuperBlock, finishSuperBlockParent);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsState.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsState.h#3 $
  */
 
 #ifndef UDS_STATE_H
@@ -62,13 +62,6 @@ const char *getModuleDir(void);
  **/
 RequestQueue *getNextHashQueue(Request *request)
   __attribute__((warn_unused_result));
-
-/**
- * Return the queue for callbacks.
- *
- * @return udsState.callbackQueue
- **/
-RequestQueue *getCallbackQueue(void) __attribute__((warn_unused_result));
 
 #if GRID
 /**

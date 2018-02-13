@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexConfig.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexConfig.c#3 $
  */
 
 #include "indexConfig.h"
@@ -25,7 +25,8 @@
 #include "memoryAlloc.h"
 
 static const byte INDEX_CONFIG_MAGIC[]        = "ALBIC";
-static const byte INDEX_CONFIG_VERSION[]      = "06.01";
+static const byte INDEX_CONFIG_VERSION[]      = "06.02";
+static const byte INDEX_CONFIG_VERSION_6_01[] = "06.01";
 static const byte INDEX_CONFIG_VERSION_4_13[] = "04.13";
 static const byte INDEX_CONFIG_VERSION_4_12[] = "04.12";
 static const byte INDEX_CONFIG_VERSION_4_11[] = "04.11";
@@ -45,8 +46,7 @@ static int readVersion(BufferedReader    *reader,
   int result = readFromBufferedReader(reader, buffer,
                                       INDEX_CONFIG_VERSION_LENGTH);
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "cannot read index config version");
+    return logErrorWithStringError(result, "cannot read index config version");
   }
   if (memcmp(INDEX_CONFIG_VERSION, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
     result = readFromBufferedReader(reader, conf, sizeof(*conf));
@@ -57,16 +57,37 @@ static int readVersion(BufferedReader    *reader,
       *versionPtr = "current";
     }
     return result;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_13,
-                    buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
+  } else if (memcmp(INDEX_CONFIG_VERSION_6_01, buffer,
+                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
+    struct udsConfiguration6_01 oldConf;
+    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result,
+                              "failed to read version 6.01 config file");
+      return result;
+    }
+    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
+    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
+    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
+    conf->cacheChapters           = oldConf.cacheChapters;
+    conf->checkpointFrequency     = oldConf.checkpointFrequency;
+    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
+    conf->bytesPerPage            = oldConf.bytesPerPage;
+    conf->sparseSampleRate        = oldConf.sparseSampleRate;
+    conf->nonce                   = 0;
+    if (versionPtr != NULL) {
+      *versionPtr = "6.01";
+    }
+    return UDS_UNSUPPORTED_VERSION;
+  } else if (memcmp(INDEX_CONFIG_VERSION_4_13, buffer,
+                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
     struct udsConfiguration4_13 oldConf;
     result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
       logErrorWithStringError(result,
-                              "failed to read version 4.12 config file");
+                              "failed to read version 4.13 config file");
       return result;
     }
-
     conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
     conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
     conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
@@ -76,15 +97,16 @@ static int readVersion(BufferedReader    *reader,
     conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
     /* Skip masterIndexAddressBits; it's obsolete */
     conf->sparseSampleRate        = oldConf.sparseSampleRate;
+    conf->nonce                   = 0;
     if (versionPtr != NULL) {
-      *versionPtr = "4.12";
+      *versionPtr = "4.13";
     }
     if (oldConf.subIndexCount != 1) {
       return UDS_INVALID_ARGUMENT;
     }
     return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_12,
-                    buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
+  } else if (memcmp(INDEX_CONFIG_VERSION_4_12, buffer,
+                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
     struct udsConfiguration4_12 oldConf;
     result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
@@ -101,6 +123,7 @@ static int readVersion(BufferedReader    *reader,
     conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
     /* Skip masterIndexAddressBits; it's obsolete */
     conf->sparseSampleRate        = oldConf.sparseSampleRate;
+    conf->nonce                   = 0;
     if (versionPtr != NULL) {
       *versionPtr = "4.12";
     }
@@ -108,8 +131,8 @@ static int readVersion(BufferedReader    *reader,
       return UDS_INVALID_ARGUMENT;
     }
     return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_11,
-                    buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
+  } else if (memcmp(INDEX_CONFIG_VERSION_4_11, buffer,
+                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
     struct udsConfiguration4_11 oldConf;
     result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
@@ -127,6 +150,7 @@ static int readVersion(BufferedReader    *reader,
     /* Skip masterIndexDeltaBits; it's obsolete */
     /* Skip masterIndexAddressBits; it's obsolete */
     conf->sparseSampleRate        = oldConf.sparseSampleRate;
+    conf->nonce                   = 0;
     if (versionPtr != NULL) {
       *versionPtr = "4.11";
     }
@@ -134,13 +158,14 @@ static int readVersion(BufferedReader    *reader,
       return UDS_INVALID_ARGUMENT;
     }
     return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_01,
-                    buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
+  } else if (memcmp(INDEX_CONFIG_VERSION_4_01, buffer,
+                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
     struct udsConfiguration4_01 oldConf;
     result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
     if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "failed to read version 4.01 config file");
+      logErrorWithStringError(result,
+                              "failed to read version 4.01 config file");
+      return result;
     }
     conf->recordPagesPerChapter   = oldConf.indexSize / 4;
     conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
@@ -152,7 +177,7 @@ static int readVersion(BufferedReader    *reader,
     /* Skip masterIndexDeltaBits; it's obsolete */
     /* Skip masterIndexAddressBits; it's obsolete */
     conf->sparseSampleRate        = oldConf.sparseSampleRate;
-
+    conf->nonce                   = 0;
     if (versionPtr != NULL) {
       *versionPtr = "4.01";
     }

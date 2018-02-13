@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#3 $
  */
 
 #include "vdoLoad.h"
@@ -41,6 +41,7 @@
 #include "types.h"
 #include "vdoInternal.h"
 #include "vdoRecovery.h"
+#include "volumeGeometry.h"
 
 /**
  * Extract the VDO from an AdminCompletion, checking that the current operation
@@ -261,7 +262,7 @@ static int startVDODecode(VDO *vdo, bool validateConfig)
   }
 
   BlockCount blockCount = vdo->layer->getBlockCount(vdo->layer);
-  return validateVDOConfig(&vdo->config, blockCount);
+  return validateVDOConfig(&vdo->config, blockCount, true);
 }
 
 /**********************************************************************/
@@ -483,7 +484,7 @@ static void loadCallback(VDOCompletion *completion)
   VDO *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
   prepareAdminSubTask(vdo, loadVDOComponents, abortLoad);
-  loadSuperBlockAsync(completion, &vdo->superBlock);
+  loadSuperBlockAsync(completion, getFirstBlockOffset(vdo), &vdo->superBlock);
 }
 
 /**********************************************************************/
@@ -526,13 +527,20 @@ int loadVDO(PhysicalLayer  *layer,
             VDODecoder     *decoder,
             VDO           **vdoPtr)
 {
-  VDO *vdo;
-  int result = makeVDO(layer, &vdo);
+  VolumeGeometry geometry;
+  int result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = loadSuperBlock(layer, &vdo->superBlock);
+  VDO *vdo;
+  result = makeVDO(layer, &vdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  vdo->loadConfig.firstBlockOffset = getDataRegionOffset(geometry);
+  result = loadSuperBlock(layer, getFirstBlockOffset(vdo), &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;
