@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#11 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#12 $
  */
 
 #include "udsIndex.h"
@@ -226,9 +226,17 @@ static void startIndexOperation(KvdoWorkItem *item)
 }
 
 /*****************************************************************************/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+static void timeoutIndexOperations(struct timer_list *t)
+#else
 static void timeoutIndexOperations(unsigned long arg)
+#endif
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+  UDSIndex *index = from_timer(index, t, pendingTimer);
+#else
   UDSIndex *index = (UDSIndex *) arg;
+#endif
   LIST_HEAD(expiredHead);
   uint64_t timeoutJiffies = msecs_to_jiffies(albireoTimeoutInterval);
   unsigned long earliestSubmissionAllowed = jiffies - timeoutJiffies;
@@ -746,8 +754,12 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   INIT_LIST_HEAD(&index->pendingHead);
   spin_lock_init(&index->pendingLock);
   spin_lock_init(&index->stateLock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+  timer_setup(&index->pendingTimer, timeoutIndexOperations, 0);
+#else
   setup_timer(&index->pendingTimer, timeoutIndexOperations,
               (unsigned long) index);
+#endif
 
   *indexPtr = &index->common;
   return VDO_SUCCESS;

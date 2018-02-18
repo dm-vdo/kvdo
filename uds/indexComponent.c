@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.c#3 $
  */
 
 #include "indexComponentInternal.h"
@@ -95,11 +95,10 @@ void destroyReadPortal(ReadPortal *readPortal)
   }
 }
 
-static const ComponentPortalOps *getReadPortalOps(void);
-
-int initReadPortal(ReadPortal               *portal,
-                   IndexComponent           *component,
-                   unsigned int              readZones)
+/*****************************************************************************/
+int initReadPortal(ReadPortal     *portal,
+                   IndexComponent *component,
+                   unsigned int    readZones)
 {
   int result = ALLOCATE(readZones, IORegion *, "read zone IO regions",
                         &portal->regions);
@@ -112,156 +111,55 @@ int initReadPortal(ReadPortal               *portal,
     FREE(portal->regions);
     return result;
   }
-
+  portal->component = component;
   portal->zones = readZones;
-
-  portal->common = (ComponentPortal) {
-    .component = component,
-    .ops       = getReadPortalOps(),
-  };
-
   return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
-static INLINE ReadPortal *asReadPortal(ComponentPortal *portal)
+int getComponentSizeForPortal(ReadPortal   *portal,
+                              unsigned int  part,
+                              off_t        *size)
 {
-  return container_of(portal, ReadPortal, common);
+  if (part >= portal->zones) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "%s: cannot access zone %u of %u",
+                                   __func__, part, portal->zones);
+  }
+  if (portal->regions[part] == NULL) {
+    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
+                                   "%s: ioregion for zone %u not available",
+                                   __func__, part);
+  }
+  return getRegionDataSize(portal->regions[part], size);
 }
 
 /*****************************************************************************/
-static int rp_countComponents(ComponentPortal *portal, unsigned int *parts)
-{
-  ReadPortal *rp = asReadPortal(portal);
-
-  *parts = rp->zones;
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int rp_getComponentSize(ComponentPortal *portal,
+int getBufferedReaderForPortal(ReadPortal      *portal,
                                unsigned int     part,
-                               off_t           *size)
+                               BufferedReader **readerPtr)
 {
-  ReadPortal *rp = asReadPortal(portal);
-
-  if (part >= rp->zones) {
+  if (part >= portal->zones) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
                                    "%s: cannot access zone %u of %u",
-                                   __func__, part, rp->zones);
+                                   __func__, part, portal->zones);
   }
-
-  if (rp->regions[part] == NULL) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: ioregion for zone %u not available",
-                                   __func__, part);
-  }
-
-  return getRegionDataSize(rp->regions[part], size);
-}
-
-/*****************************************************************************/
-static int rp_getComponentLimit(ComponentPortal *portal,
-                                unsigned int     part,
-                                off_t           *limit)
-{
-  ReadPortal *rp = asReadPortal(portal);
-
-  if (part >= rp->zones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: cannot access zone %u of %u",
-                                   __func__, part, rp->zones);
-  }
-
-  if (rp->regions[part] == NULL) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: ioregion for zone %u not available",
-                                   __func__, part);
-  }
-
-  return getRegionLimit(rp->regions[part], limit);
-}
-
-/*****************************************************************************/
-static int rp_getIORegion(ComponentPortal  *portal,
-                          unsigned int      part,
-                          IORegion        **regionPtr)
-{
-  ReadPortal *rp = asReadPortal(portal);
-
-  if (part >= rp->zones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: cannot access zone %u of %u",
-                                   __func__, part, rp->zones);
-  }
-
-  if (rp->regions[part] == NULL) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: ioregion for zone %u not available",
-                                   __func__, part);
-  }
-
-  *regionPtr = rp->regions[part];
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int rp_getBufferedReader(ComponentPortal  *portal,
-                                unsigned int      part,
-                                BufferedReader  **readerPtr)
-{
-  ReadPortal *rp = asReadPortal(portal);
-
-  if (part >= rp->zones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: cannot access zone %u of %u",
-                                   __func__, part, rp->zones);
-  }
-
-  if (rp->readers[part] == NULL) {
-    if (rp->regions[part] == NULL) {
+  if (portal->readers[part] == NULL) {
+    if (portal->regions[part] == NULL) {
       return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
                                      "%s: ioregion for zone %u not available",
                                      __func__, part);
     }
-
-    int result = makeBufferedReader(rp->regions[part], &rp->readers[part]);
+    int result = makeBufferedReader(portal->regions[part],
+                                    &portal->readers[part]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "%s: cannot make buffered reader "
                                      "for zone %u", __func__, part);
     }
   }
-
-  *readerPtr = rp->readers[part];
+  *readerPtr = portal->readers[part];
   return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int rp_getBufferedWriter(ComponentPortal *portal
-                                __attribute__((unused)),
-                                unsigned int     part __attribute__((unused)),
-                                BufferedWriter **writerPtr
-                                __attribute__((unused)))
-{
-  return logErrorWithStringError(UDS_BAD_IO_DIRECTION,
-                                 "cannot make buffered writer from read zone");
-}
-
-/*****************************************************************************/
-
-static const ComponentPortalOps readPortalOps = {
-  .count     = rp_countComponents,
-  .getSize   = rp_getComponentSize,
-  .getLimit  = rp_getComponentLimit,
-  .getRegion = rp_getIORegion,
-  .getReader = rp_getBufferedReader,
-  .getWriter = rp_getBufferedWriter,
-};
-
-static const ComponentPortalOps *getReadPortalOps(void)
-{
-  return &readPortalOps;
 }
 
 /*****************************************************************************/
@@ -272,9 +170,7 @@ int readIndexComponent(IndexComponent *component)
   if (result != UDS_SUCCESS) {
     return result;
   }
-
-  result = (*component->info->loader)(&readPortal->common);
-
+  result = (*component->info->loader)(readPortal);
   component->ops->freeReadPortal(readPortal);
   return result;
 }

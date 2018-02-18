@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/masterIndexOps.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/masterIndexOps.c#3 $
  */
 #include "masterIndexOps.h"
 
@@ -82,17 +82,13 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
 }
 
 /**********************************************************************/
-static int readMasterIndex(ComponentPortal *portal)
+static int readMasterIndex(ReadPortal *portal)
 {
-  unsigned int numZones = 0;
-  int result = countComponents(portal, &numZones);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+  unsigned int numZones = countPartsForPortal(portal);
   MasterIndex *masterIndex = componentContextForPortal(portal);
   BufferedReader *readers[numZones];
   for (unsigned int z = 0; z < numZones; ++z) {
-    result = getBufferedReader(portal, z, &readers[z]);
+    int result = getBufferedReaderForPortal(portal, z, &readers[z]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "cannot read component for zone %u", z);

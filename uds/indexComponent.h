@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.h#3 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -24,18 +24,25 @@
 
 #include "common.h"
 
+#include "bufferedReader.h"
 #include "bufferedWriter.h"
 #include "compiler.h"
-#include "componentPortal.h"
 #include "regionIdentifiers.h"
 
-// note 'typedef struct indexComponent IndexComponent' in componentPortal.h
+typedef struct indexComponent IndexComponent;
 
 typedef enum completionStatus {
   CS_NOT_COMPLETED,             // operation has not completed
   CS_JUST_COMPLETED,            // operation just completed
   CS_COMPLETED_PREVIOUSLY       // operation completed previously
 } CompletionStatus;
+
+typedef struct readPortal {
+  IndexComponent  *component;
+  IORegion       **regions;
+  BufferedReader **readers;
+  unsigned int     zones;
+} ReadPortal;
 
 /**
  * Prototype for functions which can load an index component from its
@@ -45,7 +52,7 @@ typedef enum completionStatus {
  *                        specified component.
  * @return UDS_SUCCESS or an error code
  **/
-typedef int (*Loader)(ComponentPortal *portal);
+typedef int (*Loader)(ReadPortal *portal);
 
 /**
  * Prototype for functions which can save an index component.
@@ -128,17 +135,17 @@ static inline void *indexComponentContext(IndexComponent *component);
 /**
  * Return the index component name for this portal.
  **/
-static inline const char *componentNameForPortal(ComponentPortal *portal);
+static inline const char *componentNameForPortal(ReadPortal *portal);
 
 /**
  * Return the index component data for this portal.
  **/
-static inline void *componentDataForPortal(ComponentPortal *portal);
+static inline void *componentDataForPortal(ReadPortal *portal);
 
 /**
  * Return the index component context for this portal.
  **/
-static inline void *componentContextForPortal(ComponentPortal *portal);
+static inline void *componentContextForPortal(ReadPortal *portal);
 
 /**
  * Determine whether this component may be skipped for a checkpoint.
@@ -296,6 +303,53 @@ int abortIndexComponentIncrementalSave(IndexComponent *component)
  **/
 static inline int discardIndexComponent(IndexComponent *component)
   __attribute__((warn_unused_result));
+
+/**
+ * Count the number of parts for this portal.
+ *
+ * @param [in]  portal          The component portal.
+ * @param [out] parts           The number of parts.
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+__attribute__((warn_unused_result))
+static INLINE unsigned int countPartsForPortal(ReadPortal *portal)
+{
+  return portal->zones;
+}
+
+/**
+ * Get the size of the saved component part image.
+ *
+ * @param [in]  portal          The component portal.
+ * @param [in]  part            The component ordinal number.
+ * @param [out] size            The size of the component image.
+ *
+ * @return UDS_SUCCESS or an error code.
+ *
+ * @note This is only supported by some types of portals and only if the
+ *       component was previously saved.
+ **/
+__attribute__((warn_unused_result))
+int getComponentSizeForPortal(ReadPortal   *portal,
+                              unsigned int  part,
+                              off_t        *size);
+
+/**
+ * Get a buffered reader for the specified component part.
+ *
+ * @param [in]  portal          The component portal.
+ * @param [in]  part            The component ordinal number.
+ * @param [out] readerPtr       Where to put the buffered reader.
+ *
+ * @return UDS_SUCCESS or an error code.
+ *
+ * @note the reader is managed by the component portal
+ **/
+__attribute__((warn_unused_result))
+int getBufferedReaderForPortal(ReadPortal      *portal,
+                               unsigned int     part,
+                               BufferedReader **readerPtr);
 
 #define INDEX_COMPONENT_INLINE
 #include "indexComponentInline.h"

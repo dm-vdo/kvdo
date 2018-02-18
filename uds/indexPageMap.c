@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexPageMap.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexPageMap.c#3 $
  */
 
 #include "indexPageMap.h"
@@ -33,7 +33,7 @@
 #include "threads.h"
 #include "uds.h"
 
-static int readIndexPageMap(ComponentPortal *portal);
+static int readIndexPageMap(ReadPortal *portal);
 static int writeIndexPageMap(IndexComponent *component,
                              BufferedWriter *writer,
                              unsigned int    zone);
@@ -298,19 +298,19 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
  *
  * @return UDS_SUCCESS or an error code, particularly UDS_CORRUPT_COMPONENT.
  **/
-static int retrieveFileVersion(ComponentPortal *portal,
+static int retrieveFileVersion(ReadPortal      *portal,
                                const Geometry  *geometry,
                                byte            *version,
                                BufferedReader **readerPtr)
 {
   off_t size = 0;
-  int result = getComponentSize(portal, 0, &size);
+  int result = getComponentSizeForPortal(portal, 0, &size);
   if (result != UDS_SUCCESS) {
     logError("could not determine index page map info size");
     return result;
   }
   BufferedReader *reader = NULL;
-  result = getBufferedReader(portal, 0, &reader);
+  result = getBufferedReaderForPortal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -359,7 +359,7 @@ static int retrieveFileVersion(ComponentPortal *portal,
 }
 
 /*****************************************************************************/
-static int readIndexPageMap(ComponentPortal *portal)
+static int readIndexPageMap(ReadPortal *portal)
 {
   IndexPageMap *map = componentDataForPortal(portal);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexStateData.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexStateData.c#3 $
  */
 
 #include "indexStateData.h"
@@ -114,7 +114,7 @@ static const IndexStateFile *const SUPPORTED_STATES[] = {
 static const IndexStateFile *const CURRENT_INDEX_STATE = &INDEX_STATE_301;
 
 /* The index state file component reader and writer */
-static int readIndexStateData(ComponentPortal *portal);
+static int readIndexStateData(ReadPortal *portal);
 static int writeIndexStateData(IndexComponent *component,
                                BufferedWriter *writer,
                                unsigned int    zone);
@@ -215,10 +215,10 @@ static int readIndexState300(BufferedReader *reader, Index *index)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int readIndexStateData(ComponentPortal *portal)
+static int readIndexStateData(ReadPortal *portal)
 {
   BufferedReader *reader = NULL;
-  int result = getBufferedReader(portal, 0, &reader);
+  int result = getBufferedReaderForPortal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/openChapter.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/openChapter.c#3 $
  */
 
 #include "openChapter.h"
@@ -25,7 +25,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-static int readOpenChapters(ComponentPortal *portal);
+static int readOpenChapters(ReadPortal *portal);
 static int writeOpenChapters(IndexComponent *component,
                              BufferedWriter *writer,
                              unsigned int    zone);
@@ -346,12 +346,12 @@ int loadOpenChapters(Index *index, BufferedReader *reader)
 }
 
 /**********************************************************************/
-int readOpenChapters(ComponentPortal *portal)
+int readOpenChapters(ReadPortal *portal)
 {
   Index *index = componentDataForPortal(portal);
 
   BufferedReader *reader;
-  int result = getBufferedReader(portal, 0, &reader);
+  int result = getBufferedReaderForPortal(portal, 0, &reader);
   if (result != UDS_SUCCESS) {
     return result;
   }

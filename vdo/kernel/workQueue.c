@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#4 $
  */
 
 #include "workQueue.h"
@@ -615,14 +615,27 @@ static inline void wakeWorkerThread(SimpleWorkQueue *queue)
 
 // Delayed work items
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+/**
+ * Timer function invoked when a delayed work item is ready to run.
+ *
+ * @param timer  The timer which has just finished
+ **/
+static void processDelayedWorkItems(struct timer_list *timer)
+#else
 /**
  * Timer function invoked when a delayed work item is ready to run.
  *
  * @param data  The queue pointer, as an unsigned long
  **/
 static void processDelayedWorkItems(unsigned long data)
+#endif
 {
-  SimpleWorkQueue *queue             = (SimpleWorkQueue *) data;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+  SimpleWorkQueue *queue = from_timer(queue, timer, delayedItemsTimer);
+#else
+  SimpleWorkQueue *queue = (SimpleWorkQueue *) data;
+#endif
   Jiffies          nextExecutionTime = 0;
   bool             reschedule        = false;
   bool             needsWakeup       = false;
@@ -726,8 +739,12 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
   spin_lock_init(&queue->lock);
 
   initializeWorkItemList(&queue->delayedItems);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+  timer_setup(&queue->delayedItemsTimer, processDelayedWorkItems, 0);
+#else
   setup_timer(&queue->delayedItemsTimer, processDelayedWorkItems,
               (unsigned long) queue);
+#endif
 
   queue->numPriorityLists = numPriorityLists;
   for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {

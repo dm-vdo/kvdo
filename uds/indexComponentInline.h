@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexComponentInline.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexComponentInline.h#3 $
  */
 
 #ifndef INDEX_COMPONENT_INLINE_H
@@ -28,7 +28,6 @@
 
 #include "compiler.h"
 
-typedef struct readPortal ReadPortal;
 typedef struct writeZone  WriteZone;
 
 typedef struct indexComponentOps {
@@ -84,21 +83,21 @@ static INLINE void *indexComponentContext(IndexComponent *component)
 }
 
 /*****************************************************************************/
-static INLINE const char *componentNameForPortal(ComponentPortal *portal)
+static INLINE const char *componentNameForPortal(ReadPortal *portal)
 {
-  return indexComponentName(indexComponentForPortal(portal));
+  return indexComponentName(portal->component);
 }
 
 /*****************************************************************************/
-static INLINE void *componentDataForPortal(ComponentPortal *portal)
+static INLINE void *componentDataForPortal(ReadPortal *portal)
 {
-  return indexComponentData(indexComponentForPortal(portal));
+  return indexComponentData(portal->component);
 }
 
 /*****************************************************************************/
-static INLINE void *componentContextForPortal(ComponentPortal *portal)
+static INLINE void *componentContextForPortal(ReadPortal *portal)
 {
-  return indexComponentContext(indexComponentForPortal(portal));
+  return indexComponentContext(portal->component);
 }
 
 /*****************************************************************************/

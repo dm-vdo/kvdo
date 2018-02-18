@@ -1,7 +1,7 @@
 %define spec_release 1
 
 %define kmod_name		kvdo
-%define kmod_driver_version	6.1.1.8
+%define kmod_driver_version	6.1.1.12
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 %define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
@@ -12,7 +12,11 @@
 
 %{!?dist: %define dist .el7_4}
 
+%if 0%{?fedora}
+Source0:	kmod-%{kmod_name}-%{kmod_driver_version}.tgz
+%else
 Source0:	%{kmod_name}-%{kmod_driver_version}.tgz
+%endif
 %{nil}
 
 %define findpat %( echo "%""P" )
@@ -30,15 +34,19 @@ Summary:	Kernel Modules for Virtual Data Optimizer
 License:	GPLv2+
 URL:		http://github.com/dm-vdo/kvdo
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires:	kernel-devel >= %{kmod_kernel_version}
-BuildRequires:  redhat-rpm-config
-BuildRequires:  kernel-debug >= %{kmod_kernel_version}
+%if 0%{?fedora}
+# Fedora requires elfutils-libelf-devel, while rhel does not.
+BuildRequires:  elfutils-libelf-devel
+%endif
 BuildRequires:	glibc
 %if 0%{?rhel}
 # Fedora doesn't have abi whitelists.
 BuildRequires:	kernel-abi-whitelists
 %endif
+BuildRequires:	kernel-devel >= %{kmod_kernel_version}
+BuildRequires:  kernel-debug >= %{kmod_kernel_version}
 BuildRequires:  libuuid-devel
+BuildRequires:  redhat-rpm-config
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
 ExcludeArch:    s390x
@@ -142,7 +150,12 @@ printf '%s\n' "${modules[@]}" | %{sbindir}/weak-modules --remove-modules
 /usr/share/doc/kmod-%{kmod_name}/greylist.txt
 
 %prep
+%if 0%{?fedora}
+%setup -n kmod-%{kmod_name}-%{kmod_driver_version}
+%else
 %setup -n %{kmod_name}-%{kmod_driver_version}
+%endif
+
 %{nil}
 set -- *
 mkdir source
@@ -196,4 +209,7 @@ install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Mon Feb 12 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.8-1
+* Sat Feb 17 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.12-1
+- Added support for 4.15 kernels.
+- Modified spec files to support building on more distros.
+- Removed unused code from the UDS module.
