@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#5 $
  */
 
 #include "vdoLoad.h"
@@ -259,6 +259,12 @@ static int startVDODecode(VDO *vdo, bool validateConfig)
 
   if (!validateConfig) {
     return VDO_SUCCESS;
+  }
+
+  if (vdo->loadConfig.nonce != vdo->nonce) {
+    return logErrorWithStringError(VDO_BAD_NONCE, "Geometry nonce %" PRIu64
+                                   " does not match superblock nonce %" PRIu64,
+                                   vdo->loadConfig.nonce, vdo->nonce);
   }
 
   BlockCount blockCount = vdo->layer->getBlockCount(vdo->layer);
@@ -540,6 +546,7 @@ int loadVDO(PhysicalLayer  *layer,
   }
 
   vdo->loadConfig.firstBlockOffset = getDataRegionOffset(geometry);
+  vdo->loadConfig.nonce            = geometry.nonce;
   result = loadSuperBlock(layer, getFirstBlockOffset(vdo), &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);

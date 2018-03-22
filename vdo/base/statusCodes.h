@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.h#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.h#5 $
  */
 
 #ifndef STATUS_CODES_H
@@ -72,8 +72,8 @@ enum vdoStatusCodes {
   VDO_UNKNOWN_PARTITION,
   /** a partition already exists with a given id */
   VDO_PARTITION_EXISTS,
-  /** the VDO is not in a clean state */
-  VDO_NOT_CLEAN,
+  /** the VDO is not in read-only mode */
+  VDO_NOT_READ_ONLY,
   /** physical block growth of too few blocks */
   VDO_INCREMENT_TOO_SMALL,
   /** incorrect checksum */
@@ -108,6 +108,8 @@ enum vdoStatusCodes {
   VDO_BIO_CREATION_FAILED,
   /** bad magic number */
   VDO_BAD_MAGIC,
+  /** bad nonce */
+  VDO_BAD_NONCE,
   /** sequence number overflow */
   VDO_JOURNAL_OVERFLOW,
   /** one more than last error code */

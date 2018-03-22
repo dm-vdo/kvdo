@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#12 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#13 $
  */
 
 #include "dmvdo.h"
@@ -751,6 +751,7 @@ static int vdoInitialize(struct dm_target *ti,
   // Now that we have read the geometry, we can finish setting up the
   // VDOLoadConfig.
   loadConfig.firstBlockOffset = getDataRegionOffset(layer->geometry);
+  loadConfig.nonce            = layer->geometry.nonce;
 
   if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {

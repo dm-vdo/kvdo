@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.c#5 $
  */
 
 #include "statusCodes.h"
@@ -44,7 +44,7 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_BLOCK_SIZE_TOO_SMALL",  "The block size is too small"               },
   { "VDO_UNKNOWN_PARTITION",     "No partition exists with a given id"       },
   { "VDO_PARTITION_EXISTS",      "A partition already exists with a given id"},
-  { "VDO_NOT_CLEAN",             "The device is not in a clean state"        },
+  { "VDO_NOT_READ_ONLY",         "The device is not in read-only mode"       },
   { "VDO_INCREMENT_TOO_SMALL",   "Physical block growth of too few blocks"   },
   { "VDO_CHECKSUM_MISMATCH",     "Incorrect checksum"                        },
   { "VDO_RECOVERY_JOURNAL_FULL", "The recovery journal is full"              },
@@ -62,6 +62,7 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_READ_CACHE_BUSY",       "Read cache has no free slots"              },
   { "VDO_BIO_CREATION_FAILED",   "Bio creation failed"                       },
   { "VDO_BAD_MAGIC",             "Bad magic number"                          },
+  { "VDO_BAD_NONCE",             "Bad nonce"                                 },
   { "VDO_JOURNAL_OVERFLOW",      "Journal sequence number overflow"          },
 };
 
