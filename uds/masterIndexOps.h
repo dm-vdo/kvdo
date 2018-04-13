@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/masterIndexOps.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/masterIndexOps.h#1 $
  */
 
 #ifndef MASTERINDEXOPS_H
@@ -174,7 +174,7 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
  * Restore a master index.  This is exposed for unit tests.
  *
  * @param readers      The readers to read from.
- * @param readerCount  The number of readers.
+ * @param numReaders   The number of readers.
  * @param masterIndex  The master index
  *
  * @return UDS_SUCCESS on success, or an error code on failure

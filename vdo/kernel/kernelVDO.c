@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#1 $
  */
 
 #include "kernelVDOInternals.h"
@@ -70,9 +70,6 @@ static const KvdoWorkQueueType requestQueueType = {
       .priority = 2 },
     { .name = "req_map_bio",
       .code = REQ_Q_ACTION_MAP_BIO,
-      .priority = 0 },
-    { .name = "req_shutdown",
-      .code = REQ_Q_ACTION_SHUTDOWN,
       .priority = 0 },
     { .name = "req_sync",
       .code = REQ_Q_ACTION_SYNC,

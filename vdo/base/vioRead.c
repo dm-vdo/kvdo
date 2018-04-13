@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vioRead.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioRead.c#1 $
  */
 
 #include "vioRead.h"
@@ -45,7 +45,8 @@ static void modifyForPartialWrite(VDOCompletion *completion)
   }
 
   completion->layer->applyPartialWrite(dataVIO);
-  dataVIOAsVIO(dataVIO)->operation = VIO_WRITE;
+  VIO *vio = dataVIOAsVIO(dataVIO);
+  vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
   dataVIO->isPartialWrite  = true;
   launchWriteDataVIO(dataVIO);
 }

@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashZone.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashZone.h#1 $
  */
 
 #ifndef HASH_ZONE_H
 #define HASH_ZONE_H
 
 #include "uds.h"
+
+#include "statistics.h"
 #include "types.h"
 
 /**
@@ -65,6 +67,16 @@ ThreadID getHashZoneThreadID(const HashZone *zone)
   __attribute__((warn_unused_result));
 
 /**
+ * Get the statistics for this hash zone.
+ *
+ * @param zone  The hash zone to query
+ *
+ * @return A copy of the current statistics for the hash zone
+ **/
+HashLockStatistics getHashZoneStatistics(const HashZone *zone)
+  __attribute__((warn_unused_result));
+
+/**
  * Get the lock for the hash (chunk name) of the data in a DataVIO, or if one
  * does not exist (or if we are explicitly rolling over), initialize a new
  * lock for the hash and register it in the zone. This must only be called in
@@ -94,6 +106,38 @@ int acquireHashLockFromZone(HashZone            *zone,
  * @param [in,out] lockPtr  The lock that is no longer in use
  **/
 void returnHashLockToZone(HashZone *zone, HashLock **lockPtr);
+
+/**
+ * Increment the valid advice count in the hash zone statistics.
+ * Must only be called from the hash zone thread.
+ *
+ * @param zone  The hash zone of the lock that received valid advice
+ **/
+void bumpHashZoneValidAdviceCount(HashZone *zone);
+
+/**
+ * Increment the stale advice count in the hash zone statistics.
+ * Must only be called from the hash zone thread.
+ *
+ * @param zone  The hash zone of the lock that received stale advice
+ **/
+void bumpHashZoneStaleAdviceCount(HashZone *zone);
+
+/**
+ * Increment the concurrent dedupe count in the hash zone statistics.
+ * Must only be called from the hash zone thread.
+ *
+ * @param zone  The hash zone of the lock that matched a new DataVIO
+ **/
+void bumpHashZoneDataMatchCount(HashZone *zone);
+
+/**
+ * Increment the concurrent hash collision count in the hash zone statistics.
+ * Must only be called from the hash zone thread.
+ *
+ * @param zone  The hash zone of the lock that rejected a colliding DataVIO
+ **/
+void bumpHashZoneCollisionCount(HashZone *zone);
 
 /**
  * Dump information about a hash zone to the log for debugging.

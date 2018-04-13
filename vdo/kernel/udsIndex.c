@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#12 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#1 $
  */
 
 #include "udsIndex.h"
@@ -457,7 +457,7 @@ static void changeDedupeState(KvdoWorkItem *item)
     }
   }
   index->changing = false;
-  index->deduping = index->dedupeFlag && (index->indexState = IS_OPENED);
+  index->deduping = index->dedupeFlag && (index->indexState == IS_OPENED);
   spin_unlock(&index->stateLock);
 }
 
@@ -584,7 +584,6 @@ static void getUDSStatistics(DedupeIndex *dedupeIndex, IndexStatistics *stats)
   }
 }
 
-/*****************************************************************************/
 
 /*****************************************************************************/
 static int processMessage(DedupeIndex *dedupeIndex, const char *name)

@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/threadOnce.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/threadOnce.h#1 $
  */
 
 #ifndef THREAD_ONCE_H
 #define THREAD_ONCE_H
 
-#include "util/atomic.h"
+#include "atomicDefs.h"
 
-#define ONCE_STATE_INITIALIZER ATOMIC_INITIALIZER(0)
+#define ONCE_STATE_INITIALIZER ATOMIC_INIT(0)
 
-typedef Atomic32 OnceState;
+typedef atomic_t OnceState;
 
 /**
  * Thread safe once only initialization.
@@ -43,6 +43,6 @@ typedef Atomic32 OnceState;
  *
  *       static OnceState onceState = ONCE_STATE_INITIALIZER;
  **/
-int performOnce(OnceState  *onceState, void (*initFunction) (void));
+int performOnce(OnceState *onceState, void (*initFunction) (void));
 
 #endif /* THREAD_ONCE_H */

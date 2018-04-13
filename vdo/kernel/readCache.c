@@ -29,7 +29,6 @@
 #include "statusCodes.h"
 #include "waitQueue.h"
 
-#include "batchProcessor.h"
 #include "bio.h"
 #include "dataKVIO.h"
 #include "histogram.h"
@@ -39,9 +38,8 @@
  * Zoned read-cache implementation.
  *
  * The read cache holds data matching certain physical blocks on the
- * target storage device. The address space is subdivided into one or
- * more zones based on the I/O work strategy selected in
- * ioSubmitterInternals.h.
+ * target storage device. The address space is subdivided into zones
+ * associated with different threads.
  *
  * We cannot queue up VIOs here that want cache slots that aren't
  * available yet. VIOs that come to us looking for cache slots can be
@@ -103,7 +101,6 @@ struct readCacheZone {
   IntMap            *pbnMap;
   ReadCacheEntry   **blockMap;
   char              *dataBlocks;
-  BatchProcessor    *batchProcessor;
 };
 
 struct readCache {
@@ -241,29 +238,10 @@ static void releaseBlockInternal(ReadCacheEntry *cacheEntry)
 }
 
 /**********************************************************************/
-static void assertRunningInCPUQueue(void)
-{
-  ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
-  ASSERT_LOG_ONLY(strnstr(current->comm, "CpuQ", TASK_COMM_LEN) != NULL,
-                  "running in cpu-work thread");
-}
-
-/**********************************************************************/
 static void assertRunningInRCQueueForPBN(ReadCache           *cache,
                                          PhysicalBlockNumber  pbn)
 {
-  switch (IO_WORK_STRATEGY) {
-  case IWS_RC_PBN_BIO_PBN:
-  case IWS_RC_PBN_BIO_RR:
-    assertRunningInBioQueueForPBN(pbn);
-    return;
-  case IWS_RC_BATCH_BIO_RR:
-    // We should be in a cpuQ thread. Which one will vary.
-    assertRunningInCPUQueue();
-    return;
-  default:
-    BUG();
-  }
+  assertRunningInBioQueueForPBN(pbn);
 }
 
 /**
@@ -282,25 +260,10 @@ static ReadCacheZone *getReadCacheZone(ReadCache    *readCache,
 }
 
 /**********************************************************************/
-static unsigned int zoneNumberForPBN(ReadCache           *cache,
-                                     PhysicalBlockNumber  pbn)
-{
-  switch (IO_WORK_STRATEGY) {
-  case IWS_RC_PBN_BIO_PBN:
-  case IWS_RC_PBN_BIO_RR:
-    // Read cache zones correspond to bio submission work queues.
-    return bioQueueNumberForPBN(cache->layer->ioSubmitter, pbn);
-  case IWS_RC_BATCH_BIO_RR:
-    return 0;
-  default:
-    BUG();
-  }
-}
-
-/**********************************************************************/
 static ReadCacheZone *zoneForPBN(ReadCache *cache, PhysicalBlockNumber pbn)
 {
-  return getReadCacheZone(cache, zoneNumberForPBN(cache, pbn));
+  unsigned int zone = bioQueueNumberForPBN(cache->layer->ioSubmitter, pbn);
+  return getReadCacheZone(cache, zone);
 }
 
 /**
@@ -597,52 +560,6 @@ static void readCacheBioCallback(BIO *bio, int error)
 }
 
 /**
- * Submit a bio to the storage device, when running in a read cache
- * thread.
- *
- * This function looks at the work-queue selection strategy and
- * decides whether to call generic_make_request in the current thread
- * or enqueue the DataKVIO for processing in another thread. If enqueueing
- * is needed, the readBlockAction field of the DataKVIO is used to
- * determine the queueing priority.
- *
- * This is similar to submitBio, but bypasses the queueing and bio-map
- * code if the compiled-in strategy indicates we'd already have gone
- * through those stages and are already running in the correct
- * bio-submission work queue.
- *
- * The bi_private field of the bio must already point to the kvio.
- *
- * @param dataKVIO  The DataKVIO to enqueue
- * @param bio       The bio to be submitted
- * @param location  Call site location for tracing
- **/
-static void submitBioFromReadCache(DataKVIO      *dataKVIO,
-                                   BIO           *bio,
-                                   TraceLocation  location)
-{
-  switch (IO_WORK_STRATEGY) {
-  case IWS_RC_PBN_BIO_RR:
-  case IWS_RC_BATCH_BIO_RR:
-    // Different thread selections for read cache vs bio submission.
-    submitBio(bio, dataKVIO->readBlock.action);
-    break;
-
-  case IWS_RC_PBN_BIO_PBN:
-    {
-      KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
-      // Same thread selection strategy. We're in the bio thread and
-      // already reordered via biomap.
-      sendBioToDevice(kvio, bio, location);
-      break;
-    }
-
-  default:
-    BUG();
-  }
-}
-
-/**
  * Removes any entry for the specified physical block number from
  * the read cache's known PBNs.
  *
@@ -689,26 +606,9 @@ static void runReadCacheWorkItem(KernelLayer         *layer,
                                  PhysicalBlockNumber  pbn,
                                  KvdoWorkItem        *workItem)
 {
-  switch (IO_WORK_STRATEGY) {
-  case IWS_RC_PBN_BIO_PBN:
-  case IWS_RC_PBN_BIO_RR:
-    // The work item is likely *not* a KVIO, so no I/O will happen, so
-    // don't get involved with the bio map code.
-    enqueueByPBNBioWorkItem(layer->ioSubmitter, pbn, workItem);
-    break;
-
-    // Alternate strategies may require different code: using
-    // BatchProcessor, using a cache-specific thread, making a direct
-    // call (no enqueueing) with locking enabled.
-  case IWS_RC_BATCH_BIO_RR:
-    addToBatchProcessor(zoneForPBN(layer->ioSubmitter->readCache,
-                                   pbn)->batchProcessor,
-                        workItem);
-    break;
-
-  default:
-    BUG();
-  }
+  // The work item is likely *not* a KVIO, so no I/O will happen, so
+  // don't get involved with the bio map code.
+  enqueueByPBNBioWorkItem(layer->ioSubmitter, pbn, workItem);
 }
 
 /**********************************************************************/
@@ -747,19 +647,6 @@ void invalidateCacheAndSubmitBio(KVIO *kvio, BioQAction action)
   }
   BUG_ON(bio->bi_private != kvio);
   submitBio(bio, action);
-}
-
-/**********************************************************************/
-static void
-processReadCacheBatch(BatchProcessor *batch,
-                      void           *closure __attribute__((unused)))
-{
-  KvdoWorkItem *workItem;
-  while ((workItem = nextBatchItem(batch)) != NULL) {
-    // There are a few different actions needed, so the specific
-    // action is stored in the work item's work function field.
-    workItem->work(workItem);
-  }
 }
 
 /**
@@ -810,7 +697,6 @@ static void freeReadCacheZone(ReadCacheZone **readCacheZonePtr)
     freeBio(cacheEntry->bio, zone->layer);
     FREE(cacheEntry);
   }
-  freeBatchProcessor(&zone->batchProcessor);
   freeIntMap(&zone->pbnMap);
   FREE(zone->dataBlocks);
   FREE(zone->blockMap);
@@ -879,15 +765,6 @@ static int makeReadCacheZone(KernelLayer    *layer,
     return result;
   }
 
-  if (IO_WORK_STRATEGY == IWS_RC_BATCH_BIO_RR) {
-    result = makeBatchProcessor(layer, processReadCacheBatch, zone,
-                                &zone->batchProcessor);
-    if (result != VDO_SUCCESS) {
-      freeReadCacheZone(&zone);
-      return result;
-    }
-  }
-
   zone->layer = layer;
   for (int i = 0; i < zone->numEntries; i++) {
     ReadCacheEntry *cacheEntry;
@@ -923,18 +800,6 @@ int makeReadCache(KernelLayer   *layer,
                   ReadCache    **readCachePtr)
 {
   int result;
-
-  if (IO_WORK_STRATEGY == IWS_RC_BATCH_BIO_RR) {
-    /*
-     * This assumption is hard-coded in zoneNumberForPBN; fix that
-     * routine if you want to relax this requirement.
-     */
-   result = ASSERT(zoneCount == 1,
-                    "read cache batch processor mode uses only one zone");
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
 
   ReadCache *readCache;
   result = ALLOCATE_EXTENDED(ReadCache, zoneCount, ReadCacheZone *,
@@ -1039,7 +904,7 @@ static void readCacheBlockCallback(KvdoWorkItem *item)
   logDebug("%s: submitting read request for pbn %" PRIu64, __func__,
            readBlock->pbn);
 
-  submitBioFromReadCache(dataKVIO, bio, THIS_LOCATION("$F($io)"));
+  sendBioToDevice(dataKVIOAsKVIO(dataKVIO), bio, THIS_LOCATION("$F($io)"));
 }
 
 /**********************************************************************/
@@ -1093,25 +958,10 @@ void kvdoReadBlock(DataVIO             *dataVIO,
     return;
   }
 
-  // Otherwise, use the read cache to read the data.
-  if (IO_WORK_STRATEGY == IWS_RC_PBN_BIO_PBN) {
-    // Feed operations through the bio map to encourage sequential
-    // order in case we need to actually fetch the data.
-    enqueueBioMap(getBIOFromDataKVIO(dataKVIO), action, readCacheBlockCallback,
-                  location);
-    return;
-  }
-
-  if ((IO_WORK_STRATEGY == IWS_RC_PBN_BIO_RR)
-      || (IO_WORK_STRATEGY == IWS_RC_BATCH_BIO_RR)) {
-    KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
-    setupKVIOWork(kvio, readCacheBlockCallback, NULL,
-                  BIO_Q_ACTION_READCACHE);
-    runReadCacheWorkItem(layer, location, &kvio->enqueueable.workItem);
-    return;
-  }
-
-  BUG();
+  // Feed operations through the bio map to encourage sequential
+  // order in case we need to actually fetch the data.
+  enqueueBioMap(getBIOFromDataKVIO(dataKVIO), action, readCacheBlockCallback,
+                location);
 }
 
 /**********************************************************************/

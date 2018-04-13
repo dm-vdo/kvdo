@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.c#6 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.c#1 $
  */
 
 #include "context.h"
@@ -26,141 +26,21 @@
 #include "grid.h"
 #include "hashUtils.h"
 #include "indexSession.h"
-#include "isCallbackThreadDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "parameter.h"
 #include "permassert.h"
-#include "requestLimit.h"
-#include "sha256.h"
 #include "threads.h"
 #include "timeUtils.h"
 #include "udsState.h"
 
-enum {
-  DEFAULT_REQUEST_LIMIT = 1024,
-  MAX_REQUEST_LIMIT     = 2048
-};
-
 /**********************************************************************/
-static UdsParameterValue getDefaultTurnaroundEnabled(void)
+int openContext(UdsIndexSession session, unsigned int *contextID)
 {
-  UdsParameterValue value;
-
-#if ENVIRONMENT
-  const char *env = getenv(UDS_TIME_REQUEST_TURNAROUND);
-  if (env != NULL) {
-    UdsParameterValue tmp = {
-      .type = UDS_PARAM_TYPE_STRING,
-      .value.u_string = env,
-    };
-    if (validateBoolean(&tmp, NULL, &value) == UDS_SUCCESS) {
-      return value;
-    }
-  }
-#endif // ENVIRONMENT
-
-  value.type = UDS_PARAM_TYPE_BOOL;
-  value.value.u_bool = false;
-  return value;
-}
-
-/**********************************************************************/
-int defineTimeRequestTurnaround(ParameterDefinition *pd)
-{
-  pd->validate     = validateBoolean;
-  pd->currentValue = getDefaultTurnaroundEnabled();
-  pd->update       = NULL;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-static void handleCallbacks(Request *request)
-{
-  if (request->isControlMessage) {
-    request->status = dispatchContextControlRequest(request);
-    /*
-     * This is a synchronous control request for collecting or resetting the
-     * context statistics, so we use enterCallbackStage() to return the
-     * request to the client thread even though this is the callback thread.
-     */
-    enterCallbackStage(request);
-    return;
-  }
-
-#if NAMESPACES
-  xorNamespace(&request->hash, &request->context->namespaceHash);
-#endif /* NAMESPACES */
-
-  if (request->status == UDS_SUCCESS) {
-    // Measure the turnaround time of this request and include that time,
-    // along with the rest of the request, in the context's StatCounters.
-    updateRequestContextStats(request);
-  }
-
-  if (request->callback != NULL) {
-    // The request has specified its own callback and does not expect to be
-    // freed, but free the serverContext that's hidden from the client.
-    FREE(request->serverContext);
-    request->serverContext = NULL;
-    UdsContext *context = request->context;
-    request->found = (request->location != LOC_UNAVAILABLE);
-    request->callback((UdsRequest *) request);
-    releaseBaseContext(context);
-    return;
-  }
-
-  if (request->context->hasCallback) {
-    UdsBlockAddress duplicateAddress = NULL;
-    if ((request->type != UDS_DELETE)) {
-      duplicateAddress = &request->newMetadata.data;
-    }
-    UdsBlockAddress canonicalAddress = NULL;
-    if (request->location != LOC_UNAVAILABLE) {
-      canonicalAddress = &request->oldMetadata.data;
-    }
-    UdsContext *context = request->context;
-    UdsBlockContext blockContext = { .id = context->id };
-    // Allow the callback routine to create a new request if necessary without
-    // blocking our thread. "request" is just a handy non-null value here.
-    setCallbackThread(request);
-    context->callbackFunction(blockContext, request->type, request->status,
-                              request->cookie, duplicateAddress,
-                              canonicalAddress, &request->hash,
-                              request->dataLength, context->callbackArgument);
-    setCallbackThread(NULL);
-  }
-
-  freeRequest(request);
-}
-
-/**********************************************************************/
-static int validateMetadataSize(unsigned int metadataSize)
-{
-  if (metadataSize <= UDS_MAX_BLOCK_DATA_SIZE) {
-    return UDS_SUCCESS;
-  }
-  return logWarningWithStringError(UDS_INVALID_METADATA_SIZE,
-                                   "invalid metadata size: %u", metadataSize);
-}
-
-/**********************************************************************/
-int openContext(UdsIndexSession     session,
-#if NAMESPACES
-                const UdsNamespace *namespace,
-#endif /* NAMESPACES */
-                unsigned int        metadataSize,
-                unsigned int       *contextID)
-{
-  int result = validateMetadataSize(metadataSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   udsInitialize();
 
   lockGlobalStateMutex();
-  result = checkLibraryRunning();
+  int result = checkLibraryRunning();
   if (result != UDS_SUCCESS) {
     unlockGlobalStateMutex();
     return result;
@@ -185,11 +65,7 @@ int openContext(UdsIndexSession     session,
   }
 
   UdsContext *context = NULL;
-#if NAMESPACES
-  result = makeBaseContext(indexSession, namespace, metadataSize, &context);
-#else
-  result = makeBaseContext(indexSession, metadataSize, &context);
-#endif /* NAMESPACES */
+  result = makeBaseContext(indexSession, &context);
   if (result != UDS_SUCCESS) {
     releaseSessionGroup(contextGroup);
     releaseIndexSession(indexSession);
@@ -279,14 +155,9 @@ void freeContext(UdsContext *context)
   if (context == NULL) {
     return;
   }
-  requestQueueFinish(context->callbackQueue);
-  context->callbackQueue = NULL;
-
   if (context->indexSession != NULL) {
     releaseIndexSession(context->indexSession);
   }
-
-  freeRequestLimit(context->requestLimit);
   FREE(context);
 }
 
@@ -317,12 +188,7 @@ int closeContext(unsigned int contextId)
 }
 
 /**********************************************************************/
-int makeBaseContext(IndexSession        *indexSession,
-#if NAMESPACES
-                    const UdsNamespace  *namespace,
-#endif /* NAMESPACES */
-                    unsigned int         metadataSize,
-                    UdsContext         **contextPtr)
+int makeBaseContext(IndexSession *indexSession, UdsContext **contextPtr)
 {
   UdsContext *context;
   int result = ALLOCATE(1, UdsContext, "empty context", &context);
@@ -330,58 +196,8 @@ int makeBaseContext(IndexSession        *indexSession,
     return result;
   }
 
-  context->indexSession       = indexSession;
-  context->contextState       = UDS_CS_READY;
-  context->metadataSize       = metadataSize;
-  context->chunkNameGenerator = udsCalculateSHA256ChunkName;
-  relaxedStore32(&context->hashQueueRotor, 0);
-
-  // Make sure we've captured any environment override of
-  // timeRequestTurnaround before assigning it to the context.
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_TIME_REQUEST_TURNAROUND, &value) == UDS_SUCCESS)
-      && (value.type == UDS_PARAM_TYPE_BOOL)) {
-    context->timeRequestTurnaround = value.value.u_bool;
-  } else {
-    context->timeRequestTurnaround = false;
-  }
-
-#if NAMESPACES
-  if ((namespace == NULL)
-      || ((namespace->name == NULL) && namespace->length == 0)) {
-    memset(&context->namespaceHash.hash, 0,
-           sizeof(context->namespaceHash.hash));
-  } else if (namespace->name == NULL) {
-    freeContext(context);
-    return logErrorWithStringError(UDS_BAD_NAMESPACE,
-                                   "Null namespace name has non-zero length");
-  } else {
-    if ((int) UDS_CHUNK_NAME_SIZE == (int) SHA256_HASH_LEN) {
-      sha256(namespace->name, namespace->length, context->namespaceHash.hash);
-    } else {
-      unsigned char hash[SHA256_HASH_LEN];
-      sha256(namespace->name, namespace->length, hash);
-      memcpy(context->namespaceHash.hash, hash,
-             sizeof(context->namespaceHash.hash));
-    }
-  }
-#endif /* NAMESPACES */
-
-  result = makeRequestLimit(DEFAULT_REQUEST_LIMIT, &context->requestLimit);
-  if (result != UDS_SUCCESS) {
-    freeContext(context);
-    return result;
-  }
-
-  result = makeRequestQueue("callbackW", &handleCallbacks,
-                            &context->callbackQueue);
-  if (result != UDS_SUCCESS) {
-    freeContext(context);
-    return result;
-  }
-
-  context->stats.resetTime = asTimeT(currentTime(CT_REALTIME));
+  context->indexSession = indexSession;
+  context->contextState = UDS_CS_READY;
   *contextPtr = context;
   return UDS_SUCCESS;
 }
@@ -429,91 +245,6 @@ int getConfiguration(unsigned int contextId, UdsConfiguration *userConfig)
     **userConfig = context->indexSession->grid->userConfig;
   }
   return handleErrorAndReleaseBaseContext(context, result);
-}
-
-/**
- * Adjust the number of outstanding requests permitted for this
- * context; external version (aside from the per-context-type
- * wrapping) with range checks and locking.
- **/
-int setRequestQueueLimit(unsigned int contextId, unsigned int maxRequests)
-{
-  if (maxRequests > MAX_REQUEST_LIMIT) {
-    return logWarningWithStringError(
-      UDS_REQUESTS_OUT_OF_RANGE,
-      "attempt to set very large limit on request queue");
-  } else if (maxRequests == 0) {
-    return logWarningWithStringError(
-      UDS_REQUESTS_OUT_OF_RANGE, "attempt to set request queue limit to zero");
-  }
-
-  UdsContext *context;
-  int result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  setRequestPermitLimit(context->requestLimit, maxRequests);
-
-  releaseBaseContext(context);
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int setChunkNameAlgorithm(unsigned int contextId, UdsHashAlgorithm algorithm)
-{
-  UdsContext *context;
-  int result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  switch (algorithm) {
-  case UDS_HASH_ALG_SHA256:
-    context->chunkNameGenerator = udsCalculateSHA256ChunkName;
-    break;
-
-  case UDS_HASH_ALG_MURMUR3:
-    context->chunkNameGenerator = murmurGenerator;
-    break;
-
-  default:
-    // a more specific error code would be good
-    result = logWarningWithStringError(UDS_UNKNOWN_ERROR,
-                                       "invalid hash algorithm selection");
-  }
-
-  releaseBaseContext(context);
-  return result;
-}
-
-/**********************************************************************/
-UdsChunkName generateChunkName(unsigned int  contextId,
-                               const void   *data,
-                               size_t        size)
-{
-  UdsChunkName chunkName;
-  UdsContext *context;
-  int result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return udsCalculateSHA256ChunkName(data, size);
-  }
-
-  chunkName = context->chunkNameGenerator(data, size);
-
-  releaseBaseContext(context);
-  return chunkName;
-}
-
-/**
- * Divide two numbers, returning zero if the divisor is zero.
- **/
-static uint64_t safeDivide(uint64_t dividend, uint64_t divisor)
-{
-  if (divisor == 0) {
-    return 0;
-  }
-  return dividend / divisor;
 }
 
 /**********************************************************************/
@@ -583,100 +314,28 @@ static void collectStats(const UdsContext *context, UdsContextStats *stats)
 {
   const StatCounters *counters = &context->stats.counters;
 
-  stats->resetTime = context->stats.resetTime;
   stats->currentTime = asTimeT(currentTime(CT_REALTIME));
 
-  stats->postsFound           = counters->postsFound;
-  stats->inMemoryPostsFound   = counters->postsFoundOpenChapter;
-  stats->densePostsFound      = counters->postsFoundDense;
-  stats->sparsePostsFound     = counters->postsFoundSparse;
-  stats->postsNotFound        = counters->postsNotFound;
-  stats->bytesFound           = counters->bytesFound;
-  stats->bytesNotFound        = counters->bytesNotFound;
-  stats->avgChunkFound        = safeDivide(stats->bytesFound,
-                                           counters->postsFoundData);
-  stats->avgChunkNotFound     = safeDivide(stats->bytesNotFound,
-                                           counters->postsNotFoundData);
-  stats->updatesFound         = counters->updatesFound;
-  stats->updatesNotFound      = counters->updatesNotFound;
-  stats->deletionsFound       = counters->deletionsFound;
-  stats->deletionsNotFound    = counters->deletionsNotFound;
-  stats->queriesFound         = counters->queriesFound;
-  stats->queriesNotFound      = counters->queriesNotFound;
-  stats->requests             = counters->requests;
-  stats->requestTurnaroundTime = counters->requestTurnaroundTime;
-  stats->maximumTurnaroundTime = counters->maximumTurnaroundTime;
-
-  /*
-   * Strictly speaking, this is a context configuration parameter,
-   * not a measured statistic.  But we don't have any place to put
-   * per-context configuration data, and it's probably not worth
-   * adding it just for this one field.
-   */
-  stats->requestQueueLimit = getRequestPermitLimit(context->requestLimit);
-}
-
-/**********************************************************************/
-int resetStats(unsigned int contextId)
-{
-  UdsContext  *context;
-  int          result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  // Send a synchronous control message to the callback thread to safely reset
-  // the context statistics.
-  Request *request;
-  result = launchClientControlMessage(context, NULL,
-                                      REQUEST_RESET_CONTEXT_STATS,
-                                      STAGE_CALLBACK, &request);
-  if (result != UDS_SUCCESS) {
-    return handleErrorAndReleaseBaseContext(context, result);
-  }
-
-  result = request->status;
-  freeRequest(request);
-  return handleError(context, result);
-}
-
-/**********************************************************************/
-int registerDedupeCallback(unsigned int            contextID,
-                           UdsDedupeBlockCallback  callbackFunction,
-                           void                   *callbackArgument)
-{
-  UdsContext *context;
-  int result = getBaseContext(contextID, &context);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  if (callbackFunction == NULL) {
-    context->hasCallback = false;
-  } else if (context->hasCallback) {
-    result = UDS_CALLBACK_ALREADY_REGISTERED;
-  } else {
-    context->callbackFunction = callbackFunction;
-    context->callbackArgument = callbackArgument;
-    context->hasCallback      = true;
-  }
-
-  releaseBaseContext(context);
-  return result;
+  stats->postsFound         = counters->postsFound;
+  stats->inMemoryPostsFound = counters->postsFoundOpenChapter;
+  stats->densePostsFound    = counters->postsFoundDense;
+  stats->sparsePostsFound   = counters->postsFoundSparse;
+  stats->postsNotFound      = counters->postsNotFound;
+  stats->updatesFound       = counters->updatesFound;
+  stats->updatesNotFound    = counters->updatesNotFound;
+  stats->deletionsFound     = counters->deletionsFound;
+  stats->deletionsNotFound  = counters->deletionsNotFound;
+  stats->queriesFound       = counters->queriesFound;
+  stats->queriesNotFound    = counters->queriesNotFound;
+  stats->requests           = counters->requests;
 }
 
 /**********************************************************************/
 int dispatchContextControlRequest(Request *request)
 {
-  ContextStats *stats = &request->context->stats;
   switch (request->action) {
   case REQUEST_COLLECT_CONTEXT_STATS:
     collectStats(request->context, (UdsContextStats *) request->controlData);
-    return UDS_SUCCESS;
-
-  case REQUEST_RESET_CONTEXT_STATS:
-    memset(&stats->counters, 0, sizeof(stats->counters));
-    stats->resetTime = asTimeT(currentTime(CT_REALTIME));
     return UDS_SUCCESS;
 
   default:

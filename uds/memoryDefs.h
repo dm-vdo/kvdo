@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/memoryDefs.h#3 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryDefs.h#1 $
  */
 
 #ifndef LINUX_KERNEL_MEMORY_DEFS_H
@@ -98,7 +98,7 @@ void recordBioFree(void);
  * Get the memory statistics.
  *
  * @param bytesUsed     A pointer to hold the number of bytes in use
- * @param peakBioCount  A pointer to hold the maximum value bytes used has
+ * @param peakBytesUsed A pointer to hold the maximum value bytesUsed has
  *                      attained
  * @param biosUsed      A pointer to hold the number of bios in use
  * @param peakBioCount  A pointer to hold the maximum value biosUsed has

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabScrubberInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubberInternals.h#1 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H

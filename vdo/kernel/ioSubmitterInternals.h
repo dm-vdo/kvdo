@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitterInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitterInternals.h#1 $
  */
 
 #ifndef IOSUBMITTERINTERNALS_H
@@ -30,88 +30,17 @@
 #include "ioSubmitter.h"
 #include "readCache.h"
 
-/**
- * Various strategies for assigning read-cache and bio-submission work
- * to various threads.
- *
- * At the moment, several possibilities are available. Read cache
- * operations will always be performed in a bio submission thread
- * associated with the read cache zone determined by some physical
- * block number, or in batches in a "cpu" thread. The actual bio
- * submission operations can either be submitted from the same bio
- * submission thread, or they can be redistributed across the threads
- * round-robin.
- **/
-enum ioWorkStrategy {
-  /*
-   * Read cache and bio submission operations all go to bio submission
-   * threads chosen based on the PBN. Bio-submission-only operations
-   * are assigned round-robin.
-   *
-   * Read cache operations may get queued up behind potentially
-   * blocking I/O operations in the same work queue. The assignment of
-   * I/O operations to work queues by PBN can result in imbalanced
-   * assignments and less efficient use of the bio threads. However,
-   * we avoid the cost of the additional thread switch that
-   * IWS_RC_PBN_BIO_RR incurs.
-   */
-  IWS_RC_PBN_BIO_PBN,
-  /*
-   * Read cache operations go to bio submission threads chosen based
-   * on PBN; bio submission operations are re-queued for the bio
-   * submission threads in round-robin style.
-   *
-   * Read cache operations may get queued up behind potentially
-   * blocking I/O operations in the same work queue. Use of the bio
-   * threads for I/O should be evenly distributed and rotating among
-   * the threads. In testing, at least some of the benefit seems to
-   * come from each bio thread essentially switching modes between
-   * accumulating I/Os in the blk_plug and passing them off to the
-   * device (unplugging).
-   */
-  IWS_RC_PBN_BIO_RR,
-  /*
-   * Read cache operations are processed in batches (via a
-   * BatchProcessor in the zone structure) in the CPU threads; bio
-   * submission operations are assigned to the bio submission threads
-   * in round-robin style. There is always exactly one zone.
-   *
-   * This avoids read-cache operations getting stuck behind
-   * potentially blocking I/O operations, but there could be hashing
-   * operations queued up first. Most operations, if they find nothing
-   * in the cache or simply want to invalidate a cache entry, will
-   * need to do an I/O operation anyway. This includes all writes. So
-   * the gain is limited. However, the "release" operation doesn't
-   * need the bio work queue, nor does any read operation finding a
-   * hit in the cache.
-   */
-  IWS_RC_BATCH_BIO_RR,
-
-  // Some possible future experiments:
-  /*
-   * Read cache operations are processed in the calling thread, with
-   * locking contention reduced via using lots of zones; bio
-   * submission operations are assigned to the bio submission threads
-   * in round-robin style.
-   */
-  //IWS_RC_CALLER_BIO_RR,
-  /*
-   * Read cache operations get their own threads (one per zone). Bio
-   * submission operations are assigned to bio submission threads in
-   * round-robin style.
-   */
-  //IWS_RC_OWN_BIO_RR,
-
-  // The actual work scheduling strategy we're compiling for.
-  IO_WORK_STRATEGY = IWS_RC_PBN_BIO_PBN,
-};
-
 /*
  * Submission of bio operations to the underlying storage device will
  * go through a separate work queue thread (or more than one) to
  * prevent blocking in other threads if the storage device has a full
  * queue. The plug structure allows that thread to do better batching
  * of requests to make the I/O more efficient.
+ *
+ * When multiple worker threads are used, a thread is chosen for a
+ * read cache or I/O operation submission based on the PBN, so a given
+ * PBN will consistently wind up on the same thread. Flush operations
+ * are assigned round-robin.
  *
  * The map (protected by the mutex) collects pending I/O operations so
  * that the worker thread can reorder them to try to encourage I/O

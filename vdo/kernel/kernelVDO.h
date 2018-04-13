@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.h#1 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -48,7 +48,6 @@ typedef enum reqQAction {
   REQ_Q_ACTION_COMPLETION,
   REQ_Q_ACTION_FLUSH,
   REQ_Q_ACTION_MAP_BIO,
-  REQ_Q_ACTION_SHUTDOWN,
   REQ_Q_ACTION_SYNC,
   REQ_Q_ACTION_VIO_CALLBACK
 } ReqQAction;

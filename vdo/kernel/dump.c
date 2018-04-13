@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dump.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dump.c#1 $
  */
 
 #include "dump.h"
@@ -24,6 +24,7 @@
 #include <linux/module.h>
 
 #include "memoryAlloc.h"
+#include "typeDefs.h"
 
 #include "constants.h"
 #include "vdo.h"
@@ -93,15 +94,11 @@ static void doDump(KernelLayer  *layer,
   // XXX Add in number of outstanding requests being processed by vdo
   uint32_t active, maximum;
   getLimiterValuesAtomically(&layer->requestLimiter, &active, &maximum);
+  int64_t outstanding = atomic64_read(&layer->biosSubmitted)
+                        - atomic64_read(&layer->biosCompleted);
   logInfo("%" PRIu32 " device requests outstanding (max %" PRIu32 "), "
-          "%ld bio requests outstanding, poolName '%s'",
-          active, maximum,
-          (atomic64_read(&layer->biosSubmitted)
-           - atomic64_read(&layer->biosCompleted)),
-          layer->deviceConfig->poolName);
-  logInfo("dedupe: %ld valid %ld stale",
-          atomic64_read(&layer->dedupeAdviceValid),
-          atomic64_read(&layer->dedupeAdviceStale));
+          "%" PRId64 " bio requests outstanding, poolName '%s'",
+          active, maximum, outstanding, layer->deviceConfig->poolName);
   if ((dumpOptionsRequested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
     dumpKVDOWorkQueue(&layer->kvdo);
   }

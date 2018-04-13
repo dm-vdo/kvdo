@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#1 $
  */
 
 #include "indexSession.h"
@@ -25,6 +25,43 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "udsState.h"
+
+/**********************************************************************/
+static void handleCallbacks(Request *request)
+{
+  if (request->isControlMessage) {
+    request->status = dispatchContextControlRequest(request);
+    /*
+     * This is a synchronous control request for collecting or resetting the
+     * context statistics, so we use enterCallbackStage() to return the
+     * request to the client thread even though this is the callback thread.
+     */
+    enterCallbackStage(request);
+    return;
+  }
+
+  if (request->status == UDS_SUCCESS) {
+    // Measure the turnaround time of this request and include that time,
+    // along with the rest of the request, in the context's StatCounters.
+    updateRequestContextStats(request);
+  }
+
+  if (request->callback != NULL) {
+    // The request has specified its own callback and does not expect to be
+    // freed, but free the serverContext that's hidden from the client.
+    FREE(request->serverContext);
+    request->serverContext = NULL;
+    UdsContext *context = request->context;
+    request->found = (request->location != LOC_UNAVAILABLE);
+    request->callback((UdsRequest *) request);
+    releaseBaseContext(context);
+    return;
+  }
+
+  // Should not get here, because this is either a control message or it has a
+  // callback method.
+  freeRequest(request);
+}
 
 /**********************************************************************/
 int checkIndexSession(IndexSession *indexSession)
@@ -43,14 +80,14 @@ int checkIndexSession(IndexSession *indexSession)
 /**********************************************************************/
 IndexSessionState getIndexSessionState(IndexSession *indexSession)
 {
-  return (IndexSessionState) (int32_t) atomicLoad32(&indexSession->state);
+  return atomic_read_acquire(&indexSession->state);
 }
 
 /**********************************************************************/
 void setIndexSessionState(IndexSession      *indexSession,
                           IndexSessionState  state)
 {
-  atomicStore32(&indexSession->state, state);
+  atomic_set_release(&indexSession->state, state);
 }
 
 /**********************************************************************/
@@ -84,14 +121,19 @@ void releaseIndexSession(IndexSession *indexSession)
 int makeEmptyIndexSession(IndexSession **indexSessionPtr)
 {
   IndexSession *session;
-  int result
-    = ALLOCATE(1, IndexSession, "empty index session", &session);
+  int result = ALLOCATE(1, IndexSession, "empty index session", &session);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  setIndexSessionState(session, IS_INIT);
+  result = makeRequestQueue("callbackW", &handleCallbacks,
+                            &session->callbackQueue);
+  if (result != UDS_SUCCESS) {
+    FREE(session);
+    return result;
+  }
 
+  setIndexSessionState(session, IS_INIT);
   *indexSessionPtr = session;
   return UDS_SUCCESS;
 }
@@ -115,6 +157,8 @@ int saveAndFreeIndexSession(IndexSession *indexSession)
   if (result != UDS_SUCCESS) {
     logInfoWithStringError(result, "ignoring error from saveIndexSession");
   }
+  requestQueueFinish(indexSession->callbackQueue);
+  indexSession->callbackQueue = NULL;
   logDebug("Closed index session (%u, %p)", indexSession->session.id,
            (void *) indexSession);
   FREE(indexSession);

@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cacheCounters.c#1 $
  */
 
 #include "cacheCounters.h"
 
+#include "atomicDefs.h"
 #include "compiler.h"
 #include "errors.h"
 #include "permassert.h"
 #include "stringUtils.h"
 #include "uds.h"
-#include "util/atomic.h"
 
 /**********************************************************************/
 static INLINE void addCacheCountsByKind(CacheCountsByKind *stats,
@@ -56,16 +56,12 @@ void addCacheCounters(CacheCounters *stats, const CacheCounters *addend)
 
   addCacheCountsByKind(&stats->sparseChapters, addend->sparseChapters);
   addCacheCountsByKind(&stats->sparseSearches, addend->sparseSearches);
-
-  stats->sparseEvictions   += addend->sparseEvictions;
-  stats->sparseExpirations += addend->sparseExpirations;
 }
 
 /**********************************************************************/
-void addToCacheCounter(CacheCounters   *counters,
-                       int              probeType,
-                       CacheResultKind  kind,
-                       int              addend)
+void incrementCacheCounter(CacheCounters   *counters,
+                           int              probeType,
+                           CacheResultKind  kind)
 {
   CacheProbeType basicProbeType = probeType & ~CACHE_PROBE_IGNORE_FAILURE;
   int result = ASSERT(basicProbeType <= CACHE_PROBE_RECORD_RETRY,
@@ -119,5 +115,5 @@ void addToCacheCounter(CacheCounters   *counters,
     return;
   }
   // XXX Vile case makes many assumptions.  Counters should be declared atomic.
-  atomicAdd64((Atomic64 *) myCounter, addend);
+  atomic64_inc((atomic64_t *) myCounter);
 }

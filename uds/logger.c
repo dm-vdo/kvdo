@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/logger.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/logger.c#1 $
  */
 
 #include "logger.h"
@@ -112,6 +112,7 @@ void logEmbeddedMessage(int         priority,
 void vLogMessage(int priority, const char *format, va_list args)
 {
   va_list dummy;
+  memset(&dummy, 0, sizeof(dummy));
   logMessagePack(priority, NULL, format, args, NULL, dummy);
 }
 

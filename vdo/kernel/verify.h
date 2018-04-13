@@ -16,8 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/verify.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/verify.h#1 $
  */
+
 #include "kernelLayer.h"
 
 /**
@@ -29,3 +30,14 @@
  * @param dataVIO   The DataVIO with advice filled in.
  **/
 void kvdoVerifyDuplication(DataVIO *dataVIO);
+
+/**
+ * Implements DataVIOComparator.
+ *
+ * @param first   The first DataVIO to compare
+ * @param second  The second DataVIO to compare
+ *
+ * @return <code>true</code> if the contents of the two DataVIOs are the same
+ **/
+bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
+  __attribute__((warn_unused_result));

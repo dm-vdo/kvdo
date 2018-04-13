@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/histogram.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/histogram.c#1 $
  */
 
 #include <linux/kobject.h>
 
 #include "memoryAlloc.h"
+#include "typeDefs.h"
 
 #include "common.h"
 #include "histogram.h"
@@ -190,7 +191,8 @@ static ssize_t histogramStore(struct kobject   *kobj,
 /***********************************************************************/
 static ssize_t histogramShowCount(Histogram *h, char *buf)
 {
-  return sprintf(buf, "%ld\n", atomic64_read(&h->count));
+  int64_t count = atomic64_read(&h->count);
+  return sprintf(buf, "%" PRId64 "\n", count);
 }
 
 /***********************************************************************/
@@ -347,7 +349,8 @@ static ssize_t histogramShowMean(Histogram *h, char *buf)
 /***********************************************************************/
 static ssize_t histogramShowUnacceptable(Histogram *h, char *buf)
 {
-  return sprintf(buf, "%ld\n", atomic64_read(&h->unacceptable));
+  int64_t count = atomic64_read(&h->unacceptable);
+  return sprintf(buf, "%" PRId64 "\n", count);
 }
 
 /***********************************************************************/

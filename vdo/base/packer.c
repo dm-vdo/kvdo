@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/packer.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#1 $
  */
 
 #include "packerInternals.h"
@@ -27,6 +27,7 @@
 #include "allocatingVIO.h"
 #include "compressionState.h"
 #include "dataVIO.h"
+#include "hashLock.h"
 #include "pbnLock.h"
 #include "vdo.h"
 #include "vdoInternal.h"
@@ -132,8 +133,6 @@ static void pushOutputBin(Packer *packer, OutputBin *bin)
 {
   ASSERT_LOG_ONLY(!hasWaiters(&bin->outgoing),
                   "idle output bin has no waiters");
-  ASSERT_LOG_ONLY((bin->outstandingFragments == 0),
-                  "idle output bin has no outstanding fragments");
   packer->idleOutputBins[packer->idleOutputBinCount++] = bin;
 }
 
@@ -338,7 +337,6 @@ PackerStatistics getPackerStatistics(const Packer *packer)
  **/
 static void abortPacking(DataVIO *dataVIO)
 {
-  dataVIO->newMapped.state = MAPPING_STATE_UNCOMPRESSED;
   setCompressionDone(dataVIO);
   relaxedAdd64(&getPackerFromDataVIO(dataVIO)->fragmentsPending, -1);
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
@@ -356,28 +354,6 @@ static void continueVIOWithoutPacking(Waiter *waiter,
                                       void *unused __attribute__((unused)))
 {
   abortPacking(waiterAsDataVIO(waiter));
-}
-
-/**
- * This marks the allocated compressed block information in a VIO and
- * continues the VIO completion.
- **/
-static void markAndContinueCompletion(Waiter *waiter, void *context)
-{
-  DataVIO       *dataVIO          = waiterAsDataVIO(waiter);
-  AllocatingVIO *compressedWriter = context;
-  /*
-   * Don't copy the whole structure since the compressed write AllocatingVIO
-   * doesn't know the correct mapping state for each of the regular DataVIOs
-   * which went into it.
-   */
-  dataVIO->compression.writer = compressedWriter;
-  dataVIO->newMapped.pbn      = compressedWriter->allocation;
-  dataVIO->newMapped.zone     = compressedWriter->zone;
-
-  VIO *vio      = dataVIOAsVIO(dataVIO);
-  vio->physical = allocatingVIOAsVIO(compressedWriter)->physical;
-  continueDataVIO(dataVIO, VDO_SUCCESS);
 }
 
 /**
@@ -436,8 +412,14 @@ static void finishOutputBin(Packer *packer, OutputBin *bin)
 {
   if (hasWaiters(&bin->outgoing)) {
     notifyAllWaiters(&bin->outgoing, continueVIOWithoutPacking, NULL);
+  } else {
+    // No waiters implies no error, so the compressed block was written.
+    relaxedAdd64(&packer->fragmentsPending, -bin->slotsUsed);
+    relaxedAdd64(&packer->fragmentsWritten, bin->slotsUsed);
+    relaxedAdd64(&packer->blocksWritten, 1);
   }
 
+  bin->slotsUsed = 0;
   pushOutputBin(packer, bin);
 }
 
@@ -468,44 +450,71 @@ static void completeOutputBin(VDOCompletion *completion)
 }
 
 /**
- * Release the allocated lock for the compressed write and release the
- * reference if there was an error.
- *
- * @param completion  The compressed write VIO
+ * Implements WaiterCallback. Continues the DataVIO waiter.
  **/
-static void releaseCompressedWriteLock(VDOCompletion *completion)
+static void continueWaiter(Waiter *waiter,
+                           void   *context __attribute__((unused)))
 {
-  AllocatingVIO *allocatingVIO = asAllocatingVIO(completion);
-  assertInPhysicalZone(allocatingVIO);
-  releasePBNWriteLock(allocatingVIO);
-  vioDoneCallback(completion);
+  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  continueDataVIO(dataVIO, VDO_SUCCESS);
+}
+
+/**
+ * Implements WaiterCallback. Updates the DataVIO waiter to refer to its slot
+ * in the compressed block, gives the DataVIO a share of the PBN lock on that
+ * block, and reserves a reference count increment on the lock.
+ **/
+static void shareCompressedBlock(Waiter *waiter, void *context)
+{
+  DataVIO   *dataVIO = waiterAsDataVIO(waiter);
+  OutputBin *bin     = context;
+
+  dataVIO->newMapped = (ZonedPBN) {
+    .pbn   = bin->writer->allocation,
+    .zone  = bin->writer->zone,
+    .state = getStateForSlot(dataVIO->compression.slot),
+  };
+  dataVIOAsVIO(dataVIO)->physical = dataVIO->newMapped.pbn;
+
+  shareCompressedWriteLock(dataVIO, bin->writer->writeLock);
+
+  // Wait again for all the waiters to get a share.
+  int result = enqueueWaiter(&bin->outgoing, waiter);
+  // Cannot fail since this waiter was just dequeued.
+  ASSERT_LOG_ONLY(result == VDO_SUCCESS, "impossible enqueueWaiter error");
 }
 
 /**
  * Finish a compressed block write. This callback is registered in
- * continueCompressedWriteAfterAllocation().
+ * continueAfterAllocation().
  *
  * @param completion  The compressed write completion
  **/
 static void finishCompressedWrite(VDOCompletion *completion)
 {
-  AllocatingVIO *allocatingVIO = asAllocatingVIO(completion);
-  Packer *packer = getVDOFromAllocatingVIO(allocatingVIO)->packer;
-  assertOnPackerThread(packer, __func__);
-  setPhysicalZoneCallback(allocatingVIO, releaseCompressedWriteLock,
-                          THIS_LOCATION("$F(meta);cb=releaseLock"));
+  OutputBin *bin = completion->parent;
+  assertInPhysicalZone(bin->writer);
+
   if (completion->result != VDO_SUCCESS) {
-    completion->requeue = true;
-    invokeCallback(completion);
+    releasePBNWriteLock(bin->writer);
+    // Invokes completeOutputBin() on the packer thread, which will deal with
+    // the waiters.
+    vioDoneCallback(completion);
     return;
   }
 
-  OutputBin *bin = completion->parent;
-  bin->outstandingFragments = bin->outgoing.queueLength;
-  relaxedAdd64(&packer->blocksWritten, 1);
-  relaxedAdd64(&packer->fragmentsWritten, bin->outstandingFragments);
-  relaxedAdd64(&packer->fragmentsPending, -bin->outstandingFragments);
-  notifyAllWaiters(&bin->outgoing, markAndContinueCompletion, allocatingVIO);
+  // First give every DataVIO/HashLock a share of the PBN lock to ensure it
+  // can't be released until they've all done their incRefs.
+  notifyAllWaiters(&bin->outgoing, shareCompressedBlock, bin);
+
+  // The waiters now hold the (downgraded) PBN lock.
+  bin->writer->writeLock = NULL;
+
+  // Invokes the callbacks registered before entering the packer.
+  notifyAllWaiters(&bin->outgoing, continueWaiter, NULL);
+
+  // Invokes completeOutputBin() on the packer thread.
+  vioDoneCallback(completion);
 }
 
 /**
@@ -527,8 +536,8 @@ static void continueAfterAllocation(AllocatingVIO *allocatingVIO)
     return;
   }
 
-  vioAddTraceRecord(vio, THIS_LOCATION("$F(meta);cb=finishCompressedWrite"));
-  setCallback(completion, finishCompressedWrite, vio->vdo->packer->threadID);
+  setPhysicalZoneCallback(allocatingVIO, finishCompressedWrite,
+                          THIS_LOCATION("$F(meta);cb=finishCompressedWrite"));
   completion->layer->writeCompressedBlock(allocatingVIO);
 }
 
@@ -614,7 +623,7 @@ static bool writeNextBatch(Packer *packer, OutputBin *output)
   size_t spaceUsed = 0;
   for (SlotNumber slot = 0; slot < batch.slotsUsed; slot++) {
     DataVIO *dataVIO = batch.slots[slot];
-    dataVIO->newMapped.state = getStateForSlot(slot);
+    dataVIO->compression.slot = slot;
     putCompressedBlockFragment(output->block, slot, spaceUsed,
                                dataVIO->compression.data,
                                dataVIO->compression.size);
@@ -626,6 +635,8 @@ static bool writeNextBatch(Packer *packer, OutputBin *output)
       abortPacking(dataVIO);
       continue;
     }
+
+    output->slotsUsed += 1;
   }
 
   launchCompressedWrite(packer, output);
@@ -656,8 +667,10 @@ static void startNewBatch(Packer *packer, InputBin *bin)
 {
   // Move all the DataVIOs in the current batch to the batched queue so they
   // will get packed into the next free output bin.
-  for (SlotNumber i = 0; i < bin->slotsUsed; i++) {
-    DataVIO *dataVIO = bin->incoming[i];
+  for (SlotNumber slot = 0; slot < bin->slotsUsed; slot++) {
+    DataVIO *dataVIO = bin->incoming[slot];
+    dataVIO->compression.bin = NULL;
+
     if (!mayWriteCompressedDataVIO(dataVIO)) {
       /*
        * Compression of this DataVIO was canceled while it was waiting; put it
@@ -667,9 +680,6 @@ static void startNewBatch(Packer *packer, InputBin *bin)
       addToInputBin(packer->canceledBin, dataVIO);
       continue;
     }
-
-    dataVIO->compression.bin  = NULL;
-    dataVIO->compression.slot = 0;
 
     int result = enqueueDataVIO(&packer->batchedDataVIOs, dataVIO,
                                 THIS_LOCATION(NULL));
@@ -921,22 +931,6 @@ void closePacker(Packer *packer, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void completeFragment(DataVIO *dataVIO)
-{
-  AllocatingVIO *writer       = dataVIO->compression.writer;
-  dataVIO->compression.writer = NULL;
-  if (writer == NULL) {
-    return;
-  }
-
-  VDOCompletion *completion = allocatingVIOAsCompletion(writer);
-  OutputBin     *bin        = completion->parent;
-  if (--bin->outstandingFragments == 0) {
-    invokeCallback(completion);
-  }
-}
-
-/**********************************************************************/
 void resetSlotCount(Packer *packer, CompressedFragmentCount slots)
 {
   if (slots > MAX_COMPRESSION_SLOTS) {
@@ -965,7 +959,7 @@ static void dumpInputBin(const InputBin *bin, bool canceled)
 static void dumpOutputBin(const OutputBin *bin)
 {
   size_t count = countWaiters(&bin->outgoing);
-  if (count == 0) {
+  if (bin->slotsUsed == 0) {
     // Don't dump empty output bins.
     return;
   }

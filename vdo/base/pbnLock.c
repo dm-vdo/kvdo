@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLock.c#1 $
  */
 
 #include "pbnLock.h"
@@ -86,17 +86,9 @@ static inline void setPBNLockType(PBNLock *lock, PBNLockType type)
 /**********************************************************************/
 void initializePBNLock(PBNLock *lock, PBNLockType type)
 {
-  lock->holder         = NULL;
-  lock->hashLockHolder = NULL;
+  lock->holderCount = 0;
   setPBNLockType(lock, type);
   initializeWaitQueue(&lock->waiters);
-}
-
-/**********************************************************************/
-AllocatingVIO *lockHolderAsAllocatingVIO(const PBNLock *lock)
-{
-  ASSERT_LOG_ONLY(!isPBNReadLock(lock), "allocation lock is not a read lock");
-  return lock->holder;
 }
 
 /**********************************************************************/
@@ -108,10 +100,39 @@ void downgradePBNWriteLock(PBNLock *lock)
                   "must not downgrade block map write locks");
   ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
                   "write locks must have no waiters");
-
+  ASSERT_LOG_ONLY(lock->holderCount == 1,
+                  "PBN write lock should have one holder but has %u",
+                  lock->holderCount);
+  lock->holderCount = 0;
   setPBNLockType(lock, VIO_READ_LOCK);
-  lock->holder = NULL;
-  lock->hashLockHolder = NULL;
+}
+
+/**********************************************************************/
+bool claimPBNLockIncrement(PBNLock *lock)
+{
+  /*
+   * Claim the next free reference atomically since hash locks from multiple
+   * hash zone threads might be concurrently deduplicating against a single
+   * PBN lock on compressed block. As long as hitting the increment limit will
+   * lead to the PBN lock being released in a sane time-frame, we won't
+   * overflow a 32-bit claim counter, allowing a simple add instead of a
+   * compare-and-swap.
+   */
+  uint32_t claimNumber = atomicAdd32(&lock->incrementsClaimed, 1);
+  return (claimNumber <= lock->incrementLimit);
+}
+
+/**********************************************************************/
+bool allIncrementsClaimed(const PBNLock *lock)
+{
+  /*
+   * The counter never decreases, so this can never return a false positive.
+   * False negatives are possible but allowed by our contract. A load fence
+   * isn't needed since there's no ordering issues. A fence might reduce the
+   * change of false negatives, but it's not worth paying for one in the much
+   * more common cases of unshared locks and true negatives on shared locks.
+   */
+  return (relaxedLoad32(&lock->incrementsClaimed) >= lock->incrementLimit);
 }
 
 /**********************************************************************/

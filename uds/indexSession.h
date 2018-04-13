@@ -16,16 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.h#1 $
  */
 
 #ifndef INDEX_SESSION_H
 #define INDEX_SESSION_H
 
+#include "atomicDefs.h"
 #include "opaqueTypes.h"
 #include "session.h"
 #include "uds.h"
-#include "util/atomic.h"
 
 typedef enum {
   IS_INIT     = 1,
@@ -37,9 +37,10 @@ typedef enum {
  * Structure corresponding to a UdsIndexSession
  **/
 struct indexSession {
-  Session   session;
-  Atomic32  state;        // an atomically updated IndexSessionState value
-  Grid     *grid;
+  Session       session;
+  atomic_t      state;         // atomically updated IndexSessionState
+  Grid         *grid;
+  RequestQueue *callbackQueue;
 };
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#1 $
  */
 
 #include "kernelLayer.h"
@@ -63,28 +63,18 @@ static const KvdoWorkQueueType bioAckQType = {
 
 static const KvdoWorkQueueType cpuQType = {
   .actionTable = {
-    { .name = "cpu_compare_blocks",
-      .code = CPU_Q_ACTION_COMPARE_BLOCKS,
-      .priority = 0 },
     { .name = "cpu_complete_kvio",
       .code = CPU_Q_ACTION_COMPLETE_KVIO,
       .priority = 0 },
     { .name = "cpu_compress_block",
       .code = CPU_Q_ACTION_COMPRESS_BLOCK,
       .priority = 0 },
-    { .name = "cpu_dedupe_shutdown",
-      .code = CPU_Q_ACTION_DEDUPE_SHUTDOWN,
-      .priority = 1 },
     { .name = "cpu_hash_block",
       .code = CPU_Q_ACTION_HASH_BLOCK,
       .priority = 0 },
     { .name = "cpu_event_reporter",
       .code = CPU_Q_ACTION_EVENT_REPORTER,
       .priority = 0 },
-    { .name = "cpu_set_up_verify",
-      .code = CPU_Q_ACTION_SET_UP_VERIFY,
-      .priority = 0
-    },
   },
 };
 
@@ -617,36 +607,6 @@ int makeKernelLayer(BlockCount      blockCount,
     return result;
   }
 
-  spin_lock_init(&layer->statsLock);
-  result = ALLOCATE(1, VDOStatistics, "VDOStatistics storage",
-                    &layer->vdoStatsStorage);
-  if (result != 0) {
-    *reason = "Cannot allocate VDO statistics storage";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-  result = ALLOCATE(1, KernelStatistics, "KernelStatistics storage",
-                    &layer->kernelStatsStorage);
-  if (result != 0) {
-    *reason = "Cannot allocate kernel statistics storage";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-  kobject_init(&layer->statsDirectory, &statsDirectoryKobjType);
-  result = kobject_add(&layer->statsDirectory, &layer->kobj, "statistics");
-  if (result != 0) {
-    *reason = "Cannot add sysfs statistics node";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->statsDirectory);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-
   /*
    * Part 2 - Do all the simple initialization.  These initializations have no
    * order dependencies and can be done in any order, but freeKernelLayer()
@@ -706,6 +666,7 @@ int makeKernelLayer(BlockCount      blockCount,
   layer->common.updateAlbireo            = kvdoUpdateDedupeAdvice;
 
   spin_lock_init(&layer->flushLock);
+  mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);
 
   result = addLayerToDeviceRegistry(config->poolName, layer);
@@ -1098,9 +1059,16 @@ void freeKernelLayer(KernelLayer *layer)
   // The call to kobject_put on the kobj sysfs node will decrement its
   // reference count; when the count goes to zero the VDO object and
   // the kernel layer object will be freed as a side effect.
-  kobject_put(&layer->statsDirectory);
   kobject_put(&layer->wqDirectory);
   kobject_put(&layer->kobj);
+}
+
+
+/**********************************************************************/
+static void poolStatsRelease(struct kobject *kobj)
+{
+  KernelLayer *layer = container_of(kobj, KernelLayer, statsDirectory);
+  complete(&layer->statsShutdown);
 }
 
 /**********************************************************************/
@@ -1118,6 +1086,21 @@ int startKernelLayer(KernelLayer          *layer,
     stopKernelLayer(layer);
     return result;
   }
+
+
+  static struct kobj_type statsDirectoryKobjType = {
+    .release       = poolStatsRelease,
+    .sysfs_ops     = &poolStatsSysfsOps,
+    .default_attrs = poolStatsAttrs,
+  };
+  kobject_init(&layer->statsDirectory, &statsDirectoryKobjType);
+  result = kobject_add(&layer->statsDirectory, &layer->kobj, "statistics");
+  if (result != 0) {
+    *reason = "Cannot add sysfs statistics node";
+    stopKernelLayer(layer);
+    return result;
+  }
+  layer->statsAdded = true;
 
   startDedupeIndex(layer->dedupeIndex);
   result = vdoCreateProcfsEntry(layer, layer->deviceConfig->poolName,
@@ -1141,6 +1124,15 @@ int stopKernelLayer(KernelLayer *layer)
 
   layer->allocationsAllowed = true;
 
+  // Stop services that need to gather VDO statistics from the worker threads.
+  if (layer->statsAdded) {
+    layer->statsAdded = false;
+    init_completion(&layer->statsShutdown);
+    kobject_put(&layer->statsDirectory);
+    wait_for_completion(&layer->statsShutdown);
+  }
+  vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
+
   int result = stopKVDO(&layer->kvdo);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
     logError("%s: Close device failed %d (%s: %s)",
@@ -1153,7 +1145,6 @@ int stopKernelLayer(KernelLayer *layer)
   case LAYER_SUSPENDED:
   case LAYER_RUNNING:
     setKernelLayerState(layer, LAYER_STOPPING);
-    vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
     stopDedupeIndex(layer->dedupeIndex);
     // fall through
 

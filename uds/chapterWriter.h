@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.h#1 $
  */
 
 #ifndef CHAPTER_WRITER_H
 #define CHAPTER_WRITER_H
 
+#include "atomicDefs.h"
 #include "openChapterZone.h"
-#include "util/atomic.h"
 
 typedef struct chapterWriter ChapterWriter;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#1 $
  */
 
 #include "localIndexRouter.h"
@@ -69,30 +69,6 @@ static const IndexRouterMethods methods = {
   .getStatistics          = getRouterStatistics,
   .setCheckpointFrequency = setCheckpointFrequency,
 };
-
-// ************** Start of index router request histogram code **************
-#if HISTOGRAMS
-#include "histogram.h"
-
-Histogram *executeIndexRouterRequestHistogram = NULL;
-const char *executeIndexRouterRequestHistogramName = NULL;
-
-static void finishServiceHistogram(void)
-{
-  plotHistogram(executeIndexRouterRequestHistogramName,
-                executeIndexRouterRequestHistogram);
-  freeHistogram(&executeIndexRouterRequestHistogram);
-}
-
-void doServiceHistogram(const char *name)
-{
-  executeIndexRouterRequestHistogramName = name;
-  executeIndexRouterRequestHistogram
-    = makeLogarithmicHistogram("executeIndexRouterRequest duration", 6);
-  atexit(finishServiceHistogram);
-}
-#endif /* HISTOGRAMS */
-// ************** End of index router request histogram code **************
 
 /*
  * Convert a LocalIndexRouter pointer to the public IndexRouter pointer.
@@ -329,13 +305,6 @@ static void executeIndexRouterRequest(IndexRouter *header, Request *request)
     return;
   }
 
-#if HISTOGRAMS
-  AbsTime startTime = ABSTIME_EPOCH;
-  if (executeIndexRouterRequestHistogram != NULL) {
-    startTime = currentTime(CT_MONOTONIC);
-  }
-#endif /* HISTOGRAMS */
-
   Index *index = router->index;
   int result = dispatchIndexRequest(index, request);
   if (result == UDS_QUEUED) {
@@ -345,15 +314,6 @@ static void executeIndexRouterRequest(IndexRouter *header, Request *request)
 
   request->status = result;
   router->header.callback(request);
-
-#if HISTOGRAMS
-  if (executeIndexRouterRequestHistogram != NULL) {
-    AbsTime endTime = currentTime(CT_MONOTONIC);
-    enterHistogramSample(executeIndexRouterRequestHistogram,
-                         relTimeToMicroseconds(timeDifference(endTime,
-                                                              startTime)));;
-  }
-#endif /* HISTOGRAMS */
 }
 
 /**********************************************************************/
@@ -361,16 +321,7 @@ static int getRouterStatistics(IndexRouter             *header,
                                IndexRouterStatCounters *counters)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
-  IndexRouterStatCounters indexStats;
-  getIndexStats(router->index, &indexStats);
-  counters->entriesIndexed   = indexStats.entriesIndexed;
-  counters->memoryUsed       = indexStats.memoryUsed;
-  counters->diskUsed         = indexStats.diskUsed;
-  counters->numDlists        = indexStats.numDlists;
-  counters->collisions       = indexStats.collisions;
-  counters->entriesDiscarded = indexStats.entriesDiscarded;
-  counters->checkpoints      = indexStats.checkpoints;
-  addCacheCounters(&counters->volumeCache, &indexStats.volumeCache);
+  getIndexStats(router->index, counters);
   return UDS_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexStateData.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexStateData.c#1 $
  */
 
 #include "indexStateData.h"
@@ -210,8 +210,7 @@ static int readIndexState300(BufferedReader *reader, Index *index)
 /**
  * The index state index component reader.
  *
- * @param reader        Where to read from.
- * @param component     The component to configure from the info (an Index).
+ * @param portal the ReadPortal that handles the read of the component
  *
  * @return UDS_SUCCESS or an error code
  **/

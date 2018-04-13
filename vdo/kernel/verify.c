@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/verify.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/verify.c#1 $
  */
 
 #include "verify.h"
@@ -94,13 +94,10 @@ static void verifyDuplicationWork(KvdoWorkItem *item)
   DataKVIO *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
-  KernelLayer *layer = getLayerFromDataKVIO(dataKVIO);
   if (likely(memoryEqual(dataKVIO->dataBlock, dataKVIO->readBlock.data,
                          VDO_BLOCK_SIZE))) {
-    atomic64_inc(&layer->dedupeAdviceValid);
     // Leave dataKVIO->dataVIO.isDuplicate set to true.
   } else {
-    atomic64_inc(&layer->dedupeAdviceStale);
     dataKVIO->dataVIO.isDuplicate = false;
   }
 
@@ -144,4 +141,13 @@ void kvdoVerifyDuplication(DataVIO *dataVIO)
   dataVIOAddTraceRecord(dataVIO, location);
   kvdoReadBlock(dataVIO, dataVIO->duplicate.pbn, dataVIO->duplicate.state,
                 READ_VERIFY_DEDUPE, verifyReadBlockCallback);
+}
+
+/**********************************************************************/
+bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
+{
+  dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
+  DataKVIO *a = dataVIOAsDataKVIO(first);
+  DataKVIO *b = dataVIOAsDataKVIO(second);
+  return memoryEqual(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
 }

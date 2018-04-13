@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.h#1 $
  */
 
 #ifndef DATA_KVIO_H
@@ -319,6 +319,18 @@ static inline void kvdoEnqueueDataVIOCallback(DataKVIO *dataKVIO)
 }
 
 /**
+ * Check whether the external request bio had FUA set.
+ *
+ * @param dataKVIO  The DataKVIO to check
+ *
+ * @return <code>true</code> if the external request bio had FUA set
+ **/
+static inline bool requestorSetFUA(DataKVIO *dataKVIO)
+{
+  return ((dataKVIO->externalIORequest.rw & REQ_FUA) == REQ_FUA);
+}
+
+/**
  * Associate a KVIO with a BIO passed in from the block layer, and start
  * processing the KVIO.
  *
@@ -357,17 +369,6 @@ void returnDataKVIOBatchToPool(BatchProcessor *batch, void *closure);
  * @param dataVIO  The DataVIO to zero
  **/
 void kvdoZeroDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataVIOComparator.
- *
- * @param first   The first DataVIO to compare
- * @param second  The second DataVIO to compare
- *
- * @return <code>true</code> if the contents of the two DataVIOs are the same
- **/
-bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
-  __attribute__((warn_unused_result));
 
 /**
  * Implements DataCopier.

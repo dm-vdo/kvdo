@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#1 $
  */
 
 #include "volume.h"
 
+#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
@@ -38,7 +39,6 @@
 #include "sparseCache.h"
 #include "stringUtils.h"
 #include "threads.h"
-#include "util/atomic.h"
 #include "volumeInternals.h"
 
 enum {
@@ -380,7 +380,7 @@ static void readThreadFunction(void *arg)
          * will have updated the invalidateCounter so that we do not read into
          * any page which is being searched.
          */
-        memoryFence();
+        smp_mb();
 
         result = waitForPendingSearches(volume->pageCache, page->physicalPage);
         if (result != UDS_SUCCESS) {
@@ -416,7 +416,7 @@ static void readThreadFunction(void *arg)
              * trying to use a page in the page map before the reader thread
              * has finished reading it.
              */
-            memoryFence();
+            smp_mb();
 
             result = putPageInCache(volume->pageCache, physicalPage, page);
             if (result != UDS_SUCCESS) {
@@ -747,7 +747,7 @@ static int searchCachedIndexPage(Volume             *volume,
    * has been incremented.
    */
   beginPendingSearch(volume->pageCache, physicalPage, zoneNumber);
-  memoryFence();
+  smp_mb();
 
   CachedPage *page = NULL;
   int result = getPageProtected(volume, request, physicalPage,
@@ -755,7 +755,7 @@ static int searchCachedIndexPage(Volume             *volume,
   if (result != UDS_SUCCESS) {
     // Make sure that search above has finished before incrementing the
     // invalidate counter.
-    memoryFence();
+    smp_mb();
     endPendingSearch(volume->pageCache, zoneNumber);
     return result;
   }
@@ -770,7 +770,7 @@ static int searchCachedIndexPage(Volume             *volume,
 
   // Make sure that search above has finished before incrementing the
   // invalidate counter.
-  memoryFence();
+  smp_mb();
   endPendingSearch(volume->pageCache, zoneNumber);
 
   return result;
@@ -838,7 +838,7 @@ static int searchCachedRecordPage(Volume             *volume,
    * incremented.
    */
   beginPendingSearch(volume->pageCache, physicalPage, zoneNumber);
-  memoryFence();
+  smp_mb();
 
   CachedPage *recordPage;
   result = getPageProtected(volume, request, physicalPage,
@@ -846,7 +846,7 @@ static int searchCachedRecordPage(Volume             *volume,
   if (result != UDS_SUCCESS) {
     // Make sure that search above has finished before incrementing the
     // invalidate counter.
-    memoryFence();
+    smp_mb();
     endPendingSearch(volume->pageCache, zoneNumber);
     return result;
   }
@@ -855,7 +855,7 @@ static int searchCachedRecordPage(Volume             *volume,
     *found = true;
   }
 
-  memoryFence();
+  smp_mb();
   endPendingSearch(volume->pageCache, zoneNumber);
 
   return UDS_SUCCESS;
@@ -1234,16 +1234,21 @@ off_t getVolumeSize(Volume *volume)
 /**********************************************************************/
 size_t getCacheSize(Volume *volume)
 {
-  return (getPageCacheSize(volume->pageCache)
-          + getSparseCacheMemorySize(volume->sparseCache));
+  size_t size = getPageCacheSize(volume->pageCache);
+  if (isSparse(volume->geometry)) {
+    size += getSparseCacheMemorySize(volume->sparseCache);
+  }
+  return size;
 }
 
 /**********************************************************************/
 void getCacheCounters(Volume *volume, CacheCounters *counters)
 {
   getPageCacheCounters(volume->pageCache, counters);
-  CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
-  addCacheCounters(counters, &sparseCounters);
+  if (isSparse(volume->geometry)) {
+    CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
+    addCacheCounters(counters, &sparseCounters);
+  }
 }
 
 /**********************************************************************/

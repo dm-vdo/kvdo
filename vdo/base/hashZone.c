@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashZone.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashZone.c#1 $
  */
 
 #include "hashZone.h"
@@ -32,6 +32,7 @@
 #include "hashLockInternals.h"
 #include "pointerMap.h"
 #include "ringNode.h"
+#include "statistics.h"
 #include "threadConfig.h"
 #include "types.h"
 #include "vdoInternal.h"
@@ -40,17 +41,42 @@ enum {
   LOCK_POOL_CAPACITY = MAXIMUM_USER_VIOS,
 };
 
+/**
+ * These fields are only modified by the locks sharing the hash zone thread,
+ * but are queried by other threads.
+ **/
+typedef struct atomicHashLockStatistics {
+  /** Number of times the UDS advice proved correct */
+  Atomic64 dedupeAdviceValid;
+
+  /** Number of times the UDS advice proved incorrect */
+  Atomic64 dedupeAdviceStale;
+
+  /** Number of writes with the same data as another in-flight write */
+  Atomic64 concurrentDataMatches;
+
+  /** Number of writes whose hash collided with an in-flight write */
+  Atomic64 concurrentHashCollisions;
+} AtomicHashLockStatistics;
+
 struct hashZone {
   /** Which hash zone this is */
-  ZoneCount         zoneNumber;
+  ZoneCount zoneNumber;
+
   /** The per-thread data for this zone */
   const ThreadData *threadData;
+
   /** Mapping from chunkName fields to HashLocks */
-  PointerMap       *hashLockMap;
+  PointerMap *hashLockMap;
+
   /** Ring containing all unused HashLocks */
-  RingNode         lockPool;
+  RingNode lockPool;
+
+  /** Statistics shared by all hash locks in this zone */
+  AtomicHashLockStatistics statistics;
+
   /** Array of all HashLocks */
-  HashLock         *lockArray;
+  HashLock *lockArray;
 };
 
 /**
@@ -147,6 +173,19 @@ ZoneCount getHashZoneNumber(const HashZone *zone)
 ThreadID getHashZoneThreadID(const HashZone *zone)
 {
   return zone->threadData->threadID;
+}
+
+/**********************************************************************/
+HashLockStatistics getHashZoneStatistics(const HashZone *zone)
+{
+  const AtomicHashLockStatistics *atoms = &zone->statistics;
+  return (HashLockStatistics) {
+    .dedupeAdviceValid     = relaxedLoad64(&atoms->dedupeAdviceValid),
+    .dedupeAdviceStale     = relaxedLoad64(&atoms->dedupeAdviceStale),
+    .concurrentDataMatches = relaxedLoad64(&atoms->concurrentDataMatches),
+    .concurrentHashCollisions
+      = relaxedLoad64(&atoms->concurrentHashCollisions),
+  };
 }
 
 /**
@@ -272,13 +311,41 @@ static void dumpHashLock(const HashLock *lock)
 }
 
 /**********************************************************************/
+void bumpHashZoneValidAdviceCount(HashZone *zone)
+{
+  // Must only be mutated on the hash zone thread.
+  relaxedAdd64(&zone->statistics.dedupeAdviceValid, 1);
+}
+
+/**********************************************************************/
+void bumpHashZoneStaleAdviceCount(HashZone *zone)
+{
+  // Must only be mutated on the hash zone thread.
+  relaxedAdd64(&zone->statistics.dedupeAdviceStale, 1);
+}
+
+/**********************************************************************/
+void bumpHashZoneDataMatchCount(HashZone *zone)
+{
+  // Must only be mutated on the hash zone thread.
+  relaxedAdd64(&zone->statistics.concurrentDataMatches, 1);
+}
+
+/**********************************************************************/
+void bumpHashZoneCollisionCount(HashZone *zone)
+{
+  // Must only be mutated on the hash zone thread.
+  relaxedAdd64(&zone->statistics.concurrentHashCollisions, 1);
+}
+
+/**********************************************************************/
 void dumpHashZone(const HashZone *zone)
 {
   if (zone->hashLockMap == NULL) {
     logInfo("HashZone %u: NULL map", zone->zoneNumber);
     return;
   }
-    
+
   logInfo("HashZone %u: mapSize=%zu",
           zone->zoneNumber, pointerMapSize(zone->hashLockMap));
   for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {

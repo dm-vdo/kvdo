@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/sysfs.c#9 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/sysfs.c#1 $
  */
 
 #include "sysfs.h"
@@ -101,7 +101,6 @@ static struct kobj_type emptyObjectType = {
 //
 // <dir>/log_level                 UDS_LOG_LEVEL
 // <dir>/parallel_factor           UDS_PARALLEL_FACTOR
-// <dir>/time_request_turnaround   UDS_TIME_REQUEST_TURNAROUND
 // <dir>/volume_read_threads       UDS_VOLUME_READ_THREADS
 //
 /**********************************************************************/
@@ -198,11 +197,6 @@ static ParameterAttribute parallelFactorAttr = {
   .name = "UDS_PARALLEL_FACTOR",
 };
 
-static ParameterAttribute timeRequestTurnaroundAttr = {
-  .attr = { .name = "time_request_turnaround", .mode = 0600 },
-  .name = "UDS_TIME_REQUEST_TURNAROUND",
-};
-
 static ParameterAttribute volumeReadThreadsAttr = {
   .attr = { .name = "volume_read_threads", .mode = 0600 },
   .name = "UDS_VOLUME_READ_THREADS",
@@ -211,7 +205,6 @@ static ParameterAttribute volumeReadThreadsAttr = {
 static struct attribute *parameterAttrs[] = {
   &logLevelAttr.attr,
   &parallelFactorAttr.attr,
-  &timeRequestTurnaroundAttr.attr,
   &volumeReadThreadsAttr.attr,
   NULL,
 };

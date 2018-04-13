@@ -16,11 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueHandle.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueHandle.h#1 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
 #define WORK_QUEUE_HANDLE_H
+
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+#include <linux/sched/task_stack.h>
+#else
+#include <linux/sched.h>
+#endif
 
 #include "workQueueInternals.h"
 
@@ -65,15 +72,6 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
                                     SimpleWorkQueue      *queue);
 
 /**
- * Get the current bottom of the stack.
- **/
-static char *getBottomOfStack(void)
-{
-  register unsigned long currentStackPointer asm("esp");
-  return (char *)(currentStackPointer & ~(THREAD_SIZE - 1));
-}
-
-/**
  * Return the work queue pointer recorded at initialization time in
  * the work-queue stack handle initialized on the stack of the current
  * thread, if any.
@@ -83,7 +81,7 @@ static char *getBottomOfStack(void)
 static inline SimpleWorkQueue *getCurrentThreadWorkQueue(void)
 {
   WorkQueueStackHandle *handle
-    = (WorkQueueStackHandle *)(getBottomOfStack()
+    = (WorkQueueStackHandle *)(task_stack_page(current)
                                + workQueueStackHandleGlobals.offset);
   if (likely(handle->nonce == workQueueStackHandleGlobals.nonce)) {
     return handle->queue;

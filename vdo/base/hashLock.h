@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLock.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.h#1 $
  */
 
 #ifndef HASH_LOCK_H
@@ -110,5 +110,16 @@ bool inheritDuplicatePBNLock(DataVIO *dataVIO, PBNLock *duplicateLock)
  * @param dataVIO  The DataVIO holding the allocation lock to transfer
  **/
 void transferPBNWriteLock(DataVIO *dataVIO);
+
+/**
+ * Make a DataVIO's hash lock a shared holder of the PBN lock on the
+ * compressed block to which its data was just written. If the lock is still a
+ * write lock (as it will be for the first share), it will be converted to a
+ * read lock. This also reserves a reference count increment for the DataVIO.
+ *
+ * @param dataVIO  The DataVIO which was just compressed
+ * @param pbnLock  The PBN lock on the compressed block
+ **/
+void shareCompressedWriteLock(DataVIO *dataVIO, PBNLock *pbnLock);
 
 #endif // HASH_LOCK_H

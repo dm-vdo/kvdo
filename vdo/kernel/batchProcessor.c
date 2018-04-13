@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/batchProcessor.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/batchProcessor.c#1 $
  */
 
 #include "batchProcessor.h"
@@ -91,12 +91,12 @@ static void batchProcessorWork(KvdoWorkItem *item)
 {
   BatchProcessor *batch = container_of(item, BatchProcessor, workItem);
   spin_lock(&batch->consumerLock);
-  while (funnelQueuePeek(batch->queue) != NULL) {
+  while (!isFunnelQueueEmpty(batch->queue)) {
     batch->callback(batch, batch->closure);
   }
   atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
   memoryFence();
-  bool needReschedule = (funnelQueuePeek(batch->queue) != NULL);
+  bool needReschedule = !isFunnelQueueEmpty(batch->queue);
   spin_unlock(&batch->consumerLock);
   if (needReschedule) {
     scheduleBatchProcessing(batch);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.h#1 $
  */
 
 #ifndef LOCAL_INDEX_ROUTER_H
@@ -43,7 +43,7 @@
 /**
  * Construct and initialize a LocalIndexRouter instance.
  *
- * @param path       the path where index-related files are stored
+ * @param layout     the IndexLayout that describes the stored index
  * @param config     the configuration to use
  * @param loadType   selects whether to create, load, or rebuild the index
  * @param callback   the function to invoke when a request completes or fails
@@ -57,15 +57,5 @@ int makeLocalIndexRouter(IndexLayout          *layout,
                          IndexRouterCallback   callback,
                          IndexRouter         **newRouter)
   __attribute__((warn_unused_result));
-
-#ifdef HISTOGRAMS
-/**
- * Start doing a histogram of the service time, and arrange for it to be
- * plotted at the program termination.
- *
- * @param name  Base name of the histogram file
- **/
-void doServiceHistogram(const char *name);
-#endif /* HISTOGRAMS */
 
 #endif /* LOCAL_INDEX_ROUTER_H */

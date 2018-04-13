@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexLayout.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexLayout.h#1 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -64,7 +64,7 @@ typedef struct indexLayout {
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexLayout(const char              *info,
+int makeIndexLayout(const char              *name,
                     bool                     newLayout,
                     const UdsConfiguration   config,
                     IndexLayout            **layoutPtr)
@@ -133,7 +133,7 @@ static INLINE int getVolumeNonce(IndexLayout  *layout,
  * @param [in]  layout         The index layout.
  * @param [in]  indexId        The index ordinal number.
  * @param [in]  numZones       The number of zones to use.
- * @param [in]  maxComponents  The maximum number of components to be handled.
+ * @param [in]  components     The maximum number of components to be handled.
  * @param [out] statePtr       Where to store the index state object.
  *
  * @return UDS_SUCCESS or an error code

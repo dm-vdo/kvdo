@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#1 $
  */
 
 #include "dataKVIO.h"
@@ -133,11 +133,6 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 #else
   bio->bi_rw      = externalIORequest->rw;
 #endif
-  if (isFUABio(bio) && (error == 0) && shouldProcessFlush(layer)) {
-    // The original I/O asked for Forced Unit Access. Start a flush.
-    launchKVDOFlush(layer, bio);
-    return;
-  }
 
   countBios(&layer->biosAcknowledged, bio);
   if (getBioSize(bio) < VDO_BLOCK_SIZE) {
@@ -403,20 +398,6 @@ void kvdoZeroDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
-{
-  dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
-  DataKVIO *a = dataVIOAsDataKVIO(first);
-  DataKVIO *b = dataVIOAsDataKVIO(second);
-  if (memcmp(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE) == 0) {
-    return true;
-  }
-
-  atomic64_inc(&(getLayerFromDataKVIO(b)->dedupeAdviceStale));
-  return false;
-}
-
-/**********************************************************************/
 void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination)
 {
   dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
@@ -660,6 +641,10 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
     operation  = VIO_WRITE;
   }
 
+  if (requestorSetFUA(dataKVIO)) {
+    operation |= VIO_FLUSH_AFTER;
+  }
+
   prepareDataVIO(dataVIO, dataVIO->logical.lbn + 1, operation,
                  !dataKVIO->isPartial, kvdoContinueDiscardKVIO);
   enqueueDataKVIO(dataKVIO, launchDataKVIOWork, completion->callback,
@@ -731,6 +716,10 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
     }
   } else if (bio_data_dir(bio) == READ) {
     operation = VIO_READ;
+  }
+
+  if (requestorSetFUA(dataKVIO)) {
+    operation |= VIO_FLUSH_AFTER;
   }
 
   LogicalBlockNumber lbn

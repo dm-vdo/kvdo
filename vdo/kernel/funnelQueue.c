@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/funnelQueue.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/funnelQueue.c#1 $
  */
 
 #include "funnelQueue.h"
@@ -145,27 +145,7 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
 }
 
 /**********************************************************************/
-FunnelQueueEntry *funnelQueuePeek(FunnelQueue *queue)
-{
-  return getOldest(queue);
-}
-
-/**********************************************************************/
 bool isFunnelQueueEmpty(FunnelQueue *queue)
 {
-  FunnelQueueEntry *oldest = queue->oldest;
-  FunnelQueueEntry *next   = oldest->next;
-
-  // Check whether the funnel queue is empty or not.  Although the queue is not
-  // being altered, this function has the same single-consumer-thread
-  // constraints as the funnelQueuePoll() function for the results to be valid.
-  if (oldest == &queue->stub) {
-    // When the oldest entry is the stub and it has no successor, the queue is
-    // logically empty.
-    if (next == NULL) {
-      return true;
-    }
-  }
-
-  return false;
+  return getOldest(queue) == NULL;
 }

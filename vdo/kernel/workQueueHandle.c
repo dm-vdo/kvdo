@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueHandle.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueHandle.c#1 $
  */
 
 #include "workQueueHandle.h"
@@ -30,7 +30,7 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
   handle->nonce = workQueueStackHandleGlobals.nonce;
   handle->queue = queue;
 
-  long offset = (char *) handle - getBottomOfStack();
+  long offset = (char *) handle - (char *) task_stack_page(current);
   spin_lock(&workQueueStackHandleGlobals.offsetLock);
   if (workQueueStackHandleGlobals.offset == 0) {
     workQueueStackHandleGlobals.offset = offset;

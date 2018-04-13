@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/openChapter.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/openChapter.h#1 $
  */
 
 #ifndef OPENCHAPTER_H
@@ -70,7 +70,7 @@ int closeOpenChapter(OpenChapterZone  **chapterZones,
  * Write out a partially filled chapter to a file.
  *
  * @param index        the index to save the data from
- * @param fd           the file descriptor to write to
+ * @param writer       the writer to write out the chapters
  *
  * @return UDS_SUCCESS on success
  **/

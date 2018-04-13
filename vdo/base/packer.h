@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/packer.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.h#1 $
  */
 
 #ifndef PACKER_H
@@ -135,15 +135,6 @@ void incrementPackerFlushGeneration(Packer *packer);
  * @param completion        The completion to finish when the packer is closed
  **/
 void closePacker(Packer *packer, VDOCompletion *completion);
-
-/**
- * Inform the associated compressed write DataVIO that the original DataVIO for
- * one of its fragments has finished incrementing the reference count for the
- * compressed block.
- *
- * @param dataVIO  The fragment DataVIO
- **/
-void completeFragment(DataVIO *dataVIO);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.

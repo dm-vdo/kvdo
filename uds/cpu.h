@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/cpu.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cpu.h#1 $
  */
 
 #ifndef CPU_H
@@ -29,9 +29,18 @@
  * The number of bytes in a CPU cache line. In the future, we'll probably need
  * to move this to a processor-specific file or discover it at compilation
  * time (or runtime, if sufficiently heterogeneous), but this will do for now.
- * (Must be a #define since enums are not proper compile-time constants.)
+ * (Must be a \#define since enums are not proper compile-time constants.)
  **/
+#ifdef __PPC__
+// N.B.: Some PPC processors have smaller cache lines.
+#define CACHE_LINE_BYTES 128
+#elif defined(__s390x__)
+#define CACHE_LINE_BYTES 256
+#elif defined(__x86_64__) || defined(__aarch64__)
 #define CACHE_LINE_BYTES  64
+#else
+#error "unknown cache line size"
+#endif
 
 /**
  * Minimize cache-miss latency by moving data into a CPU cache before it is

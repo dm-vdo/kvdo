@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/allocatingVIO.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.c#1 $
  */
 
 #include "allocatingVIO.h"
@@ -42,8 +42,6 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
 {
   assertInPhysicalZone(allocatingVIO);
 
-  ASSERT_LOG_ONLY(!isPBNLocked(allocatingVIO->writeLock),
-                  "must not acquire a write lock when already holding it");
   ASSERT_LOG_ONLY(allocatingVIO->writeLock == NULL,
                   "must not acquire a lock while already referencing one");
 
@@ -54,19 +52,17 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
     return result;
   }
 
-  if (isPBNLocked(lock)) {
-    // This block is already locked which should be impossible.
-    // XXX VDOSTORY-190 the holder might be a hash lock, making this unsafe
-    AllocatingVIO *lockHolder = lockHolderAsAllocatingVIO(lock);
+  if (lock->holderCount > 0) {
+    // This block is already locked, which should be impossible.
     return logErrorWithStringError(VDO_LOCK_ERROR,
                                    "Newly allocated block %" PRIu64
-                                   " was spuriously locked by VIO of type %u",
+                                   " was spuriously locked (holderCount=%u)",
                                    allocatingVIO->allocation,
-                                   allocatingVIOAsVIO(lockHolder)->type);
+                                   lock->holderCount);
   }
 
   // We've successfully acquired a new lock, so mark it as ours.
-  lock->holder             = allocatingVIO;
+  lock->holderCount += 1;
   allocatingVIO->writeLock = lock;
   assignProvisionalReference(lock);
   return VDO_SUCCESS;

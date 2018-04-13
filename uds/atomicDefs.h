@@ -16,24 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/sha256.h#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/atomicDefs.h#1 $
  */
 
-#ifndef SHA256_H
-#define SHA256_H
+#ifndef LINUX_KERNEL_ATOMIC_DEFS_H
+#define LINUX_KERNEL_ATOMIC_DEFS_H
 
-#include <stddef.h>
+#include <linux/atomic.h>
 
-#ifdef __cplusplus
-extern "C" {
+// Some versions of RHEL7.4 do not define atomic_read_acquire.
+// Borrow this definition so our older test systems will work.
+#ifndef atomic_read_acquire
+#define atomic_read_acquire(v)         smp_load_acquire(&(v)->counter)
 #endif
 
-enum { SHA256_HASH_LEN = 32 };
-
-void sha256(const void *data, size_t len, unsigned char ret_hash[SHA256_HASH_LEN]);
-
-#ifdef __cplusplus
-} /* extern "C" */
+// Some versions of RHEL7.4 do not define atomic_set_release.
+// Borrow this definition so our older test systems will work.
+#ifndef atomic_set_release
+#define atomic_set_release(v, i)       smp_store_release(&(v)->counter, (i))
 #endif
 
-#endif
+#endif /* LINUX_KERNEL_ATOMIC_DEFS_H */

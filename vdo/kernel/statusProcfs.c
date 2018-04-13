@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/statusProcfs.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/statusProcfs.c#1 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -119,8 +119,6 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
   stats->instance       = layer->instance;
   getLimiterValuesAtomically(&layer->requestLimiter,
                              &stats->currentVIOsInProgress, &stats->maxVIOs);
-  stats->dedupeAdviceValid = atomic64_read(&layer->dedupeAdviceValid);
-  stats->dedupeAdviceStale = atomic64_read(&layer->dedupeAdviceStale);
   stats->dedupeAdviceTimeouts
     = getEventCount(&layer->albireoTimeoutReporter);
   stats->flushOut     = atomic64_read(&layer->flushOut);

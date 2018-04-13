@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/openChapterZone.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/openChapterZone.c#1 $
  */
 
 #include "openChapterZone.h"
@@ -213,13 +213,11 @@ int putOpenChapter(OpenChapterZone    *openChapter,
     return UDS_SUCCESS;
   }
 
-  unsigned int recordNumber = ++openChapter->size;
-  if (openChapter->size > openChapter->capacity) {
-    return logUnrecoverable(
-      UDS_BAD_STATE, "chapter size: %u is larger than geometry allows: %u",
-      openChapter->size, openChapter->capacity);
+  if (openChapter->size >= openChapter->capacity) {
+    return makeUnrecoverable(UDS_VOLUME_OVERFLOW);
   }
 
+  unsigned int recordNumber = ++openChapter->size;
   openChapter->slots[slot].recordNumber = recordNumber;
   record                                = &openChapter->records[recordNumber];
   record->name                          = *name;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLock.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.c#1 $
  */
 
 /**
@@ -205,18 +205,19 @@ static void setAgent(HashLock *lock, DataVIO *newAgent)
 }
 
 /**
- * Set the duplicate lock held by a hash lock.
+ * Set the duplicate lock held by a hash lock. May only be called in the
+ * physical zone of the PBN lock.
  *
  * @param hashLock  The hash lock to update
- * @param pbnLock   The holderless PBN read lock to use as the duplicate lock
+ * @param pbnLock   The PBN read lock to use as the duplicate lock
  **/
 static void setDuplicateLock(HashLock *hashLock, PBNLock *pbnLock)
 {
   ASSERT_LOG_ONLY((hashLock->duplicateLock == NULL),
                   "hash lock must not already hold a duplicate lock");
+
+  pbnLock->holderCount += 1;
   hashLock->duplicateLock = pbnLock;
-  pbnLock->holder         = NULL;
-  pbnLock->hashLockHolder = hashLock;
 }
 
 /**
@@ -420,7 +421,7 @@ static void finishBypassing(VDOCompletion *completion)
   assertHashLockAgent(agent, __func__);
   HashLock *lock = agent->hashLock;
 
-  ASSERT_LOG_ONLY(!isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock == NULL,
                   "must have released the duplicate lock for the hash lock");
   exitHashLock(agent);
 }
@@ -444,7 +445,7 @@ static void startBypassing(HashLock *lock, DataVIO *agent)
                   "should not have waiters without an agent");
   notifyAllWaiters(&lock->waiters, compressWaiter, NULL);
 
-  if (isPBNLocked(lock->duplicateLock)) {
+  if (lock->duplicateLock != NULL) {
     if (agent != NULL) {
       // The agent must reference the duplicate zone to launch it.
       agent->duplicate = lock->duplicate;
@@ -512,7 +513,7 @@ static void finishDowngrading(VDOCompletion *completion)
     return;
   }
 
-  ASSERT_LOG_ONLY(isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
                   "must have downgraded to get a duplicate lock");
 
   /*
@@ -566,7 +567,7 @@ static void finishUnlocking(VDOCompletion *completion)
   assertHashLockAgent(agent, __func__);
   HashLock *lock = agent->hashLock;
 
-  ASSERT_LOG_ONLY(!isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock == NULL,
                   "must have released the duplicate lock for the hash lock");
 
   if (completion->result != VDO_SUCCESS) {
@@ -624,7 +625,7 @@ static void unlockDuplicatePBN(VDOCompletion *completion)
   assertInDuplicateZone(agent);
   HashLock *lock = agent->hashLock;
 
-  ASSERT_LOG_ONLY(isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
                   "must have a duplicate lock to release");
 
   releasePBNLock(agent->duplicate.zone, agent->duplicate.pbn,
@@ -678,7 +679,7 @@ static void finishUpdating(VDOCompletion *completion)
   lock->updateAdvice = false;
 
   if (!hasWaiters(&lock->waiters)) {
-    if (isPBNLocked(lock->duplicateLock)) {
+    if (lock->duplicateLock != NULL) {
       /*
        * UPDATING -> UNLOCKING transition: No one is waiting to dedupe, but we
        * hold a duplicate PBN lock, so go release it.
@@ -696,7 +697,7 @@ static void finishUpdating(VDOCompletion *completion)
     return;
   }
 
-  if (isPBNLocked(lock->duplicateLock)) {
+  if (lock->duplicateLock != NULL) {
     /*
      * UPDATING -> DEDUPING transition: A new DataVIO arrived during the UDS
      * update. Send it on the verified dedupe path. The agent is done with the
@@ -706,28 +707,13 @@ static void finishUpdating(VDOCompletion *completion)
     return;
   }
 
-  if (isCompressed(lock->duplicate.state)) {
-    /*
-     * UPDATING -> LOCKING transition: A new DataVIO arrived during the UDS
-     * update for a block that was compressed. We don't currently do lock
-     * downgrade/sharing from the compressed write, so treat the compressed
-     * location as advice and try to get a read lock and verify.
-     */
-    // XXX VDOSTORY-190 If we used the current agent to re-acquire the PBN
-    // lock we wouldn't need to re-verify.
-    // XXX VDOSTORY-190 compressed block lock downgrade gets rid of this
-    agent          = retireLockAgent(lock);
-    lock->verified = false;
-    startLocking(lock, agent);
-  } else {
-    /*
-     * UPDATING -> DOWNGRADING transition: A new DataVIO arrived during the
-     * UDS update for a PBN that is still write-locked. Downgrade and transfer
-     * the agent's PBN lock to the hash lock so the agent can exit and the
-     * waiter can deduplicate.
-     */
-    startDowngrading(lock, agent);
-  }
+  /*
+   * UPDATING -> DOWNGRADING transition: A new DataVIO arrived during the
+   * UDS update for a PBN that is still write-locked. Downgrade and transfer
+   * the agent's PBN lock to the hash lock so the agent can exit and the
+   * waiter can deduplicate.
+   */
+  startDowngrading(lock, agent);
 }
 
 /**
@@ -865,7 +851,7 @@ static void cancelDuplicateLockWait(Waiter *waiter,
  **/
 static void launchDedupe(HashLock *lock, DataVIO *dataVIO)
 {
-  if (lock->duplicateLock->incrementLimit == 0) {
+  if (!claimPBNLockIncrement(lock->duplicateLock)) {
     // Out of increments, so must roll over to a new lock.
     forkHashLock(lock, dataVIO);
 
@@ -875,9 +861,6 @@ static void launchDedupe(HashLock *lock, DataVIO *dataVIO)
                      cancelDuplicateLockWait, NULL);
     return;
   }
-
-  // Reserve a reference increment for this DataVIO.
-  lock->duplicateLock->incrementLimit -= 1;
 
   // Deduplicate against the lock's verified location.
   setDuplicateLocation(dataVIO, lock->duplicate);
@@ -907,8 +890,10 @@ static void startDeduping(HashLock *lock, DataVIO *agent, bool agentIsDone)
 
   // The ownership of the duplicate read lock must already have been
   // transferred to the hash lock when it was acquired by the agent.
-  ASSERT_LOG_ONLY(isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
                   "must hold duplicateLock when deduping");
+  ASSERT_LOG_ONLY(isPBNReadLock(lock->duplicateLock),
+                  "duplicateLock must be a PBN read lock");
 
   /*
    * Launch the agent (if not already deduplicated) and as many lock waiters
@@ -953,6 +938,18 @@ static void finishVerifying(VDOCompletion *completion)
   }
 
   lock->verified = agent->isDuplicate;
+
+  // Only count the result of the initial verification of the advice as valid
+  // or stale, and not any re-verifications due to PBN lock releases.
+  if (!lock->verifyCounted) {
+    lock->verifyCounted = true;
+    if (lock->verified) {
+      bumpHashZoneValidAdviceCount(agent->hashZone);
+    } else {
+      bumpHashZoneStaleAdviceCount(agent->hashZone);
+    }
+  }
+
   if (lock->verified) {
     /*
      * VERIFYING -> DEDUPING transition: The advice is for a true duplicate,
@@ -1021,19 +1018,20 @@ static void finishLocking(VDOCompletion *completion)
   }
 
   if (!agent->isDuplicate) {
-    ASSERT_LOG_ONLY(!isPBNLocked(lock->duplicateLock),
+    ASSERT_LOG_ONLY(lock->duplicateLock == NULL,
                   "must not hold duplicateLock if not flagged as a duplicate");
     /*
      * LOCKING -> WRITING transition: The advice block is being modified or
      * has no available references, so try to write or compress the data,
      * remembering to update UDS later with the new advice.
      */
+    bumpHashZoneStaleAdviceCount(agent->hashZone);
     lock->updateAdvice = true;
     startWriting(lock, agent);
     return;
   }
 
-  ASSERT_LOG_ONLY(isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
                   "must hold duplicateLock if flagged as a duplicate");
 
   if (!lock->verified) {
@@ -1064,9 +1062,9 @@ bool inheritDuplicatePBNLock(DataVIO *dataVIO, PBNLock *duplicateLock)
                   "only the hash lock agent should inherit a PBN lock");
 
   // XXX VDOSTORY-190 It's probably safe to refresh the increment limit here
-  // and probably worth doing.
+  // and probably worth doing. (Or maybe not if the lock could be shared).
 
-  if (duplicateLock->incrementLimit == 0) {
+  if (allIncrementsClaimed(duplicateLock)) {
     // We can't use the lock to dedupe, nor can anyone else, so cancel any
     // other waiters and reject the lock transfer.
     cancelDuplicateLockWait(dataVIOAsWaiter(dataVIO), NULL);
@@ -1161,7 +1159,7 @@ static void lockDuplicatePBN(VDOCompletion *completion)
     return;
   }
 
-  if (isPBNLocked(lock)) {
+  if (lock->holderCount > 0) {
     /*
      * XXX VDOSTORY-190 This is where we share the PBN lock, once the
      * array of compression slot read lock holders is added.
@@ -1216,7 +1214,7 @@ static void lockDuplicatePBN(VDOCompletion *completion)
  **/
 static void startLocking(HashLock *lock, DataVIO *agent)
 {
-  ASSERT_LOG_ONLY(!isPBNLocked(lock->duplicateLock),
+  ASSERT_LOG_ONLY(lock->duplicateLock == NULL,
                   "must not acquire a duplicate lock when already holding it");
 
   setHashLockState(lock, HASH_LOCK_LOCKING);
@@ -1261,24 +1259,7 @@ static void finishWriting(HashLock *lock, DataVIO *agent)
   // If there are any waiters, we need to start deduping them or take a step
   // towards being able to do so.
   if (hasWaiters(&lock->waiters)) {
-    if (isCompressed(lock->duplicate.state)) {
-      /*
-       * WRITING -> LOCKING transition: The block was compressed, but we don't
-       * currently do lock downgrade/sharing from the compressed write, so
-       * treat the compressed location as advice and try to get a read lock
-       * and verify. The agent has a reference to the compressed block and can
-       * exit, so replace it with the first waiter.
-       */
-      // XXX VDOSTORY-190 If we used the current agent to acquire the PBN
-      // lock we wouldn't need to verify.
-      // XXX VDOSTORY-190 compressed block lock downgrade gets rid of this
-      agent          = retireLockAgent(lock);
-      lock->verified = false;
-      startLocking(lock, agent);
-      return;
-    }
-
-    if (!isPBNLocked(lock->duplicateLock)) {
+    if (lock->duplicateLock == NULL) {
       /*
        * WRITING -> DOWNGRADING transition: a synchronously-written block
        * failed to compress, so the agent still holds a write lock on the PBN
@@ -1307,7 +1288,7 @@ static void finishWriting(HashLock *lock, DataVIO *agent)
      * an allocation.
      */
     startUpdating(lock, agent);
-  } else if (isPBNLocked(lock->duplicateLock)) {
+  } else if (lock->duplicateLock != NULL) {
     /*
      * WRITING -> UNLOCKING transition: There's no waiter and no update
      * needed, but the write gave us a duplicate lock that we must release.
@@ -1599,9 +1580,18 @@ static bool isHashCollision(HashLock *lock, DataVIO *candidate)
   if (isRingEmpty(&lock->duplicateRing)) {
     return false;
   }
+
   DataVIO       *lockHolder = dataVIOFromLockNode(lock->duplicateRing.next);
   PhysicalLayer *layer      = dataVIOAsCompletion(candidate)->layer;
-  return !layer->compareDataVIOs(lockHolder, candidate);
+  bool           collides   = !layer->compareDataVIOs(lockHolder, candidate);
+
+  if (collides) {
+    bumpHashZoneCollisionCount(candidate->hashZone);
+  } else {
+    bumpHashZoneDataMatchCount(candidate->hashZone);
+  }
+
+  return collides;
 }
 
 /**********************************************************************/
@@ -1669,7 +1659,7 @@ void releaseHashLock(DataVIO *dataVIO)
 /**********************************************************************/
 void transferPBNWriteLock(DataVIO *dataVIO)
 {
-  ASSERT_LOG_ONLY(!isPBNLocked(getDuplicateLock(dataVIO)),
+  ASSERT_LOG_ONLY(getDuplicateLock(dataVIO) == NULL,
                   "a duplicate PBN lock should not exist when writing");
   ASSERT_LOG_ONLY(dataVIO->newMapped.pbn == getDataVIOAllocation(dataVIO),
                   "transferred lock must be for the block written");
@@ -1696,4 +1686,31 @@ void transferPBNWriteLock(DataVIO *dataVIO)
   ASSERT_LOG_ONLY(limit == (MAXIMUM_REFERENCE_COUNT - 1),
                   "increment limit after write must be MAX-1, but was %u",
                   limit);
+}
+
+/**********************************************************************/
+void shareCompressedWriteLock(DataVIO *dataVIO, PBNLock *pbnLock)
+{
+  ASSERT_LOG_ONLY(getDuplicateLock(dataVIO) == NULL,
+                  "a duplicate PBN lock should not exist when writing");
+  ASSERT_LOG_ONLY(isCompressed(dataVIO->newMapped.state),
+                  "lock transfer must be for a compressed write");
+  assertInNewMappedZone(dataVIO);
+
+  // First sharer downgrades the lock.
+  if (!isPBNReadLock(pbnLock)) {
+    downgradePBNWriteLock(pbnLock);
+    pbnLock->incrementLimit = MAXIMUM_REFERENCE_COUNT;
+  }
+
+  // Get a share of the PBN lock, ensuring it cannot be released until
+  // after this DataVIO has had a chance to journal a reference.
+  dataVIO->duplicate           = dataVIO->newMapped;
+  dataVIO->hashLock->duplicate = dataVIO->newMapped;
+  setDuplicateLock(dataVIO->hashLock, pbnLock);
+
+  // Claim a reference for this DataVIO, which is necessary since another
+  // HashLock might start deduplicating against it before our incRef.
+  bool claimed = claimPBNLockIncrement(pbnLock);
+  ASSERT_LOG_ONLY(claimed, "impossible to fail to claim an initial increment");
 }

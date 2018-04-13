@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/sysfs.h#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/sysfs.h#1 $
  */
 
 #ifndef SYSFS_H
 #define SYSFS_H
 
 /**
- * Called when the module is loaded to initialize the /sys/<module_name>
+ * Called when the module is loaded to initialize the /sys/\<module_name\>
  * tree.
  *
  * @return 0 on success, or non-zero on error
@@ -32,7 +32,7 @@ int initSysfs(void);
 
 /**
  * Called when the module is being unloaded to terminate the
- * /sys/<module_name> tree.
+ * /sys/\<module_name\> tree.
  **/
 void putSysfs(void);
 

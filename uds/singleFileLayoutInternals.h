@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/singleFileLayoutInternals.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayoutInternals.h#1 $
  */
 
 #ifndef SINGLE_FILE_LAYOUT_INTERNALS_H
@@ -168,10 +168,9 @@ typedef struct saveLayoutSizes {
  *
  * @param sfl           the layout to initialize
  * @param region        the IO region for this layout
- * @param firstBlock    the first block number in the region
- * @param blockSize     the block size to use
- * @param table         the region table read from the superblock
  * @param super         the super block data read from the superblock
+ * @param table         the region table read from the superblock
+ * @param firstBlock    the first block number in the region
  *
  * @return UDS_SUCCESS or an error code
  **/

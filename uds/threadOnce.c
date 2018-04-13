@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/threadOnce.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/threadOnce.c#1 $
  */
 
 #include "errors.h"
@@ -32,14 +32,11 @@ enum {
 int performOnce(OnceState *once, void (*function)(void))
 {
   for (;;) {
-    switch (atomicLoad32(once)) {
+    switch (atomic_cmpxchg(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
     case ONCE_NOT_DONE:
-      if (compareAndSwap32(once, ONCE_NOT_DONE, ONCE_IN_PROGRESS)) {
-        function();
-        atomicStore32(once, ONCE_COMPLETE);
-        return UDS_SUCCESS;
-      }
-      break;
+      function();
+      atomic_set_release(once, ONCE_COMPLETE);
+      return UDS_SUCCESS;
     case ONCE_IN_PROGRESS:
       yieldScheduler();
       break;

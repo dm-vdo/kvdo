@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexRouterStats.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexRouterStats.h#1 $
  */
 
 #ifndef INDEX_ROUTER_STATS_H
@@ -28,7 +28,6 @@ struct indexRouterStatCounters {
   uint64_t      entriesIndexed;
   uint64_t      memoryUsed;
   uint64_t      diskUsed;
-  uint64_t      numDlists;
   uint64_t      collisions;
   uint64_t      entriesDiscarded;
   uint64_t      checkpoints;

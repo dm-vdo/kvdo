@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexPageMap.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexPageMap.c#1 $
  */
 
 #include "indexPageMap.h"
@@ -294,7 +294,7 @@ uint64_t computeIndexPageMapSaveSize(const Geometry *geometry)
  * @param [in]  portal          The component portal.
  * @param [in]  geometry        The index geometry.
  * @param [out] version         The version of the index page map.
- * @param [out] reader          The buffered reader used to read the version.
+ * @param [out] readerPtr       The buffered reader used to read the version.
  *
  * @return UDS_SUCCESS or an error code, particularly UDS_CORRUPT_COMPONENT.
  **/

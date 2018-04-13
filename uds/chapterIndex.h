@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterIndex.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/chapterIndex.h#1 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -94,6 +94,7 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  * copied onto the page is returned to the caller.
  *
  * @param openChapterIndex  The open chapter index
+ * @param volumeNonce       The nonce value used to authenticate the volume
  * @param memory            The memory page to use
  * @param firstList         The first delta list number to be copied
  * @param lastPage          If true, this is the last page of the chapter

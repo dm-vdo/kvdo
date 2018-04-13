@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/deltaIndex.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#1 $
  */
 #include "deltaIndex.h"
 
@@ -254,20 +254,22 @@ static INLINE void decodeDelta(DeltaIndexEntry *deltaEntry)
   const byte *memory = deltaZone->memory;
   uint64_t deltaOffset
     = getDeltaEntryOffset(deltaEntry) + deltaEntry->valueBits;
-  const uint32_t *addr = (const uint32_t *) (memory + deltaOffset / CHAR_BIT);
+  const byte *addr = memory + deltaOffset / CHAR_BIT;
   int offset = deltaOffset % CHAR_BIT;
-  uint32_t data = *addr++ >> offset;
+  uint32_t data = getUInt32LE(addr) >> offset;
+  addr += sizeof(uint32_t);
   int keyBits = deltaZone->minBits;
   unsigned int delta = data & ((1 << keyBits) - 1);
   if (delta >= deltaZone->minKeys) {
     data >>= keyBits;
     if (data == 0) {
       keyBits = sizeof(uint32_t) * CHAR_BIT - offset;
-      while ((data = *addr++) == 0) {
+      while ((data = getUInt32LE(addr)) == 0) {
+        addr += sizeof(uint32_t);
         keyBits += sizeof(uint32_t) * CHAR_BIT;
       }
     }
-    keyBits += __builtin_ffs(data);
+    keyBits += ffs(data);
     delta += (keyBits - deltaZone->minBits - 1) * deltaZone->incrKeys;
   }
   deltaEntry->delta = delta;

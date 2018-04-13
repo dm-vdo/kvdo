@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/request.c#1 $
  */
 
 #include "request.h"
@@ -24,12 +24,10 @@
 #include "featureDefs.h"
 #include "grid.h"
 #include "indexSession.h"
-#include "isCallbackThreadDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "parameter.h"
 #include "permassert.h"
-#include "requestLimit.h"
 #include "udsState.h"
 
 /**
@@ -40,34 +38,6 @@ struct synchronousCallback {
   CondVar condition;
   bool    complete;
 };
-
-// ************** Start of request turnaround histogram code **************
-#if HISTOGRAMS
-#include "histogram.h"
-
-Histogram *turnaroundTimeHistogram = NULL;
-const char *turnaroundTimeHistogramName = NULL;
-
-static void finishTurnaroundHistogram(void)
-{
-  plotHistogram(turnaroundTimeHistogramName, turnaroundTimeHistogram);
-  freeHistogram(&turnaroundTimeHistogram);
-}
-
-void doTurnaroundHistogram(const char *name)
-{
-  int result = udsSetParameter(UDS_TIME_REQUEST_TURNAROUND, UDS_PARAM_TRUE);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "cannot set %s to true",
-                            UDS_TIME_REQUEST_TURNAROUND);
-  }
-
-  turnaroundTimeHistogramName = name;
-  turnaroundTimeHistogram = makeLogarithmicHistogram("Turnaround Time", 7);
-  atexit(finishTurnaroundHistogram);
-}
-#endif /* HISTOGRAMS */
-// ************** End of request turnaround histogram code **************
 
 /**
  * Perform a synchronous callback by marking the request/callback
@@ -126,121 +96,14 @@ int launchAllocatedClientRequest(Request *request)
     return sansUnrecoverable(result);
   }
 
-  // Start the clock on the call, not the enqueueing.
-  AbsTime initTime = ABSTIME_EPOCH;
-  if (request->context->timeRequestTurnaround) {
-    initTime = currentTime(CT_MONOTONIC);
-  }
-
   request->action           = (RequestAction) request->type;
-  request->fromCallback     = true;
-  request->initTime         = initTime;
   request->isControlMessage = false;
   request->unbatched        = false;
 
-#if NAMESPACES
-  xorNamespace(&request->hash, &request->context->namespaceHash);
-#endif /* NAMESPACES */
   request->router = selectGridRouter(request->context->indexSession->grid,
                                      &request->hash);
 
   enqueueRequest(request, STAGE_TRIAGE);
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int createRequest(unsigned int contextId, Request **requestPtr)
-{
-  if (requestPtr == NULL) {
-    logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                              "cannot create uds request with NULL pointer");
-    return UDS_INVALID_ARGUMENT;
-  }
-
-  UdsContext *context;
-  int result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return sansUnrecoverable(result);
-  }
-
-  // Start the clock on the call, not the enqueueing.
-  AbsTime initTime = ABSTIME_EPOCH;
-  if (context->timeRequestTurnaround) {
-    initTime = currentTime(CT_MONOTONIC);
-  }
-
-  // Limit the number of outstanding requests, but don't count the requests
-  // issued by callbacks against the limit.
-  bool onCallbackThread = isCallbackThread();
-  if (!onCallbackThread) {
-    borrowRequestPermit(context->requestLimit);
-  }
-
-  // Don't batch non-callback client requests if the request limit is one (for
-  // clients simulating synchronous operation, like the replayer).
-  bool unbatched = (getRequestPermitLimit(context->requestLimit) == 1);
-
-  Request *request;
-  result = ALLOCATE(1, Request, "request", &request);
-  if (result != UDS_SUCCESS) {
-    return handleErrorAndReleaseBaseContext(context, result);
-  }
-
-  // NOTE: this passes the session reference on to the request
-  request->context          = context;
-  request->fromCallback     = onCallbackThread;
-  request->initTime         = initTime;
-  request->update           = false;
-  request->isControlMessage = false;
-  request->unbatched        = unbatched;
-  *requestPtr = request;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int launchClientRequest(unsigned int        contextId,
-                        UdsCallbackType     callbackType,
-                        bool                update,
-                        const UdsChunkName *chunkName,
-                        UdsCookie           cookie,
-                        void               *metadata,
-                        size_t              dataLength,
-                        const void         *data)
-{
-  Request *request;
-  int result = createRequest(contextId, &request);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  request->update     = update;
-  request->cookie     = cookie;
-  request->type       = callbackType;
-  request->dataLength = dataLength;
-  request->action     = (RequestAction) callbackType;
-
-  RequestStage initialStage = STAGE_TRIAGE;
-  if (chunkName != NULL) {
-    setRequestHash(request, chunkName);
-  } else if (data != NULL) {
-    initialStage = STAGE_HASH;
-    if (dataLength > 0) {
-      result = memdup(data, dataLength, "request data", &request->data);
-    }
-  } else {
-    result = ASSERT_FALSE("request needs chunk name or chunk data");
-  }
-  if (result != UDS_SUCCESS) {
-    freeRequest(request);
-    return result;
-  }
-
-  if (metadata != NULL) {
-    memcpy(request->newMetadata.data, metadata,
-           request->context->metadataSize);
-  }
-
-  enqueueRequest(request, initialStage);
   return UDS_SUCCESS;
 }
 
@@ -366,24 +229,13 @@ void freeRequest(Request *request)
 
   // Capture fields from the request we need after it is freed.
   UdsContext *context = request->context;
-  bool holdsPermit = (!request->fromCallback && !request->isControlMessage);
 
   FREE(request->serverContext);
-
-  // Attempt to free data block just in case (this will be NULL if completed
-  // in the hash phase).
-  FREE(request->data);
   FREE(request);
   request = NULL;
 
   if (context == NULL) {
     return;
-  }
-
-  // If this request was counted against the request limit, now that the
-  // request has been freed, it is time to return the request permit.
-  if (holdsPermit) {
-    returnRequestPermits(context->requestLimit, 1);
   }
 
   // Release the counted reference to the context that was acquired for the
@@ -392,66 +244,11 @@ void freeRequest(Request *request)
 }
 
 /**********************************************************************/
-void setRequestHash(Request *request, const UdsChunkName *name)
-{
-  if (name == NULL) {
-    return;
-  }
-
-  request->hash = *name;
-#if NAMESPACES
-  xorNamespace(&request->hash, &request->context->namespaceHash);
-#endif /* NAMESPACES */
-  // Once the chunk name is known (either at launch time or after hashing), we
-  // can select a router to handle the request.
-  request->router = selectGridRouter(request->context->indexSession->grid,
-                                     &request->hash);
-}
-
-/**
- * Calculate the turnaround time (in microseconds) for a request.
- *
- * @param request     The request being finished
- **/
-static int64_t getTurnaroundTime(Request *request)
-{
-  if (!request->context->timeRequestTurnaround) {
-    return 0;
-  }
-
-  AbsTime finishTime = currentTime(CT_MONOTONIC);
-
-  /*
-   * Note: In the current Linux kernels we're using, time can run
-   * backwards!  (Presumably only when switching between cores or
-   * CPUs.)  It happens even if you use
-   * clock_gettime(CLOCK_MONOTONIC).  So we can't really sanity-check
-   * very well, and we use signed values.
-   *
-   * Just use the value, and hope such errors cancel out somewhat over
-   * time.  Of course, since our switches between processors aren't
-   * necessarily random, that's a bit naive.
-   *
-   * TODO: We might do better mapping in /dev/hpet and reading HPET
-   * timer values, but that's more work and less portable, and may
-   * require supporting falling back to gettimeofday or clock_gettime.
-   * Still, it may be worth exploring if we want better accuracy.
-   */
-  return relTimeToMicroseconds(timeDifference(finishTime, request->initTime));
-}
-
-/**********************************************************************/
 static RequestQueue *getNextStageQueue(Request      *request,
                                        RequestStage  nextStage)
 {
-  if (nextStage == STAGE_HASH) {
-    // This request doesn't yet have a hash (chunk name) to dispatch to a
-    // router or index, so round-robin it to the next hash worker queue.
-    return getNextHashQueue(request);
-  }
-
   if (nextStage == STAGE_CALLBACK) {
-    return request->context->callbackQueue;
+    return request->context->indexSession->callbackQueue;
   }
 
   // Local and remote index routers handle the rest of the pipeline
@@ -512,28 +309,11 @@ void setRequestRestarter(RequestRestarter restarter)
 /**********************************************************************/
 void updateRequestContextStats(Request *request)
 {
-  int64_t turnaround = getTurnaroundTime(request);
-
   // We don't need any synchronization since the context stats are only
   // accessed from the single callback thread.
 
   UdsContext *context = request->context;
   StatCounters *counters = &context->stats.counters;
-
-  /*
-   * Unless we get a really slow processing rate and a really large
-   * request pipeline size *and* a deployment operating at saturation
-   * for many years, we shouldn't need to worry about this overflowing.
-   */
-  counters->requestTurnaroundTime += turnaround;
-  if (turnaround > counters->maximumTurnaroundTime) {
-    counters->maximumTurnaroundTime = turnaround;
-  }
-#if HISTOGRAMS
-  if (turnaroundTimeHistogram != NULL) {
-    enterHistogramSample(turnaroundTimeHistogram, turnaround);
-  }
-#endif /* HISTOGRAMS */
 
   counters->requests++;
   bool found = (request->location != LOC_UNAVAILABLE);
@@ -550,17 +330,8 @@ void updateRequestContextStats(Request *request)
       } else if (request->location == LOC_IN_SPARSE) {
         counters->postsFoundSparse++;
       }
-
-      if (request->dataLength > 0) {
-        counters->bytesFound += request->dataLength;
-        counters->postsFoundData++;
-      }
     } else {
       counters->postsNotFound++;
-      if (request->dataLength > 0) {
-        counters->bytesNotFound += request->dataLength;
-        counters->postsNotFoundData++;
-      }
     }
     break;
 

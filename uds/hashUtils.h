@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/hashUtils.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/hashUtils.h#1 $
  */
 
 #ifndef HASH_UTILS_H
@@ -25,7 +25,6 @@
 #include "compiler.h"
 #include "common.h"
 #include "geometry.h"
-#include "murmur/MurmurHash3.h"
 #include "numeric.h"
 #include "uds.h"
 
@@ -217,47 +216,6 @@ int chunkDataToHex(const UdsChunkData *chunkData,
  **/
 unsigned int computeBits(unsigned int maxValue)
   __attribute__((warn_unused_result));
-
-/**
- * Quickly generate a non-cryptographic hash of a chunk of data using
- * one or two invocations of the 128-bit MurmurHash3 algorithm.
- *
- * @param [in] data     A pointer to the opaque data
- * @param [in] size     The size of the data, in bytes
- * @param [in] seed     A seed value for the hash calculation
- *
- * @return              The calculated chunk name
- **/
-static INLINE UdsChunkName murmurHashChunkName(const void *data,
-                                               size_t      size,
-                                               uint32_t    seed)
-{
-  // A pair of randomly-generated seed values for the two hash computations.
-  enum { SEED1 = 0x62ea60be, SEED2 = 0x3eeb36cd };
-  UdsChunkName name;
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    MurmurHash3_x64_128(data, size, SEED1 ^ seed, &name.name[0]);
-  } else {
-    MurmurHash3_x64_128_double(data, size, SEED1 ^ seed, SEED2 ^ seed,
-                               &name.name[0]);                               
-  }
-  return name;
-}
-
-/**
- * Quickly generate a non-cryptographic hash of a chunk of data using
- * one or two invocations of the 128-bit MurmurHash3 algorithm with a
- * default seed.
- *
- * @param [in] data     A pointer to the opaque data
- * @param [in] size     The size of the data, in bytes
- *
- * @return              The calculated chunk name
- **/
-static INLINE UdsChunkName murmurGenerator(const void *data, size_t size)
-{
-  return murmurHashChunkName(data, size, 0);
-}
 
 /**
  * FOR TESTING. Set the portion of a block name used by the chapter index.

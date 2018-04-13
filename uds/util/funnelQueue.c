@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/funnelQueue.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.c#1 $
  */
 
 #include "funnelQueue.h"
@@ -28,15 +28,6 @@
 /**********************************************************************/
 int makeFunnelQueue(FunnelQueue **queuePtr)
 {
-  /*
-   * This implementation has only been analyzed for the memory fence
-   * semantics of the X86 architecture. If ported to some other architecture
-   * that supports the atomic pointer swap in funnelQueueAdd(), correctness of
-   * the consumer code in funnelQueuePoll() with respect to that swap must be
-   * verified for that architecture.
-   */
-  STATIC_ASSERT(__x86_64__);
-
   // Allocate the queue on a cache line boundary so the producer and consumer
   // fields in the structure will land on separate cache lines.
   FunnelQueue *queue;
@@ -64,6 +55,12 @@ void freeFunnelQueue(FunnelQueue *queue)
 /**********************************************************************/
 FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
 {
+  /*
+   * Barrier requirements: We need a read barrier between reading a "next"
+   * field pointer value and reading anything it points to. There's an
+   * accompanying barrier in funnelQueuePut between its caller setting up the
+   * entry and making it visible.
+   */
   FunnelQueueEntry *oldest = queue->oldest;
   FunnelQueueEntry *next   = oldest->next;
 
@@ -77,6 +74,7 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
     // without breaking the queue invariants.
     oldest = next;
     queue->oldest = oldest;
+    smp_read_barrier_depends();
     next = oldest->next;
   }
 
@@ -111,5 +109,13 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
    */
   queue->oldest = next;
   oldest->next = NULL;
+  /*
+   * Make sure the caller sees the proper stored data for this entry.
+   *
+   * Since we've already fetched the entry pointer we stored in "oldest", this
+   * also ensures that on entry to the next call we'll properly see the
+   * dependent data.
+   */
+  smp_rmb();
   return oldest;
 }

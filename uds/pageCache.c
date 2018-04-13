@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/pageCache.c#1 $
  */
 
 #include "pageCache.h"
 
+#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
@@ -34,7 +35,6 @@
 #include "recordPage.h"
 #include "stringUtils.h"
 #include "threads.h"
-#include "util/atomic.h"
 #include "zone.h"
 
 /**********************************************************************/
@@ -457,7 +457,7 @@ int getPageFromCache(PageCache     *cache,
                                  : ((queueIndex != -1)
                                     ? CACHE_RESULT_QUEUED
                                     : CACHE_RESULT_MISS));
-  addToCacheCounter(&cache->counters, probeType, cacheResult, 1);
+  incrementCacheCounter(&cache->counters, probeType, cacheResult);
 
   if (pagePtr != NULL) {
     *pagePtr = page;
@@ -637,7 +637,7 @@ int putPageInCache(PageCache    *cache,
 
   // We want to make sure the page is completely set up before placing it in
   // the page map
-  storeFence();
+  smp_wmb();
 
   // Point the page map to the new page. Will clear queued flag
   cache->index[physicalPage] = value;
@@ -672,7 +672,7 @@ void cancelPageInCache(PageCache    *cache,
 
   // We want to make sure the page is completely set up before clearing the
   // page map
-  storeFence();
+  smp_wmb();
 
   // Clear the page map for the new page. Will clear queued flag
   cache->index[physicalPage] = cache->numCacheEntries;

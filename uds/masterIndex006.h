@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/masterIndex006.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/masterIndex006.h#1 $
  */
 
 #ifndef MASTERINDEX006_H
@@ -29,6 +29,7 @@
  *
  * @param config          The configuration of the master index
  * @param numZones        The number of zones
+ * @param volumeNonce     The nonce used to authenticate the index
  * @param masterIndex     Location to hold new master index ptr
  *
  * @return error code or UDS_SUCCESS

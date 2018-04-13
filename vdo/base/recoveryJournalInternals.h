@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/recoveryJournalInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#1 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -83,8 +83,10 @@ typedef struct {
   PhysicalBlockNumber  blockNumber;
   /** Whether this block is being committed */
   bool                 committing;
-  /** Whether this block needs to flush before writing */
-  bool                 flushBeforeWrite;
+  /** Whether this block has an uncommitted increment for a partial write */
+  bool                 hasPartialWriteEntry;
+  /** Whether this block has an uncommitted increment for a write with FUA */
+  bool                 hasFUAEntry;
   /** The total number of entries in this block */
   JournalEntryCount    entryCount;
   /** The number of new entries in the current commit */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/packerInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packerInternals.h#1 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -55,25 +55,22 @@ struct inputBin {
 };
 
 /**
- * Each OutputBin allows a single compressed block to packed and written. When
- * it is not idle, it holds a batch of DataVIOs that have been packed into the
- * compressed block, written asynchronously, and are waiting for the write to
- * complete.
+ * Each OutputBin allows a single compressed block to be packed and written.
+ * When it is not idle, it holds a batch of DataVIOs that have been packed
+ * into the compressed block, written asynchronously, and are waiting for the
+ * write to complete.
  **/
 typedef struct {
   /** List links for Packer.outputBins */
-  RingNode                 ring;
+  RingNode         ring;
   /** The storage for encoding the compressed block representation */
-  CompressedBlock         *block;
-  /**
-   * The number of fragments in this block whose DataVIOs have not yet
-   * incremented their reference to the compressed block.
-   */
-  CompressedFragmentCount  outstandingFragments;
+  CompressedBlock *block;
   /** The AllocatingVIO wrapping the compressed block for writing */
-  AllocatingVIO           *writer;
+  AllocatingVIO   *writer;
+  /** The number of compression slots used in the compressed block */
+  SlotNumber       slotsUsed;
   /** The DataVIOs packed into the block, waiting for the write to complete */
-  WaitQueue                outgoing;
+  WaitQueue        outgoing;
 } OutputBin;
 
 /**

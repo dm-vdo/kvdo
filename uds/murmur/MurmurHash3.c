@@ -62,12 +62,47 @@ static inline uint64_t rotl64 ( uint64_t x, int8_t r )
 
 static FORCE_INLINE uint32_t getblock ( const uint32_t * p, int i )
 {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return p[i];
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  return __builtin_bswap32(p[i]);
+#else
+#error "can't figure out byte order"
+#endif
 }
 
 static FORCE_INLINE uint64_t getblock64 ( const uint64_t * p, int i )
 {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   return p[i];
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  return __builtin_bswap64(p[i]);
+#else
+#error "can't figure out byte order"
+#endif
+}
+
+// Block write
+static FORCE_INLINE void putblock (uint32_t *p, int i, uint32_t value)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  p[i] = value;
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  p[i] = __builtin_bswap32(value);
+#else
+#error "can't figure out byte order"
+#endif
+}
+
+static FORCE_INLINE void putblock64 (uint64_t *p, int i, uint64_t value)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  p[i] = value;
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  p[i] = __builtin_bswap64(value);
+#else
+#error "can't figure out byte order"
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -151,7 +186,7 @@ void MurmurHash3_x86_32 ( const void * key, int len,
 
   h1 = fmix32(h1);
 
-  *(uint32_t*)out = h1;
+  putblock(out, 0, h1);
 }
 
 //-----------------------------------------------------------------------------
@@ -254,10 +289,10 @@ void MurmurHash3_x86_128 ( const void * key, const int len,
   h1 += h2; h1 += h3; h1 += h4;
   h2 += h1; h3 += h1; h4 += h1;
 
-  ((uint32_t*)out)[0] = h1;
-  ((uint32_t*)out)[1] = h2;
-  ((uint32_t*)out)[2] = h3;
-  ((uint32_t*)out)[3] = h4;
+  putblock((uint32_t*)out, 0, h1);
+  putblock((uint32_t*)out, 1, h2);
+  putblock((uint32_t*)out, 2, h3);
+  putblock((uint32_t*)out, 3, h4);
 }
 
 //-----------------------------------------------------------------------------
@@ -338,8 +373,8 @@ void MurmurHash3_x64_128 ( const void * key, const int len,
   h1 += h2;
   h2 += h1;
 
-  ((uint64_t*)out)[0] = h1;
-  ((uint64_t*)out)[1] = h2;
+  putblock64((uint64_t*)out, 0, h1);
+  putblock64((uint64_t*)out, 1, h2);
 }
 
 //-----------------------------------------------------------------------------
@@ -452,8 +487,8 @@ void MurmurHash3_x64_128_double (const void     *key,
   hB1 += hB2;
   hB2 += hB1;
 
-  ((uint64_t*)out)[0] = hA1;
-  ((uint64_t*)out)[1] = hA2;
-  ((uint64_t*)out)[2] = hB1;
-  ((uint64_t*)out)[3] = hB2;
+  putblock64((uint64_t*)out, 0, hA1);
+  putblock64((uint64_t*)out, 1, hA2);
+  putblock64((uint64_t*)out, 2, hB1);
+  putblock64((uint64_t*)out, 3, hB2);
 }

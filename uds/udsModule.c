@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/udsModule.c#9 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#1 $
  */
 
 #include <linux/module.h>
@@ -52,57 +52,44 @@ static void __exit dedupeExit(void)
 module_init(dedupeInit);
 module_exit(dedupeExit);
 
-EXPORT_SYMBOL(UDS_MEMORY_CONFIG_256MB);
-EXPORT_SYMBOL(UDS_MEMORY_CONFIG_512MB);
-EXPORT_SYMBOL(UDS_MEMORY_CONFIG_768MB);
-EXPORT_SYMBOL(UDS_MEMORY_CONFIG_MAX);
-EXPORT_SYMBOL(udsCalculateSHA256ChunkName);
-EXPORT_SYMBOL(udsCalculateMurmur3ChunkName);
-EXPORT_SYMBOL(udsEqualChunkName);
-EXPORT_SYMBOL(udsInitializeConfiguration);
-EXPORT_SYMBOL(udsComputeIndexSize);
-EXPORT_SYMBOL(udsConfigurationSetNonce);
-EXPORT_SYMBOL(udsConfigurationGetNonce);
-EXPORT_SYMBOL(udsConfigurationSetSparse);
-EXPORT_SYMBOL(udsConfigurationGetSparse);
-EXPORT_SYMBOL(udsConfigurationSetCheckpointFrequency);
-EXPORT_SYMBOL(udsConfigurationGetCheckpointFrequency);
-EXPORT_SYMBOL(udsConfigurationGetMemory);
-EXPORT_SYMBOL(udsConfigurationGetChaptersPerVolume);
-EXPORT_SYMBOL(udsFreeConfiguration);
-EXPORT_SYMBOL(udsGetVersion);
-EXPORT_SYMBOL(udsCreateLocalIndex);
-EXPORT_SYMBOL(udsLoadLocalIndex);
-EXPORT_SYMBOL(udsRebuildLocalIndex);
-EXPORT_SYMBOL(udsCloseIndexSession);
-EXPORT_SYMBOL(udsStringError);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_256MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_512MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_768MB);
+EXPORT_SYMBOL_GPL(UDS_MEMORY_CONFIG_MAX);
+EXPORT_SYMBOL_GPL(udsInitializeConfiguration);
+EXPORT_SYMBOL_GPL(udsComputeIndexSize);
+EXPORT_SYMBOL_GPL(udsConfigurationSetNonce);
+EXPORT_SYMBOL_GPL(udsConfigurationGetNonce);
+EXPORT_SYMBOL_GPL(udsConfigurationSetSparse);
+EXPORT_SYMBOL_GPL(udsConfigurationGetSparse);
+EXPORT_SYMBOL_GPL(udsConfigurationSetCheckpointFrequency);
+EXPORT_SYMBOL_GPL(udsConfigurationGetCheckpointFrequency);
+EXPORT_SYMBOL_GPL(udsConfigurationGetMemory);
+EXPORT_SYMBOL_GPL(udsConfigurationGetChaptersPerVolume);
+EXPORT_SYMBOL_GPL(udsFreeConfiguration);
+EXPORT_SYMBOL_GPL(udsGetVersion);
+EXPORT_SYMBOL_GPL(udsCreateLocalIndex);
+EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
+EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
+EXPORT_SYMBOL_GPL(udsCloseIndexSession);
+EXPORT_SYMBOL_GPL(udsStringError);
 
-EXPORT_SYMBOL(udsOpenBlockContext);
-EXPORT_SYMBOL(udsCloseBlockContext);
-EXPORT_SYMBOL(udsFlushBlockContext);
-EXPORT_SYMBOL(udsRegisterDedupeBlockCallback);
-EXPORT_SYMBOL(udsSetBlockContextRequestQueueLimit);
-EXPORT_SYMBOL(udsSetBlockContextHashAlgorithm);
-EXPORT_SYMBOL(udsPostBlock);
-EXPORT_SYMBOL(udsPostBlockName);
-EXPORT_SYMBOL(udsQueryBlockName);
-EXPORT_SYMBOL(udsCheckBlock);
-EXPORT_SYMBOL(udsUpdateBlockMapping);
-EXPORT_SYMBOL(udsDeleteBlockMapping);
-EXPORT_SYMBOL(udsStartChunkOperation);
-EXPORT_SYMBOL(udsGetBlockContextConfiguration);
-EXPORT_SYMBOL(udsGetBlockContextIndexStats);
-EXPORT_SYMBOL(udsGetBlockContextStats);
-EXPORT_SYMBOL(udsResetBlockContextStats);
+EXPORT_SYMBOL_GPL(udsOpenBlockContext);
+EXPORT_SYMBOL_GPL(udsCloseBlockContext);
+EXPORT_SYMBOL_GPL(udsFlushBlockContext);
+EXPORT_SYMBOL_GPL(udsStartChunkOperation);
+EXPORT_SYMBOL_GPL(udsGetBlockContextConfiguration);
+EXPORT_SYMBOL_GPL(udsGetBlockContextIndexStats);
+EXPORT_SYMBOL_GPL(udsGetBlockContextStats);
 
-EXPORT_SYMBOL(UDS_PARAM_FALSE);
-EXPORT_SYMBOL(UDS_PARAM_TRUE);
-EXPORT_SYMBOL(udsGetParameter);
-EXPORT_SYMBOL(udsIterateParameter);
-EXPORT_SYMBOL(udsResetParameter);
-EXPORT_SYMBOL(udsSetParameter);
-EXPORT_SYMBOL(udsStringValue);
-EXPORT_SYMBOL(udsUnsignedValue);
+EXPORT_SYMBOL_GPL(UDS_PARAM_FALSE);
+EXPORT_SYMBOL_GPL(UDS_PARAM_TRUE);
+EXPORT_SYMBOL_GPL(udsGetParameter);
+EXPORT_SYMBOL_GPL(udsIterateParameter);
+EXPORT_SYMBOL_GPL(udsResetParameter);
+EXPORT_SYMBOL_GPL(udsSetParameter);
+EXPORT_SYMBOL_GPL(udsStringValue);
+EXPORT_SYMBOL_GPL(udsUnsignedValue);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);

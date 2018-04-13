@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#1 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -180,10 +180,8 @@ static void countAllBios(KVIO *kvio, BIO *bio)
 void sendBioToDevice(KVIO *kvio, BIO *bio, TraceLocation location)
 {
   /*
-   * If we're skipping the read cache before doing the I/O, we're
-   * doing round-robin thread selection, so even under the
-   * IWS_RC_PBN_BIO_PBN strategy we can't check the correctness of the
-   * bio work queue selection, only that we're running in one of them.
+   * We could probably go further and figure out if we're running in
+   * the correct bio queue for the relevant PBN...
    */
   assertRunningInBioQueue();
 
@@ -401,19 +399,6 @@ void enqueueBioMap(BIO                 *bio,
                    KvdoWorkFunction     callback,
                    PhysicalBlockNumber  pbn)
 {
-  bool chooseQueueByPBN;
-  switch (IO_WORK_STRATEGY) {
-  case IWS_RC_PBN_BIO_PBN:
-    chooseQueueByPBN = true;
-    break;
-  case IWS_RC_PBN_BIO_RR:
-  case IWS_RC_BATCH_BIO_RR:
-    chooseQueueByPBN = false;
-    break;
-  default:
-    BUG();
-  }
-
   KVIO *kvio                  = bio->bi_private;
   kvio->bioToSubmit           = bio;
   kvio->bioSubmissionCallback = callback;
@@ -421,14 +406,7 @@ void enqueueBioMap(BIO                 *bio,
                 action);
 
   KernelLayer  *layer = kvio->layer;
-  BioQueueData *bioQueueData;
-
-  if (chooseQueueByPBN) {
-    bioQueueData = bioQueueDataForPBN(layer->ioSubmitter, pbn);
-  } else {
-    unsigned int bioQueueIndex = advanceBioRotor(layer->ioSubmitter);
-    bioQueueData = &layer->ioSubmitter->bioQueueData[bioQueueIndex];
-  }
+  BioQueueData *bioQueueData = bioQueueDataForPBN(layer->ioSubmitter, pbn);
 
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io)"));
 
@@ -525,20 +503,7 @@ int makeIOSubmitter(const char    *threadNamePrefix,
   }
 
   if (layer->readCacheBlocks > 0) {
-    unsigned int zoneCount;
-    switch (IO_WORK_STRATEGY) {
-    case IWS_RC_PBN_BIO_PBN:
-    case IWS_RC_PBN_BIO_RR:
-      zoneCount = threadCount;
-      break;
-    case IWS_RC_BATCH_BIO_RR:
-      zoneCount = 1; // Hardcoded in readCache.c:zoneNumberForPBN!
-      break;
-    default:
-      BUG();
-    }
-
-    result = makeReadCache(layer, layer->readCacheBlocks, zoneCount,
+    result = makeReadCache(layer, layer->readCacheBlocks, threadCount,
                            &ioSubmitter->readCache);
     if (result != VDO_SUCCESS) {
       FREE(ioSubmitter);

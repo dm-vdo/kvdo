@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/funnelQueue.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/funnelQueue.h#1 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -145,31 +145,17 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
   __attribute__((warn_unused_result));
 
 /**
- * Poll a queue, returning the oldest entry if the queue is not empty.
- * This function must only be called from a single consumer thread.
- * (This is identical to funnelQueuePoll except for not removing the
- * entry.)
- *
- * @param queue  the queue to query
- *
- * @return the oldest entry in the queue, or NULL if the queue is empty.
- **/
-FunnelQueueEntry *funnelQueuePeek(FunnelQueue *queue)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether the funnel queue is empty or not.  Although this does not
- * alter the queue, this function must only be called from a single consumer
- * thread for the results to be valid.
+ * Check whether the funnel queue is empty or not. This function must only be
+ * called from a single consumer thread, as with funnelQueuePoll.
  *
  * If the queue is in a transition state with one or more entries being added
  * such that the list view is incomplete, it may not be possible to retrieve an
- * entry with the funnelQueuePoll() function.  However, in such states this
- * function will report a non-empty condition.
+ * entry with the funnelQueuePoll() function. In such states this function will
+ * report an empty indication.
  *
  * @param queue  the queue which to check for entries.
  *
- * @return true if queue contains an entry; false otherwise.
+ * @return true iff queue contains an entry which can be retrieved
  **/
 bool isFunnelQueueEmpty(FunnelQueue *queue)
   __attribute__((warn_unused_result));

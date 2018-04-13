@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexComponent.c#1 $
  */
 
 #include "indexComponentInternal.h"
@@ -479,8 +479,9 @@ static int closeBufferedWriter(WriteZone *writeZone)
  * a simple saver.  Conforms to IncrementalWriter signature.
  *
  * @param [in]  component      the index component
- * @param [in]  command        the incremental writer command
+ * @param [in]  writer         the buffered writer that does the output
  * @param [in]  zone           the zone number
+ * @param [in]  command        the incremental writer command
  * @param [out] completed      if non-NULL, set to whether the save is complete
  *
  * @return UDS_SUCCESS or an error code

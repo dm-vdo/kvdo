@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#13 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#1 $
  */
 
 #include "dmvdo.h"
@@ -160,9 +160,13 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio)
 
 #if HAS_PREPARE_IOCTL
 /**********************************************************************/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)
+int vdoPrepareIoctl(struct dm_target *ti, struct block_device **bdev)
+#else
 int vdoPrepareIoctl(struct dm_target *ti,
                     struct block_device **bdev,
                     fmode_t *mode)
+#endif
 {
   // At this time VDO will not support passing ioctls down.
   // TODO: Find out what the proper action should be.
@@ -252,8 +256,6 @@ static int vdoIterateDevices(struct dm_target           *ti,
 #endif /* HAS_FLUSH_SUPPORTED */
 }
 
-static const char albserverLabel[] = "albserver";
-
 /*
  * Device-mapper status method return types:
  *
@@ -287,6 +289,12 @@ typedef int DMStatusReturnType;
 
 #define STATUS_TAKES_FLAGS_ARG (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 
+/*
+ * Status line is:
+ *    <device> <operating mode> <in recovery> <index state> 
+ *    <compression state> <used physical blocks> <total physical blocks>
+ */
+
 /**********************************************************************/
 static DMStatusReturnType vdoStatus(struct dm_target *ti,
                                     status_type_t     status_type,
@@ -301,24 +309,21 @@ static DMStatusReturnType vdoStatus(struct dm_target *ti,
   // N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen".
   int sz = 0;
 
-  /*
-   * If/when we support configuring a new albserver address to replace
-   * the old one, we'll need some locking here.
-   */
-//  unsigned long flags;
-//  spin_lock_irqsave(&layer->lock, flags);
-
   switch (status_type) {
   case STATUSTYPE_INFO:
-    // Report all thread counts.
-    DMEMIT("/dev/%s %s %s cpu=%d,bio=%d,ack=%d,"
-           "bioRotationInterval=%d",
-           bdevname(layer->dev->bdev, nameBuffer), albserverLabel,
-           getDedupeStateName(layer->dedupeIndex),
-           layer->deviceConfig->threadCounts.cpuThreads,
-           layer->deviceConfig->threadCounts.bioThreads,
-           layer->deviceConfig->threadCounts.bioAckThreads,
-           layer->deviceConfig->threadCounts.bioRotationInterval);
+    // Report info for dmsetup status
+    mutex_lock(&layer->statsMutex);
+    getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+    VDOStatistics *stats = &layer->vdoStatsStorage;
+    DMEMIT("/dev/%s %s %s %s %s %" PRIu64 " %" PRIu64,
+           bdevname(layer->dev->bdev, nameBuffer),
+	   stats->mode,
+	   stats->inRecoveryMode ? "recovering" : "-",
+	   getDedupeStateName(layer->dedupeIndex),
+	   getKVDOCompressing(&layer->kvdo) ? "online" : "offline",
+	   stats->dataBlocksUsed + stats->overheadBlocksUsed,
+	   stats->physicalBlocks);
+    mutex_unlock(&layer->statsMutex);
     break;
 
   case STATUSTYPE_TABLE:
@@ -521,7 +526,15 @@ static int processVDOMessage(KernelLayer   *layer,
 }
 
 /**********************************************************************/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)
+static int vdoMessage(struct dm_target  *ti,
+                      unsigned int       argc,
+                      char             **argv,
+                      char              *resultBuffer,
+                      unsigned int       maxlen)
+#else
 static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
+#endif
 {
   if (argc == 0) {
     logWarning("unspecified dmsetup message");
@@ -609,7 +622,7 @@ static void configureTargetCapabilities(struct dm_target *ti,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)
   // If this value changes, please make sure to update the
   // value for maxDiscardSectors accordingly.
-  ti->max_io_len = VDO_SECTORS_PER_BLOCK;
+  BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 #else
   ti->split_io = VDO_SECTORS_PER_BLOCK;
 #endif

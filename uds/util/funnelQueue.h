@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/funnelQueue.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.h#1 $
  */
 
 #ifndef FUNNEL_QUEUE_H
 #define FUNNEL_QUEUE_H
 
-#include "atomic.h"
+#include "atomicDefs.h"
 #include "compiler.h"
 #include "cpu.h"
 #include "typeDefs.h"
@@ -124,10 +124,17 @@ void freeFunnelQueue(FunnelQueue *queue);
  **/
 static INLINE void funnelQueuePut(FunnelQueue *queue, FunnelQueueEntry *entry)
 {
+  /*
+   * Barrier requirements: All stores relating to the entry ("next" pointer,
+   * containing data structure fields) must happen before the previous->next
+   * store making it visible to the consumer. Also, the entry's "next" field
+   * initialization to NULL must happen before any other producer threads can
+   * see the entry (the xchg) and try to update the "next" field.
+   *
+   * xchg implements a full barrier.
+   */
   entry->next = NULL;
-  gccFence();
-  FunnelQueueEntry *previous = __sync_lock_test_and_set(&queue->newest, entry);
-  gccFence();                   // Probably not needed?
+  FunnelQueueEntry *previous = xchg(&queue->newest, entry);
   // Pre-empts between these two statements hide the rest of the queue from
   // the consumer, preventing consumption until the following assignment runs.
   previous->next = entry;

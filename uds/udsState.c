@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsState.c#6 $
+ * $Id: //eng/uds-releases/gloria/src/uds/udsState.c#1 $
  */
 
 #include "udsState.h"
 
+#include "atomicDefs.h"
 #include "context.h"
 #include "errors.h"
 #include "featureDefs.h"
 #include "indexSession.h"
 #include "indexRouter.h"
-#include "isCallbackThreadDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "request.h"
@@ -44,8 +44,6 @@ typedef struct {
   char              cookie[16]; // for locating udsState in core file
   char              version[16]; // for double-checking library version
   Mutex             mutex;
-  unsigned int      hashQueueCount;
-  RequestQueue    **hashQueues;
 #if GRID
   RequestQueue     *remoteQueue;
 #endif /* GRID */
@@ -67,7 +65,7 @@ enum {
   STATE_RUNNING       = 2,
 };
 
-static Atomic32 initState = ATOMIC_INITIALIZER(STATE_UNINITIALIZED);
+static atomic_t initState = ATOMIC_INIT(STATE_UNINITIALIZED);
 
 /**********************************************************************/
 void lockGlobalStateMutex(void)
@@ -95,90 +93,6 @@ int checkLibraryRunning(void)
   default:
     return UDS_UNINITIALIZED;
   }
-}
-
-/**********************************************************************/
-static void computeHash(Request *request)
-{
-  // Just pass control requests on through.
-  if (request->isControlMessage) {
-    enqueueRequest(request, STAGE_TRIAGE);
-    return;
-  }
-
-  UdsChunkName name
-    = request->context->chunkNameGenerator(request->data, request->dataLength);
-  setRequestHash(request, &name);
-
-  // Release the data if it was internally allocated (for now ALL data is
-  // internally allocated so we always free it).
-  FREE(request->data);
-  request->data = NULL;
-
-  enqueueRequest(request, STAGE_TRIAGE);
-}
-
-/**********************************************************************/
-static int initializeHashQueues(void)
-{
-  // Count the number of CPU cores available to us. We create one
-  // SHA-256 hash worker queue and thread for each core.
-  int numCores = getNumCores();
-  RequestQueue **hashQueues;
-  int result = ALLOCATE(numCores, RequestQueue *, __func__, &hashQueues);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  for (int i = 0; i < numCores; i++) {
-    result = makeRequestQueue("uds:hashW", &computeHash, &hashQueues[i]);
-    if (result != UDS_SUCCESS) {
-      for (int j = 0; j < i; j++) {
-        requestQueueFinish(hashQueues[i]);
-      }
-      FREE(hashQueues);
-      return logErrorWithStringError(result, "Cannot start hash worker thread");
-    }
-  }
-  udsState.hashQueueCount = numCores;
-  udsState.hashQueues = hashQueues;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-RequestQueue *getNextHashQueue(Request *request)
-{
-  // If there are no hash queues, start them now, but don't create
-  // queues just for a FINISH request
-  if (udsState.hashQueueCount == 0) {
-    if (request->action == REQUEST_FINISH) {
-      return request->router->methods->selectQueue(request->router, request,
-                                                   STAGE_TRIAGE);
-    }
-    int result = UDS_SUCCESS;;
-    lockMutex(&udsState.mutex);
-    if (udsState.hashQueueCount == 0) {
-      result = initializeHashQueues();
-    }
-    unlockMutex(&udsState.mutex);
-    if (result != UDS_SUCCESS) {
-      return NULL;
-    }
-  }
-
-  /*
-   * If there's only one hash queue, or if this is a control request with no
-   * context, simply return the first hash queue. It's necessary that all
-   * control requests for the same RemoteIndexRouter use the same queue so
-   * REQUEST_FINISH doesn't outrace REQUEST_WRITE, and this trivally provides
-   * that invariant.
-   */
-  if ((udsState.hashQueueCount == 1) || (request->context == NULL)) {
-    return udsState.hashQueues[0];
-  }
-
-  // Cyclically distribute requests to each hash queue.
-  uint32_t rotor = atomicAdd32(&request->context->hashQueueRotor, 1);
-  return udsState.hashQueues[rotor % udsState.hashQueueCount];
 }
 
 #if GRID
@@ -277,7 +191,6 @@ static int udsInitializeOnce(void)
 {
   ensureStandardErrorBlocks();
   openLogger();
-  createCallbackThread();
   memset(&udsState, 0, sizeof(udsState));
   strncpy(udsState.cookie, "udsStateCookie", sizeof(udsState.cookie));
 #ifdef UDS_VERSION
@@ -339,14 +252,6 @@ static void udsShutdownOnce(void)
   }
 
   // Shut down the queues
-  if (udsState.hashQueues != NULL) {
-    for (unsigned int i = 0; i < udsState.hashQueueCount; i++) {
-      requestQueueFinish(udsState.hashQueues[i]);
-    }
-    FREE(udsState.hashQueues);
-    udsState.hashQueues = NULL;
-    udsState.hashQueueCount = 0;
-  }
 #if GRID
   freeRemoteQueue();
 #endif /* GRID */
@@ -354,26 +259,22 @@ static void udsShutdownOnce(void)
 
   destroyMutex(&udsState.mutex);
   closeLogger();
-  deleteCallbackThread();
 }
 
 /**********************************************************************/
 void udsInitialize(void)
 {
   for (;;) {
-    switch (atomicLoad32(&initState)) {
-    case STATE_UNINITIALIZED:
-      if (compareAndSwap32(&initState, STATE_UNINITIALIZED,
+    switch (atomic_cmpxchg(&initState, STATE_UNINITIALIZED,
                            STATE_IN_TRANSIT)) {
-        if (udsInitializeOnce() == UDS_SUCCESS) {
-          atomicStore32(&initState, STATE_RUNNING);
-          return;
-        }
-        udsShutdownOnce();
-        atomicStore32(&initState, STATE_UNINITIALIZED);
+    case STATE_UNINITIALIZED:
+      if (udsInitializeOnce() == UDS_SUCCESS) {
+        atomic_set_release(&initState, STATE_RUNNING);
         return;
       }
-      break;
+      udsShutdownOnce();
+      atomic_set_release(&initState, STATE_UNINITIALIZED);
+      return;
     case STATE_IN_TRANSIT:
       yieldScheduler();
       break;
@@ -388,7 +289,7 @@ void udsInitialize(void)
 void udsShutdown(void)
 {
   for (;;) {
-    switch (atomicLoad32(&initState)) {
+    switch (atomic_cmpxchg(&initState, STATE_RUNNING, STATE_IN_TRANSIT)) {
     case STATE_UNINITIALIZED:
     default:
       return;
@@ -396,13 +297,9 @@ void udsShutdown(void)
       yieldScheduler();
       break;
     case STATE_RUNNING:
-      if (compareAndSwap32(&initState, STATE_RUNNING,
-                           STATE_IN_TRANSIT)) {
-        udsShutdownOnce();
-        atomicStore32(&initState, STATE_UNINITIALIZED);
-        return;
-      }
-      break;
+      udsShutdownOnce();
+      atomic_set_release(&initState, STATE_UNINITIALIZED);
+      return;
     }
   }
 }
