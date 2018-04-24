@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#3 $
  */
 
 #include "volume.h"
@@ -173,13 +173,10 @@ void freeVolume(Volume *volume)
 /**********************************************************************/
 int closeVolume(Volume *volume)
 {
-  invalidateSparseCache(volume->sparseCache);
-
   int result = invalidatePageCache(volume->pageCache);
   if (result != UDS_SUCCESS) {
     return result;
   }
-
   return doneWithVolume(volume);
 }
 
@@ -376,9 +373,9 @@ static void readThreadFunction(void *arg)
 
         /*
          * Make sure the page map update above occurs before we check the
-         * invalidate counter. This ensures that any thread in searchVolume()
-         * will have updated the invalidateCounter so that we do not read into
-         * any page which is being searched.
+         * invalidate counter. This ensures that any thread in
+         * getRecordFromZone() will have updated the invalidateCounter so that
+         * we do not read into any page which is being searched.
          */
         smp_mb();
 
@@ -444,14 +441,14 @@ static void readThreadFunction(void *arg)
       STAILQ_REMOVE_HEAD(&queuedRequests, link);
 
       /*
-       * If we've read in a record page, we're going to do an immediate
-       * search, in an attempt to speed up processing when we requeue the
-       * request, so that it doesn't have to go back into the searchVolume
-       * code again. However, if we've just read in an index page, we don't
-       * want to search. We want the request to be processed again and
-       * searchVolume to be run. We have added new fields in request to allow
-       * the index code to know whether it can stop processing before
-       * searchVolume is called again.
+       * If we've read in a record page, we're going to do an immediate search,
+       * in an attempt to speed up processing when we requeue the request, so
+       * that it doesn't have to go back into the getRecordFromZone code again.
+       * However, if we've just read in an index page, we don't want to search.
+       * We want the request to be processed again and getRecordFromZone to be
+       * run.  We have added new fields in request to allow the index code to
+       * know whether it can stop processing before getRecordFromZone is called
+       * again.
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
         if (searchRecordPage(page->data, &request->hash, volume->geometry,
@@ -776,36 +773,14 @@ static int searchCachedIndexPage(Volume             *volume,
   return result;
 }
 
-/**
- * Fetch a record page from the cache or read it from the volume and search it
- * for a chunk name.
- *
- * If a match is found, optionally returns the metadata from the stored
- * record. If the requested record page is not cached, the page fetch may be
- * asynchronously completed on the slow lane, in which case UDS_QUEUED will be
- * returned and the request will be requeued for continued processing after
- * the page is read and added to the cache.
- *
- * @param volume           the volume containing the record page to search
- * @param request          the request originating the search (may be NULL for
- *                         a direct query from volume replay)
- * @param name             the name of the block or chunk
- * @param chapter          the chapter to search
- * @param recordPageNumber the record page number of the page to search
- * @param duplicate        an array in which to place the metadata of the
- *                         duplicate, if one was found
- * @param found            a (bool *) which will be set to true if the chunk
- *                         was found
- *
- * @return UDS_SUCCESS, UDS_QUEUED, or an error code
- **/
-static int searchCachedRecordPage(Volume             *volume,
-                                  Request            *request,
-                                  const UdsChunkName *name,
-                                  unsigned int        chapter,
-                                  int                 recordPageNumber,
-                                  UdsChunkData       *duplicate,
-                                  bool               *found)
+/**********************************************************************/
+int searchCachedRecordPage(Volume             *volume,
+                           Request            *request,
+                           const UdsChunkName *name,
+                           unsigned int        chapter,
+                           int                 recordPageNumber,
+                           UdsChunkData       *duplicate,
+                           bool               *found)
 {
   *found = false;
 
@@ -903,54 +878,13 @@ int readChapterIndexFromVolume(const Volume     *volume,
 }
 
 /**********************************************************************/
-static int searchVolumePageCache(Volume             *volume,
-                                 Request            *request,
-                                 const UdsChunkName *name,
-                                 unsigned int        chapter,
-                                 unsigned int        indexPageNumber,
-                                 UdsChunkData       *metadata,
-                                 bool               *found)
+int searchVolumePageCache(Volume             *volume,
+                          Request            *request,
+                          const UdsChunkName *name,
+                          uint64_t            virtualChapter,
+                          UdsChunkData       *metadata,
+                          bool               *found)
 {
-  int recordPageNumber;
-  int result = searchCachedIndexPage(volume, request, name, chapter,
-                                     indexPageNumber, &recordPageNumber);
-  if (result == UDS_SUCCESS) {
-    result = searchCachedRecordPage(volume, request, name, chapter,
-                                    recordPageNumber, metadata, found);
-  }
-
-  return result;
-}
-
-/**********************************************************************/
-int searchVolume(Volume             *volume,
-                 Request            *request,
-                 const UdsChunkName *name,
-                 uint64_t            virtualChapter,
-                 bool                isSparse,
-                 UdsChunkData       *metadata,
-                 bool               *found)
-{
-  if (found == NULL) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "searchVolume: found parameter is NULL");
-  }
-
-  // The slow lane thread has determined the location previously. We don't need
-  // to search again. Just return the location.
-  if ((request != NULL) && request->slLocationKnown) {
-    *found = (request->slLocation != LOC_UNAVAILABLE);
-    return UDS_SUCCESS;
-  }
-
-  if (isSparse && sparseCacheContains(volume->sparseCache,
-                                      virtualChapter,
-                                      request->zoneNumber)) {
-    // The named chunk, if it exists, is in a sparse chapter that is cached,
-    // so just run the chunk through the sparse chapter cache search.
-    return searchVolumeSparseCache(volume, request, virtualChapter, found);
-  }
-
   unsigned int physicalChapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);
   unsigned int indexPageNumber;
@@ -960,40 +894,14 @@ int searchVolume(Volume             *volume,
     return result;
   }
 
-  return (searchVolumePageCache(volume, request, name, physicalChapter,
-                                indexPageNumber, metadata, found));
-}
-
-/**************************************************************************/
-int searchVolumeSparseCache(Volume   *volume,
-                            Request  *request,
-                            uint64_t  virtualChapter,
-                            bool     *found)
-{
-  if (found == NULL) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                               "searchVolumeSparseCache: invalid found field");
-  }
-
   int recordPageNumber;
-  int result = searchSparseCache(volume->sparseCache,
-                                 volume->indexPageMap,
-                                 &request->hash,
-                                 request->zoneNumber,
-                                 &virtualChapter,
-                                 &recordPageNumber);
-  if ((result != UDS_SUCCESS) || (virtualChapter == UINT64_MAX)) {
-    return result;
+  result = searchCachedIndexPage(volume, request, name, physicalChapter,
+                                 indexPageNumber, &recordPageNumber);
+  if (result == UDS_SUCCESS) {
+    result = searchCachedRecordPage(volume, request, name, physicalChapter,
+                                    recordPageNumber, metadata, found);
   }
 
-  // XXX map to physical chapter and validate. It would be nice to just pass
-  // the virtual in to the slow lane, since it's tracking invalidations.
-  unsigned int chapter
-    = mapToPhysicalChapter(volume->geometry, virtualChapter);
-
-  result = searchCachedRecordPage(volume, request, &request->hash,
-                                  chapter, recordPageNumber,
-                                  &request->oldMetadata, found);
   return result;
 }
 
@@ -1003,8 +911,6 @@ int forgetChapter(Volume             *volume,
                   InvalidationReason  reason)
 {
   logDebug("forgetting chapter %" PRIu64, virtualChapter);
-  invalidateSparseCacheChapter(volume->sparseCache, virtualChapter);
-
   unsigned int physicalChapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);
   lockMutex(&volume->readThreadsMutex);

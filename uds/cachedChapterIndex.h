@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#2 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -63,9 +63,6 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedChapterIndex {
 
   // These flags are mutable between cache updates, but they rarely change and
   // are frequently accessed, so they are grouped with the immutable fields.
-
-  /** if set, the virtual chapter is cached, but must not be searched */
-  volatile bool     invalid;
 
   /** if set, skip the chapter when searching the entire cache */
   volatile bool     skipSearch;
@@ -127,18 +124,21 @@ static INLINE void setSkipSearch(CachedChapterIndex *chapter, bool skipSearch)
  * for a chunk name. Filters out unused, invalid, disabled, and irrelevant
  * cache entries.
  *
+ * @param zone            the zone doing the check
  * @param chapter         the cache entry search candidate
  * @param virtualChapter  the virtualChapter containing a hook, or UINT64_MAX
  *                        if searching the whole cache for a non-hook
  *
  * @return <code>true</code> if the provided chapter index should be skipped
  **/
-static INLINE bool shouldSkipChapterIndex(CachedChapterIndex *chapter,
-                                          uint64_t            virtualChapter)
+static INLINE bool shouldSkipChapterIndex(const IndexZone *zone,
+                                          const CachedChapterIndex *chapter,
+                                          uint64_t virtualChapter)
 {
   // Don't search unused entries (contents undefined) or invalid entries
-  // (the chapter is no longer in the volume).
-  if ((chapter->virtualChapter == UINT64_MAX) || chapter->invalid) {
+  // (the chapter is no longer the zone's view of the volume).
+  if ((chapter->virtualChapter == UINT64_MAX)
+      || (chapter->virtualChapter < zone->oldestVirtualChapter)) {
     return true;
   }
 

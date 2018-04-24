@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#3 $
  */
 
 #include "volumeGeometry.h"
@@ -32,7 +32,6 @@
 #include "physicalLayer.h"
 #include "releaseVersions.h"
 #include "statusCodes.h"
-#include "superBlock.h"
 #include "types.h"
 
 enum {
@@ -43,7 +42,6 @@ enum {
 typedef struct {
   char                 magicNumber[MAGIC_NUMBER_SIZE];
   Header               header;
-  ReleaseVersionNumber version;
   VolumeGeometry       geometry;
   CRC32Checksum        checksum;
 } __attribute__((packed)) GeometryBlock;
@@ -62,6 +60,22 @@ static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
   = &GEOMETRY_BLOCK_HEADER_4_0;
 
 static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
+
+
+/**
+ * Determine whether the supplied release version can be understood by
+ * the VDO code.
+ *
+ * @param version  The release version number to check
+ *
+ * @return <code>True</code> if the given version can be loaded.
+ **/
+static inline bool isLoadableReleaseVersion(ReleaseVersionNumber version)
+{
+  return ((version == CURRENT_RELEASE_VERSION_NUMBER)
+          || (version == ALUMINUM_RELEASE_VERSION_NUMBER)
+          || (version == MAGNESIUM_RELEASE_VERSION_NUMBER));
+}
 
 /**********************************************************************/
 int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
@@ -98,11 +112,10 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
     return result;
   }
 
-  // Decode the release version number. It must be the present.
-  if (geometryBlock->version != CURRENT_RELEASE_VERSION_NUMBER) {
+  if (!isLoadableReleaseVersion(geometryBlock->geometry.releaseVersion)) {
     logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-                            "release version %d requires an upgrade",
-                            geometryBlock->version);
+                            "release version %d cannot be loaded",
+                            geometryBlock->geometry.releaseVersion);
     FREE(block);
     return VDO_UNSUPPORTED_VERSION;
   }
@@ -163,7 +176,8 @@ int initializeVolumeGeometry(Nonce           nonce,
     }
   }
 
-  geometry->nonce = nonce;
+  geometry->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
+  geometry->nonce          = nonce;
   memcpy(geometry->uuid, uuid, sizeof(UUID));
   geometry->partitions[INDEX_REGION] = (VolumePartition) {
     .id         = INDEX_REGION,
@@ -211,7 +225,6 @@ int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
   GeometryBlock *geometryBlock = (GeometryBlock *) block;
   memcpy(geometryBlock->magicNumber, &MAGIC_NUMBER, MAGIC_NUMBER_SIZE);
   geometryBlock->header   = *CURRENT_GEOMETRY_BLOCK_HEADER;
-  geometryBlock->version  = CURRENT_RELEASE_VERSION_NUMBER;
   geometryBlock->geometry = *geometry;
 
   // Checksum everything.

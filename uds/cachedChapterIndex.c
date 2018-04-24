@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.c#2 $
  */
 
 #include "cachedChapterIndex.h"
@@ -70,7 +70,6 @@ int cacheChapterIndex(CachedChapterIndex *chapter,
 
   // Mark the entry as valid--it's now in the cache.
   chapter->virtualChapter = virtualChapter;
-  chapter->invalid        = false;
   chapter->skipSearch     = false;
 
   return UDS_SUCCESS;

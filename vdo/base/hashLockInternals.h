@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLockInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLockInternals.h#2 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -36,7 +36,6 @@ typedef enum {
   HASH_LOCK_QUERYING,
   HASH_LOCK_WRITING,
   HASH_LOCK_UPDATING,
-  HASH_LOCK_DOWNGRADING,
 
   // The remaining states are typically used on the dedupe path in this order.
   HASH_LOCK_LOCKING,

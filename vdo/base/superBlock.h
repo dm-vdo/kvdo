@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.h#2 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -28,15 +28,6 @@
 #include "types.h"
 
 typedef struct superBlock SuperBlock;
-
-/**
- * A release version number. These numbers are used to make the numbering
- * space for super block versions independent across release branches.
- *
- * Really an enum, but we have to specify the size for encoding; see
- * releaseVersions.h for the enumeration values.
- **/
-typedef uint32_t ReleaseVersionNumber;
 
 /**
  * Make a new super block.

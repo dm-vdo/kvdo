@@ -16,16 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLock.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLock.h#3 $
  */
 
 #ifndef PBN_LOCK_H
 #define PBN_LOCK_H
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "types.h"
-#include "waitQueue.h"
 
 /**
  * The type of a PBN lock.
@@ -43,9 +41,6 @@ typedef struct pbnLockImplementation PBNLockImplementation;
  * A PBN lock.
  **/
 struct pbnLock {
-  /** The queue of waiters for the lock */
-  WaitQueue waiters;
-
   /** The implementation of the lock */
   const PBNLockImplementation *implementation;
 
@@ -96,18 +91,8 @@ bool isPBNReadLock(const PBNLock *lock)
   __attribute__((warn_unused_result));
 
 /**
- * Notify the waiters for a PBN lock that the lock is being released, and
- * remove them from the lock's wait queue. The lock must have been removed
- * from the lock map already, but the lock's holder field must still be set.
- *
- * @param lock  The PBN lock that is being released
- **/
-void notifyPBNLockWaiters(PBNLock *lock);
-
-/**
- * Downgrade a PBN write lock to a PBN read lock. The write lock is expected
- * to have no waiters. The lock holder is cleared and the caller is
- * responsible for setting the new lock holder.
+ * Downgrade a PBN write lock to a PBN read lock. The lock holder count is
+ * cleared and the caller is responsible for setting the new count.
  *
  * @param lock  The PBN write lock to downgrade
  **/
@@ -124,18 +109,6 @@ void downgradePBNWriteLock(PBNLock *lock);
  *         increment can be made without overflowing the PBN's reference count
  **/
 bool claimPBNLockIncrement(PBNLock *lock)
-  __attribute__((warn_unused_result));
-
-/**
- * Poll a PBN lock to see if all the reference count increments have been
- * claimed. May be called from any thread.
- *
- * @param lock  The PBN read lock to poll
- *
- * @return <code>true</code> if a subsequent claim attempt will always fail,
- *         <code>false</code> if it might not fail
- **/
-bool allIncrementsClaimed(const PBNLock *lock)
   __attribute__((warn_unused_result));
 
 /**

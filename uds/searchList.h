@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/searchList.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/searchList.h#2 $
  */
 
 #ifndef SEARCH_LIST_H
@@ -205,10 +205,12 @@ static INLINE uint8_t rotateSearchList(SearchList *searchList,
  * This operation must only be called during the critical section in
  * updateSparseCache() since it effectively changes cache membership.
  *
- * @param searchList  the chapter index search list to purge
- * @param chapters    the chapter index cache entries
+ * @param searchList            the chapter index search list to purge
+ * @param chapters              the chapter index cache entries
+ * @param oldestVirtualChapter  the oldest virtual chapter
  **/
 void purgeSearchList(SearchList               *searchList,
-                     const CachedChapterIndex  chapters[]);
+                     const CachedChapterIndex  chapters[],
+                     uint64_t                  oldestVirtualChapter);
 
 #endif /* SEARCH_LIST_H */

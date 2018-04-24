@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#4 $
  */
 
 #include "dataKVIO.h"
@@ -770,8 +770,6 @@ void kvdoCheckForDuplication(DataVIO *dataVIO)
                   "zero block not checked for duplication");
   ASSERT_LOG_ONLY(dataVIO->newMapped.state != MAPPING_STATE_UNMAPPED,
                   "discard not checked for duplication");
-  ASSERT_LOG_ONLY(dataVIO->chunkNameSet,
-                  "must have the chunk name to check for dedupe");
 
   DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   if (hasAllocation(dataVIO)) {
@@ -790,10 +788,7 @@ void kvdoCheckForDuplication(DataVIO *dataVIO)
  **/
 void kvdoUpdateDedupeAdvice(DataVIO *dataVIO)
 {
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  ASSERT_LOG_ONLY(dataVIO->chunkNameSet,
-                  "must have the chunk name to update advice");
-  updateDedupeAdvice(dataKVIO);
+  updateDedupeAdvice(dataVIOAsDataKVIO(dataVIO));
 }
 
 /**
@@ -1045,14 +1040,6 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
   // might want info on: bio / bioToSubmit / biosMerged
 
   dumpVIOWaiters(&dataVIO->logical.waiters, "lbn");
-  if (dataVIO->allocatingVIO.writeLock != NULL) {
-    dumpVIOWaiters(&dataVIO->allocatingVIO.writeLock->waiters, "pbn write");
-  }
-  // XXX VDOSTORY-190 redundantly dumps waiters for every DataVIO in the lock
-  PBNLock *duplicateLock = getDuplicateLock(dataVIO);
-  if (duplicateLock != NULL) {
-    dumpVIOWaiters(&duplicateLock->waiters, "pbn read");
-  }
 
   // might want to dump more info from VIO here
 }
@@ -1068,13 +1055,13 @@ int makeDataKVIOBufferPool(KernelLayer  *layer,
 }
 
 /**********************************************************************/
-void getDedupeMetadata(const DedupeContext *context,
-                       BlockMappingState   *mappingState,
-                       PhysicalBlockNumber *pbn)
+DataLocation getDedupeAdvice(const DedupeContext *context)
 {
   DataKVIO *dataKVIO = container_of(context, DataKVIO, dedupeContext);
-  *mappingState      = dataKVIO->dataVIO.newMapped.state;
-  *pbn               = dataKVIO->dataVIO.newMapped.pbn;
+  return (DataLocation) {
+    .state = dataKVIO->dataVIO.newMapped.state,
+    .pbn   = dataKVIO->dataVIO.newMapped.pbn,
+  };
 }
 
 /**********************************************************************/

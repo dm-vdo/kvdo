@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#6 $
  */
 
 #include <linux/module.h>
@@ -29,6 +29,7 @@
 #include "uds.h"
 #include "uds-block.h"
 #include "uds-param.h"
+#include "util/funnelQueue.h"
 
 /**********************************************************************/
 static int __init dedupeInit(void)
@@ -72,6 +73,8 @@ EXPORT_SYMBOL_GPL(udsCreateLocalIndex);
 EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
 EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
 EXPORT_SYMBOL_GPL(udsCloseIndexSession);
+EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
+EXPORT_SYMBOL_GPL(udsGetIndexStats);
 EXPORT_SYMBOL_GPL(udsStringError);
 
 EXPORT_SYMBOL_GPL(udsOpenBlockContext);
@@ -103,10 +106,14 @@ EXPORT_SYMBOL_GPL(duplicateString);
 EXPORT_SYMBOL_GPL(ensureAvailableSpace);
 EXPORT_SYMBOL_GPL(fixedSprintf);
 EXPORT_SYMBOL_GPL(freeBuffer);
+EXPORT_SYMBOL_GPL(freeFunnelQueue);
 EXPORT_SYMBOL_GPL(freeMemory);
+EXPORT_SYMBOL_GPL(funnelQueuePoll);
 EXPORT_SYMBOL_GPL(getBytesFromBuffer);
 EXPORT_SYMBOL_GPL(getMemoryStats);
+EXPORT_SYMBOL_GPL(isFunnelQueueEmpty);
 EXPORT_SYMBOL_GPL(makeBuffer);
+EXPORT_SYMBOL_GPL(makeFunnelQueue);
 EXPORT_SYMBOL_GPL(nowUsec);
 EXPORT_SYMBOL_GPL(putBytes);
 EXPORT_SYMBOL_GPL(reallocateMemory);

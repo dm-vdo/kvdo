@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#3 $
  */
 
 #ifndef KERNELLAYER_H
@@ -24,6 +24,7 @@
 
 #include <linux/device-mapper.h>
 
+#include "atomic.h"
 #include "constants.h"
 #include "flush.h"
 #include "intMap.h"

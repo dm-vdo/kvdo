@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.c#3 $
  */
 
 #include "dataVIO.h"
 
 #include "logger.h"
-#include "util/atomic.h"
 
+#include "atomic.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "extent.h"
@@ -98,8 +98,7 @@ void prepareDataVIO(DataVIO            *dataVIO,
 
   resetAllocation(dataVIOAsAllocatingVIO(dataVIO));
 
-  dataVIO->chunkNameSet = false;
-  dataVIO->isDuplicate  = false;
+  dataVIO->isDuplicate = false;
 
   memset(&dataVIO->chunkName, 0, sizeof(dataVIO->chunkName));
   memset(&dataVIO->duplicate, 0, sizeof(dataVIO->duplicate));

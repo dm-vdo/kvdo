@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workItemStats.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workItemStats.c#3 $
  */
 
 #include "workItemStats.h"
 
+#include "atomic.h"
 #include "logger.h"
 
 /**

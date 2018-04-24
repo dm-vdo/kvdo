@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#3 $
  */
 
 #include "indexSession.h"
@@ -200,4 +200,51 @@ int udsSetCheckpointFrequency(UdsIndexSession session, unsigned int frequency)
   result = setGridCheckpointFrequency(indexSession->grid, frequency);
   releaseIndexSession(indexSession);
   return result;
+}
+
+/**********************************************************************/
+int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf)
+{
+  if (conf == NULL) {
+    return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
+                                   "received a NULL config pointer");
+  }
+  IndexSession *indexSession;
+  int result = getIndexSession(session.id, &indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ALLOCATE(1, struct udsConfiguration, __func__, conf);
+  if (result == UDS_SUCCESS) {
+    **conf = indexSession->grid->userConfig;
+  }
+  releaseIndexSession(indexSession);
+  return result;
+}
+
+/**********************************************************************/
+int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats)
+{
+  if (stats == NULL) {
+    return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
+                                   "received a NULL index stats pointer");
+  }
+  IndexSession *indexSession;
+  int result = getIndexSession(session.id, &indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  IndexRouterStatCounters routerStats;
+  result = getGridStatistics(indexSession->grid, &routerStats);
+  releaseIndexSession(indexSession);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "%s failed", __func__);
+  }
+  stats->entriesIndexed   = routerStats.entriesIndexed;
+  stats->memoryUsed       = routerStats.memoryUsed;
+  stats->diskUsed         = routerStats.diskUsed;
+  stats->collisions       = routerStats.collisions;
+  stats->entriesDiscarded = routerStats.entriesDiscarded;
+  stats->checkpoints      = routerStats.checkpoints;
+  return UDS_SUCCESS;
 }

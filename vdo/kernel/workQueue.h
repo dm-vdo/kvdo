@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.h#2 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -25,8 +25,8 @@
 #include <linux/kobject.h>
 #include <linux/sched.h>        /* for TASK_COMM_LEN */
 
-#include "funnelQueue.h"
 #include "kernelTypes.h"
+#include "util/funnelQueue.h"
 
 enum {
   MAX_QUEUE_NAME_LEN        = TASK_COMM_LEN,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.c#2 $
  */
 
 #include "chapterWriter.h"
@@ -97,7 +97,7 @@ static void closeChapters(void *arg)
                                               &OPEN_CHAPTER_INFO);
       int result = discardIndexComponent(oc);
       if (result == UDS_SUCCESS) {
-        logNotice("Discarding saved open chapter");
+        logDebug("Discarding saved open chapter");
       }
     }
 

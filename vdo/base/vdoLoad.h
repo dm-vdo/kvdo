@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.h#2 $
  */
 
 #ifndef VDO_LOAD_H
 #define VDO_LOAD_H
 
+#include "volumeGeometry.h"
 #include "types.h"
 
 /**
@@ -49,12 +50,11 @@ int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
   __attribute__((warn_unused_result));
 
 /**
- * Synchronously load a VDO from a specified superblock location for use by
+ * Synchronously load a VDO from a specified super block location for use by
  * user-space tools.
  *
  * @param [in]  layer           The physical layer the VDO sits on
- * @param [in]  location        The superblock location
- * @param [in]  nonce           The nonce the VDO ought to have
+ * @param [in]  geometry        A pointer to the geometry for the volume
  * @param [in]  validateConfig  Whether to validate the VDO against the layer
  * @param [in]  decoder         The VDO decoder to use, if NULL, the default
  *                              decoder will be used
@@ -62,12 +62,11 @@ int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadVDOSuperblock(PhysicalLayer        *layer,
-                      PhysicalBlockNumber   location,
-                      Nonce                 nonce,
-                      bool                  validateConfig,
-                      VDODecoder           *decoder,
-                      VDO                 **vdoPtr)
+int loadVDOSuperblock(PhysicalLayer   *layer,
+                      VolumeGeometry  *geometry,
+                      bool             validateConfig,
+                      VDODecoder      *decoder,
+                      VDO            **vdoPtr)
   __attribute__((warn_unused_result));
 
 /**

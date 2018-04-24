@@ -16,15 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.h#3 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
 
-#include "util/atomic.h"
-
 #include "allocatingVIO.h"
+#include "atomic.h"
 #include "blockMapEntry.h"
 #include "blockMappingState.h"
 #include "constants.h"
@@ -164,9 +163,6 @@ struct dataVIO {
 
   /** The hash of this VIO (if not zero) */
   UdsChunkName         chunkName;
-
-  /** Whether #chunkName has been filled in */
-  bool                 chunkNameSet;
 
   /* Used for logging and debugging */
   AsyncOperationNumber lastAsyncOperation;

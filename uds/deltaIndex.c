@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#2 $
  */
 #include "deltaIndex.h"
 
@@ -140,13 +140,13 @@ enum { MAGIC_SIZE = 8 };
 static const char MAGIC_DI_START[] = "DI-00002";
 
 struct di_header {
-  char magic[MAGIC_SIZE];       // MAGIC_DI_START
-  unsigned int zoneNumber;
-  unsigned int numZones;
-  unsigned int firstList;
-  unsigned int numLists;
-  long recordCount;
-  long collisionCount;
+  char     magic[MAGIC_SIZE];   // MAGIC_DI_START
+  uint32_t zoneNumber;
+  uint32_t numZones;
+  uint32_t firstList;
+  uint32_t numLists;
+  uint64_t recordCount;
+  uint64_t collisionCount;
 };
 
 //**********************************************************************
@@ -810,8 +810,8 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
                                      "No delta index files");
   }
 
-  long recordCount = 0;
-  long collisionCount = 0;
+  unsigned long recordCount = 0;
+  unsigned long collisionCount = 0;
   unsigned int numZones = numReaders;
   unsigned int firstList[numZones], numLists[numZones];
   BufferedReader *reader[numZones];

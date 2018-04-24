@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLockPool.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLockPool.c#2 $
  */
 
 #include "pbnLockPool.h"
@@ -27,7 +27,6 @@
 
 #include "ringNode.h"
 #include "pbnLock.h"
-#include "waitQueue.h"
 
 /**
  * Unused (idle) PBN locks are kept in a ring. Just like in a malloc
@@ -125,9 +124,6 @@ void returnPBNLockToPool(PBNLockPool *pool, PBNLock **lockPtr)
   // Take what should be the last lock reference from the caller
   PBNLock *lock = *lockPtr;
   *lockPtr = NULL;
-
-  ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
-                  "lock returned to pool must have no waiters");
 
   // A bit expensive, but will promptly catch some use-after-free errors.
   memset(lock, 0, sizeof(*lock));

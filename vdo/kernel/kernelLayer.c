@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#2 $
  */
 
 #include "kernelLayer.h"
@@ -1063,7 +1063,6 @@ void freeKernelLayer(KernelLayer *layer)
   kobject_put(&layer->kobj);
 }
 
-
 /**********************************************************************/
 static void poolStatsRelease(struct kobject *kobj)
 {
@@ -1087,7 +1086,6 @@ int startKernelLayer(KernelLayer          *layer,
     return result;
   }
 
-
   static struct kobj_type statsDirectoryKobjType = {
     .release       = poolStatsRelease,
     .sysfs_ops     = &poolStatsSysfsOps,
@@ -1102,7 +1100,10 @@ int startKernelLayer(KernelLayer          *layer,
   }
   layer->statsAdded = true;
 
-  startDedupeIndex(layer->dedupeIndex);
+  // Don't try to load or rebuild the index first (and log scary error
+  // messages) if this is known to be a newly-formatted volume.
+  startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+
   result = vdoCreateProcfsEntry(layer, layer->deviceConfig->poolName,
                                 &layer->procfsPrivate);
   if (result != VDO_SUCCESS) {

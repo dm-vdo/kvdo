@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.h#3 $
  */
 
 #ifndef VOLUME_H
@@ -214,46 +214,57 @@ int findVolumeChapterBoundaries(const Volume *volume,
   __attribute__((warn_unused_result));
 
 /**
- * Find any matching metadata for the given name.
+ * Find any matching metadata for the given name within a given physical
+ * chapter.
  *
- * @param volume         The volume.
- * @param request        The request originating the search.
- * @param name           The block name of interest.
- * @param virtualChapter The number of the chapter to search.
- * @param isSparse       Whether the chapter is in the sparse part of
- *                       of the index.
- * @param metadata       The old metadata for the name.
- * @param found          A pointer which will be set to
- *                       <code>true</code> if a match was found.
+ * @param volume          The volume.
+ * @param request         The request originating the search.
+ * @param name            The block name of interest.
+ * @param virtualChapter  The number of the chapter to search.
+ * @param metadata        The old metadata for the name.
+ * @param found           A pointer which will be set to
+ *                        <code>true</code> if a match was found.
  *
  * @return UDS_SUCCESS or an error
  **/
-int searchVolume(Volume             *volume,
-                 Request            *request,
-                 const UdsChunkName *name,
-                 uint64_t            virtualChapter,
-                 bool                isSparse,
-                 UdsChunkData       *metadata,
-                 bool               *found)
+int searchVolumePageCache(Volume             *volume,
+                          Request            *request,
+                          const UdsChunkName *name,
+                          uint64_t            virtualChapter,
+                          UdsChunkData       *metadata,
+                          bool               *found)
   __attribute__((warn_unused_result));
 
 /**
- * Search the cached sparse chapter index, either for a cached sparse hook, or
- * as the last chance for finding the record named by a request.
+ * Fetch a record page from the cache or read it from the volume and search it
+ * for a chunk name.
  *
- * @param [in]  volume          the volume
- * @param [in]  request         the request originating the search
- * @param [in]  virtualChapter  if UINT64_MAX, search the entire cache;
- *                              otherwise search this chapter, if cached
- * @param [out] found           A pointer to a bool which will be set to
- *                              <code>true</code> if the record was found
+ * If a match is found, optionally returns the metadata from the stored
+ * record. If the requested record page is not cached, the page fetch may be
+ * asynchronously completed on the slow lane, in which case UDS_QUEUED will be
+ * returned and the request will be requeued for continued processing after
+ * the page is read and added to the cache.
  *
- * @return UDS_SUCCESS or an error code
+ * @param volume           the volume containing the record page to search
+ * @param request          the request originating the search (may be NULL for
+ *                         a direct query from volume replay)
+ * @param name             the name of the block or chunk
+ * @param chapter          the chapter to search
+ * @param recordPageNumber the record page number of the page to search
+ * @param duplicate        an array in which to place the metadata of the
+ *                         duplicate, if one was found
+ * @param found            a (bool *) which will be set to true if the chunk
+ *                         was found
+ *
+ * @return UDS_SUCCESS, UDS_QUEUED, or an error code
  **/
-int searchVolumeSparseCache(Volume   *volume,
-                            Request  *request,
-                            uint64_t  virtualChapter,
-                            bool     *found)
+int searchCachedRecordPage(Volume             *volume,
+                           Request            *request,
+                           const UdsChunkName *name,
+                           unsigned int        chapter,
+                           int                 recordPageNumber,
+                           UdsChunkData       *duplicate,
+                           bool               *found)
   __attribute__((warn_unused_result));
 
 /**

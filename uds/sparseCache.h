@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/sparseCache.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/sparseCache.h#2 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -24,7 +24,7 @@
 
 #include "cacheCounters.h"
 #include "geometry.h"
-#include "indexPageMap.h"
+#include "indexZone.h"
 #include "typeDefs.h"
 
 /**
@@ -104,50 +104,24 @@ bool sparseCacheContains(SparseCache  *cache,
  * numbers to correctly enter the thread barriers used to synchronize the
  * cache updates.
  *
- * @param cache           the cache to update with the requested chapter index
+ * @param zone            the index zone
  * @param virtualChapter  the virtual chapter number of the chapter index
- * @param index           the index that owns the volume and cache
- * @param zoneNumber      the zone number of the calling thread
  *
  * @return UDS_SUCCESS or an error code if the chapter index could not be
  *         read or decoded
  **/
-int updateSparseCache(SparseCache        *cache,
-                      uint64_t            virtualChapter,
-                      const struct index *index,
-                      unsigned int        zoneNumber)
+int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
   __attribute__((warn_unused_result));
 
-/**
- * Mark every chapter in the cache as invalid.
- *
- * Note that sparseCacheContains() does and must still return true for entries
- * in the cache after this call, but those entries will not be searched.
- *
- * @param cache  the cache to invalidate
- **/
-void invalidateSparseCache(SparseCache *cache);
-
-/**
- * Mark a single chapter in the cache as invalid.
- *
- * Note that sparseCacheContains() does and must still return true for the
- * the chapter after this call, but that entry will not be searched.
- *
- * @param cache           the cache to invalidate
- * @param virtualChapter  the virtual chapter number of the entry to invalidate
- **/
-void invalidateSparseCacheChapter(SparseCache *cache,
-                                  uint64_t     virtualChapter);
 
 /**
  * Search the cached sparse chapter indexes for a chunk name, returning a
  * virtual chapter number and record page number that may contain the name.
  *
- * @param [in]     cache              the sparse chapter index cache to search
- * @param [in]     indexPageMap       the index page number map for the volume
+ * @param [in]     zone               the zone containing the volume, sparse
+ *                                    chapter index cache and the index page
+ *                                    number map
  * @param [in]     name               the chunk name to search for
- * @param [in]     zoneNumber         the zone number of the calling thread
  * @param [in,out] virtualChapterPtr  If <code>UINT64_MAX</code> on input,
  *                                    search all cached chapters, else search
  *                                    the specified virtual chapter, if cached.
@@ -159,10 +133,8 @@ void invalidateSparseCacheChapter(SparseCache *cache,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int searchSparseCache(SparseCache        *cache,
-                      const IndexPageMap *indexPageMap,
+int searchSparseCache(IndexZone          *zone,
                       const UdsChunkName *name,
-                      unsigned int        zoneNumber,
                       uint64_t           *virtualChapterPtr,
                       int                *recordPagePtr)
   __attribute__((warn_unused_result));

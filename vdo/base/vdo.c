@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#3 $
  */
 
 /*
@@ -48,6 +48,7 @@
 #include "threadConfig.h"
 #include "vdoLayout.h"
 #include "vioWrite.h"
+#include "volumeGeometry.h"
 
 /**
  * The master version of the on-disk format of a VDO. This should be
@@ -376,16 +377,6 @@ int saveReconfiguredVDO(VDO *vdo)
 }
 
 /**********************************************************************/
-bool upgradeRequired(const VDO *vdo)
-{
-  ReleaseVersionNumber release = getLoadedReleaseVersion(vdo->superBlock);
-  if (release != CURRENT_RELEASE_VERSION_NUMBER) {
-    return true;
-  }
-  return isUpgradableVersion(CURRENT_VDO_MASTER_VERSION, &vdo->loadVersion);
-}
-
-/**********************************************************************/
 int decodeVDOVersion(VDO *vdo)
 {
   return getBytesFromBuffer(getComponentBuffer(vdo->superBlock),
@@ -401,12 +392,15 @@ int validateVDOVersion(VDO *vdo)
     return result;
   }
 
-  ReleaseVersionNumber loadedVersion
+  ReleaseVersionNumber loadedReleaseVersion
     = getLoadedReleaseVersion(vdo->superBlock);
-  if (loadedVersion != CURRENT_RELEASE_VERSION_NUMBER) {
+  if (vdo->loadConfig.releaseVersion != loadedReleaseVersion) {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-                                   "release version %d requires an upgrade",
-                                   loadedVersion);
+                                   "Geometry release version %" PRIu32 " does "
+                                   "not match super block release version %"
+                                   PRIu32,
+                                   vdo->loadConfig.releaseVersion,
+                                   loadedReleaseVersion);
   }
 
   return validateVersion(CURRENT_VDO_MASTER_VERSION, &vdo->loadVersion,

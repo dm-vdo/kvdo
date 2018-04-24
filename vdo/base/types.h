@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#3 $
  */
 
 #ifndef TYPES_H
@@ -81,6 +81,15 @@ typedef uint32_t PageSize;
  * on the underlying device.
  **/
 typedef uint64_t PhysicalBlockNumber;
+
+/**
+ * A release version number. These numbers are used to make the numbering
+ * space for component versions independent across release branches.
+ *
+ * Really an enum, but we have to specify the size for encoding; see
+ * releaseVersions.h for the enumeration values.
+ **/
+typedef uint32_t ReleaseVersionNumber;
 
 /**
  * A count of tree roots.
@@ -335,17 +344,19 @@ typedef struct vdoConfig {
  **/
 typedef struct vdoLoadConfig {
   /** the offset on the physical layer where the VDO begins */
-  PhysicalBlockNumber  firstBlockOffset;
+  PhysicalBlockNumber   firstBlockOffset;
+  /** the expected release version number of the VDO */
+  ReleaseVersionNumber  releaseVersion;
   /** the expected nonce of the VDO */
-  Nonce                nonce;
+  Nonce                 nonce;
   /** the thread configuration of the VDO */
-  ThreadConfig        *threadConfig;
+  ThreadConfig         *threadConfig;
   /** the page cache size, in pages */
-  PageCount            cacheSize;
+  PageCount             cacheSize;
   /** whether writes are synchronous */
-  WritePolicy          writePolicy;
+  WritePolicy           writePolicy;
   /** the maximum age of a dirty block map page in recovery journal blocks */
-  BlockCount           maximumAge;
+  BlockCount            maximumAge;
 } VDOLoadConfig;
 
 /**

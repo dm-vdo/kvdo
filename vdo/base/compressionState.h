@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressionState.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressionState.h#2 $
  */
 
 #ifndef COMPRESSION_STATE_H
 #define COMPRESSION_STATE_H
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "types.h"
 
 /**

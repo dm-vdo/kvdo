@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#3 $
  */
 
 #ifndef DEDUPE_INDEX_H
 #define DEDUPE_INDEX_H
-
-#include "dataVIO.h"
 
 #include "dataKVIO.h"
 
@@ -91,9 +89,11 @@ struct dedupeIndex {
   /**
    * Start the dedupe index.
    *
-   * @param index  The dedupe index
+   * @param index       The dedupe index
+   * @param createFlag  If true, create a new index without first attempting
+   *                    to load an existing index
    **/
-  void (*start)(DedupeIndex *index);
+  void (*start)(DedupeIndex *index, bool createFlag);
 
   /**
    * Stop the dedupe index.  May be called by any thread, but will wait for
@@ -211,19 +211,15 @@ static inline int messageDedupeIndex(DedupeIndex *index, const char *name)
  *
  * @param dataKVIO  The DataKVIO. These fields are used:
  *                  dedupeContext.chunkName is the chunk name.
- *                  dataVIO.isDuplicate is set to true if the chunk name is
- *                  found (or false if not found). If dataVIO.isDuplicate is
- *                  true, dataVIO.advice is set to the pbn and mapping state
- *                  of the duplicate chunk. If dataVIO.isDuplicate is false,
- *                  update the index to associate dataVIO.vio.physical
- *                  (uncompressed) with the chunk name.
+ *                  The advice to offer to the index will be obtained
+ *                  via getDedupeAdvice(). The advice found in the index
+ *                  (or NULL if none) will be returned via setDedupeAdvice().
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
 static inline void postDedupeAdvice(DataKVIO *dataKVIO)
 {
   KernelLayer *layer = dataKVIOAsKVIO(dataKVIO)->layer;
-  dataKVIO->dataVIO.isDuplicate = false;
   layer->dedupeIndex->post(dataKVIO);
 }
 
@@ -232,10 +228,8 @@ static inline void postDedupeAdvice(DataKVIO *dataKVIO)
  *
  * @param dataKVIO  The DataKVIO. These fields are used:
  *                  dedupeContext.chunkName is the chunk name.
- *                  dataVIO.isDuplicate is set to true if the chunk name is
- *                  found (or false if not found). If dataVIO.isDuplicate is
- *                  true, dataVIO.advice is set to the pbn and mapping state
- *                  of the duplicate chunk.
+ *                  The advice found in the index (or NULL if none) will
+ *                  be returned via setDedupeAdvice().
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
@@ -248,11 +242,13 @@ static inline void queryDedupeAdvice(DataKVIO *dataKVIO)
 /**
  * Start the dedupe index.
  *
- * @param index  The dedupe index
+ * @param index       The dedupe index
+ * @param createFlag  If true, create a new index without first attempting
+ *                    to load an existing index
  **/
-static inline void startDedupeIndex(DedupeIndex *index)
+static inline void startDedupeIndex(DedupeIndex *index, bool createFlag)
 {
-  index->start(index);
+  index->start(index, createFlag);
 }
 
 /**
@@ -281,9 +277,9 @@ static inline void finishDedupeIndex(DedupeIndex *index)
  * name.
  *
  * @param dataKVIO  The DataKVIO. These fields are used:
- *                  dedupeContext.chunkName is the chunk name. The index is
- *                  updated to associate the pbn in dataVIO.vio.physical with
- *                  the chunk name. dedupeContext.status is set to the
+ *                  dedupeContext.chunkName is the chunk name.
+ *                  The advice to offer to the index will be obtained
+ *                  via getDedupeAdvice(). dedupeContext.status is set to the
  *                  return status code of any asynchronous index processing.
  **/
 static inline void updateDedupeAdvice(DataKVIO *dataKVIO)

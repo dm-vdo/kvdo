@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#2 $
  */
 
 #include "packerInternals.h"
@@ -476,7 +476,7 @@ static void shareCompressedBlock(Waiter *waiter, void *context)
   };
   dataVIOAsVIO(dataVIO)->physical = dataVIO->newMapped.pbn;
 
-  shareCompressedWriteLock(dataVIO, bin->writer->writeLock);
+  shareCompressedWriteLock(dataVIO, bin->writer->allocationLock);
 
   // Wait again for all the waiters to get a share.
   int result = enqueueWaiter(&bin->outgoing, waiter);
@@ -496,7 +496,7 @@ static void finishCompressedWrite(VDOCompletion *completion)
   assertInPhysicalZone(bin->writer);
 
   if (completion->result != VDO_SUCCESS) {
-    releasePBNWriteLock(bin->writer);
+    releaseAllocationLock(bin->writer);
     // Invokes completeOutputBin() on the packer thread, which will deal with
     // the waiters.
     vioDoneCallback(completion);
@@ -508,7 +508,7 @@ static void finishCompressedWrite(VDOCompletion *completion)
   notifyAllWaiters(&bin->outgoing, shareCompressedBlock, bin);
 
   // The waiters now hold the (downgraded) PBN lock.
-  bin->writer->writeLock = NULL;
+  bin->writer->allocationLock = NULL;
 
   // Invokes the callbacks registered before entering the packer.
   notifyAllWaiters(&bin->outgoing, continueWaiter, NULL);

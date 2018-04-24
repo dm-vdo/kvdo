@@ -16,13 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lockCounter.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lockCounter.c#2 $
  */
 
 #include "lockCounter.h"
 
+#include "atomic.h"
 #include "memoryAlloc.h"
-#include "util/atomic.h"
 
 /**
  * LockCounter is intended to keep all of the locks for the blocks in the

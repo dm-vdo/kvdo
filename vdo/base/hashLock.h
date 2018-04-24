@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.h#3 $
  */
 
 #ifndef HASH_LOCK_H
@@ -87,29 +87,6 @@ void continueHashLockOnError(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO releasing its hash lock
  **/
 void releaseHashLock(DataVIO *dataVIO);
-
-/**
- * Transfer a duplicate PBN read lock to a hash lock that has been waiting to
- * acquire it, then asynchronously continue processing the hash lock using the
- * provided DataVIO. The lock transfer may be rejected if the duplicate lock
- * would no longer be of use to the waiter.
- *
- * @param dataVIO        The DataVIO that was queued to wait on the PBN lock
- * @param duplicateLock  The duplicate PBN read lock that is being acquired
- *
- * @return <code>true</code> only if the transfer was accepted
- **/
-bool inheritDuplicatePBNLock(DataVIO *dataVIO, PBNLock *duplicateLock)
-  __attribute__((warn_unused_result));
-
-/**
- * Downgrade a DataVIO's allocation lock from a PBN write lock to a read lock,
- * and transfer it to the DataVIO's hash lock, converting it to a duplicate
- * PBN lock.
- *
- * @param dataVIO  The DataVIO holding the allocation lock to transfer
- **/
-void transferPBNWriteLock(DataVIO *dataVIO);
 
 /**
  * Make a DataVIO's hash lock a shared holder of the PBN lock on the

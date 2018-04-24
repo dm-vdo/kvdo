@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#2 $
  */
 
 #include "dmvdo.h"
@@ -291,7 +291,7 @@ typedef int DMStatusReturnType;
 
 /*
  * Status line is:
- *    <device> <operating mode> <in recovery> <index state> 
+ *    <device> <operating mode> <in recovery> <index state>
  *    <compression state> <used physical blocks> <total physical blocks>
  */
 
@@ -763,8 +763,7 @@ static int vdoInitialize(struct dm_target *ti,
 
   // Now that we have read the geometry, we can finish setting up the
   // VDOLoadConfig.
-  loadConfig.firstBlockOffset = getDataRegionOffset(layer->geometry);
-  loadConfig.nonce            = layer->geometry.nonce;
+  setLoadConfigFromGeometry(&layer->geometry, &loadConfig);
 
   if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {

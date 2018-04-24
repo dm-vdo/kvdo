@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.h#2 $
  */
 
 #ifndef DATA_KVIO_H
@@ -449,16 +449,15 @@ int makeDataKVIOBufferPool(KernelLayer  *layer,
   __attribute__((warn_unused_result));
 
 /**
- * Get the state needed to generate Albireo metadata from the DataKVIO
+ * Get the state needed to generate UDS metadata from the DataKVIO
  * associated with a DedupeContext.
  *
- * @param [in]  context       The DedupeContext
- * @param [out] mappingState  The mapping state of the DataKVIO's write
- * @param [out] pbn           The physical block allocated to the DataKVIO
+ * @param context  The DedupeContext
+ *
+ * @return the advice to store in the UDS index
  **/
-void getDedupeMetadata(const DedupeContext *context,
-                       BlockMappingState   *mappingState,
-                       PhysicalBlockNumber *pbn);
+DataLocation getDedupeAdvice(const DedupeContext *context)
+  __attribute__((warn_unused_result));
 
 /**
  * Set the result of a dedupe query for the DataKVIO associated with a

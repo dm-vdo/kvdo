@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.c#4 $
  */
 
 /**
@@ -86,7 +86,7 @@
  * been selected, it will not change. QUERYING and WRITING are only performed
  * once per lock lifetime. All other non-endpoint states can be re-entered.
  *
- * XXX still need doc on BYPASSING and DOWNGRADING
+ * XXX still need doc on BYPASSING
  *
  * The function names in this module follow a convention referencing the
  * states and transitions in the state machine diagram for VDOSTORY-190.
@@ -114,7 +114,6 @@
 #include "packer.h"
 #include "pbnLock.h"
 #include "physicalZone.h"
-#include "referenceBlock.h"
 #include "ringNode.h"
 #include "slab.h"
 #include "slabDepot.h"
@@ -128,7 +127,6 @@ static const char *LOCK_STATE_NAMES[] = {
   [HASH_LOCK_BYPASSING]    = "BYPASSING",
   [HASH_LOCK_DEDUPING]     = "DEDUPING",
   [HASH_LOCK_DESTROYING]   = "DESTROYING",
-  [HASH_LOCK_DOWNGRADING]  = "DOWNGRADING",
   [HASH_LOCK_INITIALIZING] = "INITIALIZING",
   [HASH_LOCK_LOCKING]      = "LOCKING",
   [HASH_LOCK_QUERYING]     = "QUERYING",
@@ -142,8 +140,8 @@ static const char *LOCK_STATE_NAMES[] = {
 static void startDeduping(HashLock *lock, DataVIO *agent, bool agentIsDone);
 static void startLocking(HashLock *lock, DataVIO *agent);
 static void startWriting(HashLock *lock, DataVIO *agent);
-static void finishLocking(VDOCompletion *completion);
 static void unlockDuplicatePBN(VDOCompletion *completion);
+static void transferAllocationLock(DataVIO *dataVIO);
 
 /**********************************************************************/
 PBNLock *getDuplicateLock(DataVIO *dataVIO)
@@ -497,64 +495,6 @@ static void abortHashLock(HashLock *lock, DataVIO *dataVIO)
 }
 
 /**
- * Handle the result of downgrading the agent's write lock. duplicate
- * candidate. This continuation is registered in startUpgrading().
- *
- * @param completion  The completion of the DataVIO acting as the lock's agent
- **/
-static void finishDowngrading(VDOCompletion *completion)
-{
-  DataVIO  *agent = asDataVIO(completion);
-  assertHashLockAgent(agent, __func__);
-  HashLock *lock = agent->hashLock;
-
-  if (completion->result != VDO_SUCCESS) {
-    abortHashLock(lock, agent);
-    return;
-  }
-
-  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
-                  "must have downgraded to get a duplicate lock");
-
-  /*
-   * DOWNGRADING -> DEDUPING transition: the agent's write lock has been
-   * transferred to the hash lock. It's done with the lock, but the lock may
-   * still need to use it to clean up after rollover.
-   */
-  startDeduping(lock, agent, true);
-}
-
-/**
- * Release a read lock on the PBN of the block that may or may not have
- * contained duplicate data. This continuation is launched by
- * startDowngrading(), and calls back to finishDowngrading() on the hash zone
- * thread.
- *
- * @param completion  The completion of the DataVIO acting as the lock's agent
- **/
-static void downgradeAgentWriteLock(VDOCompletion *completion)
-{
-  DataVIO *agent = asDataVIO(completion);
-  // Transfer does all the work, including the zone assertion.
-  transferPBNWriteLock(agent);
-  launchHashZoneCallback(agent, finishDowngrading, THIS_LOCATION(NULL));
-}
-
-/**
- * Downgrade the lock agent's PBN write lock to a read lock and transfer
- * it to the hash lock to use as the duplicate lock.
- *
- * @param lock   The hash lock
- * @param agent  The DataVIO currently acting as the agent for the lock
- **/
-static void startDowngrading(HashLock *lock, DataVIO *agent)
-{
-  setHashLockState(lock, HASH_LOCK_DOWNGRADING);
-  launchNewMappedZoneCallback(agent, downgradeAgentWriteLock,
-                              THIS_LOCATION(NULL));
-}
-
-/**
  * Handle the result of the agent for the lock releasing a read lock on
  * duplicate candidate. This continuation is registered in
  * unlockDuplicatePBN().
@@ -678,26 +618,7 @@ static void finishUpdating(VDOCompletion *completion)
   // duplicate location changes due to rollover.
   lock->updateAdvice = false;
 
-  if (!hasWaiters(&lock->waiters)) {
-    if (lock->duplicateLock != NULL) {
-      /*
-       * UPDATING -> UNLOCKING transition: No one is waiting to dedupe, but we
-       * hold a duplicate PBN lock, so go release it.
-       */
-      startUnlocking(lock, agent);
-    } else {
-      /*
-       * UPDATING -> DESTROYING transition: No one is waiting to dedupe and
-       * there's no lock to release.
-       */
-      // XXX startDestroying(lock, agent);
-      startBypassing(lock, NULL);
-      exitHashLock(agent);
-    }
-    return;
-  }
-
-  if (lock->duplicateLock != NULL) {
+  if (hasWaiters(&lock->waiters)) {
     /*
      * UPDATING -> DEDUPING transition: A new DataVIO arrived during the UDS
      * update. Send it on the verified dedupe path. The agent is done with the
@@ -707,13 +628,21 @@ static void finishUpdating(VDOCompletion *completion)
     return;
   }
 
-  /*
-   * UPDATING -> DOWNGRADING transition: A new DataVIO arrived during the
-   * UDS update for a PBN that is still write-locked. Downgrade and transfer
-   * the agent's PBN lock to the hash lock so the agent can exit and the
-   * waiter can deduplicate.
-   */
-  startDowngrading(lock, agent);
+  if (lock->duplicateLock != NULL) {
+    /*
+     * UPDATING -> UNLOCKING transition: No one is waiting to dedupe, but we
+     * hold a duplicate PBN lock, so go release it.
+     */
+    startUnlocking(lock, agent);
+  } else {
+    /*
+     * UPDATING -> DESTROYING transition: No one is waiting to dedupe and
+     * there's no lock to release.
+     */
+    // XXX startDestroying(lock, agent);
+    startBypassing(lock, NULL);
+    exitHashLock(agent);
+  }
 }
 
 /**
@@ -829,36 +758,20 @@ static void forkHashLock(HashLock *oldLock, DataVIO *newAgent)
 }
 
 /**
- * Implements WaiterCallback. Marks the waiting agent as not a duplicate and
- * continues its execution in finishLocking, where it will enter the write
- * path.
- **/
-static void cancelDuplicateLockWait(Waiter *waiter,
-                                    void *context __attribute__((unused)))
-{
-  DataVIO *agent = waiterAsDataVIO(waiter);
-  agent->isDuplicate = false;
-  launchHashZoneCallback(agent, finishLocking, THIS_LOCATION(NULL));
-}
-
-/**
  * Reserve a reference count increment for a DataVIO and launch it on the
  * dedupe path. If no increments are available, this will roll over to a new
  * hash lock and launch the DataVIO as the writing agent for that lock.
  *
- * @param lock     The hash lock
- * @param dataVIO  The DataVIO to deduplicate using the hash lock
+ * @param lock      The hash lock
+ * @param dataVIO   The DataVIO to deduplicate using the hash lock
+ * @param hasClaim  <code>true</code> if the dataVIO already has claimed
+ *                  an increment from the duplicate lock
  **/
-static void launchDedupe(HashLock *lock, DataVIO *dataVIO)
+static void launchDedupe(HashLock *lock, DataVIO *dataVIO, bool hasClaim)
 {
-  if (!claimPBNLockIncrement(lock->duplicateLock)) {
+  if (!hasClaim && !claimPBNLockIncrement(lock->duplicateLock)) {
     // Out of increments, so must roll over to a new lock.
     forkHashLock(lock, dataVIO);
-
-    // If the duplicateLock has any waiters, they aren't going to dedupe
-    // against it either. Cancel their wait so they can start writing sooner.
-    notifyAllWaiters(&lock->duplicateLock->waiters,
-                     cancelDuplicateLockWait, NULL);
     return;
   }
 
@@ -870,7 +783,9 @@ static void launchDedupe(HashLock *lock, DataVIO *dataVIO)
 
 /**
  * Enter the hash lock state where DataVIOs deduplicate in parallel against a
- * true copy of their data on disk.
+ * true copy of their data on disk. If the agent itself needs to deduplicate,
+ * an increment for it must already have been claimed from the duplicate lock,
+ * ensuring the hash lock will still have a DataVIO holding it.
  *
  * @param lock         The hash lock
  * @param agent        The DataVIO acting as the agent for the lock
@@ -881,19 +796,24 @@ static void startDeduping(HashLock *lock, DataVIO *agent, bool agentIsDone)
 {
   setHashLockState(lock, HASH_LOCK_DEDUPING);
 
+  // We don't take the downgraded allocation lock from the agent unless we
+  // actually need to deduplicate against it.
+  if (lock->duplicateLock == NULL) {
+    ASSERT_LOG_ONLY(!isCompressed(agent->newMapped.state),
+                    "compression must have shared a lock");
+    ASSERT_LOG_ONLY(agentIsDone, "agent must have written the new duplicate");
+    transferAllocationLock(agent);
+  }
+
+  ASSERT_LOG_ONLY(isPBNReadLock(lock->duplicateLock),
+                  "duplicateLock must be a PBN read lock");
+
   /*
    * This state is not like any of the other states. There is no designated
    * agent--the agent transitioning to this state and all the waiters will be
    * launched to deduplicate in parallel.
    */
   setAgent(lock, NULL);
-
-  // The ownership of the duplicate read lock must already have been
-  // transferred to the hash lock when it was acquired by the agent.
-  ASSERT_LOG_ONLY(lock->duplicateLock != NULL,
-                  "must hold duplicateLock when deduping");
-  ASSERT_LOG_ONLY(isPBNReadLock(lock->duplicateLock),
-                  "duplicateLock must be a PBN read lock");
 
   /*
    * Launch the agent (if not already deduplicated) and as many lock waiters
@@ -902,11 +822,11 @@ static void startDeduping(HashLock *lock, DataVIO *agent, bool agentIsDone)
    * transferred to the new lock.
    */
   if (!agentIsDone) {
-    launchDedupe(lock, agent);
+    launchDedupe(lock, agent, true);
     agent = NULL;
   }
   while (hasWaiters(&lock->waiters)) {
-    launchDedupe(lock, dequeueLockWaiter(lock));
+    launchDedupe(lock, dequeueLockWaiter(lock), false);
   }
 
   if (agentIsDone) {
@@ -950,6 +870,13 @@ static void finishVerifying(VDOCompletion *completion)
     }
   }
 
+  // Even if the block is a verified duplicate, we can't start to deduplicate
+  // unless we can claim a reference count increment for the agent.
+  if (lock->verified && !claimPBNLockIncrement(lock->duplicateLock)) {
+    agent->isDuplicate = false;
+    lock->verified     = false;
+  }
+
   if (lock->verified) {
     /*
      * VERIFYING -> DEDUPING transition: The advice is for a true duplicate,
@@ -958,9 +885,11 @@ static void finishVerifying(VDOCompletion *completion)
     startDeduping(lock, agent, false);
   } else {
     /*
-     * VERIFYING -> UNLOCKING transition: The verify failed, so the data will
-     * have to be written or compressed, but first the stale advice PBN must
-     * be unlocked by the VERIFYING agent.
+     * VERIFYING -> UNLOCKING transition: Either the verify failed or we'd try
+     * to dedupe and roll over immediately, which would fail because it would
+     * leave the lock without an agent to release the PBN lock. In both cases,
+     * the data will have to be written or compressed, but first the advice
+     * PBN must be unlocked by the VERIFYING agent.
      */
     lock->updateAdvice = true;
     startUnlocking(lock, agent);
@@ -1044,37 +973,25 @@ static void finishLocking(VDOCompletion *completion)
     return;
   }
 
+  if (!claimPBNLockIncrement(lock->duplicateLock)) {
+    /*
+     * LOCKING -> UNLOCKING transition: The verified block was re-locked, but
+     * has no available increments left. Must first release the useless PBN
+     * read lock before rolling over to a new copy of the block.
+     */
+    agent->isDuplicate = false;
+    lock->verified     = false;
+    lock->updateAdvice = true;
+    startUnlocking(lock, agent);
+    return;
+  }
+
   /*
    * LOCKING -> DEDUPING transition: Continue on the verified dedupe path,
    * deduplicating against a location that was previously verified or
    * written to.
    */
   startDeduping(lock, agent, false);
-}
-
-/**********************************************************************/
-bool inheritDuplicatePBNLock(DataVIO *dataVIO, PBNLock *duplicateLock)
-{
-  HashLock *hashLock = dataVIO->hashLock;
-  assertInDuplicateZone(dataVIO);
-
-  ASSERT_LOG_ONLY(dataVIO == hashLock->agent,
-                  "only the hash lock agent should inherit a PBN lock");
-
-  // XXX VDOSTORY-190 It's probably safe to refresh the increment limit here
-  // and probably worth doing. (Or maybe not if the lock could be shared).
-
-  if (allIncrementsClaimed(duplicateLock)) {
-    // We can't use the lock to dedupe, nor can anyone else, so cancel any
-    // other waiters and reject the lock transfer.
-    cancelDuplicateLockWait(dataVIOAsWaiter(dataVIO), NULL);
-    notifyAllWaiters(&duplicateLock->waiters, cancelDuplicateLockWait, NULL);
-    return false;
-  }
-
-  setDuplicateLock(hashLock, duplicateLock);
-  launchHashZoneCallback(dataVIO, finishLocking, THIS_LOCATION(NULL));
-  return true;
 }
 
 /**
@@ -1159,41 +1076,29 @@ static void lockDuplicatePBN(VDOCompletion *completion)
     return;
   }
 
-  if (lock->holderCount > 0) {
-    /*
-     * XXX VDOSTORY-190 This is where we share the PBN lock, once the
-     * array of compression slot read lock holders is added.
-     */
-    agent->lastAsyncOperation = ACQUIRE_PBN_READ_LOCK;
-    int result = enqueueDataVIO(&lock->waiters, agent, THIS_LOCATION(NULL));
+  if (lock->holderCount == 0) {
+    // Ensure that the newly-locked block is referenced.
+    Slab *slab = getSlab(depot, agent->duplicate.pbn);
+    result = acquireProvisionalReference(slab, agent->duplicate.pbn, lock);
     if (result != VDO_SUCCESS) {
-      logErrorWithStringError(result, "Error enqueuing hash lock agent");
+      logWarningWithStringError(result,
+                                "Error acquiring provisional reference for "
+                                "dedupe candidate; aborting dedupe");
+      agent->isDuplicate = false;
+      releasePBNLock(zone, agent->duplicate.pbn, &lock);
       continueDataVIO(agent, result);
+      return;
     }
-    return;
+
+    /*
+     * The increment limit we grabbed earlier is still valid. The lock now
+     * holds the rights to acquire all those references. Those rights will be
+     * claimed by hash locks sharing this read lock.
+     */
+    lock->incrementLimit = incrementLimit;
   }
 
-  // Ensure that the locked block is referenced.
-  Slab *slab = getSlab(depot, agent->duplicate.pbn);
-  result = acquireProvisionalReference(slab, agent->duplicate.pbn, lock);
-  if (result != VDO_SUCCESS) {
-    logWarningWithStringError(result,
-                              "Error acquiring provisional reference for "
-                              "dedupe candidate; aborting dedupe");
-    agent->isDuplicate = false;
-    releasePBNLock(zone, agent->duplicate.pbn, &lock);
-    continueDataVIO(agent, result);
-    return;
-  }
-
-  /*
-   * The increment limit we grabbed earlier is still valid. The lock now holds
-   * the rights to acquire all those references. Those rights will be claimed
-   * by hash locks sharing this read lock.
-   */
-  lock->incrementLimit = incrementLimit;
-
-  // We've successfully acquired a new read lock on behalf of the hash lock,
+  // We've successfully acquired a read lock on behalf of the hash lock,
   // so mark it as such.
   setDuplicateLock(agent->hashLock, lock);
 
@@ -1256,25 +1161,15 @@ static void finishWriting(HashLock *lock, DataVIO *agent)
     lock->updateAdvice = true;
   }
 
-  // If there are any waiters, we need to start deduping them or take a step
-  // towards being able to do so.
+  // If there are any waiters, we need to start deduping them.
   if (hasWaiters(&lock->waiters)) {
-    if (lock->duplicateLock == NULL) {
-      /*
-       * WRITING -> DOWNGRADING transition: a synchronously-written block
-       * failed to compress, so the agent still holds a write lock on the PBN
-       * we need to deduplicate against.
-       */
-      startDowngrading(lock, agent);
-    } else {
-      /*
-       * WRITING -> DEDUPING transition: an asynchronously-written block
-       * failed to compress, so the PBN lock on the written copy was already
-       * transferred. The agent is done with the lock, but the lock may
-       * still need to use it to clean up after rollover.
-       */
-      startDeduping(lock, agent, true);
-    }
+    /*
+     * WRITING -> DEDUPING transition: an asynchronously-written block
+     * failed to compress, so the PBN lock on the written copy was already
+     * transferred. The agent is done with the lock, but the lock may
+     * still need to use it to clean up after rollover.
+     */
+    startDeduping(lock, agent, true);
     return;
   }
 
@@ -1291,7 +1186,8 @@ static void finishWriting(HashLock *lock, DataVIO *agent)
   } else if (lock->duplicateLock != NULL) {
     /*
      * WRITING -> UNLOCKING transition: There's no waiter and no update
-     * needed, but the write gave us a duplicate lock that we must release.
+     * needed, but the compressed write gave us a shared duplicate lock that
+     * we must release.
      */
     setDuplicateLocation(agent, lock->duplicate);
     startUnlocking(lock, agent);
@@ -1299,7 +1195,7 @@ static void finishWriting(HashLock *lock, DataVIO *agent)
     /*
      * WRITING -> DESTROYING transition: There's no waiter, no update needed,
      * and no duplicate lock held, so both the agent and lock have no more
-     * work to do.
+     * work to do. The agent will release its allocation lock in cleanup.
      */
     // XXX startDestroying(lock, agent);
     startBypassing(lock, NULL);
@@ -1489,7 +1385,6 @@ void enterHashLock(DataVIO *dataVIO)
   case HASH_LOCK_QUERYING:
   case HASH_LOCK_WRITING:
   case HASH_LOCK_UPDATING:
-  case HASH_LOCK_DOWNGRADING:
   case HASH_LOCK_LOCKING:
   case HASH_LOCK_VERIFYING:
   case HASH_LOCK_UNLOCKING:
@@ -1503,7 +1398,7 @@ void enterHashLock(DataVIO *dataVIO)
     break;
 
   case HASH_LOCK_DEDUPING:
-    launchDedupe(lock, dataVIO);
+    launchDedupe(lock, dataVIO, false);
     break;
 
   case HASH_LOCK_DESTROYING:
@@ -1543,7 +1438,6 @@ void continueHashLock(DataVIO *dataVIO)
   case HASH_LOCK_INITIALIZING:
   case HASH_LOCK_QUERYING:
   case HASH_LOCK_UPDATING:
-  case HASH_LOCK_DOWNGRADING:
   case HASH_LOCK_LOCKING:
   case HASH_LOCK_VERIFYING:
   case HASH_LOCK_UNLOCKING:
@@ -1656,36 +1550,32 @@ void releaseHashLock(DataVIO *dataVIO)
   returnHashLockToZone(dataVIO->hashZone, &lock);
 }
 
-/**********************************************************************/
-void transferPBNWriteLock(DataVIO *dataVIO)
+/**
+ * Transfer a DataVIO's downgraded allocation PBN lock to the DataVIO's hash
+ * lock, converting it to a duplicate PBN lock.
+ *
+ * @param dataVIO  The DataVIO holding the allocation lock to transfer
+ **/
+static void transferAllocationLock(DataVIO *dataVIO)
 {
-  ASSERT_LOG_ONLY(getDuplicateLock(dataVIO) == NULL,
-                  "a duplicate PBN lock should not exist when writing");
   ASSERT_LOG_ONLY(dataVIO->newMapped.pbn == getDataVIOAllocation(dataVIO),
                   "transferred lock must be for the block written");
-  assertInNewMappedZone(dataVIO);
 
-  AllocatingVIO *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
-  PBNLock       *pbnLock       = allocatingVIO->writeLock;
-  allocatingVIO->writeLock     = NULL;
+  AllocatingVIO *allocatingVIO  = dataVIOAsAllocatingVIO(dataVIO);
+  PBNLock       *pbnLock        = allocatingVIO->allocationLock;
+  allocatingVIO->allocationLock = NULL;
+  allocatingVIO->allocation     = ZERO_BLOCK;
 
-  downgradePBNWriteLock(pbnLock);
+  ASSERT_LOG_ONLY(isPBNReadLock(pbnLock),
+                  "must have downgraded the allocation lock before transfer");
 
   HashLock *hashLock  = dataVIO->hashLock;
   hashLock->duplicate = dataVIO->newMapped;
   dataVIO->duplicate  = dataVIO->newMapped;
-  setDuplicateLock(hashLock, pbnLock);
 
-  // Technically need to get the increment limit here, but since we just
-  // wrote, it's a constant value we can just use.
-  pbnLock->incrementLimit = MAXIMUM_REFERENCE_COUNT - 1;
-
-  // XXX VDOSTORY-190 use this above instead of the constant, or remove this.
-  SlabDepot *depot = getVDOFromDataVIO(dataVIO)->depot;
-  uint8_t limit = getIncrementLimit(depot, getDataVIOAllocation(dataVIO));
-  ASSERT_LOG_ONLY(limit == (MAXIMUM_REFERENCE_COUNT - 1),
-                  "increment limit after write must be MAX-1, but was %u",
-                  limit);
+  // Since the lock is being transferred, the holder count doesn't change (and
+  // isn't even safe to examine on this thread).
+  hashLock->duplicateLock = pbnLock;
 }
 
 /**********************************************************************/
@@ -1700,12 +1590,11 @@ void shareCompressedWriteLock(DataVIO *dataVIO, PBNLock *pbnLock)
   // First sharer downgrades the lock.
   if (!isPBNReadLock(pbnLock)) {
     downgradePBNWriteLock(pbnLock);
-    pbnLock->incrementLimit = MAXIMUM_REFERENCE_COUNT;
   }
 
   // Get a share of the PBN lock, ensuring it cannot be released until
   // after this DataVIO has had a chance to journal a reference.
-  dataVIO->duplicate           = dataVIO->newMapped;
+  dataVIO->duplicate = dataVIO->newMapped;
   dataVIO->hashLock->duplicate = dataVIO->newMapped;
   setDuplicateLock(dataVIO->hashLock, pbnLock);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#3 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -52,14 +52,16 @@ typedef struct {
 typedef unsigned char UUID[16];
 
 typedef struct {
+  /** The release version number of this volume */
+  ReleaseVersionNumber releaseVersion;
   /** The nonce of this volume */
-  Nonce           nonce;
+  Nonce                nonce;
   /** The UUID of this volume */
-  UUID            uuid;
+  UUID                 uuid;
   /** The partitions in ID order */
-  VolumePartition partitions[VOLUME_REGION_COUNT];
+  VolumePartition      partitions[VOLUME_REGION_COUNT];
   /** The index config */
-  IndexConfig     indexConfig;
+  IndexConfig          indexConfig;
 } __attribute__((packed)) VolumeGeometry;
 
 /**
@@ -169,5 +171,19 @@ __attribute__((warn_unused_result));
  **/
 int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 __attribute__((warn_unused_result));
+
+/**
+ * Set load config fields from a volume geometry.
+ *
+ * @param [in]  geometry    The geometry to use
+ * @param [out] loadConfig  The load config to set
+ **/
+static inline void setLoadConfigFromGeometry(VolumeGeometry *geometry,
+                                             VDOLoadConfig  *loadConfig)
+{
+  loadConfig->firstBlockOffset = getDataRegionOffset(*geometry);
+  loadConfig->releaseVersion   = geometry->releaseVersion;
+  loadConfig->nonce            = geometry->nonce;
+}
 
 #endif // VOLUME_GEOMETRY_H

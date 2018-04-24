@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/context.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.c#2 $
  */
 
 #include "context.h"
@@ -312,22 +312,22 @@ int getContextStats(unsigned int contextId, UdsContextStats *stats)
 /**********************************************************************/
 static void collectStats(const UdsContext *context, UdsContextStats *stats)
 {
-  const StatCounters *counters = &context->stats.counters;
+  const SessionStats *sessionStats = &context->indexSession->stats;
 
   stats->currentTime = asTimeT(currentTime(CT_REALTIME));
 
-  stats->postsFound         = counters->postsFound;
-  stats->inMemoryPostsFound = counters->postsFoundOpenChapter;
-  stats->densePostsFound    = counters->postsFoundDense;
-  stats->sparsePostsFound   = counters->postsFoundSparse;
-  stats->postsNotFound      = counters->postsNotFound;
-  stats->updatesFound       = counters->updatesFound;
-  stats->updatesNotFound    = counters->updatesNotFound;
-  stats->deletionsFound     = counters->deletionsFound;
-  stats->deletionsNotFound  = counters->deletionsNotFound;
-  stats->queriesFound       = counters->queriesFound;
-  stats->queriesNotFound    = counters->queriesNotFound;
-  stats->requests           = counters->requests;
+  stats->postsFound         = sessionStats->postsFound;
+  stats->inMemoryPostsFound = sessionStats->postsFoundOpenChapter;
+  stats->densePostsFound    = sessionStats->postsFoundDense;
+  stats->sparsePostsFound   = sessionStats->postsFoundSparse;
+  stats->postsNotFound      = sessionStats->postsNotFound;
+  stats->updatesFound       = sessionStats->updatesFound;
+  stats->updatesNotFound    = sessionStats->updatesNotFound;
+  stats->deletionsFound     = sessionStats->deletionsFound;
+  stats->deletionsNotFound  = sessionStats->deletionsNotFound;
+  stats->queriesFound       = sessionStats->queriesFound;
+  stats->queriesNotFound    = sessionStats->queriesNotFound;
+  stats->requests           = sessionStats->requests;
 }
 
 /**********************************************************************/

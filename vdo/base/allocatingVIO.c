@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.c#2 $
  */
 
 #include "allocatingVIO.h"
@@ -42,7 +42,7 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
 {
   assertInPhysicalZone(allocatingVIO);
 
-  ASSERT_LOG_ONLY(allocatingVIO->writeLock == NULL,
+  ASSERT_LOG_ONLY(allocatingVIO->allocationLock == NULL,
                   "must not acquire a lock while already referencing one");
 
   PBNLock *lock;
@@ -63,7 +63,7 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
 
   // We've successfully acquired a new lock, so mark it as ours.
   lock->holderCount += 1;
-  allocatingVIO->writeLock = lock;
+  allocatingVIO->allocationLock = lock;
   assignProvisionalReference(lock);
   return VDO_SUCCESS;
 }
@@ -225,22 +225,23 @@ void allocateDataBlock(AllocatingVIO      *allocatingVIO,
 }
 
 /**********************************************************************/
-void releasePBNWriteLock(AllocatingVIO *allocatingVIO)
+void releaseAllocationLock(AllocatingVIO *allocatingVIO)
 {
   assertInPhysicalZone(allocatingVIO);
   PhysicalBlockNumber lockedPBN = allocatingVIO->allocation;
-  if (hasProvisionalReference(allocatingVIO->writeLock)) {
+  if (hasProvisionalReference(allocatingVIO->allocationLock)) {
     allocatingVIO->allocation = ZERO_BLOCK;
   }
 
-  releasePBNLock(allocatingVIO->zone, lockedPBN, &allocatingVIO->writeLock);
+  releasePBNLock(allocatingVIO->zone, lockedPBN,
+                 &allocatingVIO->allocationLock);
 }
 
 /**********************************************************************/
 void resetAllocation(AllocatingVIO *allocatingVIO)
 {
-  ASSERT_LOG_ONLY(allocatingVIO->writeLock == NULL,
-                  "must not reset allocation while holding a write lock");
+  ASSERT_LOG_ONLY(allocatingVIO->allocationLock == NULL,
+                  "must not reset allocation while holding a PBN lock");
 
   allocatingVIOAsVIO(allocatingVIO)->physical = ZERO_BLOCK;
   allocatingVIO->zone                         = NULL;

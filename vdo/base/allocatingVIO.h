@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.h#3 $
  */
 
 #ifndef ALLOCATING_VIO_H
 #define ALLOCATING_VIO_H
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "pbnLock.h"
 #include "physicalZone.h"
 #include "vio.h"
@@ -49,8 +48,12 @@ struct allocatingVIO {
   /** The block allocated to this VIO */
   PhysicalBlockNumber allocation;
 
-  /* If non-NULL, the pooled PBN write lock held on the allocated block */
-  PBNLock            *writeLock;
+  /**
+   * If non-NULL, the pooled PBN lock held on the allocated block. Must be a
+   * write lock until the block has been written, after which it will become a
+   * read lock.
+   **/
+  PBNLock            *allocationLock;
 
   /** The type of write lock to obtain on the allocated block */
   PBNLockType         writeLockType;
@@ -245,12 +248,12 @@ void allocateDataBlock(AllocatingVIO      *allocatingVIO,
                        AllocationCallback *callback);
 
 /**
- * Release the PBN write lock. If the reference to the locked block is still
- * provisional, it will be released as well.
+ * Release the PBN lock on the allocated block. If the reference to the locked
+ * block is still provisional, it will be released as well.
  *
  * @param allocatingVIO  The lock holder
  **/
-void releasePBNWriteLock(AllocatingVIO *allocatingVIO);
+void releaseAllocationLock(AllocatingVIO *allocatingVIO);
 
 /**
  * Reset an AllocatingVIO after it has done an allocation.

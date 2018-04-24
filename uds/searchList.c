@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/searchList.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/searchList.c#2 $
  */
 
 #include "searchList.h"
@@ -67,7 +67,8 @@ void freeSearchList(SearchList **listPtr)
 
 /**********************************************************************/
 void purgeSearchList(SearchList               *searchList,
-                     const CachedChapterIndex  chapters[])
+                     const CachedChapterIndex  chapters[],
+                     uint64_t                  oldestVirtualChapter)
 {
   if (searchList->firstDeadEntry == 0) {
     // There are no live entries in the list to purge.
@@ -86,7 +87,8 @@ void purgeSearchList(SearchList               *searchList,
   for (int i = 0; i < searchList->firstDeadEntry; i++) {
     uint8_t entry = searchList->entries[i];
     const CachedChapterIndex *chapter = &chapters[entry];
-    if (chapter->invalid || (chapter->virtualChapter == UINT64_MAX)) {
+    if ((chapter->virtualChapter < oldestVirtualChapter)
+        || (chapter->virtualChapter == UINT64_MAX)) {
       dead[nextDead++] = entry;
     } else if (chapter->skipSearch) {
       skipped[nextSkipped++] = entry;

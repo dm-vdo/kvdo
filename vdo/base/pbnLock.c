@@ -16,22 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLock.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/pbnLock.c#3 $
  */
 
 #include "pbnLock.h"
 
 #include "logger.h"
 
-#include "allocatingVIO.h"
 #include "blockAllocator.h"
-#include "dataVIO.h"
-#include "intMap.h"
-#include "physicalZone.h"
-#include "vioWrite.h"
-#include "waitQueue.h"
-
-typedef void LockQueuer(DataVIO *dataVIO, PBNLock *lock);
+#include "referenceBlock.h"
 
 struct pbnLockImplementation {
   PBNLockType  type;
@@ -88,7 +81,6 @@ void initializePBNLock(PBNLock *lock, PBNLockType type)
 {
   lock->holderCount = 0;
   setPBNLockType(lock, type);
-  initializeWaitQueue(&lock->waiters);
 }
 
 /**********************************************************************/
@@ -98,12 +90,19 @@ void downgradePBNWriteLock(PBNLock *lock)
                   "PBN lock must not already have been downgraded");
   ASSERT_LOG_ONLY(!hasLockType(lock, VIO_BLOCK_MAP_WRITE_LOCK),
                   "must not downgrade block map write locks");
-  ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
-                  "write locks must have no waiters");
   ASSERT_LOG_ONLY(lock->holderCount == 1,
                   "PBN write lock should have one holder but has %u",
                   lock->holderCount);
-  lock->holderCount = 0;
+  if (hasLockType(lock, VIO_WRITE_LOCK)) {
+    // DataVIO write locks are downgraded in place--the writer retains the
+    // hold on the lock. They've already had a single incRef journaled.
+    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT - 1;
+  } else {
+    // Compressed block write locks are downgraded when they are shared with
+    // all their hash locks. The writer is releasing its hold on the lock.
+    lock->holderCount = 0;
+    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT;
+  }
   setPBNLockType(lock, VIO_READ_LOCK);
 }
 
@@ -120,19 +119,6 @@ bool claimPBNLockIncrement(PBNLock *lock)
    */
   uint32_t claimNumber = atomicAdd32(&lock->incrementsClaimed, 1);
   return (claimNumber <= lock->incrementLimit);
-}
-
-/**********************************************************************/
-bool allIncrementsClaimed(const PBNLock *lock)
-{
-  /*
-   * The counter never decreases, so this can never return a false positive.
-   * False negatives are possible but allowed by our contract. A load fence
-   * isn't needed since there's no ordering issues. A fence might reduce the
-   * change of false negatives, but it's not worth paying for one in the much
-   * more common cases of unshared locks and true negatives on shared locks.
-   */
-  return (relaxedLoad32(&lock->incrementsClaimed) >= lock->incrementLimit);
 }
 
 /**********************************************************************/

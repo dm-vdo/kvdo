@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#2 $
  */
 
 #include "superBlock.h"
@@ -116,6 +116,8 @@ int makeSuperBlock(PhysicalLayer *layer, SuperBlock **superBlockPtr)
     return result;
   }
 
+  // For a new super block, use the current release.
+  superBlock->loadedReleaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
   *superBlockPtr = superBlock;
   return VDO_SUCCESS;
 }
@@ -176,8 +178,8 @@ static int encodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
                              ENCODED_HEADER_SIZE, 0);
 
   // Encode the release version.
-  ReleaseVersionNumber version = CURRENT_RELEASE_VERSION_NUMBER;
-  offset = putBytesAt(superBlock->encodedSuperBlock, &version,
+  offset = putBytesAt(superBlock->encodedSuperBlock,
+                      &superBlock->loadedReleaseVersion,
                       sizeof(ReleaseVersionNumber), offset);
 
   // Encode the component data.

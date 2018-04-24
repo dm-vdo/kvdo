@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#4 $
  */
 
 /*
@@ -186,9 +186,9 @@
 #include "vioWrite.h"
 
 #include "logger.h"
-#include "util/atomic.h"
 
 #include "allocatingVIO.h"
+#include "atomic.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "dataVIO.h"
@@ -240,7 +240,7 @@ static inline bool isAsync(DataVIO *dataVIO)
 }
 
 /**
- * Release the write lock and/or the reference on the allocated block at the
+ * Release the PBN lock and/or the reference on the allocated block at the
  * end of processing a DataVIO.
  *
  * @param completion  The DataVIO
@@ -249,7 +249,7 @@ static void releaseAllocatedLock(VDOCompletion *completion)
 {
   DataVIO *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
-  releasePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO));
+  releaseAllocationLock(dataVIOAsAllocatingVIO(dataVIO));
   performCleanupStage(dataVIO, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -289,7 +289,7 @@ static void cleanHashLock(VDOCompletion *completion)
  **/
 static void finishCleanup(DataVIO *dataVIO)
 {
-  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->writeLock == NULL,
+  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->allocationLock == NULL,
                   "complete DataVIO has no allocation lock");
   ASSERT_LOG_ONLY(dataVIO->hashLock == NULL,
                   "complete DataVIO has no hash lock");
@@ -550,10 +550,10 @@ static void decrementForDedupe(VDOCompletion *completion)
   if (allocatingVIO->allocation == dataVIO->mapped.pbn) {
     /*
      * If we are about to release the reference on the allocated block,
-     * we must release the write lock on it first so that the allocator will
+     * we must release the PBN lock on it first so that the allocator will
      * not allocate a write-locked block.
      */
-    releasePBNWriteLock(allocatingVIO);
+    releaseAllocationLock(allocatingVIO);
   }
 
   setLogicalCallback(dataVIO, updateBlockMapForDedupe,
@@ -840,11 +840,6 @@ static void resolveHashZone(VDOCompletion *completion)
   }
 
   ASSERT_LOG_ONLY(!dataVIO->isZeroBlock, "zero blocks should not be hashed");
-  ASSERT_LOG_ONLY(!dataVIO->chunkNameSet, "blocks should not be hashed twice");
-
-  // XXX This flag can eventually go away after VDOSTORY-190, but it's
-  // providing useful error checks while we rewrite the dedupe path.
-  dataVIO->chunkNameSet = true;
 
   dataVIO->hashZone
     = selectHashZone(getVDOFromDataVIO(dataVIO), &dataVIO->chunkName);
@@ -1041,15 +1036,12 @@ static void incrementForWrite(VDOCompletion *completion)
     return;
   }
 
-
-  if (dataVIO->hashLock != NULL) {
-    /*
-     * Now that the data has been written, it's safe to deduplicate against
-     * the block, so transfer the allocation write lock to the HashLock held
-     * by the DataVIO.
-     */
-    transferPBNWriteLock(dataVIO);
-  }
+  /*
+   * Now that the data has been written, it's safe to deduplicate against the
+   * block. Downgrade the allocation lock to a read lock so it can be used
+   * later by the hash lock (which we don't have yet in sync mode).
+   */
+  downgradePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
 
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
   setLogicalCallback(dataVIO, getWriteIncrementCallback(dataVIO),
@@ -1080,7 +1072,7 @@ static void finishBlockWrite(VDOCompletion *completion)
                              THIS_LOCATION("$F;js=mapWrite"));
   }
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_WRITE;
-  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->writeLock);
+  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
 }
 
 /**

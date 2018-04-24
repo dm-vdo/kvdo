@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#4 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,8 +24,7 @@
 
 #include "vdo.h"
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "header.h"
 #include "packer.h"
 #include "readOnlyModeContextInternals.h"
@@ -163,16 +162,6 @@ int saveReconfiguredVDO(VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a VDO requires an upgrade.
- *
- * @param vdo  The VDO to check
- *
- * @return true if the version number requires an upgrade
- **/
-bool upgradeRequired(const VDO *vdo)
-  __attribute__((warn_unused_result));
-
-/**
  * Decode the VDO master version from the component data buffer in the super
  * block and store it in the VDO's loadVersion field.
  **/
@@ -282,16 +271,6 @@ bool isClean(const VDO *vdo)
  * @return <code>true</code> if the VDO was clean
  **/
 bool wasClean(const VDO *vdo)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether the VDO was new when it was loaded.
- *
- * @param vdo  The VDO to query
- *
- * @return <code>true</code> if the VDO was new
- **/
-bool wasNew(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**

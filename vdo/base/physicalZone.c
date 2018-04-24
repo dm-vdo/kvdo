@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/physicalZone.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/physicalZone.c#2 $
  */
 
 #include "physicalZone.h"
@@ -180,17 +180,6 @@ void releasePBNLock(PhysicalZone         *zone,
   if (lock->holderCount > 0) {
     // The lock was shared and is still referenced, so don't release it yet.
     return;
-  }
-
-  // Transfer the lock to the first waiter willing to accept it. The waiter
-  // will always resume processing, with or without the lock.
-  while (hasWaiters(&lock->waiters)) {
-    DataVIO *dataVIO = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
-    if (inheritDuplicatePBNLock(dataVIO, lock)) {
-      ASSERT_LOG_ONLY(lock->holderCount > 0,
-                      "inherited PBN lock must become held");
-      return;
-    }
   }
 
   PBNLock *holder = intMapRemove(zone->pbnOperations, lockedPBN);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/public/uds.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/public/uds.h#3 $
  */
 
 /**
@@ -489,6 +489,28 @@ int udsAddGridServer(UdsGridConfig gridConfig,
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsCloseIndexSession(UdsIndexSession session);
+
+/**
+ * Returns the configuration for the given index session.
+ *
+ * @param [in]  session The session
+ * @param [out] conf    The index configuration
+ *
+ * @return              Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
+
+/**
+ * Fetches index statistics for the given index session.
+ *
+ * @param [in]  session The session
+ * @param [out] stats   The index statistics structure to fill
+ *
+ * @return              Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
 
 /**
  * The possible status that an index server can return.

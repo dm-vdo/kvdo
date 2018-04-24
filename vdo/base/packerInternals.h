@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packerInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packerInternals.h#2 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -24,8 +24,7 @@
 
 #include "packer.h"
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "compressedBlock.h"
 #include "header.h"
 #include "waitQueue.h"

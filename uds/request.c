@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/request.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/request.c#2 $
  */
 
 #include "request.h"
@@ -312,50 +312,49 @@ void updateRequestContextStats(Request *request)
   // We don't need any synchronization since the context stats are only
   // accessed from the single callback thread.
 
-  UdsContext *context = request->context;
-  StatCounters *counters = &context->stats.counters;
+  SessionStats *sessionStats = &request->context->indexSession->stats;
 
-  counters->requests++;
+  sessionStats->requests++;
   bool found = (request->location != LOC_UNAVAILABLE);
 
   switch (request->action) {
   case REQUEST_INDEX:
     if (found) {
-      counters->postsFound++;
+      sessionStats->postsFound++;
 
       if (request->location == LOC_IN_OPEN_CHAPTER) {
-        counters->postsFoundOpenChapter++;
+        sessionStats->postsFoundOpenChapter++;
       } else if (request->location == LOC_IN_DENSE) {
-        counters->postsFoundDense++;
+        sessionStats->postsFoundDense++;
       } else if (request->location == LOC_IN_SPARSE) {
-        counters->postsFoundSparse++;
+        sessionStats->postsFoundSparse++;
       }
     } else {
-      counters->postsNotFound++;
+      sessionStats->postsNotFound++;
     }
     break;
 
   case REQUEST_UPDATE:
     if (found) {
-      counters->updatesFound++;
+      sessionStats->updatesFound++;
     } else {
-      counters->updatesNotFound++;
+      sessionStats->updatesNotFound++;
     }
     break;
 
   case REQUEST_DELETE:
     if (found) {
-      counters->deletionsFound++;
+      sessionStats->deletionsFound++;
     } else {
-      counters->deletionsNotFound++;
+      sessionStats->deletionsNotFound++;
     }
     break;
 
   case REQUEST_QUERY:
     if (found) {
-      counters->queriesFound++;
+      sessionStats->queriesFound++;
     } else {
-      counters->queriesNotFound++;
+      sessionStats->queriesNotFound++;
     }
     break;
 

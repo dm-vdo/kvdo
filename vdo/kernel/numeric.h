@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/numeric.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/numeric.h#2 $
  */
 
 #ifndef NUMERIC_H
@@ -409,6 +409,22 @@ static inline uint64_t getUInt64LE(const byte* data)
 }
 
 /**
+ * Extract a 64-bit little-endian number from a buffer at a specified offset.
+ * The offset will be advanced to the first byte after the number.
+ *
+ * @param buffer   The buffer from which to extract the number
+ * @param offset   A pointer to the offset into the buffer at which to extract
+ * @param decoded  A pointer to hold the extracted number
+ **/
+static inline void decodeUInt64LE(const byte *buffer,
+                                  size_t     *offset,
+                                  uint64_t   *decoded)
+{
+  *decoded = getUInt64LE(buffer + *offset);
+  *offset += sizeof(uint64_t);
+}
+
+/**
  * Store a 64 bit number in a buffer in
  * little-endian representation.
  *
@@ -421,6 +437,23 @@ static inline void storeUInt64LE(byte* data, uint64_t num)
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(uint64_t, data, num);
+}
+
+/**
+ * Encode a 64-bit number into a buffer at a given offset using a
+ * little-endian representation. The offset will be advanced to first byte
+ * after the encoded number.
+ *
+ * @param data      The buffer to encode into
+ * @param offset    A pointer to the offset at which to start encoding
+ * @param toEncode  The number to encode
+ **/
+static inline void encodeUInt64LE(byte     *data,
+                                  size_t   *offset,
+                                  uint64_t  toEncode)
+{
+  storeUInt64LE(data + *offset, toEncode);
+  *offset += sizeof(uint64_t);
 }
 
 /**

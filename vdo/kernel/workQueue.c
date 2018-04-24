@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#3 $
  */
 
 #include "workQueue.h"
@@ -25,6 +25,7 @@
 #include <linux/kthread.h>
 #include <linux/version.h>
 
+#include "atomic.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/context.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.h#2 $
  */
 
 #ifndef CONTEXT_H
@@ -37,29 +37,10 @@ typedef enum udsContextState {
   UDS_CS_DISABLED  = 2
 } UdsContextState;
 
-typedef struct statCounters {
-  uint64_t postsFound;          /* Post calls that found an entry */
-  uint64_t postsFoundOpenChapter; /* Post calls found in the open chapter */
-  uint64_t postsFoundDense;     /* Post calls found in the dense index */
-  uint64_t postsFoundSparse;    /* Post calls found in the sparse index */
-  uint64_t postsNotFound;       /* Post calls that did not find an entry */
-  uint64_t updatesFound;        /* Update calls that found an entry */
-  uint64_t updatesNotFound;     /* Update calls that did not find an entry */
-  uint64_t deletionsFound;      /* Delete calls that found an entry */
-  uint64_t deletionsNotFound;   /* Delete calls that did not find an entry */
-  uint64_t queriesFound;        /* Query calls that found an entry */
-  uint64_t queriesNotFound;     /* Query calls that did not find an entry */
-  uint64_t requests;            /* Total number of requests */
-} StatCounters;
-
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) contextStats {
-  StatCounters    counters;
-} ContextStats;
-
 /**
  * Context for uds client index requests.
  **/
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
+typedef struct udsContext {
   /* The id of this context */
   unsigned int     id;
   /* The state of this context (whether or not it may be used) */
@@ -67,8 +48,6 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
   /* The index and session which own this context */
   IndexSession    *indexSession;
   Session          session;
-  /** request statistics for this context, all owned by the callback thread */
-  ContextStats     stats;
 } UdsContext;
 
 /**
