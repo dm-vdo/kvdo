@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.h#5 $
  */
 
 #ifndef FUNNEL_QUEUE_H
@@ -134,7 +134,16 @@ static INLINE void funnelQueuePut(FunnelQueue *queue, FunnelQueueEntry *entry)
    * xchg implements a full barrier.
    */
   entry->next = NULL;
+  /*
+   * The xchg macro in the PPC kernel calls a function that takes a void*
+   * argument, triggering a warning about dropping the volatile qualifier.
+   */
+#pragma GCC diagnostic push
+#if __GNUC__ >= 5
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+#endif
   FunnelQueueEntry *previous = xchg(&queue->newest, entry);
+#pragma GCC diagnostic pop
   // Pre-empts between these two statements hide the rest of the queue from
   // the consumer, preventing consumption until the following assignment runs.
   previous->next = entry;

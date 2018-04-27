@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#4 $
  */
 
 #include "volumeGeometry.h"
@@ -61,6 +61,9 @@ static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
 
 static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
+static const ReleaseVersionNumber COMPATIBLE_RELEASE_VERSIONS[] = {
+  MAGNESIUM_RELEASE_VERSION_NUMBER,
+};
 
 /**
  * Determine whether the supplied release version can be understood by
@@ -72,9 +75,17 @@ static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
  **/
 static inline bool isLoadableReleaseVersion(ReleaseVersionNumber version)
 {
-  return ((version == CURRENT_RELEASE_VERSION_NUMBER)
-          || (version == ALUMINUM_RELEASE_VERSION_NUMBER)
-          || (version == MAGNESIUM_RELEASE_VERSION_NUMBER));
+  if (version == CURRENT_RELEASE_VERSION_NUMBER) {
+    return true;
+  }
+
+  for (unsigned int i = 0; i < COUNT_OF(COMPATIBLE_RELEASE_VERSIONS); i++) {
+    if (version == COMPATIBLE_RELEASE_VERSIONS[i]) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**********************************************************************/

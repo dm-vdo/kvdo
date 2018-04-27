@@ -1,7 +1,7 @@
 %define spec_release 1
 
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.0.32
+%define kmod_driver_version	6.2.0.35
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 %define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
@@ -217,21 +217,9 @@ install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Tue Apr 24 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.32-1
+* Fri Apr 27 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.35-1
 Note: This is a pre-release version, future versions of VDO may not support
 VDO devices created with this version.
-- Merged the funnel queue implementations in the uds and kvdo modules.
-- Improved deduplication of concurrent requests containing the same data.
-- Enabled loading of VDO devices created with version 6.0 or 6.1.
-- Moved atomic.h from the UDS module to the VDO module since the UDS module
-  doesn't use it.
-- Removed spurious error messages when first creating the index for a new
-  VDO.
-- Added validation that the release version numbers in the geometry block
-  and VDO super block match.
-- Fixed bug in UDS on architectures with page sizes larger than 4K.
-- Reflected kernel change of SECTOR_SHIFT and SECTOR_SIZE from enums to
-  macros.
-- Continued to remove obsolete functionality from the UDS module.
-- Continued to add support for architectures other than x86.
-- Fixed a thread-safety issue in UDS module's chapter cache.
+- Added validation that the release version numbers in the geometry and
+  super block match on load.
+- Fixed compilation problems on newer versions of GCC.
