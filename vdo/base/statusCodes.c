@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.c#2 $
  */
 
 #include "statusCodes.h"
@@ -62,6 +62,7 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_READ_CACHE_BUSY",       "Read cache has no free slots"              },
   { "VDO_BIO_CREATION_FAILED",   "Bio creation failed"                       },
   { "VDO_BAD_MAGIC",             "Bad magic number"                          },
+  { "VDO_BAD_NONCE",             "Bad nonce"                                 },
   { "VDO_JOURNAL_OVERFLOW",      "Journal sequence number overflow"          },
 };
 

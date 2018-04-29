@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/poolSysfs.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/poolSysfs.c#2 $
  */
 
 #include "poolSysfs.h"
@@ -130,8 +130,6 @@ static ssize_t poolRequestsMaximumShow(KernelLayer *layer, char *buf)
 static void vdoPoolRelease(struct kobject *kobj)
 {
   KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
-  FREE(layer->vdoStatsStorage);
-  FREE(layer->kernelStatsStorage);
   freeVDO(&layer->kvdo.vdo);
   FREE(layer);
 }

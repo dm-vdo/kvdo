@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dmvdo.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dmvdo.c#3 $
  */
 
 #include "dmvdo.h"
@@ -107,16 +107,6 @@ unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
 #define HAS_FLUSH_SUPPORTED (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
 #endif
 
-/*
- * Debian version 4.4 and RHEL 7.3 have changed how they support ioctls.
- * Add a define value here that we can use in the device code.
- */
-#ifdef RHEL_RELEASE_CODE
-#define HAS_PREPARE_IOCTL (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7,3))
-#else
-#define HAS_PREPARE_IOCTL (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
-#endif
-
 /**********************************************************************/
 
 /**
@@ -157,26 +147,6 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio)
   KernelLayer *layer = ti->private;
   return kvdoMapBio(layer, bio);
 }
-
-#if HAS_PREPARE_IOCTL
-/**********************************************************************/
-int vdoPrepareIoctl(struct dm_target *ti,
-                    struct block_device **bdev,
-                    fmode_t *mode)
-{
-  // At this time VDO will not support passing ioctls down.
-  // TODO: Find out what the proper action should be.
-  return -EINVAL;
-}
-#else
-/**********************************************************************/
-int vdoIoctl(struct dm_target *ti, unsigned int cmd, unsigned long arg)
-{
-  // At this time VDO will not support passing ioctls down.
-  // TODO: Find out what the proper action should be.
-  return -EINVAL;
-}
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
 /**********************************************************************/
@@ -734,6 +704,7 @@ static int vdoInitialize(struct dm_target *ti,
   // Now that we have read the geometry, we can finish setting up the
   // VDOLoadConfig.
   loadConfig.firstBlockOffset = getDataRegionOffset(layer->geometry);
+  loadConfig.nonce            = layer->geometry.nonce;
 
   if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {
@@ -1014,11 +985,6 @@ static struct target_type vdoTargetBio = {
   .preresume       = vdoPreresume,
   .resume          = vdoResume,
   // Put version specific functions at the bottom
-#if HAS_PREPARE_IOCTL
-  .prepare_ioctl   = vdoPrepareIoctl,
-#else
-  .ioctl           = vdoIoctl,
-#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
   .merge           = vdoMerge,
 #endif

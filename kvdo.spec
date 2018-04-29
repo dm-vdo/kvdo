@@ -1,7 +1,7 @@
 %define spec_release 1
 
 %define kmod_name		kvdo
-%define kmod_driver_version	6.1.0.153
+%define kmod_driver_version	6.1.0.168
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 %define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
@@ -29,7 +29,6 @@ URL:		http://github.com/dm-vdo/kvdo
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires:	kernel-devel >= %{kmod_kernel_version}
 BuildRequires:  redhat-rpm-config
-BuildRequires:  kernel-debug >= %{kmod_kernel_version}
 BuildRequires:	glibc
 BuildRequires:	kernel-abi-whitelists
 BuildRequires:  libuuid-devel
@@ -197,5 +196,5 @@ install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Sun Apr 29 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.0.153-1
-HASH(0x2b42990)
+* Sun Apr 29 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.0.168-1
+HASH(0x32eeb58)

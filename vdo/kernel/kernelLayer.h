@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.h#3 $
  */
 
 #ifndef KERNELLAYER_H
@@ -42,6 +42,7 @@
 #include "kernelVDO.h"
 #include "ktrace.h"
 #include "limiter.h"
+#include "statistics.h"
 #include "workQueue.h"
 
 enum {
@@ -109,9 +110,6 @@ struct kernelLayer {
   struct kobject          kobj;
   struct kobject          wqDirectory;
   struct kobject          statsDirectory;
-  VDOStatistics          *vdoStatsStorage;
-  KernelStatistics       *kernelStatsStorage;
-  spinlock_t              statsLock;
   /**
    * A counter value to attach to thread names and log messages to
    * identify the individual device.
@@ -213,6 +211,17 @@ struct kernelLayer {
   // Administrative operations
   /* The object used to wait for administrative operations to complete */
   struct completion       callbackSync;
+
+  // Statistics reporting
+  /* Protects the *statsStorage structs */
+  struct mutex            statsMutex;
+  /* Used when shutting down the sysfs statistics */
+  struct completion       statsShutdown;;
+  /* true if sysfs statistics directory is set up */
+  bool                    statsAdded;
+  /* Used to gather statistics without allocating memory */
+  VDOStatistics           vdoStatsStorage;
+  KernelStatistics        kernelStatsStorage;
 };
 
 typedef enum bioQAction {

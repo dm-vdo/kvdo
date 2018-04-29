@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/types.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/types.h#2 $
  */
 
 #ifndef TYPES_H
@@ -341,6 +341,8 @@ typedef struct vdoConfig {
 typedef struct vdoLoadConfig {
   /** the offset on the physical layer where the VDO begins */
   PhysicalBlockNumber  firstBlockOffset;
+  /** the expected nonce of the VDO */
+  Nonce                nonce;
   /** the thread configuration of the VDO */
   ThreadConfig        *threadConfig;
   /** the page cache size, in pages */

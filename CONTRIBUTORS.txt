@@ -1,0 +1,92 @@
+The Red Hat VDO Team:
+  Principal Engineer/Lead Architect:
+    J. corwin Coburn <corwin@redhat.com>
+
+  Primary Authors:
+    Joseph Chapman <jochapma@redhat.com>
+    Sweet Tea Dorminy <sweettea@redhat.com>
+    Thomas Jaskiewicz <tjaskiew@redhat.com>
+    Bruce Johnston <bjohnsto@redhat.com>
+    Ken Raeburn <raeburn@redhat.com>
+    Michael Sclafani <sclafani@redhat.com>
+    Matthew Sakai <msakai@redhat.com>
+    Joseph Shimkus <jshimkus@redhat.com>
+    John Wiele <jwiele@redhat.com>
+
+  Support, Testing, Documentation, and other things too numerous to mention:
+    Chung Chung <cchung@redhat.com>:
+    Bryan Gurney <bgurney@redhat.com>
+    *Simon J. Hernandez <sihernan@redhat.com>
+    Jakub Krysl <jkrysl@redhat.com>
+    Marek Suchanek <msuchane@redhat.com>
+
+  Project Management & Technical Direction:
+    Jered Floyd <jered@redhat.com>
+    Louis Imershein <limershe@redhat.com>
+    Dennis Keefe <dkeefe@redhat.com>
+    Andrew Walsh <awalsh@redhat.com>
+
+  *former team members
+
+Other Contributors:
+  Ji-Hyeon Gim <potatogim@potatogim.net>:
+    Updates for FC26/Kernel 4.13
+
+
+VDO was originally created at Permabit Technology Corporation, and was
+subsequently acquired and open-sourced by Red Hat.
+
+Former Members of the Permabit VDO Team:
+  Engineers:
+    Mark Amidon
+    David Buckle
+    Jacky Chu
+    Joel Hoff
+    Dimitri Kountourogianni
+    Alexis Layton
+    Michael Lee
+    Rich Macchi
+    Dave Paniriti
+    Karl Ramm
+    Hooman Vassef
+    Assar Westurlund
+
+  Support, Testing, Documentation, etc.
+    Carl Alexander
+    Mike Chu
+    Mark Iskra
+    Farid Jahanmir
+    Francesca Koulikov
+    Erik Lattimore
+    Jennifer Levine
+    Randy Long
+    Steve Looby
+    Uche Onyekwuluje
+    Catherine Powell
+    Jeff Pozz
+    Sarmad Sada
+    John Schmidt
+    Omri Schwarz
+    Jay Splaine
+    John Welle
+    Mary-Anne Wolf
+    Devon Yablonski
+    Robert Zupko
+
+  Interns:
+    Ari Entlich
+    Lori Monteleone
+
+  Project Management & Technical Direction:
+    Michael Fortson
+
+Other Past Permabit Contributors (for early work on the index):
+    James Clough
+    Dave Golombek
+    Albert Lin
+    Edwin Olson
+    Dave Pinkney
+    Rich Brennan
+
+And Very Special Thanks To:
+  Norman Margolis, who started the whole thing

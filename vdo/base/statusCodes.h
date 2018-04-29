@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.h#2 $
  */
 
 #ifndef STATUS_CODES_H
@@ -108,6 +108,8 @@ enum vdoStatusCodes {
   VDO_BIO_CREATION_FAILED,
   /** bad magic number */
   VDO_BAD_MAGIC,
+  /** bad nonce */
+  VDO_BAD_NONCE,
   /** sequence number overflow */
   VDO_JOURNAL_OVERFLOW,
   /** one more than last error code */

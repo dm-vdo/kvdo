@@ -44,7 +44,7 @@ static ssize_t poolStatsAttrShow(struct kobject   *kobj,
   return poolStatsAttr->show(layer, buf);
 }
 
-static struct sysfs_ops poolStatsSysfsOps = {
+struct sysfs_ops poolStatsSysfsOps = {
   .show  = poolStatsAttrShow,
   .store = NULL,
 };
@@ -54,10 +54,10 @@ static struct sysfs_ops poolStatsSysfsOps = {
 static ssize_t poolStatsDataBlocksUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->dataBlocksUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.dataBlocksUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -71,10 +71,10 @@ static PoolStatsAttribute poolStatsDataBlocksUsedAttr = {
 static ssize_t poolStatsOverheadBlocksUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->overheadBlocksUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.overheadBlocksUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -88,10 +88,10 @@ static PoolStatsAttribute poolStatsOverheadBlocksUsedAttr = {
 static ssize_t poolStatsLogicalBlocksUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->logicalBlocksUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.logicalBlocksUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -105,10 +105,10 @@ static PoolStatsAttribute poolStatsLogicalBlocksUsedAttr = {
 static ssize_t poolStatsPhysicalBlocksShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->physicalBlocks);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.physicalBlocks);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -122,10 +122,10 @@ static PoolStatsAttribute poolStatsPhysicalBlocksAttr = {
 static ssize_t poolStatsLogicalBlocksShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->logicalBlocks);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.logicalBlocks);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -139,10 +139,10 @@ static PoolStatsAttribute poolStatsLogicalBlocksAttr = {
 static ssize_t poolStatsBlockMapCacheSizeShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMapCacheSize);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMapCacheSize);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -156,10 +156,10 @@ static PoolStatsAttribute poolStatsBlockMapCacheSizeAttr = {
 static ssize_t poolStatsWritePolicyShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%s\n", layer->vdoStatsStorage->writePolicy);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%s\n", layer->vdoStatsStorage.writePolicy);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -173,10 +173,10 @@ static PoolStatsAttribute poolStatsWritePolicyAttr = {
 static ssize_t poolStatsBlockSizeShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockSize);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockSize);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -190,10 +190,10 @@ static PoolStatsAttribute poolStatsBlockSizeAttr = {
 static ssize_t poolStatsCompleteRecoveriesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->completeRecoveries);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.completeRecoveries);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -207,10 +207,10 @@ static PoolStatsAttribute poolStatsCompleteRecoveriesAttr = {
 static ssize_t poolStatsReadOnlyRecoveriesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->readOnlyRecoveries);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.readOnlyRecoveries);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -224,10 +224,10 @@ static PoolStatsAttribute poolStatsReadOnlyRecoveriesAttr = {
 static ssize_t poolStatsModeShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%s\n", layer->vdoStatsStorage->mode);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%s\n", layer->vdoStatsStorage.mode);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -241,10 +241,10 @@ static PoolStatsAttribute poolStatsModeAttr = {
 static ssize_t poolStatsInRecoveryModeShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%d\n", layer->vdoStatsStorage->inRecoveryMode);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%d\n", layer->vdoStatsStorage.inRecoveryMode);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -258,10 +258,10 @@ static PoolStatsAttribute poolStatsInRecoveryModeAttr = {
 static ssize_t poolStatsRecoveryPercentageShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%u\n", layer->vdoStatsStorage->recoveryPercentage);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%u\n", layer->vdoStatsStorage.recoveryPercentage);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -275,10 +275,10 @@ static PoolStatsAttribute poolStatsRecoveryPercentageAttr = {
 static ssize_t poolStatsPackerCompressedFragmentsWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->packer.compressedFragmentsWritten);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.packer.compressedFragmentsWritten);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -292,10 +292,10 @@ static PoolStatsAttribute poolStatsPackerCompressedFragmentsWrittenAttr = {
 static ssize_t poolStatsPackerCompressedBlocksWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->packer.compressedBlocksWritten);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.packer.compressedBlocksWritten);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -309,10 +309,10 @@ static PoolStatsAttribute poolStatsPackerCompressedBlocksWrittenAttr = {
 static ssize_t poolStatsPackerCompressedFragmentsInPackerShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->packer.compressedFragmentsInPacker);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.packer.compressedFragmentsInPacker);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -326,10 +326,10 @@ static PoolStatsAttribute poolStatsPackerCompressedFragmentsInPackerAttr = {
 static ssize_t poolStatsAllocatorSlabCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->allocator.slabCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.allocator.slabCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -343,10 +343,10 @@ static PoolStatsAttribute poolStatsAllocatorSlabCountAttr = {
 static ssize_t poolStatsAllocatorSlabsOpenedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->allocator.slabsOpened);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.allocator.slabsOpened);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -360,10 +360,10 @@ static PoolStatsAttribute poolStatsAllocatorSlabsOpenedAttr = {
 static ssize_t poolStatsAllocatorSlabsReopenedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->allocator.slabsReopened);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.allocator.slabsReopened);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -377,10 +377,10 @@ static PoolStatsAttribute poolStatsAllocatorSlabsReopenedAttr = {
 static ssize_t poolStatsJournalDiskFullShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.diskFull);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.diskFull);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -394,10 +394,10 @@ static PoolStatsAttribute poolStatsJournalDiskFullAttr = {
 static ssize_t poolStatsJournalSlabJournalCommitsRequestedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.slabJournalCommitsRequested);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.slabJournalCommitsRequested);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -411,10 +411,10 @@ static PoolStatsAttribute poolStatsJournalSlabJournalCommitsRequestedAttr = {
 static ssize_t poolStatsJournalEntriesStartedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.entries.started);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.entries.started);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -428,10 +428,10 @@ static PoolStatsAttribute poolStatsJournalEntriesStartedAttr = {
 static ssize_t poolStatsJournalEntriesWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.entries.written);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.entries.written);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -445,10 +445,10 @@ static PoolStatsAttribute poolStatsJournalEntriesWrittenAttr = {
 static ssize_t poolStatsJournalEntriesCommittedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.entries.committed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.entries.committed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -462,10 +462,10 @@ static PoolStatsAttribute poolStatsJournalEntriesCommittedAttr = {
 static ssize_t poolStatsJournalBlocksStartedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.blocks.started);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.blocks.started);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -479,10 +479,10 @@ static PoolStatsAttribute poolStatsJournalBlocksStartedAttr = {
 static ssize_t poolStatsJournalBlocksWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.blocks.written);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.blocks.written);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -496,10 +496,10 @@ static PoolStatsAttribute poolStatsJournalBlocksWrittenAttr = {
 static ssize_t poolStatsJournalBlocksCommittedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->journal.blocks.committed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.journal.blocks.committed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -513,10 +513,10 @@ static PoolStatsAttribute poolStatsJournalBlocksCommittedAttr = {
 static ssize_t poolStatsSlabJournalDiskFullCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabJournal.diskFullCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabJournal.diskFullCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -530,10 +530,10 @@ static PoolStatsAttribute poolStatsSlabJournalDiskFullCountAttr = {
 static ssize_t poolStatsSlabJournalFlushCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabJournal.flushCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabJournal.flushCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -547,10 +547,10 @@ static PoolStatsAttribute poolStatsSlabJournalFlushCountAttr = {
 static ssize_t poolStatsSlabJournalBlockedCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabJournal.blockedCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabJournal.blockedCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -564,10 +564,10 @@ static PoolStatsAttribute poolStatsSlabJournalBlockedCountAttr = {
 static ssize_t poolStatsSlabJournalBlocksWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabJournal.blocksWritten);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabJournal.blocksWritten);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -581,10 +581,10 @@ static PoolStatsAttribute poolStatsSlabJournalBlocksWrittenAttr = {
 static ssize_t poolStatsSlabJournalTailBusyCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabJournal.tailBusyCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabJournal.tailBusyCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -598,10 +598,10 @@ static PoolStatsAttribute poolStatsSlabJournalTailBusyCountAttr = {
 static ssize_t poolStatsSlabSummaryBlocksWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->slabSummary.blocksWritten);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.slabSummary.blocksWritten);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -615,10 +615,10 @@ static PoolStatsAttribute poolStatsSlabSummaryBlocksWrittenAttr = {
 static ssize_t poolStatsRefCountsBlocksWrittenShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->refCounts.blocksWritten);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.refCounts.blocksWritten);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -632,10 +632,10 @@ static PoolStatsAttribute poolStatsRefCountsBlocksWrittenAttr = {
 static ssize_t poolStatsBlockMapDirtyPagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.dirtyPages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.dirtyPages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -649,10 +649,10 @@ static PoolStatsAttribute poolStatsBlockMapDirtyPagesAttr = {
 static ssize_t poolStatsBlockMapCleanPagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.cleanPages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.cleanPages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -666,10 +666,10 @@ static PoolStatsAttribute poolStatsBlockMapCleanPagesAttr = {
 static ssize_t poolStatsBlockMapFreePagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.freePages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.freePages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -683,10 +683,10 @@ static PoolStatsAttribute poolStatsBlockMapFreePagesAttr = {
 static ssize_t poolStatsBlockMapFailedPagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.failedPages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.failedPages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -700,10 +700,10 @@ static PoolStatsAttribute poolStatsBlockMapFailedPagesAttr = {
 static ssize_t poolStatsBlockMapIncomingPagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.incomingPages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.incomingPages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -717,10 +717,10 @@ static PoolStatsAttribute poolStatsBlockMapIncomingPagesAttr = {
 static ssize_t poolStatsBlockMapOutgoingPagesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.outgoingPages);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.outgoingPages);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -734,10 +734,10 @@ static PoolStatsAttribute poolStatsBlockMapOutgoingPagesAttr = {
 static ssize_t poolStatsBlockMapCachePressureShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage->blockMap.cachePressure);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->vdoStatsStorage.blockMap.cachePressure);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -751,10 +751,10 @@ static PoolStatsAttribute poolStatsBlockMapCachePressureAttr = {
 static ssize_t poolStatsBlockMapReadCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.readCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.readCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -768,10 +768,10 @@ static PoolStatsAttribute poolStatsBlockMapReadCountAttr = {
 static ssize_t poolStatsBlockMapWriteCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.writeCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.writeCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -785,10 +785,10 @@ static PoolStatsAttribute poolStatsBlockMapWriteCountAttr = {
 static ssize_t poolStatsBlockMapFailedReadsShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.failedReads);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.failedReads);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -802,10 +802,10 @@ static PoolStatsAttribute poolStatsBlockMapFailedReadsAttr = {
 static ssize_t poolStatsBlockMapFailedWritesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.failedWrites);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.failedWrites);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -819,10 +819,10 @@ static PoolStatsAttribute poolStatsBlockMapFailedWritesAttr = {
 static ssize_t poolStatsBlockMapReclaimedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.reclaimed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.reclaimed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -836,10 +836,10 @@ static PoolStatsAttribute poolStatsBlockMapReclaimedAttr = {
 static ssize_t poolStatsBlockMapReadOutgoingShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.readOutgoing);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.readOutgoing);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -853,10 +853,10 @@ static PoolStatsAttribute poolStatsBlockMapReadOutgoingAttr = {
 static ssize_t poolStatsBlockMapFoundInCacheShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.foundInCache);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.foundInCache);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -870,10 +870,10 @@ static PoolStatsAttribute poolStatsBlockMapFoundInCacheAttr = {
 static ssize_t poolStatsBlockMapDiscardRequiredShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.discardRequired);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.discardRequired);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -887,10 +887,10 @@ static PoolStatsAttribute poolStatsBlockMapDiscardRequiredAttr = {
 static ssize_t poolStatsBlockMapWaitForPageShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.waitForPage);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.waitForPage);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -904,10 +904,10 @@ static PoolStatsAttribute poolStatsBlockMapWaitForPageAttr = {
 static ssize_t poolStatsBlockMapFetchRequiredShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.fetchRequired);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.fetchRequired);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -921,10 +921,10 @@ static PoolStatsAttribute poolStatsBlockMapFetchRequiredAttr = {
 static ssize_t poolStatsBlockMapPagesLoadedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.pagesLoaded);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.pagesLoaded);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -938,10 +938,10 @@ static PoolStatsAttribute poolStatsBlockMapPagesLoadedAttr = {
 static ssize_t poolStatsBlockMapPagesSavedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.pagesSaved);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.pagesSaved);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -955,10 +955,10 @@ static PoolStatsAttribute poolStatsBlockMapPagesSavedAttr = {
 static ssize_t poolStatsBlockMapFlushCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->blockMap.flushCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.blockMap.flushCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -972,10 +972,10 @@ static PoolStatsAttribute poolStatsBlockMapFlushCountAttr = {
 static ssize_t poolStatsErrorsInvalidAdvicePBNCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->errors.invalidAdvicePBNCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.errors.invalidAdvicePBNCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -989,10 +989,10 @@ static PoolStatsAttribute poolStatsErrorsInvalidAdvicePBNCountAttr = {
 static ssize_t poolStatsErrorsNoSpaceErrorCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->errors.noSpaceErrorCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.errors.noSpaceErrorCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1006,10 +1006,10 @@ static PoolStatsAttribute poolStatsErrorsNoSpaceErrorCountAttr = {
 static ssize_t poolStatsErrorsReadOnlyErrorCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKVDOStatistics(&layer->kvdo, layer->vdoStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage->errors.readOnlyErrorCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->vdoStatsStorage.errors.readOnlyErrorCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1023,10 +1023,10 @@ static PoolStatsAttribute poolStatsErrorsReadOnlyErrorCountAttr = {
 static ssize_t poolStatsInstanceShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->instance);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage.instance);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1040,10 +1040,10 @@ static PoolStatsAttribute poolStatsInstanceAttr = {
 static ssize_t poolStatsCurrentVIOsInProgressShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->currentVIOsInProgress);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage.currentVIOsInProgress);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1057,10 +1057,10 @@ static PoolStatsAttribute poolStatsCurrentVIOsInProgressAttr = {
 static ssize_t poolStatsMaxVIOsShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->maxVIOs);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage.maxVIOs);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1074,10 +1074,10 @@ static PoolStatsAttribute poolStatsMaxVIOsAttr = {
 static ssize_t poolStatsDedupeAdviceValidShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->dedupeAdviceValid);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.dedupeAdviceValid);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1091,10 +1091,10 @@ static PoolStatsAttribute poolStatsDedupeAdviceValidAttr = {
 static ssize_t poolStatsDedupeAdviceStaleShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->dedupeAdviceStale);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.dedupeAdviceStale);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1108,10 +1108,10 @@ static PoolStatsAttribute poolStatsDedupeAdviceStaleAttr = {
 static ssize_t poolStatsDedupeAdviceTimeoutsShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->dedupeAdviceTimeouts);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.dedupeAdviceTimeouts);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1125,10 +1125,10 @@ static PoolStatsAttribute poolStatsDedupeAdviceTimeoutsAttr = {
 static ssize_t poolStatsFlushOutShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->flushOut);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.flushOut);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1142,10 +1142,10 @@ static PoolStatsAttribute poolStatsFlushOutAttr = {
 static ssize_t poolStatsLogicalBlockSizeShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->logicalBlockSize);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.logicalBlockSize);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1159,10 +1159,10 @@ static PoolStatsAttribute poolStatsLogicalBlockSizeAttr = {
 static ssize_t poolStatsBiosInReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosIn.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosIn.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1176,10 +1176,10 @@ static PoolStatsAttribute poolStatsBiosInReadAttr = {
 static ssize_t poolStatsBiosInWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosIn.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosIn.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1193,10 +1193,10 @@ static PoolStatsAttribute poolStatsBiosInWriteAttr = {
 static ssize_t poolStatsBiosInDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosIn.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosIn.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1210,10 +1210,10 @@ static PoolStatsAttribute poolStatsBiosInDiscardAttr = {
 static ssize_t poolStatsBiosInFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosIn.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosIn.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1227,10 +1227,10 @@ static PoolStatsAttribute poolStatsBiosInFlushAttr = {
 static ssize_t poolStatsBiosInFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosIn.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosIn.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1244,10 +1244,10 @@ static PoolStatsAttribute poolStatsBiosInFuaAttr = {
 static ssize_t poolStatsBiosInPartialReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInPartial.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInPartial.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1261,10 +1261,10 @@ static PoolStatsAttribute poolStatsBiosInPartialReadAttr = {
 static ssize_t poolStatsBiosInPartialWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInPartial.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInPartial.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1278,10 +1278,10 @@ static PoolStatsAttribute poolStatsBiosInPartialWriteAttr = {
 static ssize_t poolStatsBiosInPartialDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInPartial.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInPartial.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1295,10 +1295,10 @@ static PoolStatsAttribute poolStatsBiosInPartialDiscardAttr = {
 static ssize_t poolStatsBiosInPartialFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInPartial.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInPartial.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1312,10 +1312,10 @@ static PoolStatsAttribute poolStatsBiosInPartialFlushAttr = {
 static ssize_t poolStatsBiosInPartialFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInPartial.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInPartial.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1329,10 +1329,10 @@ static PoolStatsAttribute poolStatsBiosInPartialFuaAttr = {
 static ssize_t poolStatsBiosOutReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOut.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOut.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1346,10 +1346,10 @@ static PoolStatsAttribute poolStatsBiosOutReadAttr = {
 static ssize_t poolStatsBiosOutWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOut.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOut.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1363,10 +1363,10 @@ static PoolStatsAttribute poolStatsBiosOutWriteAttr = {
 static ssize_t poolStatsBiosOutDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOut.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOut.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1380,10 +1380,10 @@ static PoolStatsAttribute poolStatsBiosOutDiscardAttr = {
 static ssize_t poolStatsBiosOutFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOut.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOut.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1397,10 +1397,10 @@ static PoolStatsAttribute poolStatsBiosOutFlushAttr = {
 static ssize_t poolStatsBiosOutFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOut.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOut.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1414,10 +1414,10 @@ static PoolStatsAttribute poolStatsBiosOutFuaAttr = {
 static ssize_t poolStatsBiosMetaReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMeta.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMeta.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1431,10 +1431,10 @@ static PoolStatsAttribute poolStatsBiosMetaReadAttr = {
 static ssize_t poolStatsBiosMetaWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMeta.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMeta.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1448,10 +1448,10 @@ static PoolStatsAttribute poolStatsBiosMetaWriteAttr = {
 static ssize_t poolStatsBiosMetaDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMeta.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMeta.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1465,10 +1465,10 @@ static PoolStatsAttribute poolStatsBiosMetaDiscardAttr = {
 static ssize_t poolStatsBiosMetaFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMeta.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMeta.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1482,10 +1482,10 @@ static PoolStatsAttribute poolStatsBiosMetaFlushAttr = {
 static ssize_t poolStatsBiosMetaFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMeta.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMeta.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1499,10 +1499,10 @@ static PoolStatsAttribute poolStatsBiosMetaFuaAttr = {
 static ssize_t poolStatsBiosJournalReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournal.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournal.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1516,10 +1516,10 @@ static PoolStatsAttribute poolStatsBiosJournalReadAttr = {
 static ssize_t poolStatsBiosJournalWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournal.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournal.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1533,10 +1533,10 @@ static PoolStatsAttribute poolStatsBiosJournalWriteAttr = {
 static ssize_t poolStatsBiosJournalDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournal.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournal.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1550,10 +1550,10 @@ static PoolStatsAttribute poolStatsBiosJournalDiscardAttr = {
 static ssize_t poolStatsBiosJournalFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournal.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournal.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1567,10 +1567,10 @@ static PoolStatsAttribute poolStatsBiosJournalFlushAttr = {
 static ssize_t poolStatsBiosJournalFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournal.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournal.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1584,10 +1584,10 @@ static PoolStatsAttribute poolStatsBiosJournalFuaAttr = {
 static ssize_t poolStatsBiosPageCacheReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCache.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCache.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1601,10 +1601,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheReadAttr = {
 static ssize_t poolStatsBiosPageCacheWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCache.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCache.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1618,10 +1618,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheWriteAttr = {
 static ssize_t poolStatsBiosPageCacheDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCache.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCache.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1635,10 +1635,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheDiscardAttr = {
 static ssize_t poolStatsBiosPageCacheFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCache.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCache.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1652,10 +1652,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheFlushAttr = {
 static ssize_t poolStatsBiosPageCacheFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCache.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCache.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1669,10 +1669,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheFuaAttr = {
 static ssize_t poolStatsBiosOutCompletedReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOutCompleted.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOutCompleted.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1686,10 +1686,10 @@ static PoolStatsAttribute poolStatsBiosOutCompletedReadAttr = {
 static ssize_t poolStatsBiosOutCompletedWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOutCompleted.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOutCompleted.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1703,10 +1703,10 @@ static PoolStatsAttribute poolStatsBiosOutCompletedWriteAttr = {
 static ssize_t poolStatsBiosOutCompletedDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOutCompleted.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOutCompleted.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1720,10 +1720,10 @@ static PoolStatsAttribute poolStatsBiosOutCompletedDiscardAttr = {
 static ssize_t poolStatsBiosOutCompletedFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOutCompleted.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOutCompleted.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1737,10 +1737,10 @@ static PoolStatsAttribute poolStatsBiosOutCompletedFlushAttr = {
 static ssize_t poolStatsBiosOutCompletedFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosOutCompleted.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosOutCompleted.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1754,10 +1754,10 @@ static PoolStatsAttribute poolStatsBiosOutCompletedFuaAttr = {
 static ssize_t poolStatsBiosMetaCompletedReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMetaCompleted.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMetaCompleted.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1771,10 +1771,10 @@ static PoolStatsAttribute poolStatsBiosMetaCompletedReadAttr = {
 static ssize_t poolStatsBiosMetaCompletedWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMetaCompleted.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMetaCompleted.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1788,10 +1788,10 @@ static PoolStatsAttribute poolStatsBiosMetaCompletedWriteAttr = {
 static ssize_t poolStatsBiosMetaCompletedDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMetaCompleted.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMetaCompleted.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1805,10 +1805,10 @@ static PoolStatsAttribute poolStatsBiosMetaCompletedDiscardAttr = {
 static ssize_t poolStatsBiosMetaCompletedFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMetaCompleted.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMetaCompleted.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1822,10 +1822,10 @@ static PoolStatsAttribute poolStatsBiosMetaCompletedFlushAttr = {
 static ssize_t poolStatsBiosMetaCompletedFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosMetaCompleted.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosMetaCompleted.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1839,10 +1839,10 @@ static PoolStatsAttribute poolStatsBiosMetaCompletedFuaAttr = {
 static ssize_t poolStatsBiosJournalCompletedReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournalCompleted.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournalCompleted.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1856,10 +1856,10 @@ static PoolStatsAttribute poolStatsBiosJournalCompletedReadAttr = {
 static ssize_t poolStatsBiosJournalCompletedWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournalCompleted.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournalCompleted.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1873,10 +1873,10 @@ static PoolStatsAttribute poolStatsBiosJournalCompletedWriteAttr = {
 static ssize_t poolStatsBiosJournalCompletedDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournalCompleted.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournalCompleted.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1890,10 +1890,10 @@ static PoolStatsAttribute poolStatsBiosJournalCompletedDiscardAttr = {
 static ssize_t poolStatsBiosJournalCompletedFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournalCompleted.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournalCompleted.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1907,10 +1907,10 @@ static PoolStatsAttribute poolStatsBiosJournalCompletedFlushAttr = {
 static ssize_t poolStatsBiosJournalCompletedFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosJournalCompleted.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosJournalCompleted.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1924,10 +1924,10 @@ static PoolStatsAttribute poolStatsBiosJournalCompletedFuaAttr = {
 static ssize_t poolStatsBiosPageCacheCompletedReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCacheCompleted.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCacheCompleted.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1941,10 +1941,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheCompletedReadAttr = {
 static ssize_t poolStatsBiosPageCacheCompletedWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCacheCompleted.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCacheCompleted.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1958,10 +1958,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheCompletedWriteAttr = {
 static ssize_t poolStatsBiosPageCacheCompletedDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCacheCompleted.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCacheCompleted.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1975,10 +1975,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheCompletedDiscardAttr = {
 static ssize_t poolStatsBiosPageCacheCompletedFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCacheCompleted.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCacheCompleted.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -1992,10 +1992,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheCompletedFlushAttr = {
 static ssize_t poolStatsBiosPageCacheCompletedFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosPageCacheCompleted.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosPageCacheCompleted.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2009,10 +2009,10 @@ static PoolStatsAttribute poolStatsBiosPageCacheCompletedFuaAttr = {
 static ssize_t poolStatsBiosAcknowledgedReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledged.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledged.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2026,10 +2026,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedReadAttr = {
 static ssize_t poolStatsBiosAcknowledgedWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledged.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledged.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2043,10 +2043,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedWriteAttr = {
 static ssize_t poolStatsBiosAcknowledgedDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledged.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledged.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2060,10 +2060,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedDiscardAttr = {
 static ssize_t poolStatsBiosAcknowledgedFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledged.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledged.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2077,10 +2077,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedFlushAttr = {
 static ssize_t poolStatsBiosAcknowledgedFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledged.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledged.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2094,10 +2094,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedFuaAttr = {
 static ssize_t poolStatsBiosAcknowledgedPartialReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledgedPartial.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledgedPartial.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2111,10 +2111,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedPartialReadAttr = {
 static ssize_t poolStatsBiosAcknowledgedPartialWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledgedPartial.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledgedPartial.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2128,10 +2128,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedPartialWriteAttr = {
 static ssize_t poolStatsBiosAcknowledgedPartialDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledgedPartial.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledgedPartial.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2145,10 +2145,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedPartialDiscardAttr = {
 static ssize_t poolStatsBiosAcknowledgedPartialFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledgedPartial.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledgedPartial.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2162,10 +2162,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedPartialFlushAttr = {
 static ssize_t poolStatsBiosAcknowledgedPartialFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosAcknowledgedPartial.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosAcknowledgedPartial.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2179,10 +2179,10 @@ static PoolStatsAttribute poolStatsBiosAcknowledgedPartialFuaAttr = {
 static ssize_t poolStatsBiosInProgressReadShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInProgress.read);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInProgress.read);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2196,10 +2196,10 @@ static PoolStatsAttribute poolStatsBiosInProgressReadAttr = {
 static ssize_t poolStatsBiosInProgressWriteShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInProgress.write);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInProgress.write);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2213,10 +2213,10 @@ static PoolStatsAttribute poolStatsBiosInProgressWriteAttr = {
 static ssize_t poolStatsBiosInProgressDiscardShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInProgress.discard);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInProgress.discard);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2230,10 +2230,10 @@ static PoolStatsAttribute poolStatsBiosInProgressDiscardAttr = {
 static ssize_t poolStatsBiosInProgressFlushShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInProgress.flush);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInProgress.flush);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2247,10 +2247,10 @@ static PoolStatsAttribute poolStatsBiosInProgressFlushAttr = {
 static ssize_t poolStatsBiosInProgressFuaShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->biosInProgress.fua);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.biosInProgress.fua);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2264,10 +2264,10 @@ static PoolStatsAttribute poolStatsBiosInProgressFuaAttr = {
 static ssize_t poolStatsReadCacheAccessesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->readCache.accesses);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.accesses);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2281,10 +2281,10 @@ static PoolStatsAttribute poolStatsReadCacheAccessesAttr = {
 static ssize_t poolStatsReadCacheHitsShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->readCache.hits);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.hits);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2298,10 +2298,10 @@ static PoolStatsAttribute poolStatsReadCacheHitsAttr = {
 static ssize_t poolStatsReadCacheDataHitsShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->readCache.dataHits);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.dataHits);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2315,10 +2315,10 @@ static PoolStatsAttribute poolStatsReadCacheDataHitsAttr = {
 static ssize_t poolStatsMemoryUsageBytesUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->memoryUsage.bytesUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.bytesUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2332,10 +2332,10 @@ static PoolStatsAttribute poolStatsMemoryUsageBytesUsedAttr = {
 static ssize_t poolStatsMemoryUsagePeakBytesUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->memoryUsage.peakBytesUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.peakBytesUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2349,10 +2349,10 @@ static PoolStatsAttribute poolStatsMemoryUsagePeakBytesUsedAttr = {
 static ssize_t poolStatsMemoryUsageBiosUsedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->memoryUsage.biosUsed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.biosUsed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2366,10 +2366,10 @@ static PoolStatsAttribute poolStatsMemoryUsageBiosUsedAttr = {
 static ssize_t poolStatsMemoryUsagePeakBioCountShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->memoryUsage.peakBioCount);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.memoryUsage.peakBioCount);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2383,10 +2383,10 @@ static PoolStatsAttribute poolStatsMemoryUsagePeakBioCountAttr = {
 static ssize_t poolStatsIndexEntriesIndexedShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.entriesIndexed);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.entriesIndexed);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2400,10 +2400,10 @@ static PoolStatsAttribute poolStatsIndexEntriesIndexedAttr = {
 static ssize_t poolStatsIndexPostsFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.postsFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.postsFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2417,10 +2417,10 @@ static PoolStatsAttribute poolStatsIndexPostsFoundAttr = {
 static ssize_t poolStatsIndexPostsNotFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.postsNotFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.postsNotFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2434,10 +2434,10 @@ static PoolStatsAttribute poolStatsIndexPostsNotFoundAttr = {
 static ssize_t poolStatsIndexQueriesFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.queriesFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.queriesFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2451,10 +2451,10 @@ static PoolStatsAttribute poolStatsIndexQueriesFoundAttr = {
 static ssize_t poolStatsIndexQueriesNotFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.queriesNotFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.queriesNotFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2468,10 +2468,10 @@ static PoolStatsAttribute poolStatsIndexQueriesNotFoundAttr = {
 static ssize_t poolStatsIndexUpdatesFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.updatesFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.updatesFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2485,10 +2485,10 @@ static PoolStatsAttribute poolStatsIndexUpdatesFoundAttr = {
 static ssize_t poolStatsIndexUpdatesNotFoundShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage->index.updatesNotFound);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.index.updatesNotFound);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2502,10 +2502,10 @@ static PoolStatsAttribute poolStatsIndexUpdatesNotFoundAttr = {
 static ssize_t poolStatsIndexCurrDedupeQueriesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->index.currDedupeQueries);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage.index.currDedupeQueries);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2519,10 +2519,10 @@ static PoolStatsAttribute poolStatsIndexCurrDedupeQueriesAttr = {
 static ssize_t poolStatsIndexMaxDedupeQueriesShow(KernelLayer *layer, char *buf)
 {
   ssize_t retval;
-  spin_lock(&layer->statsLock);
-  getKernelStats(layer, layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage->index.maxDedupeQueries);
-  spin_unlock(&layer->statsLock);
+  mutex_lock(&layer->statsMutex);
+  getKernelStats(layer, &layer->kernelStatsStorage);
+  retval = sprintf(buf, "%" PRIu32 "\n", layer->kernelStatsStorage.index.maxDedupeQueries);
+  mutex_unlock(&layer->statsMutex);
   return retval;
 }
 
@@ -2531,7 +2531,7 @@ static PoolStatsAttribute poolStatsIndexMaxDedupeQueriesAttr = {
   .show  = poolStatsIndexMaxDedupeQueriesShow,
 };
 
-static struct attribute *poolStatsAttrs[] = {
+struct attribute *poolStatsAttrs[] = {
   &poolStatsDataBlocksUsedAttr.attr,
   &poolStatsOverheadBlocksUsedAttr.attr,
   &poolStatsLogicalBlocksUsedAttr.attr,
@@ -2679,16 +2679,4 @@ static struct attribute *poolStatsAttrs[] = {
   &poolStatsIndexCurrDedupeQueriesAttr.attr,
   &poolStatsIndexMaxDedupeQueriesAttr.attr,
   NULL,
-};
-
-/**********************************************************************/
-static void poolStatsRelease(struct kobject *kobj)
-{
-  /* A no-op. */
-}
-
-struct kobj_type statsDirectoryKobjType = {
-  .release       = poolStatsRelease,
-  .sysfs_ops     = &poolStatsSysfsOps,
-  .default_attrs = poolStatsAttrs,
 };
