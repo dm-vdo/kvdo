@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLockPool.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/pbnLockPool.c#1 $
  */
 
 #include "pbnLockPool.h"
@@ -107,6 +107,10 @@ int borrowPBNLockFromPool(PBNLockPool  *pool,
   pool->borrowed += 1;
 
   RingNode *idleNode = popRingNode(&pool->idleRing);
+  // The lock was zeroed when it was placed in the pool, but the overlapping
+  // ring pointers are non-zero after a pop.
+  memset(idleNode, 0, sizeof(*idleNode));
+
   STATIC_ASSERT(offsetof(IdlePBNLock, node) == offsetof(IdlePBNLock, lock));
   PBNLock *lock = (PBNLock *) idleNode;
   initializePBNLock(lock, type);
@@ -126,7 +130,6 @@ void returnPBNLockToPool(PBNLockPool *pool, PBNLock **lockPtr)
                   "lock returned to pool must have no waiters");
 
   // A bit expensive, but will promptly catch some use-after-free errors.
-  // XXX Remove after VDOSTORY-190 is complete?
   memset(lock, 0, sizeof(*lock));
 
   RingNode *idleNode = (RingNode *) lock;

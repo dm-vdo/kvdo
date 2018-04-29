@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.c#1 $
  */
 
 #include "kernelLayer.h"
@@ -110,12 +110,6 @@ static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 }
 
 /**********************************************************************/
-static BlockCount kvdoGetDataRegionOffset(PhysicalLayer *header)
-{
-  return asKernelLayer(header)->geometry->partitions[DATA_REGION].startBlock;
-}
-
-/**********************************************************************/
 int mapToSystemError(int error)
 {
   // 0 is success, negative a system error code
@@ -153,6 +147,12 @@ static void setKernelLayerState(KernelLayer *layer, KernelLayerState newState)
 /**********************************************************************/
 void waitForNoRequestsActive(KernelLayer *layer)
 {
+  // Do nothing if there are no requests active.  This check is not necessary
+  // for correctness but does reduce log message traffic.
+  if (limiterIsIdle(&layer->requestLimiter)) {
+    return;
+  }
+
   // We have to make sure to flush the packer before waiting. We do this
   // by turning off compression, which also means no new entries coming in
   // while waiting will end up in the packer.
@@ -264,12 +264,12 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
     return -EIO;
   }
 
-  if (getCurrentWorkQueue() != NULL) {
+  KvdoWorkQueue *currentWorkQueue = getCurrentWorkQueue();
+  if ((currentWorkQueue != NULL)
+      && (layer == getWorkQueueOwner(currentWorkQueue))) {
     /*
-     * This prohibits sleeping during I/O submission to VDO from any VDO
-     * thread, even in a different VDO device. The same-device case is the one
-     * we really care about, but having one VDO stacked atop another ought not
-     * to happen either.
+     * This prohibits sleeping during I/O submission to VDO from its own
+     * thread.
      */
     return launchDataKVIOFromVDOThread(layer, bio, arrivalTime);
   }
@@ -678,7 +678,6 @@ int makeKernelLayer(BlockCount      blockCount,
 
   layer->common.updateCRC32              = kvdoUpdateCRC32;
   layer->common.getBlockCount            = kvdoGetBlockCount;
-  layer->common.getDataRegionOffset      = kvdoGetDataRegionOffset;
   layer->common.isFlushRequired          = isFlushRequired;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
   layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
@@ -867,7 +866,7 @@ int makeKernelLayer(BlockCount      blockCount,
   // Bio ack queue
   if (useBioAckQueue(layer)) {
     result = makeWorkQueue(layer->threadNamePrefix, "ackQ",
-                           &layer->wqDirectory, layer, &bioAckQType,
+                           &layer->wqDirectory, layer, layer, &bioAckQType,
                            config->threadCounts.bioAckThreads,
                            &layer->bioAckQueue);
     if (result != VDO_SUCCESS) {
@@ -881,8 +880,8 @@ int makeKernelLayer(BlockCount      blockCount,
 
   // CPU Queues
   result = makeWorkQueue(layer->threadNamePrefix, "cpuQ", &layer->wqDirectory,
-                         NULL, &cpuQType, config->threadCounts.cpuThreads,
-                         &layer->cpuQueue);
+                         layer, NULL, &cpuQType,
+                         config->threadCounts.cpuThreads, &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
     *reason = "Albireo CPU queue initialization failed";
     freeKernelLayer(layer);
@@ -965,6 +964,9 @@ int modifyKernelLayer(KernelLayer       *layer,
       return VDO_COMPONENT_BUSY;
     }
 
+    logInfo("Modifying device '%s' write policy from %s to %s",
+            config->poolName, getConfigWritePolicyString(layer->deviceConfig),
+            getConfigWritePolicyString(config));
     setWritePolicy(layer->kvdo.vdo, config->writePolicy);
     return VDO_SUCCESS;
   }
@@ -1057,7 +1059,6 @@ void freeKernelLayer(KernelLayer *layer)
     if (layer->dedupeIndex != NULL) {
       finishDedupeIndex(layer->dedupeIndex);
     }
-    FREE(layer->geometry);
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
     freeBatchProcessor(&layer->dataKVIOReleaser);

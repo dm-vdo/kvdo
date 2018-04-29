@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/sysfs.c#7 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/kernelLinux/uds/sysfs.c#1 $
  */
 
 #include "sysfs.h"
@@ -33,24 +33,18 @@
 
 static struct {
   struct kobject kobj;               // /sys/uds
-  struct kobject configurationKobj;  // /sys/uds/configuration
   struct kobject indexKobj;          // /sys/uds/index
   struct kobject parameterKobj;      // /sys/uds/parameter
   // This spinlock protects the rest of this struct, and the linked lists
   // pointed to by the *Head members.
   spinlock_t lock;
-  struct configurationObject *configurationHead;  // /sys/uds/configuration
   struct indexObject         *indexHead;          // /sys/uds/index
   struct sessionName         *sessionHead;        // session-name table
   // These flags are used to ensure a clean shutdown
   bool flag;               // /sys/uds
-  bool configurationFlag;  // /sys/uds/configuration
   bool indexFlag;          // /sys/uds/index
   bool parameterFlag;      // /sys/uds/parameter
-  bool shutdownFlag;       // shutting down
 } objectRoot;
-
-static ssize_t newIndexSession(UdsIndexSession session, const char *name);
 
 /**********************************************************************/
 static char *bufferToString(const char *buf, size_t length)
@@ -171,40 +165,20 @@ static struct kobj_type emptyObjectType = {
 };
 
 /**********************************************************************/
-// This is the the code for a /sys/configuration/<config_name> directory:
-//
-// <dir>/checkpoint_frequency
-//    R uses udsConfigurationGetCheckpointFrequency
-//    W uses udsConfigurationSetCheckpointFrequency
-//
-// <dir>/create_index
-//    W uses udsCreateLocalIndex
-//
-// <dir>/mem
-//    R uses udsConfigurationGetMemory
-//    W uses UdsInitializeConfiguration
-//
-// <dir>/size
-//    R uses udsComputeIndexSize
-//
-// <dir>/sparse
-//    R uses udsConfigurationGetSparse
-//    W uses udsConfigurationSetSparse
-//
+// This is the the code for a /sys/configuration/<config_name> directory.
+// This directory is no longer used, but the code is also used by the
+// /sys/index/<session>/configuration directory.
 /**********************************************************************/
 
 typedef struct configurationObject {
-  struct kobject              kobj;
-  UdsConfiguration            userConfig;
-  struct configurationObject *next;
+  struct kobject   kobj;
+  UdsConfiguration userConfig;
 } ConfigurationObject;
 
 typedef struct {
   struct attribute attr;
   ssize_t (*showStuff)(UdsConfiguration, char *);
   unsigned int (*showUint)(UdsConfiguration);
-  ssize_t (*storeStuff)(ConfigurationObject *, const char *);
-  ssize_t (*storeUint)(UdsConfiguration, unsigned int);
 } ConfigurationAttribute;
 
 /**********************************************************************/
@@ -276,144 +250,8 @@ static ssize_t configurationStore(struct kobject   *kobj,
                                   const char       *buf,
                                   size_t            length)
 {
-  ConfigurationAttribute *ca = container_of(attr, ConfigurationAttribute, attr);
-  ConfigurationObject *co = container_of(kobj, ConfigurationObject, kobj);
-  const char *string = bufferToString(buf, length);
-  if (string == NULL) {
-    return -ENOMEM;
-  }
-  ssize_t result = -EINVAL;
-  if (ca->storeStuff != NULL) {
-    result = ca->storeStuff(co, string);
-  } else if (ca->storeUint != NULL) {
-    unsigned long number;
-    if (stringToUnsignedLong(string, &number) != UDS_SUCCESS) {
-      result = -EINVAL;
-    } else if (number != (unsigned int) number) {
-      result = -EINVAL;
-    } else {
-      result = ca->storeUint(co->userConfig, (unsigned int) number);
-    }
-  }
-  freeConst(string);
-  return result == 0 ? length : result;
+  return -EINVAL;
 }
-
-/**********************************************************************/
-static ssize_t configurationCreateIndex(ConfigurationObject *co,
-                                        const char          *string)
-{
-  UdsIndexSession session;
-  int result = udsCreateLocalIndex(string, co->userConfig, &session);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error creating index \"%s\"", string);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  return newIndexSession(session, string);
-}
-
-/**********************************************************************/
-static ssize_t configurationStoreCfreq(UdsConfiguration userConfig,
-                                       unsigned int number)
-{
-  int result = udsConfigurationSetCheckpointFrequency(userConfig, number);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error setting checkpoint frequency to %u",
-                            number);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t configurationStoreMem(ConfigurationObject *co,
-                                     const char          *string)
-{
-  UdsMemoryConfigSize mem;
-  if (strcmp(string, "0.25") == 0) {
-    mem = UDS_MEMORY_CONFIG_256MB;
-  } else if (strcmp(string, "0.5") == 0) {
-    mem = UDS_MEMORY_CONFIG_512MB;
-  } else if (strcmp(string, "0.75") == 0) {
-    mem = UDS_MEMORY_CONFIG_768MB;
-  } else {
-    unsigned long number;
-    if (stringToUnsignedLong(string, &number) != UDS_SUCCESS) {
-      return -EINVAL;
-    }
-    mem = number;
-    if (mem != number) {
-      return -EINVAL;
-    }
-  }
-  UdsConfiguration oldConfig = co->userConfig;
-  int result = udsInitializeConfiguration(&co->userConfig, mem);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error setting configuration size to %s",
-                            string);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  udsFreeConfiguration(oldConfig);
-  return 0;
-}
-
-/**********************************************************************/
-static ssize_t configurationStoreSparse(UdsConfiguration userConfig,
-                                        unsigned int number)
-{
-  udsConfigurationSetSparse(userConfig, number != 0);
-  return 0;
-}
-
-/**********************************************************************/
-
-static ConfigurationAttribute cfreqAttr = {
-  .attr      = { .name = "checkpoint_frequency", .mode = 0666 },
-  .showUint  = configurationShowCfreq,
-  .storeUint = configurationStoreCfreq,
-};
-
-static ConfigurationAttribute createIndexAttr = {
-  .attr      = { .name = "create_index", .mode = 0222 },
-  .storeStuff = configurationCreateIndex,
-};
-
-static ConfigurationAttribute memAttr = {
-  .attr       = { .name = "mem", .mode = 0666 },
-  .showStuff  = configurationShowMem,
-  .storeStuff = configurationStoreMem,
-};
-
-static ConfigurationAttribute sizeAttr = {
-  .attr      = { .name = "size", .mode = 0444 },
-  .showStuff = configurationShowSize,
-};
-
-static ConfigurationAttribute sparseAttr = {
-  .attr      = { .name = "sparse", .mode = 0666 },
-  .showUint  = configurationShowSparse,
-  .storeUint = configurationStoreSparse,
-};
-
-static struct attribute *configurationAttrs[] = {
-  &cfreqAttr.attr,
-  &createIndexAttr.attr,
-  &memAttr.attr,
-  &sizeAttr.attr,
-  &sparseAttr.attr,
-  NULL,
-};
-
-static struct sysfs_ops configurationOps = {
-  .show  = configurationShow,
-  .store = configurationStore,
-};
-
-static struct kobj_type configurationObjectType = {
-  .release       = configurationRelease,
-  .sysfs_ops     = &configurationOps,
-  .default_attrs = configurationAttrs,
-};
 
 /**********************************************************************/
 // This is the the code for a /sys/index/<session>/configuration directory.
@@ -431,22 +269,22 @@ static struct kobj_type configurationObjectType = {
 /**********************************************************************/
 
 static ConfigurationAttribute cfreqRoAttr = {
-  .attr     = { .name = "checkpoint_frequency", .mode = 0444 },
+  .attr     = { .name = "checkpoint_frequency", .mode = 0400 },
   .showUint = configurationShowCfreq,
 };
 
 static ConfigurationAttribute memRoAttr = {
-  .attr      = { .name = "mem", .mode = 0444 },
+  .attr      = { .name = "mem", .mode = 0400 },
   .showStuff = configurationShowMem,
 };
 
 static ConfigurationAttribute sizeRoAttr = {
-  .attr      = { .name = "size", .mode = 0444 },
+  .attr      = { .name = "size", .mode = 0400 },
   .showStuff = configurationShowSize,
 };
 
 static ConfigurationAttribute sparseRoAttr = {
-  .attr     = { .name = "sparse", .mode = 0444 },
+  .attr     = { .name = "sparse", .mode = 0400 },
   .showUint = configurationShowSparse,
 };
 
@@ -456,6 +294,11 @@ static struct attribute *configurationRoAttrs[] = {
   &sizeRoAttr.attr,
   &sparseRoAttr.attr,
   NULL,
+};
+
+static struct sysfs_ops configurationOps = {
+  .show  = configurationShow,
+  .store = configurationStore,
 };
 
 static struct kobj_type configurationRoObjectType = {
@@ -528,7 +371,6 @@ typedef struct indexObject {
   struct kobject     *configurationKobj;
   UdsIndexSession     indexSession;
   UdsBlockContext     blockContext;
-  bool                openedBySysfs;
   const char         *name;
   struct indexObject *next;
 } IndexObject;
@@ -734,87 +576,87 @@ static ssize_t indexStoreFill(IndexObject *io)
 /**********************************************************************/
 
 static IndexAttribute checkpointsAttr = {
-  .attr          = { .name = "checkpoints", .mode = 0444 },
+  .attr          = { .name = "checkpoints", .mode = 0400 },
   .showIndexStat = indexShowCheckpoints,
 };
 
 static IndexAttribute collisionsAttr = {
-  .attr          = { .name = "collisions", .mode = 0444 },
+  .attr          = { .name = "collisions", .mode = 0400 },
   .showIndexStat = indexShowCollisions,
 };
 
 static IndexAttribute contextAttr = {
-  .attr     = { .name = "context", .mode = 0444 },
+  .attr     = { .name = "context", .mode = 0400 },
   .showUint = indexShowContext,
 };
 
 static IndexAttribute deletionsFoundAttr = {
-  .attr            = { .name = "deletions_found", .mode = 0444 },
+  .attr            = { .name = "deletions_found", .mode = 0400 },
   .showContextStat = indexShowDeletionsFound,
 };
 
 static IndexAttribute deletionsNotFoundAttr = {
-  .attr            = { .name = "deletions_not_found", .mode = 0444 },
+  .attr            = { .name = "deletions_not_found", .mode = 0400 },
   .showContextStat = indexShowDeletionsNotFound,
 };
 
 static IndexAttribute diskUsedAttr = {
-  .attr          = { .name = "disk_used", .mode = 0444 },
+  .attr          = { .name = "disk_used", .mode = 0400 },
   .showIndexStat = indexShowDiskUsed,
 };
 
 static IndexAttribute entriesDiscardedAttr = {
-  .attr          = { .name = "entries_discarded", .mode = 0444 },
+  .attr          = { .name = "entries_discarded", .mode = 0400 },
   .showIndexStat = indexShowEntriesDiscarded,
 };
 
 static IndexAttribute fillAttr = {
-  .attr     = { .name = "fill", .mode = 0222 },
+  .attr     = { .name = "fill", .mode = 0200 },
   .storeAny = indexStoreFill,
 };
 
 static IndexAttribute entriesIndexedAttr = {
-  .attr          = { .name = "entries_indexed", .mode = 0444 },
+  .attr          = { .name = "entries_indexed", .mode = 0400 },
   .showIndexStat = indexShowEntriesIndexed,
 };
 
 static IndexAttribute memoryUsedAttr = {
-  .attr          = { .name = "memory_used", .mode = 0444 },
+  .attr          = { .name = "memory_used", .mode = 0400 },
   .showIndexStat = indexShowMemoryUsed,
 };
 
 static IndexAttribute nameAttr = {
-  .attr       = { .name = "name", .mode = 0444 },
+  .attr       = { .name = "name", .mode = 0400 },
   .showString = indexShowName,
 };
 
 static IndexAttribute postsFoundAttr = {
-  .attr            = { .name = "posts_found", .mode = 0444 },
+  .attr            = { .name = "posts_found", .mode = 0400 },
   .showContextStat = indexShowPostsFound,
 };
 
 static IndexAttribute postsNotFoundAttr = {
-  .attr            = { .name = "posts_not_found", .mode = 0444 },
+  .attr            = { .name = "posts_not_found", .mode = 0400 },
   .showContextStat = indexShowPostsNotFound,
 };
 
 static IndexAttribute queriesFoundAttr = {
-  .attr            = { .name = "queries_found", .mode = 0444 },
+  .attr            = { .name = "queries_found", .mode = 0400 },
   .showContextStat = indexShowQueriesFound,
 };
 
 static IndexAttribute queriesNotFoundAttr = {
-  .attr            = { .name = "queries_not_found", .mode = 0444 },
+  .attr            = { .name = "queries_not_found", .mode = 0400 },
   .showContextStat = indexShowQueriesNotFound,
 };
 
 static IndexAttribute updatesFoundAttr = {
-  .attr            = { .name = "updates_found", .mode = 0444 },
+  .attr            = { .name = "updates_found", .mode = 0400 },
   .showContextStat = indexShowUpdatesFound,
 };
 
 static IndexAttribute updatesNotFoundAttr = {
-  .attr            = { .name = "updates_not_found", .mode = 0444 },
+  .attr            = { .name = "updates_not_found", .mode = 0400 },
   .showContextStat = indexShowUpdatesNotFound,
 };
 
@@ -942,23 +784,23 @@ static void parameterStoreLogLevel(const char *string)
 /**********************************************************************/
 
 static ParameterAttribute logLevelAttr = {
-  .attr        = { .name = "log_level", .mode = 0666 },
+  .attr        = { .name = "log_level", .mode = 0600 },
   .showString  = parameterShowLogLevel,
   .storeString = parameterStoreLogLevel,
 };
 
 static ParameterAttribute parallelFactorAttr = {
-  .attr = { .name = "parallel_factor", .mode = 0666 },
+  .attr = { .name = "parallel_factor", .mode = 0600 },
   .name = "UDS_PARALLEL_FACTOR",
 };
 
 static ParameterAttribute timeRequestTurnaroundAttr = {
-  .attr = { .name = "time_request_turnaround", .mode = 0666 },
+  .attr = { .name = "time_request_turnaround", .mode = 0600 },
   .name = "UDS_TIME_REQUEST_TURNAROUND",
 };
 
 static ParameterAttribute volumeReadThreadsAttr = {
-  .attr = { .name = "volume_read_threads", .mode = 0666 },
+  .attr = { .name = "volume_read_threads", .mode = 0600 },
   .name = "UDS_VOLUME_READ_THREADS",
 };
 
@@ -980,240 +822,6 @@ static struct kobj_type parameterObjectType = {
   .sysfs_ops     = &parameterOps,
   .default_attrs = parameterAttrs,
 };
-
-/**********************************************************************/
-// This is the code for the top level of the /sys/<module_name> hierarchy.
-//
-// /sys/<module_name>/close_index
-//    W uses udsCloseIndexSession
-//
-// /sys/<module_name>/configuration
-//    Directory contains configurations
-//
-// /sys/<module_name>/create_config
-//    W uses udsInitializeConfiguration
-//
-// /sys/<module_name>/delete_config
-//    W uses udsFreeConfiguration
-//
-// /sys/<module_name>/index
-//    Directory contains indices
-//
-// /sys/<module_name>/load_index
-//    W uses udsLoadLocalIndex
-//
-// /sys/<module_name>/parameter
-//    Directory contains parameters
-//
-// /sys/<module_name>/rebuild_index
-//    W uses udsRebuildLocalIndex
-/**********************************************************************/
-
-typedef struct {
-  struct attribute attr;
-  int (*store)(const char *string);
-} TopAttribute;
-
-/**********************************************************************/
-static ssize_t topStore(struct kobject   *kobj,
-                        struct attribute *attr,
-                        const char       *buf,
-                        size_t            length)
-{
-  TopAttribute *topAttribute = container_of(attr, TopAttribute, attr);
-  const char *string = bufferToString(buf, length);
-  if (string == NULL) {
-    return -ENOMEM;
-  }
-  int result = topAttribute->store(string);
-  freeConst(string);
-  return result == 0 ? length : result;
-}
-
-/**********************************************************************/
-static int topCloseIndex(const char *string)
-{
-  IndexObject *io, **pio;
-  spin_lock_irq(&objectRoot.lock);
-  for (pio = &objectRoot.indexHead; (io = *pio) != NULL; pio = &io->next) {
-    if (io->openedBySysfs && ((strcmp(io->name, string) == 0)
-                              || (strcmp(io->kobj.name, string) == 0))) {
-      break;
-    }
-  }
-  spin_unlock_irq(&objectRoot.lock);
-  if (io != NULL) {
-    int result = udsCloseBlockContext(io->blockContext);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing block context on index %s",
-                              io->name);
-      return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-    }
-    result = udsCloseIndexSession(io->indexSession);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing index session on index \"%s\"",
-                              io->name);
-      return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-    }
-    return 0;
-  } else {
-    return -EINVAL;
-  }
-}
-
-/**********************************************************************/
-static int topCreateConfig(const char *name)
-{
-  ConfigurationObject *co;
-  if (ALLOCATE(1, ConfigurationObject, __func__, &co) != UDS_SUCCESS) {
-    return -ENOMEM;
-  }
-  int result = udsInitializeConfiguration(&co->userConfig,
-                                          UDS_MEMORY_CONFIG_256MB);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error initializing configuration");
-    FREE(co);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  kobject_init(&co->kobj, &configurationObjectType);
-  result = kobject_add(&co->kobj, &objectRoot.configurationKobj, "%s", name);
-  if (result == 0) {
-    spin_lock_irq(&objectRoot.lock);
-    if (objectRoot.shutdownFlag) {
-      // oops.  must abort.
-      kobject_put(&co->kobj);
-      result = -EINVAL;
-    } else {
-      co->next = objectRoot.configurationHead;
-      objectRoot.configurationHead = co;
-    }
-    spin_unlock_irq(&objectRoot.lock);
-  } else {
-    configurationRelease(&co->kobj);
-  }
-  return result;
-}
-
-/**********************************************************************/
-static int topDeleteConfig(const char *name)
-{
-  ConfigurationObject *co, **pco;
-  spin_lock_irq(&objectRoot.lock);
-  for (pco = &objectRoot.configurationHead;
-       (co = *pco) != NULL;
-       pco = &co->next) {
-    if (strcmp(co->kobj.name, name) == 0) {
-      *pco = co->next;
-      spin_unlock_irq(&objectRoot.lock);
-      kobject_put(&co->kobj);
-      return 0;
-    }
-  }
-  spin_unlock_irq(&objectRoot.lock);
-  return -EINVAL;
-}
-
-/**********************************************************************/
-static int topLoadIndex(const char *string)
-{
-  UdsIndexSession session;
-  int result = udsLoadLocalIndex(string, &session);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error loading index \"%s\"", string);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  return newIndexSession(session, string);
-}
-
-/**********************************************************************/
-static int topRebuildIndex(const char *string)
-{
-  UdsIndexSession session;
-  int result = udsRebuildLocalIndex(string, &session);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error rebuilding index \"%s\"", string);
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  return newIndexSession(session, string);
-}
-
-/**********************************************************************/
-
-static TopAttribute closeIndexAttr = {
-  .attr  = { .name = "close_index", .mode = 0222 },
-  .store = topCloseIndex,
-};
-
-static TopAttribute createConfigAttr = {
-  .attr  = { .name = "create_config", .mode = 0222 },
-  .store = topCreateConfig,
-};
-
-static TopAttribute deleteConfigAttr = {
-  .attr  = { .name = "delete_config", .mode = 0222 },
-  .store = topDeleteConfig,
-};
-
-static TopAttribute loadIndexAttr = {
-  .attr  = { .name = "load_index", .mode = 0222 },
-  .store = topLoadIndex,
-};
-
-static TopAttribute rebuildIndexAttr = {
-  .attr  = { .name = "rebuild_index", .mode = 0222 },
-  .store = topRebuildIndex,
-};
-
-static struct attribute *topAttrs[] = {
-  &closeIndexAttr.attr,
-  &createConfigAttr.attr,
-  &deleteConfigAttr.attr,
-  &loadIndexAttr.attr,
-  &rebuildIndexAttr.attr,
-  NULL,
-};
-
-static struct sysfs_ops topOps = {
-  .show  = emptyShow,
-  .store = topStore,
-};
-
-static struct kobj_type topObjectType = {
-  .release       = emptyRelease,
-  .sysfs_ops     = &topOps,
-  .default_attrs = topAttrs,
-};
-
-/**********************************************************************/
-static ssize_t newIndexSession(UdsIndexSession session, const char *name)
-{
-  UdsBlockContext context;
-  int result = udsOpenBlockContext(session, UDS_MAX_BLOCK_DATA_SIZE, &context);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result,
-                            "error opening block context on index \"%s\"",
-                            name);
-    result = udsCloseIndexSession(session);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing index session on index \"%s\"",
-                              name);
-    }
-    return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-  }
-  IndexObject *io;
-  spin_lock_irq(&objectRoot.lock);
-  for (io = objectRoot.indexHead; io != NULL; io = io->next) {
-    if (io->blockContext.id == context.id) {
-      io->openedBySysfs = true;
-      break;
-    }
-  }
-  spin_unlock_irq(&objectRoot.lock);
-  return 0;
-}
 
 /**********************************************************************/
 void notifyBlockContextClosed(UdsBlockContext context)
@@ -1291,18 +899,12 @@ int initSysfs(void)
 {
   memset(&objectRoot, 0, sizeof(objectRoot));
   spin_lock_init(&objectRoot.lock);
-  kobject_init(&objectRoot.kobj, &topObjectType);
-  kobject_init(&objectRoot.configurationKobj, &emptyObjectType);
+  kobject_init(&objectRoot.kobj, &emptyObjectType);
   kobject_init(&objectRoot.indexKobj, &emptyObjectType);
   kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
   int result = kobject_add(&objectRoot.kobj, NULL, THIS_MODULE->name);
   if (result == 0) {
     objectRoot.flag = true;
-    result = kobject_add(&objectRoot.configurationKobj, &objectRoot.kobj,
-                         "configuration");
-  }
-  if (result == 0) {
-    objectRoot.configurationFlag = true;
     result = kobject_add(&objectRoot.indexKobj, &objectRoot.kobj, "index");
   }
   if (result == 0) {
@@ -1322,18 +924,8 @@ int initSysfs(void)
 /**********************************************************************/
 void putSysfs()
 {
-  // Make sure we stop creating configurations
   spin_lock_irq(&objectRoot.lock);
-  objectRoot.shutdownFlag = true;
-  // Free configurations first, because they can create indices
-  while (objectRoot.configurationHead != NULL) {
-    ConfigurationObject *co = objectRoot.configurationHead;
-    objectRoot.configurationHead = co->next;
-    spin_unlock_irq(&objectRoot.lock);
-    kobject_put(&co->kobj);
-    spin_lock_irq(&objectRoot.lock);
-  }
-  // Then free indices
+  // Free indices
   while (objectRoot.indexHead != NULL) {
     IndexObject *io = objectRoot.indexHead;
     objectRoot.indexHead = io->next;
@@ -1345,9 +937,6 @@ void putSysfs()
   }
   spin_unlock_irq(&objectRoot.lock);
   // Then the directories can go
-  if (objectRoot.configurationFlag) {
-    kobject_put(&objectRoot.configurationKobj);
-  }
   if (objectRoot.indexFlag) {
     kobject_put(&objectRoot.indexKobj);
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dmvdo.c#1 $
  */
 
 #include "dmvdo.h"
@@ -486,7 +486,8 @@ static int processVDOMessage(KernelLayer   *layer,
     }
 
     // Index messages should always be processed
-    if ((strcasecmp(argv[0], "index-disable") == 0)
+    if ((strcasecmp(argv[0], "index-create") == 0)
+        || (strcasecmp(argv[0], "index-disable") == 0)
         || (strcasecmp(argv[0], "index-enable") == 0)) {
       return messageDedupeIndex(layer->dedupeIndex, argv[0]);
     }
@@ -666,10 +667,8 @@ static int vdoInitialize(struct dm_target *ti,
                          unsigned int      instance,
                          DeviceConfig     *config)
 {
-  logInfo("starting device '%s' device instantiation %u (ti=%p)"
-          " write policy %s",
-          config->poolName, instance, ti,
-          ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync"));
+  logInfo("starting device '%s' device instantiation %u write policy %s",
+          config->poolName, instance, getConfigWritePolicyString(config));
 
   struct dm_dev *dev;
   int result = getUnderlyingDevice(ti, config->parentDeviceName, &dev);
@@ -680,13 +679,14 @@ static int vdoInitialize(struct dm_target *ti,
   }
 
   struct request_queue *requestQueue = bdev_get_queue(dev->bdev);
-  logDebug("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
-           (((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH)
-            ? "supported"
-            : "not supported"),
-           (((requestQueue->flush_flags & REQ_FUA) == REQ_FUA)
-            ? "supported"
-            : "not supported"));
+  bool flushSupported = ((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
+  logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
+           (flushSupported ? "supported" : "not supported"),
+          (((requestQueue->flush_flags & REQ_FUA) == REQ_FUA)
+           ? "supported"
+           : "not supported"));
+
+  resolveConfigWithFlushSupport(config, flushSupported);
 
   uint64_t   blockSize      = VDO_BLOCK_SIZE;
   uint64_t   logicalSize    = to_bytes(ti->len);
@@ -705,8 +705,7 @@ static int vdoInitialize(struct dm_target *ti,
   logDebug("Read cache mode         = %s", (config->readCacheEnabled
                                             ? "enabled" : "disabled"));
   logDebug("Read cache extra blocks = %u", config->readCacheExtraBlocks);
-  logDebug("Write policy            = %s",
-           ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync"));
+  logDebug("Write policy            = %s", getConfigWritePolicyString(config));
 
   // The threadConfig will be copied by the VDO if it's successfully
   // created.
@@ -731,6 +730,10 @@ static int vdoInitialize(struct dm_target *ti,
                       failureReason);
     return result;
   }
+
+  // Now that we have read the geometry, we can finish setting up the
+  // VDOLoadConfig.
+  loadConfig.firstBlockOffset = getDataRegionOffset(layer->geometry);
 
   if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {
@@ -842,16 +845,19 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
      * remain active rather than suspended, so we apply the changes here
      * instead of in preresume.
      */
-    logInfo("modifying device '%s' (ti=%p) write policy %s",
-            config->poolName, ti,
-            ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync"));
+    logInfo("modifying device '%s'", config->poolName);
     ti->private = oldLayer;
     configureTargetCapabilities(ti);
 
     struct dm_dev *newDev;
     result = getUnderlyingDevice(ti, config->parentDeviceName, &newDev);
     if (result == 0) {
-      result = modifyKernelLayer(oldLayer, ti, config, &ti->error);
+     struct request_queue *requestQueue = bdev_get_queue(newDev->bdev);
+     bool flushSupported
+       = ((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
+     resolveConfigWithFlushSupport(config, flushSupported);
+
+     result = modifyKernelLayer(oldLayer, ti, config, &ti->error);
       if (result != VDO_SUCCESS) {
         result = mapToSystemError(result);
         dm_put_device(ti, newDev);
@@ -992,7 +998,7 @@ static void vdoResume(struct dm_target *ti)
 }
 
 static struct target_type vdoTargetBio = {
-  .name            = "dedupe",
+  .name            = "vdo",
   .version         = {
     VDO_VERSION_MAJOR, VDO_VERSION_MINOR, VDO_VERSION_MICRO,
   },
@@ -1041,7 +1047,7 @@ static void vdoDestroy(void)
 
   cleanUpInstanceNumberTracking();
 
-  logInfo("unloading");
+  logInfo("unloaded version %s", CURRENT_VERSION);
 }
 
 /**********************************************************************/

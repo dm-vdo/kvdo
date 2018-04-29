@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/forest.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/forest.c#1 $
  */
 
 #include "forest.h"
@@ -105,29 +105,27 @@ TreePage *getTreePageByIndex(Forest       *forest,
 }
 
 /**
- * Compute the number of leaf pages needed per root.
+ * Compute the number of pages which must be allocated at each level in order
+ * to grow the forest to a new number of entries.
  *
- * @param map            The block map in question
- * @param logicalBlocks  The number of logical blocks the tree must address
+ * @param [in]  rootCount      The number of roots
+ * @param [in]  flatPageCount  The number of flat block map pages
+ * @param [in]  oldSizes       The current size of the forest at each level
+ * @param [in]  entries        The new number of entries the block map must
+ *                             address
+ * @param [out] newSizes       The new size of the forest at each level
  *
- * @return the number of leaf pages needed per root
+ * @return The total number of non-leaf pages required
  **/
-static PageCount computeLeafPagesPerRoot(BlockMap   *map,
-                                         BlockCount  logicalBlocks)
-{
-  PageCount leafPages
-    = computeBlockMapPageCount(logicalBlocks) - map->flatPageCount;
-  leafPages = maxPageCount(leafPages, 1);
-  return computeBucketCount(leafPages, map->rootCount);
-}
-
-/**********************************************************************/
-static BlockCount computeNewPages(BlockMap   *map,
+static BlockCount computeNewPages(RootCount   rootCount,
+                                  BlockCount  flatPageCount,
                                   Boundary   *oldSizes,
                                   BlockCount  entries,
                                   Boundary   *newSizes)
 {
-  PageCount  levelSize  = computeLeafPagesPerRoot(map, entries);
+  PageCount leafPages
+    = maxPageCount(computeBlockMapPageCount(entries) - flatPageCount, 1);
+  PageCount  levelSize  = computeBucketCount(leafPages, rootCount);
   BlockCount totalPages = 0;
   for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
     levelSize = computeBucketCount(levelSize, BLOCK_MAP_ENTRIES_PER_PAGE);
@@ -136,7 +134,7 @@ static BlockCount computeNewPages(BlockMap   *map,
     if (oldSizes != NULL) {
       newPages -= oldSizes->levels[height];
     }
-    totalPages += (newPages * map->rootCount);
+    totalPages += (newPages * rootCount);
   }
 
   return totalPages;
@@ -254,8 +252,8 @@ int makeForest(BlockMap *map, BlockCount entries)
   }
 
   Boundary newBoundary;
-  BlockCount newPages = computeNewPages(map, oldBoundary, entries,
-                                        &newBoundary);
+  BlockCount newPages = computeNewPages(map->rootCount, map->flatPageCount,
+                                        oldBoundary, entries, &newBoundary);
   if (newPages == 0) {
     map->nextEntryCount = entries;
     return VDO_SUCCESS;
@@ -541,4 +539,14 @@ void traverseForest(BlockMap      *map,
     cursor->waiter.callback = launchCursor;
     acquireVIOFromPool(cursors->pool, &cursor->waiter);
   };
+}
+
+/**********************************************************************/
+BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
+{
+  Boundary newSizes;
+  BlockCount approximateNonLeaves = computeNewPages(rootCount, 0, NULL,
+                                                    logicalBlocks, &newSizes);
+  return (approximateNonLeaves
+          + computeBlockMapPageCount(logicalBlocks - approximateNonLeaves));
 }

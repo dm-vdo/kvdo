@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/workQueue.h#1 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -146,6 +146,7 @@ typedef struct kvdoWorkQueueType {
  * @param [in]  threadNamePrefix The per-device prefix to use in thread names
  * @param [in]  name             The queue name
  * @param [in]  parentKobject    The parent sysfs node
+ * @param [in]  owner            The kernel layer owning the work queue
  * @param [in]  private          Private data of the queue for use by work
  *                               items or other queue-specific functions
  * @param [in]  type             The work queue type defining the lifecycle
@@ -159,6 +160,7 @@ typedef struct kvdoWorkQueueType {
 int makeWorkQueue(const char               *threadNamePrefix,
                   const char               *name,
                   struct kobject           *parentKobject,
+                  KernelLayer              *owner,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
@@ -315,5 +317,14 @@ void setWorkQueuePrivateData(void *newData);
  * @return   The work queue pointer or NULL
  **/
 KvdoWorkQueue *getCurrentWorkQueue(void);
+
+/**
+ * Returns the kernel layer that owns the work queue.
+ *
+ * @param queue  The work queue
+ *
+ * @return   The owner pointer supplied at work queue creation
+ **/
+KernelLayer *getWorkQueueOwner(KvdoWorkQueue *queue);
 
 #endif /* ALBIREO_WORK_QUEUE_H */

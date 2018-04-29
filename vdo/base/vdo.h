@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdo.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/vdo.h#1 $
  */
 
 #ifndef VDO_H
@@ -191,6 +191,16 @@ BlockCount getConfiguredBlockMapMaximumAge(const VDO *vdo)
  * @return The number of pages for the page cache
  **/
 PageCount getConfiguredCacheSize(const VDO *vdo)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get the location of the first block of the VDO.
+ *
+ * @param vdo  The VDO
+ *
+ * @return The location of the first block managed by the VDO
+ **/
+PhysicalBlockNumber getFirstBlockOffset(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**

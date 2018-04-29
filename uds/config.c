@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/config.c#3 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/config.c#1 $
  */
 
 #include "config.h"
@@ -277,7 +277,11 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
              a->sparseSampleRate, b->sparseSampleRate);
     result = false;
   }
-
+  if (a->nonce != b->nonce) {
+    logError("Nonce (%" PRIu64 ") does not match (%" PRIu64 ")",
+             a->nonce, b->nonce);
+    result = false;
+  }
   return result;
 }
 
@@ -293,7 +297,8 @@ int printUdsConfiguration(UdsConfiguration conf, int indent, char **output)
                             "%*sCheckpoint frequency:       %10u\n"
                             "%*sMaster index mean delta:    %10u\n"
                             "%*sBytes per page:             %10u\n"
-                            "%*sSparse sample rate:         %10u",
+                            "%*sSparse sample rate:         %10u\n"
+                            "%*sNonce:                      %" PRIu64,
                             indent, "", conf->recordPagesPerChapter,
                             indent, "", conf->chaptersPerVolume,
                             indent, "", conf->sparseChaptersPerVolume,
@@ -301,7 +306,8 @@ int printUdsConfiguration(UdsConfiguration conf, int indent, char **output)
                             indent, "", conf->checkpointFrequency,
                             indent, "", conf->masterIndexMeanDelta,
                             indent, "", conf->bytesPerPage,
-                            indent, "", conf->sparseSampleRate);
+                            indent, "", conf->sparseSampleRate,
+                            indent, "", conf->nonce);
   if (result != UDS_SUCCESS) {
     return result;
   }

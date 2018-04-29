@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/limiter.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/limiter.h#1 $
  */
 
 #ifndef LIMITER_H
@@ -61,6 +61,15 @@ void getLimiterValuesAtomically(Limiter  *limiter,
  * @param limit    The limit to the number of active resources
  **/
 void initializeLimiter(Limiter *limiter, uint32_t limit);
+
+/**
+ * Determine whether there are any active resources
+ *
+ * @param limiter  The limiter
+ *
+ * @return true if there are no active resources
+ **/
+bool limiterIsIdle(Limiter *limiter);
 
 /**
  * Release resources, making them available for other uses

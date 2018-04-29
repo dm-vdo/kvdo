@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.c#1 $
  */
 
 #include "statusCodes.h"
@@ -61,6 +61,8 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_BAD_MAPPING",           "Invalid page mapping"                      },
   { "VDO_READ_CACHE_BUSY",       "Read cache has no free slots"              },
   { "VDO_BIO_CREATION_FAILED",   "Bio creation failed"                       },
+  { "VDO_BAD_MAGIC",             "Bad magic number"                          },
+  { "VDO_JOURNAL_OVERFLOW",      "Journal sequence number overflow"          },
 };
 
 #ifndef __KERNEL__

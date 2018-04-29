@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/ioSubmitter.c#1 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -502,7 +502,8 @@ static int initializeBioQueue(BioQueueData *bioQueueData,
   bioQueueData->queueNumber = queueNumber;
 
   return makeWorkQueue(threadNamePrefix, queueName, &layer->wqDirectory,
-                       bioQueueData, &bioQueueType, 1, &bioQueueData->queue);
+                       layer, bioQueueData, &bioQueueType, 1,
+                       &bioQueueData->queue);
 }
 
 /**********************************************************************/

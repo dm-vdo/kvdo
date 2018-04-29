@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kvio.c#2 $
  */
 
 #include "kvio.h"
@@ -137,7 +137,7 @@ void kvdoSubmitMetadataVIO(VIO *vio)
   BIO  *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
 
-  if (vioRequiresFlushAfter(vio) && shouldProcessFlush(kvio->layer)) {
+  if (vioRequiresFlushAfter(vio)) {
     bio->bi_rw = bioFuaRWMask();
   }
   setBioSector(bio, blockToSector(kvio->layer, vio->physical));
@@ -148,7 +148,7 @@ void kvdoSubmitMetadataVIO(VIO *vio)
                     "read VIO does not require flush before");
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
     bio->bi_rw |= READ;
-  } else if (vioRequiresFlushBefore(vio) && shouldProcessFlush(kvio->layer)) {
+  } else if (vioRequiresFlushBefore(vio)) {
     bio->bi_rw |= WRITE_FLUSH;
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
   } else {

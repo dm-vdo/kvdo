@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabDepot.c#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/slabDepot.c#1 $
  */
 
 #include "slabDepot.h"
@@ -71,13 +71,29 @@ static inline SlabDepot *asSlabDepot(VDOCompletion *completion)
   return (SlabDepot *) completion;
 }
 
-/**********************************************************************/
-SlabCount calculateSlabCount(PhysicalBlockNumber firstBlock,
-                             PhysicalBlockNumber lastBlock,
-                             unsigned int        slabSizeShift)
+/**
+ * Compute the number of slabs a depot with given parameters would have.
+ *
+ * @param firstBlock     PBN of the first data block
+ * @param lastBlock      PBN of the last data block
+ * @param slabSizeShift  Exponent for the number of blocks per slab
+ *
+ * @return The number of slabs
+ **/
+__attribute__((warn_unused_result))
+static SlabCount computeSlabCount(PhysicalBlockNumber firstBlock,
+                                  PhysicalBlockNumber lastBlock,
+                                  unsigned int        slabSizeShift)
 {
   BlockCount dataBlocks = lastBlock - firstBlock;
   return (SlabCount) (dataBlocks >> slabSizeShift);
+}
+
+/**********************************************************************/
+SlabCount calculateSlabCount(SlabDepot *depot)
+{
+  return computeSlabCount(depot->firstBlock, depot->lastBlock,
+                          depot->slabSizeShift);
 }
 
 /**
@@ -236,8 +252,7 @@ static int allocateComponents(SlabDepot          *depot,
     return result;
   }
 
-  SlabCount slabCount = calculateSlabCount(depot->firstBlock, depot->lastBlock,
-                                           depot->slabSizeShift);
+  SlabCount slabCount = calculateSlabCount(depot);
   if (threadConfig->physicalZoneCount > slabCount) {
     return logErrorWithStringError(VDO_BAD_CONFIGURATION,
                                    "%u physical zones exceeds slab count %u",
@@ -907,10 +922,9 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
     return result;
   }
 
-  SlabCount newSlabCount = calculateSlabCount(depot->firstBlock,
-                                              newState.lastBlock,
-				              depot->slabSizeShift);
-
+  SlabCount newSlabCount = computeSlabCount(depot->firstBlock,
+                                            newState.lastBlock,
+                                            depot->slabSizeShift);
   if (newSlabCount <= depot->slabCount) {
     return logErrorWithStringError(VDO_INCREMENT_TOO_SMALL,
                                    "Depot can only grow");

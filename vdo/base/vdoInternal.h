@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoInternal.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/vdoInternal.h#1 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -42,8 +42,6 @@
 typedef struct atomicErrorStatistics {
   // Dedupe path error stats
   Atomic64 invalidAdvicePBNCount;
-  Atomic64 invalidRolloverPBNCount;
-  Atomic64 dedupeDeadlockAvoidanceCount;
   Atomic64 noSpaceErrorCount;
   Atomic64 readOnlyErrorCount;
 } AtomicErrorStatistics;
@@ -206,12 +204,16 @@ int decodeVDOComponent(VDO *vdo)
 /**
  * Validate constraints on VDO config.
  *
- * @param config      The VDO config
- * @param blockCount  The block count of the VDO
+ * @param config          The VDO config
+ * @param blockCount      The block count of the VDO
+ * @param requireLogical  Set to <code>true</code> if the number logical blocks
+ *                        must be configured (otherwise, it may be zero)
  *
  * @return a success or error code
  **/
-int validateVDOConfig(const VDOConfig *config, BlockCount blockCount)
+int validateVDOConfig(const VDOConfig *config,
+                      BlockCount       blockCount,
+                      bool             requireLogical)
   __attribute__((warn_unused_result));
 
 /**

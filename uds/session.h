@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/session.h#4 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/session.h#1 $
  */
 
 /**
@@ -162,16 +162,6 @@ int makeSessionGroup(int notFoundResult, SessionFree free,
                      SessionGroup  **groupPtr)
   __attribute__((warn_unused_result));
 
-#ifdef TEST_INTERNAL
-/**
- * A test hook to count the number of sessions in the given session group.
- *
- * @param group           session group to count
- *
- * @return                the number of sessions
- **/
-unsigned int countSessions(SessionGroup *group);
-#endif /* TEST_INTERNAL */
 
 /**
  * Shut down a session group.  Prevents further session lookups, then waits

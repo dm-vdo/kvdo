@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/deltaIndex.c#3 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/deltaIndex.c#1 $
  */
 #include "deltaIndex.h"
 
@@ -649,6 +649,14 @@ int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
       "the %zu byte page",
       getImmutableStart(memory, numLists),
       POST_FIELD_GUARD_BYTES * CHAR_BIT, memSize);
+  }
+  for (int i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
+    byte guardByte = memory[memSize - POST_FIELD_GUARD_BYTES + i];
+    if (guardByte != (byte) ~0) {
+      return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
+                                       "guard byte %d has invalid value 0x%X",
+                                       i, guardByte);
+    }
   }
 
   if (invalidParameters(meanDelta, numPayloadBits)) {

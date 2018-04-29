@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/allocatingVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/allocatingVIO.c#1 $
  */
 
 #include "allocatingVIO.h"
@@ -25,6 +25,7 @@
 
 #include "blockAllocator.h"
 #include "dataVIO.h"
+#include "pbnLock.h"
 #include "slabDepot.h"
 #include "vdoInternal.h"
 #include "vioWrite.h"
@@ -53,21 +54,22 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
     return result;
   }
 
-  if (lock->holder == NULL) {
-    // We've successfully acquired a new lock, so mark it as ours.
-    lock->holder             = allocatingVIO;
-    allocatingVIO->writeLock = lock;
-    assignProvisionalReference(lock);
-    return VDO_SUCCESS;
+  if (isPBNLocked(lock)) {
+    // This block is already locked which should be impossible.
+    // XXX VDOSTORY-190 the holder might be a hash lock, making this unsafe
+    AllocatingVIO *lockHolder = lockHolderAsAllocatingVIO(lock);
+    return logErrorWithStringError(VDO_LOCK_ERROR,
+                                   "Newly allocated block %" PRIu64
+                                   " was spuriously locked by VIO of type %u",
+                                   allocatingVIO->allocation,
+                                   allocatingVIOAsVIO(lockHolder)->type);
   }
 
-  // This block is already locked which should be impossible.
-  AllocatingVIO *lockHolder = lockHolderAsAllocatingVIO(lock);
-  return logErrorWithStringError(VDO_LOCK_ERROR,
-                                 "Newly allocated block %" PRIu64
-                                 " was spuriously locked by VIO of type %u",
-                                 allocatingVIO->allocation,
-                                 allocatingVIOAsVIO(lockHolder)->type);
+  // We've successfully acquired a new lock, so mark it as ours.
+  lock->holder             = allocatingVIO;
+  allocatingVIO->writeLock = lock;
+  assignProvisionalReference(lock);
+  return VDO_SUCCESS;
 }
 
 /**

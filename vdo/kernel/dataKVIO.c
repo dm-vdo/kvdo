@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dataKVIO.c#1 $
  */
 
 #include "dataKVIO.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 
 #include "dataVIO.h"
+#include "hashLock.h"
 #include "lz4.h"
 #include "murmur/MurmurHash3.h"
 
@@ -1053,10 +1054,11 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
   if (dataVIO->allocatingVIO.writeLock != NULL) {
     dumpVIOWaiters(&dataVIO->allocatingVIO.writeLock->waiters, "pbn write");
   }
-  if (dataVIO->duplicateLock != NULL) {
-    dumpVIOWaiters(&dataVIO->duplicateLock->waiters, "pbn read");
+  // XXX VDOSTORY-190 redundantly dumps waiters for every DataVIO in the lock
+  PBNLock *duplicateLock = getDuplicateLock(dataVIO);
+  if (duplicateLock != NULL) {
+    dumpVIOWaiters(&duplicateLock->waiters, "pbn read");
   }
-  dumpVIOWaiters(&dataVIO->lockRetryWaiters, "pbn read retry");
 
   // might want to dump more info from VIO here
 }

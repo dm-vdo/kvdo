@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/dataVIO.c#1 $
  */
 
 #include "dataVIO.h"
@@ -61,10 +61,7 @@ static const char *ASYNC_OPERATION_NAMES[] = {
   "putMappedBlock",
   "putMappedBlockForDedupe",
   "readData",
-  "updateAlbireoForCompression",
-  "updateAlbireoForNonBlockMapDedupe",
-  "updateAlbireoForRecovery",
-  "updateAlbireoForRollOver",
+  "updateIndex",
   "verifyDeduplication",
   "writeData",
 };
@@ -101,14 +98,11 @@ void prepareDataVIO(DataVIO            *dataVIO,
 
   resetAllocation(dataVIOAsAllocatingVIO(dataVIO));
 
-  dataVIO->chunkNameSet  = false;
-  dataVIO->duplicateLock = NULL;
-  dataVIO->isDuplicate   = false;
+  dataVIO->chunkNameSet = false;
+  dataVIO->isDuplicate  = false;
 
-  atomicStore64(&dataVIO->duplicatePBN, 0);
   memset(&dataVIO->chunkName, 0, sizeof(dataVIO->chunkName));
   memset(&dataVIO->duplicate, 0, sizeof(dataVIO->duplicate));
-  initializeWaitQueue(&dataVIO->lockRetryWaiters);
 
   VIO *vio       = dataVIOAsVIO(dataVIO);
   vio->operation = operation;
@@ -181,11 +175,8 @@ void receiveDedupeAdvice(DataVIO *dataVIO, const DataLocation *advice)
 /**********************************************************************/
 void setDuplicateLocation(DataVIO *dataVIO, const ZonedPBN source)
 {
-  ASSERT_LOG_ONLY(dataVIO->duplicateLock == NULL,
-                  "must not hold a read lock when changing the duplicate PBN");
   dataVIO->isDuplicate = (source.pbn != ZERO_BLOCK);
   dataVIO->duplicate   = source;
-  atomicStore64(&dataVIO->duplicatePBN, source.pbn);
 }
 
 /**********************************************************************/

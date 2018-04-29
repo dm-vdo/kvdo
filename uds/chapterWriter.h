@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/chapterWriter.h#4 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/chapterWriter.h#1 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -30,9 +30,6 @@ typedef struct chapterWriter ChapterWriter;
 // This opaque declaration breaks the dependency loop with index.h
 struct index;
 
-#ifdef TEST_INTERNAL
-extern Atomic32 chaptersWritten;
-#endif /* TEST_INTERNAL */
 
 /**
  * Create a chapter writer and start its thread.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/errors.c#3 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/errors.c#1 $
  */
 
 #include "errors.h"
@@ -148,12 +148,6 @@ static void initializeStandardErrorBlocks(void)
   registeredErrors.allocated = MAX_ERROR_BLOCKS;
   registeredErrors.count   = 0;
 
-#ifdef TEST_INTERNAL
-  STATIC_ASSERT((UDS_ERROR_CODE_LAST - UDS_ERROR_CODE_BASE)
-                == COUNT_OF(errorList));
-  STATIC_ASSERT((UDS_INTERNAL_ERROR_CODE_LAST - UDS_INTERNAL_ERROR_CODE_BASE)
-                == COUNT_OF(internalErrorList));
-#endif /* TEST_INTERNAL */
 
   registeredErrors.blocks[registeredErrors.count++] = (ErrorBlock) {
     .name  = "UDS Error",

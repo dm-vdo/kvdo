@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/workQueue.c#1 $
  */
 
 #include "workQueue.h"
@@ -897,6 +897,7 @@ static void workQueueTimeout(Timer *timer)
  * @param [in]  threadNamePrefix The per-device prefix to use in thread names
  * @param [in]  name             The queue name
  * @param [in]  parentKobject    The parent sysfs node
+ * @param [in]  owner            The kernel layer owning the work queue
  * @param [in]  private          Private data of the queue for use by work
  *                               items or other queue-specific functions
  * @param [in]  type             The work queue type defining the lifecycle
@@ -909,6 +910,7 @@ static void workQueueTimeout(Timer *timer)
 static int makeSimpleWorkQueue(const char               *threadNamePrefix,
                                const char               *name,
                                struct kobject           *parentKobject,
+                               KernelLayer              *owner,
                                void                     *private,
                                const KvdoWorkQueueType  *type,
                                SimpleWorkQueue         **queuePtr)
@@ -922,6 +924,7 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
   queue->type           = type;
   queue->private        = private;
   queue->timeoutSupport = type->needTimeouts;
+  queue->common.owner   = owner;
 
   unsigned int numPriorityLists = 1;
   for (int i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
@@ -1026,6 +1029,7 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
 int makeWorkQueue(const char               *threadNamePrefix,
                   const char               *name,
                   struct kobject           *parentKobject,
+                  KernelLayer              *owner,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
@@ -1034,7 +1038,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
   if (threadCount == 1) {
     SimpleWorkQueue *simpleQueue;
     int result = makeSimpleWorkQueue(threadNamePrefix, name, parentKobject,
-                                     private, type, &simpleQueue);
+                                     owner, private, type, &simpleQueue);
     if (result == VDO_SUCCESS) {
       *queuePtr = &simpleQueue->common;
     }
@@ -1057,6 +1061,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
 
   queue->numServiceQueues      = threadCount;
   queue->common.roundRobinMode = true;
+  queue->common.owner          = owner;
 
   result = duplicateString(name, "queue name", &queue->common.name);
   if (result != VDO_SUCCESS) {
@@ -1079,7 +1084,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
   for (unsigned int i = 0; i < threadCount; i++) {
     snprintf(threadName, sizeof(threadName), "%s%u", name, i);
     result = makeSimpleWorkQueue(threadNamePrefix, threadName,
-                                 &queue->common.kobj, private, type,
+                                 &queue->common.kobj, owner, private, type,
                                  &queue->serviceQueues[i]);
     if (result != VDO_SUCCESS) {
       queue->numServiceQueues = i;
@@ -1350,6 +1355,12 @@ KvdoWorkQueue *getCurrentWorkQueue(void)
 {
   SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
   return (queue == NULL) ? NULL : &queue->common;
+}
+
+/**********************************************************************/
+KernelLayer *getWorkQueueOwner(KvdoWorkQueue *queue)
+{
+  return queue->owner;
 }
 
 /**********************************************************************/

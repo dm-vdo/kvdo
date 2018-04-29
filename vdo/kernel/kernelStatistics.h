@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -57,6 +57,28 @@ typedef struct {
   uint64_t peakBioCount;
 } MemoryUsage;
 
+/** UDS index statistics */
+typedef struct {
+  /** Number of chunk names stored in the index */
+  uint64_t entriesIndexed;
+  /** Number of post calls that found an existing entry */
+  uint64_t postsFound;
+  /** Number of post calls that added a new entry */
+  uint64_t postsNotFound;
+  /** Number of query calls that found an existing entry */
+  uint64_t queriesFound;
+  /** Number of query calls that added a new entry */
+  uint64_t queriesNotFound;
+  /** Number of update calls that found an existing entry */
+  uint64_t updatesFound;
+  /** Number of update calls that added a new entry */
+  uint64_t updatesNotFound;
+  /** Current number of dedupe queries that are in flight */
+  uint32_t currDedupeQueries;
+  /** Maximum number of dedupe queries that have been in flight */
+  uint32_t maxDedupeQueries;
+} IndexStatistics;
+
 typedef struct {
   uint32_t version;
   uint32_t releaseVersion;
@@ -66,10 +88,6 @@ typedef struct {
   uint32_t currentVIOsInProgress;
   /** Maximum number of active VIOs */
   uint32_t maxVIOs;
-  /** Current number of Dedupe queries that are in flight */
-  uint32_t currDedupeQueries;
-  /** Maximum number of Dedupe queries that have been in flight */
-  uint32_t maxDedupeQueries;
   /** Number of times the Albireo advice proved correct */
   uint64_t dedupeAdviceValid;
   /** Number of times the Albireo advice proved incorrect */
@@ -101,6 +119,8 @@ typedef struct {
   ReadCacheStats readCache;
   /** Memory usage stats. */
   MemoryUsage memoryUsage;
+  /** The statistics for the UDS index */
+  IndexStatistics index;
 } KernelStatistics;
 
 /**

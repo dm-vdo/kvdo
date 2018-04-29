@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds-block.h#5 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/public/uds-block.h#1 $
  */
 
 /**
@@ -262,7 +262,7 @@ int udsPostBlock(UdsBlockContext  context,
 
 /**
  * Indexes a block name and asynchronously associates it with a particular
- * addresss;  if a callback function has been registered, it is invoked upon
+ * address;  if a callback function has been registered, it is invoked upon
  * completion.
  *
  * This is an asynchronous interface to the block-oriented UDS
@@ -487,7 +487,7 @@ struct udsRequest {
  * #UDS_DELETE is typically used when UDS provides invalid advice.
  *
  * The #UDS_POST operation type indexes a block name and associates it with a
- * particular addresss.  The caller provides the block's name. UDS then checks
+ * particular address.  The caller provides the block's name. UDS then checks
  * this name against its index.
  * <ul>
  *   <li>If the block is new, it is stored in the index.</li>

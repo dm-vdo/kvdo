@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabDepot.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/slabDepot.h#1 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -54,15 +54,11 @@ typedef enum {
 /**
  * Calculate the number of slabs a depot would have.
  *
- * @param firstBlock     PBN of the first data block
- * @param lastBlock      PBN of the last data block
- * @param slabSizeShift  Exponent for the number of blocks per slab
+ * @param depot  The depot
  *
  * @return The number of slabs
  **/
-SlabCount calculateSlabCount(PhysicalBlockNumber firstBlock,
-                             PhysicalBlockNumber lastBlock,
-                             unsigned int        slabSizeShift)
+SlabCount calculateSlabCount(SlabDepot *depot)
   __attribute__((warn_unused_result));
 
 /**

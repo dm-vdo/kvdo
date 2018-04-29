@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.c#3 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/context.c#1 $
  */
 
 #include "context.h"
@@ -26,6 +26,7 @@
 #include "grid.h"
 #include "hashUtils.h"
 #include "indexSession.h"
+#include "isCallbackThreadDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "parameter.h"
@@ -72,6 +73,53 @@ int defineTimeRequestTurnaround(ParameterDefinition *pd)
   pd->currentValue = getDefaultTurnaroundEnabled();
   pd->update       = NULL;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static void handleCallbacks(Request *request)
+{
+  if (request->isControlMessage) {
+    request->status = dispatchContextControlRequest(request);
+    /*
+     * This is a synchronous control request for collecting or resetting the
+     * context statistics, so we use enterCallbackStage() to return the
+     * request to the client thread even though this is the callback thread.
+     */
+    enterCallbackStage(request);
+    return;
+  }
+
+#if NAMESPACES
+  xorNamespace(&request->hash, &request->context->namespaceHash);
+#endif /* NAMESPACES */
+
+  if (request->status == UDS_SUCCESS) {
+    // Measure the turnaround time of this request and include that time,
+    // along with the rest of the request, in the context's StatCounters.
+    updateRequestContextStats(request);
+  }
+
+  if (request->callback != NULL) {
+    // The request has specified its own callback and does not expect to be
+    // freed, but free the serverContext that's hidden from the client.
+    FREE(request->serverContext);
+    request->serverContext = NULL;
+    UdsContext *context = request->context;
+    request->found = (request->location != LOC_UNAVAILABLE);
+    request->callback((UdsRequest *) request);
+    releaseBaseContext(context);
+    return;
+  }
+
+  if (request->context->hasCallback) {
+    // Allow the callback routine to create a new request if necessary without
+    // blocking our thread. "request" is just a handy non-null value here.
+    setCallbackThread(request);
+    request->context->callbackHandler(request);
+    setCallbackThread(NULL);
+  }
+
+  freeRequest(request);
 }
 
 /**********************************************************************/
@@ -262,6 +310,8 @@ void freeContext(UdsContext *context)
   if (context == NULL) {
     return;
   }
+  requestQueueFinish(context->callbackQueue);
+  context->callbackQueue = NULL;
 
   if (context->indexSession != NULL) {
     releaseIndexSession(context->indexSession);
@@ -367,6 +417,13 @@ int makeBaseContext(IndexSession        *indexSession,
 #endif /* NAMESPACES */
 
   result = makeRequestLimit(DEFAULT_REQUEST_LIMIT, &context->requestLimit);
+  if (result != UDS_SUCCESS) {
+    freeContext(context);
+    return result;
+  }
+
+  result = makeRequestQueue("callbackW", &handleCallbacks,
+                            &context->callbackQueue);
   if (result != UDS_SUCCESS) {
     freeContext(context);
     return result;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/statusCodes.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/statusCodes.h#1 $
  */
 
 #ifndef STATUS_CODES_H
@@ -106,6 +106,10 @@ enum vdoStatusCodes {
   VDO_READ_CACHE_BUSY,
   /** bio_add_page failed */
   VDO_BIO_CREATION_FAILED,
+  /** bad magic number */
+  VDO_BAD_MAGIC,
+  /** sequence number overflow */
+  VDO_JOURNAL_OVERFLOW,
   /** one more than last error code */
   VDO_STATUS_CODE_LAST,
   VDO_STATUS_CODE_BLOCK_END = VDO_BLOCK_END

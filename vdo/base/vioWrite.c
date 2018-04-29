@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vioWrite.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/vioWrite.c#1 $
  */
 
 /*
@@ -205,8 +205,8 @@
  * The steps taken cleaning up a VIO, in the order they are performed.
  **/
 typedef enum dataVIOCleanupStage {
-  VIO_RELEASE_DUPLICATE = 0,
-  VIO_RELEASE_COMPRESSED_BLOCK,
+  VIO_CLEANUP_START = 0,
+  VIO_RELEASE_COMPRESSED_BLOCK = VIO_CLEANUP_START,
   VIO_RELEASE_ALLOCATED,
   VIO_RELEASE_RECOVERY_LOCKS,
   VIO_RELEASE_HASH_LOCK,
@@ -238,38 +238,6 @@ static void writeBlock(DataVIO *dataVIO);
 static inline bool isAsync(DataVIO *dataVIO)
 {
   return (getWritePolicy(getVDOFromDataVIO(dataVIO)) == WRITE_POLICY_ASYNC);
-}
-
-/**********************************************************************/
-void releasePBNReadLock(DataVIO *dataVIO)
-{
-  atomicStore64(&dataVIO->duplicatePBN, ZERO_BLOCK);
-  if (!isPBNLocked(dataVIO->duplicateLock)) {
-    ASSERT_LOG_ONLY(dataVIO->duplicateLock == NULL,
-                    "must not keep pointer to a released lock");
-    ASSERT_LOG_ONLY(!hasWaiters(&dataVIO->lockRetryWaiters),
-                    "already-released lock must have no retry waiters");
-    return;
-  }
-
-  assertInDuplicateZone(dataVIO);
-  releasePBNLock(dataVIO->duplicate.zone, dataVIO->duplicate.pbn,
-                 &dataVIO->duplicateLock);
-  ASSERT_LOG_ONLY(!hasWaiters(&dataVIO->lockRetryWaiters),
-                  "released lock must have no retry waiters");
-}
-
-/**
- * Release the read lock at the end of processing a DataVIO.
- *
- * @param completion  The DataVIO
- **/
-static void releaseDuplicateLock(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  assertInDuplicateZone(dataVIO);
-  releasePBNReadLock(dataVIO);
-  performCleanupStage(dataVIO, VIO_RELEASE_COMPRESSED_BLOCK);
 }
 
 /**
@@ -337,10 +305,8 @@ static void finishCleanup(DataVIO *dataVIO)
 {
   ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->writeLock == NULL,
                   "complete DataVIO has no allocation lock");
-  ASSERT_LOG_ONLY(dataVIO->duplicateLock == NULL,
-                  "complete DataVIO has no duplicate lock");
-  ASSERT_LOG_ONLY(!hasWaiters(&dataVIO->lockRetryWaiters),
-                  "released lock must have no retry waiters");
+  ASSERT_LOG_ONLY(dataVIO->hashLock == NULL,
+                  "complete DataVIO has no hash lock");
   vioDoneCallback(dataVIOAsCompletion(dataVIO));
 }
 
@@ -353,14 +319,6 @@ static void finishCleanup(DataVIO *dataVIO)
 static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 {
   switch (stage) {
-  case VIO_RELEASE_DUPLICATE:
-    if (isPBNLocked(dataVIO->duplicateLock)) {
-      launchDuplicateZoneCallback(dataVIO, releaseDuplicateLock,
-                                  THIS_LOCATION("$F;cb=releaseDupLock"));
-      return;
-    }
-    // fall through
-
   case VIO_RELEASE_COMPRESSED_BLOCK:
     if (dataVIO->compression.writer != NULL) {
       launchNewMappedZoneCallback(dataVIO, releaseCompressedBlock,
@@ -733,45 +691,16 @@ static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
     return;
   }
 
-  setNewMappedZoneCallback(dataVIO, incrementForCompression,
-                           THIS_LOCATION("$F($dup);js=map/$dup;"
-                                         "cb=incCompress($dup)"));
-  dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_COMPRESSION;
-  journalIncrement(dataVIO, dataVIO->compression.writer->writeLock);
-}
-
-/**
- * Update albireo to reflect the fact that a block got compressed. This
- * callback is registered in packCompressedData().
- *
- * @param completion  The completion of the write in progress
- **/
-static void updateAlbireoForCompression(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  // We don't care what thread we're on.
-  if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
-    return;
-  }
-
   if (!isCompressed(dataVIO->newMapped.state)) {
     abortDeduplication(dataVIO);
     return;
   }
 
-  /*
-   * Since this DataVIO got compressed, we must update the index so that
-   * dedupe advice will refer to the compressed version of the data
-   * instead of the uncompressed version we wrote first. In order to
-   * prevent in-flight writes of the same data from deduplicating
-   * against the uncompressed version, we must do this update while
-   * holding the write lock on the PBN to which we wrote the
-   * uncompressed data.
-   */
-  dataVIO->lastAsyncOperation = UPDATE_ALBIREO_FOR_COMPRESSION;
-  setJournalCallback(dataVIO, addRecoveryJournalEntryForCompression,
-                     THIS_LOCATION("$F;dup=update(compress)"));
-  completion->layer->updateAlbireo(dataVIO);
+  setNewMappedZoneCallback(dataVIO, incrementForCompression,
+                           THIS_LOCATION("$F($dup);js=map/$dup;"
+                                         "cb=incCompress($dup)"));
+  dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_COMPRESSION;
+  journalIncrement(dataVIO, dataVIO->compression.writer->writeLock);
 }
 
 /**
@@ -793,8 +722,9 @@ static void packCompressedData(VDOCompletion *completion)
     return;
   }
 
+  setJournalCallback(dataVIO, addRecoveryJournalEntryForCompression,
+                     THIS_LOCATION("$F;cb=update(compress)"));
   dataVIO->lastAsyncOperation = PACK_COMPRESSED_BLOCK;
-  completion->callback        = updateAlbireoForCompression;
   attemptPacking(dataVIO);
 }
 
@@ -811,65 +741,6 @@ void compressData(DataVIO *dataVIO)
   dataVIO->lastAsyncOperation = COMPRESS_DATA;
   setPackerCallback(dataVIO, packCompressedData, THIS_LOCATION("$F;cb=pack"));
   dataVIOAsCompletion(dataVIO)->layer->compressDataVIO(dataVIO);
-}
-
-/**
- * Callback to attempt compression, registered in verifyAdvice() when updating
- * albireo due to the block appearing to be a block map page.
- *
- * @param completion  The DataVIO
- **/
-static void compressDataCallback(VDOCompletion *completion)
-{
-  compressData(asDataVIO(completion));
-}
-
-/**
- * Release the read lock and prepare for compression now that albireo has
- * been updated. It is vital that this clean up be done after the albireo
- * update so that blocks which come in between when we decide to roll over
- * and before albireo is updated will not miss the fact that we have a lock.
- *
- * @param completion  The DataVIO
- **/
-static void finishRollover(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  assertInDuplicateZone(dataVIO);
-  dataVIO->isDuplicate = false;
-  if (!dataVIO->rolledOver) {
-    atomicStore64(&dataVIO->duplicatePBN, ZERO_BLOCK);
-  }
-  releasePBNReadLock(dataVIO);
-  compressData(dataVIO);
-}
-
-/**
- * Update albireo with the new location of this block's data.
- *
- * @param dataVIO  The DataVIO
- **/
-static void updateAlbireoForRollover(DataVIO *dataVIO)
-{
-  VDOCompletion *completion = dataVIOAsCompletion(dataVIO);
-  if (!hasAllocation(dataVIO)) {
-    /*
-     * Don't update albireo if we didn't get a block to write.
-     * Note that by not setting the block to rolled-over, we avoid
-     * VDO-2491 which would arise if we have a read-lock waiter who would
-     * otherwise attempt to find the physical zone of the zero block.
-     */
-    finishRollover(completion);
-    return;
-  }
-
-  // We must mark the duplicatePBN as 0 now, so others can dedupe against us
-  // before finishRollover is called.
-  atomicStore64(&dataVIO->duplicatePBN, ZERO_BLOCK);
-  dataVIO->rolledOver         = true;
-  dataVIO->lastAsyncOperation = UPDATE_ALBIREO_FOR_ROLLOVER;
-  setDuplicateZoneCallback(dataVIO, finishRollover, THIS_LOCATION(NULL));
-  completion->layer->updateAlbireo(dataVIO);
 }
 
 /**
@@ -944,296 +815,13 @@ void shareBlock(VDOCompletion *completion)
   }
 
   if (!dataVIO->isDuplicate) {
-    releasePBNReadLock(dataVIO);
     compressData(dataVIO);
-    return;
-  }
-
-  SlabDepot *depot = getVDOFromDataVIO(dataVIO)->depot;
-  if (getIncrementLimit(depot, dataVIO->duplicate.pbn) == 0) {
-    // XXX VDOSTORY-190 we used to check Albireo for advice again to coalesce
-    // concurrent rollover, but the story will cover that later.
-    updateAlbireoForRollover(dataVIO);
     return;
   }
 
   dataVIO->newMapped = dataVIO->duplicate;
   launchJournalCallback(dataVIO, addRecoveryJournalEntryForDedupe,
                         THIS_LOCATION("$F;cb=addJournalEntryDup"));
-}
-
-/**
- * Give up on getting a PBN read lock. Make sure any waiters are not dropped.
- *
- * @param dataVIO  The DataVIO which is giving up on getting a lock
- **/
-static void abortPBNReadLock(DataVIO *dataVIO)
-{
-  ASSERT_LOG_ONLY(dataVIO->duplicateLock == NULL,
-                  "must not abort while holding dedupe lock");
-
-  atomicStore64(&dataVIO->duplicatePBN, ZERO_BLOCK);
-  dataVIO->isDuplicate = false;
-
-  /*
-   * If the abort comes during a lock retry attempt, this VIO can be carrying
-   * a queue of other waiters that also need to retry. Requeue the first
-   * waiter to retry the lock, and transfer responsibility for any remaining
-   * waiters to it.
-   */
-  Waiter *waiter = dequeueNextWaiter(&dataVIO->lockRetryWaiters);
-  if (waiter != NULL) {
-    // XXX this the same as pbnLock.c:retryPBNReadLock(); factor, maybe?
-    DataVIO *nextDataVIO = waiterAsDataVIO(waiter);
-    transferAllWaiters(&dataVIO->lockRetryWaiters,
-                       &nextDataVIO->lockRetryWaiters);
-    dataVIOAsCompletion(nextDataVIO)->requeue = true;
-    launchDuplicateZoneCallback(nextDataVIO, acquirePBNReadLock,
-                                THIS_LOCATION("$F;cb=acquirePBNRL"));
-  }
-}
-
-/**
- * Check for an error waiting on a PBN lock and clean up if there was one.
- *
- * @param dataVIO  The DataVIO which failed to wait on a lock
- * @param result   The error
- *
- * @return <code>true</code> if there was an error
- **/
-static bool abortOnPBNLockError(DataVIO *dataVIO, int result)
-{
-  if (result == VDO_SUCCESS) {
-    return false;
-  }
-
-  abortPBNReadLock(dataVIO);
-  return abortOnError(result, dataVIO, READ_ONLY_IF_ASYNC);
-}
-
-/**********************************************************************/
-void waitOnPBNReadLock(DataVIO *dataVIO, PBNLock *lock)
-{
-  dataVIO->lastAsyncOperation = ACQUIRE_PBN_READ_LOCK;
-  int result = enqueueDataVIO(&lock->waiters, dataVIO, THIS_LOCATION(NULL));
-  abortOnPBNLockError(dataVIO, result);
-}
-
-/**
- * Give up on getting a PBN read lock and move on to the compression path.
- *
- * @param dataVIO  The DataVIO which is giving up on deduplicating
- **/
-static void abortPBNReadLockAndCompress(DataVIO *dataVIO)
-{
-  abortPBNReadLock(dataVIO);
-  compressData(dataVIO);
-}
-
-/**********************************************************************/
-void waitOnPBNWriteLock(DataVIO *dataVIO, PBNLock *lock)
-{
-  DataVIO *lockHolder = lockHolderAsDataVIO(lock);
-  PhysicalLayer *layer = dataVIOAsCompletion(dataVIO)->layer;
-  if (!layer->compareDataVIOs(dataVIO, lockHolder)) {
-    abortPBNReadLockAndCompress(dataVIO);
-    return;
-  }
-
-  PhysicalBlockNumber lockHolderDuplicatePBN
-    = atomicLoad64(&lockHolder->duplicatePBN);
-  if (lockHolderDuplicatePBN != ZERO_BLOCK) {
-    /*
-     * We have the same data as the lock holder, who is waiting on or holding a
-     * read lock. This can happen in the following scenario:
-     *
-     * Write A to L0@P1.
-     * Update Albireo H(A)->P1.
-     * Overwrite L0.
-     * Write B to L1@P1.
-     * Overwrite L1.
-     *
-     * Note that the Albireo mapping for H(A) has become stale and P1 is
-     * unallocated.
-     *
-     * Write A to L2@P2
-     * Albireo tells L2's DataVIO that A might be at P1
-     * Write A to L3@P3
-     * Albireo tells L3's DataVIO that A might be at P1
-     * L3's DataVIO gets the callback from Albireo, does a read verify and
-     *   determines that A is not at P1
-     * L3 updates Albireo H(A)->P3 but still holds a write lock on P3
-     * Write A to L4@P1
-     * Albireo tells L4's DataVIO that A might be at P3
-     * L4 attempts to get a read lock on P3 but can't because L3 has it.
-     * L2 now gets its callback from Albireo and attempts to get a read lock
-     *   on P1. Thus L2's and L4's DataVIOs each have the same data, L4 has a
-     *   write lock on P1 and wants a read lock on P3, L2 wants a read lock
-     *   on P1.
-     *
-     * This shows that we can get into a state where DataVIO A is holding a
-     * write lock wants a read lock on a block which is write locked by DataVIO
-     * B, and that DataVIO B wants a read lock on some other block. This could
-     * result in a loop which would be a deadlock.
-     *
-     * With multi-threading, this reordering does occur. If we detect the
-     * possibility of a deadlock loop, we simply give up on trying to
-     * deduplicate.
-     */
-    VDO *vdo = getVDOFromDataVIO(dataVIO);
-    atomicAdd64(&vdo->errorStats.dedupeDeadlockAvoidanceCount, 1);
-    logDebug("Deadlock avoidance mechanism triggered, continuing DataVIO"
-             " without deduplication");
-    abortPBNReadLockAndCompress(dataVIO);
-    return;
-  }
-
-  /*
-   * VDO-1895:
-   *
-   * If the lockHolder wrote uncompressed data to the same physical block at
-   * which the same data was previously written as part of a compressed block,
-   * and the waiter got stale advice, the waiter will have the wrong mapping
-   * state for the duplicate block. Therefore, we must correct it.
-   *
-   * Note that it is not possible to have verified against the data in the
-   * lock holder if the lock holder was writing a compressed block. Therefore,
-   * if the dedupe advice claims that the duplication candidate is compressed,
-   * that is actually no longer the case.
-   */
-  dataVIO->duplicate.state = MAPPING_STATE_UNCOMPRESSED;
-
-  // Wait for the lock
-  dataVIO->lastAsyncOperation = ACQUIRE_PBN_READ_LOCK;
-  int result = enqueueDataVIO(&lock->waiters, dataVIO, THIS_LOCATION(NULL));
-  if (abortOnPBNLockError(dataVIO, result)) {
-    return;
-  }
-
-  // We must prevent the lock holder from blocking in the packer since we are
-  // waiting on it.
-  if (cancelCompression(lockHolder)) {
-    dataVIO->compression.lockHolder = lockHolder;
-    launchPackerCallback(dataVIO, removeLockHolderFromPacker,
-                         THIS_LOCATION("$F;cb=removeLockHolderFromPacker"));
-  }
-}
-
-/**********************************************************************/
-void waitOnPBNCompressedWriteLock(DataVIO *dataVIO, PBNLock *lock)
-{
-  /*
-   * The lock holder is writing a compressed block. If we aren't trying to
-   * deduplicate against one of the lock holder's fragments, don't attempt
-   * to verify against the whole block.
-   *
-   * XXX: Is this necessary?
-   */
-  if (isCompressed(dataVIO->duplicate.state)) {
-    dataVIO->lastAsyncOperation = ACQUIRE_PBN_READ_LOCK;
-    int result = enqueueDataVIO(&lock->waiters, dataVIO, THIS_LOCATION(NULL));
-    abortOnPBNLockError(dataVIO, result);
-  } else {
-    abortPBNReadLockAndCompress(dataVIO);
-  }
-}
-
-/**********************************************************************/
-void waitOnPBNBlockMapWriteLock(DataVIO *dataVIO,
-                                PBNLock *lock __attribute__((unused)))
-{
-  // We may not deduplicate against a block map block so update albireo to
-  // point to us instead.
-  abortPBNReadLock(dataVIO);
-  VDOCompletion *completion   = dataVIOAsCompletion(dataVIO);
-  completion->callback        = compressDataCallback;
-  dataVIO->lastAsyncOperation = UPDATE_ALBIREO_FOR_NON_BLOCK_MAP_DEDUPE;
-  completion->layer->updateAlbireo(dataVIO);
-}
-
-/**********************************************************************/
-void acquirePBNReadLock(VDOCompletion *completion)
-{
-  DataVIO      *dataVIO = asDataVIO(completion);
-  PhysicalZone *zone    = dataVIO->duplicate.zone;
-  assertInDuplicateZone(dataVIO);
-
-  ASSERT_LOG_ONLY(!isPBNLocked(dataVIO->duplicateLock),
-                  "must not acquire a duplicate lock when already holding it");
-  ASSERT_LOG_ONLY(dataVIO->duplicateLock == NULL,
-                  "must not acquire a lock while already referencing one");
-
-  SlabDepot *depot = getVDOFromDataVIO(dataVIO)->depot;
-  Slab      *slab  = getSlab(depot, dataVIO->duplicate.pbn);
-  if (isUnrecoveredSlab(slab)) {
-    // We can't deduplicate against a block in an unrecovered slab, so don't
-    // try.
-    abortPBNReadLockAndCompress(dataVIO);
-    return;
-  }
-
-  PBNLock *lock;
-  int result = attemptPBNLock(zone, dataVIO->duplicate.pbn,
-                              VIO_READ_LOCK, &lock);
-  if (abortOnPBNLockError(dataVIO, result)) {
-    return;
-  }
-
-  if (lock->holder != NULL) {
-    waitOnPBNLock(dataVIO, lock);
-    return;
-  }
-
-  // We've successfully acquired a new lock, so mark it as ours.
-  lock->holder = dataVIOAsAllocatingVIO(dataVIO);
-  dataVIO->duplicateLock = lock;
-
-  // If this lock was acquired as a retry, there may be piggybacked retry
-  // waiters from retryPBNReadLock() that now have a lock object to wait on.
-  transferAllWaiters(&dataVIO->lockRetryWaiters,
-                     &dataVIO->duplicateLock->waiters);
-
-  // Ensure that the locked block is referenced
-  result = acquireProvisionalReference(slab, dataVIO->duplicate.pbn, lock);
-  if (result != VDO_SUCCESS) {
-    logWarningWithStringError(result,
-                              "Error acquiring provisional reference for "
-                              "dedupe candidate, aborting dedupe");
-    dataVIO->isDuplicate = false;
-    releasePBNReadLock(dataVIO);
-    compressData(dataVIO);
-    return;
-  }
-
-  setDuplicateZoneCallback(dataVIO, shareBlock,
-                           THIS_LOCATION("$F;cb=shareBlock"));
-  dataVIO->lastAsyncOperation = VERIFY_DEDUPLICATION;
-  completion->layer->verifyDuplication(dataVIO);
-}
-
-/**********************************************************************/
-void verifyAdvice(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  // We don't care what thread we are on
-  if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
-    return;
-  }
-
-  if (!dataVIO->isDuplicate) {
-    compressData(dataVIO);
-    return;
-  }
-
-  // Don't bother trying to dedupe against the block we're already referencing.
-  if (dataVIO->newMapped.pbn == dataVIO->duplicate.pbn) {
-    dataVIO->isDuplicate = false;
-    compressData(dataVIO);
-    return;
-  }
-
-  launchDuplicateZoneCallback(dataVIO, acquirePBNReadLock,
-                              THIS_LOCATION("$F;cb=acquirePBNRL"));
 }
 
 /**
@@ -1486,6 +1074,16 @@ static void incrementForWrite(VDOCompletion *completion)
     return;
   }
 
+
+  if (dataVIO->hashLock != NULL) {
+    /*
+     * Now that the data has been written, it's safe to deduplicate against
+     * the block, so transfer the allocation write lock to the HashLock held
+     * by the DataVIO.
+     */
+    transferPBNWriteLock(dataVIO);
+  }
+
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
   setLogicalCallback(dataVIO, getWriteIncrementCallback(dataVIO),
                      THIS_LOCATION(NULL));
@@ -1632,5 +1230,5 @@ void launchWriteDataVIO(DataVIO *dataVIO)
 /**********************************************************************/
 void cleanupWriteDataVIO(DataVIO *dataVIO)
 {
-  performCleanupStage(dataVIO, VIO_RELEASE_DUPLICATE);
+  performCleanupStage(dataVIO, VIO_CLEANUP_START);
 }

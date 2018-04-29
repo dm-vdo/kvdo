@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/pbnLock.h#1 $
  */
 
 #ifndef PBN_LOCK_H
@@ -41,17 +41,33 @@ typedef struct pbnLockImplementation PBNLockImplementation;
  * A PBN lock.
  **/
 struct pbnLock {
-  /** The holder of this lock; non-NULL when the PBN is locked */
-  AllocatingVIO               *holder;
+  /** The VIO holding this lock; non-NULL when the PBN is locked by a VIO */
+  AllocatingVIO *holder;
+
+  /**
+   * The HashLock holding this read lock; non-NULL when the PBN is locked by a
+   * HashLock.
+   **/
+  HashLock *hashLockHolder;
+
   /** The queue of waiters for the lock */
-  WaitQueue                    waiters;
+  WaitQueue waiters;
+
   /** The implementation of the lock */
   const PBNLockImplementation *implementation;
+
   /**
    * Whether the locked PBN has been provisionally referenced on behalf of the
    * lock holder.
    **/
   bool hasProvisionalReference;
+
+  /**
+   * For read locks, the number of references that are guaranteed to still be
+   * available on the locked block. Must be decremented for each DataVIO that
+   * deduplicates against the block during the lifetime of the lock.
+   **/
+  uint8_t incrementLimit;
 };
 
 /**
@@ -74,27 +90,17 @@ AllocatingVIO *lockHolderAsAllocatingVIO(const PBNLock *lock)
   __attribute__((warn_unused_result));
 
 /**
- * Get the holder of a PBNLock, converting it to a pointer to the associated
- * DataVIO.
- *
- * @param lock  The lock to convert
- *
- * @return The lock holder as a DataVIO
- **/
-DataVIO *lockHolderAsDataVIO(const PBNLock *lock)
-  __attribute__((warn_unused_result));
-
-/**
  * Check whether a PBNLock instance is for a lock that is held.
  *
  * @param lock  The lock to query
  *
  * @return <code>true</code> if there is a lock object referenced and it
- *         is marked as being held by any VIO
+ *         is marked as being held by any VIO or HashLock
  **/
 static inline bool isPBNLocked(const PBNLock *lock)
 {
-  return ((lock != NULL) && (lock->holder != NULL));
+  return ((lock != NULL)
+          && ((lock->holder != NULL) || (lock->hashLockHolder != NULL)));
 }
 
 /**
@@ -108,14 +114,6 @@ bool isPBNReadLock(const PBNLock *lock)
   __attribute__((warn_unused_result));
 
 /**
- * Attempt to wait for a PBN lock to be released.
- *
- * @param dataVIO  The DataVIO which wants a read lock
- * @param lock     The lock
- **/
-void waitOnPBNLock(DataVIO *dataVIO, PBNLock *lock);
-
-/**
  * Notify the waiters for a PBN lock that the lock is being released, and
  * remove them from the lock's wait queue. The lock must have been removed
  * from the lock map already, but the lock's holder field must still be set.
@@ -123,6 +121,15 @@ void waitOnPBNLock(DataVIO *dataVIO, PBNLock *lock);
  * @param lock  The PBN lock that is being released
  **/
 void notifyPBNLockWaiters(PBNLock *lock);
+
+/**
+ * Downgrade a PBN write lock to a PBN read lock. The write lock is expected
+ * to have no waiters. The lock holder is cleared and the caller is
+ * responsible for setting the new lock holder.
+ *
+ * @param lock  The PBN write lock to downgrade
+ **/
+void downgradePBNWriteLock(PBNLock *lock);
 
 /**
  * Check whether a PBN lock has a provisional reference.

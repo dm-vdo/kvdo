@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/deviceConfig.c#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/deviceConfig.c#1 $
  */
 
 #include "deviceConfig.h"
@@ -74,9 +74,9 @@ static inline int parseBool(const char *boolStr,
                             bool       *boolPtr)
 {
   bool value = false;
-  if (!strcmp(boolStr, trueStr)) {
+  if (strcmp(boolStr, trueStr) == 0) {
     value = true;
-  } else if (!strcmp(boolStr, falseStr)) {
+  } else if (strcmp(boolStr, falseStr) == 0) {
     value = false;
   } else {
     return VDO_BAD_CONFIGURATION;
@@ -354,13 +354,17 @@ int parseDeviceConfig(int            argc,
   }
 
   // Get the write policy and validate.
-  bool policyAsync;
-  result = parseBool(*argumentPtr++, "async", "sync", &policyAsync);
-  if (result != VDO_SUCCESS) {
+  if (strcmp(*argumentPtr, "async") == 0) {
+    config->writePolicy = WRITE_POLICY_ASYNC;
+  } else if (strcmp(*argumentPtr, "sync") == 0) {
+    config->writePolicy = WRITE_POLICY_SYNC;
+  } else if (strcmp(*argumentPtr, "auto") == 0) {
+    config->writePolicy = WRITE_POLICY_AUTO;
+  } else {
     handleParseError(&config, errorPtr, "Invalid write policy");
     return VDO_BAD_CONFIGURATION;
   }
-  config->writePolicy = (policyAsync ? WRITE_POLICY_ASYNC : WRITE_POLICY_SYNC);
+  argumentPtr++;
 
   if (argumentPtr != &argv[POOL_NAME_ARG_INDEX]) {
     handleParseError(&config, errorPtr, "Pool name not in expected location");
@@ -432,3 +436,28 @@ void freeDeviceConfig(DeviceConfig **configPtr)
   FREE(config);
   *configPtr = NULL;
 }
+
+/**********************************************************************/
+const char *getConfigWritePolicyString(DeviceConfig *config)
+{
+  if (config->writePolicy == WRITE_POLICY_AUTO) {
+    return "auto";
+  }
+  return ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync");
+}
+
+/**********************************************************************/
+void resolveConfigWithFlushSupport(DeviceConfig *config, bool flushSupported)
+{
+  if (flushSupported && (config->writePolicy == WRITE_POLICY_SYNC)) {
+    logWarning("WARNING: Running in sync mode atop a device supporting flushes"
+               " is dangerous!");
+  }
+
+  if (config->writePolicy == WRITE_POLICY_AUTO) {
+    config->writePolicy
+      = (flushSupported ? WRITE_POLICY_ASYNC : WRITE_POLICY_SYNC);
+    logInfo("Using mode %s automatically.", getConfigWritePolicyString(config));
+  }
+}
+

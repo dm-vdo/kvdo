@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/refCounts.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/refCounts.c#1 $
  */
 
 #include "refCounts.h"
@@ -874,7 +874,8 @@ static void makeProvisionalReference(RefCounts       *refCounts,
   refCounts->counters[slabBlockNumber] = PROVISIONAL_REFERENCE_COUNT;
 
   // Account for the allocation.
-  refCounts->searchCursor.block->allocatedCount++;
+  ReferenceBlock *block = getReferenceBlock(refCounts, slabBlockNumber);
+  block->allocatedCount++;
   refCounts->freeBlocks--;
 }
 

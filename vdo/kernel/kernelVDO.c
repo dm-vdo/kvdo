@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelVDO.c#1 $
  */
 
 #include "kernelVDOInternals.h"
@@ -126,8 +126,8 @@ int initializeKVDO(KVDO                *kvdo,
     getVDOThreadName(threadConfig, kvdo->initializedThreadCount,
                      queueName, sizeof(queueName));
     int result = makeWorkQueue(layer->threadNamePrefix, queueName,
-                               &layer->wqDirectory, thread, &requestQueueType,
-                               1, &thread->requestQueue);
+                               &layer->wqDirectory, layer, thread,
+                               &requestQueueType, 1, &thread->requestQueue);
     if (result != VDO_SUCCESS) {
       *reason = "Cannot initialize request queue";
       while (kvdo->initializedThreadCount > 0) {

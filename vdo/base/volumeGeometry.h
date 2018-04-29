@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/volumeGeometry.h#2 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/volumeGeometry.h#1 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -48,9 +48,14 @@ typedef struct {
   PhysicalBlockNumber startBlock;
 } __attribute__((packed)) VolumePartition;
 
+/** A binary UUID is 16 bytes. */
+typedef unsigned char UUID[16];
+
 typedef struct {
   /** The nonce of this volume */
   Nonce           nonce;
+  /** The UUID of this volume */
+  UUID            uuid;
   /** The partitions in ID order */
   VolumePartition partitions[VOLUME_REGION_COUNT];
   /** The index config */
@@ -58,26 +63,88 @@ typedef struct {
 } __attribute__((packed)) VolumeGeometry;
 
 /**
- * Read a geometry block.
+ * Get the start of the index region from a geometry.
  *
- * @param [in]  layer        The layer to read and parse the geometry from
- * @param [out] geometryPtr  A pointer to return the geometry in
+ * @param geometry  The geometry
+ *
+ * @return The start of the index region
  **/
-int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry **geometryPtr)
+__attribute__((warn_unused_result))
+static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
+{
+  return geometry.partitions[INDEX_REGION].startBlock;
+}
+
+/**
+ * Get the start of the data region from a geometry.
+ *
+ * @param geometry  The geometry
+ *
+ * @return The start of the data region
+ **/
+__attribute__((warn_unused_result))
+static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
+{
+  return geometry.partitions[DATA_REGION].startBlock;
+}
+
+/**
+ * Get the size of the index region from a geometry.
+ *
+ * @param geometry  The geometry
+ *
+ * @return the size of the index region
+ **/
+__attribute__((warn_unused_result))
+static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
+{
+  return getDataRegionOffset(geometry) - getIndexRegionOffset(geometry);
+}
+
+/**
+ * Read the volume geometry from a layer.
+ *
+ * @param layer     The layer to read and parse the geometry from
+ * @param geometry  The geometry to be loaded
+ **/
+int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 __attribute__((warn_unused_result));
+
+/**
+ * Initialize a VolumeGeometry for a VDO.
+ *
+ * @param nonce        The nonce for the VDO
+ * @param uuid         The uuid for the VDO
+ * @param indexConfig  The index config of the VDO.
+ * @param geometry     The geometry being initialized
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int initializeVolumeGeometry(Nonce           nonce,
+                             UUID            uuid,
+                             IndexConfig    *indexConfig,
+                             VolumeGeometry *geometry)
+  __attribute__((warn_unused_result));
+
+/**
+ * Zero out the geometry on a layer.
+ *
+ * @param layer  The layer to clear
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int clearVolumeGeometry(PhysicalLayer *layer)
+  __attribute__((warn_unused_result));
 
 /**
  * Write a geometry block for a VDO.
  *
- * @param layer        The layer for the VDO
- * @param nonce        The nonce for the VDO
- * @param indexConfig  The index config of the VDO.
+ * @param layer     The layer on which to write.
+ * @param geometry  The VolumeGeometry to be written
  *
  * @return VDO_SUCCESS or an error
  **/
-int writeVolumeGeometry(PhysicalLayer *layer,
-                        Nonce          nonce,
-                        IndexConfig   *indexConfig)
+int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 __attribute__((warn_unused_result));
 
 /**
@@ -90,6 +157,17 @@ __attribute__((warn_unused_result));
  **/
 int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
                                   UdsConfiguration *udsConfigPtr)
+__attribute__((warn_unused_result));
+
+/**
+ * Compute the index size in blocks from the IndexConfig.
+ *
+ * @param [in]  indexConfig     The index config
+ * @param [out] indexBlocksPtr  A pointer to return the index size in blocks
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 __attribute__((warn_unused_result));
 
 #endif // VOLUME_GEOMETRY_H

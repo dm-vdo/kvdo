@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdo.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/vdo.c#1 $
  */
 
 /*
@@ -326,7 +326,7 @@ int saveVDOComponents(VDO *vdo)
     return result;
   }
 
-  return saveSuperBlock(vdo->layer, vdo->superBlock);
+  return saveSuperBlock(vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
 }
 
 /**********************************************************************/
@@ -338,7 +338,7 @@ void saveVDOComponentsAsync(VDO *vdo, VDOCompletion *parent)
     return;
   }
 
-  saveSuperBlockAsync(vdo->superBlock, parent);
+  saveSuperBlockAsync(vdo->superBlock, getFirstBlockOffset(vdo), parent);
 }
 
 /**********************************************************************/
@@ -372,7 +372,7 @@ int saveReconfiguredVDO(VDO *vdo)
     return result;
   }
 
-  return saveSuperBlock(vdo->layer, vdo->superBlock);
+  return saveSuperBlock(vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
 }
 
 /**********************************************************************/
@@ -452,7 +452,9 @@ int decodeVDOComponent(VDO *vdo)
 }
 
 /**********************************************************************/
-int validateVDOConfig(const VDOConfig *config, BlockCount blockCount)
+int validateVDOConfig(const VDOConfig *config,
+                      BlockCount       blockCount,
+                      bool             requireLogical)
 {
   int result = ASSERT(config->slabSize > 0, "slab size unspecified");
   if (result != UDS_SUCCESS) {
@@ -517,7 +519,8 @@ int validateVDOConfig(const VDOConfig *config, BlockCount blockCount)
     return VDO_PARAMETER_MISMATCH;
   }
 
-  result = ASSERT(config->logicalBlocks > 0, "logical blocks unspecified");
+  result = ASSERT(!requireLogical || (config->logicalBlocks > 0),
+                  "logical blocks unspecified");
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -711,12 +714,9 @@ static ErrorStatistics getVDOErrorStatistics(const VDO *vdo)
    */
   const AtomicErrorStatistics *atoms = &vdo->errorStats;
   return (ErrorStatistics) {
-    .invalidAdvicePBNCount   = relaxedLoad64(&atoms->invalidAdvicePBNCount),
-    .invalidRolloverPBNCount = relaxedLoad64(&atoms->invalidRolloverPBNCount),
-    .dedupeDeadlockAvoidanceCount
-      = relaxedLoad64(&atoms->dedupeDeadlockAvoidanceCount),
-    .noSpaceErrorCount       = relaxedLoad64(&atoms->noSpaceErrorCount),
-    .readOnlyErrorCount      = relaxedLoad64(&atoms->readOnlyErrorCount),
+    .invalidAdvicePBNCount = relaxedLoad64(&atoms->invalidAdvicePBNCount),
+    .noSpaceErrorCount     = relaxedLoad64(&atoms->noSpaceErrorCount),
+    .readOnlyErrorCount    = relaxedLoad64(&atoms->readOnlyErrorCount),
   };
 }
 
@@ -829,6 +829,12 @@ PageCount getConfiguredCacheSize(const VDO *vdo)
 }
 
 /**********************************************************************/
+PhysicalBlockNumber getFirstBlockOffset(const VDO *vdo)
+{
+  return vdo->loadConfig.firstBlockOffset;
+}
+
+/**********************************************************************/
 BlockMap *getBlockMap(const VDO *vdo)
 {
   return vdo->blockMap;
@@ -861,6 +867,10 @@ void dumpVDOStatus(const VDO *vdo)
 
   for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
     dumpPhysicalZone(vdo->physicalZones[zone]);
+  }
+
+  for (ZoneCount zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+    dumpHashZone(vdo->hashZones[zone]);
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/session.c#4 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/session.c#1 $
  */
 
 #include "session.h"
@@ -231,20 +231,6 @@ void releaseSessionGroup(SessionGroup *group)
   unlockMutex(&group->mutex);
 }
 
-#ifdef TEST_INTERNAL
-/**********************************************************************/
-unsigned int countSessions(SessionGroup *group)
-{
-  unsigned int sessionCount = 0;
-  Session *session = NULL;
-  lockMutex(&group->mutex);
-  LIST_FOREACH(session, &group->head, links) {
-    sessionCount++;
-  }
-  unlockMutex(&group->mutex);
-  return sessionCount;
-}
-#endif /* TEST_INTERNAL */
 
 /**********************************************************************/
 void shutdownSessionGroup(SessionGroup *group)

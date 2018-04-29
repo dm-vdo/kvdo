@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashZone.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/hashZone.h#1 $
  */
 
 #ifndef HASH_ZONE_H
@@ -66,17 +66,21 @@ ThreadID getHashZoneThreadID(const HashZone *zone)
 
 /**
  * Get the lock for the hash (chunk name) of the data in a DataVIO, or if one
- * does not exist, initialize a new lock for the hash and register it in the
- * zone. This must only be called in the correct thread for the zone.
+ * does not exist (or if we are explicitly rolling over), initialize a new
+ * lock for the hash and register it in the zone. This must only be called in
+ * the correct thread for the zone.
  *
- * @param [in]  zone     The zone responsible for the hash
- * @param [in]  hash     The hash to lock
- * @param [out] lockPtr  A pointer to receive the hash lock
+ * @param [in]  zone         The zone responsible for the hash
+ * @param [in]  hash         The hash to lock
+ * @param [in]  replaceLock  If non-NULL, the lock already registered for the
+ *                           hash which should be replaced by the new lock
+ * @param [out] lockPtr      A pointer to receive the hash lock
  *
  * @return VDO_SUCCESS or an error code
  **/
 int acquireHashLockFromZone(HashZone            *zone,
                             const UdsChunkName  *hash,
+                            HashLock            *replaceLock,
                             HashLock           **lockPtr)
   __attribute__((warn_unused_result));
 
@@ -90,5 +94,12 @@ int acquireHashLockFromZone(HashZone            *zone,
  * @param [in,out] lockPtr  The lock that is no longer in use
  **/
 void returnHashLockToZone(HashZone *zone, HashLock **lockPtr);
+
+/**
+ * Dump information about a hash zone to the log for debugging.
+ *
+ * @param zone   The zone to dump
+ **/
+void dumpHashZone(const HashZone *zone);
 
 #endif // HASH_ZONE_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/forest.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/forest.h#1 $
  */
 
 #ifndef FOREST_H
@@ -109,4 +109,17 @@ void traverseForest(BlockMap      *map,
                     EntryCallback *entryCallback,
                     VDOCompletion *parent);
 
+/**
+ * Compute the approximate number of pages which the forest will allocate in
+ * order to map the specified number of logical blocks. This method assumes
+ * that the block map is entirely arboreal.
+ *
+ * @param logicalBlocks  The number of blocks to map
+ * @param rootCount      The number of trees in the forest
+ *
+ * @return A (slight) over-estimate of the total number of possible forest
+ *         pages including the leaves
+ **/
+BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
+  __attribute__((warn_unused_result));
 #endif // FOREST_H

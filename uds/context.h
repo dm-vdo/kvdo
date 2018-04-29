@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.h#2 $
+ * $Id: //eng/uds-releases/flanders-rhel7.5/src/uds/context.h#1 $
  */
 
 #ifndef CONTEXT_H
@@ -129,6 +129,7 @@ typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
   CallbackHandler          callbackHandler;
   IndexCallbackFunction    callbackFunction;
   void                    *callbackArgument;
+  RequestQueue            *callbackQueue;
 
   /** limit on the number of outstanding requests */
   RequestLimit            *requestLimit;

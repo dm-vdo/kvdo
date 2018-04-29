@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dedupeIndex.h#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dedupeIndex.h#1 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -54,22 +54,12 @@ struct dedupeIndex {
   const char *(*getDedupeStateName)(DedupeIndex *index);
 
   /**
-   * Get the maximum number of outstanding dedupe requests
+   * Get the index statistics
    *
    * @param index  The dedupe index
-   *
-   * @return the maximum number of outstanding dedupe requests
+   * @param stats  The index statistics
    **/
-  unsigned int (*getMaximumOutstanding)(DedupeIndex *index);
-
-  /**
-   * Get the number of outstanding dedupe requests
-   *
-   * @param index  The dedupe index
-   *
-   * @return the number of outstanding dedupe requests
-   **/
-  unsigned int (*getNumberOutstanding)(DedupeIndex *index);
+  void (*getStatistics)(DedupeIndex *index, IndexStatistics *stats);
 
   /**
    * Process a dmsetup message directed to the index.
@@ -180,27 +170,15 @@ static inline const char *getDedupeStateName(DedupeIndex *index)
 }
 
 /**
- * Get the maximum number of outstanding dedupe requests
+ * Get the index statistics
  *
  * @param index  The dedupe index
- *
- * @return the maximum number of outstanding dedupe requests
+ * @param stats  The index statistics
  **/
-static inline unsigned int getMaximumOutstanding(DedupeIndex *index)
+static inline void getIndexStatistics(DedupeIndex     *index,
+                                      IndexStatistics *stats)
 {
-  return index->getMaximumOutstanding(index);
-}
-
-/**
- * Get the number of outstanding dedupe requests
- *
- * @param index  The dedupe index
- *
- * @return the number of outstanding dedupe requests
- **/
-static inline unsigned int getNumberOutstanding(DedupeIndex *index)
-{
-  return index->getNumberOutstanding(index);
+  return index->getStatistics(index, stats);
 }
 
 /**

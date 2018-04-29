@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Red Hat, Inc.
+ * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/recoveryJournal.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/recoveryJournal.c#2 $
  */
 
 #include "recoveryJournal.h"
@@ -558,24 +558,22 @@ int makeRecoveryJournal(Nonce                 nonce,
 
     setActiveBlock(journal);
 
-    if (layer->isFlushRequired(layer)) {
-      result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
-                        &journal->unusedFlushVIOData);
-      if (result != VDO_SUCCESS) {
-        freeRecoveryJournal(&journal);
-        return result;
-      }
-
-      result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
-                         journal, journal->unusedFlushVIOData,
-                         &journal->flushVIO);
-      if (result != VDO_SUCCESS) {
-        freeRecoveryJournal(&journal);
-        return result;
-      }
-
-      journal->flushVIO->completion.callbackThreadID = journal->threadID;
+    result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
+                      &journal->unusedFlushVIOData);
+    if (result != VDO_SUCCESS) {
+      freeRecoveryJournal(&journal);
+      return result;
     }
+
+    result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
+                       journal, journal->unusedFlushVIOData,
+                       &journal->flushVIO);
+    if (result != VDO_SUCCESS) {
+      freeRecoveryJournal(&journal);
+      return result;
+    }
+
+    journal->flushVIO->completion.callbackThreadID = journal->threadID;
   }
 
   *journalPtr = journal;
@@ -824,6 +822,10 @@ static void advanceTail(RecoveryJournal *journal)
   advanceBlockMapEra(journal->blockMap, journal->tail + 1);
   setActiveBlock(journal);
   journal->tail++;
+  // VDO does not support sequence numbers above 1 << 48 in the slab journal.
+  if (journal->tail >= (1ULL << 48)) {
+    enterJournalReadOnlyMode(journal, VDO_JOURNAL_OVERFLOW);
+  }
 }
 
 /**
@@ -1307,9 +1309,18 @@ static void writeBlock(RecoveryJournal *journal, RecoveryJournalBlock *block)
   block->header->entryCount      = block->entryCount;
   block->committing              = true;
 
-  launchWriteMetadataVIOWithFlush(block->vio, blockPBN, completeWrite,
-                                  handleWriteError, block->flushBeforeWrite,
-                                  false);
+  /*
+   * In sync mode, we need to make sure all the data being mapped to by
+   * this block is stable on disk, and also that this block is stable
+   * before we acknowledge the VIOs being mapped in it. Hence, in sync
+   * mode, we flush before and after each RJ write.
+   */
+  PhysicalLayer *layer = journal->completion.layer;
+  bool syncMode = !layer->isFlushRequired(layer);
+  launchWriteMetadataVIOWithFlush(block->vio, blockPBN,
+                                  completeWrite, handleWriteError,
+                                  syncMode || block->flushBeforeWrite,
+                                  syncMode);
 }
 
 /**********************************************************************/
@@ -1381,11 +1392,6 @@ static void reapRecoveryJournal(RecoveryJournal *journal)
   if ((journal->blockMapReapHead == journal->blockMapHead)
       && (journal->slabJournalReapHead == journal->slabJournalHead)) {
     // Nothing happened.
-    return;
-  }
-
-  if (journal->flushVIO == NULL) {
-    finishReaping(journal);
     return;
   }
 
