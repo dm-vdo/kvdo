@@ -31,12 +31,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#12 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#15 $
  */
 
 #include "udsIndex.h"
 
 #include "logger.h"
+#include "numeric.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 #include "stringUtils.h"
@@ -118,13 +119,11 @@ typedef struct udsIndex {
 
 // Version 1:  user space albireo index (limited to 32 bytes)
 // Version 2:  kernel space albireo index (limited to 16 bytes)
-enum { UDS_ADVICE_VERSION = 2 };
-
-typedef struct udsAdvice {
-  byte                version;
-  byte                state;
-  PhysicalBlockNumber pbn;
-} __attribute__((__packed__)) UDSAdvice;
+enum {
+  UDS_ADVICE_VERSION = 2,
+  // version byte + state byte + 64-bit little-endian PBN
+  UDS_ADVICE_SIZE    = 1 + 1 + sizeof(uint64_t),
+};
 
 /*****************************************************************************/
 
@@ -155,6 +154,50 @@ static const char *indexStateToString(UDSIndex *index, IndexState state)
   }
 }
 
+/**
+ * Encode VDO duplicate advice into the newMetadata field of a UDS request.
+ *
+ * @param request  The UDS request to receive the encoding
+ * @param advice   The advice to encode
+ **/
+static void encodeUDSAdvice(UdsRequest *request, DataLocation advice)
+{
+  size_t offset = 0;
+  UdsChunkData *encoding = &request->newMetadata;
+  encoding->data[offset++] = UDS_ADVICE_VERSION;
+  encoding->data[offset++] = advice.state;
+  encodeUInt64LE(encoding->data, &offset, advice.pbn);
+  BUG_ON(offset != UDS_ADVICE_SIZE);
+}
+
+/**
+ * Decode VDO duplicate advice from the oldMetadata field of a UDS request.
+ *
+ * @param request  The UDS request containing the encoding
+ * @param advice   The DataLocation to receive the decoded advice
+ *
+ * @return <code>true</code> if valid advice was found and decoded
+ **/
+static bool decodeUDSAdvice(const UdsRequest *request, DataLocation *advice)
+{
+  if ((request->status != UDS_SUCCESS) || !request->found) {
+    return false;
+  }
+
+  size_t offset = 0;
+  const UdsChunkData *encoding = &request->oldMetadata;
+  byte version = encoding->data[offset++];
+  if (version != UDS_ADVICE_VERSION) {
+    logError("invalid UDS advice version code %u", version);
+    return false;
+  }
+
+  advice->state = encoding->data[offset++];
+  decodeUInt64LE(encoding->data, &offset, &advice->pbn);
+  BUG_ON(offset != UDS_ADVICE_SIZE);
+  return true;
+}
+
 /*****************************************************************************/
 static void finishIndexOperation(UdsRequest *udsRequest)
 {
@@ -163,7 +206,6 @@ static void finishIndexOperation(UdsRequest *udsRequest)
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
   if (compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE)) {
     KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
-    DataVIO *dataVIO = vioAsDataVIO(kvio->vio);
     UDSIndex *index = container_of(kvio->layer->dedupeIndex, UDSIndex, common);
 
     spin_lock_bh(&index->pendingLock);
@@ -175,15 +217,11 @@ static void finishIndexOperation(UdsRequest *udsRequest)
 
     dedupeContext->status = udsRequest->status;
     if ((udsRequest->type == UDS_POST) || (udsRequest->type == UDS_QUERY)) {
-      dataVIO->isDuplicate
-        = (udsRequest->status == UDS_SUCCESS) && udsRequest->found;
-      if (dataVIO->isDuplicate) {
-        UDSAdvice *advice = (UDSAdvice *) &udsRequest->oldMetadata;
-        DataLocation location = (DataLocation) {
-          .pbn   = advice->pbn,
-          .state = advice->state,
-        };
-        setDedupeAdvice(&dataKVIO->dedupeContext, &location);
+      DataLocation advice;
+      if (decodeUDSAdvice(udsRequest, &advice)) {
+        setDedupeAdvice(dedupeContext, &advice);
+      } else {
+        setDedupeAdvice(dedupeContext, NULL);
       }
     }
     invokeDedupeCallback(dataKVIO);
@@ -279,22 +317,20 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
   UDSIndex *index = container_of(kvio->layer->dedupeIndex, UDSIndex, common);
   dedupeContext->status         = UDS_SUCCESS;
   dedupeContext->submissionTime = jiffies;
-  dataKVIO->dataVIO.isDuplicate = false;
   if (compareAndSwap32(&dedupeContext->requestState, UR_IDLE, UR_BUSY)) {
     UdsRequest *udsRequest = &dataKVIO->dedupeContext.udsRequest;
-    UDSAdvice advice = {
-      .version = UDS_ADVICE_VERSION,
-      .state   = dataKVIO->dataVIO.newMapped.state,
-      .pbn     = dataKVIO->dataVIO.newMapped.pbn,
-    };
     udsRequest->chunkName = *dedupeContext->chunkName;
     udsRequest->callback  = finishIndexOperation;
     udsRequest->context   = index->blockContext;
     udsRequest->type      = operation;
     udsRequest->update    = true;
-    memcpy(&udsRequest->newMetadata, &advice, sizeof(advice));
+    if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
+      encodeUDSAdvice(udsRequest, getDedupeAdvice(dedupeContext));
+    }
+
     setupWorkItem(&kvio->enqueueable.workItem, startIndexOperation, NULL,
                   UDS_Q_ACTION);
+
     spin_lock(&index->stateLock);
     if (index->deduping) {
       enqueueWorkQueue(index->udsQueue, &kvio->enqueueable.workItem);
@@ -353,7 +389,7 @@ static void openContext(UDSIndex *index)
   // ASSERTION: We enter in IS_INDEXSESSION state.
   // Open the block context, while not holding the stateLock.
   spin_unlock(&index->stateLock);
-  int result = udsOpenBlockContext(index->indexSession, sizeof(UDSAdvice),
+  int result = udsOpenBlockContext(index->indexSession, UDS_ADVICE_SIZE,
                                    &index->blockContext);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Error closing block context for %s",
@@ -457,7 +493,7 @@ static void changeDedupeState(KvdoWorkItem *item)
     }
   }
   index->changing = false;
-  index->deduping = index->dedupeFlag && (index->indexState = IS_OPENED);
+  index->deduping = index->dedupeFlag && (index->indexState == IS_OPENED);
   spin_unlock(&index->stateLock);
 }
 
@@ -616,10 +652,10 @@ static void udsQuery(DataKVIO *dataKVIO)
 }
 
 /*****************************************************************************/
-static void startUDSIndex(DedupeIndex *dedupeIndex)
+static void startUDSIndex(DedupeIndex *dedupeIndex, bool createFlag)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  setTargetState(index, IS_OPENED, true, true, false);
+  setTargetState(index, IS_OPENED, true, true, createFlag);
 }
 
 /*****************************************************************************/

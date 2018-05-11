@@ -16,14 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.h#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.h#7 $
  */
 
 #ifndef PBN_LOCK_H
 #define PBN_LOCK_H
 
+#include "util/atomic.h"
+
 #include "types.h"
-#include "waitQueue.h"
 
 /**
  * The type of a PBN lock.
@@ -41,20 +42,16 @@ typedef struct pbnLockImplementation PBNLockImplementation;
  * A PBN lock.
  **/
 struct pbnLock {
-  /** The VIO holding this lock; non-NULL when the PBN is locked by a VIO */
-  AllocatingVIO *holder;
-
-  /**
-   * The HashLock holding this read lock; non-NULL when the PBN is locked by a
-   * HashLock.
-   **/
-  HashLock *hashLockHolder;
-
-  /** The queue of waiters for the lock */
-  WaitQueue waiters;
-
   /** The implementation of the lock */
   const PBNLockImplementation *implementation;
+
+  /** The number of VIOs holding or sharing this lock */
+  VIOCount holderCount;
+  /**
+   * The number of compressed block writers holding a share of this lock while
+   * they are acquiring a reference to the PBN.
+   **/
+  uint8_t fragmentLocks;
 
   /**
    * Whether the locked PBN has been provisionally referenced on behalf of the
@@ -63,11 +60,17 @@ struct pbnLock {
   bool hasProvisionalReference;
 
   /**
-   * For read locks, the number of references that are guaranteed to still be
-   * available on the locked block. Must be decremented for each DataVIO that
-   * deduplicates against the block during the lifetime of the lock.
+   * For read locks, the number of references that were known to be available
+   * on the locked block at the time the lock was acquired.
    **/
   uint8_t incrementLimit;
+
+  /**
+   * For read locks, the number of DataVIOs that have tried to claim one of
+   * the available increments during the lifetime of the lock. Each claim will
+   * first increment this counter, so it can exceed the increment limit.
+   **/
+  Atomic32 incrementsClaimed;
 };
 
 /**
@@ -77,31 +80,6 @@ struct pbnLock {
  * @param type  The type of the lock
  **/
 void initializePBNLock(PBNLock *lock, PBNLockType type);
-
-/**
- * Get the holder of a PBNLock, converting it to a pointer to the associated
- * AllocatingVIO.
- *
- * @param lock  The lock to convert
- *
- * @return The lock holder as an AllocatingVIO
- **/
-AllocatingVIO *lockHolderAsAllocatingVIO(const PBNLock *lock)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether a PBNLock instance is for a lock that is held.
- *
- * @param lock  The lock to query
- *
- * @return <code>true</code> if there is a lock object referenced and it
- *         is marked as being held by any VIO or HashLock
- **/
-static inline bool isPBNLocked(const PBNLock *lock)
-{
-  return ((lock != NULL)
-          && ((lock->holder != NULL) || (lock->hashLockHolder != NULL)));
-}
 
 /**
  * Check whether a PBNLock is a read lock.
@@ -114,22 +92,25 @@ bool isPBNReadLock(const PBNLock *lock)
   __attribute__((warn_unused_result));
 
 /**
- * Notify the waiters for a PBN lock that the lock is being released, and
- * remove them from the lock's wait queue. The lock must have been removed
- * from the lock map already, but the lock's holder field must still be set.
- *
- * @param lock  The PBN lock that is being released
- **/
-void notifyPBNLockWaiters(PBNLock *lock);
-
-/**
- * Downgrade a PBN write lock to a PBN read lock. The write lock is expected
- * to have no waiters. The lock holder is cleared and the caller is
- * responsible for setting the new lock holder.
+ * Downgrade a PBN write lock to a PBN read lock. The lock holder count is
+ * cleared and the caller is responsible for setting the new count.
  *
  * @param lock  The PBN write lock to downgrade
  **/
 void downgradePBNWriteLock(PBNLock *lock);
+
+/**
+ * Try to claim one of the available reference count increments on a read
+ * lock. Claims may be attempted from any thread. A claim is only valid until
+ * the PBN lock is released.
+ *
+ * @param lock  The PBN read lock from which to claim an increment
+ *
+ * @return <code>true</code> if the claim succeeded, guaranteeing one
+ *         increment can be made without overflowing the PBN's reference count
+ **/
+bool claimPBNLockIncrement(PBNLock *lock)
+  __attribute__((warn_unused_result));
 
 /**
  * Check whether a PBN lock has a provisional reference.

@@ -24,7 +24,7 @@
 #include "types.h"
 
 enum {
-  STATISTICS_VERSION = 26,
+  STATISTICS_VERSION = 28,
 };
 
 typedef struct {
@@ -144,9 +144,21 @@ typedef struct {
   uint64_t flushCount;
 } BlockMapStatistics;
 
+/** The dedupe statistics from hash locks */
+typedef struct {
+  /** Number of times the UDS advice proved correct */
+  uint64_t dedupeAdviceValid;
+  /** Number of times the UDS advice proved incorrect */
+  uint64_t dedupeAdviceStale;
+  /** Number of writes with the same data as another in-flight write */
+  uint64_t concurrentDataMatches;
+  /** Number of writes whose hash collided with an in-flight write */
+  uint64_t concurrentHashCollisions;
+} HashLockStatistics;
+
 /** Counts of error conditions in VDO. */
 typedef struct {
-  /** number of times VDO got an invalid dedupe advice PBN from albireo */
+  /** number of times VDO got an invalid dedupe advice PBN from UDS */
   uint64_t invalidAdvicePBNCount;
   /** number of times a VIO completed with a VDO_NO_SPACE error */
   uint64_t noSpaceErrorCount;
@@ -198,6 +210,8 @@ struct vdoStatistics {
   RefCountsStatistics refCounts;
   /** The statistics for the block map */
   BlockMapStatistics blockMap;
+  /** The dedupe statistics from hash locks */
+  HashLockStatistics hashLock;
   /** Counts of error conditions */
   ErrorStatistics errors;
 };

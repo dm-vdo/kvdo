@@ -16,22 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/pbnLock.c#6 $
  */
 
 #include "pbnLock.h"
 
 #include "logger.h"
 
-#include "allocatingVIO.h"
 #include "blockAllocator.h"
-#include "dataVIO.h"
-#include "intMap.h"
-#include "physicalZone.h"
-#include "vioWrite.h"
-#include "waitQueue.h"
-
-typedef void LockQueuer(DataVIO *dataVIO, PBNLock *lock);
+#include "referenceBlock.h"
 
 struct pbnLockImplementation {
   PBNLockType  type;
@@ -86,17 +79,8 @@ static inline void setPBNLockType(PBNLock *lock, PBNLockType type)
 /**********************************************************************/
 void initializePBNLock(PBNLock *lock, PBNLockType type)
 {
-  lock->holder         = NULL;
-  lock->hashLockHolder = NULL;
+  lock->holderCount = 0;
   setPBNLockType(lock, type);
-  initializeWaitQueue(&lock->waiters);
-}
-
-/**********************************************************************/
-AllocatingVIO *lockHolderAsAllocatingVIO(const PBNLock *lock)
-{
-  ASSERT_LOG_ONLY(!isPBNReadLock(lock), "allocation lock is not a read lock");
-  return lock->holder;
 }
 
 /**********************************************************************/
@@ -106,12 +90,35 @@ void downgradePBNWriteLock(PBNLock *lock)
                   "PBN lock must not already have been downgraded");
   ASSERT_LOG_ONLY(!hasLockType(lock, VIO_BLOCK_MAP_WRITE_LOCK),
                   "must not downgrade block map write locks");
-  ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
-                  "write locks must have no waiters");
-
+  ASSERT_LOG_ONLY(lock->holderCount == 1,
+                  "PBN write lock should have one holder but has %u",
+                  lock->holderCount);
+  if (hasLockType(lock, VIO_WRITE_LOCK)) {
+    // DataVIO write locks are downgraded in place--the writer retains the
+    // hold on the lock. They've already had a single incRef journaled.
+    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT - 1;
+  } else {
+    // Compressed block write locks are downgraded when they are shared with
+    // all their hash locks. The writer is releasing its hold on the lock.
+    lock->holderCount = 0;
+    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT;
+  }
   setPBNLockType(lock, VIO_READ_LOCK);
-  lock->holder = NULL;
-  lock->hashLockHolder = NULL;
+}
+
+/**********************************************************************/
+bool claimPBNLockIncrement(PBNLock *lock)
+{
+  /*
+   * Claim the next free reference atomically since hash locks from multiple
+   * hash zone threads might be concurrently deduplicating against a single
+   * PBN lock on compressed block. As long as hitting the increment limit will
+   * lead to the PBN lock being released in a sane time-frame, we won't
+   * overflow a 32-bit claim counter, allowing a simple add instead of a
+   * compare-and-swap.
+   */
+  uint32_t claimNumber = atomicAdd32(&lock->incrementsClaimed, 1);
+  return (claimNumber <= lock->incrementLimit);
 }
 
 /**********************************************************************/

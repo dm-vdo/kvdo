@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.h#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.h#6 $
  */
 
 #ifndef DATA_VIO_H
@@ -130,7 +130,7 @@ typedef struct {
   /* The compressed size of this block */
   uint16_t       size;
 
-  /* The packer input bin slot which holds the enclosing DataVIO */
+  /* The packer input or output bin slot which holds the enclosing DataVIO */
   SlotNumber     slot;
 
   /* The packer input bin to which the enclosing DataVIO has been assigned */
@@ -138,12 +138,6 @@ typedef struct {
 
   /* A pointer to the compressed form of this block */
   char          *data;
-
-  /*
-   * A pointer to a VIO writing a compressed block, one of the fragments of
-   * which is the data from the enclosing VIO
-   */
-  AllocatingVIO *writer;
 
   /*
    * A VIO which is blocked in the packer while holding a lock this VIO needs.
@@ -170,9 +164,6 @@ struct dataVIO {
 
   /** The hash of this VIO (if not zero) */
   UdsChunkName         chunkName;
-
-  /** Whether #chunkName has been filled in */
-  bool                 chunkNameSet;
 
   /* Used for logging and debugging */
   AsyncOperationNumber lastAsyncOperation;

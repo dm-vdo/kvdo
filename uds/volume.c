@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.c#5 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volume.c#6 $
  */
 
 #include "volume.h"
@@ -1234,16 +1234,21 @@ off_t getVolumeSize(Volume *volume)
 /**********************************************************************/
 size_t getCacheSize(Volume *volume)
 {
-  return (getPageCacheSize(volume->pageCache)
-          + getSparseCacheMemorySize(volume->sparseCache));
+  size_t size = getPageCacheSize(volume->pageCache);
+  if (isSparse(volume->geometry)) {
+    size += getSparseCacheMemorySize(volume->sparseCache);
+  }
+  return size;
 }
 
 /**********************************************************************/
 void getCacheCounters(Volume *volume, CacheCounters *counters)
 {
   getPageCacheCounters(volume->pageCache, counters);
-  CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
-  addCacheCounters(counters, &sparseCounters);
+  if (isSparse(volume->geometry)) {
+    CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
+    addCacheCounters(counters, &sparseCounters);
+  }
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockMapTree.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockMapTree.c#2 $
  */
 
 #include "blockMapTree.h"
@@ -1090,7 +1090,7 @@ static void releaseBlockMapWriteLock(VDOCompletion *completion)
     return;
   }
 
-  releasePBNWriteLock(allocatingVIO);
+  releaseAllocationLock(allocatingVIO);
   resetAllocation(allocatingVIO);
   launchLogicalCallback(dataVIO, finishBlockMapAllocation,
                         THIS_LOCATION("$F;cb=finishBlockMapAllocation"));
@@ -1162,7 +1162,7 @@ static void continueBlockMapPageAllocation(AllocatingVIO *allocatingVIO)
   lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
   setUpReferenceOperationWithLock(BLOCK_MAP_INCREMENT, pbn,
                                   MAPPING_STATE_UNCOMPRESSED,
-                                  allocatingVIO->writeLock,
+                                  allocatingVIO->allocationLock,
                                   &dataVIO->operation);
   launchJournalCallback(dataVIO, journalBlockMapAllocation,
                         THIS_LOCATION("$F;cb=journalBlockMapAllocation"));

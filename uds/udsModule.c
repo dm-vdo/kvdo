@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/udsModule.c#9 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/udsModule.c#13 $
  */
 
 #include <linux/module.h>
@@ -56,9 +56,6 @@ EXPORT_SYMBOL(UDS_MEMORY_CONFIG_256MB);
 EXPORT_SYMBOL(UDS_MEMORY_CONFIG_512MB);
 EXPORT_SYMBOL(UDS_MEMORY_CONFIG_768MB);
 EXPORT_SYMBOL(UDS_MEMORY_CONFIG_MAX);
-EXPORT_SYMBOL(udsCalculateSHA256ChunkName);
-EXPORT_SYMBOL(udsCalculateMurmur3ChunkName);
-EXPORT_SYMBOL(udsEqualChunkName);
 EXPORT_SYMBOL(udsInitializeConfiguration);
 EXPORT_SYMBOL(udsComputeIndexSize);
 EXPORT_SYMBOL(udsConfigurationSetNonce);
@@ -82,13 +79,7 @@ EXPORT_SYMBOL(udsCloseBlockContext);
 EXPORT_SYMBOL(udsFlushBlockContext);
 EXPORT_SYMBOL(udsRegisterDedupeBlockCallback);
 EXPORT_SYMBOL(udsSetBlockContextRequestQueueLimit);
-EXPORT_SYMBOL(udsSetBlockContextHashAlgorithm);
-EXPORT_SYMBOL(udsPostBlock);
 EXPORT_SYMBOL(udsPostBlockName);
-EXPORT_SYMBOL(udsQueryBlockName);
-EXPORT_SYMBOL(udsCheckBlock);
-EXPORT_SYMBOL(udsUpdateBlockMapping);
-EXPORT_SYMBOL(udsDeleteBlockMapping);
 EXPORT_SYMBOL(udsStartChunkOperation);
 EXPORT_SYMBOL(udsGetBlockContextConfiguration);
 EXPORT_SYMBOL(udsGetBlockContextIndexStats);

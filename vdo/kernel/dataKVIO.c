@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#9 $
  */
 
 #include "dataKVIO.h"
@@ -133,11 +133,6 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 #else
   bio->bi_rw      = externalIORequest->rw;
 #endif
-  if (isFUABio(bio) && (error == 0) && shouldProcessFlush(layer)) {
-    // The original I/O asked for Forced Unit Access. Start a flush.
-    launchKVDOFlush(layer, bio);
-    return;
-  }
 
   countBios(&layer->biosAcknowledged, bio);
   if (getBioSize(bio) < VDO_BLOCK_SIZE) {
@@ -403,20 +398,6 @@ void kvdoZeroDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
-{
-  dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
-  DataKVIO *a = dataVIOAsDataKVIO(first);
-  DataKVIO *b = dataVIOAsDataKVIO(second);
-  if (memcmp(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE) == 0) {
-    return true;
-  }
-
-  atomic64_inc(&(getLayerFromDataKVIO(b)->dedupeAdviceStale));
-  return false;
-}
-
-/**********************************************************************/
 void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination)
 {
   dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
@@ -660,6 +641,10 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
     operation  = VIO_WRITE;
   }
 
+  if (requestorSetFUA(dataKVIO)) {
+    operation |= VIO_FLUSH_AFTER;
+  }
+
   prepareDataVIO(dataVIO, dataVIO->logical.lbn + 1, operation,
                  !dataKVIO->isPartial, kvdoContinueDiscardKVIO);
   enqueueDataKVIO(dataKVIO, launchDataKVIOWork, completion->callback,
@@ -733,6 +718,10 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
     operation = VIO_READ;
   }
 
+  if (requestorSetFUA(dataKVIO)) {
+    operation |= VIO_FLUSH_AFTER;
+  }
+
   LogicalBlockNumber lbn
     = sectorToBlock(layer, getBioSector(bio) - layer->startingSectorOffset);
   prepareDataVIO(&dataKVIO->dataVIO, lbn, operation, isTrim, callback);
@@ -781,8 +770,6 @@ void kvdoCheckForDuplication(DataVIO *dataVIO)
                   "zero block not checked for duplication");
   ASSERT_LOG_ONLY(dataVIO->newMapped.state != MAPPING_STATE_UNMAPPED,
                   "discard not checked for duplication");
-  ASSERT_LOG_ONLY(dataVIO->chunkNameSet,
-                  "must have the chunk name to check for dedupe");
 
   DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   if (hasAllocation(dataVIO)) {
@@ -801,10 +788,7 @@ void kvdoCheckForDuplication(DataVIO *dataVIO)
  **/
 void kvdoUpdateDedupeAdvice(DataVIO *dataVIO)
 {
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  ASSERT_LOG_ONLY(dataVIO->chunkNameSet,
-                  "must have the chunk name to update advice");
-  updateDedupeAdvice(dataKVIO);
+  updateDedupeAdvice(dataVIOAsDataKVIO(dataVIO));
 }
 
 /**
@@ -1056,14 +1040,6 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
   // might want info on: bio / bioToSubmit / biosMerged
 
   dumpVIOWaiters(&dataVIO->logical.waiters, "lbn");
-  if (dataVIO->allocatingVIO.writeLock != NULL) {
-    dumpVIOWaiters(&dataVIO->allocatingVIO.writeLock->waiters, "pbn write");
-  }
-  // XXX VDOSTORY-190 redundantly dumps waiters for every DataVIO in the lock
-  PBNLock *duplicateLock = getDuplicateLock(dataVIO);
-  if (duplicateLock != NULL) {
-    dumpVIOWaiters(&duplicateLock->waiters, "pbn read");
-  }
 
   // might want to dump more info from VIO here
 }
@@ -1079,13 +1055,13 @@ int makeDataKVIOBufferPool(KernelLayer  *layer,
 }
 
 /**********************************************************************/
-void getDedupeMetadata(const DedupeContext *context,
-                       BlockMappingState   *mappingState,
-                       PhysicalBlockNumber *pbn)
+DataLocation getDedupeAdvice(const DedupeContext *context)
 {
   DataKVIO *dataKVIO = container_of(context, DataKVIO, dedupeContext);
-  *mappingState      = dataKVIO->dataVIO.newMapped.state;
-  *pbn               = dataKVIO->dataVIO.newMapped.pbn;
+  return (DataLocation) {
+    .state = dataKVIO->dataVIO.newMapped.state,
+    .pbn   = dataKVIO->dataVIO.newMapped.pbn,
+  };
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dump.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dump.c#2 $
  */
 
 #include "dump.h"
@@ -99,9 +99,6 @@ static void doDump(KernelLayer  *layer,
           (atomic64_read(&layer->biosSubmitted)
            - atomic64_read(&layer->biosCompleted)),
           layer->deviceConfig->poolName);
-  logInfo("dedupe: %ld valid %ld stale",
-          atomic64_read(&layer->dedupeAdviceValid),
-          atomic64_read(&layer->dedupeAdviceStale));
   if ((dumpOptionsRequested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
     dumpKVDOWorkQueue(&layer->kvdo);
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsState.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsState.h#4 $
  */
 
 #ifndef UDS_STATE_H
@@ -54,14 +54,6 @@ int checkLibraryRunning(void);
  * @return              the module directory path
  **/
 const char *getModuleDir(void);
-
-/**
- * Return a queue for hash requests.
- *
- * @return one of the udsState.hashQueues
- **/
-RequestQueue *getNextHashQueue(Request *request)
-  __attribute__((warn_unused_result));
 
 #if GRID
 /**

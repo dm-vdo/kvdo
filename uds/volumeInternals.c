@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volumeInternals.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volumeInternals.c#4 $
  */
 
 #include "volumeInternals.h"
@@ -232,11 +232,13 @@ int allocateVolume(const Configuration  *config,
   }
 
   if (!readOnly) {
-    result = makeSparseCache(volume->geometry, config->cacheChapters,
-                             zoneCount, &volume->sparseCache);
-    if (result != UDS_SUCCESS) {
-      releaseVolume(volume);
-      return result;
+    if (isSparse(volume->geometry)) {
+      result = makeSparseCache(volume->geometry, config->cacheChapters,
+                               zoneCount, &volume->sparseCache);
+      if (result != UDS_SUCCESS) {
+        releaseVolume(volume);
+        return result;
+      }
     }
     result = makePageCache(volume->geometry, config->cacheChapters,
                            readQueueMaxSize, zoneCount, &volume->pageCache);

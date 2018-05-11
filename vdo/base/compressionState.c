@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/compressionState.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/compressionState.c#3 $
  */
 
 #include "compressionStateInternals.h"
@@ -98,6 +98,8 @@ static VIOCompressionStatus advanceStatus(DataVIO *dataVIO)
 bool mayCompressDataVIO(DataVIO *dataVIO)
 {
   if (!hasAllocation(dataVIO)
+      || ((getWritePolicy(getVDOFromDataVIO(dataVIO)) == WRITE_POLICY_ASYNC)
+          && vioRequiresFlushAfter(dataVIOAsVIO(dataVIO)))
       || !getVDOCompressing(getVDOFromDataVIO(dataVIO))) {
     /*
      * If this VIO didn't get an allocation, the compressed write probably
@@ -105,6 +107,12 @@ bool mayCompressDataVIO(DataVIO *dataVIO)
      * don't compress.
      */
     setCompressionDone(dataVIO);
+    return false;
+  }
+
+  if (dataVIO->hashLock == NULL) {
+    // DataVIOs without a HashLock (which should be extremely rare) aren't
+    // able to share the packer's PBN lock, so don't try to compress them.
     return false;
   }
 

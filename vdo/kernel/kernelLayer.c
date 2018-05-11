@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#8 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#11 $
  */
 
 #include "kernelLayer.h"
@@ -617,36 +617,6 @@ int makeKernelLayer(BlockCount      blockCount,
     return result;
   }
 
-  spin_lock_init(&layer->statsLock);
-  result = ALLOCATE(1, VDOStatistics, "VDOStatistics storage",
-                    &layer->vdoStatsStorage);
-  if (result != 0) {
-    *reason = "Cannot allocate VDO statistics storage";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-  result = ALLOCATE(1, KernelStatistics, "KernelStatistics storage",
-                    &layer->kernelStatsStorage);
-  if (result != 0) {
-    *reason = "Cannot allocate kernel statistics storage";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-  kobject_init(&layer->statsDirectory, &statsDirectoryKobjType);
-  result = kobject_add(&layer->statsDirectory, &layer->kobj, "statistics");
-  if (result != 0) {
-    *reason = "Cannot add sysfs statistics node";
-    freeDeviceConfig(&config);
-    kobject_put(&layer->statsDirectory);
-    kobject_put(&layer->wqDirectory);
-    kobject_put(&layer->kobj);
-    return result;
-  }
-
   /*
    * Part 2 - Do all the simple initialization.  These initializations have no
    * order dependencies and can be done in any order, but freeKernelLayer()
@@ -706,6 +676,7 @@ int makeKernelLayer(BlockCount      blockCount,
   layer->common.updateAlbireo            = kvdoUpdateDedupeAdvice;
 
   spin_lock_init(&layer->flushLock);
+  mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);
 
   result = addLayerToDeviceRegistry(config->poolName, layer);
@@ -1098,9 +1069,15 @@ void freeKernelLayer(KernelLayer *layer)
   // The call to kobject_put on the kobj sysfs node will decrement its
   // reference count; when the count goes to zero the VDO object and
   // the kernel layer object will be freed as a side effect.
-  kobject_put(&layer->statsDirectory);
   kobject_put(&layer->wqDirectory);
   kobject_put(&layer->kobj);
+}
+
+/**********************************************************************/
+static void poolStatsRelease(struct kobject *kobj)
+{
+  KernelLayer *layer = container_of(kobj, KernelLayer, statsDirectory);
+  complete(&layer->statsShutdown);
 }
 
 /**********************************************************************/
@@ -1119,7 +1096,24 @@ int startKernelLayer(KernelLayer          *layer,
     return result;
   }
 
-  startDedupeIndex(layer->dedupeIndex);
+  static struct kobj_type statsDirectoryKobjType = {
+    .release       = poolStatsRelease,
+    .sysfs_ops     = &poolStatsSysfsOps,
+    .default_attrs = poolStatsAttrs,
+  };
+  kobject_init(&layer->statsDirectory, &statsDirectoryKobjType);
+  result = kobject_add(&layer->statsDirectory, &layer->kobj, "statistics");
+  if (result != 0) {
+    *reason = "Cannot add sysfs statistics node";
+    stopKernelLayer(layer);
+    return result;
+  }
+  layer->statsAdded = true;
+
+  // Don't try to load or rebuild the index first (and log scary error
+  // messages) if this is known to be a newly-formatted volume.
+  startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+
   result = vdoCreateProcfsEntry(layer, layer->deviceConfig->poolName,
                                 &layer->procfsPrivate);
   if (result != VDO_SUCCESS) {
@@ -1141,6 +1135,15 @@ int stopKernelLayer(KernelLayer *layer)
 
   layer->allocationsAllowed = true;
 
+  // Stop services that need to gather VDO statistics from the worker threads.
+  if (layer->statsAdded) {
+    layer->statsAdded = false;
+    init_completion(&layer->statsShutdown);
+    kobject_put(&layer->statsDirectory);
+    wait_for_completion(&layer->statsShutdown);
+  }
+  vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
+
   int result = stopKVDO(&layer->kvdo);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
     logError("%s: Close device failed %d (%s: %s)",
@@ -1153,7 +1156,6 @@ int stopKernelLayer(KernelLayer *layer)
   case LAYER_SUSPENDED:
   case LAYER_RUNNING:
     setKernelLayerState(layer, LAYER_STOPPING);
-    vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
     stopDedupeIndex(layer->dedupeIndex);
     // fall through
 

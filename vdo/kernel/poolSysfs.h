@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/poolSysfs.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/poolSysfs.h#2 $
  */
 
 #ifndef POOL_SYSFS_H
@@ -28,7 +28,10 @@
 extern struct kobj_type kernelLayerKobjType;
 // The kobj_type used for the "work_queues" subdirectory.
 extern struct kobj_type workQueueDirectoryKobjType;
-// The kobj_type used for the "statistics" subdirectory.
-extern struct kobj_type statsDirectoryKobjType;
+
+// The sysfs_ops used for the "statistics" subdirectory.
+extern struct sysfs_ops poolStatsSysfsOps;
+// The attribute used for the "statistics" subdirectory.
+extern struct attribute *poolStatsAttrs[];
 
 #endif /* POOL_SYSFS_H */

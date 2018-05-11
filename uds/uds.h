@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds.h#7 $
+ * $Id: //eng/uds-releases/flanders/src/public/uds.h#11 $
  */
 
 /**
@@ -101,7 +101,6 @@ extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_768MB;
  **/
 extern const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX;
 
-
 /** The name (hash) of a chunk. */
 typedef struct udsChunkName {
   /** The name (hash) of a chunk. */
@@ -162,89 +161,60 @@ typedef struct udsContextStats {
   /** The time at which context statistics were last fetched */
   time_t   currentTime;
   /**
-   * The number of post calls (#udsPostBlock (et alia)) since context
-   * statistics were last reset that found an existing entry
+   * The number of post calls since context statistics were last reset that
+   * found an existing entry
    **/
   uint64_t postsFound;
   /**
-   * The number of post calls (#udsPostBlock (et alia)) since context
-   * statistics were last reset that added an entry
+   * The number of post calls since context statistics were last reset that
+   * added an entry
    **/
   uint64_t postsNotFound;
   /**
-   * The number of post calls (#udsPostBlock (et alia)) since context
-   * statistics were last reset that found an existing entry is current
-   * enough to only exist in memory and not have been commited to disk
-   * yet.
+   * The number of post calls since context statistics were last reset that
+   * found an existing entry is current enough to only exist in memory and not
+   * have been commited to disk yet.
    **/
   uint64_t inMemoryPostsFound;
   /**
-   * The number of post calls (#udsPostBlock (et alia)) since context
-   * statistics were last reset that found an existing entry in the dense
-   * portion of the index.
+   * The number of post calls since context statistics were last reset that
+   * found an existing entry in the dense portion of the index.
    **/
   uint64_t densePostsFound;
   /**
-   * The number of post calls (#udsPostBlock (et alia)) since context
-   * statistics were last reset that found an existing entry in the sparse
-   * portion of the index (if one exists).
+   * The number of post calls since context statistics were last reset that
+   * found an existing entry in the sparse portion of the index (if one
+   * exists).
    **/
   uint64_t sparsePostsFound;
   /**
-   * The number of bytes that existed already posted (by
-   * #udsPostBlock (et alia)) since context statistics were last
-   * reset
-   **/
-  uint64_t bytesFound;
-  /**
-   * The number of bytes that were added (by #udsPostBlock (et alia))
-   * since context statistics were last reset
-   **/
-  uint64_t bytesNotFound;
-  /**
-   * The average data chunk size posted to the index since context statistics
-   * were last reset that was found
-   **/
-  uint32_t avgChunkFound;
-  /**
-   * The average data chunk size posted to the index since context statistics
-   * were last reset that was not found
-   **/
-  uint32_t avgChunkNotFound;
-  /**
-   * The number of update calls (#udsUpdateBlockMapping (et alia))
-   * since context statistics were last reset that updated an existing
-   * entry
+   * The number of update calls since context statistics were last reset that
+   * updated an existing entry
    **/
   uint64_t updatesFound;
   /**
-   * The number of update calls (#udsUpdateBlockMapping (et alia))
-   * since context statistics were last reset that added a new
-   * entry
+   * The number of update calls since context statistics were last reset that
+   * added a new entry
    **/
   uint64_t updatesNotFound;
   /**
-   * The number of delete calls (#udsDeleteBlockMapping (et alia))
-   * since context statistics were last reset that deleted an
-   * existing entry
+   * The number of delete requests since context statistics were last reset
+   * that deleted an existing entry
    **/
   uint64_t deletionsFound;
   /**
-   * The number of delete calls (#udsDeleteBlockMapping (et alia))
-   * since context statistics were last reset that did
-   * nothing.
+   * The number of delete requests since context statistics were last reset
+   * that did nothing.
    **/
   uint64_t deletionsNotFound;
   /**
-   * The number of query calls (#udsQueryBlockName (et alia))
-   * since context statistics were last reset that found
-   * existing entry
+   * The number of query calls since context statistics were last reset that
+   * found existing entry
    **/
   uint64_t queriesFound;
   /**
-   * The number of query calls (#udsQueryBlockName (et alia))
-   * since context statistics were last reset that did not
-   * find an entry
+   * The number of query calls since context statistics were last reset that
+   * did not find an entry
    **/
   uint64_t queriesNotFound;
   /**
@@ -266,53 +236,6 @@ typedef struct udsContextStats {
    **/
   uint64_t maximumTurnaroundTime;
 } UdsContextStats;
-
-/**
- * The possible hash algorithms to use.
- **/
-typedef enum {
-  /** Use the optimized SHA-256 hash algorithm. */
-  UDS_HASH_ALG_SHA256,
-  /** Use the faster (but non-cryptographic) Murmur3 hash algorithm. */
-  UDS_HASH_ALG_MURMUR3
-} UdsHashAlgorithm;
-
-/**
- * Calculates the name (hash) of a chunk of data. This function uses
- * the SHA-256 hash algorithm for calculating chunk names.
- *
- * @param [in] data     A pointer to the opaque data
- * @param [in] size     The size of the data, in bytes
- *
- * @return              The calculated chunk name
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-UdsChunkName udsCalculateSHA256ChunkName(const void *data, size_t size);
-
-/**
- * Calculates the name (hash) of a chunk of data. This function uses
- * the Murmur3 hash algorithm for calculating chunk names.
- *
- * @param [in] data     A pointer to the opaque data
- * @param [in] size     The size of the data, in bytes
- *
- * @return              The calculated chunk name
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-UdsChunkName udsCalculateMurmur3ChunkName(const void *data, size_t size);
-
-/**
- * Compares two chunk names for equality.
- *
- * @param [in] name0    The name of the first chunk
- * @param [in] name1    The name of the second chunk
- *
- * @return              Returns <code>true</code> if the chunk names are
- *                      equal, or <code>false</code> if not
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-bool udsEqualChunkName(const UdsChunkName *name0,
-                       const UdsChunkName *name1);
 
 /**
  * Initializes an index configuration.

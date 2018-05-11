@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.c#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.c#6 $
  */
 
 #include "request.h"
@@ -138,9 +138,6 @@ int launchAllocatedClientRequest(Request *request)
   request->isControlMessage = false;
   request->unbatched        = false;
 
-#if NAMESPACES
-  xorNamespace(&request->hash, &request->context->namespaceHash);
-#endif /* NAMESPACES */
   request->router = selectGridRouter(request->context->indexSession->grid,
                                      &request->hash);
 
@@ -203,10 +200,12 @@ int launchClientRequest(unsigned int        contextId,
                         bool                update,
                         const UdsChunkName *chunkName,
                         UdsCookie           cookie,
-                        void               *metadata,
-                        size_t              dataLength,
-                        const void         *data)
+                        void               *metadata)
 {
+  if (chunkName == NULL) {
+    return UDS_CHUNK_NAME_REQUIRED;
+  }
+
   Request *request;
   int result = createRequest(contextId, &request);
   if (result != UDS_SUCCESS) {
@@ -216,31 +215,19 @@ int launchClientRequest(unsigned int        contextId,
   request->update     = update;
   request->cookie     = cookie;
   request->type       = callbackType;
-  request->dataLength = dataLength;
   request->action     = (RequestAction) callbackType;
 
-  RequestStage initialStage = STAGE_TRIAGE;
-  if (chunkName != NULL) {
-    setRequestHash(request, chunkName);
-  } else if (data != NULL) {
-    initialStage = STAGE_HASH;
-    if (dataLength > 0) {
-      result = memdup(data, dataLength, "request data", &request->data);
-    }
-  } else {
-    result = ASSERT_FALSE("request needs chunk name or chunk data");
-  }
-  if (result != UDS_SUCCESS) {
-    freeRequest(request);
-    return result;
-  }
+  // The chunk name is known so we can select a router to handle the request.
+  request->hash   = *chunkName;
+  request->router = selectGridRouter(request->context->indexSession->grid,
+                                     &request->hash);
 
   if (metadata != NULL) {
     memcpy(request->newMetadata.data, metadata,
            request->context->metadataSize);
   }
 
-  enqueueRequest(request, initialStage);
+  enqueueRequest(request, STAGE_TRIAGE);
   return UDS_SUCCESS;
 }
 
@@ -369,10 +356,6 @@ void freeRequest(Request *request)
   bool holdsPermit = (!request->fromCallback && !request->isControlMessage);
 
   FREE(request->serverContext);
-
-  // Attempt to free data block just in case (this will be NULL if completed
-  // in the hash phase).
-  FREE(request->data);
   FREE(request);
   request = NULL;
 
@@ -389,23 +372,6 @@ void freeRequest(Request *request)
   // Release the counted reference to the context that was acquired for the
   // request (and not released) in createRequest().
   releaseBaseContext(context);
-}
-
-/**********************************************************************/
-void setRequestHash(Request *request, const UdsChunkName *name)
-{
-  if (name == NULL) {
-    return;
-  }
-
-  request->hash = *name;
-#if NAMESPACES
-  xorNamespace(&request->hash, &request->context->namespaceHash);
-#endif /* NAMESPACES */
-  // Once the chunk name is known (either at launch time or after hashing), we
-  // can select a router to handle the request.
-  request->router = selectGridRouter(request->context->indexSession->grid,
-                                     &request->hash);
 }
 
 /**
@@ -444,12 +410,6 @@ static int64_t getTurnaroundTime(Request *request)
 static RequestQueue *getNextStageQueue(Request      *request,
                                        RequestStage  nextStage)
 {
-  if (nextStage == STAGE_HASH) {
-    // This request doesn't yet have a hash (chunk name) to dispatch to a
-    // router or index, so round-robin it to the next hash worker queue.
-    return getNextHashQueue(request);
-  }
-
   if (nextStage == STAGE_CALLBACK) {
     return request->context->callbackQueue;
   }
@@ -550,17 +510,8 @@ void updateRequestContextStats(Request *request)
       } else if (request->location == LOC_IN_SPARSE) {
         counters->postsFoundSparse++;
       }
-
-      if (request->dataLength > 0) {
-        counters->bytesFound += request->dataLength;
-        counters->postsFoundData++;
-      }
     } else {
       counters->postsNotFound++;
-      if (request->dataLength > 0) {
-        counters->bytesNotFound += request->dataLength;
-        counters->postsNotFoundData++;
-      }
     }
     break;
 

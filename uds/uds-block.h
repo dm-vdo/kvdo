@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds-block.h#6 $
+ * $Id: //eng/uds-releases/flanders/src/public/uds-block.h#10 $
  */
 
 /**
@@ -25,10 +25,6 @@
  **/
 #ifndef UDS_BLOCK_H
 #define UDS_BLOCK_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "uds.h"
 
@@ -78,8 +74,7 @@ typedef void *UdsBlockAddress;
  * <li> <code>duplicateAddress</code>: is set except for #UDS_DELETE.</li>
  * <li> <code>canonicalAddress</code>: is set if the chunk existed.</li>
  * <li> <code>blockName</code>: is always set.</li>
- * <li> <code>blockLength</code>: is zero unless this is a result
- * of a call to #udsPostBlock.
+ * <li> <code>blockLength</code>: is zero</li>
  * </ul>
  *
  * On a duplicate block callback, retain the canonical address and adjust the
@@ -87,7 +82,7 @@ typedef void *UdsBlockAddress;
  *
  * All callbacks are invoked in one thread, so the callback function should
  * not block.  In addition, this function should not call exit() or make
- * additional calls into the index (e.g. #udsUpdateBlockMapping).
+ * additional calls into the index.
  *
  * @param [in,out] context      The context
  * @param [in] type             The callback type
@@ -100,20 +95,17 @@ typedef void *UdsBlockAddress;
  * @param [in] canonicalAddress The canonical address of the chunk
  * @param [in] blockName        The name (hash) of the chunk being referenced,
  *                              used for unmapping or remapping this block
- * @param [in] blockLength      The block length
  * @param [in] callbackArgument The <code>callbackArgument</code> given when
  *                              registering the callback
  **/
-typedef void (*UdsDedupeBlockCallback)
-(UdsBlockContext    context,
- UdsCallbackType    type,
- int                status,
- UdsCookie          cookie,
- UdsBlockAddress    duplicateAddress,
- UdsBlockAddress    canonicalAddress,
- UdsChunkName      *blockName,
- size_t             blockLength,
- void              *callbackArgument);
+typedef void (*UdsDedupeBlockCallback)(UdsBlockContext  context,
+                                       UdsCallbackType  type,
+                                       int              status,
+                                       UdsCookie        cookie,
+                                       UdsBlockAddress  duplicateAddress,
+                                       UdsBlockAddress  canonicalAddress,
+                                       UdsChunkName    *blockName,
+                                       void            *callbackArgument);
 
 /** @{ */
 /** @name Context Management */
@@ -173,9 +165,8 @@ int udsFlushBlockContext(UdsBlockContext context);
  * Registers a callback to be invoked when asynchronous index operations are
  * complete.
  *
- * The #udsPostBlock, #udsPostBlockName, #udsUpdateBlockMapping, and
- * #udsDeleteBlockMapping functions invoke the registered callback to inform
- * the Application Software that an operation is complete.
+ * The #udsPostBlockName function invokes the registered callback to inform the
+ * Application Software that an operation is complete.
  *
  * @param [in] context          The library context
  * @param [in] cb               The callback function, or <code>NULL</code>
@@ -207,58 +198,10 @@ int udsRegisterDedupeBlockCallback(UdsBlockContext         context,
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsSetBlockContextRequestQueueLimit(UdsBlockContext context,
                                         unsigned int    maxRequests);
-
-/**
- * Controls the function used for hashing incoming blocks of data.
- * The list of functions available are confined to the #UdsHashAlgorithm
- * enum. This function performs no locking of the context, so changing
- * the hash algorithm should only be done at open.
- *
- * @param [in] context          The library context
- * @param [in] algorithm        The algorithm to use for hashing blocks
- *                              submitted through #udsPostBlock.
- *
- * @return                      Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsSetBlockContextHashAlgorithm(UdsBlockContext  context,
-                                    UdsHashAlgorithm algorithm);
-
 /** @} */
 
 /** @{ */
 /** @name Deduplication */
-
-/**
- * Indexes a block and asynchronously associates it with a particular address;
- * if a callback function has been registered, it is invoked upon completion.
- *
- * This is an asynchronous interface to the block-oriented UDS
- * API. The Application Software provides the block's name. UDS then
- * checks this name against its index.
- * <ul>
- *   <li>If the block is new, it is stored in the index.</li>
- *   <li>If the block is a duplicate of an indexed block, UDS returns the
- *       canonical block address via the #UdsDedupeBlockCallback callback.</li>
- * </ul>
- *
- * @param [in] context      The library context
- * @param [in] cookie       Opaque data for the callback
- * @param [in] blockAddress The address of the block being referenced
- * @param [in] dataLength   The length of the block data
- * @param [in] data         The block data (the UDS library will not access
- *                          it once this function returns)
- *
- * @return                  Either #UDS_SUCCESS or an error code
- *
- * @see #udsRegisterDedupeBlockCallback
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsPostBlock(UdsBlockContext  context,
-                 UdsCookie        cookie,
-                 UdsBlockAddress  blockAddress,
-                 size_t           dataLength,
-                 const void      *data);
 
 /**
  * Indexes a block name and asynchronously associates it with a particular
@@ -288,120 +231,6 @@ int udsPostBlockName(UdsBlockContext     context,
                      UdsCookie           cookie,
                      UdsBlockAddress     blockAddress,
                      const UdsChunkName *chunkName);
-
-/**
- * Checks to see if a block name exists in the index.
- *
- * The Application Software provides the block's name. UDS then checks
- * this name against its index. The Application Software may optionally
- * supply a source block address; this is returned in the callback but
- * not otherwise used.
- * <ul>
- *   <li>If the block is new, no action is taken.</li>
- *   <li>If the block is a duplicate of an indexed block, UDS returns the
- *       canonical block address via the #UdsDedupeBlockCallback callback.</li>
- * </ul>
- *
- * @param [in] context      The library context
- * @param [in] cookie       Opaque data for the callback
- * @param [in] blockAddress The address of the block being referenced;
- *                          may be <code>NULL</code>
- * @param [in] blockName    The block mapping to check
- * @param [in] update       If true, move the entry to the
- *                          end of the deduplication window
- *                          if found.
- *
- * @return                  Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsQueryBlockName(UdsBlockContext     context,
-                      UdsCookie           cookie,
-                      UdsBlockAddress     blockAddress,
-                      const UdsChunkName *blockName,
-                      bool                update);
-
-/**
- * Checks to see if a block exists in the index.
- *
- * The Application Software provides the block's data. UDS then checks
- * this block against its index. The Application Software may optionally
- * supply a source block address; this is returned in the callback but
- * not otherwise used.
- * <ul>
- *   <li>If the block is new, no action is taken.</li>
- *   <li>If the block is a duplicate of an indexed block, UDS returns the
- *       canonical block address via the #UdsDedupeBlockCallback callback.</li>
- * </ul>
- *
- * @param [in] context      The library context
- * @param [in] cookie       Opaque data for the callback
- * @param [in] blockAddress The address of the block being referenced;
- *                          may be <code>NULL</code>
- * @param [in] dataLength   The length of the block data
- * @param [in] data         The block data (the UDS library will not access
- *                          it once this function returns)
- * @param [in] update       If true, move the entry to the
- *                          end of the deduplication window
- *                          if found.
- *
- * @return                  Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCheckBlock(UdsBlockContext  context,
-                  UdsCookie        cookie,
-                  UdsBlockAddress  blockAddress,
-                  size_t           dataLength,
-                  const void      *data,
-                  bool             update);
-
-/**
- * Updates the mapping for a particular block.  This operation occurs
- * asynchronously.
- *
- * #udsUpdateBlockMapping is typically called if #UdsDedupeBlockCallback
- * provides invalid advice, but the <code>duplicateAddress</code> remains
- * valid on disk. This call updates the <code>canonicalAddress</code> for this
- * <code>blockName</code> and then invokes the #UdsDedupeBlockCallback to
- * inform the Application Software that the operation is complete.
- *
- * @param [in] context      The library context
- * @param [in] cookie       Opaque data for the callback
- * @param [in] blockName    The block mapping to update
- * @param [in] blockAddress The new canonical mapping for this
- *                          <code>blockName</code>
- *
- * @return                  Either #UDS_SUCCESS or an error code
- *
- * @see #udsRegisterDedupeBlockCallback
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsUpdateBlockMapping(UdsBlockContext     context,
-                          UdsCookie           cookie,
-                          const UdsChunkName *blockName,
-                          UdsBlockAddress     blockAddress);
-
-/**
- * Deletes the mapping for a particular block.  This operation occurs
- * asynchronously.
- *
- * #udsDeleteBlockMapping is typically called if #UdsDedupeBlockCallback
- * provides invalid advice, and neither the <code>duplicateAddress</code> nor
- * the <code>canonicalAddress</code> still exist. This function invokes
- * the #UdsDedupeBlockCallback callback to inform the Application Software
- * when the operation is complete.
- *
- * @param [in] context    The library context
- * @param [in] cookie     Opaque data for the callback
- * @param [in] blockName  The block mapping to delete
- *
- * @return                Either #UDS_SUCCESS or an error code
- *
- * @see #udsRegisterDedupeBlockCallback
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsDeleteBlockMapping(UdsBlockContext     context,
-                          UdsCookie           cookie,
-                          const UdsChunkName *blockName);
 
 typedef struct udsRequest UdsRequest;
 
@@ -574,9 +403,5 @@ UDS_ATTR_WARN_UNUSED_RESULT
 int udsResetBlockContextStats(UdsBlockContext context);
 
 /** @} */
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
 
 #endif /* UDS_BLOCK_H */

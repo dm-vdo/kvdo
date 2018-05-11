@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#5 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLoad.c#8 $
  */
 
 #include "vdoLoad.h"
@@ -528,25 +528,21 @@ static int decodeSynchronousVDO(VDO *vdo, bool validateConfig)
 }
 
 /**********************************************************************/
-int loadVDO(PhysicalLayer  *layer,
-            bool            validateConfig,
-            VDODecoder     *decoder,
-            VDO           **vdoPtr)
+int loadVDOSuperblock(PhysicalLayer        *layer,
+                      PhysicalBlockNumber   location,
+                      Nonce                 nonce,
+                      bool                  validateConfig,
+                      VDODecoder           *decoder,
+                      VDO                 **vdoPtr)
 {
-  VolumeGeometry geometry;
-  int result = loadVolumeGeometry(layer, &geometry);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
   VDO *vdo;
-  result = makeVDO(layer, &vdo);
+  int result = makeVDO(layer, &vdo);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  vdo->loadConfig.firstBlockOffset = getDataRegionOffset(geometry);
-  vdo->loadConfig.nonce            = geometry.nonce;
+  vdo->loadConfig.firstBlockOffset = location;
+  vdo->loadConfig.nonce            = nonce;
   result = loadSuperBlock(layer, getFirstBlockOffset(vdo), &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
@@ -563,4 +559,20 @@ int loadVDO(PhysicalLayer  *layer,
 
   *vdoPtr = vdo;
   return VDO_SUCCESS;
+
+}
+/**********************************************************************/
+int loadVDO(PhysicalLayer  *layer,
+            bool            validateConfig,
+            VDODecoder     *decoder,
+            VDO           **vdoPtr)
+{
+  VolumeGeometry geometry;
+  int result = loadVolumeGeometry(layer, &geometry);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return loadVDOSuperblock(layer, getDataRegionOffset(geometry),
+                           geometry.nonce, validateConfig, decoder, vdoPtr);
 }

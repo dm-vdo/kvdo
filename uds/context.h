@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.h#5 $
+ * $Id: //eng/uds-releases/flanders/src/uds/context.h#8 $
  */
 
 #ifndef CONTEXT_H
@@ -25,7 +25,6 @@
 #include "common.h"
 #include "cpu.h"
 #include "featureDefs.h"
-#include "namespaceHash.h"
 #include "opaqueTypes.h"
 #include "session.h"
 #include "uds-block.h"
@@ -45,8 +44,6 @@ typedef struct statCounters {
   uint64_t postsFoundDense;     /* Post calls found in the dense index */
   uint64_t postsFoundSparse;    /* Post calls found in the sparse index */
   uint64_t postsNotFound;       /* Post calls that did not find an entry */
-  uint64_t postsFoundData;      /* Post calls that found an entry (w/data) */
-  uint64_t postsNotFoundData;   /* Post calls that did not find an entry (w/data) */
   uint64_t updatesFound;        /* Update calls that found an entry */
   uint64_t updatesNotFound;     /* Update calls that did not find an entry */
   uint64_t deletionsFound;      /* Delete calls that found an entry */
@@ -54,8 +51,6 @@ typedef struct statCounters {
   uint64_t queriesFound;        /* Query calls that found an entry */
   uint64_t queriesNotFound;     /* Query calls that did not find an entry */
   uint64_t requests;            /* Total number of requests */
-  uint64_t bytesFound;          /* Bytes found */
-  uint64_t bytesNotFound;       /* Bytes not found */
   int64_t  requestTurnaroundTime; /* Total turnaround (in us) of requests */
   int64_t  maximumTurnaroundTime; /* Maximum turnaround (in us) of requests */
 } StatCounters;
@@ -77,10 +72,6 @@ typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
   IndexSession            *indexSession;
   Session                  session;
 
-#if NAMESPACES
-  /* The hash of the namespace for this context */
-  NamespaceHash            namespaceHash;
-#endif /* NAMESPACES */
   /* Application metadata size; the library may store more! */
   unsigned int             metadataSize;
 
@@ -98,31 +89,8 @@ typedef struct  __attribute__((aligned(CACHE_LINE_BYTES))) udsContext {
 
   /** request statistics for this context, all owned by the callback thread */
   ContextStats             stats;
-
-  /** atomic counter for distributing requests to the hash queues */
-  Atomic32                 hashQueueRotor;
-
-  /** function to use for hashing requests */
-  UdsChunkName           (*chunkNameGenerator)(const void *data, size_t size);
 } UdsContext;
 
-#if NAMESPACES
-/**
- * Open a context.
- *
- * @param [in]  session          The index session on which to open a context
- * @param [in]  namespace        The namespace to associate with the context
- * @param [in]  metadataSize     The application metadata size to copy
- * @param [out] contextID        A point to hold the id of the new context
- *
- * @return UDS_SUCCESS or an error
- **/
-int openContext(UdsIndexSession     session,
-                const UdsNamespace *namespace,
-                unsigned int        metadataSize,
-                unsigned int       *contextID)
-  __attribute__((warn_unused_result));
-#else /* NAMESPACES */
 /**
  * Open a context.
  *
@@ -136,7 +104,6 @@ int openContext(UdsIndexSession  session,
                 unsigned int     metadataSize,
                 unsigned int    *contextID)
   __attribute__((warn_unused_result));
-#endif /* NAMESPACES */
 
 /**
  * Convert an internal to an external error, disabling the context if the
@@ -162,23 +129,6 @@ int handleError(UdsContext *context, int errorCode)
 int handleErrorAndReleaseBaseContext(UdsContext *context, int errorCode)
   __attribute__((warn_unused_result));
 
-#if NAMESPACES
-/**
- * Construct a new UdsContext, initializing fields excluding the context's
- * session.
- *
- * @param [in]  indexSession     The index session under which the context is
- *                               opened
- * @param [in]  namespace        The namespace to associate with the context
- * @param [in]  metadataSize     The application metadata size to copy
- * @param [out] contextPtr       The pointer to receive the new context
- **/
-int makeBaseContext(IndexSession        *indexSession,
-                    const UdsNamespace  *namespace,
-                    unsigned int         metadataSize,
-                    UdsContext         **contextPtr)
-  __attribute__((warn_unused_result));
-#else /* NAMESPACES */
 /**
  * Construct a new UdsContext, initializing fields excluding the context's
  * session.
@@ -192,7 +142,6 @@ int makeBaseContext(IndexSession  *indexSession,
                     unsigned int   metadataSize,
                     UdsContext   **contextPtr)
   __attribute__((warn_unused_result));
-#endif /* NAMESPACES */
 
 /**
  * Get the non-type-specific underlying context for a given context.
@@ -294,34 +243,6 @@ int resetStats(unsigned int contextId) __attribute__((warn_unused_result));
  *
  **/
 int setRequestQueueLimit(unsigned int contextId, unsigned int maxRequests)
-  __attribute__((warn_unused_result));
-
-/**
- * Change the function/algorithm used for hashing chunks of data.
- *
- * @param contextId    The id of the context making the request
- * @param algorithm    The hash algorthim selection
- *
- * @return             Either UDS_SUCCESS or an error code.
- *
- **/
-int setChunkNameAlgorithm(unsigned int contextId, UdsHashAlgorithm algorithm)
-  __attribute__((warn_unused_result));
-
-/**
- * Calculates the name (hash) of a chunk of data by using
- * the hashing function that was selected for a context.
- *
- * @param contextId    The id of the context making the request
- * @param data         A pointer to the opaque data
- * @param size         The size of the data, in bytes
- *
- * @return             The calculated chunk name
- *
- **/
-UdsChunkName generateChunkName(unsigned int  contextId,
-                               const void   *data,
-                               size_t        size)
   __attribute__((warn_unused_result));
 
 /**

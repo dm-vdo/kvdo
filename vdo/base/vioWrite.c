@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vioWrite.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vioWrite.c#7 $
  */
 
 /*
@@ -206,8 +206,7 @@
  **/
 typedef enum dataVIOCleanupStage {
   VIO_CLEANUP_START = 0,
-  VIO_RELEASE_COMPRESSED_BLOCK = VIO_CLEANUP_START,
-  VIO_RELEASE_ALLOCATED,
+  VIO_RELEASE_ALLOCATED = VIO_CLEANUP_START,
   VIO_RELEASE_RECOVERY_LOCKS,
   VIO_RELEASE_HASH_LOCK,
   VIO_RELEASE_LOGICAL,
@@ -241,20 +240,7 @@ static inline bool isAsync(DataVIO *dataVIO)
 }
 
 /**
- * Release the compressed block of which this DataVIO was a fragment.
- *
- * @param completion  The DataVIO
- **/
-static void releaseCompressedBlock(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  assertInNewMappedZone(dataVIO);
-  completeFragment(dataVIO);
-  performCleanupStage(dataVIO, VIO_RELEASE_ALLOCATED);
-}
-
-/**
- * Release the write lock and/or the reference on the allocated block at the
+ * Release the PBN lock and/or the reference on the allocated block at the
  * end of processing a DataVIO.
  *
  * @param completion  The DataVIO
@@ -263,7 +249,7 @@ static void releaseAllocatedLock(VDOCompletion *completion)
 {
   DataVIO *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
-  releasePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO));
+  releaseAllocationLock(dataVIOAsAllocatingVIO(dataVIO));
   performCleanupStage(dataVIO, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -303,7 +289,7 @@ static void cleanHashLock(VDOCompletion *completion)
  **/
 static void finishCleanup(DataVIO *dataVIO)
 {
-  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->writeLock == NULL,
+  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->allocationLock == NULL,
                   "complete DataVIO has no allocation lock");
   ASSERT_LOG_ONLY(dataVIO->hashLock == NULL,
                   "complete DataVIO has no hash lock");
@@ -319,15 +305,6 @@ static void finishCleanup(DataVIO *dataVIO)
 static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 {
   switch (stage) {
-  case VIO_RELEASE_COMPRESSED_BLOCK:
-    if (dataVIO->compression.writer != NULL) {
-      launchNewMappedZoneCallback(dataVIO, releaseCompressedBlock,
-                                  THIS_LOCATION("$F;cb=releaseCompressedBlock")
-                                  );
-      return;
-    }
-    // fall through
-
   case VIO_RELEASE_ALLOCATED:
     if (hasAllocation(dataVIO)) {
       launchAllocatedZoneCallback(dataVIO, releaseAllocatedLock,
@@ -573,10 +550,10 @@ static void decrementForDedupe(VDOCompletion *completion)
   if (allocatingVIO->allocation == dataVIO->mapped.pbn) {
     /*
      * If we are about to release the reference on the allocated block,
-     * we must release the write lock on it first so that the allocator will
+     * we must release the PBN lock on it first so that the allocator will
      * not allocate a write-locked block.
      */
-    releasePBNWriteLock(allocatingVIO);
+    releaseAllocationLock(allocatingVIO);
   }
 
   setLogicalCallback(dataVIO, updateBlockMapForDedupe,
@@ -634,27 +611,6 @@ static void readOldBlockMappingForDedupe(VDOCompletion *completion)
 }
 
 /**
- * Inform the associated compressed write DataVIO that this fragment DataVIO
- * has done its reference count update, then continue to do the decrement.
- * This callback is registered in incrementForCompression().
- *
- * @param completion  The completion of the write in progress
- **/
-static void releaseCompressedDataVIO(VDOCompletion *completion)
-{
-  DataVIO *dataVIO = asDataVIO(completion);
-  assertInNewMappedZone(dataVIO);
-  completeFragment(dataVIO);
-  if (isAsync(dataVIO) || !hasAllocation(dataVIO)) {
-    launchLogicalCallback(dataVIO, readOldBlockMappingForDedupe,
-                          THIS_LOCATION("$F;cb=readOldBlockMappingForDedupe"));
-  } else {
-    launchJournalCallback(dataVIO, journalUnmappingForDedupe,
-                          THIS_LOCATION("$F;cb=journalUnmappingForDedupe"));
-  }
-}
-
-/**
  * Do the incref after compression. This is the callback registered by
  * addRecoveryJournalEntryForCompression().
  *
@@ -672,8 +628,19 @@ static void incrementForCompression(VDOCompletion *completion)
                   "Impossible attempt to update reference counts for a block "
                   "which was not compressed (logical block %" PRIu64 ")",
                   dataVIO->logical.lbn);
-  setNewMappedZoneCallback(dataVIO, releaseCompressedDataVIO,
-                           THIS_LOCATION("$F;cb=releaseCompressedDataVIO"));
+
+  /*
+   * If we are synchronous and allocated a block, we know the one we
+   * allocated is the block we need to decrement, so there is no need
+   * to look in the block map.
+   */
+  if (isAsync(dataVIO) || !hasAllocation(dataVIO)) {
+    setLogicalCallback(dataVIO, readOldBlockMappingForDedupe,
+                       THIS_LOCATION("$F;cb=readOldBlockMappingForDedupe"));
+  } else {
+    setJournalCallback(dataVIO, journalUnmappingForDedupe,
+                       THIS_LOCATION("$F;cb=journalUnmappingForDedupe"));
+  }
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_COMPRESSION;
   updateReferenceCount(dataVIO);
 }
@@ -700,7 +667,7 @@ static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
                            THIS_LOCATION("$F($dup);js=map/$dup;"
                                          "cb=incCompress($dup)"));
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_COMPRESSION;
-  journalIncrement(dataVIO, dataVIO->compression.writer->writeLock);
+  journalIncrement(dataVIO, getDuplicateLock(dataVIO));
 }
 
 /**
@@ -873,11 +840,6 @@ static void resolveHashZone(VDOCompletion *completion)
   }
 
   ASSERT_LOG_ONLY(!dataVIO->isZeroBlock, "zero blocks should not be hashed");
-  ASSERT_LOG_ONLY(!dataVIO->chunkNameSet, "blocks should not be hashed twice");
-
-  // XXX This flag can eventually go away after VDOSTORY-190, but it's
-  // providing useful error checks while we rewrite the dedupe path.
-  dataVIO->chunkNameSet = true;
 
   dataVIO->hashZone
     = selectHashZone(getVDOFromDataVIO(dataVIO), &dataVIO->chunkName);
@@ -1074,15 +1036,12 @@ static void incrementForWrite(VDOCompletion *completion)
     return;
   }
 
-
-  if (dataVIO->hashLock != NULL) {
-    /*
-     * Now that the data has been written, it's safe to deduplicate against
-     * the block, so transfer the allocation write lock to the HashLock held
-     * by the DataVIO.
-     */
-    transferPBNWriteLock(dataVIO);
-  }
+  /*
+   * Now that the data has been written, it's safe to deduplicate against the
+   * block. Downgrade the allocation lock to a read lock so it can be used
+   * later by the hash lock (which we don't have yet in sync mode).
+   */
+  downgradePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
 
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
   setLogicalCallback(dataVIO, getWriteIncrementCallback(dataVIO),
@@ -1113,7 +1072,7 @@ static void finishBlockWrite(VDOCompletion *completion)
                              THIS_LOCATION("$F;js=mapWrite"));
   }
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_WRITE;
-  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->writeLock);
+  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
 }
 
 /**
@@ -1157,14 +1116,20 @@ static void continueWriteAfterAllocation(AllocatingVIO *allocatingVIO)
     .state = MAPPING_STATE_UNCOMPRESSED,
   };
 
-  if (isAsync(dataVIO)) {
-    // XXX prepareForDedupe can run from any thread, so this is a place where
-    // running the callback on the kernel thread would save a thread switch.
-    setAllocatedZoneCallback(dataVIO, prepareForDedupe, THIS_LOCATION(NULL));
-    acknowledgeWrite(dataVIO);
-  } else {
+  if (!isAsync(dataVIO)) {
     writeBlock(dataVIO);
+    return;
   }
+
+  // XXX prepareForDedupe can run from any thread, so this is a place where
+  // running the callback on the kernel thread would save a thread switch.
+  setAllocatedZoneCallback(dataVIO, prepareForDedupe, THIS_LOCATION(NULL));
+  if (vioRequiresFlushAfter(allocatingVIOAsVIO(allocatingVIO))) {
+    invokeCallback(dataVIOAsCompletion(dataVIO));
+    return;
+  }
+
+  acknowledgeWrite(dataVIO);
 }
 
 /**

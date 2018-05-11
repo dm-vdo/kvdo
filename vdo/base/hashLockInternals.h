@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLockInternals.h#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/hashLockInternals.h#4 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -36,7 +36,6 @@ typedef enum {
   HASH_LOCK_QUERYING,
   HASH_LOCK_WRITING,
   HASH_LOCK_UPDATING,
-  HASH_LOCK_DOWNGRADING,
 
   // The remaining states are typically used on the dedupe path in this order.
   HASH_LOCK_LOCKING,
@@ -83,6 +82,9 @@ struct hashLock {
 
   /** True if the advice has been verified to be a true duplicate */
   bool           verified;
+
+  /** True if the lock has already accounted for an initial verification */
+  bool           verifyCounted;
 
   /** True if this lock is registered in the lock map (cleared on rollover) */
   bool           registered;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalZone.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/physicalZone.c#5 $
  */
 
 #include "physicalZone.h"
@@ -150,7 +150,7 @@ int attemptPBNLock(PhysicalZone         *zone,
     // The lock is already held, so we don't need the borrowed lock.
     returnPBNLockToPool(zone->lockPool, &newLock);
 
-    result = ASSERT(isPBNLocked(lock),
+    result = ASSERT(lock->holderCount > 0,
                     "physical block %" PRIu64 " lock held", pbn);
     if (result != VDO_SUCCESS) {
       return result;
@@ -173,25 +173,14 @@ void releasePBNLock(PhysicalZone         *zone,
   }
   *lockPtr = NULL;
 
-  ASSERT_LOG_ONLY(isPBNLocked(lock),
+  ASSERT_LOG_ONLY(lock->holderCount > 0,
                   "should not be releasing a lock that is not held");
 
-  // XXX VDOSTORY-190 this will have to be more complicated for compression
-  // slots holders and waiters.
-  lock->holder         = NULL;
-  lock->hashLockHolder = NULL;
-
-  // Transfer the lock to the first waiter willing to accept it. The waiter
-  // will always resume processing, with or without the lock.
-  while (hasWaiters(&lock->waiters)) {
-    DataVIO *dataVIO = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
-    if (inheritDuplicatePBNLock(dataVIO, lock)) {
-      return;
-    }
+  lock->holderCount -= 1;
+  if (lock->holderCount > 0) {
+    // The lock was shared and is still referenced, so don't release it yet.
+    return;
   }
-
-  // XXX VDOSTORY-190 don't remove from the map if any of the compression
-  // slots are still locked by a hash lock.
 
   PBNLock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
   ASSERT_LOG_ONLY((lock == holder),

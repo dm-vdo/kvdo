@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoInternal.h#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoInternal.h#4 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -282,16 +282,6 @@ bool isClean(const VDO *vdo)
  * @return <code>true</code> if the VDO was clean
  **/
 bool wasClean(const VDO *vdo)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether the VDO was new when it was loaded.
- *
- * @param vdo  The VDO to query
- *
- * @return <code>true</code> if the VDO was new
- **/
-bool wasNew(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.h#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.h#5 $
  */
 
 #ifndef REQUEST_H
@@ -91,7 +91,6 @@ typedef enum {
  * life-cycle of a request.
  **/
 typedef enum {
-  STAGE_HASH,
   STAGE_TRIAGE,
   STAGE_INDEX,
   STAGE_CALLBACK,
@@ -175,8 +174,6 @@ struct request {
   RequestAction  action;        // the action for the index to perform
   unsigned int   zoneNumber;    // the zone for this request to use
   UdsCookie      cookie;
-  void          *data;          // actual data
-  size_t         dataLength;    // length of *data
   IndexRegion    location;      // if and where the block was found
 
   bool             slLocationKnown; // slow lane has determined a location
@@ -211,19 +208,15 @@ int createRequest(unsigned int contextId, Request **requestPtr)
  * @param chunkName       The name of the chunk in question (may be NULL)
  * @param cookie          Opaque, request specific client data (may be NULL)
  * @param metadata        The metadata for the request (may be NULL)
- * @param dataLength      The length of the data to be hashed
- * @param data            The chunk data (may be NULL)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int launchClientRequest(unsigned int         contextId,
-                        UdsCallbackType      callbackType,
-                        bool                 update,
-                        const UdsChunkName  *chunkName,
-                        UdsCookie            cookie,
-                        void                *metadata,
-                        size_t               dataLength,
-                        const void          *data)
+int launchClientRequest(unsigned int        contextId,
+                        UdsCallbackType     callbackType,
+                        bool                update,
+                        const UdsChunkName *chunkName,
+                        UdsCookie           cookie,
+                        void               *metadata)
   __attribute__((warn_unused_result));
 
 /**
@@ -310,15 +303,6 @@ int launchZoneControlMessage(RequestAction  action,
  * @param request The request to free
  **/
 void freeRequest(Request *request);
-
-/**
- * Set the chunk name hash in the request, XORing it with the namespace in
- * the request context.
- *
- * @param request  The request to modify
- * @param name     The hash value to copy (no-op if NULL)
- **/
-void setRequestHash(Request *request, const UdsChunkName *name);
 
 /**
  * Enqueue a request for the next stage of the pipeline. If there is more than

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/udsState.c#6 $
+ * $Id: //eng/uds-releases/flanders/src/uds/udsState.c#7 $
  */
 
 #include "udsState.h"
@@ -44,8 +44,6 @@ typedef struct {
   char              cookie[16]; // for locating udsState in core file
   char              version[16]; // for double-checking library version
   Mutex             mutex;
-  unsigned int      hashQueueCount;
-  RequestQueue    **hashQueues;
 #if GRID
   RequestQueue     *remoteQueue;
 #endif /* GRID */
@@ -95,90 +93,6 @@ int checkLibraryRunning(void)
   default:
     return UDS_UNINITIALIZED;
   }
-}
-
-/**********************************************************************/
-static void computeHash(Request *request)
-{
-  // Just pass control requests on through.
-  if (request->isControlMessage) {
-    enqueueRequest(request, STAGE_TRIAGE);
-    return;
-  }
-
-  UdsChunkName name
-    = request->context->chunkNameGenerator(request->data, request->dataLength);
-  setRequestHash(request, &name);
-
-  // Release the data if it was internally allocated (for now ALL data is
-  // internally allocated so we always free it).
-  FREE(request->data);
-  request->data = NULL;
-
-  enqueueRequest(request, STAGE_TRIAGE);
-}
-
-/**********************************************************************/
-static int initializeHashQueues(void)
-{
-  // Count the number of CPU cores available to us. We create one
-  // SHA-256 hash worker queue and thread for each core.
-  int numCores = getNumCores();
-  RequestQueue **hashQueues;
-  int result = ALLOCATE(numCores, RequestQueue *, __func__, &hashQueues);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  for (int i = 0; i < numCores; i++) {
-    result = makeRequestQueue("uds:hashW", &computeHash, &hashQueues[i]);
-    if (result != UDS_SUCCESS) {
-      for (int j = 0; j < i; j++) {
-        requestQueueFinish(hashQueues[i]);
-      }
-      FREE(hashQueues);
-      return logErrorWithStringError(result, "Cannot start hash worker thread");
-    }
-  }
-  udsState.hashQueueCount = numCores;
-  udsState.hashQueues = hashQueues;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-RequestQueue *getNextHashQueue(Request *request)
-{
-  // If there are no hash queues, start them now, but don't create
-  // queues just for a FINISH request
-  if (udsState.hashQueueCount == 0) {
-    if (request->action == REQUEST_FINISH) {
-      return request->router->methods->selectQueue(request->router, request,
-                                                   STAGE_TRIAGE);
-    }
-    int result = UDS_SUCCESS;;
-    lockMutex(&udsState.mutex);
-    if (udsState.hashQueueCount == 0) {
-      result = initializeHashQueues();
-    }
-    unlockMutex(&udsState.mutex);
-    if (result != UDS_SUCCESS) {
-      return NULL;
-    }
-  }
-
-  /*
-   * If there's only one hash queue, or if this is a control request with no
-   * context, simply return the first hash queue. It's necessary that all
-   * control requests for the same RemoteIndexRouter use the same queue so
-   * REQUEST_FINISH doesn't outrace REQUEST_WRITE, and this trivally provides
-   * that invariant.
-   */
-  if ((udsState.hashQueueCount == 1) || (request->context == NULL)) {
-    return udsState.hashQueues[0];
-  }
-
-  // Cyclically distribute requests to each hash queue.
-  uint32_t rotor = atomicAdd32(&request->context->hashQueueRotor, 1);
-  return udsState.hashQueues[rotor % udsState.hashQueueCount];
 }
 
 #if GRID
@@ -339,14 +253,6 @@ static void udsShutdownOnce(void)
   }
 
   // Shut down the queues
-  if (udsState.hashQueues != NULL) {
-    for (unsigned int i = 0; i < udsState.hashQueueCount; i++) {
-      requestQueueFinish(udsState.hashQueues[i]);
-    }
-    FREE(udsState.hashQueues);
-    udsState.hashQueues = NULL;
-    udsState.hashQueueCount = 0;
-  }
 #if GRID
   freeRemoteQueue();
 #endif /* GRID */

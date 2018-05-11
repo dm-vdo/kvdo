@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/index.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/index.c#3 $
  */
 
 #include "index.h"
@@ -384,7 +384,8 @@ static int searchIndexZone(IndexZone *zone, Request *request)
   } else {
     // The record wasn't in the master index, so check whether the name
     // is in a cached sparse chapter.
-    if (!isMasterIndexSample(zone->index->masterIndex, &request->hash)) {
+    if (!isMasterIndexSample(zone->index->masterIndex, &request->hash)
+        && isSparse(zone->index->volume->geometry)) {
       // Passing UINT64_MAX triggers a search of the entire sparse cache.
       result = searchVolumeSparseCache(zone->index->volume, request,
                                        UINT64_MAX, &found);

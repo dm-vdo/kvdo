@@ -88,11 +88,7 @@ typedef struct {
   uint32_t currentVIOsInProgress;
   /** Maximum number of active VIOs */
   uint32_t maxVIOs;
-  /** Number of times the Albireo advice proved correct */
-  uint64_t dedupeAdviceValid;
-  /** Number of times the Albireo advice proved incorrect */
-  uint64_t dedupeAdviceStale;
-  /** Number of times the Albireo server was too slow in responding */
+  /** Number of times the UDS index was too slow in responding */
   uint64_t dedupeAdviceTimeouts;
   /** Number of flush requests submitted to the storage device */
   uint64_t flushOut;

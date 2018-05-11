@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.c#4 $
  */
 
 #include "dataVIO.h"
@@ -98,8 +98,7 @@ void prepareDataVIO(DataVIO            *dataVIO,
 
   resetAllocation(dataVIOAsAllocatingVIO(dataVIO));
 
-  dataVIO->chunkNameSet = false;
-  dataVIO->isDuplicate  = false;
+  dataVIO->isDuplicate = false;
 
   memset(&dataVIO->chunkName, 0, sizeof(dataVIO->chunkName));
   memset(&dataVIO->duplicate, 0, sizeof(dataVIO->duplicate));

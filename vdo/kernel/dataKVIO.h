@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.h#4 $
  */
 
 #ifndef DATA_KVIO_H
@@ -319,6 +319,18 @@ static inline void kvdoEnqueueDataVIOCallback(DataKVIO *dataKVIO)
 }
 
 /**
+ * Check whether the external request bio had FUA set.
+ *
+ * @param dataKVIO  The DataKVIO to check
+ *
+ * @return <code>true</code> if the external request bio had FUA set
+ **/
+static inline bool requestorSetFUA(DataKVIO *dataKVIO)
+{
+  return ((dataKVIO->externalIORequest.rw & REQ_FUA) == REQ_FUA);
+}
+
+/**
  * Associate a KVIO with a BIO passed in from the block layer, and start
  * processing the KVIO.
  *
@@ -357,17 +369,6 @@ void returnDataKVIOBatchToPool(BatchProcessor *batch, void *closure);
  * @param dataVIO  The DataVIO to zero
  **/
 void kvdoZeroDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataVIOComparator.
- *
- * @param first   The first DataVIO to compare
- * @param second  The second DataVIO to compare
- *
- * @return <code>true</code> if the contents of the two DataVIOs are the same
- **/
-bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
-  __attribute__((warn_unused_result));
 
 /**
  * Implements DataCopier.
@@ -448,16 +449,15 @@ int makeDataKVIOBufferPool(KernelLayer  *layer,
   __attribute__((warn_unused_result));
 
 /**
- * Get the state needed to generate Albireo metadata from the DataKVIO
+ * Get the state needed to generate UDS metadata from the DataKVIO
  * associated with a DedupeContext.
  *
- * @param [in]  context       The DedupeContext
- * @param [out] mappingState  The mapping state of the DataKVIO's write
- * @param [out] pbn           The physical block allocated to the DataKVIO
+ * @param context  The DedupeContext
+ *
+ * @return the advice to store in the UDS index
  **/
-void getDedupeMetadata(const DedupeContext *context,
-                       BlockMappingState   *mappingState,
-                       PhysicalBlockNumber *pbn);
+DataLocation getDedupeAdvice(const DedupeContext *context)
+  __attribute__((warn_unused_result));
 
 /**
  * Set the result of a dedupe query for the DataKVIO associated with a

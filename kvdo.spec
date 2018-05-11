@@ -1,7 +1,7 @@
 %define spec_release 1
 
 %define kmod_name		kvdo
-%define kmod_driver_version	6.1.1.24
+%define kmod_driver_version	6.1.1.84
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 %define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
@@ -44,7 +44,6 @@ BuildRequires:	glibc
 BuildRequires:	kernel-abi-whitelists
 %endif
 BuildRequires:	kernel-devel >= %{kmod_kernel_version}
-BuildRequires:  kernel-debug >= %{kmod_kernel_version}
 BuildRequires:  libuuid-devel
 BuildRequires:  redhat-rpm-config
 ExclusiveArch:	x86_64
@@ -216,11 +215,5 @@ install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Thu Mar 22 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.24-1
-- Modified spec files to work with the Fedora copr repository.
-- Removed obsolete nagios module.
-- Fixed prerun handling of loaded kernel modules
-- Modified spec files to use systemd macros
-- Updated the vdo.8 man page
-- Improved some error messages
-
+* Fri May 11 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.84-1
+HASH(0x211f1b0)

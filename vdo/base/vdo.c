@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdo.c#5 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdo.c#7 $
  */
 
 /*
@@ -692,6 +692,30 @@ static const char *describeVDOState(VDOState state)
 }
 
 /**
+ * Tally the hash lock statistics from all the hash zones.
+ *
+ * @param vdo  The vdo to query
+ *
+ * @return The sum of the hash lock statistics from all hash zones
+ **/
+static HashLockStatistics getHashLockStatistics(const VDO *vdo)
+{
+  HashLockStatistics totals;
+  memset(&totals, 0, sizeof(totals));
+
+  const ThreadConfig *threadConfig = getThreadConfig(vdo);
+  for (ZoneCount zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+    HashLockStatistics stats  = getHashZoneStatistics(vdo->hashZones[zone]);
+    totals.dedupeAdviceValid        += stats.dedupeAdviceValid;
+    totals.dedupeAdviceStale        += stats.dedupeAdviceStale;
+    totals.concurrentDataMatches    += stats.concurrentDataMatches;
+    totals.concurrentHashCollisions += stats.concurrentHashCollisions;
+  }
+
+  return totals;
+}
+
+/**
  * Get the current error statistics from VDO.
  *
  * @param vdo  The vdo to query
@@ -744,6 +768,7 @@ void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
   stats->slabSummary        = getSlabSummaryStatistics(getSlabSummary(depot));
   stats->refCounts          = getDepotRefCountsStatistics(depot);
   stats->blockMap           = getBlockMapStatistics(vdo->blockMap);
+  stats->hashLock           = getHashLockStatistics(vdo);
   stats->errors             = getVDOErrorStatistics(vdo);
   SlabCount slabTotal       = getDepotSlabCount(depot);
   stats->recoveryPercentage
