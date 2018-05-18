@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/udsIndex.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/udsIndex.c#2 $
  */
 
 #include "udsIndex.h"
@@ -450,7 +450,7 @@ static void changeDedupeState(KvdoWorkItem *item)
     }
   }
   index->changing = false;
-  index->deduping = index->dedupeFlag && (index->indexState = IS_OPENED);
+  index->deduping = index->dedupeFlag && (index->indexState == IS_OPENED);
   spin_unlock(&index->stateLock);
 }
 
