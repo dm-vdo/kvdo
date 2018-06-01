@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#2 $
  */
 
 #include "forest.h"
@@ -209,8 +209,8 @@ static int makeSegment(Forest      *oldForest,
         formatBlockMapPage(pagePtr->pageBuffer, forest->map->nonce,
                            INVALID_PBN);
         BlockMapPage *page = (BlockMapPage *) pagePtr->pageBuffer;
-        encodeBlockMapEntry(page, 0, forest->map->rootOrigin + root,
-                            MAPPING_STATE_UNCOMPRESSED);
+        page->entries[0] = packPBN(forest->map->rootOrigin + root,
+                                   MAPPING_STATE_UNCOMPRESSED);
         page->header.initialized = true;
       }
       pagePtr += segmentSizes[height];
@@ -393,8 +393,8 @@ static void traverse(Cursor *cursor)
       const BlockMapEntry *entry = &page->entries[level->slot];
       if (isInvalid(entry)) {
         // This entry is invalid, so remove it from the page.
-        encodeBlockMapEntry(page, level->slot, ZERO_BLOCK,
-                            MAPPING_STATE_UNMAPPED);
+        page->entries[level->slot]
+          = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
         writeTreePage(treePage, cursor->parent->zone);
         continue;
       }
@@ -408,8 +408,8 @@ static void traverse(Cursor *cursor)
 
       // Erase mapped entries past the end of the logical space.
       if (entryIndex >= cursor->boundary.levels[height]) {
-        encodeBlockMapEntry(page, level->slot, ZERO_BLOCK,
-                            MAPPING_STATE_UNMAPPED);
+        page->entries[level->slot]
+          = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
         writeTreePage(treePage, cursor->parent->zone);
         continue;
       }
@@ -419,8 +419,8 @@ static void traverse(Cursor *cursor)
         int result = cursor->parent->entryCallback(pbn,
                                                    cursor->parent->parent);
         if (result != VDO_SUCCESS) {
-          encodeBlockMapEntry(page, level->slot, ZERO_BLOCK,
-                              MAPPING_STATE_UNMAPPED);
+          page->entries[level->slot]
+            = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
           writeTreePage(treePage, cursor->parent->zone);
           continue;
         }

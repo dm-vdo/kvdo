@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/pageCache.h#8 $
  */
 
 #ifndef PAGE_CACHE_H_
 #define PAGE_CACHE_H_
 
+#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "common.h"
@@ -36,17 +37,15 @@ typedef struct udsQueueHead UdsQueueHead;
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool                readPending;
+  bool              readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int        physicalPage;
-  /* the value of the volume clock when this page was cached */
-  uint64_t            birth;
+  unsigned int      physicalPage;
   /* the value of the volume clock when this page was last used */
-  uint64_t            lastUsed;
+  int64_t           lastUsed;
   /* the cache page data */
-  byte               *data;
+  byte             *data;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage    indexPage;
+  ChapterIndexPage  indexPage;
 } CachedPage;
 
 enum {
@@ -66,9 +65,7 @@ typedef struct queuedRead {
   UdsQueueHead queueHead;
 } QueuedRead;
 
-/**
- * Reason for invalidating a cache entry, used for gathering statistics
- **/
+// Reason for invalidating a cache entry, used for gathering statistics
 typedef enum invalidationReason {
   INVALIDATION_EVICT,           // cache is full, goodbye
   INVALIDATION_EXPIRE,          // your chapter is being overwritten
@@ -76,30 +73,51 @@ typedef enum invalidationReason {
   INVALIDATION_INIT_SHUTDOWN
 } InvalidationReason;
 
-typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) invalidateCounter {
-  uint32_t counter;
-  unsigned int page;
-} InvalidateCounter;
+/*
+ * Value stored atomically in a SearchPendingCounter.  The low order 32 bits is
+ * the physical page number of the cached page being read.  The high order 32
+ * bits is a sequence number.
+ *
+ * An InvalidateCounter is only written by its zone thread by calling the
+ * beginPendingSearch or endPendingSearch methods.
+ *
+ * Any other thread that is accessing an InvalidateCounter is reading the value
+ * in the waitForPendingSearches method.
+ */
+typedef int64_t InvalidateCounter;
+// Fields of InvalidateCounter.
+// These must be 64 bit, so an enum cannot be not used.
+#define PAGE_FIELD  ((long)UINT_MAX)   // The page number field
+#define COUNTER_LSB (PAGE_FIELD + 1L)  // The LSB of the counter field
+
+typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) {
+  atomic64_t atomicValue;
+} SearchPendingCounter;
 
 typedef struct pageCache {
-  /* the number of index entries */
-  unsigned int            numIndexEntries;
-  /* The max number of cached entries */
-  uint16_t                numCacheEntries;
-  /*
-   * The index used to quickly access page in cache - top bit is a 'queued'
-   * flag
-   */
-  volatile uint16_t      *index;
-  /* The cache */
-  CachedPage             *cache;
-  /* The data buffer for the cache */
-  byte                   *data;
-  /* Cache counters for stats */
-  CacheCounters           counters;
-
-  /* Queued reads, as a circular array, with first and last indexes */
-  QueuedRead             *readQueue;
+  // Geometry governing the volume
+  const Geometry *geometry;
+  // The number of zones
+  unsigned int    zoneCount;
+  // The number of index entries
+  unsigned int    numIndexEntries;
+  // The max number of cached entries
+  uint16_t        numCacheEntries;
+  // The index used to quickly access page in cache - top bit is a 'queued'
+  // flag
+  uint16_t       *index;
+  // The cache
+  CachedPage     *cache;
+  // The data buffer for the cache
+  byte           *data;
+  // A counter for each zone to keep track of when a search is occurring
+  // within that zone.
+  SearchPendingCounter *searchPendingCounters;
+  // Queued reads, as a circular array, with first and last indexes
+  QueuedRead     *readQueue;
+  // Cache counters for stats.  This is the first field of a PageCache that is
+  // not constant after the struct is initialized.
+  CacheCounters   counters;
   /**
    * Entries are enqueued at readQueueLast.
    * To 'reserve' entries, we get the entry pointed to by readQueueLastRead
@@ -118,23 +136,15 @@ typedef struct pageCache {
    * Read thread 1 increments last read (1), then read thread 2 increments it
    * (2). When each read completes, it checks to see if it can increment first,
    * when all concurrent reads have completed, readQueueFirst should equal
-   * readQueuLastRead.
-   *
+   * readQueueLastRead.
    **/
-  uint16_t                    readQueueFirst;
-  uint16_t                    readQueueLastRead;
-  uint16_t                    readQueueLast;
-  /* The size of the read queue */
-  unsigned int                readQueueMaxSize;
-  /* An counter for each zone to keep track of when a search is occurring
-   * within that zone.
-   */
-  volatile InvalidateCounter *searchPendingCounters;
-  unsigned int                zoneCount;
-  /* Page access counter */
-  uint64_t                    clock;
-  /* the geometry governing the volume */
-  const Geometry             *geometry;
+  uint16_t              readQueueFirst;
+  uint16_t              readQueueLastRead;
+  uint16_t              readQueueLast;
+  // The size of the read queue
+  unsigned int          readQueueMaxSize;
+  // Page access counter
+  atomic64_t            clock;
 } PageCache;
 
 /**
@@ -163,16 +173,6 @@ int makePageCache(const Geometry  *geometry,
 void freePageCache(PageCache *cache);
 
 /**
- * Invalidates a pages cache
- *
- * @param cache the page cache
- *
- * @return UDS_SUCCESS or an error code
- **/
-int invalidatePageCache(PageCache *cache)
-  __attribute__((warn_unused_result));
-
-/**
  * Invalidates a page cache for a particular chapter
  *
  * @param cache           the page cache
@@ -187,17 +187,6 @@ int invalidatePageCacheForChapter(PageCache          *cache,
                                   unsigned int        pagesPerChapter,
                                   InvalidationReason  reason)
   __attribute__((warn_unused_result));
-
-/**
- * Invalidates a page from the cache.
- *
- * @param cache   the cache
- * @param page    the cached page
- * @param reason  the reason for invalidation, for stats
- **/
-int invalidatePageInCache(PageCache          *cache,
-                          CachedPage         *page,
-                          InvalidationReason  reason);
 
 /**
  * Find a page, invalidate it, and make its memory the least recent.  This
@@ -396,89 +385,126 @@ size_t getPageCacheSize(PageCache *cache)
 void getPageCacheCounters(PageCache *cache, CacheCounters *counters);
 
 /**
+ * Read the InvalidateCounter for the given zone.
+ *
+ * @param cache       the page cache
+ * @param zoneNumber  the zone number
+ *
+ * @return the InvalidateCounter value
+ **/
+static INLINE InvalidateCounter getInvalidateCounter(PageCache    *cache,
+                                                     unsigned int  zoneNumber)
+{
+  return atomic64_read(&cache->searchPendingCounters[zoneNumber].atomicValue);
+}
+
+/**
+ * Write the InvalidateCounter for the given zone.
+ *
+ * @param cache              the page cache
+ * @param zoneNumber         the zone number
+ * @param invalidateCounter  the InvalidateCounter value to write
+ **/
+static INLINE void setInvalidateCounter(PageCache         *cache,
+                                        unsigned int       zoneNumber,
+                                        InvalidateCounter  invalidateCounter)
+{
+  atomic64_set(&cache->searchPendingCounters[zoneNumber].atomicValue,
+               invalidateCounter);
+}
+
+/**
+ * Return the physical page number of the page being searched.  The return
+ * value is only valid if searchPending indicates that a search is in progress.
+ *
+ * @param counter  the InvalidateCounter value to check
+ *
+ * @return the page that the zone is searching
+ **/
+static INLINE unsigned int pageBeingSearched(InvalidateCounter counter)
+{
+  return counter & PAGE_FIELD;
+}
+
+/**
  * Determines whether a given value indicates that a search is occuring.
  *
- * @param counterValue    the value to check
+ * @param invalidateCounter  the InvalidateCounter value to check
  *
- * @return                true if a search is pending, false otherwise
+ * @return true if a search is pending, false otherwise
  **/
-static INLINE bool searchPending(unsigned int counterValue)
+static INLINE bool searchPending(InvalidateCounter invalidateCounter)
 {
-  return counterValue % 2 == 1;
+  return (invalidateCounter & COUNTER_LSB) != 0;
 }
 
 /**
  * Determines whether there is a search occuring for the given zone.
  *
- * @param cache           the page cache
- * @param zoneNumber      the zone number to increment
+ * @param cache       the page cache
+ * @param zoneNumber  the zone number
  *
- * @return                true if a search is pending, false otherwise
+ * @return true if a search is pending, false otherwise
  **/
 static INLINE bool isSearchPending(PageCache    *cache,
                                    unsigned int  zoneNumber)
 {
-  return searchPending(cache->searchPendingCounters[zoneNumber].counter);
+  return searchPending(getInvalidateCounter(cache, zoneNumber));
 }
 
 /**
- * Assert that a search is occuring in the specified zone.
- *
- * @param cache           the page cache
- * @param zoneNumber      the zone number to check
- *
- * @return UDS_SUCCESS or an error code
- **/
-#define ASSERT_SEARCH_IS_PENDING(cache, zoneNumber)             \
-  ASSERT_LOG_ONLY(isSearchPending((cache), (zoneNumber)),       \
-                  "Search is pending for zone %u",              \
-                  (zoneNumber))
-
-/**
  * Increment the counter for the specified zone to signal that a search has
- * begun. Also set which page is being searched.
+ * begun.  Also set which page is being searched.  The searchPendingCounters
+ * are protecting read access to pages indexed by the cache.  This is the
+ * "lock" action.
  *
- * @param cache           the page cache
- * @param physicalPage    the page that the zone is searching
- * @param zoneNumber      the zone number to increment
- *
- * @return                the cache's counters
+ * @param cache         the page cache
+ * @param physicalPage  the page that the zone is searching
+ * @param zoneNumber    the zone number
  **/
 static INLINE void beginPendingSearch(PageCache    *cache,
                                       unsigned int  physicalPage,
                                       unsigned int  zoneNumber)
 {
-  cache->searchPendingCounters[zoneNumber].page = physicalPage;
-  cache->searchPendingCounters[zoneNumber].counter++;
-  ASSERT_SEARCH_IS_PENDING(cache, zoneNumber);
+  InvalidateCounter invalidateCounter = getInvalidateCounter(cache,
+                                                             zoneNumber);
+  invalidateCounter &= ~PAGE_FIELD;
+  invalidateCounter |= physicalPage;
+  invalidateCounter += COUNTER_LSB;
+  setInvalidateCounter(cache, zoneNumber, invalidateCounter);
+  ASSERT_LOG_ONLY(searchPending(invalidateCounter),
+                  "Search is pending for zone %u", zoneNumber);
+  /*
+   * This memory barrier ensures that the write to the invalidate counter is
+   * seen by other threads before this threads accesses the cached page.  The
+   * corresponding read memory barrier is in waitForPendingSearches.
+   */
+  smp_mb();
 }
 
 /**
  * Increment the counter for the specified zone to signal that a search has
- * finished. We do not need to reset the page since we only should ever
- * look at the page value if the counter indicates a search is ongoing.
+ * finished.  We do not need to reset the page since we only should ever look
+ * at the page value if the counter indicates a search is ongoing.  The
+ * searchPendingCounters are protecting read access to pages indexed by the
+ * cache.  This is the "unlock" action.
  *
- * @param cache           the page cache
- * @param zoneNumber      the zone number to increment
- *
- * @return                the cache's counters
+ * @param cache       the page cache
+ * @param zoneNumber  the zone number
  **/
 static INLINE void endPendingSearch(PageCache    *cache,
                                     unsigned int  zoneNumber)
 {
-  ASSERT_SEARCH_IS_PENDING(cache, zoneNumber);
-  cache->searchPendingCounters[zoneNumber].counter++;
-}
+  // This memory barrier ensures that this thread completes reads of the
+  // cached page before other threads see the write to the invalidate counter.
+  smp_mb();
 
-/**
- * Wait for all pending searches on a page in the cache to complete
- *
- * @param cache           the page cache
- * @param physicalPage    the page to check searches on
- *
- * @return UDS_SUCCESS or an error code
- **/
-int waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
-  __attribute__((warn_unused_result));
+  InvalidateCounter invalidateCounter = getInvalidateCounter(cache,
+                                                             zoneNumber);
+  ASSERT_LOG_ONLY(searchPending(invalidateCounter),
+                  "Search is pending for zone %u", zoneNumber);
+  invalidateCounter += COUNTER_LSB;
+  setInvalidateCounter(cache, zoneNumber, invalidateCounter);
+}
 
 #endif /* PAGE_CACHE_H_ */

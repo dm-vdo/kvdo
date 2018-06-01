@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#7 $
  */
 
 #include "volume.h"
 
-#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
@@ -171,16 +170,6 @@ void freeVolume(Volume *volume)
 }
 
 /**********************************************************************/
-int closeVolume(Volume *volume)
-{
-  int result = invalidatePageCache(volume->pageCache);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  return doneWithVolume(volume);
-}
-
-/**********************************************************************/
 static INLINE unsigned int mapToPageNumber(Geometry     *geometry,
                                            unsigned int  physicalPage)
 {
@@ -210,14 +199,13 @@ static INLINE unsigned int getZoneNumber(Request *request)
 /**********************************************************************/
 static void waitForReadQueueNotFull(Volume *volume, Request *request)
 {
-  unsigned int pageSearched = 0;
   unsigned int zoneNumber = getZoneNumber(request);
-  if (isSearchPending(volume->pageCache, zoneNumber)) {
+  InvalidateCounter invalidateCounter = getInvalidateCounter(volume->pageCache,
+                                                             zoneNumber);
+  if (searchPending(invalidateCounter)) {
     // Increment the invalidate counter to avoid deadlock where the reader
     // threads cannot make progress because they are waiting on the counter
     // and the index thread cannot because the read queue is full.
-
-    pageSearched = volume->pageCache->searchPendingCounters[zoneNumber].page;
     endPendingSearch(volume->pageCache, zoneNumber);
   }
 
@@ -227,9 +215,10 @@ static void waitForReadQueueNotFull(Volume *volume, Request *request)
     waitCond(&volume->readThreadsReadDoneCond, &volume->readThreadsMutex);
   }
 
-  if (pageSearched != 0) {
+  if (searchPending(invalidateCounter)) {
     // Increment again so we get back to an odd value.
-    beginPendingSearch(volume->pageCache, pageSearched, zoneNumber);
+    beginPendingSearch(volume->pageCache, pageBeingSearched(invalidateCounter),
+                       zoneNumber);
   }
 }
 
@@ -329,8 +318,9 @@ static int initChapterIndexPage(const Volume     *volume,
 }
 
 /**********************************************************************/
-static int initializeIndexPage(Volume *volume, unsigned int physicalPage,
-                               CachedPage *page)
+static int initializeIndexPage(const Volume *volume,
+                               unsigned int  physicalPage,
+                               CachedPage   *page)
 {
   unsigned int chapter = mapToChapterNumber(volume->geometry, physicalPage);
   unsigned int indexPageNumber = mapToPageNumber(volume->geometry,
@@ -370,25 +360,10 @@ static void readThreadFunction(void *arg)
       result = selectVictimInCache(volume->pageCache, &page);
       if (result == UDS_SUCCESS) {
         unlockMutex(&volume->readThreadsMutex);
-
-        /*
-         * Make sure the page map update above occurs before we check the
-         * invalidate counter. This ensures that any thread in
-         * getRecordFromZone() will have updated the invalidateCounter so that
-         * we do not read into any page which is being searched.
-         */
-        smp_mb();
-
-        result = waitForPendingSearches(volume->pageCache, page->physicalPage);
+        result = readPageToBuffer(volume, physicalPage, page->data);
         if (result != UDS_SUCCESS) {
-          logWarning("Error waiting for pending search");
+          logWarning("Error reading page %u from volume", physicalPage);
           cancelPageInCache(volume->pageCache, physicalPage, page);
-        } else {
-          result = readPageToBuffer(volume, physicalPage, page->data);
-          if (result != UDS_SUCCESS) {
-            logWarning("Error reading page %u from volume", physicalPage);
-            cancelPageInCache(volume->pageCache, physicalPage, page);
-          }
         }
         lockMutex(&volume->readThreadsMutex);
       } else {
@@ -406,15 +381,6 @@ static void readThreadFunction(void *arg)
           }
 
           if (result == UDS_SUCCESS) {
-            /*
-             * Make sure the read above completes before we update the read
-             * pending flag. This ensures that read is finished before setting
-             * the read pending flag to false, which prevents a thread from
-             * trying to use a page in the page map before the reader thread
-             * has finished reading it.
-             */
-            smp_mb();
-
             result = putPageInCache(volume->pageCache, physicalPage, page);
             if (result != UDS_SUCCESS) {
               logWarning("Error putting page %u in cache", physicalPage);
@@ -528,12 +494,6 @@ static int readPageLocked(Volume        *volume,
     result = selectVictimInCache(volume->pageCache, &page);
     if (result != UDS_SUCCESS) {
       logWarning("Error selecting cache victim for page read");
-      return result;
-    }
-    result = waitForPendingSearches(volume->pageCache, page->physicalPage);
-    if (result != UDS_SUCCESS) {
-      logWarning("Error waiting for pending search");
-      cancelPageInCache(volume->pageCache, physicalPage, page);
       return result;
     }
     result = readPageFromVolume(volume, physicalPage, page);
@@ -687,24 +647,26 @@ int getPageProtected(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume          *volume,
-            Request         *request,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **pagePtr)
+int getPage(Volume            *volume,
+            unsigned int       chapter,
+            unsigned int       pageNumber,
+            CacheProbeType     probeType,
+            byte             **dataPtr,
+            ChapterIndexPage **indexPagePtr)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, chapter, pageNumber);
 
   lockMutex(&volume->readThreadsMutex);
   CachedPage *page = NULL;
-  int result = getPageLocked(volume, request, physicalPage, probeType,
-                             &page);
+  int result = getPageLocked(volume, NULL, physicalPage, probeType, &page);
   unlockMutex(&volume->readThreadsMutex);
 
-  if (pagePtr != NULL) {
-    *pagePtr = (page != NULL) ? page->data : NULL;
+  if (dataPtr != NULL) {
+    *dataPtr = (page != NULL) ? page->data : NULL;
+  }
+  if (indexPagePtr != NULL) {
+    *indexPagePtr = (page != NULL) ? &page->indexPage : NULL;
   }
   return result;
 }
@@ -744,32 +706,26 @@ static int searchCachedIndexPage(Volume             *volume,
    * has been incremented.
    */
   beginPendingSearch(volume->pageCache, physicalPage, zoneNumber);
-  smp_mb();
 
   CachedPage *page = NULL;
   int result = getPageProtected(volume, request, physicalPage,
                                 cacheProbeType(request, true), &page);
   if (result != UDS_SUCCESS) {
-    // Make sure that search above has finished before incrementing the
-    // invalidate counter.
-    smp_mb();
     endPendingSearch(volume->pageCache, zoneNumber);
     return result;
   }
 
-  result = ASSERT_SEARCH_IS_PENDING(volume->pageCache, zoneNumber);
+  result
+    = ASSERT_LOG_ONLY(searchPending(getInvalidateCounter(volume->pageCache,
+                                                         zoneNumber)),
+                      "Search is pending for zone %u", zoneNumber);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   result = searchChapterIndexPage(&page->indexPage, volume->geometry, name,
                                   recordPageNumber);
-
-  // Make sure that search above has finished before incrementing the
-  // invalidate counter.
-  smp_mb();
   endPendingSearch(volume->pageCache, zoneNumber);
-
   return result;
 }
 
@@ -813,15 +769,11 @@ int searchCachedRecordPage(Volume             *volume,
    * incremented.
    */
   beginPendingSearch(volume->pageCache, physicalPage, zoneNumber);
-  smp_mb();
 
   CachedPage *recordPage;
   result = getPageProtected(volume, request, physicalPage,
                             cacheProbeType(request, false), &recordPage);
   if (result != UDS_SUCCESS) {
-    // Make sure that search above has finished before incrementing the
-    // invalidate counter.
-    smp_mb();
     endPendingSearch(volume->pageCache, zoneNumber);
     return result;
   }
@@ -829,15 +781,12 @@ int searchCachedRecordPage(Volume             *volume,
   if (searchRecordPage(recordPage->data, name, geometry, duplicate)) {
     *found = true;
   }
-
-  smp_mb();
   endPendingSearch(volume->pageCache, zoneNumber);
-
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int readPageFromVolume(Volume       *volume,
+int readPageFromVolume(const Volume *volume,
                        unsigned int  physicalPage,
                        CachedPage   *page)
 {
@@ -961,13 +910,6 @@ static int donateIndexPageLocked(Volume       *volume,
   CachedPage *page = NULL;
   int result = selectVictimInCache(volume->pageCache, &page);
   if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = waitForPendingSearches(volume->pageCache, page->physicalPage);
-  if (result != UDS_SUCCESS) {
-    logWarning("Error waiting for pending search");
-    cancelPageInCache(volume->pageCache, physicalPage, page);
     return result;
   }
 
@@ -1166,33 +1108,23 @@ off_t offsetForChapter(const Geometry *geometry,
 }
 
 /**********************************************************************/
-static int probeChapter(const Volume *volume,
+static int probeChapter(Volume       *volume,
                         unsigned int  chapterNumber,
-                        uint64_t     *virtualChapterNumber,
-                        byte         *buffer)
+                        uint64_t     *virtualChapterNumber)
 {
   const Geometry *geometry = volume->geometry;
-  off_t baseOffset = offsetForChapter(geometry, chapterNumber);
   unsigned int expectedListNumber = 0;
   uint64_t lastVCN = UINT64_MAX;
 
   for (unsigned int i = 0; i < geometry->indexPagesPerChapter; ++i) {
-    int result = readFromRegion(volume->region,
-                                baseOffset + (i * geometry->bytesPerPage),
-                                buffer, geometry->bytesPerPage, NULL);
-    if (result != UDS_SUCCESS) {
-      logWarningWithStringError(result, "%s got readFromRegion error",
-                                __func__);
-      return result;
-    }
-
-    ChapterIndexPage page;
-    result = initializeChapterIndexPage(&page, geometry, buffer, volume->nonce);
+    ChapterIndexPage *page;
+    int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
+                         NULL, &page);
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    uint64_t vcn = getChapterIndexVirtualChapterNumber(&page);
+    uint64_t vcn = getChapterIndexVirtualChapterNumber(page);
     if (lastVCN == UINT64_MAX) {
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
@@ -1202,16 +1134,16 @@ static int probeChapter(const Volume *volume,
       return UDS_CORRUPT_COMPONENT;
     }
 
-    if (expectedListNumber != getChapterIndexLowestListNumber(&page)) {
+    if (expectedListNumber != getChapterIndexLowestListNumber(page)) {
       logError("inconsistent chapter %u index page %u: expected list number %u"
                ", got list number %u",
                chapterNumber, i, expectedListNumber,
-               getChapterIndexLowestListNumber(&page));
+               getChapterIndexLowestListNumber(page));
       return UDS_CORRUPT_COMPONENT;
     }
-    expectedListNumber = getChapterIndexHighestListNumber(&page) + 1;
+    expectedListNumber = getChapterIndexHighestListNumber(page) + 1;
 
-    result = validateChapterIndexPage(&page, geometry);
+    result = validateChapterIndexPage(page, geometry);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1231,14 +1163,12 @@ static int probeChapter(const Volume *volume,
 }
 
 /**********************************************************************/
-static int probeWrapper(const void   *aux,
+static int probeWrapper(void         *aux,
                         unsigned int  chapterNumber,
-                        uint64_t     *virtualChapterNumber,
-                        byte         *buffer)
+                        uint64_t     *virtualChapterNumber)
 {
-  const Volume *volume = aux;
-  int result = probeChapter(volume, chapterNumber, virtualChapterNumber,
-                            buffer);
+  Volume *volume = aux;
+  int result = probeChapter(volume, chapterNumber, virtualChapterNumber);
   if ((result == UDS_CORRUPT_COMPONENT) || (result == UDS_CORRUPT_DATA)) {
     *virtualChapterNumber = UINT64_MAX;
     return UDS_SUCCESS;
@@ -1247,16 +1177,10 @@ static int probeWrapper(const void   *aux,
 }
 
 /**********************************************************************/
-static int findRealEndOfVolume(const Volume *volume,
+static int findRealEndOfVolume(Volume       *volume,
                                unsigned int  limit,
                                unsigned int *limitPtr)
 {
-  byte *buffer;
-  int result = ALLOCATE_IO_ALIGNED(volume->geometry->bytesPerPage, byte,
-                                   __func__, &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   /*
    * Start checking from the end of the volume. As long as we hit corrupt
    * data, start skipping larger and larger amounts until we find real data.
@@ -1268,7 +1192,7 @@ static int findRealEndOfVolume(const Volume *volume,
   while (limit > 0) {
     unsigned int chapter = (span > limit) ? 0 : limit - span;
     uint64_t vcn = 0;
-    int result = probeChapter(volume, chapter, &vcn, buffer);
+    int result = probeChapter(volume, chapter, &vcn);
     if (result == UDS_SUCCESS) {
       if (span == 1) {
         break;
@@ -1281,7 +1205,6 @@ static int findRealEndOfVolume(const Volume *volume,
         span *= 2;
       }
     } else {
-      FREE(buffer);
       return logErrorWithStringError(result, "cannot determine end of volume");
     }
   }
@@ -1289,15 +1212,14 @@ static int findRealEndOfVolume(const Volume *volume,
   if (limitPtr != NULL) {
     *limitPtr = limit;
   }
-  FREE(buffer);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int findVolumeChapterBoundaries(const Volume *volume,
-                                uint64_t     *lowestVCN,
-                                uint64_t     *highestVCN,
-                                bool         *isEmpty)
+int findVolumeChapterBoundaries(Volume   *volume,
+                                uint64_t *lowestVCN,
+                                uint64_t *highestVCN,
+                                bool     *isEmpty)
 {
   const Geometry *geometry = volume->geometry;
 
@@ -1347,31 +1269,21 @@ int findVolumeChapterBoundaries(const Volume *volume,
     return UDS_SUCCESS;
   }
 
-  byte *buffer;
-  result = ALLOCATE_IO_ALIGNED(volume->geometry->bytesPerPage, byte, __func__,
-                               &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   *isEmpty = false;
-  result = findVolumeChapterBoundariesImpl(chapterLimit, MAX_BAD_CHAPTERS,
-                                           lowestVCN, highestVCN, probeWrapper,
-                                           volume, buffer);
-  FREE(buffer);
-  return result;
+  return findVolumeChapterBoundariesImpl(chapterLimit, MAX_BAD_CHAPTERS,
+                                         lowestVCN, highestVCN, probeWrapper,
+                                         volume);
 }
 
 /**********************************************************************/
-int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
-                                    unsigned int    maxBadChapters,
-                                    uint64_t       *lowestVCN,
-                                    uint64_t       *highestVCN,
-                                    int (*probeFunc)(const void   *aux,
+int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
+                                    unsigned int  maxBadChapters,
+                                    uint64_t     *lowestVCN,
+                                    uint64_t     *highestVCN,
+                                    int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
-                                                     uint64_t     *vcn,
-                                                     byte         *buffer),
-                                    const void     *aux,
-                                    byte           *buffer)
+                                                     uint64_t     *vcn),
+                                    void *aux)
 {
   if (chapterLimit == 0) {
     *lowestVCN = 0;
@@ -1391,7 +1303,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
   uint64_t firstVCN = UINT64_MAX;
 
   // doesn't matter if this results in a bad spot (UINT64_MAX)
-  int result = (*probeFunc)(aux, 0, &firstVCN, buffer);
+  int result = (*probeFunc)(aux, 0, &firstVCN);
   if (result != UDS_SUCCESS) {
     return UDS_SUCCESS;
   }
@@ -1411,7 +1323,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
     unsigned int chapter = (leftChapter + rightChapter) / 2;
     uint64_t probeVCN;
 
-    result = (*probeFunc)(aux, chapter, &probeVCN, buffer);
+    result = (*probeFunc)(aux, chapter, &probeVCN);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1435,7 +1347,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
   // At this point, leftChapter is the chapter with the lowest virtual chapter
   // number.
 
-  result = (*probeFunc)(aux, leftChapter, &lowest, buffer);
+  result = (*probeFunc)(aux, leftChapter, &lowest);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1453,7 +1365,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
 
   for (;;) {
     rightChapter = (rightChapter + chapterLimit - 1) % chapterLimit;
-    result = (*probeFunc)(aux, rightChapter, &highest, buffer);
+    result = (*probeFunc)(aux, rightChapter, &highest);
     if (result != UDS_SUCCESS) {
       return result;
     }

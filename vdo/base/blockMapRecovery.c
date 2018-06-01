@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapRecovery.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapRecovery.c#3 $
  */
 
 #include "blockMapRecovery.h"
@@ -331,15 +331,8 @@ static void applyJournalEntriesToPage(BlockMapPage         *page,
 {
   NumberedBlockMapping *currentEntry  = startingEntry;
   while (currentEntry != endingEntry) {
-    if (page->header.entryOffset == 0) {
-      page->entries[currentEntry->blockMapSlot.slot]
-        = currentEntry->blockMapEntry;
-    } else {
-      // Convert the new-format block map entries to the old format.
-      PhysicalBlockNumber pbn = unpackPBN(&currentEntry->blockMapEntry);
-      encodeBlockMapEntry(page, currentEntry->blockMapSlot.slot, pbn,
-                          currentEntry->blockMapEntry.mappingState);
-    }
+    page->entries[currentEntry->blockMapSlot.slot]
+      = currentEntry->blockMapEntry;
     currentEntry--;
   }
 }

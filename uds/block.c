@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/block.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/block.c#2 $
  */
 
 #include "uds-block.h"
@@ -68,13 +68,6 @@ int udsStartChunkOperation(UdsRequest *request)
   request->found = false;
   memset(request->private, 0, sizeof(request->private));
   return launchAllocatedClientRequest((Request *) request);
-}
-
-/**********************************************************************/
-int udsGetBlockContextConfiguration(UdsBlockContext   context,
-                                    UdsConfiguration *conf)
-{
-  return getConfiguration(context.id, conf);
 }
 
 /**********************************************************************/

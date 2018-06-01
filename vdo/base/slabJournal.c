@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#2 $
  */
 
 #include "slabJournalInternals.h"
@@ -809,8 +809,7 @@ void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
 {
   SlabJournalBlockHeader *header = &block->header;
   JournalEntryCount       count  = header->entryCount;
-  PackedSlabJournalEntry *entry  = &block->payload.entries[count];
-  entry->offset = sbn;
+  bool                    isIncrement;
   if (operation == BLOCK_MAP_INCREMENT) {
     if (!header->hasBlockMapIncrements) {
       memset(block->payload.fullEntries.entryTypes, 0,
@@ -818,13 +817,14 @@ void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
       header->hasBlockMapIncrements = true;
     }
 
-    entry->increment = true;
     block->payload.fullEntries.entryTypes[count / 8]
       |= ((byte) 1 << (count % 8));
+    isIncrement = true;
   } else {
-    entry->increment = (operation == DATA_INCREMENT);
+    isIncrement = (operation == DATA_INCREMENT);
   }
 
+  packSlabJournalEntry(&block->payload.entries[count], sbn, isIncrement);
   header->entryCount++;
 }
 
@@ -832,17 +832,13 @@ void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
 SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
                                         JournalEntryCount       entryCount)
 {
-  PackedSlabJournalEntry packed = block->payload.entries[entryCount];
-  SlabJournalEntry entry;
+  SlabJournalEntry entry
+    = unpackSlabJournalEntry(&block->payload.entries[entryCount]);
   if (block->header.hasBlockMapIncrements
       && ((block->payload.fullEntries.entryTypes[entryCount / 8]
            & ((byte) 1 << (entryCount % 8))) != 0)) {
     entry.operation = BLOCK_MAP_INCREMENT;
-  } else {
-    entry.operation = (packed.increment ? DATA_INCREMENT : DATA_DECREMENT);
   }
-
-  entry.sbn = packed.offset;
   return entry;
 }
 

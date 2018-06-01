@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/grid.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/grid.c#3 $
  */
 
 #include "grid.h"
@@ -165,7 +165,7 @@ int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
 }
 
 /**********************************************************************/
-int saveGrid(Grid *grid)
+int saveAndFreeGrid(Grid *grid, bool saveFlag)
 {
   if (grid == NULL) {
     return UDS_SUCCESS;
@@ -175,26 +175,17 @@ int saveGrid(Grid *grid)
   for (unsigned int i = 0; i < grid->numRouters; i++) {
     IndexRouter *router = grid->routers[i];
     if (router != NULL) {
-      result = router->methods->saveState(router);
-      if (result != UDS_SUCCESS) {
-        logWarningWithStringError(result, "index router save state problem");
+      int routerResult = saveAndFreeIndexRouter(router, saveFlag);
+      if (routerResult != UDS_SUCCESS) {
+        logWarningWithStringError(routerResult,
+                                  "index router save state problem");
+        result = routerResult;
       }
     }
   }
-  return result;
-}
 
-/**********************************************************************/
-void freeGrid(Grid *grid)
-{
-  if (grid == NULL) {
-    return;
-  }
-
-  for (unsigned int i = 0; i < grid->numRouters; i++) {
-    freeIndexRouter(grid->routers[i]);
-  }
   freeIndexLayout(&grid->layout);
   FREE(grid->routers);
   FREE(grid);
+  return result;
 }

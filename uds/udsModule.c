@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#6 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#11 $
  */
 
 #include <linux/module.h>
@@ -24,6 +24,7 @@
 #include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "murmur/MurmurHash3.h"
 #include "sysfs.h"
 #include "timeUtils.h"
 #include "uds.h"
@@ -81,7 +82,6 @@ EXPORT_SYMBOL_GPL(udsOpenBlockContext);
 EXPORT_SYMBOL_GPL(udsCloseBlockContext);
 EXPORT_SYMBOL_GPL(udsFlushBlockContext);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
-EXPORT_SYMBOL_GPL(udsGetBlockContextConfiguration);
 EXPORT_SYMBOL_GPL(udsGetBlockContextIndexStats);
 EXPORT_SYMBOL_GPL(udsGetBlockContextStats);
 
@@ -109,13 +109,29 @@ EXPORT_SYMBOL_GPL(freeBuffer);
 EXPORT_SYMBOL_GPL(freeFunnelQueue);
 EXPORT_SYMBOL_GPL(freeMemory);
 EXPORT_SYMBOL_GPL(funnelQueuePoll);
+EXPORT_SYMBOL_GPL(getByte);
 EXPORT_SYMBOL_GPL(getBytesFromBuffer);
 EXPORT_SYMBOL_GPL(getMemoryStats);
+EXPORT_SYMBOL_GPL(getUInt16LEFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt16LEsFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt32LEFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt64LEFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt64LEsFromBuffer);
 EXPORT_SYMBOL_GPL(isFunnelQueueEmpty);
 EXPORT_SYMBOL_GPL(makeBuffer);
 EXPORT_SYMBOL_GPL(makeFunnelQueue);
+EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
+EXPORT_SYMBOL_GPL(MurmurHash3_x64_128_double);
 EXPORT_SYMBOL_GPL(nowUsec);
+EXPORT_SYMBOL_GPL(peekByte);
+EXPORT_SYMBOL_GPL(putByte);
 EXPORT_SYMBOL_GPL(putBytes);
+EXPORT_SYMBOL_GPL(putInt64LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt16LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt16LEsIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt32LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt64LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt64LEsIntoBuffer);
 EXPORT_SYMBOL_GPL(reallocateMemory);
 EXPORT_SYMBOL_GPL(recordBioAlloc);
 EXPORT_SYMBOL_GPL(recordBioFree);

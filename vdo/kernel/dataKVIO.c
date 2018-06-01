@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#5 $
  */
 
 #include "dataKVIO.h"
@@ -93,8 +93,18 @@ static void kvioCompletionTap1(DataKVIO *dataKVIO)
    * expansion. Also, make sure the compiler has to emit debug info
    * for baseTraceLocation, which some of our SystemTap scripts will
    * use here.
+   *
+   * First, make it look as though all memory could be clobbered; then
+   * require that a value be read into a register. That'll force at
+   * least one instruction to exist (so SystemTap can hook in) where
+   * dataKVIO is live. We use a field that the caller would've
+   * accessed recently anyway, so it may be cached.
    */
-  __asm__ __volatile__("nop" : : "g" (dataKVIO), "g" (baseTraceLocation));
+  barrier();
+  __asm__ __volatile__(""
+                       :
+                       : "g" (dataKVIO), "g" (baseTraceLocation),
+                         "r" (dataKVIO->kvio.layer));
 }
 
 /**
@@ -109,7 +119,8 @@ static void kvioCompletionTap1(DataKVIO *dataKVIO)
 static void kvioCompletionTap2(DataKVIO *dataKVIO)
 {
   // Hack to ensure variable doesn't get optimized out.
-  __asm__ __volatile__("nop" : : "g" (dataKVIO));
+  barrier();
+  __asm__ __volatile__("" : : "g" (dataKVIO), "r" (dataKVIO->kvio.layer));
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.c#5 $
  */
 
 #include "index.h"
@@ -43,8 +43,11 @@ static int replayIndexFromCheckpoint(Index *index,
   // Find the volume chapter boundaries
   uint64_t lowestVCN, highestVCN;
   bool isEmpty = false;
+  IndexLookupMode oldLookupMode = index->volume->lookupMode;
+  index->volume->lookupMode = LOOKUP_FOR_REBUILD;
   int result = findVolumeChapterBoundaries(index->volume, &lowestVCN,
                                            &highestVCN, &isEmpty);
+  index->volume->lookupMode = oldLookupMode;
   if (result != UDS_SUCCESS) {
     return logFatalWithStringError(result,
                                    "index_%u: cannot replay index: "
@@ -125,8 +128,11 @@ static int rebuildIndex(Index *index)
   // Find the volume chapter boundaries
   uint64_t lowestVCN, highestVCN;
   bool isEmpty = false;
+  IndexLookupMode oldLookupMode = index->volume->lookupMode;
+  index->volume->lookupMode = LOOKUP_FOR_REBUILD;
   int result = findVolumeChapterBoundaries(index->volume, &lowestVCN,
                                            &highestVCN, &isEmpty);
+  index->volume->lookupMode = oldLookupMode;
   if (result != UDS_SUCCESS) {
     return logFatalWithStringError(result,
                                    "index_%u: cannot rebuild index: "
@@ -303,12 +309,16 @@ int saveIndex(Index *index)
     return result;
   }
 
-  // Save the volume file
-  result = closeVolume(index->volume);
-  if (result != UDS_SUCCESS) {
+  // Ensure that the volume is securely on storage
+  result = syncRegionContents(index->volume->region);
+  switch (result) {
+  case UDS_SUCCESS:
+  case UDS_UNSUPPORTED:
+    break;
+  default:
     // If we couldn't save the volume, the index state is useless
     discardIndexStateData(index->state);
-    return result;
+    return logErrorWithStringError(result, "cannot sync volume IORegion");
   }
 
   return saveIndexComponents(index);
@@ -577,72 +587,33 @@ int dispatchIndexRequest(Index *index, Request *request)
   return dispatchIndexZoneRequest(getRequestZone(index, request), request);
 }
 
-/**
- * Get a page from the volume for rebuild. This will always be a synchronous
- * read.
- *
- * @param index                 The index containing the page
- * @param virtualChapterNumber  The number of the chapter containing the page
- * @param pageNumber            The number of the page
- * @param probeType             The type of cache access being done
- * @param pagePtr               A pointer to hold the page
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int getPageForRebuild(Index         *index,
-                             uint64_t       virtualChapterNumber,
-                             unsigned int   pageNumber,
-                             CacheProbeType probeType,
-                             byte         **pagePtr)
-{
-  unsigned int physicalChapterNumber
-    = mapToPhysicalChapter(index->volume->geometry, virtualChapterNumber);
-  // Make sure the page read is synchronous
-  return getPage(index->volume, NULL, physicalChapterNumber, pageNumber,
-                 probeType, pagePtr);
-}
-
 /**********************************************************************/
 static int rebuildIndexPageMap(Index *index, uint64_t vcn)
 {
   Geometry *geometry = index->volume->geometry;
-  unsigned int chapter = mapToPhysicalChapter(index->volume->geometry, vcn);
+  unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
   for (unsigned int indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    byte *indexPage;
-    int result = getPageForRebuild(index, chapter, indexPageNumber,
-                                   CACHE_PROBE_INDEX_FIRST, &indexPage);
+    ChapterIndexPage *chapterIndexPage;
+    int result = getPage(index->volume, chapter, indexPageNumber,
+                         CACHE_PROBE_INDEX_FIRST, NULL, &chapterIndexPage);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "index_%u: Failed to read "
                                      "index page %u in chapter %u",
                                      index->id, indexPageNumber, chapter);
     }
-
-    ChapterIndexPage chapterIndexPage;
-    result = initializeChapterIndexPage(&chapterIndexPage, geometry, indexPage,
-                                        index->volume->nonce);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(
-        result, "index_%u: failed to initialize chapter %u index page %u",
-        index->id, chapter, indexPageNumber);
-    }
-
     unsigned int highestDeltaList
-      = getDeltaIndexHighestListNumber(&chapterIndexPage.deltaIndex);
-    result = updateIndexPageMap(index->volume->indexPageMap,
-                                vcn,
-                                chapter,
-                                indexPageNumber,
-                                highestDeltaList);
+      = getChapterIndexHighestListNumber(chapterIndexPage);
+    result = updateIndexPageMap(index->volume->indexPageMap, vcn, chapter,
+                                indexPageNumber, highestDeltaList);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(
         result, "index_%u: failed to update chapter %u index page %u",
         index->id, chapter, indexPageNumber);
     }
   }
-
   return UDS_SUCCESS;
 }
 
@@ -800,8 +771,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
     for (unsigned int j = 0; j < geometry->recordPagesPerChapter; j++) {
       unsigned int recordPageNumber = geometry->indexPagesPerChapter + j;
       byte *recordPage;
-      result = getPageForRebuild(index, chapter, recordPageNumber,
-                                 CACHE_PROBE_RECORD_FIRST, &recordPage);
+      result = getPage(index->volume, chapter, recordPageNumber,
+                       CACHE_PROBE_RECORD_FIRST, &recordPage, NULL);
       if (result != UDS_SUCCESS) {
         index->volume->lookupMode = oldLookupMode;
         return logUnrecoverable(result, "index_%u: could not get page %d",

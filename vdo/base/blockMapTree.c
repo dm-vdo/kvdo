@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#3 $
  */
 
 #include "blockMapTree.h"
@@ -743,7 +743,7 @@ static bool isInvalidTreeEntry(const VDO           *vdo,
 {
   PhysicalBlockNumber pbn = unpackPBN(entry);
   if (isInvalid(entry)
-      || isCompressed(entry->mappingState)
+      || isCompressed(unpackMappingState(entry))
       || (!isUnmapped(entry) && (pbn == ZERO_BLOCK))) {
     return true;
   }
@@ -776,7 +776,7 @@ static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %" PRIu64 " with "
                             "state %u for page index %u at height %u",
-                            unpackPBN(entry), entry->mappingState,
+                            unpackPBN(entry), unpackMappingState(entry),
                             lock->treeSlots[lock->height - 1].pageIndex,
                             lock->height - 1);
     abortLoad(dataVIO, VDO_BAD_MAPPING);
@@ -1246,7 +1246,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %" PRIu64 " with "
                             "state %u for page index %u at height %u",
-                            unpackPBN(entry), entry->mappingState,
+                            unpackPBN(entry), unpackMappingState(entry),
                             lock->treeSlots[lock->height - 1].pageIndex,
                             lock->height - 1);
     abortLoad(dataVIO, VDO_BAD_MAPPING);
@@ -1287,7 +1287,7 @@ PhysicalBlockNumber getBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
 
   const BlockMapEntry *entry = &page->entries[slot];
   if (isInvalid(entry) || isUnmapped(entry)
-      || isCompressed(entry->mappingState)) {
+      || isCompressed(unpackMappingState(entry))) {
     return ZERO_BLOCK;
   }
 

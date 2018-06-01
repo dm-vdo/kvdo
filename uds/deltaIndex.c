@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#3 $
  */
 #include "deltaIndex.h"
 
 #include "bits.h"
+#include "buffer.h"
 #include "compiler.h"
 #include "cpu.h"
 #include "errors.h"
@@ -798,6 +799,73 @@ void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
 }
 
 /**********************************************************************/
+__attribute__((warn_unused_result))
+static int decodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
+{
+  int result = getBytesFromBuffer(buffer, MAGIC_SIZE, &header->magic);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &header->zoneNumber);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &header->numZones);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &header->firstList);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &header->numLists);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &header->recordCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &header->collisionCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer) - contentLength(buffer),
+                           bufferLength(buffer));
+  return result;
+}
+
+/**********************************************************************/
+__attribute__((warn_unused_result))
+static int readDeltaIndexHeader(BufferedReader *reader,
+                                struct di_header *header)
+{
+  Buffer *buffer;
+  
+  int result = makeBuffer(sizeof(*header), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                  bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return logWarningWithStringError(result,
+                                     "failed to read delta index header");
+  }
+  result = resetBufferEnd(buffer, bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = decodeDeltaIndexHeader(buffer, header);
+  freeBuffer(&buffer);
+  return result;
+}
+
+/**********************************************************************/
 int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
                              BufferedReader **bufferedReaders, int numReaders)
 {
@@ -821,8 +889,7 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
   // Read the header from each file, and make sure we have a matching set
   for (unsigned int z = 0; z < numZones; z++) {
     struct di_header header;
-    int result = readFromBufferedReader(bufferedReaders[z], (byte *)&header,
-                                        sizeof(header));
+    int result = readDeltaIndexHeader(bufferedReaders[z], &header);
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to read delta index header");
@@ -888,13 +955,14 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
   // to proper zone
   for (unsigned int z = 0; z < numZones; z++) {
     for (unsigned int i = 0; i < numLists[z]; i++) {
-      uint16_t deltaListSize;
-      int result = readFromBufferedReader(reader[z], (byte *)&deltaListSize,
-                                          sizeof(deltaListSize));
+      byte deltaListSizeData[sizeof(uint16_t)];
+      int result = readFromBufferedReader(reader[z], deltaListSizeData,
+                                          sizeof(deltaListSizeData));
       if (result != UDS_SUCCESS) {
         return logWarningWithStringError(result,
                                          "failed to read delta index size");
       }
+      uint16_t deltaListSize = getUInt16LE(deltaListSizeData);
       unsigned int listNumber = firstList[z] + i;
       unsigned int zoneNumber = getDeltaIndexZone(deltaIndex, listNumber);
       const DeltaMemory *deltaZone = &deltaIndex->deltaZones[zoneNumber];
@@ -954,6 +1022,45 @@ void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex)
 }
 
 /**********************************************************************/
+__attribute__((warn_unused_result))
+static int encodeDeltaIndexHeader(Buffer *buffer, struct di_header *header)
+{
+  int result = putBytes(buffer, MAGIC_SIZE, MAGIC_DI_START);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, header->zoneNumber);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, header->numZones);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, header->firstList);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, header->numLists);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, header->recordCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, header->collisionCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(*header),
+                           "%zu bytes encoded of %zu expected",
+                           contentLength(buffer), sizeof(*header));
+
+  return result;
+}
+
+/**********************************************************************/
 int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
                           unsigned int zoneNumber,
                           BufferedWriter *bufferedWriter)
@@ -968,8 +1075,19 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
   header.recordCount    = deltaZone->recordCount;
   header.collisionCount = deltaZone->collisionCount;
 
-  int result = writeToBufferedWriter(bufferedWriter, (const byte *) &header,
-                                     sizeof(header));
+  Buffer *buffer;
+  int result = makeBuffer(sizeof(struct di_header), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = encodeDeltaIndexHeader(buffer, &header);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = writeToBufferedWriter(bufferedWriter, getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logWarningWithStringError(result,
                                      "failed to write delta index header");
@@ -977,9 +1095,9 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
 
   for (unsigned int i = 0; i < deltaZone->numLists; i++) {
     uint16_t deltaListSize = getDeltaListSize(&deltaZone->deltaLists[i + 1]);
-    result = writeToBufferedWriter(bufferedWriter,
-                                   (const byte *) &deltaListSize,
-                                   sizeof(deltaListSize));
+    byte data[2];
+    storeUInt16LE(data, deltaListSize);
+    result = writeToBufferedWriter(bufferedWriter, data, sizeof(data));
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to write delta list size");

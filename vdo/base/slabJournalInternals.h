@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#2 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -48,9 +48,31 @@ struct slabJournalEntry {
 };
 
 /** A single slab journal entry in its on-disk form */
-typedef struct {
-  uint32_t offset    : 23;
-  uint32_t increment : 1;
+typedef union {
+  struct __attribute__((packed)) {
+    uint8_t offsetLow8;
+    uint8_t offsetMid8;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    unsigned offsetHigh7 : 7;
+    unsigned increment   : 1;
+#else
+    unsigned increment   : 1;
+    unsigned offsetHigh7 : 7;
+#endif
+  } fields;
+
+  // A raw view of the packed encoding.
+  uint8_t raw[3];
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // This view is only valid on little-endian machines and is only present for
+  // ease of directly examining packed entries in GDB.
+  struct __attribute__((packed)) {
+    unsigned offset    : 23;
+    unsigned increment : 1;
+  } littleEndian;
+#endif
 } __attribute__((packed)) PackedSlabJournalEntry;
 
 /** The header of a slab journal block */
@@ -243,5 +265,44 @@ void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
 SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
                                         JournalEntryCount       entryCount)
   __attribute__((warn_unused_result));
+
+/**
+ * Generate the packed encoding of a slab journal entry.
+ *
+ * @param packed       The entry into which to pack the values
+ * @param sbn          The slab block number of the entry to encode
+ * @param isIncrement  The increment flag
+ **/
+static inline void packSlabJournalEntry(PackedSlabJournalEntry *packed,
+                                        SlabBlockNumber         sbn,
+                                        bool                    isIncrement)
+{
+  packed->fields.offsetLow8  = (sbn & 0x0000FF);
+  packed->fields.offsetMid8  = (sbn & 0x00FF00) >> 8;
+  packed->fields.offsetHigh7 = (sbn & 0x7F0000) >> 16;
+  packed->fields.increment   = isIncrement ? 1 : 0;
+}
+
+/**
+ * Decode the packed representation of a slab journal entry.
+ *
+ * @param packed  The packed entry to decode
+ *
+ * @return The decoded slab journal entry
+ **/
+__attribute__((warn_unused_result))
+static inline
+SlabJournalEntry unpackSlabJournalEntry(const PackedSlabJournalEntry *packed)
+{
+  SlabJournalEntry entry;
+  entry.sbn = packed->fields.offsetHigh7;
+  entry.sbn <<= 8;
+  entry.sbn |= packed->fields.offsetMid8;
+  entry.sbn <<= 8;
+  entry.sbn |= packed->fields.offsetLow8;
+  entry.operation
+    = (packed->fields.increment ? DATA_INCREMENT : DATA_DECREMENT);
+  return entry;
+}
 
 #endif // SLAB_JOURNAL_INTERNALS_H

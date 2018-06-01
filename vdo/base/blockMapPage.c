@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#2 $
  */
 
 #include "blockMapPage.h"
@@ -34,7 +34,6 @@
 
 enum {
   PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
-  PAGE_HEADER_4_0_SIZE = 8 + 4 + 8 + 8,
 };
 
 static const VersionNumber BLOCK_MAP_4_1 = {
@@ -51,53 +50,15 @@ bool isCurrentBlockMapPage(const BlockMapPage *page)
 }
 
 /**********************************************************************/
-void encodeBlockMapEntry(BlockMapPage        *page,
-                         SlotNumber           slot,
-                         PhysicalBlockNumber  pbn,
-                         BlockMappingState    state)
-{
-  if (pbn != ZERO_BLOCK) {
-    pbn -= page->header.entryOffset;
-  }
-
-  page->entries[slot] = packPBN(pbn, state);
-}
-
-/**********************************************************************/
 void formatBlockMapPage(void *buffer, Nonce nonce, PhysicalBlockNumber pbn)
 {
   memset(buffer, 0, VDO_BLOCK_SIZE);
   BlockMapPage *page = (BlockMapPage *) buffer;
   page->version      = *CURRENT_BLOCK_MAP_VERSION;
   page->header       = (PageHeader) {
-    .nonce                   = nonce,
-    .pbn                     = pbn,
-    .initialized             = false,
-    .entryOffset             = 0,
-    .interiorTreePageWriting = false,
-    .generation              = 0,
+    .nonce = nonce,
+    .pbn   = pbn,
   };
-}
-
-/**
- * Upgrade a block map page header from version 4.0 to version 4.1.
- *
- * @param [in,out] page  The page to upgrade
- **/
-static void upgradePageTo4_1(BlockMapPage *page)
-{
-  page->version = BLOCK_MAP_4_1;
-  PageHeader4_0 *oldHeader = (PageHeader4_0 *) &page->header;
-  PageHeader newHeader = (PageHeader) {
-    .nonce                   = oldHeader->nonce,
-    .pbn                     = oldHeader->pageID + BLOCK_MAP_FLAT_PAGE_ORIGIN,
-    .recoverySequenceNumber  = 0,
-    .initialized             = (oldHeader->uninitialized == 0),
-    .entryOffset             = NEON_BLOCK_MAP_ENTRY_PBN_OFFSET,
-    .interiorTreePageWriting = false,
-    .generation              = 0,
-  };
-  memcpy(&page->header, &newHeader, sizeof(PageHeader));
 }
 
 /**********************************************************************/
@@ -107,13 +68,7 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
 {
   // Make sure the page layout isn't accidentally changed by changing the
   // length of the page header.
-  STATIC_ASSERT_SIZEOF(PageHeader4_0, PAGE_HEADER_4_0_SIZE);
-  STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_0_SIZE);
   STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_1_SIZE);
-
-  if (isUpgradableVersion(&BLOCK_MAP_4_1, &page->version)) {
-    upgradePageTo4_1(page);
-  }
 
   if (!areSameVersion(&BLOCK_MAP_4_1, &page->version)
       || !page->header.initialized || (page->header.nonce != nonce)) {
@@ -138,9 +93,8 @@ void updateBlockMapPage(DataVIO             *dataVIO,
 {
   // Encode the new mapping.
   TreeLock *treeLock = &dataVIO->treeLock;
-  encodeBlockMapEntry(page,
-                      treeLock->treeSlots[treeLock->height].blockMapSlot.slot,
-                      pbn, mappingState);
+  SlotNumber slot = treeLock->treeSlots[treeLock->height].blockMapSlot.slot;
+  page->entries[slot] = packPBN(pbn, mappingState);
 
   // Adjust references (locks) on the recovery journal blocks.
   BlockMapZone    *zone      = getBlockMapForZone(dataVIO->logical.zone);

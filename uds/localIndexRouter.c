@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#3 $
  */
 
 #include "localIndexRouter.h"
@@ -51,8 +51,7 @@ struct fillData {
   int    result;
 };
 
-static int saveIndexRouterState(IndexRouter *header);
-static void freeLocalIndexRouter(IndexRouter *header);
+static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag);
 static RequestQueue *selectIndexRouterQueue(IndexRouter  *header,
                                             Request      *request,
                                             RequestStage  nextStage);
@@ -62,8 +61,7 @@ static int getRouterStatistics(IndexRouter *header,
 static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency);
 
 static const IndexRouterMethods methods = {
-  .saveState              = saveIndexRouterState,
-  .free                   = freeLocalIndexRouter,
+  .saveAndFree            = saveAndFreeLocalIndexRouter,
   .selectQueue            = selectIndexRouterQueue,
   .execute                = executeIndexRouterRequest,
   .getStatistics          = getRouterStatistics,
@@ -177,20 +175,6 @@ static int initializeLocalIndexQueues(LocalIndexRouter *router,
   return UDS_SUCCESS;
 }
 
-/**
- * Shutdown the zone queues, the triage queue, and related structures.
- *
- * @param router          the router containing the queues
- **/
-static void shutdownLocalIndexQueues(LocalIndexRouter *router)
-{
-  requestQueueFinish(router->triageQueue);
-  for (unsigned int i = 0; i < router->zoneCount; i++) {
-    requestQueueFinish(router->zoneQueues[i]);
-  }
-  FREE(router->zoneQueues);
-}
-
 /**********************************************************************/
 static INLINE RequestQueue *getZoneQueue(LocalIndexRouter *router,
                                          unsigned int zoneNumber)
@@ -212,7 +196,6 @@ int makeLocalIndexRouter(IndexLayout          *layout,
     return result;
   }
 
-  router->header.type     = ROUTER_LOCAL;
   router->header.methods  = &methods;
   router->header.callback = callback;
   router->zoneCount       = getZoneCount();
@@ -235,22 +218,26 @@ int makeLocalIndexRouter(IndexLayout          *layout,
 }
 
 /**********************************************************************/
-static int saveIndexRouterState(IndexRouter *header)
-{
-  LocalIndexRouter *router = asLocalIndexRouter(header);
-  return saveIndex(router->index);
-}
-
-/**********************************************************************/
-static void freeLocalIndexRouter(IndexRouter *header)
+static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
   if (router == NULL) {
-    return;
+    return UDS_SUCCESS;
   }
-  shutdownLocalIndexQueues(router);
+  requestQueueFinish(router->triageQueue);
+  for (unsigned int i = 0; i < router->zoneCount; i++) {
+    requestQueueFinish(router->zoneQueues[i]);
+  }
+
+  int result = UDS_SUCCESS;
+  if (saveFlag) {
+    result = saveIndex(router->index);
+  }
+
   freeIndex(router->index);
+  FREE(router->zoneQueues);
   FREE(router);
+  return result;
 }
 
 /**********************************************************************/

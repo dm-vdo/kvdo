@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#2 $
  */
 
 #include "buffer.h"
@@ -422,3 +422,133 @@ int putUInt64BEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
   }
   return UDS_SUCCESS;
 }
+
+/**********************************************************************/
+int getUInt16LEFromBuffer(Buffer *buffer, uint16_t *ui)
+{
+  if (contentLength(buffer) < sizeof(uint16_t)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  decodeUInt16LE(buffer->data, &buffer->start, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putUInt16LEIntoBuffer(Buffer *buffer, uint16_t ui)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(uint16_t))) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  encodeUInt16LE(buffer->data, &buffer->end, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int getUInt16LEsFromBuffer(Buffer *buffer, size_t count, uint16_t *ui)
+{
+  if (contentLength(buffer) < (sizeof(uint16_t) * count)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    decodeUInt16LE(buffer->data, &buffer->start, ui + i);
+  }
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(uint16_t) * count)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
+  }
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int getUInt32LEFromBuffer(Buffer *buffer, uint32_t *ui)
+{
+  if (contentLength(buffer) < sizeof(uint32_t)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  decodeUInt32LE(buffer->data, &buffer->start, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putUInt32LEIntoBuffer(Buffer *buffer, uint32_t ui)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(uint32_t))) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  encodeUInt32LE(buffer->data, &buffer->end, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putInt64LEIntoBuffer(Buffer *buffer, int64_t i)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(int64_t))) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  encodeInt64LE(buffer->data, &buffer->end, i);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int getUInt64LEFromBuffer(Buffer *buffer, uint64_t *ui)
+{
+  if (contentLength(buffer) < sizeof(uint64_t)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  decodeUInt64LE(buffer->data, &buffer->start, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putUInt64LEIntoBuffer(Buffer *buffer, uint64_t ui)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(uint64_t))) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  encodeUInt64LE(buffer->data, &buffer->end, ui);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int getUInt64LEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
+{
+  if (contentLength(buffer) < (sizeof(uint64_t) * count)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    decodeUInt64LE(buffer->data, &buffer->start, ui + i);
+  }
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putUInt64LEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
+{
+  if (!ensureAvailableSpace(buffer, sizeof(uint64_t) * count)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    encodeUInt64LE(buffer->data, &buffer->end, ui[i]);
+  }
+  return UDS_SUCCESS;
+}
+

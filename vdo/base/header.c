@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#2 $
  */
 
 #include "header.h"
@@ -101,21 +101,4 @@ int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
 int decodeHeader(Buffer *buffer, Header *header)
 {
   return getBytesFromBuffer(buffer, ENCODED_HEADER_SIZE, header);
-}
-
-/**********************************************************************/
-int decodeWithHeader(Buffer *buffer, Header *header, byte *data)
-{
-  int result = decodeHeader(buffer, header);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = getBytesFromBuffer(buffer, header->size, data);
-  if (result != UDS_SUCCESS) {
-    int rewindResult = rewindBuffer(buffer, ENCODED_HEADER_SIZE);
-    ASSERT_LOG_ONLY((rewindResult == UDS_SUCCESS),
-                    "Impossible error rewinding buffer");
-  }
-  return result;
 }

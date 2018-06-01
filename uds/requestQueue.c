@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/requestQueue.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/requestQueue.c#2 $
  */
 
 #include "requestQueue.h"
@@ -93,7 +93,7 @@ struct requestQueue {
   Thread thread;                // thread id of the worker thread
   bool   started;               // true if the worker was started
 
-  volatile bool alive;          // when true, requests can be enqueued
+  bool alive;                   // when true, requests can be enqueued
 
   /** A flag set when the worker is waiting without a timeout */
   atomic_t dormant;
@@ -227,7 +227,7 @@ static Request *dequeueRequest(RequestQueue *queue)
 
     // There's really no more work right now. Before waiting, check if we've
     // been told to exit.
-    if (!queue->alive) {
+    if (!ACCESS_ONCE(queue->alive)) {
       eventCountCancel(queue->workEvent, waitToken);
       return NULL;
     }
@@ -347,7 +347,8 @@ void requestQueueFinish(RequestQueue *queue)
     return;
   }
 
-  // Mark the queue as dead, informing the the worker thread it should exit.
+  // Mark the queue as dead.  If synchronization is needed with the worker
+  // thread, the upcoming eventCountBroadcast will provide the memory barrier.
   queue->alive = false;
 
   if (queue->started) {

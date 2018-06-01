@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/context.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.c#3 $
  */
 
 #include "context.h"
@@ -220,31 +220,6 @@ int flushContext(unsigned int contextId)
   flushBaseContext(context);
   releaseBaseContext(context);
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int getConfiguration(unsigned int contextId, UdsConfiguration *userConfig)
-{
-  if (userConfig == NULL) {
-    return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
-                                   "received a NULL config pointer");
-  }
-
-  UdsContext *context;
-  int result = getBaseContext(contextId, &context);
-  if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result, "getBaseContext() failed");
-  }
-
-  result = ALLOCATE(1, struct udsConfiguration, "udsConfiguration",
-                    userConfig);
-  if (result != UDS_SUCCESS) {
-    result = logErrorWithStringError(result,
-                                     "allocation of udsConfiguration failed.");
-  } else {
-    **userConfig = context->indexSession->grid->userConfig;
-  }
-  return handleErrorAndReleaseBaseContext(context, result);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#2 $
  */
 
 #include "recoveryJournal.h"
@@ -682,7 +682,7 @@ int decodeRecoveryJournalEntry(VDO                  *vdo,
   }
 
   if ((*operation == BLOCK_MAP_INCREMENT)
-      && (isCompressed(entry->blockMapEntry.mappingState)
+      && (isCompressed(unpackMappingState(&entry->blockMapEntry))
           || (unpackedPBN == ZERO_BLOCK))) {
     return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
                                    " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64

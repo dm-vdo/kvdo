@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#4 $
  */
 
 #include "vdoLoad.h"
@@ -150,6 +150,8 @@ static void finishScrubbingSlabs(VDOCompletion *completion)
   assertOnAdminThread(vdo, __func__);
   if (inRecoveryMode(vdo)) {
     leaveRecoveryMode(vdo);
+  } else {
+    logInfo("VDO commencing normal operation");
   }
 }
 

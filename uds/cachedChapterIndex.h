@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#3 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -61,11 +61,17 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedChapterIndex {
    **/
   uint64_t          virtualChapter;
 
-  // These flags are mutable between cache updates, but they rarely change and
-  // are frequently accessed, so they are grouped with the immutable fields.
-
-  /** if set, skip the chapter when searching the entire cache */
-  volatile bool     skipSearch;
+  /*
+   * This flag is mutable between cache updates, but it rarely changes and
+   * is frequently accessed, so it groups with the immutable fields.
+   *
+   * If set, skip the chapter when searching the entire cache.  This flag is
+   * just a performance optimization.  If we do not see a recent change to it,
+   * it will be corrected when we pass through a memory barrier while getting
+   * the next request from the queue.  So we may do one extra search of the
+   * chapter index, or miss one deduplication opportunity.
+   */
+  bool              skipSearch;
 
   // These pointers are immutable during the life of the cache. The contents
   // of the arrays change when the cache entry is replaced.
@@ -114,8 +120,8 @@ static INLINE void setSkipSearch(CachedChapterIndex *chapter, bool skipSearch)
 {
   // Explicitly check if the field is set so we don't keep dirtying the memory
   // cache line on continued search hits.
-  if (chapter->skipSearch != skipSearch) {
-    chapter->skipSearch = skipSearch;
+  if (ACCESS_ONCE(chapter->skipSearch) != skipSearch) {
+    ACCESS_ONCE(chapter->skipSearch) = skipSearch;
   }
 }
 
@@ -149,7 +155,7 @@ static INLINE bool shouldSkipChapterIndex(const IndexZone *zone,
   } else {
     // When searching the entire cache, save time by skipping over chapters
     // that have had too many consecutive misses.
-    return chapter->skipSearch;
+    return ACCESS_ONCE(chapter->skipSearch);
   }
 }
 

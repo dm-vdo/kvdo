@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#2 $
  */
 
 #include "kvio.h"
@@ -225,7 +225,8 @@ static noinline bool
 sampleThisVIO(KVIO *kvio, KernelLayer *layer, BIO *bio)
 {
   bool result = true;
-  __asm__ __volatile__("nop"
+  // Ensure the arguments and result exist at the same time, for SystemTap.
+  __asm__ __volatile__(""
                        : "=g" (result)
                        : "0" (result),
                          "g" (kvio),

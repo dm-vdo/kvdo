@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/public/uds-block.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/public/uds-block.h#2 $
  */
 
 /**
@@ -241,18 +241,6 @@ int udsStartChunkOperation(UdsRequest *request);
 
 /** @{ */
 /** @name Monitoring */
-
-/**
- * Returns the configuration for the given context.
- *
- * @param [in]  context The block context
- * @param [out] conf    The index configuration
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetBlockContextConfiguration(UdsBlockContext   context,
-                                    UdsConfiguration *conf);
 
 /**
  * Fetches index statistics for the given context.

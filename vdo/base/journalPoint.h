@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/journalPoint.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/journalPoint.h#2 $
  */
 
 #ifndef JOURNAL_POINT_H
 #define JOURNAL_POINT_H
 
+#include "numeric.h"
 #include "types.h"
 
 typedef uint16_t JournalEntryCount;
@@ -35,11 +36,18 @@ typedef struct {
 } JournalPoint;
 
 /**
- * A packed encoding of a JournalPoint.
+ * A packed, platform-independent encoding of a JournalPoint.
  **/
 typedef struct {
-  /** 48 bits of sequence number (high-order bytes) | 16 bit entryCount */
-  uint64_t encodedPoint;
+  /**
+   * The packed representation is the little-endian 64-bit representation of
+   * the low-order 48 bits of the sequence number, shifted up 16 bits, or'ed
+   * with the 16-bit entry count.
+   *
+   * Very long-term, the top 16 bits of the sequence number may not always be
+   * zero, as this encoding assumes--see BZ 1523240.
+   **/
+  byte encodedPoint[8];
 } __attribute__((packed)) PackedJournalPoint;
 
 /**
@@ -113,8 +121,8 @@ static inline bool areEquivalentJournalPoints(const JournalPoint *first,
 static inline void packJournalPoint(const JournalPoint *unpacked,
                                     PackedJournalPoint *packed)
 {
-  packed->encodedPoint
-    = ((unpacked->sequenceNumber << 16) | unpacked->entryCount);
+  uint64_t native = ((unpacked->sequenceNumber << 16) | unpacked->entryCount);
+  storeUInt64LE(packed->encodedPoint, native);
 }
 
 /**
@@ -127,8 +135,9 @@ static inline void packJournalPoint(const JournalPoint *unpacked,
 static inline void unpackJournalPoint(const PackedJournalPoint *packed,
                                       JournalPoint             *unpacked)
 {
-  unpacked->sequenceNumber = (packed->encodedPoint >> 16);
-  unpacked->entryCount     = (packed->encodedPoint & 0xffff);
+  uint64_t native          = getUInt64LE(packed->encodedPoint);
+  unpacked->sequenceNumber = (native >> 16);
+  unpacked->entryCount     = (native & 0xffff);
 }
 
 #endif // JOURNAL_POINT_H

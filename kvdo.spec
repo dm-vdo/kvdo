@@ -1,31 +1,13 @@
 %define spec_release 1
-
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.0.35
+%define kmod_driver_version	6.2.0.71
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
-%define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
-%define kmod_kbuild_dir		.
-%define kmod_dependencies       %{nil}
-%define kmod_build_dependencies	%{nil}
-%define kmod_devel_package	0
 
-%{!?dist: %define dist .el7_4}
+# Disable the scanning for a debug package
+%global debug_package %{nil}
 
-%if 0%{?fedora}
-Source0:	kmod-%{kmod_name}-%{kmod_driver_version}.tgz
-%else
-Source0:	%{kmod_name}-%{kmod_driver_version}.tgz
-%endif
-%{nil}
-
-%define findpat %( echo "%""P" )
-%define __find_requires /usr/lib/rpm/redhat/find-requires.ksyms
-%if 0%{?rhel}
-# Fedora has deprecated this.
-%define __find_provides /usr/lib/rpm/redhat/find-provides.ksyms %{kmod_name} %{?epoch:%{epoch}:}%{version}-%{release}
-%endif
-%define sbindir %( if [ -d "/sbin" -a \! -h "/sbin" ]; then echo "/sbin"; else echo %{_sbindir}; fi )
+Source0:        kmod-%{kmod_name}-%{kmod_driver_version}.tgz
 
 Name:		kmod-kvdo
 Version:	%{kmod_driver_version}
@@ -34,20 +16,13 @@ Summary:	Kernel Modules for Virtual Data Optimizer
 License:	GPLv2+
 URL:		http://github.com/dm-vdo/kvdo
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-%if 0%{?fedora}
-# Fedora requires elfutils-libelf-devel, while rhel does not.
-BuildRequires:  elfutils-libelf-devel
-%endif
 BuildRequires:	glibc
-%if 0%{?rhel}
-# Fedora doesn't have abi whitelists.
-BuildRequires:	kernel-abi-whitelists
-%endif
 BuildRequires:	kernel-devel >= %{kmod_kernel_version}
-# kernel-debug appears to not be necessary at the moment. 
-# BuildRequires:  kernel-debug >= %{kmod_kernel_version}
+BuildRequires:  elfutils-libelf-devel
 BuildRequires:  libuuid-devel
 BuildRequires:  redhat-rpm-config
+Requires:       dkms
+Requires:       make
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
 ExcludeArch:    s390x
@@ -56,26 +31,6 @@ ExcludeArch:    ppc64
 ExcludeArch:    ppc64le
 ExcludeArch:    aarch64
 ExcludeArch:    i686
-%global kernel_source() /usr/src/kernels/%{kmod_headers_version}
-
-%global _use_internal_dependency_generator 0
-Provides:	kernel-modules = %{kmod_kernel_version}.%{_target_cpu}
-Provides:	kmod-%{kmod_name} = %{?epoch:%{epoch}:}%{version}-%{release}
-Requires(post):	%{sbindir}/weak-modules
-Requires(postun):	%{sbindir}/weak-modules
-Requires:	kernel >= %{kmod_kernel_version}
-%if 0
-Requires: firmware(%{kmod_name}) = ENTER_FIRMWARE_VERSION
-%endif
-%if "%{kmod_build_dependencies}" != ""
-BuildRequires:  %{kmod_build_dependencies}
-%endif
-%if "%{kmod_dependencies}" != ""
-Requires:       %{kmod_dependencies}
-%endif
-# if there are multiple kmods for the same driver from different vendors,
-# they should conflict with each other.
-Conflicts:	kmod-%{kmod_name}
 
 %description
 Virtual Data Optimizer (VDO) is a device mapper target that delivers
@@ -83,60 +38,13 @@ block-level deduplication, compression, and thin provisioning.
 
 This package provides the kernel modules for VDO.
 
-%if 0
-
-%package -n kmod-kvdo-firmware
-Version:	ENTER_FIRMWARE_VERSION
-Summary:	Kernel Modules for Virtual Data Optimizer
-Provides:	firmware(%{kmod_name}) = ENTER_FIRMWARE_VERSION
-Provides:	kernel-modules = %{kmod_kernel_version}.%{_target_cpu}
-%description -n  kmod-kvdo-firmware
-Virtual Data Optimizer (VDO) is a device mapper target that delivers
-block-level deduplication, compression, and thin provisioning.
-
-This package provides the firmware for VDO.
-
-%files -n kmod-kvdo-firmware
-%defattr(644,root,root,755)
-%{FIRMWARE_FILES}
-
-%endif
-
-# Development package
-%if 0%{kmod_devel_package}
-%package -n kmod-kvdo-devel
-Version:	%{kmod_driver_version}
-Requires:	kernel >= %{kmod_kernel_version}
-Summary:	Kernel Modules for Virtual Data Optimizer
-
-%description -n  kmod-kvdo-devel
-Virtual Data Optimizer (VDO) is a device mapper target that delivers
-block-level deduplication, compression, and thin provisioning.
-
-This package provides the development files for VDO.
-
-%files -n kmod-kvdo-devel
-%defattr(644,root,root,755)
-/usr/share/kmod-%{kmod_name}/Module.symvers
-%endif
-
 %post
-modules=( $(find /lib/modules/%{kmod_headers_version}/extra/kmod-%{kmod_name} | grep '\.ko$') )
-printf '%s\n' "${modules[@]}" >> /var/lib/rpm-kmod-posttrans-weak-modules-add
-
-%pretrans -p <lua>
-posix.unlink("/var/lib/rpm-kmod-posttrans-weak-modules-add")
-
-%posttrans
-if [ -f "/var/lib/rpm-kmod-posttrans-weak-modules-add" ]; then
-	modules=( $(cat /var/lib/rpm-kmod-posttrans-weak-modules-add) )
-	rm -rf /var/lib/rpm-kmod-posttrans-weak-modules-add
-	printf '%s\n' "${modules[@]}" | %{sbindir}/weak-modules --add-modules
-fi
+set -x
+/usr/sbin/dkms --rpm_safe_upgrade add -m %{kmod_name} -v %{version}-%{kmod_driver_version}
+/usr/sbin/dkms --rpm_safe_upgrade build -m %{kmod_name} -v %{version}-%{kmod_driver_version}
+/usr/sbin/dkms --rpm_safe_upgrade install -m %{kmod_name} -v %{version}-%{kmod_driver_version}
 
 %preun
-rpm -ql kmod-kvdo-%{kmod_driver_version}-%{kmod_rpm_release}%{?dist}.$(arch) | grep '\.ko$' > /var/run/rpm-kmod-%{kmod_name}-modules
-
 # Check whether kvdo or uds is loaded, and if so attempt to remove it.  A
 # failure here means there is still something using the module, which should be
 # cleared up before attempting to remove again.
@@ -145,81 +53,41 @@ for module in kvdo uds; do
     modprobe -r ${module}
   fi
 done
-
-%postun
-modules=( $(cat /var/run/rpm-kmod-%{kmod_name}-modules) )
-rm /var/run/rpm-kmod-%{kmod_name}-modules
-printf '%s\n' "${modules[@]}" | %{sbindir}/weak-modules --remove-modules
-
-%files
-%defattr(644,root,root,755)
-/lib/modules/%{kmod_headers_version}
-/etc/depmod.d/%{kmod_name}.conf
-/usr/share/doc/kmod-%{kmod_name}/greylist.txt
+/usr/sbin/dkms --rpm_safe_upgrade remove -m %{kmod_name} -v %{version}-%{kmod_driver_version} --all || :
 
 %prep
-%if 0%{?fedora}
 %setup -n kmod-%{kmod_name}-%{kmod_driver_version}
-%else
-%setup -n %{kmod_name}-%{kmod_driver_version}
-%endif
-
-%{nil}
-set -- *
-mkdir source
-mv "$@" source/
-mkdir obj
 
 %build
-rm -rf obj
-cp -r source obj
-make -C %{kernel_source} M=$PWD/obj/%{kmod_kbuild_dir} V=1 \
-	NOSTDINC_FLAGS="-I $PWD/obj/include -I $PWD/obj/include/uapi"
-# mark modules executable so that strip-to-file can strip them
-find obj/%{kmod_kbuild_dir} -name "*.ko" -type f -exec chmod u+x '{}' +
-
-whitelist="/lib/modules/kabi-current/kabi_whitelist_%{_target_cpu}"
-for modules in $( find obj/%{kmod_kbuild_dir} -name "*.ko" -type f -printf "%{findpat}\n" | sed 's|\.ko$||' | sort -u ) ; do
-	# update depmod.conf
-	module_weak_path=$(echo $modules | sed 's/[\/]*[^\/]*$//')
-	if [ -z "$module_weak_path" ]; then
-		module_weak_path=%{name}
-	else
-		module_weak_path=%{name}/$module_weak_path
-	fi
-	echo "override $(echo $modules | sed 's/.*\///') $(echo %{kmod_headers_version} | sed 's/\.[^\.]*$//').* weak-updates/$module_weak_path" >> source/depmod.conf
-
-	# update greylist
-	nm -u obj/%{kmod_kbuild_dir}/$modules.ko | sed 's/.*U //' |  sed 's/^\.//' | sort -u | while read -r symbol; do
-		grep -q "^\s*$symbol\$" $whitelist || echo "$symbol" >> source/greylist
-	done
-done
-sort -u source/greylist | uniq > source/greylist.txt
+# Nothing doing here, as we're going to build on whatever kernel we end up
+# running inside.
 
 %install
-export INSTALL_MOD_PATH=$RPM_BUILD_ROOT
-export INSTALL_MOD_DIR=extra/%{name}
-make -C %{kernel_source} modules_install V=1 \
-	M=$PWD/obj/%{kmod_kbuild_dir}
-# Cleanup unnecessary kernel-generated module dependency files.
-find $INSTALL_MOD_PATH/lib/modules -iname 'modules.*' -exec rm {} \;
+mkdir -p $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}
+cp -r * $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/
+cat > $RPM_BUILD_ROOT/%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/dkms.conf <<EOF
+PACKAGE_NAME="kvdo"
+PACKAGE_VERSION="%{version}-%{kmod_driver_version}"
+AUTOINSTALL="yes"
 
-install -m 644 -D source/depmod.conf $RPM_BUILD_ROOT/etc/depmod.d/%{kmod_name}.conf
-install -m 644 -D source/greylist.txt $RPM_BUILD_ROOT/usr/share/doc/kmod-%{kmod_name}/greylist.txt
-%if 0
-%{FIRMWARE_FILES_INSTALL}
-%endif
-%if 0%{kmod_devel_package}
-install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr/share/kmod-%{kmod_name}/Module.symvers
-%endif
+BUILT_MODULE_NAME[0]="uds"
+BUILT_MODULE_LOCATION[0]="uds"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/block/"
+STRIP[0]="no"
+
+BUILT_MODULE_NAME[1]="kvdo"
+BUILT_MODULE_LOCATION[1]="vdo"
+DEST_MODULE_LOCATION[1]="/kernel/drivers/block/"
+STRIP[1]="no"
+EOF
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%files
+%defattr(644,root,root,755)
+%{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
+
 %changelog
-* Fri Apr 27 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.35-1
-Note: This is a pre-release version, future versions of VDO may not support
-VDO devices created with this version.
-- Added validation that the release version numbers in the geometry and
-  super block match on load.
-- Fixed compilation problems on newer versions of GCC.
+* Fri Jun 01 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.71-1
+HASH(0x2042988)

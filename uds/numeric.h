@@ -16,15 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#3 $
  */
 
 #ifndef NUMERIC_H
 #define NUMERIC_H 1
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "compiler.h"
 #include "numericDefs.h"
@@ -58,7 +54,9 @@ extern "C" {
 #define UNALIGNED_WRAPPER_DEF(TYPE)                                 \
   typedef struct __attribute__((packed, may_alias)) { TYPE value; } \
   UNALIGNED_WRAPPER(TYPE)
+UNALIGNED_WRAPPER_DEF(int64_t);
 UNALIGNED_WRAPPER_DEF(uint64_t);
+UNALIGNED_WRAPPER_DEF(int32_t);
 UNALIGNED_WRAPPER_DEF(uint32_t);
 UNALIGNED_WRAPPER_DEF(uint16_t);
 
@@ -163,7 +161,7 @@ uint64_t leastCommonMultiple(uint64_t a, uint64_t b);
 bool multiplyWouldOverflow(uint64_t a, uint64_t b);
 
 /**
- * Extract a 64 bit number from a buffer stored in
+ * Extract a 64 bit unsigned number from a buffer stored in
  * big-endian representation.
  *
  * @param data The buffer from which to extract the number
@@ -181,8 +179,9 @@ static INLINE uint64_t getUInt64BE(const byte* data)
 }
 
 /**
- * Extract a 64 bit, big-endian number from a buffer at a specified offset.
- * The offset will be advanced to the first byte after the number.
+ * Extract a 64 bit unsigned big-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
  *
  * @param buffer  The buffer from which to extract the number
  * @param offset  A pointer to the offset into the buffer at which to extract
@@ -197,7 +196,7 @@ static INLINE void decodeUInt64BE(const byte *buffer,
 }
 
 /**
- * Store a 64 bit number in a buffer in
+ * Store a 64 bit unsigned number in a buffer in
  * big-endian representation.
  *
  * @param data The buffer in which to store the number
@@ -212,9 +211,9 @@ static INLINE void storeUInt64BE(byte* data, uint64_t num)
 }
 
 /**
- * Encode a 64 bit number into a buffer at a given offset using a
- * big-endian representation. The offset will be advanced to first byte
- * after the encoded number.
+ * Encode a 64 bit unsigned number into a buffer at a given offset
+ * using a big-endian representation. The offset will be advanced to
+ * first byte after the encoded number.
  *
  * @param data     The buffer to encode into
  * @param offset   A pointer to the offset at which to start encoding
@@ -229,8 +228,8 @@ static INLINE void encodeUInt64BE(byte     *data,
 }
 
 /**
- * Extract a 32 bit number from a buffer stored in
- * big-endian representation.
+ * Extract a 32 bit unsigned number from a buffer stored in big-endian
+ * representation.
  *
  * @param data The buffer from which to extract the number
  *
@@ -247,8 +246,9 @@ static INLINE uint32_t getUInt32BE(const byte* data)
 }
 
 /**
- * Extract a 32 bit, big-endian number from a buffer at a specified offset.
- * The offset will be advanced to the first byte after the number.
+ * Extract a 32 bit unsigned big-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
  *
  * @param buffer  The buffer from which to extract the number
  * @param offset  A pointer to the offset into the buffer at which to extract
@@ -362,6 +362,73 @@ static INLINE void encodeUInt16BE(byte     *data,
 }
 
 /**
+ * Extract a 64 bit signed number from a buffer stored in
+ * little-endian representation.
+ *
+ * @param data The buffer from which to extract the number
+ *
+ * @return The extracted quantity
+ **/
+__attribute__((warn_unused_result))
+static INLINE int64_t getInt64LE(const byte* data)
+{
+  int64_t num = GET_UNALIGNED(int64_t, data);
+#if BYTE_ORDER != LITTLE_ENDIAN
+  num = __builtin_bswap64(num);
+#endif
+  return num;
+}
+
+/**
+ * Extract a 64 bit signed little-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
+ *
+ * @param buffer  The buffer from which to extract the number
+ * @param offset  A pointer to the offset into the buffer at which to extract
+ * @param decoded A pointer to hold the extracted number
+ **/
+static INLINE void decodeInt64LE(const byte *buffer,
+                                 size_t     *offset,
+                                 int64_t   *decoded)
+{
+  *decoded = getInt64LE(buffer + *offset);
+  *offset += sizeof(int64_t);
+}
+
+/**
+ * Store a signed 64 bit number in a buffer in little-endian
+ * representation.
+ *
+ * @param data The buffer in which to store the number
+ * @param num  The number to store
+ **/
+static INLINE void storeInt64LE(byte* data, int64_t num)
+{
+#if BYTE_ORDER != LITTLE_ENDIAN
+  num = __builtin_bswap64(num);
+#endif
+  PUT_UNALIGNED(int64_t, data, num);
+}
+
+/**
+ * Encode a 64 bit signed number into a buffer at a given offset using
+ * a little-endian representation. The offset will be advanced to
+ * first byte after the encoded number.
+ *
+ * @param data     The buffer to encode into
+ * @param offset   A pointer to the offset at which to start encoding
+ * @param toEncode The number to encode
+ **/
+static INLINE void encodeInt64LE(byte    *data,
+                                 size_t  *offset,
+                                 int64_t  toEncode)
+{
+  storeInt64LE(data + *offset, toEncode);
+  *offset += sizeof(int64_t);
+}
+
+/**
  * Extract a 64 bit number from a buffer stored in
  * little-endian representation.
  *
@@ -380,8 +447,25 @@ static INLINE uint64_t getUInt64LE(const byte* data)
 }
 
 /**
- * Store a 64 bit number in a buffer in
- * little-endian representation.
+ * Extract a 64 bit unsigned little-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
+ *
+ * @param buffer  The buffer from which to extract the number
+ * @param offset  A pointer to the offset into the buffer at which to extract
+ * @param decoded A pointer to hold the extracted number
+ **/
+static INLINE void decodeUInt64LE(const byte *buffer,
+                                  size_t     *offset,
+                                  uint64_t   *decoded)
+{
+  *decoded = getUInt64LE(buffer + *offset);
+  *offset += sizeof(uint64_t);
+}
+
+/**
+ * Store a 64 bit unsigned number in a buffer in little-endian
+ * representation.
  *
  * @param data The buffer in which to store the number
  * @param num  The number to store
@@ -395,8 +479,93 @@ static INLINE void storeUInt64LE(byte* data, uint64_t num)
 }
 
 /**
- * Extract a 32 bit number from a buffer stored in
+ * Encode a 64 bit unsigned number into a buffer at a given offset
+ * using a little-endian representation. The offset will be advanced
+ * to first byte after the encoded number.
+ *
+ * @param data     The buffer to encode into
+ * @param offset   A pointer to the offset at which to start encoding
+ * @param toEncode The number to encode
+ **/
+static INLINE void encodeUInt64LE(byte     *data,
+                                  size_t   *offset,
+                                  uint64_t  toEncode)
+{
+  storeUInt64LE(data + *offset, toEncode);
+  *offset += sizeof(uint64_t);
+}
+
+/**
+ * Extract a 32 bit signed number from a buffer stored in
  * little-endian representation.
+ *
+ * @param data The buffer from which to extract the number
+ *
+ * @return The extracted quantity
+ **/
+__attribute__((warn_unused_result))
+static INLINE int32_t getInt32LE(const byte* data)
+{
+  int32_t num = GET_UNALIGNED(int32_t, data);
+#if BYTE_ORDER != LITTLE_ENDIAN
+  num = __builtin_bswap32(num);
+#endif
+  return num;
+}
+
+/**
+ * Extract a 32 bit signed little-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
+ *
+ * @param buffer  The buffer from which to extract the number
+ * @param offset  A pointer to the offset into the buffer at which to extract
+ * @param decoded A pointer to hold the extracted number
+ **/
+static INLINE void decodeInt32LE(const byte *buffer,
+                                 size_t     *offset,
+                                 int32_t   *decoded)
+{
+  *decoded = getInt32LE(buffer + *offset);
+  *offset += sizeof(int32_t);
+}
+
+/**
+ * Store a signed 32 bit number in a buffer in little-endian
+ * representation.
+ *
+ * @param data The buffer in which to store the number
+ * @param num  The number to store
+ **/
+static INLINE void storeInt32LE(byte* data, int32_t num)
+{
+#if BYTE_ORDER != LITTLE_ENDIAN
+  num = __builtin_bswap32(num);
+#endif
+  PUT_UNALIGNED(int32_t, data, num);
+}
+
+/**
+ * Encode a 32 bit signed number into a buffer at a given offset using
+ * a little-endian representation. The offset will be advanced to
+ * first byte after the encoded number.
+ *
+ * @param data     The buffer to encode into
+ * @param offset   A pointer to the offset at which to start encoding
+ * @param toEncode The number to encode
+ **/
+static INLINE void encodeInt32LE(byte    *data,
+                                 size_t  *offset,
+                                 int32_t  toEncode)
+{
+  storeInt32LE(data + *offset, toEncode);
+  *offset += sizeof(int32_t);
+}
+
+/**
+ * Extract a 32 bit unsigned number from a buffer stored in
+ * little-endian representation.
+
  *
  * @param data The buffer from which to extract the number
  *
@@ -413,8 +582,25 @@ static INLINE uint32_t getUInt32LE(const byte* data)
 }
 
 /**
- * Store a 32 bit number in a buffer in
- * little-endian representation.
+ * Extract a 32 bit unsigned little-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
+ *
+ * @param buffer  The buffer from which to extract the number
+ * @param offset  A pointer to the offset into the buffer at which to extract
+ * @param decoded A pointer to hold the extracted number
+ **/
+static INLINE void decodeUInt32LE(const byte *buffer,
+                                  size_t     *offset,
+                                  uint32_t   *decoded)
+{
+  *decoded = getUInt32LE(buffer + *offset);
+  *offset += sizeof(uint32_t);
+}
+
+/**
+ * Store a 32 bit unsigned number in a buffer in little-endian
+ * representation.
  *
  * @param data The buffer in which to store the number
  * @param num  The number to store
@@ -425,6 +611,23 @@ static INLINE void storeUInt32LE(byte* data, uint32_t num)
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(uint32_t, data, num);
+}
+
+/**
+ * Encode a 32 bit unsigned number into a buffer at a given offset
+ * using a little-endian representation. The offset will be advanced
+ * to first byte after the encoded number.
+ *
+ * @param data     The buffer to encode into
+ * @param offset   A pointer to the offset at which to start encoding
+ * @param toEncode The number to encode
+ **/
+static INLINE void encodeUInt32LE(byte     *data,
+                                  size_t   *offset,
+                                  uint32_t  toEncode)
+{
+  storeUInt32LE(data + *offset, toEncode);
+  *offset += sizeof(uint32_t);
 }
 
 /**
@@ -446,8 +649,25 @@ static INLINE uint16_t getUInt16LE(const byte* data)
 }
 
 /**
- * Store a 16 bit number in a buffer in
- * little-endian representation.
+ * Extract a 16 bit unsigned little-endian number from a buffer at a
+ * specified offset.  The offset will be advanced to the first byte
+ * after the number.
+ *
+ * @param buffer  The buffer from which to extract the number
+ * @param offset  A pointer to the offset into the buffer at which to
+ *                extract
+ * @param decoded A pointer to hold the extracted number
+ **/
+static INLINE void decodeUInt16LE(const byte *buffer,
+                                  size_t     *offset,
+                                  uint16_t   *decoded)
+{
+  *decoded = getUInt16LE(buffer + *offset);
+  *offset += sizeof(uint16_t);
+}
+
+/**
+ * Store a 16 bit number in a buffer in little-endian representation.
  *
  * @param data The buffer in which to store the number
  * @param num  The number to store
@@ -461,14 +681,27 @@ static INLINE void storeUInt16LE(byte* data, uint16_t num)
 }
 
 /**
+ * Encode a 16 bit unsigned number into a buffer at a given offset
+ * using a little-endian representation. The offset will be advanced
+ * to first byte after the encoded number.
+ *
+ * @param data     The buffer to encode into
+ * @param offset   A pointer to the offset at which to start encoding
+ * @param toEncode The number to encode
+ **/
+static INLINE void encodeUInt16LE(byte     *data,
+                                  size_t   *offset,
+                                  uint16_t  toEncode)
+{
+  storeUInt16LE(data + *offset, toEncode);
+  *offset += sizeof(uint16_t);
+}
+
+/**
  * Special function wrapper required for compile-time assertions. This
  * function will fail to compile if any of the uint*_t types are not of the
  * size we expect. This function should never be called.
  **/
 void numericCompileTimeAssertions(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* NUMERIC_H */

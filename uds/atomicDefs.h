@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/atomicDefs.h#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/atomicDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_ATOMIC_DEFS_H
@@ -34,6 +34,14 @@
 // Borrow this definition so our older test systems will work.
 #ifndef atomic_set_release
 #define atomic_set_release(v, i)       smp_store_release(&(v)->counter, (i))
+#endif
+
+// Some older kernels didn't have ACCESS_ONCE.
+// Very new kernels have dropped it for {READ,WRITE}_ONCE.
+// So should we, eventually.
+// Borrow this definition from our user-mode code for now.
+#ifndef ACCESS_ONCE
+#define ACCESS_ONCE(x) (*(volatile __typeof__(x) *)&(x))
 #endif
 
 #endif /* LINUX_KERNEL_ATOMIC_DEFS_H */

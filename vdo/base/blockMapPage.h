@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#2 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -25,38 +25,6 @@
 #include "blockMapEntry.h"
 #include "header.h"
 #include "types.h"
-
-enum {
-  /**
-   * The offset used to store PBNs in pre-Sodium block map pages. Used when
-   * upgrading the header format of block map pages.
-   **/
-  NEON_BLOCK_MAP_ENTRY_PBN_OFFSET = 1,
-};
-
-/**
- * The pre-sodium block map page header.
- **/
-typedef struct __attribute__((packed)) {
-  /**
-   * The nonce of the current VDO, used to determine whether or not a page has
-   * been formatted.
-   **/
-  uint64_t       nonce;
-
-  /** The number of the page, used for consistency checking */
-  PageNumber     pageID;
-
-  /**
-   * The earliest journal block that contains uncommitted updates to this
-   * page. This field is meaningless (and out of date) on disk, but written
-   * for convenience.
-   **/
-  SequenceNumber recoverySequenceNumber;
-
-  /** If this field is non-zero, this page has not yet been initialized. */
-  uint64_t       uninitialized;
-} PageHeader4_0;
 
 /**
  * The block map page header.
@@ -81,11 +49,8 @@ typedef struct __attribute__((packed)) {
   /** Whether this page has been initialized on disk (i.e. written twice). */
   bool                initialized;
 
-  /**
-   * The (positive) offset that the PBNs in the entries on this page have
-   * relative to absolute PBNs.
-   **/
-  uint8_t             entryOffset;
+  /** Formerly entryOffset; now unused since it should always be zero */
+  uint8_t             unusedZeroByte;
 
   /**
    * Whether this page is an interior tree page being written out. This field
@@ -128,19 +93,6 @@ typedef enum {
  **/
 bool isCurrentBlockMapPage(const BlockMapPage *page)
   __attribute__((warn_unused_result));
-
-/**
- * Encode a block map page entry.
- *
- * @param page  The page on which to encode the entry
- * @param slot  The slot in which to encode the entry
- * @param pbn   The absolute PhysicalBlockNumber of the entry to encode
- * @param state The mapping state of the entry to encode
- **/
-void encodeBlockMapEntry(BlockMapPage        *page,
-                         SlotNumber           slot,
-                         PhysicalBlockNumber  pbn,
-                         BlockMappingState    state);
 
 /**
  * Format a block map page in memory.

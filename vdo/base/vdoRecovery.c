@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#2 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -465,18 +465,18 @@ static void addSynthesizedEntries(VDOCompletion *completion)
     if (isInvalid(penultimateMapping)
         || !isPhysicalDataBlock(vdo->depot, pbn)) {
       // The block map contained a bad mapping, so the block map is corrupt.
-      int result = logErrorWithStringError(VDO_BAD_MAPPING,
-                                           "Read invalid mapping for pbn %"
-                                           PRIu64 " with state %u", pbn,
-                                           penultimateMapping->mappingState);
+      int result
+        = logErrorWithStringError(VDO_BAD_MAPPING,
+                                  "Read invalid mapping for pbn %"
+                                  PRIu64 " with state %u",
+                                  pbn, unpackMappingState(penultimateMapping));
       enterReadOnlyMode(&vdo->readOnlyContext, result);
       finishCompletion(&recovery->completion, result);
       return;
     }
 
     if (pbn == ZERO_BLOCK) {
-      BlockMappingState oldMappingState = penultimateMapping->mappingState;
-      if (oldMappingState != MAPPING_STATE_UNMAPPED) {
+      if (!isUnmapped(penultimateMapping)) {
         recovery->logicalBlocksUsed--;
       }
 
@@ -491,8 +491,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
     }
 
     popRingNode(&recovery->completeDecrefs);
-    BlockMappingState oldMappingState = penultimateMapping->mappingState;
-    if (oldMappingState != MAPPING_STATE_UNMAPPED) {
+    if (!isUnmapped(penultimateMapping)) {
       recovery->logicalBlocksUsed--;
     }
 
@@ -549,7 +548,7 @@ static int computeUsages(RecoveryCompletion *recovery)
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
     RecoveryJournalEntry *entry = getEntry(recovery, &recoveryPoint);
     decodeOperationAndBlockMapSlot(entry, &operation, &unused);
-    if (entry->blockMapEntry.mappingState != MAPPING_STATE_UNMAPPED) {
+    if (!isUnmapped(&entry->blockMapEntry)) {
       switch (operation) {
       case DATA_INCREMENT:
         recovery->logicalBlocksUsed++;

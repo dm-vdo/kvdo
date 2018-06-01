@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#2 $
  */
 
 #ifndef HEADER_H
@@ -167,16 +167,6 @@ int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
  * @param [out] header The header to decode
  **/
 int decodeHeader(Buffer *buffer, Header *header)
-  __attribute__((warn_unused_result));
-
-/**
- * Decode data with a header.
- *
- * @param [in]  buffer The buffer from to decode the data
- * @param [out] header The decoded header
- * @param [out] data   The decoded data
- **/
-int decodeWithHeader(Buffer *buffer, Header *header, byte *data)
   __attribute__((warn_unused_result));
 
 #endif // HEADER_H

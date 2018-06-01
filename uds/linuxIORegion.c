@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#4 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#5 $
  */
 
 #include "linuxIORegion.h"
@@ -167,7 +167,7 @@ static void lior_endio(struct bio *bio, int err)
 {
   LinuxIOCompletion *lioc = (LinuxIOCompletion *)bio->bi_private;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  lioc->result = blk_status_to_errno(bio->bi_status);
+  lioc->result = -blk_status_to_errno(bio->bi_status);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   lioc->result = -bio->bi_error;
 #else

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexRouter.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexRouter.h#3 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -25,14 +25,6 @@
 #include "compiler.h"
 #include "indexRouterStats.h"
 #include "request.h"
-
-/**
- * Router types
- **/
-typedef enum {
-  ROUTER_LOCAL,
-  ROUTER_REMOTE
-} RouterType;
 
 /**
  * Callback after a query, update or remove request completes and fills in
@@ -54,37 +46,24 @@ typedef struct indexRouterMethods IndexRouterMethods;
  * implementations.
  **/
 struct indexRouter {
-  RouterType                type;
   const IndexRouterMethods *methods;
   IndexRouterCallback       callback;
 };
-
-/**
- * Destroy an index router and free its memory.
- *
- * @param router  the index router to destroy (may be NULL)
- **/
-void freeIndexRouter(IndexRouter *router);
 
 /**
  * Index router methods as a function table in IndexRouter (see common.h).
  **/
 struct indexRouterMethods {
   /**
-   * Save the index router state to persistent storage.
+   * Optionally save the index router state to persistent storage, and always
+   * destroy the index router and free its memory.
    *
-   * @param router  The index router to save.
+   * @param router    The index router to save.
+   * @param saveFlag  True to save the index router state.
    *
    * @return        UDS_SUCCESS if successful.
    **/
-  int (*saveState)(IndexRouter *router);
-
-  /**
-   * Destroy the index router and free its memory.
-   *
-   * @param router The index router to destroy.
-   **/
-  void (*free)(IndexRouter *router);
+  int (*saveAndFree)(IndexRouter *router, bool saveFlag);
 
   /**
    * Select and return the request queue responsible for executing the next
@@ -131,15 +110,29 @@ struct indexRouterMethods {
 };
 
 /**
- * Check whether an index router is local.
+ * Optionally save the index router state to persistent storage, and always
+ * destroy the index router and free its memory.
  *
- * @param router The index router to check
+ * @param router    the index router to destroy (may be NULL)
+ * @param saveFlag  True to save the index router state.
  *
- * @return <code>true</code> if the router is local
+ * @return        UDS_SUCCESS if successful.
  **/
-static INLINE bool isRouterLocal(IndexRouter *router)
+static INLINE int saveAndFreeIndexRouter(IndexRouter *router, bool saveFlag)
 {
-  return (router->type == ROUTER_LOCAL);
+  return router->methods->saveAndFree(router, saveFlag);
+}
+
+/**
+ * Destroy an index router and free its memory.
+ *
+ * @param router  the index router to destroy (may be NULL)
+ **/
+static INLINE void freeIndexRouter(IndexRouter *router)
+{
+  if (router != NULL) {
+    saveAndFreeIndexRouter(router, false);
+  }
 }
 
 #endif /* INDEX_ROUTER_H */

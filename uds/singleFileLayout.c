@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#3 $
  */
 
 #include "singleFileLayoutInternals.h"
@@ -25,6 +25,7 @@
 
 #include "accessMode.h"
 #include "blockIORegion.h"
+#include "buffer.h"
 #include "bufferedReaderInternals.h"
 #include "bufferedWriterInternals.h"
 #include "compiler.h"
@@ -196,18 +197,138 @@ static int validateOffsetAndBlockSize(IORegion *region,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
+static int decodeIndexSaveData(Buffer *buffer, IndexSaveData *saveData)
+{
+  int result = getUInt64LEFromBuffer(buffer, &saveData->timestamp);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &saveData->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &saveData->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &saveData->unused__);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  // The unused padding has to be zeroed for correct nonce calculation
+  if (saveData->unused__ != 0) {
+    return UDS_CORRUPT_COMPONENT;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer), sizeof(*saveData));
+  if (result != UDS_SUCCESS) {
+    return UDS_CORRUPT_COMPONENT;
+  }
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int decodeRegionHeader(Buffer *buffer, RegionHeader *header)
+{
+  int result = getUInt64LEFromBuffer(buffer, &header->magic);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &header->regionBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &header->type);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &header->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &header->numRegions);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &header->payload);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer), sizeof(*header));
+  if (result != UDS_SUCCESS) {
+    return UDS_CORRUPT_COMPONENT;
+  }
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int decodeLayoutRegion(Buffer *buffer, LayoutRegion *region)
+{
+  size_t cl1 = contentLength(buffer);
+
+  int result = getUInt64LEFromBuffer(buffer, &region->startBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &region->numBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &region->checksum);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &region->kind);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &region->instance);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(cl1 - contentLength(buffer) == sizeof(*region),
+                           "%zu bytes decoded, of %zu expected",
+                           cl1 - contentLength(buffer), sizeof(*region));
+  if (result != UDS_SUCCESS) {
+    return UDS_CORRUPT_COMPONENT;
+  }
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
 static int loadRegionTable(BufferedReader *reader, RegionTable **tablePtr)
 {
-  RegionHeader header;
-  int result = readFromBufferedReader(reader, &header, sizeof(header));
+  Buffer *buffer;
+  int result = makeBuffer(sizeof(RegionHeader), &buffer);
   if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                  bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
     return logErrorWithStringError(result, "cannot read region table header");
   }
-
+  result = resetBufferEnd(buffer, bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  RegionHeader header;
+  result = decodeRegionHeader(buffer, &header);
+  freeBuffer(&buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
   if (header.magic != REGION_MAGIC) {
     return UDS_NO_INDEX;
   }
-
   if (header.version != 1) {
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
                                    "unknown region table version %" PRIu16,
@@ -222,16 +343,89 @@ static int loadRegionTable(BufferedReader *reader, RegionTable **tablePtr)
   }
 
   table->header = header;
-  result = readFromBufferedReader(reader, table->regions,
-                                  header.numRegions * sizeof(LayoutRegion));
+  result = makeBuffer(header.numRegions * sizeof(LayoutRegion), &buffer);
   if (result != UDS_SUCCESS) {
     FREE(table);
+    return result;
+  }
+  result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                  bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    FREE(table);
+    freeBuffer(&buffer);
     return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
                                    "cannot read region table layouts");
   }
-
+  result = resetBufferEnd(buffer, bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    FREE(table);
+    freeBuffer(&buffer);
+    return result;
+  }
+  for (unsigned int i = 0; i < header.numRegions; i++){
+    result = decodeLayoutRegion(buffer, &table->regions[i]);
+    if (result != UDS_SUCCESS) {
+      FREE(table);
+      freeBuffer(&buffer);
+      return result;
+    }
+  }
+  freeBuffer(&buffer);
   *tablePtr = table;
   return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int decodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
+{
+  int result = getBytesFromBuffer(buffer, 32, super->magicLabel);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getBytesFromBuffer(buffer, 32, super->nonceInfo);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &super->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &super->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &super->blockSize);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &super->numIndexes);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &super->maxSaves);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = skipForward(buffer, 4);      // aligment
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &super->openChapterBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &super->pageMapBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer), sizeof(*super));
+  if (result != UDS_SUCCESS) {
+    return UDS_CORRUPT_COMPONENT;
+  }
+  return result;
 }
 
 /*****************************************************************************/
@@ -251,7 +445,24 @@ static int readSuperBlockData(BufferedReader *reader,
                                    "super block magic label size incorrect");
   }
 
-  int result = readFromBufferedReader(reader, super, savedSize);
+  Buffer *buffer;
+  int result = makeBuffer(savedSize, &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                  bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return logErrorWithStringError(result, "cannot read region table header");
+  }
+  result = resetBufferEnd(buffer, bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = decodeSuperBlockData(buffer, super);
+  freeBuffer(&buffer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot read super block data");
   }
@@ -369,10 +580,29 @@ static int readIndexSaveData(BufferedReader  *reader,
                                      savedSize);
     }
 
-    result = readFromBufferedReader(reader, saveData, sizeof(*saveData));
+    Buffer *buffer;
+    result = makeBuffer(sizeof(*saveData), &buffer);
     if (result != UDS_SUCCESS) {
+      return result;
+    }
+    result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                    bufferLength(buffer));
+    if (result != UDS_SUCCESS) {
+      freeBuffer(&buffer);
       return logErrorWithStringError(result, "cannot read index save data");
     }
+    result = resetBufferEnd(buffer, bufferLength(buffer));
+    if (result != UDS_SUCCESS) {
+      freeBuffer(&buffer);
+      return result;
+    }
+
+    result = decodeIndexSaveData(buffer, saveData);
+    freeBuffer(&buffer);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
     savedSize -= sizeof(IndexSaveData);
 
     if (saveData->version > 1) {
@@ -860,17 +1090,15 @@ static void defineSubIndexNonce(SubIndexLayout *sil,
   struct subIndexNonceData {
     uint64_t offset;
     uint16_t indexId;
-  } nonceData;
-  memset(&nonceData, 0, sizeof(nonceData));
-
-  nonceData.offset  = sil->subIndex.startBlock;
-  nonceData.indexId = indexId;
-
-  sil->nonce = generateSecondaryNonce(masterNonce, &nonceData,
-                                      sizeof(nonceData));
+  };
+  byte buffer[sizeof(struct subIndexNonceData)] = { 0 };
+  size_t offset = 0;
+  encodeUInt64LE(buffer, &offset, sil->subIndex.startBlock);
+  encodeUInt16LE(buffer, &offset, indexId);
+  sil->nonce = generateSecondaryNonce(masterNonce, buffer, sizeof(buffer));
   if (sil->nonce == 0) {
-    sil->nonce = generateSecondaryNonce(~masterNonce + 1, &nonceData,
-                                        sizeof(nonceData));
+    sil->nonce = generateSecondaryNonce(~masterNonce + 1,
+                                        buffer, sizeof(buffer));
   }
 }
 
@@ -1146,6 +1374,150 @@ static int makeSingleFileRegionTable(SingleFileLayout  *sfl,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
+static int encodeIndexSaveData(Buffer *buffer, IndexSaveData *saveData)
+{
+  int result = putUInt64LEIntoBuffer(buffer, saveData->timestamp);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, saveData->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, saveData->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = zeroBytes(buffer, 4);        /* padding */
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof *saveData,
+                           "%zu bytes encoded of %zu expected",
+                           contentLength(buffer), sizeof(*saveData));
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int encodeRegionHeader(Buffer *buffer, RegionHeader *header)
+{
+  size_t startingLength = contentLength(buffer);
+  int result = putUInt64LEIntoBuffer(buffer, REGION_MAGIC);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, header->regionBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, header->type);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, header->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, header->numRegions);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, header->payload);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result
+    = ASSERT_LOG_ONLY(contentLength(buffer) - startingLength == sizeof(*header),
+                      "%zu bytes encoded, of %zu expected",
+                      contentLength(buffer) - startingLength, sizeof(*header));
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int encodeLayoutRegion(Buffer *buffer, LayoutRegion *region)
+{
+  size_t startingLength = contentLength(buffer);
+  int result = putUInt64LEIntoBuffer(buffer, region->startBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, region->numBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, region->checksum);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, region->kind);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, region->instance);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result
+    = ASSERT_LOG_ONLY(contentLength(buffer) - startingLength == sizeof(*region),
+                      "%zu bytes encoded, of %zu expected",
+                      contentLength(buffer) - startingLength, sizeof(*region));
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
+static int encodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
+{
+  int result = putBytes(buffer, 32, &super->magicLabel);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putBytes(buffer, 32, &super->nonceInfo);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, super->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, super->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, super->blockSize);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, super->numIndexes);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt16LEIntoBuffer(buffer, super->maxSaves);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = zeroBytes(buffer, 4);      // aligment
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, super->openChapterBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, super->pageMapBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(SuperBlockData),
+                           "%zu bytes encoded, of %zu expected",
+                           contentLength(buffer), sizeof(SuperBlockData));
+  return result;
+}
+
+/*****************************************************************************/
+__attribute__((warn_unused_result))
 static int writeSingleFileHeader(SingleFileLayout *sfl,
                                  RegionTable      *table,
                                  unsigned int      numRegions,
@@ -1161,16 +1533,47 @@ static int writeSingleFileHeader(SingleFileLayout *sfl,
   };
 
   size_t tableSize = sizeof(RegionTable) + numRegions * sizeof(LayoutRegion);
-  int result = writeToBufferedWriter(writer, table, tableSize);
+    
+  Buffer *buffer;
+  int result = makeBuffer(tableSize, &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = writeToBufferedWriter(writer, &sfl->super, sizeof(sfl->super));
+  result = encodeRegionHeader(buffer, &table->header);
+
+  for (unsigned int i = 0; i < numRegions; i++) {
+    if (result == UDS_SUCCESS) {
+      result = encodeLayoutRegion(buffer, &table->regions[i]);
+    }
+  }
+
+  if (result == UDS_SUCCESS) {
+    result = writeToBufferedWriter(writer,  getBufferContents(buffer),
+                                   contentLength(buffer));
+  }
+  freeBuffer(&buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
+  result = makeBuffer(sizeof(sfl->super), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = encodeSuperBlockData(buffer, &sfl->super);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+
+  result = writeToBufferedWriter(writer,  getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
   return flushBufferedWriter(writer);
 }
 
@@ -1238,41 +1641,86 @@ static void sfl_freeMe(IndexLayout *layout)
 
 /*****************************************************************************/
 
-static const byte INDEX_SEAL_MAGIC[]          = "ALBIREO_INDEX_SEAL_";
-static const byte INDEX_SEAL_CURRENT[]        = "ALBIREO_INDEX_SEAL_01";
+static const byte INDEX_SEAL_MAGIC[]          = "ALBIREO_INDEX_SEAL_01";
 
 enum {
   INDEX_SEAL_MAGIC_LENGTH = sizeof(INDEX_SEAL_MAGIC) - 1,
-  INDEX_SEAL_VERSION_LENGTH = 2,
-  INDEX_SEAL_HEADER_LENGTH =
-    INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_VERSION_LENGTH,
+  INDEX_SEAL_PADDING = (8 - (INDEX_SEAL_MAGIC_LENGTH % 8)) & 7,
 };
 
 typedef struct indexSealData {
-  byte     header[INDEX_SEAL_HEADER_LENGTH];
-  AbsTime  timestamp;
+  byte     header[INDEX_SEAL_MAGIC_LENGTH];
+  byte     unused__[INDEX_SEAL_PADDING];
+  uint64_t timestamp;
   uint64_t hash;
 } IndexSealData;
 
 /*****************************************************************************/
 static int sfl_writeSeal(IndexLayout *layout)
 {
+  static AbsTime epoch = ABSTIME_EPOCH;
   SingleFileLayout *sfl = asSingleFileLayout(layout);
 
-  BufferedWriter *writer = NULL;
-  int result = getSingleFileLayoutWriter(sfl, &sfl->seal, &writer);
+  Buffer *buffer;
+  int result = makeBuffer(sizeof(IndexSealData), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  IndexSealData data = (IndexSealData) {
-    .timestamp = currentTime(CT_REALTIME),
-    .hash      = 0,
-  };
-  memcpy(data.header, INDEX_SEAL_CURRENT, INDEX_SEAL_HEADER_LENGTH);
-  data.hash = generateSecondaryNonce(sfl->super.nonce, &data, sizeof(data));
+  result = putBytes(buffer, INDEX_SEAL_MAGIC_LENGTH, INDEX_SEAL_MAGIC);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  // Padding
+  result = zeroBytes(buffer, INDEX_SEAL_PADDING);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  uint64_t timestamp = timeDifference(currentTime(CT_REALTIME), epoch);
+  result = putUInt64LEIntoBuffer(buffer, timestamp);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = zeroBytes(buffer, sizeof(((IndexSealData *)0)->hash));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(IndexSealData),
+                           "%zu bytes encoded, of %zu expected",
+                           contentLength(buffer), sizeof(IndexSealData));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  uint64_t nonce = generateSecondaryNonce(sfl->super.nonce,
+                                          getBufferContents(buffer),
+                                          sizeof(IndexSealData));
+  result = resetBufferEnd(buffer,
+                          contentLength(buffer) - sizeof(IndexSealData));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, nonce);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
 
-  result = writeToBufferedWriter(writer, &data, sizeof(data));
+  BufferedWriter *writer = NULL;
+  result = getSingleFileLayoutWriter(sfl, &sfl->seal, &writer);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+
+  result = writeToBufferedWriter(writer, getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
   if (result != UDS_SUCCESS) {
     freeBufferedWriter(writer);
     return logErrorWithStringError(result, "failed to write safety seal");
@@ -1340,23 +1788,18 @@ static int sfl_checkSealed(IndexLayout *layout, bool *sealed)
     return result;
   }
 
-  IndexSealData data;
-  memset(&data, 0, sizeof(data));
-
   bool isSealed = false;
-
-  result = readFromBufferedReader(reader, &data, sizeof(data));
+  byte buffer[sizeof(IndexSealData)];
+  result = readFromBufferedReader(reader, buffer, sizeof(buffer));
   if ((result == UDS_SUCCESS)
-      && (memcmp(&data.header, INDEX_SEAL_CURRENT, INDEX_SEAL_HEADER_LENGTH)
-          == 0)) {
-    uint64_t hash = data.hash;
-    data.hash = 0;
-    isSealed = (hash == generateSecondaryNonce(sfl->super.nonce, &data,
-                                               sizeof(data)));
+      && (memcmp(buffer, INDEX_SEAL_MAGIC, INDEX_SEAL_MAGIC_LENGTH) == 0)) {
+    size_t offset = INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_PADDING;      
+    uint64_t hash = getUInt64LE(buffer + offset);
+    storeUInt64LE(buffer + offset, 0L);
+    isSealed = (hash == generateSecondaryNonce(sfl->super.nonce, &buffer,
+                                               sizeof(buffer)));
   }
-
   freeBufferedReader(reader);
-
   if (sealed != NULL) {
     *sealed = isSealed;
   }
@@ -1527,12 +1970,22 @@ static uint64_t generateIndexSaveNonce(uint64_t         volumeNonce,
     IndexSaveData data;
     uint64_t      offset;
   } nonceData;
-  memset(&nonceData, 0, sizeof(nonceData));
+  
   nonceData.data = isl->saveData;
   nonceData.data.nonce = 0;
   nonceData.offset = isl->indexSave.startBlock;
 
-  return generateSecondaryNonce(volumeNonce, &nonceData, sizeof(nonceData));
+  byte buffer[sizeof(nonceData)];
+  size_t offset = 0;
+  encodeUInt64LE(buffer, &offset, nonceData.data.timestamp);
+  encodeUInt64LE(buffer, &offset, nonceData.data.nonce);
+  encodeUInt32LE(buffer, &offset, nonceData.data.version);
+  encodeUInt32LE(buffer, &offset, 0U);    // padding
+  encodeUInt64LE(buffer, &offset, nonceData.offset);
+  ASSERT_LOG_ONLY(offset == sizeof(nonceData),
+                  "%zu bytes encoded of %zu expected",
+                  offset, sizeof(nonceData));
+  return generateSecondaryNonce(volumeNonce, buffer, sizeof(buffer));
 }
 
 /*****************************************************************************/
@@ -1826,12 +2279,54 @@ static int writeIndexSaveHeader(IndexSaveLayout *isl,
   };
 
   size_t tableSize = sizeof(RegionTable) + numRegions * sizeof(LayoutRegion);
-  int result = writeToBufferedWriter(writer, table, tableSize);
+  Buffer *buffer;
+  int result = makeBuffer(tableSize, &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = writeToBufferedWriter(writer, &isl->saveData, sizeof(isl->saveData));
+  result = encodeRegionHeader(buffer, &table->header);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+
+  for (unsigned int i = 0; i < numRegions; i++) {
+    result = encodeLayoutRegion(buffer, &table->regions[i]);
+    if (result != UDS_SUCCESS) {
+      freeBuffer(&buffer);
+      return result;
+    }
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == tableSize,
+                           "%zu bytes encoded of %zu expected",
+                           contentLength(buffer), tableSize);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+
+  result = writeToBufferedWriter(writer,  getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = makeBuffer(sizeof(isl->saveData), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = encodeIndexSaveData(buffer,  &isl->saveData);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+
+  result = writeToBufferedWriter(writer, getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }

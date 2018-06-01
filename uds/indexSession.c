@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#4 $
  */
 
 #include "indexSession.h"
@@ -139,23 +139,11 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
 }
 
 /**********************************************************************/
-static int saveIndexSession(IndexSession *indexSession)
-{
-  if (indexSession == NULL) {
-    return UDS_SUCCESS;
-  }
-
-  int result = saveGrid(indexSession->grid);
-  freeGrid(indexSession->grid);
-  return result;
-}
-
-/**********************************************************************/
 int saveAndFreeIndexSession(IndexSession *indexSession)
 {
-  int result = saveIndexSession(indexSession);
+  int result = saveAndFreeGrid(indexSession->grid, true);
   if (result != UDS_SUCCESS) {
-    logInfoWithStringError(result, "ignoring error from saveIndexSession");
+    logInfoWithStringError(result, "ignoring error from saveAndFreeGrid");
   }
   requestQueueFinish(indexSession->callbackQueue);
   indexSession->callbackQueue = NULL;

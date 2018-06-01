@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#3 $
  */
 
 #include "blockMap.h"
@@ -946,23 +946,20 @@ static void setupMappedBlock(DataVIO   *dataVIO,
  * Decode and validate a block map entry and attempt to use it to set the
  * mapped location of a DataVIO.
  *
- * @param dataVIO      The DataVIO to update with the map entry
- * @param entry        The block map entry for the logical block
- * @param entryOffset  The offset to apply when decoding the entry
+ * @param dataVIO  The DataVIO to update with the map entry
+ * @param entry    The block map entry for the logical block
  *
  * @return VDO_SUCCESS or VDO_BAD_MAPPING if the map entry is invalid
  *         or an error code for any other failure
  **/
 __attribute__((warn_unused_result))
-static int setMappedEntry(DataVIO             *dataVIO,
-                          const BlockMapEntry *entry,
-                          uint8_t              entryOffset)
+static int setMappedEntry(DataVIO *dataVIO, const BlockMapEntry *entry)
 {
   // Unpack the PBN for logging purposes even if the entry is invalid.
-  PhysicalBlockNumber pbn = unpackOffsetPBN(entry, entryOffset);
+  PhysicalBlockNumber pbn = unpackPBN(entry);
 
   if (!isInvalid(entry)) {
-    int result = setMappedLocation(dataVIO, pbn, entry->mappingState);
+    int result = setMappedLocation(dataVIO, pbn, unpackMappingState(entry));
     /*
      * Return success and all errors not specifically known to be errors from
      * validating the location. Yes, this expression is redundant; it is
@@ -978,7 +975,7 @@ static int setMappedEntry(DataVIO             *dataVIO,
   // converting all cases to VDO_BAD_MAPPING.
   logErrorWithStringError(VDO_BAD_MAPPING, "PBN %" PRIu64
                           " with state %u read from the block map was invalid",
-                          pbn, entry->mappingState);
+                          pbn, unpackMappingState(entry));
 
   // A read VIO has no option but to report the bad mapping--reading
   // zeros would be hiding known data loss.
@@ -1013,7 +1010,7 @@ static void getMappingFromFetchedPage(VDOCompletion *completion)
   BlockMapTreeSlot    *treeSlot = &dataVIO->treeLock.treeSlots[0];
   const BlockMapEntry *entry    = &page->entries[treeSlot->blockMapSlot.slot];
 
-  result = setMappedEntry(dataVIO, entry, page->header.entryOffset);
+  result = setMappedEntry(dataVIO, entry);
   finishProcessingPage(completion, result);
 }
 

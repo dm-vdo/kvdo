@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/context.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.h#3 $
  */
 
 #ifndef CONTEXT_H
@@ -143,17 +143,6 @@ int flushContext(unsigned int contextId) __attribute__((warn_unused_result));
  * @param contextId   The id of the context to close
  **/
 int closeContext(unsigned int contextId) __attribute__((warn_unused_result));
-
-/**
- * Get the configuration associated with a given context.
- *
- * @param contextId   The id of the context
- * @param conf        A pointer to hold the configuration
- *
- * @return UDS_SUCCESS or an error
- **/
-int getConfiguration(unsigned int contextId, UdsConfiguration *conf)
-  __attribute__((warn_unused_result));
 
 /**
  * Get the index statistics for the index associated with a given context.

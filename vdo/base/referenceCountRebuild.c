@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#2 $
  */
 
 #include "referenceCountRebuild.h"
@@ -287,7 +287,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
          slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
       const BlockMapEntry *entry = &page->entries[slot];
       if (!isUnmapped(entry)) {
-        encodeBlockMapEntry(page, slot, ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+        page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
         requestVDOPageWrite(completion);
       }
     }
@@ -298,7 +298,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
     const BlockMapEntry *entry = &page->entries[slot];
     if (isInvalid(entry)) {
       // This entry is invalid, so remove it from the page.
-      encodeBlockMapEntry(page, slot, ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+      page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
       continue;
     }
@@ -308,7 +308,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
     }
 
     (*rebuild->logicalBlocksUsed)++;
-    PhysicalBlockNumber pbn = unpackOffsetPBN(entry, page->header.entryOffset);
+    PhysicalBlockNumber pbn = unpackPBN(entry);
     if (pbn == ZERO_BLOCK) {
       continue;
     }
@@ -316,7 +316,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
     if (!isPhysicalDataBlock(rebuild->depot, pbn)) {
       // This is a nonsense mapping. Remove it from the map so we're at least
       // consistent and mark the page dirty.
-      encodeBlockMapEntry(page, slot, ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+      page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
       continue;
     }
@@ -329,7 +329,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
                               "Could not adjust reference count for "
                               "PBN %" PRIu64 ", slot %u mapped to PBN "
                               "%" PRIu64, page->header.pbn, slot, pbn);
-      encodeBlockMapEntry(page, slot, ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+      page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
     }
   }

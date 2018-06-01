@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapEntry.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapEntry.h#3 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -24,6 +24,7 @@
 
 #include "blockMappingState.h"
 #include "constants.h"
+#include "numeric.h"
 #include "types.h"
 
 /**
@@ -33,10 +34,36 @@
  * terabytes with a 4KB block size) and a 4-bit encoding of a
  * BlockMappingState.
  **/
-typedef struct __attribute__((packed)) blockMapEntry {
-  unsigned mappingState  : 4;   // The 4-bit BlockMappingState
-  unsigned pbnHighNibble : 4;   // 4 highest bits of the physical block number
-  uint32_t pbnLowWord;          // 32 low-order bits of the PBN
+typedef union __attribute__((packed)) blockMapEntry {
+  struct __attribute__((packed)) {
+    /**
+     * Bits 7..4: The four highest bits of the 36-bit physical block number
+     * Bits 3..0: The 4-bit BlockMappingState
+     **/
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    unsigned mappingState  : 4;
+    unsigned pbnHighNibble : 4;
+#else
+    unsigned pbnHighNibble : 4;
+    unsigned mappingState  : 4;
+#endif
+
+    /** 32 low-order bits of the 36-bit PBN, in little-endian byte order */
+    byte pbnLowWord[4];
+  } fields;
+
+  // A raw view of the packed encoding.
+  uint8_t raw[5];
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // This view is only valid on little-endian machines and is only present for
+  // ease of directly examining packed entries in GDB.
+  struct __attribute__((packed)) {
+    unsigned mappingState  : 4;
+    unsigned pbnHighNibble : 4;
+    uint32_t pbnLowWord;
+  } littleEndian;
+#endif
 } BlockMapEntry;
 
 /**
@@ -48,36 +75,34 @@ typedef struct __attribute__((packed)) blockMapEntry {
  **/
 static inline PhysicalBlockNumber unpackPBN(const BlockMapEntry *entry)
 {
-  return (((PhysicalBlockNumber) entry->pbnHighNibble << 32)
-          | entry->pbnLowWord);
+  PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
+  PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
+  return ((high4 << 32) | low32);
 }
 
 /**
- * Unpack a packed PhysicalBlockNumber from a BlockMapEntry with an offset
+ * Unpack the BlockMappingState encoded in a BlockMapEntry.
  *
- * @param entry  The entry to unpack
- * @param offset  The offset of the PBN from its absolute PBN
+ * @param entry          A pointer to the entry
  *
- * @return the unpacked representation of the absolute physical block number
+ * @return the unpacked representation of the mapping state
  **/
-static inline PhysicalBlockNumber unpackOffsetPBN(const BlockMapEntry *entry,
-                                                  uint8_t              offset)
+static inline BlockMappingState unpackMappingState(const BlockMapEntry *entry)
 {
-  PhysicalBlockNumber pbn = unpackPBN(entry);
-  return (pbn == ZERO_BLOCK) ? pbn : pbn + offset;
+  return entry->fields.mappingState;
 }
 
 /**********************************************************************/
 static inline bool isUnmapped(const BlockMapEntry *entry)
 {
-  return (entry->mappingState == MAPPING_STATE_UNMAPPED);
+  return (unpackMappingState(entry) == MAPPING_STATE_UNMAPPED);
 }
 
 /**********************************************************************/
 static inline bool isInvalid(const BlockMapEntry *entry)
 {
   PhysicalBlockNumber pbn = unpackPBN(entry);
-  return (((pbn == ZERO_BLOCK) && isCompressed(entry->mappingState))
+  return (((pbn == ZERO_BLOCK) && isCompressed(unpackMappingState(entry)))
           || ((pbn != ZERO_BLOCK) && isUnmapped(entry)));
 }
 
@@ -95,11 +120,11 @@ static inline bool isInvalid(const BlockMapEntry *entry)
 static inline BlockMapEntry packPBN(PhysicalBlockNumber pbn,
                                     BlockMappingState   mappingState)
 {
-  return (BlockMapEntry) {
-    .mappingState  = mappingState,
-    .pbnHighNibble = ((pbn >> 32) & 0x0F),
-    .pbnLowWord    = (pbn & 0xFFFFFFFF),
-  };
+  BlockMapEntry entry;
+  entry.fields.mappingState  = (mappingState & 0x0F);
+  entry.fields.pbnHighNibble = ((pbn >> 32) & 0x0F),
+  storeUInt32LE(entry.fields.pbnLowWord, pbn & UINT_MAX);
+  return entry;
 }
 
 #endif // BLOCK_MAP_ENTRY_H

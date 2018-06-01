@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.h#5 $
  */
 
 #ifndef VOLUME_H
@@ -134,16 +134,6 @@ int makeVolume(const Configuration  *config,
 void freeVolume(Volume *volume);
 
 /**
- * Close a volume. This does not free memory.
- *
- * @param volume The volume to close.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int closeVolume(Volume *volume)
-  __attribute__((warn_unused_result));
-
-/**
  * Enqueue a page read.
  *
  * @param volume       the volume
@@ -207,10 +197,10 @@ int formatVolume(IORegion *region, const Geometry *geometry)
  *              identical and maintain the invariant that
  *              pcn == vcn % chaptersPerVolume.
  **/
-int findVolumeChapterBoundaries(const Volume *volume,
-                                uint64_t     *lowestVCN,
-                                uint64_t     *highestVCN,
-                                bool         *isEmpty)
+int findVolumeChapterBoundaries(Volume   *volume,
+                                uint64_t *lowestVCN,
+                                uint64_t *highestVCN,
+                                bool     *isEmpty)
   __attribute__((warn_unused_result));
 
 /**
@@ -350,9 +340,9 @@ int writeChapter(Volume                 *volume,
  *
  * @return UDS_SUCESS or an error code
  **/
-int readPageFromVolume(Volume        *volume,
-                       unsigned int   physicalPage,
-                       CachedPage    *entry)
+int readPageFromVolume(const Volume *volume,
+                       unsigned int  physicalPage,
+                       CachedPage   *entry)
   __attribute__((warn_unused_result));
 
 /**
@@ -448,22 +438,22 @@ int getPageProtected(Volume          *volume,
  * multi-threading to access the volume. These include rebuild, volume
  * explorer, and certain unit tests.
  *
- *
- * @param volume      The volume containing the page
- * @param request     The request originating the search
- * @param chapter     The number of the chapter containing the page
- * @param pageNumber  The number of the page
- * @param probeType   The type of cache access being done
- * @param pagePtr     A pointer to hold the retrieved page
+ * @param volume        The volume containing the page
+ * @param chapter       The number of the chapter containing the page
+ * @param pageNumber    The number of the page
+ * @param probeType     The type of cache access being done
+ * @param dataPtr       Pointer to hold the retrieved page, NULL if not wanted
+ * @param indexPagePtr  Pointer to hold the retrieved chapter index page, or
+ *                      NULL if not wanted
  *
  * @return UDS_SUCESS or an error code
  **/
-int getPage(Volume          *volume,
-            Request         *request,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **pagePtr)
+int getPage(Volume            *volume,
+            unsigned int       chapter,
+            unsigned int       pageNumber,
+            CacheProbeType     probeType,
+            byte             **dataPtr,
+            ChapterIndexPage **indexPagePtr)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/
@@ -481,16 +471,14 @@ off_t offsetForChapter(const Geometry *geometry,
 void getCacheCounters(Volume *volume, CacheCounters *counters);
 
 /**********************************************************************/
-int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
-                                    unsigned int    maxBadChapters,
-                                    uint64_t       *lowestVCN,
-                                    uint64_t       *highestVCN,
-                                    int (*probeFunc)(const void   *aux,
+int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
+                                    unsigned int  maxBadChapters,
+                                    uint64_t     *lowestVCN,
+                                    uint64_t     *highestVCN,
+                                    int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
-                                                     uint64_t     *vcn,
-                                                     byte         *buffer),
-                                    const void     *aux,
-                                    byte           *buffer)
+                                                     uint64_t     *vcn),
+                                    void *aux)
   __attribute__((warn_unused_result));
 
 #endif /* VOLUME_H */

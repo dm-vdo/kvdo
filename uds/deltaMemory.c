@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaMemory.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaMemory.c#3 $
  */
 #include "deltaMemory.h"
 
 #include "bits.h"
+#include "buffer.h"
 #include "compiler.h"
 #include "errors.h"
 #include "featureDefs.h"
@@ -185,19 +186,23 @@ void emptyDeltaLists(DeltaMemory *deltaMemory)
 
 /**********************************************************************/
 /**
- * Compute and initialize the Huffman coding parameters
+ * Compute the Huffman coding parameters for the given mean delta
  *
- * @param deltaMemory  The delta memory to initialize
- * @param meanDelta    The mean delta value
+ * @param meanDelta  The mean delta value
+ * @param minBits    The number of bits in the minimal key code
+ * @param minKeys    The number of keys used in a minimal code
+ * @param incrKeys   The number of keys used for another code bit
  **/
-static void initializeCodingConstants(DeltaMemory *deltaMemory,
-                                      unsigned int meanDelta)
+static void computeCodingConstants(unsigned int    meanDelta,
+                                   unsigned short *minBits,
+                                   unsigned int   *minKeys,
+                                   unsigned int   *incrKeys)
 {
   // We want to compute the rounded value of log(2) * meanDelta.  Since we
   // cannot always use floating point, use a really good integer approximation.
-  deltaMemory->incrKeys = (836158UL * meanDelta + 603160UL) / 1206321UL;
-  deltaMemory->minBits  = computeBits(deltaMemory->incrKeys + 1);
-  deltaMemory->minKeys  = (1 << deltaMemory->minBits) - deltaMemory->incrKeys;
+  *incrKeys = (836158UL * meanDelta + 603160UL) / 1206321UL;
+  *minBits  = computeBits(*incrKeys + 1);
+  *minKeys  = (1 << *minBits) - *incrKeys;
 }
 
 /**********************************************************************/
@@ -275,7 +280,8 @@ int initializeDeltaMemory(DeltaMemory *deltaMemory, size_t size,
     return result;
   }
 
-  initializeCodingConstants(deltaMemory, meanDelta);
+  computeCodingConstants(meanDelta, &deltaMemory->minBits,
+                         &deltaMemory->minKeys, &deltaMemory->incrKeys);
   deltaMemory->valueBits       = numPayloadBits;
   deltaMemory->memory          = memory;
   deltaMemory->deltaLists      = NULL;
@@ -326,7 +332,8 @@ void initializeDeltaMemoryPage(DeltaMemory *deltaMemory, byte *memory,
                                unsigned int meanDelta,
                                unsigned int numPayloadBits)
 {
-  initializeCodingConstants(deltaMemory, meanDelta);
+  computeCodingConstants(meanDelta, &deltaMemory->minBits,
+                         &deltaMemory->minKeys, &deltaMemory->incrKeys);
   deltaMemory->valueBits       = numPayloadBits;
   deltaMemory->memory          = memory;
   deltaMemory->deltaLists      = NULL;
@@ -372,12 +379,65 @@ int startRestoringDeltaMemory(DeltaMemory *deltaMemory)
 }
 
 /**********************************************************************/
+__attribute__((warn_unused_result))
+static int decodeDeltaListSaveInfo(Buffer *buffer, DeltaListSaveInfo *dlsi)
+{
+  int result = getByte(buffer, &dlsi->tag);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getByte(buffer, &dlsi->bitOffset);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt16LEFromBuffer(buffer, &dlsi->byteCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &dlsi->index);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer) - contentLength(buffer),
+                           bufferLength(buffer));
+  return result;
+}
+
+/**********************************************************************/
+__attribute__((warn_unused_result))
+static int readDeltaListSaveInfo(BufferedReader *reader,
+                                 DeltaListSaveInfo *dlsi)
+{
+  Buffer *buffer;
+  
+  int result = makeBuffer(sizeof(*dlsi), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                  bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = resetBufferEnd(buffer, bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = decodeDeltaListSaveInfo(buffer, dlsi);
+  freeBuffer(&buffer);
+  return result;
+}
+
+/**********************************************************************/
 int readSavedDeltaList(DeltaListSaveInfo *dlsi,
                        byte data[DELTA_LIST_MAX_BYTE_COUNT],
                        BufferedReader *bufferedReader)
 {
-  int result = readFromBufferedReader(bufferedReader, (byte *) dlsi,
-                                      sizeof(DeltaListSaveInfo));
+  int result = readDeltaListSaveInfo(bufferedReader, dlsi);
   if (result == UDS_END_OF_FILE) {
     return UDS_END_OF_FILE;
   }
@@ -477,6 +537,25 @@ void abortSavingDeltaMemory(DeltaMemory *deltaMemory)
 }
 
 /**********************************************************************/
+static void encodeDeltaListSaveInfo(byte *buffer, DeltaListSaveInfo *dlsi)
+{
+  buffer[0] = dlsi->tag;
+  buffer[1] = dlsi->bitOffset;
+  storeUInt16LE(&buffer[2], dlsi->byteCount);
+  storeUInt32LE(&buffer[4], dlsi->index);
+}
+
+/**********************************************************************/
+__attribute__((warn_unused_result))
+static int writeDeltaListSaveInfo(BufferedWriter *bufferedWriter,
+                                  DeltaListSaveInfo *dlsi)
+{
+  byte buffer[sizeof(DeltaListSaveInfo)];
+  encodeDeltaListSaveInfo(buffer, dlsi);
+  return writeToBufferedWriter(bufferedWriter, buffer, sizeof(buffer));
+}
+
+/**********************************************************************/
 void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
 {
   ASSERT_LOG_ONLY((getField(deltaMemory->flags, flushIndex, 1) != 0),
@@ -490,9 +569,8 @@ void flushDeltaList(DeltaMemory *deltaMemory, unsigned int flushIndex)
   dlsi.bitOffset = getDeltaListStart(deltaList) % CHAR_BIT;
   dlsi.byteCount = getDeltaListByteSize(deltaList);
   dlsi.index     = deltaMemory->firstList + flushIndex;
-  int result = writeToBufferedWriter(deltaMemory->bufferedWriter,
-                                     (const byte *) &dlsi,
-                                     sizeof(DeltaListSaveInfo));
+
+  int result = writeDeltaListSaveInfo(deltaMemory->bufferedWriter, &dlsi);
   if (result != UDS_SUCCESS) {
     if (deltaMemory->transferStatus == UDS_SUCCESS) {
       logWarningWithStringError(result, "failed to write delta list memory");
@@ -673,9 +751,9 @@ size_t getDeltaMemoryAllocated(const DeltaMemory *deltaMemory)
 size_t getDeltaMemorySize(unsigned long numEntries, unsigned int meanDelta,
                           unsigned int numPayloadBits)
 {
-  DeltaMemory deltaMemory;
-  initializeCodingConstants(&deltaMemory, meanDelta);
-  // On average, each delta is encoded into about  minBits+1.5 bits.
-  return (numEntries * (numPayloadBits + deltaMemory.minBits + 1)
-          + numEntries / 2);
+  unsigned short minBits;
+  unsigned int incrKeys, minKeys;
+  computeCodingConstants(meanDelta, &minBits, &minKeys, &incrKeys);
+  // On average, each delta is encoded into about minBits+1.5 bits.
+  return (numEntries * (numPayloadBits + minBits + 1) + numEntries / 2);
 }
