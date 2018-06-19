@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.c#3 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.c#4 $
  */
 
 #include "kernelLayer.h"
@@ -1226,25 +1226,18 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 /***********************************************************************/
 int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
-  if (physicalCount <= layer->blockCount) {
-    logWarning("Requested physical block count %" PRIu64
-               " not greater than %" PRIu64,
-             (uint64_t) physicalCount, (uint64_t) layer->blockCount);
-    return -EINVAL;
-  } else {
-    // Allow allocations for the duration of resize, but no longer.
-    layer->allocationsAllowed = true;
-    int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
-    layer->allocationsAllowed = false;
-    if (result != VDO_SUCCESS) {
-      // kvdoResizePhysical logs errors
-      return result;
-    }
-    logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
-            (uint64_t) layer->blockCount, (uint64_t) physicalCount);
-    layer->blockCount = physicalCount;
+  // Allow allocations for the duration of resize, but no longer.
+  layer->allocationsAllowed = true;
+  int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
+  layer->allocationsAllowed = false;
+  if (result != VDO_SUCCESS) {
+    // kvdoResizePhysical logs errors
+    return result;
   }
 
+  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
+          (uint64_t) layer->blockCount, (uint64_t) physicalCount);
+  layer->blockCount = physicalCount;
   return VDO_SUCCESS;
 }
 
