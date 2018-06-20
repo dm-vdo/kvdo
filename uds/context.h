@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/context.h#8 $
+ * $Id: //eng/uds-releases/flanders/src/uds/context.h#9 $
  */
 
 #ifndef CONTEXT_H
@@ -28,7 +28,6 @@
 #include "opaqueTypes.h"
 #include "session.h"
 #include "uds-block.h"
-#include "util/atomic.h"
 
 /**
  * The current context state.

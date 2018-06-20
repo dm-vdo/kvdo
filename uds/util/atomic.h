@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/atomic.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/util/atomic.h#4 $
  */
 
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
+#include "atomicDefs.h"
 #include "compiler.h"
 #include "typeDefs.h"
 
@@ -48,7 +49,7 @@ typedef struct {
  **/
 static INLINE void loadFence(void)
 {
-  __asm__ __volatile__("lfence" : : : "memory");
+  smp_rmb();
 }
 
 /**
@@ -60,7 +61,7 @@ static INLINE void loadFence(void)
  **/
 static INLINE void storeFence(void)
 {
-  __asm__ __volatile__("sfence" : : : "memory");
+  smp_wmb();
 }
 
 /**
@@ -70,14 +71,7 @@ static INLINE void storeFence(void)
  **/
 static INLINE void memoryFence(void)
 {
-  /*
-   * X86 full fence. Supposedly __sync_synchronize() will do this, but
-   * either the GCC documentation is a lie or GCC is broken.
-   *
-   * XXX http://blogs.sun.com/dave/entry/atomic_fetch_and_add_vs says
-   * atomicAdd of zero may be a better way to spell this on current CPUs.
-   */
-  __asm__ __volatile__("mfence" : : : "memory");
+  smp_mb();
 }
 
 /**
@@ -89,14 +83,7 @@ static INLINE void memoryFence(void)
  **/
 static INLINE void gccFence(void)
 {
-  /*
-   * asm volatile cannot be removed, and the memory clobber tells the
-   * compiler not to move memory accesses past the asm.  We don't
-   * actually need any instructions issued on x86_64, as synchronizing
-   * instructions are ordered with respect to both loads and stores,
-   * with some irrelevant-to-us exceptions.
-   */
-  __asm__ __volatile__("" : : : "memory");
+  barrier();
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#5 $
  */
 
 #include "localIndexRouter.h"
@@ -361,16 +361,7 @@ static int getRouterStatistics(IndexRouter             *header,
                                IndexRouterStatCounters *counters)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
-  IndexRouterStatCounters indexStats;
-  getIndexStats(router->index, &indexStats);
-  counters->entriesIndexed   = indexStats.entriesIndexed;
-  counters->memoryUsed       = indexStats.memoryUsed;
-  counters->diskUsed         = indexStats.diskUsed;
-  counters->numDlists        = indexStats.numDlists;
-  counters->collisions       = indexStats.collisions;
-  counters->entriesDiscarded = indexStats.entriesDiscarded;
-  counters->checkpoints      = indexStats.checkpoints;
-  addCacheCounters(&counters->volumeCache, &indexStats.volumeCache);
+  getIndexStats(router->index, counters);
   return UDS_SUCCESS;
 }
 

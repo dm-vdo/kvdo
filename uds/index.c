@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/index.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/index.c#5 $
  */
 
 #include "index.h"
@@ -387,8 +387,7 @@ static int searchIndexZone(IndexZone *zone, Request *request)
     if (!isMasterIndexSample(zone->index->masterIndex, &request->hash)
         && isSparse(zone->index->volume->geometry)) {
       // Passing UINT64_MAX triggers a search of the entire sparse cache.
-      result = searchVolumeSparseCache(zone->index->volume, request,
-                                       UINT64_MAX, &found);
+      result = searchSparseCacheInZone(zone, request, UINT64_MAX, &found);
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -702,12 +701,10 @@ static int replayRecord(Index              *index,
        * already find an entry in the master index that has a different chapter.
        * In this case, we need to search that chapter to determine if the
        * master index entry was for the same record or a different one.
-       *
-       * We should treat all searches as dense since we already know that we've
-       * found the record we are looking for in the master index.
        */
-      result = searchVolume(index->volume, NULL, name, record.virtualChapter,
-                            false, NULL, &updateRecord);
+      result = searchVolumePageCache(index->volume, NULL, name,
+                                     record.virtualChapter, NULL,
+                                     &updateRecord);
       if (result != UDS_SUCCESS) {
         return result;
       }
@@ -864,8 +861,6 @@ void getIndexStats(Index *index, IndexRouterStatCounters *counters)
                                 + (uint64_t) getCacheSize(index->volume)
                                 + cwAllocated);
   counters->diskUsed         = (uint64_t) getVolumeSize(index->volume);
-  counters->numDlists        = ((uint64_t) denseStats.numLists
-                                + (uint64_t) sparseStats.numLists);
   counters->collisions       = (denseStats.collisionCount
                                 + sparseStats.collisionCount);
   counters->entriesDiscarded = (denseStats.discardCount

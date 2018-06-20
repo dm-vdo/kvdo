@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/sysfs.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/sysfs.c#2 $
  */
 
 #include "sysfs.h"
@@ -231,6 +231,14 @@ static ssize_t vdoMinAlbireoTimerIntervalStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
+static ssize_t vdoVersionShow(struct kvdoDevice *device,
+                              struct attribute  *attr,
+                              char              *buf)
+{
+  return sprintf(buf, "%s\n", CURRENT_VERSION);
+}
+
+/**********************************************************************/
 static ssize_t vdoAttrShow(struct kobject   *kobj,
                            struct attribute *attr,
                            char             *buf)
@@ -307,6 +315,11 @@ static VDOAttribute vdoTraceRecording = {
   .valuePtr = &traceRecording,
 };
 
+static VDOAttribute vdoVersionAttr = {
+  .attr  = { .name = "version", .mode = 0444, },
+  .show  = vdoVersionShow,
+};
+
 static struct attribute *defaultAttrs[] = {
   &vdoStatusAttr.attr,
   &vdoLogLevelAttr.attr,
@@ -317,6 +330,7 @@ static struct attribute *defaultAttrs[] = {
   &vdoAlbireoTimeoutInterval.attr,
   &vdoMinAlbireoTimerInterval.attr,
   &vdoTraceRecording.attr,
+  &vdoVersionAttr.attr,
   NULL
 };
 

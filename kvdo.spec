@@ -1,7 +1,7 @@
 %define spec_release 1
 
 %define kmod_name		kvdo
-%define kmod_driver_version	6.1.1.84
+%define kmod_driver_version	6.1.1.99
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 %define kmod_headers_version	%(rpm -qa kernel-devel | sed 's/^kernel-devel-//')
@@ -215,5 +215,5 @@ install -m 644 -D $PWD/obj/%{kmod_kbuild_dir}/Module.symvers $RPM_BUILD_ROOT/usr
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Fri May 11 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.84-1
-HASH(0x211f1b0)
+* Wed Jun 20 2018 - J. corwin Coburn <corwin@redhat.com> - 6.1.1.99-1
+HASH(0x2364d88)

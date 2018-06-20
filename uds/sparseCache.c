@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/sparseCache.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/sparseCache.c#4 $
  */
 
 /**
@@ -46,7 +46,7 @@
  * will call updateSparseCache() once and exactly once to request a chapter
  * that is not in the cache, and the serialization of the barrier requests
  * from the triage queue ensures they will all request the same chapter
- * number. This means the only synchronzation we need can be provided by a
+ * number. This means the only synchronization we need can be provided by a
  * pair of thread barriers used only in the updateSparseCache() call,
  * providing a critical section where a single zone thread can drive the cache
  * update while all the other zone threads are known to be blocked, waiting in
@@ -80,13 +80,12 @@
  *
  * A chapter index that is a member of the cache may be marked for different
  * treatment (disabling search) between calls to updateSparseCache() in two
- * different ways. When a chapter falls off the end of the volume,
- * invalidateSparseCacheChapter() will be called with a virtual chapter
- * number. Since that chapter is no longer part of the volume, there's no
- * point in continuing to search that chapter index. That cache entry will be
- * flagged as invalid by setting the "invalid" field. Once invalidated, that
- * virtual chapter will still be considered a member of the cache, but it will
- * no longer be searched for matching chunk names.
+ * different ways. When a chapter falls off the end of the volume, its virtual
+ * chapter number will be less that the oldest virtual chapter number. Since
+ * that chapter is no longer part of the volume, there's no point in continuing
+ * to search that chapter index. Once invalidated, that virtual chapter will
+ * still be considered a member of the cache, but it will no longer be searched
+ * for matching chunk names.
  *
  * The second mechanism for disabling search is the heuristic based on keeping
  * track of the number of consecutive search misses in a given chapter index.
@@ -292,18 +291,21 @@ static void scoreChapterMiss(SparseCache *cache)
 
 /**
  * Check if the cache entry that is about to be replaced is already dead, and
- * if it's not, add to tally of evicted cache entries.
+ * if it's not, add to tally of evicted or invalidated cache entries.
  *
  * @param cache      the cache to update
  * @param chapter    the cache entry about to be replaced
  **/
-static void scoreEviction(SparseCache        *cache,
+static void scoreEviction(IndexZone          *zone,
+                          SparseCache        *cache,
                           CachedChapterIndex *chapter)
 {
   if (chapter->virtualChapter == UINT64_MAX) {
     return;
   }
-  if (!chapter->invalid) {
+  if (chapter->virtualChapter < zone->oldestVirtualChapter) {
+    cache->counters.invalidations += 1;
+  } else {
     cache->counters.evictions += 1;
   }
 }
@@ -356,8 +358,6 @@ void freeSparseCache(SparseCache *cache)
 
   for (unsigned int i = 0; i < cache->capacity; i++) {
     CachedChapterIndex *chapter = &cache->chapters[i];
-    // Sample counters from the entries still in the cache at shutdown time.
-    scoreEviction(cache, chapter);
     destroyCachedChapterIndex(chapter);
   }
 
@@ -422,14 +422,14 @@ bool sparseCacheContains(SparseCache  *cache,
 }
 
 /**********************************************************************/
-int updateSparseCache(SparseCache  *cache,
-                      uint64_t      virtualChapter,
-                      const Index  *index,
-                      unsigned int  zoneNumber)
+int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
 {
+  const Index *index = zone->index;
+  SparseCache *cache = index->volume->sparseCache;
+
   // If the chapter is already in the cache, we don't need to do a thing
   // except update the search list order, which this check does.
-  if (sparseCacheContains(cache, virtualChapter, zoneNumber)) {
+  if (sparseCacheContains(cache, virtualChapter, zone->id)) {
     return UDS_SUCCESS;
   }
 
@@ -446,10 +446,10 @@ int updateSparseCache(SparseCache  *cache,
    */
 
   int result = UDS_SUCCESS;
-  if (zoneNumber == ZONE_ZERO) {
+  if (zone->id == ZONE_ZERO) {
     // Purge invalid chapters from the LRU search list.
     SearchList *zoneZeroList = cache->searchLists[ZONE_ZERO];
-    purgeSearchList(zoneZeroList, cache->chapters);
+    purgeSearchList(zoneZeroList, cache->chapters, zone->oldestVirtualChapter);
 
     // First check that the desired chapter is still in the volume. If it's
     // not, the hook fell out of the index and there's nothing to do for it.
@@ -460,8 +460,8 @@ int updateSparseCache(SparseCache  *cache,
         = &cache->chapters[rotateSearchList(zoneZeroList, cache->capacity)];
 
       // Check if the victim is already dead, and if it's not, add to the
-      // tally of evicted cache entries.
-      scoreEviction(cache, victim);
+      // tally of evicted or invalidated cache entries.
+      scoreEviction(zone, cache, victim);
 
       // Read the index page bytes and initialize the page array.
       result = cacheChapterIndex(victim, virtualChapter, index->volume);
@@ -481,62 +481,16 @@ int updateSparseCache(SparseCache  *cache,
   return result;
 }
 
-/**********************************************************************/
-static void invalidateCachedChapter(SparseCache        *cache,
-                                    CachedChapterIndex *chapter)
-{
-  // Don't count already-invalid entries as invalidated.
-  if ((chapter->virtualChapter == UINT64_MAX) || chapter->invalid) {
-    return;
-  }
-
-  // We must only flag the cache entry as invalid so the virtual chapter
-  // will still appear to be in the cache for sparseCacheContains().
-  chapter->invalid = true;
-
-  // This chapter is getting kicked out for who it is, not because it it has
-  // been selected as a victim.
-  cache->counters.invalidations += 1;
-
-  // This isn't being called by the zone zero thread, so it's not really safe
-  // to mess with the cache statistics. scoreEviction() will handle it later.
-}
 
 /**********************************************************************/
-void invalidateSparseCache(SparseCache *cache)
-{
-  if (cache == NULL) {
-    return;
-  }
-  for (unsigned int i = 0; i < cache->capacity; i++) {
-    invalidateCachedChapter(cache, &cache->chapters[i]);
-  }
-}
-
-/**********************************************************************/
-void invalidateSparseCacheChapter(SparseCache *cache,
-                                  uint64_t     virtualChapter)
-{
-  if (cache == NULL) {
-    return;
-  }
-  for (unsigned int i = 0; i < cache->capacity; i++) {
-    CachedChapterIndex *chapter = &cache->chapters[i];
-    if (virtualChapter == chapter->virtualChapter) {
-      invalidateCachedChapter(cache, chapter);
-      return;
-    }
-  }
-}
-
-/**********************************************************************/
-int searchSparseCache(SparseCache        *cache,
-                      const IndexPageMap *indexPageMap,
+int searchSparseCache(IndexZone          *zone,
                       const UdsChunkName *name,
-                      unsigned int        zoneNumber,
                       uint64_t           *virtualChapterPtr,
                       int                *recordPagePtr)
 {
+  Volume *volume = zone->index->volume;
+  SparseCache *cache = volume->sparseCache;
+  unsigned int zoneNumber = zone->id;
   // If the caller did not specify a virtual chapter, search the entire cache.
   bool searchAll = (*virtualChapterPtr == UINT64_MAX);
   unsigned int chaptersSearched = 0;
@@ -549,12 +503,13 @@ int searchSparseCache(SparseCache        *cache,
     CachedChapterIndex *chapter = getNextChapter(&iterator);
 
     // Skip chapters no longer cached, or that have too many search misses.
-    if (shouldSkipChapterIndex(chapter, *virtualChapterPtr)) {
+    if (shouldSkipChapterIndex(zone, chapter, *virtualChapterPtr)) {
       continue;
     }
 
     int result = searchCachedChapterIndex(chapter, cache->geometry,
-                                          indexPageMap, name, recordPagePtr);
+                                          volume->indexPageMap, name,
+                                          recordPagePtr);
     if (result != UDS_SUCCESS) {
       return result;
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexZone.h#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexZone.h#3 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -156,6 +156,25 @@ int getRecordFromZone(IndexZone *zone,
 int putRecordInZone(IndexZone          *zone,
                     Request            *request,
                     const UdsChunkData *metadata)
+  __attribute__((warn_unused_result));
+
+/**
+ * Search the cached sparse chapter index, either for a cached sparse hook, or
+ * as the last chance for finding the record named by a request.
+ *
+ * @param [in]  zone            the index zone
+ * @param [in]  request         the request originating the search
+ * @param [in]  virtualChapter  if UINT64_MAX, search the entire cache;
+ *                              otherwise search this chapter, if cached
+ * @param [out] found           A pointer to a bool which will be set to
+ *                              <code>true</code> if the record was found
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int searchSparseCacheInZone(IndexZone *zone,
+                            Request   *request,
+                            uint64_t   virtualChapter,
+                            bool      *found)
   __attribute__((warn_unused_result));
 
 #endif /* INDEX_ZONE_H */

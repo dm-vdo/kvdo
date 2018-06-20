@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#4 $
  */
 
 #include "pageCache.h"
 
+#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "compiler.h"
@@ -34,7 +35,6 @@
 #include "recordPage.h"
 #include "stringUtils.h"
 #include "threads.h"
-#include "util/atomic.h"
 #include "zone.h"
 
 /**********************************************************************/
@@ -119,9 +119,10 @@ static int getPageNoStats(PageCache     *cache,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int invalidatePageInCache(PageCache          *cache,
-                          CachedPage         *page,
-                          InvalidationReason  reason)
+__attribute__((warn_unused_result))
+static int invalidatePageInCache(PageCache          *cache,
+                                 CachedPage         *page,
+                                 InvalidationReason  reason)
 {
   if (page == NULL) {
     return UDS_SUCCESS;
@@ -147,36 +148,12 @@ int invalidatePageInCache(PageCache          *cache,
     }
 
     cache->index[page->physicalPage] = cache->numCacheEntries;
+    waitForPendingSearches(cache, page->physicalPage);
   }
 
   clearPage(cache, page);
 
   return UDS_SUCCESS;
-}
-
-/**
- * Find a page in a cache and invalidate it.
- *
- * @param cache        The page cache
- * @param physicalPage The physical page to invalidate
- *
- * @return UDS_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result))
-static int findAndInvalidatePage(PageCache *cache,
-                                 unsigned int physicalPage)
-{
-  CachedPage *page;
-  int result = getPageNoStats(cache, physicalPage, NULL, &page);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  /*
-   * This is only called from invalidatePageCache, used when closing
-   * a volume.
-   */
-  return invalidatePageInCache(cache, page, INVALIDATION_INIT_SHUTDOWN);
 }
 
 /**********************************************************************/
@@ -245,9 +222,8 @@ static int initializePageCache(PageCache      *cache,
     return result;
   }
 
-  result = ALLOCATE(cache->zoneCount, volatile InvalidateCounter,
-                    "Volume Cache Zones",
-                    &cache->searchPendingCounters);
+  result = ALLOCATE(cache->zoneCount, SearchPendingCounter,
+                    "Volume Cache Zones", &cache->searchPendingCounters);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -340,8 +316,7 @@ void freePageCache(PageCache *cache)
   freeVolatile(cache->index);
   FREE(cache->data);
   FREE(cache->cache);
-
-  freeVolatile(cache->searchPendingCounters);
+  FREE(cache->searchPendingCounters);
   FREE(cache->readQueue);
   FREE(cache);
 }
@@ -352,15 +327,18 @@ int invalidatePageCache(PageCache *cache)
   if (cache == NULL) {
     return UDS_SUCCESS;
   }
-
-  // Invalidate any cached entries since the volume could change while closed.
+  // Invalidate all cached entries since the volume could change while closed.
   for (unsigned int i = 0; i < cache->numIndexEntries; i++) {
-    int result = findAndInvalidatePage(cache, i);
+    CachedPage *page;
+    int result = getPageNoStats(cache, i, NULL, &page);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+    result = invalidatePageInCache(cache, page, INVALIDATION_INIT_SHUTDOWN);
     if (result != UDS_SUCCESS) {
       return result;
     }
   }
-
   return UDS_SUCCESS;
 }
 
@@ -457,7 +435,7 @@ int getPageFromCache(PageCache     *cache,
                                  : ((queueIndex != -1)
                                     ? CACHE_RESULT_QUEUED
                                     : CACHE_RESULT_MISS));
-  addToCacheCounter(&cache->counters, probeType, cacheResult, 1);
+  incrementCacheCounter(&cache->counters, probeType, cacheResult);
 
   if (pagePtr != NULL) {
     *pagePtr = page;
@@ -587,6 +565,7 @@ int selectVictimInCache(PageCache   *cache,
   if (page->physicalPage != cache->numIndexEntries) {
     cache->counters.evictions++;
     cache->index[page->physicalPage] = cache->numCacheEntries;
+    waitForPendingSearches(cache, page->physicalPage);
   }
 
   page->readPending = true;
@@ -637,7 +616,7 @@ int putPageInCache(PageCache    *cache,
 
   // We want to make sure the page is completely set up before placing it in
   // the page map
-  storeFence();
+  smp_wmb();
 
   // Point the page map to the new page. Will clear queued flag
   cache->index[physicalPage] = value;
@@ -672,47 +651,37 @@ void cancelPageInCache(PageCache    *cache,
 
   // We want to make sure the page is completely set up before clearing the
   // page map
-  storeFence();
+  smp_wmb();
 
   // Clear the page map for the new page. Will clear queued flag
   cache->index[physicalPage] = cache->numCacheEntries;
 }
 
 /***********************************************************************/
-static INLINE bool stillSearching(PageCache    *cache,
-                                  unsigned int  physicalPage,
-                                  unsigned int  zoneNumber,
-                                  unsigned int  oldValue)
+void waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
 {
-  return ((cache->searchPendingCounters[zoneNumber].counter == oldValue)
-          && (cache->searchPendingCounters[zoneNumber].page == physicalPage));
-}
+  /*
+   * We are waiting for threads that do not hold the readThreadsMutex.
+   * Those threads have "locked" their targeted page by setting the
+   * searchPendingCounter.  The corresponding write memory barrier
+   * is in beginPendingSearch.
+   */
+  smp_mb();
 
-/***********************************************************************/
-int waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
-{
-  uint32_t *initialCounterValues;
-  // Make a snapshot of invalidate counters
-  int result = ALLOCATE(cache->zoneCount, uint32_t,
-                        "Volume Cache Zones",
-                        &initialCounterValues);
-  if (result != UDS_SUCCESS) {
-    return UDS_SUCCESS;
-  }
-
+  InvalidateCounter initialCounters[cache->zoneCount];
   for (unsigned int i = 0; i < cache->zoneCount; i++) {
-    initialCounterValues[i] = cache->searchPendingCounters[i].counter;
+    initialCounters[i] = getInvalidateCounter(cache, i);
   }
-
   for (unsigned int i = 0; i < cache->zoneCount; i++) {
-    if (searchPending(initialCounterValues[i])) {
-      while (stillSearching(cache, physicalPage, i, initialCounterValues[i])) {
+    if (searchPending(initialCounters[i])
+        && (pageBeingSearched(initialCounters[i]) == physicalPage)) {
+      // There is an active search using the physical page.
+      // We need to wait for the search to finish.
+      while (initialCounters[i] == getInvalidateCounter(cache, i)) {
         yieldScheduler();
       }
     }
   }
-  FREE(initialCounterValues);
-  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -721,11 +690,8 @@ size_t getPageCacheSize(PageCache *cache)
   if (cache == NULL) {
     return 0;
   }
-  size_t pageSize  = ((cache->geometry->bytesPerPage +
-                       sizeof(ChapterIndexPage)) *
-                      cache->numCacheEntries);
-
-  return pageSize;
+  return ((cache->geometry->bytesPerPage + sizeof(ChapterIndexPage))
+          * cache->numCacheEntries);
 }
 
 /**********************************************************************/

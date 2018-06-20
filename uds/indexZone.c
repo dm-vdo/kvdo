@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexZone.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexZone.c#3 $
  */
 
 #include "indexZone.h"
@@ -154,10 +154,7 @@ int executeSparseCacheBarrierMessage(IndexZone          *zone,
    * cache, and if it's not, rendezvous with the other zone threads to add the
    * chapter index to the sparse index cache.
    */
-  return updateSparseCache(zone->index->volume->sparseCache,
-                           barrier->virtualChapter,
-                           zone->index,
-                           zone->id);
+  return updateSparseCache(zone, barrier->virtualChapter);
 }
 
 /**
@@ -343,9 +340,24 @@ int getRecordFromZone(IndexZone *zone,
     return UDS_SUCCESS;
   }
 
-  bool sparse = isZoneChapterSparse(zone, virtualChapter);
-  return searchVolume(zone->index->volume, request, &request->hash,
-                      virtualChapter, sparse, &request->oldMetadata, found);
+  // The slow lane thread has determined the location previously. We don't need
+  // to search again. Just return the location.
+  if (request->slLocationKnown) {
+    *found = request->slLocation != LOC_UNAVAILABLE;
+    return UDS_SUCCESS;
+  }
+
+  Volume *volume = zone->index->volume;
+  if (isZoneChapterSparse(zone, virtualChapter)
+      && sparseCacheContains(volume->sparseCache, virtualChapter,
+                             request->zoneNumber)) {
+    // The named chunk, if it exists, is in a sparse chapter that is cached,
+    // so just run the chunk through the sparse chapter cache search.
+    return searchSparseCacheInZone(zone, request, virtualChapter, found);
+  }
+
+  return searchVolumePageCache(volume, request, &request->hash, virtualChapter,
+                               &request->oldMetadata, found);
 }
 
 /**********************************************************************/
@@ -365,4 +377,28 @@ int putRecordInZone(IndexZone          *zone,
   }
 
   return UDS_SUCCESS;
+}
+
+/**************************************************************************/
+int searchSparseCacheInZone(IndexZone *zone,
+                            Request   *request,
+                            uint64_t   virtualChapter,
+                            bool      *found)
+{
+  int recordPageNumber;
+  int result = searchSparseCache(zone, &request->hash, &virtualChapter,
+                                 &recordPageNumber);
+  if ((result != UDS_SUCCESS) || (virtualChapter == UINT64_MAX)) {
+    return result;
+  }
+
+  Volume *volume = zone->index->volume;
+  // XXX map to physical chapter and validate. It would be nice to just pass
+  // the virtual in to the slow lane, since it's tracking invalidations.
+  unsigned int chapter
+    = mapToPhysicalChapter(volume->geometry, virtualChapter);
+
+  return searchCachedRecordPage(volume, request, &request->hash, chapter,
+                                recordPageNumber, &request->oldMetadata,
+                                found);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.h#3 $
+ * $Id: //eng/uds-releases/flanders/src/uds/cacheCounters.h#4 $
  */
 
 #ifndef CACHE_COUNTERS_H
@@ -85,11 +85,6 @@ typedef struct cacheCounters {
   CacheCountsByKind     sparseChapters;
   /** Hit/miss counts for the sparce cache name searches */
   CacheCountsByKind     sparseSearches;
-
-  /** Number of sparse chapter invalidations due to cache eviction */
-  uint64_t              sparseEvictions;
-  /** Number of sparse chapter invalidations due to chapter expiration */
-  uint64_t              sparseExpirations;
 } CacheCounters;
 
 /**
@@ -113,16 +108,14 @@ typedef enum cacheResultKind {
 void addCacheCounters(CacheCounters *stats, const CacheCounters *addend);
 
 /**
- * Adds to one of the cache counters.
+ * Increment one of the cache counters.
  *
  * @param counters    pointer to the counters
  * @param probeType   type of access done
  * @param kind        result of probe
- * @param addend      value to add to counter
  **/
-void addToCacheCounter(CacheCounters   *counters,
-                       int              probeType,
-                       CacheResultKind  kind,
-                       int              addend);
+void incrementCacheCounter(CacheCounters   *counters,
+                           int              probeType,
+                           CacheResultKind  kind);
 
 #endif /* CACHE_COUNTERS_H */
