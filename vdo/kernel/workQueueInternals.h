@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueInternals.h#2 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -90,7 +90,7 @@ struct simpleWorkQueue {
   KvdoWorkQueue           *parentQueue;
   /** Padding for cache line separation */
   char                     pad[CACHE_LINE_BYTES - sizeof(KvdoWorkQueue *)];
-  /** Lock protecting delayedItems, priorityMap, numPriorityLists */
+  /** Lock protecting delayedItems, priorityMap, numPriorityLists, started */
   spinlock_t               lock;
   /** Any worker threads (zero or one) waiting for new work to do */
   wait_queue_head_t        waitingWorkerThreads;
@@ -105,7 +105,7 @@ struct simpleWorkQueue {
   /** Wait list for synchronization during worker thread startup */
   wait_queue_head_t        startWaiters;
   /** Worker thread status (boolean) */
-  atomic_t                 started;
+  bool                     started;
 
   /** List of delayed work items; usually only one, if any */
   KvdoWorkItemList         delayedItems;

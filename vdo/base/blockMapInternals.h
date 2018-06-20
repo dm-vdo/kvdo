@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#2 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -164,14 +164,6 @@ struct blockMap {
  * @return The number of pages required
  **/
 PageCount computeBlockMapPageCount(BlockCount entries);
-
-/**
- * Find the PBN of a block map leaf page.
- *
- * @param map         The block map
- * @param pageNumber  The number of the desired page
- **/
-PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageCount pageNumber);
 
 /**
  * Compute the number of the block map page on which the entry for a given

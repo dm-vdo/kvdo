@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/numeric.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/numeric.h#3 $
  */
 
 #ifndef NUMERIC_H
@@ -27,18 +27,14 @@
 
 #include "common.h" /* for "byte" */
 
-#if !((defined __LITTLE_ENDIAN) || (defined __BIG_ENDIAN))
-#error "byte order not set?"
+// GCC normally defines these three macros (and PDP-endian which we ignore).
+#if !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__) \
+  || !defined(__BYTE_ORDER__)
+#error "GCC byte order macros not defined?"
 #endif
-#if (defined __LITTLE_ENDIAN) && (defined __BIG_ENDIAN)
-#error "byte order not set properly"
-#endif
-#ifdef __LITTLE_ENDIAN
-# define __NUMERIC_BYTE_ORDER __LITTLE_ENDIAN
-#else
-# define __NUMERIC_BYTE_ORDER __BIG_ENDIAN
-#endif
+
 #define bswap_16 __swab16
+
 /*
  * Define a type describing an integer value that is only byte-aligned
  * and may explicitly alias other types.  GCC keeps getting better
@@ -201,7 +197,7 @@ __attribute__((warn_unused_result))
 static inline uint64_t getUInt64BE(const byte* data)
 {
   uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   return num;
@@ -232,7 +228,7 @@ static inline void decodeUInt64BE(const byte *buffer,
  **/
 static inline void storeUInt64BE(byte* data, uint64_t num)
 {
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(uint64_t, data, num);
@@ -267,7 +263,7 @@ __attribute__((warn_unused_result))
 static inline uint32_t getUInt32BE(const byte* data)
 {
   uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   return num;
@@ -298,7 +294,7 @@ static inline void decodeUInt32BE(const byte *buffer,
  **/
 static inline void storeUInt32BE(byte* data, uint32_t num)
 {
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(uint32_t, data, num);
@@ -333,7 +329,7 @@ __attribute__((warn_unused_result))
 static inline uint16_t getUInt16BE(const byte* data)
 {
   uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   // gcc doesn't give us 16-bit swap for x86_64 but glibc does
   num = bswap_16(num);
 #endif
@@ -366,7 +362,7 @@ static inline void decodeUInt16BE(const byte *buffer,
  **/
 static inline void storeUInt16BE(byte* data, uint16_t num)
 {
-#if __NUMERIC_BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   // gcc doesn't give us 16-bit swap for x86_64 but glibc does
   num = bswap_16(num);
 #endif
@@ -402,7 +398,7 @@ __attribute__((warn_unused_result))
 static inline uint64_t getUInt64LE(const byte* data)
 {
   uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   return num;
@@ -433,7 +429,7 @@ static inline void decodeUInt64LE(const byte *buffer,
  **/
 static inline void storeUInt64LE(byte* data, uint64_t num)
 {
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(uint64_t, data, num);
@@ -468,7 +464,7 @@ __attribute__((warn_unused_result))
 static inline uint32_t getUInt32LE(const byte* data)
 {
   uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   return num;
@@ -483,7 +479,7 @@ static inline uint32_t getUInt32LE(const byte* data)
  **/
 static inline void storeUInt32LE(byte* data, uint32_t num)
 {
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(uint32_t, data, num);
@@ -501,7 +497,7 @@ __attribute__((warn_unused_result))
 static inline uint16_t getUInt16LE(const byte* data)
 {
   uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap16(num);
 #endif
   return num;
@@ -516,7 +512,7 @@ static inline uint16_t getUInt16LE(const byte* data)
  **/
 static inline void storeUInt16LE(byte* data, uint16_t num)
 {
-#if __NUMERIC_BYTE_ORDER != __LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap16(num);
 #endif
   PUT_UNALIGNED(uint16_t, data, num);

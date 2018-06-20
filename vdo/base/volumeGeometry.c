@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#5 $
  */
 
 #include "volumeGeometry.h"
@@ -40,10 +40,10 @@ enum {
 };
 
 typedef struct {
-  char                 magicNumber[MAGIC_NUMBER_SIZE];
-  Header               header;
-  VolumeGeometry       geometry;
-  CRC32Checksum        checksum;
+  char            magicNumber[MAGIC_NUMBER_SIZE];
+  Header          header;
+  VolumeGeometry  geometry;
+  CRC32Checksum   checksum;
 } __attribute__((packed)) GeometryBlock;
 
 static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
@@ -52,7 +52,6 @@ static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
     .majorVersion = 4,
     .minorVersion = 0,
   },
-
   .size = sizeof(GeometryBlock),
 };
 
@@ -187,22 +186,23 @@ int initializeVolumeGeometry(Nonce           nonce,
     }
   }
 
-  geometry->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
-  geometry->nonce          = nonce;
+  *geometry = (VolumeGeometry) {
+    .releaseVersion = CURRENT_RELEASE_VERSION_NUMBER,
+    .nonce = nonce,
+    .regions = {
+      [INDEX_REGION] = {
+        .id = INDEX_REGION,
+        .startBlock = 1,
+      },
+      [DATA_REGION] = {
+        .id = DATA_REGION,
+        .startBlock = 1 + indexSize,
+      }
+    }
+  };
   memcpy(geometry->uuid, uuid, sizeof(UUID));
-  geometry->partitions[INDEX_REGION] = (VolumePartition) {
-    .id         = INDEX_REGION,
-    .startBlock = 1,
-  };
-  geometry->partitions[DATA_REGION] = (VolumePartition) {
-    .id         = DATA_REGION,
-    .startBlock = 1 + indexSize,
-  };
-
   if (indexSize > 0) {
     memcpy(&geometry->indexConfig, indexConfig, sizeof(IndexConfig));
-  } else {
-    memset(&geometry->indexConfig, 0, sizeof(IndexConfig));
   }
 
   return VDO_SUCCESS;

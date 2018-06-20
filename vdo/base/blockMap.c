@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#9 $
  */
 
 #include "blockMap.h"
@@ -55,29 +55,47 @@ static const Header BLOCK_MAP_HEADER_2_0 = {
   .size = sizeof(BlockMapState2_0),
 };
 
-static const Header *CURRENT_BLOCK_MAP_HEADER = &BLOCK_MAP_HEADER_2_0;
+/**
+ * State associated which each block map page while it is in the VDO page
+ * cache.
+ **/
+typedef struct {
+  /**
+   * The earliest recovery journal block containing uncommitted updates to the
+   * block map page associated with this context. A reference (lock) is held
+   * on that block to prevent it from being reaped. When this value changes,
+   * the reference on the old value must be released and a reference on the
+   * new value must be acquired.
+   **/
+  SequenceNumber recoveryLock;
+} BlockMapPageContext;
 
 /**
  * Implements VDOPageReadFunction.
  **/
 static int validatePageOnRead(void                *buffer,
                               PhysicalBlockNumber  pbn,
-                              void                *context)
+                              void                *clientContext,
+                              void                *pageContext)
 {
-  BlockMapPage         *page     = (BlockMapPage *) buffer;
-  Nonce                 nonce    = ((BlockMapZone *) context)->blockMap->nonce;
-  BlockMapPageValidity  validity = validateBlockMapPage(page, nonce, pbn);
+  BlockMapPage        *page    = buffer;
+  BlockMapZone        *zone    = clientContext;
+  BlockMapPageContext *context = pageContext;
+  Nonce                nonce   = zone->blockMap->nonce;
+
+  BlockMapPageValidity validity = validateBlockMapPage(page, nonce, pbn);
   if (validity == BLOCK_MAP_PAGE_BAD) {
     return logErrorWithStringError(VDO_BAD_PAGE,
                                    "Expected page %" PRIu64
                                    " but got page %" PRIu64 " instead",
-                                   pbn, page->header.pbn);
+                                   pbn, getBlockMapPagePBN(page));
   }
 
   if (validity == BLOCK_MAP_PAGE_INVALID) {
-    formatBlockMapPage(page, nonce, pbn);
+    formatBlockMapPage(page, nonce, pbn, false);
   }
 
+  context->recoveryLock = 0;
   return VDO_SUCCESS;
 }
 
@@ -86,22 +104,24 @@ static int validatePageOnRead(void                *buffer,
  *
  * Implements VDOPageWriteFunction.
  **/
-static bool handlePageWrite(void *rawPage, void *context)
+static bool handlePageWrite(void *rawPage,
+                            void *clientContext,
+                            void *pageContext)
 {
-  BlockMapZone *zone = context;
-  BlockMapPage *page = (BlockMapPage *) rawPage;
+  BlockMapPage        *page    = rawPage;
+  BlockMapZone        *zone    = clientContext;
+  BlockMapPageContext *context = pageContext;
 
-  if (!page->header.initialized) {
-    page->header.initialized = true;
+  if (markBlockMapPageInitialized(page, true)) {
     // Cause the page to be re-written.
     return true;
   }
 
   // Release the page's references on the recovery journal.
   releaseRecoveryJournalBlockReference(zone->blockMap->journal,
-                                       page->header.recoverySequenceNumber,
+                                       context->recoveryLock,
                                        ZONE_TYPE_LOGICAL, zone->zoneNumber);
-  page->header.recoverySequenceNumber = 0;
+  context->recoveryLock = 0;
   return false;
 }
 
@@ -160,6 +180,43 @@ int makeBlockMap(BlockCount           logicalBlocks,
   return VDO_SUCCESS;
 }
 
+/**
+ * Decode block map component state version 2.0 from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param state   The state structure to receive the decoded values
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodeBlockMapState_2_0(Buffer *buffer, BlockMapState2_0 *state)
+{
+  size_t initialLength = contentLength(buffer);
+
+  int result = getUInt64LEFromBuffer(buffer, &state->flatPageOrigin);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->flatPageCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->rootOrigin);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->rootCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t decodedSize = initialLength - contentLength(buffer);
+  return ASSERT(BLOCK_MAP_HEADER_2_0.size == decodedSize,
+                "decoded block map component size must match header size");
+}
+
 /**********************************************************************/
 int decodeBlockMap(Buffer              *buffer,
                    BlockCount           logicalBlocks,
@@ -172,21 +229,20 @@ int decodeBlockMap(Buffer              *buffer,
     return result;
   }
 
-  result = validateHeader(CURRENT_BLOCK_MAP_HEADER, &header, true, __func__);
+  result = validateHeader(&BLOCK_MAP_HEADER_2_0, &header, true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   BlockMapState2_0 state;
-  result = getBytesFromBuffer(buffer, sizeof(state), &state);
+  result = decodeBlockMapState_2_0(buffer, &state);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   result = ASSERT(state.flatPageOrigin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
-                  "Recorded flat page origin is %d (recorded as %"
-                  PRIu64 ")", BLOCK_MAP_FLAT_PAGE_ORIGIN,
-                  state.flatPageOrigin);
+                  "Flat page origin must be %u (recorded as %" PRIu64 ")",
+                  BLOCK_MAP_FLAT_PAGE_ORIGIN, state.flatPageOrigin);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -239,9 +295,16 @@ static int initializeBlockMapZone(BlockMapZone        *zone,
     return result;
   }
 
-  return makeVDOPageCache(zone->threadID, layer, readOnlyContext, cacheSize,
-                          validatePageOnRead, handlePageWrite, zone,
-                          maximumAge, &zone->pageCache);
+  return makeVDOPageCache(zone->threadID,
+                          layer,
+                          readOnlyContext,
+                          cacheSize,
+                          validatePageOnRead,
+                          handlePageWrite,
+                          zone,
+                          sizeof(BlockMapPageContext),
+                          maximumAge,
+                          &zone->pageCache);
 }
 
 /**********************************************************************/
@@ -331,13 +394,36 @@ size_t getBlockMapEncodedSize(void)
 /**********************************************************************/
 int encodeBlockMap(const BlockMap *map, Buffer *buffer)
 {
-  BlockMapState2_0 state = (BlockMapState2_0) {
-    .flatPageOrigin = BLOCK_MAP_FLAT_PAGE_ORIGIN,
-    .flatPageCount  = map->flatPageCount,
-    .rootOrigin     = map->rootOrigin,
-    .rootCount      = map->rootCount,
-  };
-  return encodeWithHeader(CURRENT_BLOCK_MAP_HEADER, &state, buffer);
+  int result = encodeHeader(&BLOCK_MAP_HEADER_2_0, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t initialLength = contentLength(buffer);
+
+  result = putUInt64LEIntoBuffer(buffer, BLOCK_MAP_FLAT_PAGE_ORIGIN);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, map->flatPageCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, map->rootOrigin);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, map->rootCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t encodedSize = contentLength(buffer) - initialLength;
+  return ASSERT(BLOCK_MAP_HEADER_2_0.size == encodedSize,
+                "encoded block map component size must match header size");
 }
 
 /**********************************************************************/
@@ -408,16 +494,6 @@ void findBlockMapSlotAsync(DataVIO   *dataVIO,
   treeLock->callback = callback;
   treeLock->threadID = threadID;
   lookupBlockMapPBN(dataVIO);
-}
-
-/**********************************************************************/
-PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageCount pageNumber)
-{
-  if (pageNumber < map->flatPageCount) {
-    return pageNumber + BLOCK_MAP_FLAT_PAGE_ORIGIN;
-  }
-
-  return getBlockMapPagePBN(map, pageNumber);
 }
 
 /**********************************************************************/
@@ -956,10 +1032,10 @@ __attribute__((warn_unused_result))
 static int setMappedEntry(DataVIO *dataVIO, const BlockMapEntry *entry)
 {
   // Unpack the PBN for logging purposes even if the entry is invalid.
-  PhysicalBlockNumber pbn = unpackPBN(entry);
+  DataLocation mapped = unpackBlockMapEntry(entry);
 
-  if (!isInvalid(entry)) {
-    int result = setMappedLocation(dataVIO, pbn, unpackMappingState(entry));
+  if (isValidLocation(&mapped)) {
+    int result = setMappedLocation(dataVIO, mapped.pbn, mapped.state);
     /*
      * Return success and all errors not specifically known to be errors from
      * validating the location. Yes, this expression is redundant; it is
@@ -975,7 +1051,7 @@ static int setMappedEntry(DataVIO *dataVIO, const BlockMapEntry *entry)
   // converting all cases to VDO_BAD_MAPPING.
   logErrorWithStringError(VDO_BAD_MAPPING, "PBN %" PRIu64
                           " with state %u read from the block map was invalid",
-                          pbn, unpackMappingState(entry));
+                          mapped.pbn, mapped.state);
 
   // A read VIO has no option but to report the bad mapping--reading
   // zeros would be hiding known data loss.
@@ -1031,12 +1107,12 @@ static void putMappingInFetchedPage(VDOCompletion *completion)
     return;
   }
 
-  DataVIO        *dataVIO       = asDataVIO(completion->parent);
-  SequenceNumber  oldLockPeriod = page->header.recoverySequenceNumber;
-  updateBlockMapPage(dataVIO, page, dataVIO->newMapped.pbn,
-                     dataVIO->newMapped.state);
-  markCompletedVDOPageDirty(completion, oldLockPeriod,
-                            page->header.recoverySequenceNumber);
+  DataVIO *dataVIO = asDataVIO(completion->parent);
+  BlockMapPageContext *context = getVDOPageCompletionContext(completion);
+  SequenceNumber oldLock = context->recoveryLock;
+  updateBlockMapPage(page, dataVIO, dataVIO->newMapped.pbn,
+                     dataVIO->newMapped.state, &context->recoveryLock);
+  markCompletedVDOPageDirty(completion, oldLock, context->recoveryLock);
   finishProcessingPage(completion, VDO_SUCCESS);
 }
 

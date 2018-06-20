@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#2 $
  */
 
 #include "refCounts.h"
@@ -24,6 +24,7 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "numeric.h"
 #include "permassert.h"
 
 #include "blockAllocatorInternals.h"
@@ -753,7 +754,7 @@ static inline SlabBlockNumber findZeroByteInWord(const byte      *wordPtr,
                                                  SlabBlockNumber  startIndex,
                                                  SlabBlockNumber  failIndex)
 {
-  uint64_t word = *((const uint64_t *) wordPtr);
+  uint64_t word = getUInt64LE(wordPtr);
 
   // This looks like a loop, but GCC will unroll the eight iterations for us.
   for (unsigned int offset = 0; offset < BYTES_PER_WORD; offset++) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#2 $
  */
 
 #include "readOnlyRebuild.h"
@@ -249,25 +249,19 @@ static void appendSectorEntries(ReadOnlyRebuildCompletion *rebuild,
                                 PackedJournalSector       *sector,
                                 JournalEntryCount          entryCount)
 {
-  VDO *vdo = rebuild->vdo;
-
   for (JournalEntryCount i = 0; i < entryCount; i++) {
-    JournalOperation      operation;
-    BlockMapSlot          slot;
-    PhysicalBlockNumber   pbn;
-    RecoveryJournalEntry *entry = &sector->entries[i];
-
-    int result = decodeRecoveryJournalEntry(vdo, entry, &operation, &slot,
-                                            &pbn);
+    RecoveryJournalEntry entry
+      = unpackRecoveryJournalEntry(&sector->entries[i]);
+    int result = validateRecoveryJournalEntry(rebuild->vdo, &entry);
     if (result != VDO_SUCCESS) {
       // When recovering from read-only mode, ignore damaged entries.
       continue;
     }
 
-    if (isIncrementOperation(operation)) {
+    if (isIncrementOperation(entry.operation)) {
       rebuild->entries[rebuild->entryCount] = (NumberedBlockMapping) {
-        .blockMapSlot  = slot,
-        .blockMapEntry = entry->blockMapEntry,
+        .blockMapSlot  = entry.slot,
+        .blockMapEntry = packPBN(entry.mapping.pbn, entry.mapping.state),
         .number        = rebuild->entryCount,
       };
       rebuild->entryCount++;
@@ -292,7 +286,7 @@ static int extractJournalEntries(ReadOnlyRebuildCompletion *rebuild)
   BlockCount       maxCount = ((last - first + 1) * journal->entriesPerBlock);
 
   // Allocate a NumberedBlockMapping array large enough to transcribe every
-  // RecoveryJournalEntry from every valid journal block.
+  // PackedRecoveryJournalEntry from every valid journal block.
   int result = ALLOCATE(maxCount, NumberedBlockMapping, __func__,
                         &rebuild->entries);
   if (result != VDO_SUCCESS) {

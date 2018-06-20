@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#4 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
 #define RECOVERY_JOURNAL_INTERNALS_H
+
+#include "numeric.h"
 
 #include "blockMapEntry.h"
 #include "blockMappingState.h"
@@ -30,6 +32,7 @@
 #include "recoveryJournal.h"
 #include "ringNode.h"
 #include "statistics.h"
+#include "types.h"
 #include "waitQueue.h"
 
 enum {
@@ -38,13 +41,71 @@ enum {
   RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
 };
 
+/**
+ * A recovery journal entry stores two physical locations: a data location
+ * that is the value of a single mapping in the block map tree, and the
+ * location of the block map page and and slot that is either acquiring or
+ * releasing a reference to the data location. The journal entry also stores
+ * an operation code that says whether the reference is being acquired (an
+ * increment) or released (a decrement), and whether the mapping is for a
+ * logical block or for the block map tree itself.
+ **/
 typedef struct {
-  unsigned      operation   : 2;  // The JournalOperation of the entry
-  unsigned      slot        : 10; // The block map page slot
-  unsigned      pbnHighWord : 4;  // 4 high-order bits of the block map pbn
-  uint32_t      pbnLowWord;       // 32 low-order bits of the block map pbn
-  BlockMapEntry blockMapEntry;    // The encoded block map entry
-} __attribute__((packed)) RecoveryJournalEntry;
+  BlockMapSlot     slot;
+  DataLocation     mapping;
+  JournalOperation operation;
+} RecoveryJournalEntry;
+
+/** The packed, on-disk representation of a recovery journal entry. */
+typedef union __attribute__((packed)) {
+  struct __attribute__((packed)) {
+    /**
+     * In little-endian bit order:
+     * Bits 15..12:  The four highest bits of the 36-bit physical block number
+     *               of the block map tree page
+     * Bits 11..2:   The 10-bit block map page slot number
+     * Bits 1..0:    The 2-bit JournalOperation of the entry
+     **/
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    unsigned operation     : 2;
+    unsigned slotLow       : 6;
+    unsigned slotHigh      : 4;
+    unsigned pbnHighNibble : 4;
+#else
+    unsigned slotLow       : 6;
+    unsigned operation     : 2;
+    unsigned pbnHighNibble : 4;
+    unsigned slotHigh      : 4;
+#endif
+
+    /**
+     * Bits 47..16:  The 32 low-order bits of the block map page PBN,
+     *               in little-endian byte order
+     **/
+    byte pbnLowWord[4];
+
+    /**
+     * Bits 87..48:  The five-byte block map entry encoding the location that
+     *               was or will be stored in the block map page slot
+     **/
+    BlockMapEntry blockMapEntry;
+  } fields;
+
+  // A raw view of the packed encoding.
+  uint8_t raw[11];
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // This view is only valid on little-endian machines and is only present for
+  // ease of directly examining packed entries in GDB.
+  struct __attribute__((packed)) {
+    unsigned      operation     : 2;
+    unsigned      slot          : 10;
+    unsigned      pbnHighNibble : 4;
+    uint32_t      pbnLowWord;
+    BlockMapEntry blockMapEntry;
+  } littleEndian;
+#endif
+} PackedRecoveryJournalEntry;
 
 typedef struct {
   SequenceNumber    blockMapHead;       // Block map head sequence number
@@ -60,10 +121,17 @@ typedef struct {
 } __attribute__((packed)) PackedJournalHeader;
 
 typedef struct {
-  uint8_t              checkByte;     // The protection check byte
-  uint8_t              recoveryCount; // The number of recoveries completed
-  uint8_t              entryCount;    // The number of entries in this sector
-  RecoveryJournalEntry entries[];     // Journal entries for this sector
+  /** The protection check byte */
+  uint8_t checkByte;
+
+  /** The number of recoveries completed */
+  uint8_t recoveryCount;
+
+  /** The number of entries in this sector */
+  uint8_t entryCount;
+
+  /** Journal entries for this sector */
+  PackedRecoveryJournalEntry entries[];
 } __attribute__((packed)) PackedJournalSector;
 
 typedef struct {
@@ -184,57 +252,60 @@ struct recoveryJournal {
 };
 
 /**
- * Encode block map slot and entry operation into a recovery journal entry.
+ * Return the packed, on-disk representation of a recovery journal entry.
  *
- * @param [out] entry  The journal entry to encode into
- * @param [in]  operation   The operation of entry this is
- * @param [in]  slot   The block map slot for the entry
+ * @param entry   The journal entry to pack
+ *
+ * @return  The packed representation of the journal entry
  **/
-static inline
-void encodeOperationAndBlockMapSlot(RecoveryJournalEntry *entry,
-                                    JournalOperation      operation,
-                                    BlockMapSlot          slot)
+static inline PackedRecoveryJournalEntry
+packRecoveryJournalEntry(const RecoveryJournalEntry *entry)
 {
-  entry->operation   = operation;
-  entry->slot        = slot.slot;
-  entry->pbnHighWord = (slot.pbn >> 32) & 0xF;
-  entry->pbnLowWord  = slot.pbn & 0xFFFFFFFF;
+  PackedRecoveryJournalEntry packed = {
+    .fields = {
+      .operation     = entry->operation,
+      .slotLow       = entry->slot.slot & 0x3F,
+      .slotHigh      = (entry->slot.slot >> 6) & 0x0F,
+      .pbnHighNibble = (entry->slot.pbn >> 32) & 0x0F,
+      .blockMapEntry = packPBN(entry->mapping.pbn, entry->mapping.state),
+    }
+  };
+  storeUInt32LE(packed.fields.pbnLowWord, entry->slot.pbn & UINT_MAX);
+  return packed;
 }
 
 /**
- * Decode block map slot and entry operation from a recovery journal entry.
+ * Unpack the on-disk representation of a recovery journal entry.
  *
- * @param [in]  entry      The entry to decode
- * @param [out] operation  The operation of entry this is
- * @param [out] slot       The block map slot
+ * @param entry  The recovery journal entry to unpack
+ *
+ * @return  The unpacked entry
  **/
-static inline
-void decodeOperationAndBlockMapSlot(const RecoveryJournalEntry *entry,
-                                    JournalOperation           *operation,
-                                    BlockMapSlot               *slot)
+static inline RecoveryJournalEntry
+unpackRecoveryJournalEntry(const PackedRecoveryJournalEntry *entry)
 {
-  slot->pbn
-    = ((PhysicalBlockNumber) entry->pbnHighWord << 32) | entry->pbnLowWord;
-  slot->slot   = entry->slot;
-  (*operation) = entry->operation;
+  PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
+  PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
+  return (RecoveryJournalEntry) {
+    .operation = entry->fields.operation,
+    .slot      = {
+      .pbn  = ((high4 << 32) | low32),
+      .slot = (entry->fields.slotLow | (entry->fields.slotHigh << 6)),
+    },
+    .mapping = unpackBlockMapEntry(&entry->fields.blockMapEntry),
+  };
 }
 
 /**
- * Decode a journal entry and validate it.
+ * Validate a recovery journal entry.
  *
- * @param [in]  vdo        The VDO
- * @param [in]  entry      The entry to decode
- * @param [out] operation  A pointer to hold the journal operation
- * @param [out] slot       A pointer to hold the block map slot
- * @param [out] pbn        A pointer to hold the pbn
+ * @param vdo     The VDO
+ * @param entry   The entry to validate
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeRecoveryJournalEntry(VDO                  *vdo,
-                               RecoveryJournalEntry *entry,
-                               JournalOperation     *operation,
-                               BlockMapSlot         *slot,
-                               PhysicalBlockNumber  *pbn)
+int validateRecoveryJournalEntry(const VDO                  *vdo,
+                                 const RecoveryJournalEntry *entry)
   __attribute__((warn_unused_result));
 
 /**

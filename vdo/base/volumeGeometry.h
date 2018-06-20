@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#4 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -30,23 +30,23 @@ struct indexConfig {
   uint32_t mem;
   uint32_t checkpointFrequency;
   bool     sparse;
-  } __attribute__((packed));
+} __attribute__((packed));
 
 typedef enum {
   INDEX_REGION = 0,
   DATA_REGION  = 1,
   VOLUME_REGION_COUNT,
-} VolumePartitionID;
+} VolumeRegionID;
 
 typedef struct {
-  /** The ID of the partition */
-  VolumePartitionID   id;
+  /** The ID of the region */
+  VolumeRegionID      id;
   /**
-   * The absolute starting offset on the device. The partition continues until
-   * the next partition begins.
+   * The absolute starting offset on the device. The region continues until
+   * the next region begins.
    */
   PhysicalBlockNumber startBlock;
-} __attribute__((packed)) VolumePartition;
+} __attribute__((packed)) VolumeRegion;
 
 /** A binary UUID is 16 bytes. */
 typedef unsigned char UUID[16];
@@ -58,8 +58,8 @@ typedef struct {
   Nonce                nonce;
   /** The UUID of this volume */
   UUID                 uuid;
-  /** The partitions in ID order */
-  VolumePartition      partitions[VOLUME_REGION_COUNT];
+  /** The regions in ID order */
+  VolumeRegion         regions[VOLUME_REGION_COUNT];
   /** The index config */
   IndexConfig          indexConfig;
 } __attribute__((packed)) VolumeGeometry;
@@ -74,7 +74,7 @@ typedef struct {
 __attribute__((warn_unused_result))
 static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
 {
-  return geometry.partitions[INDEX_REGION].startBlock;
+  return geometry.regions[INDEX_REGION].startBlock;
 }
 
 /**
@@ -87,7 +87,7 @@ static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
 __attribute__((warn_unused_result))
 static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
 {
-  return geometry.partitions[DATA_REGION].startBlock;
+  return geometry.regions[DATA_REGION].startBlock;
 }
 
 /**

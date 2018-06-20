@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#11 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#12 $
  */
 
 #include <linux/module.h>
@@ -98,25 +98,37 @@ EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);
 EXPORT_SYMBOL_GPL(assertionFailed);
 EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
+EXPORT_SYMBOL_GPL(availableSpace);
+EXPORT_SYMBOL_GPL(bufferLength);
+EXPORT_SYMBOL_GPL(bufferUsed);
 EXPORT_SYMBOL_GPL(compactBuffer);
 EXPORT_SYMBOL_GPL(contentLength);
 EXPORT_SYMBOL_GPL(copyBytes);
 EXPORT_SYMBOL_GPL(currentTime);
 EXPORT_SYMBOL_GPL(duplicateString);
 EXPORT_SYMBOL_GPL(ensureAvailableSpace);
+EXPORT_SYMBOL_GPL(equalBuffers);
 EXPORT_SYMBOL_GPL(fixedSprintf);
 EXPORT_SYMBOL_GPL(freeBuffer);
 EXPORT_SYMBOL_GPL(freeFunnelQueue);
 EXPORT_SYMBOL_GPL(freeMemory);
 EXPORT_SYMBOL_GPL(funnelQueuePoll);
+EXPORT_SYMBOL_GPL(getBoolean);
+EXPORT_SYMBOL_GPL(getBufferContents);
 EXPORT_SYMBOL_GPL(getByte);
 EXPORT_SYMBOL_GPL(getBytesFromBuffer);
 EXPORT_SYMBOL_GPL(getMemoryStats);
+EXPORT_SYMBOL_GPL(getUInt16BEFromBuffer);
 EXPORT_SYMBOL_GPL(getUInt16LEFromBuffer);
 EXPORT_SYMBOL_GPL(getUInt16LEsFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt32BEFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt32BEsFromBuffer);
 EXPORT_SYMBOL_GPL(getUInt32LEFromBuffer);
+EXPORT_SYMBOL_GPL(getUInt64BEsFromBuffer);
 EXPORT_SYMBOL_GPL(getUInt64LEFromBuffer);
 EXPORT_SYMBOL_GPL(getUInt64LEsFromBuffer);
+EXPORT_SYMBOL_GPL(growBuffer);
+EXPORT_SYMBOL_GPL(hasSameBytes);
 EXPORT_SYMBOL_GPL(isFunnelQueueEmpty);
 EXPORT_SYMBOL_GPL(makeBuffer);
 EXPORT_SYMBOL_GPL(makeFunnelQueue);
@@ -124,12 +136,17 @@ EXPORT_SYMBOL_GPL(MurmurHash3_x64_128);
 EXPORT_SYMBOL_GPL(MurmurHash3_x64_128_double);
 EXPORT_SYMBOL_GPL(nowUsec);
 EXPORT_SYMBOL_GPL(peekByte);
+EXPORT_SYMBOL_GPL(putBoolean);
 EXPORT_SYMBOL_GPL(putByte);
 EXPORT_SYMBOL_GPL(putBytes);
 EXPORT_SYMBOL_GPL(putInt64LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt16BEIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt16LEIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt16LEsIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt32BEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt32BEsIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt32LEIntoBuffer);
+EXPORT_SYMBOL_GPL(putUInt64BEsIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEsIntoBuffer);
 EXPORT_SYMBOL_GPL(reallocateMemory);
@@ -137,9 +154,13 @@ EXPORT_SYMBOL_GPL(recordBioAlloc);
 EXPORT_SYMBOL_GPL(recordBioFree);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(reportMemoryUsage);
+EXPORT_SYMBOL_GPL(resetBufferEnd);
 EXPORT_SYMBOL_GPL(rewindBuffer);
 EXPORT_SYMBOL_GPL(skipForward);
+EXPORT_SYMBOL_GPL(uncompactedAmount);
 EXPORT_SYMBOL_GPL(unregisterAllocatingThread);
+EXPORT_SYMBOL_GPL(wrapBuffer);
+EXPORT_SYMBOL_GPL(zeroBytes);
 
 /**********************************************************************/
 

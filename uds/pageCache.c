@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/pageCache.c#8 $
+ * $Id: //eng/uds-releases/gloria/src/uds/pageCache.c#9 $
  */
 
 #include "pageCache.h"
@@ -69,7 +69,7 @@ int assertPageInCache(PageCache *cache, CachedPage *page)
 static void clearPage(PageCache *cache, CachedPage *page)
 {
   page->physicalPage = cache->numIndexEntries;
-  ACCESS_ONCE(page->lastUsed) = 0;
+  WRITE_ONCE(page->lastUsed, 0);
 }
 
 /**
@@ -107,7 +107,7 @@ static int getPageNoStats(PageCache     *cache,
    * two reads of cache->index, but it would be possible and very bad if those
    * reads did not return the same bits.
    */
-  uint16_t indexValue = ACCESS_ONCE(cache->index[physicalPage]);
+  uint16_t indexValue = READ_ONCE(cache->index[physicalPage]);
   bool     queued     = (indexValue & VOLUME_CACHE_QUEUED_FLAG) != 0;
   uint16_t index      = indexValue & ~VOLUME_CACHE_QUEUED_FLAG;
 
@@ -198,7 +198,7 @@ static int invalidatePageInCache(PageCache          *cache,
       }
     }
 
-    ACCESS_ONCE(cache->index[page->physicalPage]) = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
     waitForPendingSearches(cache, page->physicalPage);
   }
 
@@ -249,7 +249,7 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
 
   // Move the cached page to the least recently used end of the list
   // so it will be replaced before any page with valid data.
-  ACCESS_ONCE(page->lastUsed) = 0;
+  WRITE_ONCE(page->lastUsed, 0);
 
   return UDS_SUCCESS;
 }
@@ -404,8 +404,8 @@ void makePageMostRecent(PageCache *cache, CachedPage *page)
 {
   // ASSERTION: We are either a zone thread holding a searchPendingCounter,
   //            or we are any thread holding the readThreadsMutex.
-  if (atomic64_read(&cache->clock) != ACCESS_ONCE(page->lastUsed)) {
-    ACCESS_ONCE(page->lastUsed) = atomic64_inc_return(&cache->clock);
+  if (atomic64_read(&cache->clock) != READ_ONCE(page->lastUsed)) {
+    WRITE_ONCE(page->lastUsed, atomic64_inc_return(&cache->clock));
   }
 }
 
@@ -438,8 +438,8 @@ static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
   // Now find the least recently used page that does not have a pending read.
   for (unsigned int i = 0; i < cache->numCacheEntries; i++) {
     if (!cache->cache[i].readPending
-        && (ACCESS_ONCE(cache->cache[i].lastUsed)
-            <= ACCESS_ONCE(cache->cache[oldestIndex].lastUsed))) {
+        && (READ_ONCE(cache->cache[i].lastUsed)
+            <= READ_ONCE(cache->cache[oldestIndex].lastUsed))) {
       oldestIndex = i;
     }
   }
@@ -502,8 +502,8 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
 
     /* point the cache index to it */
     readQueuePos = last;
-    ACCESS_ONCE(cache->index[physicalPage])
-      = readQueuePos | VOLUME_CACHE_QUEUED_FLAG;
+    WRITE_ONCE(cache->index[physicalPage],
+               readQueuePos | VOLUME_CACHE_QUEUED_FLAG);
     STAILQ_INIT(&cache->readQueue[readQueuePos].queueHead);
     /* bump the last pointer */
     cache->readQueueLast = next;
@@ -546,7 +546,7 @@ bool reserveReadQueueEntry(PageCache    *cache,
   // ALB-1429 ... need to check to see if its still queued before resetting
   if (isInvalid && queued) {
     // invalidate cache index slot
-    ACCESS_ONCE(cache->index[pageNo]) = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[pageNo], cache->numCacheEntries);
   }
 
   // If a sync read has taken this page, set invalid to true so we don't
@@ -607,7 +607,7 @@ int selectVictimInCache(PageCache   *cache,
   // it from the page map, and update cache stats
   if (page->physicalPage != cache->numIndexEntries) {
     cache->counters.evictions++;
-    ACCESS_ONCE(cache->index[page->physicalPage]) = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
     waitForPendingSearches(cache, page->physicalPage);
   }
 
@@ -663,7 +663,7 @@ int putPageInCache(PageCache    *cache,
   smp_wmb();
 
   // Point the page map to the new page. Will clear queued flag
-  ACCESS_ONCE(cache->index[physicalPage]) = value;
+  WRITE_ONCE(cache->index[physicalPage], value);
 
   return UDS_SUCCESS;
 }
@@ -694,7 +694,7 @@ void cancelPageInCache(PageCache    *cache,
   page->readPending = false;
 
   // Clear the page map for the new page. Will clear queued flag
-  ACCESS_ONCE(cache->index[physicalPage]) = cache->numCacheEntries;
+  WRITE_ONCE(cache->index[physicalPage], cache->numCacheEntries);
 }
 
 /**********************************************************************/

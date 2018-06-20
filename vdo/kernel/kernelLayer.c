@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#7 $
  */
 
 #include "kernelLayer.h"
@@ -109,8 +109,6 @@ int mapToSystemError(int error)
   }
   if (error < 1024) {
     // errno macro used without negating - may be a minor bug
-    logInfo("%s: mapping errno value %d used without negation",
-            __func__, error);
     return -error;
   }
   // VDO or UDS error
@@ -544,6 +542,40 @@ static void waitForSyncOperation(PhysicalLayer *common)
   }
 }
 
+/**
+ * Make the bio set for allocating new bios.
+ *
+ *
+ * @param layer  The kernel layer
+ *
+ * @returns VDO_SUCCESS if bio set created, error code otherwise
+ **/
+static int makeDedupeBioSet(KernelLayer *layer) 
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,18,0)
+  int result = ALLOCATE(1, struct bio_set, "bio set", &layer->bioset);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = bioset_init(layer->bioset, 0, 0, BIOSET_NEED_BVECS);
+  if (result != 0) {
+    return result;    
+  }
+#else
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
+  layer->bioset = bioset_create(0, 0, BIOSET_NEED_BVECS);
+#else
+  layer->bioset = bioset_create(0, 0);
+#endif
+  if (layer->bioset == NULL) {
+    return -ENOMEM;
+  }
+#endif
+  
+  return VDO_SUCCESS;
+}
+ 
 /**********************************************************************/
 int makeKernelLayer(BlockCount      blockCount,
                     uint64_t        startingSector,
@@ -714,15 +746,11 @@ int makeKernelLayer(BlockCount      blockCount,
   }
 
   // BIO pool (needed before the geometry block)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  layer->bioset = bioset_create(0, 0, BIOSET_NEED_BVECS);
-#else
-  layer->bioset = bioset_create(0, 0);
-#endif
-  if (layer->bioset == NULL) {
+  result = makeDedupeBioSet(layer);
+  if (result != VDO_SUCCESS) {
     *reason = "Cannot allocate dedupe bioset";
     freeKernelLayer(layer);
-    return -ENOMEM;
+    return result;
   }
 
   // Read the geometry block so we know how to set up the index. Allow it to
@@ -1044,7 +1072,12 @@ void freeKernelLayer(KernelLayer *layer)
     destroyKVDO(&layer->kvdo);
   }
   if (layer->bioset != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,18,0)
+    bioset_exit(layer->bioset);
+    FREE(layer->bioset);
+#else
     bioset_free(layer->bioset);
+#endif
     layer->bioset = NULL;
   }
 
@@ -1199,7 +1232,13 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
   layer->allocationsAllowed = false;
   if (result != VDO_SUCCESS) {
     // kvdoPrepareToGrowPhysical logs errors.
-    return result;
+    if (result == VDO_PARAMETER_MISMATCH) {
+      // If we don't trap this case, mapToSystemError() will remap it to -EIO,
+      // which is misleading and ahistorical.
+      return -EINVAL;
+    } else { 
+      return result;
+    }
   }
 
   logInfo("Done preparing to resize physical");
@@ -1209,25 +1248,18 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 /***********************************************************************/
 int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
-  if (physicalCount <= layer->blockCount) {
-    logWarning("Requested physical block count %" PRIu64
-               " not greater than %" PRIu64,
-             (uint64_t) physicalCount, (uint64_t) layer->blockCount);
-    return -EINVAL;
-  } else {
-    // Allow allocations for the duration of resize, but no longer.
-    layer->allocationsAllowed = true;
-    int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
-    layer->allocationsAllowed = false;
-    if (result != VDO_SUCCESS) {
-      // kvdoResizePhysical logs errors
-      return result;
-    }
-    logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
-            (uint64_t) layer->blockCount, (uint64_t) physicalCount);
-    layer->blockCount = physicalCount;
+  // Allow allocations for the duration of resize, but no longer.
+  layer->allocationsAllowed = true;
+  int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
+  layer->allocationsAllowed = false;
+  if (result != VDO_SUCCESS) {
+    // kvdoResizePhysical logs errors
+    return result;
   }
 
+  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
+          (uint64_t) layer->blockCount, (uint64_t) physicalCount);
+  layer->blockCount = physicalCount;
   return VDO_SUCCESS;
 }
 

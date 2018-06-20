@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#5 $
  */
 
 #include "recoveryJournal.h"
 #include "recoveryJournalInternals.h"
 
+#include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -49,9 +50,6 @@ static const Header RECOVERY_JOURNAL_HEADER_7_0 = {
   },
   .size = sizeof(RecoveryJournalState7_0),
 };
-
-static const Header *CURRENT_RECOVERY_JOURNAL_HEADER
-  = &RECOVERY_JOURNAL_HEADER_7_0;
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
 
@@ -184,8 +182,10 @@ static inline bool checkForClosure(RecoveryJournal *journal)
 {
   if (isReadOnly(journal->readOnlyContext)) {
     int notifyContext = VDO_READ_ONLY;
-    notifyAllWaiters(&journal->decrementWaiters, continueWaiter, &notifyContext);
-    notifyAllWaiters(&journal->incrementWaiters, continueWaiter, &notifyContext);
+    notifyAllWaiters(&journal->decrementWaiters, continueWaiter,
+                     &notifyContext);
+    notifyAllWaiters(&journal->incrementWaiters, continueWaiter,
+                     &notifyContext);
   }
 
   if (!journal->closeRequested || journal->completion.complete
@@ -523,10 +523,10 @@ int makeRecoveryJournal(Nonce                 nonce,
   // RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
   STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
                 <= ((VDO_BLOCK_SIZE - sizeof(PackedJournalHeader))
-                    / sizeof(RecoveryJournalEntry)));
+                    / sizeof(PackedRecoveryJournalEntry)));
   journal->entriesPerBlock   = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
   journal->entriesPerSector  = ((VDO_SECTOR_SIZE - sizeof(PackedJournalSector))
-                                / sizeof(RecoveryJournalEntry));
+                                / sizeof(PackedRecoveryJournalEntry));
   journal->lastSectorEntries = (RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
                                 % journal->entriesPerSector);
   if (journal->lastSectorEntries == 0) {
@@ -662,65 +662,108 @@ size_t getRecoveryJournalEncodedSize(void)
 }
 
 /**********************************************************************/
-int decodeRecoveryJournalEntry(VDO                  *vdo,
-                               RecoveryJournalEntry *entry,
-                               JournalOperation     *operation,
-                               BlockMapSlot         *slot,
-                               PhysicalBlockNumber  *pbn)
+int validateRecoveryJournalEntry(const VDO                  *vdo,
+                                 const RecoveryJournalEntry *entry)
 {
-  decodeOperationAndBlockMapSlot(entry, operation, slot);
-  PhysicalBlockNumber unpackedPBN = unpackPBN(&entry->blockMapEntry);
-  if ((slot->pbn >= vdo->config.physicalBlocks)
-      || (slot->slot >= BLOCK_MAP_ENTRIES_PER_PAGE)
-      || isInvalid(&entry->blockMapEntry)
-      || !isPhysicalDataBlock(vdo->depot, unpackedPBN)) {
+  if ((entry->slot.pbn >= vdo->config.physicalBlocks)
+      || (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE)
+      || !isValidLocation(&entry->mapping)
+      || !isPhysicalDataBlock(vdo->depot, entry->mapping.pbn)) {
     return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
                                    " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
                                    " (%s) is not within bounds",
-                                   slot->pbn, slot->slot, unpackedPBN,
-                                   getJournalOperationName(*operation));
+                                   entry->slot.pbn, entry->slot.slot,
+                                   entry->mapping.pbn,
+                                   getJournalOperationName(entry->operation));
   }
 
-  if ((*operation == BLOCK_MAP_INCREMENT)
-      && (isCompressed(unpackMappingState(&entry->blockMapEntry))
-          || (unpackedPBN == ZERO_BLOCK))) {
+  if ((entry->operation == BLOCK_MAP_INCREMENT)
+      && (isCompressed(entry->mapping.state)
+          || (entry->mapping.pbn == ZERO_BLOCK))) {
     return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
                                    " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
                                    " (%s) is not a valid tree mapping",
-                                   slot->pbn, slot->slot, unpackedPBN,
-                                   getJournalOperationName(*operation));
+                                   entry->slot.pbn, entry->slot.slot,
+                                   entry->mapping.pbn,
+                                   getJournalOperationName(entry->operation));
   }
 
-  if (pbn != NULL) {
-    *pbn = unpackedPBN;
-  }
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 int encodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
 {
-  // When we're not closing, we must record the first block that might have
-  // entries that need to be applied.
-  RecoveryJournalState7_0 state = {
-    .journalStart       = getRecoveryJournalHead(journal),
-    .logicalBlocksUsed  = journal->logicalBlocksUsed,
-    .blockMapDataBlocks = journal->blockMapDataBlocks,
-  };
+  SequenceNumber journalStart;
   if (journal->closeRequested) {
     // If the journal is closed, we should start one past the active block
     // (since the active block is not guaranteed to be empty).
-    state.journalStart = journal->tail;
+    journalStart = journal->tail;
+  } else {
+    // When we're not closing, we must record the first block that might have
+    // entries that need to be applied.
+    journalStart = getRecoveryJournalHead(journal);
   }
 
-  return encodeWithHeader(CURRENT_RECOVERY_JOURNAL_HEADER, &state, buffer);
+  int result = encodeHeader(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t initialLength = contentLength(buffer);
+
+  result = putUInt64LEIntoBuffer(buffer, journalStart);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, journal->logicalBlocksUsed);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, journal->blockMapDataBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t encodedSize = contentLength(buffer) - initialLength;
+  return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encodedSize,
+                "encoded recovery journal component size"
+                " must match header size");
 }
 
-/**********************************************************************/
-int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
+/**
+ * Decode recovery journal component state version 7.0 from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param state   The state structure to receive the decoded values
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodeRecoveryJournalState_7_0(Buffer                  *buffer,
+                                          RecoveryJournalState7_0 *state)
 {
-  // Sodium uses version 7.0, same as head, currently.
-  return decodeRecoveryJournal(journal, buffer);
+  size_t initialLength = contentLength(buffer);
+
+  int result = getUInt64LEFromBuffer(buffer, &state->journalStart);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->logicalBlocksUsed);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->blockMapDataBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t decodedSize = initialLength - contentLength(buffer);
+  return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decodedSize,
+                "decoded slab depot component size must match header size");
 }
 
 /**********************************************************************/
@@ -732,14 +775,14 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
     return result;
   }
 
-  result = validateHeader(CURRENT_RECOVERY_JOURNAL_HEADER, &header,
+  result = validateHeader(&RECOVERY_JOURNAL_HEADER_7_0, &header,
                           true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   RecoveryJournalState7_0 state;
-  result = getBytesFromBuffer(buffer, sizeof(RecoveryJournalState7_0), &state);
+  result = decodeRecoveryJournalState_7_0(buffer, &state);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -757,6 +800,13 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
   }
 
   return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
+{
+  // Sodium uses version 7.0, same as head, currently.
+  return decodeRecoveryJournal(journal, buffer);
 }
 
 /**
@@ -1247,14 +1297,19 @@ static int addEntries(RecoveryJournalBlock *block)
                             || vioRequiresFlushAfter(dataVIOAsVIO(dataVIO)));
     }
 
-    // Encode the entry.
-    RecoveryJournalEntry *newEntry
+    // Compose and encode the entry.
+    PackedRecoveryJournalEntry *packedEntry
       = &block->sector->entries[block->sector->entryCount++];
     TreeLock *lock = &dataVIO->treeLock;
-    encodeOperationAndBlockMapSlot(newEntry, dataVIO->operation.type,
-                                   lock->treeSlots[lock->height].blockMapSlot);
-    newEntry->blockMapEntry = packPBN(dataVIO->operation.pbn,
-                                      dataVIO->operation.state);
+    RecoveryJournalEntry newEntry = {
+      .mapping   = {
+        .pbn     = dataVIO->operation.pbn,
+        .state   = dataVIO->operation.state,
+      },
+      .operation = dataVIO->operation.type,
+      .slot      = lock->treeSlots[lock->height].blockMapSlot,
+    };
+    *packedEntry = packRecoveryJournalEntry(&newEntry);
 
     if (isIncrementOperation(dataVIO->operation.type)) {
       dataVIO->recoverySequenceNumber = block->header->sequenceNumber;

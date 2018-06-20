@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.0.71
+%define kmod_driver_version	6.2.0.109
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -16,12 +16,8 @@ Summary:	Kernel Modules for Virtual Data Optimizer
 License:	GPLv2+
 URL:		http://github.com/dm-vdo/kvdo
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires:	glibc
-BuildRequires:	kernel-devel >= %{kmod_kernel_version}
-BuildRequires:  elfutils-libelf-devel
-BuildRequires:  libuuid-devel
-BuildRequires:  redhat-rpm-config
 Requires:       dkms
+Requires:	kernel-devel >= %{kmod_kernel_version}
 Requires:       make
 ExclusiveArch:	x86_64
 ExcludeArch:    s390
@@ -89,5 +85,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
 
 %changelog
-* Fri Jun 01 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.71-1
-HASH(0x2042988)
+* Wed Jun 20 2018 - J. corwin Coburn <corwin@redhat.com> - 6.2.0.109-1
+HASH(0x1ba9e60)

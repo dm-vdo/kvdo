@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#2 $
  */
 
 #include "slabDepot.h"
@@ -54,8 +54,6 @@ static const Header SLAB_DEPOT_HEADER_2_0 = {
   },
   .size = sizeof(SlabDepotState2_0),
 };
-
-static const Header *CURRENT_SLAB_DEPOT_HEADER = &SLAB_DEPOT_HEADER_2_0;
 
 /**
  * Convert a generic VDOCompletion to a SlabDepot.
@@ -479,9 +477,119 @@ size_t getSlabDepotEncodedSize(void)
   return ENCODED_HEADER_SIZE + sizeof(SlabDepotState2_0);
 }
 
+/**
+ * Decode a slab config from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param config  The config structure to receive the decoded values
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodeSlabConfig(Buffer *buffer, SlabConfig *config)
+{
+  int result = getUInt64LEFromBuffer(buffer, &config->slabBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->dataBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->referenceCountBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->slabJournalBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result
+    = getUInt64LEFromBuffer(buffer, &config->slabJournalFlushingThreshold);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result
+    = getUInt64LEFromBuffer(buffer, &config->slabJournalBlockingThreshold);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return getUInt64LEFromBuffer(buffer, &config->slabJournalScrubbingThreshold);
+}
+
+/**
+ * Encode a slab config into a buffer.
+ *
+ * @param config  The config structure to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int encodeSlabConfig(const SlabConfig *config, Buffer *buffer)
+{
+  int result = putUInt64LEIntoBuffer(buffer, config->slabBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->dataBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->referenceCountBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->slabJournalBlocks);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->slabJournalFlushingThreshold);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->slabJournalBlockingThreshold);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return putUInt64LEIntoBuffer(buffer, config->slabJournalScrubbingThreshold);
+}
+
 /**********************************************************************/
 int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
 {
+  int result = encodeHeader(&SLAB_DEPOT_HEADER_2_0, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t initialLength = contentLength(buffer);
+
+  result = encodeSlabConfig(&depot->slabConfig, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, depot->firstBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, depot->lastBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
   /*
    * If this depot is currently using 0 zones, it must have been
    * synchronously loaded by a tool and is now being saved. We
@@ -493,29 +601,51 @@ int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
   if (depot->zoneCount == 0) {
     zonesToRecord = depot->oldZoneCount;
   }
+  result = putByte(buffer, zonesToRecord);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
-  SlabDepotState2_0 state = (SlabDepotState2_0) {
-    .slabConfig = depot->slabConfig,
-    .firstBlock = depot->firstBlock,
-    .lastBlock  = depot->lastBlock,
-    .zoneCount  = zonesToRecord,
-  };
-  return encodeWithHeader(CURRENT_SLAB_DEPOT_HEADER, &state, buffer);
+  size_t encodedSize = contentLength(buffer) - initialLength;
+  return ASSERT(SLAB_DEPOT_HEADER_2_0.size == encodedSize,
+                "encoded block map component size must match header size");
 }
 
-/**********************************************************************/
-int decodeSodiumSlabDepot(Buffer               *buffer,
-                          const ThreadConfig   *threadConfig,
-                          Nonce                 nonce,
-                          PhysicalLayer        *layer,
-                          Partition            *summaryPartition,
-                          ReadOnlyModeContext  *readOnlyContext,
-                          RecoveryJournal      *recoveryJournal,
-                          SlabDepot           **depotPtr)
+/**
+ * Decode slab depot component state version 2.0 from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param state   The state structure to receive the decoded values
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodeSlabDepotState_2_0(Buffer *buffer, SlabDepotState2_0 *state)
 {
-  // Sodium uses version 2.0 of the slab depot state.
-  return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
-                         readOnlyContext, recoveryJournal, depotPtr);
+  size_t initialLength = contentLength(buffer);
+
+  int result = decodeSlabConfig(buffer, &state->slabConfig);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->firstBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->lastBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getByte(buffer, &state->zoneCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t decodedSize = initialLength - contentLength(buffer);
+  return ASSERT(SLAB_DEPOT_HEADER_2_0.size == decodedSize,
+                "decoded slab depot component size must match header size");
 }
 
 /**********************************************************************/
@@ -534,13 +664,13 @@ int decodeSlabDepot(Buffer               *buffer,
     return result;
   }
 
-  result = validateHeader(CURRENT_SLAB_DEPOT_HEADER, &header, true, __func__);
+  result = validateHeader(&SLAB_DEPOT_HEADER_2_0, &header, true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   SlabDepotState2_0 state;
-  result = getBytesFromBuffer(buffer, sizeof(state), &state);
+  result = decodeSlabDepotState_2_0(buffer, &state);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -549,6 +679,21 @@ int decodeSlabDepot(Buffer               *buffer,
                        BLOCK_DESCRIPTOR_POOL_SIZE, layer,
                        summaryPartition, readOnlyContext, recoveryJournal,
                        depotPtr);
+}
+
+/**********************************************************************/
+int decodeSodiumSlabDepot(Buffer               *buffer,
+                          const ThreadConfig   *threadConfig,
+                          Nonce                 nonce,
+                          PhysicalLayer        *layer,
+                          Partition            *summaryPartition,
+                          ReadOnlyModeContext  *readOnlyContext,
+                          RecoveryJournal      *recoveryJournal,
+                          SlabDepot           **depotPtr)
+{
+  // Sodium uses version 2.0 of the slab depot state.
+  return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
+                         readOnlyContext, recoveryJournal, depotPtr);
 }
 
 /**********************************************************************/

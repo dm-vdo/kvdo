@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lz4.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/lz4.c#2 $
  */
 
 // Get the memcpy fixup from common.h.
@@ -98,21 +98,15 @@
 #endif
 
 // Little Endian or Big Endian ?
-// Overwrite the #define below if you know your architecture endianess
-#if defined (__GLIBC__)
-#  include <endian.h>
-#  if (__BYTE_ORDER == __BIG_ENDIAN)
-#     define LZ4_BIG_ENDIAN 1
-#  endif
-#elif (defined(__BIG_ENDIAN__) || defined(__BIG_ENDIAN) || defined(_BIG_ENDIAN)) && !(defined(__LITTLE_ENDIAN__) || defined(__LITTLE_ENDIAN) || defined(_LITTLE_ENDIAN))
+// GCC normally defines these three macros (and PDP-endian which we ignore).
+#if !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__) \
+  || !defined(__BYTE_ORDER__)
+#error "GCC byte order macros not defined?"
+#endif
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #  define LZ4_BIG_ENDIAN 1
-#elif defined(__sparc) || defined(__sparc__) \
-   || defined(__ppc__) || defined(_POWER) || defined(__powerpc__) || defined(_ARCH_PPC) || defined(__PPC__) || defined(__PPC) || defined(PPC) || defined(__powerpc__) || defined(__powerpc) || defined(powerpc) \
-   || defined(__hpux)  || defined(__hppa) \
-   || defined(_MIPSEB) || defined(__s390__)
-#  define LZ4_BIG_ENDIAN 1
-#else
-// Little Endian assumed. PDP Endian and other very rare endian format are unsupported.
+#elif __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+#  error "fix byte order check"
 #endif
 
 // Unaligned memory access is automatically enabled for "common" CPU, such as x86.

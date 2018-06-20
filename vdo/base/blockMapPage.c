@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#6 $
  */
 
 #include "blockMapPage.h"
@@ -50,15 +50,20 @@ bool isCurrentBlockMapPage(const BlockMapPage *page)
 }
 
 /**********************************************************************/
-void formatBlockMapPage(void *buffer, Nonce nonce, PhysicalBlockNumber pbn)
+BlockMapPage *formatBlockMapPage(void                *buffer,
+                                 Nonce                nonce,
+                                 PhysicalBlockNumber  pbn,
+                                 bool                 initialized)
 {
   memset(buffer, 0, VDO_BLOCK_SIZE);
   BlockMapPage *page = (BlockMapPage *) buffer;
   page->version      = *CURRENT_BLOCK_MAP_VERSION;
   page->header       = (PageHeader) {
-    .nonce = nonce,
-    .pbn   = pbn,
+    .nonce       = nonce,
+    .pbn         = pbn,
+    .initialized = initialized,
   };
+  return page;
 }
 
 /**********************************************************************/
@@ -71,25 +76,24 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
   STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_1_SIZE);
 
   if (!areSameVersion(&BLOCK_MAP_4_1, &page->version)
-      || !page->header.initialized || (page->header.nonce != nonce)) {
+      || !isBlockMapPageInitialized(page)
+      || (page->header.nonce != nonce)) {
     return BLOCK_MAP_PAGE_INVALID;
   }
 
-  if (page->header.pbn != pbn) {
+  if (pbn != getBlockMapPagePBN(page)) {
     return BLOCK_MAP_PAGE_BAD;
   }
 
-  page->header.recoverySequenceNumber  = 0;
-  page->header.interiorTreePageWriting = false;
-  page->header.generation              = 0;
   return BLOCK_MAP_PAGE_VALID;
 }
 
 /**********************************************************************/
-void updateBlockMapPage(DataVIO             *dataVIO,
-                        BlockMapPage        *page,
+void updateBlockMapPage(BlockMapPage        *page,
+                        DataVIO             *dataVIO,
                         PhysicalBlockNumber  pbn,
-                        BlockMappingState    mappingState)
+                        BlockMappingState    mappingState,
+                        SequenceNumber      *recoveryLock)
 {
   // Encode the new mapping.
   TreeLock *treeLock = &dataVIO->treeLock;
@@ -100,7 +104,7 @@ void updateBlockMapPage(DataVIO             *dataVIO,
   BlockMapZone    *zone      = getBlockMapForZone(dataVIO->logical.zone);
   BlockMap        *blockMap  = zone->blockMap;
   RecoveryJournal *journal   = blockMap->journal;
-  SequenceNumber   oldLocked = page->header.recoverySequenceNumber;
+  SequenceNumber   oldLocked = *recoveryLock;
   SequenceNumber   newLocked = dataVIO->recoverySequenceNumber;
 
   if ((oldLocked == 0) || (oldLocked > newLocked)) {
@@ -115,8 +119,7 @@ void updateBlockMapPage(DataVIO             *dataVIO,
                                            zone->zoneNumber);
     }
 
-    // Update the lock field and the page status.
-    page->header.recoverySequenceNumber = newLocked;
+    *recoveryLock = newLocked;
   }
 
   // Release the transferred lock from the DataVIO.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#5 $
  */
 
 /*
@@ -221,17 +221,11 @@ void freeVDO(VDO **vdoPtr)
 }
 
 /**********************************************************************/
-size_t vdoComponentStructureSize(void)
-{
-  return sizeof(VDOComponent41_0);
-}
-
-/**********************************************************************/
 size_t getComponentDataSize(VDO *vdo)
 {
   return (sizeof(VersionNumber)
           + sizeof(VersionNumber)
-          + vdoComponentStructureSize()
+          + sizeof(VDOComponent41_0)
           + getVDOLayoutEncodedSize(vdo->layout)
           + getRecoveryJournalEncodedSize()
           + getSlabDepotEncodedSize()
@@ -248,7 +242,7 @@ size_t getComponentDataSize(VDO *vdo)
 __attribute__((warn_unused_result))
 static int encodeMasterVersion(Buffer *buffer)
 {
-  return putBytes(buffer, sizeof(VersionNumber), CURRENT_VDO_MASTER_VERSION);
+  return encodeVersionNumber(CURRENT_VDO_MASTER_VERSION, buffer);
 }
 
 /**
@@ -262,8 +256,7 @@ static int encodeMasterVersion(Buffer *buffer)
 __attribute__((warn_unused_result))
 static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
 {
-  int result = putBytes(buffer, sizeof(VersionNumber),
-                        CURRENT_VDO_COMPONENT_DATA_VERSION);
+  int result = encodeVersionNumber(CURRENT_VDO_COMPONENT_DATA_VERSION, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -379,9 +372,8 @@ int saveReconfiguredVDO(VDO *vdo)
 /**********************************************************************/
 int decodeVDOVersion(VDO *vdo)
 {
-  return getBytesFromBuffer(getComponentBuffer(vdo->superBlock),
-                            sizeof(VersionNumber),
-                            &vdo->loadVersion);
+  return decodeVersionNumber(getComponentBuffer(vdo->superBlock),
+                             &vdo->loadVersion);
 }
 
 /**********************************************************************/
@@ -413,7 +405,7 @@ int decodeVDOComponent(VDO *vdo)
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
 
   VersionNumber version;
-  int result = getBytesFromBuffer(buffer, sizeof(VersionNumber), &version);
+  int result = decodeVersionNumber(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;
   }

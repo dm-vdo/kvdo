@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/logger.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/logger.c#2 $
  */
 
 #include "logger.h"
@@ -108,12 +108,43 @@ void logEmbeddedMessage(int         priority,
   va_end(ap);
 }
 
+#pragma GCC diagnostic push
+/*
+ * GCC (version 8.1.1 20180502 (Red Hat 8.1.1-1)) on Fedora 28 seems
+ * to think that this function should get a printf format
+ * attribute. But we have no second format string, and no additional
+ * arguments at the call site, and GCC also gets unhappy trying to
+ * analyze the format and values when there are none. So we'll just
+ * shut it up.
+ */
+#pragma GCC diagnostic ignored "-Wsuggest-attribute=format"
+/**
+ * Log a message.
+ *
+ * This helper function exists solely to create a valid va_list with
+ * no useful info. It does the real work of vLogMessage, which wants a
+ * second va_list object to pass down.
+ *
+ * @param  priority The syslog priority value for the message.
+ * @param  format   The format of the message (a printf style format)
+ * @param  args     The variadic argument list of format parameters.
+ **/
+static void vLogMessageHelper(int         priority,
+                              const char *format,
+                              va_list     args,
+                              ...)
+{
+  va_list dummy;
+  va_start(dummy, args);
+  logMessagePack(priority, NULL, format, args, NULL, dummy);
+  va_end(dummy);
+}
+#pragma GCC diagnostic pop
+
 /*****************************************************************************/
 void vLogMessage(int priority, const char *format, va_list args)
 {
-  va_list dummy;
-  memset(&dummy, 0, sizeof(dummy));
-  logMessagePack(priority, NULL, format, args, NULL, dummy);
+  vLogMessageHelper(priority, format, args);
 }
 
 /*****************************************************************************/

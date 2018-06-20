@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#5 $
  */
 
 #include "workQueue.h"
@@ -234,7 +234,12 @@ static bool enqueueWorkQueueItem(SimpleWorkQueue *queue, KvdoWorkItem *item)
    * race condition exists, but another work item getting enqueued can wake us
    * up, and if we don't get that either, we still have the timeout to fall
    * back on.
+   *
+   * Developed and tuned for some x86 boxes; untested whether this is any
+   * better or worse for other platforms, with or without the explicit memory
+   * barrier.
    */
+  smp_mb();
   return ((atomic_read(&queue->idle) == 1)
           && (atomic_cmpxchg(&queue->idle, 1, 0) == 1));
 }
@@ -574,7 +579,10 @@ static int workQueueRunner(void *ptr)
   WorkQueueStackHandle queueHandle;
   initializeWorkQueueStackHandle(&queueHandle, queue);
   queue->stats.startTime = queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
-  atomic_set(&queue->started, true);
+  unsigned long flags;
+  spin_lock_irqsave(&queue->lock, flags);
+  queue->started = true;
+  spin_unlock_irqrestore(&queue->lock, flags);
   wake_up(&queue->startWaiters);
   serviceWorkQueue(queue);
 
@@ -609,6 +617,7 @@ void setupWorkItem(KvdoWorkItem     *item,
 /**********************************************************************/
 static inline void wakeWorkerThread(SimpleWorkQueue *queue)
 {
+  smp_mb();
   atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CT_MONOTONIC));
   // Despite the name, there's a maximum of one thread in this list.
   wake_up(&queue->waitingWorkerThreads);
@@ -665,6 +674,16 @@ static void processDelayedWorkItems(unsigned long data)
 }
 
 // Creation & teardown
+
+/**********************************************************************/
+static bool queueStarted(SimpleWorkQueue *queue)
+{
+  unsigned long flags;
+  spin_lock_irqsave(&queue->lock, flags);
+  bool started = queue->started;
+  spin_unlock_irqrestore(&queue->lock, flags);
+  return started;
+}
 
 /**
  * Create a simple work queue with a worker thread.
@@ -772,7 +791,7 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
     return result;
   }
 
-  atomic_set(&queue->started, false);
+  queue->started = false;
   struct task_struct *thread = NULL;
   thread = kthread_run(workQueueRunner, queue, "%s:%s", threadNamePrefix,
                        queue->common.name);
@@ -792,7 +811,7 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
    * Eventually we should just make that path safe too, and then we
    * won't need this synchronization.
    */
-  wait_event(queue->startWaiters, atomic_read(&queue->started) == true);
+  wait_event(queue->startWaiters, queueStarted(queue) == true);
   *queuePtr = queue;
   return UDS_SUCCESS;
 }

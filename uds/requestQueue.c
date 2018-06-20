@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/requestQueue.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/requestQueue.c#3 $
  */
 
 #include "requestQueue.h"
@@ -217,19 +217,24 @@ static Request *dequeueRequest(RequestQueue *queue)
     // EventCount is signalled after this returns, we won't wait later on.
     EventToken waitToken = eventCountPrepare(queue->workEvent);
 
+    // First poll for shutdown to ensure we don't miss work that was enqueued
+    // immediately before a shutdown request.
+    bool shuttingDown = !READ_ONCE(queue->alive);
+    if (shuttingDown) {
+      /*
+       * Ensure that we see any requests that were guaranteed to have been
+       * fully enqueued before shutdown was flagged.  The corresponding write
+       * barrier is in requestQueueFinish.
+       */
+      smp_rmb();
+    }
+
     // Poll again before waiting--a request may have been enqueued just before
     // we got the event key.
     request = pollQueues(queue);
-    if (request != NULL) {
+    if ((request != NULL) || shuttingDown) {
       eventCountCancel(queue->workEvent, waitToken);
       return request;
-    }
-
-    // There's really no more work right now. Before waiting, check if we've
-    // been told to exit.
-    if (!ACCESS_ONCE(queue->alive)) {
-      eventCountCancel(queue->workEvent, waitToken);
-      return NULL;
     }
 
     // We're about to wait again, so update the wait time to reflect the batch
@@ -347,9 +352,17 @@ void requestQueueFinish(RequestQueue *queue)
     return;
   }
 
-  // Mark the queue as dead.  If synchronization is needed with the worker
-  // thread, the upcoming eventCountBroadcast will provide the memory barrier.
-  queue->alive = false;
+  /*
+   * This memory barrier ensures that any requests we queued will be seen.  The
+   * point is that when dequeueRequest sees the following update to the alive
+   * flag, it will also be able to see any change we made to a next field in
+   * the FunnelQueue entry.  The corresponding read barrier is in
+   * dequeueRequest.
+   */
+  smp_wmb();
+
+  // Mark the queue as dead.
+  WRITE_ONCE(queue->alive, false);
 
   if (queue->started) {
     // Wake the worker so it notices that it should exit.

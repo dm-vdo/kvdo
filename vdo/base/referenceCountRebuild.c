@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#4 $
  */
 
 #include "referenceCountRebuild.h"
@@ -277,16 +277,16 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
     return result;
   }
 
-  if (!page->header.initialized) {
+  if (!isBlockMapPageInitialized(page)) {
     return VDO_SUCCESS;
   }
 
   // Remove any bogus entries which exist beyond the end of the logical space.
-  if (page->header.pbn == rebuild->lastSlot.pbn) {
+  if (getBlockMapPagePBN(page) == rebuild->lastSlot.pbn) {
     for (SlotNumber slot = rebuild->lastSlot.slot;
          slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
-      const BlockMapEntry *entry = &page->entries[slot];
-      if (!isUnmapped(entry)) {
+      DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+      if (isMappedLocation(&mapping)) {
         page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
         requestVDOPageWrite(completion);
       }
@@ -295,25 +295,24 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
 
   // Inform the slab depot of all entries on this page.
   for (SlotNumber slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
-    const BlockMapEntry *entry = &page->entries[slot];
-    if (isInvalid(entry)) {
+    DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+    if (!isValidLocation(&mapping)) {
       // This entry is invalid, so remove it from the page.
       page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
       continue;
     }
 
-    if (isUnmapped(entry)) {
+    if (!isMappedLocation(&mapping)) {
       continue;
     }
 
     (*rebuild->logicalBlocksUsed)++;
-    PhysicalBlockNumber pbn = unpackPBN(entry);
-    if (pbn == ZERO_BLOCK) {
+    if (mapping.pbn == ZERO_BLOCK) {
       continue;
     }
 
-    if (!isPhysicalDataBlock(rebuild->depot, pbn)) {
+    if (!isPhysicalDataBlock(rebuild->depot, mapping.pbn)) {
       // This is a nonsense mapping. Remove it from the map so we're at least
       // consistent and mark the page dirty.
       page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
@@ -321,14 +320,14 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
       continue;
     }
 
-    Slab *slab   = getSlab(rebuild->depot, pbn);
-    int   result = adjustReferenceCountForRebuild(slab->referenceCounts, pbn,
-                                                  DATA_INCREMENT);
+    Slab *slab   = getSlab(rebuild->depot, mapping.pbn);
+    int   result = adjustReferenceCountForRebuild(slab->referenceCounts,
+                                                  mapping.pbn, DATA_INCREMENT);
     if (result != VDO_SUCCESS) {
       logErrorWithStringError(result,
-                              "Could not adjust reference count for "
-                              "PBN %" PRIu64 ", slot %u mapped to PBN "
-                              "%" PRIu64, page->header.pbn, slot, pbn);
+                              "Could not adjust reference count for PBN"
+                              " %" PRIu64 ", slot %u mapped to PBN %" PRIu64,
+                              getBlockMapPagePBN(page), slot, mapping.pbn);
       page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
     }

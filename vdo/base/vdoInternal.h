@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#5 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -388,15 +388,6 @@ HashZone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
 int getPhysicalZone(const VDO            *vdo,
                     PhysicalBlockNumber   pbn,
                     PhysicalZone        **zonePtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Return the size of the current VDO component encoded structure size.
- * Used in tests.
- *
- * @return the size
- **/
-size_t vdoComponentStructureSize(void)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/

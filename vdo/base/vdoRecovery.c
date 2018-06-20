@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#5 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -51,7 +51,7 @@ typedef struct missingDecref {
   /** The slot for which the last decref was lost */
   BlockMapSlot        slot;
   /** The penultimate block map entry for this LBN */
-  BlockMapEntry       penultimateMapping;
+  DataLocation        penultimateMapping;
   /** The page completion used to fetch the block map page for this LBN */
   VDOPageCompletion   pageCompletion;
 } MissingDecref;
@@ -318,16 +318,15 @@ static bool abortRecoveryOnError(int result, RecoveryCompletion *recovery)
 }
 
 /**
- * Get a pointer to the recovery journal entry associated with the
- * given recovery point.
+ * Unpack the recovery journal entry associated with the given recovery point.
  *
  * @param recovery  The recovery completion
  * @param point     The recovery point
  *
- * @return A pointer to the matching recovery journal entry
+ * @return The unpacked contents of the matching recovery journal entry
  **/
-static RecoveryJournalEntry *getEntry(RecoveryCompletion *recovery,
-                                      RecoveryPoint      *point)
+static RecoveryJournalEntry getEntry(const RecoveryCompletion *recovery,
+                                     const RecoveryPoint      *point)
 {
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   PhysicalBlockNumber blockNumber
@@ -336,7 +335,7 @@ static RecoveryJournalEntry *getEntry(RecoveryCompletion *recovery,
     = (blockNumber * VDO_BLOCK_SIZE) + (point->sectorCount * VDO_SECTOR_SIZE);
   PackedJournalSector *sector
     = (PackedJournalSector *) &recovery->journalData[sectorOffset];
-  return &sector->entries[point->entryCount];
+  return unpackRecoveryJournalEntry(&sector->entries[point->entryCount]);
 }
 
 /**
@@ -353,32 +352,30 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
   RecoveryJournal *journal = vdo->recoveryJournal;
 
   // Allocate a NumberedBlockMapping array just large enough to transcribe
-  // every increment RecoveryJournalEntry from every valid journal block.
+  // every increment PackedRecoveryJournalEntry from every valid journal block.
   int result = ALLOCATE(recovery->increfCount, NumberedBlockMapping, __func__,
                         &recovery->entries);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  BlockMapSlot     slot;
-  JournalOperation operation;
-  RecoveryPoint    recoveryPoint = (RecoveryPoint) {
+  RecoveryPoint recoveryPoint = (RecoveryPoint) {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry *entry = getEntry(recovery, &recoveryPoint);
-    result = decodeRecoveryJournalEntry(vdo, entry, &operation, &slot, NULL);
+    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    result = validateRecoveryJournalEntry(vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(journal->readOnlyContext, result);
       return result;
     }
 
-    if (isIncrementOperation(operation)) {
+    if (isIncrementOperation(entry.operation)) {
       recovery->entries[recovery->entryCount] = (NumberedBlockMapping) {
-        .blockMapSlot  = slot,
-        .blockMapEntry = entry->blockMapEntry,
+        .blockMapSlot  = entry.slot,
+        .blockMapEntry = packPBN(entry.mapping.pbn, entry.mapping.state),
         .number        = recovery->entryCount,
       };
       recovery->entryCount++;
@@ -460,23 +457,21 @@ static void addSynthesizedEntries(VDOCompletion *completion)
   MissingDecref *currentDecref;
   while (!isRingEmpty(&recovery->completeDecrefs)) {
     currentDecref = asMissingDecref(recovery->completeDecrefs.prev);
-    BlockMapEntry *penultimateMapping = &currentDecref->penultimateMapping;
-    PhysicalBlockNumber pbn = unpackPBN(penultimateMapping);
-    if (isInvalid(penultimateMapping)
-        || !isPhysicalDataBlock(vdo->depot, pbn)) {
+    DataLocation mapping = currentDecref->penultimateMapping;
+    if (!isValidLocation(&mapping)
+        || !isPhysicalDataBlock(vdo->depot, mapping.pbn)) {
       // The block map contained a bad mapping, so the block map is corrupt.
-      int result
-        = logErrorWithStringError(VDO_BAD_MAPPING,
-                                  "Read invalid mapping for pbn %"
-                                  PRIu64 " with state %u",
-                                  pbn, unpackMappingState(penultimateMapping));
+      int result = logErrorWithStringError(VDO_BAD_MAPPING,
+                                           "Read invalid mapping for pbn %"
+                                           PRIu64 " with state %u",
+                                           mapping.pbn, mapping.state);
       enterReadOnlyMode(&vdo->readOnlyContext, result);
       finishCompletion(&recovery->completion, result);
       return;
     }
 
-    if (pbn == ZERO_BLOCK) {
-      if (!isUnmapped(penultimateMapping)) {
+    if (mapping.pbn == ZERO_BLOCK) {
+      if (isMappedLocation(&mapping)) {
         recovery->logicalBlocksUsed--;
       }
 
@@ -485,17 +480,17 @@ static void addSynthesizedEntries(VDOCompletion *completion)
       continue;
     }
 
-    SlabJournal *slabJournal = getSlabJournal(vdo->depot, pbn);
+    SlabJournal *slabJournal = getSlabJournal(vdo->depot, mapping.pbn);
     if (!mayAddSlabJournalEntry(slabJournal, DATA_DECREMENT, completion)) {
       return;
     }
 
     popRingNode(&recovery->completeDecrefs);
-    if (!isUnmapped(penultimateMapping)) {
+    if (isMappedLocation(&mapping)) {
       recovery->logicalBlocksUsed--;
     }
 
-    addSlabJournalEntryForRebuild(slabJournal, pbn, DATA_DECREMENT,
+    addSlabJournalEntryForRebuild(slabJournal, mapping.pbn, DATA_DECREMENT,
                                   &recovery->nextJournalPoint);
 
     /*
@@ -538,18 +533,15 @@ static int computeUsages(RecoveryCompletion *recovery)
   recovery->logicalBlocksUsed     = tailHeader->logicalBlocksUsed;
   recovery->blockMapDataBlocks    = tailHeader->blockMapDataBlocks;
 
-  JournalOperation operation;
-  BlockMapSlot     unused;
-  RecoveryPoint    recoveryPoint = (RecoveryPoint) {
+  RecoveryPoint recoveryPoint = (RecoveryPoint) {
     .sequenceNumber = recovery->tail,
     .sectorCount    = 1,
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry *entry = getEntry(recovery, &recoveryPoint);
-    decodeOperationAndBlockMapSlot(entry, &operation, &unused);
-    if (!isUnmapped(&entry->blockMapEntry)) {
-      switch (operation) {
+    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    if (isMappedLocation(&entry.mapping)) {
+      switch (entry.operation) {
       case DATA_INCREMENT:
         recovery->logicalBlocksUsed++;
         break;
@@ -571,7 +563,7 @@ static int computeUsages(RecoveryCompletion *recovery)
                                        recoveryPoint.sequenceNumber,
                                        recoveryPoint.sectorCount,
                                        recoveryPoint.entryCount,
-                                       operation);
+                                       entry.operation);
       }
     }
 
@@ -623,7 +615,7 @@ static void processFetchedPage(VDOCompletion *completion)
   } else {
     const BlockMapPage *page = dereferenceReadableVDOPage(completion);
     currentDecref->penultimateMapping
-      = page->entries[currentDecref->slot.slot];
+      = unpackBlockMapEntry(&page->entries[currentDecref->slot.slot]);
   }
 
   releaseVDOPageCompletion(completion);
@@ -705,19 +697,16 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
     .entryCount     = 0,
   };
 
-  BlockMapSlot     slot;
-  JournalOperation operation;
-  RecoveryPoint    recoveryPoint = recovery->tailRecoveryPoint;
+  RecoveryPoint recoveryPoint = recovery->tailRecoveryPoint;
   while (beforeRecoveryPoint(&headPoint, &recoveryPoint)) {
     decrementRecoveryPoint(&recoveryPoint, recovery->vdo->recoveryJournal);
-    RecoveryJournalEntry *entry = getEntry(recovery, &recoveryPoint);
-    decodeOperationAndBlockMapSlot(entry, &operation, &slot);
+    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
 
-    if (!isIncrementOperation(operation)) {
+    if (!isIncrementOperation(entry.operation)) {
       // Observe that we've seen a decref before its incref, but only if
       // the IntMap does not contain an unpaired incref for this lbn.
-      int result = intMapPut(slotEntryMap, slotAsNumber(slot), &foundDecref,
-                             false, NULL);
+      int result = intMapPut(slotEntryMap, slotAsNumber(entry.slot),
+                             &foundDecref, false, NULL);
       if (result != VDO_SUCCESS) {
         return result;
       }
@@ -726,13 +715,14 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
 
     recovery->increfCount++;
 
-    MissingDecref *decref = intMapRemove(slotEntryMap, slotAsNumber(slot));
-    if (operation == BLOCK_MAP_INCREMENT) {
+    MissingDecref *decref
+      = intMapRemove(slotEntryMap, slotAsNumber(entry.slot));
+    if (entry.operation == BLOCK_MAP_INCREMENT) {
       if (decref != NULL) {
         return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
                                        "decref found for block map block %"
-                                       PRIu64,
-                                       unpackPBN(&entry->blockMapEntry));
+                                       PRIu64 " with state %u",
+                                       entry.mapping.pbn, entry.mapping.state);
       }
       // There are no decrefs for block map pages, so they can't be missing.
       continue;
@@ -752,9 +742,9 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
       }
       recovery->missingDecrefCount++;
       pushRingNode(&recovery->incompleteDecrefs, &decref->ringNode);
-      decref->slot = slot;
-      result = intMapPut(slotEntryMap, slotAsNumber(slot), decref, false,
-                         NULL);
+      decref->slot = entry.slot;
+      result = intMapPut(slotEntryMap, slotAsNumber(entry.slot),
+                         decref, false, NULL);
       if (result != VDO_SUCCESS) {
         return result;
       }
@@ -767,7 +757,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
      * before here in the journal are paired, decref before incref, so
      * we needn't remember it in the intmap any longer.
      */
-    decref->penultimateMapping = entry->blockMapEntry;
+    decref->penultimateMapping = entry.mapping;
     pushRingNode(&recovery->completeDecrefs, &decref->ringNode);
   }
 
@@ -790,32 +780,29 @@ void addSlabJournalEntries(VDOCompletion *completion)
 
   while (beforeRecoveryPoint(&recovery->nextRecoveryPoint,
                              &recovery->tailRecoveryPoint)) {
-    JournalOperation      operation;
-    BlockMapSlot          slot;
-    PhysicalBlockNumber   pbn;
-    RecoveryJournalEntry *entry = getEntry(recovery,
-                                           &recovery->nextRecoveryPoint);
-    int result = decodeRecoveryJournalEntry(vdo, entry, &operation, &slot,
-                                            &pbn);
+    RecoveryJournalEntry entry
+      = getEntry(recovery, &recovery->nextRecoveryPoint);
+    int result = validateRecoveryJournalEntry(vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(journal->readOnlyContext, result);
       finishCompletion(&recovery->completion, result);
       return;
     }
 
-    if (pbn == ZERO_BLOCK) {
+    if (entry.mapping.pbn == ZERO_BLOCK) {
       incrementRecoveryPoint(&recovery->nextRecoveryPoint, journal);
       advanceJournalPoint(&recovery->nextJournalPoint,
                           journal->entriesPerBlock);
       continue;
     }
 
-    SlabJournal *slabJournal = getSlabJournal(vdo->depot, pbn);
-    if (!mayAddSlabJournalEntry(slabJournal, operation, completion)) {
+    SlabJournal *slabJournal = getSlabJournal(vdo->depot, entry.mapping.pbn);
+    if (!mayAddSlabJournalEntry(slabJournal, entry.operation, completion)) {
       return;
     }
 
-    addSlabJournalEntryForRebuild(slabJournal, pbn, operation,
+    addSlabJournalEntryForRebuild(slabJournal,
+                                  entry.mapping.pbn, entry.operation,
                                   &recovery->nextJournalPoint);
     incrementRecoveryPoint(&recovery->nextRecoveryPoint, journal);
     advanceJournalPoint(&recovery->nextJournalPoint, journal->entriesPerBlock);
@@ -913,22 +900,19 @@ static int countIncrementEntries(RecoveryCompletion *recovery)
   VDO             *vdo     = recovery->vdo;
   RecoveryJournal *journal = vdo->recoveryJournal;
 
-  RecoveryPoint    recoveryPoint = (RecoveryPoint) {
+  RecoveryPoint recoveryPoint = (RecoveryPoint) {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    JournalOperation operation;
-    BlockMapSlot     slot;
-    int result = decodeRecoveryJournalEntry(vdo,
-                                            getEntry(recovery, &recoveryPoint),
-                                            &operation, &slot, NULL);
+    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    int result = validateRecoveryJournalEntry(vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(journal->readOnlyContext, result);
       return result;
     }
-    if (isIncrementOperation(operation)) {
+    if (isIncrementOperation(entry.operation)) {
       recovery->increfCount++;
     }
     incrementRecoveryPoint(&recoveryPoint, journal);

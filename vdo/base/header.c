@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#3 $
  */
 
 #include "header.h"
@@ -79,7 +79,32 @@ int validateHeader(const Header *expectedHeader,
 /**********************************************************************/
 int encodeHeader(const Header *header, Buffer *buffer)
 {
-  return putBytes(buffer, ENCODED_HEADER_SIZE, header);
+  if (!ensureAvailableSpace(buffer, ENCODED_HEADER_SIZE)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  int result = putUInt32LEIntoBuffer(buffer, header->id);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = encodeVersionNumber(&header->version, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return putUInt64LEIntoBuffer(buffer, header->size);
+}
+
+/**********************************************************************/
+int encodeVersionNumber(const VersionNumber *version, Buffer *buffer)
+{
+  int result = putUInt32LEIntoBuffer(buffer, version->majorVersion);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return putUInt32LEIntoBuffer(buffer, version->minorVersion);
 }
 
 /**********************************************************************/
@@ -100,5 +125,33 @@ int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
 /**********************************************************************/
 int decodeHeader(Buffer *buffer, Header *header)
 {
-  return getBytesFromBuffer(buffer, ENCODED_HEADER_SIZE, header);
+  int result = getUInt32LEFromBuffer(buffer, &header->id);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = decodeVersionNumber(buffer, &header->version);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  uint64_t size;
+  result = getUInt64LEFromBuffer(buffer, &size);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  header->size = size;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
+{
+  int result = getUInt32LEFromBuffer(buffer, &version->majorVersion);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return getUInt32LEFromBuffer(buffer, &version->minorVersion);
 }

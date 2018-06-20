@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#2 $
  */
 
 #ifndef VOLUME_INTERNALS_H
@@ -73,15 +73,6 @@ int allocateVolume(const Configuration  *config,
  * @param volume The volume to destroy.
  **/
 void releaseVolume(Volume *volume);
-
-/**
- * Stop using the volume.
- *
- * @param volume The volume being closed
- *
- * @return UDS_SUCCESS or an error code
- **/
-int doneWithVolume(Volume *volume) __attribute__((warn_unused_result));
 
 /**
  * Map a chapter number and page number to a phsical volume page number.

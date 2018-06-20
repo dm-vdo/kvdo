@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTreeInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTreeInternals.h#3 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -30,11 +30,34 @@
 /** A single page of a block map tree */
 struct treePage {
   /** Waiter for a VIO to write out this page */
-  Waiter   waiter;
+  Waiter         waiter;
+
   /** Dirty list node */
-  RingNode node;
+  RingNode       node;
+
+  /**
+   * If this is a dirty tree page, the tree zone flush generation in which it
+   * was last dirtied.
+   */
+  uint8_t        generation;
+
+  /** Whether this page is an interior tree page being written out. */
+  bool           writing;
+
+  /**
+   * If this page is being written, the tree zone flush generation of the
+   * copy of the page being written.
+   **/
+  uint8_t        writingGeneration;
+
+  /** The earliest journal block containing uncommitted updates to this page */
+  SequenceNumber recoveryLock;
+
+  /** The value of recoveryLock when the this page last started writing */
+  SequenceNumber writingRecoveryLock;
+
   /** The buffer to hold the on-disk representation of this page */
-  char     pageBuffer[VDO_BLOCK_SIZE];
+  char           pageBuffer[VDO_BLOCK_SIZE];
 };
 
 typedef struct {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#4 $
  */
 
 #include "forest.h"
@@ -206,12 +206,11 @@ static int makeSegment(Forest      *oldForest,
       segment->levels[height] = pagePtr;
       if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
         // Record the root.
-        formatBlockMapPage(pagePtr->pageBuffer, forest->map->nonce,
-                           INVALID_PBN);
-        BlockMapPage *page = (BlockMapPage *) pagePtr->pageBuffer;
+        BlockMapPage *page = formatBlockMapPage(pagePtr->pageBuffer,
+                                                forest->map->nonce,
+                                                INVALID_PBN, true);
         page->entries[0] = packPBN(forest->map->rootOrigin + root,
                                    MAPPING_STATE_UNCOMPRESSED);
-        page->header.initialized = true;
       }
       pagePtr += segmentSizes[height];
     }
@@ -385,13 +384,13 @@ static void traverse(Cursor *cursor)
     TreePage *treePage
       = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
     BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
-    if (!page->header.initialized) {
+    if (!isBlockMapPageInitialized(page)) {
       continue;
     }
 
     for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE; level->slot++) {
-      const BlockMapEntry *entry = &page->entries[level->slot];
-      if (isInvalid(entry)) {
+      DataLocation location = unpackBlockMapEntry(&page->entries[level->slot]);
+      if (!isValidLocation(&location)) {
         // This entry is invalid, so remove it from the page.
         page->entries[level->slot]
           = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
@@ -399,7 +398,7 @@ static void traverse(Cursor *cursor)
         continue;
       }
 
-      if (isUnmapped(entry)) {
+      if (!isMappedLocation(&location)) {
         continue;
       }
 
@@ -414,9 +413,8 @@ static void traverse(Cursor *cursor)
         continue;
       }
 
-      PhysicalBlockNumber pbn = unpackPBN(entry);
       if (cursor->height < BLOCK_MAP_TREE_HEIGHT - 1) {
-        int result = cursor->parent->entryCallback(pbn,
+        int result = cursor->parent->entryCallback(location.pbn,
                                                    cursor->parent->parent);
         if (result != VDO_SUCCESS) {
           page->entries[level->slot]
@@ -435,7 +433,7 @@ static void traverse(Cursor *cursor)
       nextLevel->pageIndex   = entryIndex;
       nextLevel->slot        = 0;
       level->slot++;
-      launchReadMetadataVIO(cursor->vioPoolEntry->vio, pbn,
+      launchReadMetadataVIO(cursor->vioPoolEntry->vio, location.pbn,
                             finishTraversalLoad, continueTraversal);
       return;
     }

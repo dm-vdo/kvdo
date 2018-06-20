@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#3 $
  */
 
 #ifndef HEADER_H
@@ -140,12 +140,23 @@ int validateHeader(const Header *expectedHeader,
 /**
  * Encode a header into a buffer.
  *
- * @param header The header to encode
- * @param buffer The buffer in which to encode the header
+ * @param header  The header to encode
+ * @param buffer  The buffer in which to encode the header
  *
  * @return UDS_SUCCESS or an error
  **/
 int encodeHeader(const Header *header, Buffer *buffer)
+  __attribute__((warn_unused_result));
+
+/**
+ * Encode a version number into a buffer.
+ *
+ * @param version  The version to encode
+ * @param buffer   The buffer in which to encode the version
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+int encodeVersionNumber(const VersionNumber *version, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -163,10 +174,23 @@ int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
 /**
  * Decode a header from a buffer.
  *
- * @param [in]  buffer The buffer from which to decode the header
- * @param [out] header The header to decode
+ * @param [in]  buffer  The buffer from which to decode the header
+ * @param [out] header  The header to decode
+ *
+ * @return UDS_SUCCESS or an error
  **/
 int decodeHeader(Buffer *buffer, Header *header)
+  __attribute__((warn_unused_result));
+
+/**
+ * Decode a version number from a buffer.
+ *
+ * @param buffer   The buffer from which to decode the version
+ * @param version  The version structure to decode into
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
   __attribute__((warn_unused_result));
 
 #endif // HEADER_H

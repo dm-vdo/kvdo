@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#3 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -27,14 +27,24 @@
 #include "atomic.h"
 
 typedef struct slabSummaryEntry {
-  /** The offset of the tail block within the slab journal */
+  /** Bits 7..0: The offset of the tail block within the slab journal */
   TailBlockOffset tailBlockOffset;
-  /** A hint about the fullness of the slab */
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  /** Bits 13..8: A hint about the fullness of the slab */
   unsigned int    fullnessHint  : 6;
-  /** Whether the refCounts must be loaded from the layer */
+  /** Bit 14: Whether the refCounts must be loaded from the layer */
   unsigned int    loadRefCounts : 1;
-  /** The believed cleanliness of this slab */
+  /** Bit 15: The believed cleanliness of this slab */
   unsigned int    isDirty       : 1;
+#else
+  /** Bit 15: The believed cleanliness of this slab */
+  unsigned int    isDirty       : 1;
+  /** Bit 14: Whether the refCounts must be loaded from the layer */
+  unsigned int    loadRefCounts : 1;
+  /** Bits 13..8: A hint about the fullness of the slab */
+  unsigned int    fullnessHint  : 6;
+#endif
 }  __attribute__((packed)) SlabSummaryEntry;
 
 typedef struct slabSummaryBlock {

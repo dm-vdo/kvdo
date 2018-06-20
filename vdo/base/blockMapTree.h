@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#2 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -102,16 +102,16 @@ void resumeZoneTrees(BlockMapTreeZone *zone);
 void lookupBlockMapPBN(DataVIO *dataVIO);
 
 /**
- * Get the PBN of a leaf block map page which is in the tree. This method is
- * may only be used after all allocated tree pages have been loaded, otherwise,
- * it may give the wrong answer (0).
+ * Find the PBN of a leaf block map page. This method may only be used after
+ * all allocated tree pages have been loaded, otherwise, it may give the wrong
+ * answer (0).
  *
  * @param map         The block map containing the forest
  * @param pageNumber  The page number of the desired block map page
  *
  * @return The PBN of the page
  **/
-PhysicalBlockNumber getBlockMapPagePBN(BlockMap *map, PageNumber pageNumber);
+PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber);
 
 /**
  * Write a tree page or indicate that it has been re-dirtied if it is already

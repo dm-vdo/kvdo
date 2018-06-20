@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/batchProcessor.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/batchProcessor.c#2 $
  */
 
 #include "batchProcessor.h"
@@ -31,9 +31,12 @@
  * On memory ordering:
  *
  * The producer thread does: enqueue item on queue (xchg, which is
- * implicitly interlocked, then a store) then atomic cmpxchg of the
- * state field. The x86 architecture spec says the xchg, store,
- * lock-cmpxchg sequence cannot be reordered.
+ * implicitly interlocked, then a store), memory barrier, then atomic
+ * cmpxchg of the state field. The x86 architecture spec says the
+ * xchg, store, lock-cmpxchg sequence cannot be reordered, but on
+ * architectures using load-linked and store-conditional for the
+ * cmpxchg, like AArch64, the LL can be reordered with the store, so
+ * we add a barrier.
  *
  * The consumer thread, when it is running out of work, does: read
  * queue (find empty), set state, mfence, read queue again just to be
@@ -136,6 +139,7 @@ static void scheduleBatchProcessing(BatchProcessor *batch)
    * Of course, the tradeoffs may be sensitive to the particular work
    * going on, cache pressure, etc.
    */
+  smp_mb();
   BatchProcessorState oldState
     = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
                      BATCH_PROCESSOR_ENQUEUED);

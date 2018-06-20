@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -36,6 +36,10 @@
 #include "ringNode.h"
 
 #include "permassert.h"
+
+enum {
+  MAX_PAGE_CONTEXT_SIZE = 8,
+};
 
 static const PhysicalBlockNumber NO_PAGE = 0xFFFFFFFFFFFFFFFF;
 
@@ -60,7 +64,7 @@ struct vdoPageCache {
   VDOPageReadFunction       *readHook;
   /** function to call on page write */
   VDOPageWriteFunction      *writeHook;
-  /** function context */
+  /** the cache-wide client context passed to the read and write hooks */
   void                      *context;
   /** number of pages to write in the current batch */
   PageCount                  pagesInBatch;
@@ -119,7 +123,7 @@ struct vdoPageCache {
  * @note Update the static data in vpcPageStateName() and vpcPageStateFlag()
  *       if you change this enumeration.
  **/
-typedef enum pageState {
+typedef enum __attribute__((packed)) pageState {
   /* this page buffer is not being used */
   PS_FREE,
   /* this page is being read from store */
@@ -139,7 +143,7 @@ typedef enum pageState {
 /**
  * The write status of page
  **/
-typedef enum {
+typedef enum __attribute__((packed)) {
   WRITE_STATUS_NORMAL,
   WRITE_STATUS_DISCARD,
   WRITE_STATUS_DEFERRED,
@@ -149,24 +153,26 @@ typedef enum {
  * Per-page-slot information.
  **/
 struct pageInfo {
+  /** Preallocated page VIO */
+  VIO                 *vio;
   /** back-link for references */
   VDOPageCache        *cache;
-  /** page state */
-  PageState            state;
   /** the pbn of the page */
   PhysicalBlockNumber  pbn;
   /** page is busy (temporarily locked) */
   uint16_t             busy;
   /** the write status the page */
   WriteStatus          writeStatus;
+  /** page state */
+  PageState            state;
   /** queue of completions awaiting this item */
   WaitQueue            waiting;
   /** state linked list node */
   PageInfoNode         listNode;
   /** LRU node */
   PageInfoNode         lruNode;
-  /** Preallocated page VIO */
-  VIO                 *vio;
+  /** Space for per-page client data */
+  byte                 context[MAX_PAGE_CONTEXT_SIZE];
 };
 
 // PAGE INFO LIST OPERATIONS

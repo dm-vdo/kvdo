@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -102,28 +102,33 @@ typedef struct {
  *
  * <p>If specified, this function is called when a page is fetched from disk.
  *
- * @param rawPage  the raw memory of the freshly-fetched page
- * @param pbn      the absolute physical block number of the requested page
- * @param context  a pointer to client-specific data
+ * @param rawPage        The raw memory of the freshly-fetched page
+ * @param pbn            The absolute physical block number of the page
+ * @param clientContext  A pointer to client-specific data for the entire cache
+ * @param pageContext    A pointer to client-specific data for the new page
  *
  * @return VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
  *         formatted
  **/
 typedef int VDOPageReadFunction(void                *rawPage,
                                 PhysicalBlockNumber  pbn,
-                                void                *context);
+                                void                *clientContext,
+                                void                *pageContext);
 
 /**
  * Signature for a function to call when a page is written from the cache.
  *
  * <p>If specified, this function is called when a page is written to disk.
  *
- * @param rawPage  the raw memory of the freshly-written page
- * @param context  a pointer to client-specific data
+ * @param rawPage        The raw memory of the freshly-written page
+ * @param clientContext  A pointer to client-specific data for the entire cache
+ * @param pageContext    A pointer to client-specific data for the new page
  *
  * @return whether the page needs to be rewritten
  **/
-typedef bool VDOPageWriteFunction(void *rawPage, void *context);
+typedef bool VDOPageWriteFunction(void *rawPage,
+                                  void *clientContext,
+                                  void *pageContext);
 
 /**
  * Construct a PageCache.
@@ -136,7 +141,10 @@ typedef bool VDOPageWriteFunction(void *rawPage, void *context);
  *                               into the cache
  * @param [in]  writeHook        The function to be called after a page is
  *                               written from the cache
- * @param [in]  functionContext  The context for validateFunction
+ * @param [in]  clientContext    The cache-wide context passed to the read
+ *                               and write hooks
+ * @param [in]  pageContextSize  The size of the per-page context that will
+ *                               be passed to the read and write hooks
  * @param [in]  maximumAge       The number of journal blocks before a dirtied
  *                               page is considered old and must be written out
  * @param [out] cachePtr         A pointer to hold the cache
@@ -149,7 +157,8 @@ int makeVDOPageCache(ThreadID               threadID,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,
-                     void                  *functionContext,
+                     void                  *clientContext,
+                     size_t                 pageContextSize,
                      BlockCount             maximumAge,
                      VDOPageCache         **cachePtr)
   __attribute__((warn_unused_result));
@@ -322,6 +331,18 @@ const void *dereferenceReadableVDOPage(VDOCompletion *completion);
  *         NULL if the page is not available, or if the page is read-only
  **/
 void *dereferenceWritableVDOPage(VDOCompletion *completion);
+
+/**
+ * Get the per-page client context for the page in a page completion whose
+ * callback has been invoked. Should only be called after dereferencing the
+ * page completion to validate the page.
+ *
+ * @param completion    a vdo page completion whose callback has been invoked
+ *
+ * @return a pointer to the per-page client context, or NULL if
+ *         the page is not available
+ **/
+void *getVDOPageCompletionContext(VDOCompletion *completion);
 
 /**
  * Flush all dirty pages in the VDO page cache, and wait until no page

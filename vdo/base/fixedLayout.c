@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/fixedLayout.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/fixedLayout.c#2 $
  */
 
 #include "fixedLayout.h"
@@ -67,8 +67,6 @@ static const Header LAYOUT_HEADER_3_0 = {
   },
   .size = sizeof(Layout3_0),   // Minimum size (contains no partitions)
 };
-
-static const Header *CURRENT_LAYOUT_HEADER = &LAYOUT_HEADER_3_0;
 
 /**********************************************************************/
 int makeFixedLayout(BlockCount            totalBlocks,
@@ -295,47 +293,189 @@ size_t getFixedLayoutEncodedSize(const FixedLayout *layout)
   return ENCODED_HEADER_SIZE + getEncodedSize(layout);
 }
 
-/**********************************************************************/
-int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
+/**
+ * Encode a null-terminated list of fixed layout partitions into a buffer
+ * using partition format 3.0.
+ *
+ * @param layout  The layout containing the list of partitions to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int encodePartitions_3_0(const FixedLayout *layout, Buffer *buffer)
 {
-  STATIC_ASSERT_SIZEOF(PartitionID, sizeof(byte));
-  Header header = *CURRENT_LAYOUT_HEADER;
-  header.size = getEncodedSize(layout);
-
-  if (!ensureAvailableSpace(buffer, getFixedLayoutEncodedSize(layout))) {
-    return UDS_BUFFER_ERROR;
-  }
-
-  int result = encodeHeader(&header, buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  Layout3_0 layoutHeader = {
-    .firstFree      = layout->firstFree,
-    .lastFree       = layout->lastFree,
-    .partitionCount = (byte) layout->numPartitions,
-  };
-  result = putBytes(buffer, sizeof(Layout3_0), &layoutHeader);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  for (Partition *partition = layout->head; partition != NULL;
+  for (const Partition *partition = layout->head;
+       partition != NULL;
        partition = partition->next) {
-    Partition3_0 partitionState = {
-      .id     = partition->id,
-      .offset = partition->offset,
-      .base   = partition->base,
-      .count  = partition->count,
-    };
-    result = putBytes(buffer, sizeof(Partition3_0), &partitionState);
+    STATIC_ASSERT_SIZEOF(PartitionID, sizeof(byte));
+    int result = putByte(buffer, partition->id);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    result = putUInt64LEIntoBuffer(buffer, partition->offset);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    result = putUInt64LEIntoBuffer(buffer, partition->base);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    result = putUInt64LEIntoBuffer(buffer, partition->count);
     if (result != UDS_SUCCESS) {
       return result;
     }
   }
 
-  return VDO_SUCCESS;
+  return UDS_SUCCESS;
+}
+
+/**
+ * Encode the header fields of a fixed layout into a buffer using layout
+ * format 3.0.
+ *
+ * @param layout  The layout to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int encodeLayout_3_0(const FixedLayout *layout, Buffer *buffer)
+{
+  int result = ASSERT(layout->numPartitions <= UINT8_MAX,
+                      "fixed layout partition count must fit in a byte");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, layout->firstFree);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, layout->lastFree);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return putByte(buffer, layout->numPartitions);
+}
+
+/**********************************************************************/
+int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
+{
+  if (!ensureAvailableSpace(buffer, getFixedLayoutEncodedSize(layout))) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  Header header = LAYOUT_HEADER_3_0;
+  header.size = getEncodedSize(layout);
+  int result = encodeHeader(&header, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t initialLength = contentLength(buffer);
+
+  result = encodeLayout_3_0(layout, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t encodedSize = contentLength(buffer) - initialLength;
+  result = ASSERT(encodedSize == sizeof(Layout3_0),
+                "encoded size of fixed layout header must match structure");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = encodePartitions_3_0(layout, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  encodedSize = contentLength(buffer) - initialLength;
+  return ASSERT(encodedSize == header.size,
+                "encoded size of fixed layout must match header size");
+}
+
+/**
+ * Decode a sequence of fixed layout partitions from a buffer
+ * using partition format 3.0.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param layout  The layout in which to allocate the decoded partitions
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodePartitions_3_0(Buffer *buffer, FixedLayout *layout)
+{
+  for (size_t i = 0; i < layout->numPartitions; i++) {
+    byte id;
+    int result = getByte(buffer, &id);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    uint64_t offset;
+    result = getUInt64LEFromBuffer(buffer, &offset);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    uint64_t base;
+    result = getUInt64LEFromBuffer(buffer, &base);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    uint64_t count;
+    result = getUInt64LEFromBuffer(buffer, &count);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+
+    result = allocatePartition(layout, id, offset, base, count);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  }
+
+  return UDS_SUCCESS;
+}
+
+/**
+ * Decode the header fields of a fixed layout from a buffer using layout
+ * format 3.0.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param layout  The structure to receive the decoded fields
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+static int decodeLayout_3_0(Buffer *buffer, Layout3_0 *layout)
+{
+  size_t initialLength = contentLength(buffer);
+
+  int result = getUInt64LEFromBuffer(buffer, &layout->firstFree);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &layout->lastFree);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = getByte(buffer, &layout->partitionCount);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  size_t decodedSize = initialLength - contentLength(buffer);
+  return ASSERT(decodedSize == sizeof(Layout3_0),
+                "decoded size of fixed layout header must match structure");
 }
 
 /**********************************************************************/
@@ -348,13 +488,13 @@ int decodeFixedLayout(Buffer *buffer, FixedLayout **layoutPtr)
   }
 
   // Layout is variable size, so only do a minimum size check here.
-  result = validateHeader(CURRENT_LAYOUT_HEADER, &header, false, __func__);
+  result = validateHeader(&LAYOUT_HEADER_3_0, &header, false, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   Layout3_0 layoutHeader;
-  result = getBytesFromBuffer(buffer, sizeof(Layout3_0), &layoutHeader);
+  result = decodeLayout_3_0(buffer, &layoutHeader);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -374,22 +514,7 @@ int decodeFixedLayout(Buffer *buffer, FixedLayout **layoutPtr)
   layout->lastFree      = layoutHeader.lastFree;
   layout->numPartitions = layoutHeader.partitionCount;
 
-  for (size_t i = 0; i < layout->numPartitions; i++) {
-    Partition3_0 partitionHeader;
-    result = getBytesFromBuffer(buffer, sizeof(Partition3_0),
-                                &partitionHeader);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
-
-    result = allocatePartition(layout, partitionHeader.id,
-                               partitionHeader.offset, partitionHeader.base,
-                               partitionHeader.count);
-    if (result != VDO_SUCCESS) {
-      break;
-    }
-  }
-
+  result = decodePartitions_3_0(buffer, layout);
   if (result != VDO_SUCCESS) {
     freeFixedLayout(&layout);
     return result;

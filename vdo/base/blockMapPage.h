@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#6 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -39,31 +39,20 @@ typedef struct __attribute__((packed)) {
   /** The PBN of the page */
   PhysicalBlockNumber pbn;
 
-  /**
-   * The earliest journal block that contains uncommitted updates to this
-   * page. This field is meaningless (and out of date) on disk, but written
-   * for convenience.
-   **/
-  SequenceNumber      recoverySequenceNumber;
+  /** Formerly recoverySequenceNumber; may be non-zero on disk */
+  uint64_t            unusedLongWord;
 
   /** Whether this page has been initialized on disk (i.e. written twice). */
   bool                initialized;
 
   /** Formerly entryOffset; now unused since it should always be zero */
-  uint8_t             unusedZeroByte;
+  uint8_t             unusedByte1;
 
-  /**
-   * Whether this page is an interior tree page being written out. This field
-   * is meaningless on disk, but written for convenience.
-   **/
-  bool                interiorTreePageWriting;
+  /** Formerly interiorTreePageWriting; may be non-zero on disk */
+  uint8_t             unusedByte2;
 
-  /**
-   * If this is a dirty tree page, the tree zone flush generation in which it
-   * was last dirtied. This field is meaningless on disk, but written for
-   * convenience. If this is not a dirty tree page, this field is meaningless.
-   */
-  uint8_t             generation;
+  /** Formerly generation (for dirty tree pages); may be non-zero on disk */
+  uint8_t             unusedByte3;
 } PageHeader;
 
 /**
@@ -84,6 +73,52 @@ typedef enum {
   BLOCK_MAP_PAGE_BAD,
 } BlockMapPageValidity;
 
+
+/**
+ * Check whether a block map page has been initialized.
+ *
+ * @param page  The page to check
+ *
+ * @return <code>true</code> if the page has been initialized
+ **/
+__attribute__((warn_unused_result))
+static inline bool isBlockMapPageInitialized(const BlockMapPage *page)
+{
+  return page->header.initialized;
+}
+
+/**
+ * Mark whether a block map page has been initialized.
+ *
+ * @param page         The page to mark
+ * @param initialized  The state to set
+ *
+ * @return <code>true</code> if the initialized flag was modified
+ **/
+static inline bool markBlockMapPageInitialized(BlockMapPage *page,
+                                               bool          initialized)
+{
+  if (initialized == page->header.initialized) {
+    return false;
+  }
+
+  page->header.initialized = initialized;
+  return true;
+}
+
+/**
+ * Get the physical block number where a block map page is stored.
+ *
+ * @param page  The page to query
+ *
+ * @return the page's physical block number
+ **/
+__attribute__((warn_unused_result))
+static inline PhysicalBlockNumber getBlockMapPagePBN(const BlockMapPage *page)
+{
+  return page->header.pbn;
+}
+
 /**
  * Check whether a block map page is of the current version.
  *
@@ -97,11 +132,17 @@ bool isCurrentBlockMapPage(const BlockMapPage *page)
 /**
  * Format a block map page in memory.
  *
- * @param buffer  The buffer which holds the page
- * @param nonce   The VDO nonce
- * @param pbn     The absolute pbn of the page
+ * @param buffer       The buffer which holds the page
+ * @param nonce        The VDO nonce
+ * @param pbn          The absolute PBN of the page
+ * @param initialized  Whether the page should be marked as initialized
+ *
+ * @return the buffer pointer, as a block map page (for convenience)
  **/
-void formatBlockMapPage(void *buffer, Nonce nonce, PhysicalBlockNumber pbn);
+BlockMapPage *formatBlockMapPage(void                *buffer,
+                                 Nonce                nonce,
+                                 PhysicalBlockNumber  pbn,
+                                 bool                 initialized);
 
 /**
  * Check whether a newly read page is valid, upgrading its in-memory format if
@@ -122,14 +163,18 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
 /**
  * Update an entry on a block map page.
  *
- * @param dataVIO       The DataVIO making the update
- * @param page          The page to update
- * @param pbn           The new PBN for the entry
- * @param mappingState  The new mapping state for the entry
+ * @param [in]     page          The page to update
+ * @param [in]     dataVIO       The DataVIO making the update
+ * @param [in]     pbn           The new PBN for the entry
+ * @param [in]     mappingState  The new mapping state for the entry
+ * @param [in,out] recoveryLock  A reference to the current recovery sequence
+ *                               number lock held by the page. Will be updated
+ *                               if the lock changes to protect the new entry
  **/
-void updateBlockMapPage(DataVIO             *dataVIO,
-                        BlockMapPage        *page,
+void updateBlockMapPage(BlockMapPage        *page,
+                        DataVIO             *dataVIO,
                         PhysicalBlockNumber  pbn,
-                        BlockMappingState    mappingState);
+                        BlockMappingState    mappingState,
+                        SequenceNumber      *recoveryLock);
 
 #endif // BLOCK_MAP_PAGE_H

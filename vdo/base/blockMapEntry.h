@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapEntry.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapEntry.h#4 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -67,43 +67,36 @@ typedef union __attribute__((packed)) blockMapEntry {
 } BlockMapEntry;
 
 /**
- * Unpack a packed PhysicalBlockNumber from a BlockMapEntry.
+ * Unpack the fields of a BlockMapEntry, returning them as a DataLocation.
  *
- * @param entry          A pointer to the entry
+ * @param entry   A pointer to the entry to unpack
  *
- * @return the unpacked representation of the absolute physical block number
+ * @return the location of the data mapped by the block map entry
  **/
-static inline PhysicalBlockNumber unpackPBN(const BlockMapEntry *entry)
+static inline DataLocation unpackBlockMapEntry(const BlockMapEntry *entry)
 {
   PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
   PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
-  return ((high4 << 32) | low32);
-}
-
-/**
- * Unpack the BlockMappingState encoded in a BlockMapEntry.
- *
- * @param entry          A pointer to the entry
- *
- * @return the unpacked representation of the mapping state
- **/
-static inline BlockMappingState unpackMappingState(const BlockMapEntry *entry)
-{
-  return entry->fields.mappingState;
+  return (DataLocation) {
+    .pbn   = ((high4 << 32) | low32),
+    .state = entry->fields.mappingState,
+  };
 }
 
 /**********************************************************************/
-static inline bool isUnmapped(const BlockMapEntry *entry)
+static inline bool isMappedLocation(const DataLocation *location)
 {
-  return (unpackMappingState(entry) == MAPPING_STATE_UNMAPPED);
+  return (location->state != MAPPING_STATE_UNMAPPED);
 }
 
 /**********************************************************************/
-static inline bool isInvalid(const BlockMapEntry *entry)
+static inline bool isValidLocation(const DataLocation *location)
 {
-  PhysicalBlockNumber pbn = unpackPBN(entry);
-  return (((pbn == ZERO_BLOCK) && isCompressed(unpackMappingState(entry)))
-          || ((pbn != ZERO_BLOCK) && isUnmapped(entry)));
+  if (location->pbn == ZERO_BLOCK) {
+    return !isCompressed(location->state);
+  } else {
+    return isMappedLocation(location);
+  }
 }
 
 /**

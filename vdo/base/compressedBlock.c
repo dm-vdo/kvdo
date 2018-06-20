@@ -16,25 +16,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.c#2 $
  */
 
 #include "compressedBlock.h"
 
 #include "memoryAlloc.h"
+#include "numeric.h"
 
 static const VersionNumber COMPRESSED_BLOCK_1_0 = {
   .majorVersion = 1,
   .minorVersion = 0,
 };
 
-static const VersionNumber *CURRENT_BLOCK_VERSION = &COMPRESSED_BLOCK_1_0;
-
 /**********************************************************************/
 void resetCompressedBlockHeader(CompressedBlockHeader *header)
 {
-  memset(header, 0, sizeof(*header));
-  header->version = *CURRENT_BLOCK_VERSION;
+  STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
+
+  storeUInt32LE(header->fields.majorVersion, COMPRESSED_BLOCK_1_0.majorVersion);
+  storeUInt32LE(header->fields.minorVersion, COMPRESSED_BLOCK_1_0.minorVersion);
+  memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
+}
+
+/**********************************************************************/
+static VersionNumber
+getCompressedBlockVersion(const CompressedBlockHeader *header)
+{
+  return (VersionNumber) {
+    .majorVersion = getUInt32LE(header->fields.majorVersion),
+    .minorVersion = getUInt32LE(header->fields.minorVersion),
+  };
+}
+
+/**********************************************************************/
+static uint16_t
+getCompressedFragmentSize(const CompressedBlockHeader *header, byte slot)
+{
+  return getUInt16LE(header->fields.sizes[slot]);
 }
 
 /**********************************************************************/
@@ -49,7 +68,8 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
   }
 
   CompressedBlockHeader *header = (CompressedBlockHeader *) buffer;
-  if (!areSameVersion(&header->version, CURRENT_BLOCK_VERSION)) {
+  VersionNumber version = getCompressedBlockVersion(header);
+  if (!areSameVersion(&version, &COMPRESSED_BLOCK_1_0)) {
     return VDO_INVALID_FRAGMENT;
   }
 
@@ -58,10 +78,10 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
     return VDO_INVALID_FRAGMENT;
   }
 
-  uint16_t compressedSize = header->sizes[slot];
+  uint16_t compressedSize = getCompressedFragmentSize(header, slot);
   uint16_t offset         = sizeof(CompressedBlockHeader);
   for (unsigned int i = 0; i < slot; i++) {
-    offset += header->sizes[i];
+    offset += getCompressedFragmentSize(header, i);
     if (offset >= blockSize) {
       return VDO_INVALID_FRAGMENT;
     }
@@ -83,6 +103,6 @@ void putCompressedBlockFragment(CompressedBlock *block,
                                 const char      *data,
                                 uint16_t         size)
 {
-  block->header.sizes[fragment] = size;
+  storeUInt16LE(block->header.fields.sizes[fragment], size);
   memcpy(&block->data[offset], data, size);
 }

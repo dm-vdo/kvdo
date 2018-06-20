@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#3 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -119,23 +119,31 @@ int makeVDOPageCache(ThreadID               threadID,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,
-                     void                  *functionContext,
+                     void                  *clientContext,
+                     size_t                 pageContextSize,
                      BlockCount             maximumAge,
                      VDOPageCache         **cachePtr)
 {
+  int result = ASSERT(pageContextSize <= MAX_PAGE_CONTEXT_SIZE,
+                      "page context size %zu cannot exceed %u bytes",
+                      pageContextSize, MAX_PAGE_CONTEXT_SIZE);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
   VDOPageCache *cache;
-  int result = ALLOCATE(1, VDOPageCache, "page cache", &cache);
+  result = ALLOCATE(1, VDOPageCache, "page cache", &cache);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  cache->threadID         = threadID;
-  cache->layer            = layer;
-  cache->readOnlyContext  = readOnlyContext;
-  cache->pageCount        = pageCount;
-  cache->readHook         = readHook;
-  cache->writeHook        = writeHook;
-  cache->context          = functionContext;
+  cache->threadID        = threadID;
+  cache->layer           = layer;
+  cache->readOnlyContext = readOnlyContext;
+  cache->pageCount       = pageCount;
+  cache->readHook        = readHook;
+  cache->writeHook       = writeHook;
+  cache->context         = clientContext;
 
   result = allocateCacheComponents(cache);
   if (result != VDO_SUCCESS) {
@@ -247,12 +255,13 @@ const char *vpcPageStateName(PageState state)
   };
   STATIC_ASSERT(COUNT_OF(stateNames) == PAGE_STATE_COUNT);
 
-  int result = ASSERT(((int) state >= 0) && (state < COUNT_OF(stateNames)),
+  int result = ASSERT(state < COUNT_OF(stateNames),
                       "Unknown PageState value %d", state);
-  if (result == UDS_SUCCESS) {
-    return stateNames[state];
+  if (result != UDS_SUCCESS) {
+    return "[UNKNOWN PAGE STATE]";
   }
-  return "[UNKNOWN PAGE STATE]";
+
+  return stateNames[state];
 }
 
 /**
@@ -730,9 +739,11 @@ static void runReadHook(VDOCompletion *completion)
   PageInfo *info       = completion->parent;
   completion->callback = pageIsLoaded;
   resetCompletion(completion);
-  continueCompletion(completion, info->cache->readHook(getPageBuffer(info),
-                                                       info->pbn,
-                                                       info->cache->context));
+  int result = info->cache->readHook(getPageBuffer(info),
+                                     info->pbn,
+                                     info->cache->context,
+                                     info->context);
+  continueCompletion(completion, result);
 }
 
 /**
@@ -1052,7 +1063,8 @@ static void pageIsWrittenOut(VDOCompletion *completion)
   VDOPageCache *cache = info->cache;
 
   if (cache->writeHook != NULL) {
-    bool rewrite = cache->writeHook(getPageBuffer(info), cache->context);
+    bool rewrite = cache->writeHook(getPageBuffer(info),
+                                    cache->context, info->context);
     if (rewrite) {
       launchWriteMetadataVIOWithFlush(info->vio, info->pbn, pageIsWrittenOut,
                                       handlePageWriteError, true, false);
@@ -1258,27 +1270,29 @@ void requestVDOPageWrite(VDOCompletion *completion)
 }
 
 /**********************************************************************/
+static void *dereferencePageCompletion(VDOPageCompletion  *completion)
+{
+  return ((completion != NULL) ? getPageBuffer(completion->info) : NULL);
+}
+
+/**********************************************************************/
 const void *dereferenceReadableVDOPage(VDOCompletion *completion)
 {
-  VDOPageCompletion *vdoPageComp = validateCompletedPage(completion, false);
-
-  if (vdoPageComp == NULL) {
-    return NULL;
-  }
-
-  return getPageBuffer(vdoPageComp->info);
+  return dereferencePageCompletion(validateCompletedPage(completion, false));
 }
 
 /**********************************************************************/
 void *dereferenceWritableVDOPage(VDOCompletion *completion)
 {
-  VDOPageCompletion *vdoPageComp = validateCompletedPage(completion, true);
+  return dereferencePageCompletion(validateCompletedPage(completion, true));
+}
 
-  if (vdoPageComp == NULL) {
-    return NULL;
-  }
-
-  return getPageBuffer(vdoPageComp->info);
+/**********************************************************************/
+void *getVDOPageCompletionContext(VDOCompletion *completion)
+{
+  VDOPageCompletion *pageCompletion = asVDOPageCompletion(completion);
+  PageInfo *info = ((pageCompletion != NULL) ? pageCompletion->info : NULL);
+  return (((info != NULL) && isValid(info)) ? info->context : NULL);
 }
 
 /**********************************************************************/

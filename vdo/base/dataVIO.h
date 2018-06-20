@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.h#4 $
  */
 
 #ifndef DATA_VIO_H
@@ -100,18 +100,18 @@ typedef struct {
   Height            height;
   /* The block map tree for this LBN */
   RootCount         rootIndex;
-  /* The block map tree slots for this LBN */
-  BlockMapTreeSlot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
+  /* Whether we hold a page lock */
+  bool              locked;
+  /* The thread on which to run the callback */
+  ThreadID          threadID;
+  /* The function to call after looking up a block map slot */
+  VDOAction        *callback;
   /* The key for the lock map */
   uint64_t          key;
   /* The queue of waiters for the page this VIO is allocating or loading */
   WaitQueue         waiters;
-  /* Whether we hold a page lock */
-  bool              locked;
-  /* The function to call after looking up a block map slot */
-  VDOAction        *callback;
-  /* The thread on which to run the callback */
-  ThreadID          threadID;
+  /* The block map tree slots for this LBN */
+  BlockMapTreeSlot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
 } TreeLock;
 
 typedef struct {

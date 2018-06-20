@@ -86,15 +86,10 @@ struct readCacheEntry {
   ReadCacheEntryRelease  release;
 };
 
-enum {
-  THREAD_SAFE = 0
-};
-
 struct readCacheZone {
   ReadCacheStats     stats;
   KernelLayer       *layer;
   unsigned int       numEntries;
-  spinlock_t         lock;
   struct list_head   busyList;
   struct list_head   reclaimList;
   struct list_head   freeList;
@@ -115,15 +110,7 @@ static void dumpReadCacheEntry(char tag, ReadCacheEntry *entry);
 static inline uint32_t getCacheEntryRefCount(ReadCacheZone  *zone,
                                              ReadCacheEntry *cacheEntry)
 {
-  uint32_t result;
-
-  if (THREAD_SAFE) {
-    result = atomicLoad32(&cacheEntry->refCount);
-  } else {
-    result = relaxedLoad32(&cacheEntry->refCount);
-  }
-
-  return result;
+  return relaxedLoad32(&cacheEntry->refCount);
 }
 
 /**********************************************************************/
@@ -131,15 +118,7 @@ static inline uint32_t addToCacheEntryRefCount(ReadCacheZone  *zone,
                                                ReadCacheEntry *cacheEntry,
                                                int32_t         delta)
 {
-  uint32_t result;
-
-  if (THREAD_SAFE) {
-    result = atomicAdd32(&cacheEntry->refCount, delta);
-  } else {
-    result = relaxedAdd32(&cacheEntry->refCount, delta);
-  }
-
-  return result;
+  return relaxedAdd32(&cacheEntry->refCount, delta);
 }
 
 /**********************************************************************/
@@ -147,27 +126,7 @@ static inline void setCacheEntryRefCount(ReadCacheZone  *zone,
                                          ReadCacheEntry *cacheEntry,
                                          uint32_t        newValue)
 {
-  if (THREAD_SAFE) {
-    atomicStore32(&cacheEntry->refCount, newValue);
-  } else {
-    relaxedStore32(&cacheEntry->refCount, newValue);
-  }
-}
-
-/**********************************************************************/
-static inline void lock(ReadCacheZone *zone)
-{
-  if (THREAD_SAFE) {
-    spin_lock(&zone->lock);
-  }
-}
-
-/**********************************************************************/
-static inline void unlock(ReadCacheZone *zone)
-{
-  if (THREAD_SAFE) {
-    spin_unlock(&zone->lock);
-  }
+  relaxedStore32(&cacheEntry->refCount, newValue);
 }
 
 /**
@@ -225,7 +184,6 @@ static void releaseBlockInternal(ReadCacheEntry *cacheEntry)
     return;
   }
   if (addToCacheEntryRefCount(zone, cacheEntry, -1) == 0) {
-    lock(zone);
     if (getCacheEntryRefCount(zone, cacheEntry) == 0) {
       if (cacheEntry->pbn != INVALID_BLOCK) {
         list_move_tail(&cacheEntry->list, &zone->reclaimList);
@@ -233,7 +191,6 @@ static void releaseBlockInternal(ReadCacheEntry *cacheEntry)
         list_move_tail(&cacheEntry->list, &zone->freeList);
       }
     }
-    unlock(zone);
   }
 }
 
@@ -280,14 +237,11 @@ static int setBlockPBNInternal(ReadCacheZone       *zone,
 {
   assertRunningInRCQueueForPBN(zone->layer->ioSubmitter->readCache, pbn);
 
-  lock(zone);
   int result = intMapPut(zone->pbnMap, pbn, cacheEntry, true, NULL);
   if (result != VDO_SUCCESS) {
-    unlock(zone);
     return result;
   }
   cacheEntry->pbn = pbn;
-  unlock(zone);
   return VDO_SUCCESS;
 }
 
@@ -295,39 +249,42 @@ static int setBlockPBNInternal(ReadCacheZone       *zone,
 static ReadCacheEntry *findBlockForReadInternal(ReadCacheZone       *zone,
                                                 PhysicalBlockNumber  pbn)
 {
-  lock(zone);
-  zone->stats.accesses++;
+  ACCESS_ONCE(zone->stats.accesses)++;
   ReadCacheEntry *cacheEntry = intMapGet(zone->pbnMap, pbn);
   if (cacheEntry != NULL) {
     if (getState(cacheEntry) == RC_RECLAIMABLE) {
       list_move_tail(&cacheEntry->list, &zone->busyList);
     }
-    zone->stats.hits++;
+    ACCESS_ONCE(zone->stats.hits)++;
     if (cacheEntry->dataValid) {
-      zone->stats.dataHits++;
+      ACCESS_ONCE(zone->stats.dataHits)++;
     }
     addToCacheEntryRefCount(zone, cacheEntry, 1);
     cacheEntry->hits++;
   }
-  unlock(zone);
   return cacheEntry;
 }
 
 /**********************************************************************/
 static ReadCacheStats readCacheZoneGetStats(ReadCacheZone *zone)
 {
-  ReadCacheStats stats = {
-                          .accesses = 0,
-                          .hits     = 0
-                         };
-
-  if (zone != NULL) {
-    lock(zone);
-    stats = zone->stats;
-    unlock(zone);
+  if (zone == NULL) {
+    ReadCacheStats stats = {
+      .accesses = 0,
+      .dataHits = 0,
+      .hits     = 0,
+    };
+    return stats;
+  } else {
+    // N.B.: No locking is used, so the values fetched may be slightly
+    // out of sync.
+    ReadCacheStats stats = {
+      .accesses = ACCESS_ONCE(zone->stats.accesses),
+      .dataHits = ACCESS_ONCE(zone->stats.dataHits),
+      .hits     = ACCESS_ONCE(zone->stats.hits),
+    };
+    return stats;
   }
-
-  return stats;
 }
 
 /**********************************************************************/
@@ -358,10 +315,8 @@ static int getScratchBlockInternal(ReadCacheZone   *zone,
                                    ReadCacheEntry **cacheEntryPtr)
 {
   ReadCacheEntry *cacheEntry;
-  lock(zone);
   if (list_empty(&zone->freeList)) {
     if (unlikely(list_empty(&zone->reclaimList))) {
-      unlock(zone);
       ASSERT_LOG_ONLY(false,
                       "read cache has free scratch blocks");
       return VDO_READ_CACHE_BUSY;
@@ -379,7 +334,6 @@ static int getScratchBlockInternal(ReadCacheZone   *zone,
                     "free block has zero refcount");
   }
   list_move(&cacheEntry->list, &zone->busyList);
-  unlock(zone);
   setCacheEntryRefCount(zone, cacheEntry, 1);
   cacheEntry->hits = 0;
   cacheEntry->dataValid = false;
@@ -576,9 +530,7 @@ static void readCacheInvalidatePBN(ReadCache           *readCache,
   assertRunningInRCQueueForPBN(readCache, pbn);
 
   ReadCacheZone *zone = zoneForPBN(readCache, pbn);
-  lock(zone);
   intMapRemove(zone->pbnMap, pbn);
-  unlock(zone);
 }
 
 /**********************************************************************/
@@ -754,7 +706,6 @@ static int makeReadCacheZone(KernelLayer    *layer,
     FREE(zone);
     return result;
   }
-  spin_lock_init(&zone->lock);
   INIT_LIST_HEAD(&zone->busyList);
   INIT_LIST_HEAD(&zone->reclaimList);
   INIT_LIST_HEAD(&zone->freeList);
@@ -1052,14 +1003,11 @@ static void readCacheZoneDump(ReadCacheZone *zone,
     return;
   }
 
-  // The read cache dump is an approximation as it doesn't take the read
-  // cache lock during processing.
-
+  ReadCacheStats stats = readCacheZoneGetStats(zone);
   logInfo("Read cache %p:"
           " %" PRIu64 " accesses %" PRIu64 " hits %" PRIu64 " data hits"
           " %u entries",
-          zone,
-          zone->stats.accesses, zone->stats.hits, zone->stats.dataHits,
+          zone, stats.accesses, stats.hits, stats.dataHits,
           zone->numEntries);
 
   unsigned int    numFreeItems    = 0;

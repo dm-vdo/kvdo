@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#2 $
  */
 
 #include "upgrade.h"
@@ -130,7 +130,7 @@ static int decodeSodiumComponent(VDO *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   VersionNumber version;
-  int result = getBytesFromBuffer(buffer, sizeof(VersionNumber), &version);
+  int result = decodeVersionNumber(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#4 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -120,8 +120,8 @@ static INLINE void setSkipSearch(CachedChapterIndex *chapter, bool skipSearch)
 {
   // Explicitly check if the field is set so we don't keep dirtying the memory
   // cache line on continued search hits.
-  if (ACCESS_ONCE(chapter->skipSearch) != skipSearch) {
-    ACCESS_ONCE(chapter->skipSearch) = skipSearch;
+  if (READ_ONCE(chapter->skipSearch) != skipSearch) {
+    WRITE_ONCE(chapter->skipSearch, skipSearch);
   }
 }
 
@@ -155,7 +155,7 @@ static INLINE bool shouldSkipChapterIndex(const IndexZone *zone,
   } else {
     // When searching the entire cache, save time by skipping over chapters
     // that have had too many consecutive misses.
-    return ACCESS_ONCE(chapter->skipSearch);
+    return READ_ONCE(chapter->skipSearch);
   }
 }
 

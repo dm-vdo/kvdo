@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#9 $
  */
 
 #include "blockMapTree.h"
@@ -210,7 +210,7 @@ bool copyValidPage(char                *buffer,
     logErrorWithStringError(VDO_BAD_PAGE,
                             "Expected page %" PRIu64
                             " but got page %" PRIu64 " instead",
-                            pbn, loaded->header.pbn);
+                            pbn, getBlockMapPagePBN(loaded));
   }
 
   return false;
@@ -321,14 +321,13 @@ static void setGeneration(BlockMapTreeZone *zone,
                           uint8_t           newGeneration,
                           bool              decrementOld)
 {
-  PageHeader *header        = &(asBlockMapPage(page)->header);
-  uint8_t     oldGeneration = header->generation;
+  uint8_t oldGeneration = page->generation;
   if (decrementOld && (oldGeneration == newGeneration)) {
     return;
   }
 
-  header->generation = newGeneration;
-  uint32_t newCount  = ++zone->dirtyPageCounts[newGeneration];
+  page->generation = newGeneration;
+  uint32_t newCount = ++zone->dirtyPageCounts[newGeneration];
   int result = ASSERT((newCount != 0),
                       "dirty page count overflow for generation %u",
                       newGeneration);
@@ -344,7 +343,21 @@ static void setGeneration(BlockMapTreeZone *zone,
 
 /**********************************************************************/
 static void writePage(TreePage *treePage, VIOPoolEntry *entry);
-static void writePageCallback(Waiter *waiter, void *context);
+
+/**
+ * Write out a dirty page if it is still covered by the most recent flush
+ * or if it is the flusher.
+ *
+ * <p>Implements WaiterCallback
+ *
+ * @param waiter   The page to write
+ * @param context  The VIOPoolEntry with which to do the write
+ **/
+static void writePageCallback(Waiter *waiter, void *context)
+{
+  STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
+  writePage((TreePage *) waiter, (VIOPoolEntry *) context);
+}
 
 /**
  * Acquire a VIO for writing a dirty page.
@@ -412,10 +425,10 @@ static void enqueuePage(TreePage *page, BlockMapTreeZone *zone)
  **/
 static void writePageIfNotDirtied(Waiter *waiter, void *context)
 {
+  STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
   TreePage *page = (TreePage *) waiter;
-  WriteIfNotDirtiedContext *writeContext
-    = (WriteIfNotDirtiedContext *) context;
-  if (asBlockMapPage(page)->header.generation == writeContext->generation) {
+  WriteIfNotDirtiedContext *writeContext = context;
+  if (page->generation == writeContext->generation) {
     acquireVIO(waiter, writeContext->zone);
     return;
   }
@@ -431,24 +444,22 @@ static void writePageIfNotDirtied(Waiter *waiter, void *context)
  **/
 static void finishPageWrite(VDOCompletion *completion)
 {
-  VIOPoolEntry     *entry         = completion->parent;
-  PageHeader        writtenHeader = ((BlockMapPage *) entry->buffer)->header;
-  BlockMapTreeZone *zone          = entry->context;
+  VIOPoolEntry     *entry = completion->parent;
+  TreePage         *page  = entry->parent;
+  BlockMapTreeZone *zone  = entry->context;
   releaseRecoveryJournalBlockReference(zone->mapZone->blockMap->journal,
-                                       writtenHeader.recoverySequenceNumber,
+                                       page->writingRecoveryLock,
                                        ZONE_TYPE_LOGICAL,
                                        zone->mapZone->zoneNumber);
 
-  TreePage   *page   = (TreePage *) entry->parent;
-  PageHeader *header = &(asBlockMapPage(page)->header);
-  bool        dirty  = (writtenHeader.generation != header->generation);
-  releaseGeneration(zone, writtenHeader.generation);
-  header->interiorTreePageWriting = false;
+  bool      dirty = (page->writingGeneration != page->generation);
+  releaseGeneration(zone, page->writingGeneration);
+  page->writing = false;
 
   if (zone->flusher == page) {
     WriteIfNotDirtiedContext context = {
       .zone       = zone,
-      .generation = writtenHeader.generation,
+      .generation = page->writingGeneration,
     };
     notifyAllWaiters(&zone->flushWaiters, writePageIfNotDirtied, &context);
     if (dirty && attemptIncrement(zone)) {
@@ -505,10 +516,10 @@ static void writeInitializedPage(VDOCompletion *completion)
    * We don't want to set it true on the real page in memory until after this
    * write succeeds.
    */
-  PageHeader *header = &(((BlockMapPage *) entry->buffer)->header);
-  header->initialized = true;
-  launchWriteMetadataVIOWithFlush(entry->vio, header->pbn, finishPageWrite,
-                                  handleWriteError,
+  BlockMapPage *page = (BlockMapPage *) entry->buffer;
+  markBlockMapPageInitialized(page, true);
+  launchWriteMetadataVIOWithFlush(entry->vio, getBlockMapPagePBN(page),
+                                  finishPageWrite, handleWriteError,
                                   (zone->flusher == treePage), false);
 }
 
@@ -521,9 +532,8 @@ static void writeInitializedPage(VDOCompletion *completion)
 static void writePage(TreePage *treePage, VIOPoolEntry *entry)
 {
   BlockMapTreeZone *zone = (BlockMapTreeZone *) entry->context;
-  BlockMapPage     *page = asBlockMapPage(treePage);
   if ((zone->flusher != treePage)
-      && (isNotOlder(zone, page->header.generation, zone->generation))) {
+      && (isNotOlder(zone, treePage->generation, zone->generation))) {
     // This page was re-dirtied after the last flush was issued, hence we need
     // to do another flush.
     enqueuePage(treePage, zone);
@@ -537,32 +547,21 @@ static void writePage(TreePage *treePage, VIOPoolEntry *entry)
   VDOCompletion *completion    = vioAsCompletion(entry->vio);
   completion->callbackThreadID = zone->mapZone->threadID;
 
-  // Clear this now so that we know this page is not on any dirty list
-  page->header.recoverySequenceNumber  = 0;
-  page->header.interiorTreePageWriting = true;
+  treePage->writing             = true;
+  treePage->writingGeneration   = treePage->generation;
+  treePage->writingRecoveryLock = treePage->recoveryLock;
 
-  if (page->header.initialized) {
+  // Clear this now so that we know this page is not on any dirty list.
+  treePage->recoveryLock = 0;
+
+  BlockMapPage *page = asBlockMapPage(treePage);
+  if (!markBlockMapPageInitialized(page, true)) {
     writeInitializedPage(completion);
     return;
   }
 
-  page->header.initialized = true;
-  launchWriteMetadataVIO(entry->vio, page->header.pbn, writeInitializedPage,
-                         handleWriteError);
-}
-
-/**
- * Write out a dirty page if it is still covered by the most recent flush
- * or if it is the flusher.
- *
- * <p>Implements WaiterCallback
- *
- * @param waiter   The page to write
- * @param context  The VIOPoolEntry with which to do the write
- **/
-static void writePageCallback(Waiter *waiter, void *context)
-{
-  writePage((TreePage *) waiter, (VIOPoolEntry *) context);
+  launchWriteMetadataVIO(entry->vio, getBlockMapPagePBN(page),
+                         writeInitializedPage, handleWriteError);
 }
 
 /**
@@ -588,7 +587,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
     }
 
     setGeneration(zone, page, generation, false);
-    if (!(asBlockMapPage(page)->header.interiorTreePageWriting)) {
+    if (!page->writing) {
       enqueuePage(page, zone);
     }
   }
@@ -728,23 +727,22 @@ static void abortLoad(DataVIO *dataVIO, int result)
 }
 
 /**
- * Determine if the entry represents a valid mapping for a tree page.
+ * Determine if a location represents a valid mapping for a tree page.
  *
- * @param vdo     The VDO
- * @param entry   The BlockMapEntry to check
- * @param height  The height of the entry in the tree
+ * @param vdo      The VDO
+ * @param mapping  The DataLocation to check
+ * @param height   The height of the entry in the tree
  *
  * @return <code>true</code> if the entry represents a invalid page mapping
  **/
 __attribute__((warn_unused_result))
-static bool isInvalidTreeEntry(const VDO           *vdo,
-                               const BlockMapEntry *entry,
-                               Height               height)
+static bool isInvalidTreeEntry(const VDO          *vdo,
+                               const DataLocation *mapping,
+                               Height              height)
 {
-  PhysicalBlockNumber pbn = unpackPBN(entry);
-  if (isInvalid(entry)
-      || isCompressed(unpackMappingState(entry))
-      || (!isUnmapped(entry) && (pbn == ZERO_BLOCK))) {
+  if (!isValidLocation(mapping)
+      || isCompressed(mapping->state)
+      || (isMappedLocation(mapping) && (mapping->pbn == ZERO_BLOCK))) {
     return true;
   }
 
@@ -753,7 +751,7 @@ static bool isInvalidTreeEntry(const VDO           *vdo,
     return false;
   }
 
-  return !isPhysicalDataBlock(vdo->depot, pbn);
+  return !isPhysicalDataBlock(vdo->depot, mapping->pbn);
 }
 
 /**********************************************************************/
@@ -769,14 +767,15 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO);
  **/
 static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
 {
-  TreeLock            *lock  = &dataVIO->treeLock;
-  BlockMapTreeSlot     slot  = lock->treeSlots[lock->height];
-  const BlockMapEntry *entry = &page->entries[slot.blockMapSlot.slot];
-  if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), entry, lock->height)) {
+  TreeLock         *lock = &dataVIO->treeLock;
+  BlockMapTreeSlot  slot = lock->treeSlots[lock->height];
+  DataLocation mapping
+    = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
+  if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %" PRIu64 " with "
                             "state %u for page index %u at height %u",
-                            unpackPBN(entry), unpackMappingState(entry),
+                            mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,
                             lock->height - 1);
     abortLoad(dataVIO, VDO_BAD_MAPPING);
@@ -784,13 +783,13 @@ static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
   }
 
 
-  if (isUnmapped(entry)) {
+  if (!isMappedLocation(&mapping)) {
     // The page we need is unallocated
     allocateBlockMapPage(getBlockMapTreeZone(dataVIO), dataVIO);
     return;
   }
 
-  lock->treeSlots[lock->height - 1].blockMapSlot.pbn = unpackPBN(entry);
+  lock->treeSlots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
   if (lock->height == 1) {
     finishLookup(dataVIO, VDO_SUCCESS);
     return;
@@ -835,7 +834,7 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
   BlockMapPage *page     = (BlockMapPage *) treePage->pageBuffer;
   Nonce         nonce    = zone->mapZone->blockMap->nonce;
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
-    formatBlockMapPage(page, nonce, pbn);
+    formatBlockMapPage(page, nonce, pbn, false);
   }
   returnVIOToPool(zone->vioPool, entry);
 
@@ -1025,18 +1024,19 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
     return;
   }
 
-  BlockMapTreeZone    *zone     = getBlockMapTreeZone(dataVIO);
-  BlockMapTree        *tree     = getTree(zone, dataVIO);
-  TreeLock            *treeLock = &dataVIO->treeLock;
-  TreePage            *treePage = getTreePage(zone, tree, treeLock);
-  Height               height   = treeLock->height;
+  BlockMapTreeZone *zone     = getBlockMapTreeZone(dataVIO);
+  BlockMapTree     *tree     = getTree(zone, dataVIO);
+  TreeLock         *treeLock = &dataVIO->treeLock;
+  TreePage         *treePage = getTreePage(zone, tree, treeLock);
+  Height            height   = treeLock->height;
 
   PhysicalBlockNumber pbn = treeLock->treeSlots[height - 1].blockMapSlot.pbn;
 
   // Record the allocation.
   BlockMapPage   *page    = (BlockMapPage *) treePage->pageBuffer;
-  SequenceNumber  oldLock = page->header.recoverySequenceNumber;
-  updateBlockMapPage(dataVIO, page, pbn, MAPPING_STATE_UNCOMPRESSED);
+  SequenceNumber  oldLock = treePage->recoveryLock;
+  updateBlockMapPage(page, dataVIO, pbn, MAPPING_STATE_UNCOMPRESSED,
+                     &treePage->recoveryLock);
 
   if (isWaiting(&treePage->waiter)) {
     // This page is waiting to be written out.
@@ -1051,7 +1051,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
       initializeRing(&treePage->node);
     }
     addToDirtyLists(zone->dirtyLists, &treePage->node, oldLock,
-                    page->header.recoverySequenceNumber);
+                    treePage->recoveryLock);
   }
 
   treeLock->height--;
@@ -1059,7 +1059,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
     // Format the interior node we just allocated (in memory).
     treePage = getTreePage(zone, tree, treeLock);
     formatBlockMapPage(treePage->pageBuffer, zone->mapZone->blockMap->nonce,
-                       pbn);
+                       pbn, false);
   }
 
   // Release our claim to the allocation and wake any waiters
@@ -1228,8 +1228,9 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
        lock->height++) {
     lock->treeSlots[lock->height] = treeSlot;
     page = (BlockMapPage *) (getTreePage(zone, tree, lock)->pageBuffer);
-    if (page->header.pbn != 0) {
-      lock->treeSlots[lock->height].blockMapSlot.pbn = page->header.pbn;
+    PhysicalBlockNumber pbn = getBlockMapPagePBN(page);
+    if (pbn != ZERO_BLOCK) {
+      lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
       break;
     }
 
@@ -1241,25 +1242,26 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
   }
 
   // The page at this height has been allocated and loaded.
-  const BlockMapEntry *entry = &page->entries[treeSlot.blockMapSlot.slot];
-  if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), entry, lock->height)) {
+  DataLocation mapping
+    = unpackBlockMapEntry(&page->entries[treeSlot.blockMapSlot.slot]);
+  if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %" PRIu64 " with "
                             "state %u for page index %u at height %u",
-                            unpackPBN(entry), unpackMappingState(entry),
+                            mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,
                             lock->height - 1);
     abortLoad(dataVIO, VDO_BAD_MAPPING);
     return;
   }
 
-  if (isUnmapped(entry)) {
+  if (!isMappedLocation(&mapping)) {
     // The page we want one level down has not been allocated, so allocate it.
     allocateBlockMapPage(zone, dataVIO);
     return;
   }
 
-  lock->treeSlots[lock->height - 1].blockMapSlot.pbn = unpackPBN(entry);
+  lock->treeSlots[lock->height - 1].blockMapSlot.pbn = mapping.pbn;
   if (lock->height == 1) {
     // This is the ultimate block map page, so we're done
     finishLookup(dataVIO, VDO_SUCCESS);
@@ -1271,8 +1273,12 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-PhysicalBlockNumber getBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
+PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
 {
+  if (pageNumber < map->flatPageCount) {
+    return (BLOCK_MAP_FLAT_PAGE_ORIGIN + pageNumber);
+  }
+
   RootCount  rootIndex = pageNumber % map->rootCount;
   PageNumber pageIndex = ((pageNumber - map->flatPageCount) / map->rootCount);
   SlotNumber slot      = pageIndex % BLOCK_MAP_ENTRIES_PER_PAGE;
@@ -1280,18 +1286,16 @@ PhysicalBlockNumber getBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
 
   BlockMapTree *tree     = getTreeFromForest(map->forest, rootIndex);
   TreePage     *treePage = getTreePageByIndex(map->forest, tree, 1, pageIndex);
-  BlockMapPage *page     = (BlockMapPage *) (treePage->pageBuffer);
-  if (!page->header.initialized) {
+  BlockMapPage *page     = (BlockMapPage *) treePage->pageBuffer;
+  if (!isBlockMapPageInitialized(page)) {
     return ZERO_BLOCK;
   }
 
-  const BlockMapEntry *entry = &page->entries[slot];
-  if (isInvalid(entry) || isUnmapped(entry)
-      || isCompressed(unpackMappingState(entry))) {
+  DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+  if (!isValidLocation(&mapping) || isCompressed(mapping.state)) {
     return ZERO_BLOCK;
   }
-
-  return unpackPBN(entry);
+  return mapping.pbn;
 }
 
 /**********************************************************************/
@@ -1303,7 +1307,7 @@ void writeTreePage(TreePage *page, BlockMapTreeZone *zone)
   }
 
   setGeneration(zone, page, zone->generation, waiting);
-  if (waiting || asBlockMapPage(page)->header.interiorTreePageWriting) {
+  if (waiting || page->writing) {
     return;
   }
 

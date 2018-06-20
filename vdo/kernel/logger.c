@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/logger.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/logger.c#3 $
  */
 
 #include "logger.h"
@@ -102,61 +102,41 @@ const char *priorityToString(int priority)
 }
 
 /**********************************************************************/
-static void startLoggingForPriority(int priority)
+static const char *priorityToLogLevel(int priority)
 {
-  switch(priority) {
+  switch (priority) {
     case LOG_EMERG:
     case LOG_ALERT:
     case LOG_CRIT:
-      printk(KERN_CRIT);
-      break;
+      return KERN_CRIT;
     case LOG_ERR:
-      printk(KERN_ERR);
-      break;
+      return KERN_ERR;
     case LOG_WARNING:
-      printk(KERN_WARNING);
-      break;
+      return KERN_WARNING;
     case LOG_NOTICE:
-      printk(KERN_NOTICE);
-      break;
+      return KERN_NOTICE;
     case LOG_INFO:
-      printk(KERN_INFO);
-      break;
+      return KERN_INFO;
     case LOG_DEBUG:
-      printk(KERN_DEBUG);
-      break;
+      return KERN_DEBUG;
+    default:
+      return "";
   }
-  if (in_interrupt()) {
-    char *type = "INTR";
-    if (in_nmi()) {
-      type = "NMI";
-    } else if (in_irq()) {
-      type = "HI";
-    } else if (in_softirq()) {
-      type = "SI";
-    }
-    printk("%s:[%s]: ", THIS_MODULE->name, type);
-    return;
+}
+
+/**********************************************************************/
+static const char *getCurrentInterruptType(void)
+{
+  if (in_nmi()) {
+    return "NMI";
   }
-  // Not at interrupt level; we have a process we can look at, and
-  // might have a device ID.
-  int deviceInstance = getThreadDeviceID();
-  if (deviceInstance != -1) {
-    printk("%s%u:%s: ", THIS_MODULE->name, deviceInstance, current->comm);
-    return;
+  if (in_irq()) {
+    return "HI";
   }
-  size_t nameLen = strlen(THIS_MODULE->name);
-  if (((current->flags & PF_KTHREAD) != 0)
-      && (strncmp(THIS_MODULE->name, current->comm, nameLen) == 0)) {
-    /*
-     * It's a kernel thread starting with "kvdo" (or whatever). Assume it's
-     * ours and that its name is sufficient.
-     */
-    printk("%s: ", current->comm);
-    return;
+  if (in_softirq()) {
+    return "SI";
   }
-  // Identify the module, the device counter, and the process.
-  printk("%s: %s: ", THIS_MODULE->name, current->comm);
+  return "INTR";
 }
 
 /**********************************************************************/
@@ -167,20 +147,89 @@ void logMessagePack(int         priority,
                     const char *fmt2,
                     va_list     args2)
 {
-  if (priority > logLevel) {
+  if (priority > getLogLevel()) {
     return;
   }
-  startLoggingForPriority(priority);
-  if (prefix != NULL) {
-    printk("%s", prefix);
+
+  /*
+   * The kernel's printk has some magic for indirection to a secondary
+   * va_list. It wants us to supply a pointer to the va_list.
+   *
+   * However, va_list varies across platforms and can be an array
+   * type, which makes passing it around as an argument kind of
+   * tricky, due to the automatic conversion to a pointer. This makes
+   * taking the address of the argument a dicey thing; if we use "&a"
+   * it works fine for non-array types, but for array types we get the
+   * address of a pointer. Functions like va_copy and sprintf don't
+   * care as they get "va_list" values passed and are written to do
+   * the right thing, but printk explicitly wants the address of the
+   * va_list.
+   *
+   * So, we copy the va_list values to ensure that "&" consistently
+   * works the way we want.
+   */
+  va_list args1Copy;
+  va_copy(args1Copy, args1);
+  va_list args2Copy;
+  va_copy(args2Copy, args2);
+  struct va_format vaf1 = {
+    .fmt = (fmt1 != NULL) ? fmt1 : "",
+    .va  = &args1Copy,
+  };
+  struct va_format vaf2 = {
+    .fmt = (fmt2 != NULL) ? fmt2 : "",
+    .va  = &args2Copy,
+  };
+
+  if (prefix == NULL) {
+    prefix = "";
   }
-  if (fmt1 != NULL) {
-    vprintk(fmt1, args1);
+
+  const char *levelString = priorityToLogLevel(priority);
+  /*
+   * Context info formats:
+   *
+   * interrupt:       kvdo[NMI]: blah
+   * thread w/dev id: kvdo12:myprog: blah
+   * kvdo thread:     kvdo12:foobarQ: blah
+   * other thread:    kvdo: myprog: blah
+   *
+   * Fields: module name, interrupt level, process name, device ID.
+   */
+  if (in_interrupt()) {
+    printk("%s%s[%s]: %s%pV%pV\n",
+           levelString, THIS_MODULE->name, getCurrentInterruptType(),
+           prefix, &vaf1, &vaf2);
+    return;
   }
-  if (fmt2 != NULL) {
-    vprintk(fmt2, args2);
+
+  // Not at interrupt level; we have a process we can look at, and
+  // might have a device ID.
+  int deviceInstance = getThreadDeviceID();
+  if (deviceInstance != -1) {
+    printk("%s%s%u:%s: %s%pV%pV\n",
+           levelString, THIS_MODULE->name, deviceInstance, current->comm,
+           prefix, &vaf1, &vaf2);
+    return;
   }
-  printk("\n");
+
+  size_t nameLen = strlen(THIS_MODULE->name);
+  if (((current->flags & PF_KTHREAD) != 0)
+      && (strncmp(THIS_MODULE->name, current->comm, nameLen) == 0)) {
+    /*
+     * It's a kernel thread starting with "kvdo" (or whatever). Assume it's
+     * ours and that its name is sufficient.
+     */
+    printk("%s%s: %s%pV%pV\n",
+           levelString, current->comm,
+           prefix, &vaf1, &vaf2);
+    return;
+  }
+
+  // Identify the module and the process.
+  printk("%s%s: %s: %s%pV%pV\n",
+         levelString, THIS_MODULE->name, current->comm,
+         prefix, &vaf1, &vaf2);
 }
 
 /**********************************************************************/
@@ -197,12 +246,43 @@ void logEmbeddedMessage(int         priority,
   va_end(ap);
 }
 
-/**********************************************************************/
-void vLogMessage(int priority, const char *format, va_list args)
+#pragma GCC diagnostic push
+/*
+ * GCC (version 8.1.1 20180502 (Red Hat 8.1.1-1)) on Fedora 28 seems
+ * to think that this function should get a printf format
+ * attribute. But we have no second format string, and no additional
+ * arguments at the call site, and GCC also gets unhappy trying to
+ * analyze the format and values when there are none. So we'll just
+ * shut it up.
+ */
+#pragma GCC diagnostic ignored "-Wsuggest-attribute=format"
+/**
+ * Log a message.
+ *
+ * This helper function exists solely to create a valid va_list with
+ * no useful info. It does the real work of vLogMessage, which wants a
+ * second va_list object to pass down.
+ *
+ * @param  priority The syslog priority value for the message.
+ * @param  format   The format of the message (a printf style format)
+ * @param  args     The variadic argument list of format parameters.
+ **/
+static void vLogMessageHelper(int         priority,
+                              const char *format,
+                              va_list     args,
+                              ...)
 {
   va_list dummy;
-  memset(&dummy, 0, sizeof(dummy));
+  va_start(dummy, args);
   logMessagePack(priority, NULL, format, args, NULL, dummy);
+  va_end(dummy);
+}
+#pragma GCC diagnostic pop
+
+/*****************************************************************************/
+void vLogMessage(int priority, const char *format, va_list args)
+{
+  vLogMessageHelper(priority, format, args);
 }
 
 /**********************************************************************/

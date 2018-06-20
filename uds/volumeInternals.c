@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#2 $
  */
 
 #include "volumeInternals.h"
@@ -263,9 +263,12 @@ void releaseVolume(Volume *volume)
   if (volume == NULL) {
     return;
   }
-  int result = doneWithVolume(volume);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "error closing volume, releasing anyway");
+  if (volume->region != NULL) {
+    int result = syncAndCloseRegion(&volume->region, "index volume");
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result,
+                              "error closing volume, releasing anyway");
+    }
   }
   freeIndexPageMap(volume->indexPageMap);
   freePageCache(volume->pageCache);
@@ -275,16 +278,7 @@ void releaseVolume(Volume *volume)
   FREE(volume->recordPointers);
   FREE(volume->scratchPage);
   FREE(volume);
-}
-
-/**********************************************************************/
-int doneWithVolume(Volume *volume)
-{
-  if (volume->region != NULL) {
-    return syncAndCloseRegion(&volume->region, "index volume");
   }
-  return UDS_SUCCESS;
-}
 
 /**********************************************************************/
 int mapToPhysicalPage(Geometry *geometry, int chapter, int page)
