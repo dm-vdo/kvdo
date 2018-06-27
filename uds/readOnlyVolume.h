@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/readOnlyVolume.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/readOnlyVolume.h#3 $
  */
 
 #ifndef READ_ONLY_VOLUME_H
@@ -29,14 +29,12 @@
  *
  * @param config    The configuration to use.
  * @param layout    The layout describing the volume on storage
- * @param indexId   The subindex id 
  * @param newVolume A pointer to hold a pointer to the new volume.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int makeReadOnlyVolume(const Configuration  *config,
                        IndexLayout          *layout,
-                       unsigned int          indexId,
                        Volume              **newVolume)
   __attribute__((warn_unused_result));
 
@@ -54,7 +52,7 @@ void freeReadOnlyVolume(Volume *volume);
  * @param chapter    The number of the chapter containing the page
  * @param pageNumber The number of the page
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getReadOnlyPage(Volume       *volume,
                     unsigned int  chapter,

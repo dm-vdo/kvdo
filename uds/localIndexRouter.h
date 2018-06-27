@@ -16,29 +16,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.h#2 $
  */
 
 #ifndef LOCAL_INDEX_ROUTER_H
 #define LOCAL_INDEX_ROUTER_H
 
-#include "config.h"
-#include "featureDefs.h"
-#include "indexLayout.h"
+#include "compiler.h"
+#include "index.h"
 #include "indexRouter.h"
-#include "loadType.h"
-#include "request.h"
 
 /**
  * LocalIndexRouter is used to distribute requests to and manage one or more
- * equal-sized Albireo index volumes on the local host. It used by the
+ * equal-sized Albireo index volumes on the local host.  It used by the
  * embedded UDS library configuration and by albserver.
  *
- * The LocalIndexRouter implementation is completely private, not even having
- * a public opaque typedef. IndexRouter serves as a pseudo-object base class,
- * containing the function hooks used for almost all operations on the router.
- * See indexRouter.h for details on the operations supported by the router.
+ * IndexRouter serves as a pseudo-object base class, containing the function
+ * hooks used for almost all operations on the router.  See indexRouter.h for
+ * details on the operations supported by the router.
  **/
+
+typedef struct localIndexRouter {
+  IndexRouter   header;
+  unsigned int  zoneCount;
+  Index        *index;
+  RequestQueue *triageQueue;
+  RequestQueue *zoneQueues[];
+} LocalIndexRouter;
+
+/**
+ * Convert an IndexRouter pointer to a LocalIndexRouter pointer.
+ **/
+static INLINE LocalIndexRouter *asLocalIndexRouter(IndexRouter *header)
+{
+  return container_of(header, LocalIndexRouter, header);
+}
 
 /**
  * Construct and initialize a LocalIndexRouter instance.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#4 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -101,14 +101,10 @@ struct vdoPageCache {
   unsigned int               waiterCount;
   /** queue of waiters who want a free page */
   WaitQueue                  freeWaiters;
-  /** when to warn about over limit */
-  uint64_t                   nextWarning;
   /** statistics */
   AtomicPageCacheStatistics  stats;
   /** counter for pressure reports */
   uint32_t                   pressureReport;
-  /** if true, do a debug dump */
-  volatile bool              dumpMe;
   /** completion to notify when all I/O has completed */
   VDOCompletion             *flushCompletion;
 };

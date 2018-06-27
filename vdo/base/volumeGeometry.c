@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#6 $
  */
 
 #include "volumeGeometry.h"
@@ -52,13 +52,12 @@ static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
     .majorVersion = 4,
     .minorVersion = 0,
   },
+  // Note: this size isn't just the payload size following the header, like it
+  // is everywhere else in VDO.
   .size = sizeof(GeometryBlock),
 };
 
-static const Header *CURRENT_GEOMETRY_BLOCK_HEADER
-  = &GEOMETRY_BLOCK_HEADER_4_0;
-
-static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
+static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
 static const ReleaseVersionNumber COMPATIBLE_RELEASE_VERSIONS[] = {
   MAGNESIUM_RELEASE_VERSION_NUMBER,
@@ -87,8 +86,242 @@ static inline bool isLoadableReleaseVersion(ReleaseVersionNumber version)
   return false;
 }
 
-/**********************************************************************/
-int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+/**
+ * Decode the on-disk representation of an index configuration from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param config  The structure to receive the decoded fields
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int decodeIndexConfig(Buffer *buffer, IndexConfig *config)
+{
+  int result = getUInt32LEFromBuffer(buffer, &config->mem);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt32LEFromBuffer(buffer, &config->checkpointFrequency);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return getBoolean(buffer, &config->sparse);
+}
+
+/**
+ * Encode the on-disk representation of an index configuration into a buffer.
+ *
+ * @param config  The index configuration to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int encodeIndexConfig(const IndexConfig *config, Buffer *buffer)
+{
+  int result = putUInt32LEIntoBuffer(buffer, config->mem);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt32LEIntoBuffer(buffer, config->checkpointFrequency);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return putBoolean(buffer, config->sparse);
+}
+
+/**
+ * Decode the on-disk representation of a volume region from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param region  The structure to receive the decoded fields
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int decodeVolumeRegion(Buffer *buffer, VolumeRegion *region)
+{
+  int result = getUInt32LEFromBuffer(buffer, &region->id);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return getUInt64LEFromBuffer(buffer, &region->startBlock);
+}
+
+/**
+ * Encode the on-disk representation of a volume region into a buffer.
+ *
+ * @param region  The region to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int encodeVolumeRegion(const VolumeRegion *region, Buffer *buffer)
+{
+  int result = putUInt32LEIntoBuffer(buffer, region->id);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return putUInt64LEIntoBuffer(buffer, region->startBlock);
+}
+
+/**
+ * Decode the on-disk representation of a volume geometry from a buffer.
+ *
+ * @param buffer    A buffer positioned at the start of the encoding
+ * @param geometry  The structure to receive the decoded fields
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int decodeVolumeGeometry(Buffer *buffer, VolumeGeometry *geometry)
+{
+  int result = getUInt32LEFromBuffer(buffer, &geometry->releaseVersion);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &geometry->nonce);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getBytesFromBuffer(buffer, sizeof(UUID), geometry->uuid);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  for (VolumeRegionID id = 0; id < VOLUME_REGION_COUNT; id++) {
+    result = decodeVolumeRegion(buffer, &geometry->regions[id]);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  }
+
+  return decodeIndexConfig(buffer, &geometry->indexConfig);
+}
+
+/**
+ * Encode the on-disk representation of a volume geometry into a buffer.
+ *
+ * @param geometry  The geometry to encode
+ * @param buffer    A buffer positioned at the start of the encoding
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int encodeVolumeGeometry(const VolumeGeometry *geometry, Buffer *buffer)
+{
+  int result = putUInt32LEIntoBuffer(buffer, geometry->releaseVersion);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, geometry->nonce);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putBytes(buffer, sizeof(UUID), geometry->uuid);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  for (VolumeRegionID id = 0; id < VOLUME_REGION_COUNT; id++) {
+    result = encodeVolumeRegion(&geometry->regions[id], buffer);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
+  }
+
+  return encodeIndexConfig(&geometry->indexConfig, buffer);
+}
+
+/**
+ * Decode the on-disk representation of a geometry block, up to but not
+ * including the checksum, from a buffer.
+ *
+ * @param buffer    A buffer positioned at the start of the block
+ * @param geometry  The structure to receive the decoded volume geometry fields
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int decodeGeometryBlock(Buffer *buffer, VolumeGeometry *geometry)
+{
+  if (!hasSameBytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
+    return VDO_BAD_MAGIC;
+  }
+
+  int result = skipForward(buffer, MAGIC_NUMBER_SIZE);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  Header header;
+  result = decodeHeader(buffer, &header);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = validateHeader(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = decodeVolumeGeometry(buffer, geometry);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  // Leave the CRC for the caller to decode and verify.
+  return ASSERT(header.size
+                == (uncompactedAmount(buffer) + sizeof(CRC32Checksum)),
+                "should have decoded up to the geometry checksum");
+}
+
+/**
+ * Encode the on-disk representation of a geometry block, up to but not
+ * including the checksum, into a buffer.
+ *
+ * @param geometry  The volume geometry to encode into the block
+ * @param buffer    A buffer positioned at the start of the block
+ *
+ * @return UDS_SUCCESS or an error
+ **/
+static int encodeGeometryBlock(const VolumeGeometry *geometry, Buffer *buffer)
+{
+  int result = putBytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = encodeHeader(&GEOMETRY_BLOCK_HEADER_4_0, buffer);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = encodeVolumeGeometry(geometry, buffer);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  // Leave the CRC for the caller to compute and encode.
+  return ASSERT(GEOMETRY_BLOCK_HEADER_4_0.size
+                == (contentLength(buffer) + sizeof(CRC32Checksum)),
+                "should have decoded up to the geometry checksum");
+}
+
+/**
+ * Allocate a block-size buffer to read the geometry from the physical layer,
+ * read the block, and return the buffer.
+ *
+ * @param [in]  layer     The physical layer containing the block to read
+ * @param [out] blockPtr  A pointer to receive the allocated buffer
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int readGeometryBlock(PhysicalLayer *layer, byte **blockPtr)
 {
   int result = ASSERT(layer->reader != NULL, "Layer must have a sync reader");
   if (result != VDO_SUCCESS) {
@@ -108,40 +341,55 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
     return result;
   }
 
-  GeometryBlock *geometryBlock = (GeometryBlock *) block;
-  if (memcmp(geometryBlock->magicNumber, MAGIC_NUMBER,
-             MAGIC_NUMBER_SIZE) != 0) {
-    FREE(block);
-    return VDO_BAD_MAGIC;
+  *blockPtr = (byte *) block;
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+{
+  byte *block;
+  int result = readGeometryBlock(layer, &block);
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
-  result = validateHeader(CURRENT_GEOMETRY_BLOCK_HEADER,
-                          &geometryBlock->header, true, __func__);
+  Buffer *buffer;
+  result = wrapBuffer(block, VDO_BLOCK_SIZE, VDO_BLOCK_SIZE, &buffer);
   if (result != VDO_SUCCESS) {
     FREE(block);
     return result;
   }
 
-  if (!isLoadableReleaseVersion(geometryBlock->geometry.releaseVersion)) {
-    logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-                            "release version %d cannot be loaded",
-                            geometryBlock->geometry.releaseVersion);
+  result = decodeGeometryBlock(buffer, geometry);
+  if (result != VDO_SUCCESS) {
+    freeBuffer(&buffer);
     FREE(block);
-    return VDO_UNSUPPORTED_VERSION;
+    return result;
   }
 
-  size_t checksummedBytes = sizeof(GeometryBlock) - sizeof(CRC32Checksum);
-  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
-                                              (byte *) block,
-                                              checksummedBytes);
-  if (checksum != geometryBlock->checksum) {
+  // Checksum everything decoded so far.
+  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM, block,
+                                              uncompactedAmount(buffer));
+  CRC32Checksum savedChecksum;
+  result = getUInt32LEFromBuffer(buffer, &savedChecksum);
+  if (result != VDO_SUCCESS) {
+    freeBuffer(&buffer);
     FREE(block);
-    return VDO_CHECKSUM_MISMATCH;
+    return result;
   }
 
-  memcpy(geometry, &geometryBlock->geometry, sizeof(VolumeGeometry));
+  // Finished all decoding. Everything that follows is validation code.
+  freeBuffer(&buffer);
   FREE(block);
-  return VDO_SUCCESS;
+
+  if (!isLoadableReleaseVersion(geometry->releaseVersion)) {
+    return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
+                                   "release version %d cannot be loaded",
+                                   geometry->releaseVersion);
+  }
+
+  return ((checksum == savedChecksum) ? VDO_SUCCESS : VDO_CHECKSUM_MISMATCH);
 }
 
 /************************************************************************/
@@ -233,19 +481,33 @@ int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
     return result;
   }
 
-  GeometryBlock *geometryBlock = (GeometryBlock *) block;
-  memcpy(geometryBlock->magicNumber, &MAGIC_NUMBER, MAGIC_NUMBER_SIZE);
-  geometryBlock->header   = *CURRENT_GEOMETRY_BLOCK_HEADER;
-  geometryBlock->geometry = *geometry;
+  Buffer *buffer;
+  result = wrapBuffer((byte *) block, VDO_BLOCK_SIZE, 0, &buffer);
+  if (result != VDO_SUCCESS) {
+    FREE(block);
+    return result;
+  }
 
-  // Checksum everything.
-  size_t checksummedBytes = sizeof(GeometryBlock) - sizeof(CRC32Checksum);
-  geometryBlock->checksum = layer->updateCRC32(INITIAL_CHECKSUM,
-                                               (byte *) block,
-                                               checksummedBytes);
+  result = encodeGeometryBlock(geometry, buffer);
+  if (result != VDO_SUCCESS) {
+    freeBuffer(&buffer);
+    FREE(block);
+    return result;
+  }
+
+  // Checksum everything encoded so far and then encode the checksum.
+  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM, (byte *) block,
+                                              contentLength(buffer));
+  result = putUInt32LEIntoBuffer(buffer, checksum);
+  if (result != VDO_SUCCESS) {
+    freeBuffer(&buffer);
+    FREE(block);
+    return result;
+  }
 
   // Write it.
   result = layer->writer(layer, GEOMETRY_BLOCK_LOCATION, 1, block, NULL);
+  freeBuffer(&buffer);
   FREE(block);
   return result;
 }

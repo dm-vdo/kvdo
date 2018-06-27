@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.h#2 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -33,7 +33,6 @@ extern const bool READ_ONLY_INDEX;
  *
  * @param layout         The index layout to use
  * @param config         The configuration to use
- * @param id             The id for this index to use
  * @param zoneCount      The number of zones for this index to use
  * @param loadType       How to create the index:  it can be create
  *                       only, allow loading from files, and allow
@@ -46,7 +45,6 @@ extern const bool READ_ONLY_INDEX;
  **/
 int allocateIndex(IndexLayout          *layout,
                   const Configuration  *config,
-                  unsigned int          id,
                   unsigned int          zoneCount,
                   LoadType              loadType,
                   bool                  readOnly,

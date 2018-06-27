@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#7 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#8 $
  */
 
 #include "volume.h"
@@ -114,7 +114,6 @@ int formatVolume(IORegion *region, const Geometry *geometry)
 /**********************************************************************/
 int makeVolume(const Configuration  *config,
                IndexLayout          *layout,
-               unsigned int          indexId,
                unsigned int          readQueueMaxSize,
                unsigned int          zoneCount,
                Volume              **newVolume)
@@ -136,9 +135,8 @@ int makeVolume(const Configuration  *config,
 
   Volume *volume;
 
-  int result = allocateVolume(config, layout, indexId, readQueueMaxSize,
-                              zoneCount, !READ_ONLY_VOLUME,
-                              &volume);
+  int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
+                              !READ_ONLY_VOLUME, &volume);
   if (result != UDS_SUCCESS) {
     return result;
   }

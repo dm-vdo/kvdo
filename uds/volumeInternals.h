@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#3 $
  */
 
 #ifndef VOLUME_INTERNALS_H
@@ -49,7 +49,6 @@ size_t encodeVolumeFormat(byte *volumeFormat, const Geometry *geometry)
  *
  * @param config                The configuration to use
  * @param layout                The index layout
- * @param indexId               The index ordinal number
  * @param readQueueMaxSize      The maximum size of the read queue
  * @param zoneCount             The number of zones to use
  * @param readOnly              <code>true</code> if this volume will be
@@ -60,7 +59,6 @@ size_t encodeVolumeFormat(byte *volumeFormat, const Geometry *geometry)
  **/
 int allocateVolume(const Configuration  *config,
                    IndexLayout          *layout,
-                   unsigned int          indexId,
                    unsigned int          readQueueMaxSize,
                    unsigned int          zoneCount,
                    bool                  readOnly,

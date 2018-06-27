@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.c#8 $
  */
 
 #include "blockMapPage.h"
@@ -41,12 +41,10 @@ static const VersionNumber BLOCK_MAP_4_1 = {
   .minorVersion = 1,
 };
 
-static const VersionNumber *CURRENT_BLOCK_MAP_VERSION = &BLOCK_MAP_4_1;
-
 /**********************************************************************/
 bool isCurrentBlockMapPage(const BlockMapPage *page)
 {
-  return areSameVersion(CURRENT_BLOCK_MAP_VERSION, &page->version);
+  return areSameVersion(BLOCK_MAP_4_1, unpackVersionNumber(page->version));
 }
 
 /**********************************************************************/
@@ -57,12 +55,10 @@ BlockMapPage *formatBlockMapPage(void                *buffer,
 {
   memset(buffer, 0, VDO_BLOCK_SIZE);
   BlockMapPage *page = (BlockMapPage *) buffer;
-  page->version      = *CURRENT_BLOCK_MAP_VERSION;
-  page->header       = (PageHeader) {
-    .nonce       = nonce,
-    .pbn         = pbn,
-    .initialized = initialized,
-  };
+  page->version = packVersionNumber(BLOCK_MAP_4_1);
+  storeUInt64LE(page->header.fields.nonce, nonce);
+  storeUInt64LE(page->header.fields.pbn, pbn);
+  page->header.fields.initialized = initialized;
   return page;
 }
 
@@ -75,9 +71,9 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
   // length of the page header.
   STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_1_SIZE);
 
-  if (!areSameVersion(&BLOCK_MAP_4_1, &page->version)
+  if (!areSameVersion(BLOCK_MAP_4_1, unpackVersionNumber(page->version))
       || !isBlockMapPageInitialized(page)
-      || (page->header.nonce != nonce)) {
+      || (nonce != getUInt64LE(page->header.fields.nonce))) {
     return BLOCK_MAP_PAGE_INVALID;
   }
 

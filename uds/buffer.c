@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#3 $
  */
 
 #include "buffer.h"
@@ -158,6 +158,13 @@ bool ensureAvailableSpace(Buffer *buffer, size_t bytes)
 }
 
 /***********************************************************************/
+void clearBuffer(Buffer *buffer)
+{
+  buffer->start = 0;
+  buffer->end = buffer->length;
+}
+
+/***********************************************************************/
 void compactBuffer(Buffer *buffer)
 {
   if ((buffer->start == 0) || (buffer->end == 0)) {
@@ -296,6 +303,23 @@ int putBytes(Buffer *buffer, size_t length, const void *source)
   }
   memcpy(buffer->data + buffer->end, source, length);
   buffer->end += length;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int putBuffer(Buffer *target, Buffer *source, size_t length)
+{
+  if (contentLength(source) < length) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  int result = putBytes(target, length, getBufferContents(source));
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  source->start += length;
+  target->end += length;
   return UDS_SUCCESS;
 }
 

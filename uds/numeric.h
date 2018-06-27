@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#4 $
  */
 
 #ifndef NUMERIC_H
@@ -26,17 +26,9 @@
 #include "numericDefs.h"
 #include "typeDefs.h"
 
-#ifndef BYTE_ORDER
-# error BYTE_ORDER not set
-#endif
-#ifndef BIG_ENDIAN
-# error BIG_ENDIAN not set
-#endif
-#ifndef LITTLE_ENDIAN
-# error LITTLE_ENDIAN not set
-#endif
-#if (BYTE_ORDER == LITTLE_ENDIAN) && (BYTE_ORDER == BIG_ENDIAN)
-# error "byte order not set properly"
+#if !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__) \
+  || !defined(__BYTE_ORDER__)
+#error "GCC byte order macros not defined?"
 #endif
 
 /*
@@ -172,7 +164,7 @@ __attribute__((warn_unused_result))
 static INLINE uint64_t getUInt64BE(const byte* data)
 {
   uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   return num;
@@ -204,7 +196,7 @@ static INLINE void decodeUInt64BE(const byte *buffer,
  **/
 static INLINE void storeUInt64BE(byte* data, uint64_t num)
 {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(uint64_t, data, num);
@@ -239,7 +231,7 @@ __attribute__((warn_unused_result))
 static INLINE uint32_t getUInt32BE(const byte* data)
 {
   uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   return num;
@@ -271,7 +263,7 @@ static INLINE void decodeUInt32BE(const byte *buffer,
  **/
 static INLINE void storeUInt32BE(byte* data, uint32_t num)
 {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(uint32_t, data, num);
@@ -306,7 +298,7 @@ __attribute__((warn_unused_result))
 static INLINE uint16_t getUInt16BE(const byte* data)
 {
   uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = bswap_16(num);
 #endif
   return num;
@@ -338,7 +330,7 @@ static INLINE void decodeUInt16BE(const byte *buffer,
  **/
 static INLINE void storeUInt16BE(byte* data, uint16_t num)
 {
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   num = bswap_16(num);
 #endif
   PUT_UNALIGNED(uint16_t, data, num);
@@ -373,7 +365,7 @@ __attribute__((warn_unused_result))
 static INLINE int64_t getInt64LE(const byte* data)
 {
   int64_t num = GET_UNALIGNED(int64_t, data);
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   return num;
@@ -405,7 +397,7 @@ static INLINE void decodeInt64LE(const byte *buffer,
  **/
 static INLINE void storeInt64LE(byte* data, int64_t num)
 {
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(int64_t, data, num);
@@ -440,7 +432,7 @@ __attribute__((warn_unused_result))
 static INLINE uint64_t getUInt64LE(const byte* data)
 {
   uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   return num;
@@ -472,7 +464,7 @@ static INLINE void decodeUInt64LE(const byte *buffer,
  **/
 static INLINE void storeUInt64LE(byte* data, uint64_t num)
 {
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap64(num);
 #endif
   PUT_UNALIGNED(uint64_t, data, num);
@@ -507,7 +499,7 @@ __attribute__((warn_unused_result))
 static INLINE int32_t getInt32LE(const byte* data)
 {
   int32_t num = GET_UNALIGNED(int32_t, data);
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   return num;
@@ -539,7 +531,7 @@ static INLINE void decodeInt32LE(const byte *buffer,
  **/
 static INLINE void storeInt32LE(byte* data, int32_t num)
 {
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(int32_t, data, num);
@@ -575,7 +567,7 @@ __attribute__((warn_unused_result))
 static INLINE uint32_t getUInt32LE(const byte* data)
 {
   uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   return num;
@@ -607,7 +599,7 @@ static INLINE void decodeUInt32LE(const byte *buffer,
  **/
 static INLINE void storeUInt32LE(byte* data, uint32_t num)
 {
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = __builtin_bswap32(num);
 #endif
   PUT_UNALIGNED(uint32_t, data, num);
@@ -642,7 +634,7 @@ __attribute__((warn_unused_result))
 static INLINE uint16_t getUInt16LE(const byte* data)
 {
   uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = bswap_16(num);
 #endif
   return num;
@@ -674,7 +666,7 @@ static INLINE void decodeUInt16LE(const byte *buffer,
  **/
 static INLINE void storeUInt16LE(byte* data, uint16_t num)
 {
-#if BYTE_ORDER != LITTLE_ENDIAN
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
   num = bswap_16(num);
 #endif
   PUT_UNALIGNED(uint16_t, data, num);

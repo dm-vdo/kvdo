@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/config.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/config.h#2 $
  */
 
 #ifndef CONFIG_H
@@ -75,106 +75,6 @@ struct udsConfiguration6_01 {
   unsigned int masterIndexMeanDelta;
   /** Size of a page, used for both record pages and index pages */
   unsigned int bytesPerPage;
-  /** Sampling rate for sparse indexing */
-  unsigned int sparseSampleRate;
-};
-
-/**
- * Data that are used for 4.13 index
- **/
-struct udsConfiguration4_13 {
-  /** Number of sub indices */
-  unsigned int subIndexCount;
-  /** Smaller (16), Small (64) or large (256) indices */
-  unsigned int recordPagesPerChapter;
-  /** Total number of chapters per volume */
-  unsigned int chaptersPerVolume;
-  /** Number of sparse chapters per volume */
-  unsigned int sparseChaptersPerVolume;
-  /** Size of the page cache, in chapters */
-  unsigned int cacheChapters;
-  /** Frequency with which to checkpoint */
-  unsigned int checkpointFrequency;
-  /** The master index mean delta to use */
-  unsigned int masterIndexMeanDelta;
-  /** Size of a page, used for both record pages and index pages */
-  unsigned int bytesPerPage;
-  /** Sampling rate for sparse indexing */
-  unsigned int sparseSampleRate;
-};
-
-/**
- * Data that are used for 4.12 index
- **/
-struct udsConfiguration4_12 {
-  /** Number of sub indices */
-  unsigned int subIndexCount;
-  /** Smaller (16), Small (64) or large (256) indices */
-  unsigned int recordPagesPerChapter;
-  /** Total number of chapters per volume */
-  unsigned int chaptersPerVolume;
-  /** Number of sparse chapters per volume */
-  unsigned int sparseChaptersPerVolume;
-  /** Size of the page cache, in chapters */
-  unsigned int cacheChapters;
-  /** Frequency with which to checkpoint */
-  unsigned int checkpointFrequency;
-  /** The master index mean delta to use */
-  unsigned int masterIndexMeanDelta;
-  /** Bits to use for delta calculation in the master index */
-  unsigned int masterIndexAddressBits;
-  /** Sampling rate for sparse indexing */
-  unsigned int sparseSampleRate;
-};
-
-/**
- * Configuration for 4.11 index
- **/
-struct udsConfiguration4_11 {
-  /** Number of sub indices */
-  unsigned int subIndexCount;
-  /** Smaller (16), Small (64) or large (256) indices */
-  unsigned int recordPagesPerChapter;
-  /** Total number of chapters per volume */
-  unsigned int chaptersPerVolume;
-  /** Number of sparse chapters per volume */
-  unsigned int sparseChaptersPerVolume;
-  /** Size of the page cache, in chapters */
-  unsigned int cacheChapters;
-  /** Frequency with which to checkpoint */
-  unsigned int checkpointFrequency;
-  /** The master index mean delta to use */
-  unsigned int masterIndexMeanDelta;
-  /** Bits to use for delta list selection in the master index [obsolete] */
-  unsigned int masterIndexDeltaBits;
-  /** Bits to use for delta calculation in the master index */
-  unsigned int masterIndexAddressBits;
-  /** Sampling rate for sparse indexing */
-  unsigned int sparseSampleRate;
-};
-
-/**
- * Data that are used for configuring a 4.0 index.
- **/
-struct udsConfiguration4_01 {
-  /** Number of sub indices */
-  unsigned int subIndexCount;
-  /** Smaller (64MB), Small (256MB) or large (1GB) indices */
-  unsigned int indexSize;
-  /** Total number of chapters per volume */
-  unsigned int chaptersPerVolume;
-  /** Number of sparse chapters per volume */
-  unsigned int sparseChaptersPerVolume;
-  /** Size of the page cache, in chapters */
-  unsigned int cacheChapters;
-  /** Frequency with which to checkpoint */
-  unsigned int checkpointFrequency;
-  /** The master index version to use */
-  unsigned int masterIndexVersion;
-  /** Bits to use for delta list selection in the master index */
-  unsigned int masterIndexDeltaBits;
-  /** Bits to use for delta calculation in the master index */
-  unsigned int masterIndexAddressBits;
   /** Sampling rate for sparse indexing */
   unsigned int sparseSampleRate;
 };

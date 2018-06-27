@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.h#3 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -31,8 +31,7 @@
 typedef union __attribute__((packed)) {
   struct __attribute__((packed)) {
     /** Unsigned 32-bit major and minor versions, in little-endian byte order */
-    byte majorVersion[4];
-    byte minorVersion[4];
+    PackedVersionNumber version;
 
     /** List of unsigned 16-bit compressed block sizes, in little-endian order */
     byte sizes[MAX_COMPRESSION_SLOTS][2];

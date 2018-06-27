@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#3 $
  */
 
 #include "upgrade.h"
@@ -136,7 +136,7 @@ static int decodeSodiumComponent(VDO *vdo)
   }
 
   SodiumComponent41_0 component;
-  if (areSameVersion(&SODIUM_COMPONENT_DATA_41_0, &version)) {
+  if (areSameVersion(SODIUM_COMPONENT_DATA_41_0, version)) {
     result = decodeSodium41_0Component(buffer, &component);
   } else {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,

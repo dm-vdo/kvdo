@@ -16,17 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.h#4 $
  */
 
 #ifndef HEADER_H
 #define HEADER_H
 
 #include "buffer.h"
+#include "numeric.h"
+
 #include "types.h"
 
 /**
- * A representation of a version number for versioned structures on disk.
+ * An in-memory representation of a version number for versioned structures on
+ * disk.
  *
  * A version number consists of two portions, a major version and a
  * minor version. Any format change which does not require an explicit
@@ -40,6 +43,15 @@ typedef struct {
   uint32_t majorVersion;
   uint32_t minorVersion;
 } __attribute__((packed)) VersionNumber;
+
+/**
+ * A packed, machine-independent, on-disk representation of a VersionNumber.
+ * Both fields are stored in little-endian byte order.
+ **/
+typedef struct {
+  byte majorVersion[4];
+  byte minorVersion[4];
+} __attribute__((packed)) PackedVersionNumber;
 
 /**
  * The registry of component ids for use in headers
@@ -74,11 +86,11 @@ enum {
  *
  * @return <code>true</code> if the two versions are the same
  **/
-static inline bool areSameVersion(const VersionNumber *versionA,
-                                  const VersionNumber *versionB)
+static inline bool areSameVersion(VersionNumber versionA,
+                                  VersionNumber versionB)
 {
-  return ((versionA->majorVersion == versionB->majorVersion)
-          && (versionA->minorVersion == versionB->minorVersion));
+  return ((versionA.majorVersion == versionB.majorVersion)
+          && (versionA.minorVersion == versionB.minorVersion));
 }
 
 /**
@@ -92,11 +104,11 @@ static inline bool areSameVersion(const VersionNumber *versionA,
  *
  * @return <code>true</code> if the actual version is upgradable
  **/
-static inline bool isUpgradableVersion(const VersionNumber *expectedVersion,
-                                       const VersionNumber *actualVersion)
+static inline bool isUpgradableVersion(VersionNumber expectedVersion,
+                                       VersionNumber actualVersion)
 {
-  return ((expectedVersion->majorVersion == actualVersion->majorVersion)
-          && (expectedVersion->minorVersion > actualVersion->minorVersion));
+  return ((expectedVersion.majorVersion == actualVersion.majorVersion)
+          && (expectedVersion.minorVersion > actualVersion.minorVersion));
 }
 
 /**
@@ -111,9 +123,9 @@ static inline bool isUpgradableVersion(const VersionNumber *expectedVersion,
  * @return VDO_SUCCESS             if the versions are the same
  *         VDO_UNSUPPORTED_VERSION if the versions don't match
  **/
-int validateVersion(const VersionNumber *expectedVersion,
-                    const VersionNumber *actualVersion,
-                    const char          *componentName)
+int validateVersion(VersionNumber  expectedVersion,
+                    VersionNumber  actualVersion,
+                    const char    *componentName)
   __attribute__((warn_unused_result));
 
 /**
@@ -156,19 +168,7 @@ int encodeHeader(const Header *header, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeVersionNumber(const VersionNumber *version, Buffer *buffer)
-  __attribute__((warn_unused_result));
-
-/**
- * Encode data with a header.
- *
- * @param header The header for the data
- * @param data   The data to encode
- * @param buffer The buffer to hold the encoding
- *
- * @return UDS_SUCCESS or an error
- **/
-int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
+int encodeVersionNumber(VersionNumber version, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -192,5 +192,35 @@ int decodeHeader(Buffer *buffer, Header *header)
  **/
 int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
   __attribute__((warn_unused_result));
+
+/**
+ * Convert a VersionNumber to its packed on-disk representation.
+ *
+ * @param version  The version number to convert
+ *
+ * @return the platform-independent representation of the version
+ **/
+static inline PackedVersionNumber packVersionNumber(VersionNumber version)
+{
+  PackedVersionNumber packed;
+  storeUInt32LE(packed.majorVersion, version.majorVersion);
+  storeUInt32LE(packed.minorVersion, version.minorVersion);
+  return packed;
+}
+
+/**
+ * Convert a PackedVersionNumber to its native in-memory representation.
+ *
+ * @param version  The version number to convert
+ *
+ * @return the platform-independent representation of the version
+ **/
+static inline VersionNumber unpackVersionNumber(PackedVersionNumber version)
+{
+  return (VersionNumber) {
+    .majorVersion = getUInt32LE(version.majorVersion),
+    .minorVersion = getUInt32LE(version.minorVersion),
+  };
+}
 
 #endif // HEADER_H

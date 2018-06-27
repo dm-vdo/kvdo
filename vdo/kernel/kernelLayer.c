@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#10 $
  */
 
 #include "kernelLayer.h"
@@ -27,6 +27,7 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "murmur/MurmurHash3.h"
 
 #include "lz4.h"
 #include "releaseVersions.h"
@@ -42,7 +43,6 @@
 #include "ioSubmitterInternals.h"
 #include "kvdoFlush.h"
 #include "kvio.h"
-#include "murmur/MurmurHash3.h"
 #include "poolSysfs.h"
 #include "readCache.h"
 #include "statusProcfs.h"
@@ -235,7 +235,11 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
   countBios(&layer->biosIn, bio);
 
   // Handle empty bios.  Empty flush bios are not associated with a VIO.
-  if (isEmptyFlush(bio)) {
+  if (isFlushBio(bio)) {
+    if (ASSERT(getBioSize(bio) == 0, "Flush bio is size 0") != VDO_SUCCESS) {
+      // We expect flushes to be of size 0.
+      return -EINVAL;
+    }
     if (shouldProcessFlush(layer)) {
       launchKVDOFlush(layer, bio);
       return DM_MAPIO_SUBMITTED;
@@ -248,6 +252,12 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
       return DM_MAPIO_REMAPPED;
     }
   }
+
+  if (ASSERT(getBioSize(bio) != 0, "Data bio is not size 0") != VDO_SUCCESS) {
+    // We expect non-flushes to be non-zero in size.
+    return -EINVAL;
+  }
+
   if (isDiscardBio(bio) && isReadBio(bio)) {
     // Read and Discard should never occur together
     return -EIO;
@@ -1226,10 +1236,9 @@ int resumeKernelLayer(KernelLayer *layer)
 int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
   logInfo("Preparing to resize physical to %" PRIu64, physicalCount);
-  // Allow allocations for the duration of resize, but no longer.
-  layer->allocationsAllowed = true;
+  // Allocations are allowed and permissible through this non-VDO thread,
+  // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowPhysical(&layer->kvdo, physicalCount);
-  layer->allocationsAllowed = false;
   if (result != VDO_SUCCESS) {
     // kvdoPrepareToGrowPhysical logs errors.
     if (result == VDO_PARAMETER_MISMATCH) {
@@ -1248,15 +1257,14 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 /***********************************************************************/
 int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
-  // Allow allocations for the duration of resize, but no longer.
-  layer->allocationsAllowed = true;
+  // We must not mark the layer as allowing allocations when it is suspended
+  // lest an allocation attempt block on writing IO to the suspended VDO.
   int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
-  layer->allocationsAllowed = false;
   if (result != VDO_SUCCESS) {
     // kvdoResizePhysical logs errors
     return result;
   }
-
+  
   logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
           (uint64_t) layer->blockCount, (uint64_t) physicalCount);
   layer->blockCount = physicalCount;
@@ -1267,10 +1275,9 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
   logInfo("Preparing to resize logical to %" PRIu64, logicalCount);
-  // Allow allocations for the duration of resize, but no longer.
-  layer->allocationsAllowed = true;
+  // Allocations are allowed and permissible through this non-VDO thread,
+  // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowLogical(&layer->kvdo, logicalCount);
-  layer->allocationsAllowed = false;
   if (result != VDO_SUCCESS) {
     // kvdoPrepareToGrowLogical logs errors
     return result;
@@ -1284,6 +1291,8 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
   logInfo("Resizing logical to %" PRIu64, logicalCount);
+  // We must not mark the layer as allowing allocations when it is suspended
+  // lest an allocation attempt block on writing IO to the suspended VDO.
   int result = kvdoResizeLogical(&layer->kvdo, logicalCount);
   if (result != VDO_SUCCESS) {
     // kvdoResizeLogical logs errors

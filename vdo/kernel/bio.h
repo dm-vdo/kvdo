@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#2 $
  */
 
 #ifndef BIO_H
@@ -188,7 +188,7 @@ static inline bool isFlushBio(BIO *bio)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
 #elif LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  return bio_rw_flagged(bio, BIO_RW_FLUSH);
+  return bio_empty_barrier(bio) || bio_rw_flagged(bio, BIO_RW_FLUSH);
 #else
   return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
@@ -213,18 +213,6 @@ static inline bool isReadBio(BIO *bio)
   return !bio_rw_flagged(bio, BIO_RW);
 #else
   return bio_data_dir(bio) == READ;
-#endif
-}
-
-/**********************************************************************/
-static inline bool isEmptyFlush(BIO *bio)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  return (bio_op(bio) == REQ_OP_FLUSH);
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37)
-  return bio_empty_barrier(bio) || bio_rw_flagged(bio, BIO_RW_FLUSH);
-#else
-  return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
 }
 

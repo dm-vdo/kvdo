@@ -1,4 +1,4 @@
-VDO_VERSION = 6.2.0.109
+VDO_VERSION = 6.2.0.132
 
 VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))
@@ -6,7 +6,6 @@ VDO_VERSION_MICRO = $(word 3,$(subst ., ,$(VDO_VERSION)))
 
 SOURCES  = $(addprefix base/,$(notdir $(wildcard $(src)/base/*.c)))
 SOURCES += $(addprefix kernel/,$(notdir $(wildcard $(src)/kernel/*.c)))
-SOURCES += ../uds/murmur/MurmurHash3.c
 OBJECTS = $(SOURCES:%.c=%.o)
 INCLUDES = -I$(src)/base -I$(src)/kernel -I$(src)/../uds
 

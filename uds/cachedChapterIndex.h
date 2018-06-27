@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/cachedChapterIndex.h#5 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -170,7 +170,7 @@ static INLINE bool shouldSkipChapterIndex(const IndexZone *zone,
  * @param virtualChapter  the virtual chapter number of the index to read
  * @param volume          the volume containing the chapter index
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int cacheChapterIndex(CachedChapterIndex *chapter,
                       uint64_t            virtualChapter,

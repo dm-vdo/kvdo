@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#3 $
  */
 
 #include "volumeInternals.h"
@@ -162,7 +162,6 @@ static int openVolume(Volume *volume)
 /**********************************************************************/
 int allocateVolume(const Configuration  *config,
                    IndexLayout          *layout,
-                   unsigned int          indexId,
                    unsigned int          readQueueMaxSize,
                    unsigned int          zoneCount,
                    bool                  readOnly,
@@ -170,7 +169,7 @@ int allocateVolume(const Configuration  *config,
 {
   IOAccessMode access = readOnly ? IO_READ : IO_READ_WRITE;
   IORegion *region;
-  int result = openVolumeRegion(layout, indexId, access, &region);
+  int result = openVolumeRegion(layout, access, &region);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -181,15 +180,11 @@ int allocateVolume(const Configuration  *config,
     closeIORegion(&region);
     return result;
   }
-  // Fill these fields in now so that releaseVolume will close the volume region
+  // Fill these fields in now so that releaseVolume will close the volume
+  // region
   volume->region = region;
   volume->readOnly = readOnly;
-
-  result = getVolumeNonce(layout, indexId, &volume->nonce);
-  if (result != UDS_SUCCESS) {
-    releaseVolume(volume);
-    return result;
-  }
+  volume->nonce = getVolumeNonce(layout);
 
   result = openVolume(volume);
   if (result != UDS_SUCCESS) {

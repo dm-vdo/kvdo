@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexLayout.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexLayout.h#2 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -35,18 +35,18 @@
  * called via the inline wrapper methods defined below.
  **/
 typedef struct indexLayout {
-  int  (*checkIndexExists)(struct indexLayout *, bool *);
-  int  (*checkSealed)     (struct indexLayout *, bool *);
-  void (*free)            (struct indexLayout *);
-  int  (*getVolumeNonce)  (struct indexLayout *, unsigned int, uint64_t *);
-  int  (*makeIndexState)  (struct indexLayout *, unsigned int, unsigned int,
-                           unsigned int, IndexState **);
-  int  (*openVolumeRegion)(struct indexLayout *, unsigned int, IOAccessMode,
-                           IORegion **);
-  int  (*readConfig)      (struct indexLayout *, UdsConfiguration);
-  int  (*removeSeal)      (struct indexLayout *);
-  int  (*writeConfig)     (struct indexLayout *, UdsConfiguration);
-  int  (*writeSeal)       (struct indexLayout *);
+  int      (*checkIndexExists)(struct indexLayout *, bool *);
+  int      (*checkSealed)     (struct indexLayout *, bool *);
+  void     (*free)            (struct indexLayout *);
+  uint64_t (*getVolumeNonce)  (struct indexLayout *);
+  int      (*makeIndexState)  (struct indexLayout *, unsigned int,
+                               unsigned int, unsigned int, IndexState **);
+  int      (*openVolumeRegion)(struct indexLayout *, IOAccessMode,
+                               IORegion **);
+  int      (*readConfig)      (struct indexLayout *, UdsConfiguration);
+  int      (*removeSeal)      (struct indexLayout *);
+  int      (*writeConfig)     (struct indexLayout *, UdsConfiguration);
+  int      (*writeSeal)       (struct indexLayout *);
 } IndexLayout;
 
 /**
@@ -116,15 +116,13 @@ static INLINE void freeIndexLayout(IndexLayout **layoutPtr)
  * pages.
  *
  * @param [in]  layout   The index layout.
- * @param [in]  indexId  The index ordinal number.
- * @param [out] nonce    The nonce to use.
+ *
+ * @return The nonce to use.
  **/
 __attribute__((warn_unused_result))
-static INLINE int getVolumeNonce(IndexLayout  *layout,
-                                 unsigned int  indexId,
-                                 uint64_t     *nonce)
+static INLINE uint64_t getVolumeNonce(IndexLayout *layout)
 {
-  return layout->getVolumeNonce(layout, indexId, nonce);
+  return layout->getVolumeNonce(layout);
 }
 
 /**
@@ -153,7 +151,6 @@ static INLINE int makeIndexState(IndexLayout   *layout,
  * Obtain an IORegion for the specified index volume.
  *
  * @param [in]  layout     The index layout.
- * @param [in]  indexId    The index ordinal number.
  * @param [in]  access     The type of access requested.
  * @param [out] regionPtr  Where to put the new region.
  *
@@ -161,11 +158,10 @@ static INLINE int makeIndexState(IndexLayout   *layout,
  **/
 __attribute__((warn_unused_result))
 static INLINE int openVolumeRegion(IndexLayout   *layout,
-                                   unsigned int   indexId,
                                    IOAccessMode   access,
                                    IORegion     **regionPtr)
 {
-  return layout->openVolumeRegion(layout, indexId, access, regionPtr);
+  return layout->openVolumeRegion(layout, access, regionPtr);
 }
 
 /**

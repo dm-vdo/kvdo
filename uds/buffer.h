@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/buffer.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/buffer.h#3 $
  */
 
 #ifndef BUFFER_H
@@ -82,6 +82,12 @@ int growBuffer(Buffer *buffer, size_t length)
  **/
 bool ensureAvailableSpace(Buffer *buffer, size_t bytes)
   __attribute__((warn_unused_result));
+
+/**
+ * Clear the buffer. The start position is set to zero and the end position
+ * is set to the buffer length.
+ **/
+void clearBuffer(Buffer *buffer);  
 
 /**
  * Eliminate buffer contents which have been extracted. This function copies
@@ -285,6 +291,22 @@ int copyBytes(Buffer *buffer, size_t length, byte **destinationPtr)
  *         length bytes available
  **/
 int putBytes(Buffer *buffer, size_t length, const void *source)
+  __attribute__((warn_unused_result));
+
+/**
+ * Copy the contents of a source buffer into the target buffer. Advances the
+ * start of the source buffer and the end of the target buffer past the copied
+ * data.
+ *
+ * @param target The buffer to receive the copy of the data
+ * @param source The buffer containing the data to copy
+ * @param length The length of the data to copy
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the target buffer does not have
+ *         length bytes available or if the source buffer does not have length
+ *         bytes of content
+ **/
+int putBuffer(Buffer *target, Buffer *source, size_t length)
   __attribute__((warn_unused_result));
 
 /**

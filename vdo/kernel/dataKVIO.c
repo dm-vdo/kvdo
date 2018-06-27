@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#6 $
  */
 
 #include "dataKVIO.h"
@@ -24,11 +24,11 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "murmur/MurmurHash3.h"
 
 #include "dataVIO.h"
 #include "hashLock.h"
 #include "lz4.h"
-#include "murmur/MurmurHash3.h"
 
 #include "bio.h"
 #include "dedupeIndex.h"
@@ -752,13 +752,8 @@ static void kvdoHashDataWork(KvdoWorkItem *item)
   DataVIO  *dataVIO  = &dataKVIO->dataVIO;
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
 
-  if (sizeof(dataVIO->chunkName) == 32) {
-    MurmurHash3_x64_128_double(dataKVIO->dataBlock, VDO_BLOCK_SIZE,
-                               0x62ea60be, 0x3eeb36cd, &dataVIO->chunkName);
-  } else {
-    MurmurHash3_x64_128(dataKVIO->dataBlock, VDO_BLOCK_SIZE, 0x62ea60be,
-                        &dataVIO->chunkName);
-  }
+  MurmurHash3_x64_128(dataKVIO->dataBlock, VDO_BLOCK_SIZE, 0x62ea60be,
+                      &dataVIO->chunkName);
   dataKVIO->dedupeContext.chunkName = &dataVIO->chunkName;
 
   kvdoEnqueueDataVIOCallback(dataKVIO);

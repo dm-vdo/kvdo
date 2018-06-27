@@ -16,21 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/numericDefs.h#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/numericDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_NUMERIC_DEFS_H
 #define LINUX_KERNEL_NUMERIC_DEFS_H 1
-
-#define BIG_ENDIAN    4321
-#define LITTLE_ENDIAN 1234
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define BYTE_ORDER    LITTLE_ENDIAN
-#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#define BYTE_ORDER    BIG_ENDIAN
-#else
-#error "unknown byte order"
-#endif
 
 #ifdef __x86_64__
 /*

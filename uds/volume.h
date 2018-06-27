@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.h#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.h#7 $
  */
 
 #ifndef VOLUME_H
@@ -111,7 +111,6 @@ typedef struct volume {
  *
  * @param config           The configuration to use.
  * @param layout           The index layout
- * @param indexId          The index ordinal number
  * @param readQueueMaxSize The maximum size of the read queue.
  * @param zoneCount        The number of zones to use.
  * @param newVolume        A pointer to hold a pointer to the new volume.
@@ -120,7 +119,6 @@ typedef struct volume {
  **/
 int makeVolume(const Configuration  *config,
                IndexLayout          *layout,
-               unsigned int          indexId,
                unsigned int          readQueueMaxSize,
                unsigned int          zoneCount,
                Volume              **newVolume)
@@ -338,7 +336,7 @@ int writeChapter(Volume                 *volume,
  * @param physicalPage          the page to read
  * @param entry                 a pointer to the cached entry
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int readPageFromVolume(const Volume *volume,
                        unsigned int  physicalPage,
@@ -354,7 +352,7 @@ int readPageFromVolume(const Volume *volume,
  * @param [out] pageData        an array to receive the raw index page data
  * @param [out] indexPages      an array of ChapterIndexPages to initialize
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int readChapterIndexFromVolume(const Volume     *volume,
                                uint64_t          virtualChapter,
@@ -381,7 +379,7 @@ int readChapterIndexFromVolume(const Volume     *volume,
  * @param probeType    The type of cache access being done
  * @param entryPtr     A pointer to hold the retrieved cached entry
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getPageLocked(Volume          *volume,
                   Request         *request,
@@ -413,7 +411,7 @@ int getPageLocked(Volume          *volume,
  * @param probeType    The type of cache access being done
  * @param entryPtr     A pointer to hold the retrieved cached entry
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getPageProtected(Volume          *volume,
                      Request         *request,
@@ -446,7 +444,7 @@ int getPageProtected(Volume          *volume,
  * @param indexPagePtr  Pointer to hold the retrieved chapter index page, or
  *                      NULL if not wanted
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getPage(Volume            *volume,
             unsigned int       chapter,

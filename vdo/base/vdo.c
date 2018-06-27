@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#6 $
  */
 
 /*
@@ -63,9 +63,6 @@ static const VersionNumber VDO_MASTER_VERSION_67_0 = {
   .minorVersion =  0,
 };
 
-static const VersionNumber *CURRENT_VDO_MASTER_VERSION
-  = &VDO_MASTER_VERSION_67_0;
-
 /**
  * The current version for the data encoded in the super block. This must
  * be changed any time there is a change to encoding of the component data
@@ -75,9 +72,6 @@ static const VersionNumber VDO_COMPONENT_DATA_41_0 = {
   .majorVersion = 41,
   .minorVersion =  0,
 };
-
-static const VersionNumber *CURRENT_VDO_COMPONENT_DATA_VERSION
-  = &VDO_COMPONENT_DATA_41_0;
 
 /**
  * This is the structure that captures the VDO fields saved as a SuperBlock
@@ -242,7 +236,7 @@ size_t getComponentDataSize(VDO *vdo)
 __attribute__((warn_unused_result))
 static int encodeMasterVersion(Buffer *buffer)
 {
-  return encodeVersionNumber(CURRENT_VDO_MASTER_VERSION, buffer);
+  return encodeVersionNumber(VDO_MASTER_VERSION_67_0, buffer);
 }
 
 /**
@@ -256,7 +250,7 @@ static int encodeMasterVersion(Buffer *buffer)
 __attribute__((warn_unused_result))
 static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
 {
-  int result = encodeVersionNumber(CURRENT_VDO_COMPONENT_DATA_VERSION, buffer);
+  int result = encodeVersionNumber(VDO_COMPONENT_DATA_41_0, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -395,8 +389,7 @@ int validateVDOVersion(VDO *vdo)
                                    loadedReleaseVersion);
   }
 
-  return validateVersion(CURRENT_VDO_MASTER_VERSION, &vdo->loadVersion,
-                         "master");
+  return validateVersion(VDO_MASTER_VERSION_67_0, vdo->loadVersion, "master");
 }
 
 /**********************************************************************/
@@ -410,15 +403,10 @@ int decodeVDOComponent(VDO *vdo)
     return result;
   }
 
-  const VersionNumber *currentVersion = CURRENT_VDO_COMPONENT_DATA_VERSION;
-  if (!areSameVersion(currentVersion, &version)) {
-    return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
-                                   "VDO component data version mismatch,"
-                                   " expected %d.%d, got %d.%d",
-                                   currentVersion->majorVersion,
-                                   currentVersion->minorVersion,
-                                   version.majorVersion,
-                                   version.minorVersion);
+  result = validateVersion(version, VDO_COMPONENT_DATA_41_0,
+                           "VDO component data");
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
   VDOComponent41_0 component;

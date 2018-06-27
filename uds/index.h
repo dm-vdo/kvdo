@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.h#3 $
  */
 
 #ifndef INDEX_H
@@ -70,7 +70,6 @@ typedef struct index {
  *
  * @param layout         The index layout
  * @param config         The configuration to use
- * @param id             The id for this index to use
  * @param zoneCount      The number of zones for this index to use
  * @param loadType       How to create the index:  it can be create only,
  *                       allow loading from files, and allow rebuilding
@@ -81,7 +80,6 @@ typedef struct index {
  **/
 int makeIndex(IndexLayout          *layout,
               const Configuration  *config,
-              unsigned int          id,
               unsigned int          zoneCount,
               LoadType              loadType,
               Index               **newIndex)

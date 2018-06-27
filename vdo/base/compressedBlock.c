@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/compressedBlock.c#3 $
  */
 
 #include "compressedBlock.h"
@@ -34,19 +34,8 @@ void resetCompressedBlockHeader(CompressedBlockHeader *header)
 {
   STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
 
-  storeUInt32LE(header->fields.majorVersion, COMPRESSED_BLOCK_1_0.majorVersion);
-  storeUInt32LE(header->fields.minorVersion, COMPRESSED_BLOCK_1_0.minorVersion);
+  header->fields.version = packVersionNumber(COMPRESSED_BLOCK_1_0);
   memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
-}
-
-/**********************************************************************/
-static VersionNumber
-getCompressedBlockVersion(const CompressedBlockHeader *header)
-{
-  return (VersionNumber) {
-    .majorVersion = getUInt32LE(header->fields.majorVersion),
-    .minorVersion = getUInt32LE(header->fields.minorVersion),
-  };
 }
 
 /**********************************************************************/
@@ -68,8 +57,8 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
   }
 
   CompressedBlockHeader *header = (CompressedBlockHeader *) buffer;
-  VersionNumber version = getCompressedBlockVersion(header);
-  if (!areSameVersion(&version, &COMPRESSED_BLOCK_1_0)) {
+  VersionNumber version = unpackVersionNumber(header->fields.version);
+  if (!areSameVersion(version, COMPRESSED_BLOCK_1_0)) {
     return VDO_INVALID_FRAGMENT;
   }
 

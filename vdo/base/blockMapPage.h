@@ -16,52 +16,73 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapPage.h#8 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
 #define BLOCK_MAP_PAGE_H
+
+#include "numeric.h"
 
 #include "blockMapEntry.h"
 #include "header.h"
 #include "types.h"
 
 /**
- * The block map page header.
+ * The packed, on-disk representation of a block map page header.
  **/
-typedef struct __attribute__((packed)) {
-  /**
-   * The nonce of the current VDO, used to determine whether or not a page has
-   * been formatted.
-   **/
-  uint64_t            nonce;
+typedef union __attribute__((packed)) {
+  struct __attribute__((packed)) {
+    /**
+     * The 64-bit nonce of the current VDO, in little-endian byte order. Used
+     * to determine whether or not a page has been formatted.
+     **/
+    byte nonce[8];
 
-  /** The PBN of the page */
-  PhysicalBlockNumber pbn;
+    /** The 64-bit PBN of this page, in little-endian byte order */
+    byte pbn[8];
 
-  /** Formerly recoverySequenceNumber; may be non-zero on disk */
-  uint64_t            unusedLongWord;
+    /** Formerly recoverySequenceNumber; may be non-zero on disk */
+    byte unusedLongWord[8];
 
-  /** Whether this page has been initialized on disk (i.e. written twice). */
-  bool                initialized;
+    /** Whether this page has been initialized on disk (i.e. written twice) */
+    bool initialized;
 
-  /** Formerly entryOffset; now unused since it should always be zero */
-  uint8_t             unusedByte1;
+    /** Formerly entryOffset; now unused since it should always be zero */
+    byte unusedByte1;
 
-  /** Formerly interiorTreePageWriting; may be non-zero on disk */
-  uint8_t             unusedByte2;
+    /** Formerly interiorTreePageWriting; may be non-zero on disk */
+    byte unusedByte2;
 
-  /** Formerly generation (for dirty tree pages); may be non-zero on disk */
-  uint8_t             unusedByte3;
+    /** Formerly generation (for dirty tree pages); may be non-zero on disk */
+    byte unusedByte3;
+  } fields;
+
+  // A raw view of the packed encoding.
+  uint8_t raw[8 + 8 + 8 + 1 + 1 + 1 + 1];
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // This view is only valid on little-endian machines and is only present for
+  // ease of directly examining packed entries in GDB.
+  struct __attribute__((packed)) {
+    uint64_t            nonce;
+    PhysicalBlockNumber pbn;
+    uint64_t            unusedLongWord;
+    bool                initialized;
+    uint8_t             unusedByte1;
+    uint8_t             unusedByte2;
+    uint8_t             unusedByte3;
+  } littleEndian;
+#endif
 } PageHeader;
 
 /**
  * The format of a block map page.
  **/
 typedef struct __attribute__((packed)) {
-  VersionNumber version;
-  PageHeader    header;
-  BlockMapEntry entries[];
+  PackedVersionNumber version;
+  PageHeader          header;
+  BlockMapEntry       entries[];
 } BlockMapPage;
 
 typedef enum {
@@ -73,7 +94,6 @@ typedef enum {
   BLOCK_MAP_PAGE_BAD,
 } BlockMapPageValidity;
 
-
 /**
  * Check whether a block map page has been initialized.
  *
@@ -84,7 +104,7 @@ typedef enum {
 __attribute__((warn_unused_result))
 static inline bool isBlockMapPageInitialized(const BlockMapPage *page)
 {
-  return page->header.initialized;
+  return page->header.fields.initialized;
 }
 
 /**
@@ -98,11 +118,11 @@ static inline bool isBlockMapPageInitialized(const BlockMapPage *page)
 static inline bool markBlockMapPageInitialized(BlockMapPage *page,
                                                bool          initialized)
 {
-  if (initialized == page->header.initialized) {
+  if (initialized == page->header.fields.initialized) {
     return false;
   }
 
-  page->header.initialized = initialized;
+  page->header.fields.initialized = initialized;
   return true;
 }
 
@@ -116,7 +136,7 @@ static inline bool markBlockMapPageInitialized(BlockMapPage *page,
 __attribute__((warn_unused_result))
 static inline PhysicalBlockNumber getBlockMapPagePBN(const BlockMapPage *page)
 {
-  return page->header.pbn;
+  return getUInt64LE(page->header.fields.pbn);
 }
 
 /**

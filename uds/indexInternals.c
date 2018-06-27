@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#2 $
  */
 
 #include "indexInternals.h"
@@ -43,7 +43,6 @@ static const unsigned int MAX_COMPONENT_COUNT = 4;
 /**********************************************************************/
 int allocateIndex(IndexLayout          *layout,
                   const Configuration  *config,
-                  unsigned int          id,
                   unsigned int          zoneCount,
                   LoadType              loadType,
                   bool                  readOnly,
@@ -55,7 +54,7 @@ int allocateIndex(IndexLayout          *layout,
       return EINVAL;
     }
     IORegion *region = NULL;
-    int result = openVolumeRegion(layout, id, IO_CREATE_WRITE, &region);
+    int result = openVolumeRegion(layout, IO_CREATE_WRITE, &region);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -85,7 +84,7 @@ int allocateIndex(IndexLayout          *layout,
   setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
 
   index->layout                = layout;
-  index->id                    = id;
+  index->id                    = 0;
   index->zoneCount             = (readOnly ? 1 : zoneCount);
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
@@ -110,10 +109,9 @@ int allocateIndex(IndexLayout          *layout,
   }
 
   if (readOnly) {
-    result = makeReadOnlyVolume(config, index->layout, index->id,
-                                &index->volume);
+    result = makeReadOnlyVolume(config, index->layout, &index->volume);
   } else {
-    result = makeVolume(config, index->layout, index->id,
+    result = makeVolume(config, index->layout,
                         VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
                         index->zoneCount, &index->volume);
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#4 $
  */
 
 #include "singleFileLayoutInternals.h"
@@ -1853,25 +1853,16 @@ static int sfl_readConfig(IndexLayout *layout, UdsConfiguration config)
 
 /*****************************************************************************/
 static int sfl_openVolumeRegion(IndexLayout        *layout,
-                                unsigned int        indexId,
                                 IOAccessMode        access,
                                 IORegion          **regionPtr)
 {
   SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  if (indexId >= sfl->super.numIndexes) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "cannot open index %u of %u",
-                                   indexId, sfl->super.numIndexes);
-  }
-
-  SubIndexLayout *sil = &sfl->indexes[indexId];
+  SubIndexLayout *sil = &sfl->indexes[0];
 
   int result = getSingleFileLayoutRegion(sfl, &sil->volume, access, regionPtr);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
-                                   "cannot access index %u volume region",
-                                   indexId);
+                                   "cannot access index volume region");
   }
 
   return UDS_SUCCESS;
@@ -1890,20 +1881,10 @@ static int sfl_makeIndexState(IndexLayout   *layout,
 }
 
 /*****************************************************************************/
-static int sfl_getVolumeNonce(IndexLayout  *layout,
-                              unsigned int  indexId,
-                              uint64_t     *nonce)
+static uint64_t sfl_getVolumeNonce(IndexLayout *layout)
 {
   SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  if (indexId >= sfl->super.numIndexes) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "no such index %u of %u",
-                                   indexId, sfl->super.numIndexes);
-  }
-
-  *nonce = sfl->indexes[indexId].nonce;
-  return UDS_SUCCESS;
+  return sfl->indexes[0].nonce;
 }
 
 /*****************************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#4 $
  */
 
 #ifndef KERNELLAYER_H
@@ -171,6 +171,7 @@ struct kernelLayer {
   // Statistics
   atomic64_t              biosSubmitted;
   atomic64_t              biosCompleted;
+  atomic64_t              dedupeContextBusy;
   atomic64_t              flushOut;
   AtomicBioStats          biosIn;
   AtomicBioStats          biosInPartial;

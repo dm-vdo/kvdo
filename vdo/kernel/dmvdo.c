@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#5 $
  */
 
 #include "dmvdo.h"
@@ -148,27 +148,6 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio)
   return kvdoMapBio(layer, bio);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-/**********************************************************************/
-static int vdoMerge(struct dm_target       *ti,
-                    struct bvec_merge_data *bvm,
-                    struct bio_vec         *biovec,
-                    int                     max_size)
-{
-  KernelLayer *layer      = ti->private;
-  struct request_queue *q = bdev_get_queue(layer->dev->bdev);
-
-  if (!q->merge_bvec_fn) {
-    return max_size;
-  }
-
-  bvm->bi_bdev = layer->dev->bdev;
-  bvm->bi_sector = bvm->bi_sector - ti->begin;
-
-  return min(max_size, q->merge_bvec_fn(q, bvm, biovec));
-}
-#endif
-
 /**********************************************************************/
 static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
 {
@@ -223,52 +202,17 @@ static int vdoIterateDevices(struct dm_target           *ti,
 }
 
 /*
- * Device-mapper status method return types:
- *
- * Debian Squeeze backport of 3.2.0-0.bpo.3-amd64: int
- * Ubuntu Precise 3.2.0-49-generic: void
- * Linus git repo 3.2.0: int
- * 3.8+: void
- *
- * Distinguishing versions:
- *
- * Our current version of Ubuntu "3.2.0" adds config option
- * VERSION_SIGNATURE to the Debian kernel, and has LINUX_VERSION_CODE
- * indicating 3.2.46; it's entirely possible the latter may be updated
- * over time.
- */
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0))       \
-    && (LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0))     \
-    && defined(CONFIG_VERSION_SIGNATURE)
-// Probably Ubuntu.
-#  define DMSTATUS_RETURNS_VOID 1
-#else
-#  define DMSTATUS_RETURNS_VOID (LINUX_VERSION_CODE > KERNEL_VERSION(3,8,0))
-#endif
-
-#if DMSTATUS_RETURNS_VOID
-typedef void DMStatusReturnType;
-#else
-typedef int DMStatusReturnType;
-#endif
-
-#define STATUS_TAKES_FLAGS_ARG (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-
-/*
  * Status line is:
  *    <device> <operating mode> <in recovery> <index state>
  *    <compression state> <used physical blocks> <total physical blocks>
  */
 
 /**********************************************************************/
-static DMStatusReturnType vdoStatus(struct dm_target *ti,
-                                    status_type_t     status_type,
-#if STATUS_TAKES_FLAGS_ARG
-                                    unsigned int      status_flags,
-#endif
-                                    char             *result,
-                                    unsigned int      maxlen)
+static void vdoStatus(struct dm_target *ti,
+                      status_type_t     status_type,
+                      unsigned int      status_flags,
+                      char             *result,
+                      unsigned int      maxlen)
 {
   KernelLayer *layer = ti->private;
   char nameBuffer[BDEVNAME_SIZE];
@@ -299,10 +243,6 @@ static DMStatusReturnType vdoStatus(struct dm_target *ti,
   }
 
 //  spin_unlock_irqrestore(&layer->lock, flags);
-
-#if !DMSTATUS_RETURNS_VOID
-  return 0;
-#endif
 }
 
 
@@ -1014,10 +954,6 @@ static struct target_type vdoTargetBio = {
   .postsuspend     = vdoPostsuspend,
   .preresume       = vdoPreresume,
   .resume          = vdoResume,
-  // Put version specific functions at the bottom
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-  .merge           = vdoMerge,
-#endif
 };
 
 static bool dmRegistered     = false;

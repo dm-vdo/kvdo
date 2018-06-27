@@ -16,40 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#5 $
  */
 
 #include "localIndexRouter.h"
 
 #include "compiler.h"
-#include "context.h"
-#include "errors.h"
-#include "featureDefs.h"
-#include "hashUtils.h"
-#include "index.h"
 #include "indexCheckpoint.h"
-#include "indexConfig.h"
-#include "indexRouter.h"
-#include "localIndexRouterPrivate.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "permassert.h"
-#include "request.h"
 #include "requestQueue.h"
-#include "threads.h"
-#include "timeUtils.h"
-#include "uds.h"
 #include "zone.h"
-
-// Data exchanged with per-router filling threads.
-struct fillData {
-  // Subindex to fill from this thread
-  Index *subindex;
-  // Seed value for PRNG
-  int    seed;
-  // UDS_SUCCESS or error from router
-  int    result;
-};
 
 static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag);
 static RequestQueue *selectIndexRouterQueue(IndexRouter  *header,
@@ -150,14 +127,8 @@ static void triageRequest(Request *request)
 static int initializeLocalIndexQueues(LocalIndexRouter *router,
                                       const Geometry   *geometry)
 {
-  int result = ALLOCATE(router->zoneCount, RequestQueue *,
-                        "zone queue array", &router->zoneQueues);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   for (unsigned int i = 0; i < router->zoneCount; i++) {
-    result = makeRequestQueue("indexW", &executeZoneRequest,
+    int result = makeRequestQueue("indexW", &executeZoneRequest,
                               &router->zoneQueues[i]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -166,7 +137,8 @@ static int initializeLocalIndexQueues(LocalIndexRouter *router,
 
   // The triage queue is only needed for sparse multi-zone indexes.
   if ((router->zoneCount > 1) && isSparse(geometry)) {
-    result = makeRequestQueue("triageW", &triageRequest, &router->triageQueue);
+    int result = makeRequestQueue("triageW", &triageRequest,
+                                  &router->triageQueue);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -189,8 +161,9 @@ int makeLocalIndexRouter(IndexLayout          *layout,
                          IndexRouterCallback   callback,
                          IndexRouter         **newRouter)
 {
+  unsigned int zoneCount = getZoneCount();
   LocalIndexRouter *router;
-  int result = ALLOCATE_EXTENDED(LocalIndexRouter, 1, Index *,
+  int result = ALLOCATE_EXTENDED(LocalIndexRouter, zoneCount, RequestQueue *,
                                  "index router", &router);
   if (result != UDS_SUCCESS) {
     return result;
@@ -198,7 +171,7 @@ int makeLocalIndexRouter(IndexLayout          *layout,
 
   router->header.methods  = &methods;
   router->header.callback = callback;
-  router->zoneCount       = getZoneCount();
+  router->zoneCount       = zoneCount;
 
   result = initializeLocalIndexQueues(router, config->geometry);
   if (result != UDS_SUCCESS) {
@@ -206,7 +179,7 @@ int makeLocalIndexRouter(IndexLayout          *layout,
     return result;
   }
 
-  result = makeIndex(layout, config, 0, router->zoneCount, loadType,
+  result = makeIndex(layout, config, router->zoneCount, loadType,
                      &router->index);
   if (result != UDS_SUCCESS) {
     freeIndexRouter(asIndexRouter(router));
@@ -235,7 +208,6 @@ static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag)
   }
 
   freeIndex(router->index);
-  FREE(router->zoneQueues);
   FREE(router);
   return result;
 }

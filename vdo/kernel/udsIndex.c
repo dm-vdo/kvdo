@@ -31,15 +31,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#7 $
  */
 
 #include "udsIndex.h"
 
 #include "logger.h"
-#include "numeric.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
+#include "numeric.h"
 #include "stringUtils.h"
 #include "uds-block.h"
 
@@ -338,6 +338,10 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
       atomicStore32(&dedupeContext->requestState, UR_IDLE);
     }
     spin_unlock(&index->stateLock);
+  } else {
+    // A previous user of the KVIO had a dedupe timeout
+    // and its request is still outstanding.
+    atomic64_inc(&kvio->layer->dedupeContextBusy);
   }
   if (kvio != NULL) {
     invokeDedupeCallback(dataKVIO);

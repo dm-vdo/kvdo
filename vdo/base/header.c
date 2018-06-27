@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#4 $
  */
 
 #include "header.h"
@@ -26,19 +26,19 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-int validateVersion(const VersionNumber *expectedVersion,
-                    const VersionNumber *actualVersion,
-                    const char          *componentName)
+int validateVersion(VersionNumber  expectedVersion,
+                    VersionNumber  actualVersion,
+                    const char    *componentName)
 {
   if (!areSameVersion(expectedVersion, actualVersion)) {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
                                    "%s version mismatch,"
                                    " expected %d.%d, got %d.%d",
                                    componentName,
-                                   expectedVersion->majorVersion,
-                                   expectedVersion->minorVersion,
-                                   actualVersion->majorVersion,
-                                   actualVersion->minorVersion);
+                                   expectedVersion.majorVersion,
+                                   expectedVersion.minorVersion,
+                                   actualVersion.majorVersion,
+                                   actualVersion.minorVersion);
   }
   return VDO_SUCCESS;
 }
@@ -57,8 +57,8 @@ int validateHeader(const Header *expectedHeader,
                                    actualHeader->id);
   }
 
-  int result = validateVersion(&expectedHeader->version,
-                               &actualHeader->version,
+  int result = validateVersion(expectedHeader->version,
+                               actualHeader->version,
                                componentName);
   if (result != VDO_SUCCESS) {
     return result;
@@ -88,7 +88,7 @@ int encodeHeader(const Header *header, Buffer *buffer)
     return result;
   }
 
-  result = encodeVersionNumber(&header->version, buffer);
+  result = encodeVersionNumber(header->version, buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -97,29 +97,10 @@ int encodeHeader(const Header *header, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encodeVersionNumber(const VersionNumber *version, Buffer *buffer)
+int encodeVersionNumber(VersionNumber version, Buffer *buffer)
 {
-  int result = putUInt32LEIntoBuffer(buffer, version->majorVersion);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return putUInt32LEIntoBuffer(buffer, version->minorVersion);
-}
-
-/**********************************************************************/
-int encodeWithHeader(const Header *header, const void *data, Buffer *buffer)
-{
-  if (!ensureAvailableSpace(buffer, ENCODED_HEADER_SIZE + header->size)) {
-    return UDS_BUFFER_ERROR;
-  }
-
-  int result = encodeHeader(header, buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return putBytes(buffer, header->size, data);
+  PackedVersionNumber packed = packVersionNumber(version);
+  return putBytes(buffer, sizeof(packed), &packed);
 }
 
 /**********************************************************************/

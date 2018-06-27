@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.c#7 $
  */
 
 #include "index.h"
@@ -186,32 +186,22 @@ static int rebuildIndex(Index *index)
 /**********************************************************************/
 int makeIndex(IndexLayout          *layout,
               const Configuration  *config,
-              unsigned int          id,
               unsigned int          zoneCount,
               LoadType              loadType,
               Index               **newIndex)
 {
   Index *index;
-  int result = allocateIndex(layout, config, id, zoneCount, loadType,
+  int result = allocateIndex(layout, config, zoneCount, loadType,
                              !READ_ONLY_INDEX, &index);
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "index_%u: could not allocate index",
-                                   id);
+    return logErrorWithStringError(result, "could not allocate index");
   }
 
-  uint64_t nonce = 0;
-  result = getVolumeNonce(layout, id, &nonce);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
+  uint64_t nonce = getVolumeNonce(layout);
   result = makeMasterIndex(config, zoneCount, nonce, &index->masterIndex);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
-    return logErrorWithStringError(result,
-                                   "index_%u: could not make master index",
-                                   id);
+    return logErrorWithStringError(result, "could not make master index");
   }
 
   result = addIndexStateComponent(index->state, MASTER_INDEX_INFO, NULL,
@@ -241,14 +231,11 @@ int makeIndex(IndexLayout          *layout,
     }
     result = loadIndex(index, loadType == LOAD_REBUILD);
     if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "index_%u: index could not be loaded",
-                              index->id);
+      logErrorWithStringError(result, "index could not be loaded");
       if (loadType == LOAD_REBUILD) {
         result = rebuildIndex(index);
         if (result != UDS_SUCCESS) {
-          logErrorWithStringError(result,
-                                  "index_%u: index could not be rebuilt",
-                                  index->id);
+          logErrorWithStringError(result, "index could not be rebuilt");
         }
       }
     }
@@ -258,7 +245,7 @@ int makeIndex(IndexLayout          *layout,
 
   if (result != UDS_SUCCESS) {
     freeIndex(index);
-    return logUnrecoverable(result, "index_%u: fatal error in makeIndex", id);
+    return logUnrecoverable(result, "fatal error in makeIndex");
   }
 
   *newIndex = index;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#12 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#13 $
  */
 
 #include <linux/module.h>
@@ -101,6 +101,7 @@ EXPORT_SYMBOL_GPL(assertionFailedLogOnly);
 EXPORT_SYMBOL_GPL(availableSpace);
 EXPORT_SYMBOL_GPL(bufferLength);
 EXPORT_SYMBOL_GPL(bufferUsed);
+EXPORT_SYMBOL_GPL(clearBuffer);
 EXPORT_SYMBOL_GPL(compactBuffer);
 EXPORT_SYMBOL_GPL(contentLength);
 EXPORT_SYMBOL_GPL(copyBytes);
@@ -137,6 +138,7 @@ EXPORT_SYMBOL_GPL(MurmurHash3_x64_128_double);
 EXPORT_SYMBOL_GPL(nowUsec);
 EXPORT_SYMBOL_GPL(peekByte);
 EXPORT_SYMBOL_GPL(putBoolean);
+EXPORT_SYMBOL_GPL(putBuffer);
 EXPORT_SYMBOL_GPL(putByte);
 EXPORT_SYMBOL_GPL(putBytes);
 EXPORT_SYMBOL_GPL(putInt64LEIntoBuffer);
