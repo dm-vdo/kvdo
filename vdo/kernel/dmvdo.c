@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#14 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dmvdo.c#16 $
  */
 
 #include "dmvdo.h"
@@ -148,27 +148,6 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio)
   return kvdoMapBio(layer, bio);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-/**********************************************************************/
-static int vdoMerge(struct dm_target       *ti,
-                    struct bvec_merge_data *bvm,
-                    struct bio_vec         *biovec,
-                    int                     max_size)
-{
-  KernelLayer *layer      = ti->private;
-  struct request_queue *q = bdev_get_queue(layer->dev->bdev);
-
-  if (!q->merge_bvec_fn) {
-    return max_size;
-  }
-
-  bvm->bi_bdev = layer->dev->bdev;
-  bvm->bi_sector = bvm->bi_sector - ti->begin;
-
-  return min(max_size, q->merge_bvec_fn(q, bvm, biovec));
-}
-#endif
-
 /**********************************************************************/
 static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
 {
@@ -222,8 +201,6 @@ static int vdoIterateDevices(struct dm_target           *ti,
 #endif /* HAS_FLUSH_SUPPORTED */
 }
 
-static const char albserverLabel[] = "albserver";
-
 /*
  * Device-mapper status method return types:
  *
@@ -257,6 +234,12 @@ typedef int DMStatusReturnType;
 
 #define STATUS_TAKES_FLAGS_ARG (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 
+/*
+ * Status line is:
+ *    <device> <operating mode> <in recovery> <index state> 
+ *    <compression state> <used physical blocks> <total physical blocks>
+ */
+
 /**********************************************************************/
 static DMStatusReturnType vdoStatus(struct dm_target *ti,
                                     status_type_t     status_type,
@@ -271,24 +254,21 @@ static DMStatusReturnType vdoStatus(struct dm_target *ti,
   // N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen".
   int sz = 0;
 
-  /*
-   * If/when we support configuring a new albserver address to replace
-   * the old one, we'll need some locking here.
-   */
-//  unsigned long flags;
-//  spin_lock_irqsave(&layer->lock, flags);
-
   switch (status_type) {
   case STATUSTYPE_INFO:
-    // Report all thread counts.
-    DMEMIT("/dev/%s %s %s cpu=%d,bio=%d,ack=%d,"
-           "bioRotationInterval=%d",
-           bdevname(layer->dev->bdev, nameBuffer), albserverLabel,
-           getDedupeStateName(layer->dedupeIndex),
-           layer->deviceConfig->threadCounts.cpuThreads,
-           layer->deviceConfig->threadCounts.bioThreads,
-           layer->deviceConfig->threadCounts.bioAckThreads,
-           layer->deviceConfig->threadCounts.bioRotationInterval);
+    // Report info for dmsetup status
+    mutex_lock(&layer->statsMutex);
+    getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+    VDOStatistics *stats = &layer->vdoStatsStorage;
+    DMEMIT("/dev/%s %s %s %s %s %" PRIu64 " %" PRIu64,
+           bdevname(layer->dev->bdev, nameBuffer),
+	   stats->mode,
+	   stats->inRecoveryMode ? "recovering" : "-",
+	   getDedupeStateName(layer->dedupeIndex),
+	   getKVDOCompressing(&layer->kvdo) ? "online" : "offline",
+	   stats->dataBlocksUsed + stats->overheadBlocksUsed,
+	   stats->physicalBlocks);
+    mutex_unlock(&layer->statsMutex);
     break;
 
   case STATUSTYPE_TABLE:
@@ -1006,10 +986,6 @@ static struct target_type vdoTargetBio = {
   .postsuspend     = vdoPostsuspend,
   .preresume       = vdoPreresume,
   .resume          = vdoResume,
-  // Put version specific functions at the bottom
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-  .merge           = vdoMerge,
-#endif
 };
 
 static bool dmRegistered     = false;

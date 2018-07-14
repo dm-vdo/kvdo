@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#14 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#15 $
  */
 
 #include "kernelLayer.h"
@@ -1232,8 +1232,6 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
     return result;
   }
 
-  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
-          (uint64_t) layer->blockCount, (uint64_t) physicalCount);
   layer->blockCount = physicalCount;
   return VDO_SUCCESS;
 }

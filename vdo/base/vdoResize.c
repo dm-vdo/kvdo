@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoResize.c#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoResize.c#4 $
  */
 
 #include "vdoResize.h"
@@ -215,6 +215,7 @@ static void growPhysicalCallback(VDOCompletion *completion)
 /**********************************************************************/
 int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
+  BlockCount oldPhysicalBlocks = vdo->config.physicalBlocks;
   if (newPhysicalBlocks != getNextVDOLayoutSize(vdo->layout)) {
     /*
      * Either the VDO isn't prepared to grow, or it was prepared to grow
@@ -236,25 +237,35 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   int result = performAdminOperation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
                                      growPhysicalCallback);
   finishVDOLayoutGrowth(vdo->layout);
-  return result;
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
+          oldPhysicalBlocks, newPhysicalBlocks);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
-  if (newPhysicalBlocks < vdo->config.physicalBlocks) {
+  BlockCount currentPhysicalBlocks = vdo->config.physicalBlocks;
+  if (newPhysicalBlocks < currentPhysicalBlocks) {
     return logErrorWithStringError(VDO_NOT_IMPLEMENTED,
                                    "Removing physical storage from a VDO is "
                                    "not supported");
   }
 
-  if (newPhysicalBlocks == vdo->config.physicalBlocks) {
+  if (newPhysicalBlocks == currentPhysicalBlocks) {
+    logWarning("Requested physical block count %" PRIu64
+               " not greater than %" PRIu64,
+               newPhysicalBlocks, currentPhysicalBlocks);
     finishVDOLayoutGrowth(vdo->layout);
     abandonNewSlabs(vdo->depot);
     return VDO_PARAMETER_MISMATCH;
   }
 
-  int result = prepareToGrowVDOLayout(vdo->layout, vdo->config.physicalBlocks,
+  int result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
                                       newPhysicalBlocks);
   if (result != VDO_SUCCESS) {
     return result;

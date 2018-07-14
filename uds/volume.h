@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.h#4 $
+ * $Id: //eng/uds-releases/flanders/src/uds/volume.h#5 $
  */
 
 #ifndef VOLUME_H
@@ -339,20 +339,6 @@ __attribute__((warn_unused_result));
 int writeChapter(Volume                 *volume,
                  OpenChapterIndex       *chapterIndex,
                  const UdsChunkRecord    records[])
-  __attribute__((warn_unused_result));
-
-/**
- * Read a page from the volume
- *
- * @param volume                the volume containing the chapter
- * @param physicalPage          the page to read
- * @param entry                 a pointer to the cached entry
- *
- * @return UDS_SUCESS or an error code
- **/
-int readPageFromVolume(Volume        *volume,
-                       unsigned int   physicalPage,
-                       CachedPage    *entry)
   __attribute__((warn_unused_result));
 
 /**
