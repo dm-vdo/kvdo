@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.c#4 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/kernelLayer.c#5 $
  */
 
 #include "kernelLayer.h"
@@ -1216,7 +1216,13 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
   layer->allocationsAllowed = false;
   if (result != VDO_SUCCESS) {
     // kvdoPrepareToGrowPhysical logs errors.
-    return result;
+    if (result == VDO_PARAMETER_MISMATCH) {
+      // If we don't trap this case, mapToSystemError() will remap it to -EIO,
+      // which is misleading and ahistorical.
+      return -EINVAL;
+    } else { 
+      return result;
+    }
   }
 
   logInfo("Done preparing to resize physical");

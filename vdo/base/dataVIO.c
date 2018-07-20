@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/dataVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/base/dataVIO.c#2 $
  */
 
 #include "dataVIO.h"
@@ -92,6 +92,9 @@ void prepareDataVIO(DataVIO            *dataVIO,
                     bool                isTrim,
                     VDOAction          *callback)
 {
+  // Clearing the tree lock must happen before initializing the LBN lock,
+  // which also adds information to the tree lock.
+  memset(&dataVIO->treeLock,  0, sizeof(dataVIO->treeLock));
   initializeLBNLock(dataVIO, lbn);
   initializeRing(&dataVIO->hashLockNode);
   initializeRing(&dataVIO->writeNode);

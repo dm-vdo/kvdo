@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dmvdo.c#3 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.5/src/c++/vdo/kernel/dmvdo.c#4 $
  */
 
 #include "dmvdo.h"
@@ -147,27 +147,6 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio)
   KernelLayer *layer = ti->private;
   return kvdoMapBio(layer, bio);
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-/**********************************************************************/
-static int vdoMerge(struct dm_target       *ti,
-                    struct bvec_merge_data *bvm,
-                    struct bio_vec         *biovec,
-                    int                     max_size)
-{
-  KernelLayer *layer      = ti->private;
-  struct request_queue *q = bdev_get_queue(layer->dev->bdev);
-
-  if (!q->merge_bvec_fn) {
-    return max_size;
-  }
-
-  bvm->bi_bdev = layer->dev->bdev;
-  bvm->bi_sector = bvm->bi_sector - ti->begin;
-
-  return min(max_size, q->merge_bvec_fn(q, bvm, biovec));
-}
-#endif
 
 /**********************************************************************/
 static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
@@ -984,10 +963,6 @@ static struct target_type vdoTargetBio = {
   .postsuspend     = vdoPostsuspend,
   .preresume       = vdoPreresume,
   .resume          = vdoResume,
-  // Put version specific functions at the bottom
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-  .merge           = vdoMerge,
-#endif
 };
 
 static bool dmRegistered     = false;
