@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/buffer.c#4 $
  */
 
 #include "buffer.h"
@@ -319,7 +319,6 @@ int putBuffer(Buffer *target, Buffer *source, size_t length)
   }
 
   source->start += length;
-  target->end += length;
   return UDS_SUCCESS;
 }
 

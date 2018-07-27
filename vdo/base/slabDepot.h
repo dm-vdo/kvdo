@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#2 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -64,20 +64,19 @@ SlabCount calculateSlabCount(SlabDepot *depot)
 /**
  * Create a slab depot.
  *
- * @param [in]  blockCount          The number of blocks initially available
- * @param [in]  firstBlock          The number of the first block which may
- *                                  be allocated
- * @param [in]  slabConfig          The slab configuration
- * @param [in]  threadConfig        The thread configuration of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vioPoolSize         The size of the VIO pool
- * @param [in]  descriptorPoolSize  The size of the block descriptor pool
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab
- *                                  summary
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  blockCount        The number of blocks initially available
+ * @param [in]  firstBlock        The number of the first block which may
+ *                                be allocated
+ * @param [in]  slabConfig        The slab configuration
+ * @param [in]  threadConfig      The thread configuration of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  vioPoolSize       The size of the VIO pool
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab
+ *                                summary
+ * @param [in]  readOnlyContext   The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
@@ -87,7 +86,6 @@ int makeSlabDepot(BlockCount            blockCount,
                   const ThreadConfig   *threadConfig,
                   Nonce                 nonce,
                   BlockCount            vioPoolSize,
-                  BlockCount            descriptorPoolSize,
                   PhysicalLayer        *layer,
                   Partition            *summaryPartition,
                   ReadOnlyModeContext  *readOnlyContext,

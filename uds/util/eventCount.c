@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.c#2 $
  */
 
 /**
@@ -33,7 +33,7 @@
  * the waiter count. The key invariant is a strict accounting of the number of
  * tokens issued. Every token returned by eventCountPrepare() is a contract
  * that the caller will call acquireSemaphore() and a signaller will call
- * releaseSemapore(), each exactly once. Atomic updates to the state field
+ * releaseSemaphore(), each exactly once. Atomic updates to the state field
  * ensure that each token is counted once and that tokens are not lost.
  * Cancelling a token attempts to take a fast-path by simply decrementing the
  * waiters field, but if the token has already been claimed by a signaller,

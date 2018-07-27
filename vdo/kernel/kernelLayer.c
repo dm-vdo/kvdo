@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#11 $
  */
 
 #include "kernelLayer.h"
@@ -1264,9 +1264,7 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
     // kvdoResizePhysical logs errors
     return result;
   }
-  
-  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
-          (uint64_t) layer->blockCount, (uint64_t) physicalCount);
+
   layer->blockCount = physicalCount;
   return VDO_SUCCESS;
 }

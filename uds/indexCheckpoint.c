@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexCheckpoint.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexCheckpoint.c#2 $
  */
 
 #include "indexCheckpoint.h"
@@ -203,7 +203,7 @@ int processChapterWriterCheckpointSaves(Index *index)
 
     if (result != UDS_SUCCESS) {
       checkpoint->state = CHECKPOINT_ABORTING;
-      logInfo("index_%u: checkpoint failed", index->id);
+      logInfo("checkpoint failed");
       index->lastCheckpoint = index->prevCheckpoint;
     }
   }
@@ -224,7 +224,7 @@ static int abortCheckpointing(Index *index, int result)
 {
   if (index->checkpoint->state != NOT_CHECKPOINTING) {
     index->checkpoint->state = CHECKPOINT_ABORTING;
-    logInfo("index_%u: checkpoint failed", index->id);
+    logInfo("checkpoint failed");
     index->lastCheckpoint = index->prevCheckpoint;
   }
   return result;
@@ -282,9 +282,7 @@ static int doCheckpointStart(Index *index, unsigned int zone)
   beginSave(index, true, checkpoint->chapter);
   int result = startIndexStateCheckpoint(index->state);
   if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result,
-                            "index_%u: cannot start index checkpoint",
-                            index->id);
+    logErrorWithStringError(result, "cannot start index checkpoint");
     index->lastCheckpoint = index->prevCheckpoint;
     unlockMutex(&checkpoint->mutex);
     return result;
@@ -305,21 +303,17 @@ static int doCheckpointProcess(Index *index, unsigned int zone)
   int result = performIndexStateCheckpointInZone(index->state, zone, &status);
   if (result != UDS_SUCCESS) {
     lockMutex(&checkpoint->mutex);
-    logErrorWithStringError(result,
-                            "index_%u: cannot continue index checkpoint",
-                            index->id);
+    logErrorWithStringError(result, "cannot continue index checkpoint");
     result = abortCheckpointing(index, result);
     unlockMutex(&checkpoint->mutex);
   } else if (status == CS_JUST_COMPLETED) {
     lockMutex(&checkpoint->mutex);
     if (--checkpoint->zonesBusy == 0) {
       checkpoint->checkpoints += 1;
-      logInfo("index_%u: finished checkpoint", index->id);
+      logInfo("finished checkpoint");
       result = finishIndexStateCheckpoint(index->state);
       if (result != UDS_SUCCESS) {
-        logErrorWithStringError(result,
-                                "index_%u: (%s) checkpoint finish failed",
-                                index->id,
+        logErrorWithStringError(result, "%s checkpoint finish failed",
                                 __func__);
       }
       checkpoint->state = NOT_CHECKPOINTING;
@@ -336,17 +330,13 @@ static int doCheckpointAbort(Index *index, unsigned int zone)
   CompletionStatus status = CS_NOT_COMPLETED;
   int result = abortIndexStateCheckpointInZone(index->state, zone, &status);
   if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result,
-                            "index_%u: cannot abort index checkpoint",
-                            index->id);
+    logErrorWithStringError(result, "cannot abort index checkpoint");
   } else if (status == CS_JUST_COMPLETED) {
     if (--checkpoint->zonesBusy == 0) {
-      logInfo("index_%u: aborted checkpoint", index->id);
+      logInfo("aborted checkpoint");
       result = abortIndexStateCheckpoint(index->state);
       if (result != UDS_SUCCESS) {
-        logErrorWithStringError(result,
-                                "index_%u: checkpoint abort failed",
-                                index->id);
+        logErrorWithStringError(result, "checkpoint abort failed");
       }
       checkpoint->state = NOT_CHECKPOINTING;
     }
@@ -364,9 +354,7 @@ static int doCheckpointFinish(Index *index, unsigned int zone)
   unlockMutex(&checkpoint->mutex);
   int result = finishIndexStateCheckpointInZone(index->state, zone, &status);
   if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result,
-                            "index_%u: cannot finish index checkpoint",
-                            index->id);
+    logErrorWithStringError(result, "cannot finish index checkpoint");
     lockMutex(&checkpoint->mutex);
     result = abortCheckpointing(index, result);
     unlockMutex(&checkpoint->mutex);
@@ -374,12 +362,10 @@ static int doCheckpointFinish(Index *index, unsigned int zone)
     lockMutex(&checkpoint->mutex);
     if (--checkpoint->zonesBusy == 0) {
       checkpoint->checkpoints += 1;
-      logInfo("index_%u: finished checkpoint", index->id);
+      logInfo("finished checkpoint");
       result = finishIndexStateCheckpoint(index->state);
       if (result != UDS_SUCCESS) {
-        logErrorWithStringError(result,
-                                "index_%u: (%s) checkpoint finish failed",
-                                index->id,
+        logErrorWithStringError(result, "%s checkpoint finish failed",
                                 __func__);
       }
       checkpoint->state = NOT_CHECKPOINTING;

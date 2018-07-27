@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#2 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
 #define BLOCK_ALLOCATOR_H
 
-#include "blockDescriptor.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "statistics.h"
@@ -38,7 +37,6 @@
  * @param [in]  threadID            The thread ID for this allocator's zone
  * @param [in]  nonce               The nonce of the VDO
  * @param [in]  vioPoolSize         The size of the VIO pool
- * @param [in]  descriptorPoolSize  The size of the block descriptor pool
  * @param [in]  layer               The physical layer below this allocator
  * @param [in]  readOnlyContext     The context for entering read-only mode
  * @param [out] allocatorPtr        A pointer to hold the allocator
@@ -50,7 +48,6 @@ int makeBlockAllocator(SlabDepot            *depot,
                        ThreadID              threadID,
                        Nonce                 nonce,
                        BlockCount            vioPoolSize,
-                       BlockCount            descriptorPoolSize,
                        PhysicalLayer        *layer,
                        ReadOnlyModeContext  *readOnlyContext,
                        BlockAllocator      **allocatorPtr)
@@ -282,27 +279,6 @@ void releaseTailBlockLocks(BlockAllocator *allocator,
  **/
 SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
   __attribute__((warn_unused_result));
-
-/**
- * Acquire a block descriptor from a block allocator's descriptor pool
- * (asynchronous).
- *
- * @param allocator  The allocator from which to get a descriptor
- * @param waiter     The object requesting the descriptor
- *
- * @return VDO_SUCCESS or an error
- **/
-int acquireBlockDescriptor(BlockAllocator *allocator, Waiter *waiter)
-  __attribute__((warn_unused_result));
-
-/**
- * Return a block descriptor to a block allocator's descriptor pool
- *
- * @param allocator   The block allocator which owns the descriptor
- * @param descriptor  The descriptor being returned
- **/
-void returnBlockDescriptor(BlockAllocator  *allocator,
-                           BlockDescriptor *descriptor);
 
 /**
  * Acquire a VIO from a block allocator's VIO pool (asynchronous).

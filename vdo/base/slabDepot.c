@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#3 $
  */
 
 #include "slabDepot.h"
@@ -184,13 +184,12 @@ void abandonNewSlabs(SlabDepot *depot)
  * Allocate those components of the slab depot which are needed only at load
  * time, not at format time.
  *
- * @param depot               The depot
- * @param nonce               The nonce of the VDO
- * @param threadConfig        The thread config of the VDO
- * @param vioPoolSize         The size of the VIO pool
- * @param descriptorPoolSize  The size of the block descriptor pool
- * @param layer               The physical layer below this depot
- * @param summaryPartition    The partition which holds the slab summary
+ * @param depot             The depot
+ * @param nonce             The nonce of the VDO
+ * @param threadConfig      The thread config of the VDO
+ * @param vioPoolSize       The size of the VIO pool
+ * @param layer             The physical layer below this depot
+ * @param summaryPartition  The partition which holds the slab summary
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -198,7 +197,6 @@ static int allocateComponents(SlabDepot          *depot,
                               Nonce               nonce,
                               const ThreadConfig *threadConfig,
                               BlockCount          vioPoolSize,
-                              BlockCount          descriptorPoolSize,
                               PhysicalLayer      *layer,
                               Partition          *summaryPartition)
 {
@@ -261,8 +259,7 @@ static int allocateComponents(SlabDepot          *depot,
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     ThreadID threadID = getPhysicalZoneThread(threadConfig, zone);
     result = makeBlockAllocator(depot, zone, threadID, nonce, vioPoolSize,
-                                descriptorPoolSize, layer,
-                                depot->readOnlyContext,
+                                layer, depot->readOnlyContext,
                                 &depot->allocators[zone]);
     if (result != VDO_SUCCESS) {
       return result;
@@ -292,17 +289,16 @@ static int allocateComponents(SlabDepot          *depot,
 /**
  * Allocate a slab depot.
  *
- * @param [in]  state               The parameters for the new depot
- * @param [in]  threadConfig        The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vioPoolSize         The size of the VIO pool
- * @param [in]  descriptorPoolSize  The size of the block descriptor pool
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab
- *                                  summary (if NULL, the depot is format-only)
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  state             The parameters for the new depot
+ * @param [in]  threadConfig      The thread config of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  vioPoolSize       The size of the VIO pool
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab
+ *                                summary (if NULL, the depot is format-only)
+ * @param [in]  readOnlyContext   The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
@@ -311,7 +307,6 @@ static int allocateDepot(const SlabDepotState2_0  *state,
                          const ThreadConfig       *threadConfig,
                          Nonce                     nonce,
                          BlockCount                vioPoolSize,
-                         BlockCount                descriptorPoolSize,
                          PhysicalLayer            *layer,
                          Partition                *summaryPartition,
                          ReadOnlyModeContext      *readOnlyContext,
@@ -344,7 +339,7 @@ static int allocateDepot(const SlabDepotState2_0  *state,
   depot->journal         = recoveryJournal;
 
   result = allocateComponents(depot, nonce, threadConfig, vioPoolSize,
-                              descriptorPoolSize, layer, summaryPartition);
+                              layer, summaryPartition);
   if (result != VDO_SUCCESS) {
     freeSlabDepot(&depot);
     return result;
@@ -414,7 +409,6 @@ int makeSlabDepot(BlockCount            blockCount,
                   const ThreadConfig   *threadConfig,
                   Nonce                 nonce,
                   BlockCount            vioPoolSize,
-                  BlockCount            descriptorPoolSize,
                   PhysicalLayer        *layer,
                   Partition            *summaryPartition,
                   ReadOnlyModeContext  *readOnlyContext,
@@ -428,8 +422,7 @@ int makeSlabDepot(BlockCount            blockCount,
   }
 
   SlabDepot *depot = NULL;
-  result = allocateDepot(&state, threadConfig, nonce, vioPoolSize,
-                         descriptorPoolSize, layer,
+  result = allocateDepot(&state, threadConfig, nonce, vioPoolSize, layer,
                          summaryPartition, readOnlyContext, recoveryJournal,
                          &depot);
   if (result != VDO_SUCCESS) {
@@ -675,8 +668,7 @@ int decodeSlabDepot(Buffer               *buffer,
     return result;
   }
 
-  return allocateDepot(&state, threadConfig, nonce, VIO_POOL_SIZE,
-                       BLOCK_DESCRIPTOR_POOL_SIZE, layer,
+  return allocateDepot(&state, threadConfig, nonce, VIO_POOL_SIZE, layer,
                        summaryPartition, readOnlyContext, recoveryJournal,
                        depotPtr);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#4 $
  */
 
 #include "slabJournalInternals.h"
@@ -203,7 +203,7 @@ static inline void checkForFlushComplete(SlabJournal *journal)
  **/
 static void initializeTailBlock(SlabJournal *journal)
 {
-  SlabJournalBlockHeader *header = &journal->block->header;
+  SlabJournalBlockHeader *header = &journal->tailHeader;
   header->sequenceNumber         = journal->tail;
   header->entryCount             = 0;
   header->hasBlockMapIncrements  = false;
@@ -233,8 +233,8 @@ static void initializeJournalState(SlabJournal *journal)
 __attribute__((warn_unused_result))
 static bool blockIsFull(SlabJournal *journal)
 {
-  JournalEntryCount count = journal->block->header.entryCount;
-  return (journal->block->header.hasBlockMapIncrements
+  JournalEntryCount count = journal->tailHeader.entryCount;
+  return (journal->tailHeader.hasBlockMapIncrements
           ? (journal->fullEntriesPerBlock == count)
           : (journal->entriesPerBlock == count));
 }
@@ -298,8 +298,8 @@ int makeSlabJournal(BlockAllocator  *allocator,
   initializeRing(&journal->dirtyNode);
   initializeRing(&journal->uncommittedBlocks);
 
-  journal->block->header.nonce        = slab->allocator->nonce;
-  journal->block->header.metadataType = VDO_METADATA_SLAB_JOURNAL;
+  journal->tailHeader.nonce        = slab->allocator->nonce;
+  journal->tailHeader.metadataType = VDO_METADATA_SLAB_JOURNAL;
   initializeJournalState(journal);
 
   *journalPtr = journal;
@@ -325,7 +325,7 @@ bool isSlabJournalBlank(const SlabJournal *journal)
 {
   return ((journal != NULL)
           && (journal->tail == 1)
-          && (journal->block->header.entryCount == 0));
+          && (journal->tailHeader.entryCount == 0));
 }
 
 /**********************************************************************/
@@ -623,7 +623,7 @@ static void updateTailBlockLocation(SlabJournal *journal)
 /**********************************************************************/
 void reopenSlabJournal(SlabJournal *journal)
 {
-  ASSERT_LOG_ONLY(journal->block->header.entryCount == 0,
+  ASSERT_LOG_ONLY(journal->tailHeader.entryCount == 0,
                   "Slab journal's active block empty before reopening");
   journal->head       = journal->tail;
   initializeJournalState(journal);
@@ -638,25 +638,28 @@ void reopenSlabJournal(SlabJournal *journal)
   addEntries(journal);
 }
 
+/**********************************************************************/
+static SequenceNumber getCommittingSequenceNumber(const VIOPoolEntry *entry)
+{
+  const PackedSlabJournalBlock *block = entry->buffer;
+  return getUInt64LE(block->header.fields.sequenceNumber);
+}
+
 /**
  * Handle post-commit processing. This is the callback registered by
- * writeSlabJournalVIO().
+ * writeSlabJournalBlock().
  *
  * @param completion  The write VIO as a completion
  **/
 static void completeWrite(VDOCompletion *completion)
 {
-  int              writeResult = completion->result;
-  VIOPoolEntry    *entry       = completion->parent;
-  BlockDescriptor *descriptor  = entry->parent;
-  SlabJournal     *journal     = descriptor->journal;
-  returnVIO(journal->slab->allocator, entry);
-  relaxedAdd64(&journal->events->blocksWritten, 1);
+  int           writeResult = completion->result;
+  VIOPoolEntry *entry       = completion->parent;
+  SlabJournal  *journal     = entry->parent;
 
-  // This block has been committed so return its descriptor.
-  unspliceRingNode(&descriptor->ringNode);
-  SequenceNumber committed = descriptor->sequenceNumber;
-  returnBlockDescriptor(journal->slab->allocator, descriptor);
+  SequenceNumber committed = getCommittingSequenceNumber(entry);
+  unspliceRingNode(&entry->node);
+  returnVIO(journal->slab->allocator, entry);
 
   if (writeResult != VDO_SUCCESS) {
     logErrorWithStringError(writeResult,
@@ -666,39 +669,38 @@ static void completeWrite(VDOCompletion *completion)
     return;
   }
 
+  relaxedAdd64(&journal->events->blocksWritten, 1);
+
   if (isRingEmpty(&journal->uncommittedBlocks)) {
     // If no blocks are outstanding, then the commit point is at the tail.
     journal->nextCommit = journal->tail;
   } else {
     // The commit point is always the beginning of the oldest incomplete block.
-    journal->nextCommit
-      = asBlockDescriptor(journal->uncommittedBlocks.next)->sequenceNumber;
+    VIOPoolEntry *oldest = asVIOPoolEntry(journal->uncommittedBlocks.next);
+    journal->nextCommit = getCommittingSequenceNumber(oldest);
   }
 
   updateTailBlockLocation(journal);
 }
 
 /**
- * Callback from acquireVIOFromPool() registered in writeSlabJournalBlock().
+ * Callback from acquireVIO() registered in commitSlabJournalTail().
  *
  * @param waiter      The VIO pool waiter which was just notified
  * @param vioContext  The VIO pool entry for the write
  **/
-static void writeSlabJournalVIO(Waiter *waiter, void *vioContext)
+static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
 {
-  SlabJournal            *journal    = slabJournalFromResourceWaiter(waiter);
-  BlockDescriptor        *descriptor = journal->descriptor;
-  VIOPoolEntry           *entry      = vioContext;
-  PackedSlabJournalBlock *block      = journal->block;
-  SlabJournalBlockHeader *header     = &block->header;
-  header->head                       = journal->head;
-  packJournalPoint(&journal->recoveryPoint, &header->recoveryPoint);
+  SlabJournal            *journal = slabJournalFromResourceWaiter(waiter);
+  VIOPoolEntry           *entry   = vioContext;
+  SlabJournalBlockHeader *header  = &journal->tailHeader;
 
-  descriptor->sequenceNumber = header->sequenceNumber;
-  pushRingNode(&journal->uncommittedBlocks, &descriptor->ringNode);
+  header->head = journal->head;
+  pushRingNode(&journal->uncommittedBlocks, &entry->node);
+  packSlabJournalBlockHeader(header, &journal->block->header);
 
   // Copy the tail block into the VIO.
-  memcpy(entry->buffer, (char *) block, VDO_BLOCK_SIZE);
+  memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);
 
   int unusedEntries = journal->entriesPerBlock - header->entryCount;
   ASSERT_LOG_ONLY(unusedEntries >= 0, "Slab journal block is not overfull");
@@ -713,7 +715,7 @@ static void writeSlabJournalVIO(Waiter *waiter, void *vioContext)
   PhysicalBlockNumber blockNumber
     = getBlockNumber(journal, header->sequenceNumber);
 
-  entry->parent = descriptor;
+  entry->parent = journal;
   entry->vio->completion.callbackThreadID = journal->slab->allocator->threadID;
   /*
    * This block won't be read in recovery until the slab summary is updated
@@ -727,32 +729,12 @@ static void writeSlabJournalVIO(Waiter *waiter, void *vioContext)
   journal->tail++;
   initializeTailBlock(journal);
   journal->waitingToCommit = false;
-  journal->descriptor      = NULL;
   if (journal->waitingForSpace) {
     journal->waitingForSpace = false;
     completeCompletion(&journal->completion);
   }
 
   addEntries(journal);
-}
-
-/**********************************************************************/
-static void writeSlabJournalBlock(Waiter *waiter, void *descriptorContext)
-{
-  SlabJournal     *journal    = slabJournalFromResourceWaiter(waiter);
-  BlockDescriptor *descriptor = descriptorContext;
-  journal->descriptor = descriptor;
-  descriptor->journal = journal;
-
-  journal->resourceWaiter.callback = writeSlabJournalVIO;
-  int result = acquireVIO(journal->slab->allocator, &journal->resourceWaiter);
-  if (result != VDO_SUCCESS) {
-    returnBlockDescriptor(journal->slab->allocator, descriptor);
-    journal->descriptor = NULL;
-    journal->waitingToCommit = false;
-    enterJournalReadOnlyMode(journal, result);
-    return;
-  }
 }
 
 /**********************************************************************/
@@ -766,7 +748,7 @@ static void initiateFlush(SlabJournal *journal)
 /**********************************************************************/
 void commitSlabJournalTail(SlabJournal *journal)
 {
-  if ((journal->block->header.entryCount == 0)
+  if ((journal->tailHeader.entryCount == 0)
       && mustMakeEntriesToFlush(journal)) {
     // There are no entries at the moment, but there are some waiters, so defer
     // initiating the flush until those entries are ready to write.
@@ -777,7 +759,7 @@ void commitSlabJournalTail(SlabJournal *journal)
 
   if (isVDOReadOnly(journal)
       || journal->waitingToCommit
-      || (journal->block->header.entryCount == 0)) {
+      || (journal->tailHeader.entryCount == 0)) {
     // There is nothing to do since the tail block is empty, or writing, or
     // the journal is in read-only mode.
     return;
@@ -793,8 +775,7 @@ void commitSlabJournalTail(SlabJournal *journal)
   journal->waitingToCommit = true;
 
   journal->resourceWaiter.callback = writeSlabJournalBlock;
-  int result = acquireBlockDescriptor(journal->slab->allocator,
-                                      &journal->resourceWaiter);
+  int result = acquireVIO(journal->slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
     journal->waitingToCommit = false;
     enterJournalReadOnlyMode(journal, result);
@@ -803,29 +784,25 @@ void commitSlabJournalTail(SlabJournal *journal)
 }
 
 /**********************************************************************/
-void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
+void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
+                            SlabJournalPayload     *payload,
                             SlabBlockNumber         sbn,
                             JournalOperation        operation)
 {
-  SlabJournalBlockHeader *header = &block->header;
-  JournalEntryCount       count  = header->entryCount;
-  bool                    isIncrement;
+  JournalEntryCount entryNumber = tailHeader->entryCount++;
   if (operation == BLOCK_MAP_INCREMENT) {
-    if (!header->hasBlockMapIncrements) {
-      memset(block->payload.fullEntries.entryTypes, 0,
+    if (!tailHeader->hasBlockMapIncrements) {
+      memset(payload->fullEntries.entryTypes, 0,
              SLAB_JOURNAL_ENTRY_TYPES_SIZE);
-      header->hasBlockMapIncrements = true;
+      tailHeader->hasBlockMapIncrements = true;
     }
 
-    block->payload.fullEntries.entryTypes[count / 8]
-      |= ((byte) 1 << (count % 8));
-    isIncrement = true;
-  } else {
-    isIncrement = (operation == DATA_INCREMENT);
+    payload->fullEntries.entryTypes[entryNumber / 8]
+      |= ((byte) 1 << (entryNumber % 8));
   }
 
-  packSlabJournalEntry(&block->payload.entries[count], sbn, isIncrement);
-  header->entryCount++;
+  packSlabJournalEntry(&payload->entries[entryNumber], sbn,
+                       isIncrementOperation(operation));
 }
 
 /**********************************************************************/
@@ -834,7 +811,7 @@ SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
 {
   SlabJournalEntry entry
     = unpackSlabJournalEntry(&block->payload.entries[entryCount]);
-  if (block->header.hasBlockMapIncrements
+  if (block->header.fields.hasBlockMapIncrements
       && ((block->payload.fullEntries.entryTypes[entryCount / 8]
            & ((byte) 1 << (entryCount % 8))) != 0)) {
     entry.operation = BLOCK_MAP_INCREMENT;
@@ -854,16 +831,16 @@ SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
 static void addEntry(SlabJournal         *journal,
                      PhysicalBlockNumber  pbn,
                      JournalOperation     operation,
-                     JournalPoint        *recoveryPoint)
+                     const JournalPoint  *recoveryPoint)
 {
-  int result = ASSERT(beforeJournalPoint(&journal->recoveryPoint,
+  int result = ASSERT(beforeJournalPoint(&journal->tailHeader.recoveryPoint,
                                          recoveryPoint),
                       "recovery journal point is monotonically increasing, "
                       "recovery point: %" PRIu64 ".%u, "
                       "block recovery point: %" PRIu64 ".%u",
                       recoveryPoint->sequenceNumber, recoveryPoint->entryCount,
-                      journal->recoveryPoint.sequenceNumber,
-                      journal->recoveryPoint.entryCount);
+                      journal->tailHeader.recoveryPoint.sequenceNumber,
+                      journal->tailHeader.recoveryPoint.entryCount);
   if (result != VDO_SUCCESS) {
     enterJournalReadOnlyMode(journal, result);
     return;
@@ -871,7 +848,7 @@ static void addEntry(SlabJournal         *journal,
 
   PackedSlabJournalBlock *block = journal->block;
   if (operation == BLOCK_MAP_INCREMENT) {
-    result = ASSERT_LOG_ONLY((block->header.entryCount
+    result = ASSERT_LOG_ONLY((journal->tailHeader.entryCount
                               < journal->fullEntriesPerBlock),
                              "block has room for full entries");
     if (result != VDO_SUCCESS) {
@@ -880,9 +857,9 @@ static void addEntry(SlabJournal         *journal,
     }
   }
 
-  encodeSlabJournalEntry(block, pbn - journal->slab->start, operation);
-  packJournalPoint(recoveryPoint, &block->header.recoveryPoint);
-  journal->recoveryPoint = *recoveryPoint;
+  encodeSlabJournalEntry(&journal->tailHeader, &block->payload,
+                         pbn - journal->slab->start, operation);
+  journal->tailHeader.recoveryPoint = *recoveryPoint;
   if (blockIsFull(journal)) {
     commitSlabJournalTail(journal);
   }
@@ -894,7 +871,7 @@ bool mayAddSlabJournalEntry(SlabJournal      *journal,
                             VDOCompletion    *parent)
 {
   if (!journal->waitingToCommit) {
-    SlabJournalBlockHeader *header = &journal->block->header;
+    SlabJournalBlockHeader *header = &journal->tailHeader;
     if (header->entryCount < journal->fullEntriesPerBlock) {
       return true;
     }
@@ -924,7 +901,7 @@ void addSlabJournalEntryForRebuild(SlabJournal         *journal,
                                    JournalPoint        *recoveryPoint)
 {
   // Only accept entries after the current recovery point.
-  if (!beforeJournalPoint(&journal->recoveryPoint, recoveryPoint)) {
+  if (!beforeJournalPoint(&journal->tailHeader.recoveryPoint, recoveryPoint)) {
     return;
   }
 
@@ -986,10 +963,9 @@ bool requiresScrubbing(const SlabJournal *journal)
  **/
 static void addEntryFromWaiter(Waiter *waiter, void *context)
 {
-  DataVIO                *dataVIO = waiterAsDataVIO(waiter);
-  SlabJournal            *journal = (SlabJournal *) context;
-  PackedSlabJournalBlock *block   = journal->block;
-  SlabJournalBlockHeader *header  = &block->header;
+  DataVIO     *dataVIO = waiterAsDataVIO(waiter);
+  SlabJournal *journal = (SlabJournal *) context;
+  SlabJournalBlockHeader *header = &journal->tailHeader;
   SequenceNumber recoveryBlock = dataVIO->recoveryJournalPoint.sequenceNumber;
 
   if (header->entryCount == 0) {
@@ -1021,7 +997,7 @@ static void addEntryFromWaiter(Waiter *waiter, void *context)
     }
   }
 
-  JournalPoint slabJournalPoint = (JournalPoint) {
+  JournalPoint slabJournalPoint = {
     .sequenceNumber = header->sequenceNumber,
     .entryCount     = header->entryCount,
   };
@@ -1073,7 +1049,7 @@ static void addEntries(SlabJournal *journal)
       break;
     }
 
-    SlabJournalBlockHeader *header = &journal->block->header;
+    SlabJournalBlockHeader *header = &journal->tailHeader;
     if (journal->waitingToCommit) {
       // If we are waiting for resources to write the tail block, and the
       // tail block is full, we can't make another entry.
@@ -1293,25 +1269,29 @@ static void setDecodedState(VDOCompletion *completion)
 {
   VIOPoolEntry           *entry   = completion->parent;
   SlabJournal            *journal = entry->parent;
-  SlabJournalBlockHeader *header  = entry->buffer;
-  if ((header->metadataType != VDO_METADATA_SLAB_JOURNAL)
-      || (header->nonce != journal->slab->allocator->nonce)) {
+  PackedSlabJournalBlock *block   = entry->buffer;
+
+  SlabJournalBlockHeader header;
+  unpackSlabJournalBlockHeader(&block->header, &header);
+
+  if ((header.metadataType != VDO_METADATA_SLAB_JOURNAL)
+      || (header.nonce != journal->slab->allocator->nonce)) {
     finishManualIO(completion);
     return;
   }
 
-  journal->tail = header->sequenceNumber + 1;
+  journal->tail = header.sequenceNumber + 1;
 
   // If the slab is clean, this implies the slab journal is empty, so advance
   // the head appropriately.
   if (getSummarizedCleanliness(journal->summary, journal->slab->slabNumber)) {
     journal->head = journal->tail;
   } else {
-    journal->head = header->head;
+    journal->head = header.head;
   }
 
+  journal->tailHeader = header;
   initializeJournalState(journal);
-  unpackJournalPoint(&header->recoveryPoint, &journal->recoveryPoint);
   finishManualIO(completion);
 }
 

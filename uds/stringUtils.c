@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/stringUtils.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/stringUtils.c#2 $
  */
 
 #include "stringUtils.h"
@@ -35,7 +35,7 @@ int allocSprintf(const char *what, char **strp, const char *fmt, ...)
   }
   va_list args;
   va_start(args, fmt);
-  int result = doPlatformVasprintf(strp, fmt, args);
+  int result = doPlatformVasprintf(what, strp, fmt, args);
   va_end(args);
   if ((result != UDS_SUCCESS) && (what != NULL)) {
     logError("cannot allocate %s", what);

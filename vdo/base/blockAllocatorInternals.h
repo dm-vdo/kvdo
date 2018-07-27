@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#4 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -30,11 +30,10 @@
 
 enum {
   /*
-   * The number of block descriptor and extents in the extent pool are
-   * proportional to the throughput of the VDO.
+   * The number of VIOs in the VIO pool is proportional to the throughput of
+   * the VDO.
    */
-  BLOCK_DESCRIPTOR_POOL_SIZE = 256,
-  VIO_POOL_SIZE              = 128,
+  VIO_POOL_SIZE = 128,
 };
 
 typedef enum {
@@ -42,7 +41,6 @@ typedef enum {
   CLOSE_ALLOCATOR_STEP_SAVE_SLABS,
   CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY,
   CLOSE_ALLOCATOR_VIO_POOL,
-  CLOSE_ALLOCATOR_DESCRIPTOR_POOL,
 } BlockAllocatorCloseStep;
 
 typedef struct {
@@ -146,9 +144,6 @@ struct blockAllocator {
 
   /** The VIO pool for reading and writing block allocator metadata */
   ObjectPool                  *vioPool;
-
-  /* The block descriptor pool for slab journals */
-  ObjectPool                  *blockDescriptorPool;
 };
 
 /**
@@ -160,18 +155,6 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
                           void           *parent,
                           void           *buffer,
                           VIO           **vioPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Replace the descriptor pool in a block allocator. This method exists for
- * unit tests.
- *
- * @param allocator  The block allocator
- * @param size       The number of entries in the pool
- *
- * @return VDO_SUCCESS or an error
- **/
-int replaceDescriptorPool(BlockAllocator *allocator, size_t size)
   __attribute__((warn_unused_result));
 
 /**

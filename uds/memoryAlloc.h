@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/memoryAlloc.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/memoryAlloc.h#2 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -54,14 +54,18 @@ void freeMemory(void *ptr);
  * Allocate storage and do a vsprintf into it.  The memory allocation part of
  * this operation is platform dependent.
  *
- * @param [out] strp    The pointer in which to store the allocated string.
- * @param [in]  fmt     The sprintf format parameter.
- * @param [in]  ap      The format argument list
+ * @param what  A description of what is being allocated.
+ * @param strp  The pointer in which to store the allocated string.
+ * @param fmt   The sprintf format parameter.
+ * @param ap    The format argument list
  *
  * @return UDS_SUCCESS or an error code
  **/
-int doPlatformVasprintf(char **strp, const char *fmt, va_list ap)
-  __attribute__((format(printf, 2, 0), warn_unused_result));
+int doPlatformVasprintf(const char  *what,
+                        char       **strp,
+                        const char  *fmt,
+                        va_list      ap)
+  __attribute__((format(printf, 3, 0), warn_unused_result));
 
 /**
  * Allocate storage based on element counts, sizes, and alignment.

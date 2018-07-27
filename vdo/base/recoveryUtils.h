@@ -16,12 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryUtils.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryUtils.h#5 $
  */
 
 #ifndef RECOVERY_UTILS_H
 #define RECOVERY_UTILS_H
 
+#include "constants.h"
+#include "packedRecoveryJournalBlock.h"
+#include "recoveryJournalEntry.h"
 #include "recoveryJournalInternals.h"
 #include "types.h"
 
@@ -46,35 +49,19 @@ PackedJournalHeader *getJournalBlockHeader(RecoveryJournal *journal,
 }
 
 /**
- * Find the recovery journal sector from the block header and sector number.
- *
- * @param header        The header of the recovery journal block
- * @param sectorNumber  The index of the sector (1-based)
- *
- * @return A packed recovery journal sector
- **/
-__attribute__((warn_unused_result))
-static inline
-PackedJournalSector *getJournalBlockSector(PackedJournalHeader *header,
-                                           int                  sectorNumber)
-{
-  char *sectorData = ((char *) header) + (VDO_SECTOR_SIZE * sectorNumber);
-  return ((PackedJournalSector *) sectorData);
-}
-
-/**
  * Determine whether the given header describes a valid block for the
  * given journal. A block is not valid if it is unformatted, or if it
  * is older than the last successful recovery or reformat.
  *
  * @param journal  The journal to use
- * @param header   The packed block header to check
+ * @param header   The unpacked block header to check
  *
  * @return <code>True</code> if the header is valid
  **/
 __attribute__((warn_unused_result))
-static inline bool isValidRecoveryJournalBlock(RecoveryJournal     *journal,
-                                               PackedJournalHeader *header)
+static inline
+bool isValidRecoveryJournalBlock(const RecoveryJournal     *journal,
+                                 const RecoveryBlockHeader *header)
 {
   return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
           && (header->nonce == journal->nonce)
@@ -82,40 +69,19 @@ static inline bool isValidRecoveryJournalBlock(RecoveryJournal     *journal,
 }
 
 /**
- * Determine whether the given header describe a valid block for the
- * given journal that could appear at the given offset in the journal.
- *
- * @param journal  The journal to use
- * @param header   The packed block header to check
- * @param offset   An offset indicating where the block was in the journal
- *
- * @return <code>True</code> if the header matches
- **/
-__attribute__((warn_unused_result))
-static inline
-bool isCongruentRecoveryJournalBlock(RecoveryJournal     *journal,
-                                     PackedJournalHeader *header,
-                                     PhysicalBlockNumber  offset)
-{
-  PhysicalBlockNumber expectedOffset
-    = getRecoveryJournalBlockNumber(journal, header->sequenceNumber);
-  return ((expectedOffset == offset)
-          && isValidRecoveryJournalBlock(journal, header));
-}
-
-/**
  * Determine whether the given header describes the exact block indicated.
  *
  * @param journal   The journal to use
- * @param header    The packed block header to check
+ * @param header    The unpacked block header to check
  * @param sequence  The expected sequence number
  *
  * @return <code>True</code> if the block matches
  **/
 __attribute__((warn_unused_result))
-static inline bool isExactRecoveryJournalBlock(RecoveryJournal     *journal,
-                                               PackedJournalHeader *header,
-                                               SequenceNumber       sequence)
+static inline
+bool isExactRecoveryJournalBlock(const RecoveryJournal     *journal,
+                                 const RecoveryBlockHeader *header,
+                                 SequenceNumber             sequence)
 {
   return ((header->sequenceNumber == sequence)
           && isValidRecoveryJournalBlock(journal, header));
@@ -125,14 +91,15 @@ static inline bool isExactRecoveryJournalBlock(RecoveryJournal     *journal,
  * Determine whether the header of the given sector could describe a
  * valid sector for the given journal block header.
  *
- * @param header  The packed block header to compare against
+ * @param header  The unpacked block header to compare against
  * @param sector  The packed sector to check
  *
  * @return <code>True</code> if the sector matches the block header
  **/
 __attribute__((warn_unused_result))
-static inline bool isValidRecoveryJournalSector(PackedJournalHeader *header,
-                                                PackedJournalSector *sector)
+static inline
+bool isValidRecoveryJournalSector(const RecoveryBlockHeader *header,
+                                  const PackedJournalSector *sector)
 {
   return ((header->checkByte == sector->checkByte)
           && (header->recoveryCount == sector->recoveryCount));
@@ -172,5 +139,17 @@ bool findHeadAndTail(RecoveryJournal *journal,
                      SequenceNumber  *tailPtr,
                      SequenceNumber  *blockMapHeadPtr,
                      SequenceNumber  *slabJournalHeadPtr);
+
+/**
+ * Validate a recovery journal entry.
+ *
+ * @param vdo    The VDO
+ * @param entry  The entry to validate
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int validateRecoveryJournalEntry(const VDO                  *vdo,
+                                 const RecoveryJournalEntry *entry)
+  __attribute__((warn_unused_result));
 
 #endif // RECOVERY_UTILS_H

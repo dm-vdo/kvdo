@@ -16,16 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryUtils.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryUtils.c#4 $
  */
 
 #include "recoveryUtils.h"
 
+#include "logger.h"
 #include "memoryAlloc.h"
 
 #include "completion.h"
 #include "extent.h"
+#include "packedRecoveryJournalBlock.h"
+#include "recoveryJournalEntry.h"
 #include "recoveryJournalInternals.h"
+#include "slabDepot.h"
+#include "vdoInternal.h"
 
 /**
  * Finish loading the journal by freeing the extent and notifying the parent.
@@ -69,6 +74,27 @@ void loadJournalAsync(RecoveryJournal  *journal,
                      getFixedLayoutPartitionOffset(journal->partition));
 }
 
+/**
+ * Determine whether the given header describe a valid block for the
+ * given journal that could appear at the given offset in the journal.
+ *
+ * @param journal  The journal to use
+ * @param header   The unpacked block header to check
+ * @param offset   An offset indicating where the block was in the journal
+ *
+ * @return <code>True</code> if the header matches
+ **/
+__attribute__((warn_unused_result))
+static bool isCongruentRecoveryJournalBlock(RecoveryJournal           *journal,
+                                            const RecoveryBlockHeader *header,
+                                            PhysicalBlockNumber        offset)
+{
+  PhysicalBlockNumber expectedOffset
+    = getRecoveryJournalBlockNumber(journal, header->sequenceNumber);
+  return ((expectedOffset == offset)
+          && isValidRecoveryJournalBlock(journal, header));
+}
+
 /**********************************************************************/
 bool findHeadAndTail(RecoveryJournal *journal,
                      char            *journalData,
@@ -81,22 +107,25 @@ bool findHeadAndTail(RecoveryJournal *journal,
   SequenceNumber   slabJournalHeadMax = 0;
   bool             foundEntries       = false;
   for (PhysicalBlockNumber i = 0; i < journal->size; i++) {
-    PackedJournalHeader *header
+    PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, journalData, i);
-    if (!isCongruentRecoveryJournalBlock(journal, header, i)) {
+    RecoveryBlockHeader header;
+    unpackRecoveryBlockHeader(packedHeader, &header);
+
+    if (!isCongruentRecoveryJournalBlock(journal, &header, i)) {
       // This block is old, unformatted, or doesn't belong at this location.
       continue;
     }
 
-    if (header->sequenceNumber >= highestTail) {
+    if (header.sequenceNumber >= highestTail) {
       foundEntries = true;
-      highestTail  = header->sequenceNumber;
+      highestTail  = header.sequenceNumber;
     }
-    if (header->blockMapHead > blockMapHeadMax) {
-      blockMapHeadMax = header->blockMapHead;
+    if (header.blockMapHead > blockMapHeadMax) {
+      blockMapHeadMax = header.blockMapHead;
     }
-    if (header->slabJournalHead > slabJournalHeadMax) {
-      slabJournalHeadMax = header->slabJournalHead;
+    if (header.slabJournalHead > slabJournalHeadMax) {
+      slabJournalHeadMax = header.slabJournalHead;
     }
   }
 
@@ -110,4 +139,34 @@ bool findHeadAndTail(RecoveryJournal *journal,
     *slabJournalHeadPtr = slabJournalHeadMax;
   }
   return true;
+}
+
+/**********************************************************************/
+int validateRecoveryJournalEntry(const VDO                  *vdo,
+                                 const RecoveryJournalEntry *entry)
+{
+  if ((entry->slot.pbn >= vdo->config.physicalBlocks)
+      || (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE)
+      || !isValidLocation(&entry->mapping)
+      || !isPhysicalDataBlock(vdo->depot, entry->mapping.pbn)) {
+    return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
+                                   " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
+                                   " (%s) is not within bounds",
+                                   entry->slot.pbn, entry->slot.slot,
+                                   entry->mapping.pbn,
+                                   getJournalOperationName(entry->operation));
+  }
+
+  if ((entry->operation == BLOCK_MAP_INCREMENT)
+      && (isCompressed(entry->mapping.state)
+          || (entry->mapping.pbn == ZERO_BLOCK))) {
+    return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Invalid entry:"
+                                   " (%" PRIu64 ", %" PRIu16 ") to %" PRIu64
+                                   " (%s) is not a valid tree mapping",
+                                   entry->slot.pbn, entry->slot.slot,
+                                   entry->mapping.pbn,
+                                   getJournalOperationName(entry->operation));
+  }
+
+  return VDO_SUCCESS;
 }

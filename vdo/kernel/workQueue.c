@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#7 $
  */
 
 #include "workQueue.h"
@@ -164,7 +164,7 @@ static inline SimpleWorkQueue *pickSimpleQueue(KvdoWorkQueue *queue)
 static KvdoWorkItem *pollForWorkItem(SimpleWorkQueue *queue)
 {
   KvdoWorkItem *item = NULL;
-  for (int i = queue->numPriorityLists - 1; i >= 0; i--) {
+  for (int i = READ_ONCE(queue->numPriorityLists) - 1; i >= 0; i--) {
     FunnelQueueEntry *link = funnelQueuePoll(queue->priorityLists[i]);
     if (link != NULL) {
       item = container_of(link, KvdoWorkItem, workQueueEntryLink);
@@ -191,14 +191,16 @@ __attribute__((warn_unused_result))
 static bool enqueueWorkQueueItem(SimpleWorkQueue *queue, KvdoWorkItem *item)
 {
   ASSERT_LOG_ONLY(item->myQueue == NULL,
-                  "item %p (fn %p/%p) to enqueue (%p) is not already queued "
-                  "(%p)", item, item->work, item->statsFunction, queue,
+                  "item %" PRIptr " (fn %" PRIptr "/%" PRIptr
+                  ") to enqueue (%" PRIptr
+                  ") is not already queued (%" PRIptr ")",
+                  item, item->work, item->statsFunction, queue,
                   item->myQueue);
   if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
              "action is in range for queue") != VDO_SUCCESS) {
     item->action = 0;
   }
-  unsigned int priority = queue->priorityMap[item->action];
+  unsigned int priority = READ_ONCE(queue->priorityMap[item->action]);
 
   // Update statistics.
   updateStatsForEnqueue(&queue->stats, item, priority);
@@ -491,8 +493,9 @@ static void processWorkItem(SimpleWorkQueue *queue,
                             KvdoWorkItem    *item)
 {
   if (ASSERT(item->myQueue == &queue->common,
-             "item %p from queue %p marked as being in this queue "
-             "(%p)", item, queue, item->myQueue) == UDS_SUCCESS) {
+             "item %" PRIptr " from queue %" PRIptr
+             " marked as being in this queue (%" PRIptr ")",
+             item, queue, item->myQueue) == UDS_SUCCESS) {
     updateStatsForDequeue(&queue->stats, item);
     item->myQueue = NULL;
   }
@@ -1017,7 +1020,7 @@ static void dumpSimpleWorkQueue(SimpleWorkQueue *queue)
   } else {
     threadStatus = "running";
   }
-  logInfo("workQ %p (%s) %u entries %llu waits, %s (%c)",
+  logInfo("workQ %" PRIptr " (%s) %u entries %llu waits, %s (%c)",
           &queue->common,
           queueData.common.name,
           getPendingCount(&queueData),

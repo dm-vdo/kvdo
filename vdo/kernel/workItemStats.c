@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workItemStats.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workItemStats.c#4 $
  */
 
 #include "workItemStats.h"
@@ -185,12 +185,9 @@ void updateWorkItemStatsForEnqueue(KvdoWorkItemStats *stats,
                                    KvdoWorkItem      *item,
                                    int                priority)
 {
-  gccFence();
-
   item->statTableIndex = getStatTableIndex(stats, item->statsFunction,
                                            priority);
   atomic64_add(1, &stats->enqueued[item->statTableIndex]);
-  gccFence();
 }
 
 /**********************************************************************/

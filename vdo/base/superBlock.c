@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#3 $
  */
 
 #include "superBlock.h"
@@ -41,6 +41,11 @@ struct superBlock {
   VIO                     *vio;
   /** The buffer for encoding and decoding component data */
   Buffer                  *componentBuffer;
+  /**
+   * A sector-sized buffer wrapping the first sector of encodedSuperBlock, for
+   * encoding and decoding the entire super block.
+   **/
+  Buffer                  *blockBuffer;
   /** A 1-block buffer holding the encoded on-disk super block */
   byte                    *encodedSuperBlock;
   /** The release version number loaded from the volume */
@@ -63,9 +68,6 @@ static const Header SUPER_BLOCK_HEADER_12_0 = {
   // This is the minimum size, if the super block contains no components.
   .size = SUPER_BLOCK_FIXED_SIZE - ENCODED_HEADER_SIZE,
 };
-
-static const Header *CURRENT_SUPER_BLOCK_HEADER
-  = &SUPER_BLOCK_HEADER_12_0;
 
 /**
  * Allocate a super block. Callers must free the allocated super block even
@@ -93,6 +95,14 @@ static int allocateSuperBlock(PhysicalLayer *layer, SuperBlock **superBlockPtr)
   result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE,
                                    "encoded super block",
                                    (char **) &superBlock->encodedSuperBlock);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  // Even though the buffer is a full block, to avoid the potential corruption
+  // from a torn write, the entire encoding must fit in the first sector.
+  result = wrapBuffer(superBlock->encodedSuperBlock, VDO_SECTOR_SIZE, 0,
+                      &superBlock->blockBuffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -130,31 +140,12 @@ void freeSuperBlock(SuperBlock **superBlockPtr)
   }
 
   SuperBlock *superBlock = *superBlockPtr;
+  freeBuffer(&superBlock->blockBuffer);
   freeBuffer(&superBlock->componentBuffer);
   freeVIO(&superBlock->vio);
   FREE(superBlock->encodedSuperBlock);
   FREE(superBlock);
   *superBlockPtr = NULL;
-}
-
-/**
- * Copy bytes at a specified offset in the destination buffer.
- *
- * @param [out] destination  The buffer to copy into
- * @param [in]  source       The source data to copy
- * @param [in]  length       The length of the data to copy
- * @param [in]  offset       The offset into the destination buffer at which to
- *                           start the copy
- *
- * @return The offset of the first uncopied byte
- **/
-static size_t putBytesAt(byte       *destination,
-                         const void *source,
-                         size_t      length,
-                         size_t      offset)
-{
-  memcpy(destination + offset, source, length);
-  return offset + length;
 }
 
 /**
@@ -168,37 +159,45 @@ static size_t putBytesAt(byte       *destination,
 __attribute__((warn_unused_result))
 static int encodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
 {
-  size_t componentDataSize = contentLength(superBlock->componentBuffer);
-  Header header            = *CURRENT_SUPER_BLOCK_HEADER;
-  header.size
-    = sizeof(ReleaseVersionNumber) + componentDataSize + CHECKSUM_SIZE;
-
-  // Encode the header.
-  size_t offset = putBytesAt(superBlock->encodedSuperBlock, &header,
-                             ENCODED_HEADER_SIZE, 0);
-
-  // Encode the release version.
-  offset = putBytesAt(superBlock->encodedSuperBlock,
-                      &superBlock->loadedReleaseVersion,
-                      sizeof(ReleaseVersionNumber), offset);
-
-  // Encode the component data.
-  int result = getBytesFromBuffer(superBlock->componentBuffer,
-                                  componentDataSize,
-                                  superBlock->encodedSuperBlock + offset);
+  Buffer *buffer = superBlock->blockBuffer;
+  int     result = resetBufferEnd(buffer, 0);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  offset += componentDataSize;
+  size_t componentDataSize = contentLength(superBlock->componentBuffer);
 
-  // Compute and encode the check sum.
+  // Encode the header.
+  Header header = SUPER_BLOCK_HEADER_12_0;
+  header.size += componentDataSize;
+  result = encodeHeader(&header, buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  // Encode the loaded release version.
+  result = putUInt32LEIntoBuffer(buffer, superBlock->loadedReleaseVersion);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  // Copy the already-encoded component data.
+  result = putBytes(buffer, componentDataSize,
+                    getBufferContents(superBlock->componentBuffer));
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  // Compute and encode the checksum.
   CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
                                               superBlock->encodedSuperBlock,
-                                              offset);
-  putBytesAt(superBlock->encodedSuperBlock, &checksum,
-             sizeof(CRC32Checksum), offset);
-  return VDO_SUCCESS;
+                                              contentLength(buffer));
+  result = putUInt32LEIntoBuffer(buffer, checksum);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -254,26 +253,6 @@ void saveSuperBlockAsync(SuperBlock          *superBlock,
 }
 
 /**
- * Copy bytes from a specified offset in the destination buffer.
- *
- * @param [out] destination   The buffer to copy into
- * @param [in]  source        The source data to copy
- * @param [in]  length        The length of the data to copy
- * @param [in]  offset        The offset into the source buffer at which to
- *                            start the copy
- *
- * @return The offset of the first uncopied byte
- **/
-static size_t getBytesFrom(void       *destination,
-                           const byte *source,
-                           size_t      length,
-                           size_t      offset)
-{
-  memcpy(destination, source + offset, length);
-  return offset + length;
-}
-
-/**
  * Decode a super block from its on-disk representation.
  *
  * @param layer       The physical layer which implements the checksum
@@ -284,53 +263,69 @@ static size_t getBytesFrom(void       *destination,
 __attribute__((warn_unused_result))
 static int decodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
 {
-  Header header;
-  size_t offset = getBytesFrom(&header, superBlock->encodedSuperBlock,
-                               ENCODED_HEADER_SIZE, 0);
+  // Reset the block buffer to start decoding the entire first sector.
+  Buffer *buffer = superBlock->blockBuffer;
+  clearBuffer(buffer);
 
-  int result = validateHeader(CURRENT_SUPER_BLOCK_HEADER, &header,
-                              false, __func__);
+  // Decode and validate the header.
+  Header header;
+  int result = decodeHeader(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  // The entire SuperBlock encoding must have fit in a single block.
-  // XXX shouldn't this be checked against the sector size now?
-  if (VDO_BLOCK_SIZE < (header.size + ENCODED_HEADER_SIZE)) {
-    return VDO_BLOCK_SIZE_TOO_SMALL;
+  result = validateHeader(&SUPER_BLOCK_HEADER_12_0, &header, false, __func__);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  if (header.size > contentLength(buffer)) {
+    // We can't check release version or checksum until we know the content
+    // size, so we have to assume a version mismatch on unexpected values.
+    return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
+                                   "super block contents too large: %zu",
+                                   header.size);
+  }
+
+  // Restrict the buffer to the actual payload bytes that remain.
+  result = resetBufferEnd(buffer, uncompactedAmount(buffer) + header.size);
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
   // Decode and store the release version number. It will be checked when the
   // VDO master version is decoded and validated.
-  offset = getBytesFrom(&superBlock->loadedReleaseVersion,
-                        superBlock->encodedSuperBlock,
-                        sizeof(ReleaseVersionNumber), offset);
-
-  size_t componentDataSize
-    = header.size - (SUPER_BLOCK_FIXED_SIZE - ENCODED_HEADER_SIZE);
-  result = putBytes(superBlock->componentBuffer, componentDataSize,
-                    superBlock->encodedSuperBlock + offset);
+  result = getUInt32LEFromBuffer(buffer, &superBlock->loadedReleaseVersion);
   if (result != VDO_SUCCESS) {
     return result;
   }
-  offset += componentDataSize;
 
-  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
-                                              superBlock->encodedSuperBlock,
-                                              offset);
-  CRC32Checksum savedChecksum;
-  getBytesFrom(&savedChecksum, superBlock->encodedSuperBlock,
-               sizeof(CRC32Checksum), offset);
-  if (checksum != savedChecksum) {
-    result = skipForward(superBlock->componentBuffer,
-                         contentLength(superBlock->componentBuffer));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "Impossible buffer error");
-    }
-    return VDO_CHECKSUM_MISMATCH;
+  // The component data is all the rest, except for the checksum.
+  size_t componentDataSize = contentLength(buffer) - sizeof(CRC32Checksum);
+  result = putBuffer(superBlock->componentBuffer, buffer, componentDataSize);
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
-  return VDO_SUCCESS;
+  // Checksum everything up to but not including the saved checksum itself.
+  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
+                                              superBlock->encodedSuperBlock,
+                                              uncompactedAmount(buffer));
+
+  // Decode and verify the saved checksum.
+  CRC32Checksum savedChecksum;
+  result = getUInt32LEFromBuffer(buffer, &savedChecksum);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = ASSERT(contentLength(buffer) == 0,
+                  "must have decoded entire superblock payload");
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return ((checksum != savedChecksum) ? VDO_CHECKSUM_MISMATCH : VDO_SUCCESS);
 }
 
 /**********************************************************************/

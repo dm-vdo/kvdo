@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#4 $
  */
 
 #include "readOnlyRebuild.h"
@@ -28,6 +28,7 @@
 #include "blockMapRecovery.h"
 #include "completion.h"
 #include "numUtils.h"
+#include "packedRecoveryJournalBlock.h"
 #include "recoveryJournalInternals.h"
 #include "recoveryUtils.h"
 #include "referenceCountRebuild.h"
@@ -294,37 +295,42 @@ static int extractJournalEntries(ReadOnlyRebuildCompletion *rebuild)
   }
 
   for (SequenceNumber i = first; i <= last; i++) {
-    PackedJournalHeader *header
+    PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, rebuild->journalData, i);
-    if (!isExactRecoveryJournalBlock(journal, header, i)) {
+    RecoveryBlockHeader header;
+    unpackRecoveryBlockHeader(packedHeader, &header);
+
+    if (!isExactRecoveryJournalBlock(journal, &header, i)) {
       // This block is invalid, so skip it.
       continue;
     }
 
     // Don't extract more than the expected maximum entries per block.
     JournalEntryCount blockEntries = minBlock(journal->entriesPerBlock,
-                                              header->entryCount);
+                                              header.entryCount);
     for (uint8_t j = 1; j < SECTORS_PER_BLOCK; j++) {
       // Stop when all entries counted in the header are applied or skipped.
       if (blockEntries == 0) {
         break;
       }
 
-      PackedJournalSector *sector = getJournalBlockSector(header, j);
-      if (!isValidRecoveryJournalSector(header, sector)) {
-        blockEntries -= minBlock(journal->entriesPerSector, blockEntries);
+      PackedJournalSector *sector = getJournalBlockSector(packedHeader, j);
+      if (!isValidRecoveryJournalSector(&header, sector)) {
+        blockEntries -= minBlock(blockEntries,
+                                 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
         continue;
       }
 
       // Don't extract more than the expected maximum entries per sector.
-      JournalEntryCount entries = minBlock(journal->entriesPerSector,
-                                           sector->entryCount);
+      JournalEntryCount sectorEntries
+        = minBlock(sector->entryCount, RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
       // Only extract as many as the block header calls for.
-      entries                   = minBlock(entries, blockEntries);
-      appendSectorEntries(rebuild, sector, entries);
+      sectorEntries = minBlock(sectorEntries, blockEntries);
+      appendSectorEntries(rebuild, sector, sectorEntries);
       // Even if the sector wasn't full, count it as full when counting up
       // to the entry count the block header claims.
-      blockEntries -= minBlock(journal->entriesPerSector, blockEntries);
+      blockEntries -= minBlock(blockEntries,
+                               RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
     }
   }
 

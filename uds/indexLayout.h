@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexLayout.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexLayout.h#3 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -40,7 +40,7 @@ typedef struct indexLayout {
   void     (*free)            (struct indexLayout *);
   uint64_t (*getVolumeNonce)  (struct indexLayout *);
   int      (*makeIndexState)  (struct indexLayout *, unsigned int,
-                               unsigned int, unsigned int, IndexState **);
+                               unsigned int, IndexState **);
   int      (*openVolumeRegion)(struct indexLayout *, IOAccessMode,
                                IORegion **);
   int      (*readConfig)      (struct indexLayout *, UdsConfiguration);
@@ -129,7 +129,6 @@ static INLINE uint64_t getVolumeNonce(IndexLayout *layout)
  * Make an index state object compatible with this layout.
  *
  * @param [in]  layout         The index layout.
- * @param [in]  indexId        The index ordinal number.
  * @param [in]  numZones       The number of zones to use.
  * @param [in]  components     The maximum number of components to be handled.
  * @param [out] statePtr       Where to store the index state object.
@@ -138,13 +137,11 @@ static INLINE uint64_t getVolumeNonce(IndexLayout *layout)
  **/
 __attribute__((warn_unused_result))
 static INLINE int makeIndexState(IndexLayout   *layout,
-                                 unsigned int   indexId,
                                  unsigned int   numZones,
                                  unsigned int   components,
                                  IndexState   **statePtr)
 {
-  return layout->makeIndexState(layout, indexId, numZones, components,
-                                     statePtr);
+  return layout->makeIndexState(layout, numZones, components, statePtr);
 }
 
 /**

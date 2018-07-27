@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashLock.c#5 $
  */
 
 /**
@@ -169,7 +169,7 @@ const char *getHashLockStateName(HashLockState state)
 static void setHashLockState(HashLock *lock, HashLockState newState)
 {
   if (false) {
-    logWarning("XXX %p %s -> %s", (void *) lock,
+    logWarning("XXX %" PRIptr " %s -> %s", (void *) lock,
                getHashLockStateName(lock->state),
                getHashLockStateName(newState));
   }

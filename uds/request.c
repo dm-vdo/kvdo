@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/request.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/request.c#3 $
  */
 
 #include "request.h"
@@ -29,64 +29,6 @@
 #include "parameter.h"
 #include "permassert.h"
 #include "udsState.h"
-
-/**
- * Synchronizer for synchronous callbacks. Really just a SynchronizedBoolean.
- **/
-struct synchronousCallback {
-  Mutex   mutex;
-  CondVar condition;
-  bool    complete;
-};
-
-/**
- * Perform a synchronous callback by marking the request/callback
- * as complete and waking any thread waiting for completion.
- **/
-static void awakenSynchronousRequest(SynchronousCallback *synchronous)
-{
-  // Awaken any users of this synchronous request.
-  lockMutex(&synchronous->mutex);
-  synchronous->complete = true;
-  // This MUST be inside the mutex to ensure the callback structure
-  // is not destroyed before this thread has called broadcast.
-  broadcastCond(&synchronous->condition);
-  unlockMutex(&synchronous->mutex);
-}
-
-/**
- * Initialize a synchronous callback.
- **/
-static int initializeSynchronousRequest(SynchronousCallback *synchronous)
-{
-  int result = initCond(&synchronous->condition);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = initMutex(&synchronous->mutex);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  synchronous->complete = false;
-  return UDS_SUCCESS;
-}
-
-/**
- * Wait for a synchronous callback by waiting until the request/callback has
- * been marked as complete, then destroy the contents of the callback.
- **/
-static void awaitSynchronousRequest(SynchronousCallback *synchronous)
-{
-  lockMutex(&synchronous->mutex);
-  while (!synchronous->complete) {
-    waitCond(&synchronous->condition, &synchronous->mutex);
-  }
-  unlockMutex(&synchronous->mutex);
-
-  // We're done, so destroy the contents of the callback structure.
-  destroyCond(&synchronous->condition);
-  destroyMutex(&synchronous->mutex);
-}
 
 /**********************************************************************/
 int launchAllocatedClientRequest(Request *request)

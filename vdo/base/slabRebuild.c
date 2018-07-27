@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabRebuild.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabRebuild.c#2 $
  */
 
 #include "slabRebuild.h"
@@ -142,23 +142,24 @@ static void finishSavingReferenceCountsCallback(VDOCompletion *completion)
  * Apply all the entries in a block to the reference counts.
  *
  * @param block        A block with entries to apply
+ * @param entryCount   The number of entries to apply
  * @param blockNumber  The sequence number of the block
  * @param slab         The slab to apply the entries to
  *
  * @return VDO_SUCCESS or an error code
  **/
 static int applyBlockEntries(PackedSlabJournalBlock *block,
+                             JournalEntryCount       entryCount,
                              SequenceNumber          blockNumber,
                              Slab                   *slab)
 {
-  SlabJournalBlockHeader *header = &block->header;
   JournalPoint entryPoint = {
     .sequenceNumber = blockNumber,
     .entryCount     = 0,
   };
 
   SlabBlockNumber maxSBN = slab->end - slab->start;
-  while (entryPoint.entryCount < header->entryCount) {
+  while (entryPoint.entryCount < entryCount) {
     SlabJournalEntry entry = decodeSlabJournalEntry(block,
                                                     entryPoint.entryCount);
     if (entry.sbn > maxSBN) {
@@ -206,7 +207,7 @@ static void applyJournalEntries(VDOCompletion *completion)
   char *endData = rebuild->journalData + (endIndex * VDO_BLOCK_SIZE);
   PackedSlabJournalBlock *endBlock = (PackedSlabJournalBlock *) endData;
 
-  SequenceNumber  head      = endBlock->header.head;
+  SequenceNumber  head      = getUInt64LE(endBlock->header.fields.head);
   TailBlockOffset headIndex = getSlabJournalBlockOffset(journal, head);
   BlockCount      index     = headIndex;
 
@@ -215,27 +216,30 @@ static void applyJournalEntries(VDOCompletion *completion)
   for (SequenceNumber sequence = head; sequence < tail; sequence++) {
     char *blockData = rebuild->journalData + (index * VDO_BLOCK_SIZE);
     PackedSlabJournalBlock *block  = (PackedSlabJournalBlock *) blockData;
-    SlabJournalBlockHeader *header = &block->header;
-    if ((header->nonce != slab->allocator->nonce)
-        || (header->metadataType != VDO_METADATA_SLAB_JOURNAL)
-        || (header->sequenceNumber != sequence)
-        || (header->entryCount > journal->entriesPerBlock)
-        || (header->hasBlockMapIncrements
-            && (header->entryCount > journal->fullEntriesPerBlock))) {
+    SlabJournalBlockHeader header;
+    unpackSlabJournalBlockHeader(&block->header, &header);
+
+    if ((header.nonce != slab->allocator->nonce)
+        || (header.metadataType != VDO_METADATA_SLAB_JOURNAL)
+        || (header.sequenceNumber != sequence)
+        || (header.entryCount > journal->entriesPerBlock)
+        || (header.hasBlockMapIncrements
+            && (header.entryCount > journal->fullEntriesPerBlock))) {
       // The block is not what we expect it to be.
       logError("Slab journal block for slab %u was invalid",
                slab->slabNumber);
       finishCompletion(&rebuild->completion, VDO_CORRUPT_JOURNAL);
       return;
     }
-    int result = applyBlockEntries(block, sequence, slab);
+
+    int result = applyBlockEntries(block, header.entryCount, sequence, slab);
     if (result != VDO_SUCCESS) {
       finishCompletion(&rebuild->completion, result);
       return;
     }
 
     lastEntryApplied.sequenceNumber = sequence;
-    lastEntryApplied.entryCount     = header->entryCount - 1;
+    lastEntryApplied.entryCount     = header.entryCount - 1;
     index++;
     if (index == journal->size) {
       index = 0;

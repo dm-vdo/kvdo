@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#6 $
  */
 
 #include "dmvdo.h"
@@ -711,7 +711,8 @@ static void convertToNewDevice(KernelLayer      *layer,
                                struct dm_dev    *dev)
 {
   if (layer->oldTI != NULL) {
-    logDebug("Releasing ref by %p  to %p", layer->oldTI, layer->oldDev);
+    logDebug("Releasing ref by %" PRIptr "  to %" PRIptr, layer->oldTI,
+             layer->oldDev);
     dm_put_device(layer->oldTI, layer->oldDev);
   } else {
     kobject_get(&layer->kobj);
@@ -851,8 +852,8 @@ static void vdoDtr(struct dm_target *ti)
      * the layer.
      */
     if (layer->oldTI == ti) {
-      logDebug("Releasing reference by old ti %p to dev %p", layer->oldTI,
-               layer->oldDev);
+      logDebug("Releasing reference by old ti %" PRIptr " to dev %" PRIptr,
+               layer->oldTI, layer->oldDev);
       dm_put_device(layer->oldTI, layer->oldDev);
       layer->oldTI  = NULL;
       layer->oldDev = NULL;

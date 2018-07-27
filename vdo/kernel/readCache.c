@@ -621,7 +621,7 @@ static void freeReadCacheZone(ReadCacheZone **readCacheZonePtr)
   list_for_each_entry_safe(cacheEntry, temp, &zone->freeList, list) {
     unsigned int refCount = getCacheEntryRefCount(zone, cacheEntry);
     ASSERT_LOG_ONLY(refCount == 0,
-                    "refcount (%u) of 'free' cache entry %p is 0",
+                    "refcount (%u) of 'free' cache entry %" PRIptr " is 0",
                     refCount, cacheEntry);
     freeBio(cacheEntry->bio, zone->layer);
     FREE(cacheEntry);
@@ -632,7 +632,8 @@ static void freeReadCacheZone(ReadCacheZone **readCacheZonePtr)
     if (refCount != 0) {
       if (first) {
         ASSERT_LOG_ONLY(refCount == 0,
-                        "refcount (%u) of 'reclaimable' cache entry %p is 0",
+                        "refcount (%u) of 'reclaimable' cache entry %" PRIptr
+                        " is 0",
                         refCount, cacheEntry);
         first = false;
       }
@@ -961,14 +962,14 @@ static void dumpReadCacheEntry(char tag, ReadCacheEntry *entry)
    */
   uint32_t refCount = relaxedLoad32(&entry->refCount);
   if (entry->error == 0) {
-    logInfo(" #%d %c%s R%u P%" PRIu64 " @%p%s",
+    logInfo(" #%d %c%s R%u P%" PRIu64 " @%" PRIptr "%s",
             entry->entryNum, tag,
             entry->dataValid ? "" : "I",
             refCount, entry->pbn,
             entry->dataBlock,
             maybeWaiters);
   } else {
-    logInfo(" #%d %c%s R%u P%" PRIu64 " @%p err%d %s",
+    logInfo(" #%d %c%s R%u P%" PRIu64 " @%" PRIptr " err%d %s",
             entry->entryNum, tag,
             entry->dataValid ? "" : "I",
             refCount, entry->pbn,
@@ -984,7 +985,8 @@ static void dumpReadCacheEntry(char tag, ReadCacheEntry *entry)
        * If we knew whether we were dumping all the VIOs too, maybe we
        * could skip logging details of each waiter here.
        */
-      logInfo("   DataVIO %p P%" PRIu64 " L%" PRIu64 " D%" PRIu64 " op %s",
+      logInfo("   DataVIO %" PRIptr " P%" PRIu64 " L%" PRIu64 " D%" PRIu64
+              " op %s",
               dataVIO, dataVIO->mapped.pbn, dataVIO->logical.lbn,
               dataVIO->duplicate.pbn, getOperationName(dataVIO));
       waiter = waiter->nextWaiter;
@@ -1004,7 +1006,7 @@ static void readCacheZoneDump(ReadCacheZone *zone,
   }
 
   ReadCacheStats stats = readCacheZoneGetStats(zone);
-  logInfo("Read cache %p:"
+  logInfo("Read cache %" PRIptr ":"
           " %" PRIu64 " accesses %" PRIu64 " hits %" PRIu64 " data hits"
           " %u entries",
           zone, stats.accesses, stats.hits, stats.dataHits,
@@ -1046,7 +1048,7 @@ static void readCacheZoneDump(ReadCacheZone *zone,
     }
   }
 
-  logInfo("Read cache %p: %u free %u reclaimable %u busy",
+  logInfo("Read cache %" PRIptr ": %u free %u reclaimable %u busy",
           zone, numFreeItems, numReclaimItems, numBusyItems);
 }
 

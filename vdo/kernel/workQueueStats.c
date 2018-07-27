@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#4 $
  */
 
 #include "workQueueStats.h"
@@ -132,7 +132,7 @@ void logWorkQueueStats(const SimpleWorkQueue *queue)
     nsPerWorkItem = runtimeNS / totalProcessed;
   }
   unsigned long runtimeMS = runtimeNS / 1000;
-  logInfo("workQ %p (%s) thread cpu usage %lu.%06lus, %" PRIu64
+  logInfo("workQ %" PRIptr " (%s) thread cpu usage %lu.%06lus, %" PRIu64
           " tasks, %lu.%03luus/task",
           queue,
           queue->common.name,

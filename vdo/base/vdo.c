@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#8 $
  */
 
 /*
@@ -240,6 +240,40 @@ static int encodeMasterVersion(Buffer *buffer)
 }
 
 /**
+ * Encode a VDOConfig structure into a buffer.
+ *
+ * @param config  The config structure to encode
+ * @param buffer  A buffer positioned at the start of the encoding
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+__attribute__((warn_unused_result))
+static int encodeVDOConfig(const VDOConfig *config, Buffer *buffer)
+{
+  int result = putUInt64LEIntoBuffer(buffer, config->logicalBlocks);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->physicalBlocks);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->slabSize);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, config->recoveryJournalSize);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return putUInt64LEIntoBuffer(buffer, config->slabJournalBlocks);
+}
+
+/**
  * Encode the component data for the VDO itself.
  *
  * @param vdo     The vdo to encode
@@ -255,23 +289,48 @@ static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
     return result;
   }
 
-  VDOComponent41_0 component = {
-    .state              = vdo->state,
-    .completeRecoveries = vdo->completeRecoveries,
-    .readOnlyRecoveries = vdo->readOnlyRecoveries,
-    .config             = vdo->config,
-    .nonce              = vdo->nonce,
-  };
-  return putBytes(buffer, sizeof(component), &component);
+  size_t initialLength = contentLength(buffer);
+
+  result = putUInt32LEIntoBuffer(buffer, vdo->state);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, vdo->completeRecoveries);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, vdo->readOnlyRecoveries);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = encodeVDOConfig(&vdo->config, buffer);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = putUInt64LEIntoBuffer(buffer, vdo->nonce);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  size_t encodedSize = contentLength(buffer) - initialLength;
+  return ASSERT(encodedSize == sizeof(VDOComponent41_0),
+                "encoded VDO component size must match structure size");
 }
 
 /**********************************************************************/
 static int encodeVDO(VDO *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
-  compactBuffer(buffer);
+  int result = resetBufferEnd(buffer, 0);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
 
-  int result = encodeMasterVersion(buffer);
+  result = encodeMasterVersion(buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -341,7 +400,12 @@ int saveReconfiguredVDO(VDO *vdo)
     return result;
   }
 
-  compactBuffer(buffer);
+  result = resetBufferEnd(buffer, 0);
+  if (result != VDO_SUCCESS) {
+    FREE(components);
+    return result;
+  }
+
   result = encodeMasterVersion(buffer);
   if (result != VDO_SUCCESS) {
     FREE(components);
@@ -392,6 +456,83 @@ int validateVDOVersion(VDO *vdo)
   return validateVersion(VDO_MASTER_VERSION_67_0, vdo->loadVersion, "master");
 }
 
+/**
+ * Decode a VDOConfig structure from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param config  The config structure to receive the decoded values
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+static int decodeVDOConfig(Buffer *buffer, VDOConfig *config)
+{
+  int result = getUInt64LEFromBuffer(buffer, &config->logicalBlocks);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->physicalBlocks);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->slabSize);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &config->recoveryJournalSize);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return getUInt64LEFromBuffer(buffer, &config->slabJournalBlocks);
+}
+
+/**
+ * Decode the version 41.0 component state for the VDO itself from a buffer.
+ *
+ * @param buffer  A buffer positioned at the start of the encoding
+ * @param state   The state structure to receive the decoded values
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+__attribute__((warn_unused_result))
+  static int decodeVDOComponent_41_0(Buffer *buffer, VDOComponent41_0 *state)
+{
+  size_t initialLength = contentLength(buffer);
+
+  int result = getUInt32LEFromBuffer(buffer, &state->state);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->completeRecoveries);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->readOnlyRecoveries);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = decodeVDOConfig(buffer, &state->config);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = getUInt64LEFromBuffer(buffer, &state->nonce);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  size_t decodedSize = initialLength - contentLength(buffer);
+  return ASSERT(decodedSize == sizeof(VDOComponent41_0),
+                "decoded VDO component size must match structure size");
+}
+
 /**********************************************************************/
 int decodeVDOComponent(VDO *vdo)
 {
@@ -410,7 +551,7 @@ int decodeVDOComponent(VDO *vdo)
   }
 
   VDOComponent41_0 component;
-  result = getBytesFromBuffer(buffer, sizeof(component), &component);
+  result = decodeVDOComponent_41_0(buffer, &component);
   if (result != VDO_SUCCESS) {
     return result;
   }

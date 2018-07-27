@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#2 $
  */
 
 #include "bio.h"
@@ -339,7 +339,13 @@ void prepareFlushBIO(BIO                 *bio,
                      bio_end_io_t        *endIOCallback)
 {
   clearBioOperationAndFlags(bio);
-  setBioOperationFlush(bio);
+  /*
+   * One would think we could use REQ_OP_FLUSH on new kernels, but some
+   * layers of the stack don't recognize that as a flush. So do it
+   * like blkdev_issue_flush() and make it a write+flush.
+   */
+  setBioOperationWrite(bio);
+  setBioOperationFlagPreflush(bio);
   bio->bi_end_io  = endIOCallback;
   bio->bi_private = context;
   bio->bi_vcnt    = 0;

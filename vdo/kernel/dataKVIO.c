@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#7 $
  */
 
 #include "dataKVIO.h"
@@ -924,8 +924,8 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
   }
 
   DataVIO *dataVIO = waiterAsDataVIO(first);
-  logInfo("      %s is locked. Waited on by: VIO %p pbn %" PRIu64 " lbn %"
-          PRIu64 " d-pbn %" PRIu64 " lastOp %s",
+  logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %" PRIu64
+          " lbn %" PRIu64 " d-pbn %" PRIu64 " lastOp %s",
           waitOn, dataVIO, getDataVIOAllocation(dataVIO),
           dataVIO->logical.lbn, dataVIO->duplicate.pbn,
           getOperationName(dataVIO));
@@ -934,7 +934,7 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
        waiter != first;
        waiter = waiter->nextWaiter) {
     dataVIO = waiterAsDataVIO(waiter);
-    logInfo("     ... and : VIO %p pbn %" PRIu64 " lbn %"
+    logInfo("     ... and : VIO %" PRIptr " pbn %" PRIu64 " lbn %"
             PRIu64 " d-pbn %" PRIu64 " lastOp %s",
             dataVIO, getDataVIOAllocation(dataVIO), dataVIO->logical.lbn,
             dataVIO->duplicate.pbn, getOperationName(dataVIO));
@@ -1039,7 +1039,7 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
   static char flagsDumpBuffer[8];
   encodeVIODumpFlags(dataVIO, flagsDumpBuffer);
 
-  logInfo("  kvio %p %s%s %s %s%s",
+  logInfo("  kvio %" PRIptr " %s%s %s %s%s",
           dataKVIO, vioBlockNumberDumpBuffer, vioFlushGenerationBuffer,
           getOperationName(dataVIO), vioWorkItemDumpBuffer, flagsDumpBuffer);
   // might want info on: wantAlbireoAnswer / operation / status

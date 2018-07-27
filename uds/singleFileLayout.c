@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#5 $
  */
 
 #include "singleFileLayoutInternals.h"
@@ -1870,14 +1870,12 @@ static int sfl_openVolumeRegion(IndexLayout        *layout,
 
 /*****************************************************************************/
 static int sfl_makeIndexState(IndexLayout   *layout,
-                              unsigned int   indexId,
                               unsigned int   numZones,
                               unsigned int   maxComponents,
                               IndexState   **statePtr)
 {
   SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  return makeRegionIndexState(sfl, indexId, numZones, maxComponents, statePtr);
+  return makeRegionIndexState(sfl, numZones, maxComponents, statePtr);
 }
 
 /*****************************************************************************/

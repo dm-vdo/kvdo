@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -147,8 +147,7 @@ int saveAndFreeIndexSession(IndexSession *indexSession)
   }
   requestQueueFinish(indexSession->callbackQueue);
   indexSession->callbackQueue = NULL;
-  logDebug("Closed index session (%u, %p)", indexSession->session.id,
-           (void *) indexSession);
+  logDebug("Closed index session %u", indexSession->session.id);
   FREE(indexSession);
   return result;
 }
@@ -168,8 +167,7 @@ int udsCloseIndexSession(UdsIndexSession session)
   IndexSession *indexSession
     = (IndexSession *) getSessionContents(baseSession);
 
-  logDebug("Closing index session (%u, %p)", session.id,
-           (void *) indexSession);
+  logDebug("Closing index session %u", session.id);
   finishSession(indexSessionGroup, &indexSession->session);
   result = saveAndFreeIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);

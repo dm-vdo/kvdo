@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/atomic.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/atomic.h#2 $
  */
 
 #ifndef ATOMIC_H
@@ -29,11 +29,11 @@
 #define ATOMIC_INITIALIZER(value) { (value) }
 
 typedef struct {
-  volatile uint32_t value;
+  atomic_t value;
 } __attribute__((aligned(4))) Atomic32;
 
 typedef struct {
-  volatile uint64_t value;
+  atomic64_t value;
 } __attribute__((aligned(8))) Atomic64;
 
 typedef struct {
@@ -75,18 +75,6 @@ static INLINE void memoryFence(void)
 }
 
 /**
- * Stop GCC from moving memory operations across a point in the
- * instruction stream.  This is needed in association with the __sync
- * builtins, because (at least, as of GCC versions 4.6 and earlier on
- * x86_64) the __sync operations don't actually act as the barriers
- * the compiler documentation says they should.
- **/
-static INLINE void gccFence(void)
-{
-  barrier();
-}
-
-/**
  * Access the value of a 32-bit atomic variable, ensuring that the load is not
  * re-ordered by the compiler or CPU with any subsequent load operations.
  *
@@ -96,7 +84,7 @@ static INLINE void gccFence(void)
  **/
 static INLINE uint32_t atomicLoad32(const Atomic32 *atom)
 {
-  uint32_t value = atom->value;
+  uint32_t value = atomic_read(&atom->value);
   loadFence();
   return value;
 }
@@ -112,7 +100,7 @@ static INLINE uint32_t atomicLoad32(const Atomic32 *atom)
  **/
 static INLINE uint64_t atomicLoad64(const Atomic64 *atom)
 {
-  uint64_t value = atom->value;
+  uint64_t value = atomic64_read(&atom->value);
   loadFence();
   return value;
 }
@@ -141,7 +129,7 @@ static INLINE bool atomicLoadBool(const AtomicBool *atom)
 static INLINE void atomicStore32(Atomic32 *atom, uint32_t newValue)
 {
   storeFence();
-  atom->value = newValue;
+  atomic_set(&atom->value, newValue);
 }
 
 /**
@@ -155,7 +143,7 @@ static INLINE void atomicStore32(Atomic32 *atom, uint32_t newValue)
 static INLINE void atomicStore64(Atomic64 *atom, uint64_t newValue)
 {
   storeFence();
-  atom->value = newValue;
+  atomic64_set(&atom->value, newValue);
 }
 
 /**
@@ -181,10 +169,7 @@ static INLINE void atomicStoreBool(AtomicBool *atom, bool newValue)
  **/
 static INLINE uint32_t atomicAdd32(Atomic32 *atom, int32_t delta)
 {
-  gccFence();
-  uint32_t result = __sync_add_and_fetch(&atom->value, delta);
-  gccFence();
-  return result;
+  return atomic_add_return(delta, &atom->value);
 }
 
 /**
@@ -197,10 +182,7 @@ static INLINE uint32_t atomicAdd32(Atomic32 *atom, int32_t delta)
  **/
 static INLINE uint64_t atomicAdd64(Atomic64 *atom, int64_t delta)
 {
-  gccFence();
-  uint64_t result = __sync_add_and_fetch(&atom->value, delta);
-  gccFence();
-  return result;
+  return atomic64_add_return(delta, &atom->value);
 }
 
 /**
@@ -218,11 +200,25 @@ static INLINE bool compareAndSwap32(Atomic32 *atom,
                                     uint32_t  requiredValue,
                                     uint32_t  newValue)
 {
-  gccFence();
-  bool result
-    = __sync_bool_compare_and_swap(&atom->value, requiredValue, newValue);
-  gccFence();
-  return result;
+  /*
+   * Our initial implementation, for x86, effectively got a full
+   * memory barrier because of how "lock cmpxchg" operates. The
+   * atomic_cmpxchg interface provides for a full barrier *if* the
+   * exchange is done, but not necessarily if it is not.
+   *
+   * Do we need the full barrier always? We need to investigate that,
+   * as part of (eventually) converting to using that API directly.
+   * For now, play it safe, and ensure the same behavior on other
+   * architectures too.
+   */
+#ifndef __x86_64__
+  smp_mb();
+#endif
+  int oldValue = atomic_cmpxchg(&atom->value, requiredValue, newValue);
+#ifndef __x86_64__
+  smp_mb();
+#endif
+  return requiredValue == (uint32_t) oldValue;
 }
 
 /**
@@ -240,11 +236,14 @@ static INLINE bool compareAndSwap64(Atomic64 *atom,
                                     uint64_t  requiredValue,
                                     uint64_t  newValue)
 {
-  gccFence();
-  bool result
-    = __sync_bool_compare_and_swap(&atom->value, requiredValue, newValue);
-  gccFence();
-  return result;
+#ifndef __x86_64__
+  smp_mb();
+#endif
+  long oldValue = atomic64_cmpxchg(&atom->value, requiredValue, newValue);
+#ifndef __x86_64__
+  smp_mb();
+#endif
+  return requiredValue == (uint64_t) oldValue;
 }
 
 /**
@@ -276,7 +275,7 @@ static INLINE bool compareAndSwapBool(AtomicBool *atom,
  **/
 static INLINE uint32_t relaxedLoad32(const Atomic32 *atom)
 {
-  return atom->value;
+  return atomic_read(&atom->value);
 }
 
 /**
@@ -289,7 +288,7 @@ static INLINE uint32_t relaxedLoad32(const Atomic32 *atom)
  **/
 static INLINE uint64_t relaxedLoad64(const Atomic64 *atom)
 {
-  return atom->value;
+  return atomic64_read(&atom->value);
 }
 
 /**
@@ -314,7 +313,7 @@ static INLINE bool relaxedLoadBool(const AtomicBool *atom)
  **/
 static INLINE void relaxedStore32(Atomic32 *atom, uint32_t newValue)
 {
-  atom->value = newValue;
+  atomic_set(&atom->value, newValue);
 }
 
 /**
@@ -326,7 +325,7 @@ static INLINE void relaxedStore32(Atomic32 *atom, uint32_t newValue)
  **/
 static INLINE void relaxedStore64(Atomic64 *atom, uint64_t newValue)
 {
-  atom->value = newValue;
+  atomic64_set(&atom->value, newValue);
 }
 
 /**

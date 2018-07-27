@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueInternals.h#3 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -68,7 +68,7 @@ struct simpleWorkQueue {
   atomic_t                 threadID;
   /**
    * Number of priorities actually used, so we don't keep re-checking unused
-   * funnel queues
+   * funnel queues.
    **/
   unsigned int             numPriorityLists;
   /**

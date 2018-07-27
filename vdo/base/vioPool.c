@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.c#2 $
  */
 
 #include "vioPool.h"
@@ -34,13 +34,6 @@ typedef struct {
   char         *buffer;
   VIOPoolEntry  entries[];
 } VIOPoolEntries;
-
-/**********************************************************************/
-static inline VIOPoolEntry *asVIOPoolEntry(RingNode *node)
-{
-  STATIC_ASSERT(offsetof(VIOPoolEntry, node) == 0);
-  return (VIOPoolEntry *) node;
-}
 
 /**********************************************************************/
 int makeVIOPool(PhysicalLayer   *layer,

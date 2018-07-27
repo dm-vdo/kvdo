@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#2 $
  */
 
 #ifndef VIO_POOL_H
@@ -103,5 +103,18 @@ static inline int acquireVIOFromPool(ObjectPool *pool, Waiter *waiter)
  * @param entry  a VIO pool entry
  **/
 void returnVIOToPool(ObjectPool *pool, VIOPoolEntry *entry);
+
+/**
+ * Convert a RingNode to the VIO pool entry that contains it.
+ *
+ * @param node  The RingNode to convert
+ *
+ * @return The VIOPoolEntry wrapping the RingNode
+ **/
+static inline VIOPoolEntry *asVIOPoolEntry(RingNode *node)
+{
+  STATIC_ASSERT(offsetof(VIOPoolEntry, node) == 0);
+  return (VIOPoolEntry *) node;
+}
 
 #endif // VIO_POOL_H

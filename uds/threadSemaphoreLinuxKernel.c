@@ -16,22 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadSemaphoreLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadSemaphoreLinuxKernel.c#2 $
  */
 
-#include <linux/hrtimer.h>
 #include <linux/sched.h>
-#include <linux/version.h>
 
-#include "errors.h"
-#include "memoryAlloc.h"
 #include "threadSemaphore.h"
-
-struct hr_semaphore {
-  raw_spinlock_t   lock;
-  unsigned int     count;
-  struct list_head waitList;
-};
 
 struct semaphore_waiter {
   struct list_head    list;
@@ -44,23 +34,16 @@ int initializeSemaphore(Semaphore   *semaphore,
                         unsigned int value,
                         const char  *context)
 {
-  struct hr_semaphore *sem;
-  int result = ALLOCATE(1, struct hr_semaphore, context, &sem);
-  if (result == UDS_SUCCESS) {
-    sem->count = value;
-    raw_spin_lock_init(&sem->lock);
-    INIT_LIST_HEAD(&sem->waitList);
-    semaphore->psem = sem;
-  }
-  return result;
+  semaphore->count = value;
+  raw_spin_lock_init(&semaphore->lock);
+  INIT_LIST_HEAD(&semaphore->waitList);
+  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
 int destroySemaphore(Semaphore  *semaphore,
                      const char *context __attribute__((unused)))
 {
-  FREE(semaphore->psem);
-  semaphore->psem = NULL;
   return UDS_SUCCESS;
 }
 
@@ -68,25 +51,24 @@ int destroySemaphore(Semaphore  *semaphore,
 void acquireSemaphore(Semaphore  *semaphore,
                       const char *context __attribute__((unused)))
 {
-  struct hr_semaphore *sem = semaphore->psem;
   unsigned long flags;
-  raw_spin_lock_irqsave(&sem->lock, flags);
-  if (likely(sem->count > 0)) {
-    sem->count--;
+  raw_spin_lock_irqsave(&semaphore->lock, flags);
+  if (likely(semaphore->count > 0)) {
+    semaphore->count--;
   } else {
     struct task_struct *task = current;
     struct semaphore_waiter waiter;
     waiter.task = task;
     waiter.up   = false;
-    list_add_tail(&waiter.list, &sem->waitList);
+    list_add_tail(&waiter.list, &semaphore->waitList);
     while (!waiter.up) {
       __set_current_state(TASK_INTERRUPTIBLE);
-      raw_spin_unlock_irq(&sem->lock);
+      raw_spin_unlock_irq(&semaphore->lock);
       schedule_timeout(MAX_SCHEDULE_TIMEOUT);
-      raw_spin_lock_irq(&sem->lock);
+      raw_spin_lock_irq(&semaphore->lock);
     }
   }
-  raw_spin_unlock_irqrestore(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&semaphore->lock, flags);
 }
 
 /*****************************************************************************/
@@ -94,13 +76,12 @@ bool attemptSemaphore(Semaphore *semaphore,
                       RelTime    timeout,
                       const char *context __attribute__((unused)))
 {
-  struct hr_semaphore *sem = semaphore->psem;
   long hrTimeout = relTimeToNanoseconds(timeout);
   bool value = true;
   unsigned long flags;
-  raw_spin_lock_irqsave(&sem->lock, flags);
-  if (likely(sem->count > 0)) {
-    sem->count--;
+  raw_spin_lock_irqsave(&semaphore->lock, flags);
+  if (likely(semaphore->count > 0)) {
+    semaphore->count--;
   } else if (hrTimeout <= 0) {
     value = false;
   } else {
@@ -108,18 +89,18 @@ bool attemptSemaphore(Semaphore *semaphore,
     struct semaphore_waiter waiter;
     waiter.task = task;
     waiter.up   = false;
-    list_add_tail(&waiter.list, &sem->waitList);
+    list_add_tail(&waiter.list, &semaphore->waitList);
     ktime_t ktime = ktime_set(0, hrTimeout);
     __set_current_state(TASK_UNINTERRUPTIBLE);
-    raw_spin_unlock_irq(&sem->lock);
+    raw_spin_unlock_irq(&semaphore->lock);
     schedule_hrtimeout(&ktime, HRTIMER_MODE_REL);
-    raw_spin_lock_irq(&sem->lock);
+    raw_spin_lock_irq(&semaphore->lock);
     value = waiter.up;
     if (!value) {
       list_del(&waiter.list);
     }
   }
-  raw_spin_unlock_irqrestore(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&semaphore->lock, flags);
   return value;
 }
 
@@ -127,17 +108,16 @@ bool attemptSemaphore(Semaphore *semaphore,
 void releaseSemaphore(Semaphore  *semaphore,
                       const char *context __attribute__((unused)))
 {
-  struct hr_semaphore *sem = semaphore->psem;
   unsigned long flags;
-  raw_spin_lock_irqsave(&sem->lock, flags);
-  if (likely(list_empty(&sem->waitList))) {
-    sem->count++;
+  raw_spin_lock_irqsave(&semaphore->lock, flags);
+  if (likely(list_empty(&semaphore->waitList))) {
+    semaphore->count++;
   } else {
     struct semaphore_waiter *waiter
-      = list_first_entry(&sem->waitList, struct semaphore_waiter, list);
+      = list_first_entry(&semaphore->waitList, struct semaphore_waiter, list);
     list_del(&waiter->list);
     waiter->up = true;
     wake_up_process(waiter->task);
   }
-  raw_spin_unlock_irqrestore(&sem->lock, flags);
+  raw_spin_unlock_irqrestore(&semaphore->lock, flags);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#4 $
  */
 
 #include "indexInternals.h"
@@ -59,12 +59,12 @@ int allocateIndex(IndexLayout          *layout,
       return result;
     }
     result = formatVolume(region, config->geometry);
+    int closeResult = closeIORegion(&region);
     if (result != UDS_SUCCESS) {
       return result;
     }
-    result = closeIORegion(&region);
-    if (result != UDS_SUCCESS) {
-      return result;
+    if (closeResult != UDS_SUCCESS) {
+      return closeResult;
     }
   }
 
@@ -83,9 +83,8 @@ int allocateIndex(IndexLayout          *layout,
   }
   setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
 
-  index->layout                = layout;
-  index->id                    = 0;
-  index->zoneCount             = (readOnly ? 1 : zoneCount);
+  index->layout    = layout;
+  index->zoneCount = (readOnly ? 1 : zoneCount);
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
                     &index->zones);
@@ -94,8 +93,8 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  result = makeIndexState(layout, index->id, index->zoneCount,
-                          MAX_COMPONENT_COUNT, &index->state);
+  result = makeIndexState(layout, index->zoneCount, MAX_COMPONENT_COUNT,
+                          &index->state);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.h#3 $
  */
 
 #ifndef BIO_H
@@ -67,16 +67,6 @@ static inline void setBioOperationRead(BIO *bio)
 static inline void setBioOperationWrite(BIO *bio)
 {
   setBioOperation(bio, WRITE);
-}
-
-/**********************************************************************/
-static inline void setBioOperationFlush(BIO *bio)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  setBioOperation(bio, REQ_OP_FLUSH);
-#else
-  setBioOperation(bio, WRITE_FLUSH);
-#endif
 }
 
 /**********************************************************************/

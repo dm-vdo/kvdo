@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#8 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#10 $
  */
 
 #include "volume.h"
@@ -86,9 +86,8 @@ int formatVolume(IORegion *region, const Geometry *geometry)
 {
   // Create the header page with the magic number and version.
   byte *headerPage;
-  int result =
-    ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte, "header page",
-                        &headerPage);
+  int result = ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte,
+                                   "volume header page", &headerPage);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -494,11 +493,21 @@ static int readPageLocked(Volume        *volume,
       logWarning("Error selecting cache victim for page read");
       return result;
     }
-    result = readPageFromVolume(volume, physicalPage, page);
+    result = readPageToBuffer(volume, physicalPage, page->data);
     if (result != UDS_SUCCESS) {
       logWarning("Error reading page %u from volume", physicalPage);
       cancelPageInCache(volume->pageCache, physicalPage, page);
       return result;
+    }
+    if (!isRecordPage(volume->geometry, physicalPage)) {
+      result = initializeIndexPage(volume, physicalPage, page);
+      if (result != UDS_SUCCESS) {
+        if (volume->lookupMode != LOOKUP_FOR_REBUILD) {
+          logWarning("Corrupt index page %u", physicalPage);
+        }
+        cancelPageInCache(volume->pageCache, physicalPage, page);
+        return result;
+      }
     }
     result = putPageInCache(volume->pageCache, physicalPage, page);
     if (result != UDS_SUCCESS) {
@@ -781,23 +790,6 @@ int searchCachedRecordPage(Volume             *volume,
   }
   endPendingSearch(volume->pageCache, zoneNumber);
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int readPageFromVolume(const Volume *volume,
-                       unsigned int  physicalPage,
-                       CachedPage   *page)
-{
-  bool recordPage = isRecordPage(volume->geometry, physicalPage);
-  int result = readPageToBuffer(volume, physicalPage, page->data);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if (!recordPage) {
-    result = initializeIndexPage(volume, physicalPage, page);
-  }
-
-  return result;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#3 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -24,7 +24,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
-#include "blockDescriptor.h"
 #include "heap.h"
 #include "numUtils.h"
 #include "priorityTable.h"
@@ -147,52 +146,18 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
 }
 
 /**
- * Create a block descriptor pool.
- *
- * @param [in]  size     The number of block descriptors
- * @param [out] poolPtr  The pointer to hold the new pool
- *
- * @return VDO_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result))
-static int makeBlockDescriptorPool(BlockCount size, ObjectPool **poolPtr)
-{
-  BlockDescriptor *descriptors;
-  int result = ALLOCATE(size, BlockDescriptor, __func__, &descriptors);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  ObjectPool *pool;
-  result = makeObjectPool(descriptors, &pool);
-  if (result != VDO_SUCCESS) {
-    FREE(descriptors);
-    return result;
-  }
-
-  for (BlockCount i = 0; i < size; i++) {
-    addEntryToObjectPool(pool, &descriptors[i].ringNode);
-  }
-
-  *poolPtr = pool;
-  return VDO_SUCCESS;
-}
-
-/**
  * Allocate those component of the block allocator which are needed only at
  * load time, not at format time.
  *
  * @param allocator           The allocator
  * @param layer               The physical layer below this allocator
  * @param vioPoolSize         The VIO pool size
- * @param descriptorPoolSize  The size of the block descriptor pool
  *
  * @return VDO_SUCCESS or an error
  **/
 static int allocateComponents(BlockAllocator  *allocator,
                               PhysicalLayer   *layer,
-                              BlockCount       vioPoolSize,
-                              BlockCount       descriptorPoolSize)
+                              BlockCount       vioPoolSize)
 {
   /*
    * If createVIO is NULL, the block allocator is only being used to format
@@ -215,12 +180,6 @@ static int allocateComponents(BlockAllocator  *allocator,
 
   result = makeVIOPool(layer, vioPoolSize, makeAllocatorPoolVIOs, NULL,
                        &allocator->vioPool);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = makeBlockDescriptorPool(descriptorPoolSize,
-                                   &allocator->blockDescriptorPool);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -273,7 +232,6 @@ int makeBlockAllocator(SlabDepot            *depot,
                        ThreadID              threadID,
                        Nonce                 nonce,
                        BlockCount            vioPoolSize,
-                       BlockCount            descriptorPoolSize,
                        PhysicalLayer        *layer,
                        ReadOnlyModeContext  *readOnlyContext,
                        BlockAllocator      **allocatorPtr)
@@ -292,8 +250,7 @@ int makeBlockAllocator(SlabDepot            *depot,
   allocator->readOnlyContext = readOnlyContext;
   initializeRing(&allocator->dirtySlabJournals);
 
-  result = allocateComponents(allocator, layer, vioPoolSize,
-                              descriptorPoolSize);
+  result = allocateComponents(allocator, layer, vioPoolSize);
   if (result != VDO_SUCCESS) {
     freeBlockAllocator(&allocator);
     return result;
@@ -301,23 +258,6 @@ int makeBlockAllocator(SlabDepot            *depot,
 
   *allocatorPtr = allocator;
   return VDO_SUCCESS;
-}
-
-/**
- * Free the block descriptor pool.
- *
- * @param allocator  The block allocator whose descriptor pool is to be freed
- **/
-static void freeDescriptorPool(BlockAllocator *allocator)
-{
-  if (allocator->blockDescriptorPool == NULL) {
-    return;
-  }
-
-  BlockDescriptor *descriptors
-    = getObjectPoolEntryData(allocator->blockDescriptorPool);
-  freeObjectPool(&allocator->blockDescriptorPool);
-  FREE(descriptors);
 }
 
 /**********************************************************************/
@@ -331,18 +271,10 @@ void freeBlockAllocator(BlockAllocator **blockAllocatorPtr)
   freeSlabScrubber(&allocator->slabScrubber);
   freeSlabCompletion(&allocator->slabCompletion);
   freeVIOPool(&allocator->vioPool);
-  freeDescriptorPool(allocator);
   freePriorityTable(&allocator->prioritizedSlabs);
   destroyEnqueueable(&allocator->completion);
   FREE(allocator);
   *blockAllocatorPtr = NULL;
-}
-
-/**********************************************************************/
-int replaceDescriptorPool(BlockAllocator *allocator, size_t size)
-{
-  freeDescriptorPool(allocator);
-  return makeBlockDescriptorPool(size, &allocator->blockDescriptorPool);
 }
 
 /**********************************************************************/
@@ -699,10 +631,6 @@ static void doCloseAllocatorStep(VDOCompletion *completion)
     closeObjectPool(allocator->vioPool, completion);
     return;
 
-  case CLOSE_ALLOCATOR_DESCRIPTOR_POOL:
-    closeObjectPool(allocator->blockDescriptorPool, completion);
-    return;
-
   default:
     finishCompletion(&allocator->completion, VDO_SUCCESS);
   }
@@ -821,20 +749,6 @@ void releaseTailBlockLocks(BlockAllocator *allocator,
 SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
 {
   return allocator->summary;
-}
-
-/**********************************************************************/
-int acquireBlockDescriptor(BlockAllocator *allocator, Waiter *waiter)
-{
-  return acquireEntryFromObjectPool(allocator->blockDescriptorPool, waiter);
-}
-
-/**********************************************************************/
-void returnBlockDescriptor(BlockAllocator  *allocator,
-                           BlockDescriptor *descriptor)
-{
-  returnEntryToObjectPool(allocator->blockDescriptorPool,
-                          &descriptor->ringNode);
 }
 
 /**********************************************************************/

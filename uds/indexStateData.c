@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexStateData.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexStateData.c#5 $
  */
 
 #include "indexStateData.h"
@@ -39,7 +39,7 @@ typedef struct {
   uint64_t newestChapter;
   uint64_t oldestChapter;
   uint64_t lastCheckpoint;
-  uint32_t id;
+  uint32_t unused;
   uint32_t padding;
 } IndexStateData301;
 
@@ -82,9 +82,12 @@ static int decodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = getUInt32LEFromBuffer(buffer, &state->id);
+  result = getUInt32LEFromBuffer(buffer, &state->unused);
   if (result != UDS_SUCCESS) {
     return result;
+  }
+  if (state->unused != 0) {
+    return UDS_CORRUPT_COMPONENT;
   }
   result = getUInt32LEFromBuffer(buffer, &state->padding);
   if (result != UDS_SUCCESS) {
@@ -160,12 +163,9 @@ static int readIndexStateData(ReadPortal *portal)
   }
 
   Index *index = componentDataForPortal(portal);
-
   index->newestVirtualChapter = state.newestChapter;
   index->oldestVirtualChapter = state.oldestChapter;
   index->lastCheckpoint       = state.lastCheckpoint;
-  index->id                   = state.id;
-
   return UDS_SUCCESS;
 }
 
@@ -185,7 +185,7 @@ static int encodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = putUInt32LEIntoBuffer(buffer, state->id);
+  result = putUInt32LEIntoBuffer(buffer, state->unused);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -254,7 +254,6 @@ static int writeIndexStateData(IndexComponent *component,
     .newestChapter  = index->newestVirtualChapter,
     .oldestChapter  = index->oldestVirtualChapter,
     .lastCheckpoint = index->lastCheckpoint,
-    .id             = index->id,
   };
   result = makeBuffer(sizeof(IndexStateData301), &buffer);
   if (result != UDS_SUCCESS) {

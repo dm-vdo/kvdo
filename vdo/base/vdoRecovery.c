@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#7 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -29,7 +29,8 @@
 #include "blockMapRecovery.h"
 #include "completion.h"
 #include "numUtils.h"
-#include "recoveryJournalInternals.h"
+#include "packedRecoveryJournalBlock.h"
+#include "recoveryJournal.h"
 #include "recoveryUtils.h"
 #include "ringNode.h"
 #include "slabDepot.h"
@@ -123,21 +124,19 @@ static uint64_t slotAsNumber(BlockMapSlot slot)
 /**
  * Move the given recovery point forward by one entry.
  *
- * @param [out] point    The recovery point to alter
- * @param [in]  journal  The recovery journal, for its geometry
+ * @param point  The recovery point to alter
  **/
-static void incrementRecoveryPoint(RecoveryPoint   *point,
-                                   RecoveryJournal *journal)
+static void incrementRecoveryPoint(RecoveryPoint *point)
 {
   point->entryCount++;
   if ((point->sectorCount == (SECTORS_PER_BLOCK - 1))
-      && (point->entryCount == journal->lastSectorEntries)) {
+      && (point->entryCount == RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR)) {
     point->sequenceNumber++;
     point->sectorCount = 1;
     point->entryCount = 0;
   }
 
-  if (point->entryCount == journal->entriesPerSector) {
+  if (point->entryCount == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR) {
     point->sectorCount++;
     point->entryCount = 0;
     return;
@@ -147,22 +146,22 @@ static void incrementRecoveryPoint(RecoveryPoint   *point,
 /**
  * Move the given recovery point backwards by one entry.
  *
- * @param [out] point    The recovery point to alter
- * @param [in]  journal  The recovery journal, for its geometry
+ * @param point  The recovery point to alter
  **/
-static void decrementRecoveryPoint(RecoveryPoint   *point,
-                                   RecoveryJournal *journal)
+static void decrementRecoveryPoint(RecoveryPoint *point)
 {
+  STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR > 0);
+
   if ((point->sectorCount <= 1) && (point->entryCount == 0)) {
     point->sequenceNumber--;
     point->sectorCount = SECTORS_PER_BLOCK - 1;
-    point->entryCount = journal->lastSectorEntries - 1;
+    point->entryCount  = RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR - 1;
     return;
   }
 
   if (point->entryCount == 0) {
     point->sectorCount--;
-    point->entryCount = journal->entriesPerSector - 1;
+    point->entryCount = RECOVERY_JOURNAL_ENTRIES_PER_SECTOR - 1;
     return;
   }
 
@@ -348,9 +347,6 @@ static RecoveryJournalEntry getEntry(const RecoveryCompletion *recovery,
  **/
 static int extractJournalEntries(RecoveryCompletion *recovery)
 {
-  VDO             *vdo     = recovery->vdo;
-  RecoveryJournal *journal = vdo->recoveryJournal;
-
   // Allocate a NumberedBlockMapping array just large enough to transcribe
   // every increment PackedRecoveryJournalEntry from every valid journal block.
   int result = ALLOCATE(recovery->increfCount, NumberedBlockMapping, __func__,
@@ -359,16 +355,16 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
     return result;
   }
 
-  RecoveryPoint recoveryPoint = (RecoveryPoint) {
+  RecoveryPoint recoveryPoint = {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
     RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
-    result = validateRecoveryJournalEntry(vdo, &entry);
+    result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(journal->readOnlyContext, result);
+      enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
       return result;
     }
 
@@ -381,13 +377,13 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
       recovery->entryCount++;
     }
 
-    incrementRecoveryPoint(&recoveryPoint, journal);
+    incrementRecoveryPoint(&recoveryPoint);
   }
 
   result = ASSERT((recovery->entryCount <= recovery->increfCount),
                   "approximate incref count is an upper bound");
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(journal->readOnlyContext, result);
+    enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
   }
 
   return result;
@@ -530,10 +526,13 @@ static int computeUsages(RecoveryCompletion *recovery)
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   PackedJournalHeader *tailHeader
     = getJournalBlockHeader(journal, recovery->journalData, recovery->tail);
-  recovery->logicalBlocksUsed     = tailHeader->logicalBlocksUsed;
-  recovery->blockMapDataBlocks    = tailHeader->blockMapDataBlocks;
 
-  RecoveryPoint recoveryPoint = (RecoveryPoint) {
+  RecoveryBlockHeader unpacked;
+  unpackRecoveryBlockHeader(tailHeader, &unpacked);
+  recovery->logicalBlocksUsed  = unpacked.logicalBlocksUsed;
+  recovery->blockMapDataBlocks = unpacked.blockMapDataBlocks;
+
+  RecoveryPoint recoveryPoint = {
     .sequenceNumber = recovery->tail,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -567,7 +566,7 @@ static int computeUsages(RecoveryCompletion *recovery)
       }
     }
 
-    incrementRecoveryPoint(&recoveryPoint, journal);
+    incrementRecoveryPoint(&recoveryPoint);
   }
 
   return VDO_SUCCESS;
@@ -691,7 +690,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
   // the earliest head.
   SequenceNumber head = minSequenceNumber(recovery->blockMapHead,
                                           recovery->slabJournalHead);
-  RecoveryPoint headPoint = (RecoveryPoint) {
+  RecoveryPoint headPoint = {
     .sequenceNumber = head,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -699,7 +698,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
 
   RecoveryPoint recoveryPoint = recovery->tailRecoveryPoint;
   while (beforeRecoveryPoint(&headPoint, &recoveryPoint)) {
-    decrementRecoveryPoint(&recoveryPoint, recovery->vdo->recoveryJournal);
+    decrementRecoveryPoint(&recoveryPoint);
     RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
 
     if (!isIncrementOperation(entry.operation)) {
@@ -790,7 +789,7 @@ void addSlabJournalEntries(VDOCompletion *completion)
     }
 
     if (entry.mapping.pbn == ZERO_BLOCK) {
-      incrementRecoveryPoint(&recovery->nextRecoveryPoint, journal);
+      incrementRecoveryPoint(&recovery->nextRecoveryPoint);
       advanceJournalPoint(&recovery->nextJournalPoint,
                           journal->entriesPerBlock);
       continue;
@@ -804,7 +803,7 @@ void addSlabJournalEntries(VDOCompletion *completion)
     addSlabJournalEntryForRebuild(slabJournal,
                                   entry.mapping.pbn, entry.operation,
                                   &recovery->nextJournalPoint);
-    incrementRecoveryPoint(&recovery->nextRecoveryPoint, journal);
+    incrementRecoveryPoint(&recovery->nextRecoveryPoint);
     advanceJournalPoint(&recovery->nextJournalPoint, journal->entriesPerBlock);
     recovery->entriesAddedToSlabJournals++;
   }
@@ -841,21 +840,24 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
       .entryCount     = 0,
     };
 
-    PackedJournalHeader *header
+    PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, recovery->journalData, i);
-    if (!isExactRecoveryJournalBlock(journal, header, i)
-        || (header->entryCount > journal->entriesPerBlock)) {
+    RecoveryBlockHeader header;
+    unpackRecoveryBlockHeader(packedHeader, &header);
+
+    if (!isExactRecoveryJournalBlock(journal, &header, i)
+        || (header.entryCount > journal->entriesPerBlock)) {
       // A bad block header was found so this must be the end of the journal.
       break;
     }
 
-    JournalEntryCount blockEntries = header->entryCount;
+    JournalEntryCount blockEntries = header.entryCount;
     // Examine each sector in turn to determine the last valid sector.
     for (uint8_t j = 1; j < SECTORS_PER_BLOCK; j++) {
-      PackedJournalSector *sector = getJournalBlockSector(header, j);
+      PackedJournalSector *sector = getJournalBlockSector(packedHeader, j);
 
       // A bad sector means that this block was torn.
-      if (!isValidRecoveryJournalSector(header, sector)) {
+      if (!isValidRecoveryJournalSector(&header, sector)) {
         break;
       }
 
@@ -869,15 +871,15 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
       }
 
       // If this sector is short, the later sectors can't matter.
-      if ((sectorEntries < journal->entriesPerSector)
+      if ((sectorEntries < RECOVERY_JOURNAL_ENTRIES_PER_SECTOR)
           || (blockEntries == 0)) {
         break;
       }
     }
 
     // If this block was not filled, or if it tore, no later block can matter.
-    if ((header->entryCount != journal->entriesPerBlock)
-        || (blockEntries > 0 )) {
+    if ((header.entryCount != journal->entriesPerBlock)
+        || (blockEntries > 0)) {
       break;
     }
   }
@@ -897,25 +899,22 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
  **/
 static int countIncrementEntries(RecoveryCompletion *recovery)
 {
-  VDO             *vdo     = recovery->vdo;
-  RecoveryJournal *journal = vdo->recoveryJournal;
-
-  RecoveryPoint recoveryPoint = (RecoveryPoint) {
+  RecoveryPoint recoveryPoint = {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
     RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
-    int result = validateRecoveryJournalEntry(vdo, &entry);
+    int result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(journal->readOnlyContext, result);
+      enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
       return result;
     }
     if (isIncrementOperation(entry.operation)) {
       recovery->increfCount++;
     }
-    incrementRecoveryPoint(&recoveryPoint, journal);
+    incrementRecoveryPoint(&recoveryPoint);
   }
 
   return VDO_SUCCESS;

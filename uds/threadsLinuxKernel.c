@@ -16,10 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadsLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadsLinuxKernel.c#2 $
  */
 
-#include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
@@ -216,4 +215,23 @@ int yieldScheduler(void)
 {
   yield();
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int initializeSynchronousRequest(SynchronousCallback *callback)
+{
+  init_completion(callback);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void awaitSynchronousRequest(SynchronousCallback *callback)
+{
+  wait_for_completion(callback);
+}
+
+/**********************************************************************/
+void awakenSynchronousRequest(SynchronousCallback *callback)
+{
+  complete(callback);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ktrace.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ktrace.c#2 $
  */
 
 #include "ktrace.h"
@@ -152,11 +152,11 @@ void logKvioTrace(KVIO *kvio)
                 sizeof(traceLoggingState.buffer), &traceLen);
 
     if (isMetadata(kvio)) {
-      logInfo("finishing kvio %s meta @%p %s",
+      logInfo("finishing kvio %s meta @%" PRIptr " %s",
               (isWriteVIO(kvio->vio) ? "read" : "write"),
               kvio, traceLoggingState.buffer);
     } else if (isCompressedWriter(kvio)) {
-      logInfo("finishing kvio write comp @%p %s",
+      logInfo("finishing kvio write comp @%" PRIptr " %s",
               kvio, traceLoggingState.buffer);
     } else {
       const char *dupeLabel = "";
@@ -173,14 +173,14 @@ void logKvioTrace(KVIO *kvio)
         }
       }
 
-      logInfo("finishing kvio %s data %s@%p %.*s",
+      logInfo("finishing kvio %s data %s@%" PRIptr " %.*s",
               (isWriteVIO(kvio->vio) ? "read" : "write"),
               dupeLabel, kvio, TRACE_LOG_MAX, traceLoggingState.buffer);
       char *buf = traceLoggingState.buffer;
       while (traceLen > TRACE_LOG_MAX) {
         traceLen -= TRACE_LOG_MAX;
         buf += TRACE_LOG_MAX;
-        logInfo("more kvio %p path: %.*s", kvio, TRACE_LOG_MAX, buf);
+        logInfo("more kvio %" PRIptr " path: %.*s", kvio, TRACE_LOG_MAX, buf);
       }
     }
   }

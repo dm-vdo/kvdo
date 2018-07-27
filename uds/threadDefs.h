@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadDefs.h#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadDefs.h#3 $
  */
 
 #ifndef LINUX_KERNEL_THREAD_DEFS_H
 #define LINUX_KERNEL_THREAD_DEFS_H
 
+#include <linux/completion.h>
 #include <linux/mutex.h>
-#include <linux/semaphore.h>
 
 #include "compiler.h"
 #include "uds-error.h"
@@ -33,8 +33,14 @@ typedef struct kernelThread *Thread;
 typedef pid_t                ThreadId;
 
 typedef struct { EventCount *eventCount;    } CondVar;
-typedef struct mutex                           Mutex;
-typedef struct { struct hr_semaphore *psem; } Semaphore;
+typedef struct mutex                          Mutex;
+typedef struct completion                     SynchronousCallback;
+
+typedef struct hr_semaphore {
+  raw_spinlock_t   lock;
+  unsigned int     count;
+  struct list_head waitList;
+} Semaphore;
 
 typedef struct {
   Semaphore mutex;       // Mutex for this barrier object

@@ -16,23 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryLinuxKernel.c#4 $
  */
 
 #include <linux/delay.h>
 #include <linux/mm.h>
 #include <linux/module.h>
-#include <linux/slab.h>     // needed for SQUEEZE builds
+#include <linux/sched/mm.h>
+#include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/version.h>
 
+#include "compilerDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
-
-/*
- * XXX - TODO - name unifications with VDO
- */
 
 static ThreadRegistry allocatingThreads;
 
@@ -185,7 +183,8 @@ static void removeVmallocBlock(void *ptr)
   if (block != NULL) {
     FREE(block);
   } else {
-    logInfo("attempting to remove ptr %p not found in vmalloc list", ptr);
+    logInfo("attempting to remove ptr %" PRIptr " not found in vmalloc list",
+	    ptr);
   }
 }
 
@@ -195,118 +194,108 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
   if (ptr == NULL) {
     return UDS_INVALID_ARGUMENT;
   }
+  if (size == 0) {
+    *((void **) ptr) = NULL;
+    return UDS_SUCCESS;
+  }
 
   /*
-   * The names of the NORETRY and REPEAT flags are misleading.
+   * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry memory
+   * reclaim procedures that have previously failed if there is some indication
+   * that progress has been made else where.  It can wait for other tasks to
+   * attempt high level approaches to freeing memory such as compaction (which
+   * removes fragmentation) and page-out.  There is still a definite limit to
+   * the number of retries, but it is a larger limit than with __GFP_NORETRY.
+   * Allocations with this flag may fail, but only when there is genuinely
+   * little unused memory. While these allocations do not directly trigger the
+   * OOM killer, their failure indicates that the system is likely to need to
+   * use the OOM killer soon.  The caller must handle failure, but can
+   * reasonably do so by failing a higher-level request, or completing it only
+   * in a much less efficient manner.
    *
-   * The Linux source code says that REPEAT flag means "Try hard to allocate
-   * the memory, but the allocation attempt _might_ fail".  And that this
-   * depends upon the particular VM implementation.  We want to repeat trying
-   * to allocate the memory, because for large allocations the page reclamation
-   * code needs time to free up the memory that we need.
-   *
-   * The Linux source code says that NORETRY flag means "The VM implementation
-   * must not retry indefinitely".  In practise, the Linux allocator will loop
-   * trying to perform the allocation, but this flag suppresses extreme
-   * measures to satisfy the request.  The extreme measure that we want to
-   * avoid is the invocation of the OOM killer.
-   *
-   * Similarly, the RETRY_MAYFAIL flag means "The VM implementation will retry
-   * memory reclaim procedures that have previously failed if there is some
-   * indication that progress has been made else where". It is the new name
-   * of the GFP_REPEAT flag.
+   * __GFP_REPEAT is an old name for __GFP_RETRY_MAYFAIL.
    */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  gfp_t gfpFlags = __GFP_NORETRY | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
+  const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
 #else
-  gfp_t gfpFlags = __GFP_NORETRY | __GFP_ZERO | __GFP_REPEAT;
+  const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_REPEAT;
 #endif
-  if (allocationsAllowed()) {
-    /*
-     * Setup or teardown, when the VDO device isn't active, or a non-critical
-     * path thread.  It's okay for this allocation to block, and even block
-     * waiting for certain selected pages to be written out through the VDO
-     * device.
-     */
-    gfpFlags |= GFP_KERNEL;
-  } else {
-    /*
-     * Device is configured and running.  We can't afford to block on writing a
-     * page through VDO!
-     *
-     * We strongly discourage allocations at this stage, but there are a small
-     * number of necessary allocations.  In particular, an intMap may need to
-     * allocate memory.
-     */
-    gfpFlags |= GFP_NOIO;
+
+  bool allocationsRestricted = !allocationsAllowed();
+  unsigned int noioFlags;
+  if (allocationsRestricted) {
+    noioFlags = memalloc_noio_save();
   }
 
   unsigned long startTime = jiffies;
   void *p = NULL;
-  if (size > 0) {
-    if (useKmalloc(size) && (align < PAGE_SIZE)) {
-      p = kmalloc(size, gfpFlags | __GFP_NOWARN);
-      if (p == NULL) {
-        /*
-         * If we had just done kmalloc(size, gfpFlags) it is possible that the
-         * allocation would fail (see VDO-3688).  The kernel log would then
-         * contain a long report about the failure.  Although the failure
-         * occurs because there is no page available to allocate, by the time
-         * it logs the available space, there is a page available.  So
-         * hopefully a short sleep will allow the page reclaimer to free a
-         * single page, which is all that we need.
-         */
-        msleep(1);
-        p = kmalloc(size, gfpFlags);
-      }
-      if (p != NULL) {
-        addKmallocBlock(ksize(p));
-      }
-    } else {
-      VmallocBlockInfo *block;
-      if (ALLOCATE(1, VmallocBlockInfo, __func__, &block) == UDS_SUCCESS) {
-        /*
-         * If we just do __vmalloc(size, gfpFlags, PAGE_KERNEL) it is possible
-         * that the allocation will fail (see VDO-3661).  The kernel log will
-         * then contain a long report about the failure.  Although the failure
-         * occurs because there are not enough pages available to allocate, by
-         * the time it logs the available space, there may enough pages
-         * available for smaller allocations.  So hopefully a short sleep will
-         * allow the page reclaimer to free enough pages for us.
-         *
-         * For larger allocations, the kernel page_alloc code is racing against
-         * the page reclaimer.  If the page reclaimer can stay ahead of
-         * page_alloc, the __vmalloc will succeed.  But if page_alloc overtakes
-         * the page reclaimer, the allocation fails.  It is possible that more
-         * retries will succeed.
-         */
-        for (;;) {
-          p = __vmalloc(size, gfpFlags | __GFP_NOWARN, PAGE_KERNEL);
-          // Try again unless we succeeded or more than 1 second has elapsed.
-          if ((p != NULL) || (jiffies_to_msecs(jiffies - startTime) > 1000)) {
-            break;
-          }
-          msleep(1);
-        }
-        if (p == NULL) {
-          // Try one more time, logging a failure for this call.
-          p = __vmalloc(size, gfpFlags, PAGE_KERNEL);
-        }
-        if (p == NULL) {
-          FREE(block);
-        } else {
-          block->ptr = p;
-          block->size = PAGE_ALIGN(size);
-          addVmallocBlock(block);
-        }
-      }
-    }
+  if (useKmalloc(size) && (align < PAGE_SIZE)) {
+    p = kmalloc(size, gfpFlags | __GFP_NOWARN);
     if (p == NULL) {
-      unsigned int duration = jiffies_to_msecs(jiffies - startTime);
-      logError("Could not allocate %lu bytes for %s in %u msecs",
-               size, what, duration);
-      return ENOMEM;
+      /*
+       * If we had just done kmalloc(size, gfpFlags) it is possible that the
+       * allocation would fail (see VDO-3688).  The kernel log would then
+       * contain a long report about the failure.  Although the failure occurs
+       * because there is no page available to allocate, by the time it logs
+       * the available space, there is a page available.  So hopefully a short
+       * sleep will allow the page reclaimer to free a single page, which is
+       * all that we need.
+       */
+      msleep(1);
+      p = kmalloc(size, gfpFlags);
     }
+    if (p != NULL) {
+      addKmallocBlock(ksize(p));
+    }
+  } else {
+    VmallocBlockInfo *block;
+    if (ALLOCATE(1, VmallocBlockInfo, __func__, &block) == UDS_SUCCESS) {
+      /*
+       * If we just do __vmalloc(size, gfpFlags, PAGE_KERNEL) it is possible
+       * that the allocation will fail (see VDO-3661).  The kernel log will
+       * then contain a long report about the failure.  Although the failure
+       * occurs because there are not enough pages available to allocate, by
+       * the time it logs the available space, there may enough pages available
+       * for smaller allocations.  So hopefully a short sleep will allow the
+       * page reclaimer to free enough pages for us.
+       *
+       * For larger allocations, the kernel page_alloc code is racing against
+       * the page reclaimer.  If the page reclaimer can stay ahead of
+       * page_alloc, the __vmalloc will succeed.  But if page_alloc overtakes
+       * the page reclaimer, the allocation fails.  It is possible that more
+       * retries will succeed.
+       */
+      for (;;) {
+        p = __vmalloc(size, gfpFlags | __GFP_NOWARN, PAGE_KERNEL);
+        // Try again unless we succeeded or more than 1 second has elapsed.
+        if ((p != NULL) || (jiffies_to_msecs(jiffies - startTime) > 1000)) {
+          break;
+        }
+        msleep(1);
+      }
+      if (p == NULL) {
+        // Try one more time, logging a failure for this call.
+        p = __vmalloc(size, gfpFlags, PAGE_KERNEL);
+      }
+      if (p == NULL) {
+        FREE(block);
+      } else {
+        block->ptr = p;
+        block->size = PAGE_ALIGN(size);
+        addVmallocBlock(block);
+      }
+    }
+  }
+
+  if (allocationsRestricted) {
+    memalloc_noio_restore(noioFlags);
+  }
+
+  if (p == NULL) {
+    unsigned int duration = jiffies_to_msecs(jiffies - startTime);
+    logError("Could not allocate %lu bytes for %s in %u msecs",
+             size, what, duration);
+    return ENOMEM;
   }
   *((void **) ptr) = p;
   return UDS_SUCCESS;
@@ -327,13 +316,16 @@ void freeMemory(void *ptr)
 }
 
 /*****************************************************************************/
-int doPlatformVasprintf(char **strp, const char *fmt, va_list ap)
+int doPlatformVasprintf(const char  *what,
+                        char       **strp,
+                        const char  *fmt,
+                        va_list      ap)
 {
   va_list args;
   va_copy(args, ap);
   int count = vsnprintf(NULL, 0, fmt, args) + 1;
   va_end(args);
-  int result = ALLOCATE(count, char, NULL, strp);
+  int result = ALLOCATE(count, char, what, strp);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -392,11 +384,13 @@ void memoryExit(void)
   logDebug("%s peak usage %zd bytes", THIS_MODULE->name,
            memoryStats.peakBytes);
 
-  ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
-                  "bio structures used (%zd) are returned to the kernel",
-                  memoryStats.bioCount);
-  logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
-           memoryStats.peakBioCount);
+  if (memoryStats.peakBioCount > 0) {
+    ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
+                    "bio structures used (%zd) are returned to the kernel",
+                    memoryStats.bioCount);
+    logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
+             memoryStats.peakBioCount);
+  }
 }
 
 /**********************************************************************/

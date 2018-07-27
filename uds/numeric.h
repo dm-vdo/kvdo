@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/numeric.h#5 $
  */
 
 #ifndef NUMERIC_H
@@ -81,6 +81,48 @@ static INLINE int minInt(int a, int b)
  **/
 __attribute__((warn_unused_result))
 static INLINE int maxInt(int a, int b)
+{
+  return ((a > b) ? a : b);
+}
+
+/**
+ * Find the maximum of two unsigned ints.
+ *
+ * @param a The first value
+ * @param b The second value
+ *
+ * @return The greater of a and b
+ **/
+__attribute__((warn_unused_result))
+static INLINE unsigned int maxUInt(unsigned int a, unsigned int b)
+{
+  return ((a > b) ? a : b);
+}
+
+/**
+ * Find the maximum of two signed longs.
+ *
+ * @param a The first int
+ * @param b The second int
+ *
+ * @return The greater of a and b
+ **/
+__attribute__((warn_unused_result))
+static INLINE long maxLong(long a, long b)
+{
+  return ((a > b) ? a : b);
+}
+
+/**
+ * Find the maximum of two unsigned longs.
+ *
+ * @param a The first int
+ * @param b The second int
+ *
+ * @return The greater of a and b
+ **/
+__attribute__((warn_unused_result))
+static INLINE unsigned long maxULong(unsigned long a, unsigned long b)
 {
   return ((a > b) ? a : b);
 }

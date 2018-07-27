@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#4 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -24,8 +24,9 @@
 
 #include "slabJournal.h"
 
+#include "numeric.h"
+
 #include "blockAllocatorInternals.h"
-#include "blockDescriptor.h"
 #include "blockMapEntry.h"
 #include "journalPoint.h"
 #include "slab.h"
@@ -75,26 +76,67 @@ typedef union {
 #endif
 } __attribute__((packed)) PackedSlabJournalEntry;
 
-/** The header of a slab journal block */
+/** The unpacked representation of the header of a slab journal block */
 typedef struct {
   /** Sequence number for head of journal */
   SequenceNumber     head;
   /** Sequence number for this block */
   SequenceNumber     sequenceNumber;
-  /** Recovery journal point for last entry */
-  PackedJournalPoint recoveryPoint;
   /** The nonce for a given VDO instance */
   Nonce              nonce;
+  /** Recovery journal point for last entry */
+  JournalPoint       recoveryPoint;
   /** Metadata type */
   VDOMetadataType    metadataType;
   /** Whether this block contains block map increments */
   bool               hasBlockMapIncrements;
   /** The number of entries in the block */
   JournalEntryCount  entryCount;
-} __attribute__((packed)) SlabJournalBlockHeader;
+} SlabJournalBlockHeader;
+
+/**
+ * The packed, on-disk representation of a slab journal block header.
+ * All fields are kept in little-endian byte order.
+ **/
+typedef union __attribute__((packed)) {
+  struct __attribute__((packed)) {
+    /** 64-bit sequence number for head of journal */
+    byte               head[8];
+    /** 64-bit sequence number for this block */
+    byte               sequenceNumber[8];
+    /** Recovery journal point for last entry, packed into 64 bits */
+    PackedJournalPoint recoveryPoint;
+    /** The 64-bit nonce for a given VDO instance */
+    byte               nonce[8];
+    /** 8-bit metadata type (should always be two, for the slab journal) */
+    uint8_t            metadataType;
+    /** Whether this block contains block map increments */
+    bool               hasBlockMapIncrements;
+    /** 16-bit count of the entries encoded in the block */
+    byte               entryCount[2];
+  } fields;
+
+  // A raw view of the packed encoding.
+  uint8_t raw[8 + 8 + 8 + 8 + 1 + 1 + 2];
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // This view is only valid on little-endian machines and is only present for
+  // ease of directly examining packed entries in GDB.
+  struct __attribute__((packed)) {
+    SequenceNumber     head;
+    SequenceNumber     sequenceNumber;
+    PackedJournalPoint recoveryPoint;
+    Nonce              nonce;
+    VDOMetadataType    metadataType;
+    bool               hasBlockMapIncrements;
+    JournalEntryCount  entryCount;
+  } littleEndian;
+#endif
+} PackedSlabJournalBlockHeader;
 
 enum {
-  SLAB_JOURNAL_PAYLOAD_SIZE = VDO_BLOCK_SIZE - sizeof(SlabJournalBlockHeader),
+  SLAB_JOURNAL_PAYLOAD_SIZE
+    = VDO_BLOCK_SIZE - sizeof(PackedSlabJournalBlockHeader),
   SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK = (SLAB_JOURNAL_PAYLOAD_SIZE * 8) / 25,
   SLAB_JOURNAL_ENTRY_TYPES_SIZE = ((SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK - 1)
                                    / 8) + 1,
@@ -120,8 +162,8 @@ typedef union {
 } __attribute__((packed)) SlabJournalPayload;
 
 typedef struct {
-  SlabJournalBlockHeader header;
-  SlabJournalPayload     payload;
+  PackedSlabJournalBlockHeader header;
+  SlabJournalPayload           payload;
 } __attribute__((packed)) PackedSlabJournalBlock;
 
 typedef enum {
@@ -139,7 +181,7 @@ struct slabJournal {
   /** The completion for load, flush, and close */
   VDOCompletion                completion;
 
-  /** A waiter object for getting an extent or block descriptor */
+  /** A waiter object for getting a VIO pool entry */
   Waiter                       resourceWaiter;
   /** A waiter object for updating the slab summary */
   Waiter                       slabSummaryWaiter;
@@ -180,8 +222,6 @@ struct slabJournal {
 
   /** The sequence number of the recovery journal lock */
   SequenceNumber               recoveryLock;
-  /** The recovery journal point of the newest entry in this journal */
-  JournalPoint                 recoveryPoint;
 
   /**
    * The number of entries which fit in a single block. Can't use the constant
@@ -201,10 +241,14 @@ struct slabJournal {
   SlabSummaryZone             *summary;
   /** The statistics shared by all slab journals in our physical zone */
   AtomicSlabJournalStatistics *events;
-  /** Block descriptor for writing a slab journal block */
-  BlockDescriptor             *descriptor;
-  /** A list of descriptors that are in use and not committed */
+  /** A ring of the VIO pool entries for outstanding journal block writes */
   RingNode                     uncommittedBlocks;
+
+  /**
+   * The current tail block header state. This will be packed into
+   * the block just before it is written.
+   **/
+  SlabJournalBlockHeader       tailHeader;
   /** A pointer to a block-sized buffer holding the packed block data */
   PackedSlabJournalBlock      *block;
 
@@ -246,11 +290,13 @@ getSlabJournalBlockOffset(SlabJournal *journal, SequenceNumber sequence)
 /**
  * Encode a slab journal entry (exposed for unit tests).
  *
- * @param block      The journal block to hold the entry
- * @param sbn        The slab block number of the entry to encode
- * @param operation  The type of the entry
+ * @param tailHeader  The unpacked header for the block
+ * @param payload     The journal block payload to hold the entry
+ * @param sbn         The slab block number of the entry to encode
+ * @param operation   The type of the entry
  **/
-void encodeSlabJournalEntry(PackedSlabJournalBlock *block,
+void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
+                            SlabJournalPayload     *payload,
                             SlabBlockNumber         sbn,
                             JournalOperation        operation);
 
@@ -303,6 +349,48 @@ SlabJournalEntry unpackSlabJournalEntry(const PackedSlabJournalEntry *packed)
   entry.operation
     = (packed->fields.increment ? DATA_INCREMENT : DATA_DECREMENT);
   return entry;
+}
+
+/**
+ * Generate the packed representation of a slab block header.
+ *
+ * @param header  The header containing the values to encode
+ * @param packed  The header into which to pack the values
+ **/
+static inline
+void packSlabJournalBlockHeader(const SlabJournalBlockHeader *header,
+                                PackedSlabJournalBlockHeader *packed)
+{
+  storeUInt64LE(packed->fields.head,           header->head);
+  storeUInt64LE(packed->fields.sequenceNumber, header->sequenceNumber);
+  storeUInt64LE(packed->fields.nonce,          header->nonce);
+  storeUInt16LE(packed->fields.entryCount,     header->entryCount);
+
+  packed->fields.metadataType          = header->metadataType;
+  packed->fields.hasBlockMapIncrements = header->hasBlockMapIncrements;
+
+  packJournalPoint(&header->recoveryPoint, &packed->fields.recoveryPoint);
+}
+
+/**
+ * Decode the packed representation of a slab block header.
+ *
+ * @param packed  The packed header to decode
+ * @param header  The header into which to unpack the values
+ **/
+static inline
+void unpackSlabJournalBlockHeader(const PackedSlabJournalBlockHeader *packed,
+                                  SlabJournalBlockHeader             *header)
+{
+  *header = (SlabJournalBlockHeader) {
+    .head                  = getUInt64LE(packed->fields.head),
+    .sequenceNumber        = getUInt64LE(packed->fields.sequenceNumber),
+    .nonce                 = getUInt64LE(packed->fields.nonce),
+    .entryCount            = getUInt16LE(packed->fields.entryCount),
+    .metadataType          = packed->fields.metadataType,
+    .hasBlockMapIncrements = packed->fields.hasBlockMapIncrements,
+  };
+  unpackJournalPoint(&packed->fields.recoveryPoint, &header->recoveryPoint);
 }
 
 #endif // SLAB_JOURNAL_INTERNALS_H

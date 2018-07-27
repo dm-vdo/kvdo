@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/regionIndexState.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/regionIndexState.c#2 $
  */
 
 #include "regionIndexStateInternal.h"
@@ -32,7 +32,6 @@ static const IndexStateOps *getRegionIndexStateOps(void);
 
 /*****************************************************************************/
 int makeRegionIndexState(SingleFileLayout  *sfl,
-                         unsigned int       indexId,
                          unsigned int       zoneCount,
                          unsigned int       length,
                          IndexState       **statePtr)
@@ -43,7 +42,7 @@ int makeRegionIndexState(SingleFileLayout  *sfl,
     return result;
   }
 
-  result = initIndexState(&ris->state, indexId, zoneCount, length,
+  result = initIndexState(&ris->state, 0, zoneCount, length,
                           getRegionIndexStateOps());
   if (result != UDS_SUCCESS) {
     FREE(ris);

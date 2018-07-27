@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.h#4 $
  */
 
 #ifndef INDEX_H
@@ -36,7 +36,6 @@
 typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
-  unsigned int   id;
   bool           existed;
   IndexLayout   *layout;
   IndexState    *state;
