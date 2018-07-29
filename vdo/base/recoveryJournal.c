@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/recoveryJournal.c#4 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/recoveryJournal.c#5 $
  */
 
 #include "recoveryJournal.h"
@@ -1407,12 +1407,20 @@ static void reapRecoveryJournal(RecoveryJournal *journal)
     return;
   }
 
-  // If the block map head will advance, we must flush any block map page
-  // modified by the entries we are reaping. If the slab journal head will
-  // advance, we must flush the slab summary update covering the slab journal
-  // that just released some lock.
-  journal->reaping = true;
-  launchFlush(journal->flushVIO, completeReaping, handleFlushError);
+  PhysicalLayer *layer = vioAsCompletion(journal->flushVIO)->layer;
+  if (layer->isFlushRequired(layer)) {
+    /*
+     * If the block map head will advance, we must flush any block map page
+     * modified by the entries we are reaping. If the slab journal head will
+     * advance, we must flush the slab summary update covering the slab journal
+     * that just released some lock.
+     */
+    journal->reaping = true;
+    launchFlush(journal->flushVIO, completeReaping, handleFlushError);
+    return;
+  }
+
+  finishReaping(journal);
 }
 
 /**********************************************************************/

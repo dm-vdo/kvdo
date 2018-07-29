@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.h#5 $
+ * $Id: //eng/uds-releases/flanders/src/uds/request.h#6 $
  */
 
 #ifndef REQUEST_H
@@ -129,12 +129,6 @@ typedef struct zoneMessage {
   /** the message specific data */
   ZoneMessageData data;
 } ZoneMessage;
-
-/**
- * A private structure that allows the requesting thread to
- * wait for synchronous requests to complete.
- **/
-typedef struct synchronousCallback SynchronousCallback;
 
 /**
  * Request context for queuing throughout the uds pipeline

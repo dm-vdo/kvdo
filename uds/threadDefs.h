@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadDefs.h#5 $
+ * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadDefs.h#6 $
  */
 
 #ifndef LINUX_KERNEL_THREAD_DEFS_H
 #define LINUX_KERNEL_THREAD_DEFS_H
 
+#include <linux/completion.h>
 #include <linux/mutex.h>
 #include <linux/semaphore.h>
 
@@ -33,8 +34,9 @@ typedef struct kernelThread *Thread;
 typedef pid_t                ThreadId;
 
 typedef struct { EventCount *eventCount;    } CondVar;
-typedef struct mutex                           Mutex;
+typedef struct mutex                          Mutex;
 typedef struct { struct hr_semaphore *psem; } Semaphore;
+typedef struct completion                     SynchronousCallback;
 
 typedef struct {
   Semaphore mutex;       // Mutex for this barrier object
