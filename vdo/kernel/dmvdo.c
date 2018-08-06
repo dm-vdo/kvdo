@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#7 $
  */
 
 #include "dmvdo.h"
@@ -57,20 +57,10 @@ struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
  * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
  * smallest reasonable value.  See VDO-3062 and VDO-3087.
  *
- * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
- * and the value in max_discard_sectors to split large discards into smaller
- * ones. 4.3 and beyond kernels have removed the code in blkdev_issue_discard
- * and so after that point, we use the code in device mapper itself to
- * split the discards. Unfortunately, it uses the same value to split large
- * discards as it does to split large data bios. As such, we should never
- * change the value of max_discard_sectors in kernel versions beyond that.
- * We continue to set the value for max_discard_sectors as it is used in other
- * code, like sysfs display of queue limits and since we are actually splitting
- * discards it makes sense to show the correct value there.
- *
- * DO NOT CHANGE VALUE for kernel versions 4.3 and beyond to anything other
- * than what is set to the max_io_len field below. We mimic to_sector here
- * as a non const, otherwise compile would fail.
+ * We allow setting of the value for max_discard_sectors even in situations 
+ * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
+ * value is still used in other code, like sysfs display of queue limits and 
+ * most especially in dm-thin to determine whether to pass down discards.
  */
 unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
 
@@ -93,6 +83,23 @@ unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
 #define HAS_DISCARDS_SUPPORTED 0
 #endif
 #endif
+
+/*
+ * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
+ * and the value in max_discard_sectors to split large discards into smaller
+ * ones. 4.3 to 4.18 kernels have removed the code in blkdev_issue_discard
+ * and so in place of that, we use the code in device mapper itself to
+ * split the discards. Unfortunately, it uses the same value to split large
+ * discards as it does to split large data bios. 
+ *
+ * In kernel version 4.18, support for splitting discards was added
+ * back into blkdev_issue_discard. Since this mode of splitting 
+ * (based on max_discard_sectors) is preferable to splitting always
+ * on 4k, we are turning off the device mapper splitting from 4.18
+ * on.
+ */
+#define HAS_NO_BLKDEV_SPLIT LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0) \
+                            && LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
 
 /*
  * We want to support flush requests in async mode, but early device mapper
@@ -534,15 +541,9 @@ static void configureTargetCapabilities(struct dm_target *ti,
 #endif
 
 /*
- * As of linux kernel version 4.3, support for splitting discards
- * was removed from blkdev_issue_discard. Luckily, device mapper
- * added its own support for splitting discards in kernel version
- * 3.6 and beyond. We will begin using this support from 4.3 on.
- * Please keep in mind the device mapper support uses the same value
- * for splitting discards as it does for splitting regular data i/os.
- * See the max_io_len setting above.
+ * Please see comments above where the macro is defined.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0))
+#if HAS_NO_BLKDEV_SPLIT
   ti->split_discard_bios = 1;
 #endif
 }

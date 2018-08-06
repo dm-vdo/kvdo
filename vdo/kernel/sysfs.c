@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.c#3 $
  */
 
 #include "sysfs.h"
@@ -28,12 +28,7 @@
 #include "dmvdo.h"
 #include "logger.h"
 
-#define HAS_MAX_DISCARD_SECTORS (LINUX_VERSION_CODE < KERNEL_VERSION(4,3,0))
-
-#if HAS_MAX_DISCARD_SECTORS
 extern unsigned int maxDiscardSectors;
-#endif /* HAS_MAX_DISCARD_SECTORS */
-
 extern int defaultMaxRequestsActive;
 
 typedef struct vdoAttribute {
@@ -194,7 +189,6 @@ static ssize_t vdoMaxReqActiveStore(struct kvdoDevice *device,
   return scanInt(buf, n, &defaultMaxRequestsActive, 1, MAXIMUM_USER_VIOS);
 }
 
-#if HAS_MAX_DISCARD_SECTORS
 /**********************************************************************/
 static ssize_t vdoMaxDiscardSectors(struct kvdoDevice *device,
                                     const char        *buf,
@@ -202,7 +196,6 @@ static ssize_t vdoMaxDiscardSectors(struct kvdoDevice *device,
 {
   return scanUInt(buf, n, &maxDiscardSectors, 8, UINT_MAX);
 }
-#endif /* HAS_MAX_DISCARD_SECTORS */
 
 /**********************************************************************/
 static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdoDevice *device,
@@ -285,14 +278,12 @@ static VDOAttribute vdoMaxReqActiveAttr = {
   .valuePtr = &defaultMaxRequestsActive,
 };
 
-#if HAS_MAX_DISCARD_SECTORS
 static VDOAttribute vdoMaxDiscardSectorsAttr = {
   .attr     = {.name = "max_discard_sectors", .mode = 0644, },
   .show     = showUInt,
   .store    = vdoMaxDiscardSectors,
   .valuePtr = &maxDiscardSectors,
 };
-#endif /* HAS_MAX_DISCARD_SECTORS */
 
 static VDOAttribute vdoAlbireoTimeoutInterval = {
   .attr     = {.name = "deduplication_timeout_interval", .mode = 0644, },
@@ -324,9 +315,7 @@ static struct attribute *defaultAttrs[] = {
   &vdoStatusAttr.attr,
   &vdoLogLevelAttr.attr,
   &vdoMaxReqActiveAttr.attr,
-#if HAS_MAX_DISCARD_SECTORS
   &vdoMaxDiscardSectorsAttr.attr,
-#endif /* HAS_MAX_DISCARD_SECTORS */
   &vdoAlbireoTimeoutInterval.attr,
   &vdoMinAlbireoTimerInterval.attr,
   &vdoTraceRecording.attr,
