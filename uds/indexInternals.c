@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexInternals.c#2 $
+ * $Id: //eng/uds-releases/flanders/src/uds/indexInternals.c#3 $
  */
 
 #include "indexInternals.h"
@@ -60,12 +60,12 @@ int allocateIndex(IndexLayout          *layout,
       return result;
     }
     result = formatVolume(region, config->geometry);
+    int closeResult = closeIORegion(&region);
     if (result != UDS_SUCCESS) {
       return result;
     }
-    result = closeIORegion(&region);
-    if (result != UDS_SUCCESS) {
-      return result;
+    if (closeResult != UDS_SUCCESS) {
+      return closeResult;
     }
   }
 

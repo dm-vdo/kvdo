@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/types.h#6 $
+ * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/types.h#1 $
  */
 
 #ifndef TYPES_H
