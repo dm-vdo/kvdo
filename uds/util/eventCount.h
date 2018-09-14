@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.h#2 $
  */
 
 #ifndef EVENT_COUNT_H
@@ -70,6 +70,7 @@ typedef unsigned int EventToken;
  *
  * @param ecPtr  a pointer to hold the new EventCount
  **/
+__attribute__((warn_unused_result))
 int makeEventCount(EventCount **ecPtr);
 
 /**
@@ -106,7 +107,7 @@ EventToken eventCountPrepare(EventCount *ec)
  * @param ec     the EventCount from which a wait token was obtained
  * @param token  the wait token that will never be passed to eventCountWait()
  **/
-int eventCountCancel(EventCount *ec, EventToken token);
+void eventCountCancel(EventCount *ec, EventToken token);
 
 /**
  * Check if the current event count state corresponds to the provided token,

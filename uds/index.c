@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.c#8 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.c#9 $
  */
 
 #include "index.h"
@@ -257,7 +257,7 @@ void freeIndex(Index *index)
   if (index->masterIndex != NULL) {
     freeMasterIndex(index->masterIndex);
   }
-  releaseIndex(index, !READ_ONLY_INDEX);
+  releaseIndex(index);
 }
 
 /**********************************************************************/

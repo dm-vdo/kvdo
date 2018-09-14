@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/session.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/session.c#2 $
  */
 
 #include "session.h"
@@ -118,25 +118,34 @@ void releaseSession(Session *session)
 }
 
 /**********************************************************************/
-SessionID initializeSession(SessionGroup *group, Session *session,
-                            SessionContents contents)
+int initializeSession(SessionGroup    *group,
+                      Session         *session,
+                      SessionContents  contents,
+                      SessionID       *sessionID)
 {
-  SessionID id;
+  int result = initMutex(&session->mutex);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = initCond(&session->releaseCond);
+  if (result != UDS_SUCCESS) {
+    destroyMutex(&session->mutex);
+    return result;
+  }
 
   lockMutex(&group->mutex);
-  id                   = group->nextSessionID;
+  SessionID id         = group->nextSessionID;
   group->nextSessionID = ((group->nextSessionID == SESSION_ID_MAX) ?
                           SESSION_ID_INIT : group->nextSessionID + 1);
 
-  initMutex(&session->mutex);
-  initCond(&session->releaseCond);
   session->refCount = 1; // start with one reference on the session
   session->contents = contents;
   session->id       = id;
   LIST_INSERT_HEAD(&group->head, session, links);
   unlockMutex(&group->mutex);
 
-  return id;
+  *sessionID = id;
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -196,9 +205,18 @@ int makeSessionGroup(int notFoundResult, SessionFree free,
   if (result != UDS_SUCCESS) {
     return result;
   }
+  result = initMutex(&group->mutex);
+  if (result != UDS_SUCCESS) {
+    FREE(group);
+    return result;
+  }
+  result = initCond(&group->releaseCond);
+  if (result != UDS_SUCCESS) {
+    destroyMutex(&group->mutex);
+    FREE(group);
+    return result;
+  }
 
-  initMutex(&group->mutex);
-  initCond(&group->releaseCond);
   LIST_INIT(&group->head);
   group->nextSessionID = SESSION_ID_INIT;
   group->refCount = 1; // whoever stores the group has a reference.

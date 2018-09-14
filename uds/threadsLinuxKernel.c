@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadsLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadsLinuxKernel.c#3 $
  */
 
 #include <linux/kthread.h>
 #include <linux/sched.h>
 
 #include "memoryAlloc.h"
+#include "logger.h"
 #include "queue.h"
 #include "threads.h"
 #include "uds-error.h"
@@ -74,6 +75,7 @@ int createThread(void      (*threadFunc)(void *),
   KernelThread *kt;
   int result = ALLOCATE(1, KernelThread, __func__, &kt);
   if (result != UDS_SUCCESS) {
+    logWarning("Error allocating memory for %s", name);
     return result;
   }
   kt->threadFunc = threadFunc;

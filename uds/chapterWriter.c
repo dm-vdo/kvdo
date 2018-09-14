@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.c#3 $
  */
 
 #include "chapterWriter.h"
@@ -134,18 +134,32 @@ int makeChapterWriter(Index *index, ChapterWriter **writerPtr)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = allocateCacheAligned(collatedRecordsSize, "collated records",
-                                &writer->collatedRecords);
+  writer->index = index;
+
+  result = initMutex(&writer->mutex);
   if (result != UDS_SUCCESS) {
     FREE(writer);
     return result;
   }
+  result = initCond(&writer->cond);
+  if (result != UDS_SUCCESS) {
+    destroyMutex(&writer->mutex);
+    FREE(writer);
+    return result;
+  }
+
+  // Now that we have the mutex+cond, it is safe to call freeChapterWriter.
+  result = allocateCacheAligned(collatedRecordsSize, "collated records",
+                                &writer->collatedRecords);
+  if (result != UDS_SUCCESS) {
+    freeChapterWriter(writer);
+    return makeUnrecoverable(result);
+  }
   result = makeOpenChapterIndex(&writer->openChapterIndex,
                                 index->volume->geometry);
   if (result != UDS_SUCCESS) {
-    FREE(writer->collatedRecords);
-    FREE(writer);
-    return result;
+    freeChapterWriter(writer);
+    return makeUnrecoverable(result);
   }
 
   size_t openChapterIndexMemoryAllocated
@@ -154,9 +168,6 @@ int makeChapterWriter(Index *index, ChapterWriter **writerPtr)
                              + index->zoneCount * sizeof(OpenChapterZone *)
                              + collatedRecordsSize
                              + openChapterIndexMemoryAllocated);
-  writer->index = index;
-  initMutex(&writer->mutex);
-  initCond(&writer->cond);
 
   // We're initialized, so now it's safe to start the writer thread.
   result = createThread(closeChapters, writer, "writer", &writer->thread);

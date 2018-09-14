@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexConfig.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexConfig.c#4 $
  */
 
 #include "indexConfig.h"
@@ -98,23 +98,19 @@ static int readVersion(BufferedReader    *reader,
   if (memcmp(INDEX_CONFIG_VERSION, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
     Buffer *buffer;
     result = makeBuffer(sizeof(*conf), &buffer);
-    if (result != UDS_SUCCESS){
+    if (result != UDS_SUCCESS) {
       return result;
     }
     result = readFromBufferedReader(reader, getBufferContents(buffer),
                                     bufferLength(buffer));
     if (result != UDS_SUCCESS) {
       freeBuffer(&buffer);
-      logErrorWithStringError(result, "cannot read config data");
+      return logErrorWithStringError(result, "cannot read config data");
     }
-    result = resetBufferEnd(buffer, bufferLength(buffer));
-    if (result != UDS_SUCCESS) {
-      freeBuffer(&buffer);
-      return result;
-    }
+    clearBuffer(buffer);
     result = decodeIndexConfig(buffer, conf);
     freeBuffer(&buffer);
-    if (result != UDS_SUCCESS){
+    if (result != UDS_SUCCESS) {
       return result;
     }
     if (versionPtr != NULL) {

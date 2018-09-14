@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayoutInternals.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayoutInternals.h#2 $
  */
 
 #ifndef SINGLE_FILE_LAYOUT_INTERNALS_H
@@ -116,7 +116,7 @@ typedef struct superBlockData_v1 {
   uint64_t   nonce;
   uint32_t   version;                   // 1
   uint32_t   blockSize;                 // for verification
-  uint16_t   numIndexes;
+  uint16_t   numIndexes;                // 1
   uint16_t   maxSaves;
   uint64_t   openChapterBlocks;
   uint64_t   pageMapBlocks;
@@ -128,7 +128,7 @@ struct singleFileLayout {
   SuperBlockData  super;
   LayoutRegion    header;
   LayoutRegion    config;
-  SubIndexLayout *indexes;
+  SubIndexLayout  index;
   LayoutRegion    seal;
   bool            loaded;
   bool            saved;
@@ -207,7 +207,6 @@ int getSingleFileLayoutReader(SingleFileLayout  *sfl,
  * Find the latest index save slot for a sub-index.
  *
  * @param [in]  sfl             The single file layout.
- * @param [in]  indexId         Which sub-index to find.
  * @param [out] numZonesPtr     Where to store the actual number of zones
  *                                that were saved.
  * @param [out] slotPtr         Where to store the slot number we found.
@@ -215,7 +214,6 @@ int getSingleFileLayoutReader(SingleFileLayout  *sfl,
  * @return UDS_SUCCESS or an error code.
  **/
 int findLatestIndexSaveSlot(SingleFileLayout *sfl,
-                            unsigned int      indexId,
                             unsigned int     *numZonesPtr,
                             unsigned int     *slotPtr)
   __attribute__((warn_unused_result));
@@ -227,7 +225,6 @@ int findLatestIndexSaveSlot(SingleFileLayout *sfl,
  * region.
  *
  * @param [in]  sfl             The single file layout.
- * @param [in]  indexId         Which sub-index to setup.
  * @param [in]  numZones        Actual number of zones currently in use.
  * @param [in]  saveType        The index save type.
  * @param [out] saveSlotPtr     Where to store the save slot number.
@@ -235,28 +232,21 @@ int findLatestIndexSaveSlot(SingleFileLayout *sfl,
  * @return UDS_SUCCESS or an error code
  **/
 int setupSingleFileIndexSaveSlot(SingleFileLayout *sfl,
-                                 unsigned int      indexId,
                                  unsigned int      numZones,
                                  IndexSaveType     saveType,
                                  unsigned int     *saveSlotPtr)
   __attribute__((warn_unused_result));
 
 /*****************************************************************************/
-int commitSingleFileIndexSave(SingleFileLayout *sfl,
-                              unsigned int      indexId,
-                              unsigned int      saveSlot)
+int commitSingleFileIndexSave(SingleFileLayout *sfl, unsigned int saveSlot)
   __attribute__((warn_unused_result));
 
 /*****************************************************************************/
-int cancelSingleFileIndexSave(SingleFileLayout *sfl,
-                              unsigned int      indexId,
-                              unsigned int      saveSlot)
+int cancelSingleFileIndexSave(SingleFileLayout *sfl, unsigned int saveSlot)
   __attribute__((warn_unused_result));
 
 /*****************************************************************************/
-int discardSingleFileIndexSaves(SingleFileLayout *sfl,
-                                unsigned int      indexId,
-                                bool              all)
+int discardSingleFileIndexSaves(SingleFileLayout *sfl, bool all)
   __attribute__((warn_unused_result));
 
 /*****************************************************************************/

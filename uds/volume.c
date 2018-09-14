@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#10 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#12 $
  */
 
 #include "volume.h"
@@ -108,62 +108,6 @@ int formatVolume(IORegion *region, const Geometry *geometry)
   }
 
   return syncRegionContents(region);
-}
-
-/**********************************************************************/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
-{
-  unsigned int volumeReadThreads;
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
-      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
-    volumeReadThreads = value.value.u_uint;
-  } else {
-    volumeReadThreads = VOLUME_READ_THREADS;
-  }
-
-  if (readQueueMaxSize <= volumeReadThreads) {
-    logError("Number of read threads must be smaller than read queue");
-    return UDS_INVALID_ARGUMENT;
-  }
-
-  Volume *volume;
-
-  int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
-                              !READ_ONLY_VOLUME, &volume);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  initMutex(&volume->readThreadsMutex);
-  initCond(&volume->readThreadsReadDoneCond);
-  initCond(&volume->readThreadsCond);
-  result = createReaderThreads(volume, volumeReadThreads);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  *newVolume = volume;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void freeVolume(Volume *volume)
-{
-  if (volume == NULL) {
-    return;
-  }
-
-  destroyReaderThreads(volume);
-  destroyCond(&volume->readThreadsCond);
-  destroyCond(&volume->readThreadsReadDoneCond);
-  destroyMutex(&volume->readThreadsMutex);
-  releaseVolume(volume);
 }
 
 /**********************************************************************/
@@ -435,40 +379,6 @@ static void readThreadFunction(void *arg)
   }
   unlockMutex(&volume->readThreadsMutex);
   logDebug("reader done");
-}
-
-/**********************************************************************/
-int createReaderThreads(Volume *volume, unsigned int numReaderThreads)
-{
-  volume->numReadThreads = numReaderThreads;
-  int result = ALLOCATE(numReaderThreads, Thread,
-                        "reader threads", &volume->readerThreads);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  for (unsigned int i = 0; i < numReaderThreads; i++) {
-    result = createThread(readThreadFunction, (void *) volume, "reader",
-                          &volume->readerThreads[i]);
-    if (result != UDS_SUCCESS) {
-      return UDS_ENOTHREADS;
-    }
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void destroyReaderThreads(Volume *volume)
-{
-  lockMutex(&volume->readThreadsMutex);
-  volume->readerState |= READER_STATE_EXIT;
-  broadcastCond(&volume->readThreadsCond);
-  unlockMutex(&volume->readThreadsMutex);
-
-  for (unsigned int i = 0; i < volume->numReadThreads; i++) {
-    joinThreads(volume->readerThreads[i]);
-  }
-  FREE(volume->readerThreads);
 }
 
 /**********************************************************************/
@@ -1371,4 +1281,114 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
   *lowestVCN = lowest;
   *highestVCN = highest;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int makeVolume(const Configuration  *config,
+               IndexLayout          *layout,
+               unsigned int          readQueueMaxSize,
+               unsigned int          zoneCount,
+               Volume              **newVolume)
+{
+  unsigned int volumeReadThreads;
+
+  UdsParameterValue value;
+  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
+      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
+    volumeReadThreads = value.value.u_uint;
+  } else {
+    volumeReadThreads = VOLUME_READ_THREADS;
+  }
+
+  if (readQueueMaxSize <= volumeReadThreads) {
+    logError("Number of read threads must be smaller than read queue");
+    return UDS_INVALID_ARGUMENT;
+  }
+
+  Volume *volume;
+
+  int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
+                              !READ_ONLY_VOLUME, &volume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = initMutex(&volume->readThreadsMutex);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = initCond(&volume->readThreadsReadDoneCond);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = initCond(&volume->readThreadsCond);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  // Start the reader threads.  If this allocation succeeds, freeVolume knows
+  // that it needs to try and stop those threads.
+  result = ALLOCATE(volumeReadThreads, Thread, "reader threads",
+                    &volume->readerThreads);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  for (unsigned int i = 0; i < volumeReadThreads; i++) {
+    result = createThread(readThreadFunction, (void *) volume, "reader",
+                          &volume->readerThreads[i]);
+    if (result != UDS_SUCCESS) {
+      freeVolume(volume);
+      return result;
+    }
+    // We only stop as many threads as actually got started.
+    volume->numReadThreads = i + 1;
+  }
+
+  *newVolume = volume;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void freeVolume(Volume *volume)
+{
+  if (volume == NULL) {
+    return;
+  }
+
+  // If readerThreads is NULL, then we haven't set up the reader threads.
+  if (volume->readerThreads != NULL) {
+    // Stop the reader threads.  It is ok if there aren't any of them.
+    lockMutex(&volume->readThreadsMutex);
+    volume->readerState |= READER_STATE_EXIT;
+    broadcastCond(&volume->readThreadsCond);
+    unlockMutex(&volume->readThreadsMutex);
+    for (unsigned int i = 0; i < volume->numReadThreads; i++) {
+      joinThreads(volume->readerThreads[i]);
+    }
+    FREE(volume->readerThreads);
+    volume->readerThreads = NULL;
+  }
+
+  if (volume->region != NULL) {
+    int result = syncAndCloseRegion(&volume->region, "index volume");
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result,
+                              "error closing volume, releasing anyway");
+    }
+  }
+
+  destroyCond(&volume->readThreadsCond);
+  destroyCond(&volume->readThreadsReadDoneCond);
+  destroyMutex(&volume->readThreadsMutex);
+  freeIndexPageMap(volume->indexPageMap);
+  freePageCache(volume->pageCache);
+  freeRadixSorter(volume->radixSorter);
+  freeSparseCache(volume->sparseCache);
+  FREE(volume->geometry);
+  FREE(volume->recordPointers);
+  FREE(volume->scratchPage);
+  FREE(volume);
 }

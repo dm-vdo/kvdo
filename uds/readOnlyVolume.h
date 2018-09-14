@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/readOnlyVolume.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/readOnlyVolume.h#4 $
  */
 
 #ifndef READ_ONLY_VOLUME_H
@@ -37,13 +37,6 @@ int makeReadOnlyVolume(const Configuration  *config,
                        IndexLayout          *layout,
                        Volume              **newVolume)
   __attribute__((warn_unused_result));
-
-/**
- * Clean up a read-only volume and its memory.
- *
- * @param volume  The volume to destroy.
- **/
-void freeReadOnlyVolume(Volume *volume);
 
 /**
  * Retrieve a page from disk into the volume's scratch page.

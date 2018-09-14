@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#8 $
  */
 
 #include "dataKVIO.h"
@@ -856,11 +856,13 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio data",
                           &dataKVIO->dataBlock);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result, "DataKVIO data allocation failure");
   }
 
   result = createBio(layer, dataKVIO->dataBlock, &dataKVIO->dataBlockBio);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
                                    "DataKVIO data bio allocation failure");
   }
@@ -869,6 +871,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
     result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
                             &dataKVIO->readBlock.buffer);
     if (result != VDO_SUCCESS) {
+      freePooledDataKVIO(layer, dataKVIO);
       return logErrorWithStringError(result,
                                      "DataKVIO read allocation failure");
     }
@@ -876,6 +879,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
     result = createBio(layer, dataKVIO->readBlock.buffer,
                        &dataKVIO->readBlock.bio);
     if (result != VDO_SUCCESS) {
+      freePooledDataKVIO(layer, dataKVIO);
       return logErrorWithStringError(result,
                                      "DataKVIO read bio allocation failure");
     }
@@ -886,6 +890,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio scratch",
                           &dataKVIO->scratchBlock);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
                                    "DataKVIO scratch allocation failure");
   }

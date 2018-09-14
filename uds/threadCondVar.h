@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/threadCondVar.h#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/threadCondVar.h#2 $
  */
 
 #ifndef THREAD_COND_VAR_H
@@ -25,10 +25,6 @@
 #include "threadDefs.h"
 #include "timeUtils.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Initialize a condition variable with default attributes.
  *
@@ -36,7 +32,7 @@ extern "C" {
  *
  * @return           UDS_SUCCESS or error code
  **/
-int initCond(CondVar *cond);
+int initCond(CondVar *cond) __attribute__((warn_unused_result));
 
 /**
  * Signal a condition variable.
@@ -85,9 +81,5 @@ int timedWaitCond(CondVar *cond, Mutex *mutex, const AbsTime *deadline);
  * @return      UDS_SUCCESS or error code
  **/
 int destroyCond(CondVar *cond);
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
 
 #endif /* THREAD_COND_VAR_H */

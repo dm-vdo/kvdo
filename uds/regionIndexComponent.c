@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/regionIndexComponent.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/regionIndexComponent.c#2 $
  */
 
 #include "regionIndexComponentInternal.h"
@@ -184,11 +184,15 @@ static int ric_createReadPortal(IndexComponent  *component,
 static int ric_discardIndexComponent(IndexComponent *component)
 {
   RegionIndexComponent *ric = asRegionIndexComponent(component);
+  int result = ASSERT((ric->ris->state.id == 0),
+                      "Cannot have multiple subindices");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
   unsigned int numZones = 0;
   unsigned int saveSlot = 0;
-  int result = findLatestIndexSaveSlot(ric->ris->sfl, ric->ris->state.id,
-                                       &numZones, &saveSlot);
+  result = findLatestIndexSaveSlot(ric->ris->sfl, &numZones, &saveSlot);
   if (result != UDS_SUCCESS) {
     return result;
   }

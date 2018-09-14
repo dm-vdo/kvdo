@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/udsMain.c#1 $
+ * $Id: //eng/uds-releases/gloria/src/uds/udsMain.c#3 $
  */
 
 #include "uds.h"
@@ -284,17 +284,21 @@ static int makeIndexSession(UdsGridConfig     gridConfig,
     return result;
   }
 
-  SessionID id = initializeSession(indexSessionGroup,
-                                   &indexSession->session,
-                                   (SessionContents) indexSession);
+  SessionID id;
+  result = initializeSession(indexSessionGroup, &indexSession->session,
+                             (SessionContents) indexSession, &id);
+  if (result != UDS_SUCCESS) {
+    saveAndFreeIndexSession(indexSession);
+    releaseSessionGroup(indexSessionGroup);
+    unlockGlobalStateMutex();
+    return result;
+  }
   // Release state mutex because loading index/network connection can
   // take a long time. Shutdown still cannot proceed until reference
   // to base context is released below
   unlockGlobalStateMutex();
 
-  result = initializeIndexSession(indexSession,
-                                  gridConfig,
-                                  loadType,
+  result = initializeIndexSession(indexSession, gridConfig, loadType,
                                   userConfig);
 
   lockGlobalStateMutex();
@@ -344,7 +348,6 @@ static int makeLocalIndex(const char       *name,
   UdsGridConfig gridConfig;
   int result = udsInitializeGridConfig(&gridConfig);
   if (result != UDS_SUCCESS) {
-    udsFreeGridConfig(gridConfig);
     return result;
   }
 

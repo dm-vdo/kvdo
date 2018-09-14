@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/loggerLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/loggerLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -137,6 +137,9 @@ void logMessagePack(int         priority,
     printk("%s%s: %s: %s%pV%pV\n", priorityToLogLevel(priority),
 	   THIS_MODULE->name, current->comm, prefix, &vaf1, &vaf2);
   }
+
+  va_end(args1Copy);
+  va_end(args2Copy);
 }
 
 /**********************************************************************/

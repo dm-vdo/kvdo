@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.h#8 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.h#9 $
  */
 
 #ifndef VOLUME_H
@@ -142,23 +142,6 @@ void freeVolume(Volume *volume);
  **/
 int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
   __attribute__((warn_unused_result));
-
-/**
- * Create the reader thread pool
- *
- * @param volume                The volume
- * @param numReaderThreads      How many threads to create
- *
- * @return UDS_SUCCESS or an error code
- **/
-int createReaderThreads(Volume *volume, unsigned int numReaderThreads);
-
-/**
- * Destroy the reader thread pool
- *
- * @param volume The volume
- **/
-void destroyReaderThreads(Volume *volume);
 
 /**
  * Format a new, empty volume on stable storage.

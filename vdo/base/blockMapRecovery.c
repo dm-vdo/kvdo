@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapRecovery.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapRecovery.c#4 $
  */
 
 #include "blockMapRecovery.h"
@@ -385,13 +385,14 @@ static void fetchPage(BlockMapRecoveryCompletion *recovery,
   }
 
   // Fetch the next page we haven't yet requested.
-  PageNumber newPageNumber = recovery->currentUnfetchedEntry->blockMapSlot.pbn;
+  PhysicalBlockNumber newPBN
+    = recovery->currentUnfetchedEntry->blockMapSlot.pbn;
   recovery->currentUnfetchedEntry
     = findEntryStartingNextPage(recovery, recovery->currentUnfetchedEntry,
                                 true);
   initVDOPageCompletion(((VDOPageCompletion *) completion),
                         recovery->blockMap->zones[0].pageCache,
-                        newPageNumber, true, &recovery->completion,
+                        newPBN, true, &recovery->completion,
                         pageLoaded, handlePageLoadError);
   recovery->outstanding++;
   getVDOPageAsync(completion);

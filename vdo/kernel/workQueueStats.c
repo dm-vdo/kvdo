@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#5 $
  */
 
 #include "workQueueStats.h"
@@ -89,7 +89,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
     = makeLogarithmicHistogram(queueKObject, "wakeup_queue_length",
                                "Wakeup Queue Length", "wakeups",
                                "queued work items", NULL, 4);
-  if (stats->rescheduleQueueLengthHistogram == NULL) {
+  if (stats->wakeupQueueLengthHistogram == NULL) {
     return -ENOMEM;
   }
 

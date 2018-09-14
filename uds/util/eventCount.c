@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.c#3 $
  */
 
 /**
@@ -266,15 +266,15 @@ EventToken eventCountPrepare(EventCount *ec)
 }
 
 /**********************************************************************/
-int eventCountCancel(EventCount *ec, EventToken token)
+void eventCountCancel(EventCount *ec, EventToken token)
 {
   // Decrement the waiter count if the event hasn't been signalled.
   if (fastCancel(ec, token)) {
-    return UDS_SUCCESS;
+    return;
   }
   // A signaller has already transferred (or promised to transfer) our token
   // to the semaphore, so we must consume it from the semaphore by waiting.
-  return eventCountWait(ec, token, NULL);
+  eventCountWait(ec, token, NULL);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#8 $
  */
 
 #include "dmvdo.h"
@@ -757,7 +757,9 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   if (result != VDO_SUCCESS) {
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
-    releaseKVDOInstance(instance);
+    if (oldLayer == NULL) {
+      releaseKVDOInstance(instance);
+    }
     return -EINVAL;
   }
 
@@ -769,7 +771,6 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
       freeDeviceConfig(&config);
       unregisterThreadDeviceID();
       unregisterAllocatingThread();
-      releaseKVDOInstance(instance);
       return -EINVAL;
     }
 

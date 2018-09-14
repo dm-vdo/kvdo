@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/context.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/context.c#4 $
  */
 
 #include "context.h"
@@ -75,9 +75,14 @@ int openContext(UdsIndexSession session, unsigned int *contextID)
   // The non-null context now owns the indexSession reference.
 
   // Publish the new context in the context SessionGroup.
-  *contextID = initializeSession(contextGroup,
-                                 &context->session,
-                                 (SessionContents) context);
+  result = initializeSession(contextGroup, &context->session,
+                             (SessionContents) context, contextID);
+  if (result != UDS_SUCCESS) {
+    freeContext(context);
+    releaseSessionGroup(contextGroup);
+    unlockGlobalStateMutex();
+    return result;
+  }
   context->id = *contextID;
   logDebug("Opened context (%u)", *contextID);
   releaseBaseContext(context);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#12 $
  */
 
 #include "kernelLayer.h"
@@ -393,11 +393,13 @@ static int kvdoCreateEnqueueable(VDOCompletion *completion)
 /**********************************************************************/
 static void kvdoDestroyEnqueueable(Enqueueable **enqueueablePtr)
 {
-  KvdoEnqueueable *kvdoEnqueueable = container_of(*enqueueablePtr,
-                                                  KvdoEnqueueable,
-                                                  enqueueable);
-  FREE(kvdoEnqueueable);
-  *enqueueablePtr = NULL;
+  Enqueueable *enqueueable = *enqueueablePtr;
+  if (enqueueable != NULL) {
+    KvdoEnqueueable *kvdoEnqueueable
+      = container_of(enqueueable, KvdoEnqueueable, enqueueable);
+    FREE(kvdoEnqueueable);
+    *enqueueablePtr = NULL;
+  }
 }
 
 /**
@@ -844,7 +846,7 @@ int makeKernelLayer(BlockCount      blockCount,
 
   // Base-code thread, etc
   result = initializeKVDO(&layer->kvdo, *threadConfigPointer, reason);
-  if (result < 0) {
+  if (result != VDO_SUCCESS) {
     freeKernelLayer(layer);
     return result;
   }

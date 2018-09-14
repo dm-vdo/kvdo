@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/sysfs.c#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/sysfs.c#2 $
  */
 
 #include "sysfs.h"
 
 #include <linux/kobject.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -95,6 +96,7 @@ static struct kobj_type emptyObjectType = {
   .sysfs_ops     = &emptyOps,
   .default_attrs = emptyAttrs,
 };
+
 
 /**********************************************************************/
 // This is the the code for the /sys/<module_name>/parameter directory.
@@ -225,15 +227,15 @@ int initSysfs(void)
 {
   memset(&objectRoot, 0, sizeof(objectRoot));
   kobject_init(&objectRoot.kobj, &emptyObjectType);
-  kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
   int result = kobject_add(&objectRoot.kobj, NULL, THIS_MODULE->name);
   if (result == 0) {
     objectRoot.flag = true;
+    kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
     result = kobject_add(&objectRoot.parameterKobj, &objectRoot.kobj,
                          "parameter");
-  }
-  if (result == 0) {
-    objectRoot.parameterFlag = true;
+    if (result == 0) {
+      objectRoot.parameterFlag = true;
+    }
   }
   if (result != 0) {
     putSysfs();

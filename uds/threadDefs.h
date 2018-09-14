@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadDefs.h#3 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadDefs.h#4 $
  */
 
 #ifndef LINUX_KERNEL_THREAD_DEFS_H
@@ -74,6 +74,7 @@ static INLINE int initializeMutex(Mutex *mutex,
  *
  * @return UDS_SUCCESS or an error code
  **/
+__attribute__((warn_unused_result))
 static INLINE int initMutex(Mutex *mutex)
 {
   mutex_init(mutex);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#5 $
  */
 
 #include "indexInternals.h"
@@ -141,7 +141,7 @@ int allocateIndex(IndexLayout          *layout,
 }
 
 /**********************************************************************/
-void releaseIndex(Index *index, bool readOnly)
+void releaseIndex(Index *index)
 {
   if (index == NULL) {
     return;
@@ -154,11 +154,7 @@ void releaseIndex(Index *index, bool readOnly)
     FREE(index->zones);
   }
 
-  if (readOnly) {
-    freeReadOnlyVolume(index->volume);
-  } else {
-    freeVolume(index->volume);
-  }
+  freeVolume(index->volume);
 
   freeIndexState(&index->state);
   freeIndexCheckpoint(index->checkpoint);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/logger.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/logger.c#4 $
  */
 
 #include "logger.h"
@@ -139,6 +139,64 @@ static const char *getCurrentInterruptType(void)
   return "INTR";
 }
 
+/**
+ * Emit a log message to the kernel log in a format suited to the current
+ * thread context. Context info formats:
+ *
+ * interrupt:       kvdo[NMI]: blah
+ * thread w/dev id: kvdo12:myprog: blah
+ * kvdo thread:     kvdo12:foobarQ: blah
+ * other thread:    kvdo: myprog: blah
+ *
+ * Fields: module name, interrupt level, process name, device ID.
+ *
+ * @param level       A string describing the logging level
+ * @param moduleName  The name of the module doing the logging
+ * @param prefix      The prefix of the log message
+ * @param vaf1        The first message format descriptor
+ * @param vaf2        The second message format descriptor
+ **/
+static void emitLogMessage(const char             *level,
+                           const char             *moduleName,
+                           const char             *prefix,
+                           const struct va_format *vaf1,
+                           const struct va_format *vaf2)
+{
+  if (in_interrupt()) {
+    printk("%s%s[%s]: %s%pV%pV\n",
+           level, moduleName, getCurrentInterruptType(),
+           prefix, vaf1, vaf2);
+    return;
+  }
+
+  // Not at interrupt level; we have a process we can look at, and
+  // might have a device ID.
+  int deviceInstance = getThreadDeviceID();
+  if (deviceInstance != -1) {
+    printk("%s%s%u:%s: %s%pV%pV\n",
+           level, moduleName, deviceInstance, current->comm,
+           prefix, vaf1, vaf2);
+    return;
+  }
+
+  if (((current->flags & PF_KTHREAD) != 0)
+      && (strncmp(moduleName, current->comm, strlen(moduleName)) == 0)) {
+    /*
+     * It's a kernel thread starting with "kvdo" (or whatever). Assume it's
+     * ours and that its name is sufficient.
+     */
+    printk("%s%s: %s%pV%pV\n",
+           level, current->comm,
+           prefix, vaf1, vaf2);
+    return;
+  }
+
+  // Identify the module and the process.
+  printk("%s%s: %s: %s%pV%pV\n",
+         level, moduleName, current->comm,
+         prefix, vaf1, vaf2);
+}
+
 /**********************************************************************/
 void logMessagePack(int         priority,
                     const char *prefix,
@@ -185,51 +243,11 @@ void logMessagePack(int         priority,
     prefix = "";
   }
 
-  const char *levelString = priorityToLogLevel(priority);
-  /*
-   * Context info formats:
-   *
-   * interrupt:       kvdo[NMI]: blah
-   * thread w/dev id: kvdo12:myprog: blah
-   * kvdo thread:     kvdo12:foobarQ: blah
-   * other thread:    kvdo: myprog: blah
-   *
-   * Fields: module name, interrupt level, process name, device ID.
-   */
-  if (in_interrupt()) {
-    printk("%s%s[%s]: %s%pV%pV\n",
-           levelString, THIS_MODULE->name, getCurrentInterruptType(),
-           prefix, &vaf1, &vaf2);
-    return;
-  }
+  emitLogMessage(priorityToLogLevel(priority), THIS_MODULE->name,
+                 prefix, &vaf1, &vaf2);
 
-  // Not at interrupt level; we have a process we can look at, and
-  // might have a device ID.
-  int deviceInstance = getThreadDeviceID();
-  if (deviceInstance != -1) {
-    printk("%s%s%u:%s: %s%pV%pV\n",
-           levelString, THIS_MODULE->name, deviceInstance, current->comm,
-           prefix, &vaf1, &vaf2);
-    return;
-  }
-
-  size_t nameLen = strlen(THIS_MODULE->name);
-  if (((current->flags & PF_KTHREAD) != 0)
-      && (strncmp(THIS_MODULE->name, current->comm, nameLen) == 0)) {
-    /*
-     * It's a kernel thread starting with "kvdo" (or whatever). Assume it's
-     * ours and that its name is sufficient.
-     */
-    printk("%s%s: %s%pV%pV\n",
-           levelString, current->comm,
-           prefix, &vaf1, &vaf2);
-    return;
-  }
-
-  // Identify the module and the process.
-  printk("%s%s: %s: %s%pV%pV\n",
-         levelString, THIS_MODULE->name, current->comm,
-         prefix, &vaf1, &vaf2);
+  va_end(args1Copy);
+  va_end(args2Copy);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryDefs.h#1 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryDefs.h#5 $
  */
 
 #ifndef LINUX_KERNEL_MEMORY_DEFS_H
@@ -24,6 +24,7 @@
 
 #include <linux/io.h>  // for PAGE_SIZE
 
+#include "compiler.h"
 #include "threadRegistry.h"
 #include "typeDefs.h"
 
@@ -43,6 +44,17 @@
   doAllocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
 
 /**
+ * Allocate one element of the indicated type immediately, failing if the
+ * required memory is not immediately available.
+ *
+ * @param TYPE   The type of objects to allocate
+ * @param WHAT   What is being allocated (for error logging)
+ *
+ * @return pointer to the memory, or NULL if the memory is not available.
+ **/
+#define ALLOCATE_NOWAIT(TYPE, WHAT) allocateMemoryNowait(sizeof(TYPE), WHAT)
+
+/**
  * Perform termination of the memory allocation subsystem.
  **/
 void memoryExit(void);
@@ -51,6 +63,20 @@ void memoryExit(void);
  * Perform initialization of the memory allocation subsystem.
  **/
 void memoryInit(void);
+
+/**
+ * Allocate storage based on memory size, failing immediately if the required
+ * memory is not available.  The memory will be zeroed.
+ *
+ * @param size  The size of an object.
+ * @param what  What is being allocated (for error logging)
+ *
+ * @return pointer to the allocated memory, or NULL if the required space is
+ *         not available.
+ **/
+void *allocateMemoryNowait(size_t size, const char *what)
+  __attribute__((warn_unused_result));
+
 
 /**
  * Register the current thread as an allocating thread.
@@ -116,5 +142,6 @@ void getMemoryStats(uint64_t *bytesUsed,
  * (e.g., bios).
  **/
 void reportMemoryUsage(void);
+
 
 #endif /* LINUX_KERNEL_MEMORY_DEFS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#4 $
  */
 
 #ifndef VOLUME_INTERNALS_H
@@ -64,13 +64,6 @@ int allocateVolume(const Configuration  *config,
                    bool                  readOnly,
                    Volume              **newVolume)
   __attribute__((warn_unused_result));
-
-/**
- * Clean up a volume and its memory.
- *
- * @param volume The volume to destroy.
- **/
-void releaseVolume(Volume *volume);
 
 /**
  * Map a chapter number and page number to a phsical volume page number.

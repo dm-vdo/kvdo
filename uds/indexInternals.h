@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.h#3 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -55,9 +55,7 @@ int allocateIndex(IndexLayout          *layout,
  * Clean up the index and its memory.
  *
  * @param index    The index to destroy.
- * @param readOnly <code>true</code> if the index being released was
- *                 read-only
  **/
-void releaseIndex(Index *index, bool readOnly);
+void releaseIndex(Index *index);
 
 #endif /* INDEX_INTERNALS_H */

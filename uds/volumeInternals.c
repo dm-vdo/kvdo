@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#4 $
  */
 
 #include "volumeInternals.h"
@@ -148,14 +148,10 @@ static int openVolume(Volume *volume)
       result = readGeometryV4(reader, volume);
     }
   }
-
-  if (result != UDS_SUCCESS) {
-    freeBufferedReader(reader);
-    return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
-                                   "unknown or invalid volume version");
-  }
-
   freeBufferedReader(reader);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "failed to open volume");
+  }
   return UDS_SUCCESS;
 }
 
@@ -180,49 +176,48 @@ int allocateVolume(const Configuration  *config,
     closeIORegion(&region);
     return result;
   }
-  // Fill these fields in now so that releaseVolume will close the volume
-  // region
+  // Fill these fields in now so that freeVolume will close the volume region
   volume->region = region;
   volume->readOnly = readOnly;
   volume->nonce = getVolumeNonce(layout);
 
   result = openVolume(volume);
   if (result != UDS_SUCCESS) {
-    releaseVolume(volume);
+    freeVolume(volume);
     return result;
   }
 
   if (volume->geometry == NULL) {
     result = copyGeometry(config->geometry, &volume->geometry);
     if (result != UDS_SUCCESS) {
-      releaseVolume(volume);
-      return logWarningWithStringError(
-        result, "failed to allocate geometry: error");
+      freeVolume(volume);
+      return logWarningWithStringError(result,
+                                       "failed to allocate geometry: error");
     }
   } else {
     if (!readOnly && !verifyGeometry(config->geometry, volume->geometry)) {
-      releaseVolume(volume);
-      return logWarningWithStringError(
-        UDS_CORRUPT_COMPONENT, "config and volume geometries are inconsistent");
+      freeVolume(volume);
+      return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
+                              "config and volume geometries are inconsistent");
     }
   }
 
   result = ALLOCATE_IO_ALIGNED(config->geometry->bytesPerPage, byte,
                                "scratch page", &volume->scratchPage);
   if (result != UDS_SUCCESS) {
-    releaseVolume(volume);
+    freeVolume(volume);
     return result;
   }
   result = makeRadixSorter(config->geometry->recordsPerPage,
                            &volume->radixSorter);
   if (result != UDS_SUCCESS) {
-    releaseVolume(volume);
+    freeVolume(volume);
     return result;
   }
   result = ALLOCATE(config->geometry->recordsPerPage, const UdsChunkRecord *,
                     "record pointers", &volume->recordPointers);
   if (result != UDS_SUCCESS) {
-    releaseVolume(volume);
+    freeVolume(volume);
     return result;
   }
 
@@ -231,19 +226,19 @@ int allocateVolume(const Configuration  *config,
       result = makeSparseCache(volume->geometry, config->cacheChapters,
                                zoneCount, &volume->sparseCache);
       if (result != UDS_SUCCESS) {
-        releaseVolume(volume);
+        freeVolume(volume);
         return result;
       }
     }
     result = makePageCache(volume->geometry, config->cacheChapters,
                            readQueueMaxSize, zoneCount, &volume->pageCache);
     if (result != UDS_SUCCESS) {
-      releaseVolume(volume);
+      freeVolume(volume);
       return result;
     }
     result = makeIndexPageMap(volume->geometry, &volume->indexPageMap);
     if (result != UDS_SUCCESS) {
-      releaseVolume(volume);
+      freeVolume(volume);
       return result;
     }
   }
@@ -251,29 +246,6 @@ int allocateVolume(const Configuration  *config,
   *newVolume = volume;
   return UDS_SUCCESS;
 }
-
-/**********************************************************************/
-void releaseVolume(Volume *volume)
-{
-  if (volume == NULL) {
-    return;
-  }
-  if (volume->region != NULL) {
-    int result = syncAndCloseRegion(&volume->region, "index volume");
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing volume, releasing anyway");
-    }
-  }
-  freeIndexPageMap(volume->indexPageMap);
-  freePageCache(volume->pageCache);
-  freeRadixSorter(volume->radixSorter);
-  freeSparseCache(volume->sparseCache);
-  FREE(volume->geometry);
-  FREE(volume->recordPointers);
-  FREE(volume->scratchPage);
-  FREE(volume);
-  }
 
 /**********************************************************************/
 int mapToPhysicalPage(Geometry *geometry, int chapter, int page)

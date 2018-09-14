@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#7 $
  */
 
 #include "volumeGeometry.h"
@@ -395,7 +395,7 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
 /************************************************************************/
 int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 {
-  UdsConfiguration udsConfiguration;
+  UdsConfiguration udsConfiguration = NULL;
   int result = indexConfigToUdsConfiguration(indexConfig, &udsConfiguration);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "error creating index config");

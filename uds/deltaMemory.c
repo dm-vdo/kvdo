@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaMemory.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaMemory.c#4 $
  */
 #include "deltaMemory.h"
 
@@ -380,55 +380,18 @@ int startRestoringDeltaMemory(DeltaMemory *deltaMemory)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeDeltaListSaveInfo(Buffer *buffer, DeltaListSaveInfo *dlsi)
-{
-  int result = getByte(buffer, &dlsi->tag);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getByte(buffer, &dlsi->bitOffset);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getUInt16LEFromBuffer(buffer, &dlsi->byteCount);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getUInt32LEFromBuffer(buffer, &dlsi->index);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
-                           "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
-  return result;
-}
-
-/**********************************************************************/
-__attribute__((warn_unused_result))
 static int readDeltaListSaveInfo(BufferedReader *reader,
                                  DeltaListSaveInfo *dlsi)
 {
-  Buffer *buffer;
-  
-  int result = makeBuffer(sizeof(*dlsi), &buffer);
+  byte buffer[sizeof(DeltaListSaveInfo)];
+  int result = readFromBufferedReader(reader, buffer, sizeof(buffer));
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = readFromBufferedReader(reader, getBufferContents(buffer),
-                                  bufferLength(buffer));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = resetBufferEnd(buffer, bufferLength(buffer));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = decodeDeltaListSaveInfo(buffer, dlsi);
-  freeBuffer(&buffer);
+  dlsi->tag =  buffer[0];
+  dlsi->bitOffset = buffer[1];
+  dlsi->byteCount = getUInt16LE(&buffer[2]);
+  dlsi->index = getUInt32LE(&buffer[4]);
   return result;
 }
 
@@ -537,21 +500,15 @@ void abortSavingDeltaMemory(DeltaMemory *deltaMemory)
 }
 
 /**********************************************************************/
-static void encodeDeltaListSaveInfo(byte *buffer, DeltaListSaveInfo *dlsi)
-{
-  buffer[0] = dlsi->tag;
-  buffer[1] = dlsi->bitOffset;
-  storeUInt16LE(&buffer[2], dlsi->byteCount);
-  storeUInt32LE(&buffer[4], dlsi->index);
-}
-
-/**********************************************************************/
 __attribute__((warn_unused_result))
 static int writeDeltaListSaveInfo(BufferedWriter *bufferedWriter,
                                   DeltaListSaveInfo *dlsi)
 {
   byte buffer[sizeof(DeltaListSaveInfo)];
-  encodeDeltaListSaveInfo(buffer, dlsi);
+  buffer[0] = dlsi->tag;
+  buffer[1] = dlsi->bitOffset;
+  storeUInt16LE(&buffer[2], dlsi->byteCount);
+  storeUInt32LE(&buffer[4], dlsi->index);
   return writeToBufferedWriter(bufferedWriter, buffer, sizeof(buffer));
 }
 
