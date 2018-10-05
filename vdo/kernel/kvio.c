@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#3 $
  */
 
 #include "kvio.h"
@@ -199,7 +199,7 @@ void kvdoFlushVIO(VIO *vio)
   BIO         *bio   = kvio->bio;
   KernelLayer *layer = kvio->layer;
   resetBio(bio, layer);
-  prepareFlushBIO(bio, kvio, layer->dev->bdev, completeFlushBio);
+  prepareFlushBIO(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
   submitBio(bio, getMetadataAction(vio));
 }
 

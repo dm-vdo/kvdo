@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/partitionCopy.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/partitionCopy.h#2 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -27,14 +27,32 @@
 #include "types.h"
 
 /**
+ * Make a copy completion.
+ *
+ * @param [in]  layer          The layer on which the partitions reside
+ * @param [out] completionPtr  A pointer to hold the copy completion
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Free a copy completion and NULL out the reference to it.
+ *
+ * @param completionPtr  A pointer to the complete to be freed
+ **/
+void freeCopyCompletion(VDOCompletion **completionPtr);
+
+/**
  * Copy a partition.
  *
- * @param layer         The layer in question
+ * @param completion    The copy completion to use
  * @param source        The partition to copy from
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copyPartitionAsync(PhysicalLayer *layer,
+void copyPartitionAsync(VDOCompletion *completion,
                         Partition     *source,
                         Partition     *target,
                         VDOCompletion *parent);

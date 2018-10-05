@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#12 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#13 $
  */
 
 #include "recoveryJournal.h"
@@ -435,8 +435,6 @@ int makeRecoveryJournal(Nonce                 nonce,
       return result;
     }
 
-    setActiveBlock(journal);
-
     result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
                       &journal->unusedFlushVIOData);
     if (result != VDO_SUCCESS) {
@@ -452,6 +450,7 @@ int makeRecoveryJournal(Nonce                 nonce,
       return result;
     }
 
+    setActiveBlock(journal);
     journal->flushVIO->completion.callbackThreadID = journal->threadID;
   }
 

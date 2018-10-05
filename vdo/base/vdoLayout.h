@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLayout.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLayout.h#2 $
  */
 
 /**
@@ -93,12 +93,14 @@ Partition *getVDOPartition(VDOLayout *vdoLayout, PartitionID id)
  * @param vdoLayout          The layout to grow
  * @param oldPhysicalBlocks  The current size of the VDO
  * @param newPhysicalBlocks  The size to which the VDO will be grown
+ * @param layer              The layer being grown
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepareToGrowVDOLayout(VDOLayout  *vdoLayout,
-                           BlockCount  oldPhysicalBlocks,
-                           BlockCount  newPhysicalBlocks)
+int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
+                           BlockCount     oldPhysicalBlocks,
+                           BlockCount     newPhysicalBlocks,
+                           PhysicalLayer *layer)
   __attribute__((warn_unused_result));
 
 /**

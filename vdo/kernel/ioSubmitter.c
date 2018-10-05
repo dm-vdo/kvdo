@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#4 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -237,7 +237,7 @@ static void processBioMap(KvdoWorkItem *item)
       KVIO *kvioBio = bio->bi_private;
       BIO  *next    = bio->bi_next;
       bio->bi_next  = NULL;
-      setBioBlockDevice(bio, kvioBio->layer->dev->bdev);
+      setBioBlockDevice(bio, getKernelLayerBdev(kvioBio->layer));
       kvioBio->bioSubmissionCallback(&kvioBio->enqueueable.workItem);
       bio = next;
     }
@@ -429,7 +429,7 @@ void enqueueBioMap(BIO                 *bio,
    * Setting the sync-flag on journal-related bios is expected to reduce
    * latency on journal updates submitted to an MD RAID5 device.
    */
-  if (layer->mdRaid5ModeEnabled) {
+  if (layer->deviceConfig->mdRaid5ModeEnabled) {
     if (isData(kvio)) {
       // Clear the bits for sync I/O RW flags on data block bios.
       clearBioOperationFlagSync(bio);
@@ -489,6 +489,7 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                     unsigned int   threadCount,
                     unsigned int   rotationInterval,
                     unsigned int   maxRequestsActive,
+                    unsigned int   readCacheBlocks,
                     KernelLayer   *layer,
                     IOSubmitter  **ioSubmitterPtr)
 {
@@ -502,8 +503,8 @@ int makeIOSubmitter(const char    *threadNamePrefix,
     return result;
   }
 
-  if (layer->readCacheBlocks > 0) {
-    result = makeReadCache(layer, layer->readCacheBlocks, threadCount,
+  if (readCacheBlocks > 0) {
+    result = makeReadCache(layer, readCacheBlocks, threadCount,
                            &ioSubmitter->readCache);
     if (result != VDO_SUCCESS) {
       FREE(ioSubmitter);

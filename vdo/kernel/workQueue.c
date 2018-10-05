@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#9 $
  */
 
 #include "workQueue.h"
@@ -974,6 +974,8 @@ void freeWorkQueue(KvdoWorkQueue **queuePtr)
     return;
   }
   *queuePtr = NULL;
+
+  finishWorkQueue(queue);
 
   if (queue->roundRobinMode) {
     freeRoundRobinWorkQueue(asRoundRobinWorkQueue(queue));

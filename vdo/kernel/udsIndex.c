@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#9 $
  */
 
 #include "udsIndex.h"
@@ -378,7 +378,7 @@ static void closeSession(UDSIndex *index)
   }
   spin_lock(&index->stateLock);
   index->indexState = IS_CLOSED;
-  index->errorFlag = result != UDS_SUCCESS;
+  index->errorFlag |= result != UDS_SUCCESS;
   // ASSERTION: We leave in IS_CLOSED state.
 }
 
@@ -401,7 +401,7 @@ static void openContext(UDSIndex *index)
   } else {
     index->indexTarget = IS_CLOSED;
     index->errorFlag = true;
-    // ASSERTION: On failure, we leave in IS_CLOSED state.
+    // ASSERTION: On failure, we leave in IS_INDEXSESSION state.
   }
 }
 
@@ -437,6 +437,11 @@ static void openSession(UDSIndex *index)
       if (result != UDS_SUCCESS) {
         logErrorWithStringError(result, "Error reading configuration for %s",
                                 index->indexName);
+        int closeResult = udsCloseIndexSession(index->indexSession);
+        if (closeResult != UDS_SUCCESS) {
+          logErrorWithStringError(closeResult, "Error closing index %s",
+                                  index->indexName);
+        }
       } else {
         if (udsConfigurationGetNonce(index->configuration)
             != udsConfigurationGetNonce(configuration)) {
@@ -758,7 +763,7 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
 {
   UDSIndex *index;
   int result = ALLOCATE(1, UDSIndex, "UDS index data", &index);
-  if (result != VDO_SUCCESS) {
+  if (result != UDS_SUCCESS) {
     return result;
   }
 
@@ -766,11 +771,21 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
                         "dev=%s offset=4096 size=%" PRIu64,
                         layer->deviceConfig->parentDeviceName,
                         getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
-  if (result < 0) {
+  if (result != UDS_SUCCESS) {
     logError("Creating index name failed (%d)", result);
     FREE(index);
     return result;
   }
+
+  result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
+                                         &index->configuration);
+  if (result != VDO_SUCCESS) {
+    FREE(index->indexName);
+    FREE(index);
+    return result;
+  }
+  udsConfigurationSetNonce(index->configuration,
+                           (UdsNonce) layer->geometry.nonce);
 
   static const KvdoWorkQueueType udsQueueType = {
     .start        = startUDSQueue,
@@ -782,29 +797,19 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
                          &layer->wqDirectory, layer, index, &udsQueueType, 1,
                          &index->udsQueue);
-  if (result < 0) {
-    logError("UDS index queue initialization failed (%d)", result);
-    FREE(index->indexName);
-    FREE(index);
-    return result;
-  }
-
-  result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
-                                         &index->configuration);
   if (result != VDO_SUCCESS) {
-    freeWorkQueue(&index->udsQueue);
+    logError("UDS index queue initialization failed (%d)", result);
+    udsFreeConfiguration(index->configuration);
     FREE(index->indexName);
     FREE(index);
     return result;
   }
-  udsConfigurationSetNonce(index->configuration,
-                           (UdsNonce) layer->geometry.nonce);
 
   kobject_init(&index->dedupeObject, &dedupeKobjType);
   result = kobject_add(&index->dedupeObject, &layer->kobj, "dedupe");
   if (result != VDO_SUCCESS) {
-    udsFreeConfiguration(index->configuration);
     freeWorkQueue(&index->udsQueue);
+    udsFreeConfiguration(index->configuration);
     FREE(index->indexName);
     FREE(index);
     return result;

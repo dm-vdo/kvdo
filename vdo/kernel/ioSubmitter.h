@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.h#2 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -75,6 +75,7 @@ void completeAsyncBio(BIO *bio, int error);
  *                                bio-submission threads when enqueuing work
  *                                items
  * @param [in]  maxRequestsActive Number of bios for merge tracking
+ * @param [in]  readCacheBlocks   Number of read cache blocks
  * @param [in]  layer             The kernel layer
  * @param [out] ioSubmitter       Pointer to the new data structure
  *
@@ -84,6 +85,7 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                     unsigned int   threadCount,
                     unsigned int   rotationInterval,
                     unsigned int   maxRequestsActive,
+                    unsigned int   readCacheBlocks,
                     KernelLayer   *layer,
                     IOSubmitter  **ioSubmitter);
 

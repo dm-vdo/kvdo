@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#5 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
+
+#include <linux/device-mapper.h>
 
 #include "kernelTypes.h"
 
@@ -34,9 +36,16 @@ typedef struct {
   int hashZones;
 } ThreadCountConfig;
 
+typedef uint32_t TableVersion;
+
 typedef struct {
+  struct dm_target  *owningTarget;
+  struct dm_dev     *ownedDevice;
+  KernelLayer       *layer;
   char              *originalString;
+  TableVersion       version;
   char              *parentDeviceName;
+  BlockCount         physicalBlocks;
   unsigned int       logicalBlockSize;
   WritePolicy        writePolicy;
   unsigned int       cacheSize;
@@ -66,19 +75,21 @@ int getPoolNameFromArgv(int    argc,
   __attribute__((warn_unused_result));
 
 /**
- * Convert the dmsetup argument list into a DeviceConfig.
+ * Convert the dmsetup table into a DeviceConfig.
  *
  * @param [in]  argc        The number of table values
  * @param [in]  argv        The array of table values
- * @param [out] errorPtr    A pointer to return a error string in
+ * @param [in]  ti          The target structure for this table
+ * @param [in]  verbose     Whether to log about the underlying device
  * @param [out] configPtr   A pointer to return the allocated config
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parseDeviceConfig(int            argc,
-                      char         **argv,
-                      char         **errorPtr,
-                      DeviceConfig **configPtr)
+int parseDeviceConfig(int                argc,
+                      char             **argv,
+                      struct dm_target  *ti,
+                      bool               verbose,
+                      DeviceConfig     **configPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -97,13 +108,5 @@ void freeDeviceConfig(DeviceConfig **configPtr);
  **/
 const char *getConfigWritePolicyString(DeviceConfig *config)
   __attribute__((warn_unused_result));
-
-/**
- * Resolve the write policy if needed.
- *
- * @param [in,out] config          The config to resolve
- * @param [in]     flushSupported  Whether flushes are supported.
- **/
-void resolveConfigWithFlushSupport(DeviceConfig *config, bool flushSupported);
 
 #endif // DEVICE_CONFIG_H

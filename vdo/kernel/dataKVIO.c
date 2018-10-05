@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#10 $
  */
 
 #include "dataKVIO.h"
@@ -599,7 +599,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
     dataKVIO->readBlock.data      = dataKVIO->dataBlock;
   }
 
-  setBioBlockDevice(bio, layer->dev->bdev);
+  setBioBlockDevice(bio, getKernelLayerBdev(layer));
   bio->bi_end_io = completeAsyncBio;
   *dataKVIOPtr   = dataKVIO;
   return VDO_SUCCESS;
@@ -867,7 +867,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
                                    "DataKVIO data bio allocation failure");
   }
 
-  if (layer->readCacheBlocks == 0) {
+  if (!layer->deviceConfig->readCacheEnabled) {
     result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
                             &dataKVIO->readBlock.buffer);
     if (result != VDO_SUCCESS) {

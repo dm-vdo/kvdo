@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#5 $
  */
 
 #include "vdoResize.h"
@@ -266,7 +266,7 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   }
 
   int result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
-                                      newPhysicalBlocks);
+                                      newPhysicalBlocks, vdo->layer);
   if (result != VDO_SUCCESS) {
     return result;
   }

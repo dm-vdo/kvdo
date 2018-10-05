@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#20 $
  */
 
 #include "dmvdo.h"
@@ -117,6 +117,18 @@ unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
 /**********************************************************************/
 
 /**
+ * Get the kernel layer associated with a dm target structure.
+ *
+ * @param ti  The dm target structure
+ *
+ * @return The kernel layer, or NULL.
+ **/
+static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
+{
+  return ((DeviceConfig *) ti->private)->layer;
+}
+
+/**
  * Begin VDO processing of a bio.  This is called by the device mapper
  * through the "map" function, and has resulted from a call to either
  * submit_bio or generic_make_request.
@@ -151,16 +163,16 @@ static int vdoMapBio(struct dm_target *ti, BIO *bio, union map_info *unused)
 static int vdoMapBio(struct dm_target *ti, BIO *bio)
 #endif
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
   return kvdoMapBio(layer, bio);
 }
 
 /**********************************************************************/
 static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
 
-  limits->logical_block_size  = layer->logicalBlockSize;
+  limits->logical_block_size  = layer->deviceConfig->logicalBlockSize;
   limits->physical_block_size = VDO_BLOCK_SIZE;
 
   // The minimum io size for random io
@@ -181,11 +193,11 @@ static int vdoIterateDevices(struct dm_target           *ti,
                              iterate_devices_callout_fn  fn,
                              void                       *data)
 {
-  KernelLayer *layer = ti->private;
-  sector_t len = blockToSector(layer, layer->blockCount);
+  KernelLayer *layer = getKernelLayerForTarget(ti);
+  sector_t len = blockToSector(layer, layer->deviceConfig->physicalBlocks);
 
 #if HAS_FLUSH_SUPPORTED
-  return fn(ti, layer->dev, 0, len, data);
+  return fn(ti, layer->deviceConfig->ownedDevice, 0, len, data);
 #else
   if (!shouldProcessFlush(layer)) {
     // In sync mode, if the underlying device needs flushes, accept flushes.
@@ -221,7 +233,7 @@ static void vdoStatus(struct dm_target *ti,
                       char             *result,
                       unsigned int      maxlen)
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
   char nameBuffer[BDEVNAME_SIZE];
   // N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen".
   int sz = 0;
@@ -233,7 +245,7 @@ static void vdoStatus(struct dm_target *ti,
     getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
     VDOStatistics *stats = &layer->vdoStatsStorage;
     DMEMIT("/dev/%s %s %s %s %s %" PRIu64 " %" PRIu64,
-           bdevname(layer->dev->bdev, nameBuffer),
+           bdevname(getKernelLayerBdev(layer), nameBuffer),
 	   stats->mode,
 	   stats->inRecoveryMode ? "recovering" : "-",
 	   getDedupeStateName(layer->dedupeIndex),
@@ -245,7 +257,7 @@ static void vdoStatus(struct dm_target *ti,
 
   case STATUSTYPE_TABLE:
     // Report the string actually specified in the beginning.
-    DMEMIT("%s", layer->deviceConfig->originalString);
+    DMEMIT("%s", ((DeviceConfig *) ti->private)->originalString);
     break;
   }
 
@@ -254,15 +266,15 @@ static void vdoStatus(struct dm_target *ti,
 
 
 /**
- * Get the size of a device, in blocks.
+ * Get the size of the underlying device, in blocks.
  *
- * @param [in]  dev     The device object.
+ * @param [in] layer  The layer
  *
  * @return The size in blocks
  **/
-static BlockCount getDeviceBlockCount(struct dm_dev *dev)
+static BlockCount getUnderlyingDeviceBlockCount(KernelLayer *layer)
 {
-  uint64_t physicalSize = i_size_read(dev->bdev->bd_inode);
+  uint64_t physicalSize = i_size_read(getKernelLayerBdev(layer)->bd_inode);
   return physicalSize / VDO_BLOCK_SIZE;
 }
 
@@ -332,11 +344,26 @@ static int processVDOMessageLocked(KernelLayer   *layer,
     }
 
     if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-      return prepareToResizePhysical(layer, getDeviceBlockCount(layer->dev));
+      return prepareToResizePhysical(layer,
+                                     getUnderlyingDeviceBlockCount(layer));
     }
 
     if (strcasecmp(argv[0], "growPhysical") == 0) {
-      return resizePhysical(layer, getDeviceBlockCount(layer->dev));
+      // The actual growPhysical will happen when the device is resumed.
+
+      if (layer->deviceConfig->version != 0) {
+        // XXX Uncomment this branch when new VDO manager is updated to not
+        // send this message.
+
+        // Old style message on new style table is unexpected; it means the
+        // user started the VDO with new manager and is growing with old.
+        // logInfo("Mismatch between growPhysical method and table version.");
+        // return -EINVAL;
+      } else {
+        layer->deviceConfig->physicalBlocks
+          = getUnderlyingDeviceBlockCount(layer);
+      }
+      return 0;
     }
 
     break;
@@ -454,7 +481,7 @@ static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
     return -EINVAL;
   }
 
-  KernelLayer *layer = (KernelLayer *) ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread allocatingThread, instanceThread;
   registerAllocatingThread(&allocatingThread, NULL);
   registerThreadDevice(&instanceThread, layer);
@@ -462,44 +489,6 @@ static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
   unregisterThreadDeviceID();
   unregisterAllocatingThread();
   return mapToSystemError(result);
-}
-
-/**
- * Get the device beneath this device mapper target, given its name and
- * this target.
- *
- * @param [in]  ti      This device mapper target
- * @param [in]  name    The name of the device beneath ti
- * @param [out] devPtr  A pointer to return the device structure
- *
- * @return a system error code
- **/
-static int getUnderlyingDevice(struct dm_target  *ti,
-                               const char        *name,
-                               struct dm_dev    **devPtr)
-{
-  int result;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-  result = dm_get_device(ti, name, dm_table_get_mode(ti->table), devPtr);
-#else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32)
-// The signature of dm_get_device differs between kernel 2.6.32 on
-// debian squeeze and kernel 2.6.32 on RHEL (CentOS)
-#if defined(RHEL_RELEASE_CODE)
-  result = dm_get_device(ti, name, dm_table_get_mode(ti->table), devPtr);
-#else
-  result = dm_get_device(ti, name, 0, 0, dm_table_get_mode(ti->table), devPtr);
-#endif /* RHEL */
-#else
-#error "unsupported linux kernel version"
-#endif /* kernel 2.6.32 */
-#endif /* kernel version > 2.6.34 */
-
-  if (result != 0) {
-    logError("couldn't open device \"%s\": error %d", name, result);
-    return -EINVAL;
-  }
-  return result;
 }
 
 /**
@@ -552,22 +541,17 @@ static void configureTargetCapabilities(struct dm_target *ti,
  * Handle a vdoInitialize failure, freeing all appropriate structures.
  *
  * @param ti            The device mapper target representing our device
- * @param config        The parsed config for the instance
- * @param dev           The device under our device (possibly NULL)
  * @param threadConfig  The thread config (possibly NULL)
  * @param layer         The kernel layer (possibly NULL)
  * @param instance      The instance number to be released
  * @param why           The reason for failure
  **/
 static void cleanupInitialize(struct dm_target *ti,
-                              DeviceConfig     *config,
-                              struct dm_dev    *dev,
                               ThreadConfig     *threadConfig,
                               KernelLayer      *layer,
                               unsigned int      instance,
                               char             *why)
 {
-  freeDeviceConfig(&config);
   if (threadConfig != NULL) {
     freeThreadConfig(&threadConfig);
   }
@@ -577,9 +561,6 @@ static void cleanupInitialize(struct dm_target *ti,
   } else {
     // With no KernelLayer taking ownership we have to release explicitly.
     releaseKVDOInstance(instance);
-  }
-  if (dev != NULL) {
-    dm_put_device(ti, dev);
   }
 
   ti->error = why;
@@ -601,40 +582,15 @@ static int vdoInitialize(struct dm_target *ti,
 {
   logInfo("starting device '%s'", config->poolName);
 
-  struct dm_dev *dev;
-  int result = getUnderlyingDevice(ti, config->parentDeviceName, &dev);
-  if (result != 0) {
-    cleanupInitialize(ti, config, NULL, NULL, NULL, instance,
-                      "Device lookup failed");
-    return result;
-  }
-
-  struct request_queue *requestQueue = bdev_get_queue(dev->bdev);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-  bool flushSupported
-    = ((requestQueue->queue_flags & (1ULL << QUEUE_FLAG_WC)) != 0);
-  bool fuaSupported
-    = ((requestQueue->queue_flags & (1ULL << QUEUE_FLAG_FUA)) != 0);
-#else
-  bool flushSupported = ((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
-  bool fuaSupported   = ((requestQueue->flush_flags & REQ_FUA) == REQ_FUA);
-#endif
-  logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
-          (flushSupported ? "supported" : "not supported"),
-          (fuaSupported ? "supported" : "not supported"));
-
-  resolveConfigWithFlushSupport(config, flushSupported);
-
   uint64_t   blockSize      = VDO_BLOCK_SIZE;
   uint64_t   logicalSize    = to_bytes(ti->len);
   BlockCount logicalBlocks  = logicalSize / blockSize;
-  BlockCount physicalBlocks = getDeviceBlockCount(dev);
 
   logDebug("Logical block size      = %" PRIu64,
            (uint64_t) config->logicalBlockSize);
   logDebug("Logical blocks          = %" PRIu64, logicalBlocks);
   logDebug("Physical block size     = %" PRIu64, (uint64_t) blockSize);
-  logDebug("Physical blocks         = %" PRIu64, physicalBlocks);
+  logDebug("Physical blocks         = %" PRIu64, config->physicalBlocks);
   logDebug("Block map cache blocks  = %u", config->cacheSize);
   logDebug("Block map maximum age   = %u", config->blockMapMaximumAge);
   logDebug("MD RAID5 mode           = %s", (config->mdRaid5ModeEnabled
@@ -653,17 +609,15 @@ static int vdoInitialize(struct dm_target *ti,
     .maximumAge   = config->blockMapMaximumAge,
   };
 
-  // Henceforth it is the kernel layer's responsibility to clean up the
-  // DeviceConfig in case of error.
   char        *failureReason;
   KernelLayer *layer;
-  result = makeKernelLayer(physicalBlocks, ti->begin, dev, instance,
-                           config, &kvdoDevice.kobj, &loadConfig.threadConfig,
-                           &failureReason, &layer);
+  int result = makeKernelLayer(ti->begin, instance, config,
+                               &kvdoDevice.kobj, &loadConfig.threadConfig,
+                               &failureReason, &layer);
   if (result != VDO_SUCCESS) {
     logError("Could not create kernel physical layer. (VDO error %d,"
              " message %s)", result, failureReason);
-    cleanupInitialize(ti, NULL, dev, loadConfig.threadConfig, NULL, instance,
+    cleanupInitialize(ti, loadConfig.threadConfig, NULL, instance,
                       failureReason);
     return result;
   }
@@ -675,53 +629,28 @@ static int vdoInitialize(struct dm_target *ti,
   if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {
     logWarning("Insufficient block map cache for logical zones");
-    cleanupInitialize(ti, NULL, dev, loadConfig.threadConfig, layer, instance,
+    cleanupInitialize(ti, loadConfig.threadConfig, layer, instance,
                       "Insufficient block map cache for logical zones");
     return VDO_BAD_CONFIGURATION;
   }
 
+  // Henceforth it is the kernel layer's responsibility to clean up the
+  // ThreadConfig.
   result = startKernelLayer(layer, &loadConfig, &failureReason);
-  freeThreadConfig(&loadConfig.threadConfig);
   if (result != VDO_SUCCESS) {
     logError("Could not start kernel physical layer. (VDO error %d,"
              " message %s)", result, failureReason);
-    cleanupInitialize(ti, NULL, dev, NULL, layer, instance, failureReason);
+    cleanupInitialize(ti, NULL, layer, instance, failureReason);
     return result;
   }
 
-  layer->ti   = ti;
-  ti->private = layer;
+  acquireKernelLayerReference(layer, config);
+  setKernelLayerActiveConfig(layer, config);
+  ti->private = config;
   configureTargetCapabilities(ti, layer);
 
   logInfo("device '%s' started", config->poolName);
   return VDO_SUCCESS;
-}
-
-/**
- * Release our reference to the old device and swap in the new dm target
- * structure and underlying device.  If there is no old reference increment
- * the reference count on the layer to prevent it being released before the
- * destructor for the old target occurs.
- *
- * @param layer  The layer in question
- * @param ti     The new target structure
- * @param dev    The new underlying device
- **/
-static void convertToNewDevice(KernelLayer      *layer,
-                               struct dm_target *ti,
-                               struct dm_dev    *dev)
-{
-  if (layer->oldTI != NULL) {
-    logDebug("Releasing ref by %" PRIptr "  to %" PRIptr, layer->oldTI,
-             layer->oldDev);
-    dm_put_device(layer->oldTI, layer->oldDev);
-  } else {
-    kobject_get(&layer->kobj);
-  }
-  layer->oldTI  = layer->ti;
-  layer->oldDev = layer->dev;
-  layer->ti     = ti;
-  layer->dev    = dev;
 }
 
 /**********************************************************************/
@@ -752,8 +681,9 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   RegisteredThread instanceThread;
   registerThreadDeviceID(&instanceThread, &instance);
 
+  bool verbose = (oldLayer == NULL);
   DeviceConfig *config = NULL;
-  result = parseDeviceConfig(argc, argv, &ti->error, &config);
+  result = parseDeviceConfig(argc, argv, ti, verbose, &config);
   if (result != VDO_SUCCESS) {
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
@@ -765,68 +695,33 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 
   // Is there already a device of this name?
   if (oldLayer != NULL) {
-    if (getKernelLayerState(oldLayer) != LAYER_SUSPENDED) {
-      logError("Can't modify already-existing VDO named %s that isn't"
-               " suspended", poolName);
-      freeDeviceConfig(&config);
-      unregisterThreadDeviceID();
-      unregisterAllocatingThread();
-      return -EINVAL;
-    }
-
     /*
-     * Applying the new table here is technically incorrect. Most
-     * devices don't apply the new table until they go through a
-     * suspend/resume cycle, and if they fail to apply the new table
-     * in their preresume step, they remain in a suspended state without a
-     * valid table. We want to apply some modifications without a suspend
-     * and resume cycle, and if the modifications are invalid we want to
-     * remain active rather than suspended, so we apply the changes here
-     * instead of in preresume.
+     * To preserve backward compatibility with old VDO Managers, we need to
+     * allow this to happen when either suspended or not. We could assert
+     * that if the config is version 0, we are suspended, and if not, we
+     * are not, but we can't do that till new VDO Manager does the right
+     * order.
      */
-    logInfo("modifying device '%s'", config->poolName);
-    ti->private = oldLayer;
-
-    struct dm_dev *newDev;
-    result = getUnderlyingDevice(ti, config->parentDeviceName, &newDev);
-    if (result == 0) {
-     struct request_queue *requestQueue = bdev_get_queue(newDev->bdev);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
-    bool flushSupported
-      = ((requestQueue->queue_flags & (1ULL << QUEUE_FLAG_WC)) != 0);
-#else
-    bool flushSupported
-      = ((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
-#endif
-     resolveConfigWithFlushSupport(config, flushSupported);
-
-     result = modifyKernelLayer(oldLayer, ti, config, &ti->error);
-      if (result != VDO_SUCCESS) {
-        result = mapToSystemError(result);
-        dm_put_device(ti, newDev);
-        freeDeviceConfig(&config);
-      } else {
-        configureTargetCapabilities(ti, oldLayer);
-        convertToNewDevice(oldLayer, ti, newDev);
-        DeviceConfig *oldConfig = oldLayer->deviceConfig;
-        oldLayer->deviceConfig = config;
-        freeDeviceConfig(&oldConfig);
-      }
-    } else {
+    logInfo("preparing to modify device '%s'", config->poolName);
+    result = prepareToModifyKernelLayer(oldLayer, config, &ti->error);
+    if (result != VDO_SUCCESS) {
+      result = mapToSystemError(result);
       freeDeviceConfig(&config);
-      logError("Could not find underlying device");
+    } else {
+      acquireKernelLayerReference(oldLayer, config);
+      ti->private = config;
+      configureTargetCapabilities(ti, oldLayer);
     }
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
     return result;
   }
 
-  // Henceforth, the config will be freed within any failing function and it
-  // is the kernel layer's responsibility to free when appropriate.
   result = vdoInitialize(ti, instance, config);
   if (result != VDO_SUCCESS) {
     // vdoInitialize calls into various VDO routines, so map error
     result = mapToSystemError(result);
+    freeDeviceConfig(&config);
   }
 
   unregisterThreadDeviceID();
@@ -837,71 +732,39 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 /**********************************************************************/
 static void vdoDtr(struct dm_target *ti)
 {
-  KernelLayer *layer = ti->private;
-  if (layer->ti != ti) {
-    /*
-     * This must be the destructor associated with a reload.
-     *
-     * We cannot access anything that may have been cleaned up by a previous
-     * invocation of the destructor.  That is, there's no guarantee that this
-     * code path is being executed before one that actually tore down the
-     * internals of the layer.
-     *
-     * Only perform the put on the device and kobject if the dm_target is the
-     * specific target tracked in the layer's oldTI field.  This allows
-     * multiple construction/destruction associated with the same layer (e.g.,
-     * as a result of multiple dmsetup reloads) without incorrectly destructing
-     * the layer.
-     */
-    if (layer->oldTI == ti) {
-      logDebug("Releasing reference by old ti %" PRIptr " to dev %" PRIptr,
-               layer->oldTI, layer->oldDev);
-      dm_put_device(layer->oldTI, layer->oldDev);
-      layer->oldTI  = NULL;
-      layer->oldDev = NULL;
-      kobject_put(&layer->kobj);
+  DeviceConfig *config = ti->private;
+  KernelLayer  *layer  = getKernelLayerForTarget(ti);
+
+  releaseKernelLayerReference(layer, config);
+
+  if (layer->configReferences == 0) {
+    // This was the last config referencing the layer. Free it.
+    unsigned int instance = layer->instance;
+    RegisteredThread allocatingThread, instanceThread;
+    registerThreadDeviceID(&instanceThread, &instance);
+    registerAllocatingThread(&allocatingThread, NULL);
+
+    waitForNoRequestsActive(layer);
+    logInfo("stopping device '%s'", config->poolName);
+
+    if (layer->dumpOnShutdown) {
+      vdoDumpAll(layer, "device shutdown");
     }
-    return;
+
+    freeKernelLayer(layer);
+    logInfo("device '%s' stopped", config->poolName);
+    unregisterThreadDeviceID();
+    unregisterAllocatingThread();
   }
 
-  struct dm_dev *dev      = layer->dev;
-  unsigned int   instance = layer->instance;
-
-  RegisteredThread allocatingThread, instanceThread;
-  registerThreadDeviceID(&instanceThread, &instance);
-  registerAllocatingThread(&allocatingThread, NULL);
-
-  waitForNoRequestsActive(layer);
-  logInfo("stopping device '%s'", layer->deviceConfig->poolName);
-
-  if (layer->dumpOnShutdown) {
-    vdoDumpAll(layer, "device shutdown");
-  }
-
-  // Copy the device name (for logging) out of the layer since it's about to be
-  // freed.
-  const char *poolName;
-  char *poolNameToFree;
-  int result = duplicateString(layer->deviceConfig->poolName, "pool name",
-                               &poolNameToFree);
-  poolName = (result == VDO_SUCCESS) ? poolNameToFree : "unknown";
-
-  freeKernelLayer(layer);
-  dm_put_device(ti, dev);
-
-  logInfo("device '%s' stopped", poolName);
-  poolName = NULL;
-  FREE(poolNameToFree);
-  poolNameToFree = NULL;
-
-  unregisterThreadDeviceID();
-  unregisterAllocatingThread();
+  freeDeviceConfig(&config);
+  ti->private = NULL;
 }
 
 /**********************************************************************/
 static void vdoPostsuspend(struct dm_target *ti)
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
   const char *poolName = layer->deviceConfig->poolName;
@@ -918,11 +781,23 @@ static void vdoPostsuspend(struct dm_target *ti)
 /**********************************************************************/
 static int vdoPreresume(struct dm_target *ti)
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
+  DeviceConfig *config = ti->private;
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
-  logInfo("resuming device '%s'", layer->deviceConfig->poolName);
-  int result = resumeKernelLayer(layer);
+  logInfo("resuming device '%s'", config->poolName);
+
+  // This is a noop if nothing has changed, and by calling it every time
+  // we capture old-style growPhysicals, which change the config in place.
+  int result = modifyKernelLayer(layer, config);
+  if (result != VDO_SUCCESS) {
+    logErrorWithStringError(result, "Commit of modifications to device '%s'"
+                            " failed", config->poolName);
+    return result;
+  }
+  setKernelLayerActiveConfig(layer, config);
+
+  result = resumeKernelLayer(layer);
   if (result != VDO_SUCCESS) {
     logError("resume of device '%s' failed with error: %d",
              layer->deviceConfig->poolName, result);
@@ -934,7 +809,7 @@ static int vdoPreresume(struct dm_target *ti)
 /**********************************************************************/
 static void vdoResume(struct dm_target *ti)
 {
-  KernelLayer *layer = ti->private;
+  KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
   logInfo("device '%s' resumed", layer->deviceConfig->poolName);

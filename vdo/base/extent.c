@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.c#2 $
  */
 
 #include "extent.h"
@@ -93,16 +93,22 @@ void freeExtent(VDOExtent **extentPtr)
  * @param extent      The extent
  * @param startBlock  The absolute physical block at which the extent should
  *                    begin its I/O
+ * @param count       The number of blocks to write
  * @param operation   The operation to perform on the extent
  **/
 static void launchMetadataExtent(VDOExtent           *extent,
                                  PhysicalBlockNumber  startBlock,
+                                 BlockCount           count,
                                  VIOOperation         operation)
 {
   resetCompletion(&extent->completion);
-  extent->completeCount = 0;
-  BlockCount vioCount = extent->count;
-  for (BlockCount i = 0; i < vioCount; i++) {
+  if (count > extent->count) {
+    finishCompletion(&extent->completion, VDO_OUT_OF_RANGE);
+    return;
+  }
+
+  extent->completeCount = extent->count - count;
+  for (BlockCount i = 0; i < count; i++) {
     VIO *vio = extent->vios[i];
     vio->completion.callbackThreadID = extent->completion.callbackThreadID;
     launchMetadataVIO(vio, startBlock++, handleVIOCompletion,
@@ -111,15 +117,19 @@ static void launchMetadataExtent(VDOExtent           *extent,
 }
 
 /**********************************************************************/
-void readMetadataExtent(VDOExtent *extent, PhysicalBlockNumber startBlock)
+void readPartialMetadataExtent(VDOExtent           *extent,
+                               PhysicalBlockNumber  startBlock,
+                               BlockCount           count)
 {
-  launchMetadataExtent(extent, startBlock, VIO_READ);
+  launchMetadataExtent(extent, startBlock, count, VIO_READ);
 }
 
 /**********************************************************************/
-void writeMetadataExtent(VDOExtent *extent, PhysicalBlockNumber startBlock)
+void writePartialMetadataExtent(VDOExtent           *extent,
+                                PhysicalBlockNumber  startBlock,
+                                BlockCount           count)
 {
-  launchMetadataExtent(extent, startBlock, VIO_WRITE);
+  launchMetadataExtent(extent, startBlock, count, VIO_WRITE);
 }
 
 /**********************************************************************/

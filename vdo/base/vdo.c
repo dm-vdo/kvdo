@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#10 $
  */
 
 /*
@@ -189,13 +189,8 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  if (vdo->threadData != NULL) {
-    for (ThreadID thread = 0; thread < threadConfig->baseThreadCount;
-         thread++) {
-      uninitializeThreadData(&vdo->threadData[thread]);
-    }
-    FREE(vdo->threadData);
-    vdo->threadData = NULL;
+  if (threadConfig != NULL) {
+    freeThreadDataArray(&vdo->threadData, threadConfig->baseThreadCount);
   }
 
   freeAdminCompletion(&vdo->adminCompletion);
@@ -626,9 +621,11 @@ int validateVDOConfig(const VDOConfig *config,
     return VDO_OUT_OF_RANGE;
   }
 
+  // This can't check equality because FileLayer et al can only known about
+  // the storage size, which may not match the super block size.
   result = ASSERT(config->physicalBlocks <= blockCount,
-                  "Physical size %" PRIu64 " in super block greater than"
-                  " storage size %" PRIu64, config->physicalBlocks,
+                  "Physical size %" PRIu64 " in super block smaller than"
+                  " expected size %" PRIu64, config->physicalBlocks,
                   blockCount);
   if (result != UDS_SUCCESS) {
     return VDO_PARAMETER_MISMATCH;

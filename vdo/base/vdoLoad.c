@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#6 $
  */
 
 #include "vdoLoad.h"
@@ -342,20 +342,10 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
   }
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  result = ALLOCATE(threadConfig->baseThreadCount, ThreadData, __func__,
-                    &vdo->threadData);
+  result = makeThreadDataArray((vdo->state == VDO_READ_ONLY_MODE),
+                               threadConfig, vdo->layer, &vdo->threadData);
   if (result != VDO_SUCCESS) {
     return result;
-  }
-
-  for (ThreadCount thread = 0; thread < threadConfig->baseThreadCount;
-       thread++) {
-    result = initializeThreadData(&vdo->threadData[thread], thread,
-                                  (vdo->state == VDO_READ_ONLY_MODE),
-                                  threadConfig, vdo->layer);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
   }
 
   result = finishVDODecode(vdo);
@@ -488,12 +478,6 @@ static void loadCallback(VDOCompletion *completion)
 int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
 {
   vdo->loadConfig = *loadConfig;
-  int result = copyThreadConfig(loadConfig->threadConfig,
-                                &vdo->loadConfig.threadConfig);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
   return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, loadCallback);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#12 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#18 $
  */
 
 #include "kernelLayer.h"
@@ -38,6 +38,7 @@
 #include "bio.h"
 #include "dataKVIO.h"
 #include "dedupeIndex.h"
+#include "deviceConfig.h"
 #include "deviceRegistry.h"
 #include "instanceNumber.h"
 #include "ioSubmitterInternals.h"
@@ -97,7 +98,7 @@ static CRC32Checksum kvdoUpdateCRC32(CRC32Checksum  crc,
 /**********************************************************************/
 static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 {
-  return asKernelLayer(header)->blockCount;
+  return asKernelLayer(header)->deviceConfig->physicalBlocks;
 }
 
 /**********************************************************************/
@@ -248,7 +249,7 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
       // again, so this is the last chance to account for it.
       countBios(&layer->biosAcknowledged, bio);
       atomic64_inc(&layer->flushOut);
-      setBioBlockDevice(bio, layer->dev->bdev);
+      setBioBlockDevice(bio, getKernelLayerBdev(layer));
       return DM_MAPIO_REMAPPED;
     }
   }
@@ -287,6 +288,12 @@ int kvdoMapBio(KernelLayer *layer, BIO *bio)
   }
 
   return DM_MAPIO_SUBMITTED;
+}
+
+/**********************************************************************/
+struct block_device *getKernelLayerBdev(const KernelLayer *layer)
+{
+  return layer->deviceConfig->ownedDevice->bdev;
 }
 
 /**********************************************************************/
@@ -471,7 +478,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   setBioOperationRead(bio);
   bio->bi_end_io  = endSyncRead;
   bio->bi_private = &bioWait;
-  setBioBlockDevice(bio, kernelLayer->dev->bdev);
+  setBioBlockDevice(bio, getKernelLayerBdev(kernelLayer));
   setBioSector(bio, blockToSector(kernelLayer, startBlock));
   generic_make_request(bio);
   wait_for_completion(&bioWait);
@@ -562,7 +569,7 @@ static void waitForSyncOperation(PhysicalLayer *common)
  *
  * @returns VDO_SUCCESS if bio set created, error code otherwise
  **/
-static int makeDedupeBioSet(KernelLayer *layer) 
+static int makeDedupeBioSet(KernelLayer *layer)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,18,0)
   int result = ALLOCATE(1, struct bio_set, "bio set", &layer->bioset);
@@ -572,7 +579,7 @@ static int makeDedupeBioSet(KernelLayer *layer)
 
   result = bioset_init(layer->bioset, 0, 0, BIOSET_NEED_BVECS);
   if (result != 0) {
-    return result;    
+    return result;
   }
 #else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
@@ -584,14 +591,12 @@ static int makeDedupeBioSet(KernelLayer *layer)
     return -ENOMEM;
   }
 #endif
-  
+
   return VDO_SUCCESS;
 }
- 
+
 /**********************************************************************/
-int makeKernelLayer(BlockCount      blockCount,
-                    uint64_t        startingSector,
-                    struct dm_dev  *dev,
+int makeKernelLayer(uint64_t        startingSector,
                     unsigned int    instance,
                     DeviceConfig   *config,
                     struct kobject *parentKobject,
@@ -612,7 +617,6 @@ int makeKernelLayer(BlockCount      blockCount,
   int result = ALLOCATE(1, KernelLayer, "VDO configuration", &layer);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot allocate VDO configuration";
-    freeDeviceConfig(&config);
     return result;
   }
 
@@ -625,7 +629,6 @@ int makeKernelLayer(BlockCount      blockCount,
   result = allocateVDO(&layer->common, &layer->kvdo.vdo);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot allocate VDO";
-    freeDeviceConfig(&config);
     FREE(layer);
     return result;
   }
@@ -637,7 +640,6 @@ int makeKernelLayer(BlockCount      blockCount,
   result = kobject_add(&layer->kobj, parentKobject, config->poolName);
   if (result != 0) {
     *reason = "Cannot add sysfs node";
-    freeDeviceConfig(&config);
     kobject_put(&layer->kobj);
     return result;
   }
@@ -645,7 +647,6 @@ int makeKernelLayer(BlockCount      blockCount,
   result = kobject_add(&layer->wqDirectory, &layer->kobj, "work_queues");
   if (result != 0) {
     *reason = "Cannot add sysfs node";
-    freeDeviceConfig(&config);
     kobject_put(&layer->wqDirectory);
     kobject_put(&layer->kobj);
     return result;
@@ -668,16 +669,9 @@ int makeKernelLayer(BlockCount      blockCount,
   int requestLimit = defaultMaxRequestsActive;
   initializeLimiter(&layer->requestLimiter, requestLimit);
   initializeLimiter(&layer->discardLimiter, requestLimit * 3 / 4);
-  layer->readCacheBlocks
-    = (config->readCacheEnabled
-       ? (requestLimit + config->readCacheExtraBlocks) : 0);
 
   layer->allocationsAllowed   = true;
-  layer->dev                  = dev;
-  layer->blockCount           = blockCount;
   layer->instance             = instance;
-  layer->logicalBlockSize     = config->logicalBlockSize;
-  layer->mdRaid5ModeEnabled   = config->mdRaid5ModeEnabled;
   layer->deviceConfig         = config;
   layer->startingSectorOffset = startingSector;
 
@@ -826,10 +820,10 @@ int makeKernelLayer(BlockCount      blockCount,
   }
 
   // KVIO and VIO pool
-  BUG_ON(layer->logicalBlockSize <= 0);
+  BUG_ON(layer->deviceConfig->logicalBlockSize <= 0);
   BUG_ON(layer->requestLimiter.limit <= 0);
   BUG_ON(layer->bioset == NULL);
-  BUG_ON(layer->dev == NULL);
+  BUG_ON(layer->deviceConfig->ownedDevice == NULL);
   result = makeDataKVIOBufferPool(layer, layer->requestLimiter.limit,
                                   &layer->dataKVIOPool);
   if (result != VDO_SUCCESS) {
@@ -853,11 +847,15 @@ int makeKernelLayer(BlockCount      blockCount,
 
   setKernelLayerState(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
-  // Bio queue
+  // Bio queue and read cache
+  unsigned int readCacheBlocks
+    = (config->readCacheEnabled
+       ? (requestLimit + config->readCacheExtraBlocks) : 0);
   result = makeIOSubmitter(layer->threadNamePrefix,
                            config->threadCounts.bioThreads,
                            config->threadCounts.bioRotationInterval,
                            layer->requestLimiter.limit,
+                           readCacheBlocks,
                            layer,
                            &layer->ioSubmitter);
   if (result != VDO_SUCCESS) {
@@ -901,62 +899,97 @@ int makeKernelLayer(BlockCount      blockCount,
 }
 
 /**********************************************************************/
-int modifyKernelLayer(KernelLayer       *layer,
-                      struct dm_target  *ti,
-                      DeviceConfig      *config,
-                      char             **why)
+int prepareToModifyKernelLayer(KernelLayer       *layer,
+                               DeviceConfig      *config,
+                               char             **errorPtr)
 {
-  if (ti->begin != layer->ti->begin) {
-    *why = "Starting sector cannot change";
+  DeviceConfig *extantConfig = layer->deviceConfig;
+  if (config->owningTarget->begin != extantConfig->owningTarget->begin) {
+    *errorPtr = "Starting sector cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  DeviceConfig *extantConfig = layer->deviceConfig;
-
   if (strcmp(config->parentDeviceName, extantConfig->parentDeviceName) != 0) {
-    *why = "Underlying device cannot change";
+    *errorPtr = "Underlying device cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->logicalBlockSize != extantConfig->logicalBlockSize) {
-    *why = "Logical block size cannot change";
+    *errorPtr = "Logical block size cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->cacheSize != extantConfig->cacheSize) {
-    *why = "Block map cache size cannot change";
+    *errorPtr = "Block map cache size cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->blockMapMaximumAge != extantConfig->blockMapMaximumAge) {
-    *why = "Block map maximum age cannot change";
+    *errorPtr = "Block map maximum age cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->mdRaid5ModeEnabled != extantConfig->mdRaid5ModeEnabled) {
-    *why = "mdRaid5Mode cannot change";
+    *errorPtr = "mdRaid5Mode cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->readCacheEnabled != extantConfig->readCacheEnabled) {
-    *why = "Read cache enabled cannot change";
+    *errorPtr = "Read cache enabled cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (config->readCacheExtraBlocks != extantConfig->readCacheExtraBlocks) {
-    *why = "Read cache size cannot change";
+    *errorPtr = "Read cache size cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   if (strcmp(config->threadConfigString, extantConfig->threadConfigString)
       != 0) {
-    *why = "Thread configuration cannot change";
+    *errorPtr = "Thread configuration cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
   // Below here are the actions to take when a non-immutable property changes.
 
-  if (config->writePolicy != layer->deviceConfig->writePolicy) {
+  if (config->writePolicy != extantConfig->writePolicy) {
+    // Nothing needs doing right now for a write policy change.
+  }
+
+  if (config->owningTarget->len != extantConfig->owningTarget->len) {
+    size_t logicalBytes = to_bytes(config->owningTarget->len);
+    if ((logicalBytes % VDO_BLOCK_SIZE) != 0) {
+      *errorPtr = "Logical size must be a multiple of 4096";
+      return VDO_PARAMETER_MISMATCH;
+    }
+
+    int result = prepareToResizeLogical(layer, logicalBytes / VDO_BLOCK_SIZE);
+    if (result != VDO_SUCCESS) {
+      *errorPtr = "Device prepareToGrowLogical failed";
+      return result;
+    }
+  }
+
+  if (config->physicalBlocks != extantConfig->physicalBlocks) {
+    int result = prepareToResizePhysical(layer, config->physicalBlocks);
+    if (result != VDO_SUCCESS) {
+      *errorPtr = "Device prepareToGrowPhysical failed";
+      return result;
+    }
+  }
+
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int modifyKernelLayer(KernelLayer  *layer,
+                      DeviceConfig *config)
+{
+  DeviceConfig *extantConfig = layer->deviceConfig;
+
+  // A failure here is unrecoverable. So there is no problem if it happens.
+
+  if (config->writePolicy != extantConfig->writePolicy) {
     /*
      * Ordinarily, when going from async to sync, we must flush any metadata
      * written. However, because the underlying storage must have gone into
@@ -965,33 +998,26 @@ int modifyKernelLayer(KernelLayer       *layer,
      * by the suspend and all metadata between the suspend and the write
      * policy change is written to synchronous storage.
      */
-    if (getKernelLayerState(layer) != LAYER_SUSPENDED) {
-      *why = "Device must be suspended before changing write policy";
-      return VDO_COMPONENT_BUSY;
-    }
-
     logInfo("Modifying device '%s' write policy from %s to %s",
-            config->poolName, getConfigWritePolicyString(layer->deviceConfig),
+            config->poolName, getConfigWritePolicyString(extantConfig),
             getConfigWritePolicyString(config));
     setWritePolicy(layer->kvdo.vdo, config->writePolicy);
-    return VDO_SUCCESS;
   }
 
-  if (ti->len != layer->ti->len) {
-    if (getKernelLayerState(layer) != LAYER_SUSPENDED) {
-      *why = "Device must be suspended before changing logical size";
-      return VDO_COMPONENT_BUSY;
-    }
-
-    size_t logicalBytes = to_bytes(ti->len);
-    if ((logicalBytes % VDO_BLOCK_SIZE) != 0) {
-      *why = "Logical size must be a multiple of 4096";
-      return VDO_PARAMETER_MISMATCH;
-    }
-
+  if (config->owningTarget->len != extantConfig->owningTarget->len) {
+    size_t logicalBytes = to_bytes(config->owningTarget->len);
     int result = resizeLogical(layer, logicalBytes / VDO_BLOCK_SIZE);
     if (result != VDO_SUCCESS) {
-      *why = "Device growLogical failed";
+      return result;
+    }
+  }
+
+  // Grow physical if the version is 0, so we can't tell if we
+  // got an old-style growPhysical command, or if size changed.
+  if ((config->physicalBlocks != extantConfig->physicalBlocks)
+      || (config->version == 0)) {
+    int result = resizePhysical(layer, config->physicalBlocks);
+    if (result != VDO_SUCCESS) {
       return result;
     }
   }
@@ -1094,7 +1120,6 @@ void freeKernelLayer(KernelLayer *layer)
   }
 
   freeDedupeIndex(&layer->dedupeIndex);
-  freeDeviceConfig(&layer->deviceConfig);
 
   stopPeriodicEventReporter(&layer->albireoTimeoutReporter);
   if (releaseInstance) {
@@ -1247,7 +1272,7 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
       // If we don't trap this case, mapToSystemError() will remap it to -EIO,
       // which is misleading and ahistorical.
       return -EINVAL;
-    } else { 
+    } else {
       return result;
     }
   }
@@ -1266,8 +1291,6 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
     // kvdoResizePhysical logs errors
     return result;
   }
-
-  layer->blockCount = physicalCount;
   return VDO_SUCCESS;
 }
 

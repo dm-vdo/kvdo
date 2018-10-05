@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#10 $
  */
 
 #ifndef KERNELLAYER_H
@@ -104,6 +104,7 @@ struct kernelLayer {
   PhysicalLayer           common;
   // Layer specific info
   DeviceConfig           *deviceConfig;
+  unsigned int            configReferences;
   char                    threadNamePrefix[MAX_QUEUE_NAME_LEN];
   struct kobject          kobj;
   struct kobject          wqDirectory;
@@ -116,11 +117,6 @@ struct kernelLayer {
   /** Contains the current KernelLayerState, which rarely changes */
   Atomic32                state;
   bool                    allocationsAllowed;
-  /** The current dm target for this layer */
-  struct dm_target       *ti;
-  /** The previous dm target and device for this layer */
-  struct dm_target       *oldTI;
-  struct dm_dev          *oldDev;
   AtomicBool              processingMessage;
 
   /** Limit the number of requests that are being processed. */
@@ -139,7 +135,6 @@ struct kernelLayer {
    * during suspend.
    **/
   struct completion       flushWait;
-  bool                    mdRaid5ModeEnabled;
   /**
    * Bio submission manager used for sending bios to the storage
    * device.
@@ -156,13 +151,8 @@ struct kernelLayer {
   /** Optional work queue for calling bio_endio. */
   KvdoWorkQueue          *bioAckQueue;
   /** Underlying block device info. */
-  struct dm_dev          *dev;
-  BlockCount              blockCount;
-  BlockSize               logicalBlockSize;
   uint64_t                startingSectorOffset;
   VolumeGeometry          geometry;
-  // Read cache
-  unsigned int            readCacheBlocks;
   // Memory allocation
   BufferPool             *dataKVIOPool;
   struct bio_set         *bioset;
@@ -256,10 +246,8 @@ typedef struct kvdoEnqueueable {
 /**
  * Creates a kernel specific physical layer to be used by VDO
  *
- * @param blockCount            The number of blocks supported by the layer
  * @param startingSector        The sector offset of our table entry in the
  *                              DM device
- * @param dev                   The underlying device
  * @param instance              Device instantiation counter
  * @param parentKobject         The parent sysfs node
  * @param config                The device configuration
@@ -269,9 +257,7 @@ typedef struct kvdoEnqueueable {
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeKernelLayer(BlockCount      blockCount,
-                    uint64_t        startingSector,
-                    struct dm_dev  *dev,
+int makeKernelLayer(uint64_t        startingSector,
                     unsigned int    instance,
                     DeviceConfig   *config,
                     struct kobject *parentKobject,
@@ -281,19 +267,29 @@ int makeKernelLayer(BlockCount      blockCount,
   __attribute__((warn_unused_result));
 
 /**
- * Modify a kernel physical layer.
+ * Prepare to modify a kernel layer.
  *
  * @param layer     The layer to modify
- * @param ti        The new dm_target structure
- * @param config    The device configuration
- * @param why       The reason for any failure during this call
+ * @param config    The new device configuration
+ * @param errorPtr  A pointer to store the reason for any failure
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int prepareToModifyKernelLayer(KernelLayer       *layer,
+                               DeviceConfig      *config,
+                               char             **errorPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Modify a kernel physical layer.
+ *
+ * @param layer   The layer to modify
+ * @param config  The new device configuration
  *
  * @return VDO_SUCCESS or an error
  **/
 int modifyKernelLayer(KernelLayer       *layer,
-                      struct dm_target  *ti,
-                      DeviceConfig      *config,
-                      char             **why)
+                      DeviceConfig      *config)
   __attribute__((warn_unused_result));
 
 /**
@@ -429,6 +425,54 @@ static inline BlockSize sectorToBlockOffset(KernelLayer *layer,
 {
   unsigned int sectorsPerBlockMask = VDO_SECTORS_PER_BLOCK - 1;
   return to_bytes(sectorNumber & sectorsPerBlockMask);
+}
+
+/**
+ * Get the block device object currently underlying a kernel layer.
+ *
+ * @param layer  The kernel layer in question
+ *
+ * @return The block device object under the layer
+ **/
+struct block_device *getKernelLayerBdev(const KernelLayer *layer)
+  __attribute__((warn_unused_result));
+
+/**
+ * Acquire a reference from the config to the kernel layer.
+ *
+ * @param layer   The kernel layer in question
+ * @param config  The config in question
+ **/
+static inline void acquireKernelLayerReference(KernelLayer  *layer,
+                                               DeviceConfig *config)
+{
+  layer->configReferences++;
+  config->layer = layer;
+}
+
+/**
+ * Release a reference from the config to its kernel layer.
+ *
+ * @param layer   The kernel layer in question
+ * @param config  The config in question
+ **/
+static inline void releaseKernelLayerReference(KernelLayer  *layer,
+                                               DeviceConfig *config)
+{
+  config->layer = NULL;
+  layer->configReferences--;
+}
+
+/**
+ * Set the layer's active config.
+ *
+ * @param layer   The kernel layer in question
+ * @param config  The config in question
+ **/
+static inline void setKernelLayerActiveConfig(KernelLayer  *layer,
+                                              DeviceConfig *config)
+{
+  layer->deviceConfig = config;
 }
 
 /**

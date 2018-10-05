@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#3 $
  */
 
 #include "bio.h"
@@ -254,7 +254,7 @@ static void initializeBio(BIO *bio, KernelLayer *layer)
 #endif
   bio->bi_end_io     = completeAsyncBio;
   setBioSector(bio, (sector_t) -1);  // Sector will be set later on.
-  setBioBlockDevice(bio, layer->dev->bdev);
+  setBioBlockDevice(bio, getKernelLayerBdev(layer));
 }
 
 /**********************************************************************/

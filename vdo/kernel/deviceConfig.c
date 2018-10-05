@@ -16,10 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#4 $
  */
 
 #include "deviceConfig.h"
+
+#include <linux/device-mapper.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -27,9 +29,14 @@
 
 #include "vdoStringUtils.h"
 
+#include "constants.h"
+
+// The index of the pool name within the table line for the two known versions
+static const uint8_t POOL_NAME_ARG_INDEX[2] = {8, 10};
+
 enum {
-  REQUIRED_ARGC                  = 10,
-  POOL_NAME_ARG_INDEX            = 8,
+  V0_REQUIRED_ARGC               = 10,
+  V1_REQUIRED_ARGC               = 12,
   // Arbitrary limit used when parsing thread-count config spec strings
   THREAD_COUNT_LIMIT             = 100,
   BIO_ROTATION_INTERVAL_LIMIT    = 1024,
@@ -43,18 +50,106 @@ enum {
   DEFAULT_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL  = 64,
 };
 
+static const char TABLE_VERSION_STRING[] = "V1";
+
+/**
+ * Decide the version number from argv.
+ *
+ * @param [in]  argc         The number of table values
+ * @param [in]  argv         The array of table values
+ * @param [out] errorPtr     A pointer to return a error string in
+ * @param [out] versionPtr   A pointer to return the version
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int getVersionNumber(int            argc,
+                            char         **argv,
+                            char         **errorPtr,
+                            TableVersion  *versionPtr)
+{
+  if (strcmp(argv[0], TABLE_VERSION_STRING) != 0) {
+    if (argc == V0_REQUIRED_ARGC) {
+      logWarning("Detected version mismatch between kernel module and tools.");
+      logWarning("Please consider upgrading management tools to match kernel.");
+      *versionPtr = 0;
+      return VDO_SUCCESS;
+    }
+    *errorPtr = "Incorrect number of arguments for any known format";
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  if (argc == V1_REQUIRED_ARGC) {
+    *versionPtr = 1;
+    return VDO_SUCCESS;
+  }
+
+  *errorPtr = "Incorrect number of arguments";
+  return VDO_BAD_CONFIGURATION;
+}
+
 /**********************************************************************/
 int getPoolNameFromArgv(int    argc,
                         char **argv,
                         char **errorPtr,
                         char **poolNamePtr)
 {
-  if (argc != REQUIRED_ARGC) {
-    *errorPtr = "Incorrect number of arguments";
-    return VDO_BAD_CONFIGURATION;
+  TableVersion version;
+  int result = getVersionNumber(argc, argv, errorPtr, &version);
+  if (result != VDO_SUCCESS) {
+    return result;
   }
-  *poolNamePtr = argv[POOL_NAME_ARG_INDEX];
+  *poolNamePtr = argv[POOL_NAME_ARG_INDEX[version]];
   return VDO_SUCCESS;
+}
+
+/**
+ * Resolve the config with write policy, physical size, and other unspecified
+ * fields based on the device, if needed.
+ *
+ * @param [in,out] config   The config possibly missing values
+ * @param [in]     verbose  Whether to log about the underlying device
+ **/
+static void resolveConfigWithDevice(DeviceConfig  *config,
+                                    bool           verbose)
+{
+  struct dm_dev *dev = config->ownedDevice;
+  struct request_queue *requestQueue = bdev_get_queue(dev->bdev);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
+  bool flushSupported
+    = ((requestQueue->queue_flags & (1ULL << QUEUE_FLAG_WC)) != 0);
+  bool fuaSupported
+    = ((requestQueue->queue_flags & (1ULL << QUEUE_FLAG_FUA)) != 0);
+#else
+  bool flushSupported = ((requestQueue->flush_flags & REQ_FLUSH) == REQ_FLUSH);
+  bool fuaSupported   = ((requestQueue->flush_flags & REQ_FUA) == REQ_FUA);
+#endif
+  if (verbose) {
+    logInfo("underlying device, REQ_FLUSH: %s, REQ_FUA: %s",
+            (flushSupported ? "supported" : "not supported"),
+            (fuaSupported ? "supported" : "not supported"));
+  } else {
+    // We should probably always log, but need to make sure that makes sense
+    // before changing behavior.
+  }
+
+  if (config->writePolicy == WRITE_POLICY_AUTO) {
+    config->writePolicy
+      = (flushSupported ? WRITE_POLICY_ASYNC : WRITE_POLICY_SYNC);
+    logInfo("Using write policy %s automatically.",
+            getConfigWritePolicyString(config));
+  } else {
+    logInfo("Using write policy %s.", getConfigWritePolicyString(config));
+  }
+
+  if (flushSupported && (config->writePolicy == WRITE_POLICY_SYNC)) {
+    logWarning("WARNING: Running in sync mode atop a device supporting flushes"
+               " is dangerous!");
+  }
+
+  if (config->version == 0) {
+    uint64_t deviceSize = i_size_read(dev->bdev->bd_inode);
+    config->physicalBlocks = deviceSize / VDO_BLOCK_SIZE;
+  }
 }
 
 /**
@@ -254,22 +349,21 @@ static void handleParseError(DeviceConfig **configPtr,
 }
 
 /**********************************************************************/
-int parseDeviceConfig(int            argc,
-                      char         **argv,
-                      char         **errorPtr,
-                      DeviceConfig **configPtr)
+int parseDeviceConfig(int                argc,
+                      char             **argv,
+                      struct dm_target  *ti,
+                      bool               verbose,
+                      DeviceConfig     **configPtr)
 {
+  char **errorPtr = &ti->error;
   DeviceConfig *config = NULL;
-  if (argc != REQUIRED_ARGC) {
-    handleParseError(&config, errorPtr, "Incorrect number of arguments");
-    return VDO_BAD_CONFIGURATION;
-  }
-
   int result = ALLOCATE(1, DeviceConfig, "DeviceConfig", &config);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not allocate config structure");
     return VDO_BAD_CONFIGURATION;
   }
+
+  config->owningTarget = ti;
 
   // Save the original string.
   result = joinStrings(argv, argc, ' ', &config->originalString);
@@ -299,11 +393,28 @@ int parseDeviceConfig(int            argc,
 
   char **argumentPtr = argv;
 
+  result = getVersionNumber(argc, argv, errorPtr, &config->version);
+  if (result != VDO_SUCCESS) {
+    // getVersionNumber sets errorPtr itself.
+    handleParseError(&config, errorPtr, *errorPtr);
+    return result;
+  }
+  argumentPtr++;
+
   result = duplicateString(*argumentPtr++, "parent device name",
                            &config->parentDeviceName);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not copy parent device name");
     return VDO_BAD_CONFIGURATION;
+  }
+
+  // Get the physical blocks, if known.
+  if (config->version == 1) {
+    result = kstrtoull(*argumentPtr++, 10, &config->physicalBlocks);
+    if (result != VDO_SUCCESS) {
+      handleParseError(&config, errorPtr, "Invalid physical block count");
+      return VDO_BAD_CONFIGURATION;
+    }
   }
 
   // Get the logical block size and validate
@@ -366,7 +477,9 @@ int parseDeviceConfig(int            argc,
   }
   argumentPtr++;
 
-  if (argumentPtr != &argv[POOL_NAME_ARG_INDEX]) {
+  // Make sure the enum to get the pool name from argv directly is still in
+  // sync with the parsing of the table line.
+  if (argumentPtr != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
     handleParseError(&config, errorPtr, "Pool name not in expected location");
     return VDO_BAD_CONFIGURATION;
   }
@@ -411,6 +524,17 @@ int parseDeviceConfig(int            argc,
     return VDO_BAD_CONFIGURATION;
   }
 
+  result = dm_get_device(ti, config->parentDeviceName,
+                         dm_table_get_mode(ti->table), &config->ownedDevice);
+  if (result != 0) {
+    logError("couldn't open device \"%s\": error %d",
+             config->parentDeviceName, result);
+    handleParseError(&config, errorPtr, "Unable to open storage device");
+    return VDO_BAD_CONFIGURATION;
+  }
+
+  resolveConfigWithDevice(config, verbose);
+
   *configPtr = config;
   return result;
 }
@@ -426,6 +550,10 @@ void freeDeviceConfig(DeviceConfig **configPtr)
   if (config == NULL) {
     *configPtr = NULL;
     return;
+  }
+
+  if (config->ownedDevice != NULL) {
+    dm_put_device(config->owningTarget, config->ownedDevice);
   }
 
   FREE(config->threadConfigString);
@@ -446,21 +574,4 @@ const char *getConfigWritePolicyString(DeviceConfig *config)
   return ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync");
 }
 
-/**********************************************************************/
-void resolveConfigWithFlushSupport(DeviceConfig *config, bool flushSupported)
-{
-  if (config->writePolicy == WRITE_POLICY_AUTO) {
-    config->writePolicy
-      = (flushSupported ? WRITE_POLICY_ASYNC : WRITE_POLICY_SYNC);
-    logInfo("Using write policy %s automatically.",
-            getConfigWritePolicyString(config));
-  } else {
-    logInfo("Using write policy %s.", getConfigWritePolicyString(config));
-  }
-
-  if (flushSupported && (config->writePolicy == WRITE_POLICY_SYNC)) {
-    logWarning("WARNING: Running in sync mode atop a device supporting flushes"
-               " is dangerous!");
-  }
-}
 

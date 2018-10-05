@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#4 $
  */
 
 #include "upgrade.h"
@@ -259,23 +259,12 @@ int upgradePriorVDO(PhysicalLayer *layer)
     return result;
   }
 
-  const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  result = ALLOCATE(threadConfig->baseThreadCount, ThreadData, __func__,
-                    &vdo->threadData);
+  result = makeThreadDataArray((vdo->state == VDO_READ_ONLY_MODE),
+                               getThreadConfig(vdo), vdo->layer,
+                               &vdo->threadData);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;
-  }
-
-  for (ThreadCount thread = 0; thread < threadConfig->baseThreadCount;
-       thread++) {
-    result = initializeThreadData(&vdo->threadData[thread], thread,
-                                  (vdo->state == VDO_READ_ONLY_MODE),
-                                  threadConfig, vdo->layer);
-    if (result != VDO_SUCCESS) {
-      freeVDO(&vdo);
-      return result;
-    }
   }
 
   result = finishSodiumDecode(vdo);

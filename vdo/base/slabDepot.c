@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#5 $
  */
 
 #include "slabDepot.h"
@@ -1046,8 +1046,6 @@ void updateSlabDepotSize(SlabDepot *depot, bool reverting)
 /**********************************************************************/
 int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
 {
-  abandonNewSlabs(depot);
-
   if ((newSize >> depot->slabSizeShift) <= depot->slabCount) {
     return VDO_INCREMENT_TOO_SMALL;
   }
@@ -1067,7 +1065,12 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
     return logErrorWithStringError(VDO_INCREMENT_TOO_SMALL,
                                    "Depot can only grow");
   }
+  if (newSlabCount == depot->newSlabCount) {
+    // Check it out, we've already got all the new slabs allocated!
+    return VDO_SUCCESS;
+  }
 
+  abandonNewSlabs(depot);
   result = allocateSlabs(depot, depot->completion.layer, newSlabCount);
   if (result != VDO_SUCCESS) {
     abandonNewSlabs(depot);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/threadData.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/threadData.c#2 $
  */
 
 #include "threadData.h"
@@ -68,11 +68,11 @@ static ThreadData *asThreadData(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int initializeThreadData(ThreadData         *threadData,
-                         ThreadID            threadID,
-                         bool                isReadOnly,
-                         const ThreadConfig *threadConfig,
-                         PhysicalLayer      *layer)
+static int initializeThreadData(ThreadData         *threadData,
+                                ThreadID            threadID,
+                                bool                isReadOnly,
+                                const ThreadConfig *threadConfig,
+                                PhysicalLayer      *layer)
 {
   threadData->threadID             = threadID;
   threadData->isReadOnly           = isReadOnly;
@@ -85,9 +85,45 @@ int initializeThreadData(ThreadData         *threadData,
 }
 
 /**********************************************************************/
-void uninitializeThreadData(ThreadData *threadData)
+int makeThreadDataArray(bool                 isReadOnly,
+                        const ThreadConfig  *threadConfig,
+                        PhysicalLayer       *layer,
+                        ThreadData         **threadsPtr)
 {
-  destroyEnqueueable(&threadData->completion);
+  ThreadData *threads;
+  int result = ALLOCATE(threadConfig->baseThreadCount, ThreadData, __func__,
+                        &threads);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  for (ThreadCount id = 0; id < threadConfig->baseThreadCount; id++) {
+    result = initializeThreadData(&threads[id], id, isReadOnly,
+                                  threadConfig, layer);
+    if (result != VDO_SUCCESS) {
+      freeThreadDataArray(&threads, id);
+      return result;
+    }
+  }
+
+  *threadsPtr = threads;
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+void freeThreadDataArray(ThreadData **threadsPtr, ThreadCount count)
+{
+  ThreadData *threads = *threadsPtr;
+  if (threads == NULL) {
+    return;
+  }
+
+  for (ThreadCount id = 0; id < count; id++) {
+    destroyEnqueueable(&threads[id].completion);
+  }
+
+  FREE(threads);
+  *threadsPtr = NULL;
 }
 
 /**********************************************************************/

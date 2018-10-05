@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.h#2 $
  */
 
 #ifndef EXTENT_H
@@ -105,8 +105,25 @@ void freeExtent(VDOExtent **extentPtr);
  * @param extent      The extent to read
  * @param startBlock  The physical block number of the first block
  *                    in the extent
+ * @param count       The number of blocks to read (must be less than or
+ *                    equal to the length of the extent)
  **/
-void readMetadataExtent(VDOExtent *extent, PhysicalBlockNumber startBlock);
+void readPartialMetadataExtent(VDOExtent           *extent,
+                               PhysicalBlockNumber  startBlock,
+                               BlockCount           count);
+
+/**
+ * Read metadata from the underlying storage.
+ *
+ * @param extent      The extent to read
+ * @param startBlock  The physical block number of the first block
+ *                    in the extent
+ **/
+static inline void readMetadataExtent(VDOExtent           *extent,
+                                      PhysicalBlockNumber  startBlock)
+{
+  readPartialMetadataExtent(extent, startBlock, extent->count);
+}
 
 /**
  * Write metadata to the underlying storage.
@@ -114,8 +131,24 @@ void readMetadataExtent(VDOExtent *extent, PhysicalBlockNumber startBlock);
  * @param extent      The extent to write
  * @param startBlock  The physical block number of the first block in the
  *                    extent
+ * @param count       The number of blocks to read (must be less than or
+ *                    equal to the length of the extent)
  **/
-void writeMetadataExtent(VDOExtent *extent, PhysicalBlockNumber startBlock);
+void writePartialMetadataExtent(VDOExtent           *extent,
+                                PhysicalBlockNumber  startBlock,
+                                BlockCount           count);
+/**
+ * Write metadata to the underlying storage.
+ *
+ * @param extent      The extent to write
+ * @param startBlock  The physical block number of the first block in the
+ *                    extent
+ **/
+static inline void writeMetadataExtent(VDOExtent           *extent,
+                                       PhysicalBlockNumber  startBlock)
+{
+  writePartialMetadataExtent(extent, startBlock, extent->count);
+}
 
 /**
  * Notify an extent that one of its VIOs has completed. If the signaling VIO
