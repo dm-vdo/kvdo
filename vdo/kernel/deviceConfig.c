@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#1 $
  */
 
 #include "deviceConfig.h"
@@ -31,12 +31,9 @@
 
 #include "constants.h"
 
-// The index of the pool name within the table line for the two known versions
-static const uint8_t POOL_NAME_ARG_INDEX[2] = {8, 10};
-
 enum {
-  V0_REQUIRED_ARGC               = 10,
-  V1_REQUIRED_ARGC               = 12,
+  // If we bump this, update the arrays below
+  TABLE_VERSION = 2,
   // Arbitrary limit used when parsing thread-count config spec strings
   THREAD_COUNT_LIMIT             = 100,
   BIO_ROTATION_INTERVAL_LIMIT    = 1024,
@@ -50,7 +47,9 @@ enum {
   DEFAULT_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL  = 64,
 };
 
-static const char TABLE_VERSION_STRING[] = "V1";
+// arrays for handling different table versions
+static const uint8_t REQUIRED_ARGC[] = {10, 12, 9};
+static const uint8_t POOL_NAME_ARG_INDEX[] = {8, 10, 8};
 
 /**
  * Decide the version number from argv.
@@ -67,24 +66,36 @@ static int getVersionNumber(int            argc,
                             char         **errorPtr,
                             TableVersion  *versionPtr)
 {
-  if (strcmp(argv[0], TABLE_VERSION_STRING) != 0) {
-    if (argc == V0_REQUIRED_ARGC) {
-      logWarning("Detected version mismatch between kernel module and tools.");
-      logWarning("Please consider upgrading management tools to match kernel.");
-      *versionPtr = 0;
-      return VDO_SUCCESS;
+  // version, if it exists, is in a form of V<n>
+  if (sscanf(argv[0], "V%u", versionPtr) == 1) {
+    if (*versionPtr < 1 || *versionPtr > TABLE_VERSION) {
+      *errorPtr = "Unknown version number detected";
+      return VDO_BAD_CONFIGURATION;
     }
-    *errorPtr = "Incorrect number of arguments for any known format";
+  } else {
+    // V0 actually has no version number in the table string
+    *versionPtr = 0;
+  }
+
+  // V0 and V1 have no optional parameters. There will always be
+  // a parameter for thread config, even if its a "." to show
+  // its an empty list.
+  if (*versionPtr <= 1) {
+    if (argc != REQUIRED_ARGC[*versionPtr]) {
+      *errorPtr = "Incorrect number of arguments for version";
+      return VDO_BAD_CONFIGURATION;      
+    }
+  } else if (argc < REQUIRED_ARGC[*versionPtr]) {
+    *errorPtr = "Incorrect number of arguments for version";
     return VDO_BAD_CONFIGURATION;
   }
 
-  if (argc == V1_REQUIRED_ARGC) {
-    *versionPtr = 1;
-    return VDO_SUCCESS;
+  if (*versionPtr != TABLE_VERSION) {
+    logWarning("Detected version mismatch between kernel module and tools "
+	       " kernel: %d, tool: %d", TABLE_VERSION, *versionPtr);
+    logWarning("Please consider upgrading management tools to match kernel.");
   }
-
-  *errorPtr = "Incorrect number of arguments";
-  return VDO_BAD_CONFIGURATION;
+  return VDO_SUCCESS; 
 }
 
 /**********************************************************************/
@@ -186,7 +197,8 @@ static inline int parseBool(const char *boolStr,
  * update the configuration data structure.
  *
  * If the thread count requested is invalid, a message is logged and
- * -EINVAL returned.
+ * -EINVAL returned. If the thread name is unknown, a message is logged
+ * but no error is returned.
  *
  * @param threadParamType  The type of thread specified
  * @param count            The thread count requested
@@ -252,9 +264,10 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
     }
   }
 
-  // More will be added eventually.
-  logError("unknown thread parameter type \"%s\"", threadParamType);
-  return -EINVAL;
+  // Don't fail, just log. This will handle version mismatches between
+  // user mode tools and kernel.
+  logInfo("unknown thread parameter type \"%s\"", threadParamType);
+  return VDO_SUCCESS;
 }
 
 /**
@@ -302,13 +315,13 @@ static int parseOneThreadConfigSpec(const char        *spec,
  * of the form "typename=number"; the supported type names are "cpu", "ack",
  * "bio", "bioRotationInterval", "logical", "physical", and "hash".
  *
- * An incorrect format or unknown thread parameter type name is an error.
+ * If an error occurs during parsing of a single key/value pair, we deem
+ * it serious enough to stop further parsing. 
  *
  * This function can't set the "reason" value the caller wants to pass
  * back, because we'd want to format it to say which field was
  * invalid, and we can't allocate the "reason" strings dynamically. So
- * if an error occurs, we'll just log the details, and pass back
- * EINVAL.
+ * if an error occurs, we'll log the details and pass back an error.
  *
  * @param string  Thread parameter configuration string
  * @param config  The thread configuration data to update
@@ -318,18 +331,166 @@ static int parseOneThreadConfigSpec(const char        *spec,
 static int parseThreadConfigString(const char        *string,
                                    ThreadCountConfig *config)
 {
+  int result = VDO_SUCCESS;
+
   char **specs;
-  int result = splitString(string, ',', &specs);
+  if (strcmp(".", string) != 0) {
+    result = splitString(string, ',', &specs);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+    for (unsigned int i = 0; specs[i] != NULL; i++) {
+      result = parseOneThreadConfigSpec(specs[i], config);
+      if (result != VDO_SUCCESS) {
+	break;
+      }
+    }
+    freeStringArray(specs);
+  }
+  return result;
+}
+
+/**
+ * Process one component of an optional parameter string and
+ * update the configuration data structure.
+ *
+ * If the value requested is invalid, a message is logged and
+ * -EINVAL returned. If the key is unknown, a message is logged
+ * but no error is returned.
+ *
+ * @param key    The optional parameter key name
+ * @param value  The optional parameter value
+ * @param config The configuration data structure to update
+ *
+ * @return   VDO_SUCCESS or -EINVAL
+ **/
+static int processOneKeyValuePair(const char   *key,
+                                  unsigned int  value,
+                                  DeviceConfig *config)
+{
+  // Non thread optional parameters
+  if (strcmp(key, "maxDiscard") == 0) {
+    if (value == 0) {
+      logError("optional parameter error:"
+               " at least one max discard block required");
+      return -EINVAL;
+    }
+    // Max discard sectors in blkdev_issue_discard is UINT_MAX >> 9
+    if (value > (UINT_MAX / VDO_BLOCK_SIZE)) {
+      logError("optional parameter error: at most %d max discard"
+               " blocks are allowed", UINT_MAX / VDO_BLOCK_SIZE);
+      return -EINVAL;
+    }
+    config->maxDiscardBlocks = value;
+    return VDO_SUCCESS;
+  } 
+  // Handles unknown key names
+  return processOneThreadConfigSpec(key, value, &config->threadCounts);
+}
+
+/**
+ * Parse one key/value pair and update the configuration 
+ * data structure.
+ *
+ * @param key     The optional key name
+ * @param value   The optional value
+ * @param config  The configuration data to be updated
+ *
+ * @return   VDO_SUCCESS or error
+ **/
+static int parseOneKeyValuePair(const char   *key,
+				const char   *value,
+                                DeviceConfig *config)
+{
+  unsigned int count;
+  int result = stringToUInt(value, &count);
   if (result != UDS_SUCCESS) {
+    logError("optional config string error: integer value needed, found \"%s\"",
+             value);
     return result;
   }
-  for (unsigned int i = 0; specs[i] != NULL; i++) {
-    result = parseOneThreadConfigSpec(specs[i], config);
+  return processOneKeyValuePair(key, count, config);
+}
+
+/**
+ * Parse all key/value pairs from a list of arguments.
+ *
+ * If an error occurs during parsing of a single key/value pair, we deem
+ * it serious enough to stop further parsing. 
+ *
+ * This function can't set the "reason" value the caller wants to pass
+ * back, because we'd want to format it to say which field was
+ * invalid, and we can't allocate the "reason" strings dynamically. So
+ * if an error occurs, we'll log the details and return the error.
+ * 
+ * @param argc     The total number of arguments in list
+ * @param argv     The list of key/value pairs
+ * @param config   The device configuration data to update
+ *
+ * @return   VDO_SUCCESS or error
+ **/
+static int parseKeyValuePairs(int            argc, 
+			      char         **argv, 
+			      DeviceConfig  *config)
+{
+  int result = VDO_SUCCESS;
+  while (argc) {
+    result = parseOneKeyValuePair(argv[0], argv[1], config);
     if (result != VDO_SUCCESS) {
       break;
     }
+
+    argc -= 2;
+    argv += 2;
   }
-  freeStringArray(specs);
+
+  return result;
+}
+
+/**
+ * Parse the configuration string passed in for optional arguments.
+ * 
+ * For V0/V1 configurations, there will only be one optional parameter; 
+ * the thread configuration. The configuration string should contain
+ * one or more comma-separated specs of the form "typename=number"; the 
+ * supported type names are "cpu", "ack", "bio", "bioRotationInterval", 
+ * "logical", "physical", and "hash".
+ *
+ * For V2 configurations and beyond, there could be any number of
+ * arguments. They should contain one or more key/value pairs
+ * separated by a space.
+ *
+ * @param argSet   The structure holding the arguments to parse
+ * @param errorPtr Pointer to a buffer to hold the error string
+ * @param config   Pointer to device configuration data to update
+ *
+ * @return   VDO_SUCCESS or error
+ */
+int parseOptionalArguments(struct dm_arg_set  *argSet,
+			   char              **errorPtr,
+			   DeviceConfig       *config)
+{
+  int result = VDO_SUCCESS;
+
+  if (config->version == 0 || config->version == 1) {
+    result = parseThreadConfigString(argSet->argv[0],
+				     &config->threadCounts);
+    if (result != VDO_SUCCESS) {
+      *errorPtr = "Invalid thread-count configuration";
+      return VDO_BAD_CONFIGURATION;
+    }
+  } else {
+    if ((argSet->argc % 2) != 0) {
+      *errorPtr = "Odd number of optional arguments given but they"
+	          " should be <key> <value> pairs";  
+      return VDO_BAD_CONFIGURATION;
+    }
+    result = parseKeyValuePairs(argSet->argc, argSet->argv, config);
+    if (result != VDO_SUCCESS) {
+      *errorPtr = "Invalid optional argument configuration";
+      return VDO_BAD_CONFIGURATION;
+    }
+  }
   return result;
 }
 
@@ -390,8 +551,12 @@ int parseDeviceConfig(int                argc,
     .physicalZones       = 0,
     .hashZones           = 0,
   };
+  config->maxDiscardBlocks = 1;
 
-  char **argumentPtr = argv;
+  struct dm_arg_set argSet;
+
+  argSet.argc = argc;
+  argSet.argv = argv;
 
   result = getVersionNumber(argc, argv, errorPtr, &config->version);
   if (result != VDO_SUCCESS) {
@@ -399,9 +564,12 @@ int parseDeviceConfig(int                argc,
     handleParseError(&config, errorPtr, *errorPtr);
     return result;
   }
-  argumentPtr++;
+  // Move the arg pointer forward only if the argument was there.
+  if (config->version >= 1) {
+    dm_shift_arg(&argSet);
+  }
 
-  result = duplicateString(*argumentPtr++, "parent device name",
+  result = duplicateString(dm_shift_arg(&argSet), "parent device name",
                            &config->parentDeviceName);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not copy parent device name");
@@ -409,8 +577,8 @@ int parseDeviceConfig(int                argc,
   }
 
   // Get the physical blocks, if known.
-  if (config->version == 1) {
-    result = kstrtoull(*argumentPtr++, 10, &config->physicalBlocks);
+  if (config->version >= 1) {
+    result = kstrtoull(dm_shift_arg(&argSet), 10, &config->physicalBlocks);
     if (result != VDO_SUCCESS) {
       handleParseError(&config, errorPtr, "Invalid physical block count");
       return VDO_BAD_CONFIGURATION;
@@ -419,45 +587,34 @@ int parseDeviceConfig(int                argc,
 
   // Get the logical block size and validate
   bool enable512e;
-  result = parseBool(*argumentPtr++, "512", "4096", &enable512e);
+  result = parseBool(dm_shift_arg(&argSet), "512", "4096", &enable512e);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid logical block size");
     return VDO_BAD_CONFIGURATION;
   }
   config->logicalBlockSize = (enable512e ? 512 : 4096);
 
-  // Determine whether the read cache is enabled.
-  result = parseBool(*argumentPtr++, "enabled", "disabled",
-                     &config->readCacheEnabled);
-  if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Invalid read cache mode");
-    return VDO_BAD_CONFIGURATION;
-  }
-
-  // Get the number of extra blocks for the read cache.
-  result = stringToUInt(*argumentPtr++, &config->readCacheExtraBlocks);
-  if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr,
-                     "Invalid read cache extra block count");
-    return VDO_BAD_CONFIGURATION;
+  // Skip past the two no longer used read cache options.
+  if (config->version <= 1) {
+    dm_consume_args(&argSet, 2);
   }
 
   // Get the page cache size.
-  result = stringToUInt(*argumentPtr++, &config->cacheSize);
+  result = stringToUInt(dm_shift_arg(&argSet), &config->cacheSize);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid block map page cache size");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the block map era length.
-  result = stringToUInt(*argumentPtr++, &config->blockMapMaximumAge);
+  result = stringToUInt(dm_shift_arg(&argSet), &config->blockMapMaximumAge);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid block map maximum age");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the MD RAID5 optimization mode and validate
-  result = parseBool(*argumentPtr++, "on", "off",
+  result = parseBool(dm_shift_arg(&argSet), "on", "off",
                      &config->mdRaid5ModeEnabled);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Invalid MD RAID5 mode");
@@ -465,47 +622,40 @@ int parseDeviceConfig(int                argc,
   }
 
   // Get the write policy and validate.
-  if (strcmp(*argumentPtr, "async") == 0) {
+  if (strcmp(argSet.argv[0], "async") == 0) {
     config->writePolicy = WRITE_POLICY_ASYNC;
-  } else if (strcmp(*argumentPtr, "sync") == 0) {
+  } else if (strcmp(argSet.argv[0], "sync") == 0) {
     config->writePolicy = WRITE_POLICY_SYNC;
-  } else if (strcmp(*argumentPtr, "auto") == 0) {
+  } else if (strcmp(argSet.argv[0], "auto") == 0) {
     config->writePolicy = WRITE_POLICY_AUTO;
   } else {
     handleParseError(&config, errorPtr, "Invalid write policy");
     return VDO_BAD_CONFIGURATION;
   }
-  argumentPtr++;
+  dm_shift_arg(&argSet);
 
   // Make sure the enum to get the pool name from argv directly is still in
   // sync with the parsing of the table line.
-  if (argumentPtr != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
+  if (&argSet.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
     handleParseError(&config, errorPtr, "Pool name not in expected location");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the address where the albserver is running. Check for validation
   // is done in dedupe.c code during startKernelLayer call
-  result = duplicateString(*argumentPtr++, "pool name", &config->poolName);
+  result = duplicateString(dm_shift_arg(&argSet), "pool name", 
+			   &config->poolName);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not copy pool name");
     return VDO_BAD_CONFIGURATION;
   }
 
-  result = duplicateString(*argumentPtr++, "thread config",
-                           &config->threadConfigString);
+  // Get the optional arguments and validate.
+  result = parseOptionalArguments(&argSet, errorPtr, config);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Could not copy thread config");
-    return VDO_BAD_CONFIGURATION;
-  }
-
-  if (strcmp(".", config->threadConfigString) != 0) {
-    result = parseThreadConfigString(config->threadConfigString,
-                                     &config->threadCounts);
-    if (result != VDO_SUCCESS) {
-      handleParseError(&config, errorPtr, "Invalid thread-count configuration");
-      return VDO_BAD_CONFIGURATION;
-    }
+    // parseOptionalArguments sets errorPtr itself.
+    handleParseError(&config, errorPtr, *errorPtr);
+    return result;
   }
 
   /*
@@ -556,7 +706,6 @@ void freeDeviceConfig(DeviceConfig **configPtr)
     dm_put_device(config->owningTarget, config->ownedDevice);
   }
 
-  FREE(config->threadConfigString);
   FREE(config->poolName);
   FREE(config->parentDeviceName);
   FREE(config->originalString);

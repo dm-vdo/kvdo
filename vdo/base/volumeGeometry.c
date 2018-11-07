@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#1 $
  */
 
 #include "volumeGeometry.h"
@@ -61,6 +61,7 @@ static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
 
 static const ReleaseVersionNumber COMPATIBLE_RELEASE_VERSIONS[] = {
   MAGNESIUM_RELEASE_VERSION_NUMBER,
+  ALUMINUM_RELEASE_VERSION_NUMBER,
 };
 
 /**

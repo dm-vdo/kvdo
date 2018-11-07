@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/config.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/config.c#1 $
  */
 
 #include "config.h"
@@ -278,7 +278,7 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
     result = false;
   }
   if (a->nonce != b->nonce) {
-    logError("Nonce (%" PRIu64 ") does not match (%" PRIu64 ")",
+    logError("Nonce (%llu) does not match (%llu)",
              a->nonce, b->nonce);
     result = false;
   }
@@ -298,7 +298,7 @@ int printUdsConfiguration(UdsConfiguration conf, int indent, char **output)
                             "%*sMaster index mean delta:    %10u\n"
                             "%*sBytes per page:             %10u\n"
                             "%*sSparse sample rate:         %10u\n"
-                            "%*sNonce:                      %" PRIu64,
+                            "%*sNonce:                      %llu",
                             indent, "", conf->recordPagesPerChapter,
                             indent, "", conf->chaptersPerVolume,
                             indent, "", conf->sparseChaptersPerVolume,

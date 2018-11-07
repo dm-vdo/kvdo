@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#1 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H

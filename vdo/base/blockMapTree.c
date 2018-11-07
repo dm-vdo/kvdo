@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#1 $
  */
 
 #include "blockMapTree.h"
@@ -161,34 +161,19 @@ static inline BlockMapTreeZone *getBlockMapTreeZone(DataVIO *dataVIO)
 }
 
 /**
- * Get the BlockMapTree for the LBN of a DataVIO.
- *
- * @param zone     The BlockMapTreeZone in which the DataVIO is operating
- * @param dataVIO  The DataVIO
- *
- * @return The BlockMapTree for the DataVIO's LBN
- **/
-static inline BlockMapTree *getTree(BlockMapTreeZone *zone, DataVIO *dataVIO)
-{
-  RootCount rootIndex = dataVIO->treeLock.rootIndex;
-  return getTreeFromForest(zone->mapZone->blockMap->forest, rootIndex);
-}
-
-/**
  * Get the TreePage for a given lock. This will be the page referred to by the
  * lock's tree slot for the lock's current height.
  *
  * @param zone  The tree zone of the tree
- * @param tree  The BlockMapTree from which to get the page
  * @param lock  The lock describing the page to get
  *
  * @return The requested page
  **/
-static inline TreePage *getTreePage(BlockMapTreeZone *zone,
-                                    BlockMapTree     *tree,
-                                    TreeLock         *lock)
+static inline TreePage *getTreePage(const BlockMapTreeZone *zone,
+                                    const TreeLock         *lock)
 {
-  return getTreePageByIndex(zone->mapZone->blockMap->forest, tree,
+  return getTreePageByIndex(zone->mapZone->blockMap->forest,
+                            lock->rootIndex,
                             lock->height,
                             lock->treeSlots[lock->height].pageIndex);
 }
@@ -209,7 +194,7 @@ bool copyValidPage(char                *buffer,
   if (validity == BLOCK_MAP_PAGE_BAD) {
     logErrorWithStringError(VDO_BAD_PAGE,
                             "Expected page %" PRIu64
-                            " but got page %" PRIu64 " instead",
+                            " but got page %llu instead",
                             pbn, getBlockMapPagePBN(loaded));
   }
 
@@ -645,7 +630,7 @@ static void releasePageLock(DataVIO *dataVIO, char *what)
   BlockMapTreeZone *zone       = getBlockMapTreeZone(dataVIO);
   TreeLock         *lockHolder = intMapRemove(zone->loadingPages, lock->key);
   ASSERT_LOG_ONLY((lockHolder == lock),
-                  "block map page %s mismatch for key %" PRIu64 " in tree %u",
+                  "block map page %s mismatch for key %llu in tree %u",
                   what, lock->key, lock->rootIndex);
   lock->locked = false;
 }
@@ -773,7 +758,7 @@ static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
     = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
-                            "Invalid block map tree PBN: %" PRIu64 " with "
+                            "Invalid block map tree PBN: %llu with "
                             "state %u for page index %u at height %u",
                             mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,
@@ -781,7 +766,6 @@ static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
     abortLoad(dataVIO, VDO_BAD_MAPPING);
     return;
   }
-
 
   if (!isMappedLocation(&mapping)) {
     // The page we need is unallocated
@@ -824,13 +808,12 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
   VIOPoolEntry     *entry    = completion->parent;
   DataVIO          *dataVIO  = entry->parent;
   BlockMapTreeZone *zone     = (BlockMapTreeZone *) entry->context;
-  BlockMapTree     *tree     = getTree(zone, dataVIO);
   TreeLock         *treeLock = &dataVIO->treeLock;
 
   treeLock->height--;
   PhysicalBlockNumber pbn
     = treeLock->treeSlots[treeLock->height].blockMapSlot.pbn;
-  TreePage     *treePage = getTreePage(zone, tree, treeLock);
+  TreePage     *treePage = getTreePage(zone, treeLock);
   BlockMapPage *page     = (BlockMapPage *) treePage->pageBuffer;
   Nonce         nonce    = zone->mapZone->blockMap->nonce;
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
@@ -1025,9 +1008,8 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
   }
 
   BlockMapTreeZone *zone     = getBlockMapTreeZone(dataVIO);
-  BlockMapTree     *tree     = getTree(zone, dataVIO);
   TreeLock         *treeLock = &dataVIO->treeLock;
-  TreePage         *treePage = getTreePage(zone, tree, treeLock);
+  TreePage         *treePage = getTreePage(zone, treeLock);
   Height            height   = treeLock->height;
 
   PhysicalBlockNumber pbn = treeLock->treeSlots[height - 1].blockMapSlot.pbn;
@@ -1057,7 +1039,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
   treeLock->height--;
   if (height > 1) {
     // Format the interior node we just allocated (in memory).
-    treePage = getTreePage(zone, tree, treeLock);
+    treePage = getTreePage(zone, treeLock);
     formatBlockMapPage(treePage->pageBuffer, zone->mapZone->blockMap->nonce,
                        pbn, false);
   }
@@ -1208,10 +1190,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     return;
   }
 
-
-  TreeLock     *lock = &dataVIO->treeLock;
-  BlockMapTree *tree = getTree(zone, dataVIO);
-
+  TreeLock *lock = &dataVIO->treeLock;
   PageNumber pageIndex
     = ((lock->treeSlots[0].pageIndex - zone->mapZone->blockMap->flatPageCount)
        / zone->mapZone->blockMap->rootCount);
@@ -1227,7 +1206,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
   for (lock->height = 1; lock->height <= BLOCK_MAP_TREE_HEIGHT;
        lock->height++) {
     lock->treeSlots[lock->height] = treeSlot;
-    page = (BlockMapPage *) (getTreePage(zone, tree, lock)->pageBuffer);
+    page = (BlockMapPage *) (getTreePage(zone, lock)->pageBuffer);
     PhysicalBlockNumber pbn = getBlockMapPagePBN(page);
     if (pbn != ZERO_BLOCK) {
       lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
@@ -1246,7 +1225,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     = unpackBlockMapEntry(&page->entries[treeSlot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
-                            "Invalid block map tree PBN: %" PRIu64 " with "
+                            "Invalid block map tree PBN: %llu with "
                             "state %u for page index %u at height %u",
                             mapping.pbn, mapping.state,
                             lock->treeSlots[lock->height - 1].pageIndex,
@@ -1284,9 +1263,9 @@ PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
   SlotNumber slot      = pageIndex % BLOCK_MAP_ENTRIES_PER_PAGE;
   pageIndex /= BLOCK_MAP_ENTRIES_PER_PAGE;
 
-  BlockMapTree *tree     = getTreeFromForest(map->forest, rootIndex);
-  TreePage     *treePage = getTreePageByIndex(map->forest, tree, 1, pageIndex);
-  BlockMapPage *page     = (BlockMapPage *) treePage->pageBuffer;
+  TreePage *treePage
+    = getTreePageByIndex(map->forest, rootIndex, 1, pageIndex);
+  BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
   if (!isBlockMapPageInitialized(page)) {
     return ZERO_BLOCK;
   }

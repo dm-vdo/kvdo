@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#1 $
  */
 
 #ifndef DATA_KVIO_H
@@ -54,23 +54,17 @@ struct dedupeContext {
   const UdsChunkName *chunkName;
 };
 
-/* Read cache support */
 typedef struct {
   /**
    * A pointer to a block that holds the data from the last read operation.
-   *
-   * Note that this handle is counted as a reference on the read cache entry
-   * associated with this block pointer, if the read cache exists.
    **/
   char                *data;
   /**
-   * Temporary storage for doing reads from the underlying device when the
-   * read cache does not exist. If the read cache exists, this will be NULL.
+   * Temporary storage for doing reads from the underlying device.
    **/
   char                *buffer;
   /**
-   * A bio structure wrapping the buffer, if the read cache does not exist.
-   * If the read cache exists, this will be NULL.
+   * A bio structure wrapping the buffer.
    **/
   BIO                 *bio;
   /**
@@ -78,30 +72,14 @@ typedef struct {
    **/
   DataKVIOCallback     callback;
   /**
-   * Physical block number passed to kvdoReadBlock(). Used only if the read
-   * cache exists.
-   **/
-  PhysicalBlockNumber  pbn;
-  /**
    * Mapping state passed to kvdoReadBlock(), used to determine whether
    * the data must be uncompressed.
    **/
   BlockMappingState    mappingState;
   /**
-   * The action code (BIO_Q_ACTION_* value) for the I/O work item, used if the
-   * read request needs to read data from the underlying storage.
-   *
-   * Derived from the ReadBlockOperation passed to kvdoReadBlock().
-   **/
-  BioQAction           action;
-  /**
    * The result code of the read attempt.
    **/
   int                  status;
-  /**
-   * The cache entry. If the read cache does not exist, this is always NULL.
-   **/
-  ReadCacheEntry      *cacheEntry;
 } ReadBlock;
 
 struct dataKVIO {
@@ -377,6 +355,24 @@ void kvdoZeroDataVIO(DataVIO *dataVIO);
  * @param destination  The DataVIO to copy to
  **/
 void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination);
+
+/**
+ * Fetch the data for a block from storage. The fetched data will be
+ * uncompressed when the callback is called, and the result of the read
+ * operation will be stored in the ReadBlock's status field. On success,
+ * the data will be in the ReadBlock's data pointer.
+ *
+ * @param dataVIO       The DataVIO to read a block in for
+ * @param location      The physical block number to read from
+ * @param mappingState  The mapping state of the block to read
+ * @param action        The bio queue action
+ * @param callback      The function to call when the read is done
+ **/
+void kvdoReadBlock(DataVIO             *dataVIO,
+                   PhysicalBlockNumber  location,
+                   BlockMappingState    mappingState,
+                   BioQAction           action,
+                   DataKVIOCallback     callback);
 
 /**
  * Implements DataReader.

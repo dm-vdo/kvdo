@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#1 $
  */
 
 #include "kernelLayer.h"
@@ -24,6 +24,7 @@
 #include <linux/crc32.h>
 #include <linux/blkdev.h>
 #include <linux/module.h>
+#include <linux/backing-dev.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -41,11 +42,10 @@
 #include "deviceConfig.h"
 #include "deviceRegistry.h"
 #include "instanceNumber.h"
-#include "ioSubmitterInternals.h"
+#include "ioSubmitter.h"
 #include "kvdoFlush.h"
 #include "kvio.h"
 #include "poolSysfs.h"
-#include "readCache.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
 #include "verify.h"
@@ -420,38 +420,6 @@ static int kvdoAllocateIOBuffer(PhysicalLayer  *layer __attribute__((unused)),
   return ALLOCATE(bytes, char, why, bufferPtr);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-/**
- * Callback for a bio which did a read to populate a cache entry.
- *
- * @param bio    The bio
- */
-static void endSyncRead(BIO *bio)
-#else
-/**
- * Callback for a bio which did a read to populate a cache entry.
- *
- * @param bio     The bio
- * @param result  The result of the read operation
- */
-static void endSyncRead(BIO *bio, int result)
-#endif
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int result = getBioResult(bio);
-#endif
-
-  if (result != 0) {
-    logErrorWithStringError(result, "synchronous read failed");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-    clear_bit(BIO_UPTODATE, &bio->bi_flags);
-#endif
-  }
-
-  struct completion *completion = (struct completion *) bio->bi_private;
-  complete(completion);
-}
-
 /**
  * Implements ExtentReader. Exists only for the geometry block; is unset after
  * it is read.
@@ -468,28 +436,19 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
 
   KernelLayer *kernelLayer = asKernelLayer(layer);
 
-  struct completion bioWait;
-  init_completion(&bioWait);
   BIO *bio;
   int result = createBio(kernelLayer, buffer, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
-  setBioOperationRead(bio);
-  bio->bi_end_io  = endSyncRead;
-  bio->bi_private = &bioWait;
   setBioBlockDevice(bio, getKernelLayerBdev(kernelLayer));
   setBioSector(bio, blockToSector(kernelLayer, startBlock));
-  generic_make_request(bio);
-  wait_for_completion(&bioWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (getBioResult(bio) != 0) {
-#else
-  if (!bio_flagged(bio, BIO_UPTODATE)) {
-#endif
+  setBioOperationRead(bio);
+  result = submitBioAndWait(bio);
+  if (result != 0) {
+    logErrorWithStringError(result, "synchronous read failed");
     result = -EIO;
   }
-
   freeBio(bio, kernelLayer);
 
   if (result != VDO_SUCCESS) {
@@ -562,37 +521,29 @@ static void waitForSyncOperation(PhysicalLayer *common)
 }
 
 /**
- * Make the bio set for allocating new bios.
+ * Check whether a VDO, or its backing storage, is congested. 
  *
+ * @param callbacks  The callbacks structure inside the kernel layer
+ * @param bdi_bits   Some info things to pass through.
  *
- * @param layer  The kernel layer
- *
- * @returns VDO_SUCCESS if bio set created, error code otherwise
+ * @return true if VDO or one of its backing storage stack is congested.
  **/
-static int makeDedupeBioSet(KernelLayer *layer)
+static int kvdoIsCongested(struct dm_target_callbacks *callbacks,
+                           int                         bdi_bits)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,18,0)
-  int result = ALLOCATE(1, struct bio_set, "bio set", &layer->bioset);
-  if (result != VDO_SUCCESS) {
-    return result;
+  KernelLayer *layer = container_of(callbacks, KernelLayer, callbacks);
+  if (!limiterHasOneFree(&layer->requestLimiter)) {
+    return 1;
   }
 
-  result = bioset_init(layer->bioset, 0, 0, BIOSET_NEED_BVECS);
-  if (result != 0) {
-    return result;
-  }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+  struct backing_dev_info *backing
+   = bdev_get_queue(getKernelLayerBdev(layer))->backing_dev_info;
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  layer->bioset = bioset_create(0, 0, BIOSET_NEED_BVECS);
-#else
-  layer->bioset = bioset_create(0, 0);
+  struct backing_dev_info *backing
+   = &bdev_get_queue(getKernelLayerBdev(layer))->backing_dev_info;
 #endif
-  if (layer->bioset == NULL) {
-    return -ENOMEM;
-  }
-#endif
-
-  return VDO_SUCCESS;
+  return bdi_congested(backing, bdi_bits);
 }
 
 /**********************************************************************/
@@ -702,10 +653,12 @@ int makeKernelLayer(uint64_t        startingSector,
   layer->common.acknowledgeDataVIO       = kvdoAcknowledgeDataVIO;
   layer->common.compressDataVIO          = kvdoCompressDataVIO;
   layer->common.updateAlbireo            = kvdoUpdateDedupeAdvice;
-
   spin_lock_init(&layer->flushLock);
   mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);
+  // This can go anywhere, as long as it is not registered until the layer
+  // is fully allocated.
+  layer->callbacks.congested_fn          = kvdoIsCongested;
 
   result = addLayerToDeviceRegistry(config->poolName, layer);
   if (result != VDO_SUCCESS) {
@@ -727,13 +680,11 @@ int makeKernelLayer(uint64_t        startingSector,
     return result;
   }
 
-  config->threadCounts.baseThreads = (*threadConfigPointer)->baseThreadCount;
-
   logInfo("zones: %d logical, %d physical, %d hash; base threads: %d",
           config->threadCounts.logicalZones,
           config->threadCounts.physicalZones,
           config->threadCounts.hashZones,
-          config->threadCounts.baseThreads);
+          (*threadConfigPointer)->baseThreadCount);
 
   result = makeBatchProcessor(layer, returnDataKVIOBatchToPool, layer,
                               &layer->dataKVIOReleaser);
@@ -751,14 +702,6 @@ int makeKernelLayer(uint64_t        startingSector,
     return result;
   }
 
-  // BIO pool (needed before the geometry block)
-  result = makeDedupeBioSet(layer);
-  if (result != VDO_SUCCESS) {
-    *reason = "Cannot allocate dedupe bioset";
-    freeKernelLayer(layer);
-    return result;
-  }
-
   // Read the geometry block so we know how to set up the index. Allow it to
   // do synchronous reads.
   layer->common.reader = kvdoSynchronousRead;
@@ -772,7 +715,7 @@ int makeKernelLayer(uint64_t        startingSector,
 
   // Albireo Timeout Reporter
   initPeriodicEventReporter(&layer->albireoTimeoutReporter,
-                            "Albireo timeout on %" PRIu64 " requests",
+                            "Albireo timeout on %llu requests",
                             DEDUPE_TIMEOUT_REPORT_INTERVAL, layer);
 
   // Dedupe Index
@@ -822,7 +765,6 @@ int makeKernelLayer(uint64_t        startingSector,
   // KVIO and VIO pool
   BUG_ON(layer->deviceConfig->logicalBlockSize <= 0);
   BUG_ON(layer->requestLimiter.limit <= 0);
-  BUG_ON(layer->bioset == NULL);
   BUG_ON(layer->deviceConfig->ownedDevice == NULL);
   result = makeDataKVIOBufferPool(layer, layer->requestLimiter.limit,
                                   &layer->dataKVIOPool);
@@ -847,15 +789,11 @@ int makeKernelLayer(uint64_t        startingSector,
 
   setKernelLayerState(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
-  // Bio queue and read cache
-  unsigned int readCacheBlocks
-    = (config->readCacheEnabled
-       ? (requestLimit + config->readCacheExtraBlocks) : 0);
+  // Bio queue
   result = makeIOSubmitter(layer->threadNamePrefix,
                            config->threadCounts.bioThreads,
                            config->threadCounts.bioRotationInterval,
                            layer->requestLimiter.limit,
-                           readCacheBlocks,
                            layer,
                            &layer->ioSubmitter);
   if (result != VDO_SUCCESS) {
@@ -934,18 +872,8 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->readCacheEnabled != extantConfig->readCacheEnabled) {
-    *errorPtr = "Read cache enabled cannot change";
-    return VDO_PARAMETER_MISMATCH;
-  }
-
-  if (config->readCacheExtraBlocks != extantConfig->readCacheExtraBlocks) {
-    *errorPtr = "Read cache size cannot change";
-    return VDO_PARAMETER_MISMATCH;
-  }
-
-  if (strcmp(config->threadConfigString, extantConfig->threadConfigString)
-      != 0) {
+  if (memcmp(&config->threadCounts, &extantConfig->threadCounts,
+	     sizeof(ThreadCountConfig)) != 0) {
     *errorPtr = "Thread configuration cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
@@ -1109,15 +1037,6 @@ void freeKernelLayer(KernelLayer *layer)
   if (usedKVDO) {
     destroyKVDO(&layer->kvdo);
   }
-  if (layer->bioset != NULL) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,18,0)
-    bioset_exit(layer->bioset);
-    FREE(layer->bioset);
-#else
-    bioset_free(layer->bioset);
-#endif
-    layer->bioset = NULL;
-  }
 
   freeDedupeIndex(&layer->dedupeIndex);
 
@@ -1262,7 +1181,7 @@ int resumeKernelLayer(KernelLayer *layer)
 /***********************************************************************/
 int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
-  logInfo("Preparing to resize physical to %" PRIu64, physicalCount);
+  logInfo("Preparing to resize physical to %llu", physicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowPhysical(&layer->kvdo, physicalCount);
@@ -1297,7 +1216,7 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 /***********************************************************************/
 int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
-  logInfo("Preparing to resize logical to %" PRIu64, logicalCount);
+  logInfo("Preparing to resize logical to %llu", logicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
   int result = kvdoPrepareToGrowLogical(&layer->kvdo, logicalCount);
@@ -1313,7 +1232,7 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 /***********************************************************************/
 int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
 {
-  logInfo("Resizing logical to %" PRIu64, logicalCount);
+  logInfo("Resizing logical to %llu", logicalCount);
   // We must not mark the layer as allowing allocations when it is suspended
   // lest an allocation attempt block on writing IO to the suspended VDO.
   int result = kvdoResizeLogical(&layer->kvdo, logicalCount);
@@ -1322,7 +1241,7 @@ int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
     return result;
   }
 
-  logInfo("Logical blocks now %" PRIu64, logicalCount);
+  logInfo("Logical blocks now %llu", logicalCount);
   return VDO_SUCCESS;
 }
 

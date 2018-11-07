@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#1 $
  */
 
 #include "vdoLoad.h"
@@ -265,7 +265,7 @@ static int startVDODecode(VDO *vdo, bool validateConfig)
 
   if (vdo->loadConfig.nonce != vdo->nonce) {
     return logErrorWithStringError(VDO_BAD_NONCE, "Geometry nonce %" PRIu64
-                                   " does not match superblock nonce %" PRIu64,
+                                   " does not match superblock nonce %llu",
                                    vdo->loadConfig.nonce, vdo->nonce);
   }
 

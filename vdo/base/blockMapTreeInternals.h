@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTreeInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#1 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -58,14 +58,6 @@ struct treePage {
 
   /** The buffer to hold the on-disk representation of this page */
   char           pageBuffer[VDO_BLOCK_SIZE];
-};
-
-typedef struct {
-  TreePage *levels[BLOCK_MAP_TREE_HEIGHT];
-} BlockMapTreeSegment;
-
-struct blockMapTree {
-  BlockMapTreeSegment *segments;
 };
 
 typedef struct {

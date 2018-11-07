@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dump.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#1 $
  */
 
 #include "dump.h"
@@ -31,8 +31,8 @@
 
 #include "dedupeIndex.h"
 #include "histogram.h"
+#include "ioSubmitter.h"
 #include "logger.h"
-#include "readCache.h"
 
 enum dumpOptions {
   // WorkQueues
@@ -44,7 +44,6 @@ enum dumpOptions {
   // MemoryPools
   SHOW_VIO_POOL,
   // Others
-  SHOW_READCACHES,
   SHOW_VDO_STATUS,
   // This one means an option overrides the "default" choices, instead
   // of altering them.
@@ -61,7 +60,6 @@ enum dumpOptionFlags {
   // MemoryPools
   FLAG_SHOW_VIO_POOL      = (1 << SHOW_VIO_POOL),
   // Others
-  FLAG_SHOW_READCACHES    = (1 << SHOW_READCACHES),
   FLAG_SHOW_VDO_STATUS    = (1 << SHOW_VDO_STATUS),
   // Special
   FLAG_SKIP_DEFAULT       = (1 << SKIP_DEFAULT)
@@ -116,9 +114,6 @@ static void doDump(KernelLayer  *layer,
                   (dumpOptionsRequested & FLAG_SHOW_ALBIREO_QUEUE) != 0);
   dumpBufferPool(layer->dataKVIOPool,
                  (dumpOptionsRequested & FLAG_SHOW_VIO_POOL) != 0);
-  if ((dumpOptionsRequested & FLAG_SHOW_READCACHES) != 0) {
-    readCacheDump(getIOSubmitterReadCache(layer->ioSubmitter), true, false);
-  }
   if ((dumpOptionsRequested & FLAG_SHOW_VDO_STATUS) != 0) {
     // Options should become more fine-grained when we have more to
     // display here.
@@ -157,8 +152,6 @@ static int parseDumpOptions(unsigned int  argc,
     { "reqq",        FLAG_SKIP_DEFAULT | FLAG_SHOW_REQUEST_QUEUE },
     { "viopool",     FLAG_SKIP_DEFAULT | FLAG_SHOW_VIO_POOL },
     { "vdo",         FLAG_SKIP_DEFAULT | FLAG_SHOW_VDO_STATUS },
-    { "readcache",   FLAG_SKIP_DEFAULT | FLAG_SHOW_READCACHES },
-    { "readcaches",  FLAG_SKIP_DEFAULT | FLAG_SHOW_READCACHES },
 
     { "pools",   FLAG_SKIP_DEFAULT | FLAGS_ALL_POOLS },
     { "queues",  FLAG_SKIP_DEFAULT | FLAGS_ALL_QUEUES },

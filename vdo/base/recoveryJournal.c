@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#1 $
  */
 
 #include "recoveryJournal.h"
@@ -897,8 +897,8 @@ static void continueCommittedWaiter(Waiter *waiter, void *context)
   ASSERT_LOG_ONLY(beforeJournalPoint(&journal->commitPoint,
                                      &dataVIO->recoveryJournalPoint),
                   "DataVIOs released from recovery journal in order. "
-                  "Recovery journal point is (%" PRIu64 ", %" PRIu16 "), "
-                  "but commit waiter point is (%" PRIu64 ", %" PRIu16 ")",
+                  "Recovery journal point is (%llu, %" PRIu16 "), "
+                  "but commit waiter point is (%llu, %" PRIu16 ")",
                   journal->commitPoint.sequenceNumber,
                   journal->commitPoint.entryCount,
                   dataVIO->recoveryJournalPoint.sequenceNumber,
@@ -993,7 +993,7 @@ static void handleWriteError(VDOCompletion *completion)
   RecoveryJournalBlock *block   = completion->parent;
   RecoveryJournal      *journal = block->journal;
   logErrorWithStringError(completion->result,
-                          "cannot write recovery journal block %" PRIu64,
+                          "cannot write recovery journal block %llu",
                           block->sequenceNumber);
   enterJournalReadOnlyMode(journal, completion->result);
   completeWrite(completion);
@@ -1179,10 +1179,10 @@ void dumpRecoveryJournalStatistics(const RecoveryJournal *journal)
 {
   RecoveryJournalStatistics stats = getRecoveryJournalStatistics(journal);
   logInfo("Recovery Journal");
-  logInfo("  blockMapHead=%" PRIu64 " slabJournalHead=%" PRIu64
-          " lastWriteAcknowledged=%" PRIu64 " tail=%" PRIu64
-          " blockMapReapHead=%" PRIu64 " slabJournalReapHead=%" PRIu64
-          " diskFull=%" PRIu64 " slabJournalCommitsRequested=%" PRIu64
+  logInfo("  blockMapHead=%llu slabJournalHead=%" PRIu64
+          " lastWriteAcknowledged=%llu tail=%" PRIu64
+          " blockMapReapHead=%llu slabJournalReapHead=%" PRIu64
+          " diskFull=%llu slabJournalCommitsRequested=%" PRIu64
           " incrementWaiters=%zu decrementWaiters=%zu",
           journal->blockMapHead, journal->slabJournalHead,
           journal->lastWriteAcknowledged, journal->tail,
@@ -1190,11 +1190,11 @@ void dumpRecoveryJournalStatistics(const RecoveryJournal *journal)
           stats.diskFull, stats.slabJournalCommitsRequested,
           countWaiters(&journal->incrementWaiters),
           countWaiters(&journal->decrementWaiters));
-  logInfo("  entries: started=%" PRIu64 " written=%" PRIu64 " committed=%"
+  logInfo("  entries: started=%llu written=%llu committed=%"
           PRIu64,
           stats.entries.started, stats.entries.written,
           stats.entries.committed);
-  logInfo("  blocks: started=%" PRIu64 " written=%" PRIu64 " committed=%"
+  logInfo("  blocks: started=%llu written=%llu committed=%"
           PRIu64,
           stats.blocks.started, stats.blocks.written,
           stats.blocks.committed);

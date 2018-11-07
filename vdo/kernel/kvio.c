@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#1 $
  */
 
 #include "kvio.h"
@@ -32,7 +32,6 @@
 #include "bio.h"
 #include "ioSubmitter.h"
 #include "kvdoFlush.h"
-#include "readCache.h"
 
 /**
  * A function to tell vdo that we have completed the requested async
@@ -114,7 +113,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   resetBio(bio, kvio->layer);
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
-  invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_COMPRESSED_DATA);
+  submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
 /**
@@ -180,9 +179,6 @@ static void completeFlushBio(BIO *bio, int error)
 #endif
 {
   KVIO *kvio   = (KVIO *) bio->bi_private;
-  // XXX This assumes a VDO-created bio around a buffer contains exactly 1
-  // page, which we believe is true, but do not assert.
-  bio->bi_vcnt = 1;
   // Restore the bio's notion of its own data.
   resetBio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)

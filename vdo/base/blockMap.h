@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#1 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -28,23 +28,6 @@
 #include "readOnlyModeContext.h"
 #include "statistics.h"
 #include "types.h"
-
-/**
- * Compute the size in blocks required for a block map with the specified
- * parameters.
- *
- * @param totalEntries       The number of block map entries
- * @param slabSize           The size of a slab in blocks
- * @param dataBlocksPerSlab  The number of blocks per slab usable for data
- *
- * @return The number of blocks required
- *
- * @note The computation assumes that the page size is an integral multiple
- *       of the block size.
- **/
-BlockCount computeBlockMapSize(BlockCount totalEntries,
-                               BlockCount slabSize,
-                               BlockCount dataBlocksPerSlab);
 
 /**
  * Create a block map.

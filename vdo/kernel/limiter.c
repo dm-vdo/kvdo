@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/limiter.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#1 $
  */
 
 #include "limiter.h"
@@ -51,6 +51,15 @@ bool limiterIsIdle(Limiter *limiter)
   bool idle = limiter->active == 0;
   spin_unlock(&limiter->lock);
   return idle;
+}
+
+/**********************************************************************/
+bool limiterHasOneFree(Limiter *limiter)
+{
+  spin_lock(&limiter->lock);
+  bool hasOneFree = (limiter->active < limiter->limit);
+  spin_unlock(&limiter->lock);
+  return hasOneFree;
 }
 
 /**********************************************************************/

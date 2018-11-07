@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/trace.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#1 $
  */
 
 #include "trace.h"
@@ -67,7 +67,7 @@ void formatTrace(Trace  *trace,
   if (trace->used > 0) {
     TraceRecord *record = &trace->records[0];
     TraceLocationRecord *location = baseTraceLocation + record->location;
-    snprintf(buf, bufferEnd - buf, "Trace[%s@%" PRIu64 ".%06" PRIu64,
+    snprintf(buf, bufferEnd - buf, "Trace[%s@%llu.%06llu",
              location->function, record->when / 1000000,
              record->when % 1000000);
     buf += strlen(buf);

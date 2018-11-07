@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/verify.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#1 $
  */
 
 #include "verify.h"
@@ -25,7 +25,6 @@
 
 #include "dataKVIO.h"
 #include "numeric.h"
-#include "readCache.h"
 
 /**
  * Compare blocks of memory for equality.
@@ -140,7 +139,7 @@ void kvdoVerifyDuplication(DataVIO *dataVIO)
     = THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
   dataVIOAddTraceRecord(dataVIO, location);
   kvdoReadBlock(dataVIO, dataVIO->duplicate.pbn, dataVIO->duplicate.state,
-                READ_VERIFY_DEDUPE, verifyReadBlockCallback);
+                BIO_Q_ACTION_VERIFY, verifyReadBlockCallback);
 }
 
 /**********************************************************************/

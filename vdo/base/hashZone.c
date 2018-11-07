@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashZone.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#1 $
  */
 
 #include "hashZone.h"
@@ -299,7 +299,7 @@ static void dumpHashLock(const HashLock *lock)
   // Necessarily cryptic since we can log a lot of these. First three chars of
   // state is unambiguous. 'U' indicates a lock not registered in the map.
   const char *state = getHashLockStateName(lock->state);
-  logInfo("  hl %" PRIptr ": %3.3s %c%" PRIu64 "/%u rc=%u wc=%zu agt=%" PRIptr,
+  logInfo("  hl %" PRIptr ": %3.3s %c%llu/%u rc=%u wc=%zu agt=%" PRIptr,
           (const void *) lock,
           state,
           (lock->registered ? 'D' : 'U'),

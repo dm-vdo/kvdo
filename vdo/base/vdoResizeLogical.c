@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResizeLogical.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#1 $
  */
 
 #include "vdoResizeLogical.h"
@@ -112,14 +112,14 @@ int prepareToGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
   if (newLogicalBlocks < vdo->config.logicalBlocks) {
     return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
                                    "Can't shrink VDO logical size from its "
-                                   "current value of %" PRIu64,
+                                   "current value of %llu",
                                    vdo->config.logicalBlocks);
   }
 
   if (newLogicalBlocks == vdo->config.logicalBlocks) {
     return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
                                    "Can't grow VDO logical size to its "
-                                   "current value of %" PRIu64,
+                                   "current value of %llu",
                                    vdo->config.logicalBlocks);
   }
 

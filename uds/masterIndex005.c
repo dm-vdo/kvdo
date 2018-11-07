@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/masterIndex005.c#3 $
+ * $Id: //eng/uds-releases/homer/src/uds/masterIndex005.c#1 $
  */
 #include "masterIndex005.h"
 
@@ -627,9 +627,9 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
     } else if (virtualChapterHigh != header.virtualChapterHigh) {
       return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
                                        "Inconsistent master index zone files:"
-                                       " Chapter range is [%" PRIu64 ",%"
+                                       " Chapter range is [%llu,%"
                                        PRIu64 "], chapter range %d is [%"
-                                       PRIu64 ",%" PRIu64 "]",
+                                       PRIu64 ",%llu]",
                                        virtualChapterLow, virtualChapterHigh,
                                        i, header.virtualChapterLow,
                                        header.virtualChapterHigh);
@@ -827,7 +827,7 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
       uint64_t expireCount
         = 1 + (usedBits - mi5->maxZoneBits) / mi5->chapterZoneBits;
       if (expireCount == 1) {
-        logInfo("masterZone %u:  At chapter %" PRIu64 ", expiring chapter %"
+        logInfo("masterZone %u:  At chapter %llu, expiring chapter %"
                 PRIu64 " early",
                 zoneNumber, virtualChapter, masterZone->virtualChapterLow);
         masterZone->numEarlyFlushes++;
@@ -842,8 +842,8 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
             += masterZone->virtualChapterHigh - masterZone->virtualChapterLow;
           masterZone->virtualChapterLow = masterZone->virtualChapterHigh;
         }
-        logInfo("masterZone %u:  At chapter %" PRIu64 ", expiring chapters %"
-                PRIu64 " to %" PRIu64 " early", zoneNumber, virtualChapter,
+        logInfo("masterZone %u:  At chapter %llu, expiring chapters %"
+                PRIu64 " to %llu early", zoneNumber, virtualChapter,
                 firstExpired, masterZone->virtualChapterLow - 1);
       }
     }
@@ -869,7 +869,7 @@ static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
     bool logMove = virtualChapter != masterZone->virtualChapterHigh + 1;
     if (logMove) {
       logDebug("masterZone %u: The range of indexed chapters is moving from [%"
-               PRIu64 ", %" PRIu64 "] ...",
+               PRIu64 ", %llu] ...",
                z,
                masterZone->virtualChapterLow,
                masterZone->virtualChapterHigh);
@@ -878,7 +878,7 @@ static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
     setMasterIndexZoneOpenChapter_005(masterIndex, z, virtualChapter);
 
     if (logMove) {
-      logDebug("masterZone %u: ... and moving to [%" PRIu64 ", %" PRIu64 "]",
+      logDebug("masterZone %u: ... and moving to [%llu, %llu]",
                z,
                masterZone->virtualChapterLow,
                masterZone->virtualChapterHigh);
@@ -1063,7 +1063,7 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot put record into chapter number %"
                                      PRIu64 " that is out of the valid range %"
-                                     PRIu64 " to %" PRIu64,
+                                     PRIu64 " to %llu",
                                      virtualChapter,
                                      masterZone->virtualChapterLow,
                                      masterZone->virtualChapterHigh);
@@ -1159,7 +1159,7 @@ int setMasterIndexRecordChapter(MasterIndexRecord *record,
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "cannot set chapter number %" PRIu64
                                      " that is out of the valid range %" PRIu64
-                                     " to %" PRIu64,
+                                     " to %llu",
                                      virtualChapter,
                                      masterZone->virtualChapterLow,
                                      masterZone->virtualChapterHigh);

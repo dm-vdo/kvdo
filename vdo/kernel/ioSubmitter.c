@@ -16,17 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#1 $
  */
 
-#include "ioSubmitterInternals.h"
+#include "ioSubmitter.h"
+
+#include <linux/version.h>
 
 #include "memoryAlloc.h"
 
 #include "bio.h"
+#include "dataKVIO.h"
 #include "kernelLayer.h"
 #include "logger.h"
-#include "readCache.h"
 
 enum {
   /*
@@ -46,6 +48,155 @@ enum {
    */
   USE_BIOMAP           = 1,
 };
+
+/*
+ * Submission of bio operations to the underlying storage device will
+ * go through a separate work queue thread (or more than one) to
+ * prevent blocking in other threads if the storage device has a full
+ * queue. The plug structure allows that thread to do better batching
+ * of requests to make the I/O more efficient.
+ *
+ * When multiple worker threads are used, a thread is chosen for a
+ * I/O operation submission based on the PBN, so a given PBN will
+ * consistently wind up on the same thread. Flush operations are
+ * assigned round-robin.
+ *
+ * The map (protected by the mutex) collects pending I/O operations so
+ * that the worker thread can reorder them to try to encourage I/O
+ * request merging in the request queue underneath.
+ */
+typedef struct bioQueueData {
+  KvdoWorkQueue         *queue;
+  struct blk_plug        plug;
+  IntMap                *map;
+  struct mutex           lock;
+  unsigned int           queueNumber;
+} BioQueueData;
+
+struct ioSubmitter {
+  unsigned int     numBioQueuesUsed;
+  unsigned int     bioQueueRotationInterval;
+  unsigned int     bioQueueRotor;
+  BioQueueData     bioQueueData[];
+};
+
+/**********************************************************************/
+static void startBioQueue(void *ptr)
+{
+  BioQueueData *bioQueueData = (BioQueueData *)ptr;
+  blk_start_plug(&bioQueueData->plug);
+}
+
+/**********************************************************************/
+static void finishBioQueue(void *ptr)
+{
+  BioQueueData *bioQueueData = (BioQueueData *)ptr;
+  blk_finish_plug(&bioQueueData->plug);
+}
+
+static const KvdoWorkQueueType bioQueueType = {
+  .start       = startBioQueue,
+  .finish      = finishBioQueue,
+  .actionTable = {
+    { .name = "bio_compressed_data",
+      .code = BIO_Q_ACTION_COMPRESSED_DATA,
+      .priority = 0 },
+    { .name = "bio_data",
+      .code = BIO_Q_ACTION_DATA,
+      .priority = 0 },
+    { .name = "bio_flush",
+      .code = BIO_Q_ACTION_FLUSH,
+      .priority = 2 },
+    { .name = "bio_high",
+      .code = BIO_Q_ACTION_HIGH,
+      .priority = 2 },
+    { .name = "bio_metadata",
+      .code = BIO_Q_ACTION_METADATA,
+      .priority = 1 },
+    { .name = "bio_readcache",
+      .code = BIO_Q_ACTION_READCACHE,
+      .priority = 0 },
+    { .name = "bio_verify",
+      .code = BIO_Q_ACTION_VERIFY,
+      .priority = 1 },
+  },
+};
+
+/**
+ * Check that we're running normally (i.e., not in an
+ * interrupt-servicing context) in an IOSubmitter bio thread.
+ **/
+static void assertRunningInBioQueue(void)
+{
+  ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
+  ASSERT_LOG_ONLY(strnstr(current->comm, "bioQ", TASK_COMM_LEN) != NULL,
+                  "running in bio submission work queue thread");
+}
+
+/**
+ * Returns the BioQueueData pointer associated with the current thread.
+ * Results are undefined if called from any other thread.
+ *
+ * @return the BioQueueData pointer
+ **/
+static inline BioQueueData *getCurrentBioQueueData(void)
+{
+  BioQueueData *bioQueueData = (BioQueueData *) getWorkQueuePrivateData();
+  // Does it look like a bio queue thread?
+  BUG_ON(bioQueueData == NULL);
+  BUG_ON(bioQueueData->queue != getCurrentWorkQueue());
+  return bioQueueData;
+}
+
+/**********************************************************************/
+static inline IOSubmitter *bioQueueToSubmitter(BioQueueData *bioQueue)
+{
+  BioQueueData *firstBioQueue = bioQueue - bioQueue->queueNumber;
+  IOSubmitter *submitter = container_of(firstBioQueue, IOSubmitter,
+                                        bioQueueData[0]);
+  return submitter;
+}
+
+/**
+ * Return the bio thread number handling the specified physical block
+ * number.
+ *
+ * @param ioSubmitter       The I/O submitter data
+ * @param pbn               The physical block number
+ *
+ * @return read cache zone number
+ **/
+static unsigned int bioQueueNumberForPBN(IOSubmitter         *ioSubmitter,
+                                       PhysicalBlockNumber  pbn)
+{
+  unsigned int bioQueueIndex
+    = ((pbn
+        % (ioSubmitter->numBioQueuesUsed
+           * ioSubmitter->bioQueueRotationInterval))
+       / ioSubmitter->bioQueueRotationInterval);
+
+  return bioQueueIndex;
+}
+
+/**
+ * Check that we're running normally (i.e., not in an
+ * interrupt-servicing context) in an IOSubmitter bio thread. Also
+ * require that the thread we're running on is the correct one for the
+ * supplied physical block number.
+ *
+ * @param pbn  The PBN that should have been used in thread selection
+ **/
+static void assertRunningInBioQueueForPBN(PhysicalBlockNumber pbn)
+{
+  assertRunningInBioQueue();
+
+  BioQueueData *thisQueue = getCurrentBioQueueData();
+  IOSubmitter *submitter = bioQueueToSubmitter(thisQueue);
+  unsigned int computedQueueNumber = bioQueueNumberForPBN(submitter, pbn);
+  ASSERT_LOG_ONLY(thisQueue->queueNumber == computedQueueNumber,
+                  "running in correct bio queue (%u vs %u) for PBN %llu",
+                  thisQueue->queueNumber, computedQueueNumber, pbn);
+}
 
 /**
  * Increments appropriate counters for bio completions
@@ -102,58 +253,6 @@ void completeAsyncBio(BIO *bio, int error)
   kvdoContinueKvio(kvio, error);
 }
 
-/**********************************************************************/
-static void startBioQueue(void *ptr)
-{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38)
-  BioQueueData *bioQueueData = (BioQueueData *)ptr;
-  blk_start_plug(&bioQueueData->plug);
-#endif
-}
-
-/**********************************************************************/
-static void finishBioQueue(void *ptr)
-{
-  BioQueueData *bioQueueData = (BioQueueData *)ptr;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38)
-  blk_finish_plug(&bioQueueData->plug);
-#else
-  //on early kernels, we have to kick the queue often.
-  struct request_queue *q = bdev_get_queue(bioQueueData->bdev);
-  if (q->unplug_fn != NULL) {
-    q->unplug_fn(q);
-  }
-#endif
-}
-
-static const KvdoWorkQueueType bioQueueType = {
-  .start       = startBioQueue,
-  .finish      = finishBioQueue,
-  .actionTable = {
-    { .name = "bio_compressed_data",
-      .code = BIO_Q_ACTION_COMPRESSED_DATA,
-      .priority = 0 },
-    { .name = "bio_data",
-      .code = BIO_Q_ACTION_DATA,
-      .priority = 0 },
-    { .name = "bio_flush",
-      .code = BIO_Q_ACTION_FLUSH,
-      .priority = 2 },
-    { .name = "bio_high",
-      .code = BIO_Q_ACTION_HIGH,
-      .priority = 2 },
-    { .name = "bio_metadata",
-      .code = BIO_Q_ACTION_METADATA,
-      .priority = 1 },
-    { .name = "bio_readcache",
-      .code = BIO_Q_ACTION_READCACHE,
-      .priority = 0 },
-    { .name = "bio_verify",
-      .code = BIO_Q_ACTION_VERIFY,
-      .priority = 1 },
-  },
-};
-
 /**
  * Determines which bio counter to use
  *
@@ -176,14 +275,17 @@ static void countAllBios(KVIO *kvio, BIO *bio)
   }
 }
 
-/**********************************************************************/
-void sendBioToDevice(KVIO *kvio, BIO *bio, TraceLocation location)
+/**
+ * Update stats and tracing info, then submit the supplied bio to the
+ * OS for processing.
+ *
+ * @param kvio      The KVIO associated with the bio
+ * @param bio       The bio to submit to the OS
+ * @param location  Call site location for tracing
+ **/
+static void sendBioToDevice(KVIO *kvio, BIO *bio, TraceLocation location)
 {
-  /*
-   * We could probably go further and figure out if we're running in
-   * the correct bio queue for the relevant PBN...
-   */
-  assertRunningInBioQueue();
+  assertRunningInBioQueueForPBN(kvio->vio->physical);
 
   atomic64_inc(&kvio->layer->biosSubmitted);
   countAllBios(kvio, bio);
@@ -208,6 +310,7 @@ void sendBioToDevice(KVIO *kvio, BIO *bio, TraceLocation location)
  **/
 static void processBioMap(KvdoWorkItem *item)
 {
+  assertRunningInBioQueue();
   KVIO *kvio = workItemAsKVIO(item);
   /*
    * XXX Make these paths more regular: Should bi_bdev be set here, or
@@ -238,16 +341,11 @@ static void processBioMap(KvdoWorkItem *item)
       BIO  *next    = bio->bi_next;
       bio->bi_next  = NULL;
       setBioBlockDevice(bio, getKernelLayerBdev(kvioBio->layer));
-      kvioBio->bioSubmissionCallback(&kvioBio->enqueueable.workItem);
+      sendBioToDevice(kvioBio, bio, THIS_LOCATION("$F($io)"));
       bio = next;
     }
   } else {
-    kvio->bioSubmissionCallback(&kvio->enqueueable.workItem);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,38)
-    //if journaling, kick the queue to make the requests leave faster
-    BioQueueData *bioQueueData = getWorkQueuePrivateData();
-    finishBioQueue(bioQueueData);
-#endif
+    sendBioToDevice(kvio, kvio->bioToSubmit, THIS_LOCATION("$F($io)"));
   }
 }
 
@@ -373,19 +471,6 @@ static bool tryBioMapMerge(BioQueueData *bioQueueData, KVIO *kvio, BIO *bio)
 }
 
 /**********************************************************************/
-unsigned int bioQueueNumberForPBN(IOSubmitter         *ioSubmitter,
-                                  PhysicalBlockNumber  pbn)
-{
-  unsigned int bioQueueIndex
-    = ((pbn
-        % (ioSubmitter->numBioQueuesUsed
-           * ioSubmitter->bioQueueRotationInterval))
-       / ioSubmitter->bioQueueRotationInterval);
-
-  return bioQueueIndex;
-}
-
-/**********************************************************************/
 static BioQueueData *bioQueueDataForPBN(IOSubmitter         *ioSubmitter,
                                         PhysicalBlockNumber  pbn)
 {
@@ -394,19 +479,16 @@ static BioQueueData *bioQueueDataForPBN(IOSubmitter         *ioSubmitter,
 }
 
 /**********************************************************************/
-void enqueueBioMap(BIO                 *bio,
-                   BioQAction           action,
-                   KvdoWorkFunction     callback,
-                   PhysicalBlockNumber  pbn)
+void submitBio(BIO *bio, BioQAction action)
 {
   KVIO *kvio                  = bio->bi_private;
   kvio->bioToSubmit           = bio;
-  kvio->bioSubmissionCallback = callback;
   setupKVIOWork(kvio, processBioMap, (KvdoWorkFunction) bio->bi_end_io,
                 action);
 
   KernelLayer  *layer = kvio->layer;
-  BioQueueData *bioQueueData = bioQueueDataForPBN(layer->ioSubmitter, pbn);
+  BioQueueData *bioQueueData
+    = bioQueueDataForPBN(layer->ioSubmitter, kvio->vio->physical);
 
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io)"));
 
@@ -441,6 +523,13 @@ void enqueueBioMap(BIO                 *bio,
     }
   }
 
+ /*
+  * Try to use the bio map to submit this bio earlier if we're already sending
+  * IO for an adjacent block. If we can't use an existing pending bio, enqueue
+  * an operation to run in a bio submission thread appropriate to the
+  * indicated physical block number.
+  */
+
   bool merged = false;
   if (USE_BIOMAP && isData(kvio)) {
     merged = tryBioMapMerge(bioQueueData, kvio, bio);
@@ -448,23 +537,6 @@ void enqueueBioMap(BIO                 *bio,
   if (!merged) {
     enqueueKVIOWork(bioQueueData->queue, kvio);
   }
-}
-
-/**********************************************************************/
-static void submitBioWork(KvdoWorkItem *item)
-{
-  assertRunningInBioQueue();
-
-  KVIO *kvio = workItemAsKVIO(item);
-  BIO  *bio  = kvio->bioToSubmit;
-  sendBioToDevice(kvio, bio, THIS_LOCATION("$F($io)"));
-}
-
-/**********************************************************************/
-void submitBio(BIO *bio, BioQAction action)
-{
-  KVIO *kvio = bio->bi_private;
-  enqueueBioMap(bio, action, submitBioWork, kvio->vio->physical);
 }
 
 /**********************************************************************/
@@ -489,7 +561,6 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                     unsigned int   threadCount,
                     unsigned int   rotationInterval,
                     unsigned int   maxRequestsActive,
-                    unsigned int   readCacheBlocks,
                     KernelLayer   *layer,
                     IOSubmitter  **ioSubmitterPtr)
 {
@@ -501,15 +572,6 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                                  &ioSubmitter);
   if (result != UDS_SUCCESS) {
     return result;
-  }
-
-  if (readCacheBlocks > 0) {
-    result = makeReadCache(layer, readCacheBlocks, threadCount,
-                           &ioSubmitter->readCache);
-    if (result != VDO_SUCCESS) {
-      FREE(ioSubmitter);
-      return result;
-    }
   }
 
   // Setup for each bio-submission work queue
@@ -584,15 +646,7 @@ void freeIOSubmitter(IOSubmitter *ioSubmitter)
       freeIntMap(&ioSubmitter->bioQueueData[i].map);
     }
   }
-  freeReadCache(&ioSubmitter->readCache);
   FREE(ioSubmitter);
-}
-
-/**********************************************************************/
-void getBioWorkQueueReadCacheStats(IOSubmitter    *ioSubmitter,
-                                   ReadCacheStats *totalledStats)
-{
-  *totalledStats = readCacheGetStats(ioSubmitter->readCache);
 }
 
 /**********************************************************************/
@@ -605,21 +659,6 @@ void dumpBioWorkQueue(IOSubmitter *ioSubmitter)
 
 
 /**********************************************************************/
-ReadCache *getIOSubmitterReadCache(IOSubmitter *ioSubmitter)
-{
-  return ioSubmitter->readCache;
-}
-
-/**********************************************************************/
-void enqueueByPBNBioWorkItem(IOSubmitter         *ioSubmitter,
-                             PhysicalBlockNumber  pbn,
-                             KvdoWorkItem        *workItem)
-{
-  enqueueWorkQueue(bioQueueDataForPBN(ioSubmitter, pbn)->queue,
-                   workItem);
-}
-
-/**********************************************************************/
 void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem)
 {
   unsigned int bioQueueIndex = advanceBioRotor(ioSubmitter);
@@ -627,32 +666,3 @@ void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem)
                    workItem);
 }
 
-/**********************************************************************/
-void assertRunningInBioQueue(void)
-{
-  ASSERT_LOG_ONLY(!in_interrupt(), "not in interrupt context");
-  ASSERT_LOG_ONLY(strnstr(current->comm, "bioQ", TASK_COMM_LEN) != NULL,
-                  "running in bio submission work queue thread");
-}
-
-/**********************************************************************/
-static inline IOSubmitter *bioQueueToSubmitter(BioQueueData *bioQueue)
-{
-  BioQueueData *firstBioQueue = bioQueue - bioQueue->queueNumber;
-  IOSubmitter *submitter = container_of(firstBioQueue, IOSubmitter,
-                                        bioQueueData[0]);
-  return submitter;
-}
-
-/**********************************************************************/
-void assertRunningInBioQueueForPBN(PhysicalBlockNumber pbn)
-{
-  assertRunningInBioQueue();
-
-  BioQueueData *thisQueue = getCurrentBioQueueData();
-  IOSubmitter *submitter = bioQueueToSubmitter(thisQueue);
-  unsigned int computedQueueNumber = bioQueueNumberForPBN(submitter, pbn);
-  ASSERT_LOG_ONLY(thisQueue->queueNumber == computedQueueNumber,
-                  "running in correct bio queue (%u vs %u) for PBN %" PRIu64,
-                  thisQueue->queueNumber, computedQueueNumber, pbn);
-}

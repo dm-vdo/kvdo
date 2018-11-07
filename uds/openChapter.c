@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/openChapter.c#3 $
+ * $Id: //eng/uds-releases/homer/src/uds/openChapter.c#1 $
  */
 
 #include "openChapter.h"
@@ -25,6 +25,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
+#include "zone.h"
 
 static int readOpenChapters(ReadPortal *portal);
 static int writeOpenChapters(IndexComponent *component,
@@ -265,8 +266,7 @@ static int loadVersion20(Index *index, BufferedReader *reader)
   uint32_t numRecords = getUInt32LE(numRecordsData);
 
   // Keep track of which zones cannot accept any more records.
-  bool fullFlags[index->zoneCount];
-  memset(fullFlags, 0, (index->zoneCount * sizeof(bool)));
+  bool fullFlags[MAX_ZONES] = { false, };
 
   // Assign records to the correct zones.
   UdsChunkRecord record;

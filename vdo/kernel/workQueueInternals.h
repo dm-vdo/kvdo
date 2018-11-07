@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#1 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -40,9 +40,9 @@ typedef struct kvdoWorkItemList {
  *
  * There are two types of work queues: simple, with one worker thread, and
  * round-robin, which uses a group of the former to do the work, and assigns
- * work to them in -- you guessed it -- round-robin fashion. Externally, both
- * are represented via the same common sub-structure, though there's actually
- * not a great deal of overlap between the two types internally.
+ * work to them in round-robin fashion (roughly). Externally, both are
+ * represented via the same common sub-structure, though there's actually not a
+ * great deal of overlap between the two types internally.
  **/
 struct kvdoWorkQueue {
   /** Name of just the work queue (e.g., "cpuQ12") */
@@ -161,17 +161,6 @@ struct roundRobinWorkQueue {
   SimpleWorkQueue **serviceQueues;
   /** Number of subordinate work queues */
   unsigned int      numServiceQueues;
-  /** Padding for cache line separation */
-  char              pad[CACHE_LINE_BYTES - sizeof(unsigned int)];
-  /**
-   * Rotor used for dispatching across subordinate service queues.
-   *
-   * Used and updated by submitting threads. (Not atomically or with locking,
-   * because we don't really care about it being precise, only about getting a
-   * roughly even spread; if an increment is missed here and there, it's not a
-   * problem.)
-   **/
-  unsigned int      serviceQueueRotor;
 };
 
 static inline SimpleWorkQueue *asSimpleWorkQueue(KvdoWorkQueue *queue)

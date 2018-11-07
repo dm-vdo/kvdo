@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#1 $
  */
 
 #include "workQueue.h"
 
 #include <linux/delay.h>
 #include <linux/kthread.h>
+#include <linux/percpu.h>
 #include <linux/version.h>
 
 #include "atomic.h"
@@ -51,6 +52,8 @@ enum {
 
 static struct mutex queueDataLock;
 static SimpleWorkQueue queueData;
+
+static DEFINE_PER_CPU(unsigned int, serviceQueueRotor);
 
 static void freeSimpleWorkQueue(SimpleWorkQueue *queue);
 static void finishSimpleWorkQueue(SimpleWorkQueue *queue);
@@ -111,12 +114,8 @@ static KvdoWorkItem *workItemListPeek(KvdoWorkItemList *list)
 // Finding the SimpleWorkQueue to actually operate on.
 
 /**
- * Pick the next subordinate service queue in rotation.
- *
- * This doesn't need to be 100% precise in distributing work items around, so
- * playing loose with concurrent field modifications isn't going to hurt us.
- * (Avoiding the atomic ops may help us a bit in performance, but we'll still
- * have contention over the fields.)
+ * Pick the subordinate service queue to use, distributing the work evenly
+ * across them.
  *
  * @param queue  The round-robin-type work queue
  *
@@ -124,7 +123,16 @@ static KvdoWorkItem *workItemListPeek(KvdoWorkItemList *list)
  **/
 static inline SimpleWorkQueue *nextServiceQueue(RoundRobinWorkQueue *queue)
 {
-  unsigned int index = (queue->serviceQueueRotor++ % queue->numServiceQueues);
+  /*
+   * It shouldn't be a big deal if the same rotor gets used for multiple work
+   * queues. Any patterns that might develop are likely to be disrupted by
+   * random ordering of multiple work items and migration between cores,
+   * unless the load is so light as to be regular in ordering of tasks and the
+   * threads are confined to individual cores; with a load that light we won't
+   * care.
+   */
+  unsigned int rotor = this_cpu_inc_return(serviceQueueRotor);
+  unsigned int index = rotor % queue->numServiceQueues;
   return queue->serviceQueues[index];
 }
 

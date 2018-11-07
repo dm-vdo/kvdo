@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packerInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#1 $
  */
 
 #ifndef PACKER_INTERNALS_H

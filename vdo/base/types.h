@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#1 $
  */
 
 #ifndef TYPES_H
@@ -366,7 +366,6 @@ typedef struct adminCompletion     AdminCompletion;
 typedef struct allocatingVIO       AllocatingVIO;
 typedef struct blockAllocator      BlockAllocator;
 typedef struct blockMap            BlockMap;
-typedef struct blockMapTree        BlockMapTree;
 typedef struct blockMapTreeZone    BlockMapTreeZone;
 typedef struct blockMapZone        BlockMapZone;
 typedef struct dataVIO             DataVIO;

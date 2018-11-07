@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#1 $
  */
 
 #include "kvdoFlush.h"
@@ -220,61 +220,25 @@ void kvdoCompleteFlush(VDOFlush **kfp)
   }
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-/**
- * Callback for a synchronous flush bio.
- *
- * @param bio  The flush bio
- **/
-static void endSynchronousFlush(BIO *bio)
-#else
-/**
- * Callback for a synchronous flush bio.
- *
- * @param bio  The flush bio
- * @param result  The result of the flush operation
- **/
-static void endSynchronousFlush(BIO *bio, int result)
-#endif
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int result = getBioResult(bio);
-#endif
-
-  if (result != 0) {
-    logErrorWithStringError(result, "synchronous flush failed");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0)
-    clear_bit(BIO_UPTODATE, &bio->bi_flags);
-#endif
-  }
-
-  KernelLayer *layer = bio->bi_private;
-  atomic64_inc(&layer->flushOut);
-  complete(&layer->flushWait);
-}
-
 /**********************************************************************/
 int synchronousFlush(KernelLayer *layer)
 {
-  BIO *bio;
-  int result = createBio(layer, NULL, &bio);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  init_completion(&layer->flushWait);
-  prepareFlushBIO(bio, layer, getKernelLayerBdev(layer), endSynchronousFlush);
-  bio->bi_next = NULL;
-  generic_make_request(bio);
-  wait_for_completion(&layer->flushWait);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (getBioResult(bio) != 0) {
+  BIO bio;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio_init(&bio, 0, 0);
 #else
-  if (!bio_flagged(bio, BIO_UPTODATE)) {
+  bio_init(&bio);
 #endif
+  prepareFlushBIO(&bio, layer, getKernelLayerBdev(layer), NULL);
+  int result = submitBioAndWait(&bio);
+  atomic64_inc(&layer->flushOut);
+  if (result != 0) {
+    logErrorWithStringError(result, "synchronous flush failed");
     result = -EIO;
   }
 
-  freeBio(bio, layer);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
+  bio_uninit(&bio);
+#endif
   return result;
 }

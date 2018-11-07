@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/referenceCountRebuild.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#1 $
  */
 
 #include "referenceCountRebuild.h"
@@ -326,7 +326,7 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
     if (result != VDO_SUCCESS) {
       logErrorWithStringError(result,
                               "Could not adjust reference count for PBN"
-                              " %" PRIu64 ", slot %u mapped to PBN %" PRIu64,
+                              " %llu, slot %u mapped to PBN %llu",
                               getBlockMapPagePBN(page), slot, mapping.pbn);
       page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
       requestVDOPageWrite(completion);
@@ -441,7 +441,7 @@ static int processEntry(PhysicalBlockNumber pbn, VDOCompletion *completion)
   RebuildCompletion *rebuild = asRebuildCompletion(completion->parent);
   if ((pbn == ZERO_BLOCK) || !isPhysicalDataBlock(rebuild->depot, pbn)) {
     return logErrorWithStringError(VDO_BAD_CONFIGURATION,
-                                   "PBN %" PRIu64 " out of range",
+                                   "PBN %llu out of range",
                                    pbn);
   }
 
@@ -451,7 +451,7 @@ static int processEntry(PhysicalBlockNumber pbn, VDOCompletion *completion)
   if (result != VDO_SUCCESS) {
     return logErrorWithStringError(result,
                                    "Could not adjust reference count for "
-                                   "block map tree PBN %" PRIu64,
+                                   "block map tree PBN %llu",
                                    pbn);
   }
 

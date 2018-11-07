@@ -16,28 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.h#1 $
  */
 
-#ifndef ALBIREO_SYSFS_H
-#define ALBIREO_SYSFS_H
+#ifndef SYSFS_H
+#define SYSFS_H
 
-#include "kernelLayer.h"
-
-struct kvdoDevice;
+#include <linux/kobject.h>
 
 /**
-* Initializes the sysfs objects global to all vdo devices.
-*
-* @param deviceObject  the kobject of the kvdoDevice to initialize.
-*/
-int vdoInitSysfs(struct kobject *deviceObject);
-
-/**
- * Releases the global sysfs objects.
+ * Initialize the sysfs objects global to all VDO devices.
  *
- * @param deviceObject  the kobject of the kvdoDevice to release.
+ * @param moduleObject  The kvdo module's global kobject
  */
-void vdoPutSysfs(struct kobject *deviceObject);
+int vdoInitSysfs(struct kobject *moduleObject);
 
-#endif /* ALBIREO_SYSFS_H */
+/**
+ * Release the global sysfs objects.
+ *
+ * @param moduleObject  The kvdo module's global kobject
+ */
+void vdoPutSysfs(struct kobject *moduleObject);
+
+#endif /* SYSFS_H */

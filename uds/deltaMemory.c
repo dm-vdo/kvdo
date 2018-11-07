@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaMemory.c#4 $
+ * $Id: //eng/uds-releases/homer/src/uds/deltaMemory.c#1 $
  */
 #include "deltaMemory.h"
 
@@ -639,7 +639,7 @@ int validateDeltaLists(const DeltaMemory *deltaMemory)
   if (getDeltaListStart(&deltaLists[0]) != 0) {
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "the head guard delta list does not start"
-                                     " at 0: %" PRIu64,
+                                     " at 0: %llu",
                                      getDeltaListStart(&deltaLists[0]));
   }
   uint64_t numBits = getDeltaListEnd(&deltaLists[deltaMemory->numLists + 1]);
@@ -661,7 +661,7 @@ int validateDeltaLists(const DeltaMemory *deltaMemory)
     if (getDeltaListStart(&deltaLists[i]) > getDeltaListEnd(&deltaLists[i])) {
       return logWarningWithStringError(UDS_BAD_STATE,
                                        "invalid delta list %u: [%" PRIu64
-                                       ", %" PRIu64 ")",
+                                       ", %llu)",
                                        i,
                                        getDeltaListStart(&deltaLists[i]),
                                        getDeltaListEnd(&deltaLists[i]));
@@ -674,7 +674,7 @@ int validateDeltaLists(const DeltaMemory *deltaMemory)
         > getDeltaListStart(&deltaLists[i + 1])) {
       return logWarningWithStringError(UDS_BAD_STATE,
                                        "delta lists %u and %u overlap:  %"
-                                       PRIu64 " > %" PRIu64,
+                                       PRIu64 " > %llu",
                                        i, i + 1,
                                        getDeltaListEnd(&deltaLists[i]),
                                        getDeltaListStart(&deltaLists[i + 1]));

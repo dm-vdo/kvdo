@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#1 $
  */
 
 #ifndef FOREST_H
@@ -36,28 +36,17 @@
 typedef int EntryCallback(PhysicalBlockNumber pbn, VDOCompletion *completion);
 
 /**
- * Get a tree from the forest.
- *
- * @param forest  The forest which contains the desired tree
- * @param index   The index of the tree to get
- *
- * @return The requested tree
- **/
-BlockMapTree *getTreeFromForest(Forest *forest, RootCount index)
-  __attribute__((warn_unused_result));
-
-/**
  * Get the tree page for a given height and page index.
  *
  * @param forest     The forest which holds the page
- * @param tree       The tree which holds the page
+ * @param rootIndex  The index of the tree that holds the page
  * @param height     The height of the desired page
  * @param pageIndex  The index of the desired page
  *
  * @return The requested page
  **/
 TreePage *getTreePageByIndex(Forest       *forest,
-                             BlockMapTree *tree,
+                             RootCount     rootIndex,
                              Height        height,
                              PageNumber    pageIndex)
   __attribute__((warn_unused_result));

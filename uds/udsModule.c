@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/udsModule.c#18 $
+ * $Id: //eng/uds-releases/homer/kernelLinux/uds/udsModule.c#1 $
  */
 
 #include <linux/module.h>

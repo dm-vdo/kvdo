@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/histogram.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#1 $
  */
 
 #include <linux/kobject.h>
@@ -273,14 +273,14 @@ static ssize_t histogramShowHistogram(Histogram *h, char *buffer)
       return bufferSize - 1;
     }
     length += snprintf(buffer + length, bufferSize - length,
-                       " : %12" PRIu64 "%.*s\n", value, barLength, bar);
+                       " : %12llu%.*s\n", value, barLength, bar);
     if (length >= (bufferSize - 1)) {
       return bufferSize - 1;
     }
   }
 
   length += snprintf(buffer + length, bufferSize - length,
-                     "total %" PRIu64 "\n", total);
+                     "total %llu\n", total);
   return minSizeT(bufferSize - 1, length);
 }
 

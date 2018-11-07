@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#1 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -332,7 +332,7 @@ void queueSlab(Slab *slab)
   BlockCount      freeBlocks = getSlabFreeBlockCount(slab);
   int result = ASSERT((freeBlocks <= allocator->depot->slabConfig.dataBlocks),
                       "rebuilt slab %u must have a valid free block count"
-                      " (has %" PRIu64 ", expected maximum %" PRIu64 ")",
+                      " (has %llu, expected maximum %llu)",
                       slab->slabNumber, freeBlocks,
                       allocator->depot->slabConfig.dataBlocks);
   if (result != VDO_SUCCESS) {
@@ -452,7 +452,7 @@ void releaseBlockReference(BlockAllocator      *allocator,
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result,
                             "Failed to release reference to %s "
-                            "physical block %" PRIu64,
+                            "physical block %llu",
                             why, pbn);
   }
 }
@@ -488,6 +488,18 @@ static int compareSlabStatuses(const void *item1, const void *item2)
   return ((info1->slabNumber < info2->slabNumber) ? 1 : -1);
 }
 
+/**
+ * Swap two SlabStatus structures. Implements HeapSwapper.
+ **/
+static void swapSlabStatuses(void *item1, void *item2)
+{
+  SlabStatus *info1 = item1;
+  SlabStatus *info2 = item2;
+  SlabStatus temp = *info1;
+  *info1 = *info2;
+  *info2 = temp;
+}
+
 /**********************************************************************/
 int prepareSlabsForAllocation(BlockAllocator *allocator)
 {
@@ -507,8 +519,8 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
 
   // Sort the slabs by cleanliness, then by emptiness hint.
   Heap heap;
-  initializeHeap(&heap, compareSlabStatuses, slabStatuses, slabCount,
-                 sizeof(SlabStatus));
+  initializeHeap(&heap, compareSlabStatuses, swapSlabStatuses,
+                 slabStatuses, slabCount, sizeof(SlabStatus));
   buildHeap(&heap, slabCount);
 
   SlabStatus currentSlabStatus;

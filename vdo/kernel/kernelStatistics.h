@@ -36,16 +36,6 @@ typedef struct {
   uint64_t fua;
 } BioStats;
 
-/** The statistics for the read cache. */
-typedef struct {
-  /** Number of times the read cache was asked for a specific pbn. */
-  uint64_t accesses;
-  /** Number of times the read cache found the requested pbn. */
-  uint64_t hits;
-  /** Number of times the found requested pbn had valid data. */
-  uint64_t dataHits;
-} ReadCacheStats;
-
 typedef struct {
   /** Tracked bytes currently allocated. */
   uint64_t bytesUsed;
@@ -111,8 +101,6 @@ typedef struct {
   BioStats biosAcknowledgedPartial;
   /** Current number of bios in progress */
   BioStats biosInProgress;
-  /** The read cache stats. */
-  ReadCacheStats readCache;
   /** Memory usage stats. */
   MemoryUsage memoryUsage;
   /** The statistics for the UDS index */

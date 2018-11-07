@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#1 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -34,8 +34,6 @@
 #include "physicalLayer.h"
 #include "readOnlyModeContext.h"
 #include "ringNode.h"
-
-#include "permassert.h"
 
 enum {
   MAX_PAGE_CONTEXT_SIZE = 8,
@@ -252,9 +250,9 @@ static inline bool isValid(const PageInfo *info)
 /**********************************************************************/
 static inline VDOPageCompletion *asVDOPageCompletion(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(VDOPageCompletion, completion) == 0);
   assertCompletionType(completion->type, VDO_PAGE_COMPLETION);
-  return (VDOPageCompletion *) completion;
+  return (VDOPageCompletion *) ((uintptr_t) completion
+                                - offsetof(VDOPageCompletion, completion));
 }
 
 /**********************************************************************/

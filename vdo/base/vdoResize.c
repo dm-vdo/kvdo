@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#1 $
  */
 
 #include "vdoResize.h"
@@ -216,6 +216,12 @@ static void growPhysicalCallback(VDOCompletion *completion)
 int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
   BlockCount oldPhysicalBlocks = vdo->config.physicalBlocks;
+
+  // Skip any noop grows.
+  if (oldPhysicalBlocks == newPhysicalBlocks) {
+    return VDO_SUCCESS;
+  }
+
   if (newPhysicalBlocks != getNextVDOLayoutSize(vdo->layout)) {
     /*
      * Either the VDO isn't prepared to grow, or it was prepared to grow
@@ -241,7 +247,7 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
     return result;
   }
 
-  logInfo("Physical block count was %" PRIu64 ", now %" PRIu64,
+  logInfo("Physical block count was %llu, now %llu",
           oldPhysicalBlocks, newPhysicalBlocks);
   return VDO_SUCCESS;
 }
@@ -258,7 +264,7 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 
   if (newPhysicalBlocks == currentPhysicalBlocks) {
     logWarning("Requested physical block count %" PRIu64
-               " not greater than %" PRIu64,
+               " not greater than %llu",
                newPhysicalBlocks, currentPhysicalBlocks);
     finishVDOLayoutGrowth(vdo->layout);
     abandonNewSlabs(vdo->depot);

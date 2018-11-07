@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#1 $
  */
 
 #include "sysfs.h"
@@ -28,13 +28,16 @@
 #include "dmvdo.h"
 #include "logger.h"
 
-extern unsigned int maxDiscardSectors;
 extern int defaultMaxRequestsActive;
 
 typedef struct vdoAttribute {
   struct attribute  attr;
-  ssize_t (*show)(struct kvdoDevice *d, struct attribute *attr, char *buf);
-  ssize_t (*store)(struct kvdoDevice *d, const char *value, size_t count);
+  ssize_t (*show)(KVDOModuleGlobals *kvdoGlobals,
+                  struct attribute  *attr,
+                  char              *buf);
+  ssize_t (*store)(KVDOModuleGlobals *kvdoGlobals,
+                   const char        *value,
+                   size_t             count);
   // Location of value, if .show == showInt or showUInt or showBool.
   void     *valuePtr;
 } VDOAttribute;
@@ -46,15 +49,15 @@ static char *statusStrings[] = {
 };
 
 /**********************************************************************/
-static ssize_t vdoStatusShow(struct kvdoDevice *device,
+static ssize_t vdoStatusShow(KVDOModuleGlobals *kvdoGlobals,
                              struct attribute  *attr,
                              char              *buf)
 {
-  return sprintf(buf, "%s\n", statusStrings[device->status]);
+  return sprintf(buf, "%s\n", statusStrings[kvdoGlobals->status]);
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelShow(struct kvdoDevice *device,
+static ssize_t vdoLogLevelShow(KVDOModuleGlobals *kvdoGlobals,
                                struct attribute  *attr,
                                char              *buf)
 {
@@ -62,8 +65,9 @@ static ssize_t vdoLogLevelShow(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelStore(struct kvdoDevice *device,
-                                const char *buf, size_t n)
+static ssize_t vdoLogLevelStore(KVDOModuleGlobals *kvdoGlobals,
+                                const char        *buf,
+                                size_t             n)
 {
   static char internalBuf[11];
 
@@ -104,7 +108,7 @@ static ssize_t scanInt(const char *buf,
 }
 
 /**********************************************************************/
-static ssize_t showInt(struct kvdoDevice *device,
+static ssize_t showInt(KVDOModuleGlobals *kvdoGlobals,
                        struct attribute  *attr,
                        char              *buf)
 {
@@ -137,7 +141,7 @@ static ssize_t scanUInt(const char   *buf,
 }
 
 /**********************************************************************/
-static ssize_t showUInt(struct kvdoDevice *device,
+static ssize_t showUInt(KVDOModuleGlobals *kvdoGlobals,
                         struct attribute  *attr,
                         char              *buf)
 {
@@ -158,7 +162,7 @@ static ssize_t scanBool(const char *buf, size_t n, bool *valuePtr)
 }
 
 /**********************************************************************/
-static ssize_t showBool(struct kvdoDevice *device,
+static ssize_t showBool(KVDOModuleGlobals *kvdoGlobals,
                         struct attribute  *attr,
                         char              *buf)
 {
@@ -168,7 +172,7 @@ static ssize_t showBool(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoTraceRecordingStore(struct kvdoDevice *device,
+static ssize_t vdoTraceRecordingStore(KVDOModuleGlobals *kvdoGlobals,
                                       const char        *buf,
                                       size_t             n)
 {
@@ -176,7 +180,7 @@ static ssize_t vdoTraceRecordingStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoMaxReqActiveStore(struct kvdoDevice *device,
+static ssize_t vdoMaxReqActiveStore(KVDOModuleGlobals *kvdoGlobals,
                                     const char        *buf,
                                     size_t             n)
 {
@@ -190,15 +194,7 @@ static ssize_t vdoMaxReqActiveStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoMaxDiscardSectors(struct kvdoDevice *device,
-                                    const char        *buf,
-                                    size_t             n)
-{
-  return scanUInt(buf, n, &maxDiscardSectors, 8, UINT_MAX);
-}
-
-/**********************************************************************/
-static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdoDevice *device,
+static ssize_t vdoAlbireoTimeoutIntervalStore(KVDOModuleGlobals *kvdoGlobals,
                                               const char        *buf,
                                               size_t             n)
 {
@@ -211,7 +207,7 @@ static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoMinAlbireoTimerIntervalStore(struct kvdoDevice *device,
+static ssize_t vdoMinAlbireoTimerIntervalStore(KVDOModuleGlobals *kvdoGlobals,
                                                const char        *buf,
                                                size_t             n)
 {
@@ -224,7 +220,7 @@ static ssize_t vdoMinAlbireoTimerIntervalStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoVersionShow(struct kvdoDevice *device,
+static ssize_t vdoVersionShow(KVDOModuleGlobals *kvdoGlobals,
                               struct attribute  *attr,
                               char              *buf)
 {
@@ -241,8 +237,8 @@ static ssize_t vdoAttrShow(struct kobject   *kobj,
     return -EINVAL;
   }
 
-  struct kvdoDevice *device = container_of(kobj, struct kvdoDevice, kobj);
-  return (*vdoAttr->show)(device, attr, buf);
+  KVDOModuleGlobals *kvdoGlobals = container_of(kobj, KVDOModuleGlobals, kobj);
+  return (*vdoAttr->show)(kvdoGlobals, attr, buf);
 }
 
 /**********************************************************************/
@@ -256,8 +252,8 @@ static ssize_t vdoAttrStore(struct kobject   *kobj,
     return -EINVAL;
   }
 
-  struct kvdoDevice *device = container_of(kobj, struct kvdoDevice, kobj);
-  return (*vdoAttr->store)(device, buf, length);
+  KVDOModuleGlobals *kvdoGlobals = container_of(kobj, KVDOModuleGlobals, kobj);
+  return (*vdoAttr->store)(kvdoGlobals, buf, length);
 }
 
 static VDOAttribute vdoStatusAttr = {
@@ -276,13 +272,6 @@ static VDOAttribute vdoMaxReqActiveAttr = {
   .show     = showInt,
   .store    = vdoMaxReqActiveStore,
   .valuePtr = &defaultMaxRequestsActive,
-};
-
-static VDOAttribute vdoMaxDiscardSectorsAttr = {
-  .attr     = {.name = "max_discard_sectors", .mode = 0644, },
-  .show     = showUInt,
-  .store    = vdoMaxDiscardSectors,
-  .valuePtr = &maxDiscardSectors,
 };
 
 static VDOAttribute vdoAlbireoTimeoutInterval = {
@@ -315,7 +304,6 @@ static struct attribute *defaultAttrs[] = {
   &vdoStatusAttr.attr,
   &vdoLogLevelAttr.attr,
   &vdoMaxReqActiveAttr.attr,
-  &vdoMaxDiscardSectorsAttr.attr,
   &vdoAlbireoTimeoutInterval.attr,
   &vdoMinAlbireoTimerInterval.attr,
   &vdoTraceRecording.attr,
@@ -341,20 +329,20 @@ struct kobj_type vdo_ktype = {
 };
 
 /**********************************************************************/
-int vdoInitSysfs(struct kobject *deviceObject)
+int vdoInitSysfs(struct kobject *moduleObject)
 {
-  kobject_init(deviceObject, &vdo_ktype);
-  int result = kobject_add(deviceObject, NULL, THIS_MODULE->name);
+  kobject_init(moduleObject, &vdo_ktype);
+  int result = kobject_add(moduleObject, NULL, THIS_MODULE->name);
   if (result < 0) {
     logError("kobject_add failed with status %d", -result);
-    kobject_put(deviceObject);
+    kobject_put(moduleObject);
   }
   logDebug("added sysfs objects");
   return result;
 };
 
 /**********************************************************************/
-void vdoPutSysfs(struct kobject *deviceObject)
+void vdoPutSysfs(struct kobject *moduleObject)
 {
-  kobject_put(deviceObject);
+  kobject_put(moduleObject);
 }

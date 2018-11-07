@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapRecovery.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#1 $
  */
 
 #include "blockMapRecovery.h"
@@ -115,6 +115,18 @@ static int compareMappings(const void *item1, const void *item2)
 }
 
 /**
+ * Swap two NumberedBlockMapping structures. Implements HeapSwapper.
+ **/
+static void swapMappings(void *item1, void *item2)
+{
+  NumberedBlockMapping *mapping1 = item1;
+  NumberedBlockMapping *mapping2 = item2;
+  NumberedBlockMapping temp = *mapping1;
+  *mapping1 = *mapping2;
+  *mapping2 = temp;
+}
+
+/**
  * Convert a VDOCompletion to a BlockMapRecoveryCompletion.
  *
  * @param completion  The completion to convert
@@ -210,8 +222,8 @@ static int makeRecoveryCompletion(VDO                         *vdo,
 
   // Organize the journal entries into a binary heap so we can iterate over
   // them in sorted order incrementally, avoiding an expensive sort call.
-  initializeHeap(&recovery->replayHeap, compareMappings, journalEntries,
-                 entryCount, sizeof(NumberedBlockMapping));
+  initializeHeap(&recovery->replayHeap, compareMappings, swapMappings,
+                 journalEntries, entryCount, sizeof(NumberedBlockMapping));
   buildHeap(&recovery->replayHeap, entryCount);
 
   ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logicalThreadID),

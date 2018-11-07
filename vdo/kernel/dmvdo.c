@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#1 $
  */
 
 #include "dmvdo.h"
@@ -34,55 +34,17 @@
 #include "deviceRegistry.h"
 #include "dump.h"
 #include "instanceNumber.h"
+#include "ioSubmitter.h"
 #include "kernelLayer.h"
 #include "kvdoFlush.h"
 #include "memoryUsage.h"
-#include "readCache.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
 #include "sysfs.h"
 #include "threadDevice.h"
 #include "threadRegistry.h"
 
-struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
-
-/*
- * Set the default maximum number of sectors for a single discard bio.
- *
- * The value 1024 is the largest usable value on HD systems.  A 2048 sector
- * discard on a busy HD system takes 31 seconds.  We should use a value no
- * higher than 1024, which takes 15 to 16 seconds on a busy HD system.
- *
- * But using large values results in 120 second blocked task warnings in
- * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
- * smallest reasonable value.  See VDO-3062 and VDO-3087.
- *
- * We allow setting of the value for max_discard_sectors even in situations 
- * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
- * value is still used in other code, like sysfs display of queue limits and 
- * most especially in dm-thin to determine whether to pass down discards.
- */
-unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
-
-/*
- * We want to support discard requests, but early device mapper versions
- * did not give us any help.  Define HAS_DISCARDS_SUPPORTED if the
- * dm_target contains the discards_supported member.  Note that this is not
- * a trivial determination.
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
-#define HAS_DISCARDS_SUPPORTED 1
-#else
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32) && defined(RHEL_RELEASE_CODE)
-#if RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,2)
-#define HAS_DISCARDS_SUPPORTED 1
-#else
-#define HAS_DISCARDS_SUPPORTED 0
-#endif /* RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,2) */
-#else
-#define HAS_DISCARDS_SUPPORTED 0
-#endif
-#endif
+KVDOModuleGlobals kvdoGlobals;
 
 /*
  * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard
@@ -100,19 +62,6 @@ unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
  */
 #define HAS_NO_BLKDEV_SPLIT LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0) \
                             && LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
-
-/*
- * We want to support flush requests in async mode, but early device mapper
- * versions got in the way if the underlying device did not also support
- * flush requests.  Define HAS_FLUSH_SUPPORTED if the dm_target contains
- * the flush_supported member.  We support flush in either case, but the
- * flush_supported member makes it trivial (and safer).
- */
-#ifdef RHEL_RELEASE_CODE
-#define HAS_FLUSH_SUPPORTED (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,6))
-#else
-#define HAS_FLUSH_SUPPORTED (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
-#endif
 
 /**********************************************************************/
 
@@ -136,8 +85,6 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
  * @param ti      The dm_target.  We only need the "private" member to give
  *                us the KernelLayer.
  * @param bio     The bio.
- * @param unused  An additional parameter that we do not use.  This
- *                argument went away in Linux 3.8.
  *
  * @return One of these values:
  *
@@ -157,11 +104,7 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
  *                             mapper devices to defer an I/O request
  *                             during suspend/resume processing.
  **/
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
-static int vdoMapBio(struct dm_target *ti, BIO *bio, union map_info *unused)
-#else
 static int vdoMapBio(struct dm_target *ti, BIO *bio)
-#endif
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
   return kvdoMapBio(layer, bio);
@@ -180,8 +123,26 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
   // The optimal io size for streamed/sequential io
   blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
 
-  // Discard hints
-  limits->max_discard_sectors = maxDiscardSectors;
+  /*
+   * Sets the maximum discard size that will be passed into VDO. This value
+   * comes from a table line value passed in during dmsetup create.
+   *
+   * The value 1024 is the largest usable value on HD systems.  A 2048 sector
+   * discard on a busy HD system takes 31 seconds.  We should use a value no
+   * higher than 1024, which takes 15 to 16 seconds on a busy HD system.
+   *
+   * But using large values results in 120 second blocked task warnings in
+   * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
+   * smallest reasonable value.  See VDO-3062 and VDO-3087.
+   *
+   * We allow setting of the value for max_discard_sectors even in situations 
+   * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
+   * value is still used in other code, like sysfs display of queue limits and 
+   * most especially in dm-thin to determine whether to pass down discards.
+   */
+  limits->max_discard_sectors 
+    = layer->deviceConfig->maxDiscardBlocks * VDO_SECTORS_PER_BLOCK;
+
   limits->discard_granularity = VDO_BLOCK_SIZE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
   limits->discard_zeroes_data = 1;
@@ -196,28 +157,7 @@ static int vdoIterateDevices(struct dm_target           *ti,
   KernelLayer *layer = getKernelLayerForTarget(ti);
   sector_t len = blockToSector(layer, layer->deviceConfig->physicalBlocks);
 
-#if HAS_FLUSH_SUPPORTED
   return fn(ti, layer->deviceConfig->ownedDevice, 0, len, data);
-#else
-  if (!shouldProcessFlush(layer)) {
-    // In sync mode, if the underlying device needs flushes, accept flushes.
-    return fn(ti, layer->dev, 0, len, data);
-  }
-
-  /*
-   * We need to get flush requests in async mode, but the device mapper
-   * will only let us get them if the underlying device gets them.  We
-   * must tell a little white lie.
-   */
-  struct request_queue *q = bdev_get_queue(layer->dev->bdev);
-  unsigned int flush_flags = q->flush_flags;
-  q->flush_flags = REQ_FLUSH | REQ_FUA;
-
-  int result = fn(ti, layer->dev, 0, len, data);
-
-  q->flush_flags = flush_flags;
-  return result;
-#endif /* HAS_FLUSH_SUPPORTED */
 }
 
 /*
@@ -244,7 +184,7 @@ static void vdoStatus(struct dm_target *ti,
     mutex_lock(&layer->statsMutex);
     getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
     VDOStatistics *stats = &layer->vdoStatsStorage;
-    DMEMIT("/dev/%s %s %s %s %s %" PRIu64 " %" PRIu64,
+    DMEMIT("/dev/%s %s %s %s %s %llu %llu",
            bdevname(getKernelLayerBdev(layer), nameBuffer),
 	   stats->mode,
 	   stats->inRecoveryMode ? "recovering" : "-",
@@ -288,7 +228,7 @@ static int vdoPrepareToGrowLogical(KernelLayer *layer, char *sizeString)
   }
 
   if (logicalCount > MAXIMUM_LOGICAL_BLOCKS) {
-    logWarning("Logical block count \"%" PRIu64 "\" exceeds the maximum (%"
+    logWarning("Logical block count \"%llu\" exceeds the maximum (%"
                PRIu64 ")", logicalCount, MAXIMUM_LOGICAL_BLOCKS);
     return -EINVAL;
   }
@@ -500,11 +440,8 @@ static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
 static void configureTargetCapabilities(struct dm_target *ti,
                                         KernelLayer      *layer)
 {
-#if HAS_DISCARDS_SUPPORTED
   ti->discards_supported = 1;
-#endif
 
-#if HAS_FLUSH_SUPPORTED
   /**
    * This may appear to indicate we don't support flushes in sync mode.
    * However, dm will set up the request queue to accept flushes if any
@@ -512,22 +449,12 @@ static void configureTargetCapabilities(struct dm_target *ti,
    * accepts flushes, we will receive flushes.
    **/
   ti->flush_supported = shouldProcessFlush(layer);
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)
-  ti->num_discard_requests = 1;
-  ti->num_flush_requests = 1;
-#else
   ti->num_discard_bios = 1;
   ti->num_flush_bios = 1;
-#endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0)
   // If this value changes, please make sure to update the
   // value for maxDiscardSectors accordingly.
   BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
-#else
-  ti->split_io = VDO_SECTORS_PER_BLOCK;
-#endif
 
 /*
  * Please see comments above where the macro is defined.
@@ -535,6 +462,7 @@ static void configureTargetCapabilities(struct dm_target *ti,
 #if HAS_NO_BLKDEV_SPLIT
   ti->split_discard_bios = 1;
 #endif
+  dm_table_add_target_callbacks(ti->table, &layer->callbacks);
 }
 
 /**
@@ -586,19 +514,16 @@ static int vdoInitialize(struct dm_target *ti,
   uint64_t   logicalSize    = to_bytes(ti->len);
   BlockCount logicalBlocks  = logicalSize / blockSize;
 
-  logDebug("Logical block size      = %" PRIu64,
+  logDebug("Logical block size     = %llu",
            (uint64_t) config->logicalBlockSize);
-  logDebug("Logical blocks          = %" PRIu64, logicalBlocks);
-  logDebug("Physical block size     = %" PRIu64, (uint64_t) blockSize);
-  logDebug("Physical blocks         = %" PRIu64, config->physicalBlocks);
-  logDebug("Block map cache blocks  = %u", config->cacheSize);
-  logDebug("Block map maximum age   = %u", config->blockMapMaximumAge);
-  logDebug("MD RAID5 mode           = %s", (config->mdRaid5ModeEnabled
-                                            ? "on" : "off"));
-  logDebug("Read cache mode         = %s", (config->readCacheEnabled
-                                            ? "enabled" : "disabled"));
-  logDebug("Read cache extra blocks = %u", config->readCacheExtraBlocks);
-  logDebug("Write policy            = %s", getConfigWritePolicyString(config));
+  logDebug("Logical blocks         = %llu", logicalBlocks);
+  logDebug("Physical block size    = %llu", (uint64_t) blockSize);
+  logDebug("Physical blocks        = %llu", config->physicalBlocks);
+  logDebug("Block map cache blocks = %u", config->cacheSize);
+  logDebug("Block map maximum age  = %u", config->blockMapMaximumAge);
+  logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled
+                                           ? "on" : "off"));
+  logDebug("Write policy           = %s", getConfigWritePolicyString(config));
 
   // The threadConfig will be copied by the VDO if it's successfully
   // created.
@@ -612,7 +537,7 @@ static int vdoInitialize(struct dm_target *ti,
   char        *failureReason;
   KernelLayer *layer;
   int result = makeKernelLayer(ti->begin, instance, config,
-                               &kvdoDevice.kobj, &loadConfig.threadConfig,
+                               &kvdoGlobals.kobj, &loadConfig.threadConfig,
                                &failureReason, &layer);
   if (result != VDO_SUCCESS) {
     logError("Could not create kernel physical layer. (VDO error %d,"
@@ -793,14 +718,13 @@ static int vdoPreresume(struct dm_target *ti)
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
                             " failed", config->poolName);
-    return result;
-  }
-  setKernelLayerActiveConfig(layer, config);
-
-  result = resumeKernelLayer(layer);
-  if (result != VDO_SUCCESS) {
-    logError("resume of device '%s' failed with error: %d",
-             layer->deviceConfig->poolName, result);
+  } else {
+    setKernelLayerActiveConfig(layer, config);
+    result = resumeKernelLayer(layer);
+    if (result != VDO_SUCCESS) {
+      logError("resume of device '%s' failed with error: %d",
+	       layer->deviceConfig->poolName, result);
+    }
   }
   unregisterThreadDeviceID();
   return mapToSystemError(result);
@@ -842,14 +766,14 @@ static void vdoDestroy(void)
 {
   logDebug("in %s", __func__);
 
-  kvdoDevice.status = SHUTTING_DOWN;
+  kvdoGlobals.status = SHUTTING_DOWN;
 
   if (sysfsInitialized) {
-    vdoPutSysfs(&kvdoDevice.kobj);
+    vdoPutSysfs(&kvdoGlobals.kobj);
   }
   vdoDestroyProcfs();
 
-  kvdoDevice.status = UNINITIALIZED;
+  kvdoGlobals.status = UNINITIALIZED;
 
   if (dmRegistered) {
     dm_unregister_target(&vdoTargetBio);
@@ -878,13 +802,11 @@ static int __init vdoInit(void)
   }
   dmRegistered = true;
 
-  kvdoDevice.status = UNINITIALIZED;
+  kvdoGlobals.status = UNINITIALIZED;
 
   vdoInitProcfs();
-  /*
-   * Set up global sysfs stuff
-   */
-  result = vdoInitSysfs(&kvdoDevice.kobj);
+
+  result = vdoInitSysfs(&kvdoGlobals.kobj);
   if (result < 0) {
     logError("sysfs initialization failed %d", result);
     vdoDestroy();
@@ -898,7 +820,7 @@ static int __init vdoInit(void)
   initKernelVDOOnce();
   initializeInstanceNumberTracking();
 
-  kvdoDevice.status = READY;
+  kvdoGlobals.status = READY;
   return result;
 }
 

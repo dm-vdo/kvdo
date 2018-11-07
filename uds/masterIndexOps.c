@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/masterIndexOps.c#1 $
  */
 #include "masterIndexOps.h"
 
@@ -84,9 +84,15 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
 /**********************************************************************/
 static int readMasterIndex(ReadPortal *portal)
 {
-  unsigned int numZones = countPartsForPortal(portal);
   MasterIndex *masterIndex = componentContextForPortal(portal);
-  BufferedReader *readers[numZones];
+  unsigned int numZones = countPartsForPortal(portal);
+  if (numZones > MAX_ZONES) {
+    return logErrorWithStringError(UDS_BAD_STATE,
+                                   "zone count %u must not exceed MAX_ZONES",
+                                   numZones);
+  }
+
+  BufferedReader *readers[MAX_ZONES];
   for (unsigned int z = 0; z < numZones; ++z) {
     int result = getBufferedReaderForPortal(portal, z, &readers[z]);
     if (result != UDS_SUCCESS) {

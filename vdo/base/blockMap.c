@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#1 $
  */
 
 #include "blockMap.h"
@@ -87,7 +87,7 @@ static int validatePageOnRead(void                *buffer,
   if (validity == BLOCK_MAP_PAGE_BAD) {
     return logErrorWithStringError(VDO_BAD_PAGE,
                                    "Expected page %" PRIu64
-                                   " but got page %" PRIu64 " instead",
+                                   " but got page %llu instead",
                                    pbn, getBlockMapPagePBN(page));
   }
 
@@ -129,17 +129,6 @@ static bool handlePageWrite(void *rawPage,
 PageCount computeBlockMapPageCount(BlockCount entries)
 {
   return computeBucketCount(entries, BLOCK_MAP_ENTRIES_PER_PAGE);
-}
-
-/**********************************************************************/
-BlockCount computeBlockMapSize(BlockCount totalEntries,
-                               BlockCount slabSize,
-                               BlockCount dataBlocksPerSlab)
-{
-  uint64_t pageCount = computeBlockMapPageCount(totalEntries);
-  // Round up to the next full slab.
-  uint64_t slabCount = computeBucketCount(pageCount, dataBlocksPerSlab);
-  return (slabCount * slabSize);
 }
 
 /**********************************************************************/
@@ -241,7 +230,7 @@ int decodeBlockMap(Buffer              *buffer,
   }
 
   result = ASSERT(state.flatPageOrigin == BLOCK_MAP_FLAT_PAGE_ORIGIN,
-                  "Flat page origin must be %u (recorded as %" PRIu64 ")",
+                  "Flat page origin must be %u (recorded as %llu)",
                   BLOCK_MAP_FLAT_PAGE_ORIGIN, state.flatPageOrigin);
   if (result != UDS_SUCCESS) {
     return result;

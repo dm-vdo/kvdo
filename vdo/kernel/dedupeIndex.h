@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#1 $
  */
 
 #ifndef DEDUPE_INDEX_H

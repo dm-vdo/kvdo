@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/indexPageMap.c#3 $
+ * $Id: //eng/uds-releases/homer/src/uds/indexPageMap.c#1 $
  */
 
 #include "indexPageMap.h"
@@ -122,7 +122,7 @@ int updateIndexPageMap(IndexPageMap   *map,
   if ((virtualChapterNumber < map->lastUpdate)
       || (virtualChapterNumber > map->lastUpdate + 1)) {
     logWarning("unexpected index page map update, jumping from %" PRIu64
-               " to %" PRIu64,
+               " to %llu",
                map->lastUpdate, virtualChapterNumber);
   }
   map->lastUpdate = virtualChapterNumber;
@@ -352,7 +352,7 @@ static int readIndexPageMap(ReadPortal *portal)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  logDebug("read index page map, last update %" PRIu64, map->lastUpdate);
+  logDebug("read index page map, last update %llu", map->lastUpdate);
   return UDS_SUCCESS;
 }
 
@@ -370,7 +370,7 @@ int dumpIndexPageMap(const IndexPageMap *map, unsigned int chapterNumber)
   unsigned int limit = slot + (geometry->indexPagesPerChapter - 1);
   unsigned int indexPageNumber = 0;
   unsigned int deltaList = 0;
-  logInfo("index page map last update %" PRIu64, map->lastUpdate);
+  logInfo("index page map last update %llu", map->lastUpdate);
   for (; slot < limit; indexPageNumber++, slot++) {
     logInfo("chapter %u index page %u lists %u-%u",
             chapterNumber, slot, deltaList, map->entries[slot]);

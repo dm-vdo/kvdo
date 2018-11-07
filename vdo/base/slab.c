@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#1 $
  */
 
 #include "slab.h"
@@ -327,7 +327,7 @@ void dumpSlab(const Slab *slab)
 {
   if (slab->referenceCounts != NULL) {
     // Terse because there are a lot of slabs to dump and syslog is lossy.
-    logInfo("slab %u: P%u, %" PRIu64 " free",
+    logInfo("slab %u: P%u, %llu free",
             slab->slabNumber, slab->priority, getSlabFreeBlockCount(slab));
   } else {
     logInfo("slab %u: status %s", slab->slabNumber,

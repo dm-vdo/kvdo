@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#1 $
  */
 
 /*
@@ -615,7 +615,7 @@ int validateVDOConfig(const VDOConfig *config,
   }
 
   result = ASSERT(config->physicalBlocks <= MAXIMUM_PHYSICAL_BLOCKS,
-                  "physical block count %" PRIu64 " exceeds maximum %" PRIu64,
+                  "physical block count %llu exceeds maximum %llu",
                   config->physicalBlocks, MAXIMUM_PHYSICAL_BLOCKS);
   if (result != UDS_SUCCESS) {
     return VDO_OUT_OF_RANGE;
@@ -624,8 +624,8 @@ int validateVDOConfig(const VDOConfig *config,
   // This can't check equality because FileLayer et al can only known about
   // the storage size, which may not match the super block size.
   result = ASSERT(config->physicalBlocks <= blockCount,
-                  "Physical size %" PRIu64 " in super block smaller than"
-                  " expected size %" PRIu64, config->physicalBlocks,
+                  "Physical size %llu in super block smaller than"
+                  " expected size %llu", config->physicalBlocks,
                   blockCount);
   if (result != UDS_SUCCESS) {
     return VDO_PARAMETER_MISMATCH;
@@ -1096,8 +1096,8 @@ ZonedPBN validateDedupeAdvice(VDO                *vdo,
   // Don't use advice that's clearly meaningless.
   if ((advice->state == MAPPING_STATE_UNMAPPED)
       || (advice->pbn == ZERO_BLOCK)) {
-    logDebug("Invalid advice from deduplication server: pbn %" PRIu64 ", "
-             "state %u. Giving up on deduplication of logical block %" PRIu64,
+    logDebug("Invalid advice from deduplication server: pbn %llu, "
+             "state %u. Giving up on deduplication of logical block %llu",
              advice->pbn, advice->state, lbn);
     atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
     return noAdvice;
@@ -1107,7 +1107,7 @@ ZonedPBN validateDedupeAdvice(VDO                *vdo,
   int result = getPhysicalZone(vdo, advice->pbn, &zone);
   if ((result != VDO_SUCCESS) || (zone == NULL)) {
     logDebug("Invalid physical block number from deduplication server: %"
-             PRIu64 ", giving up on deduplication of logical block %" PRIu64,
+             PRIu64 ", giving up on deduplication of logical block %llu",
              advice->pbn, lbn);
     atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
     return noAdvice;

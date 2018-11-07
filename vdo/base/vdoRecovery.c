@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#1 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -948,7 +948,7 @@ static void applyJournalEntries(VDOCompletion *completion)
                                          "Journal tail too early. "
                                          "block map head: %" PRIu64
                                          ", slab journal head: %" PRIu64
-                                         ", tail: %" PRIu64,
+                                         ", tail: %llu",
                                          recovery->blockMapHead,
                                          recovery->slabJournalHead,
                                          recovery->tail);
@@ -964,7 +964,7 @@ static void applyJournalEntries(VDOCompletion *completion)
   }
 
   logInfo("Highest-numbered recovery journal block has sequence number"
-          " %" PRIu64 ", and the highest-numbered usable block is %"
+          " %llu, and the highest-numbered usable block is %"
           PRIu64, recovery->highestTail, recovery->tail);
 
   if (isReplaying(vdo)) {

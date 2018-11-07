@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#1 $
  */
 
 #include "bio.h"
@@ -29,7 +29,7 @@
 #include "recoveryJournal.h"
 
 #include "bioIterator.h"
-#include "readCache.h"
+#include "ioSubmitter.h"
 
 /**
  * Gets the raw buffer from a biovec.
@@ -63,6 +63,7 @@ void bioCopyDataOut(BIO *bio, char *dataPtr)
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
     memcpy(getBufferForBiovec(biovec), dataPtr, biovec->bv_len);
+    flush_dcache_page(biovec->bv_page);
     dataPtr += biovec->bv_len;
   }
 }
@@ -75,11 +76,7 @@ void setBioOperation(BIO *bio, unsigned int operation)
   bio->bi_opf |= operation;
 #else
 
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2,6,32)
-  unsigned int OPERATION_MASK = WRITE | BIO_DISCARD | (1 << BIO_RW_FLUSH);
-#else
   unsigned int OPERATION_MASK = WRITE | REQ_DISCARD | REQ_FLUSH;
-#endif
 
   // Clear the relevant bits
   bio->bi_rw &= ~OPERATION_MASK;
@@ -91,12 +88,10 @@ void setBioOperation(BIO *bio, unsigned int operation)
 /**********************************************************************/
 void freeBio(BIO *bio, KernelLayer *layer)
 {
-  recordBioFree();
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
-  bio_free(bio, layer->bioset);
-#else
-  bio_put(bio);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
+  bio_uninit(bio);
 #endif
+  FREE(bio);
 }
 
 /**********************************************************************/
@@ -199,26 +194,7 @@ bool bioIsZeroData(BIO *bio)
 /**********************************************************************/
 void bioZeroData(BIO *bio)
 {
-  /*
-   * There's a routine zero_fill_bio exported from the kernel, but
-   * this is a little faster.
-   *
-   * Taking apart what zero_fill_bio does: The HIGHMEM stuff isn't an
-   * issue for x86_64, so bvec_k{,un}map_irq does no more than we do
-   * here. On x86 flush_dcache_page doesn't do anything. And the
-   * memset call there seems to be expanded inline by the compiler as
-   * a "rep stosb" loop which is slower than the kernel-exported
-   * memset.
-   *
-   * So we're functionally the same, and a little bit faster, this
-   * way.
-   */
-  struct bio_vec *biovec;
-  for (BioIterator iter = createBioIterator(bio);
-       (biovec = getNextBiovec(&iter)) != NULL;
-       advanceBioIterator(&iter)) {
-    memset(getBufferForBiovec(biovec), 0, biovec->bv_len);
-  }
+  zero_fill_bio(bio);
 }
 
 /**********************************************************************/
@@ -239,20 +215,13 @@ static void setBioSize(BIO *bio, BlockSize bioSize)
  **/
 static void initializeBio(BIO *bio, KernelLayer *layer)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
-  bio->bi_destructor = NULL;
-  bio->bi_flags      = 1 << BIO_UPTODATE;
-  bio->bi_idx        = 0;
-  bio->bi_rw         = 0;
-#else
   // Save off important info so it can be set back later
-  unsigned short  vcnt = bio->bi_vcnt;
-  void           *pvt  = bio->bi_private;
+  unsigned short   vcnt = bio->bi_vcnt;
+  void            *pvt  = bio->bi_private;
   bio_reset(bio);     // Memsets large portion of bio. Reset all needed fields.
-  bio->bi_private      = pvt;
-  bio->bi_vcnt         = vcnt;
-#endif
-  bio->bi_end_io     = completeAsyncBio;
+  bio->bi_private       = pvt;
+  bio->bi_vcnt          = vcnt;
+  bio->bi_end_io        = completeAsyncBio;
   setBioSector(bio, (sector_t) -1);  // Sector will be set later on.
   setBioBlockDevice(bio, getKernelLayerBdev(layer));
 }
@@ -260,52 +229,73 @@ static void initializeBio(BIO *bio, KernelLayer *layer)
 /**********************************************************************/
 void resetBio(BIO *bio, KernelLayer *layer)
 {
-  initializeBio(bio, layer);
-  setBioSize(bio, VDO_BLOCK_SIZE);
-}
+  // VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for data).
+  // Assert that this function is called on bios with vcnt of 0 or 1.
+  ASSERT_LOG_ONLY((bio->bi_vcnt == 0) || (bio->bi_vcnt == 1),
+                  "initializeBio only called on VDO-allocated bios");
 
-/**********************************************************************/
-int allocateBio(KernelLayer *layer, unsigned int bvecCount, BIO **bioPtr)
-{
-  BIO *bio = bio_alloc_bioset(GFP_NOIO, bvecCount, layer->bioset);
-  if (IS_ERR(bio)) {
-    logError("bio allocation failure %ld", PTR_ERR(bio));
-    return PTR_ERR(bio);
+  initializeBio(bio, layer);
+
+  // All VDO bios which are reset are expected to have their data, so
+  // if they have a vcnt of 0, make it 1.
+  if (bio->bi_vcnt == 0) {
+    bio->bi_vcnt = 1;
   }
-  recordBioAlloc();
 
-  initializeBio(bio, layer);
-
-  *bioPtr = bio;
-  return VDO_SUCCESS;
+  setBioSize(bio, VDO_BLOCK_SIZE);
 }
 
 /**********************************************************************/
 int createBio(KernelLayer *layer, char *data, BIO **bioPtr)
 {
-  BIO *bio = NULL;
-  if (data == NULL) {
-    int result = allocateBio(layer, 0, &bio);
-    if (result != VDO_SUCCESS) {
+  int bvecCount = 0;
+  if (data != NULL) {
+    bvecCount
+      = (offset_in_page(data) + VDO_BLOCK_SIZE + PAGE_SIZE - 1) >> PAGE_SHIFT;
+    /*
+     * When restoring a bio after using it to flush, we don't know what data
+     * it wraps so we just set the bvec count back to its original value.
+     * This relies on the underlying storage not clearing bvecs that are not
+     * in use. The original value also needs to be a constant, since we have
+     * nowhere to store it during the time the bio is flushing.
+     *
+     * Fortunately our VDO-allocated bios always wrap exactly 4k, and the
+     * allocator always gives us 4k-aligned buffers, and PAGE_SIZE is always
+     * a multiple of 4k. So we only need one bvec to record the bio wrapping
+     * a buffer of our own use, the original value is always 1, and this
+     * assertion makes sure that stays true.
+     */
+    int result = ASSERT(bvecCount == 1,
+                        "VDO-allocated buffers lie on 1 page, not %d",
+                        bvecCount);
+    if (result != UDS_SUCCESS) {
       return result;
     }
-
-    *bioPtr = bio;
-    return VDO_SUCCESS;
   }
 
-  unsigned int  len       = VDO_BLOCK_SIZE;
-  unsigned long kaddr     = (unsigned long) data;
-  unsigned long end       = (kaddr + len + PAGE_SIZE - 1) >> PAGE_SHIFT;
-  unsigned long start     = kaddr >> PAGE_SHIFT;
-  const int     bvecCount = end - start;
-
-  int result = allocateBio(layer, bvecCount, &bio);
+  BIO *bio = NULL;
+  int result = ALLOCATE_EXTENDED(struct bio, bvecCount, struct bio_vec,
+                                 "bio", &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  int offset = offset_in_page(kaddr);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio_init(bio, bio->bi_inline_vecs, bvecCount);
+#else
+  bio_init(bio);
+  bio->bi_io_vec   = bio->bi_inline_vecs;
+  bio->bi_max_vecs = bvecCount;
+#endif
+
+  initializeBio(bio, layer);
+  if (data == NULL) {
+    *bioPtr = bio;
+    return VDO_SUCCESS;
+  }
+
+  int len    = VDO_BLOCK_SIZE;
+  int offset = offset_in_page(data);
   for (unsigned int i = 0; (i < bvecCount) && (len > 0); i++) {
     unsigned int bytes = PAGE_SIZE - offset;
     if (bytes > len) {

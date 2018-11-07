@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/constants.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/constants.h#1 $
  */
 
 #ifndef CONSTANTS_H
@@ -53,6 +53,9 @@ enum {
    * chosen to make it highly unlikely that the maps would need to be resized.
    **/
   LOCK_MAP_CAPACITY                                = 10000,
+
+  /** The maximum number of logical zones */
+  MAX_LOGICAL_ZONES                                = 60,
 
   /** The maximum number of physical zones */
   MAX_PHYSICAL_ZONES                               = 16,

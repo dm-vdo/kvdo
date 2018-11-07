@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#1 $
  */
 
 #include "logicalZone.h"
@@ -267,7 +267,7 @@ void incrementFlushGeneration(LogicalZone    *zone,
   assertOnZoneThread(zone, __func__);
   ASSERT_LOG_ONLY((zone->flushGeneration == expectedGeneration),
                   "logical zone %u flush generation %" PRIu64
-                  " should be %" PRIu64 " before increment",
+                  " should be %llu before increment",
                   zone->zoneNumber, zone->flushGeneration,
                   expectedGeneration);
 
@@ -353,7 +353,7 @@ void releaseFlushGenerationLock(DataVIO *dataVIO)
   dataVIO->hasFlushGenerationLock = false;
   ASSERT_LOG_ONLY(zone->oldestActiveGeneration <= dataVIO->flushGeneration,
                   "DataVIO releasing lock on generation %" PRIu64
-                  " is not older than oldest active generation %" PRIu64,
+                  " is not older than oldest active generation %llu",
                   dataVIO->flushGeneration, zone->oldestActiveGeneration);
 
   if (!updateOldestActiveGeneration(zone) || zone->notifying) {
@@ -367,9 +367,9 @@ void releaseFlushGenerationLock(DataVIO *dataVIO)
 void dumpLogicalZone(const LogicalZone *zone)
 {
   logInfo("LogicalZone %u", zone->zoneNumber);
-  logInfo("  flushGeneration=%" PRIu64 " oldestActiveGeneration=%" PRIu64
-          " oldestLockedGeneration=%" PRIu64 " notificationGeneration=%" PRIu64
-          " notifying=%s iosInCurrentGeneration=%" PRIu64,
+  logInfo("  flushGeneration=%llu oldestActiveGeneration=%" PRIu64
+          " oldestLockedGeneration=%llu notificationGeneration=%" PRIu64
+          " notifying=%s iosInCurrentGeneration=%llu",
           zone->flushGeneration, zone->oldestActiveGeneration,
           relaxedLoad64(&zone->oldestLockedGeneration),
           zone->notificationGeneration, boolToString(zone->notifying),

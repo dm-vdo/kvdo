@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabRebuild.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabRebuild.c#1 $
  */
 
 #include "slabRebuild.h"
@@ -165,7 +165,7 @@ static int applyBlockEntries(PackedSlabJournalBlock *block,
     if (entry.sbn > maxSBN) {
       // This entry is out of bounds.
       return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Slab journal entry"
-                                     " (%" PRIu64 ", %u) had invalid offset"
+                                     " (%llu, %u) had invalid offset"
                                      " %u in slab (size %u blocks)",
                                      blockNumber, entryPoint.entryCount,
                                      entry.sbn, maxSBN);
@@ -174,7 +174,7 @@ static int applyBlockEntries(PackedSlabJournalBlock *block,
     int result = replayReferenceCountChange(slab->referenceCounts, &entryPoint,
                                             entry);
     if (result != VDO_SUCCESS) {
-      logErrorWithStringError(result, "Slab journal entry (%" PRIu64 ", %u)"
+      logErrorWithStringError(result, "Slab journal entry (%llu, %u)"
                               " (%s of offset %" PRIu32 ") could not be"
                               " applied in slab %u",
                               blockNumber, entryPoint.entryCount,

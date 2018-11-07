@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.c#4 $
+ * $Id: //eng/uds-releases/homer/src/uds/volumeInternals.c#1 $
  */
 
 #include "volumeInternals.h"
@@ -27,6 +27,7 @@
 #include "indexConfig.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "permassert.h"
 #include "recordPage.h"
 #include "stringUtils.h"
 #include "volume.h"
@@ -38,7 +39,6 @@ const byte VOLUME_VERSION_V4_10[]        = "04.10";
 static const byte VOLUME_VERSION_V4[]    = "04.00";
 static const byte VOLUME_VERSION_V3[]    = "00227";
 const unsigned int VOLUME_MAGIC_LENGTH   = sizeof(VOLUME_MAGIC_NUMBER) - 1;
-const unsigned int VOLUME_VERSION_LENGTH = sizeof(VOLUME_VERSION) - 1;
 
 const bool READ_ONLY_VOLUME = true;
 
@@ -52,6 +52,7 @@ size_t encodeVolumeFormat(byte *volumeFormat, const Geometry *geometry)
   memcpy(volumeFormat, VOLUME_MAGIC_NUMBER, VOLUME_MAGIC_LENGTH);
   size += VOLUME_MAGIC_LENGTH;
 
+  STATIC_ASSERT(VOLUME_VERSION_LENGTH == (sizeof(VOLUME_VERSION) - 1));
   memcpy(volumeFormat + size, VOLUME_VERSION, VOLUME_VERSION_LENGTH);
   size += VOLUME_VERSION_LENGTH;
 
@@ -77,7 +78,6 @@ static int readGeometry(BufferedReader *reader, Volume *volume)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  memset(volume->geometry, 0, sizeof(Geometry));
   return readFromBufferedReader(reader, volume->geometry, sizeof(Geometry));
 }
 

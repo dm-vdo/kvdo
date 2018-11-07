@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#1 $
  */
 
 #include "dataKVIO.h"
@@ -27,6 +27,7 @@
 #include "murmur/MurmurHash3.h"
 
 #include "dataVIO.h"
+#include "compressedBlock.h"
 #include "hashLock.h"
 #include "lz4.h"
 
@@ -34,7 +35,7 @@
 #include "dedupeIndex.h"
 #include "kvdoFlush.h"
 #include "kvio.h"
-#include "readCache.h"
+#include "ioSubmitter.h"
 #include "vdoCommon.h"
 #include "verify.h"
 
@@ -164,7 +165,6 @@ static noinline void cleanDataKVIO(DataKVIO *dataKVIO, FreeBufferPointers *fbp)
   KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
   kvio->bio  = NULL;
 
-  runReadCacheReleaseBlock(kvio->layer, &dataKVIO->readBlock);
   if (unlikely(kvio->vio->trace != NULL)) {
     maybeLogDataKVIOTrace(dataKVIO);
     kvioCompletionTap1(dataKVIO);
@@ -306,6 +306,123 @@ static void resetUserBio(BIO *bio, int error)
 #endif
 }
 
+/**
+ * Uncompress the data that's just been read and then call back the requesting
+ * DataKVIO.
+ *
+ * @param workItem  The DataKVIO requesting the data
+ **/
+static void uncompressReadBlock(KvdoWorkItem *workItem)
+{
+  DataKVIO  *dataKVIO  = workItemAsDataKVIO(workItem);
+  ReadBlock *readBlock = &dataKVIO->readBlock;
+  BlockSize  blockSize = VDO_BLOCK_SIZE;
+
+  // The DataKVIO's scratch block will be used to contain the
+  // uncompressed data.
+  uint16_t fragmentOffset, fragmentSize;
+  char *compressedData = readBlock->data;
+  int result = getCompressedBlockFragment(readBlock->mappingState,
+                                          compressedData, blockSize,
+                                          &fragmentOffset,
+                                          &fragmentSize);
+  if (result != VDO_SUCCESS) {
+    logDebug("%s: frag err %d", __func__, result);
+    readBlock->status = result;
+    readBlock->callback(dataKVIO);
+    return;
+  }
+
+  char *fragment = compressedData + fragmentOffset;
+  int size = LZ4_uncompress_unknownOutputSize(fragment, dataKVIO->scratchBlock,
+                                              fragmentSize, blockSize);
+  if (size == blockSize) {
+    readBlock->data = dataKVIO->scratchBlock;
+  } else {
+    logDebug("%s: lz4 error", __func__);
+    readBlock->status = VDO_INVALID_FRAGMENT;
+  }
+
+  readBlock->callback(dataKVIO);
+}
+
+/**
+ * Now that we have gotten the data from storage, uncompress the data if
+ * necessary and then call back the requesting DataKVIO.
+ *
+ * @param dataKVIO  The DataKVIO requesting the data
+ * @param result    The result of the read operation
+ **/
+static void completeRead(DataKVIO *dataKVIO, int result)
+{
+  ReadBlock *readBlock = &dataKVIO->readBlock;
+  readBlock->status = result;
+
+  if ((result == VDO_SUCCESS) && isCompressed(readBlock->mappingState)) {
+    launchDataKVIOOnCPUQueue(dataKVIO, uncompressReadBlock, NULL,
+                             CPU_Q_ACTION_COMPRESS_BLOCK);
+    return;
+  }
+
+  readBlock->callback(dataKVIO);
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+/**
+ * Callback for a bio doing a read.
+ *
+ * @param bio     The bio
+ */
+static void readBioCallback(BIO *bio)
+#else
+/**
+ * Callback for a bio doing a read.
+ *
+ * @param bio     The bio
+ * @param result  The result of the read operation
+ */
+static void readBioCallback(BIO *bio, int result)
+#endif
+{
+  KVIO *kvio = (KVIO *) bio->bi_private;
+  DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
+  dataKVIO->readBlock.data = dataKVIO->readBlock.buffer;
+  dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
+  countCompletedBios(bio);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+  completeRead(dataKVIO, getBioResult(bio));
+#else
+  completeRead(dataKVIO, result);
+#endif
+}
+
+/**********************************************************************/
+void kvdoReadBlock(DataVIO             *dataVIO,
+                   PhysicalBlockNumber  location,
+                   BlockMappingState    mappingState,
+                   BioQAction           action,
+                   DataKVIOCallback     callback)
+{
+  dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
+
+  DataKVIO    *dataKVIO  = dataVIOAsDataKVIO(dataVIO);
+  ReadBlock   *readBlock = &dataKVIO->readBlock;
+  KernelLayer *layer     = getLayerFromDataKVIO(dataKVIO);
+
+  readBlock->callback     = callback;
+  readBlock->status       = VDO_SUCCESS;
+  readBlock->mappingState = mappingState;
+
+  BUG_ON(getBIOFromDataKVIO(dataKVIO)->bi_private != &dataKVIO->kvio);
+  // Read the data directly from the device using the read bio.
+  BIO *bio = readBlock->bio;
+  resetBio(bio, layer);
+  setBioSector(bio, blockToSector(layer, location));
+  setBioOperationRead(bio);
+  bio->bi_end_io = readBioCallback;
+  submitBio(bio, action);
+}
+
 /**********************************************************************/
 void kvdoReadDataVIO(DataVIO *dataVIO)
 {
@@ -315,7 +432,7 @@ void kvdoReadDataVIO(DataVIO *dataVIO)
 
   if (isCompressed(dataVIO->mapped.state)) {
     kvdoReadBlock(dataVIO, dataVIO->mapped.pbn, dataVIO->mapped.state,
-                  READ_COMPRESSED_DATA, readDataKVIOReadBlockCallback);
+                  BIO_Q_ACTION_COMPRESSED_DATA, readDataKVIOReadBlockCallback);
     return;
   }
 
@@ -374,7 +491,7 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
   BIO  *bio   = kvio->bio;
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
-  invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_DATA);
+  submitBio(bio, BIO_Q_ACTION_DATA);
 }
 
 /**********************************************************************/
@@ -867,25 +984,23 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
                                    "DataKVIO data bio allocation failure");
   }
 
-  if (!layer->deviceConfig->readCacheEnabled) {
-    result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
-                            &dataKVIO->readBlock.buffer);
-    if (result != VDO_SUCCESS) {
-      freePooledDataKVIO(layer, dataKVIO);
-      return logErrorWithStringError(result,
-                                     "DataKVIO read allocation failure");
-    }
-
-    result = createBio(layer, dataKVIO->readBlock.buffer,
-                       &dataKVIO->readBlock.bio);
-    if (result != VDO_SUCCESS) {
-      freePooledDataKVIO(layer, dataKVIO);
-      return logErrorWithStringError(result,
-                                     "DataKVIO read bio allocation failure");
-    }
-
-    dataKVIO->readBlock.bio->bi_private = &dataKVIO->kvio;
+  result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
+                          &dataKVIO->readBlock.buffer);
+  if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
+    return logErrorWithStringError(result,
+                                   "DataKVIO read allocation failure");
   }
+
+  result = createBio(layer, dataKVIO->readBlock.buffer,
+                     &dataKVIO->readBlock.bio);
+  if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
+    return logErrorWithStringError(result,
+                                   "DataKVIO read bio allocation failure");
+  }
+
+  dataKVIO->readBlock.bio->bi_private = &dataKVIO->kvio;
 
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio scratch",
                           &dataKVIO->scratchBlock);
@@ -930,7 +1045,7 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
 
   DataVIO *dataVIO = waiterAsDataVIO(first);
   logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %" PRIu64
-          " lbn %" PRIu64 " d-pbn %" PRIu64 " lastOp %s",
+          " lbn %llu d-pbn %llu lastOp %s",
           waitOn, dataVIO, getDataVIOAllocation(dataVIO),
           dataVIO->logical.lbn, dataVIO->duplicate.pbn,
           getOperationName(dataVIO));
@@ -939,8 +1054,8 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
        waiter != first;
        waiter = waiter->nextWaiter) {
     dataVIO = waiterAsDataVIO(waiter);
-    logInfo("     ... and : VIO %" PRIptr " pbn %" PRIu64 " lbn %"
-            PRIu64 " d-pbn %" PRIu64 " lastOp %s",
+    logInfo("     ... and : VIO %" PRIptr " pbn %llu lbn %"
+            PRIu64 " d-pbn %llu lastOp %s",
             dataVIO, getDataVIOAllocation(dataVIO), dataVIO->logical.lbn,
             dataVIO->duplicate.pbn, getOperationName(dataVIO));
   }
@@ -1020,16 +1135,16 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
                                        + 3 * DECIMAL_DIGITS_PER_UINT64_T];
   if (dataVIO->isDuplicate) {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "P%" PRIu64 " L%" PRIu64 " D%" PRIu64,
+             "P%llu L%llu D%llu",
              getDataVIOAllocation(dataVIO), dataVIO->logical.lbn,
              dataVIO->duplicate.pbn);
   } else if (hasAllocation(dataVIO)) {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "P%" PRIu64 " L%" PRIu64,
+             "P%llu L%llu",
              getDataVIOAllocation(dataVIO), dataVIO->logical.lbn);
   } else {
     snprintf(vioBlockNumberDumpBuffer, sizeof(vioBlockNumberDumpBuffer),
-             "L%" PRIu64,
+             "L%llu",
              dataVIO->logical.lbn);
   }
 
@@ -1037,7 +1152,7 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
                                        + DECIMAL_DIGITS_PER_UINT64_T] = "";
   if (dataVIO->flushGeneration != 0) {
     snprintf(vioFlushGenerationBuffer, sizeof(vioFlushGenerationBuffer),
-             " FG%" PRIu64, dataVIO->flushGeneration);
+             " FG%llu", dataVIO->flushGeneration);
   }
 
   // Encode VIO attributes as a string of one-character flags, usually empty.

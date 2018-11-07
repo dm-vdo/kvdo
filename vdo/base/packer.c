@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#1 $
  */
 
 #include "packerInternals.h"
@@ -981,7 +981,7 @@ void dumpPacker(const Packer *packer)
           packer->flushGeneration, boolToString(packer->flushing),
           boolToString(packer->closed), boolToString(packer->writingBatches));
 
-  logInfo("  inputBinCount=%" PRIu64, packer->size);
+  logInfo("  inputBinCount=%llu", packer->size);
   for (InputBin *bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {

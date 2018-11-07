@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#5 $
+ * $Id: //eng/uds-releases/homer/kernelLinux/uds/linuxIORegion.c#1 $
  */
 
 #include "linuxIORegion.h"
@@ -135,7 +135,7 @@ static int validateIO(LinuxIORegion *lior,
   }
   if ((offset < 0) || ((offset + *length) > lior->size)) {
     return logErrorWithStringError(UDS_OUT_OF_RANGE,
-                                   "range %zd-%zd not in range 0 to %" PRIu64,
+                                   "range %zd-%zd not in range 0 to %llu",
                                    offset, offset + *length, lior->size);
   }
 

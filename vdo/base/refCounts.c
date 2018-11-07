@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#1 $
  */
 
 #include "refCounts.h"
@@ -1461,7 +1461,7 @@ void dumpRefCounts(const RefCounts *refCounts)
 {
   // Terse because there are a lot of slabs to dump and syslog is lossy.
   logInfo("  refCounts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32
-          " dirty=%zu active=%zu journal@(%" PRIu64 ",%" PRIu16 ")%s",
+          " dirty=%zu active=%zu journal@(%llu,%" PRIu16 ")%s",
           refCounts->freeBlocks, refCounts->blockCount,
           refCounts->referenceBlockCount,
           countWaiters(&refCounts->dirtyBlocks),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.c#9 $
+ * $Id: //eng/uds-releases/homer/src/uds/index.c#1 $
  */
 
 #include "index.h"
@@ -102,7 +102,7 @@ static int loadIndex(Index *index, bool allowReplay)
     = ((index->lastCheckpoint != NO_LAST_CHECKPOINT)
        ? index->lastCheckpoint : 0);
 
-  logInfo("loaded index from chapter %" PRIu64 " through chapter %" PRIu64,
+  logInfo("loaded index from chapter %llu through chapter %llu",
           index->oldestVirtualChapter, lastCheckpointChapter);
 
   if (replayRequired) {
@@ -700,7 +700,7 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber)
                            : openChapterNumber - 1);
 
   const char *what = (checkpoint ? "checkpoint" : "save");
-  logInfo("beginning %s (vcn %" PRIu64 ")", what, index->lastCheckpoint);
+  logInfo("beginning %s (vcn %llu)", what, index->lastCheckpoint);
 
 }
 
@@ -709,7 +709,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
 {
   int result;
   uint64_t uptoVCN = index->newestVirtualChapter;
-  logInfo("Replaying volume from chapter %" PRIu64 " through chapter %"
+  logInfo("Replaying volume from chapter %llu through chapter %"
           PRIu64,
           fromVCN, uptoVCN);
   setMasterIndexOpenChapter(index->masterIndex, uptoVCN);
@@ -788,7 +788,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
   uint64_t newIPMupdate = getLastUpdate(index->volume->indexPageMap);
 
   if (newIPMupdate != oldIPMupdate) {
-    logInfo("replay changed index page map update from %" PRIu64 " to %" PRIu64,
+    logInfo("replay changed index page map update from %llu to %llu",
             oldIPMupdate, newIPMupdate);
   }
 

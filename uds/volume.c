@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volume.c#12 $
+ * $Id: //eng/uds-releases/homer/src/uds/volume.c#1 $
  */
 
 #include "volume.h"
@@ -246,7 +246,7 @@ static int initChapterIndexPage(const Volume     *volume,
     return UDS_SUCCESS;
   }
 
-  logWarning("Index page map updated to %" PRIu64,
+  logWarning("Index page map updated to %llu",
              getLastUpdate(volume->indexPageMap));
   logWarning("Page map expects that chapter %u page %u has range %u to %u, "
              "but chapter index page has chapter %" PRIu64
@@ -759,7 +759,7 @@ int forgetChapter(Volume             *volume,
                   uint64_t            virtualChapter,
                   InvalidationReason  reason)
 {
-  logDebug("forgetting chapter %" PRIu64, virtualChapter);
+  logDebug("forgetting chapter %llu", virtualChapter);
   unsigned int physicalChapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);
   lockMutex(&volume->readThreadsMutex);
@@ -1029,7 +1029,7 @@ static int probeChapter(Volume       *volume,
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
       logError("inconsistent chapter %u index page %u: expected vcn %"
-               PRIu64 ", got vcn %" PRIu64,
+               PRIu64 ", got vcn %llu",
                chapterNumber, i, lastVCN, vcn);
       return UDS_CORRUPT_COMPONENT;
     }
@@ -1054,7 +1054,7 @@ static int probeChapter(Volume       *volume,
     return UDS_CORRUPT_COMPONENT;
   }
   if (chapterNumber != lastVCN % geometry->chaptersPerVolume) {
-    logError("chapter %u vcn %" PRIu64 " is out of phase (%u)",
+    logError("chapter %u vcn %llu is out of phase (%u)",
              chapterNumber, lastVCN, geometry->chaptersPerVolume);
     return UDS_CORRUPT_COMPONENT;
   }
@@ -1139,7 +1139,7 @@ int findVolumeChapterBoundaries(Volume   *volume,
     }
 
     return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "invalid volume size (%" PRIu64 " bytes)",
+                                   "invalid volume size (%llu bytes)",
                                    (uint64_t) volSize);
   }
 
@@ -1148,7 +1148,7 @@ int findVolumeChapterBoundaries(Volume   *volume,
   unsigned int chapterLimit = (unsigned int)
     ((volSize - geometry->bytesPerPage) / geometry->bytesPerChapter);
 
-  logDebug("volume size %" PRIu64 " bytes, %u chapters",
+  logDebug("volume size %llu bytes, %u chapters",
            (uint64_t) volSize, chapterLimit);
 
   if (chapterLimit > geometry->chaptersPerVolume) {
