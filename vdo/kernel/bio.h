@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#2 $
  */
 
 #ifndef BIO_H
@@ -310,15 +310,6 @@ void countBios(AtomicBioStats *bioStats, BIO *bio);
  * @param layer  The physical layer
  **/
 void resetBio(BIO *bio, KernelLayer *layer);
-
-/**
- * Check to see whether a bio's data are all zeroes.
- *
- * @param bio  The bio
- *
- * @return true if the bio's data are all zeroes
- **/
-bool bioIsZeroData(BIO *bio);
 
 /**
  * Set a bio's data to all zeroes.

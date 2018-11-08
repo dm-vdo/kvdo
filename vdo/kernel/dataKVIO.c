@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#2 $
  */
 
 #include "dataKVIO.h"
@@ -494,6 +494,61 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
 
+/**
+ * Determines whether the data block buffer is all zeros.
+ *
+ * @param dataKVIO  The data KVIO to check
+ *
+ * @return true is all zeroes, false otherwise
+ **/
+static inline bool isZeroBlock(DataKVIO *dataKVIO)
+{
+  const char *buffer = dataKVIO->dataBlock;
+  /*
+   * Handle expected common case of even the first word being nonzero,
+   * without getting into the more expensive (for one iteration) loop
+   * below.
+   */
+  if (GET_UNALIGNED(uint64_t, buffer) != 0) {
+    return false;
+  }
+
+  STATIC_ASSERT(VDO_BLOCK_SIZE % sizeof(uint64_t) == 0);
+  unsigned int wordCount = VDO_BLOCK_SIZE / sizeof(uint64_t);
+
+  // Unroll to process 64 bytes at a time
+  unsigned int chunkCount = wordCount / 8;
+  while (chunkCount-- > 0) {
+    uint64_t word0 = GET_UNALIGNED(uint64_t, buffer);
+    uint64_t word1 = GET_UNALIGNED(uint64_t, buffer + 1 * sizeof(uint64_t));
+    uint64_t word2 = GET_UNALIGNED(uint64_t, buffer + 2 * sizeof(uint64_t));
+    uint64_t word3 = GET_UNALIGNED(uint64_t, buffer + 3 * sizeof(uint64_t));
+    uint64_t word4 = GET_UNALIGNED(uint64_t, buffer + 4 * sizeof(uint64_t));
+    uint64_t word5 = GET_UNALIGNED(uint64_t, buffer + 5 * sizeof(uint64_t));
+    uint64_t word6 = GET_UNALIGNED(uint64_t, buffer + 6 * sizeof(uint64_t));
+    uint64_t word7 = GET_UNALIGNED(uint64_t, buffer + 7 * sizeof(uint64_t));
+    uint64_t or = (word0 | word1 | word2 | word3
+                   | word4 | word5 | word6 | word7);
+    // Prevent compiler from using 8*(cmp;jne).
+    __asm__ __volatile__ ("" : : "g" (or));
+    if (or != 0) {
+      return false;
+    }
+    buffer += 8 * sizeof(uint64_t);
+  }
+  wordCount %= 8;
+
+  // Unroll to process 8 bytes at a time.
+  // (Is this still worthwhile?)
+  while (wordCount-- > 0) {
+    if (GET_UNALIGNED(uint64_t, buffer) != 0) {
+      return false;
+    }
+    buffer += sizeof(uint64_t);
+  }
+  return true;
+}
+
 /**********************************************************************/
 void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
 {
@@ -511,7 +566,7 @@ void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
                (DiscardSize) (VDO_BLOCK_SIZE - dataKVIO->offset)));
   }
 
-  dataVIO->isZeroBlock               = bioIsZeroData(dataKVIO->dataBlockBio);
+  dataVIO->isZeroBlock               = isZeroBlock(dataKVIO);
   dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
   copyBioOperationAndFlags(dataKVIO->dataBlockBio, bio);
   // Make the bio a write, not (potentially) a discard.
@@ -692,10 +747,10 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
        */
       memset(dataKVIO->dataBlock, 0, VDO_BLOCK_SIZE);
     } else if (bio_data_dir(bio) == WRITE) {
-      dataVIO->isZeroBlock = bioIsZeroData(bio);
       // Copy the bio data to a char array so that we can continue to use
       // the data after we acknowledge the bio.
       bioCopyDataIn(bio, dataKVIO->dataBlock);
+      dataVIO->isZeroBlock = isZeroBlock(dataKVIO);
     }
   }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#2 $
  */
 
 #include "bio.h"
@@ -111,84 +111,6 @@ void countBios(AtomicBioStats *bioStats, BIO *bio)
   if (isFUABio(bio)) {
     atomic64_inc(&bioStats->fua);
   }
-}
-
-/**
- * The function determines whether a buffer contains all zeroes.
- *
- * @param buffer  The buffer to check
- * @param length  The length of the buffer
- *
- * @return true is all zeroes, false otherwise
- **/
-static inline bool isAllZeros(const char *buffer, unsigned int length)
-{
-  /*
-   * Handle expected common case of even the first word being nonzero,
-   * without getting into the more expensive (for one iteration) loop
-   * below.
-   */
-  if (likely(length >= sizeof(uint64_t))) {
-    if (GET_UNALIGNED(uint64_t, buffer) != 0) {
-      return false;
-    }
-
-    unsigned int wordCount = length / sizeof(uint64_t);
-
-    // Unroll to process 64 bytes at a time
-    unsigned int chunkCount = wordCount / 8;
-    while (chunkCount-- > 0) {
-      uint64_t word0 = GET_UNALIGNED(uint64_t, buffer);
-      uint64_t word1 = GET_UNALIGNED(uint64_t, buffer + 1 * sizeof(uint64_t));
-      uint64_t word2 = GET_UNALIGNED(uint64_t, buffer + 2 * sizeof(uint64_t));
-      uint64_t word3 = GET_UNALIGNED(uint64_t, buffer + 3 * sizeof(uint64_t));
-      uint64_t word4 = GET_UNALIGNED(uint64_t, buffer + 4 * sizeof(uint64_t));
-      uint64_t word5 = GET_UNALIGNED(uint64_t, buffer + 5 * sizeof(uint64_t));
-      uint64_t word6 = GET_UNALIGNED(uint64_t, buffer + 6 * sizeof(uint64_t));
-      uint64_t word7 = GET_UNALIGNED(uint64_t, buffer + 7 * sizeof(uint64_t));
-      uint64_t or = (word0 | word1 | word2 | word3
-                     | word4 | word5 | word6 | word7);
-      // Prevent compiler from using 8*(cmp;jne).
-      __asm__ __volatile__ ("" : : "g" (or));
-      if (or != 0) {
-        return false;
-      }
-      buffer += 8 * sizeof(uint64_t);
-    }
-    wordCount %= 8;
-
-    // Unroll to process 8 bytes at a time.
-    // (Is this still worthwhile?)
-    while (wordCount-- > 0) {
-      if (GET_UNALIGNED(uint64_t, buffer) != 0) {
-        return false;
-      }
-      buffer += sizeof(uint64_t);
-    }
-    length %= sizeof(uint64_t);
-    // Fall through to finish up anything left over.
-  }
-
-  while (length-- > 0) {
-    if (*buffer++ != 0) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**********************************************************************/
-bool bioIsZeroData(BIO *bio)
-{
-  struct bio_vec *biovec;
-  for (BioIterator iter = createBioIterator(bio);
-       (biovec = getNextBiovec(&iter)) != NULL;
-       advanceBioIterator(&iter)) {
-    if (!isAllZeros(getBufferForBiovec(biovec), biovec->bv_len)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 /**********************************************************************/
