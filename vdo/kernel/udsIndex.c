@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/udsIndex.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/udsIndex.c#2 $
  */
 
 #include "udsIndex.h"
@@ -606,14 +606,13 @@ static void getUDSStatistics(DedupeIndex *dedupeIndex, IndexStatistics *stats)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
   spin_lock(&index->stateLock);
-  UdsBlockContext blockContext = index->blockContext;
   IndexState      indexState   = index->indexState;
   stats->maxDedupeQueries      = index->maximum;
   spin_unlock(&index->stateLock);
   stats->currDedupeQueries     = atomic_read(&index->active);
   if (indexState == IS_OPENED) {
     UdsIndexStats indexStats;
-    int result = udsGetBlockContextIndexStats(blockContext, &indexStats);
+    int result = udsGetIndexStats(index->indexSession, &indexStats);
     if (result == UDS_SUCCESS) {
       stats->entriesIndexed = indexStats.entriesIndexed;
     } else {
