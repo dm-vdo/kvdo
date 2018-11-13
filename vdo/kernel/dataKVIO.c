@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#3 $
  */
 
 #include "dataKVIO.h"
@@ -147,7 +147,7 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 #endif
 
   countBios(&layer->biosAcknowledged, bio);
-  if (getBioSize(bio) < VDO_BLOCK_SIZE) {
+  if (dataKVIO->isPartial) {
     countBios(&layer->biosAcknowledgedPartial, bio);
   }
 
@@ -729,8 +729,9 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
   dataKVIO->isPartial = ((getBioSize(bio) < VDO_BLOCK_SIZE)
                          || (dataKVIO->offset != 0));
 
-  DataVIO *dataVIO = &dataKVIO->dataVIO;
-  if (!dataKVIO->isPartial) {
+  if (dataKVIO->isPartial) {
+    countBios(&layer->biosInPartial, bio);
+  } else {
     /*
      * Note that we unconditionally fill in the dataBlock array for
      * non-read operations. There are places like kvdoCopyVIO that may
@@ -750,7 +751,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
       // Copy the bio data to a char array so that we can continue to use
       // the data after we acknowledge the bio.
       bioCopyDataIn(bio, dataKVIO->dataBlock);
-      dataVIO->isZeroBlock = isZeroBlock(dataKVIO);
+      dataKVIO->dataVIO.isZeroBlock = isZeroBlock(dataKVIO);
     }
   }
 
@@ -856,10 +857,6 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
                               uint64_t     arrivalTime,
                               bool         hasDiscardPermit)
 {
-  if (getBioSize(bio) < VDO_BLOCK_SIZE) {
-    countBios(&layer->biosInPartial, bio);
-  }
-
 
   DataKVIO *dataKVIO = NULL;
   int result = kvdoCreateKVIOFromBio(layer, bio, arrivalTime, &dataKVIO);
