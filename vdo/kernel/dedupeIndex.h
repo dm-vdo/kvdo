@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#2 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -291,21 +291,10 @@ static inline void updateDedupeAdvice(DataKVIO *dataKVIO)
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping Albireo.
 extern unsigned int albireoTimeoutInterval;
-extern Jiffies      albireoTimeoutJiffies;
 
 // Minimum time interval (in milliseconds) between timer invocations to
 // check for requests waiting for Albireo that should now time out.
 extern unsigned int minAlbireoTimerInterval;
-
-/**
- * Calculate the actual end of a timer, taking into account the absolute
- * start time and the present time.
- *
- * @param startJiffies  The absolute start time, in jiffies
- *
- * @return the absolute end time for the timer, in jiffies
- **/
-Jiffies getAlbireoTimeout(Jiffies startJiffies);
 
 /**
  * Set the interval from submission until switching to fast path and
