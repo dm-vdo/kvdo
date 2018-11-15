@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#2 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -253,18 +253,5 @@ void enqueueKVIO(KVIO             *kvio,
  * @param enqueueable  The Enqueueable object containing the completion pointer
  **/
 void kvdoEnqueue(Enqueueable *enqueueable);
-
-/**
- * Get the base-code thread index for the current execution context.
- *
- * @return    The thread ID, or (ThreadID)-1 if the current thread is
- *            not a base-code thread, or in an interrupt context.
- **/
-ThreadID kvdoGetCurrentThreadID(void);
-
-/**
- * Do one-time initialization of kernelVDO interface.
- **/
-void initKernelVDOOnce(void);
 
 #endif // KERNEL_VDO_H

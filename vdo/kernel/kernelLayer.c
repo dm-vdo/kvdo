@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#2 $
  */
 
 #include "kernelLayer.h"
@@ -636,7 +636,6 @@ int makeKernelLayer(uint64_t        startingSector,
   layer->common.enqueue                  = kvdoEnqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
   layer->common.completeAdminOperation   = kvdoCompleteSyncOperation;
-  layer->common.getCurrentThreadID       = kvdoGetCurrentThreadID;
   layer->common.zeroDataVIO              = kvdoZeroDataVIO;
   layer->common.compareDataVIOs          = kvdoCompareDataVIOs;
   layer->common.copyData                 = kvdoCopyDataVIO;

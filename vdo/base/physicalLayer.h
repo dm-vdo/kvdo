@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#2 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -334,20 +334,6 @@ typedef void OperationWaiter(PhysicalLayer *layer);
 typedef void OperationComplete(PhysicalLayer *layer);
 
 /**
- * A function to get the id of the current thread.
- *
- * @return The id of the current thread
- **/
-typedef ThreadID ThreadIDGetter(void);
-
-/**
- * A function to return the physical layer pointer for the current thread.
- *
- * @return The physical layer pointer
- **/
-typedef PhysicalLayer *PhysicalLayerGetter(void);
-
-/**
  * An abstraction representing the underlying physical layer.
  **/
 struct physicalLayer {
@@ -395,33 +381,14 @@ struct physicalLayer {
   Enqueuer                  *enqueue;
   OperationWaiter           *waitForAdminOperation;
   OperationComplete         *completeAdminOperation;
-
-  // Thread specific interface
-  ThreadIDGetter            *getCurrentThreadID;
 };
 
 /**
- * Register the layer-specific implementation of getPhysicalLayer().
- *
- * @param getter  The function to be called
- **/
-void registerPhysicalLayerGetter(PhysicalLayerGetter *getter);
-
-/**
- * Fetch the physical layer pointer for the current thread.
- *
- * @return The physical layer pointer
- **/
-PhysicalLayer *getPhysicalLayer(void);
-
-/**
- * Get the id of the callback thread on which a completion is current running.
+ * Get the id of the callback thread on which a completion is currently
+ * running, or -1 if no such thread.
  *
  * @return the current thread ID
  **/
-static inline ThreadID getCallbackThreadID(void)
-{
-  return getPhysicalLayer()->getCurrentThreadID();
-}
+ThreadID getCallbackThreadID(void);
 
 #endif // PHYSICAL_LAYER_H

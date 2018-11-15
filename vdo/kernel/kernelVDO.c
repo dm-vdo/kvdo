@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#2 $
  */
 
 #include "kernelVDOInternals.h"
@@ -25,6 +25,7 @@
 
 #include "memoryAlloc.h"
 
+#include "physicalLayer.h"
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
@@ -332,7 +333,7 @@ static void performVDOActionWork(KvdoWorkItem *item)
 {
   SyncQueueWork *work = container_of(item, SyncQueueWork, workItem);
   VDOActionData *data = work->data;
-  ThreadID       id   = getPhysicalLayer()->getCurrentThreadID();
+  ThreadID       id   = getCallbackThreadID();
 
   setCallbackWithParent(data->vdoCompletion, finishVDOAction, id, work);
   data->action(data->vdoCompletion);
@@ -477,7 +478,7 @@ void kvdoEnqueue(Enqueueable *enqueueable)
 }
 
 /**********************************************************************/
-ThreadID kvdoGetCurrentThreadID(void)
+ThreadID getCallbackThreadID(void)
 {
   KVDOThread *thread = getWorkQueuePrivateData();
   if (thread == NULL) {
@@ -487,27 +488,10 @@ ThreadID kvdoGetCurrentThreadID(void)
   ThreadID threadID = thread->threadID;
   if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
     KVDO        *kvdo        = thread->kvdo;
-    KernelLayer *kernelLayer = asKernelLayer(getPhysicalLayer());
+    KernelLayer *kernelLayer = container_of(kvdo, KernelLayer, kvdo);
     BUG_ON(&kernelLayer->kvdo != kvdo);
     BUG_ON(threadID >= kvdo->initializedThreadCount);
     BUG_ON(thread != &kvdo->threads[threadID]);
   }
   return threadID;
-}
-
-/**********************************************************************/
-static PhysicalLayer *getKernelPhysicalLayer(void)
-{
-  KVDOThread  *thread = getWorkQueuePrivateData();
-  if (thread == NULL) {
-    return NULL;
-  }
-  KVDO        *kvdo   = thread->kvdo;
-  KernelLayer *layer  = container_of(kvdo, KernelLayer, kvdo);
-  return &layer->common;
-}
-
-void initKernelVDOOnce(void)
-{
-  registerPhysicalLayerGetter(getKernelPhysicalLayer);
 }
