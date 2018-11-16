@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#2 $
  */
 
 #ifndef VIO_H
@@ -336,9 +336,8 @@ void launchWriteMetadataVIOWithFlush(VIO                 *vio,
 }
 
 /**
- * Issue a flush to the layer. If the layer does not require flushing, this
- * method will immediately finish the VIO with which it was called. Care must
- * be taken to avoid introducing a stack overflow in that case.
+ * Issue a flush to the layer. Currently expected to be used only in
+ * async mode.
  *
  * @param vio           The VIO to notify when the flush is complete
  * @param callback      The function to call when the flush is complete

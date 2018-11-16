@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#2 $
  */
 
 #include "vio.h"
@@ -143,6 +143,9 @@ static void handleFlushError(VDOCompletion *completion)
 /**********************************************************************/
 void launchFlush(VIO *vio, VDOAction *callback, VDOAction *errorHandler)
 {
+  ASSERT_LOG_ONLY(getWritePolicy(vio->vdo) == WRITE_POLICY_ASYNC,
+		  "pure flushes should not currently be issued in sync mode");
+
   VDOCompletion *completion = vioAsCompletion(vio);
   resetCompletion(completion);
   completion->callback     = callback;
@@ -151,11 +154,5 @@ void launchFlush(VIO *vio, VDOAction *callback, VDOAction *errorHandler)
   vio->operation           = VIO_FLUSH_BEFORE;
   vio->physical            = ZERO_BLOCK;
 
-  PhysicalLayer *layer = completion->layer;
-  if (!layer->isFlushRequired(layer)) {
-    finishCompletion(completion, VDO_SUCCESS);
-    return;
-  }
-
-  layer->flush(vio);
+  completion->layer->flush(vio);
 }
