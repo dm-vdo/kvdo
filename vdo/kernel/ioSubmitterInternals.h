@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitterInternals.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitterInternals.h#2 $
  */
 
 #ifndef IOSUBMITTERINTERNALS_H
@@ -28,7 +28,6 @@
 #endif
 
 #include "ioSubmitter.h"
-#include "readCache.h"
 
 /*
  * Submission of bio operations to the underlying storage device will
@@ -65,7 +64,6 @@ struct ioSubmitter {
   unsigned int     numBioQueuesUsed;
   unsigned int     bioQueueRotationInterval;
   unsigned int     bioQueueRotor;
-  ReadCache       *readCache;
   BioQueueData     bioQueueData[];
 };
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#18 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#21 $
  */
 
 #include "kernelLayer.h"
@@ -45,7 +45,6 @@
 #include "kvdoFlush.h"
 #include "kvio.h"
 #include "poolSysfs.h"
-#include "readCache.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
 #include "verify.h"
@@ -727,13 +726,11 @@ int makeKernelLayer(uint64_t        startingSector,
     return result;
   }
 
-  config->threadCounts.baseThreads = (*threadConfigPointer)->baseThreadCount;
-
   logInfo("zones: %d logical, %d physical, %d hash; base threads: %d",
           config->threadCounts.logicalZones,
           config->threadCounts.physicalZones,
           config->threadCounts.hashZones,
-          config->threadCounts.baseThreads);
+          (*threadConfigPointer)->baseThreadCount);
 
   result = makeBatchProcessor(layer, returnDataKVIOBatchToPool, layer,
                               &layer->dataKVIOReleaser);
@@ -847,15 +844,11 @@ int makeKernelLayer(uint64_t        startingSector,
 
   setKernelLayerState(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
-  // Bio queue and read cache
-  unsigned int readCacheBlocks
-    = (config->readCacheEnabled
-       ? (requestLimit + config->readCacheExtraBlocks) : 0);
+  // Bio queue
   result = makeIOSubmitter(layer->threadNamePrefix,
                            config->threadCounts.bioThreads,
                            config->threadCounts.bioRotationInterval,
                            layer->requestLimiter.limit,
-                           readCacheBlocks,
                            layer,
                            &layer->ioSubmitter);
   if (result != VDO_SUCCESS) {
@@ -934,18 +927,8 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->readCacheEnabled != extantConfig->readCacheEnabled) {
-    *errorPtr = "Read cache enabled cannot change";
-    return VDO_PARAMETER_MISMATCH;
-  }
-
-  if (config->readCacheExtraBlocks != extantConfig->readCacheExtraBlocks) {
-    *errorPtr = "Read cache size cannot change";
-    return VDO_PARAMETER_MISMATCH;
-  }
-
-  if (strcmp(config->threadConfigString, extantConfig->threadConfigString)
-      != 0) {
+  if (memcmp(&config->threadCounts, &extantConfig->threadCounts,
+	     sizeof(ThreadCountConfig)) != 0) {
     *errorPtr = "Thread configuration cannot change";
     return VDO_PARAMETER_MISMATCH;
   }

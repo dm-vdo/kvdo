@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/sysfs.c#4 $
  */
 
 #include "sysfs.h"
@@ -28,7 +28,6 @@
 #include "dmvdo.h"
 #include "logger.h"
 
-extern unsigned int maxDiscardSectors;
 extern int defaultMaxRequestsActive;
 
 typedef struct vdoAttribute {
@@ -190,14 +189,6 @@ static ssize_t vdoMaxReqActiveStore(struct kvdoDevice *device,
 }
 
 /**********************************************************************/
-static ssize_t vdoMaxDiscardSectors(struct kvdoDevice *device,
-                                    const char        *buf,
-                                    size_t             n)
-{
-  return scanUInt(buf, n, &maxDiscardSectors, 8, UINT_MAX);
-}
-
-/**********************************************************************/
 static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdoDevice *device,
                                               const char        *buf,
                                               size_t             n)
@@ -278,13 +269,6 @@ static VDOAttribute vdoMaxReqActiveAttr = {
   .valuePtr = &defaultMaxRequestsActive,
 };
 
-static VDOAttribute vdoMaxDiscardSectorsAttr = {
-  .attr     = {.name = "max_discard_sectors", .mode = 0644, },
-  .show     = showUInt,
-  .store    = vdoMaxDiscardSectors,
-  .valuePtr = &maxDiscardSectors,
-};
-
 static VDOAttribute vdoAlbireoTimeoutInterval = {
   .attr     = {.name = "deduplication_timeout_interval", .mode = 0644, },
   .show     = showUInt,
@@ -315,7 +299,6 @@ static struct attribute *defaultAttrs[] = {
   &vdoStatusAttr.attr,
   &vdoLogLevelAttr.attr,
   &vdoMaxReqActiveAttr.attr,
-  &vdoMaxDiscardSectorsAttr.attr,
   &vdoAlbireoTimeoutInterval.attr,
   &vdoMinAlbireoTimerInterval.attr,
   &vdoTraceRecording.attr,

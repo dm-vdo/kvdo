@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#5 $
  */
 
 #include "bio.h"
@@ -29,7 +29,7 @@
 #include "recoveryJournal.h"
 
 #include "bioIterator.h"
-#include "readCache.h"
+#include "ioSubmitter.h"
 
 /**
  * Gets the raw buffer from a biovec.
@@ -63,6 +63,7 @@ void bioCopyDataOut(BIO *bio, char *dataPtr)
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
     memcpy(getBufferForBiovec(biovec), dataPtr, biovec->bv_len);
+    flush_dcache_page(biovec->bv_page);
     dataPtr += biovec->bv_len;
   }
 }
@@ -199,26 +200,7 @@ bool bioIsZeroData(BIO *bio)
 /**********************************************************************/
 void bioZeroData(BIO *bio)
 {
-  /*
-   * There's a routine zero_fill_bio exported from the kernel, but
-   * this is a little faster.
-   *
-   * Taking apart what zero_fill_bio does: The HIGHMEM stuff isn't an
-   * issue for x86_64, so bvec_k{,un}map_irq does no more than we do
-   * here. On x86 flush_dcache_page doesn't do anything. And the
-   * memset call there seems to be expanded inline by the compiler as
-   * a "rep stosb" loop which is slower than the kernel-exported
-   * memset.
-   *
-   * So we're functionally the same, and a little bit faster, this
-   * way.
-   */
-  struct bio_vec *biovec;
-  for (BioIterator iter = createBioIterator(bio);
-       (biovec = getNextBiovec(&iter)) != NULL;
-       advanceBioIterator(&iter)) {
-    memset(getBufferForBiovec(biovec), 0, biovec->bv_len);
-  }
+  zero_fill_bio(bio);
 }
 
 /**********************************************************************/

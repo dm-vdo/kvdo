@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#9 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -25,8 +25,10 @@
 
 #include "kernelTypes.h"
 
+// This structure is memcmp'd for equality. Keep it
+// packed and don't add any fields that are not
+// properly set in both extant and parsed configs.
 typedef struct {
-  int baseThreads;
   int bioAckThreads;
   int bioThreads;
   int bioRotationInterval;
@@ -34,7 +36,7 @@ typedef struct {
   int logicalZones;
   int physicalZones;
   int hashZones;
-} ThreadCountConfig;
+} __attribute__((packed)) ThreadCountConfig;
 
 typedef uint32_t TableVersion;
 
@@ -51,11 +53,9 @@ typedef struct {
   unsigned int       cacheSize;
   unsigned int       blockMapMaximumAge;
   bool               mdRaid5ModeEnabled;
-  bool               readCacheEnabled;
-  unsigned int       readCacheExtraBlocks;
   char              *poolName;
-  char              *threadConfigString;
   ThreadCountConfig  threadCounts;
+  BlockCount         maxDiscardBlocks;
 } DeviceConfig;
 
 /**

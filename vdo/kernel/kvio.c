@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#4 $
  */
 
 #include "kvio.h"
@@ -32,7 +32,6 @@
 #include "bio.h"
 #include "ioSubmitter.h"
 #include "kvdoFlush.h"
-#include "readCache.h"
 
 /**
  * A function to tell vdo that we have completed the requested async
@@ -114,7 +113,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   resetBio(bio, kvio->layer);
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
-  invalidateCacheAndSubmitBio(kvio, BIO_Q_ACTION_COMPRESSED_DATA);
+  submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
 /**

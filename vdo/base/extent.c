@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/extent.c#3 $
  */
 
 #include "extent.h"
@@ -54,6 +54,10 @@ int createExtent(PhysicalLayer  *layer,
 
   result = initializeEnqueueableCompletion(&extent->completion,
                                            VDO_EXTENT_COMPLETION, layer);
+  if (result != VDO_SUCCESS) {
+    FREE(extent);
+    return result;
+  }
 
   for (; extent->count < blockCount; extent->count++) {
     result = layer->createMetadataVIO(layer, vioType, priority, extent, data,

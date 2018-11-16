@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#20 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#23 $
  */
 
 #include "dmvdo.h"
@@ -34,10 +34,10 @@
 #include "deviceRegistry.h"
 #include "dump.h"
 #include "instanceNumber.h"
+#include "ioSubmitter.h"
 #include "kernelLayer.h"
 #include "kvdoFlush.h"
 #include "memoryUsage.h"
-#include "readCache.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
 #include "sysfs.h"
@@ -45,24 +45,6 @@
 #include "threadRegistry.h"
 
 struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
-
-/*
- * Set the default maximum number of sectors for a single discard bio.
- *
- * The value 1024 is the largest usable value on HD systems.  A 2048 sector
- * discard on a busy HD system takes 31 seconds.  We should use a value no
- * higher than 1024, which takes 15 to 16 seconds on a busy HD system.
- *
- * But using large values results in 120 second blocked task warnings in
- * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
- * smallest reasonable value.  See VDO-3062 and VDO-3087.
- *
- * We allow setting of the value for max_discard_sectors even in situations 
- * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
- * value is still used in other code, like sysfs display of queue limits and 
- * most especially in dm-thin to determine whether to pass down discards.
- */
-unsigned int maxDiscardSectors = VDO_SECTORS_PER_BLOCK;
 
 /*
  * We want to support discard requests, but early device mapper versions
@@ -180,8 +162,26 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
   // The optimal io size for streamed/sequential io
   blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
 
-  // Discard hints
-  limits->max_discard_sectors = maxDiscardSectors;
+  /*
+   * Sets the maximum discard size that will be passed into VDO. This value
+   * comes from a table line value passed in during dmsetup create.
+   *
+   * The value 1024 is the largest usable value on HD systems.  A 2048 sector
+   * discard on a busy HD system takes 31 seconds.  We should use a value no
+   * higher than 1024, which takes 15 to 16 seconds on a busy HD system.
+   *
+   * But using large values results in 120 second blocked task warnings in
+   * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
+   * smallest reasonable value.  See VDO-3062 and VDO-3087.
+   *
+   * We allow setting of the value for max_discard_sectors even in situations 
+   * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
+   * value is still used in other code, like sysfs display of queue limits and 
+   * most especially in dm-thin to determine whether to pass down discards.
+   */
+  limits->max_discard_sectors 
+    = layer->deviceConfig->maxDiscardBlocks * VDO_SECTORS_PER_BLOCK;
+
   limits->discard_granularity = VDO_BLOCK_SIZE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
   limits->discard_zeroes_data = 1;
@@ -586,19 +586,16 @@ static int vdoInitialize(struct dm_target *ti,
   uint64_t   logicalSize    = to_bytes(ti->len);
   BlockCount logicalBlocks  = logicalSize / blockSize;
 
-  logDebug("Logical block size      = %" PRIu64,
+  logDebug("Logical block size     = %" PRIu64,
            (uint64_t) config->logicalBlockSize);
-  logDebug("Logical blocks          = %" PRIu64, logicalBlocks);
-  logDebug("Physical block size     = %" PRIu64, (uint64_t) blockSize);
-  logDebug("Physical blocks         = %" PRIu64, config->physicalBlocks);
-  logDebug("Block map cache blocks  = %u", config->cacheSize);
-  logDebug("Block map maximum age   = %u", config->blockMapMaximumAge);
-  logDebug("MD RAID5 mode           = %s", (config->mdRaid5ModeEnabled
-                                            ? "on" : "off"));
-  logDebug("Read cache mode         = %s", (config->readCacheEnabled
-                                            ? "enabled" : "disabled"));
-  logDebug("Read cache extra blocks = %u", config->readCacheExtraBlocks);
-  logDebug("Write policy            = %s", getConfigWritePolicyString(config));
+  logDebug("Logical blocks         = %" PRIu64, logicalBlocks);
+  logDebug("Physical block size    = %" PRIu64, (uint64_t) blockSize);
+  logDebug("Physical blocks        = %" PRIu64, config->physicalBlocks);
+  logDebug("Block map cache blocks = %u", config->cacheSize);
+  logDebug("Block map maximum age  = %u", config->blockMapMaximumAge);
+  logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled
+                                           ? "on" : "off"));
+  logDebug("Write policy           = %s", getConfigWritePolicyString(config));
 
   // The threadConfig will be copied by the VDO if it's successfully
   // created.
@@ -793,14 +790,13 @@ static int vdoPreresume(struct dm_target *ti)
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
                             " failed", config->poolName);
-    return result;
-  }
-  setKernelLayerActiveConfig(layer, config);
-
-  result = resumeKernelLayer(layer);
-  if (result != VDO_SUCCESS) {
-    logError("resume of device '%s' failed with error: %d",
-             layer->deviceConfig->poolName, result);
+  } else {
+    setKernelLayerActiveConfig(layer, config);
+    result = resumeKernelLayer(layer);
+    if (result != VDO_SUCCESS) {
+      logError("resume of device '%s' failed with error: %d",
+	       layer->deviceConfig->poolName, result);
+    }
   }
   unregisterThreadDeviceID();
   return mapToSystemError(result);

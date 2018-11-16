@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.h#3 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -75,7 +75,6 @@ void completeAsyncBio(BIO *bio, int error);
  *                                bio-submission threads when enqueuing work
  *                                items
  * @param [in]  maxRequestsActive Number of bios for merge tracking
- * @param [in]  readCacheBlocks   Number of read cache blocks
  * @param [in]  layer             The kernel layer
  * @param [out] ioSubmitter       Pointer to the new data structure
  *
@@ -85,7 +84,6 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                     unsigned int   threadCount,
                     unsigned int   rotationInterval,
                     unsigned int   maxRequestsActive,
-                    unsigned int   readCacheBlocks,
                     KernelLayer   *layer,
                     IOSubmitter  **ioSubmitter);
 
@@ -108,16 +106,6 @@ void cleanupIOSubmitter(IOSubmitter *ioSubmitter);
 void freeIOSubmitter(IOSubmitter *ioSubmitter);
 
 /**
- * Retrieve the aggregated read cache statistics for each bio submission
- * work queue.
- *
- * @param [in]  ioSubmitter        The I/O submitter data
- * @param [out] totalledStats      Where to store the statistics
- **/
-void getBioWorkQueueReadCacheStats(IOSubmitter    *ioSubmitter,
-                                   ReadCacheStats *totalledStats);
-
-/**
  * Dump info to the kernel log about the work queue used by the
  * physical layer. For debugging only.
  *
@@ -137,15 +125,6 @@ void dumpBioWorkQueue(IOSubmitter *ioSubmitter);
  * @param workItem           The new work item to run
  **/
 void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem);
-
-/**
- * Get the read cache used by the I/O submitter
- *
- * @param ioSubmitter       The I/O submitter data
- *
- * @return read cache
- **/
-ReadCache *getIOSubmitterReadCache(IOSubmitter *ioSubmitter);
 
 /**
  * Submit bio but don't block.

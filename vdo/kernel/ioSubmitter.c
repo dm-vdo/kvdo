@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/ioSubmitter.c#5 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -24,9 +24,9 @@
 #include "memoryAlloc.h"
 
 #include "bio.h"
+#include "dataKVIO.h"
 #include "kernelLayer.h"
 #include "logger.h"
-#include "readCache.h"
 
 enum {
   /*
@@ -489,7 +489,6 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                     unsigned int   threadCount,
                     unsigned int   rotationInterval,
                     unsigned int   maxRequestsActive,
-                    unsigned int   readCacheBlocks,
                     KernelLayer   *layer,
                     IOSubmitter  **ioSubmitterPtr)
 {
@@ -501,15 +500,6 @@ int makeIOSubmitter(const char    *threadNamePrefix,
                                  &ioSubmitter);
   if (result != UDS_SUCCESS) {
     return result;
-  }
-
-  if (readCacheBlocks > 0) {
-    result = makeReadCache(layer, readCacheBlocks, threadCount,
-                           &ioSubmitter->readCache);
-    if (result != VDO_SUCCESS) {
-      FREE(ioSubmitter);
-      return result;
-    }
   }
 
   // Setup for each bio-submission work queue
@@ -584,15 +574,7 @@ void freeIOSubmitter(IOSubmitter *ioSubmitter)
       freeIntMap(&ioSubmitter->bioQueueData[i].map);
     }
   }
-  freeReadCache(&ioSubmitter->readCache);
   FREE(ioSubmitter);
-}
-
-/**********************************************************************/
-void getBioWorkQueueReadCacheStats(IOSubmitter    *ioSubmitter,
-                                   ReadCacheStats *totalledStats)
-{
-  *totalledStats = readCacheGetStats(ioSubmitter->readCache);
 }
 
 /**********************************************************************/
@@ -603,12 +585,6 @@ void dumpBioWorkQueue(IOSubmitter *ioSubmitter)
   }
 }
 
-
-/**********************************************************************/
-ReadCache *getIOSubmitterReadCache(IOSubmitter *ioSubmitter)
-{
-  return ioSubmitter->readCache;
-}
 
 /**********************************************************************/
 void enqueueByPBNBioWorkItem(IOSubmitter         *ioSubmitter,

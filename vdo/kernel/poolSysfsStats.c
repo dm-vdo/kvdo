@@ -2294,57 +2294,6 @@ static PoolStatsAttribute poolStatsBiosInProgressFuaAttr = {
 };
 
 /**********************************************************************/
-/** Number of times the read cache was asked for a specific pbn. */
-static ssize_t poolStatsReadCacheAccessesShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  mutex_lock(&layer->statsMutex);
-  getKernelStats(layer, &layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.accesses);
-  mutex_unlock(&layer->statsMutex);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsReadCacheAccessesAttr = {
-  .attr  = { .name = "read_cache_accesses", .mode = 0444, },
-  .show  = poolStatsReadCacheAccessesShow,
-};
-
-/**********************************************************************/
-/** Number of times the read cache found the requested pbn. */
-static ssize_t poolStatsReadCacheHitsShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  mutex_lock(&layer->statsMutex);
-  getKernelStats(layer, &layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.hits);
-  mutex_unlock(&layer->statsMutex);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsReadCacheHitsAttr = {
-  .attr  = { .name = "read_cache_hits", .mode = 0444, },
-  .show  = poolStatsReadCacheHitsShow,
-};
-
-/**********************************************************************/
-/** Number of times the found requested pbn had valid data. */
-static ssize_t poolStatsReadCacheDataHitsShow(KernelLayer *layer, char *buf)
-{
-  ssize_t retval;
-  mutex_lock(&layer->statsMutex);
-  getKernelStats(layer, &layer->kernelStatsStorage);
-  retval = sprintf(buf, "%" PRIu64 "\n", layer->kernelStatsStorage.readCache.dataHits);
-  mutex_unlock(&layer->statsMutex);
-  return retval;
-}
-
-static PoolStatsAttribute poolStatsReadCacheDataHitsAttr = {
-  .attr  = { .name = "read_cache_data_hits", .mode = 0444, },
-  .show  = poolStatsReadCacheDataHitsShow,
-};
-
-/**********************************************************************/
 /** Tracked bytes currently allocated. */
 static ssize_t poolStatsMemoryUsageBytesUsedShow(KernelLayer *layer, char *buf)
 {
@@ -2698,9 +2647,6 @@ struct attribute *poolStatsAttrs[] = {
   &poolStatsBiosInProgressDiscardAttr.attr,
   &poolStatsBiosInProgressFlushAttr.attr,
   &poolStatsBiosInProgressFuaAttr.attr,
-  &poolStatsReadCacheAccessesAttr.attr,
-  &poolStatsReadCacheHitsAttr.attr,
-  &poolStatsReadCacheDataHitsAttr.attr,
   &poolStatsMemoryUsageBytesUsedAttr.attr,
   &poolStatsMemoryUsagePeakBytesUsedAttr.attr,
   &poolStatsMemoryUsageBiosUsedAttr.attr,

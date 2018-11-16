@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#6 $
  */
 
 #include "vdoResize.h"
@@ -216,6 +216,12 @@ static void growPhysicalCallback(VDOCompletion *completion)
 int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
   BlockCount oldPhysicalBlocks = vdo->config.physicalBlocks;
+
+  // Skip any noop grows.
+  if (oldPhysicalBlocks == newPhysicalBlocks) {
+    return VDO_SUCCESS;
+  }
+
   if (newPhysicalBlocks != getNextVDOLayoutSize(vdo->layout)) {
     /*
      * Either the VDO isn't prepared to grow, or it was prepared to grow

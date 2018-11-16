@@ -31,7 +31,8 @@ The Red Hat VDO Team:
 Other Contributors:
   Ji-Hyeon Gim <potatogim@potatogim.net>:
     Updates for FC26/Kernel 4.13
-
+  Vojtech Trefny <vtrefny@redhat.com>
+    Getting correct size of partitions
 
 VDO was originally created at Permabit Technology Corporation, and was
 subsequently acquired and open-sourced by Red Hat.
