@@ -16,110 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#3 $
  */
 
 #ifndef DEDUPE_INDEX_H
 #define DEDUPE_INDEX_H
 
 #include "dataKVIO.h"
-
-struct dedupeIndex {
-
-  /**
-   * Do the dedupe section of dmsetup message vdo0 0 dump ...
-   *
-   * @param index      The dedupe index
-   * @param showQueue  true to dump a dedupe work queue
-   **/
-  void (*dump)(DedupeIndex *index, bool showQueue);
-
-  /**
-   * Free a dedupe index. The "finish" method must have been called
-   * first.
-   *
-   * @param index  The dedupe index
-   **/
-  void (*free)(DedupeIndex *index);
-
-  /**
-   * Get the name of the deduplication state
-   *
-   * @param index  The dedupe index
-   *
-   * @return the dedupe state name
-   **/
-  const char *(*getDedupeStateName)(DedupeIndex *index);
-
-  /**
-   * Get the index statistics
-   *
-   * @param index  The dedupe index
-   * @param stats  The index statistics
-   **/
-  void (*getStatistics)(DedupeIndex *index, IndexStatistics *stats);
-
-  /**
-   * Process a dmsetup message directed to the index.
-   *
-   * @param index  The dedupe index
-   * @param name   The message name
-   *
-   * @return 0 or an error code
-   **/
-  int (*message)(DedupeIndex *index, const char *name);
-
-  /**
-   * Look up the chunkname of the DataKVIO. If found, return the PBN
-   * previously associated with the name. If not found, associate the
-   * new PBN with the name.
-   *
-   * @param dataKVIO  The DataKVIO
-   **/
-  void (*post)(DataKVIO *dataKVIO);
-
-  /**
-   * Look up the chunkname of the DataKVIO. If found, return the PBN
-   * previously associated with the name. If not found, do nothing.
-   *
-   * @param dataKVIO  The DataKVIO
-   **/
-  void (*query)(DataKVIO *dataKVIO);
-
-  /**
-   * Start the dedupe index.
-   *
-   * @param index       The dedupe index
-   * @param createFlag  If true, create a new index without first attempting
-   *                    to load an existing index
-   **/
-  void (*start)(DedupeIndex *index, bool createFlag);
-
-  /**
-   * Stop the dedupe index.  May be called by any thread, but will wait for
-   * the shutdown to be completed.
-   *
-   * @param index  The dedupe index
-   **/
-  void (*stop)(DedupeIndex *index);
-
-  /**
-   * Finish the dedupe index; shuts it down for good and prepares to
-   * free resources. After this point, no more requests may be sent to
-   * it.
-   *
-   * @param index   The dedupe index
-   **/
-  void (*finish)(DedupeIndex *index);
-
-  /**
-   * Look up the chunkname of the DataKVIO and associate the new PBN with the
-   * name.
-   *
-   * @param dataKVIO  The DataKVIO
-   **/
-  void (*update)(DataKVIO *dataKVIO);
-};
 
 /**
  * Make a dedupe index
@@ -136,26 +39,17 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
 /**
  * Do the dedupe section of dmsetup message vdo0 0 dump ...
  *
- * @param index  The dedupe index
+ * @param index      The dedupe index
  * @param showQueue  true to dump a dedupe work queue
  **/
-static inline void dumpDedupeIndex(DedupeIndex *index, bool showQueue)
-{
-  index->dump(index, showQueue);
-}
+void dumpDedupeIndex(DedupeIndex *index, bool showQueue);
 
 /**
  * Free the dedupe index
  *
- * @param index  The dedupe index
+ * @param indexPtr  The dedupe index
  **/
-static inline void freeDedupeIndex(DedupeIndex **index)
-{
-  if (*index != NULL) {
-    (*index)->free(*index);
-    *index = NULL;
-  }
-}
+void freeDedupeIndex(DedupeIndex **indexPtr);
 
 /**
  * Get the name of the deduplication state
@@ -164,10 +58,7 @@ static inline void freeDedupeIndex(DedupeIndex **index)
  *
  * @return the dedupe state name
  **/
-static inline const char *getDedupeStateName(DedupeIndex *index)
-{
-  return index->getDedupeStateName(index);
-}
+const char *getDedupeStateName(DedupeIndex *index);
 
 /**
  * Get the index statistics
@@ -175,11 +66,7 @@ static inline const char *getDedupeStateName(DedupeIndex *index)
  * @param index  The dedupe index
  * @param stats  The index statistics
  **/
-static inline void getIndexStatistics(DedupeIndex     *index,
-                                      IndexStatistics *stats)
-{
-  return index->getStatistics(index, stats);
-}
+void getIndexStatistics(DedupeIndex *index, IndexStatistics *stats);
 
 /**
  * Return from a dedupe operation by invoking the callback function
@@ -201,10 +88,7 @@ static inline void invokeDedupeCallback(DataKVIO *dataKVIO)
  *
  * @return 0 or an error code
  **/
-static inline int messageDedupeIndex(DedupeIndex *index, const char *name)
-{
-  return index->message(index, name);
-}
+int messageDedupeIndex(DedupeIndex *index, const char *name);
 
 /**
  * Look up the chunkname of the DataKVIO and identify duplicated chunks.
@@ -217,11 +101,7 @@ static inline int messageDedupeIndex(DedupeIndex *index, const char *name)
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-static inline void postDedupeAdvice(DataKVIO *dataKVIO)
-{
-  KernelLayer *layer = dataKVIOAsKVIO(dataKVIO)->layer;
-  layer->dedupeIndex->post(dataKVIO);
-}
+void postDedupeAdvice(DataKVIO *dataKVIO);
 
 /**
  * Look up the chunkname of the DataKVIO and identify duplicated chunks.
@@ -233,11 +113,7 @@ static inline void postDedupeAdvice(DataKVIO *dataKVIO)
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-static inline void queryDedupeAdvice(DataKVIO *dataKVIO)
-{
-  KernelLayer *layer = dataKVIOAsKVIO(dataKVIO)->layer;
-  layer->dedupeIndex->query(dataKVIO);
-}
+void queryDedupeAdvice(DataKVIO *dataKVIO);
 
 /**
  * Start the dedupe index.
@@ -246,10 +122,7 @@ static inline void queryDedupeAdvice(DataKVIO *dataKVIO)
  * @param createFlag  If true, create a new index without first attempting
  *                    to load an existing index
  **/
-static inline void startDedupeIndex(DedupeIndex *index, bool createFlag)
-{
-  index->start(index, createFlag);
-}
+void startDedupeIndex(DedupeIndex *index, bool createFlag);
 
 /**
  * Stop the dedupe index.  May be called by any thread, but will wait for
@@ -257,20 +130,14 @@ static inline void startDedupeIndex(DedupeIndex *index, bool createFlag)
  *
  * @param index  The dedupe index
  **/
-static inline void stopDedupeIndex(DedupeIndex *index)
-{
-  return index->stop(index);
-}
+void stopDedupeIndex(DedupeIndex *index);
 
 /**
  * Finish the dedupe index.
  *
  * @param index  The dedupe index
  **/
-static inline void finishDedupeIndex(DedupeIndex *index)
-{
-  return index->finish(index);
-}
+void finishDedupeIndex(DedupeIndex *index);
 
 /**
  * Look up the chunkname of the DataKVIO and associate the new PBN with the
@@ -282,11 +149,7 @@ static inline void finishDedupeIndex(DedupeIndex *index)
  *                  via getDedupeAdvice(). dedupeContext.status is set to the
  *                  return status code of any asynchronous index processing.
  **/
-static inline void updateDedupeAdvice(DataKVIO *dataKVIO)
-{
-  KernelLayer *layer = dataKVIOAsKVIO(dataKVIO)->layer;
-  layer->dedupeIndex->update(dataKVIO);
-}
+void updateDedupeAdvice(DataKVIO *dataKVIO);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping Albireo.
