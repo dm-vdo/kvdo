@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#3 $
  */
 
 #ifndef VIO_H
@@ -106,13 +106,6 @@ static inline int createVIO(PhysicalLayer  *layer,
   return layer->createMetadataVIO(layer, vioType, priority, parent, data,
                                   vioPtr);
 }
-
-/**
- * Destroy a vio. The pointer to the VIO will be nulled out.
- *
- * @param vioPtr  A pointer to the VIO to destroy
- **/
-void freeVIO(VIO **vioPtr);
 
 /**
  * Initialize a VIO.

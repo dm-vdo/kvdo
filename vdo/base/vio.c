@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#3 $
  */
 
 #include "vio.h"
@@ -25,17 +25,6 @@
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
-
-/**********************************************************************/
-void freeVIO(VIO **vioPtr)
-{
-  VIO *vio = *vioPtr;
-  if (vio == NULL) {
-    return;
-  }
-
-  vio->completion.layer->freeVIO(vioPtr);
-}
 
 /**********************************************************************/
 void initializeVIO(VIO           *vio,
