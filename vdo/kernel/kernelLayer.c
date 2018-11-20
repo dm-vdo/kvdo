@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#6 $
  */
 
 #include "kernelLayer.h"
@@ -460,10 +460,8 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   return VDO_SUCCESS;
 }
 
-/**
- * Implements VIODestructor.
- **/
-static void kvdoFreeVIO(VIO **vioPtr)
+/**********************************************************************/
+void destroyVIO(VIO **vioPtr)
 {
   VIO *vio = *vioPtr;
   if (vio == NULL) {
@@ -630,7 +628,6 @@ int makeKernelLayer(uint64_t        startingSector,
   layer->common.isFlushRequired          = isFlushRequired;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
   layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
-  layer->common.freeVIO                  = kvdoFreeVIO;
   layer->common.completeFlush            = kvdoCompleteFlush;
   layer->common.enqueue                  = kvdoEnqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
