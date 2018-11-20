@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#4 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -354,6 +354,7 @@ struct physicalLayer {
   // Synchronous interfaces (vio-based)
   MetadataVIOCreator        *createMetadataVIO;
   CompressedWriteVIOCreator *createCompressedWriteVIO;
+  VIODestructor             *freeVIO;
   DataVIOZeroer             *zeroDataVIO;
   DataCopier                *copyData;
   DataModifier              *applyPartialWrite;
@@ -389,12 +390,5 @@ struct physicalLayer {
  * @return the current thread ID
  **/
 ThreadID getCallbackThreadID(void);
-
-/**
- * Destroy a vio. The pointer to the VIO will be nulled out.
- *
- * @param vioPtr  A pointer to the VIO to destroy
- **/
-void freeVIO(VIO **vioPtr);
 
 #endif // PHYSICAL_LAYER_H
