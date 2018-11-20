@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#5 $
  */
 
 #include "kernelLayer.h"
@@ -84,9 +84,9 @@ static const KvdoWorkQueueType cpuQType = {
 int defaultMaxRequestsActive = 2000;
 
 /**********************************************************************/
-static CRC32Checksum kvdoUpdateCRC32(CRC32Checksum  crc,
-                                     const byte    *buffer,
-                                     size_t         length)
+CRC32Checksum updateCRC32(CRC32Checksum  crc,
+                          const byte    *buffer,
+                          size_t         length)
 {
   /*
    * The kernel's CRC 32 implementation does not do pre- and post-
@@ -626,7 +626,6 @@ int makeKernelLayer(uint64_t        startingSector,
   layer->deviceConfig         = config;
   layer->startingSectorOffset = startingSector;
 
-  layer->common.updateCRC32              = kvdoUpdateCRC32;
   layer->common.getBlockCount            = kvdoGetBlockCount;
   layer->common.isFlushRequired          = isFlushRequired;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;

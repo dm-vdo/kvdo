@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#5 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -37,19 +37,6 @@ enum {
  * @param layerPtr  A pointer to the layer to destroy
  **/
 typedef void LayerDestructor(PhysicalLayer **layerPtr);
-
-/**
- * A function to update a running CRC-32 checksum.
- *
- * @param crc     The current value of the crc
- * @param buffer  The data to add to the checksum
- * @param length  The length of the data
- *
- * @return The updated value of the checksum
- **/
-typedef uint32_t CRC32Updater(CRC32Checksum  crc,
-                              const byte    *buffer,
-                              size_t         length);
 
 /**
  * A function to report the block count of a physicalLayer.
@@ -341,7 +328,6 @@ struct physicalLayer {
   LayerDestructor           *destroy;
 
   // Synchronous interface
-  CRC32Updater              *updateCRC32;
   BlockCountGetter          *getBlockCount;
 
   // Synchronous IO interface
@@ -390,5 +376,18 @@ struct physicalLayer {
  * @return the current thread ID
  **/
 ThreadID getCallbackThreadID(void);
+
+/**
+ * A function to update a running CRC-32 checksum.
+ *
+ * @param crc     The current value of the crc
+ * @param buffer  The data to add to the checksum
+ * @param length  The length of the data
+ *
+ * @return The updated value of the checksum
+ **/
+CRC32Checksum updateCRC32(CRC32Checksum  crc,
+                          const byte    *buffer,
+                          size_t         length);
 
 #endif // PHYSICAL_LAYER_H

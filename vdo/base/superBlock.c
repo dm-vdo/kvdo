@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#2 $
  */
 
 #include "superBlock.h"
@@ -151,13 +151,12 @@ void freeSuperBlock(SuperBlock **superBlockPtr)
 /**
  * Encode a super block into its on-disk representation.
  *
- * @param layer       The physical layer which implements the checksum
  * @param superBlock  The super block to encode
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int encodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
+static int encodeSuperBlock(SuperBlock *superBlock)
 {
   Buffer *buffer = superBlock->blockBuffer;
   int     result = resetBufferEnd(buffer, 0);
@@ -189,9 +188,9 @@ static int encodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
   }
 
   // Compute and encode the checksum.
-  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
-                                              superBlock->encodedSuperBlock,
-                                              contentLength(buffer));
+  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM,
+                                       superBlock->encodedSuperBlock,
+                                       contentLength(buffer));
   result = putUInt32LEIntoBuffer(buffer, checksum);
   if (result != UDS_SUCCESS) {
     return result;
@@ -205,7 +204,7 @@ int saveSuperBlock(PhysicalLayer       *layer,
                    SuperBlock          *superBlock,
                    PhysicalBlockNumber  superBlockOffset)
 {
-  int result = encodeSuperBlock(layer, superBlock);
+  int result = encodeSuperBlock(superBlock);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -238,8 +237,7 @@ void saveSuperBlockAsync(SuperBlock          *superBlock,
     return;
   }
 
-  PhysicalLayer *layer = parent->layer;
-  int result = encodeSuperBlock(layer, superBlock);
+  int result = encodeSuperBlock(superBlock);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;
@@ -255,13 +253,12 @@ void saveSuperBlockAsync(SuperBlock          *superBlock,
 /**
  * Decode a super block from its on-disk representation.
  *
- * @param layer       The physical layer which implements the checksum
  * @param superBlock  The super block to decode
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int decodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
+static int decodeSuperBlock(SuperBlock *superBlock)
 {
   // Reset the block buffer to start decoding the entire first sector.
   Buffer *buffer = superBlock->blockBuffer;
@@ -308,9 +305,9 @@ static int decodeSuperBlock(PhysicalLayer *layer, SuperBlock *superBlock)
   }
 
   // Checksum everything up to but not including the saved checksum itself.
-  CRC32Checksum checksum = layer->updateCRC32(INITIAL_CHECKSUM,
-                                              superBlock->encodedSuperBlock,
-                                              uncompactedAmount(buffer));
+  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM,
+                                       superBlock->encodedSuperBlock,
+                                       uncompactedAmount(buffer));
 
   // Decode and verify the saved checksum.
   CRC32Checksum savedChecksum;
@@ -347,7 +344,7 @@ int loadSuperBlock(PhysicalLayer        *layer,
     return result;
   }
 
-  result = decodeSuperBlock(layer, superBlock);
+  result = decodeSuperBlock(superBlock);
   if (result != VDO_SUCCESS) {
     freeSuperBlock(&superBlock);
     return result;
@@ -368,7 +365,7 @@ static void finishReadingSuperBlock(VDOCompletion *completion)
   SuperBlock    *superBlock = completion->parent;
   VDOCompletion *parent     = superBlock->parent;
   superBlock->parent        = NULL;
-  finishCompletion(parent, decodeSuperBlock(completion->layer, superBlock));
+  finishCompletion(parent, decodeSuperBlock(superBlock));
 }
 
 /**********************************************************************/
