@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/linuxIORegion.h#1 $
+ * $Id: //eng/uds-releases/homer/kernelLinux/uds/linuxIORegion.h#2 $
  */
 
 #ifndef LINUX_IO_REGION_H
@@ -27,9 +27,10 @@
 /**
  * Make an IO region for a block device in the Linux kernel
  *
- * @param [in]  path            The pathname for the block device
- * @param [in]  size            Size of the block device
- * @param [out] regionPtr       Where to put the new region.
+ * @param [in]  path        The pathname or major:minor device number for
+ *                          the block device
+ * @param [in]  size        Size of the block device
+ * @param [out] regionPtr   Where to put the new region.
  *
  * @return UDS_SUCCESS or an error code.
  **/
