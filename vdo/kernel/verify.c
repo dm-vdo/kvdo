@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#2 $
  */
 
 #include "verify.h"
@@ -24,7 +24,7 @@
 #include "logger.h"
 
 #include "dataKVIO.h"
-#include "numeric.h"
+#include <asm/unaligned.h>
 
 /**
  * Compare blocks of memory for equality.
@@ -50,12 +50,11 @@ static bool memoryEqual(void   *pointerArgument1,
   byte *pointer2 = pointerArgument2;
   while (length >= sizeof(uint64_t)) {
     /*
-     * GET_UNALIGNED is just for paranoia.  (1) On x86_64 it is
+     * get_unaligned is just for paranoia.  (1) On x86_64 it is
      * treated the same as an aligned access.  (2) In this use case,
      * one or both of the inputs will almost(?) always be aligned.
      */
-    if (GET_UNALIGNED(uint64_t, pointer1)
-        != GET_UNALIGNED(uint64_t, pointer2)) {
+    if (get_unaligned((u64 *) pointer1) != get_unaligned((u64 *) pointer2)) {
       return false;
     }
     pointer1 += sizeof(uint64_t);

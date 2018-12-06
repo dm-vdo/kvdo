@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#4 $
  */
 
 #include "dataKVIO.h"
 
+#include <asm/unaligned.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -509,7 +510,7 @@ static inline bool isZeroBlock(DataKVIO *dataKVIO)
    * without getting into the more expensive (for one iteration) loop
    * below.
    */
-  if (GET_UNALIGNED(uint64_t, buffer) != 0) {
+  if (get_unaligned((u64 *) buffer) != 0) {
     return false;
   }
 
@@ -519,14 +520,14 @@ static inline bool isZeroBlock(DataKVIO *dataKVIO)
   // Unroll to process 64 bytes at a time
   unsigned int chunkCount = wordCount / 8;
   while (chunkCount-- > 0) {
-    uint64_t word0 = GET_UNALIGNED(uint64_t, buffer);
-    uint64_t word1 = GET_UNALIGNED(uint64_t, buffer + 1 * sizeof(uint64_t));
-    uint64_t word2 = GET_UNALIGNED(uint64_t, buffer + 2 * sizeof(uint64_t));
-    uint64_t word3 = GET_UNALIGNED(uint64_t, buffer + 3 * sizeof(uint64_t));
-    uint64_t word4 = GET_UNALIGNED(uint64_t, buffer + 4 * sizeof(uint64_t));
-    uint64_t word5 = GET_UNALIGNED(uint64_t, buffer + 5 * sizeof(uint64_t));
-    uint64_t word6 = GET_UNALIGNED(uint64_t, buffer + 6 * sizeof(uint64_t));
-    uint64_t word7 = GET_UNALIGNED(uint64_t, buffer + 7 * sizeof(uint64_t));
+    uint64_t word0 = get_unaligned((u64 *) buffer);
+    uint64_t word1 = get_unaligned((u64 *) (buffer + 1 * sizeof(uint64_t)));
+    uint64_t word2 = get_unaligned((u64 *) (buffer + 2 * sizeof(uint64_t)));
+    uint64_t word3 = get_unaligned((u64 *) (buffer + 3 * sizeof(uint64_t)));
+    uint64_t word4 = get_unaligned((u64 *) (buffer + 4 * sizeof(uint64_t)));
+    uint64_t word5 = get_unaligned((u64 *) (buffer + 5 * sizeof(uint64_t)));
+    uint64_t word6 = get_unaligned((u64 *) (buffer + 6 * sizeof(uint64_t)));
+    uint64_t word7 = get_unaligned((u64 *) (buffer + 7 * sizeof(uint64_t)));
     uint64_t or = (word0 | word1 | word2 | word3
                    | word4 | word5 | word6 | word7);
     // Prevent compiler from using 8*(cmp;jne).
@@ -541,7 +542,7 @@ static inline bool isZeroBlock(DataKVIO *dataKVIO)
   // Unroll to process 8 bytes at a time.
   // (Is this still worthwhile?)
   while (wordCount-- > 0) {
-    if (GET_UNALIGNED(uint64_t, buffer) != 0) {
+    if (get_unaligned((u64 *) buffer) != 0) {
       return false;
     }
     buffer += sizeof(uint64_t);
