@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#2 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -30,6 +30,7 @@ typedef enum adminOperationType {
   ADMIN_OPERATION_CLOSE,
   ADMIN_OPERATION_GROW_LOGICAL,
   ADMIN_OPERATION_GROW_PHYSICAL,
+  ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
   ADMIN_OPERATION_LOAD,
 } AdminOperationType;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#2 $
  */
 
 #include "vdoResize.h"
@@ -195,18 +195,6 @@ static void growPhysicalCallback(VDOCompletion *completion)
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   assertOnAdminThread(vdo, __func__);
 
-  // This check can only be done from a base code thread.
-  if (isReadOnly(&vdo->readOnlyContext)) {
-    finishCompletion(completion->parent, VDO_READ_ONLY);
-    return;
-  }
-
-  // This check should only be done from a base code thread.
-  if (inRecoveryMode(vdo)) {
-    finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
-    return;
-  }
-
   // Copy the journal into the new layout.
   prepareAdminSubTask(vdo, suspendSummary, finishParentCallback);
   copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION, completion);
@@ -252,6 +240,33 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   return VDO_SUCCESS;
 }
 
+/**
+ * Callback to check that we're not in recovery mode, used in
+ * prepareToGrowPhysical().
+ *
+ * @param completion  The sub-task completion
+ **/
+static void checkMayGrowPhysical(VDOCompletion *completion)
+{
+  VDO *vdo
+    = vdoFromAdminSubTask(completion, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+  assertOnAdminThread(vdo, __func__);
+
+  // This check can only be done from a base code thread.
+  if (isReadOnly(&vdo->readOnlyContext)) {
+    finishCompletion(completion->parent, VDO_READ_ONLY);
+    return;
+  }
+
+  // This check should only be done from a base code thread.
+  if (inRecoveryMode(vdo)) {
+    finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
+    return;
+  }
+
+  finishCompletion(completion->parent, VDO_SUCCESS);
+}
+
 /**********************************************************************/
 int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
@@ -271,8 +286,15 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
     return VDO_PARAMETER_MISMATCH;
   }
 
-  int result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
-                                      newPhysicalBlocks, vdo->layer);
+  int result
+    = performAdminOperation(vdo, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+                            checkMayGrowPhysical);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
+                                  newPhysicalBlocks, vdo->layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
