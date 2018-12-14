@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/grid.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/grid.c#2 $
  */
 
 #include "grid.h"
@@ -162,6 +162,14 @@ int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
     router->methods->setCheckpointFrequency(router, frequency);
   }
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void waitForIdleGrid(Grid *grid)
+{
+  for (unsigned int i = 0; i < grid->numRouters; i++) {
+    waitForIdleIndexRouter(grid->routers[i]);
+  }
 }
 
 /**********************************************************************/

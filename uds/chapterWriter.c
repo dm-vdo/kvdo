@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.c#2 $
  */
 
 #include "chapterWriter.h"
@@ -111,6 +111,7 @@ static void closeChapters(void *arg)
     if (result == UDS_SUCCESS) {
       result = processChapterWriterCheckpointSaves(writer->index);
     }
+
 
     lockMutex(&writer->mutex);
     // Note that the index is totally finished with the writing chapter
@@ -224,6 +225,18 @@ int finishPreviousChapter(ChapterWriter *writer, uint64_t currentChapterNumber)
     return logUnrecoverable(result, "Writing of previous open chapter failed");
   }
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void waitForIdleChapterWriter(ChapterWriter *writer)
+{
+  lockMutex(&writer->mutex);
+  while (writer->zonesToWrite > 0) {
+    // The chapter writer is probably writing a chapter.  If it is not, it will
+    // soon wake up and write a chapter.
+    waitCond(&writer->cond, &writer->mutex);
+  }
+  unlockMutex(&writer->mutex);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/grid.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/grid.h#2 $
  */
 
 #ifndef GRID_H
@@ -102,6 +102,14 @@ int getGridStatistics(Grid *grid, IndexRouterStatCounters *stats)
  **/
 int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
   __attribute__((warn_unused_result));
+
+/**
+ * Wait for the index grid to finish all operations that access a local storage
+ * device.
+ *
+ * @param grid      The index grid
+ **/
+void waitForIdleGrid(Grid *grid);
 
 /**
  * Flush all the routers, optionally save state for all the routers, and free

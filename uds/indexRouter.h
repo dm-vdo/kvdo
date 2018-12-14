@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexRouter.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/indexRouter.h#2 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -107,6 +107,14 @@ struct indexRouterMethods {
    * @param frequency The new checkpointing frequency.
    **/
   void (*setCheckpointFrequency)(IndexRouter *router, unsigned int frequency);
+
+  /**
+   * Wait for the index router to finish all operations that access a local
+   * storage device.
+   *
+   * @param router    The index router.
+   **/
+  void (*waitForIdle)(IndexRouter *router);
 };
 
 /**
@@ -133,6 +141,17 @@ static INLINE void freeIndexRouter(IndexRouter *router)
   if (router != NULL) {
     saveAndFreeIndexRouter(router, false);
   }
+}
+
+/**
+ * Wait for the index router to finish all operations that access a local
+ * storage device.
+ *
+ * @param router    The index router.
+ **/
+static INLINE void waitForIdleIndexRouter(IndexRouter *router)
+{
+  router->methods->waitForIdle(router);
 }
 
 #endif /* INDEX_ROUTER_H */

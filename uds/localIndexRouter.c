@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/localIndexRouter.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/localIndexRouter.c#2 $
  */
 
 #include "localIndexRouter.h"
@@ -35,7 +35,9 @@ static RequestQueue *selectIndexRouterQueue(IndexRouter  *header,
 static void executeIndexRouterRequest(IndexRouter *header, Request *request);
 static int getRouterStatistics(IndexRouter *header,
                                IndexRouterStatCounters *counters);
-static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency);
+static void setCheckpointFrequency(IndexRouter *header,
+                                   unsigned int frequency);
+static void waitForIdle(IndexRouter *header);
 
 static const IndexRouterMethods methods = {
   .saveAndFree            = saveAndFreeLocalIndexRouter,
@@ -43,6 +45,7 @@ static const IndexRouterMethods methods = {
   .execute                = executeIndexRouterRequest,
   .getStatistics          = getRouterStatistics,
   .setCheckpointFrequency = setCheckpointFrequency,
+  .waitForIdle            = waitForIdle,
 };
 
 /*
@@ -289,4 +292,11 @@ static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
   setIndexCheckpointFrequency(router->index->checkpoint, frequency);
+}
+
+/**********************************************************************/
+static void waitForIdle(IndexRouter *header)
+{
+  LocalIndexRouter *router = asLocalIndexRouter(header);
+  waitForIdleChapterWriter(router->index->chapterWriter);
 }

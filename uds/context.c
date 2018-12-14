@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/context.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/context.c#2 $
  */
 
 #include "context.h"
@@ -211,6 +211,7 @@ int makeBaseContext(IndexSession *indexSession, UdsContext **contextPtr)
 void flushBaseContext(UdsContext *context)
 {
   waitForIdleSession(&context->session);
+  waitForIdleGrid(context->indexSession->grid);
 }
 
 /**********************************************************************/
