@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#21 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#22 $
  */
 
 #include "kernelLayer.h"
@@ -1228,9 +1228,18 @@ int suspendKernelLayer(KernelLayer *layer)
 
   setKernelLayerState(layer, LAYER_SUSPENDED);
 
-  // Attempt to flush all I/O before completing post suspend work.
+  /*
+   * Attempt to flush all I/O before completing post suspend work. This is
+   * needed so that changing write policy upon resume is safe. Also, we think
+   * a suspended device is expected to have persisted all data written before
+   * the suspend, even if it hasn't been flushed yet.
+   */
   waitForNoRequestsActive(layer);
-  return synchronousFlush(layer);
+  int result = synchronousFlush(layer);
+  if (result != VDO_SUCCESS) {
+    setKVDOReadOnly(&layer->kvdo, result);
+  }
+  return result;
 }
 
 /**********************************************************************/

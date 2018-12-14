@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#2 $
  */
 
 #include "kernelVDOInternals.h"
@@ -27,6 +27,7 @@
 
 #include "statistics.h"
 #include "threadConfig.h"
+#include "threadData.h"
 #include "vdo.h"
 #include "vdoClose.h"
 #include "vdoDebug.h"
@@ -256,6 +257,31 @@ bool setKVDOCompressing(KVDO *kvdo, bool enableCompression)
                        getPackerZoneThread(getThreadConfig(kvdo->vdo)),
                        &compressWait);
   return data.wasEnabled;
+}
+
+/**********************************************************************/
+typedef struct {
+  int result;
+} VDOReadOnlyData;
+
+/**********************************************************************/
+static void enterReadOnlyModeWork(KvdoWorkItem *item)
+{
+  SyncQueueWork   *work = container_of(item, SyncQueueWork, workItem);
+  VDOReadOnlyData *data = work->data;
+  makeVDOReadOnly(getVDO(work->kvdo), data->result, true);
+  complete(work->completion);
+}
+
+/***********************************************************************/
+void setKVDOReadOnly(KVDO *kvdo, int result)
+{
+  struct completion readOnlyWait;
+  VDOReadOnlyData data;
+  data.result = result;
+  performKVDOOperation(kvdo, enterReadOnlyModeWork, &data,
+                       getAdminThread(getThreadConfig(kvdo->vdo)),
+                       &readOnlyWait);
 }
 
 /**

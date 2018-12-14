@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#5 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#6 $
  */
 
 #include "linuxIORegion.h"
@@ -25,6 +25,7 @@
 #include <linux/blkdev.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
+#include <linux/mount.h>
 #include <linux/task_io_accounting_ops.h>
 #include <linux/uio.h>
 #include <linux/version.h>
@@ -337,7 +338,13 @@ int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
                                    "size not a multiple of blockSize");
   }
 
-  struct block_device *bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
+  struct block_device *bdev;
+  dev_t device = name_to_dev_t(path);
+  if (device != 0) {
+    bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+  } else {
+    bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
+  }
   if (IS_ERR(bdev)) {
     logErrorWithStringError(-PTR_ERR(bdev), "%s is not a block device", path);
     return UDS_INVALID_ARGUMENT;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#10 $
  */
 
 #include "deviceConfig.h"
@@ -34,9 +34,11 @@
 enum {
   // If we bump this, update the arrays below
   TABLE_VERSION = 2,
-  // Arbitrary limit used when parsing thread-count config spec strings
-  THREAD_COUNT_LIMIT             = 100,
-  BIO_ROTATION_INTERVAL_LIMIT    = 1024,
+  // Limits used when parsing thread-count config spec strings
+  BIO_ROTATION_INTERVAL_LIMIT = 1024,
+  LOGICAL_THREAD_COUNT_LIMIT  = 60,
+  PHYSICAL_THREAD_COUNT_LIMIT = 16,  
+  THREAD_COUNT_LIMIT          = 100,
   // XXX The bio-submission queue configuration defaults are temporarily
   // still being defined here until the new runtime-based thread
   // configuration has been fully implemented for managed VDO devices.
@@ -210,7 +212,7 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
                                       unsigned int       count,
                                       ThreadCountConfig *config)
 {
-  // Handle thread parameters other than thread config
+  // Handle limited thread parameters
   if (strcmp(threadParamType, "bioRotationInterval") == 0) {
     if (count == 0) {
       logError("thread config string error:"
@@ -224,8 +226,26 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
     }
     config->bioRotationInterval = count;
     return VDO_SUCCESS;
+  } else if (strcmp(threadParamType, "logical") == 0) {
+    if (count > LOGICAL_THREAD_COUNT_LIMIT) {
+      logError("thread config string error: at most %d 'logical' threads"
+               " are allowed",
+               LOGICAL_THREAD_COUNT_LIMIT);
+      return -EINVAL;
+    }
+    config->logicalZones = count;
+    return VDO_SUCCESS;
+  } else if (strcmp(threadParamType, "physical") == 0) {
+    if (count > PHYSICAL_THREAD_COUNT_LIMIT) {
+      logError("thread config string error: at most %d 'physical' threads"
+               " are allowed",
+               PHYSICAL_THREAD_COUNT_LIMIT);
+      return -EINVAL;
+    }
+    config->physicalZones = count;
+    return VDO_SUCCESS;
   } else {
-    // Handle thread count parameters
+    // Handle other thread count parameters
     if (count > THREAD_COUNT_LIMIT) {
       logError("thread config string error: at most %d '%s' threads"
                " are allowed",
@@ -233,7 +253,10 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
       return -EINVAL;
     }
 
-    if (strcmp(threadParamType, "cpu") == 0) {
+    if (strcmp(threadParamType, "hash") == 0) {
+      config->hashZones = count;
+      return VDO_SUCCESS;
+    } else if (strcmp(threadParamType, "cpu") == 0) {
       if (count == 0) {
         logError("thread config string error:"
                  " at least one 'cpu' thread required");
@@ -251,15 +274,6 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
         return -EINVAL;
       }
       config->bioThreads = count;
-      return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "logical") == 0) {
-      config->logicalZones = count;
-      return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "physical") == 0) {
-      config->physicalZones = count;
-      return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "hash") == 0) {
-      config->hashZones = count;
       return VDO_SUCCESS;
     }
   }

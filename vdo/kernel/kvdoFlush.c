@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvdoFlush.c#4 $
  */
 
 #include "kvdoFlush.h"
@@ -256,25 +256,29 @@ static void endSynchronousFlush(BIO *bio, int result)
 /**********************************************************************/
 int synchronousFlush(KernelLayer *layer)
 {
-  BIO *bio;
-  int result = createBio(layer, NULL, &bio);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+  BIO bio;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
+  bio_init(&bio, 0, 0);
+#else
+  bio_init(&bio);
+#endif
+  int result = 0;
 
   init_completion(&layer->flushWait);
-  prepareFlushBIO(bio, layer, getKernelLayerBdev(layer), endSynchronousFlush);
-  bio->bi_next = NULL;
-  generic_make_request(bio);
+  prepareFlushBIO(&bio, layer, getKernelLayerBdev(layer), endSynchronousFlush);
+  bio.bi_next = NULL;
+  generic_make_request(&bio);
   wait_for_completion(&layer->flushWait);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  if (getBioResult(bio) != 0) {
+  if (getBioResult(&bio) != 0) {
 #else
-  if (!bio_flagged(bio, BIO_UPTODATE)) {
+  if (!bio_flagged(&bio, BIO_UPTODATE)) {
 #endif
     result = -EIO;
   }
 
-  freeBio(bio, layer);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
+  bio_uninit(&bio);
+#endif
   return result;
 }
