@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#4 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -30,18 +30,23 @@
  * A function which is to be applied asynchronously to all of the allocators of
  * a slab depot.
  *
- * @param allocator  The next allocator to apply the action to
+ * @param allocator  The allocator to apply the action to
  * @param parent     The object to notify when the action has been applied to
  *                   all of the allocators
  **/
 typedef void AllocatorAction(BlockAllocator *allocator, VDOCompletion *parent);
 
-typedef enum {
-  DEPOT_RESIZE_NONE = 0,
-  DEPOT_RESIZE_REGISTER_SLABS,
-  DEPOT_RESIZE_RESUME_SUMMARY,
-  DEPOT_RESIZE_SUSPEND_SUMMARY,
-} DepotResizeStep;
+/**
+ * An action to be performed on the depot.
+ **/
+typedef struct {
+  /** The action to be applied to each allocator */
+  AllocatorAction *action;
+  /** The method to run back on the journal thread after the action is done */
+  VDOAction       *conclusion;
+  /** The object to notify when the action is complete */
+  VDOCompletion   *parent;
+} DepotAction;
 
 struct slabDepot {
   VDOCompletion         completion;
@@ -61,10 +66,11 @@ struct slabDepot {
   /** The completion for loading slabs */
   VDOCompletion        *slabCompletion;
 
-  /** The parent completion for most per-allocator actions */
-  VDOCompletion         actionCompletion;
-  /** The current action being applied to allocators */
-  AllocatorAction      *action;
+  /** The current action being performed by the depot */
+  DepotAction           currentAction;
+  /** The next action to be performed by the depot */
+  DepotAction           nextAction;
+
   /** The zone to which the action is being applied */
   ZoneCount             actingZone;
 
@@ -80,18 +86,15 @@ struct slabDepot {
   bool                  lockReleaseActive;
   ThreadID              recoveryJournalThreadID;
 
-  /** The completion for saving the depot */
-  VDOCompletion         saveCompletion;
+  /** Whether a save has been requested */
   bool                  saveRequested;
 
   /** The completion for scrubbing or resizing */
-  VDOCompletion         subTaskCompletion;
+  VDOCompletion         scrubbingCompletion;
   Atomic32              zonesToScrub;
 
   /** Cached journal pointer for slab creation */
   RecoveryJournal      *journal;
-
-  DepotResizeStep       resizeStepRequested;
 
   /** Array of pointers to individually allocated slabs */
   Slab                **slabs;

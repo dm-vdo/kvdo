@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#5 $
  */
 
 #include "slabDepot.h"
@@ -216,19 +216,7 @@ static int allocateComponents(SlabDepot          *depot,
     return result;
   }
 
-  result = initializeEnqueueableCompletion(&depot->actionCompletion,
-                                           SUB_TASK_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = initializeEnqueueableCompletion(&depot->saveCompletion,
-                                           SUB_TASK_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = initializeEnqueueableCompletion(&depot->subTaskCompletion,
+  result = initializeEnqueueableCompletion(&depot->scrubbingCompletion,
                                            SUB_TASK_COMPLETION, layer);
   if (result != VDO_SUCCESS) {
     return result;
@@ -457,9 +445,7 @@ void freeSlabDepot(SlabDepot **depotPtr)
   FREE(depot->slabs);
   freeSlabCompletion(&depot->slabCompletion);
   freeSlabSummary(&depot->slabSummary);
-  destroyEnqueueable(&depot->subTaskCompletion);
-  destroyEnqueueable(&depot->saveCompletion);
-  destroyEnqueueable(&depot->actionCompletion);
+  destroyEnqueueable(&depot->scrubbingCompletion);
   destroyEnqueueable(&depot->completion);
   FREE(depot);
   *depotPtr = NULL;
@@ -945,6 +931,9 @@ static void handleAllocatorError(VDOCompletion *completion)
   invokeCallback(completion);
 }
 
+/**********************************************************************/
+static void finishActionCallback(VDOCompletion *completion);
+
 /**
  * Perform an action on the next allocator if there is one.
  *
@@ -959,60 +948,100 @@ static void applyToNextAllocator(VDOCompletion *completion)
 
   depot->actingZone++;
   if (depot->actingZone == depot->zoneCount) {
-    // We are about to apply to the last allocator, so once that is finished,
-    // we're done.
-    prepareToFinishParent(completion, completion->parent);
+    // We are about to apply to the last allocator. Once that is finished,
+    // we're done, so go back to the journal thread and clean up.
+    prepareCompletion(completion, finishActionCallback, finishActionCallback,
+                      depot->recoveryJournalThreadID, completion->parent);
   } else {
     // Prepare to come back in the zone of the next allocator.
     prepareCompletion(completion, applyToNextAllocator, handleAllocatorError,
                       depot->allocators[depot->actingZone]->threadID,
                       completion->parent);
   }
-  depot->action(allocator, completion);
+  depot->currentAction.action(allocator, completion);
 }
 
 /**
- * Launch an action to be applied to each block allocator in turn in that
- * allocator's zone.
+ * Launch the next allocator action if there isn't one currently in progress.
  *
- * @param depot   The slab depot
- * @param action  The action to perform
- * @param parent  The object to notify when the action has been applied to
- *                all the allocators
+ * @param depot  The slab depot on which to launch an action
  **/
-static void applyToAllAllocators(SlabDepot       *depot,
-                                 AllocatorAction *action,
-                                 VDOCompletion   *parent)
+static void launchNextAction(SlabDepot *depot)
 {
-  depot->action     = action;
-  depot->actingZone = 0;
-  prepareCompletion(&depot->completion, applyToNextAllocator,
+  if (depot->currentAction.action != NULL) {
+    return;
+  }
+
+  if (depot->nextAction.action == NULL) {
+    commitOldestSlabJournalTailBlocks(depot, depot->newReleaseRequest);
+    return;
+  }
+
+  depot->actingZone        = 0;
+  depot->currentAction     = depot->nextAction;
+  depot->nextAction.action = NULL;
+
+  prepareForRequeue(&depot->completion, applyToNextAllocator,
                     handleAllocatorError,
-                    depot->allocators[depot->actingZone]->threadID, parent);
+                    depot->allocators[depot->actingZone]->threadID,
+                    depot->currentAction.parent);
   invokeCallback(&depot->completion);
 }
 
 /**
- * Prepare the depot's action completion and then apply the action to each
- * allocator in turn via applyToAllAllocators().
+ * Finish an action now that it has been applied to all allocators. This
+ * callback is registered in applyToNextAllocator().
  *
- * @param depot         The slab depot
- * @param action        The action to perform
- * @param parent        The object to notify when the action has been applied
- *                      to all the allocators
- * @param callback      The function to call when the action has been applied
- *                      to all the allocators
- * @param errorHandler  The error handler for the action
+ * @param completion  The depot completion
  **/
-static void launchOnAllAllocators(SlabDepot       *depot,
-                                  AllocatorAction *action,
-                                  void            *parent,
-                                  VDOAction       *callback,
-                                  VDOAction       *errorHandler)
+static void finishActionCallback(VDOCompletion *completion)
 {
-  prepareCompletion(&depot->actionCompletion, callback, errorHandler,
-                    getCallbackThreadID(), parent);
-  applyToAllAllocators(depot, action, &depot->actionCompletion);
+  SlabDepot *depot = asSlabDepot(completion);
+  if (depot->currentAction.conclusion != NULL) {
+    depot->currentAction.conclusion(completion);
+  }
+
+  if (completion->parent != NULL) {
+    finishParentCallback(completion);
+  }
+
+  depot->currentAction.action = NULL;
+  launchNextAction(depot);
+}
+
+/**
+ * Schedule an action to be applied to all allocators. If some other action is
+ * in progress, the scheduled action will be run once the current action
+ * completes. It is an error to schedule an action if there is already a pending
+ * action.
+ *
+ * @param depot       The slab depot to schedule the action on
+ * @param action      The action to apply to each allocator
+ * @param conclusion  A method to be invoked back on the journal thread once
+ *                    the action has been applied to all alloactors; may be
+ *                    NULL
+ * @param parent      The object to notify once the action is concluded; may be
+ *                    NULL
+ **/
+static void scheduleAction(SlabDepot       *depot,
+                           AllocatorAction *action,
+                           VDOAction       *conclusion,
+                           VDOCompletion   *parent)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID() == depot->recoveryJournalThreadID),
+                  "allocator action initiated from journal thread");
+
+  if (depot->nextAction.action != NULL) {
+    finishCompletion(parent, VDO_COMPONENT_BUSY);
+    return;
+  }
+
+  depot->nextAction = (DepotAction) {
+    .action     = action,
+    .conclusion = conclusion,
+    .parent     = parent,
+  };
+  launchNextAction(depot);
 }
 
 /**********************************************************************/
@@ -1022,15 +1051,13 @@ void prepareToAllocate(SlabDepot         *depot,
 {
   depot->loadType = loadType;
   atomicStore32(&depot->zonesToScrub, depot->zoneCount);
-  launchOnAllAllocators(depot, prepareAllocatorToAllocate, parent,
-                        finishParentCallback, finishParentCallback);
+  scheduleAction(depot, prepareAllocatorToAllocate, NULL, parent);
 }
 
 /**********************************************************************/
 void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent)
 {
-  launchOnAllAllocators(depot, flushAllocatorSlabJournals, parent,
-                        finishParentCallback, finishParentCallback);
+  scheduleAction(depot, flushAllocatorSlabJournals, NULL, parent);
 }
 
 /**********************************************************************/
@@ -1088,172 +1115,53 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
  **/
 static void finishRegistration(VDOCompletion *completion)
 {
-  SlabDepot *depot = completion->parent;
-  depot->resizeStepRequested = DEPOT_RESIZE_NONE;
-
+  SlabDepot *depot = asSlabDepot(completion);
   depot->slabCount = depot->newSlabCount;
   FREE(depot->slabs);
-  depot->slabs = depot->newSlabs;
-  depot->newSlabs = NULL;
+  depot->slabs        = depot->newSlabs;
+  depot->newSlabs     = NULL;
   depot->newSlabCount = 0;
-
-  // Launch any blocked lock release request.
-  commitOldestSlabJournalTailBlocks(depot, depot->newReleaseRequest);
-  completeCompletion(&depot->subTaskCompletion);
-}
-
-/**
- * Handle an error while registering (should be impossible).
- *
- * @param completion  The action completion
- **/
-static void handleRegistrationError(VDOCompletion *completion)
-{
-  SlabDepot *depot = completion->parent;
-  depot->resizeStepRequested = DEPOT_RESIZE_NONE;
-  finishCompletion(&depot->subTaskCompletion, completion->result);
-}
-
-/**
- * Register new slabs.
- *
- * @param depot  The depot
- **/
-static void registerNewSlabs(SlabDepot *depot) {
-  launchOnAllAllocators(depot, registerNewSlabsForAllocator, depot,
-                        finishRegistration, handleRegistrationError);
 }
 
 /**********************************************************************/
 void useNewSlabs(SlabDepot *depot, VDOCompletion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
-  prepareToFinishParent(&depot->subTaskCompletion, parent);
-  depot->resizeStepRequested = DEPOT_RESIZE_REGISTER_SLABS;
-  if (!depot->lockReleaseActive) {
-    registerNewSlabs(depot);
-  }
-}
-
-/**
- * Finish now that all of the summary zones have been operated on.
- *
- * @param completion  The action completion
- **/
-static void finishSummaryOperation(VDOCompletion *completion)
-{
-  SlabDepot *depot = completion->parent;
-  depot->resizeStepRequested = DEPOT_RESIZE_NONE;
-
-  // Launch any blocked lock release request.
-  commitOldestSlabJournalTailBlocks(depot, depot->newReleaseRequest);
-  completeCompletion(&depot->subTaskCompletion);
-}
-
-/**
- * Handle an error while operating on the summary.
- *
- * @param completion  The action completion
- **/
-static void handleSummaryError(VDOCompletion *completion)
-{
-  SlabDepot *depot = completion->parent;
-  depot->resizeStepRequested = DEPOT_RESIZE_NONE;
-  finishCompletion(&depot->subTaskCompletion, completion->result);
-}
-
-/**
- * Suspend the slab summary.
- *
- * @param depot  The depot
- **/
-static void suspendSummary(SlabDepot *depot)
-{
-  launchOnAllAllocators(depot, suspendSummaryZone, depot,
-                        finishSummaryOperation, handleSummaryError);
+  scheduleAction(depot, registerNewSlabsForAllocator, finishRegistration,
+                 parent);
 }
 
 /**********************************************************************/
 void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent)
 {
-  depot->resizeStepRequested = DEPOT_RESIZE_SUSPEND_SUMMARY;
-  prepareToFinishParent(&depot->subTaskCompletion, parent);
-  if (!depot->lockReleaseActive) {
-    suspendSummary(depot);
-  }
-}
-
-/**
- * Resume the slab summary.
- *
- * @param depot  The depot
- **/
-static void resumeSummary(SlabDepot *depot)
-{
-  launchOnAllAllocators(depot, resumeSummaryZone, depot,
-                        finishSummaryOperation, handleSummaryError);
+  scheduleAction(depot, suspendSummaryZone, NULL, parent);
 }
 
 /**********************************************************************/
 void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent)
 {
-  depot->resizeStepRequested = DEPOT_RESIZE_RESUME_SUMMARY;
-  prepareToFinishParent(&depot->subTaskCompletion, parent);
-  if (!depot->lockReleaseActive) {
-    resumeSummary(depot);
-  }
+  scheduleAction(depot, resumeSummaryZone, NULL, parent);
 }
 
 /**********************************************************************/
 void saveSlabDepot(SlabDepot *depot, bool close, VDOCompletion *parent)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == depot->recoveryJournalThreadID),
-                  "saveSlabDepot() called in journal zone");
   depot->saveRequested = close;
-  prepareToFinishParent(&depot->saveCompletion, parent);
-  AllocatorAction *action
-    = (close ? closeBlockAllocator : saveBlockAllocatorForFullRebuild);
-
-  if (!depot->lockReleaseActive) {
-    applyToAllAllocators(depot, action, &depot->saveCompletion);
-  }
+  scheduleAction(depot,
+                 (close
+                  ? closeBlockAllocator : saveBlockAllocatorForFullRebuild),
+                 NULL, parent);
 }
 
 /**
- * Check whether a request to save the depot, to resize, or to release more
- * locks, has come in while a lock release request was active. If so, do it.
- * This callback is registered in commitOldestSlabJournalTailBlocks().
+ * Conclusion for commiting tail blocks, merely notes that there is no longer
+ * an active local release.
  *
- * @param completion  The action completion
+ * @param completion  The depot completion
  **/
 static void finishReleasingJournalLocks(VDOCompletion *completion)
 {
-  SlabDepot *depot = completion->parent;
-  ASSERT_LOG_ONLY((getCallbackThreadID() == depot->recoveryJournalThreadID),
-                  "finishReleasingJournalLocks() called in journal zone");
-
-  depot->lockReleaseActive = false;
-  if (depot->saveRequested) {
-    applyToAllAllocators(depot, closeBlockAllocator, &depot->saveCompletion);
-    return;
-  }
-
-  if (depot->resizeStepRequested == DEPOT_RESIZE_REGISTER_SLABS) {
-    registerNewSlabs(depot);
-    return;
-  }
-
-  if (depot->resizeStepRequested == DEPOT_RESIZE_RESUME_SUMMARY) {
-    resumeSummary(depot);
-    return;
-  }
-
-  if (depot->resizeStepRequested == DEPOT_RESIZE_SUSPEND_SUMMARY) {
-    suspendSummary(depot);
-    return;
-  }
-
-  commitOldestSlabJournalTailBlocks(depot, depot->newReleaseRequest);
+  asSlabDepot(completion)->lockReleaseActive = false;
 }
 
 /**********************************************************************/
@@ -1273,16 +1181,14 @@ void commitOldestSlabJournalTailBlocks(SlabDepot      *depot,
 
   depot->newReleaseRequest = recoveryBlockNumber;
   if (depot->lockReleaseActive
-      || (depot->resizeStepRequested != DEPOT_RESIZE_NONE)
       || (depot->newReleaseRequest == depot->activeReleaseRequest)) {
     return;
   }
 
-  depot->lockReleaseActive    = true;
   depot->activeReleaseRequest = depot->newReleaseRequest;
-  launchOnAllAllocators(depot, releaseTailBlockLocks, depot,
-                        finishReleasingJournalLocks,
-                        finishReleasingJournalLocks);
+  depot->lockReleaseActive    = true;
+  scheduleAction(depot, releaseTailBlockLocks, finishReleasingJournalLocks,
+                 NULL);
 }
 
 /**********************************************************************/
@@ -1314,19 +1220,18 @@ void scrubAllUnrecoveredSlabs(SlabDepot     *depot,
                               ThreadID       threadID,
                               VDOCompletion *launchParent)
 {
-  prepareCompletion(&depot->subTaskCompletion, callback, errorHandler,
+  prepareCompletion(&depot->scrubbingCompletion, callback, errorHandler,
                     threadID, parent);
-  launchOnAllAllocators(depot, scrubAllUnrecoveredSlabsInZone, launchParent,
-                        finishParentCallback, finishParentCallback);
+  scheduleAction(depot, scrubAllUnrecoveredSlabsInZone, NULL, launchParent);
 }
 
 /**********************************************************************/
 void notifyZoneStoppedScrubbing(SlabDepot *depot, int result)
 {
-  setCompletionResult(&depot->subTaskCompletion, result);
+  setCompletionResult(&depot->scrubbingCompletion, result);
   if (atomicAdd32(&depot->zonesToScrub, -1) == 0) {
     // We're the last!
-    completeCompletion(&depot->subTaskCompletion);
+    completeCompletion(&depot->scrubbingCompletion);
   }
 }
 
