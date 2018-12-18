@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#3 $
  */
 
 #include "bio.h"
@@ -47,7 +47,7 @@ static char *getBufferForBiovec(struct bio_vec *biovec)
 void bioCopyDataIn(BIO *bio, char *dataPtr)
 {
   struct bio_vec *biovec;
-  for (BioIterator iter = createBioIterator(bio);
+  for (struct bio_iterator iter = createBioIterator(bio);
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
     memcpy(dataPtr, getBufferForBiovec(biovec), biovec->bv_len);
@@ -59,7 +59,7 @@ void bioCopyDataIn(BIO *bio, char *dataPtr)
 void bioCopyDataOut(BIO *bio, char *dataPtr)
 {
   struct bio_vec *biovec;
-  for (BioIterator iter = createBioIterator(bio);
+  for (struct bio_iterator iter = createBioIterator(bio);
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
     memcpy(getBufferForBiovec(biovec), dataPtr, biovec->bv_len);
