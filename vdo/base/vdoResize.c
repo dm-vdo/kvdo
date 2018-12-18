@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#3 $
  */
 
 #include "vdoResize.h"
@@ -68,8 +68,7 @@ static void resumeSummaryForRevert(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, finishParentCallback, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion, finishParentCallback,
-                    finishParentCallback);
+  resumeSlabSummary(vdo->depot, completion);
 }
 
 /**
@@ -121,8 +120,7 @@ static void resumeSummary(VDOCompletion *completion)
   setSlabSummaryOrigin(getSlabSummary(vdo->depot),
                        getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
   prepareAdminSubTask(vdo, finishVDOResize, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion, finishParentCallback,
-                    finishParentCallback);
+  resumeSlabSummary(vdo->depot, completion);
 }
 
 /**
@@ -135,8 +133,7 @@ static void addNewSlabs(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, resumeSummary, handleUnrecoverableError);
-  useNewSlabs(vdo->depot, completion, finishParentCallback,
-              finishParentCallback);
+  useNewSlabs(vdo->depot, completion);
 }
 
 /**
@@ -181,8 +178,7 @@ static void suspendSummary(VDOCompletion *completion)
   // need to be undone.
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, copySuspendedSummary, abortResize);
-  suspendSlabSummary(vdo->depot, completion, finishParentCallback,
-                     finishParentCallback);
+  suspendSlabSummary(vdo->depot, completion);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#2 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -392,15 +392,10 @@ void prepareToAllocate(SlabDepot         *depot,
  * Asynchronously flush all slab journals in the depot. This method may be
  * called only before entering normal operation from the load thread.
  *
- * @param depot         The depot whose slab journals need flushing
- * @param parent        The parent completion
- * @param callback      The callback to run when the flush is complete
- * @param errorHandler  The handler for flush errors
+ * @param depot   The depot whose slab journals need flushing
+ * @param parent  The completion to notify when the operation is complete
  **/
-void flushDepotSlabJournals(SlabDepot     *depot,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler);
+void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Update the slab depot to reflect its new size in memory. This size is
@@ -425,41 +420,26 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
 /**
  * Suspend all slab summary zones.
  *
- * @param depot         The depot whose slab summary should be suspended
- * @param parent        The object to notify when the suspend is complete
- * @param callback      The callback to run when the suspend is complete
- * @param errorHandler  The handler for rewrite errors
+ * @param depot   The depot whose slab summary should be suspended
+ * @param parent  The object to notify when the suspend is complete
  **/
-void suspendSlabSummary(SlabDepot     *depot,
-                        VDOCompletion *parent,
-                        VDOAction     *callback,
-                        VDOAction     *errorHandler);
+void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Resume all slab summary zones.
  *
- * @param depot         The depot whose slab summary should be resumed
- * @param parent        The object to notify when the resume is complete
- * @param callback      The callback to run when the resume is complete
- * @param errorHandler  The handler for resume errors
+ * @param depot   The depot whose slab summary should be resumed
+ * @param parent  The object to notify when the resume is complete
  **/
-void resumeSlabSummary(SlabDepot     *depot,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler);
+void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Use the new slabs allocated for resize.
  *
- * @param depot         The depot
- * @param parent        The object to notify when complete
- * @param callback      The callback to run when complete
- * @param errorHandler  The handler for errors
+ * @param depot   The depot
+ * @param parent  The object to notify when complete
  **/
-void useNewSlabs(SlabDepot     *depot,
-                 VDOCompletion *parent,
-                 VDOAction     *callback,
-                 VDOAction     *errorHandler);
+void useNewSlabs(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Abandon any new slabs in this depot, freeing them as needed.

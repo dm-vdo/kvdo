@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#4 $
  */
 
 #include "slabDepot.h"
@@ -1027,13 +1027,10 @@ void prepareToAllocate(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void flushDepotSlabJournals(SlabDepot     *depot,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler)
+void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent)
 {
-  launchOnAllAllocators(depot, flushAllocatorSlabJournals, parent, callback,
-                        errorHandler);
+  launchOnAllAllocators(depot, flushAllocatorSlabJournals, parent,
+                        finishParentCallback, finishParentCallback);
 }
 
 /**********************************************************************/
@@ -1128,14 +1125,10 @@ static void registerNewSlabs(SlabDepot *depot) {
 }
 
 /**********************************************************************/
-void useNewSlabs(SlabDepot     *depot,
-                 VDOCompletion *parent,
-                 VDOAction     *callback,
-                 VDOAction     *errorHandler)
+void useNewSlabs(SlabDepot *depot, VDOCompletion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
-  prepareCompletion(&depot->subTaskCompletion, callback, errorHandler,
-                    parent->callbackThreadID, parent);
+  prepareToFinishParent(&depot->subTaskCompletion, parent);
   depot->resizeStepRequested = DEPOT_RESIZE_REGISTER_SLABS;
   if (!depot->lockReleaseActive) {
     registerNewSlabs(depot);
@@ -1181,14 +1174,10 @@ static void suspendSummary(SlabDepot *depot)
 }
 
 /**********************************************************************/
-void suspendSlabSummary(SlabDepot     *depot,
-                        VDOCompletion *parent,
-                        VDOAction     *callback,
-                        VDOAction     *errorHandler)
+void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent)
 {
   depot->resizeStepRequested = DEPOT_RESIZE_SUSPEND_SUMMARY;
-  prepareCompletion(&depot->subTaskCompletion, callback, errorHandler,
-                    parent->callbackThreadID, parent);
+  prepareToFinishParent(&depot->subTaskCompletion, parent);
   if (!depot->lockReleaseActive) {
     suspendSummary(depot);
   }
@@ -1206,14 +1195,10 @@ static void resumeSummary(SlabDepot *depot)
 }
 
 /**********************************************************************/
-void resumeSlabSummary(SlabDepot     *depot,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler)
+void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent)
 {
   depot->resizeStepRequested = DEPOT_RESIZE_RESUME_SUMMARY;
-  prepareCompletion(&depot->subTaskCompletion, callback, errorHandler,
-                    parent->callbackThreadID, parent);
+  prepareToFinishParent(&depot->subTaskCompletion, parent);
   if (!depot->lockReleaseActive) {
     resumeSummary(depot);
   }
