@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#5 $
  */
 
 #include "dataKVIO.h"
@@ -177,7 +177,7 @@ static noinline void cleanDataKVIO(DataKVIO *dataKVIO, FreeBufferPointers *fbp)
 }
 
 /**********************************************************************/
-void returnDataKVIOBatchToPool(BatchProcessor *batch, void *closure)
+void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
 {
   KernelLayer *layer = closure;
   uint32_t     count = 0;

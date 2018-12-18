@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#2 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -42,9 +42,10 @@
  * Objects to operate on are manipulated through a FunnelQueueEntry
  * object which must be contained within them.
  **/
-typedef struct batchProcessor BatchProcessor;
+struct batch_processor;
 
-typedef void (*BatchProcessorCallback)(BatchProcessor *batch, void *closure);
+typedef void (*BatchProcessorCallback)(struct batch_processor *batch,
+                                       void *closure);
 
 /**
  * Creates a batch-processor control structure.
@@ -59,7 +60,7 @@ typedef void (*BatchProcessorCallback)(BatchProcessor *batch, void *closure);
 int makeBatchProcessor(KernelLayer             *layer,
                        BatchProcessorCallback   callback,
                        void                    *closure,
-                       BatchProcessor         **batchPtr);
+                       struct batch_processor  **batchPtr);
 
 /**
  * Adds an object to the processing queue.
@@ -70,7 +71,7 @@ int makeBatchProcessor(KernelLayer             *layer,
  * @param [in] batch  The batch-processor data
  * @param [in] item   The handle on the new object to add
  **/
-void addToBatchProcessor(BatchProcessor *batch, KvdoWorkItem *item);
+void addToBatchProcessor(struct batch_processor *batch, KvdoWorkItem *item);
 
 /**
  * Fetches the next object in the processing queue.
@@ -79,15 +80,15 @@ void addToBatchProcessor(BatchProcessor *batch, KvdoWorkItem *item);
  *
  * @return   An object pointer or NULL
  **/
-KvdoWorkItem *nextBatchItem(BatchProcessor *batch)
+KvdoWorkItem *nextBatchItem(struct batch_processor *batch)
   __attribute__((warn_unused_result));
 
 /**
  * Free the batch-processor data and null out the pointer.
  *
- * @param [in,out] batchPtr  Where the BatchProcessor pointer is stored
+ * @param [in,out] batchPtr  Where the batch_processor pointer is stored
  **/
-void freeBatchProcessor(BatchProcessor **batchPtr);
+void freeBatchProcessor(struct batch_processor **batchPtr);
 
 /**
  * Yield control to the scheduler if the kernel has indicated that
@@ -98,6 +99,6 @@ void freeBatchProcessor(BatchProcessor **batchPtr);
  *
  * @param [in]  batch  The batch-processor data
  **/
-void condReschedBatchProcessor(BatchProcessor *batch);
+void condReschedBatchProcessor(struct batch_processor *batch);
 
 #endif // BATCHPROCESSOR_H

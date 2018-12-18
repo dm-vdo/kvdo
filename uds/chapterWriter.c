@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.c#2 $
+ * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.c#3 $
  */
 
 #include "chapterWriter.h"
@@ -65,7 +65,6 @@ static void closeChapters(void *arg)
   ChapterWriter *writer = arg;
   logDebug("chapter writer starting");
   lockMutex(&writer->mutex);
-  bool firstChapterWrite = true;
   for (;;) {
     while (writer->zonesToWrite < writer->index->zoneCount) {
       if (writer->stop && (writer->zonesToWrite == 0)) {
@@ -86,12 +85,12 @@ static void closeChapters(void *arg)
      */
     unlockMutex(&writer->mutex);
 
-    if (firstChapterWrite) {
-      firstChapterWrite = false;
+    if (writer->index->hasSavedOpenChapter) {
+      writer->index->hasSavedOpenChapter = false;
       /*
-       * Remove the old open chapter file as that chapter is about to be
-       * moved to the volume. This only matters the first time we close
-       * the open chapter after loading from a clean shutdown.
+       * Remove the saved open chapter as that chapter is about to be written
+       * to the volume.  This matters the first time we close the open chapter
+       * after loading from a clean shutdown, or after doing a clean save.
        */
       IndexComponent *oc = findIndexComponent(writer->index->state,
                                               &OPEN_CHAPTER_INFO);

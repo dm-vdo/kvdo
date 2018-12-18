@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#2 $
  */
 
 #include "batchProcessor.h"
@@ -65,12 +65,12 @@
  * it has made visible.
  */
 
-typedef enum batchProcessorState {
+enum batch_processor_state {
   BATCH_PROCESSOR_IDLE,
   BATCH_PROCESSOR_ENQUEUED,
-} BatchProcessorState;
+};
 
-struct batchProcessor {
+struct batch_processor {
   spinlock_t              consumerLock;
   FunnelQueue            *queue;
   KvdoWorkItem            workItem;
@@ -80,7 +80,7 @@ struct batchProcessor {
   KernelLayer            *layer;
 };
 
-static void scheduleBatchProcessing(BatchProcessor *batch);
+static void scheduleBatchProcessing(struct batch_processor *batch);
 
 /**
  * Apply the batch processing function to the accumulated set of
@@ -88,11 +88,12 @@ static void scheduleBatchProcessing(BatchProcessor *batch);
  *
  * Runs in a "CPU queue".
  *
- * @param [in]  item  The work item embedded in the BatchProcessor
+ * @param [in]  item  The work item embedded in the batch_processor
  **/
 static void batchProcessorWork(KvdoWorkItem *item)
 {
-  BatchProcessor *batch = container_of(item, BatchProcessor, workItem);
+  struct batch_processor *batch = container_of(item, struct batch_processor,
+                                               workItem);
   spin_lock(&batch->consumerLock);
   while (!isFunnelQueueEmpty(batch->queue)) {
     batch->callback(batch, batch->closure);
@@ -109,14 +110,14 @@ static void batchProcessorWork(KvdoWorkItem *item)
 /**
  * Ensure that the batch-processing function is scheduled to run.
  *
- * If we're the thread that switches the BatchProcessor state from
+ * If we're the thread that switches the batch_processor state from
  * idle to enqueued, we're the thread responsible for actually
  * enqueueing it. If some other thread got there first, or it was
  * already enqueued, it's not our problem.
  *
- * @param [in]  batch  The BatchProcessor control data
+ * @param [in]  batch  The batch_processor control data
  **/
-static void scheduleBatchProcessing(BatchProcessor *batch)
+static void scheduleBatchProcessing(struct batch_processor *batch)
 {
   /*
    * We want this to be very fast in the common cases.
@@ -140,7 +141,7 @@ static void scheduleBatchProcessing(BatchProcessor *batch)
    * going on, cache pressure, etc.
    */
   smp_mb();
-  BatchProcessorState oldState
+  enum batch_processor_state oldState
     = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
                      BATCH_PROCESSOR_ENQUEUED);
   bool doSchedule = (oldState == BATCH_PROCESSOR_IDLE);
@@ -153,11 +154,11 @@ static void scheduleBatchProcessing(BatchProcessor *batch)
 int makeBatchProcessor(KernelLayer             *layer,
                        BatchProcessorCallback   callback,
                        void                    *closure,
-                       BatchProcessor         **batchPtr)
+                       struct batch_processor  **batchPtr)
 {
-  BatchProcessor *batch;
+  struct batch_processor *batch;
 
-  int result = ALLOCATE(1, BatchProcessor, "batchProcessor", &batch);
+  int result = ALLOCATE(1, struct batch_processor, "batchProcessor", &batch);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -180,14 +181,14 @@ int makeBatchProcessor(KernelLayer             *layer,
 }
 
 /**********************************************************************/
-void addToBatchProcessor(BatchProcessor *batch, KvdoWorkItem *item)
+void addToBatchProcessor(struct batch_processor *batch, KvdoWorkItem *item)
 {
   funnelQueuePut(batch->queue, &item->workQueueEntryLink);
   scheduleBatchProcessing(batch);
 }
 
 /**********************************************************************/
-KvdoWorkItem *nextBatchItem(BatchProcessor *batch)
+KvdoWorkItem *nextBatchItem(struct batch_processor *batch)
 {
   FunnelQueueEntry *fqEntry = funnelQueuePoll(batch->queue);
   if (fqEntry == NULL) {
@@ -198,15 +199,15 @@ KvdoWorkItem *nextBatchItem(BatchProcessor *batch)
 }
 
 /**********************************************************************/
-void condReschedBatchProcessor(BatchProcessor *batch)
+void condReschedBatchProcessor(struct batch_processor *batch)
 {
   cond_resched_lock(&batch->consumerLock);
 }
 
 /**********************************************************************/
-void freeBatchProcessor(BatchProcessor **batchPtr)
+void freeBatchProcessor(struct batch_processor **batchPtr)
 {
-  BatchProcessor *batch = *batchPtr;
+  struct batch_processor *batch = *batchPtr;
   if (batch) {
     memoryFence();
     BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);

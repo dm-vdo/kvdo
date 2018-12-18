@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#2 $
  */
 
 #ifndef KERNELLAYER_H
@@ -188,7 +188,7 @@ struct kernelLayer {
   /* Private storage for procfs. */
   void                       *procfsPrivate;
   /* For returning batches of DataKVIOs to their pool */
-  BatchProcessor             *dataKVIOReleaser;
+  struct batch_processor     *dataKVIOReleaser;
 
   // Administrative operations
   /* The object used to wait for administrative operations to complete */

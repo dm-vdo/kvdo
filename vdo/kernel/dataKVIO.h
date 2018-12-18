@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#2 $
  */
 
 #ifndef DATA_KVIO_H
@@ -339,7 +339,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
  * @param batch    The batch processor
  * @param closure  The kernal layer
  **/
-void returnDataKVIOBatchToPool(BatchProcessor *batch, void *closure);
+void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure);
 
 /**
  * Implements DataVIOZeroer.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexInternals.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/indexInternals.c#3 $
  */
 
 #include "indexInternals.h"
@@ -74,7 +74,9 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  index->existed = (loadType != LOAD_CREATE);
+  index->existed             = (loadType != LOAD_CREATE);
+  index->hasSavedOpenChapter = true;
+  index->loadedType          = LOAD_UNDEFINED;
 
   result = makeIndexCheckpoint(index);
   if (result != UDS_SUCCESS) {

@@ -16,23 +16,42 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/loadType.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/loadType.h#2 $
  */
 
 #ifndef LOAD_TYPE_H
 #define LOAD_TYPE_H
 
 /**
- * Methods of starting the index.
- * Generally, higher valued flags take precedence over lower ones.
- * (Keep getLoadType() in sync.)
+ * Methods of starting the index.  (Keep getLoadType() in sync.)
+ *
+ * Usage number 1 is to note the interface method that initiates loading the
+ * index.  As in this table:
+ *
+ *    name            type    opened by
+ *    ===========     ======  ====================
+ *    LOAD_CREATE     local   udsCreateLocalIndex
+ *    LOAD_LOAD       local   udsLoadLocalIndex
+ *    LOAD_REBUILD    local   udsRebuildLocalIndex
+ *    LOAD_ATTACH     remote  udsAttachGridIndex
+ *
+ * Usage number 2 is to record how a local index was really opened.  As in this
+ * table:
+ *
+ *    LOAD_CREATE   new empty index
+ *    LOAD_LOAD     loaded saved index
+ *    LOAD_REPLAY   loaded checkpoint and replayed new chapters
+ *    LOAD_EMPTY    empty master index from empty volume data
+ *    LOAD_REBUILD  rebuilt master index from volume data
  **/
 typedef enum {
   LOAD_UNDEFINED = 0,
   LOAD_CREATE,
   LOAD_LOAD,
   LOAD_REBUILD,
-  LOAD_ATTACH
+  LOAD_ATTACH,
+  LOAD_EMPTY,
+  LOAD_REPLAY,
 } LoadType;
 
 /**

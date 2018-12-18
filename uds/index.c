@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/index.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/index.c#4 $
  */
 
 #include "index.h"
@@ -116,6 +116,7 @@ static int loadIndex(Index *index, bool allowReplay)
     setActiveChapters(index->zones[i]);
   }
 
+  index->loadedType = replayRequired ? LOAD_REPLAY : LOAD_LOAD;
   return UDS_SUCCESS;
 }
 
@@ -162,6 +163,7 @@ static int rebuildIndex(Index *index)
 
   setMasterIndexOpenChapter(index->masterIndex, 0);
   if (isEmpty) {
+    index->loadedType = LOAD_EMPTY;
     return UDS_SUCCESS;
   }
 
@@ -174,6 +176,7 @@ static int rebuildIndex(Index *index)
     setActiveChapters(index->zones[i]);
   }
 
+  index->loadedType = LOAD_REBUILD;
   return UDS_SUCCESS;
 }
 
@@ -234,6 +237,7 @@ int makeIndex(IndexLayout          *layout,
       }
     }
   } else {
+    index->loadedType = LOAD_CREATE;
     discardIndexStateData(index->state);
   }
 
@@ -242,6 +246,7 @@ int makeIndex(IndexLayout          *layout,
     return logUnrecoverable(result, "fatal error in makeIndex");
   }
 
+  index->hasSavedOpenChapter = index->loadedType == LOAD_LOAD;
   *newIndex = index;
   return UDS_SUCCESS;
 }
@@ -274,24 +279,19 @@ static int saveIndexComponents(Index *index)
   if (result != UDS_SUCCESS) {
     logInfo("save index failed");
     index->lastCheckpoint = index->prevCheckpoint;
+  } else {
+    index->hasSavedOpenChapter = true;
+    logInfo("finished save (vcn %llu)", index->lastCheckpoint);
   }
-
   return result;
 }
 
 /**********************************************************************/
 int saveIndex(Index *index)
 {
-  // Wait for the writing chapter file to be finish.
-  int result = stopChapterWriter(index->chapterWriter);
-  if (result != UDS_SUCCESS) {
-    // If we couldn't save the volume, the index state is useless
-    discardIndexStateData(index->state);
-    return result;
-  }
-
   // Ensure that the volume is securely on storage
-  result = syncRegionContents(index->volume->region);
+  waitForIdleChapterWriter(index->chapterWriter);
+  int result = syncRegionContents(index->volume->region);
   switch (result) {
   case UDS_SUCCESS:
   case UDS_UNSUPPORTED:
@@ -701,7 +701,6 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber)
 
   const char *what = (checkpoint ? "checkpoint" : "save");
   logInfo("beginning %s (vcn %llu)", what, index->lastCheckpoint);
-
 }
 
 /**********************************************************************/
