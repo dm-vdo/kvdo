@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#2 $
  */
 
 #include "kvio.h"
@@ -130,7 +130,7 @@ static inline BioQAction getMetadataAction(VIO *vio)
 }
 
 /**********************************************************************/
-void kvdoSubmitMetadataVIO(VIO *vio)
+void submitMetadataVIO(VIO *vio)
 {
   KVIO *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   BIO  *bio  = kvio->bio;

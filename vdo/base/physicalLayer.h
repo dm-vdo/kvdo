@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#7 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -395,5 +395,12 @@ CRC32Checksum updateCRC32(CRC32Checksum  crc,
  * @param vioPtr  A pointer to the VIO to destroy
  **/
 void destroyVIO(VIO **vioPtr);
+
+/**
+ * Read or write a single metadata VIO.
+ *
+ * @param vio  The VIO to read or write
+ **/
+void submitMetadataVIO(VIO *vio);
 
 #endif // PHYSICAL_LAYER_H

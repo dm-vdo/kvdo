@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#2 $
  */
 
 #ifndef KVIO_H
@@ -318,15 +318,6 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
  * @param allocatingVIO  The AllocatingVIO for the compressed write
  **/
 void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO);
-
-/**
- * Read or write a single metadata VIO.
- *
- * <p>Implements MetadataReader and MetadataWriter
- *
- * @param vio  The VIO to read or write
- **/
-void kvdoSubmitMetadataVIO(VIO *vio);
 
 /**
  * Issue an empty flush to the lower layer using the BIO in a metadata VIO.
