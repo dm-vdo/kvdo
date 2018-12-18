@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#2 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -140,13 +140,9 @@ BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
  *
  * @param allocator     The allocator
  * @param parent        The completion to notify when the allocator is prepared
- * @param callback      The callback to run when the preparations are complete
- * @param errorHandler  The handler for preparation errors
  **/
 void prepareAllocatorToAllocate(BlockAllocator *allocator,
-                                VDOCompletion  *parent,
-                                VDOAction      *callback,
-                                VDOAction      *errorHandler);
+                                VDOCompletion  *parent);
 
 /**
  * Register a slab with the allocator, ready for use.
@@ -165,13 +161,9 @@ void registerSlabWithAllocator(BlockAllocator *allocator,
  *
  * @param allocator     The allocator
  * @param parent        The completion to notify when done
- * @param callback      The callback to run when the registrations are complete
- * @param errorHandler  The handler for errors, of which there should be none
  **/
 void registerNewSlabsForAllocator(BlockAllocator *allocator,
-                                  VDOCompletion  *parent,
-                                  VDOAction      *callback,
-                                  VDOAction      *errorHandler);
+                                  VDOCompletion  *parent);
 
 /**
  * Asynchronously flush all slab journals in the allocator.
@@ -179,13 +171,9 @@ void registerNewSlabsForAllocator(BlockAllocator *allocator,
  *
  * @param allocator     The allocator whose slab journals need flushing
  * @param parent        The parent completion
- * @param callback      The callback to run when the flush is complete
- * @param errorHandler  The handler for flush errors
  **/
 void flushAllocatorSlabJournals(BlockAllocator *allocator,
-                                VDOCompletion  *parent,
-                                VDOAction       callback,
-                                VDOAction      *errorHandler);
+                                VDOCompletion  *parent);
 
 /**
  * Suspend the summary zone belonging to a block allocator. Implements
@@ -193,13 +181,8 @@ void flushAllocatorSlabJournals(BlockAllocator *allocator,
  *
  * @param allocator     The allocator owning the summary zone
  * @param parent        The object to notify when the suspend is complete
- * @param callback      The function to call when the suspend is complete
- * @param errorHandler  The handler for suspend errors
  **/
-void suspendSummaryZone(BlockAllocator *allocator,
-                        VDOCompletion  *parent,
-                        VDOAction      *callback,
-                        VDOAction      *errorHandler);
+void suspendSummaryZone(BlockAllocator *allocator, VDOCompletion *parent);
 
 /**
  * Resume the summary zone belonging to a block allocator. Implements
@@ -207,13 +190,8 @@ void suspendSummaryZone(BlockAllocator *allocator,
  *
  * @param allocator     The allocator owning the summary zone
  * @param parent        The object to notify when the resume is complete
- * @param callback      The function to call when the resume is complete
- * @param errorHandler  The handler for resume errors
  **/
-void resumeSummaryZone(BlockAllocator *allocator,
-                       VDOCompletion  *parent,
-                       VDOAction      *callback,
-                       VDOAction      *errorHandler);
+void resumeSummaryZone(BlockAllocator *allocator, VDOCompletion *parent);
 
 /**
  * Asynchronously save any block allocator state that isn't included in the
@@ -221,13 +199,8 @@ void resumeSummaryZone(BlockAllocator *allocator,
  *
  * @param allocator     The allocator to save
  * @param parent        The completion to notify when the save is complete
- * @param callback      The callback to run when the save is complete
- * @param errorHandler  The handler for save errors
  **/
-void closeBlockAllocator(BlockAllocator *allocator,
-                         VDOCompletion  *parent,
-                         VDOAction      *callback,
-                         VDOAction      *errorHandler);
+void closeBlockAllocator(BlockAllocator *allocator, VDOCompletion *parent);
 
 /**
  * Asynchronously save any block allocator state for a full rebuild.
@@ -235,13 +208,9 @@ void closeBlockAllocator(BlockAllocator *allocator,
  *
  * @param allocator     The allocator to save
  * @param parent        The completion to notify when the save is complete
- * @param callback      The callback to run when the save is complete
- * @param errorHandler  The handler for save errors
  **/
 void saveBlockAllocatorForFullRebuild(BlockAllocator *allocator,
-                                      VDOCompletion  *parent,
-                                      VDOAction      *callback,
-                                      VDOAction      *errorHandler);
+                                      VDOCompletion  *parent);
 
 /**
  * Save a slab which has been rebuilt.
@@ -262,13 +231,8 @@ void saveRebuiltSlab(Slab          *slab,
  *
  * @param allocator     The allocator
  * @param parent        The object to notify when the request has been sent
- * @param callback      The function to call when the request has been sent
- * @param errorHandler  The handler for lock request errors
  **/
-void releaseTailBlockLocks(BlockAllocator *allocator,
-                           VDOCompletion  *parent,
-                           VDOAction      *callback,
-                           VDOAction      *errorHandler);
+void releaseTailBlockLocks(BlockAllocator *allocator, VDOCompletion *parent);
 
 /**
  * Get the slab summary zone for an allocator.
@@ -304,13 +268,9 @@ void returnVIO(BlockAllocator *allocator, VIOPoolEntry *entry);
  *
  * @param allocator     The allocator to scrub
  * @param parent        The object to notify when the request has been sent
- * @param callback      The function to call when the request has been sent
- * @param errorHandler  The handler scrubbing initiation errors
  **/
 void scrubAllUnrecoveredSlabsInZone(BlockAllocator *allocator,
-                                    VDOCompletion  *parent,
-                                    VDOAction      *callback,
-                                    VDOAction      *errorHandler);
+                                    VDOCompletion  *parent);
 
 /**
  * Queue a waiter for a clean slab.

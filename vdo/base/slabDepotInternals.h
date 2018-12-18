@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#3 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -30,17 +30,11 @@
  * A function which is to be applied asynchronously to all of the allocators of
  * a slab depot.
  *
- * @param allocator     The next allocator to apply the action to
- * @param parent        The object to notify when the action has been applied
- *                      to all of the allocators
- * @param callback      The function to call when the action has been applied
- *                      to all of the allocators
- * @param errorHandler  The handler for errors when applying the action
+ * @param allocator  The next allocator to apply the action to
+ * @param parent     The object to notify when the action has been applied to
+ *                   all of the allocators
  **/
-typedef void AllocatorAction(BlockAllocator *allocator,
-                             VDOCompletion  *parent,
-                             VDOAction      *callback,
-                             VDOAction      *errorHandler);
+typedef void AllocatorAction(BlockAllocator *allocator, VDOCompletion *parent);
 
 typedef enum {
   DEPOT_RESIZE_NONE = 0,

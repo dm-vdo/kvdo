@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#3 $
  */
 
 #include "slabDepot.h"
@@ -968,8 +968,7 @@ static void applyToNextAllocator(VDOCompletion *completion)
                       depot->allocators[depot->actingZone]->threadID,
                       completion->parent);
   }
-  depot->action(allocator, completion, finishParentCallback,
-                finishParentCallback);
+  depot->action(allocator, completion);
 }
 
 /**
