@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#2 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -95,7 +95,7 @@ struct slabDepot {
   Atomic32              zonesToScrub;
 
   /** Cached journal pointer for slab creation */
-  RecoveryJournal      *journal; 
+  RecoveryJournal      *journal;
 
   DepotResizeStep       resizeStepRequested;
 
@@ -137,9 +137,10 @@ void registerSlabWithDepot(Slab *slab);
 /**
  * Notify a slab depot that one of its allocators has stopped scrubbing slabs.
  *
- * @param depot  The depot to notify
+ * @param depot   The depot to notify
+ * @param result  The result of the scrubbing operation
  **/
-void notifyZoneStoppedScrubbing(SlabDepot *depot);
+void notifyZoneStoppedScrubbing(SlabDepot *depot, int result);
 
 /**
  * Check whether two depots are equivalent (i.e. represent the same

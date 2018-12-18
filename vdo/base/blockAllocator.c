@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#2 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -784,7 +784,7 @@ void returnVIO(BlockAllocator *allocator, VIOPoolEntry *entry)
 static void scrubberFinished(VDOCompletion *completion)
 {
   BlockAllocator *allocator = completion->parent;
-  notifyZoneStoppedScrubbing(allocator->depot);
+  notifyZoneStoppedScrubbing(allocator->depot, completion->result);
   if (allocator->saveRequested) {
     launchClose(allocator);
   }
