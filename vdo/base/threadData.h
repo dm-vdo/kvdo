@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#2 $
  */
 
 #ifndef THREAD_DATA_H
@@ -108,14 +108,13 @@ PhysicalZone *getNextAllocationZone(VDO *vdo, ThreadID threadID)
 void waitUntilNotEnteringReadOnlyMode(VDO *vdo, VDOCompletion *waiter);
 
 /**
- * Put a VDO into read-only mode.
+ * Put a VDO into read-only mode and save the read-only state in the super
+ * block.
  *
  * @param vdo             The VDO to put into read-only mode
  * @param errorCode       The error which caused the VDO to enter read-only
  *                        mode
- * @param saveSuperBlock  <code>true</code> if the read-only state should be
- *                        persisted to disk immediately
  **/
-void makeVDOReadOnly(VDO *vdo, int errorCode, bool saveSuperBlock);
+void makeVDOReadOnly(VDO *vdo, int errorCode);
 
 #endif /* THREAD_DATA_H */

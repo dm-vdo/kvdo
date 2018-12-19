@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#2 $
  */
 
 #include "threadData.h"
@@ -291,11 +291,8 @@ static void handleSaveError(VDOCompletion *completion)
  * Actually set the VDO state to read-only and save the read-only state.
  *
  * @param completion      The read-only mode completion
- * @param saveSuperBlock  <code>true</code> if the super block should be
- *                        saved, otherwise the read-only state will be in
- *                        memory only
  **/
-static void setReadOnlyState(VDOCompletion *completion, bool saveSuperBlock)
+static void setReadOnlyState(VDOCompletion *completion)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == 0),
                   "setReadOnlyState() called on thread 0");
@@ -319,41 +316,14 @@ static void setReadOnlyState(VDOCompletion *completion, bool saveSuperBlock)
     return;
   }
 
-  if (!saveSuperBlock) {
-    makeThreadReadOnly(completion);
-    return;
-  }
-
   adminThreadData->superBlockAccessState = WRITING_SUPER_BLOCK;
   completion->callback                   = readOnlyStateSaved;
   completion->errorHandler               = handleSaveError;
   saveVDOComponentsAsync(vdo, completion);
 }
 
-/**
- * Set the VDO's state to read-only in memory only. This callback is registered
- * in makeVDOReadOnly().
- *
- * @param completion  The read-only mode completion
- **/
-static void setReadOnlyStateNoSave(VDOCompletion *completion)
-{
-  setReadOnlyState(completion, false);
-}
-
-/**
- * Set the VDO's state to read-only in memory and on disk. This callback is
- * registered in makeVDOReadOnly().
- *
- * @param completion  The read-only mode completion
- **/
-static void setReadOnlyStateAndSave(VDOCompletion *completion)
-{
-  setReadOnlyState(completion, true);
-}
-
 /**********************************************************************/
-void makeVDOReadOnly(VDO *vdo, int errorCode, bool saveSuperBlock)
+void makeVDOReadOnly(VDO *vdo, int errorCode)
 {
   ThreadData *threadData = getThreadData(vdo);
   if (threadData->isReadOnly) {
@@ -367,11 +337,5 @@ void makeVDOReadOnly(VDO *vdo, int errorCode, bool saveSuperBlock)
 
   threadData->isEnteringReadOnlyMode = true;
   threadData->readOnlyError          = errorCode;
-  if (saveSuperBlock) {
-    launchCallbackWithParent(&threadData->completion, setReadOnlyStateAndSave,
-                             0, vdo);
-  } else {
-    launchCallbackWithParent(&threadData->completion, setReadOnlyStateNoSave,
-                             0, vdo);
-  }
+  launchCallbackWithParent(&threadData->completion, setReadOnlyState, 0, vdo);
 }

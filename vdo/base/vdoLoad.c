@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#2 $
  */
 
 #include "vdoLoad.h"
@@ -134,7 +134,7 @@ static void continueLoadReadOnly(VDOCompletion *completion)
   VDO *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result,
                           "Entering read-only mode due to load error");
-  makeVDOReadOnly(vdo, completion->result, true);
+  makeVDOReadOnly(vdo, completion->result);
   waitForReadOnlyMode(completion);
 }
 
