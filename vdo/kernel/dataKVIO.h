@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#3 $
  */
 
 #ifndef DATA_KVIO_H
@@ -26,7 +26,7 @@
 #include "kvio.h"
 #include "uds-block.h"
 
-typedef struct {
+struct external_io_request {
   /*
    * The BIO which was received from the device mapper to initiate an I/O
    * request. This field will be non-NULL only until the request is
@@ -40,7 +40,7 @@ typedef struct {
   // This is a copy of the bi_rw field of the BIO which sadly is not just
   // a boolean read-write flag, but also includes other flag bits.
   unsigned long  rw;
-} ExternalIORequest;
+};
 
 /* Dedupe support */
 struct dedupeContext {
@@ -54,7 +54,7 @@ struct dedupeContext {
   const UdsChunkName *chunkName;
 };
 
-typedef struct {
+struct read_block {
   /**
    * A pointer to a block that holds the data from the last read operation.
    **/
@@ -80,25 +80,25 @@ typedef struct {
    * The result code of the read attempt.
    **/
   int                  status;
-} ReadBlock;
+};
 
 struct dataKVIO {
   /* The embedded base code's DataVIO */
-  DataVIO            dataVIO;
+  DataVIO                     dataVIO;
   /* The embedded KVIO */
-  KVIO               kvio;
+  KVIO                        kvio;
   /* The BIO from the request which is being serviced by this KVIO. */
-  ExternalIORequest  externalIORequest;
+  struct external_io_request  externalIORequest;
   /* Dedupe */
-  DedupeContext      dedupeContext;
+  DedupeContext               dedupeContext;
   /* Read cache */
-  ReadBlock          readBlock;
+  struct read_block           readBlock;
   /* partial block support */
-  BlockSize          offset;
-  bool               isPartial;
+  BlockSize                   offset;
+  bool                        isPartial;
   /* discard support */
-  bool               hasDiscardPermit;
-  DiscardSize        remainingDiscard;
+  bool                        hasDiscardPermit;
+  DiscardSize                 remainingDiscard;
   /**
    * A copy of user data written, so we can do additional processing
    * (dedupe, compression) after acknowledging the I/O operation and
@@ -359,8 +359,8 @@ void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination);
 /**
  * Fetch the data for a block from storage. The fetched data will be
  * uncompressed when the callback is called, and the result of the read
- * operation will be stored in the ReadBlock's status field. On success,
- * the data will be in the ReadBlock's data pointer.
+ * operation will be stored in the read_block's status field. On success,
+ * the data will be in the read_block's data pointer.
  *
  * @param dataVIO       The DataVIO to read a block in for
  * @param location      The physical block number to read from

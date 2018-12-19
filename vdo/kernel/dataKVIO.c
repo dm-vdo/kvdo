@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#6 $
  */
 
 #include "dataKVIO.h"
@@ -128,9 +128,9 @@ static void kvioCompletionTap2(DataKVIO *dataKVIO)
 /**********************************************************************/
 static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 {
-  KernelLayer       *layer             = dataKVIO->kvio.layer;
-  ExternalIORequest *externalIORequest = &dataKVIO->externalIORequest;
-  BIO               *bio               = externalIORequest->bio;
+  KernelLayer                *layer             = dataKVIO->kvio.layer;
+  struct external_io_request *externalIORequest = &dataKVIO->externalIORequest;
+  BIO                        *bio               = externalIORequest->bio;
   if (bio == NULL) {
     return;
   }
@@ -315,9 +315,9 @@ static void resetUserBio(BIO *bio, int error)
  **/
 static void uncompressReadBlock(KvdoWorkItem *workItem)
 {
-  DataKVIO  *dataKVIO  = workItemAsDataKVIO(workItem);
-  ReadBlock *readBlock = &dataKVIO->readBlock;
-  BlockSize  blockSize = VDO_BLOCK_SIZE;
+  DataKVIO          *dataKVIO  = workItemAsDataKVIO(workItem);
+  struct read_block *readBlock = &dataKVIO->readBlock;
+  BlockSize          blockSize = VDO_BLOCK_SIZE;
 
   // The DataKVIO's scratch block will be used to contain the
   // uncompressed data.
@@ -356,8 +356,8 @@ static void uncompressReadBlock(KvdoWorkItem *workItem)
  **/
 static void completeRead(DataKVIO *dataKVIO, int result)
 {
-  ReadBlock *readBlock = &dataKVIO->readBlock;
-  readBlock->status = result;
+  struct read_block *readBlock = &dataKVIO->readBlock;
+  readBlock->status            = result;
 
   if ((result == VDO_SUCCESS) && isCompressed(readBlock->mappingState)) {
     launchDataKVIOOnCPUQueue(dataKVIO, uncompressReadBlock, NULL,
@@ -406,9 +406,9 @@ void kvdoReadBlock(DataVIO             *dataVIO,
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
 
-  DataKVIO    *dataKVIO  = dataVIOAsDataKVIO(dataVIO);
-  ReadBlock   *readBlock = &dataKVIO->readBlock;
-  KernelLayer *layer     = getLayerFromDataKVIO(dataKVIO);
+  DataKVIO          *dataKVIO  = dataVIOAsDataKVIO(dataVIO);
+  struct read_block *readBlock = &dataKVIO->readBlock;
+  KernelLayer       *layer     = getLayerFromDataKVIO(dataKVIO);
 
   readBlock->callback     = callback;
   readBlock->status       = VDO_SUCCESS;
@@ -704,7 +704,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
                                  Jiffies       arrivalTime,
                                  DataKVIO    **dataKVIOPtr)
 {
-  ExternalIORequest externalIORequest = {
+  struct external_io_request externalIORequest = {
     .bio         = bio,
     .private     = bio->bi_private,
     .endIO       = bio->bi_end_io,
