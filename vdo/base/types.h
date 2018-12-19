@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#2 $
  */
 
 #ifndef TYPES_H
@@ -362,6 +362,7 @@ typedef struct vdoLoadConfig {
 /**
  * Forward declarations of abstract types
  **/
+typedef struct actionManager       ActionManager;
 typedef struct adminCompletion     AdminCompletion;
 typedef struct allocatingVIO       AllocatingVIO;
 typedef struct blockAllocator      BlockAllocator;

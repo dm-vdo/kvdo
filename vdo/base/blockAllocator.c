@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#4 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -549,9 +549,11 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
 }
 
 /**********************************************************************/
-void prepareAllocatorToAllocate(BlockAllocator *allocator,
-                                VDOCompletion  *parent)
+void prepareAllocatorToAllocate(void          *context,
+                                ZoneCount      zoneNumber,
+                                VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   int result = prepareSlabsForAllocation(allocator);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
@@ -564,9 +566,11 @@ void prepareAllocatorToAllocate(BlockAllocator *allocator,
 }
 
 /**********************************************************************/
-void registerNewSlabsForAllocator(BlockAllocator *allocator,
-                                  VDOCompletion  *parent)
+void registerNewSlabsForAllocator(void          *context,
+                                  ZoneCount      zoneNumber,
+                                  VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   SlabDepot *depot = allocator->depot;
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
@@ -578,14 +582,20 @@ void registerNewSlabsForAllocator(BlockAllocator *allocator,
 }
 
 /**********************************************************************/
-void suspendSummaryZone(BlockAllocator *allocator, VDOCompletion *parent)
+void suspendSummaryZone(void          *context,
+                        ZoneCount      zoneNumber,
+                        VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   suspendSlabSummaryZone(allocator->summary, parent);
 }
 
 /**********************************************************************/
-void resumeSummaryZone(BlockAllocator *allocator, VDOCompletion *parent)
+void resumeSummaryZone(void          *context,
+                       ZoneCount      zoneNumber,
+                       VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   resumeSlabSummaryZone(allocator->summary, parent);
 }
 
@@ -646,9 +656,12 @@ static void launchClose(BlockAllocator *allocator)
 }
 
 /**********************************************************************/
-void closeBlockAllocator(BlockAllocator *allocator, VDOCompletion *parent)
+void closeBlockAllocator(void          *context,
+                         ZoneCount      zoneNumber,
+                         VDOCompletion *parent)
 {
-  allocator->saveRequested = true;
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  allocator->saveRequested  = true;
   prepareCompletion(&allocator->completion, finishParentCallback,
                     finishParentCallback, parent->callbackThreadID, parent);
   if (isScrubbing(allocator->slabScrubber)) {
@@ -659,9 +672,11 @@ void closeBlockAllocator(BlockAllocator *allocator, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void saveBlockAllocatorForFullRebuild(BlockAllocator *allocator,
-                                      VDOCompletion  *parent)
+void saveBlockAllocatorForFullRebuild(void          *context,
+                                      ZoneCount      zoneNumber,
+                                      VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   prepareCompletion(allocator->slabCompletion, finishParentCallback,
                     finishParentCallback, parent->callbackThreadID, parent);
   saveFullyRebuiltSlabs(allocator->slabCompletion, getSlabIterator(allocator));
@@ -694,9 +709,11 @@ static void handleFlushError(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void flushAllocatorSlabJournals(BlockAllocator *allocator,
-                                VDOCompletion  *parent)
+void flushAllocatorSlabJournals(void          *context,
+                                ZoneCount      zoneNumber,
+                                VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   prepareCompletion(&allocator->completion, finishParentCallback,
                     finishParentCallback,
                     parent->callbackThreadID, parent);
@@ -718,9 +735,12 @@ void saveRebuiltSlab(Slab          *slab,
 }
 
 /**********************************************************************/
-void releaseTailBlockLocks(BlockAllocator *allocator, VDOCompletion *parent)
+void releaseTailBlockLocks(void          *context,
+                           ZoneCount      zoneNumber,
+                           VDOCompletion *parent)
 {
-  RingNode *ring = &allocator->dirtySlabJournals;
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  RingNode       *ring      = &allocator->dirtySlabJournals;
   while (!isRingEmpty(ring)) {
     if (!releaseRecoveryJournalLock(slabJournalFromDirtyNode(ring->next),
                                     allocator->depot->activeReleaseRequest)) {
@@ -764,9 +784,11 @@ static void scrubberFinished(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void scrubAllUnrecoveredSlabsInZone(BlockAllocator *allocator,
-                                    VDOCompletion  *parent)
+void scrubAllUnrecoveredSlabsInZone(void          *context,
+                                    ZoneCount      zoneNumber,
+                                    VDOCompletion *parent)
 {
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
   scrubSlabs(allocator->slabScrubber, allocator, scrubberFinished,
              scrubberFinished, allocator->threadID);
   completeCompletion(parent);

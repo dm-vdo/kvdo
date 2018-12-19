@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#3 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -410,11 +410,14 @@ void updateSlabDepotSize(SlabDepot *depot, bool reverting);
  * Allocate new memory needed for a resize of a slab depot to the given size.
  *
  * @param depot    The depot to prepare to resize
+ * @param layer    The layer for making completions
  * @param newSize  The number of blocks in the new depot
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
+int prepareToGrowSlabDepot(SlabDepot     *depot,
+                           PhysicalLayer *layer,
+                           BlockCount     newSize)
   __attribute__((warn_unused_result));
 
 /**

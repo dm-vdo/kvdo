@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#5 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -26,35 +26,15 @@
 
 #include "atomic.h"
 
-/**
- * A function which is to be applied asynchronously to all of the allocators of
- * a slab depot.
- *
- * @param allocator  The allocator to apply the action to
- * @param parent     The object to notify when the action has been applied to
- *                   all of the allocators
- **/
-typedef void AllocatorAction(BlockAllocator *allocator, VDOCompletion *parent);
-
-/**
- * An action to be performed on the depot.
- **/
-typedef struct {
-  /** The action to be applied to each allocator */
-  AllocatorAction *action;
-  /** The method to run back on the journal thread after the action is done */
-  VDOAction       *conclusion;
-  /** The object to notify when the action is complete */
-  VDOCompletion   *parent;
-} DepotAction;
+#include "actionManager.h"
 
 struct slabDepot {
-  VDOCompletion         completion;
   ZoneCount             zoneCount;
   ZoneCount             oldZoneCount;
   SlabConfig            slabConfig;
   SlabSummary          *slabSummary;
   ReadOnlyModeContext  *readOnlyContext;
+  ActionManager        *actionManager;
 
   PhysicalBlockNumber   firstBlock;
   PhysicalBlockNumber   lastBlock;
@@ -66,25 +46,13 @@ struct slabDepot {
   /** The completion for loading slabs */
   VDOCompletion        *slabCompletion;
 
-  /** The current action being performed by the depot */
-  DepotAction           currentAction;
-  /** The next action to be performed by the depot */
-  DepotAction           nextAction;
-
-  /** The zone to which the action is being applied */
-  ZoneCount             actingZone;
-
   /** Determines how slabs should be queued during load */
   SlabDepotLoadType     loadType;
 
-  /**
-   * The completion for notifying slab journals to release recovery journal
-   * locks.
-   */
+  /** The state for notifying slab journals to release recovery journal */
   SequenceNumber        activeReleaseRequest;
   SequenceNumber        newReleaseRequest;
   bool                  lockReleaseActive;
-  ThreadID              recoveryJournalThreadID;
 
   /** Whether a save has been requested */
   bool                  saveRequested;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#2 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -231,6 +231,16 @@ BlockCount getJournalBlockMapDataBlocksUsed(RecoveryJournal *journal)
  **/
 void setJournalBlockMapDataBlocksUsed(RecoveryJournal *journal,
                                       BlockCount       pages);
+
+/**
+ * Get the ID of a recovery journal's thread.
+ *
+ * @param journal  The journal to query
+ *
+ * @return The ID of the journal's thread.
+ **/
+ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
+  __attribute__((warn_unused_result));
 
 /**
  * Prepare the journal for new entries.

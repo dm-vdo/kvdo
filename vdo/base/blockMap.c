@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#2 $
  */
 
 #include "blockMap.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "actionManager.h"
 #include "blockMapInternals.h"
 #include "blockMapPage.h"
 #include "blockMapTree.h"
@@ -150,11 +151,10 @@ int makeBlockMap(BlockCount           logicalBlocks,
     return result;
   }
 
-  map->flatPageCount           = flatPageCount;
-  map->rootOrigin              = rootOrigin;
-  map->rootCount               = rootCount;
-  map->entryCount              = logicalBlocks;
-  map->recoveryJournalThreadID = getJournalZoneThread(threadConfig);
+  map->flatPageCount = flatPageCount;
+  map->rootOrigin    = rootOrigin;
+  map->rootCount     = rootCount;
+  map->entryCount    = logicalBlocks;
 
   ZoneCount zoneCount = threadConfig->logicalZoneCount;
   for (ZoneCount zone = 0; zone < zoneCount; zone++) {
@@ -297,6 +297,22 @@ static int initializeBlockMapZone(BlockMapZone        *zone,
 }
 
 /**********************************************************************/
+BlockMapZone *getBlockMapZone(BlockMap *map, ZoneCount zoneNumber)
+{
+  return &map->zones[zoneNumber];
+}
+
+/**
+ * Get the ID of the thread on which a given block map zone operates.
+ *
+ * <p>Implements ZoneThreadGetter.
+ **/
+static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
+{
+  return getBlockMapZone(context, zoneNumber)->threadID;
+}
+
+/**********************************************************************/
 int makeBlockMapCaches(BlockMap            *map,
                        PhysicalLayer       *layer,
                        ReadOnlyModeContext *readOnlyContext,
@@ -327,19 +343,9 @@ int makeBlockMapCaches(BlockMap            *map,
     }
   }
 
-  result = initializeEnqueueableCompletion(&map->completion,
-                                           BLOCK_MAP_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = initializeEnqueueableCompletion(&map->actionCompletion,
-                                           SUB_TASK_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  return VDO_SUCCESS;
+  return makeActionManager(map->zoneCount, getBlockMapZoneThreadID,
+                           getRecoveryJournalThreadID(journal), map, layer,
+                           &map->actionManager);
 }
 
 /**
@@ -367,8 +373,7 @@ void freeBlockMap(BlockMap **mapPtr)
 
   abandonBlockMapGrowth(map);
   freeForest(&map->forest);
-  destroyEnqueueable(&map->completion);
-  destroyEnqueueable(&map->actionCompletion);
+  freeActionManager(&map->actionManager);
 
   FREE(map);
   *mapPtr = NULL;
@@ -429,26 +434,6 @@ void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal)
   }
 }
 
-/**
- * Convert a generic VDOCompletion to a BlockMap.
- *
- * @param completion  The completion to convert
- *
- * @return The completion as a BlockMap
- **/
-static inline BlockMap *asBlockMap(VDOCompletion *completion)
-{
-  STATIC_ASSERT(offsetof(BlockMap, completion) == 0);
-  assertCompletionType(completion->type, BLOCK_MAP_COMPLETION);
-  return (BlockMap *) completion;
-}
-
-/**********************************************************************/
-BlockMapZone *getBlockMapZone(BlockMap *map, ZoneCount zoneNumber)
-{
-  return &map->zones[zoneNumber];
-}
-
 /**********************************************************************/
 ZoneCount computeLogicalZone(DataVIO *dataVIO)
 {
@@ -498,195 +483,45 @@ BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
 }
 
 /**
- * Handle an error when applying an action to a block map zone.
+ * Now that an action has been applied to all zones, see if there are more
+ * actions to do.
  *
- * @param completion  The block map completion
+ * <p>Implements ActionConclusion
  **/
-static void handleZoneError(VDOCompletion *completion)
+static void finishActing(void *context)
 {
-  // Preserve the error.
-  setCompletionResult(completion->parent, completion->result);
-
-  // Carry on.
-  resetCompletion(completion);
-  invokeCallback(completion);
-}
-
-/**
- * Perform an action on the next block map zone if there is one.
- *
- * @param completion  The block map completion
- **/
-static void applyToNextZone(VDOCompletion *completion)
-{
-  BlockMap       *map  = asBlockMap(completion);
-  BlockMapZone   *zone = &map->zones[map->actingZone];
-  ASSERT_LOG_ONLY((getCallbackThreadID() == zone->threadID),
-                  "applyToNextZone() called on next block map zone's thread");
-
-  map->actingZone++;
-  if (map->actingZone == map->zoneCount) {
-    // We are about to apply to the last zone, so once that is finished,
-    // we're done.
-    prepareToFinishParent(completion, completion->parent);
-  } else {
-    // Prepare to come back in the next block map zone.
-    prepareCompletion(completion, applyToNextZone, handleZoneError,
-                      map->zones[map->actingZone].threadID,
-                      completion->parent);
+  BlockMap *map = context;
+  if (!hasNextAction(map->actionManager)) {
+    advanceBlockMapEra(map, map->pendingEraPoint);
   }
-
-  map->action(zone);
 }
-
-/**
- * Prepare the block map's action completion and then apply the action to each
- * zone in turn via applyToAllZones().
- *
- * @param map           The block map
- * @param action        The action to perform
- * @param parent        The object to notify when the action has been applied
- *                      to all the zones
- * @param callback      The function to call when the action has been applied
- *                      to all the zones
- * @param errorHandler  The error handler for the action
- **/
-static void launchOnAllZones(BlockMap           *map,
-                             BlockMapZoneAction *action,
-                             void               *parent,
-                             VDOAction          *callback,
-                             VDOAction          *errorHandler)
-{
-  prepareCompletion(&map->actionCompletion, callback, errorHandler,
-                    map->recoveryJournalThreadID, parent);
-  map->action     = action;
-  map->actingZone = 0;
-  prepareCompletion(&map->completion, applyToNextZone, handleZoneError,
-                    map->zones[map->actingZone].threadID,
-                    &map->actionCompletion);
-  invokeCallback(&map->completion);
-}
-
-/**
- * Check whether the block map is applying an action to all zones.
- *
- * @param map  The map to check
- *
- * @return <code>true</code> if the map is applying an action
- **/
-static bool isActing(BlockMap *map)
-{
-  return (map->currentAction.action != BLOCK_MAP_ACTION_NONE);
-}
-
-/**
- * Check whether the block map has a pending action to apply as well.
- *
- * @param map  The map to check
- *
- * @return <code>true</code> if the map has a pending action
- **/
-static bool hasNextAction(BlockMap *map)
-{
-  return (map->nextAction.action != BLOCK_MAP_ACTION_NONE);
-}
-
-/**
- * Make the pending action the current action.
- *
- * @param map  The block map
- *
- * @return The action which has just completed (was current)
- **/
-static BlockMapAction advanceActions(BlockMap *map)
-{
-  BlockMapAction completed = map->currentAction;
-  map->currentAction = map->nextAction;
-  map->nextAction = (BlockMapAction) {
-    .action = BLOCK_MAP_ACTION_NONE,
-    .parent = NULL
-  };
-  return completed;
-}
-
-/**
- * Schedule an action and act if there is no other action already in progress.
- *
- * @param map     The block map
- * @param action  The action to schedule
- * @param parent  The parent to notify when the action is complete
- *
- * @return <code>true</code> if the action may be launched immediately
- **/
-static bool scheduleAction(BlockMap           *map,
-                           BlockMapActionType  action,
-                           VDOCompletion      *parent)
-{
-  ASSERT_LOG_ONLY((getCallbackThreadID() == map->recoveryJournalThreadID),
-                  "scheduleAction() called in journal zone");
-  if (hasNextAction(map)) {
-    finishCompletion(parent, VDO_COMPONENT_BUSY);
-    return false;
-  }
-
-  map->nextAction = (BlockMapAction) {
-    .action = action,
-    .parent = parent,
-  };
-
-  if (isActing(map)) {
-    return false;
-  }
-
-  advanceActions(map);
-  return true;
-}
-
-/**********************************************************************/
-static void finishActing(VDOCompletion *completion);
 
 /**
  * Finish advancing the era now that all the zones have been notified.
  *
- * @param completion  The action completion
+ * <p>Implements ActionConclusion
  **/
-static void finishAging(VDOCompletion *completion)
+static void finishAging(void *context)
 {
-  BlockMap *map         = completion->parent;
+  BlockMap *map         = context;
   map->previousEraPoint = map->currentEraPoint;
-  finishActing(completion);
+  map->aging            = false;
+  finishActing(context);
 }
 
 /**
  * Update the progress of the era in a zone.
  *
- * <p>Implements BlockMapZoneAction.
- *
- * @param zone  The zone being updated
+ * <p>Implements ZoneAction
  **/
-static void advanceBlockMapZoneEra(BlockMapZone *zone)
+static void advanceBlockMapZoneEra(void          *context,
+                                   ZoneCount      zoneNumber,
+                                   VDOCompletion *parent)
 {
+  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
   advanceVDOPageCachePeriod(zone->pageCache, zone->blockMap->currentEraPoint);
   advanceZoneTreePeriod(&zone->treeZone, zone->blockMap->currentEraPoint);
-  finishCompletion(&zone->blockMap->completion, VDO_SUCCESS);
-}
-
-/**
- * Advance the era on each zone now that we know the action completion is not
- * busy.
- *
- * @param map  The block map
- **/
-static void launchAdvanceBlockMapEra(BlockMap *map)
-{
-  if (map->currentEraPoint == map->pendingEraPoint) {
-    // The zones are already up-to-date.
-    return;
-  }
-
-  map->currentAction.action = BLOCK_MAP_ACTION_ADVANCE_ERA;
-  map->currentEraPoint      = map->pendingEraPoint;
-  launchOnAllZones(map, advanceBlockMapZoneEra, map, finishAging, finishAging);
+  finishCompletion(parent, VDO_SUCCESS);
 }
 
 /**********************************************************************/
@@ -696,13 +531,15 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
     return;
   }
 
-  ASSERT_LOG_ONLY((getCallbackThreadID() == map->recoveryJournalThreadID),
-                  "advanceBlockMapEra() called in journal zone");
-
   map->pendingEraPoint = recoveryBlockNumber;
-  if (!isActing(map)) {
-    launchAdvanceBlockMapEra(map);
+  if (map->aging || (map->currentEraPoint == map->pendingEraPoint)) {
+    return;
   }
+
+  map->currentEraPoint = map->pendingEraPoint;
+  map->aging           = true;
+  scheduleAction(map->actionManager, advanceBlockMapZoneEra, finishAging,
+                 NULL);
 }
 
 /**
@@ -723,35 +560,23 @@ static void reopenBlockMapZone(VDOCompletion *completion)
  * Asynchronously flush a zone of the block map by closing and
  * then reopening the zone.
  *
- * <p>Implements BlockMapZoneAction.
- *
- * @param zone  The block map zone whose trees are to be flushed
+ * <p>Implements ZoneAction
  **/
-static void flushBlockMapZoneAsync(BlockMapZone *zone)
+static void flushBlockMapZoneAsync(void          *context,
+                                   ZoneCount      zoneNumber,
+                                   VDOCompletion *parent)
 {
+  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
   prepareCompletion(&zone->completion, reopenBlockMapZone,
-                    finishParentCallback, zone->threadID,
-                    &zone->blockMap->completion);
+                    finishParentCallback, zone->threadID, parent);
   closeZoneTrees(&zone->treeZone);
-}
-
-/**
- * Flush the block map now that we know the action completion is not busy.
- *
- * @param map  The map to flush
- **/
-static void launchFlushBlockMap(BlockMap *map)
-{
-  launchOnAllZones(map, flushBlockMapZoneAsync, map, finishActing,
-                   finishActing);
 }
 
 /**********************************************************************/
 void flushBlockMap(BlockMap *map, VDOCompletion *parent)
 {
-  if (scheduleAction(map, BLOCK_MAP_ACTION_FLUSH, parent)) {
-    launchFlushBlockMap(map);
-  }
+  scheduleAction(map->actionManager, flushBlockMapZoneAsync, finishActing,
+                 parent);
 }
 
 /**
@@ -768,34 +593,23 @@ static void treeIsClosed(VDOCompletion *completion)
 /**
  * Asynchronously close the page cache and trees in a zone of the block map.
  *
- * <p>Implements BlockMapZoneAction.
- *
- * @param zone  The block map zone to close
+ * <p>Implements ZoneAction.
  **/
-static void closeBlockMapZoneAsync(BlockMapZone *zone)
+static void closeBlockMapZoneAsync(void          *context,
+                                   ZoneCount      zoneNumber,
+                                   VDOCompletion *parent)
 {
+  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
   prepareCompletion(&zone->completion, treeIsClosed, finishParentCallback,
-                    zone->threadID, &zone->blockMap->completion);
+                    zone->threadID, parent);
   closeZoneTrees(&zone->treeZone);
-}
-
-/**
- * Close the block map now that we know the action completion is not busy.
- *
- * @param map  The map to close
- **/
-static void launchCloseBlockMap(BlockMap *map)
-{
-  launchOnAllZones(map, closeBlockMapZoneAsync, map, finishActing,
-                   finishActing);
 }
 
 /**********************************************************************/
 void closeBlockMap(BlockMap *map, VDOCompletion *parent)
 {
-  if (scheduleAction(map, BLOCK_MAP_ACTION_CLOSE, parent)) {
-    launchCloseBlockMap(map);
-  }
+  scheduleAction(map->actionManager, closeBlockMapZoneAsync, finishActing,
+                 parent);
 }
 
 /**********************************************************************/
@@ -826,129 +640,58 @@ BlockCount getNewEntryCount(BlockMap *map)
 /**
  * Asynchronously resume a block map zone.
  *
- * <p>Implements BlockMapZoneAction.
- *
- * @param zone  The block map zone to resume
+ * <p>Implements ZoneAction.
  **/
-static void resumeBlockMapZone(BlockMapZone *zone)
+static void resumeBlockMapZone(void          *context,
+                               ZoneCount      zoneNumber,
+                               VDOCompletion *parent)
 {
-  resumeZoneTrees(&zone->treeZone);
-  finishCompletion(&zone->blockMap->completion, VDO_SUCCESS);
+  resumeZoneTrees(&(getBlockMapZone(context, zoneNumber)->treeZone));
+  completeCompletion(parent);
 }
 
 /**
  * Asynchronously suspend a block map zone.
  *
- * <p>Implements BlockMapZoneAction.
- *
- * @param zone  The block map zone to suspend
+ * <p>Implements ZoneAction.
  **/
-static void suspendBlockMapZone(BlockMapZone *zone)
+static void suspendBlockMapZone(void          *context,
+                                ZoneCount      zoneNumber,
+                                VDOCompletion *parent)
 {
-  suspendZoneTrees(&zone->treeZone, &zone->blockMap->completion);
+  suspendZoneTrees(&(getBlockMapZone(context, zoneNumber)->treeZone), parent);
 }
 
 /**
  * Install an expanded forest now that the block map has been suspended.
- * This callback is registered in growBlockMap().
+ * This is the conclusion of the growBlockMap() action.
  *
- * @param completion  The action completion
+ * <p>Implements ActionConclusion
  **/
-static void installForest(VDOCompletion *completion)
+static void installForest(void *context)
 {
-  BlockMap *map = completion->parent;
-  ASSERT_LOG_ONLY((getCallbackThreadID() == map->recoveryJournalThreadID),
-                  "installForest() called in journal zone");
+  BlockMap *map       = context;
+  bool      suspended = (map->nextForest != NULL);
+  if (getCurrentActionStatus(map->actionManager) != VDO_SUCCESS) {
+    abandonBlockMapGrowth(map);
+  } else {
+    replaceForest(map);
+  }
 
-  replaceForest(map);
-  launchOnAllZones(map, resumeBlockMapZone, map, finishActing, finishActing);
-}
-
-/**
- * Handle an error attempting to grow the BlockMap. This error handler is
- * registered in growBlockMap().
- *
- * @param completion  The action completion
- **/
-static void handleGrowthError(VDOCompletion *completion)
-{
-  BlockMap *map = completion->parent;
-  ASSERT_LOG_ONLY((getCallbackThreadID() == map->recoveryJournalThreadID),
-                  "handleGrowthError() called in journal zone");
-
-  abandonBlockMapGrowth(map);
-  setCompletionResult(map->currentAction.parent, completion->result);
-  launchOnAllZones(map, resumeBlockMapZone, map, finishActing, finishActing);
-}
-
-/**
- * Launch the suspend prior to growing the block map now that the action
- * completion is not busy.
- *
- * @param map  The map to grow
- **/
-static void launchGrowBlockMap(BlockMap *map)
-{
-  if (map->nextForest == NULL) {
-    // The growth is small enough that we don't need a new Forest, so we don't
-    // need to suspend.
-    map->entryCount     = map->nextEntryCount;
-    map->nextEntryCount = 0;
-    // finishActing() depends on the parent of the action completion being the
-    // map.
-    map->actionCompletion.parent = map;
-    finishActing(&map->actionCompletion);
+  if (suspended) {
+    continueAction(map->actionManager, resumeBlockMapZone, finishActing);
     return;
   }
 
-  launchOnAllZones(map, suspendBlockMapZone, map, installForest,
-                   handleGrowthError);
+  finishActing(context);
 }
 
 /**********************************************************************/
 void growBlockMap(BlockMap *map, VDOCompletion *completion)
 {
-  if (scheduleAction(map, BLOCK_MAP_ACTION_GROW, completion)) {
-    launchGrowBlockMap(map);
-  }
-}
-
-/**
- * Now that an action has been applied to all zones, see if there are more
- * actions to do.
- *
- * @param completion  The action completion
- **/
-static void finishActing(VDOCompletion *completion)
-{
-  BlockMap *map = completion->parent;
-  ASSERT_LOG_ONLY((getCallbackThreadID() == map->recoveryJournalThreadID),
-                  "action %u finished in journal zone",
-                  map->currentAction.action);
-
-  BlockMapAction completed = advanceActions(map);
-  if (completed.parent != NULL) {
-    finishCompletion(completed.parent, completion->result);
-  }
-
-  switch (map->currentAction.action) {
-  case BLOCK_MAP_ACTION_CLOSE:
-    launchCloseBlockMap(map);
-    return;
-
-  case BLOCK_MAP_ACTION_FLUSH:
-    launchFlushBlockMap(map);
-    return;
-
-  case BLOCK_MAP_ACTION_GROW:
-    launchGrowBlockMap(map);
-    return;
-
-  case BLOCK_MAP_ACTION_ADVANCE_ERA:
-  default:
-    launchAdvanceBlockMapEra(map);
-    return;
-  }
+  scheduleAction(map->actionManager,
+                 (map->nextForest == NULL) ? NULL : suspendBlockMapZone,
+                 installForest, completion);
 }
 
 /**********************************************************************/

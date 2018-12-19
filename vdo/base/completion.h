@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#2 $
  */
 
 #ifndef COMPLETION_H
@@ -34,10 +34,10 @@ typedef enum __attribute__((packed)) {
 
   // Keep the rest of these in sorted order. If you add or remove an entry,
   // be sure to update the corresponding list in completion.c.
+  ACTION_COMPLETION,
   ADMIN_COMPLETION,
   ASYNC_ACTION_CONTEXT,
   BLOCK_ALLOCATOR_COMPLETION,
-  BLOCK_MAP_COMPLETION,
   BLOCK_MAP_RECOVERY_COMPLETION,
   BLOCK_MAP_ZONE_COMPLETION,
   CHECK_IDENTIFIER_COMPLETION,
@@ -54,7 +54,6 @@ typedef enum __attribute__((packed)) {
   REFERENCE_COUNTS_COMPLETION,
   REFERENCE_COUNT_REBUILD_COMPLETION,
   SLAB_COMPLETION,
-  SLAB_DEPOT_COMPLETION,
   SLAB_JOURNAL_COMPLETION,
   SLAB_REBUILD_COMPLETION,
   SLAB_SCRUBBER_COMPLETION,

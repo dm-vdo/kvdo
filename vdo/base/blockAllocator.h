@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#3 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -136,13 +136,12 @@ BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
 
 /**
  * Prepare the block allocator to come online and start allocating blocks.
- * Implements AllocatorAction.
  *
- * @param allocator     The allocator
- * @param parent        The completion to notify when the allocator is prepared
+ * <p>Implements ZoneAction.
  **/
-void prepareAllocatorToAllocate(BlockAllocator *allocator,
-                                VDOCompletion  *parent);
+void prepareAllocatorToAllocate(void          *context,
+                                ZoneCount      zoneNumber,
+                                VDOCompletion *parent);
 
 /**
  * Register a slab with the allocator, ready for use.
@@ -157,60 +156,58 @@ void registerSlabWithAllocator(BlockAllocator *allocator,
 
 /**
  * Register the new slabs belonging to this allocator.
- * Implements AllocatorAction.
  *
- * @param allocator     The allocator
- * @param parent        The completion to notify when done
+ * <p>Implements ZoneAction.
  **/
-void registerNewSlabsForAllocator(BlockAllocator *allocator,
-                                  VDOCompletion  *parent);
+void registerNewSlabsForAllocator(void          *context,
+                                  ZoneCount      zoneNumber,
+                                  VDOCompletion *parent);
 
 /**
  * Asynchronously flush all slab journals in the allocator.
- * Implements AllocatorAction.
  *
- * @param allocator     The allocator whose slab journals need flushing
- * @param parent        The parent completion
+ * <p>Implements ZoneAction.
  **/
-void flushAllocatorSlabJournals(BlockAllocator *allocator,
-                                VDOCompletion  *parent);
+void flushAllocatorSlabJournals(void          *context,
+                                ZoneCount      zoneNumber,
+                                VDOCompletion *parent);
 
 /**
- * Suspend the summary zone belonging to a block allocator. Implements
- * AllocatorAction.
+ * Suspend the summary zone belonging to a block allocator.
  *
- * @param allocator     The allocator owning the summary zone
- * @param parent        The object to notify when the suspend is complete
+ * <p>Implements ZoneAction.
  **/
-void suspendSummaryZone(BlockAllocator *allocator, VDOCompletion *parent);
+void suspendSummaryZone(void          *context,
+                        ZoneCount      zoneNumber,
+                        VDOCompletion *parent);
 
 /**
- * Resume the summary zone belonging to a block allocator. Implements
- * AllocatorAction.
+ * Resume the summary zone belonging to a block allocator.
  *
- * @param allocator     The allocator owning the summary zone
- * @param parent        The object to notify when the resume is complete
+ * <p>Implements ZoneAction.
  **/
-void resumeSummaryZone(BlockAllocator *allocator, VDOCompletion *parent);
+void resumeSummaryZone(void          *context,
+                       ZoneCount      zoneNumber,
+                       VDOCompletion *parent);
 
 /**
  * Asynchronously save any block allocator state that isn't included in the
- * SuperBlock component to the allocator partition. Implements AllocatorAction.
+ * SuperBlock component to the allocator partition.
  *
- * @param allocator     The allocator to save
- * @param parent        The completion to notify when the save is complete
+ * <p>Implements ZoneAction.
  **/
-void closeBlockAllocator(BlockAllocator *allocator, VDOCompletion *parent);
+void closeBlockAllocator(void          *context,
+                         ZoneCount      zoneNumber,
+                         VDOCompletion *parent);
 
 /**
  * Asynchronously save any block allocator state for a full rebuild.
- * Implements AllocatorAction.
  *
- * @param allocator     The allocator to save
- * @param parent        The completion to notify when the save is complete
+ * <p>Implements ZoneAction.
  **/
-void saveBlockAllocatorForFullRebuild(BlockAllocator *allocator,
-                                      VDOCompletion  *parent);
+void saveBlockAllocatorForFullRebuild(void          *context,
+                                      ZoneCount      zoneNumber,
+                                      VDOCompletion *parent);
 
 /**
  * Save a slab which has been rebuilt.
@@ -227,12 +224,13 @@ void saveRebuiltSlab(Slab          *slab,
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery
- * journal block. Implements AllocatorAction.
+ * journal block.
  *
- * @param allocator     The allocator
- * @param parent        The object to notify when the request has been sent
+ * <p>Implements ZoneAction.
  **/
-void releaseTailBlockLocks(BlockAllocator *allocator, VDOCompletion *parent);
+void releaseTailBlockLocks(void          *context,
+                           ZoneCount      zoneNumber,
+                           VDOCompletion *parent);
 
 /**
  * Get the slab summary zone for an allocator.
@@ -264,13 +262,13 @@ int acquireVIO(BlockAllocator *allocator, Waiter *waiter)
 void returnVIO(BlockAllocator *allocator, VIOPoolEntry *entry);
 
 /**
- * Initiate scrubbing all unrecovered slabs. Implements AllocatorAction.
+ * Initiate scrubbing all unrecovered slabs.
  *
- * @param allocator     The allocator to scrub
- * @param parent        The object to notify when the request has been sent
+ * <p>Implements ZoneAction.
  **/
-void scrubAllUnrecoveredSlabsInZone(BlockAllocator *allocator,
-                                    VDOCompletion  *parent);
+void scrubAllUnrecoveredSlabsInZone(void          *context,
+                                    ZoneCount      zoneNumber,
+                                    VDOCompletion *parent);
 
 /**
  * Queue a waiter for a clean slab.
