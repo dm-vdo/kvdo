@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#2 $
  */
 
 #include "logicalZone.h"
@@ -40,8 +40,8 @@ struct logicalZone {
   ZoneCount       zoneNumber;
   /** The next zone in the iteration list */
   LogicalZone    *nextZone;
-  /** The per thread data for this zone */
-  ThreadData     *threadData;
+  /** The thread ID for this zone */
+  ThreadID        threadID;
   /** In progress operations keyed by LBN */
   IntMap         *lbnOperations;
   /** The logical to physical map */
@@ -111,10 +111,9 @@ int makeLogicalZone(VDO          *vdo,
     return result;
   }
 
-  ThreadID threadID  = getLogicalZoneThread(getThreadConfig(vdo), zoneNumber);
   zone->zoneNumber   = zoneNumber;
   zone->nextZone     = nextZone;
-  zone->threadData   = &vdo->threadData[threadID];
+  zone->threadID     = getLogicalZoneThread(getThreadConfig(vdo), zoneNumber);
   zone->blockMapZone = getBlockMapZone(vdo->blockMap, zoneNumber);
   zone->vdo          = vdo;
   initializeRing(&zone->writeVIOs);
@@ -141,7 +140,7 @@ void freeLogicalZone(LogicalZone **logicalZonePtr)
 /**********************************************************************/
 static inline void assertOnZoneThread(LogicalZone *zone, const char *what)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == zone->threadData->threadID),
+  ASSERT_LOG_ONLY((getCallbackThreadID() == zone->threadID),
                   "%s() called on correct thread", what);
 }
 
@@ -201,7 +200,7 @@ void closeLogicalZone(LogicalZone *zone, VDOCompletion *completion)
 /**********************************************************************/
 ThreadID getLogicalZoneThreadID(const LogicalZone *zone)
 {
-  return zone->threadData->threadID;
+  return zone->threadID;
 }
 
 /**********************************************************************/
@@ -312,7 +311,7 @@ static void notifyFlusher(VDOCompletion *completion)
   LogicalZone *zone = asLogicalZone(completion);
   completeFlushes(zone->vdo->flusher);
   launchCallback(completion, attemptGenerationCompleteNotification,
-                 zone->threadData->threadID);
+                 zone->threadID);
 }
 
 /**

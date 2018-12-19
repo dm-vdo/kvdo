@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#2 $
  */
 
 #include "physicalZone.h"
@@ -45,8 +45,8 @@ enum {
 struct physicalZone {
   /** Which physical zone this is */
   ZoneCount       zoneNumber;
-  /** The per thread data for this zone */
-  ThreadData     *threadData;
+  /** The thread ID for this zone */
+  ThreadID        threadID;
   /** In progress operations keyed by PBN */
   IntMap         *pbnOperations;
   /** Pool of unused PBNLock instances */
@@ -76,10 +76,9 @@ int makePhysicalZone(VDO *vdo, ZoneCount zoneNumber, PhysicalZone **zonePtr)
     return result;
   }
 
-  ThreadID threadID = getPhysicalZoneThread(getThreadConfig(vdo), zoneNumber);
-  zone->zoneNumber  = zoneNumber;
-  zone->threadData  = &vdo->threadData[threadID];
-  zone->allocator   = getBlockAllocatorForZone(vdo->depot, zoneNumber);
+  zone->zoneNumber = zoneNumber;
+  zone->threadID   = getPhysicalZoneThread(getThreadConfig(vdo), zoneNumber);
+  zone->allocator  = getBlockAllocatorForZone(vdo->depot, zoneNumber);
 
   *zonePtr = zone;
   return VDO_SUCCESS;
@@ -108,7 +107,7 @@ ZoneCount getPhysicalZoneNumber(const PhysicalZone *zone)
 /**********************************************************************/
 ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
 {
-  return zone->threadData->threadID;
+  return zone->threadID;
 }
 
 /**********************************************************************/
