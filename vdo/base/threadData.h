@@ -16,19 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#3 $
  */
 
 #ifndef THREAD_DATA_H
 #define THREAD_DATA_H
 
 #include "completion.h"
-
-typedef enum {
-  NOT_ACCESSING_SUPER_BLOCK = 0,
-  READING_SUPER_BLOCK,
-  WRITING_SUPER_BLOCK,
-} SuperBlockAccessState;
 
 /**
  * Data associated with each base code thread.
@@ -52,8 +46,6 @@ struct threadData {
   bool                   mayEnterReadOnlyMode;
   /** The error code for entering read-only mode */
   int                    readOnlyError;
-  /** Whether this thread is accessing the super block */
-  SuperBlockAccessState  superBlockAccessState;
   /** A completion to notify when this thread is not entering read-only mode */
   VDOCompletion         *superBlockIdleWaiter;
   /** A completion which is waiting to enter read-only mode */

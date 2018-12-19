@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#3 $
  */
 
 #include "threadData.h"
@@ -161,8 +161,7 @@ static void waitUntilThreadNotEnteringReadOnlyMode(VDOCompletion *completion)
   VDO *vdo = waitCompletion->vdo;
   ThreadData *threadData = &vdo->threadData[completion->callbackThreadID];
 
-  if (threadData->isEnteringReadOnlyMode
-      || (threadData->superBlockAccessState == READING_SUPER_BLOCK)) {
+  if (threadData->isEnteringReadOnlyMode) {
     threadData->superBlockIdleWaiter = completion;
     return;
   }
@@ -218,7 +217,6 @@ static void finishEnteringReadOnlyMode(VDOCompletion *completion)
 {
   ThreadData *threadData             = asThreadData(completion);
   threadData->isEnteringReadOnlyMode = false;
-  threadData->superBlockAccessState  = NOT_ACCESSING_SUPER_BLOCK;
 
   VDOCompletion *waiter = threadData->superBlockIdleWaiter;
   if (waiter != NULL) {
@@ -310,13 +308,6 @@ static void setReadOnlyState(VDOCompletion *completion)
                             "Unrecoverable error, entering read-only mode");
   vdo->state = VDO_READ_ONLY_MODE;
 
-  ThreadData *adminThreadData = &vdo->threadData[0];
-  if (adminThreadData->superBlockAccessState != NOT_ACCESSING_SUPER_BLOCK) {
-    adminThreadData->readOnlyModeWaiter = completion;
-    return;
-  }
-
-  adminThreadData->superBlockAccessState = WRITING_SUPER_BLOCK;
   completion->callback                   = readOnlyStateSaved;
   completion->errorHandler               = handleSaveError;
   saveVDOComponentsAsync(vdo, completion);
