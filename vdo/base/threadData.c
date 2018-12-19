@@ -16,10 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#4 $
  */
 
 #include "threadData.h"
+#include "threadDataInternals.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"

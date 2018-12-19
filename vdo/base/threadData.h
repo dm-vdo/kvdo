@@ -16,41 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#4 $
  */
 
 #ifndef THREAD_DATA_H
 #define THREAD_DATA_H
 
 #include "completion.h"
-
-/**
- * Data associated with each base code thread.
- **/
-struct threadData {
-  /** The completion for entering read-only mode */
-  VDOCompletion          completion;
-  /** The thread this represents */
-  ThreadID               threadID;
-  /** The thread configuration for the VDO */
-  const ThreadConfig    *threadConfig;
-  /** The next physical zone to allocate from */
-  ZoneCount              nextAllocationZone;
-  /** The number of allocations done in the nextAllocationZone */
-  BlockCount             allocationCount;
-  /** Whether this thread is in read-only mode */
-  bool                   isReadOnly;
-  /** Whether this thread is entering read-only mode */
-  bool                   isEnteringReadOnlyMode;
-  /** Whether this thread may enter read-only mode */
-  bool                   mayEnterReadOnlyMode;
-  /** The error code for entering read-only mode */
-  int                    readOnlyError;
-  /** A completion to notify when this thread is not entering read-only mode */
-  VDOCompletion         *superBlockIdleWaiter;
-  /** A completion which is waiting to enter read-only mode */
-  VDOCompletion         *readOnlyModeWaiter;
-};
 
 /**
  * Create and initialize an array of ThreadData structures for all the base

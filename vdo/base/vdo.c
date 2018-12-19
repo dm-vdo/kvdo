@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#3 $
  */
 
 /*
@@ -46,6 +46,7 @@
 #include "statistics.h"
 #include "statusCodes.h"
 #include "threadConfig.h"
+#include "threadDataInternals.h"
 #include "vdoLayout.h"
 #include "vioWrite.h"
 #include "volumeGeometry.h"
