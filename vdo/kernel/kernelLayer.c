@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#9 $
  */
 
 #include "kernelLayer.h"
@@ -545,13 +545,13 @@ static int kvdoIsCongested(struct dm_target_callbacks *callbacks,
 }
 
 /**********************************************************************/
-int makeKernelLayer(uint64_t        startingSector,
-                    unsigned int    instance,
-                    DeviceConfig   *config,
-                    struct kobject *parentKobject,
-                    ThreadConfig  **threadConfigPointer,
-                    char          **reason,
-                    KernelLayer   **layerPtr)
+int makeKernelLayer(uint64_t               startingSector,
+                    unsigned int           instance,
+                    struct device_config  *config,
+                    struct kobject        *parentKobject,
+                    ThreadConfig         **threadConfigPointer,
+                    char                 **reason,
+                    KernelLayer          **layerPtr)
 {
   // VDO-3769 - Set a generic reason so we don't ever return garbage.
   *reason = "Unspecified error";
@@ -830,11 +830,11 @@ int makeKernelLayer(uint64_t        startingSector,
 }
 
 /**********************************************************************/
-int prepareToModifyKernelLayer(KernelLayer       *layer,
-                               DeviceConfig      *config,
-                               char             **errorPtr)
+int prepareToModifyKernelLayer(KernelLayer           *layer,
+                               struct device_config  *config,
+                               char                 **errorPtr)
 {
-  DeviceConfig *extantConfig = layer->deviceConfig;
+  struct device_config *extantConfig = layer->deviceConfig;
   if (config->owningTarget->begin != extantConfig->owningTarget->begin) {
     *errorPtr = "Starting sector cannot change";
     return VDO_PARAMETER_MISMATCH;
@@ -866,7 +866,7 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
   }
 
   if (memcmp(&config->threadCounts, &extantConfig->threadCounts,
-	     sizeof(ThreadCountConfig)) != 0) {
+	     sizeof(struct thread_count_config)) != 0) {
     *errorPtr = "Thread configuration cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
@@ -903,10 +903,10 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
 }
 
 /**********************************************************************/
-int modifyKernelLayer(KernelLayer  *layer,
-                      DeviceConfig *config)
+int modifyKernelLayer(KernelLayer          *layer,
+                      struct device_config *config)
 {
-  DeviceConfig *extantConfig = layer->deviceConfig;
+  struct device_config *extantConfig = layer->deviceConfig;
 
   // A failure here is unrecoverable. So there is no problem if it happens.
 

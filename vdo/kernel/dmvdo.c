@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#3 $
  */
 
 #include "dmvdo.h"
@@ -74,7 +74,7 @@ KVDOModuleGlobals kvdoGlobals;
  **/
 static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
 {
-  return ((DeviceConfig *) ti->private)->layer;
+  return ((struct device_config *) ti->private)->layer;
 }
 
 /**
@@ -197,7 +197,7 @@ static void vdoStatus(struct dm_target *ti,
 
   case STATUSTYPE_TABLE:
     // Report the string actually specified in the beginning.
-    DMEMIT("%s", ((DeviceConfig *) ti->private)->originalString);
+    DMEMIT("%s", ((struct device_config *) ti->private)->originalString);
     break;
   }
 
@@ -504,9 +504,9 @@ static void cleanupInitialize(struct dm_target *ti,
  * @return  VDO_SUCCESS or an error code
  *
  **/
-static int vdoInitialize(struct dm_target *ti,
-                         unsigned int      instance,
-                         DeviceConfig     *config)
+static int vdoInitialize(struct dm_target     *ti,
+                         unsigned int          instance,
+                         struct device_config *config)
 {
   logInfo("starting device '%s'", config->poolName);
 
@@ -607,7 +607,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   registerThreadDeviceID(&instanceThread, &instance);
 
   bool verbose = (oldLayer == NULL);
-  DeviceConfig *config = NULL;
+  struct device_config *config = NULL;
   result = parseDeviceConfig(argc, argv, ti, verbose, &config);
   if (result != VDO_SUCCESS) {
     unregisterThreadDeviceID();
@@ -657,7 +657,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 /**********************************************************************/
 static void vdoDtr(struct dm_target *ti)
 {
-  DeviceConfig *config = ti->private;
+  struct device_config *config = ti->private;
   KernelLayer  *layer  = getKernelLayerForTarget(ti);
 
   releaseKernelLayerReference(layer, config);
@@ -707,7 +707,7 @@ static void vdoPostsuspend(struct dm_target *ti)
 static int vdoPreresume(struct dm_target *ti)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
-  DeviceConfig *config = ti->private;
+  struct device_config *config = ti->private;
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
   logInfo("resuming device '%s'", config->poolName);

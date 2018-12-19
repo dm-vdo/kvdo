@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#3 $
  */
 
 #ifndef KERNELLAYER_H
@@ -103,7 +103,7 @@ static inline uint64_t getEventCount(PeriodicEventReporter *reporter)
 struct kernelLayer {
   PhysicalLayer               common;
   // Layer specific info
-  DeviceConfig               *deviceConfig;
+  struct device_config       *deviceConfig;
   unsigned int                configReferences;
   char                        threadNamePrefix[MAX_QUEUE_NAME_LEN];
   struct kobject              kobj;
@@ -252,13 +252,13 @@ typedef struct kvdoEnqueueable {
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeKernelLayer(uint64_t        startingSector,
-                    unsigned int    instance,
-                    DeviceConfig   *config,
-                    struct kobject *parentKobject,
-                    ThreadConfig  **threadConfigPointer,
-                    char          **reason,
-                    KernelLayer   **layerPtr)
+int makeKernelLayer(uint64_t               startingSector,
+                    unsigned int           instance,
+                    struct device_config  *config,
+                    struct kobject        *parentKobject,
+                    ThreadConfig         **threadConfigPointer,
+                    char                 **reason,
+                    KernelLayer          **layerPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -270,9 +270,9 @@ int makeKernelLayer(uint64_t        startingSector,
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToModifyKernelLayer(KernelLayer       *layer,
-                               DeviceConfig      *config,
-                               char             **errorPtr)
+int prepareToModifyKernelLayer(KernelLayer           *layer,
+                               struct device_config  *config,
+                               char                 **errorPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -283,8 +283,8 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int modifyKernelLayer(KernelLayer       *layer,
-                      DeviceConfig      *config)
+int modifyKernelLayer(KernelLayer          *layer,
+                      struct device_config *config)
   __attribute__((warn_unused_result));
 
 /**
@@ -438,8 +438,8 @@ struct block_device *getKernelLayerBdev(const KernelLayer *layer)
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void acquireKernelLayerReference(KernelLayer  *layer,
-                                               DeviceConfig *config)
+static inline void acquireKernelLayerReference(KernelLayer          *layer,
+                                               struct device_config *config)
 {
   layer->configReferences++;
   config->layer = layer;
@@ -451,8 +451,8 @@ static inline void acquireKernelLayerReference(KernelLayer  *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void releaseKernelLayerReference(KernelLayer  *layer,
-                                               DeviceConfig *config)
+static inline void releaseKernelLayerReference(KernelLayer          *layer,
+                                               struct device_config *config)
 {
   config->layer = NULL;
   layer->configReferences--;
@@ -464,8 +464,8 @@ static inline void releaseKernelLayerReference(KernelLayer  *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void setKernelLayerActiveConfig(KernelLayer  *layer,
-                                              DeviceConfig *config)
+static inline void setKernelLayerActiveConfig(KernelLayer          *layer,
+                                              struct device_config *config)
 {
   layer->deviceConfig = config;
 }

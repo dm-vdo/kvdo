@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#2 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -28,7 +28,7 @@
 // This structure is memcmp'd for equality. Keep it
 // packed and don't add any fields that are not
 // properly set in both extant and parsed configs.
-typedef struct {
+struct thread_count_config {
   int bioAckThreads;
   int bioThreads;
   int bioRotationInterval;
@@ -36,27 +36,27 @@ typedef struct {
   int logicalZones;
   int physicalZones;
   int hashZones;
-} __attribute__((packed)) ThreadCountConfig;
+} __attribute__((packed));
 
 typedef uint32_t TableVersion;
 
-typedef struct {
-  struct dm_target  *owningTarget;
-  struct dm_dev     *ownedDevice;
-  KernelLayer       *layer;
-  char              *originalString;
-  TableVersion       version;
-  char              *parentDeviceName;
-  BlockCount         physicalBlocks;
-  unsigned int       logicalBlockSize;
-  WritePolicy        writePolicy;
-  unsigned int       cacheSize;
-  unsigned int       blockMapMaximumAge;
-  bool               mdRaid5ModeEnabled;
-  char              *poolName;
-  ThreadCountConfig  threadCounts;
-  BlockCount         maxDiscardBlocks;
-} DeviceConfig;
+struct device_config {
+  struct dm_target           *owningTarget;
+  struct dm_dev              *ownedDevice;
+  KernelLayer                *layer;
+  char                       *originalString;
+  TableVersion                version;
+  char                       *parentDeviceName;
+  BlockCount                  physicalBlocks;
+  unsigned int                logicalBlockSize;
+  WritePolicy                 writePolicy;
+  unsigned int                cacheSize;
+  unsigned int                blockMapMaximumAge;
+  bool                        mdRaid5ModeEnabled;
+  char                       *poolName;
+  struct thread_count_config  threadCounts;
+  BlockCount                  maxDiscardBlocks;
+};
 
 /**
  * Grab a pointer to the pool name out of argv.
@@ -75,7 +75,7 @@ int getPoolNameFromArgv(int    argc,
   __attribute__((warn_unused_result));
 
 /**
- * Convert the dmsetup table into a DeviceConfig.
+ * Convert the dmsetup table into a struct device_config.
  *
  * @param [in]  argc        The number of table values
  * @param [in]  argv        The array of table values
@@ -85,11 +85,11 @@ int getPoolNameFromArgv(int    argc,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parseDeviceConfig(int                argc,
-                      char             **argv,
-                      struct dm_target  *ti,
-                      bool               verbose,
-                      DeviceConfig     **configPtr)
+int parseDeviceConfig(int                    argc,
+                      char                 **argv,
+                      struct dm_target      *ti,
+                      bool                   verbose,
+                      struct device_config **configPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -97,7 +97,7 @@ int parseDeviceConfig(int                argc,
  *
  * @param configPtr  The pointer holding the config, which will be nulled
  **/
-void freeDeviceConfig(DeviceConfig **configPtr);
+void freeDeviceConfig(struct device_config **configPtr);
 
 /**
  * Get the text describing the write policy.
@@ -106,7 +106,7 @@ void freeDeviceConfig(DeviceConfig **configPtr);
  *
  * @returns a pointer to a string describing the write policy
  **/
-const char *getConfigWritePolicyString(DeviceConfig *config)
+const char *getConfigWritePolicyString(struct device_config *config)
   __attribute__((warn_unused_result));
 
 #endif // DEVICE_CONFIG_H

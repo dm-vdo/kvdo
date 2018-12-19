@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#3 $
  */
 
 #include "deviceConfig.h"
@@ -122,8 +122,9 @@ int getPoolNameFromArgv(int    argc,
  * @param [in,out] config   The config possibly missing values
  * @param [in]     verbose  Whether to log about the underlying device
  **/
-static void resolveConfigWithDevice(DeviceConfig  *config,
-                                    bool           verbose)
+
+static void resolveConfigWithDevice(struct device_config *config,
+                                    bool                  verbose)
 {
   struct dm_dev *dev = config->ownedDevice;
   struct request_queue *requestQueue = bdev_get_queue(dev->bdev);
@@ -208,9 +209,9 @@ static inline int parseBool(const char *boolStr,
  *
  * @return   VDO_SUCCESS or -EINVAL
  **/
-static int processOneThreadConfigSpec(const char        *threadParamType,
-                                      unsigned int       count,
-                                      ThreadCountConfig *config)
+static int processOneThreadConfigSpec(const char *threadParamType,
+                                      unsigned int count,
+                                      struct thread_count_config *config)
 {
   // Handle limited thread parameters
   if (strcmp(threadParamType, "bioRotationInterval") == 0) {
@@ -291,8 +292,8 @@ static int processOneThreadConfigSpec(const char        *threadParamType,
  * @param spec    The thread parameter specification string
  * @param config  The configuration data to be updated
  **/
-static int parseOneThreadConfigSpec(const char        *spec,
-                                    ThreadCountConfig *config)
+static int parseOneThreadConfigSpec(const char                 *spec,
+                                    struct thread_count_config *config)
 {
   char **fields;
   int result = splitString(spec, '=', &fields);
@@ -342,8 +343,8 @@ static int parseOneThreadConfigSpec(const char        *spec,
  *
  * @return   VDO_SUCCESS or -EINVAL or -ENOMEM
  **/
-static int parseThreadConfigString(const char        *string,
-                                   ThreadCountConfig *config)
+static int parseThreadConfigString(const char                 *string,
+                                   struct thread_count_config *config)
 {
   int result = VDO_SUCCESS;
 
@@ -365,11 +366,11 @@ static int parseThreadConfigString(const char        *string,
 }
 
 /**
- * Process one component of an optional parameter string and
+ * Process one component of an optional parameter string                             and
  * update the configuration data structure.
  *
- * If the value requested is invalid, a message is logged and
- * -EINVAL returned. If the key is unknown, a message is logged
+ * If the value requested is                            invalid, a message is logged and
+ * -EINVAL returned. If the key is                      unknown, a message is logged
  * but no error is returned.
  *
  * @param key    The optional parameter key name
@@ -378,9 +379,9 @@ static int parseThreadConfigString(const char        *string,
  *
  * @return   VDO_SUCCESS or -EINVAL
  **/
-static int processOneKeyValuePair(const char   *key,
-                                  unsigned int  value,
-                                  DeviceConfig *config)
+static int processOneKeyValuePair(const char           *key,
+                                  unsigned int          value,
+                                  struct device_config *config)
 {
   // Non thread optional parameters
   if (strcmp(key, "maxDiscard") == 0) {
@@ -412,9 +413,9 @@ static int processOneKeyValuePair(const char   *key,
  *
  * @return   VDO_SUCCESS or error
  **/
-static int parseOneKeyValuePair(const char   *key,
-				const char   *value,
-                                DeviceConfig *config)
+static int parseOneKeyValuePair(const char           *key,
+				const char           *value,
+                                struct device_config *config)
 {
   unsigned int count;
   int result = stringToUInt(value, &count);
@@ -429,13 +430,13 @@ static int parseOneKeyValuePair(const char   *key,
 /**
  * Parse all key/value pairs from a list of arguments.
  *
- * If an error occurs during parsing of a single key/value pair, we deem
+ * If an error occurs during parsing of a single key/value   pair, we deem
  * it serious enough to stop further parsing. 
  *
  * This function can't set the "reason" value the caller wants to pass
- * back, because we'd want to format it to say which field was
- * invalid, and we can't allocate the "reason" strings dynamically. So
- * if an error occurs, we'll log the details and return the error.
+ *                                                           back, because we'd want to format it to say which field was
+ *                                                           invalid, and we can't allocate the "reason" strings dynamically. So
+ * if an error                                               occurs, we'll log the details and return the error.
  * 
  * @param argc     The total number of arguments in list
  * @param argv     The list of key/value pairs
@@ -443,9 +444,9 @@ static int parseOneKeyValuePair(const char   *key,
  *
  * @return   VDO_SUCCESS or error
  **/
-static int parseKeyValuePairs(int            argc, 
-			      char         **argv, 
-			      DeviceConfig  *config)
+static int parseKeyValuePairs(int                    argc, 
+			      char                 **argv, 
+			      struct device_config  *config)
 {
   int result = VDO_SUCCESS;
   while (argc) {
@@ -480,9 +481,9 @@ static int parseKeyValuePairs(int            argc,
  *
  * @return   VDO_SUCCESS or error
  */
-int parseOptionalArguments(struct dm_arg_set  *argSet,
-			   char              **errorPtr,
-			   DeviceConfig       *config)
+int parseOptionalArguments(struct dm_arg_set     *argSet,
+			   char                 **errorPtr,
+			   struct device_config  *config)
 {
   int result = VDO_SUCCESS;
 
@@ -515,24 +516,24 @@ int parseOptionalArguments(struct dm_arg_set  *argSet,
  * @param errorPtr      A place to store a constant string about the error
  * @param errorStr      A constant string to store in errorPtr
  **/
-static void handleParseError(DeviceConfig **configPtr,
-                             char         **errorPtr,
-                             char          *errorStr)
+static void handleParseError(struct device_config **configPtr,
+                             char                 **errorPtr,
+                             char                  *errorStr)
 {
   freeDeviceConfig(configPtr);
   *errorPtr = errorStr;
 }
 
 /**********************************************************************/
-int parseDeviceConfig(int                argc,
-                      char             **argv,
-                      struct dm_target  *ti,
-                      bool               verbose,
-                      DeviceConfig     **configPtr)
+int parseDeviceConfig(int                    argc,
+                      char                 **argv,
+                      struct dm_target      *ti,
+                      bool                   verbose,
+                      struct device_config **configPtr)
 {
   char **errorPtr = &ti->error;
-  DeviceConfig *config = NULL;
-  int result = ALLOCATE(1, DeviceConfig, "DeviceConfig", &config);
+  struct device_config *config = NULL;
+  int result = ALLOCATE(1, struct device_config, "device_config", &config);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not allocate config structure");
     return VDO_BAD_CONFIGURATION;
@@ -556,7 +557,7 @@ int parseDeviceConfig(int                argc,
   // defined in the file-based thread-configuration settings.  The values used
   // as defaults internally should really be those needed for VDO in its
   // default shipped-product state.
-  config->threadCounts = (ThreadCountConfig) {
+  config->threadCounts = (struct thread_count_config) {
     .bioAckThreads       = 1,
     .bioThreads          = DEFAULT_NUM_BIO_SUBMIT_QUEUES,
     .bioRotationInterval = DEFAULT_BIO_SUBMIT_QUEUE_ROTATE_INTERVAL,
@@ -704,13 +705,13 @@ int parseDeviceConfig(int                argc,
 }
 
 /**********************************************************************/
-void freeDeviceConfig(DeviceConfig **configPtr)
+void freeDeviceConfig(struct device_config **configPtr)
 {
   if (configPtr == NULL) {
     return;
   }
 
-  DeviceConfig *config = *configPtr;
+  struct device_config *config = *configPtr;
   if (config == NULL) {
     *configPtr = NULL;
     return;
@@ -729,7 +730,7 @@ void freeDeviceConfig(DeviceConfig **configPtr)
 }
 
 /**********************************************************************/
-const char *getConfigWritePolicyString(DeviceConfig *config)
+const char *getConfigWritePolicyString(struct device_config *config)
 {
   if (config->writePolicy == WRITE_POLICY_AUTO) {
     return "auto";
