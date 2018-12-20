@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadDataInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadDataInternals.h#2 $
  */
 
 #ifndef THREAD_DATA_INTERNALS_H
@@ -32,12 +32,6 @@ struct threadData {
   VDOCompletion          completion;
   /** The thread this represents */
   ThreadID               threadID;
-  /** The thread configuration for the VDO */
-  const ThreadConfig    *threadConfig;
-  /** The next physical zone to allocate from */
-  ZoneCount              nextAllocationZone;
-  /** The number of allocations done in the nextAllocationZone */
-  BlockCount             allocationCount;
   /** Whether this thread is in read-only mode */
   bool                   isReadOnly;
   /** Whether this thread is entering read-only mode */

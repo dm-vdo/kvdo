@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#3 $
  */
 
 #include "logicalZone.h"
@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "allocationSelector.h"
 #include "atomic.h"
 #include "blockMap.h"
 #include "completion.h"
@@ -35,40 +36,42 @@
 
 struct logicalZone {
   /** The completion for flush notifications */
-  VDOCompletion   completion;
+  VDOCompletion       completion;
   /** Which logical zone this is */
-  ZoneCount       zoneNumber;
+  ZoneCount           zoneNumber;
   /** The next zone in the iteration list */
-  LogicalZone    *nextZone;
+  LogicalZone        *nextZone;
   /** The thread ID for this zone */
-  ThreadID        threadID;
+  ThreadID            threadID;
   /** In progress operations keyed by LBN */
-  IntMap         *lbnOperations;
+  IntMap             *lbnOperations;
   /** The logical to physical map */
-  BlockMapZone   *blockMapZone;
+  BlockMapZone       *blockMapZone;
   /** The current flush generation */
-  SequenceNumber  flushGeneration;
+  SequenceNumber      flushGeneration;
   /** The oldest active generation in this zone */
-  SequenceNumber  oldestActiveGeneration;
+  SequenceNumber      oldestActiveGeneration;
   /** The number of IOs in the current flush generation */
-  BlockCount      iosInFlushGeneration;
+  BlockCount          iosInFlushGeneration;
   /**
    * The oldest locked generation in this zone (an atomic copy of
-   * oldestActiveGeneration)
+   *                  oldestActiveGeneration)
    **/
-  Atomic64        oldestLockedGeneration;
+  Atomic64            oldestLockedGeneration;
   /** The youngest generation of the current notification */
-  SequenceNumber  notificationGeneration;
+  SequenceNumber      notificationGeneration;
   /** Whether a notification is in progress */
-  bool            notifying;
+  bool                notifying;
   /** The queue of active data write VIOs */
-  RingNode        writeVIOs;
+  RingNode            writeVIOs;
   /** The VDO */
-  VDO            *vdo;
+  VDO                *vdo;
   /** The completion waiting for the zone to close */
-  VDOCompletion  *closeCompletion;
+  VDOCompletion      *closeCompletion;
   /** Whether a close has been requested */
-  bool            closeRequested;
+  bool                closeRequested;
+  /** The selector for determining which physical zone to allocate from */
+  AllocationSelector *selector;
 };
 
 /**
@@ -119,6 +122,13 @@ int makeLogicalZone(VDO          *vdo,
   initializeRing(&zone->writeVIOs);
   atomicStore64(&zone->oldestLockedGeneration, 0);
 
+  result = makeAllocationSelector(getThreadConfig(vdo)->physicalZoneCount,
+                                  zone->threadID, &zone->selector);
+  if (result != VDO_SUCCESS) {
+    freeLogicalZone(&zone);
+    return result;
+  }
+
   *zonePtr = zone;
   return VDO_SUCCESS;
 }
@@ -131,6 +141,7 @@ void freeLogicalZone(LogicalZone **logicalZonePtr)
   }
 
   LogicalZone *zone = *logicalZonePtr;
+  freeAllocationSelector(&zone->selector);
   destroyEnqueueable(&zone->completion);
   freeIntMap(&zone->lbnOperations);
   FREE(zone);
@@ -360,6 +371,12 @@ void releaseFlushGenerationLock(DataVIO *dataVIO)
   }
 
   attemptGenerationCompleteNotification(&zone->completion);
+}
+
+/**********************************************************************/
+AllocationSelector *getAllocationSelector(LogicalZone *zone)
+{
+  return zone->selector;
 }
 
 /**********************************************************************/

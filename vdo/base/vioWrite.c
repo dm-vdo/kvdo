@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#2 $
  */
 
 /*
@@ -1168,8 +1168,9 @@ static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
     return;
   }
 
-  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO), VIO_WRITE_LOCK,
-                    continueWriteAfterAllocation);
+  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
+                    getAllocationSelector(dataVIO->logical.zone),
+                    VIO_WRITE_LOCK, continueWriteAfterAllocation);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.h#5 $
  */
 
 #ifndef THREAD_DATA_H
@@ -50,17 +50,6 @@ int makeThreadDataArray(bool                 isReadOnly,
  * @param count       The number of thread structures in the array
  **/
 void freeThreadDataArray(ThreadData **threadsPtr, ThreadCount count);
-
-/**
- * Get the next physical zone from which to allocate.
- *
- * @param vdo       The VDO
- * @param threadID  The ID of the thread which wants to allocate
- *
- * @return The physical zone from which to allocate
- **/
-PhysicalZone *getNextAllocationZone(VDO *vdo, ThreadID threadID)
-  __attribute__((warn_unused_result));
 
 /**
  * Wait until no threads are entering read-only mode.

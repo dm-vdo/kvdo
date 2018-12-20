@@ -16,17 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#2 $
  */
 
 #include "allocatingVIO.h"
 
 #include "logger.h"
 
+#include "allocationSelector.h"
 #include "blockAllocator.h"
 #include "dataVIO.h"
 #include "pbnLock.h"
 #include "slabDepot.h"
+#include "types.h"
 #include "vdoInternal.h"
 #include "vioWrite.h"
 
@@ -207,18 +209,18 @@ static void allocateBlockForWrite(VDOCompletion *completion)
 
 /**********************************************************************/
 void allocateDataBlock(AllocatingVIO      *allocatingVIO,
+                       AllocationSelector *selector,
                        PBNLockType         writeLockType,
                        AllocationCallback *callback)
 {
-  VIO *vio = allocatingVIOAsVIO(allocatingVIO);
-  VDOCompletion *completion = vioAsCompletion(vio);
-
   allocatingVIO->writeLockType      = writeLockType;
   allocatingVIO->allocationCallback = callback;
   allocatingVIO->allocationAttempts = 0;
   allocatingVIO->allocation         = ZERO_BLOCK;
+
+  VIO *vio = allocatingVIOAsVIO(allocatingVIO);
   allocatingVIO->zone
-    = getNextAllocationZone(vio->vdo, completion->callbackThreadID);
+    = vio->vdo->physicalZones[getNextAllocationZone(selector)];
 
   launchPhysicalZoneCallback(allocatingVIO, allocateBlockForWrite,
                              THIS_LOCATION("$F;cb=allocDataBlock"));

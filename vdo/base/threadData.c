@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadData.c#5 $
  */
 
 #include "threadData.h"
@@ -30,10 +30,6 @@
 #include "recoveryJournal.h"
 #include "slabDepot.h"
 #include "vdoInternal.h"
-
-enum {
-  ALLOCATIONS_PER_ZONE = 128,
-};
 
 typedef struct {
   VDOCompletion  completion;
@@ -72,15 +68,11 @@ static ThreadData *asThreadData(VDOCompletion *completion)
 static int initializeThreadData(ThreadData         *threadData,
                                 ThreadID            threadID,
                                 bool                isReadOnly,
-                                const ThreadConfig *threadConfig,
                                 PhysicalLayer      *layer)
 {
   threadData->threadID             = threadID;
   threadData->isReadOnly           = isReadOnly;
   threadData->mayEnterReadOnlyMode = true;
-  threadData->threadConfig         = threadConfig;
-  threadData->nextAllocationZone
-    = threadID % threadConfig->physicalZoneCount;
   return initializeEnqueueableCompletion(&threadData->completion,
                                          READ_ONLY_MODE_COMPLETION, layer);
 }
@@ -99,8 +91,7 @@ int makeThreadDataArray(bool                 isReadOnly,
   }
 
   for (ThreadCount id = 0; id < threadConfig->baseThreadCount; id++) {
-    result = initializeThreadData(&threads[id], id, isReadOnly,
-                                  threadConfig, layer);
+    result = initializeThreadData(&threads[id], id, isReadOnly, layer);
     if (result != VDO_SUCCESS) {
       freeThreadDataArray(&threads, id);
       return result;
@@ -125,26 +116,6 @@ void freeThreadDataArray(ThreadData **threadsPtr, ThreadCount count)
 
   FREE(threads);
   *threadsPtr = NULL;
-}
-
-/**********************************************************************/
-PhysicalZone *getNextAllocationZone(VDO *vdo, ThreadID threadID)
-{
-  ThreadData         *threadData   = &vdo->threadData[threadID];
-  const ThreadConfig *threadConfig = threadData->threadConfig;
-  if (threadConfig->physicalZoneCount > 1) {
-    if (threadData->allocationCount < ALLOCATIONS_PER_ZONE) {
-      threadData->allocationCount++;
-    } else {
-      threadData->allocationCount = 1;
-      threadData->nextAllocationZone++;
-      if (threadData->nextAllocationZone == threadConfig->physicalZoneCount) {
-        threadData->nextAllocationZone = 0;
-      }
-    }
-  }
-
-  return vdo->physicalZones[threadData->nextAllocationZone];
 }
 
 /**

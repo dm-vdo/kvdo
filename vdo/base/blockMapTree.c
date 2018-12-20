@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#2 $
  */
 
 #include "blockMapTree.h"
@@ -1176,6 +1176,7 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO)
   }
 
   allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
+                    getAllocationSelector(dataVIO->logical.zone),
                     VIO_BLOCK_MAP_WRITE_LOCK,
                     continueBlockMapPageAllocation);
 }
