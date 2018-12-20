@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#4 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -27,21 +27,21 @@
 #include "threadRegistry.h"
 #include "workQueue.h"
 
-typedef struct {
+struct kvdo_thread {
   KVDO              *kvdo;
   ThreadID           threadID;
   KvdoWorkQueue     *requestQueue;
   RegisteredThread   allocatingThread;
-} KVDOThread;
+};
 
 struct kvdo {
-  KVDOThread        *threads;
-  ThreadID           initializedThreadCount;
-  KvdoWorkItem       workItem;
-  VDOAction         *action;
-  VDOCompletion     *completion;
+  struct kvdo_thread *threads;
+  ThreadID            initializedThreadCount;
+  KvdoWorkItem        workItem;
+  VDOAction          *action;
+  VDOCompletion      *completion;
   // Base-code device info
-  VDO               *vdo;
+  VDO                *vdo;
 };
 
 typedef enum reqQAction {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#5 $
  */
 
 #include "kernelVDOInternals.h"
@@ -45,9 +45,9 @@ enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 /**********************************************************************/
 static void startKVDORequestQueue(void *ptr)
 {
-  KVDOThread  *thread = ptr;
-  KVDO        *kvdo   = thread->kvdo;
-  KernelLayer *layer  = container_of(kvdo, KernelLayer, kvdo);
+  struct kvdo_thread *thread = ptr;
+  KVDO               *kvdo   = thread->kvdo;
+  KernelLayer        *layer  = container_of(kvdo, KernelLayer, kvdo);
   registerAllocatingThread(&thread->allocatingThread,
                            &layer->allocationsAllowed);
   setWorkQueuePrivateData(thread);
@@ -88,7 +88,7 @@ int initializeKVDO(KVDO                *kvdo,
                    char               **reason)
 {
   unsigned int baseThreads = threadConfig->baseThreadCount;
-  int result = ALLOCATE(baseThreads, KVDOThread,
+  int result = ALLOCATE(baseThreads, struct kvdo_thread,
                         "request processing work queue",
                         &kvdo->threads);
   if (result != VDO_SUCCESS) {
@@ -99,7 +99,7 @@ int initializeKVDO(KVDO                *kvdo,
   for (kvdo->initializedThreadCount = 0;
        kvdo->initializedThreadCount < baseThreads;
        kvdo->initializedThreadCount++) {
-    KVDOThread *thread = &kvdo->threads[kvdo->initializedThreadCount];
+    struct kvdo_thread *thread = &kvdo->threads[kvdo->initializedThreadCount];
 
     thread->kvdo = kvdo;
     thread->threadID = kvdo->initializedThreadCount;
@@ -444,8 +444,8 @@ WritePolicy getKVDOWritePolicy(KVDO *kvdo)
 }
 
 /**********************************************************************/
-void enqueueKVDOThreadWork(KVDOThread    *thread,
-                           KvdoWorkItem  *item)
+void enqueueKVDOThreadWork(struct kvdo_thread *thread,
+                           KvdoWorkItem       *item)
 {
   enqueueWorkQueue(thread->requestQueue, item);
 }
@@ -506,7 +506,7 @@ void kvdoEnqueue(Enqueueable *enqueueable)
 /**********************************************************************/
 ThreadID getCallbackThreadID(void)
 {
-  KVDOThread *thread = getWorkQueuePrivateData();
+  struct kvdo_thread *thread = getWorkQueuePrivateData();
   if (thread == NULL) {
     return INVALID_THREAD_ID;
   }
