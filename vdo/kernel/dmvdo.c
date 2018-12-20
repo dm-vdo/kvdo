@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#4 $
  */
 
 #include "dmvdo.h"
@@ -44,7 +44,7 @@
 #include "threadDevice.h"
 #include "threadRegistry.h"
 
-KVDOModuleGlobals kvdoGlobals;
+struct kvdo_module_globals kvdoGlobals;
 
 /*
  * Pre kernel version 4.3, we use the functionality in blkdev_issue_discard

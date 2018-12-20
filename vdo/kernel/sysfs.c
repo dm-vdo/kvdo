@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#2 $
  */
 
 #include "sysfs.h"
@@ -31,15 +31,15 @@
 extern int defaultMaxRequestsActive;
 
 typedef struct vdoAttribute {
-  struct attribute  attr;
-  ssize_t (*show)(KVDOModuleGlobals *kvdoGlobals,
-                  struct attribute  *attr,
-                  char              *buf);
-  ssize_t (*store)(KVDOModuleGlobals *kvdoGlobals,
-                   const char        *value,
-                   size_t             count);
+  struct attribute                             attr;
+  ssize_t (*show)(struct kvdo_module_globals  *kvdoGlobals,
+                  struct attribute            *attr,
+                  char                        *buf);
+  ssize_t (*store)(struct kvdo_module_globals *kvdoGlobals,
+                   const char                 *value,
+                   size_t                      count);
   // Location of value, if .show == showInt or showUInt or showBool.
-  void     *valuePtr;
+  void                                        *valuePtr;
 } VDOAttribute;
 
 static char *statusStrings[] = {
@@ -49,25 +49,25 @@ static char *statusStrings[] = {
 };
 
 /**********************************************************************/
-static ssize_t vdoStatusShow(KVDOModuleGlobals *kvdoGlobals,
-                             struct attribute  *attr,
-                             char              *buf)
+static ssize_t vdoStatusShow(struct kvdo_module_globals *kvdoGlobals,
+                             struct attribute           *attr,
+                             char                       *buf)
 {
   return sprintf(buf, "%s\n", statusStrings[kvdoGlobals->status]);
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelShow(KVDOModuleGlobals *kvdoGlobals,
-                               struct attribute  *attr,
-                               char              *buf)
+static ssize_t vdoLogLevelShow(struct kvdo_module_globals *kvdoGlobals,
+                               struct attribute           *attr,
+                               char                       *buf)
 {
   return sprintf(buf, "%s\n", priorityToString(getLogLevel()));
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelStore(KVDOModuleGlobals *kvdoGlobals,
-                                const char        *buf,
-                                size_t             n)
+static ssize_t vdoLogLevelStore(struct kvdo_module_globals *kvdoGlobals,
+                                const char                 *buf,
+                                size_t                      n)
 {
   static char internalBuf[11];
 
@@ -108,9 +108,9 @@ static ssize_t scanInt(const char *buf,
 }
 
 /**********************************************************************/
-static ssize_t showInt(KVDOModuleGlobals *kvdoGlobals,
-                       struct attribute  *attr,
-                       char              *buf)
+static ssize_t showInt(struct kvdo_module_globals *kvdoGlobals,
+                       struct attribute           *attr,
+                       char                       *buf)
 {
   VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
 
@@ -141,9 +141,9 @@ static ssize_t scanUInt(const char   *buf,
 }
 
 /**********************************************************************/
-static ssize_t showUInt(KVDOModuleGlobals *kvdoGlobals,
-                        struct attribute  *attr,
-                        char              *buf)
+static ssize_t showUInt(struct kvdo_module_globals *kvdoGlobals,
+                        struct attribute           *attr,
+                        char                       *buf)
 {
   VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
 
@@ -162,9 +162,9 @@ static ssize_t scanBool(const char *buf, size_t n, bool *valuePtr)
 }
 
 /**********************************************************************/
-static ssize_t showBool(KVDOModuleGlobals *kvdoGlobals,
-                        struct attribute  *attr,
-                        char              *buf)
+static ssize_t showBool(struct kvdo_module_globals *kvdoGlobals,
+                        struct attribute           *attr,
+                        char                       *buf)
 {
   VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
 
@@ -172,17 +172,17 @@ static ssize_t showBool(KVDOModuleGlobals *kvdoGlobals,
 }
 
 /**********************************************************************/
-static ssize_t vdoTraceRecordingStore(KVDOModuleGlobals *kvdoGlobals,
-                                      const char        *buf,
-                                      size_t             n)
+static ssize_t vdoTraceRecordingStore(struct kvdo_module_globals *kvdoGlobals,
+                                      const char                 *buf,
+                                      size_t                      n)
 {
   return scanBool(buf, n, &traceRecording);
 }
 
 /**********************************************************************/
-static ssize_t vdoMaxReqActiveStore(KVDOModuleGlobals *kvdoGlobals,
-                                    const char        *buf,
-                                    size_t             n)
+static ssize_t vdoMaxReqActiveStore(struct kvdo_module_globals *kvdoGlobals,
+                                    const char                 *buf,
+                                    size_t                      n)
 {
   /*
    * The base code has some hardcoded assumptions about the maximum
@@ -194,9 +194,9 @@ static ssize_t vdoMaxReqActiveStore(KVDOModuleGlobals *kvdoGlobals,
 }
 
 /**********************************************************************/
-static ssize_t vdoAlbireoTimeoutIntervalStore(KVDOModuleGlobals *kvdoGlobals,
-                                              const char        *buf,
-                                              size_t             n)
+static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdo_module_globals *kvdoGlobals,
+                                              const char                 *buf,
+                                              size_t                      n)
 {
   unsigned int value;
   ssize_t result = scanUInt(buf, n, &value, 0, UINT_MAX);
@@ -207,9 +207,9 @@ static ssize_t vdoAlbireoTimeoutIntervalStore(KVDOModuleGlobals *kvdoGlobals,
 }
 
 /**********************************************************************/
-static ssize_t vdoMinAlbireoTimerIntervalStore(KVDOModuleGlobals *kvdoGlobals,
-                                               const char        *buf,
-                                               size_t             n)
+static ssize_t vdoMinAlbireoTimerIntervalStore(struct kvdo_module_globals *kvdoGlobals,
+                                               const char                 *buf,
+                                               size_t                      n)
 {
   unsigned int value;
   ssize_t result = scanUInt(buf, n, &value, 0, UINT_MAX);
@@ -220,9 +220,9 @@ static ssize_t vdoMinAlbireoTimerIntervalStore(KVDOModuleGlobals *kvdoGlobals,
 }
 
 /**********************************************************************/
-static ssize_t vdoVersionShow(KVDOModuleGlobals *kvdoGlobals,
-                              struct attribute  *attr,
-                              char              *buf)
+static ssize_t vdoVersionShow(struct kvdo_module_globals *kvdoGlobals,
+                              struct attribute           *attr,
+                              char                       *buf)
 {
   return sprintf(buf, "%s\n", CURRENT_VERSION);
 }
@@ -237,7 +237,8 @@ static ssize_t vdoAttrShow(struct kobject   *kobj,
     return -EINVAL;
   }
 
-  KVDOModuleGlobals *kvdoGlobals = container_of(kobj, KVDOModuleGlobals, kobj);
+  struct kvdo_module_globals *kvdoGlobals;
+  kvdoGlobals = container_of(kobj, struct kvdo_module_globals, kobj);
   return (*vdoAttr->show)(kvdoGlobals, attr, buf);
 }
 
@@ -252,7 +253,8 @@ static ssize_t vdoAttrStore(struct kobject   *kobj,
     return -EINVAL;
   }
 
-  KVDOModuleGlobals *kvdoGlobals = container_of(kobj, KVDOModuleGlobals, kobj);
+  struct kvdo_module_globals *kvdoGlobals;
+  kvdoGlobals = container_of(kobj, struct kvdo_module_globals, kobj);
   return (*vdoAttr->store)(kvdoGlobals, buf, length);
 }
 

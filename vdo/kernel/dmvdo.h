@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.h#2 $
  */
 
 #ifndef DMVDO_H
@@ -37,9 +37,9 @@ typedef enum {
 /*
  * The global storage structure for the KVDO module.
  */
-typedef struct {
+struct kvdo_module_globals {
   KVDOStatus          status;
   struct kobject      kobj;
-} KVDOModuleGlobals;
+};
 
 #endif /* DMVDO_H */
