@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#4 $
  */
 
 #ifndef DATA_KVIO_H
@@ -396,20 +396,6 @@ void kvdoWriteDataVIO(DataVIO *dataVIO);
 void kvdoModifyWriteDataVIO(DataVIO *dataVIO);
 
 /**
- * Implements DataHasher.
- *
- * @param dataVIO  The DataVIO to hash
- **/
-void kvdoHashDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DuplicationChecker.
- *
- * @param dataVIO  The DataVIO containing the block to check
- **/
-void kvdoCheckForDuplication(DataVIO *dataVIO);
-
-/**
  * Implements DataAcknowledger.
  *
  * @param dataVIO  The DataVIO to acknowledge
@@ -422,13 +408,6 @@ void kvdoAcknowledgeDataVIO(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO to compress
  **/
 void kvdoCompressDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements AlbireoUpdater.
- *
- * @param dataVIO  The DataVIO which needs to change the entry for its data
- **/
-void kvdoUpdateDedupeAdvice(DataVIO *dataVIO);
 
 /**
  * Allocate a buffer pool of DataKVIOs.

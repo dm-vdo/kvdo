@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#3 $
  */
 
-#include "verify.h"
+#include "physicalLayer.h"
 
 #include "logger.h"
 
@@ -124,7 +124,7 @@ static void verifyReadBlockCallback(DataKVIO *dataKVIO)
 }
 
 /**********************************************************************/
-void kvdoVerifyDuplication(DataVIO *dataVIO)
+void verifyDuplication(DataVIO *dataVIO)
 {
   ASSERT_LOG_ONLY(dataVIO->isDuplicate, "advice to verify must be valid");
   ASSERT_LOG_ONLY(dataVIO->duplicate.state != MAPPING_STATE_UNMAPPED,

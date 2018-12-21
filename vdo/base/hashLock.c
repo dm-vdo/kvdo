@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#2 $
  */
 
 /**
@@ -661,7 +661,7 @@ static void startUpdating(HashLock *lock, DataVIO *agent)
 
   agent->lastAsyncOperation = UPDATE_INDEX;
   setHashZoneCallback(agent, finishUpdating, THIS_LOCATION(NULL));
-  dataVIOAsCompletion(agent)->layer->updateAlbireo(agent);
+  updateDedupeIndex(agent);
 }
 
 /**
@@ -919,10 +919,9 @@ static void startVerifying(HashLock *lock, DataVIO *agent)
    * could save a thread transition in one of the two cases (assuming we're
    * willing to delay visibility of the the hash lock state change).
    */
-  VDOCompletion *completion = dataVIOAsCompletion(agent);
   agent->lastAsyncOperation = VERIFY_DEDUPLICATION;
   setHashZoneCallback(agent, finishVerifying, THIS_LOCATION(NULL));
-  completion->layer->verifyDuplication(agent);
+  verifyDuplication(agent);
 }
 
 /**
@@ -1353,10 +1352,9 @@ static void startQuerying(HashLock *lock, DataVIO *dataVIO)
   setAgent(lock, dataVIO);
   setHashLockState(lock, HASH_LOCK_QUERYING);
 
-  VDOCompletion *completion   = dataVIOAsCompletion(dataVIO);
   dataVIO->lastAsyncOperation = CHECK_FOR_DEDUPLICATION;
   setHashZoneCallback(dataVIO, finishQuerying, THIS_LOCATION(NULL));
-  completion->layer->checkForDuplication(dataVIO);
+  checkForDuplication(dataVIO);
 }
 
 /**

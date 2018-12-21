@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#11 $
  */
 
 #include "kernelLayer.h"
@@ -640,12 +640,8 @@ int makeKernelLayer(uint64_t               startingSector,
   layer->common.writeCompressedBlock     = kvdoWriteCompressedBlock;
   layer->common.applyPartialWrite        = kvdoModifyWriteDataVIO;
   layer->common.flush                    = kvdoFlushVIO;
-  layer->common.hashData                 = kvdoHashDataVIO;
-  layer->common.checkForDuplication      = kvdoCheckForDuplication;
-  layer->common.verifyDuplication        = kvdoVerifyDuplication;
   layer->common.acknowledgeDataVIO       = kvdoAcknowledgeDataVIO;
   layer->common.compressDataVIO          = kvdoCompressDataVIO;
-  layer->common.updateAlbireo            = kvdoUpdateDedupeAdvice;
   spin_lock_init(&layer->flushLock);
   mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#8 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -402,5 +402,45 @@ void destroyVIO(VIO **vioPtr);
  * @param vio  The VIO to read or write
  **/
 void submitMetadataVIO(VIO *vio);
+
+/**
+ * A function to asynchronously hash the block data, setting the chunk name of
+ * the DataVIO. This is asynchronous to allow the computation to be done on
+ * different threads.
+ *
+ * @param dataVIO  The DataVIO to hash
+ **/
+void hashDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to determine whether a block is a duplicate. This function
+ * expects the 'physical' field of the DataVIO to be set to the physical block
+ * where the block will be written if it is not a duplicate. If the block does
+ * turn out to be a duplicate, the DataVIO's 'isDuplicate' field will be set to
+ * true, and the DataVIO's 'advice' field will be set to the physical block and
+ * mapping state of the already stored copy of the block.
+ *
+ * @param dataVIO  The DataVIO containing the block to check.
+ **/
+void checkForDuplication(DataVIO *dataVIO);
+
+/**
+ * A function to verify the duplication advice by examining an already-stored
+ * data block. This function expects the 'physical' field of the DataVIO to be
+ * set to the physical block where the block will be written if it is not a
+ * duplicate, and the 'duplicate' field to be set to the physical block and
+ * mapping state where a copy of the data may already exist. If the block is
+ * not a duplicate, the DataVIO's 'isDuplicate' field will be cleared.
+ *
+ * @param dataVIO  The dataVIO containing the block to check.
+ **/
+void verifyDuplication(DataVIO *dataVIO);
+
+/**
+ * Update the index with new dedupe advice.
+ *
+ * @param dataVIO  The DataVIO which needs to change the entry for its data
+ **/
+void updateDedupeIndex(DataVIO *dataVIO);
 
 #endif // PHYSICAL_LAYER_H

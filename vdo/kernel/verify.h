@@ -16,20 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.h#2 $
  */
 
 #include "kernelLayer.h"
-
-/**
- * Verify the Albireo-provided deduplication advice, and invoke a callback once
- * the answer is available. This is done through a call to kvdoReadBlock()
- * which will eventually call back to verifyDuplication() once the block is
- * read and possibly uncompressed.
- *
- * @param dataVIO   The DataVIO with advice filled in.
- **/
-void kvdoVerifyDuplication(DataVIO *dataVIO);
 
 /**
  * Implements DataVIOComparator.

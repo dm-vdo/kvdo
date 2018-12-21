@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#8 $
  */
 
 #include "dataKVIO.h"
@@ -27,10 +27,11 @@
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 
-#include "dataVIO.h"
 #include "compressedBlock.h"
+#include "dataVIO.h"
 #include "hashLock.h"
 #include "lz4.h"
+#include "physicalLayer.h"
 
 #include "bio.h"
 #include "dedupeIndex.h"
@@ -38,7 +39,6 @@
 #include "kvio.h"
 #include "ioSubmitter.h"
 #include "vdoCommon.h"
-#include "verify.h"
 
 static void dumpPooledDataKVIO(void *poolData, void *data);
 
@@ -931,7 +931,7 @@ static void kvdoHashDataWork(KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-void kvdoHashDataVIO(DataVIO *dataVIO)
+void hashDataVIO(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   launchDataKVIOOnCPUQueue(dataVIOAsDataKVIO(dataVIO), kvdoHashDataWork, NULL,
@@ -939,7 +939,7 @@ void kvdoHashDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void kvdoCheckForDuplication(DataVIO *dataVIO)
+void checkForDuplication(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO,
                         THIS_LOCATION("checkForDuplication;dup=post"));
@@ -958,12 +958,8 @@ void kvdoCheckForDuplication(DataVIO *dataVIO)
   }
 }
 
-/**
- * Update Albireo metadata for compressed DataVIOs.
- *
- * @param dataVIO  The DataVIO to update albireo metadata for
- **/
-void kvdoUpdateDedupeAdvice(DataVIO *dataVIO)
+/**********************************************************************/
+void updateDedupeIndex(DataVIO *dataVIO)
 {
   updateDedupeAdvice(dataVIOAsDataKVIO(dataVIO));
 }

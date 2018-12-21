@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#3 $
  */
 
 /*
@@ -879,7 +879,7 @@ static void prepareForDedupe(VDOCompletion *completion)
   // XXX this is the wrong thread to run this callback, but we don't yet have
   // a mechanism for running it on the CPU thread immediately after hashing.
   setAllocatedZoneCallback(dataVIO, resolveHashZone, THIS_LOCATION(NULL));
-  completion->layer->hashData(dataVIO);
+  hashDataVIO(dataVIO);
 }
 
 /**
