@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#5 $
  */
 
 #ifndef KERNELLAYER_H
@@ -62,7 +62,7 @@ typedef enum {
   LAYER_STOPPED,
 } KernelLayerState;
 
-/* Keep BIO statistics atomically */
+/* Keep struct bio statistics atomically */
 struct atomicBioStats {
   atomic64_t read;              // Number of not REQ_WRITE bios
   atomic64_t write;             // Number of REQ_WRITE bios
@@ -125,7 +125,7 @@ struct kernelLayer {
   Limiter                  discardLimiter;
   KVDO                     kvdo;
   /** Incoming bios we've had to buffer to avoid deadlock. */
-  DeadlockQueue            deadlockQueue;
+  struct deadlock_queue    deadlockQueue;
   // for REQ_FLUSH processing
   struct bio_list          waitingFlushes;
   KVDOFlush               *spareKVDOFlush;
@@ -359,7 +359,7 @@ static inline KernelLayerState getKernelLayerState(const KernelLayer *layer)
  *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdoMapBio for
  *         details).
  **/
-int kvdoMapBio(KernelLayer *layer, BIO *bio);
+int kvdoMapBio(KernelLayer *layer, struct bio *bio);
 
 /**
  * Convert a generic PhysicalLayer to a kernelLayer.

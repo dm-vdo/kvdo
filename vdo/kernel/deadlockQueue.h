@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#2 $
  */
 
 #ifndef DEADLOCK_QUEUE_H
@@ -30,7 +30,7 @@
  * A holding space for incoming bios if we're not able to block until VIOs
  * become available to process them.
  **/
-typedef struct deadlockQueue {
+struct deadlock_queue {
   /* Protection for the other fields. */
   spinlock_t      lock;
   /* List of bios we had to accept but don't have VIOs for. */
@@ -40,28 +40,31 @@ typedef struct deadlockQueue {
    * haven't the space to store individual arrival times for each.
    */
   Jiffies         arrivalTime;
-} DeadlockQueue;
+};
 
 /**
- * Initialize the DeadlockQueue structure.
+ * Initialize the struct deadlock_queue structure.
  *
  * @param queue  The structure to initialize
  **/
-void initializeDeadlockQueue(DeadlockQueue *queue);
+void initializeDeadlockQueue(struct deadlock_queue *queue);
 
 /**
  * Add an incoming bio to the list of saved-up bios we're not ready to start
  * processing yet.
  *
  * This excess buffering on top of what the caller implements is generally a
- * bad idea, and should be used only when necessary, such as to avoid a
+ * bad                                         idea, and should be used only when necessary, such as to avoid a
  * possible deadlock situation.
  *
  * @param queue        The incoming-bio queue structure
  * @param bio          The new incoming bio to save
  * @param arrivalTime  The arrival time of this new bio
  **/
-void addToDeadlockQueue(DeadlockQueue *queue, BIO *bio, Jiffies arrivalTime);
+
+void addToDeadlockQueue(struct deadlock_queue *queue,
+                        struct bio            *bio,
+                        Jiffies                arrivalTime);
 
 /**
  * Pull an incoming bio off the queue.
@@ -73,13 +76,14 @@ void addToDeadlockQueue(DeadlockQueue *queue, BIO *bio, Jiffies arrivalTime);
  * @param [in]  queue        The incoming-bio queue
  * @param [out] arrivalTime  The arrival time to use for this bio
  *
- * @return  a BIO pointer, or NULL if none were queued
+ * @return  a bio pointer, or NULL if none were queued
  **/
-static inline BIO *pollDeadlockQueue(DeadlockQueue *queue,
-                                     Jiffies       *arrivalTime)
+static inline struct bio 
+*pollDeadlockQueue(struct deadlock_queue     *queue,
+                   Jiffies *arrivalTime)
 {
   spin_lock(&queue->lock);
-  BIO *bio = bio_list_pop(&queue->list);
+  struct bio *bio = bio_list_pop(&queue->list);
   if (unlikely(bio != NULL)) {
     *arrivalTime = queue->arrivalTime;
   }

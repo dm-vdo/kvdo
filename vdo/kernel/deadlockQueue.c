@@ -16,20 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.c#2 $
  */
 
 #include "deadlockQueue.h"
 
 /**********************************************************************/
-void initializeDeadlockQueue(DeadlockQueue *queue)
+void initializeDeadlockQueue(struct deadlock_queue *queue)
 {
   spin_lock_init(&queue->lock);
   bio_list_init(&queue->list);
 }
 
 /**********************************************************************/
-void addToDeadlockQueue(DeadlockQueue *queue, BIO *bio, Jiffies arrivalTime)
+void addToDeadlockQueue(struct deadlock_queue *queue,
+                        struct bio            *bio,
+                        Jiffies                arrivalTime)
 {
   spin_lock(&queue->lock);
   if (bio_list_empty(&queue->list)) {
