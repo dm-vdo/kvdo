@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#4 $
  */
 
 #ifndef KERNELLAYER_H
@@ -121,74 +121,74 @@ struct kernelLayer {
   struct dm_target_callbacks  callbacks;
 
   /** Limit the number of requests that are being processed. */
-  Limiter                     requestLimiter;
-  Limiter                     discardLimiter;
-  KVDO                        kvdo;
+  Limiter                  requestLimiter;
+  Limiter                  discardLimiter;
+  KVDO                     kvdo;
   /** Incoming bios we've had to buffer to avoid deadlock. */
-  DeadlockQueue               deadlockQueue;
+  DeadlockQueue            deadlockQueue;
   // for REQ_FLUSH processing
-  struct bio_list             waitingFlushes;
-  KVDOFlush                  *spareKVDOFlush;
-  spinlock_t                  flushLock;
-  Jiffies                     flushArrivalTime;
+  struct bio_list          waitingFlushes;
+  KVDOFlush               *spareKVDOFlush;
+  spinlock_t               flushLock;
+  Jiffies                  flushArrivalTime;
   /**
    * Bio submission manager used for sending bios to the storage
    * device.
    **/
-  IOSubmitter                *ioSubmitter;
+  IOSubmitter             *ioSubmitter;
   /**
    * Work queue (possibly with multiple threads) for miscellaneous
    * CPU-intensive, non-blocking work.
    **/
-  KvdoWorkQueue              *cpuQueue;
+  KvdoWorkQueue           *cpuQueue;
   /** N blobs of context data for LZ4 code, one per CPU thread. */
-  char                      **compressionContext;
-  Atomic32                    compressionContextIndex;
+  char                   **compressionContext;
+  Atomic32                 compressionContextIndex;
   /** Optional work queue for calling bio_endio. */
-  KvdoWorkQueue              *bioAckQueue;
+  KvdoWorkQueue           *bioAckQueue;
   /** Underlying block device info. */
-  uint64_t                startingSectorOffset;
-  VolumeGeometry          geometry;
+  uint64_t                 startingSectorOffset;
+  VolumeGeometry           geometry;
   // Memory allocation
-  BufferPool                 *dataKVIOPool;
+  BufferPool              *dataKVIOPool;
   // Albireo specific info
-  DedupeIndex                *dedupeIndex;
+  DedupeIndex             *dedupeIndex;
   // Statistics
-  atomic64_t                  biosSubmitted;
-  atomic64_t                  biosCompleted;
-  atomic64_t                  dedupeContextBusy;
-  atomic64_t                  flushOut;
-  AtomicBioStats              biosIn;
-  AtomicBioStats              biosInPartial;
-  AtomicBioStats              biosOut;
-  AtomicBioStats              biosOutCompleted;
-  AtomicBioStats              biosAcknowledged;
-  AtomicBioStats              biosAcknowledgedPartial;
-  AtomicBioStats              biosMeta;
-  AtomicBioStats              biosMetaCompleted;
-  AtomicBioStats              biosJournal;
-  AtomicBioStats              biosPageCache;
-  AtomicBioStats              biosJournalCompleted;
-  AtomicBioStats              biosPageCacheCompleted;
+  atomic64_t               biosSubmitted;
+  atomic64_t               biosCompleted;
+  atomic64_t               dedupeContextBusy;
+  atomic64_t               flushOut;
+  AtomicBioStats           biosIn;
+  AtomicBioStats           biosInPartial;
+  AtomicBioStats           biosOut;
+  AtomicBioStats           biosOutCompleted;
+  AtomicBioStats           biosAcknowledged;
+  AtomicBioStats           biosAcknowledgedPartial;
+  AtomicBioStats           biosMeta;
+  AtomicBioStats           biosMetaCompleted;
+  AtomicBioStats           biosJournal;
+  AtomicBioStats           biosPageCache;
+  AtomicBioStats           biosJournalCompleted;
+  AtomicBioStats           biosPageCacheCompleted;
   // for reporting Albireo timeouts
-  PeriodicEventReporter       albireoTimeoutReporter;
+  PeriodicEventReporter    albireoTimeoutReporter;
   // Debugging
   /* Whether to dump VDO state on shutdown */
-  bool                        dumpOnShutdown;
+  bool                     dumpOnShutdown;
   /**
    * Whether we should collect tracing info. (Actually, this controls
    * allocations; non-null record pointers cause recording.)
    **/
-  bool                        vioTraceRecording;
-  SampleCounter               traceSampleCounter;
+  bool                     vioTraceRecording;
+  struct sample_counter    traceSampleCounter;
   /* Should we log tracing info? */
-  bool                        traceLogging;
+  bool                     traceLogging;
   /* Storage for trace data. */
-  BufferPool                 *traceBufferPool;
+  BufferPool              *traceBufferPool;
   /* Private storage for procfs. */
-  void                       *procfsPrivate;
+  void                    *procfsPrivate;
   /* For returning batches of DataKVIOs to their pool */
-  struct batch_processor     *dataKVIOReleaser;
+  struct batch_processor  *dataKVIOReleaser;
 
   // Administrative operations
   /* The object used to wait for administrative operations to complete */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#2 $
  */
 
 #include "ktrace.h"
@@ -46,13 +46,14 @@ static struct {
 } traceLoggingState;
 
 /**
- * Initialize a SampleCounter structure with the given sampling interval.
+ * Initialize a struct sample_counter structure with the given
+ * sampling interval.
  *
  * @param counter    The counter to initialize
  * @param interval   The desired sampling interval
  **/
-static void initializeSampleCounter(SampleCounter *counter,
-                                    unsigned int   interval)
+static void initializeSampleCounter(struct sample_counter *counter,
+                                    unsigned int           interval)
 {
   spin_lock_init(&counter->lock);
   counter->tick = 0;
@@ -60,7 +61,7 @@ static void initializeSampleCounter(SampleCounter *counter,
 }
 
 /*************************************************************************/
-bool sampleThisOne(SampleCounter *counter)
+bool sampleThisOne(struct sample_counter *counter)
 {
   bool wantTracing = false;
   spin_lock(&counter->lock);

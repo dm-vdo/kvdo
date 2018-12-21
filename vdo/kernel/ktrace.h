@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#2 $
  */
 
 #ifndef KTRACE_H
@@ -31,11 +31,11 @@ struct kernelLayer;
 struct kvio;
 
 // Implement event sampling once per N.
-typedef struct {
+struct sample_counter {
   unsigned int interval;
   unsigned int tick;
   spinlock_t   lock;
-} SampleCounter;
+};
 
 /**
  * Flag indicating whether newly created VDO devices should record trace info.
@@ -50,7 +50,7 @@ extern bool traceRecording;
  *
  * @return whether to do sampling on this invocation
  **/
-bool sampleThisOne(SampleCounter *counter);
+bool sampleThisOne(struct sample_counter *counter);
 
 /**
  * Initialize trace data in the KernelLayer
