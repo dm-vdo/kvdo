@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#4 $
  */
 
 #include "kvio.h"
@@ -108,8 +108,8 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
   // bits.
   struct compressed_write_kvio *compressedWriteKVIO
     = allocatingVIOAsCompressedWriteKVIO(allocatingVIO);
-  KVIO *kvio = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
-  BIO  *bio  = kvio->bio;
+  KVIO *kvio       = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
+  struct bio *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
@@ -121,7 +121,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
  *
  * @param vio  The VIO
  *
- * @return The action with which to submit the VIO's BIO.
+ * @return The action with which to submit the VIO's bio.
  **/
 static inline BioQAction getMetadataAction(VIO *vio)
 {
@@ -132,8 +132,8 @@ static inline BioQAction getMetadataAction(VIO *vio)
 /**********************************************************************/
 void submitMetadataVIO(VIO *vio)
 {
-  KVIO *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
-  BIO  *bio  = kvio->bio;
+  KVIO       *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
+  struct bio *bio  = kvio->bio;
   resetBio(bio, kvio->layer);
 
   setBioSector(bio, blockToSector(kvio->layer, vio->physical));
@@ -166,7 +166,7 @@ void submitMetadataVIO(VIO *vio)
  *
  * @param bio    The bio to complete
  **/
-static void completeFlushBio(BIO *bio)
+static void completeFlushBio(struct bio *bio)
 #else
 /**
  * Handle the completion of a base-code initiated flush by continuing the flush
@@ -175,7 +175,7 @@ static void completeFlushBio(BIO *bio)
  * @param bio    The bio to complete
  * @param error  Possible error from underlying block device
  **/
-static void completeFlushBio(BIO *bio, int error)
+static void completeFlushBio(struct bio *bio, int error)
 #endif
 {
   KVIO *kvio   = (KVIO *) bio->bi_private;
@@ -192,7 +192,7 @@ static void completeFlushBio(BIO *bio, int error)
 void kvdoFlushVIO(VIO *vio)
 {
   KVIO        *kvio  = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
-  BIO         *bio   = kvio->bio;
+  struct bio  *bio   = kvio->bio;
   KernelLayer *layer = kvio->layer;
   resetBio(bio, layer);
   prepareFlushBIO(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
@@ -218,7 +218,7 @@ void kvdoFlushVIO(VIO *vio)
  *         this one
  */
 static noinline bool
-sampleThisVIO(KVIO *kvio, KernelLayer *layer, BIO *bio)
+sampleThisVIO(KVIO *kvio, KernelLayer *layer, struct bio *bio)
 {
   bool result = true;
   // Ensure the arguments and result exist at the same time, for SystemTap.
@@ -238,7 +238,7 @@ void initializeKVIO(KVIO        *kvio,
                     VIOType      vioType,
                     VIOPriority  priority,
                     void        *parent,
-                    BIO         *bio)
+                    struct bio  *bio)
 {
   if (layer->vioTraceRecording
       && sampleThisVIO(kvio, layer, bio)
@@ -287,7 +287,7 @@ static int makeMetadataKVIO(KernelLayer           *layer,
                             VIOType                vioType,
                             VIOPriority            priority,
                             void                  *parent,
-                            BIO                   *bio,
+                            struct bio            *bio,
                             struct metadata_kvio **metadataKVIOPtr)
 {
   // If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
@@ -327,7 +327,7 @@ __attribute__((warn_unused_result))
 static int
 makeCompressedWriteKVIO(KernelLayer                   *layer,
                         void                          *parent,
-                        BIO                           *bio,
+                        struct bio                    *bio,
                         struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
   // Compressed write VIOs should use direct allocation and not use the buffer
@@ -362,7 +362,7 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
     return result;
   }
 
-  BIO *bio;
+  struct bio *bio;
   KernelLayer *kernelLayer = asKernelLayer(layer);
   result = createBio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {
@@ -387,7 +387,7 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
                                  char           *data,
                                  AllocatingVIO **allocatingVIOPtr)
 {
-  BIO *bio;
+  struct bio *bio;
   KernelLayer *kernelLayer = asKernelLayer(layer);
   int result = createBio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {

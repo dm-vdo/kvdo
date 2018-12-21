@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#5 $
  */
 
 #ifndef DATA_KVIO_H
@@ -28,16 +28,16 @@
 
 struct external_io_request {
   /*
-   * The BIO which was received from the device mapper to initiate an I/O
+   * The bio which was received from the device mapper to initiate an I/O
    * request. This field will be non-NULL only until the request is
    * acknowledged.
    */
-  BIO           *bio;
+  struct bio    *bio;
   // Cached copies of fields from the bio which will need to be reset after
   // we're done.
   void          *private;
   void          *endIO;
-  // This is a copy of the bi_rw field of the BIO which sadly is not just
+  // This is a copy of the bi_rw field of the bio which sadly is not just
   // a boolean read-write flag, but also includes other flag bits.
   unsigned long  rw;
 };
@@ -66,7 +66,7 @@ struct read_block {
   /**
    * A bio structure wrapping the buffer.
    **/
-  BIO                 *bio;
+  struct bio          *bio;
   /**
    * Callback to invoke after completing the read I/O operation.
    **/
@@ -87,7 +87,7 @@ struct dataKVIO {
   DataVIO                     dataVIO;
   /* The embedded KVIO */
   KVIO                        kvio;
-  /* The BIO from the request which is being serviced by this KVIO. */
+  /* The bio from the request which is being serviced by this KVIO. */
   struct external_io_request  externalIORequest;
   /* Dedupe */
   DedupeContext               dedupeContext;
@@ -109,7 +109,7 @@ struct dataKVIO {
    **/
   char              *dataBlock;
   /** A bio structure describing the #dataBlock buffer. */
-  BIO               *dataBlockBio;
+  struct bio        *dataBlockBio;
   /** A block used as output during compression or uncompression. */
   char              *scratchBlock;
 };
@@ -188,13 +188,13 @@ static inline KvdoWorkItem *workItemFromDataKVIO(DataKVIO *dataKVIO)
 }
 
 /**
- * Get the BIO from a DataKVIO.
+ * Get the bio from a DataKVIO.
  *
- * @param dataKVIO  The DataKVIO from which to get the BIO
+ * @param dataKVIO  The DataKVIO from which to get the bio
  *
- * @return The DataKVIO's BIO
+ * @return The DataKVIO's bio
  **/
-static inline BIO *getBIOFromDataKVIO(DataKVIO *dataKVIO)
+static inline struct bio *getBIOFromDataKVIO(DataKVIO *dataKVIO)
 {
   return dataKVIOAsKVIO(dataKVIO)->bio;
 }
@@ -270,7 +270,7 @@ static inline void launchDataKVIOOnCPUQueue(DataKVIO         *dataKVIO,
 }
 
 /**
- * Set up and enqueue a DataKVIO on the BIO Ack queue.
+ * Set up and enqueue a DataKVIO on the bio Ack queue.
  *
  * @param dataKVIO       The DataKVIO to set up
  * @param work           The function pointer to execute
@@ -309,7 +309,7 @@ static inline bool requestorSetFUA(DataKVIO *dataKVIO)
 }
 
 /**
- * Associate a KVIO with a BIO passed in from the block layer, and start
+ * Associate a KVIO with a bio passed in from the block layer, and start
  * processing the KVIO.
  *
  * If setting up a KVIO fails, a message is logged, and the limiter permits
@@ -326,7 +326,7 @@ static inline bool requestorSetFUA(DataKVIO *dataKVIO)
  * @return VDO_SUCCESS or a system error code
  **/
 int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
-                              BIO         *bio,
+                              struct bio  *bio,
                               Jiffies      arrivalTime,
                               bool         hasDiscardPermit)
   __attribute__((warn_unused_result));

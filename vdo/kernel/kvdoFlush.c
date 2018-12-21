@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#2 $
  */
 
 #include "kvdoFlush.h"
@@ -100,7 +100,7 @@ static void enqueueKVDOFlush(KVDOFlush *kvdoFlush)
 }
 
 /**********************************************************************/
-void launchKVDOFlush(KernelLayer *layer, BIO *bio)
+void launchKVDOFlush(KernelLayer *layer, struct bio *bio)
 {
   // Try to allocate a KVDOFlush to represent the flush request. If the
   // allocation fails, we'll deal with it later.
@@ -188,7 +188,7 @@ static void kvdoCompleteFlushWork(KvdoWorkItem *item)
   KVDOFlush   *kvdoFlush = container_of(item, KVDOFlush, workItem);
   KernelLayer *layer     = kvdoFlush->layer;
 
-  BIO *bio;
+  struct bio *bio;
   while ((bio = bio_list_pop(&kvdoFlush->bios)) != NULL) {
     // We're not acknowledging this bio now, but we'll never touch it
     // again, so this is the last chance to account for it.
@@ -223,7 +223,7 @@ void kvdoCompleteFlush(VDOFlush **kfp)
 /**********************************************************************/
 int synchronousFlush(KernelLayer *layer)
 {
-  BIO bio;
+  struct bio bio;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio_init(&bio, 0, 0);
 #else

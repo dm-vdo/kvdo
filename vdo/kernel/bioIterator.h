@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#3 $
  */
 
 #ifndef BIO_ITERATOR_H
@@ -28,7 +28,7 @@
 #include "kernelTypes.h"
 
 struct bio_iterator {
-  BIO              *bio;
+  struct bio       *bio;
 #ifdef USE_BI_ITER
   struct bvec_iter  iter;
   // Needed so we can store the return value of bio_iter_iovec.
@@ -45,7 +45,7 @@ struct bio_iterator {
  *
  * @return An iterator over a bio
  **/
-static struct bio_iterator createBioIterator(BIO *bio)
+static struct bio_iterator createBioIterator(struct bio *bio)
 {
   struct bio_iterator  iterator = {
     .bio   = bio,
@@ -67,7 +67,7 @@ static struct bio_iterator createBioIterator(BIO *bio)
  **/
 static struct bio_vec *getNextBiovec(struct bio_iterator *iterator)
 {
-  BIO *bio = iterator->bio;
+  struct bio *bio = iterator->bio;
 #ifdef USE_BI_ITER
   if (iterator->iter.bi_size == 0) {
     return NULL;

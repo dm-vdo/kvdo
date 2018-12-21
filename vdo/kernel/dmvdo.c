@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#5 $
  */
 
 #include "dmvdo.h"
@@ -104,7 +104,7 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
  *                             mapper devices to defer an I/O request
  *                             during suspend/resume processing.
  **/
-static int vdoMapBio(struct dm_target *ti, BIO *bio)
+static int vdoMapBio(struct dm_target *ti, struct bio *bio)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
   return kvdoMapBio(layer, bio);

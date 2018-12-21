@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#4 $
  */
 
 #ifndef KVIO_H
@@ -34,7 +34,7 @@ struct kvio {
   KvdoEnqueueable    enqueueable;
   VIO               *vio;
   KernelLayer       *layer;
-  BIO               *bio;
+  struct bio        *bio;
 
   /**
    * A bio pointer used in enqueueBioMap (used via submitBio etc), to
@@ -42,7 +42,7 @@ struct kvio {
    * across a thread switch. This may match another bio pointer in
    * this structure, or could point somewhere else.
    **/
-  BIO               *bioToSubmit;
+  struct bio        *bioToSubmit;
   /**
    * A list of enqueued bios with consecutive block numbers, stored by
    * enqueueBioMap under the first-enqueued KVIO. The other KVIOs are
@@ -253,7 +253,7 @@ void initializeKVIO(KVIO        *kvio,
                     VIOType      vioType,
                     VIOPriority  priority,
                     void        *parent,
-                    BIO         *bio);
+                    struct bio  *bio);
 
 /**
  * Destroy a struct metadata_kvio and NULL out the pointer to it.
@@ -321,7 +321,7 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
 void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO);
 
 /**
- * Issue an empty flush to the lower layer using the BIO in a metadata VIO.
+ * Issue an empty flush to the lower layer using the bio in a metadata VIO.
  *
  * <p>Implements MetadataWriter.
  *

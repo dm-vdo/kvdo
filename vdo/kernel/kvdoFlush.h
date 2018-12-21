@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#2 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -52,7 +52,7 @@ bool shouldProcessFlush(KernelLayer *layer);
  * @param layer  The physical layer
  * @param bio    The bio containing an empty flush request
  **/
-void launchKVDOFlush(KernelLayer *layer, BIO *bio);
+void launchKVDOFlush(KernelLayer *layer, struct bio *bio);
 
 /**
  * Function called from base VDO to complete and free a flush request.

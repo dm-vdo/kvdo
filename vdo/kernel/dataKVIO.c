@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#9 $
  */
 
 #include "dataKVIO.h"
@@ -130,7 +130,7 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 {
   KernelLayer                *layer             = dataKVIO->kvio.layer;
   struct external_io_request *externalIORequest = &dataKVIO->externalIORequest;
-  BIO                        *bio               = externalIORequest->bio;
+  struct bio                 *bio               = externalIORequest->bio;
   if (bio == NULL) {
     return;
   }
@@ -282,7 +282,7 @@ static void readDataKVIOReadBlockCallback(DataKVIO *dataKVIO)
  *
  * @param bio   The bio to complete
  **/
-static void resetUserBio(BIO *bio)
+static void resetUserBio(struct bio *bio)
 #else
 /**
  * Complete and reset a bio that was supplied by the user and then used for a
@@ -291,7 +291,7 @@ static void resetUserBio(BIO *bio)
  * @param bio   The bio to complete
  * @param error Possible error from underlying block device
  **/
-static void resetUserBio(BIO *bio, int error)
+static void resetUserBio(struct bio *bio, int error)
 #endif
 {
 #if ((LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) \
@@ -375,7 +375,7 @@ static void completeRead(DataKVIO *dataKVIO, int result)
  *
  * @param bio     The bio
  */
-static void readBioCallback(BIO *bio)
+static void readBioCallback(struct bio *bio)
 #else
 /**
  * Callback for a bio doing a read.
@@ -383,7 +383,7 @@ static void readBioCallback(BIO *bio)
  * @param bio     The bio
  * @param result  The result of the read operation
  */
-static void readBioCallback(BIO *bio, int result)
+static void readBioCallback(struct bio *bio, int result)
 #endif
 {
   KVIO *kvio = (KVIO *) bio->bi_private;
@@ -417,7 +417,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
 
   BUG_ON(getBIOFromDataKVIO(dataKVIO)->bi_private != &dataKVIO->kvio);
   // Read the data directly from the device using the read bio.
-  BIO *bio = readBlock->bio;
+  struct bio *bio = readBlock->bio;
   resetBio(bio, layer);
   setBioSector(bio, blockToSector(layer, location));
   setBioOperationRead(bio);
@@ -438,9 +438,9 @@ void kvdoReadDataVIO(DataVIO *dataVIO)
     return;
   }
 
-  KVIO *kvio = dataVIOAsKVIO(dataVIO);
-  BIO  *bio  = kvio->bio;
-  bio->bi_end_io = resetUserBio;
+  KVIO       *kvio = dataVIOAsKVIO(dataVIO);
+  struct bio *bio  = kvio->bio;
+  bio->bi_end_io   = resetUserBio;
   setBioSector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
@@ -489,8 +489,8 @@ void kvdoWriteDataVIO(DataVIO *dataVIO)
                   "kvdoWriteDataVIO() called on write DataVIO");
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("$F;io=writeData;j=normal"));
 
-  KVIO *kvio  = dataVIOAsKVIO(dataVIO);
-  BIO  *bio   = kvio->bio;
+  KVIO       *kvio = dataVIOAsKVIO(dataVIO);
+  struct bio *bio  = kvio->bio;
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
   submitBio(bio, BIO_Q_ACTION_DATA);
@@ -556,7 +556,7 @@ void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  BIO         *bio      = dataKVIO->externalIORequest.bio;
+  struct bio  *bio      = dataKVIO->externalIORequest.bio;
   KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
   resetBio(dataKVIO->dataBlockBio, layer);
 
@@ -656,7 +656,9 @@ void kvdoCompressDataVIO(DataVIO *dataVIO)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int makeDataKVIO(KernelLayer *layer, BIO *bio, DataKVIO **dataKVIOPtr)
+static int makeDataKVIO(KernelLayer  *layer,
+                        struct bio   *bio,
+                        DataKVIO    **dataKVIOPtr)
 {
   DataKVIO *dataKVIO;
   int result = allocBufferFromPool(layer->dataKVIOPool, (void **) &dataKVIO);
@@ -693,15 +695,15 @@ static int makeDataKVIO(KernelLayer *layer, BIO *bio, DataKVIO **dataKVIOPtr)
  * physically read or write the data associated with the DataVIO.
  *
  * @param [in]  layer        The physical layer
- * @param [in]  bio          The BIO from the request the new DataKVIO will
+ * @param [in]  bio          The bio from the request the new DataKVIO will
  *                           service
- * @param [in]  arrivalTime  The arrival time of the BIO
+ * @param [in]  arrivalTime  The arrival time of the bio
  * @param [out] dataKVIOPtr  A pointer to hold the new DataKVIO
  *
  * @return VDO_SUCCESS or an error
  **/
 static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
-                                 BIO          *bio,
+                                 struct bio   *bio,
                                  Jiffies       arrivalTime,
                                  DataKVIO    **dataKVIOPtr)
 {
@@ -814,7 +816,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
     return;
   }
 
-  BIO *bio = getBIOFromDataKVIO(dataKVIO);
+  struct bio *bio = getBIOFromDataKVIO(dataKVIO);
   resetBio(bio, layer);
   dataKVIO->isPartial = (dataKVIO->remainingDiscard < VDO_BLOCK_SIZE);
   dataKVIO->offset    = 0;
@@ -855,7 +857,7 @@ static void kvdoCompletePartialRead(VDOCompletion *completion)
 
 /**********************************************************************/
 int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
-                              BIO         *bio,
+                              struct bio  *bio,
                               uint64_t     arrivalTime,
                               bool         hasDiscardPermit)
 {

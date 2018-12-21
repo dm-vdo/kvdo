@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#12 $
  */
 
 #include "kernelLayer.h"
@@ -177,7 +177,7 @@ void waitForNoRequestsActive(KernelLayer *layer)
  * @return  DM_MAPIO_SUBMITTED or a system error code
  **/
 static int launchDataKVIOFromVDOThread(KernelLayer *layer,
-                                       BIO         *bio,
+                                       struct bio  *bio,
                                        Jiffies      arrivalTime)
 {
   logWarning("kvdoMapBio called from within a VDO thread!");
@@ -225,7 +225,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
 }
 
 /**********************************************************************/
-int kvdoMapBio(KernelLayer *layer, BIO *bio)
+int kvdoMapBio(KernelLayer *layer, struct bio *bio)
 {
   Jiffies          arrivalTime = jiffies;
   KernelLayerState state       = getKernelLayerState(layer);
@@ -302,7 +302,7 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
   // If we had to buffer some requests to avoid deadlock, release them now.
   while (count > 0) {
     Jiffies arrivalTime = 0;
-    BIO *bio = pollDeadlockQueue(&layer->deadlockQueue, &arrivalTime);
+    struct bio *bio = pollDeadlockQueue(&layer->deadlockQueue, &arrivalTime);
     if (likely(bio == NULL)) {
       break;
     }
@@ -436,7 +436,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
 
   KernelLayer *kernelLayer = asKernelLayer(layer);
 
-  BIO *bio;
+  struct bio *bio;
   int result = createBio(kernelLayer, buffer, &bio);
   if (result != VDO_SUCCESS) {
     return result;

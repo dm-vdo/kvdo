@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#3 $
  */
 
 #ifndef BIO_H
@@ -38,7 +38,7 @@
  * @param bio      The bio to copy the data from
  * @param dataPtr  The local array to copy the data to
  **/
-void bioCopyDataIn(BIO *bio, char *dataPtr);
+void bioCopyDataIn(struct bio *bio, char *dataPtr);
 
 /**
  * Copy a char array to the bio data.
@@ -46,7 +46,7 @@ void bioCopyDataIn(BIO *bio, char *dataPtr);
  * @param bio      The bio to copy the data to
  * @param dataPtr  The local array to copy the data from
  **/
-void bioCopyDataOut(BIO *bio, char *dataPtr);
+void bioCopyDataOut(struct bio *bio, char *dataPtr);
 
 /**
  * Set the bi_rw or equivalent field of a bio to a particular data
@@ -55,22 +55,22 @@ void bioCopyDataOut(BIO *bio, char *dataPtr);
  * @param bio        The bio to modify
  * @param operation  The operation to set it to
  **/
-void setBioOperation(BIO *bio, unsigned int operation);
+void setBioOperation(struct bio *bio, unsigned int operation);
 
 /**********************************************************************/
-static inline void setBioOperationRead(BIO *bio)
+static inline void setBioOperationRead(struct bio *bio)
 {
   setBioOperation(bio, READ);
 }
 
 /**********************************************************************/
-static inline void setBioOperationWrite(BIO *bio)
+static inline void setBioOperationWrite(struct bio *bio)
 {
   setBioOperation(bio, WRITE);
 }
 
 /**********************************************************************/
-static inline void clearBioOperationAndFlags(BIO *bio)
+static inline void clearBioOperationAndFlags(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio->bi_opf = 0;
@@ -80,7 +80,7 @@ static inline void clearBioOperationAndFlags(BIO *bio)
 }
 
 /**********************************************************************/
-static inline void copyBioOperationAndFlags(BIO *to, BIO *from)
+static inline void copyBioOperationAndFlags(struct bio *to, struct bio *from)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   to->bi_opf = from->bi_opf;
@@ -90,7 +90,7 @@ static inline void copyBioOperationAndFlags(BIO *to, BIO *from)
 }
 
 /**********************************************************************/
-static inline void setBioOperationFlag(BIO *bio, unsigned int flag)
+static inline void setBioOperationFlag(struct bio *bio, unsigned int flag)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio->bi_opf |= flag;
@@ -100,7 +100,7 @@ static inline void setBioOperationFlag(BIO *bio, unsigned int flag)
 }
 
 /**********************************************************************/
-static inline void clearBioOperationFlag(BIO *bio, unsigned int flag)
+static inline void clearBioOperationFlag(struct bio *bio, unsigned int flag)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio->bi_opf &= ~flag;
@@ -110,7 +110,7 @@ static inline void clearBioOperationFlag(BIO *bio, unsigned int flag)
 }
 
 /**********************************************************************/
-static inline void setBioOperationFlagPreflush(BIO *bio)
+static inline void setBioOperationFlagPreflush(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   setBioOperationFlag(bio, REQ_PREFLUSH);
@@ -121,31 +121,31 @@ static inline void setBioOperationFlagPreflush(BIO *bio)
 }
 
 /**********************************************************************/
-static inline void setBioOperationFlagSync(BIO *bio)
+static inline void setBioOperationFlagSync(struct bio *bio)
 {
   setBioOperationFlag(bio, REQ_SYNC);
 }
 
 /**********************************************************************/
-static inline void clearBioOperationFlagSync(BIO *bio)
+static inline void clearBioOperationFlagSync(struct bio *bio)
 {
   clearBioOperationFlag(bio, REQ_SYNC);
 }
 
 /**********************************************************************/
-static inline void setBioOperationFlagFua(BIO *bio)
+static inline void setBioOperationFlagFua(struct bio *bio)
 {
   setBioOperationFlag(bio, REQ_FUA);
 }
 
 /**********************************************************************/
-static inline void clearBioOperationFlagFua(BIO *bio)
+static inline void clearBioOperationFlagFua(struct bio *bio)
 {
   clearBioOperationFlag(bio, REQ_FUA);
 }
 
 /**********************************************************************/
-static inline bool isDiscardBio(BIO *bio)
+static inline bool isDiscardBio(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
@@ -155,7 +155,7 @@ static inline bool isDiscardBio(BIO *bio)
 }
 
 /**********************************************************************/
-static inline bool isFlushBio(BIO *bio)
+static inline bool isFlushBio(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
@@ -165,7 +165,7 @@ static inline bool isFlushBio(BIO *bio)
 }
 
 /**********************************************************************/
-static inline bool isFUABio(BIO *bio)
+static inline bool isFUABio(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   return (bio->bi_opf & REQ_FUA) != 0;
@@ -175,13 +175,13 @@ static inline bool isFUABio(BIO *bio)
 }
 
 /**********************************************************************/
-static inline bool isReadBio(BIO *bio)
+static inline bool isReadBio(struct bio *bio)
 {
   return bio_data_dir(bio) == READ;
 }
 
 /**********************************************************************/
-static inline bool isWriteBio(BIO *bio)
+static inline bool isWriteBio(struct bio *bio)
 {
   return bio_data_dir(bio) == WRITE;
 }
@@ -194,7 +194,7 @@ static inline bool isWriteBio(BIO *bio)
  *
  * @return the bio's error if any
  **/
-static inline int getBioResult(BIO *bio)
+static inline int getBioResult(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
   return blk_status_to_errno(bio->bi_status);
@@ -210,7 +210,8 @@ static inline int getBioResult(BIO *bio)
  * @param bio     The bio to modify
  * @param device  The new block device for the bio
  **/
-static inline void setBioBlockDevice(BIO *bio, struct block_device *device)
+static inline void setBioBlockDevice(struct bio          *bio,
+                                     struct block_device *device)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
   bio_set_dev(bio, device);
@@ -226,7 +227,7 @@ static inline void setBioBlockDevice(BIO *bio, struct block_device *device)
  *
  * @return the bio's size
  **/
-static inline unsigned int getBioSize(BIO *bio)
+static inline unsigned int getBioSize(struct bio *bio)
 {
 #ifdef USE_BI_ITER
   return bio->bi_iter.bi_size;
@@ -241,7 +242,7 @@ static inline unsigned int getBioSize(BIO *bio)
  * @param bio     The bio
  * @param sector  The sector
  **/
-static inline void setBioSector(BIO *bio, sector_t sector)
+static inline void setBioSector(struct bio *bio, sector_t sector)
 {
 #ifdef USE_BI_ITER
   bio->bi_iter.bi_sector = sector;
@@ -257,7 +258,7 @@ static inline void setBioSector(BIO *bio, sector_t sector)
  *
  * @return the sector
  **/
-static inline sector_t getBioSector(BIO *bio)
+static inline sector_t getBioSector(struct bio *bio)
 {
 #ifdef USE_BI_ITER
   return bio->bi_iter.bi_sector;
@@ -272,7 +273,7 @@ static inline sector_t getBioSector(BIO *bio)
  * @param bio    The bio to complete
  * @param error  A system error code, or 0 for success
  **/
-static inline void completeBio(BIO *bio, int error)
+static inline void completeBio(struct bio *bio, int error)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
   bio->bi_status = errno_to_blk_status(error);
@@ -291,7 +292,7 @@ static inline void completeBio(BIO *bio, int error)
  * @param bio    The bio to free
  * @param layer  The layer the bio was created in
  **/
-void freeBio(BIO *bio, KernelLayer *layer);
+void freeBio(struct bio *bio, KernelLayer *layer);
 
 /**
  * Count the statistics for the bios.  This is used for calls into VDO and
@@ -300,7 +301,7 @@ void freeBio(BIO *bio, KernelLayer *layer);
  * @param bioStats  Statistics structure to update
  * @param bio       The bio
  **/
-void countBios(AtomicBioStats *bioStats, BIO *bio);
+void countBios(AtomicBioStats *bioStats, struct bio *bio);
 
 /**
  * Reset a bio so it can be used again. May only be used on a VDO-allocated
@@ -309,14 +310,14 @@ void countBios(AtomicBioStats *bioStats, BIO *bio);
  * @param bio    The bio to reset
  * @param layer  The physical layer
  **/
-void resetBio(BIO *bio, KernelLayer *layer);
+void resetBio(struct bio *bio, KernelLayer *layer);
 
 /**
  * Set a bio's data to all zeroes.
  *
  * @param [in] bio  The bio
  **/
-void bioZeroData(BIO *bio);
+void bioZeroData(struct bio *bio);
 
 /**
  * Create a new bio structure for kernel buffer storage.
@@ -327,17 +328,17 @@ void bioZeroData(BIO *bio);
  *
  * @return VDO_SUCCESS or an error
  **/
-int createBio(KernelLayer *layer, char *data, BIO **bioPtr);
+int createBio(KernelLayer *layer, char *data, struct bio **bioPtr);
 
 /**
- * Prepare a BIO to issue a flush to the device below.
+ * Prepare a bio to issue a flush to the device below.
  *
- * @param bio            The flush BIO
+ * @param bio            The flush bio
  * @param context        The context for the callback
  * @param device         The device to flush
  * @param endIOCallback  The function to call when the flush is complete
  **/
-void prepareFlushBIO(BIO                 *bio,
+void prepareFlushBIO(struct bio          *bio,
                      void                *context,
                      struct block_device *device,
                      bio_end_io_t        *endIOCallback);
@@ -350,7 +351,7 @@ void prepareFlushBIO(BIO                 *bio,
  *
  * @return The bio result
  **/
-static inline int submitBioAndWait(BIO *bio)
+static inline int submitBioAndWait(struct bio *bio)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
   submit_bio_wait(bio);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#4 $
  */
 
 #include "bio.h"
@@ -44,7 +44,7 @@ static char *getBufferForBiovec(struct bio_vec *biovec)
 }
 
 /**********************************************************************/
-void bioCopyDataIn(BIO *bio, char *dataPtr)
+void bioCopyDataIn(struct bio *bio, char *dataPtr)
 {
   struct bio_vec *biovec;
   for (struct bio_iterator iter = createBioIterator(bio);
@@ -56,7 +56,7 @@ void bioCopyDataIn(BIO *bio, char *dataPtr)
 }
 
 /**********************************************************************/
-void bioCopyDataOut(BIO *bio, char *dataPtr)
+void bioCopyDataOut(struct bio *bio, char *dataPtr)
 {
   struct bio_vec *biovec;
   for (struct bio_iterator iter = createBioIterator(bio);
@@ -69,7 +69,7 @@ void bioCopyDataOut(BIO *bio, char *dataPtr)
 }
 
 /**********************************************************************/
-void setBioOperation(BIO *bio, unsigned int operation)
+void setBioOperation(struct bio *bio, unsigned int operation)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio->bi_opf &= ~REQ_OP_MASK;
@@ -86,7 +86,7 @@ void setBioOperation(BIO *bio, unsigned int operation)
 }
 
 /**********************************************************************/
-void freeBio(BIO *bio, KernelLayer *layer)
+void freeBio(struct bio *bio, KernelLayer *layer)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
   bio_uninit(bio);
@@ -95,7 +95,7 @@ void freeBio(BIO *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void countBios(AtomicBioStats *bioStats, BIO *bio)
+void countBios(AtomicBioStats *bioStats, struct bio *bio)
 {
   if (isWriteBio(bio)) {
     atomic64_inc(&bioStats->write);
@@ -114,13 +114,13 @@ void countBios(AtomicBioStats *bioStats, BIO *bio)
 }
 
 /**********************************************************************/
-void bioZeroData(BIO *bio)
+void bioZeroData(struct bio *bio)
 {
   zero_fill_bio(bio);
 }
 
 /**********************************************************************/
-static void setBioSize(BIO *bio, BlockSize bioSize)
+static void setBioSize(struct bio *bio, BlockSize bioSize)
 {
 #ifdef USE_BI_ITER
   bio->bi_iter.bi_size = bioSize;
@@ -135,7 +135,7 @@ static void setBioSize(BIO *bio, BlockSize bioSize)
  * @param bio    The bio to initialize
  * @param layer  The layer to which it belongs.
  **/
-static void initializeBio(BIO *bio, KernelLayer *layer)
+static void initializeBio(struct bio *bio, KernelLayer *layer)
 {
   // Save off important info so it can be set back later
   unsigned short   vcnt = bio->bi_vcnt;
@@ -149,7 +149,7 @@ static void initializeBio(BIO *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void resetBio(BIO *bio, KernelLayer *layer)
+void resetBio(struct bio *bio, KernelLayer *layer)
 {
   // VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for data).
   // Assert that this function is called on bios with vcnt of 0 or 1.
@@ -168,7 +168,7 @@ void resetBio(BIO *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-int createBio(KernelLayer *layer, char *data, BIO **bioPtr)
+int createBio(KernelLayer *layer, char *data, struct bio **bioPtr)
 {
   int bvecCount = 0;
   if (data != NULL) {
@@ -195,7 +195,7 @@ int createBio(KernelLayer *layer, char *data, BIO **bioPtr)
     }
   }
 
-  BIO *bio = NULL;
+  struct bio *bio = NULL;
   int result = ALLOCATE_EXTENDED(struct bio, bvecCount, struct bio_vec,
                                  "bio", &bio);
   if (result != VDO_SUCCESS) {
@@ -245,7 +245,7 @@ int createBio(KernelLayer *layer, char *data, BIO **bioPtr)
 }
 
 /**********************************************************************/
-void prepareFlushBIO(BIO                 *bio,
+void prepareFlushBIO(struct bio          *bio,
                      void                *context,
                      struct block_device *device,
                      bio_end_io_t        *endIOCallback)

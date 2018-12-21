@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#2 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -32,7 +32,7 @@
  *
  * @param bio  the bio to count
  **/
-void countCompletedBios(BIO *bio);
+void countCompletedBios(struct bio *bio);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
 /**
@@ -46,7 +46,7 @@ void countCompletedBios(BIO *bio);
  *
  * @param bio   The bio to complete
  **/
-void completeAsyncBio(BIO *bio);
+void completeAsyncBio(struct bio *bio);
 #else
 /**
  * Completes a bio relating to a kvio, causing the completion callback
@@ -60,7 +60,7 @@ void completeAsyncBio(BIO *bio);
  * @param bio   The bio to complete
  * @param error Possible error from underlying block device
  **/
-void completeAsyncBio(BIO *bio, int error);
+void completeAsyncBio(struct bio *bio, int error);
 #endif
 
 /**
@@ -138,6 +138,6 @@ void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem);
  * @param bio      the block I/O operation descriptor to submit
  * @param action   the action code specifying the priority for the operation
  **/
-void submitBio(BIO *bio, BioQAction action);
+void submitBio(struct bio *bio, BioQAction action);
 
 #endif // IOSUBMITTER_H
