@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#2 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -125,11 +125,11 @@ void freeBuffersToPool(BufferPool *pool, void **data, int count);
  * more available, and we call freeBuffersToPool to release a batch
  * all at once.
  **/
-typedef struct freeBufferPointers {
+struct free_buffer_pointers {
   BufferPool *pool;
   int         index;
   void       *pointers[30]; // size is arbitrary
-} FreeBufferPointers;
+};
 
 /**
  * Initialize the control structure for batching buffer pointers to be
@@ -138,8 +138,8 @@ typedef struct freeBufferPointers {
  * @param [out] fbp   The (caller-allocated) control structure
  * @param [in]  pool  The buffer pool to return objects to.
  **/
-static inline void initFreeBufferPointers(FreeBufferPointers *fbp,
-                                          BufferPool         *pool)
+static inline void initFreeBufferPointers(struct free_buffer_pointers *fbp,
+                                          BufferPool                  *pool)
 {
   fbp->index = 0;
   fbp->pool  = pool;
@@ -150,7 +150,7 @@ static inline void initFreeBufferPointers(FreeBufferPointers *fbp,
  *
  * @param [in]  fbp  The control structure
  **/
-static inline void freeBufferPointers(FreeBufferPointers *fbp)
+static inline void freeBufferPointers(struct free_buffer_pointers *fbp)
 {
   freeBuffersToPool(fbp->pool, fbp->pointers, fbp->index);
   fbp->index = 0;
@@ -163,8 +163,8 @@ static inline void freeBufferPointers(FreeBufferPointers *fbp)
  * @param [in]  fbp      The control structure
  * @param [in]  pointer  The buffer pointer to release
  **/
-static inline void addFreeBufferPointer(FreeBufferPointers *fbp,
-                                        void               *pointer)
+static inline void addFreeBufferPointer(struct free_buffer_pointers *fbp,
+                                        void                        *pointer)
 {
   fbp->pointers[fbp->index] = pointer;
   fbp->index++;

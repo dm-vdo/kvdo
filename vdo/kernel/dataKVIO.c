@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#7 $
  */
 
 #include "dataKVIO.h"
@@ -158,7 +158,8 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 }
 
 /**********************************************************************/
-static noinline void cleanDataKVIO(DataKVIO *dataKVIO, FreeBufferPointers *fbp)
+static noinline void cleanDataKVIO(DataKVIO                    *dataKVIO,
+                                   struct free_buffer_pointers *fbp)
 {
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   kvdoAcknowledgeDataKVIO(dataKVIO);
@@ -184,7 +185,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
   ASSERT_LOG_ONLY(batch != NULL, "batch not null");
   ASSERT_LOG_ONLY(layer != NULL, "layer not null");
 
-  FreeBufferPointers fbp;
+  struct free_buffer_pointers fbp;
   initFreeBufferPointers(&fbp, layer->dataKVIOPool);
 
   KvdoWorkItem *item;
