@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#3 $
  */
 
 #include "kvio.h"
@@ -90,13 +90,13 @@ static void freeKVIO(KVIO **kvioPtr)
 }
 
 /**********************************************************************/
-void freeMetadataKVIO(MetadataKVIO **metadataKVIOPtr)
+void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr)
 {
   freeKVIO((KVIO **) metadataKVIOPtr);
 }
 
 /**********************************************************************/
-void freeCompressedWriteKVIO(CompressedWriteKVIO **compressedWriteKVIOPtr)
+void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
   freeKVIO((KVIO **) compressedWriteKVIOPtr);
 }
@@ -106,7 +106,7 @@ void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
 {
   // This method assumes that compressed writes never set the flush or FUA
   // bits.
-  CompressedWriteKVIO *compressedWriteKVIO
+  struct compressed_write_kvio *compressedWriteKVIO
     = allocatingVIOAsCompressedWriteKVIO(allocatingVIO);
   KVIO *kvio = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   BIO  *bio  = kvio->bio;
@@ -275,28 +275,29 @@ void initializeKVIO(KVIO        *kvio,
  * @param [in]  layer            The physical layer
  * @param [in]  vioType          The type of VIO to create
  * @param [in]  priority         The relative priority to assign to the
- *                               MetadataKVIO
- * @param [in]  parent           The parent of the MetadataKVIO completion
- * @param [in]  bio              The bio to associate with this MetadataKVIO
- * @param [out] metadataKVIOPtr  A pointer to hold the new MetadataKVIO
+ *                               metadata_kvio
+ * @param [in]  parent           The parent of the metadata_kvio completion
+ * @param [in]  bio              The bio to associate with this metadata_kvio
+ * @param [out] metadataKVIOPtr  A pointer to hold the new metadata_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int makeMetadataKVIO(KernelLayer   *layer,
-                            VIOType        vioType,
-                            VIOPriority    priority,
-                            void          *parent,
-                            BIO           *bio,
-                            MetadataKVIO **metadataKVIOPtr)
+static int makeMetadataKVIO(KernelLayer           *layer,
+                            VIOType                vioType,
+                            VIOPriority            priority,
+                            void                  *parent,
+                            BIO                   *bio,
+                            struct metadata_kvio **metadataKVIOPtr)
 {
-  // If MetadataKVIO grows past 256 bytes, we'll lose benefits of VDOSTORY-176.
-  STATIC_ASSERT(sizeof(MetadataKVIO) <= 256);
+  // If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
+  // VDOSTORY-176.
+  STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
 
   // Metadata VIOs should use direct allocation and not use the buffer pool,
   // which is reserved for submissions from the linux block layer.
-  MetadataKVIO *metadataKVIO;
-  int result = ALLOCATE(1, MetadataKVIO, __func__, &metadataKVIO);
+  struct metadata_kvio *metadataKVIO;
+  int result = ALLOCATE(1, struct metadata_kvio, __func__, &metadataKVIO);
   if (result != VDO_SUCCESS) {
     logError("metadata KVIO allocation failure %d", result);
     return result;
@@ -310,29 +311,29 @@ static int makeMetadataKVIO(KernelLayer   *layer,
 }
 
 /**
- * Construct a CompressedWriteKVIO.
+ * Construct a struct compressed_write_kvio.
  *
  * @param [in]  layer                   The physical layer
- * @param [in]  parent                  The parent of the CompressedWriteKVIO
+ * @param [in]  parent                  The parent of the compressed_write_kvio
  *                                      completion
  * @param [in]  bio                     The bio to associate with this
- *                                      CompressedWriteKVIO
+ *                                      compressed_write_kvio
  * @param [out] compressedWriteKVIOPtr  A pointer to hold the new
- *                                      CompressedWriteKVIO
+ *                                      compressed_write_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
 static int
-makeCompressedWriteKVIO(KernelLayer          *layer,
-                        void                 *parent,
-                        BIO                  *bio,
-                        CompressedWriteKVIO **compressedWriteKVIOPtr)
+makeCompressedWriteKVIO(KernelLayer                   *layer,
+                        void                          *parent,
+                        BIO                           *bio,
+                        struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
   // Compressed write VIOs should use direct allocation and not use the buffer
   // pool, which is reserved for submissions from the linux block layer.
-  CompressedWriteKVIO *compressedWriteKVIO;
-  int result = ALLOCATE(1, CompressedWriteKVIO, __func__,
+  struct compressed_write_kvio *compressedWriteKVIO;
+  int result = ALLOCATE(1, struct compressed_write_kvio, __func__,
                         &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {
     logError("compressed write KVIO allocation failure %d", result);
@@ -368,7 +369,7 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
     return result;
   }
 
-  MetadataKVIO *metadataKVIO;
+  struct metadata_kvio *metadataKVIO;
   result = makeMetadataKVIO(kernelLayer, vioType, priority, parent, bio,
                             &metadataKVIO);
   if (result != VDO_SUCCESS) {
@@ -393,7 +394,7 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
     return result;
   }
 
-  CompressedWriteKVIO *compressedWriteKVIO;
+  struct compressed_write_kvio *compressedWriteKVIO;
   result = makeCompressedWriteKVIO(kernelLayer, parent, bio,
                                    &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {

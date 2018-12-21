@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#3 $
  */
 
 #ifndef KVIO_H
@@ -54,15 +54,15 @@ struct kvio {
   long               debugSlot;
 };
 
-typedef struct {
+struct metadata_kvio {
   KVIO kvio;
   VIO  vio;
-} MetadataKVIO;
+};
 
-typedef struct {
+struct compressed_write_kvio {
   KVIO          kvio;
   AllocatingVIO allocatingVIO;
-} CompressedWriteKVIO;
+};
 
 /**
  * Determine whether a KVIO is a data VIO or not
@@ -101,54 +101,55 @@ static inline bool isMetadata(KVIO *kvio)
 }
 
 /**
- * Convert a VIO to a MetadataKVIO.
+ * Convert a VIO to a struct metadata_kvio.
  *
  * @param vio  The VIO to convert
  *
  * @return the VIO as a KVIO
  **/
-static inline MetadataKVIO *vioAsMetadataKVIO(VIO *vio)
+static inline struct metadata_kvio *vioAsMetadataKVIO(VIO *vio)
 {
   ASSERT_LOG_ONLY(isMetadataVIO(vio), "VIO is a metadata VIO");
-  return container_of(vio, MetadataKVIO, vio);
+  return container_of(vio, struct metadata_kvio, vio);
 }
 
 /**
- * Convert a MetadataKVIO to a KVIO.
+ * Convert a struct metadata_kvio to a KVIO.
  *
- * @param metadataKVIO  The MetadataKVIO to convert
+ * @param metadataKVIO  The struct metadata_kvio to convert
  *
- * @return The MetadataKVIO as a KVIO
+ * @return The struct metadata_kvio as a KVIO
  **/
-static inline KVIO *metadataKVIOAsKVIO(MetadataKVIO *metadataKVIO)
+static inline KVIO *metadataKVIOAsKVIO(struct metadata_kvio *metadataKVIO)
 {
   return &metadataKVIO->kvio;
 }
 
 /**
- * Returns a pointer to the CompressedWriteKVIO wrapping an AllocatingVIO.
+ * Returns a pointer to the struct compressed_write_kvio wrapping an AllocatingVIO.
  *
  * @param allocatingVIO  The AllocatingVIO to convert
  *
- * @return the CompressedWriteKVIO
+ * @return the struct compressed_write_kvio
  **/
-static inline CompressedWriteKVIO *
+static inline struct compressed_write_kvio *
 allocatingVIOAsCompressedWriteKVIO(AllocatingVIO *allocatingVIO)
 {
   ASSERT_LOG_ONLY(isCompressedWriteAllocatingVIO(allocatingVIO),
                   "AllocatingVIO is a compressed write");
-  return container_of(allocatingVIO, CompressedWriteKVIO, allocatingVIO);
+  return container_of(allocatingVIO, struct compressed_write_kvio,
+                      allocatingVIO);
 }
 
 /**
- * Convert a CompressedWriteKVIO to a KVIO.
+ * Convert a struct compressed_write_kvio to a KVIO.
  *
- * @param compressedWriteKVIO  The CompressedWriteKVIO to convert
+ * @param compressedWriteKVIO  The struct compressed_write_kvio to convert
  *
- * @return The CompressedWriteKVIO as a KVIO
+ * @return The struct compressed_write_kvio as a KVIO
  **/
 static inline
-KVIO *compressedWriteKVIOAsKVIO(CompressedWriteKVIO *compressedWriteKVIO)
+KVIO *compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
 {
   return &compressedWriteKVIO->kvio;
 }
@@ -255,19 +256,19 @@ void initializeKVIO(KVIO        *kvio,
                     BIO         *bio);
 
 /**
- * Destroy a MetadataKVIO and NULL out the pointer to it.
+ * Destroy a struct metadata_kvio and NULL out the pointer to it.
  *
- * @param metadataKVIOPtr  A pointer to the MetadataKVIO to destroy
+ * @param metadataKVIOPtr  A pointer to the struct metadata_kvio to destroy
  **/
-void freeMetadataKVIO(MetadataKVIO **metadataKVIOPtr);
+void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr);
 
 /**
- * Destroy a CompressedWriteKVIO and NULL out the pointer to it.
+ * Destroy a struct compressed_write_kvio and NULL out the pointer to it.
  *
- * @param compressedWriteKVIOPtr  A pointer to the CompressedWriteKVIO to
+ * @param compressedWriteKVIOPtr  A pointer to the compressed_write_kvio to
  *                                destroy
  **/
-void freeCompressedWriteKVIO(CompressedWriteKVIO **compressedWriteKVIOPtr);
+void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr);
 
 /**
  * Create a new VIO (and its enclosing KVIO) for metadata operations.
