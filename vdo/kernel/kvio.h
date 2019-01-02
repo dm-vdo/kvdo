@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#5 $
  */
 
 #ifndef KVIO_H
@@ -310,15 +310,6 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
                                  char           *data,
                                  AllocatingVIO **allocatingVIOPtr)
   __attribute__((warn_unused_result));
-
-/**
- * Submit a compressed block write.
- *
- * <p>Implements CompressedWriter.
- *
- * @param allocatingVIO  The AllocatingVIO for the compressed write
- **/
-void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO);
 
 /**
  * Issue an empty flush to the lower layer using the bio in a metadata VIO.

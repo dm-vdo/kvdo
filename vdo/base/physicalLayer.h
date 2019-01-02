@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#10 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -481,5 +481,30 @@ void acknowledgeDataVIO(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO to compress
  **/
 void compressDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to read a single DataVIO from the layer.
+ *
+ * If the DataVIO does not describe a read-modify-write operation, the
+ * physical layer may safely acknowledge the related user I/O request
+ * as complete.
+ *
+ * @param dataVIO  The DataVIO to read
+ **/
+void readDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to write a single DataVIO to the layer
+ *
+ * @param dataVIO  The DataVIO to write
+ **/
+void writeDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to write a single compressed block to the layer
+ *
+ * @param allocatingVIO  The AllocatingVIO to write
+ **/
+void writeCompressedBlock(AllocatingVIO *allocatingVIO);
 
 #endif // PHYSICAL_LAYER_H

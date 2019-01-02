@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#7 $
  */
 
 #ifndef DATA_KVIO_H
@@ -358,20 +358,6 @@ void kvdoReadBlock(DataVIO             *dataVIO,
                    BlockMappingState    mappingState,
                    BioQAction           action,
                    DataKVIOCallback     callback);
-
-/**
- * Implements DataReader.
- *
- * @param dataVIO  The DataVIO to read
- **/
-void kvdoReadDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataWriter.
- *
- * @param dataVIO  The DataVIO to write
- **/
-void kvdoWriteDataVIO(DataVIO *dataVIO);
 
 /**
  * Allocate a buffer pool of DataKVIOs.

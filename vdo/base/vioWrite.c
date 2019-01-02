@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#5 $
  */
 
 /*
@@ -1085,7 +1085,7 @@ static void writeBlock(DataVIO *dataVIO)
   dataVIO->lastAsyncOperation = WRITE_DATA;
   setJournalCallback(dataVIO, finishBlockWrite,
                      THIS_LOCATION("$F(data);cb=finishWrite"));
-  dataVIOAsCompletion(dataVIO)->layer->writeData(dataVIO);
+  writeDataVIO(dataVIO);
 }
 
 /**

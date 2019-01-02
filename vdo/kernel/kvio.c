@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#5 $
  */
 
 #include "kvio.h"
@@ -102,7 +102,7 @@ void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOP
 }
 
 /**********************************************************************/
-void kvdoWriteCompressedBlock(AllocatingVIO *allocatingVIO)
+void writeCompressedBlock(AllocatingVIO *allocatingVIO)
 {
   // This method assumes that compressed writes never set the flush or FUA
   // bits.

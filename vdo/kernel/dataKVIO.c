@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#11 $
  */
 
 #include "dataKVIO.h"
@@ -426,7 +426,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
 }
 
 /**********************************************************************/
-void kvdoReadDataVIO(DataVIO *dataVIO)
+void readDataVIO(DataVIO *dataVIO)
 {
   ASSERT_LOG_ONLY(!isWriteVIO(dataVIOAsVIO(dataVIO)),
                   "operation set correctly for data read");
@@ -483,7 +483,7 @@ void acknowledgeDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void kvdoWriteDataVIO(DataVIO *dataVIO)
+void writeDataVIO(DataVIO *dataVIO)
 {
   ASSERT_LOG_ONLY(isWriteVIO(dataVIOAsVIO(dataVIO)),
                   "kvdoWriteDataVIO() called on write DataVIO");
