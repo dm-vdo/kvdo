@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#2 $
  */
 
 #include "dataVIO.h"
@@ -265,7 +265,7 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
    * allocation, prevent it from blocking in the packer and wait on it.
    */
   if (isReadDataVIO(dataVIO) && atomicLoadBool(&lockHolder->hasAllocation)) {
-    dataVIOAsCompletion(dataVIO)->layer->copyData(lockHolder, dataVIO);
+    copyData(lockHolder, dataVIO);
     finishDataVIO(dataVIO, VDO_SUCCESS);
     return;
   }
