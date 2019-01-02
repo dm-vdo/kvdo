@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#9 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -442,5 +442,44 @@ void verifyDuplication(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO which needs to change the entry for its data
  **/
 void updateDedupeIndex(DataVIO *dataVIO);
+
+/**
+ * A function to zero the contents of a DataVIO.
+ *
+ * @param dataVIO  The DataVIO to zero
+ **/
+void zeroDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to copy the contents of a DataVIO into another DataVIO.
+ *
+ * @param source       The dataVIO to copy from
+ * @param destination  The dataVIO to copy to
+ **/
+void copyData(DataVIO *source, DataVIO *destination);
+
+/**
+ * A function to apply a partial write to a DataVIO which has completed the
+ * read portion of a read-modify-write operation.
+ *
+ * @param dataVIO  The dataVIO to modify
+ **/
+void applyPartialWrite(DataVIO *dataVIO);
+
+/**
+ * A function to inform the layer that a DataVIO's related I/O request can be
+ * safely acknowledged as complete, even though the DataVIO itself may have
+ * further processing to do.
+ *
+ * @param dataVIO  The DataVIO to acknowledge
+ **/
+void acknowledgeDataVIO(DataVIO *dataVIO);
+
+/**
+ * A function to compress the data in a DataVIO.
+ *
+ * @param dataVIO  The DataVIO to compress
+ **/
+void compressDataVIO(DataVIO *dataVIO);
 
 #endif // PHYSICAL_LAYER_H

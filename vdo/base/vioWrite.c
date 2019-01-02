@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#4 $
  */
 
 /*
@@ -707,7 +707,7 @@ void compressData(DataVIO *dataVIO)
 
   dataVIO->lastAsyncOperation = COMPRESS_DATA;
   setPackerCallback(dataVIO, packCompressedData, THIS_LOCATION("$F;cb=pack"));
-  dataVIOAsCompletion(dataVIO)->layer->compressDataVIO(dataVIO);
+  compressDataVIO(dataVIO);
 }
 
 /**
@@ -993,7 +993,7 @@ static void acknowledgeWrite(DataVIO *dataVIO)
   ASSERT_LOG_ONLY(dataVIO->hasFlushGenerationLock,
                   "write VIO to be acknowledged has a flush generation lock");
   dataVIO->lastAsyncOperation = ACKNOWLEDGE_WRITE;
-  dataVIOAsCompletion(dataVIO)->layer->acknowledgeDataVIO(dataVIO);
+  acknowledgeDataVIO(dataVIO);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#10 $
  */
 
 #include "dataKVIO.h"
@@ -254,7 +254,7 @@ static void copyReadBlockData(KvdoWorkItem *workItem)
 
   // For a full block read, copy the data to the bio and acknowledge.
   bioCopyDataOut(getBIOFromDataKVIO(dataKVIO), dataKVIO->readBlock.data);
-  kvdoAcknowledgeDataVIO(&dataKVIO->dataVIO);
+  acknowledgeDataVIO(&dataKVIO->dataVIO);
 }
 
 /**
@@ -457,7 +457,7 @@ static void kvdoAcknowledgeDataKVIOThenContinue(KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-void kvdoAcknowledgeDataVIO(DataVIO *dataVIO)
+void acknowledgeDataVIO(DataVIO *dataVIO)
 {
   DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
@@ -552,7 +552,7 @@ static inline bool isZeroBlock(DataKVIO *dataKVIO)
 }
 
 /**********************************************************************/
-void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
+void applyPartialWrite(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
@@ -576,14 +576,14 @@ void kvdoModifyWriteDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void kvdoZeroDataVIO(DataVIO *dataVIO)
+void zeroDataVIO(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("zeroDataVIO;io=readData"));
   bioZeroData(dataVIOAsKVIO(dataVIO)->bio);
 }
 
 /**********************************************************************/
-void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination)
+void copyData(DataVIO *source, DataVIO *destination)
 {
   dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
   bioCopyDataOut(dataVIOAsKVIO(destination)->bio,
@@ -623,7 +623,7 @@ static void kvdoCompressWork(KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-void kvdoCompressDataVIO(DataVIO *dataVIO)
+void compressDataVIO(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO,
                         THIS_LOCATION("compressDataVIO;"

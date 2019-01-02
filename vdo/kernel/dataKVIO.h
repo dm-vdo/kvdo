@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#6 $
  */
 
 #ifndef DATA_KVIO_H
@@ -342,21 +342,6 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
 void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure);
 
 /**
- * Implements DataVIOZeroer.
- *
- * @param dataVIO  The DataVIO to zero
- **/
-void kvdoZeroDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataCopier.
- *
- * @param source       The DataVIO to copy from
- * @param destination  The DataVIO to copy to
- **/
-void kvdoCopyDataVIO(DataVIO *source, DataVIO *destination);
-
-/**
  * Fetch the data for a block from storage. The fetched data will be
  * uncompressed when the callback is called, and the result of the read
  * operation will be stored in the read_block's status field. On success,
@@ -387,27 +372,6 @@ void kvdoReadDataVIO(DataVIO *dataVIO);
  * @param dataVIO  The DataVIO to write
  **/
 void kvdoWriteDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataModifier.
- *
- * @param dataVIO  The DataVIO to modify
- **/
-void kvdoModifyWriteDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataAcknowledger.
- *
- * @param dataVIO  The DataVIO to acknowledge
- **/
-void kvdoAcknowledgeDataVIO(DataVIO *dataVIO);
-
-/**
- * Implements DataCompressor.
- *
- * @param dataVIO  The DataVIO to compress
- **/
-void kvdoCompressDataVIO(DataVIO *dataVIO);
 
 /**
  * Allocate a buffer pool of DataKVIOs.
