@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#2 $
  */
 
 #include "deviceRegistry.h"
@@ -31,18 +31,18 @@
  * We don't expect this set to ever get really large, so a linked list
  * is adequate. We can use a PointerMap if we need to later.
  */
-typedef struct {
+struct device_registry {
   struct list_head links;
   rwlock_t         lock;
-} DeviceRegistry;
+};
 
-typedef struct {
+struct registered_device {
   struct list_head    links;
   char               *name;
   KernelLayer        *layer;
-} RegisteredDevice;
+};
 
-static DeviceRegistry registry;
+static struct device_registry registry;
 
 /**********************************************************************/
 void initializeDeviceRegistryOnce(void)
@@ -60,9 +60,9 @@ void initializeDeviceRegistryOnce(void)
  * @return the device object found, if any
  **/
 __attribute__((warn_unused_result))
-static RegisteredDevice *findLayerLocked(char *name)
+static struct registered_device *findLayerLocked(char *name)
 {
-  RegisteredDevice *device;
+  struct registered_device *device;
   list_for_each_entry(device, &registry.links, links) {
     if (strcmp(device->name, name) == 0) {
       return device;
@@ -75,7 +75,7 @@ static RegisteredDevice *findLayerLocked(char *name)
 KernelLayer *getLayerByName(char *name)
 {
   read_lock(&registry.lock);
-  RegisteredDevice *device = findLayerLocked(name);
+  struct registered_device *device = findLayerLocked(name);
   read_unlock(&registry.lock);
   if (device == NULL) {
     return NULL;
@@ -86,8 +86,8 @@ KernelLayer *getLayerByName(char *name)
 /**********************************************************************/
 int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
 {
-  RegisteredDevice *newDevice;
-  int result = ALLOCATE(1, RegisteredDevice, __func__, &newDevice);
+  struct registered_device *newDevice;
+  int result = ALLOCATE(1, struct registered_device, __func__, &newDevice);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -102,7 +102,7 @@ int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
   newDevice->layer = layer;
 
   write_lock(&registry.lock);
-  RegisteredDevice *oldDevice = findLayerLocked(name);
+  struct registered_device *oldDevice = findLayerLocked(name);
   result = ASSERT(oldDevice == NULL, "Device not already registered");
   if (result == VDO_SUCCESS) {
     list_add_tail(&newDevice->links, &registry.links);
@@ -116,7 +116,7 @@ int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
 void removeLayerFromDeviceRegistry(char *name)
 {
   write_lock(&registry.lock);
-  RegisteredDevice *device = findLayerLocked(name);
+  struct registered_device *device = findLayerLocked(name);
   if (device != NULL) {
     list_del_init(&device->links);
     FREE(device->name);
