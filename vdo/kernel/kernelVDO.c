@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#6 $
  */
 
 #include "kernelVDOInternals.h"
@@ -188,12 +188,12 @@ void dumpKVDOWorkQueue(KVDO *kvdo)
 }
 
 /**********************************************************************/
-typedef struct {
+struct sync_queue_work {
   KvdoWorkItem       workItem;
   KVDO              *kvdo;
   void              *data;
   struct completion *completion;
-} SyncQueueWork;
+};
 
 /**
  * Initiate an arbitrary asynchronous base-code operation and wait for
@@ -215,7 +215,7 @@ static void performKVDOOperation(KVDO              *kvdo,
                                  ThreadID           threadID,
                                  struct completion *completion)
 {
-  SyncQueueWork  sync;
+  struct sync_queue_work  sync;
 
   memset(&sync, 0, sizeof(sync));
   setupWorkItem(&sync.workItem, action, NULL, REQ_Q_ACTION_SYNC);
@@ -229,10 +229,10 @@ static void performKVDOOperation(KVDO              *kvdo,
 }
 
 /**********************************************************************/
-typedef struct {
+struct vdo_compress_data {
   bool enable;
   bool wasEnabled;
-} VDOCompressData;
+};
 
 /**
  * Does the work of calling the base code to set compress state, then
@@ -242,8 +242,10 @@ typedef struct {
  **/
 static void setCompressingWork(KvdoWorkItem *item)
 {
-  SyncQueueWork   *work  = container_of(item, SyncQueueWork, workItem);
-  VDOCompressData *data  = (VDOCompressData *)work->data;
+  struct sync_queue_work   *work  = container_of(item,
+                                                 struct sync_queue_work,
+                                                 workItem);
+  struct vdo_compress_data *data  = (struct vdo_compress_data *)work->data;
   data->wasEnabled = setVDOCompressing(getVDO(work->kvdo), data->enable);
   complete(work->completion);
 }
@@ -252,7 +254,7 @@ static void setCompressingWork(KvdoWorkItem *item)
 bool setKVDOCompressing(KVDO *kvdo, bool enableCompression)
 {
   struct completion compressWait;
-  VDOCompressData data;
+  struct vdo_compress_data data;
   data.enable = enableCompression;
   performKVDOOperation(kvdo, setCompressingWork, &data,
                        getPackerZoneThread(getThreadConfig(kvdo->vdo)),
@@ -261,15 +263,17 @@ bool setKVDOCompressing(KVDO *kvdo, bool enableCompression)
 }
 
 /**********************************************************************/
-typedef struct {
+struct vdo_read_only_data {
   int result;
-} VDOReadOnlyData;
+};
 
 /**********************************************************************/
 static void enterReadOnlyModeWork(KvdoWorkItem *item)
 {
-  SyncQueueWork   *work = container_of(item, SyncQueueWork, workItem);
-  VDOReadOnlyData *data = work->data;
+  struct sync_queue_work    *work = container_of(item,
+                                              struct sync_queue_work,
+                                              workItem);
+  struct vdo_read_only_data *data = work->data;
   makeVDOReadOnly(getVDO(work->kvdo), data->result);
   complete(work->completion);
 }
@@ -278,7 +282,7 @@ static void enterReadOnlyModeWork(KvdoWorkItem *item)
 void setKVDOReadOnly(KVDO *kvdo, int result)
 {
   struct completion readOnlyWait;
-  VDOReadOnlyData data;
+  struct vdo_read_only_data data;
   data.result = result;
   performKVDOOperation(kvdo, enterReadOnlyModeWork, &data,
                        getAdminThread(getThreadConfig(kvdo->vdo)),
@@ -292,8 +296,10 @@ void setKVDOReadOnly(KVDO *kvdo, int result)
  **/
 static void getVDOStatisticsWork(KvdoWorkItem *item)
 {
-  SyncQueueWork *work  = container_of(item, SyncQueueWork, workItem);
-  VDOStatistics *stats = (VDOStatistics *)work->data;
+  struct sync_queue_work *work = container_of(item,
+                                               struct sync_queue_work,
+                                               workItem);
+  VDOStatistics          *stats = (VDOStatistics *)work->data;
   getVDOStatistics(getVDO(work->kvdo), stats);
   complete(work->completion);
 }
@@ -311,25 +317,25 @@ void getKVDOStatistics(KVDO *kvdo, VDOStatistics *stats)
 /**
  * A structure to invoke an arbitrary VDO action.
  **/
-typedef struct vdoActionData {
+struct vdo_action_data {
   VDOAction          *action;
   VDOCompletion      *vdoCompletion;
   struct completion   waiter;
-} VDOActionData;
+};
 
 /**
- * Initialize a VDOActionData structure so that the specified action
- * can be invoked on the specified completion.
+ * Initialize a struct vdo_action_data structure so that the specified
+ * action can be invoked on the specified completion.
  *
- * @param data              A VDOActionData.
+ * @param data              A vdo_action_data structure.
  * @param action            The VDOAction to execute.
  * @param vdoCompletion     The VDO completion upon which the action acts.
  **/
-static void initializeVDOActionData(VDOActionData *data,
-                                    VDOAction     *action,
-                                    VDOCompletion *vdoCompletion)
+static void initializeVDOActionData(struct vdo_action_data *data,
+                                    VDOAction              *action,
+                                    VDOCompletion          *vdoCompletion)
 {
-  *data = (VDOActionData) {
+  *data = (struct vdo_action_data) {
     .action        = action,
     .vdoCompletion = vdoCompletion,
   };
@@ -342,24 +348,27 @@ static void initializeVDOActionData(VDOActionData *data,
  **/
 static void finishVDOAction(VDOCompletion *vdoCompletion)
 {
-  SyncQueueWork *work = vdoCompletion->parent;
+  struct sync_queue_work *work = vdoCompletion->parent;
   complete(work->completion);
 }
 
 /**
- * Perform a VDO base code action as specified by a VDOActionData.
+ * Perform a VDO base code action as specified by a vdo_action_data
+ * structure..
  *
- * Sets the completion callback and parent inside the VDOActionData
- * so that the corresponding kernel completion is completed when
- * the VDO completion is.
+ * Sets the completion callback and parent inside the vdo_action_data
+ * structure so that the corresponding kernel completion is completed
+ * when the VDO completion is.
  *
  * @param item          A KVDO work queue item.
  **/
 static void performVDOActionWork(KvdoWorkItem *item)
 {
-  SyncQueueWork *work = container_of(item, SyncQueueWork, workItem);
-  VDOActionData *data = work->data;
-  ThreadID       id   = getCallbackThreadID();
+  struct sync_queue_work *work = container_of(item,
+                                              struct  sync_queue_work,
+                                              workItem);
+  struct vdo_action_data *data = work->data;
+  ThreadID                id   = getCallbackThreadID();
 
   setCallbackWithParent(data->vdoCompletion, finishVDOAction, id, work);
   data->action(data->vdoCompletion);
@@ -368,8 +377,8 @@ static void performVDOActionWork(KvdoWorkItem *item)
 /**********************************************************************/
 int performKVDOExtendedCommand(KVDO *kvdo, int argc, char **argv)
 {
-  VDOActionData        data;
-  VDOCommandCompletion cmd;
+  struct vdo_action_data data;
+  VDOCommandCompletion   cmd;
 
   int result = initializeVDOCommandCompletion(&cmd, getVDO(kvdo), argc, argv);
   if (result != VDO_SUCCESS) {
