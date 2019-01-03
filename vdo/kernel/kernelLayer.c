@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#16 $
  */
 
 #include "kernelLayer.h"
@@ -61,7 +61,18 @@ static const KvdoWorkQueueType bioAckQType = {
   },
 };
 
+/**********************************************************************/
+static void startCPUQueue(void *ptr)
+{
+  KernelLayer *layer = ptr;
+
+  uint32_t index = atomicAdd32(&layer->compressionContextIndex, 1) - 1;
+  BUG_ON(index >= layer->deviceConfig->threadCounts.cpuThreads);
+  setWorkQueuePrivateData(layer->compressionContext[index]);
+}
+
 static const KvdoWorkQueueType cpuQType = {
+  .start = startCPUQueue,
   .actionTable = {
     { .name = "cpu_complete_kvio",
       .code = CPU_Q_ACTION_COMPLETE_KVIO,
@@ -801,7 +812,7 @@ int makeKernelLayer(uint64_t               startingSector,
 
   // CPU Queues
   result = makeWorkQueue(layer->threadNamePrefix, "cpuQ", &layer->wqDirectory,
-                         layer, NULL, &cpuQType,
+                         layer, layer, &cpuQType,
                          config->threadCounts.cpuThreads, &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
     *reason = "Albireo CPU queue initialization failed";

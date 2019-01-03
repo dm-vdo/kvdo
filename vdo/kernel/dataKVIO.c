@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#12 $
  */
 
 #include "dataKVIO.h"
@@ -594,17 +594,9 @@ void copyData(DataVIO *source, DataVIO *destination)
 static void kvdoCompressWork(KvdoWorkItem *item)
 {
   DataKVIO    *dataKVIO = workItemAsDataKVIO(item);
-  KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
   char *context = getWorkQueuePrivateData();
-  if (unlikely(context == NULL)) {
-    uint32_t index = atomicAdd32(&layer->compressionContextIndex, 1) - 1;
-    BUG_ON(index >= layer->deviceConfig->threadCounts.cpuThreads);
-    context = layer->compressionContext[index];
-    setWorkQueuePrivateData(context);
-  }
-
   int size = LZ4_compress_ctx_limitedOutput(context, dataKVIO->dataBlock,
                                             dataKVIO->scratchBlock,
                                             VDO_BLOCK_SIZE,
