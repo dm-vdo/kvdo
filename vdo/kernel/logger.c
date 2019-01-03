@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#2 $
  */
 
 #include "logger.h"
@@ -30,12 +30,12 @@
 
 static const int  DEFAULT_PRIORITY = LOG_INFO;
 
-typedef struct {
+struct PRIORITY_NAMES {
   const char *name;
   const int   priority;
-} PRIORITY_NAMES;
+};
 
-static const PRIORITY_NAMES PRIORITIES[] = {
+static const struct PRIORITY_NAMES PRIORITIES[] = {
   { "ALERT",     LOG_ALERT },
   { "CRIT",      LOG_CRIT },
   { "CRITICAL",  LOG_CRIT },
