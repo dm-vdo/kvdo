@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#2 $
  */
 
 #include "bufferPool.h"
@@ -39,10 +39,10 @@
  *
  * These are both "free lists", in a sense; don't get confused!
  */
-typedef struct {
+struct buffer_element {
   struct list_head  list;       // links in current list
   void             *data;       // element data, if on free list
-} BufferElement;
+};
 
 struct bufferPool {
   const char              *name; // Pool name
@@ -56,7 +56,7 @@ struct bufferPool {
   BufferAllocateFunction  *alloc; // Allocate function for buffer data
   BufferFreeFunction      *free; // Free function for buffer data
   BufferDumpFunction      *dump; // Dump function for buffer data
-  BufferElement           *bhead; // Array of BufferElement structures
+  struct buffer_element   *bhead; // Array of buffer_element structures
   void                   **objects;
 };
 
@@ -77,7 +77,8 @@ int makeBufferPool(const char              *poolName,
     return result;
   }
 
-  result = ALLOCATE(size, BufferElement, "buffer pool elements", &pool->bhead);
+  result = ALLOCATE(size, struct buffer_element, "buffer pool elements",
+                    &pool->bhead);
   if (result != VDO_SUCCESS) {
     logError("buffer element array allocation failure %d", result);
     freeBufferPool(&pool);
@@ -100,7 +101,7 @@ int makeBufferPool(const char              *poolName,
   spin_lock_init(&pool->lock);
   INIT_LIST_HEAD(&pool->freeObjectList);
   INIT_LIST_HEAD(&pool->spareListNodes);
-  BufferElement *bh = pool->bhead;
+  struct buffer_element *bh = pool->bhead;
   for (int i = 0; i < pool->size; i++) {
     result = pool->alloc(pool->data, &bh->data);
     if (result != VDO_SUCCESS) {
@@ -146,7 +147,7 @@ static bool inFreeList(BufferPool *pool, void *data)
 {
   struct list_head *node;
   list_for_each(node, &pool->freeObjectList) {
-    if (container_of(node, BufferElement, list)->data == data) {
+    if (container_of(node, struct buffer_element, list)->data == data) {
       return true;
     }
   }
@@ -199,8 +200,9 @@ int allocBufferFromPool(BufferPool *pool, void **dataPtr)
     return -ENOMEM;
   }
 
-  BufferElement *bh = list_first_entry(&pool->freeObjectList, BufferElement,
-                                       list);
+  struct buffer_element *bh = list_first_entry(&pool->freeObjectList,
+                                               struct buffer_element,
+                                               list);
   list_move(&bh->list, &pool->spareListNodes);
   pool->numBusy++;
   if (pool->numBusy > pool->maxBusy) {
@@ -218,8 +220,9 @@ static bool freeBufferToPoolInternal(BufferPool *pool, void *data)
   if (unlikely(list_empty(&pool->spareListNodes))) {
     return false;
   }
-  BufferElement *bh = list_first_entry(&pool->spareListNodes, BufferElement,
-                                       list);
+  struct buffer_element *bh = list_first_entry(&pool->spareListNodes,
+                                               struct buffer_element,
+                                               list);
   list_move(&bh->list, &pool->freeObjectList);
   bh->data = data;
   pool->numBusy--;
