@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#15 $
  */
 
 #include "kernelLayer.h"
@@ -48,7 +48,6 @@
 #include "poolSysfs.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
-#include "verify.h"
 
 enum {
   DEDUPE_TIMEOUT_REPORT_INTERVAL = 1000,
@@ -632,7 +631,6 @@ int makeKernelLayer(uint64_t               startingSector,
   layer->common.enqueue                  = kvdoEnqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
   layer->common.completeAdminOperation   = kvdoCompleteSyncOperation;
-  layer->common.compareDataVIOs          = kvdoCompareDataVIOs;
   layer->common.flush                    = kvdoFlushVIO;
   spin_lock_init(&layer->flushLock);
   mutex_init(&layer->statsMutex);

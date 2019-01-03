@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#3 $
  */
 
 /**
@@ -1473,9 +1473,8 @@ static bool isHashCollision(HashLock *lock, DataVIO *candidate)
     return false;
   }
 
-  DataVIO       *lockHolder = dataVIOFromLockNode(lock->duplicateRing.next);
-  PhysicalLayer *layer      = dataVIOAsCompletion(candidate)->layer;
-  bool           collides   = !layer->compareDataVIOs(lockHolder, candidate);
+  DataVIO *lockHolder = dataVIOFromLockNode(lock->duplicateRing.next);
+  bool     collides   = !compareDataVIOs(lockHolder, candidate);
 
   if (collides) {
     bumpHashZoneCollisionCount(candidate->hashZone);

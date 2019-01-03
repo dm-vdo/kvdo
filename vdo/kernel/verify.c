@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#4 $
  */
 
 #include "physicalLayer.h"
@@ -142,7 +142,7 @@ void verifyDuplication(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool kvdoCompareDataVIOs(DataVIO *first, DataVIO *second)
+bool compareDataVIOs(DataVIO *first, DataVIO *second)
 {
   dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
   DataKVIO *a = dataVIOAsDataKVIO(first);

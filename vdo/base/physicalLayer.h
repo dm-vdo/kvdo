@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#11 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -506,5 +506,15 @@ void writeDataVIO(DataVIO *dataVIO);
  * @param allocatingVIO  The AllocatingVIO to write
  **/
 void writeCompressedBlock(AllocatingVIO *allocatingVIO);
+
+/**
+ * A function to compare the contents of a DataVIO to another DataVIO.
+ *
+ * @param first   The first DataVIO to compare
+ * @param second  The second DataVIO to compare
+ *
+ * @return <code>true</code> if the contents of the two DataVIOs are the same
+ **/
+bool compareDataVIOs(DataVIO *first, DataVIO *second);
 
 #endif // PHYSICAL_LAYER_H
