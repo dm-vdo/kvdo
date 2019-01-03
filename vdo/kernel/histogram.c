@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#2 $
  */
 
 #include <linux/kobject.h>
@@ -147,11 +147,11 @@ static int maxBucket(Histogram *h)
 
 /***********************************************************************/
 
-typedef struct {
+struct histogram_attribute {
   struct attribute attr;
   ssize_t (*show)(Histogram *h, char *buf);
   ssize_t (*store)(Histogram *h, const char *buf, size_t length);
-} HistogramAttribute;
+};
 
 /***********************************************************************/
 static void histogramKobjRelease(struct kobject *kobj)
@@ -166,7 +166,9 @@ static ssize_t histogramShow(struct kobject   *kobj,
                              struct attribute *attr,
                              char             *buf)
 {
-  HistogramAttribute *ha = container_of(attr, HistogramAttribute, attr);
+  struct histogram_attribute *ha = container_of(attr,
+                                                struct histogram_attribute,
+                                                attr);
   if (ha->show == NULL) {
     return -EINVAL;
   }
@@ -180,7 +182,9 @@ static ssize_t histogramStore(struct kobject   *kobj,
                               const char       *buf,
                               size_t            length)
 {
-  HistogramAttribute *ha = container_of(attr, HistogramAttribute, attr);
+  struct histogram_attribute *ha = container_of(attr,
+                                                struct histogram_attribute,
+                                                attr);
   if (ha->show == NULL) {
     return -EINVAL;
   }
@@ -377,48 +381,48 @@ static struct sysfs_ops histogramSysfsOps = {
   .store = histogramStore,
 };
 
-static HistogramAttribute countAttribute = {
+static struct histogram_attribute countAttribute = {
   .attr = { .name = "count", .mode = 0444, },
   .show = histogramShowCount,
 };
 
-static HistogramAttribute histogramAttribute = {
+static struct histogram_attribute histogramAttribute = {
   .attr = { .name = "histogram", .mode = 0444, },
   .show = histogramShowHistogram,
 };
 
-static HistogramAttribute labelAttribute = {
+static struct histogram_attribute labelAttribute = {
   .attr = { .name = "label", .mode = 0444, },
   .show = histogramShowLabel,
 };
 
-static HistogramAttribute maximumAttribute = {
+static struct histogram_attribute maximumAttribute = {
   .attr = { .name = "maximum", .mode = 0444, },
   .show = histogramShowMaximum,
 };
 
-static HistogramAttribute minimumAttribute = {
+static struct histogram_attribute minimumAttribute = {
   .attr = { .name = "minimum", .mode = 0444, },
   .show = histogramShowMinimum,
 };
 
-static HistogramAttribute limitAttribute = {
+static struct histogram_attribute limitAttribute = {
   .attr  = { .name = "limit", .mode = 0644, },
   .show  = histogramShowLimit,
   .store = histogramStoreLimit,
 };
 
-static HistogramAttribute meanAttribute = {
+static struct histogram_attribute meanAttribute = {
   .attr = { .name = "mean", .mode = 0444, },
   .show = histogramShowMean,
 };
 
-static HistogramAttribute unacceptableAttribute = {
+static struct histogram_attribute unacceptableAttribute = {
   .attr = { .name = "unacceptable", .mode = 0444, },
   .show = histogramShowUnacceptable,
 };
 
-static HistogramAttribute unitAttribute = {
+static struct histogram_attribute unitAttribute = {
   .attr = { .name = "unit", .mode = 0444, },
   .show = histogramShowUnit,
 };
