@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#7 $
  */
 
 #include "kernelVDOInternals.h"
@@ -354,7 +354,7 @@ static void finishVDOAction(VDOCompletion *vdoCompletion)
 
 /**
  * Perform a VDO base code action as specified by a vdo_action_data
- * structure..
+ * structure.
  *
  * Sets the completion callback and parent inside the vdo_action_data
  * structure so that the corresponding kernel completion is completed
