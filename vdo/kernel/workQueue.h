@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#2 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -142,6 +142,9 @@ typedef struct kvdoWorkQueueType {
  * @param [in]  owner            The kernel layer owning the work queue
  * @param [in]  private          Private data of the queue for use by work
  *                               items or other queue-specific functions
+ * @param [in]  threadPrivates   If non-NULL, an array of separate private
+ *                               data pointers, one for each service thread,
+ *                               to use instead of sharing 'private'
  * @param [in]  type             The work queue type defining the lifecycle
  *                               functions, queue actions, priorities, and
  *                               timeout behavior
@@ -157,6 +160,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
+                  void                     *threadPrivates[],
                   KvdoWorkQueue           **queuePtr);
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#8 $
  */
 
 #include "kernelVDOInternals.h"
@@ -110,7 +110,8 @@ int initializeKVDO(KVDO                *kvdo,
                      queueName, sizeof(queueName));
     int result = makeWorkQueue(layer->threadNamePrefix, queueName,
                                &layer->wqDirectory, layer, thread,
-                               &requestQueueType, 1, &thread->requestQueue);
+                               &requestQueueType, 1, NULL,
+                               &thread->requestQueue);
     if (result != VDO_SUCCESS) {
       *reason = "Cannot initialize request queue";
       while (kvdo->initializedThreadCount > 0) {

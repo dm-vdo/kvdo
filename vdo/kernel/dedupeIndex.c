@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#5 $
  */
 
 #include "dedupeIndex.h"
@@ -838,7 +838,8 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
     },
   };
   result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
-                         &layer->wqDirectory, layer, index, &udsQueueType, 1,
+                         &layer->wqDirectory, layer, index,
+                         &udsQueueType, 1, NULL,
                          &index->udsQueue);
   if (result != VDO_SUCCESS) {
     logError("UDS index queue initialization failed (%d)", result);

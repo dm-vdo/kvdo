@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#2 $
  */
 
 #include "workQueue.h"
@@ -831,12 +831,14 @@ int makeWorkQueue(const char               *threadNamePrefix,
                   void                     *private,
                   const KvdoWorkQueueType  *type,
                   unsigned int              threadCount,
+                  void                     *threadPrivates[],
                   KvdoWorkQueue           **queuePtr)
 {
   if (threadCount == 1) {
+    void *context = (threadPrivates != NULL) ? threadPrivates[0] : private;
     SimpleWorkQueue *simpleQueue;
     int result = makeSimpleWorkQueue(threadNamePrefix, name, parentKobject,
-                                     owner, private, type, &simpleQueue);
+                                     owner, context, type, &simpleQueue);
     if (result == VDO_SUCCESS) {
       *queuePtr = &simpleQueue->common;
     }
@@ -882,8 +884,9 @@ int makeWorkQueue(const char               *threadNamePrefix,
   char threadName[TASK_COMM_LEN];
   for (unsigned int i = 0; i < threadCount; i++) {
     snprintf(threadName, sizeof(threadName), "%s%u", name, i);
+    void *context = (threadPrivates != NULL) ? threadPrivates[i] : private;
     result = makeSimpleWorkQueue(threadNamePrefix, threadName,
-                                 &queue->common.kobj, owner, private, type,
+                                 &queue->common.kobj, owner, context, type,
                                  &queue->serviceQueues[i]);
     if (result != VDO_SUCCESS) {
       queue->numServiceQueues = i;

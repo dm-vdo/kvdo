@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#17 $
  */
 
 #include "kernelLayer.h"
@@ -61,18 +61,7 @@ static const KvdoWorkQueueType bioAckQType = {
   },
 };
 
-/**********************************************************************/
-static void startCPUQueue(void *ptr)
-{
-  KernelLayer *layer = ptr;
-
-  uint32_t index = atomicAdd32(&layer->compressionContextIndex, 1) - 1;
-  BUG_ON(index >= layer->deviceConfig->threadCounts.cpuThreads);
-  setWorkQueuePrivateData(layer->compressionContext[index]);
-}
-
 static const KvdoWorkQueueType cpuQType = {
-  .start = startCPUQueue,
   .actionTable = {
     { .name = "cpu_complete_kvio",
       .code = CPU_Q_ACTION_COMPLETE_KVIO,
@@ -529,7 +518,7 @@ static void waitForSyncOperation(PhysicalLayer *common)
 }
 
 /**
- * Check whether a VDO, or its backing storage, is congested. 
+ * Check whether a VDO, or its backing storage, is congested.
  *
  * @param callbacks  The callbacks structure inside the kernel layer
  * @param bdi_bits   Some info things to pass through.
@@ -799,7 +788,7 @@ int makeKernelLayer(uint64_t               startingSector,
   if (useBioAckQueue(layer)) {
     result = makeWorkQueue(layer->threadNamePrefix, "ackQ",
                            &layer->wqDirectory, layer, layer, &bioAckQType,
-                           config->threadCounts.bioAckThreads,
+                           config->threadCounts.bioAckThreads, NULL,
                            &layer->bioAckQueue);
     if (result != VDO_SUCCESS) {
       *reason = "bio ack queue initialization failed";
@@ -813,7 +802,9 @@ int makeKernelLayer(uint64_t               startingSector,
   // CPU Queues
   result = makeWorkQueue(layer->threadNamePrefix, "cpuQ", &layer->wqDirectory,
                          layer, layer, &cpuQType,
-                         config->threadCounts.cpuThreads, &layer->cpuQueue);
+                         config->threadCounts.cpuThreads,
+                         (void **) layer->compressionContext,
+                         &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
     *reason = "Albireo CPU queue initialization failed";
     freeKernelLayer(layer);

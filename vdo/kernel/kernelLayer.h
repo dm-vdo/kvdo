@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#7 $
  */
 
 #ifndef KERNELLAYER_H
@@ -143,7 +143,6 @@ struct kernelLayer {
   KvdoWorkQueue           *cpuQueue;
   /** N blobs of context data for LZ4 code, one per CPU thread. */
   char                   **compressionContext;
-  Atomic32                 compressionContextIndex;
   /** Optional work queue for calling bio_endio. */
   KvdoWorkQueue           *bioAckQueue;
   /** Underlying block device info. */
