@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#6 $
  */
 
 #ifndef KERNELLAYER_H
@@ -121,8 +121,8 @@ struct kernelLayer {
   struct dm_target_callbacks  callbacks;
 
   /** Limit the number of requests that are being processed. */
-  Limiter                  requestLimiter;
-  Limiter                  discardLimiter;
+  struct limiter           requestLimiter;
+  struct limiter           discardLimiter;
   KVDO                     kvdo;
   /** Incoming bios we've had to buffer to avoid deadlock. */
   struct deadlock_queue    deadlockQueue;
@@ -177,7 +177,7 @@ struct kernelLayer {
   bool                     dumpOnShutdown;
   /**
    * Whether we should collect tracing info. (Actually, this controls
-   * allocations; non-null record pointers cause recording.)
+   *                       allocations; non-null record pointers cause recording.)
    **/
   bool                     vioTraceRecording;
   struct sample_counter    traceSampleCounter;

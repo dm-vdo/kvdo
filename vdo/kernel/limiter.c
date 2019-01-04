@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#2 $
  */
 
 #include "limiter.h"
@@ -24,9 +24,9 @@
 #include <linux/sched.h>
 
 /**********************************************************************/
-void getLimiterValuesAtomically(Limiter  *limiter,
-                                uint32_t *active,
-                                uint32_t *maximum)
+void getLimiterValuesAtomically(struct limiter *limiter,
+                                uint32_t       *active,
+                                uint32_t       *maximum)
 {
   spin_lock(&limiter->lock);
   *active  = limiter->active;
@@ -35,7 +35,7 @@ void getLimiterValuesAtomically(Limiter  *limiter,
 }
 
 /**********************************************************************/
-void initializeLimiter(Limiter *limiter, uint32_t limit)
+void initializeLimiter(struct limiter *limiter, uint32_t limit)
 {
   limiter->active  = 0;
   limiter->limit   = limit;
@@ -45,7 +45,7 @@ void initializeLimiter(Limiter *limiter, uint32_t limit)
 }
 
 /**********************************************************************/
-bool limiterIsIdle(Limiter *limiter)
+bool limiterIsIdle(struct limiter *limiter)
 {
   spin_lock(&limiter->lock);
   bool idle = limiter->active == 0;
@@ -54,7 +54,7 @@ bool limiterIsIdle(Limiter *limiter)
 }
 
 /**********************************************************************/
-bool limiterHasOneFree(Limiter *limiter)
+bool limiterHasOneFree(struct limiter *limiter)
 {
   spin_lock(&limiter->lock);
   bool hasOneFree = (limiter->active < limiter->limit);
@@ -63,7 +63,7 @@ bool limiterHasOneFree(Limiter *limiter)
 }
 
 /**********************************************************************/
-void limiterReleaseMany(Limiter *limiter, uint32_t count)
+void limiterReleaseMany(struct limiter *limiter, uint32_t count)
 {
   spin_lock(&limiter->lock);
   limiter->active -= count;
@@ -74,7 +74,7 @@ void limiterReleaseMany(Limiter *limiter, uint32_t count)
 }
 
 /**********************************************************************/
-void limiterWaitForIdle(Limiter *limiter)
+void limiterWaitForIdle(struct limiter *limiter)
 {
   spin_lock(&limiter->lock);
   while (limiter->active > 0) {
@@ -99,7 +99,7 @@ void limiterWaitForIdle(Limiter *limiter)
  *
  * @return  true iff the permit was acquired
  **/
-static bool takePermitLocked(Limiter *limiter)
+static bool takePermitLocked(struct limiter *limiter)
 {
   if (limiter->active >= limiter->limit) {
     return false;
@@ -112,7 +112,7 @@ static bool takePermitLocked(Limiter *limiter)
 }
 
 /**********************************************************************/
-void limiterWaitForOneFree(Limiter *limiter)
+void limiterWaitForOneFree(struct limiter *limiter)
 {
   spin_lock(&limiter->lock);
   while (!takePermitLocked(limiter)) {
@@ -128,7 +128,7 @@ void limiterWaitForOneFree(Limiter *limiter)
 }
 
 /**********************************************************************/
-bool limiterPoll(Limiter *limiter)
+bool limiterPoll(struct limiter *limiter)
 {
   spin_lock(&limiter->lock);
   bool acquired = takePermitLocked(limiter);

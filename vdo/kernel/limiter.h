@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#2 $
  */
 
 #ifndef LIMITER_H
@@ -25,12 +25,12 @@
 #include <linux/wait.h>
 
 /*
- * A Limiter is a fancy counter used to limit resource usage.  We have a
- * limit to number of resources that we are willing to use, and a Limiter
+ * A limiter is a fancy counter used to limit resource usage.  We have a
+ * limit to number of resources that we are willing to use, and a limiter
  * holds us to that limit.
  */
 
-typedef struct limiter {
+struct limiter {
   // A spinlock controlling access to the contents of this struct
   spinlock_t        lock;
   // The queue of threads waiting for a resource to become available
@@ -41,26 +41,26 @@ typedef struct limiter {
   uint32_t          maximum;
   // The limit to the number of resources that are allowed to be used
   uint32_t          limit;
-} Limiter;
+};
 
 /**
- * Get the Limiter variable values (atomically under the lock)
+ * Get the limiter variable values (atomically under the lock)
  *
  * @param limiter  The limiter
  * @param active   The number of requests in progress
  * @param maximum  The maximum number of requests that have ever been active
  **/
-void getLimiterValuesAtomically(Limiter  *limiter,
-                                uint32_t *active,
-                                uint32_t *maximum);
+void getLimiterValuesAtomically(struct limiter *limiter,
+                                uint32_t       *active,
+                                uint32_t       *maximum);
 
 /**
- * Initialize a Limiter
+ * Initialize a limiter structure
  *
  * @param limiter  The limiter
  * @param limit    The limit to the number of active resources
  **/
-void initializeLimiter(Limiter *limiter, uint32_t limit);
+void initializeLimiter(struct limiter *limiter, uint32_t limit);
 
 /**
  * Determine whether there are any active resources
@@ -69,7 +69,7 @@ void initializeLimiter(Limiter *limiter, uint32_t limit);
  *
  * @return true if there are no active resources
  **/
-bool limiterIsIdle(Limiter *limiter);
+bool limiterIsIdle(struct limiter *limiter);
 
 /**
  * Determine whether there are any available resources
@@ -78,7 +78,7 @@ bool limiterIsIdle(Limiter *limiter);
  *
  * @return true if there are any available resources
  **/
-bool limiterHasOneFree(Limiter *limiter);
+bool limiterHasOneFree(struct limiter *limiter);
 
 /**
  * Release resources, making them available for other uses
@@ -86,14 +86,14 @@ bool limiterHasOneFree(Limiter *limiter);
  * @param limiter  The limiter
  * @param count    The number of resources to release
  **/
-void limiterReleaseMany(Limiter *limiter, uint32_t count);
+void limiterReleaseMany(struct limiter *limiter, uint32_t count);
 
 /**
  * Release one resource, making it available for another use
  *
  * @param limiter  The limiter
  **/
-static inline void limiterRelease(Limiter *limiter)
+static inline void limiterRelease(struct limiter *limiter)
 {
   limiterReleaseMany(limiter, 1);
 }
@@ -103,7 +103,7 @@ static inline void limiterRelease(Limiter *limiter)
  *
  * @param limiter  The limiter
  **/
-void limiterWaitForIdle(Limiter *limiter);
+void limiterWaitForIdle(struct limiter *limiter);
 
 /**
  * Prepare to start using one resource, waiting if there are too many resources
@@ -112,7 +112,7 @@ void limiterWaitForIdle(Limiter *limiter);
  *
  * @param limiter  The limiter
  **/
-void limiterWaitForOneFree(Limiter *limiter);
+void limiterWaitForOneFree(struct limiter *limiter);
 
 /**
  * Attempt to reserve one resource, without waiting. After returning from this
@@ -123,6 +123,6 @@ void limiterWaitForOneFree(Limiter *limiter);
  *
  * @return true iff the resource was allocated
  **/
-bool limiterPoll(Limiter *limiter);
+bool limiterPoll(struct limiter *limiter);
 
 #endif /* LIMITER_H */
