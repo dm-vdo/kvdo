@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#6 $
  */
 
 #include "dmvdo.h"
@@ -687,6 +687,18 @@ static void vdoDtr(struct dm_target *ti)
 }
 
 /**********************************************************************/
+static void vdoPresuspend(struct dm_target *ti)
+{
+  KernelLayer *layer = getKernelLayerForTarget(ti);
+  RegisteredThread instanceThread;
+  registerThreadDevice(&instanceThread, layer);  
+  if (dm_noflush_suspending(ti)) {
+    layer->noFlushSuspend = true;
+  }
+  unregisterThreadDeviceID();
+}
+
+/**********************************************************************/
 static void vdoPostsuspend(struct dm_target *ti)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
@@ -700,6 +712,7 @@ static void vdoPostsuspend(struct dm_target *ti)
   } else {
     logError("suspend of device '%s' failed with error: %d", poolName, result);
   }
+  layer->noFlushSuspend = false;
   unregisterThreadDeviceID();
 }
 
@@ -753,6 +766,7 @@ static struct target_type vdoTargetBio = {
   .map             = vdoMapBio,
   .message         = vdoMessage,
   .status          = vdoStatus,
+  .presuspend      = vdoPresuspend,
   .postsuspend     = vdoPostsuspend,
   .preresume       = vdoPreresume,
   .resume          = vdoResume,

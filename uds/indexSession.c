@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexSession.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/indexSession.c#2 $
  */
 
 #include "indexSession.h"
@@ -141,7 +141,7 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
 /**********************************************************************/
 int saveAndFreeIndexSession(IndexSession *indexSession)
 {
-  int result = saveAndFreeGrid(indexSession->grid, true);
+  int result = saveAndFreeGrid(indexSession->grid);
   if (result != UDS_SUCCESS) {
     logInfoWithStringError(result, "ignoring error from saveAndFreeGrid");
   }
@@ -171,6 +171,20 @@ int udsCloseIndexSession(UdsIndexSession session)
   finishSession(indexSessionGroup, &indexSession->session);
   result = saveAndFreeIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);
+  return result;
+}
+
+/**********************************************************************/
+int udsSaveIndex(UdsIndexSession session)
+{
+  IndexSession *indexSession;
+  int result = getIndexSession(session.id, &indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = saveGrid(indexSession->grid);
+  releaseIndexSession(indexSession);
   return result;
 }
 

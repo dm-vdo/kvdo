@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/udsModule.c#1 $
+ * $Id: //eng/uds-releases/homer/kernelLinux/uds/udsModule.c#2 $
  */
 
 #include <linux/module.h>
@@ -73,6 +73,7 @@ EXPORT_SYMBOL_GPL(udsGetVersion);
 EXPORT_SYMBOL_GPL(udsCreateLocalIndex);
 EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
 EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
+EXPORT_SYMBOL_GPL(udsSaveIndex);
 EXPORT_SYMBOL_GPL(udsCloseIndexSession);
 EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
 EXPORT_SYMBOL_GPL(udsGetIndexStats);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#8 $
  */
 
 #ifndef KERNELLAYER_H
@@ -116,6 +116,7 @@ struct kernelLayer {
   unsigned int                instance;
   /** Contains the current KernelLayerState, which rarely changes */
   Atomic32                    state;
+  bool                        noFlushSuspend;
   bool                        allocationsAllowed;
   AtomicBool                  processingMessage;
   struct dm_target_callbacks  callbacks;

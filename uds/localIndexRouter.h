@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/localIndexRouter.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/localIndexRouter.h#2 $
  */
 
 #ifndef LOCAL_INDEX_ROUTER_H
@@ -39,6 +39,7 @@
 typedef struct localIndexRouter {
   IndexRouter   header;
   unsigned int  zoneCount;
+  bool          needToSave;
   Index        *index;
   RequestQueue *triageQueue;
   RequestQueue *zoneQueues[];

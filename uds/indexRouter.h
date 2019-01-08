@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexRouter.h#2 $
+ * $Id: //eng/uds-releases/homer/src/uds/indexRouter.h#3 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -55,15 +55,21 @@ struct indexRouter {
  **/
 struct indexRouterMethods {
   /**
-   * Optionally save the index router state to persistent storage, and always
-   * destroy the index router and free its memory.
+   * Optionally save the index router state to persistent storage, and
+   * optionally destroy the index router and free its memory.
+   *
+   * It is the responsibility of the caller to ensure that there are no other
+   * uses of the index during a call to this method.  It is necessary that
+   * there be no index requests from any block context nor any other attempt to
+   * save the index until after a call to saveAndFree returns.
    *
    * @param router    The index router to save.
    * @param saveFlag  True to save the index router state.
+   * @param freeFlag  True to free the index router state.
    *
-   * @return        UDS_SUCCESS if successful.
+   * @return UDS_SUCCESS if successful or an error code.
    **/
-  int (*saveAndFree)(IndexRouter *router, bool saveFlag);
+  int (*saveAndFree)(IndexRouter *router, bool saveFlag, bool freeFlag);
 
   /**
    * Select and return the request queue responsible for executing the next
@@ -112,23 +118,32 @@ struct indexRouterMethods {
    * Wait for the index router to finish all operations that access a local
    * storage device.
    *
-   * @param router    The index router.
+   * @param router  The index router.
    **/
   void (*waitForIdle)(IndexRouter *router);
 };
 
 /**
- * Optionally save the index router state to persistent storage, and always
+ * Optionally save the index router state to persistent storage, and optionally
  * destroy the index router and free its memory.
  *
- * @param router    the index router to destroy (may be NULL)
- * @param saveFlag  True to save the index router state.
+ * It is the responsibility of the caller to ensure that there are other uses
+ * of the index during a call to this method.  It is necessary that there be no
+ * index requests from any block context nor any other attempt to save the
+ * index until after a call to saveAndFree returns.
  *
- * @return        UDS_SUCCESS if successful.
+ * @param router    the index router to destroy.
+ * @param saveFlag  True to save the index router state.
+ * @param freeFlag  True to free the index router state.
+ *
+ * @return UDS_SUCCESS if successful or an error code.
  **/
-static INLINE int saveAndFreeIndexRouter(IndexRouter *router, bool saveFlag)
+__attribute__((warn_unused_result)) 
+static INLINE int saveAndFreeIndexRouter(IndexRouter *router,
+                                         bool         saveFlag,
+                                         bool         freeFlag)
 {
-  return router->methods->saveAndFree(router, saveFlag);
+  return router->methods->saveAndFree(router, saveFlag, freeFlag);
 }
 
 /**
@@ -139,7 +154,7 @@ static INLINE int saveAndFreeIndexRouter(IndexRouter *router, bool saveFlag)
 static INLINE void freeIndexRouter(IndexRouter *router)
 {
   if (router != NULL) {
-    saveAndFreeIndexRouter(router, false);
+    router->methods->saveAndFree(router, false, true);
   }
 }
 

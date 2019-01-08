@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/grid.c#2 $
+ * $Id: //eng/uds-releases/homer/src/uds/grid.c#3 $
  */
 
 #include "grid.h"
@@ -173,29 +173,64 @@ void waitForIdleGrid(Grid *grid)
 }
 
 /**********************************************************************/
-int saveAndFreeGrid(Grid *grid, bool saveFlag)
+int saveAndFreeGrid(Grid *grid)
 {
   if (grid == NULL) {
     return UDS_SUCCESS;
   }
-
   int result = UDS_SUCCESS;
   if (grid->routers != NULL) {
     for (unsigned int i = 0; i < grid->numRouters; i++) {
       IndexRouter *router = grid->routers[i];
       if (router != NULL) {
-        int routerResult = saveAndFreeIndexRouter(router, saveFlag);
+        int routerResult = saveAndFreeIndexRouter(router, true, true);
         if (routerResult != UDS_SUCCESS) {
-          logWarningWithStringError(routerResult,
-                                    "index router save state problem");
+          logWarningWithStringError(routerResult, "index router save problem");
           result = routerResult;
         }
       }
     }
   }
-
   freeIndexLayout(&grid->layout);
   FREE(grid->routers);
   FREE(grid);
   return result;
+}
+
+/**********************************************************************/
+int saveGrid(Grid *grid)
+{
+  if (grid == NULL) {
+    return UDS_SUCCESS;
+  }
+  int result = UDS_SUCCESS;
+  if (grid->routers != NULL) {
+    for (unsigned int i = 0; i < grid->numRouters; i++) {
+      IndexRouter *router = grid->routers[i];
+      if (router != NULL) {
+        int routerResult = saveAndFreeIndexRouter(router, true, false);
+        if (routerResult != UDS_SUCCESS) {
+          logWarningWithStringError(routerResult, "index router save problem");
+          result = routerResult;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/**********************************************************************/
+void freeGrid(Grid *grid)
+{
+  if (grid == NULL) {
+    return;
+  }
+  if (grid->routers != NULL) {
+    for (unsigned int i = 0; i < grid->numRouters; i++) {
+      freeIndexRouter(grid->routers[i]);
+    }
+  }
+  freeIndexLayout(&grid->layout);
+  FREE(grid->routers);
+  FREE(grid);
 }
