@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#3 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -278,13 +278,6 @@ static inline bool areWorkItemActionsEqual(KvdoWorkItem *item1,
  *          thread is not a work queue thread.
  **/
 void *getWorkQueuePrivateData(void);
-
-/**
- * Updates the private data pointer for the current thread's work queue.
- *
- * @param newData  The new private data pointer
- **/
-void setWorkQueuePrivateData(void *newData);
 
 /**
  * Returns the work queue pointer for the current thread, if any.

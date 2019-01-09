@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#3 $
  */
 
 #include "workQueue.h"
@@ -1144,14 +1144,6 @@ void *getWorkQueuePrivateData(void)
 {
   SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
   return (queue != NULL) ? queue->private : NULL;
-}
-
-/**********************************************************************/
-void setWorkQueuePrivateData(void *newData)
-{
-  SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
-  BUG_ON(queue == NULL);
-  queue->private = newData;
 }
 
 /**********************************************************************/
