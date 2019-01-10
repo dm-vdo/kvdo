@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#7 $
  */
 
 #include "dmvdo.h"
@@ -731,6 +731,8 @@ static int vdoPreresume(struct dm_target *ti)
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
                             " failed", config->poolName);
+    setKernelLayerActiveConfig(layer, config);
+    setKVDOReadOnly(&layer->kvdo, result);
   } else {
     setKernelLayerActiveConfig(layer, config);
     result = resumeKernelLayer(layer);
