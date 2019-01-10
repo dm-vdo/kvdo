@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#21 $
  */
 
 #include "kernelLayer.h"
@@ -738,7 +738,7 @@ int makeKernelLayer(uint64_t               startingSector,
                          (void **) layer->compressionContext,
                          &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
-    *reason = "Albireo CPU queue initialization failed";
+    *reason = "CPU queue initialization failed";
     freeKernelLayer(layer);
     return result;
   }

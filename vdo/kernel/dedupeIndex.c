@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#7 $
  */
 
 #include "dedupeIndex.h"
@@ -964,7 +964,7 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
 
   // UDS Timeout Reporter
   initPeriodicEventReporter(&index->timeoutReporter,
-                            "Albireo timeout on %llu requests",
+                            "UDS index timeout on %llu requests",
                             DEDUPE_TIMEOUT_REPORT_INTERVAL, layer);
 
   *indexPtr = index;
