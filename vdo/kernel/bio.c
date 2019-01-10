@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#5 $
  */
 
 #include "bio.h"
@@ -44,32 +44,32 @@ static char *getBufferForBiovec(struct bio_vec *biovec)
 }
 
 /**********************************************************************/
-void bioCopyDataIn(struct bio *bio, char *dataPtr)
+void bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
   struct bio_vec *biovec;
   for (struct bio_iterator iter = createBioIterator(bio);
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
-    memcpy(dataPtr, getBufferForBiovec(biovec), biovec->bv_len);
-    dataPtr += biovec->bv_len;
+    memcpy(data_ptr, getBufferForBiovec(biovec), biovec->bv_len);
+    data_ptr += biovec->bv_len;
   }
 }
 
 /**********************************************************************/
-void bioCopyDataOut(struct bio *bio, char *dataPtr)
+void bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
   struct bio_vec *biovec;
   for (struct bio_iterator iter = createBioIterator(bio);
        (biovec = getNextBiovec(&iter)) != NULL;
        advanceBioIterator(&iter)) {
-    memcpy(getBufferForBiovec(biovec), dataPtr, biovec->bv_len);
+    memcpy(getBufferForBiovec(biovec), data_ptr, biovec->bv_len);
     flush_dcache_page(biovec->bv_page);
-    dataPtr += biovec->bv_len;
+    data_ptr += biovec->bv_len;
   }
 }
 
 /**********************************************************************/
-void setBioOperation(struct bio *bio, unsigned int operation)
+void set_bio_operation(struct bio *bio, unsigned int operation)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
   bio->bi_opf &= ~REQ_OP_MASK;
@@ -86,7 +86,7 @@ void setBioOperation(struct bio *bio, unsigned int operation)
 }
 
 /**********************************************************************/
-void freeBio(struct bio *bio, KernelLayer *layer)
+void free_bio(struct bio *bio, KernelLayer *layer)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
   bio_uninit(bio);
@@ -95,37 +95,37 @@ void freeBio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void countBios(AtomicBioStats *bioStats, struct bio *bio)
+void count_bios(AtomicBioStats *bio_stats, struct bio *bio)
 {
   if (isWriteBio(bio)) {
-    atomic64_inc(&bioStats->write);
+    atomic64_inc(&bio_stats->write);
   } else {
-    atomic64_inc(&bioStats->read);
+    atomic64_inc(&bio_stats->read);
   }
   if (isDiscardBio(bio)) {
-    atomic64_inc(&bioStats->discard);
+    atomic64_inc(&bio_stats->discard);
   }
   if (isFlushBio(bio)) {
-    atomic64_inc(&bioStats->flush);
+    atomic64_inc(&bio_stats->flush);
   }
   if (isFUABio(bio)) {
-    atomic64_inc(&bioStats->fua);
+    atomic64_inc(&bio_stats->fua);
   }
 }
 
 /**********************************************************************/
-void bioZeroData(struct bio *bio)
+void bio_zero_data(struct bio *bio)
 {
   zero_fill_bio(bio);
 }
 
 /**********************************************************************/
-static void setBioSize(struct bio *bio, BlockSize bioSize)
+static void setBioSize(struct bio *bio, BlockSize bio_size)
 {
 #ifdef USE_BI_ITER
-  bio->bi_iter.bi_size = bioSize;
+  bio->bi_iter.bi_size = bio_size;
 #else
-  bio->bi_size = bioSize;
+  bio->bi_size = bio_size;
 #endif
 }
 
@@ -149,7 +149,7 @@ static void initializeBio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void resetBio(struct bio *bio, KernelLayer *layer)
+void reset_bio(struct bio *bio, KernelLayer *layer)
 {
   // VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for data).
   // Assert that this function is called on bios with vcnt of 0 or 1.
@@ -168,7 +168,7 @@ void resetBio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-int createBio(KernelLayer *layer, char *data, struct bio **bioPtr)
+int create_bio(KernelLayer *layer, char *data, struct bio **bio_ptr)
 {
   int bvecCount = 0;
   if (data != NULL) {
@@ -212,7 +212,7 @@ int createBio(KernelLayer *layer, char *data, struct bio **bioPtr)
 
   initializeBio(bio, layer);
   if (data == NULL) {
-    *bioPtr = bio;
+    *bio_ptr = bio;
     return VDO_SUCCESS;
   }
 
@@ -226,12 +226,12 @@ int createBio(KernelLayer *layer, char *data, struct bio **bioPtr)
 
   struct page *page
     = is_vmalloc_addr(data) ? vmalloc_to_page(data) : virt_to_page(data);
-  int bytesAdded = bio_add_page(bio, page, bytes, offset);
-  if (bytesAdded != bytes) {
-    freeBio(bio, layer);
+  int bytes_added = bio_add_page(bio, page, bytes, offset);
+  if (bytes_added != bytes) {
+    free_bio(bio, layer);
     return logErrorWithStringError(VDO_BIO_CREATION_FAILED,
                                    "Could only add %i bytes to bio",
-                                   bytesAdded);
+                                   bytes_added);
 
     }
 
@@ -240,15 +240,15 @@ int createBio(KernelLayer *layer, char *data, struct bio **bioPtr)
     offset  = 0;
   }
 
-  *bioPtr = bio;
+  *bio_ptr = bio;
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void prepareFlushBIO(struct bio          *bio,
-                     void                *context,
-                     struct block_device *device,
-                     bio_end_io_t        *endIOCallback)
+void prepare_flush_bio(struct bio          *bio,
+                       void                *context,
+                       struct block_device *device,
+                       bio_end_io_t        *end_io_callback)
 {
   clearBioOperationAndFlags(bio);
   /*
@@ -258,7 +258,7 @@ void prepareFlushBIO(struct bio          *bio,
    */
   setBioOperationWrite(bio);
   setBioOperationFlagPreflush(bio);
-  bio->bi_end_io  = endIOCallback;
+  bio->bi_end_io  = end_io_callback;
   bio->bi_private = context;
   bio->bi_vcnt    = 0;
   setBioBlockDevice(bio, device);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#14 $
  */
 
 #include "dataKVIO.h"
@@ -147,9 +147,9 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
   bio->bi_rw      = externalIORequest->rw;
 #endif
 
-  countBios(&layer->biosAcknowledged, bio);
+  count_bios(&layer->biosAcknowledged, bio);
   if (dataKVIO->isPartial) {
-    countBios(&layer->biosAcknowledgedPartial, bio);
+    count_bios(&layer->biosAcknowledgedPartial, bio);
   }
 
 
@@ -240,7 +240,7 @@ static void copyReadBlockData(KvdoWorkItem *workItem)
   // For a read-modify-write, copy the data into the dataBlock buffer so it
   // will be set up for the write phase.
   if (isReadModifyWriteVIO(dataKVIO->kvio.vio)) {
-    bioCopyDataOut(getBIOFromDataKVIO(dataKVIO), dataKVIO->readBlock.data);
+    bio_copy_data_out(getBIOFromDataKVIO(dataKVIO), dataKVIO->readBlock.data);
     kvdoEnqueueDataVIOCallback(dataKVIO);
     return;
   }
@@ -253,7 +253,7 @@ static void copyReadBlockData(KvdoWorkItem *workItem)
   }
 
   // For a full block read, copy the data to the bio and acknowledge.
-  bioCopyDataOut(getBIOFromDataKVIO(dataKVIO), dataKVIO->readBlock.data);
+  bio_copy_data_out(getBIOFromDataKVIO(dataKVIO), dataKVIO->readBlock.data);
   acknowledgeDataVIO(&dataKVIO->dataVIO);
 }
 
@@ -418,7 +418,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
   BUG_ON(getBIOFromDataKVIO(dataKVIO)->bi_private != &dataKVIO->kvio);
   // Read the data directly from the device using the read bio.
   struct bio *bio = readBlock->bio;
-  resetBio(bio, layer);
+  reset_bio(bio, layer);
   setBioSector(bio, blockToSector(layer, location));
   setBioOperationRead(bio);
   bio->bi_end_io = readBioCallback;
@@ -558,10 +558,10 @@ void applyPartialWrite(DataVIO *dataVIO)
   DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   struct bio  *bio      = dataKVIO->externalIORequest.bio;
   KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
-  resetBio(dataKVIO->dataBlockBio, layer);
+  reset_bio(dataKVIO->dataBlockBio, layer);
 
   if (!isDiscardBio(bio)) {
-    bioCopyDataIn(bio, dataKVIO->dataBlock + dataKVIO->offset);
+    bio_copy_data_in(bio, dataKVIO->dataBlock + dataKVIO->offset);
   } else {
     memset(dataKVIO->dataBlock + dataKVIO->offset, '\0',
            min(dataKVIO->remainingDiscard,
@@ -579,14 +579,14 @@ void applyPartialWrite(DataVIO *dataVIO)
 void zeroDataVIO(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("zeroDataVIO;io=readData"));
-  bioZeroData(dataVIOAsKVIO(dataVIO)->bio);
+  bio_zero_data(dataVIOAsKVIO(dataVIO)->bio);
 }
 
 /**********************************************************************/
 void copyData(DataVIO *source, DataVIO *destination)
 {
   dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
-  bioCopyDataOut(dataVIOAsKVIO(destination)->bio,
+  bio_copy_data_out(dataVIOAsKVIO(destination)->bio,
                  dataVIOAsDataKVIO(source)->dataBlock);
 }
 
@@ -672,7 +672,7 @@ static int makeDataKVIO(KernelLayer  *layer,
 
   // The dataBlock is only needed for writes and some partial reads.
   if (isWriteBio(bio) || (getBioSize(bio) < VDO_BLOCK_SIZE)) {
-    resetBio(dataKVIO->dataBlockBio, layer);
+    reset_bio(dataKVIO->dataBlockBio, layer);
   }
 
   initializeKVIO(kvio, layer, VIO_TYPE_DATA, VIO_PRIORITY_DATA, NULL, bio);
@@ -726,7 +726,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
                          || (dataKVIO->offset != 0));
 
   if (dataKVIO->isPartial) {
-    countBios(&layer->biosInPartial, bio);
+    count_bios(&layer->biosInPartial, bio);
   } else {
     /*
      * Note that we unconditionally fill in the dataBlock array for
@@ -746,7 +746,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
     } else if (bio_data_dir(bio) == WRITE) {
       // Copy the bio data to a char array so that we can continue to use
       // the data after we acknowledge the bio.
-      bioCopyDataIn(bio, dataKVIO->dataBlock);
+      bio_copy_data_in(bio, dataKVIO->dataBlock);
       dataKVIO->dataVIO.isZeroBlock = isZeroBlock(dataKVIO);
     }
   }
@@ -809,7 +809,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
   }
 
   struct bio *bio = getBIOFromDataKVIO(dataKVIO);
-  resetBio(bio, layer);
+  reset_bio(bio, layer);
   dataKVIO->isPartial = (dataKVIO->remainingDiscard < VDO_BLOCK_SIZE);
   dataKVIO->offset    = 0;
 
@@ -841,8 +841,8 @@ static void kvdoCompletePartialRead(VDOCompletion *completion)
   DataKVIO *dataKVIO = dataVIOAsDataKVIO(asDataVIO(completion));
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
-  bioCopyDataOut(dataKVIO->externalIORequest.bio,
-                 dataKVIO->readBlock.data + dataKVIO->offset);
+  bio_copy_data_out(dataKVIO->externalIORequest.bio,
+                    dataKVIO->readBlock.data + dataKVIO->offset);
   kvdoCompleteDataKVIO(completion);
   return;
 }
@@ -974,11 +974,11 @@ static void freePooledDataKVIO(void *poolData, void *data)
   }
 
   if (dataKVIO->dataBlockBio != NULL) {
-    freeBio(dataKVIO->dataBlockBio, layer);
+    free_bio(dataKVIO->dataBlockBio, layer);
   }
 
   if (dataKVIO->readBlock.bio != NULL) {
-    freeBio(dataKVIO->readBlock.bio, layer);
+    free_bio(dataKVIO->readBlock.bio, layer);
   }
 
   FREE(dataKVIO->readBlock.buffer);
@@ -1021,7 +1021,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
     return logErrorWithStringError(result, "DataKVIO data allocation failure");
   }
 
-  result = createBio(layer, dataKVIO->dataBlock, &dataKVIO->dataBlockBio);
+  result = create_bio(layer, dataKVIO->dataBlock, &dataKVIO->dataBlockBio);
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
@@ -1036,8 +1036,8 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
                                    "DataKVIO read allocation failure");
   }
 
-  result = createBio(layer, dataKVIO->readBlock.buffer,
-                     &dataKVIO->readBlock.bio);
+  result = create_bio(layer, dataKVIO->readBlock.buffer,
+                      &dataKVIO->readBlock.bio);
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,

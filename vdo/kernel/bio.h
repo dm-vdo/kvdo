@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#4 $
  */
 
 #ifndef BIO_H
@@ -35,18 +35,18 @@
 /**
  * Copy the bio data to a char array.
  *
- * @param bio      The bio to copy the data from
- * @param dataPtr  The local array to copy the data to
+ * @param bio       The bio to copy the data from
+ * @param data_ptr  The local array to copy the data to
  **/
-void bioCopyDataIn(struct bio *bio, char *dataPtr);
+void bio_copy_data_in(struct bio *bio, char *data_ptr);
 
 /**
  * Copy a char array to the bio data.
  *
- * @param bio      The bio to copy the data to
- * @param dataPtr  The local array to copy the data from
+ * @param bio       The bio to copy the data to
+ * @param data_ptr  The local array to copy the data from
  **/
-void bioCopyDataOut(struct bio *bio, char *dataPtr);
+void bio_copy_data_out(struct bio *bio, char *data_ptr);
 
 /**
  * Set the bi_rw or equivalent field of a bio to a particular data
@@ -55,18 +55,18 @@ void bioCopyDataOut(struct bio *bio, char *dataPtr);
  * @param bio        The bio to modify
  * @param operation  The operation to set it to
  **/
-void setBioOperation(struct bio *bio, unsigned int operation);
+void set_bio_operation(struct bio *bio, unsigned int operation);
 
 /**********************************************************************/
 static inline void setBioOperationRead(struct bio *bio)
 {
-  setBioOperation(bio, READ);
+  set_bio_operation(bio, READ);
 }
 
 /**********************************************************************/
 static inline void setBioOperationWrite(struct bio *bio)
 {
-  setBioOperation(bio, WRITE);
+  set_bio_operation(bio, WRITE);
 }
 
 /**********************************************************************/
@@ -116,7 +116,7 @@ static inline void setBioOperationFlagPreflush(struct bio *bio)
   setBioOperationFlag(bio, REQ_PREFLUSH);
 #else
   // Preflushes and empty flushes are not currently distinguished.
-  setBioOperation(bio, WRITE_FLUSH);
+  set_bio_operation(bio, WRITE_FLUSH);
 #endif
 }
 
@@ -292,7 +292,7 @@ static inline void completeBio(struct bio *bio, int error)
  * @param bio    The bio to free
  * @param layer  The layer the bio was created in
  **/
-void freeBio(struct bio *bio, KernelLayer *layer);
+void free_bio(struct bio *bio, KernelLayer *layer);
 
 /**
  * Count the statistics for the bios.  This is used for calls into VDO and
@@ -301,7 +301,7 @@ void freeBio(struct bio *bio, KernelLayer *layer);
  * @param bioStats  Statistics structure to update
  * @param bio       The bio
  **/
-void countBios(AtomicBioStats *bioStats, struct bio *bio);
+void count_bios(AtomicBioStats *bioStats, struct bio *bio);
 
 /**
  * Reset a bio so it can be used again. May only be used on a VDO-allocated
@@ -310,14 +310,14 @@ void countBios(AtomicBioStats *bioStats, struct bio *bio);
  * @param bio    The bio to reset
  * @param layer  The physical layer
  **/
-void resetBio(struct bio *bio, KernelLayer *layer);
+void reset_bio(struct bio *bio, KernelLayer *layer);
 
 /**
  * Set a bio's data to all zeroes.
  *
  * @param [in] bio  The bio
  **/
-void bioZeroData(struct bio *bio);
+void bio_zero_data(struct bio *bio);
 
 /**
  * Create a new bio structure for kernel buffer storage.
@@ -328,20 +328,20 @@ void bioZeroData(struct bio *bio);
  *
  * @return VDO_SUCCESS or an error
  **/
-int createBio(KernelLayer *layer, char *data, struct bio **bioPtr);
+int create_bio(KernelLayer *layer, char *data, struct bio **bioPtr);
 
 /**
  * Prepare a bio to issue a flush to the device below.
  *
- * @param bio            The flush bio
- * @param context        The context for the callback
- * @param device         The device to flush
- * @param endIOCallback  The function to call when the flush is complete
+ * @param bio              The flush bio
+ * @param context          The context for the callback
+ * @param device           The device to flush
+ * @param end_io_callback  The function to call when the flush is complete
  **/
-void prepareFlushBIO(struct bio          *bio,
-                     void                *context,
-                     struct block_device *device,
-                     bio_end_io_t        *endIOCallback);
+void prepare_flush_bio(struct bio          *bio,
+                       void                *context,
+                       struct block_device *device,
+                       bio_end_io_t        *end_io_callback);
 
 /**
  * Perform IO with a bio, waiting for completion and returning its result.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#19 $
  */
 
 #include "kernelLayer.h"
@@ -232,7 +232,7 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
                   "kvdoMapBio should not be called while in state %d", state);
 
   // Count all incoming bios.
-  countBios(&layer->biosIn, bio);
+  count_bios(&layer->biosIn, bio);
 
   // Handle empty bios.  Empty flush bios are not associated with a VIO.
   if (isFlushBio(bio)) {
@@ -246,7 +246,7 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
     } else {
       // We're not acknowledging this bio now, but we'll never touch it
       // again, so this is the last chance to account for it.
-      countBios(&layer->biosAcknowledged, bio);
+      count_bios(&layer->biosAcknowledged, bio);
       atomic64_inc(&layer->flushOut);
       setBioBlockDevice(bio, getKernelLayerBdev(layer));
       return DM_MAPIO_REMAPPED;
@@ -436,7 +436,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   KernelLayer *kernelLayer = asKernelLayer(layer);
 
   struct bio *bio;
-  int result = createBio(kernelLayer, buffer, &bio);
+  int result = create_bio(kernelLayer, buffer, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -448,7 +448,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
     logErrorWithStringError(result, "synchronous read failed");
     result = -EIO;
   }
-  freeBio(bio, kernelLayer);
+  free_bio(bio, kernelLayer);
 
   if (result != VDO_SUCCESS) {
     return result;

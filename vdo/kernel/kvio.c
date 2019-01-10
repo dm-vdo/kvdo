@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#6 $
  */
 
 #include "kvio.h"
@@ -84,7 +84,7 @@ static void freeKVIO(KVIO **kvioPtr)
     FREE(kvio->vio->trace);
   }
 
-  freeBio(kvio->bio, kvio->layer);
+  free_bio(kvio->bio, kvio->layer);
   FREE(kvio);
   *kvioPtr = NULL;
 }
@@ -110,7 +110,7 @@ void writeCompressedBlock(AllocatingVIO *allocatingVIO)
     = allocatingVIOAsCompressedWriteKVIO(allocatingVIO);
   KVIO *kvio       = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   struct bio *bio  = kvio->bio;
-  resetBio(bio, kvio->layer);
+  reset_bio(bio, kvio->layer);
   setBioOperationWrite(bio);
   setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
   submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
@@ -134,7 +134,7 @@ void submitMetadataVIO(VIO *vio)
 {
   KVIO       *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   struct bio *bio  = kvio->bio;
-  resetBio(bio, kvio->layer);
+  reset_bio(bio, kvio->layer);
 
   setBioSector(bio, blockToSector(kvio->layer, vio->physical));
 
@@ -180,7 +180,7 @@ static void completeFlushBio(struct bio *bio, int error)
 {
   KVIO *kvio   = (KVIO *) bio->bi_private;
   // Restore the bio's notion of its own data.
-  resetBio(bio, kvio->layer);
+  reset_bio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   kvdoContinueKvio(kvio, getBioResult(bio));
 #else
@@ -194,8 +194,8 @@ void kvdoFlushVIO(VIO *vio)
   KVIO        *kvio  = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   struct bio  *bio   = kvio->bio;
   KernelLayer *layer = kvio->layer;
-  resetBio(bio, layer);
-  prepareFlushBIO(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
+  reset_bio(bio, layer);
+  prepare_flush_bio(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
   submitBio(bio, getMetadataAction(vio));
 }
 
@@ -364,7 +364,7 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
 
   struct bio *bio;
   KernelLayer *kernelLayer = asKernelLayer(layer);
-  result = createBio(kernelLayer, data, &bio);
+  result = create_bio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -373,7 +373,7 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
   result = makeMetadataKVIO(kernelLayer, vioType, priority, parent, bio,
                             &metadataKVIO);
   if (result != VDO_SUCCESS) {
-    freeBio(bio, kernelLayer);
+    free_bio(bio, kernelLayer);
     return result;
   }
 
@@ -389,7 +389,7 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
 {
   struct bio *bio;
   KernelLayer *kernelLayer = asKernelLayer(layer);
-  int result = createBio(kernelLayer, data, &bio);
+  int result = create_bio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -398,7 +398,7 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
   result = makeCompressedWriteKVIO(kernelLayer, parent, bio,
                                    &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {
-    freeBio(bio, kernelLayer);
+    free_bio(bio, kernelLayer);
     return result;
   }
 

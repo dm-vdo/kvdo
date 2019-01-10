@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#6 $
  */
 
 #include "ioSubmitter.h"
@@ -209,15 +209,15 @@ static void countAllBiosCompleted(KVIO *kvio, struct bio *bio)
 {
   KernelLayer *layer = kvio->layer;
   if (isData(kvio)) {
-    countBios(&layer->biosOutCompleted, bio);
+    count_bios(&layer->biosOutCompleted, bio);
     return;
   }
 
-  countBios(&layer->biosMetaCompleted, bio);
+  count_bios(&layer->biosMetaCompleted, bio);
   if (kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-    countBios(&layer->biosJournalCompleted, bio);
+    count_bios(&layer->biosJournalCompleted, bio);
   } else if (kvio->vio->type == VIO_TYPE_BLOCK_MAP) {
-    countBios(&layer->biosPageCacheCompleted, bio);
+    count_bios(&layer->biosPageCacheCompleted, bio);
   }
 }
 
@@ -264,15 +264,15 @@ static void countAllBios(KVIO *kvio, struct bio *bio)
 {
   KernelLayer *layer = kvio->layer;
   if (isData(kvio)) {
-    countBios(&layer->biosOut, bio);
+    count_bios(&layer->biosOut, bio);
     return;
   }
 
-  countBios(&layer->biosMeta, bio);
+  count_bios(&layer->biosMeta, bio);
   if (kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL) {
-    countBios(&layer->biosJournal, bio);
+    count_bios(&layer->biosJournal, bio);
   } else if (kvio->vio->type == VIO_TYPE_BLOCK_MAP) {
-    countBios(&layer->biosPageCache, bio);
+    count_bios(&layer->biosPageCache, bio);
   }
 }
 
@@ -326,7 +326,7 @@ static void processBioMap(KvdoWorkItem *item)
     // 2. Detach the bio list from the kvio before submitting, because it
     //    could get reused/free'd up before all bios are submitted.
     struct bio_queue_data *bioQueueData = getWorkQueuePrivateData();
-    struct bio   *bio          = NULL;
+    struct bio   *bio                   = NULL;
     mutex_lock(&bioQueueData->lock);
     if (!bio_list_empty(&kvio->biosMerged)) {
       intMapRemove(bioQueueData->map, getBioSector(kvio->biosMerged.head));
