@@ -33,6 +33,8 @@ Other Contributors:
     Updates for FC26/Kernel 4.13
   Vojtech Trefny <vtrefny@redhat.com>
     Getting correct size of partitions
+  Achilles Gaikwad <agaikwad@redhat.com>
+    Bash completion for the vdostats command
 
 VDO was originally created at Permabit Technology Corporation, and was
 subsequently acquired and open-sourced by Red Hat.
