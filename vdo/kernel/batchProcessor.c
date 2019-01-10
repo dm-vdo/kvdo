@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#3 $
  */
 
 #include "batchProcessor.h"
@@ -66,21 +66,21 @@
  */
 
 enum batch_processor_state {
-  BATCH_PROCESSOR_IDLE,
-  BATCH_PROCESSOR_ENQUEUED,
+	BATCH_PROCESSOR_IDLE,
+	BATCH_PROCESSOR_ENQUEUED,
 };
 
 struct batch_processor {
-  spinlock_t              consumerLock;
-  FunnelQueue            *queue;
-  KvdoWorkItem            workItem;
-  atomic_t                state;
-  BatchProcessorCallback  callback;
-  void                   *closure;
-  KernelLayer            *layer;
+	spinlock_t consumerLock;
+	FunnelQueue *queue;
+	KvdoWorkItem workItem;
+	atomic_t state;
+	BatchProcessorCallback callback;
+	void *closure;
+	KernelLayer *layer;
 };
 
-static void scheduleBatchProcessing(struct batch_processor *batch);
+static void schedule_batch_processing(struct batch_processor *batch);
 
 /**
  * Apply the batch processing function to the accumulated set of
@@ -92,19 +92,20 @@ static void scheduleBatchProcessing(struct batch_processor *batch);
  **/
 static void batchProcessorWork(KvdoWorkItem *item)
 {
-  struct batch_processor *batch = container_of(item, struct batch_processor,
-                                               workItem);
-  spin_lock(&batch->consumerLock);
-  while (!isFunnelQueueEmpty(batch->queue)) {
-    batch->callback(batch, batch->closure);
-  }
-  atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
-  memoryFence();
-  bool needReschedule = !isFunnelQueueEmpty(batch->queue);
-  spin_unlock(&batch->consumerLock);
-  if (needReschedule) {
-    scheduleBatchProcessing(batch);
-  }
+	struct batch_processor *batch =
+		container_of(item, struct batch_processor, workItem);
+
+	spin_lock(&batch->consumerLock);
+	while (!isFunnelQueueEmpty(batch->queue)) {
+		batch->callback(batch, batch->closure);
+	}
+	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
+	memoryFence();
+	bool need_reschedule = !isFunnelQueueEmpty(batch->queue);
+	spin_unlock(&batch->consumerLock);
+	if (need_reschedule) {
+		schedule_batch_processing(batch);
+	}
 }
 
 /**
@@ -117,102 +118,103 @@ static void batchProcessorWork(KvdoWorkItem *item)
  *
  * @param [in]  batch  The batch_processor control data
  **/
-static void scheduleBatchProcessing(struct batch_processor *batch)
+static void schedule_batch_processing(struct batch_processor *batch)
 {
-  /*
-   * We want this to be very fast in the common cases.
-   *
-   * In testing on our "mgh" class machines (HP ProLiant DL380p Gen8,
-   * Intel Xeon E5-2690, 2.9GHz), it appears that under some
-   * conditions it's a little faster to use a memory fence and then
-   * read the "state" field, skipping the cmpxchg if the state is
-   * already set to BATCH_PROCESSOR_ENQUEUED. (Sometimes slightly
-   * faster still if we prefetch the state field first.) Note that the
-   * read requires the fence, otherwise it could be executed before
-   * the preceding store by the FunnelQueue code to the "next"
-   * pointer, which can, very rarely, result in failing to issue a
-   * wakeup when needed.
-   *
-   * However, the gain is small, and in testing on our older "harvard"
-   * class machines (Intel Xeon X5680, 3.33GHz) it was a clear win to
-   * skip all of that and go right for the cmpxchg.
-   *
-   * Of course, the tradeoffs may be sensitive to the particular work
-   * going on, cache pressure, etc.
-   */
-  smp_mb();
-  enum batch_processor_state oldState
-    = atomic_cmpxchg(&batch->state, BATCH_PROCESSOR_IDLE,
-                     BATCH_PROCESSOR_ENQUEUED);
-  bool doSchedule = (oldState == BATCH_PROCESSOR_IDLE);
-  if (doSchedule) {
-    enqueueCPUWorkQueue(batch->layer, &batch->workItem);
-  }
+	/*
+	 * We want this to be very fast in the common cases.
+	 *
+	 * In testing on our "mgh" class machines (HP ProLiant DL380p
+	 * Gen8, Intel Xeon E5-2690, 2.9GHz), it appears that under
+	 * some conditions it's a little faster to use a memory fence
+	 * and then read the "state" field, skipping the cmpxchg if
+	 * the state is already set to BATCH_PROCESSOR_ENQUEUED.
+	 * (Sometimes slightly faster still if we prefetch the state
+	 * field first.) Note that the read requires the fence,
+	 * otherwise it could be executed before the preceding store
+	 * by the FunnelQueue code to the "next" pointer, which can,
+	 * very rarely, result in failing to issue a wakeup when
+	 * needed.
+	 *
+	 * However, the gain is small, and in testing on our older
+	 * "harvard" class machines (Intel Xeon X5680, 3.33GHz) it was
+	 * a clear win to skip all of that and go right for the
+	 * cmpxchg.
+	 *
+	 * Of course, the tradeoffs may be sensitive to the particular
+	 * work going on, cache pressure, etc.
+	 */
+
+	smp_mb();
+	enum batch_processor_state old_state = atomic_cmpxchg(
+		&batch->state, BATCH_PROCESSOR_IDLE, BATCH_PROCESSOR_ENQUEUED);
+	bool do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
+	if (do_schedule) {
+		enqueueCPUWorkQueue(batch->layer, &batch->workItem);
+	}
 }
 
 /**********************************************************************/
-int makeBatchProcessor(KernelLayer             *layer,
-                       BatchProcessorCallback   callback,
-                       void                    *closure,
-                       struct batch_processor  **batchPtr)
+int make_batch_processor(KernelLayer *layer, BatchProcessorCallback callback,
+			 void *closure, struct batch_processor **batch_ptr)
 {
-  struct batch_processor *batch;
+	struct batch_processor *batch;
 
-  int result = ALLOCATE(1, struct batch_processor, "batchProcessor", &batch);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = makeFunnelQueue(&batch->queue);
-  if (result != UDS_SUCCESS) {
-    FREE(batch);
-    return result;
-  }
+	int result =
+		ALLOCATE(1, struct batch_processor, "batchProcessor", &batch);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+	result = makeFunnelQueue(&batch->queue);
+	if (result != UDS_SUCCESS) {
+		FREE(batch);
+		return result;
+	}
 
-  spin_lock_init(&batch->consumerLock);
-  setupWorkItem(&batch->workItem, batchProcessorWork,
-                (KvdoWorkFunction) callback, CPU_Q_ACTION_COMPLETE_KVIO);
-  atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
-  batch->callback = callback;
-  batch->closure  = closure;
-  batch->layer    = layer;
+	spin_lock_init(&batch->consumerLock);
+	setupWorkItem(&batch->workItem, batchProcessorWork,
+		      (KvdoWorkFunction)callback, CPU_Q_ACTION_COMPLETE_KVIO);
+	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
+	batch->callback = callback;
+	batch->closure = closure;
+	batch->layer = layer;
 
-  *batchPtr = batch;
-  return UDS_SUCCESS;
+	*batch_ptr = batch;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-void addToBatchProcessor(struct batch_processor *batch, KvdoWorkItem *item)
+void add_to_batch_processor(struct batch_processor *batch, KvdoWorkItem *item)
 {
-  funnelQueuePut(batch->queue, &item->workQueueEntryLink);
-  scheduleBatchProcessing(batch);
+	funnelQueuePut(batch->queue, &item->workQueueEntryLink);
+	schedule_batch_processing(batch);
 }
 
 /**********************************************************************/
-KvdoWorkItem *nextBatchItem(struct batch_processor *batch)
+KvdoWorkItem *next_batch_item(struct batch_processor *batch)
 {
-  FunnelQueueEntry *fqEntry = funnelQueuePoll(batch->queue);
-  if (fqEntry == NULL) {
-    return NULL;
-  }
+	FunnelQueueEntry *fq_entry = funnelQueuePoll(batch->queue);
 
-  return container_of(fqEntry, KvdoWorkItem, workQueueEntryLink);
+	if (fq_entry == NULL) {
+		return NULL;
+	}
+	return container_of(fq_entry, KvdoWorkItem, workQueueEntryLink);
 }
 
 /**********************************************************************/
-void condReschedBatchProcessor(struct batch_processor *batch)
+void cond_resched_batch_processor(struct batch_processor *batch)
 {
-  cond_resched_lock(&batch->consumerLock);
+	cond_resched_lock(&batch->consumerLock);
 }
 
 /**********************************************************************/
-void freeBatchProcessor(struct batch_processor **batchPtr)
+void free_batch_processor(struct batch_processor **batch_ptr)
 {
-  struct batch_processor *batch = *batchPtr;
-  if (batch) {
-    memoryFence();
-    BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
-    freeFunnelQueue(batch->queue);
-    FREE(batch);
-    *batchPtr = NULL;
-  }
+	struct batch_processor *batch = *batch_ptr;
+	if (batch) {
+		memoryFence();
+		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);
+		freeFunnelQueue(batch->queue);
+		FREE(batch);
+		*batch_ptr = NULL;
+	}
 }

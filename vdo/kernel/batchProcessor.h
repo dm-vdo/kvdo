@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#3 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -34,9 +34,9 @@
  *
  * The work function is run in one of the kernel layer's "CPU queues",
  * and care is taken to ensure that only one invocation can be running
- * or scheduled at any given time. It can loop calling nextBatchItem
+ * or scheduled at any given time. It can loop calling next_batch_item
  * repeatedly until there are no more objects to operate on. It should
- * also call condReschedBatchProcessor now and then, to play nicely
+ * also call cond_resched_batch_processor now and then, to play nicely
  * with the OS scheduler.
  *
  * Objects to operate on are manipulated through a FunnelQueueEntry
@@ -45,33 +45,31 @@
 struct batch_processor;
 
 typedef void (*BatchProcessorCallback)(struct batch_processor *batch,
-                                       void *closure);
+				       void *closure);
 
 /**
  * Creates a batch-processor control structure.
  *
- * @param [in]  layer     The kernel layer data, used to enqueue work items
- * @param [in]  callback  A function to process the accumulated objects
- * @param [in]  closure   A private data pointer for use by the callback
- * @param [out] batchPtr  Where to store the pointer to the new object
+ * @param [in]  layer      The kernel layer data, used to enqueue work items
+ * @param [in]  callback   A function to process the accumulated objects
+ * @param [in]  closure    A private data pointer for use by the callback
+ * @param [out] batch_ptr  Where to store the pointer to the new object
  *
  * @return   UDS_SUCCESS or an error code
  **/
-int makeBatchProcessor(KernelLayer             *layer,
-                       BatchProcessorCallback   callback,
-                       void                    *closure,
-                       struct batch_processor  **batchPtr);
+int make_batch_processor(KernelLayer *layer, BatchProcessorCallback callback,
+			 void *closure, struct batch_processor **batch_ptr);
 
 /**
  * Adds an object to the processing queue.
  *
- * <p>If the callback function is not currently running or scheduled to be run,
+ * If the callback function is not currently running or scheduled to be run,
  * it gets queued up to run.
  *
  * @param [in] batch  The batch-processor data
  * @param [in] item   The handle on the new object to add
  **/
-void addToBatchProcessor(struct batch_processor *batch, KvdoWorkItem *item);
+void add_to_batch_processor(struct batch_processor *batch, KvdoWorkItem *item);
 
 /**
  * Fetches the next object in the processing queue.
@@ -80,15 +78,15 @@ void addToBatchProcessor(struct batch_processor *batch, KvdoWorkItem *item);
  *
  * @return   An object pointer or NULL
  **/
-KvdoWorkItem *nextBatchItem(struct batch_processor *batch)
-  __attribute__((warn_unused_result));
+KvdoWorkItem *next_batch_item(struct batch_processor *batch)
+	__attribute__((warn_unused_result));
 
 /**
  * Free the batch-processor data and null out the pointer.
  *
- * @param [in,out] batchPtr  Where the batch_processor pointer is stored
+ * @param [in,out] batch_ptr  Where the batch_processor pointer is stored
  **/
-void freeBatchProcessor(struct batch_processor **batchPtr);
+void free_batch_processor(struct batch_processor **batch_ptr);
 
 /**
  * Yield control to the scheduler if the kernel has indicated that
@@ -99,6 +97,6 @@ void freeBatchProcessor(struct batch_processor **batchPtr);
  *
  * @param [in]  batch  The batch-processor data
  **/
-void condReschedBatchProcessor(struct batch_processor *batch);
+void cond_resched_batch_processor(struct batch_processor *batch);
 
 #endif // BATCHPROCESSOR_H

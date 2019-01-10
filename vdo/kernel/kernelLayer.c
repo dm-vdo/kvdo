@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#18 $
  */
 
 #include "kernelLayer.h"
@@ -665,8 +665,8 @@ int makeKernelLayer(uint64_t               startingSector,
           config->threadCounts.hashZones,
           (*threadConfigPointer)->baseThreadCount);
 
-  result = makeBatchProcessor(layer, returnDataKVIOBatchToPool, layer,
-                              &layer->dataKVIOReleaser);
+  result = make_batch_processor(layer, returnDataKVIOBatchToPool, layer,
+                                &layer->dataKVIOReleaser);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot allocate KVIO-freeing batch processor";
     freeKernelLayer(layer);
@@ -997,7 +997,7 @@ void freeKernelLayer(KernelLayer *layer)
     }
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
-    freeBatchProcessor(&layer->dataKVIOReleaser);
+    free_batch_processor(&layer->dataKVIOReleaser);
     removeLayerFromDeviceRegistry(layer->deviceConfig->poolName);
     break;
 

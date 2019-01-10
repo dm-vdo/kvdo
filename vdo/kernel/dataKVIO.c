@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#13 $
  */
 
 #include "dataKVIO.h"
@@ -189,9 +189,9 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
   initFreeBufferPointers(&fbp, layer->dataKVIOPool);
 
   KvdoWorkItem *item;
-  while ((item = nextBatchItem(batch)) != NULL) {
+  while ((item = next_batch_item(batch)) != NULL) {
     cleanDataKVIO(workItemAsDataKVIO(item), &fbp);
-    condReschedBatchProcessor(batch);
+    cond_resched_batch_processor(batch);
     count++;
   }
 
@@ -207,7 +207,7 @@ static void kvdoAcknowledgeThenCompleteDataKVIO(KvdoWorkItem *item)
 {
   DataKVIO *dataKVIO = workItemAsDataKVIO(item);
   kvdoAcknowledgeDataKVIO(dataKVIO);
-  addToBatchProcessor(dataKVIO->kvio.layer->dataKVIOReleaser, item);
+  add_to_batch_processor(dataKVIO->kvio.layer->dataKVIOReleaser, item);
 }
 
 /**********************************************************************/
@@ -222,8 +222,8 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
     launchDataKVIOOnBIOAckQueue(dataKVIO, kvdoAcknowledgeThenCompleteDataKVIO,
                                 NULL, BIO_ACK_Q_ACTION_ACK);
   } else {
-    addToBatchProcessor(layer->dataKVIOReleaser,
-                        workItemFromDataKVIO(dataKVIO));
+    add_to_batch_processor(layer->dataKVIOReleaser,
+                           workItemFromDataKVIO(dataKVIO));
   }
 }
 
