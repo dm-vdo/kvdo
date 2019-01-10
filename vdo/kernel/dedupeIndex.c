@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#6 $
  */
 
 #include "dedupeIndex.h"
@@ -62,35 +62,62 @@ typedef enum {
   IS_OPENED = 2,
 } IndexState;
 
+enum {
+  DEDUPE_TIMEOUT_REPORT_INTERVAL = 1000,
+};
+
+// Data managing the reporting of UDS timeouts
+typedef struct periodicEventReporter {
+  uint64_t             lastReportedValue;
+  const char          *format;
+  atomic64_t           value;
+  Jiffies              reportingInterval; // jiffies
+  /*
+   * Just an approximation.  If nonzero, then either the work item has
+   * been queued to run, or some other thread currently has
+   * responsibility for enqueueing it, or the reporter function is
+   * running but hasn't looked at the current value yet.
+   *
+   * If this is set, don't set the timer again, because we don't want
+   * the work item queued twice.  Use an atomic xchg or cmpxchg to
+   * test-and-set it, and an atomic store to clear it.
+   */
+  atomic_t             workItemQueued;
+  KvdoWorkItem         workItem;
+  KernelLayer         *layer;
+} PeriodicEventReporter;
+
 /*****************************************************************************/
 
 struct dedupeIndex {
-  struct kobject     dedupeObject;
-  KvdoWorkItem       workItem;
-  RegisteredThread   allocatingThread;
-  char              *indexName;
-  UdsConfiguration   configuration;
-  UdsBlockContext    blockContext;
-  UdsIndexSession    indexSession;
-  atomic_t           active;
+  struct kobject         dedupeObject;
+  KvdoWorkItem           workItem;
+  RegisteredThread       allocatingThread;
+  char                  *indexName;
+  UdsConfiguration       configuration;
+  UdsBlockContext        blockContext;
+  UdsIndexSession        indexSession;
+  atomic_t               active;
+  // for reporting UDS timeouts
+  PeriodicEventReporter  timeoutReporter;
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
-  spinlock_t         stateLock;
-  KvdoWorkQueue     *udsQueue;    // protected by stateLock
-  unsigned int       maximum;     // protected by stateLock
-  IndexState         indexState;  // protected by stateLock
-  IndexState         indexTarget; // protected by stateLock
-  bool               changing;    // protected by stateLock
-  bool               createFlag;  // protected by stateLock
-  bool               dedupeFlag;  // protected by stateLock
-  bool               deduping;    // protected by stateLock
-  bool               errorFlag;   // protected by stateLock
+  spinlock_t             stateLock;
+  KvdoWorkQueue         *udsQueue;    // protected by stateLock
+  unsigned int           maximum;     // protected by stateLock
+  IndexState             indexState;  // protected by stateLock
+  IndexState             indexTarget; // protected by stateLock
+  bool                   changing;    // protected by stateLock
+  bool                   createFlag;  // protected by stateLock
+  bool                   dedupeFlag;  // protected by stateLock
+  bool                   deduping;    // protected by stateLock
+  bool                   errorFlag;   // protected by stateLock
   // This spinlock protects the pending list, the pending flag in each KVIO,
   // and the timeout list.
-  spinlock_t         pendingLock;
-  struct list_head   pendingHead;  // protected by pendingLock
-  struct timer_list  pendingTimer; // protected by pendingLock
-  bool               startedTimer; // protected by pendingLock
+  spinlock_t             pendingLock;
+  struct list_head       pendingHead;  // protected by pendingLock
+  struct timer_list      pendingTimer; // protected by pendingLock
+  bool                   startedTimer; // protected by pendingLock
 };
 
 /*****************************************************************************/
@@ -301,6 +328,71 @@ static void startIndexOperation(KvdoWorkItem *item)
   }
 }
 
+/**********************************************************************/
+uint64_t getDedupeTimeoutCount(DedupeIndex *index)
+{
+  return atomic64_read(&index->timeoutReporter.value);
+}
+
+/**********************************************************************/
+static void reportEvents(PeriodicEventReporter *reporter)
+{
+  atomic_set(&reporter->workItemQueued, 0);
+  uint64_t newValue = atomic64_read(&reporter->value);
+  uint64_t difference = newValue - reporter->lastReportedValue;
+  if (difference != 0) {
+    logDebug(reporter->format, difference);
+    reporter->lastReportedValue = newValue;
+  }
+}
+
+/**********************************************************************/
+static void reportEventsWork(KvdoWorkItem *item)
+{
+  PeriodicEventReporter *reporter = container_of(item, PeriodicEventReporter,
+                                                 workItem);
+  reportEvents(reporter);
+}
+
+/**********************************************************************/
+static void initPeriodicEventReporter(PeriodicEventReporter *reporter,
+                                      const char            *format,
+                                      unsigned long          reportingInterval,
+                                      KernelLayer           *layer)
+{
+  setupWorkItem(&reporter->workItem, reportEventsWork, NULL,
+                CPU_Q_ACTION_EVENT_REPORTER);
+  reporter->format            = format;
+  reporter->reportingInterval = msecs_to_jiffies(reportingInterval);
+  reporter->layer             = layer;
+}
+
+/**
+ * Record and eventually report that a dedupe request reached its expiration
+ * time without getting an answer, so we timed it out.
+ * 
+ * This is called in a timer context, so it shouldn't do the reporting
+ * directly.
+ *
+ * @param reporter       The periodic event reporter
+ **/
+static void reportDedupeTimeout(PeriodicEventReporter *reporter)
+{
+  atomic64_inc(&reporter->value);
+  int oldWorkItemQueued = atomic_xchg(&reporter->workItemQueued, 1);
+  if (oldWorkItemQueued == 0) {
+    enqueueWorkQueueDelayed(reporter->layer->cpuQueue,
+                            &reporter->workItem,
+                            jiffies + reporter->reportingInterval);
+  }
+}
+
+/**********************************************************************/
+static void stopPeriodicEventReporter(PeriodicEventReporter *reporter)
+{
+  reportEvents(reporter);
+}
+
 /*****************************************************************************/
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
 static void timeoutIndexOperations(struct timer_list *t)
@@ -341,7 +433,7 @@ static void timeoutIndexOperations(unsigned long arg)
       dedupeContext->status = ETIMEDOUT;
       invokeDedupeCallback(dataKVIO);
       atomic_dec(&index->active);
-      kvdoReportDedupeTimeout(dataKVIOAsKVIO(dataKVIO)->layer, 1);
+      reportDedupeTimeout(&index->timeoutReporter);
     }
   }
 }
@@ -629,6 +721,7 @@ void freeDedupeIndex(DedupeIndex **indexPtr)
   *indexPtr = NULL;
 
   freeWorkQueue(&index->udsQueue);
+  stopPeriodicEventReporter(&index->timeoutReporter);
   spin_lock_bh(&index->pendingLock);
   if (index->startedTimer) {
     del_timer_sync(&index->pendingTimer);
@@ -868,6 +961,11 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
   setup_timer(&index->pendingTimer, timeoutIndexOperations,
               (unsigned long) index);
 #endif
+
+  // UDS Timeout Reporter
+  initPeriodicEventReporter(&index->timeoutReporter,
+                            "Albireo timeout on %llu requests",
+                            DEDUPE_TIMEOUT_REPORT_INTERVAL, layer);
 
   *indexPtr = index;
   return VDO_SUCCESS;

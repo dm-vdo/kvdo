@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#9 $
  */
 
 #ifndef KERNELLAYER_H
@@ -70,32 +70,6 @@ struct atomicBioStats {
   atomic64_t flush;             // Number of REQ_FLUSH bios
   atomic64_t fua;               // Number of REQ_FUA bios
 };
-
-// Data managing the reporting of Albireo timeouts
-typedef struct periodicEventReporter {
-  uint64_t             lastReportedValue;
-  const char          *format;
-  atomic64_t           value;
-  Jiffies              reportingInterval; // jiffies
-  /*
-   * Just an approximation.  If nonzero, then either the work item has
-   * been queued to run, or some other thread currently has
-   * responsibility for enqueueing it, or the reporter function is
-   * running but hasn't looked at the current value yet.
-   *
-   * If this is set, don't set the timer again, because we don't want
-   * the work item queued twice.  Use an atomic xchg or cmpxchg to
-   * test-and-set it, and an atomic store to clear it.
-   */
-  atomic_t             workItemQueued;
-  KvdoWorkItem         workItem;
-  KernelLayer         *layer;
-} PeriodicEventReporter;
-
-static inline uint64_t getEventCount(PeriodicEventReporter *reporter)
-{
-  return atomic64_read(&reporter->value);
-}
 
 /**
  * The VDO representation of the target device
@@ -170,8 +144,6 @@ struct kernelLayer {
   AtomicBioStats           biosPageCache;
   AtomicBioStats           biosJournalCompleted;
   AtomicBioStats           biosPageCacheCompleted;
-  // for reporting Albireo timeouts
-  PeriodicEventReporter    albireoTimeoutReporter;
   // Debugging
   /* Whether to dump VDO state on shutdown */
   bool                     dumpOnShutdown;
@@ -482,19 +454,6 @@ static inline void setKernelLayerActiveConfig(KernelLayer          *layer,
  * @return   a system error code value
  **/
 int mapToSystemError(int error);
-
-/**
- * Record and eventually report that some number of dedupe requests
- * reached their expiration time without getting an answer, so we
- * timed out on them.
- *
- * This is called in a timer context, so it shouldn't do the reporting
- * directly.
- *
- * @param layer          The kernel layer for the device
- * @param expiredCount   The number of expired requests we timed out on
- **/
-void kvdoReportDedupeTimeout(KernelLayer *layer, unsigned int expiredCount);
 
 /**
  * Wait until there are no requests in progress.

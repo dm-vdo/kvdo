@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#20 $
  */
 
 #include "kernelLayer.h"
@@ -48,10 +48,6 @@
 #include "poolSysfs.h"
 #include "statusProcfs.h"
 #include "stringUtils.h"
-
-enum {
-  DEDUPE_TIMEOUT_REPORT_INTERVAL = 1000,
-};
 
 static const KvdoWorkQueueType bioAckQType = {
   .actionTable = {
@@ -320,65 +316,6 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
   if (count > 0) {
     limiterReleaseMany(&layer->requestLimiter, count);
   }
-}
-
-/**********************************************************************/
-static void reportEvents(PeriodicEventReporter *reporter)
-{
-  atomic_set(&reporter->workItemQueued, 0);
-  uint64_t newValue = atomic64_read(&reporter->value);
-  uint64_t difference = newValue - reporter->lastReportedValue;
-  if (difference != 0) {
-    logDebug(reporter->format, difference);
-    reporter->lastReportedValue = newValue;
-  }
-}
-
-/**********************************************************************/
-static void reportEventsWork(KvdoWorkItem *item)
-{
-  PeriodicEventReporter *reporter = container_of(item, PeriodicEventReporter,
-                                                 workItem);
-  reportEvents(reporter);
-}
-
-/**********************************************************************/
-static void initPeriodicEventReporter(PeriodicEventReporter *reporter,
-                                      const char            *format,
-                                      unsigned long          reportingInterval,
-                                      KernelLayer           *layer)
-{
-  setupWorkItem(&reporter->workItem, reportEventsWork, NULL,
-                CPU_Q_ACTION_EVENT_REPORTER);
-  reporter->format            = format;
-  reporter->reportingInterval = msecs_to_jiffies(reportingInterval);
-  reporter->layer             = layer;
-}
-
-/**********************************************************************/
-static void addEventCount(PeriodicEventReporter *reporter, unsigned int count)
-{
-  if (count > 0) {
-    atomic64_add(count, &reporter->value);
-    int oldWorkItemQueued = atomic_xchg(&reporter->workItemQueued, 1);
-    if (oldWorkItemQueued == 0) {
-      enqueueWorkQueueDelayed(reporter->layer->cpuQueue,
-                              &reporter->workItem,
-                              jiffies + reporter->reportingInterval);
-    }
-  }
-}
-
-/**********************************************************************/
-static void stopPeriodicEventReporter(PeriodicEventReporter *reporter)
-{
-  reportEvents(reporter);
-}
-
-/**********************************************************************/
-void kvdoReportDedupeTimeout(KernelLayer *layer, unsigned int expiredCount)
-{
-  addEventCount(&layer->albireoTimeoutReporter, expiredCount);
 }
 
 /**********************************************************************/
@@ -691,11 +628,6 @@ int makeKernelLayer(uint64_t               startingSector,
     freeKernelLayer(layer);
     return result;
   }
-
-  // Albireo Timeout Reporter
-  initPeriodicEventReporter(&layer->albireoTimeoutReporter,
-                            "Albireo timeout on %llu requests",
-                            DEDUPE_TIMEOUT_REPORT_INTERVAL, layer);
 
   // Dedupe Index
   BUG_ON(layer->threadNamePrefix[0] == '\0');
@@ -1021,7 +953,6 @@ void freeKernelLayer(KernelLayer *layer)
 
   freeDedupeIndex(&layer->dedupeIndex);
 
-  stopPeriodicEventReporter(&layer->albireoTimeoutReporter);
   if (releaseInstance) {
     releaseKVDOInstance(layer->instance);
   }

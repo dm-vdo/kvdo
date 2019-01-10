@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#4 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -59,6 +59,15 @@ void freeDedupeIndex(DedupeIndex **indexPtr);
  * @return the dedupe state name
  **/
 const char *getDedupeStateName(DedupeIndex *index);
+
+/**
+ * Get the dedupe timeout count.
+ *
+ * @param index  The dedupe index
+ *
+ * @return The number of dedupe timeouts noted
+ **/
+uint64_t getDedupeTimeoutCount(DedupeIndex *index);
 
 /**
  * Get the index statistics
