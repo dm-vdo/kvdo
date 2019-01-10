@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#2 $
  */
 
 #include "actionManager.h"
@@ -102,6 +102,7 @@ int makeActionManager(ZoneCount          zones,
                                            ACTION_COMPLETION, layer);
   if (result != VDO_SUCCESS) {
     freeActionManager(&manager);
+    return result;
   }
 
   *managerPtr = manager;
