@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#22 $
  */
 
 #include "kernelLayer.h"
@@ -208,7 +208,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
   }
 
   bool hasDiscardPermit
-    = (isDiscardBio(bio) && limiterPoll(&layer->discardLimiter));
+    = (is_discard_bio(bio) && limiterPoll(&layer->discardLimiter));
   int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
                                          hasDiscardPermit);
   // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
@@ -231,8 +231,8 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
   count_bios(&layer->biosIn, bio);
 
   // Handle empty bios.  Empty flush bios are not associated with a VIO.
-  if (isFlushBio(bio)) {
-    if (ASSERT(getBioSize(bio) == 0, "Flush bio is size 0") != VDO_SUCCESS) {
+  if (is_flush_bio(bio)) {
+    if (ASSERT(get_bio_size(bio) == 0, "Flush bio is size 0") != VDO_SUCCESS) {
       // We expect flushes to be of size 0.
       return -EINVAL;
     }
@@ -244,17 +244,18 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
       // again, so this is the last chance to account for it.
       count_bios(&layer->biosAcknowledged, bio);
       atomic64_inc(&layer->flushOut);
-      setBioBlockDevice(bio, getKernelLayerBdev(layer));
+      set_bio_block_device(bio, getKernelLayerBdev(layer));
       return DM_MAPIO_REMAPPED;
     }
   }
 
-  if (ASSERT(getBioSize(bio) != 0, "Data bio is not size 0") != VDO_SUCCESS) {
+  if (ASSERT(get_bio_size(bio) != 0, "Data bio is not size 0")
+      != VDO_SUCCESS) {
     // We expect non-flushes to be non-zero in size.
     return -EINVAL;
   }
 
-  if (isDiscardBio(bio) && isReadBio(bio)) {
+  if (is_discard_bio(bio) && is_read_bio(bio)) {
     // Read and Discard should never occur together
     return -EIO;
   }
@@ -269,7 +270,7 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
     return launchDataKVIOFromVDOThread(layer, bio, arrivalTime);
   }
   bool hasDiscardPermit = false;
-  if (isDiscardBio(bio)) {
+  if (is_discard_bio(bio)) {
     limiterWaitForOneFree(&layer->discardLimiter);
     hasDiscardPermit = true;
   }
@@ -303,11 +304,11 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
     }
 
     bool hasDiscardPermit
-      = (isDiscardBio(bio) && limiterPoll(&layer->discardLimiter));
+      = (is_discard_bio(bio) && limiterPoll(&layer->discardLimiter));
     int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
                                            hasDiscardPermit);
     if (result != VDO_SUCCESS) {
-      completeBio(bio, result);
+      complete_bio(bio, result);
     }
     // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
     count--;
@@ -377,9 +378,9 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   if (result != VDO_SUCCESS) {
     return result;
   }
-  setBioBlockDevice(bio, getKernelLayerBdev(kernelLayer));
-  setBioSector(bio, blockToSector(kernelLayer, startBlock));
-  setBioOperationRead(bio);
+  set_bio_block_device(bio, getKernelLayerBdev(kernelLayer));
+  set_bio_sector(bio, blockToSector(kernelLayer, startBlock));
+  set_bio_operation_read(bio);
   result = submitBioAndWait(bio);
   if (result != 0) {
     logErrorWithStringError(result, "synchronous read failed");

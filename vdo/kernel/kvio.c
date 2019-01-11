@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#7 $
  */
 
 #include "kvio.h"
@@ -111,8 +111,8 @@ void writeCompressedBlock(AllocatingVIO *allocatingVIO)
   KVIO *kvio       = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   struct bio *bio  = kvio->bio;
   reset_bio(bio, kvio->layer);
-  setBioOperationWrite(bio);
-  setBioSector(bio, blockToSector(kvio->layer, kvio->vio->physical));
+  set_bio_operation_write(bio);
+  set_bio_sector(bio, blockToSector(kvio->layer, kvio->vio->physical));
   submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
@@ -136,25 +136,25 @@ void submitMetadataVIO(VIO *vio)
   struct bio *bio  = kvio->bio;
   reset_bio(bio, kvio->layer);
 
-  setBioSector(bio, blockToSector(kvio->layer, vio->physical));
+  set_bio_sector(bio, blockToSector(kvio->layer, vio->physical));
 
   // Metadata I/Os bypass the read cache.
   if (isReadVIO(vio)) {
     ASSERT_LOG_ONLY(!vioRequiresFlushBefore(vio),
                     "read VIO does not require flush before");
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
-    setBioOperationRead(bio);
+    set_bio_operation_read(bio);
   } else if (vioRequiresFlushBefore(vio)) {
-    setBioOperationWrite(bio);
-    setBioOperationFlagPreflush(bio);
+    set_bio_operation_write(bio);
+    set_bio_operation_flag_preflush(bio);
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
   } else {
-    setBioOperationWrite(bio);
+    set_bio_operation_write(bio);
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
   }
 
   if (vioRequiresFlushAfter(vio)) {
-    setBioOperationFlagFua(bio);
+    set_bio_operation_flag_fua(bio);
   }
   submitBio(bio, getMetadataAction(vio));
 }
@@ -182,7 +182,7 @@ static void completeFlushBio(struct bio *bio, int error)
   // Restore the bio's notion of its own data.
   reset_bio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  kvdoContinueKvio(kvio, getBioResult(bio));
+  kvdoContinueKvio(kvio, get_bio_result(bio));
 #else
   kvdoContinueKvio(kvio, error);
 #endif

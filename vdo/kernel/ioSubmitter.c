@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#7 $
  */
 
 #include "ioSubmitter.h"
@@ -238,7 +238,7 @@ void completeAsyncBio(struct bio *bio, int error)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  int error = getBioResult(bio);
+  int error = get_bio_result(bio);
 #endif
   KVIO *kvio = (KVIO *) bio->bi_private;
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
@@ -329,8 +329,8 @@ static void processBioMap(KvdoWorkItem *item)
     struct bio   *bio                   = NULL;
     mutex_lock(&bioQueueData->lock);
     if (!bio_list_empty(&kvio->biosMerged)) {
-      intMapRemove(bioQueueData->map, getBioSector(kvio->biosMerged.head));
-      intMapRemove(bioQueueData->map, getBioSector(kvio->biosMerged.tail));
+      intMapRemove(bioQueueData->map, get_bio_sector(kvio->biosMerged.head));
+      intMapRemove(bioQueueData->map, get_bio_sector(kvio->biosMerged.tail));
     }
     bio = kvio->biosMerged.head;
     bio_list_init(&kvio->biosMerged);
@@ -343,7 +343,7 @@ static void processBioMap(KvdoWorkItem *item)
       KVIO *kvioBio = bio->bi_private;
       struct bio  *next    = bio->bi_next;
       bio->bi_next  = NULL;
-      setBioBlockDevice(bio, getKernelLayerBdev(kvioBio->layer));
+      set_bio_block_device(bio, getKernelLayerBdev(kvioBio->layer));
       sendBioToDevice(kvioBio, bio, THIS_LOCATION("$F($io)"));
       bio = next;
     }
@@ -369,7 +369,7 @@ static KVIO *getMergeableLocked(IntMap       *map,
                                 unsigned int  mergeType)
 {
   struct bio *bio          = kvio->bioToSubmit;
-  sector_t    mergeSector  = getBioSector(bio);
+  sector_t    mergeSector  = get_bio_sector(bio);
   switch (mergeType) {
   case ELEVATOR_BACK_MERGE:
     mergeSector -= VDO_SECTORS_PER_BLOCK;
@@ -392,12 +392,12 @@ static KVIO *getMergeableLocked(IntMap       *map,
     } else {
       switch (mergeType) {
       case ELEVATOR_BACK_MERGE:
-        if (getBioSector(kvioMerge->biosMerged.tail) != mergeSector) {
+        if (get_bio_sector(kvioMerge->biosMerged.tail) != mergeSector) {
           return NULL;
         }
         break;
       case ELEVATOR_FRONT_MERGE:
-        if (getBioSector(kvioMerge->biosMerged.head) != mergeSector) {
+        if (get_bio_sector(kvioMerge->biosMerged.head) != mergeSector) {
           return NULL;
         }
         break;
@@ -436,20 +436,21 @@ static bool tryBioMapMerge(struct bio_queue_data *bioQueueData,
   int result;
   if ((prevKvio == NULL) && (nextKvio == NULL)) {
     // no merge. just add to bioQueue
-    result = intMapPut(bioQueueData->map, getBioSector(bio), kvio, true, NULL);
+    result = intMapPut(bioQueueData->map, get_bio_sector(bio), kvio, true,
+                       NULL);
     // We don't care about failure of intMapPut in this case.
     result = result;
     mutex_unlock(&bioQueueData->lock);
   } else {
     if (nextKvio == NULL) {
       // Only prev. merge to  prev's tail
-      intMapRemove(bioQueueData->map, getBioSector(prevKvio->biosMerged.tail));
+      intMapRemove(bioQueueData->map, get_bio_sector(prevKvio->biosMerged.tail));
       bio_list_merge(&prevKvio->biosMerged, &kvio->biosMerged);
       result = intMapPut(bioQueueData->map,
-                         getBioSector(prevKvio->biosMerged.head),
+                         get_bio_sector(prevKvio->biosMerged.head),
                          prevKvio, true, NULL);
       result = intMapPut(bioQueueData->map,
-                         getBioSector(prevKvio->biosMerged.tail),
+                         get_bio_sector(prevKvio->biosMerged.tail),
                          prevKvio, true, NULL);
     } else {
       // Only next. merge to next's head
@@ -457,13 +458,14 @@ static bool tryBioMapMerge(struct bio_queue_data *bioQueueData,
       // Handle "next merge" and "gap fill" cases the same way so as to
       // reorder bios in a way that's compatible with using funnel queues
       // in work queues.  This avoids removing an existing work item.
-      intMapRemove(bioQueueData->map, getBioSector(nextKvio->biosMerged.head));
+      intMapRemove(bioQueueData->map,
+                   get_bio_sector(nextKvio->biosMerged.head));
       bio_list_merge_head(&nextKvio->biosMerged, &kvio->biosMerged);
       result = intMapPut(bioQueueData->map,
-                         getBioSector(nextKvio->biosMerged.head),
+                         get_bio_sector(nextKvio->biosMerged.head),
                          nextKvio, true, NULL);
       result = intMapPut(bioQueueData->map,
-                         getBioSector(nextKvio->biosMerged.tail),
+                         get_bio_sector(nextKvio->biosMerged.tail),
                          nextKvio, true, NULL);
     }
 
@@ -519,12 +521,12 @@ void submitBio(struct bio *bio, BioQAction action)
   if (layer->deviceConfig->mdRaid5ModeEnabled) {
     if (isData(kvio)) {
       // Clear the bits for sync I/O RW flags on data block bios.
-      clearBioOperationFlagSync(bio);
+      clear_bio_operation_flag_sync(bio);
     } else if ((kvio->vio->type == VIO_TYPE_RECOVERY_JOURNAL)
                || (kvio->vio->type == VIO_TYPE_SLAB_JOURNAL)) {
       // Set the bits for sync I/O RW flags on all journal-related and
       // slab-journal-related bios.
-      setBioOperationFlagSync(bio);
+      set_bio_operation_flag_sync(bio);
     }
   }
 

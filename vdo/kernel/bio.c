@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#6 $
  */
 
 #include "bio.h"
@@ -97,18 +97,18 @@ void free_bio(struct bio *bio, KernelLayer *layer)
 /**********************************************************************/
 void count_bios(AtomicBioStats *bio_stats, struct bio *bio)
 {
-  if (isWriteBio(bio)) {
+  if (is_write_bio(bio)) {
     atomic64_inc(&bio_stats->write);
   } else {
     atomic64_inc(&bio_stats->read);
   }
-  if (isDiscardBio(bio)) {
+  if (is_discard_bio(bio)) {
     atomic64_inc(&bio_stats->discard);
   }
-  if (isFlushBio(bio)) {
+  if (is_flush_bio(bio)) {
     atomic64_inc(&bio_stats->flush);
   }
-  if (isFUABio(bio)) {
+  if (is_fua_bio(bio)) {
     atomic64_inc(&bio_stats->fua);
   }
 }
@@ -144,8 +144,8 @@ static void initializeBio(struct bio *bio, KernelLayer *layer)
   bio->bi_private       = pvt;
   bio->bi_vcnt          = vcnt;
   bio->bi_end_io        = completeAsyncBio;
-  setBioSector(bio, (sector_t) -1);  // Sector will be set later on.
-  setBioBlockDevice(bio, getKernelLayerBdev(layer));
+  set_bio_sector(bio, (sector_t) -1);  // Sector will be set later on.
+  set_bio_block_device(bio, getKernelLayerBdev(layer));
 }
 
 /**********************************************************************/
@@ -250,18 +250,18 @@ void prepare_flush_bio(struct bio          *bio,
                        struct block_device *device,
                        bio_end_io_t        *end_io_callback)
 {
-  clearBioOperationAndFlags(bio);
+  clear_bio_operation_and_flags(bio);
   /*
    * One would think we could use REQ_OP_FLUSH on new kernels, but some
    * layers of the stack don't recognize that as a flush. So do it
    * like blkdev_issue_flush() and make it a write+flush.
    */
-  setBioOperationWrite(bio);
-  setBioOperationFlagPreflush(bio);
+  set_bio_operation_write(bio);
+  set_bio_operation_flag_preflush(bio);
   bio->bi_end_io  = end_io_callback;
   bio->bi_private = context;
   bio->bi_vcnt    = 0;
-  setBioBlockDevice(bio, device);
+  set_bio_block_device(bio, device);
   setBioSize(bio, 0);
-  setBioSector(bio, 0);
+  set_bio_sector(bio, 0);
 }

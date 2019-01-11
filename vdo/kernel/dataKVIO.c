@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#15 $
  */
 
 #include "dataKVIO.h"
@@ -154,7 +154,7 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 
 
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
-  completeBio(bio, error);
+  complete_bio(bio, error);
 }
 
 /**********************************************************************/
@@ -392,7 +392,7 @@ static void readBioCallback(struct bio *bio, int result)
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   countCompletedBios(bio);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  completeRead(dataKVIO, getBioResult(bio));
+  completeRead(dataKVIO, get_bio_result(bio));
 #else
   completeRead(dataKVIO, result);
 #endif
@@ -419,8 +419,8 @@ void kvdoReadBlock(DataVIO             *dataVIO,
   // Read the data directly from the device using the read bio.
   struct bio *bio = readBlock->bio;
   reset_bio(bio, layer);
-  setBioSector(bio, blockToSector(layer, location));
-  setBioOperationRead(bio);
+  set_bio_sector(bio, blockToSector(layer, location));
+  set_bio_operation_read(bio);
   bio->bi_end_io = readBioCallback;
   submitBio(bio, action);
 }
@@ -441,7 +441,7 @@ void readDataVIO(DataVIO *dataVIO)
   KVIO       *kvio = dataVIOAsKVIO(dataVIO);
   struct bio *bio  = kvio->bio;
   bio->bi_end_io   = resetUserBio;
-  setBioSector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
+  set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -464,7 +464,7 @@ void acknowledgeDataVIO(DataVIO *dataVIO)
 
   // If the remaining discard work is not completely processed by this VIO,
   // don't acknowledge it yet.
-  if (isDiscardBio(dataKVIO->externalIORequest.bio)
+  if (is_discard_bio(dataKVIO->externalIORequest.bio)
       && (dataKVIO->remainingDiscard
           > (VDO_BLOCK_SIZE - dataKVIO->offset))) {
     invokeCallback(dataVIOAsCompletion(dataVIO));
@@ -491,8 +491,8 @@ void writeDataVIO(DataVIO *dataVIO)
 
   KVIO       *kvio = dataVIOAsKVIO(dataVIO);
   struct bio *bio  = kvio->bio;
-  setBioOperationWrite(bio);
-  setBioSector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
+  set_bio_operation_write(bio);
+  set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
   submitBio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -560,7 +560,7 @@ void applyPartialWrite(DataVIO *dataVIO)
   KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
   reset_bio(dataKVIO->dataBlockBio, layer);
 
-  if (!isDiscardBio(bio)) {
+  if (!is_discard_bio(bio)) {
     bio_copy_data_in(bio, dataKVIO->dataBlock + dataKVIO->offset);
   } else {
     memset(dataKVIO->dataBlock + dataKVIO->offset, '\0',
@@ -570,9 +570,9 @@ void applyPartialWrite(DataVIO *dataVIO)
 
   dataVIO->isZeroBlock               = isZeroBlock(dataKVIO);
   dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
-  copyBioOperationAndFlags(dataKVIO->dataBlockBio, bio);
+  copy_bio_operation_and_flags(dataKVIO->dataBlockBio, bio);
   // Make the bio a write, not (potentially) a discard.
-  setBioOperationWrite(dataKVIO->dataBlockBio);
+  set_bio_operation_write(dataKVIO->dataBlockBio);
 }
 
 /**********************************************************************/
@@ -587,7 +587,7 @@ void copyData(DataVIO *source, DataVIO *destination)
 {
   dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
   bio_copy_data_out(dataVIOAsKVIO(destination)->bio,
-                 dataVIOAsDataKVIO(source)->dataBlock);
+                    dataVIOAsDataKVIO(source)->dataBlock);
 }
 
 /**********************************************************************/
@@ -627,7 +627,7 @@ void compressDataVIO(DataVIO *dataVIO)
    * compress this VIO. We need to make sure the VIO completes ASAP.
    */
   DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  if (isDiscardBio(dataKVIO->externalIORequest.bio)
+  if (is_discard_bio(dataKVIO->externalIORequest.bio)
       && (dataKVIO->remainingDiscard > 0)) {
     dataVIO->compression.size = VDO_BLOCK_SIZE + 1;
     kvdoEnqueueDataVIOCallback(dataKVIO);
@@ -671,7 +671,7 @@ static int makeDataKVIO(KernelLayer  *layer,
   bio_list_init(&kvio->biosMerged);
 
   // The dataBlock is only needed for writes and some partial reads.
-  if (isWriteBio(bio) || (getBioSize(bio) < VDO_BLOCK_SIZE)) {
+  if (is_write_bio(bio) || (get_bio_size(bio) < VDO_BLOCK_SIZE)) {
     reset_bio(dataKVIO->dataBlockBio, layer);
   }
 
@@ -712,7 +712,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
 
   // We will handle FUA at the end of the request (after we restore the
   // bi_rw field from externalIORequest.rw).
-  clearBioOperationFlagFua(bio);
+  clear_bio_operation_flag_fua(bio);
 
   DataKVIO *dataKVIO = NULL;
   int       result   = makeDataKVIO(layer, bio, &dataKVIO);
@@ -721,8 +721,8 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
   }
 
   dataKVIO->externalIORequest = externalIORequest;
-  dataKVIO->offset = sectorToBlockOffset(layer, getBioSector(bio));
-  dataKVIO->isPartial = ((getBioSize(bio) < VDO_BLOCK_SIZE)
+  dataKVIO->offset = sectorToBlockOffset(layer, get_bio_sector(bio));
+  dataKVIO->isPartial = ((get_bio_size(bio) < VDO_BLOCK_SIZE)
                          || (dataKVIO->offset != 0));
 
   if (dataKVIO->isPartial) {
@@ -736,7 +736,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
      * but only once we're sure all such places are fixed to check the
      * isZeroBlock flag first.
      */
-    if (isDiscardBio(bio)) {
+    if (is_discard_bio(bio)) {
       /*
        * This is a discard/trim operation. This is treated much like the zero
        * block, but we keep different stats and distinguish it in the block
@@ -751,24 +751,24 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
     }
   }
 
-  if (dataKVIO->isPartial || isWriteBio(bio)) {
+  if (dataKVIO->isPartial || is_write_bio(bio)) {
     /*
      * dataKVIO->bio will point at kvio->dataBlockBio for all writes and
      * partial block I/O so the rest of the kernel code doesn't need to
      * make a decision as to what to use.
      */
     dataKVIO->dataBlockBio->bi_private = &dataKVIO->kvio;
-    if (dataKVIO->isPartial && isWriteBio(bio)) {
-      clearBioOperationAndFlags(dataKVIO->dataBlockBio);
-      setBioOperationRead(dataKVIO->dataBlockBio);
+    if (dataKVIO->isPartial && is_write_bio(bio)) {
+      clear_bio_operation_and_flags(dataKVIO->dataBlockBio);
+      set_bio_operation_read(dataKVIO->dataBlockBio);
     } else {
-      copyBioOperationAndFlags(dataKVIO->dataBlockBio, bio);
+      copy_bio_operation_and_flags(dataKVIO->dataBlockBio, bio);
     }
     dataKVIOAsKVIO(dataKVIO)->bio = dataKVIO->dataBlockBio;
     dataKVIO->readBlock.data      = dataKVIO->dataBlock;
   }
 
-  setBioBlockDevice(bio, getKernelLayerBdev(layer));
+  set_bio_block_device(bio, getKernelLayerBdev(layer));
   bio->bi_end_io = completeAsyncBio;
   *dataKVIOPtr   = dataKVIO;
   return VDO_SUCCESS;
@@ -816,7 +816,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
   VIOOperation operation;
   if (dataKVIO->isPartial) {
     operation  = VIO_READ_MODIFY_WRITE;
-    setBioOperationRead(bio);
+    set_bio_operation_read(bio);
   } else {
     operation  = VIO_WRITE;
   }
@@ -874,9 +874,9 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
   VDOAction    *callback  = kvdoCompleteDataKVIO;
   VIOOperation  operation = VIO_WRITE;
   bool          isTrim    = false;
-  if (isDiscardBio(bio)) {
+  if (is_discard_bio(bio)) {
     dataKVIO->hasDiscardPermit = hasDiscardPermit;
-    dataKVIO->remainingDiscard = getBioSize(bio);
+    dataKVIO->remainingDiscard = get_bio_size(bio);
     callback                   = kvdoContinueDiscardKVIO;
     if (dataKVIO->isPartial) {
       operation = VIO_READ_MODIFY_WRITE;
@@ -899,7 +899,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
   }
 
   LogicalBlockNumber lbn
-    = sectorToBlock(layer, getBioSector(bio) - layer->startingSectorOffset);
+    = sectorToBlock(layer, get_bio_sector(bio) - layer->startingSectorOffset);
   prepareDataVIO(&dataKVIO->dataVIO, lbn, operation, isTrim, callback);
   enqueueKVIO(kvio, launchDataKVIOWork, vioAsCompletion(kvio->vio)->callback,
               REQ_Q_ACTION_MAP_BIO);
