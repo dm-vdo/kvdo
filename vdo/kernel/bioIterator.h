@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#4 $
  */
 
 #ifndef BIO_ITERATOR_H
@@ -45,7 +45,7 @@ struct bio_iterator {
  *
  * @return An iterator over a bio
  **/
-static struct bio_iterator createBioIterator(struct bio *bio)
+static struct bio_iterator create_bio_iterator(struct bio *bio)
 {
   struct bio_iterator  iterator = {
     .bio   = bio,
@@ -65,7 +65,7 @@ static struct bio_iterator createBioIterator(struct bio *bio)
  *
  * @return The next biovec from the iterator, or NULL.
  **/
-static struct bio_vec *getNextBiovec(struct bio_iterator *iterator)
+static struct bio_vec *get_next_biovec(struct bio_iterator *iterator)
 {
   struct bio *bio = iterator->bio;
 #ifdef USE_BI_ITER
@@ -88,7 +88,7 @@ static struct bio_vec *getNextBiovec(struct bio_iterator *iterator)
  *
  * @param [in,out] iterator     The iterator to advance
  **/
-static void advanceBioIterator(struct bio_iterator *iterator)
+static void advance_bio_iterator(struct bio_iterator *iterator)
 {
 #ifdef USE_BI_ITER
   bio_advance_iter(iterator->bio, &iterator->iter, iterator->temp.bv_len);

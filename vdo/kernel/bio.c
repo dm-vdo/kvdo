@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#7 $
  */
 
 #include "bio.h"
@@ -47,9 +47,9 @@ static char *getBufferForBiovec(struct bio_vec *biovec)
 void bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
   struct bio_vec *biovec;
-  for (struct bio_iterator iter = createBioIterator(bio);
-       (biovec = getNextBiovec(&iter)) != NULL;
-       advanceBioIterator(&iter)) {
+  for (struct bio_iterator iter = create_bio_iterator(bio);
+       (biovec = get_next_biovec(&iter)) != NULL;
+       advance_bio_iterator(&iter)) {
     memcpy(data_ptr, getBufferForBiovec(biovec), biovec->bv_len);
     data_ptr += biovec->bv_len;
   }
@@ -59,9 +59,9 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr)
 void bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
   struct bio_vec *biovec;
-  for (struct bio_iterator iter = createBioIterator(bio);
-       (biovec = getNextBiovec(&iter)) != NULL;
-       advanceBioIterator(&iter)) {
+  for (struct bio_iterator iter = create_bio_iterator(bio);
+       (biovec = get_next_biovec(&iter)) != NULL;
+       advance_bio_iterator(&iter)) {
     memcpy(getBufferForBiovec(biovec), data_ptr, biovec->bv_len);
     flush_dcache_page(biovec->bv_page);
     data_ptr += biovec->bv_len;
