@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#2 $
  */
 
 #include "vdoResizeLogical.h"
@@ -82,7 +82,7 @@ static void growLogicalCallback(VDOCompletion *completion)
   assertOnAdminThread(vdo, __func__);
 
   // This check can only be done from a base thread.
-  if (isReadOnly(&vdo->readOnlyContext)) {
+  if (isReadOnly(vdo->readOnlyNotifier)) {
     abandonBlockMapGrowth(getBlockMap(vdo));
     logErrorWithStringError(VDO_READ_ONLY,
                             "Can't grow logical size of a read-only VDO");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#2 $
  */
 
 #ifndef VDO_H
@@ -59,6 +59,16 @@ void destroyVDO(VDO *vdo);
  * @param vdoPtr  A reference to the VDO to free
  **/
 void freeVDO(VDO **vdoPtr);
+
+/**
+ * Put a VDO into read-only mode and save the read-only state in the super
+ * block.
+ *
+ * @param vdo             The VDO to put into read-only mode
+ * @param errorCode       The error which caused the VDO to enter read-only
+ *                        mode
+ **/
+void makeVDOReadOnly(VDO *vdo, int errorCode);
 
 /**
  * Set whether compression is enabled in VDO.

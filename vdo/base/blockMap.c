@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#3 $
  */
 
 #include "blockMap.h"
@@ -261,32 +261,32 @@ int decodeSodiumBlockMap(Buffer              *buffer,
 /**
  * Initialize the per-zone portions of the block map.
  *
- * @param zone             The zone to initialize
- * @param layer            The physical layer on which the zone resides
- * @param readOnlyContext  The read-only context for the VDO
- * @param cacheSize        The size of the page cache for the zone
- * @param maximumAge       The number of journal blocks before a dirtied page
- *                         is considered old and must be written out
+ * @param zone              The zone to initialize
+ * @param layer             The physical layer on which the zone resides
+ * @param readOnlyNotifier  The read-only context for the VDO
+ * @param cacheSize         The size of the page cache for the zone
+ * @param maximumAge        The number of journal blocks before a dirtied page
+ *                          is considered old and must be written out
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int initializeBlockMapZone(BlockMapZone        *zone,
-                                  PhysicalLayer       *layer,
-                                  ReadOnlyModeContext *readOnlyContext,
-                                  PageCount            cacheSize,
-                                  BlockCount           maximumAge)
+static int initializeBlockMapZone(BlockMapZone     *zone,
+                                  PhysicalLayer    *layer,
+                                  ReadOnlyNotifier *readOnlyNotifier,
+                                  PageCount         cacheSize,
+                                  BlockCount        maximumAge)
 {
   STATIC_ASSERT(offsetof(BlockMapZone, completion) == 0);
   initializeCompletion(&zone->completion, BLOCK_MAP_ZONE_COMPLETION, layer);
-  int result = initializeTreeZone(zone, layer, readOnlyContext, maximumAge);
+  int result = initializeTreeZone(zone, layer, readOnlyNotifier, maximumAge);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   return makeVDOPageCache(zone->threadID,
                           layer,
-                          readOnlyContext,
+                          readOnlyNotifier,
                           cacheSize,
                           validatePageOnRead,
                           handlePageWrite,
@@ -313,13 +313,13 @@ static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
 }
 
 /**********************************************************************/
-int makeBlockMapCaches(BlockMap            *map,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       RecoveryJournal     *journal,
-                       Nonce                nonce,
-                       PageCount            cacheSize,
-                       BlockCount           maximumAge)
+int makeBlockMapCaches(BlockMap         *map,
+                       PhysicalLayer    *layer,
+                       ReadOnlyNotifier *readOnlyNotifier,
+                       RecoveryJournal  *journal,
+                       Nonce             nonce,
+                       PageCount         cacheSize,
+                       BlockCount        maximumAge)
 {
   int result = ASSERT(cacheSize > 0, "block map cache size is specified");
   if (result != UDS_SUCCESS) {
@@ -336,7 +336,7 @@ int makeBlockMapCaches(BlockMap            *map,
 
   replaceForest(map);
   for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
-    result = initializeBlockMapZone(&map->zones[zone], layer, readOnlyContext,
+    result = initializeBlockMapZone(&map->zones[zone], layer, readOnlyNotifier,
                                     cacheSize / map->zoneCount, maximumAge);
     if (result != VDO_SUCCESS) {
       return result;

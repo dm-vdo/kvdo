@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#2 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -29,17 +29,17 @@
 /**
  * Create a slab scrubber
  *
- * @param layer                 The physical layer of the VDO
- * @param slabJournalSize       The size of a slab journal in blocks
- * @param readOnlyContext       The context for entering read-only mode
- * @param scrubberPtr           A pointer to hold the scrubber
+ * @param layer             The physical layer of the VDO
+ * @param slabJournalSize   The size of a slab journal in blocks
+ * @param readOnlyNotifier  The context for entering read-only mode
+ * @param scrubberPtr       A pointer to hold the scrubber
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSlabScrubber(PhysicalLayer                  *layer,
-                     BlockCount                      slabJournalSize,
-                     ReadOnlyModeContext            *readOnlyContext,
-                     SlabScrubber                  **scrubberPtr)
+int makeSlabScrubber(PhysicalLayer     *layer,
+                     BlockCount         slabJournalSize,
+                     ReadOnlyNotifier  *readOnlyNotifier,
+                     SlabScrubber     **scrubberPtr)
   __attribute__((warn_unused_result));
 
 /**

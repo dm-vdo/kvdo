@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#6 $
  */
 
 /*
@@ -315,7 +315,7 @@ static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 
   case VIO_RELEASE_RECOVERY_LOCKS:
     if ((dataVIO->recoverySequenceNumber > 0)
-        && !isReadOnly(&dataVIOAsVIO(dataVIO)->vdo->readOnlyContext)
+        && !isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
         && (dataVIOAsCompletion(dataVIO)->result != VDO_READ_ONLY)) {
       logWarning("VDO not read-only when cleaning DataVIO with RJ lock");
     }
@@ -392,7 +392,7 @@ static bool abortOnError(int             result,
                               getDataVIOAllocation(dataVIO),
                               getOperationName(dataVIO));
     }
-    enterReadOnlyMode(&getVDOFromDataVIO(dataVIO)->readOnlyContext, result);
+    enterReadOnlyMode(getVDOFromDataVIO(dataVIO)->readOnlyNotifier, result);
   }
 
   if (dataVIO->hashLock != NULL) {
@@ -1176,7 +1176,7 @@ static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
 /**********************************************************************/
 void launchWriteDataVIO(DataVIO *dataVIO)
 {
-  if (isReadOnly(&dataVIOAsVIO(dataVIO)->vdo->readOnlyContext)) {
+  if (isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)) {
     finishDataVIO(dataVIO, VDO_READ_ONLY);
     return;
   }

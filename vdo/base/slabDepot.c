@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#7 $
  */
 
 #include "slabDepot.h"
@@ -29,6 +29,7 @@
 #include "constants.h"
 #include "header.h"
 #include "numUtils.h"
+#include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
 #include "slabCompletion.h"
@@ -224,7 +225,7 @@ static int allocateComponents(SlabDepot          *depot,
 
   result = makeSlabSummary(layer, summaryPartition, threadConfig,
                            depot->slabSizeShift, depot->slabConfig.dataBlocks,
-                           depot->readOnlyContext, &depot->slabSummary);
+                           depot->readOnlyNotifier, &depot->slabSummary);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -245,7 +246,7 @@ static int allocateComponents(SlabDepot          *depot,
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     ThreadID threadID = getPhysicalZoneThread(threadConfig, zone);
     result = makeBlockAllocator(depot, zone, threadID, nonce, vioPoolSize,
-                                layer, depot->readOnlyContext,
+                                layer, depot->readOnlyNotifier,
                                 &depot->allocators[zone]);
     if (result != VDO_SUCCESS) {
       return result;
@@ -280,9 +281,9 @@ static int allocateComponents(SlabDepot          *depot,
  * @param [in]  nonce             The nonce of the VDO
  * @param [in]  vioPoolSize       The size of the VIO pool
  * @param [in]  layer             The physical layer below this depot
- * @param [in]  summaryPartition  The partition which holds the slab
- *                                summary (if NULL, the depot is format-only)
- * @param [in]  readOnlyContext   The context for entering read-only mode
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ *                                 (if NULL, the depot is format-only)
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
  * @param [out] depotPtr          A pointer to hold the depot
  *
@@ -295,7 +296,7 @@ static int allocateDepot(const SlabDepotState2_0  *state,
                          BlockCount                vioPoolSize,
                          PhysicalLayer            *layer,
                          Partition                *summaryPartition,
-                         ReadOnlyModeContext      *readOnlyContext,
+                         ReadOnlyNotifier         *readOnlyNotifier,
                          RecoveryJournal          *recoveryJournal,
                          SlabDepot               **depotPtr)
 {
@@ -315,14 +316,14 @@ static int allocateDepot(const SlabDepotState2_0  *state,
     return result;
   }
 
-  depot->oldZoneCount    = state->zoneCount;
-  depot->zoneCount       = threadConfig->physicalZoneCount;
-  depot->slabConfig      = state->slabConfig;
-  depot->readOnlyContext = readOnlyContext;
-  depot->firstBlock      = state->firstBlock;
-  depot->lastBlock       = state->lastBlock;
-  depot->slabSizeShift   = slabSizeShift;
-  depot->journal         = recoveryJournal;
+  depot->oldZoneCount     = state->zoneCount;
+  depot->zoneCount        = threadConfig->physicalZoneCount;
+  depot->slabConfig       = state->slabConfig;
+  depot->readOnlyNotifier = readOnlyNotifier;
+  depot->firstBlock       = state->firstBlock;
+  depot->lastBlock        = state->lastBlock;
+  depot->slabSizeShift    = slabSizeShift;
+  depot->journal          = recoveryJournal;
 
   result = allocateComponents(depot, nonce, threadConfig, vioPoolSize,
                               layer, summaryPartition);
@@ -397,7 +398,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   BlockCount            vioPoolSize,
                   PhysicalLayer        *layer,
                   Partition            *summaryPartition,
-                  ReadOnlyModeContext  *readOnlyContext,
+                  ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
                   SlabDepot           **depotPtr)
 {
@@ -409,7 +410,7 @@ int makeSlabDepot(BlockCount            blockCount,
 
   SlabDepot *depot = NULL;
   result = allocateDepot(&state, threadConfig, nonce, vioPoolSize, layer,
-                         summaryPartition, readOnlyContext, recoveryJournal,
+                         summaryPartition, readOnlyNotifier, recoveryJournal,
                          &depot);
   if (result != VDO_SUCCESS) {
     return result;
@@ -626,14 +627,14 @@ static int decodeSlabDepotState_2_0(Buffer *buffer, SlabDepotState2_0 *state)
 }
 
 /**********************************************************************/
-int decodeSlabDepot(Buffer               *buffer,
-                    const ThreadConfig   *threadConfig,
-                    Nonce                 nonce,
-                    PhysicalLayer        *layer,
-                    Partition            *summaryPartition,
-                    ReadOnlyModeContext  *readOnlyContext,
-                    RecoveryJournal      *recoveryJournal,
-                    SlabDepot           **depotPtr)
+int decodeSlabDepot(Buffer              *buffer,
+                    const ThreadConfig  *threadConfig,
+                    Nonce                nonce,
+                    PhysicalLayer       *layer,
+                    Partition           *summaryPartition,
+                    ReadOnlyNotifier    *readOnlyNotifier,
+                    RecoveryJournal     *recoveryJournal,
+                    SlabDepot          **depotPtr)
 {
   Header header;
   int result = decodeHeader(buffer, &header);
@@ -653,23 +654,23 @@ int decodeSlabDepot(Buffer               *buffer,
   }
 
   return allocateDepot(&state, threadConfig, nonce, VIO_POOL_SIZE, layer,
-                       summaryPartition, readOnlyContext, recoveryJournal,
+                       summaryPartition, readOnlyNotifier, recoveryJournal,
                        depotPtr);
 }
 
 /**********************************************************************/
-int decodeSodiumSlabDepot(Buffer               *buffer,
-                          const ThreadConfig   *threadConfig,
-                          Nonce                 nonce,
-                          PhysicalLayer        *layer,
-                          Partition            *summaryPartition,
-                          ReadOnlyModeContext  *readOnlyContext,
-                          RecoveryJournal      *recoveryJournal,
-                          SlabDepot           **depotPtr)
+int decodeSodiumSlabDepot(Buffer              *buffer,
+                          const ThreadConfig  *threadConfig,
+                          Nonce                nonce,
+                          PhysicalLayer       *layer,
+                          Partition           *summaryPartition,
+                          ReadOnlyNotifier    *readOnlyNotifier,
+                          RecoveryJournal     *recoveryJournal,
+                          SlabDepot          **depotPtr)
 {
   // Sodium uses version 2.0 of the slab depot state.
   return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
-                         readOnlyContext, recoveryJournal, depotPtr);
+                         readOnlyNotifier, recoveryJournal, depotPtr);
 }
 
 /**********************************************************************/
@@ -721,7 +722,7 @@ Slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
   SlabCount slabNumber;
   int result = getSlabNumber(depot, pbn, &slabNumber);
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(depot->readOnlyContext, result);
+    enterReadOnlyMode(depot->readOnlyNotifier, result);
     return NULL;
   }
 

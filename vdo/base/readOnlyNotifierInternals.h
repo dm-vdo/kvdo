@@ -16,20 +16,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadDataInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifierInternals.h#1 $
  */
 
-#ifndef THREAD_DATA_INTERNALS_H
-#define THREAD_DATA_INTERNALS_H
+#ifndef READ_ONLY_NOTIFIER_INTERNALS_H
+#define READ_ONLY_NOTIFIER_INTERNALS_H
 
 #include "completion.h"
 
 /**
+ * An object to be notified when the VDO enters read-only mode
+ **/
+typedef struct readOnlyListener ReadOnlyListener;
+
+struct readOnlyListener {
+  /** The listener */
+  void                 *listener;
+  /** The method to call to notifiy the listener */
+  ReadOnlyNotification *notify;
+  /** A pointer to the next listener */
+  ReadOnlyListener     *next;
+};
+
+/**
  * Data associated with each base code thread.
  **/
-struct threadData {
+typedef struct threadData {
   /** The completion for entering read-only mode */
   VDOCompletion          completion;
+  /** The ReadOnlyNotifier to which this structure belongs */
+  ReadOnlyNotifier      *notifier;
   /** The thread this represents */
   ThreadID               threadID;
   /** Whether this thread is in read-only mode */
@@ -44,6 +60,24 @@ struct threadData {
   VDOCompletion         *superBlockIdleWaiter;
   /** A completion which is waiting to enter read-only mode */
   VDOCompletion         *readOnlyModeWaiter;
+  /**
+   * A list of objects waiting to be notified on this thread that the VDO has
+   * entered read-only mode.
+   **/
+  ReadOnlyListener      *listeners;
+} ThreadData;
+
+struct readOnlyNotifier {
+  /** The completion for waiting until not entering read-only mode */
+  VDOCompletion       completion;
+  /** Whether the listener has already started a notification */
+  bool                isReadOnly;
+  /** The thread config of the VDO */
+  const ThreadConfig *threadConfig;
+  /** The ID of the admin thread */
+  ThreadID            adminThreadID;
+  /** The array of per-thread data */
+  ThreadData          threadData[];
 };
 
-#endif /* THREAD_DATA_INTERNALS_H */
+#endif /* READ_ONLY_NOTIFIER_INTERNALS_H */

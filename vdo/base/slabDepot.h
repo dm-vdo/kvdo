@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#4 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -65,16 +65,15 @@ SlabCount calculateSlabCount(SlabDepot *depot)
  * Create a slab depot.
  *
  * @param [in]  blockCount        The number of blocks initially available
- * @param [in]  firstBlock        The number of the first block which may
- *                                be allocated
+ * @param [in]  firstBlock        The number of the first block which may be
+ *                                allocated
  * @param [in]  slabConfig        The slab configuration
  * @param [in]  threadConfig      The thread configuration of the VDO
  * @param [in]  nonce             The nonce of the VDO
  * @param [in]  vioPoolSize       The size of the VIO pool
  * @param [in]  layer             The physical layer below this depot
- * @param [in]  summaryPartition  The partition which holds the slab
- *                                summary
- * @param [in]  readOnlyContext   The context for entering read-only mode
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
  * @param [out] depotPtr          A pointer to hold the depot
  *
@@ -88,7 +87,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   BlockCount            vioPoolSize,
                   PhysicalLayer        *layer,
                   Partition            *summaryPartition,
-                  ReadOnlyModeContext  *readOnlyContext,
+                  ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
                   SlabDepot           **depotPtr)
   __attribute__((warn_unused_result));
@@ -122,49 +121,49 @@ int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
 /**
  * Decode the state of a slab depot saved in a buffer.
  *
- * @param [in]  buffer              The buffer containing the saved state
- * @param [in]  threadConfig        The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab summary
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  buffer            The buffer containing the saved state
+ * @param [in]  threadConfig      The thread config of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
-int decodeSodiumSlabDepot(Buffer               *buffer,
-                          const ThreadConfig   *threadConfig,
-                          Nonce                 nonce,
-                          PhysicalLayer        *layer,
-                          Partition            *summaryPartition,
-                          ReadOnlyModeContext  *readOnlyContext,
-                          RecoveryJournal      *recoveryJournal,
-                          SlabDepot           **depotPtr)
+int decodeSodiumSlabDepot(Buffer              *buffer,
+                          const ThreadConfig  *threadConfig,
+                          Nonce                nonce,
+                          PhysicalLayer       *layer,
+                          Partition           *summaryPartition,
+                          ReadOnlyNotifier    *readOnlyNotifier,
+                          RecoveryJournal     *recoveryJournal,
+                          SlabDepot          **depotPtr)
   __attribute__((warn_unused_result));
 
 /**
  * Decode the state of a slab depot saved in a buffer.
  *
- * @param [in]  buffer              The buffer containing the saved state
- * @param [in]  threadConfig        The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab summary
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  buffer            The buffer containing the saved state
+ * @param [in]  threadConfig      The thread config of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
-int decodeSlabDepot(Buffer               *buffer,
-                    const ThreadConfig   *threadConfig,
-                    Nonce                 nonce,
-                    PhysicalLayer        *layer,
-                    Partition            *summaryPartition,
-                    ReadOnlyModeContext  *readOnlyContext,
-                    RecoveryJournal      *recoveryJournal,
-                    SlabDepot           **depotPtr)
+int decodeSlabDepot(Buffer              *buffer,
+                    const ThreadConfig  *threadConfig,
+                    Nonce                nonce,
+                    PhysicalLayer       *layer,
+                    Partition           *summaryPartition,
+                    ReadOnlyNotifier    *readOnlyNotifier,
+                    RecoveryJournal     *recoveryJournal,
+                    SlabDepot          **depotPtr)
   __attribute__((warn_unused_result));
 
 /**

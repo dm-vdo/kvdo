@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#2 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -25,7 +25,6 @@
 #include "blockMapEntry.h"
 #include "completion.h"
 #include "fixedLayout.h"
-#include "readOnlyModeContext.h"
 #include "statistics.h"
 #include "types.h"
 
@@ -123,24 +122,24 @@ int decodeSodiumBlockMap(Buffer              *buffer,
 /**
  * Allocate the page caches for a block map.
  *
- * @param map              The block map needing caches.
- * @param layer            The physical layer for the cache
- * @param readOnlyContext  The read only mode context
- * @param journal          The recovery journal (may be NULL)
- * @param nonce            The nonce to distinguish initialized pages
- * @param cacheSize        The block map cache size, in pages
- * @param maximumAge       The number of journal blocks before a dirtied page
- *                         is considered old and must be written out
+ * @param map               The block map needing caches.
+ * @param layer             The physical layer for the cache
+ * @param readOnlyNotifier  The read only mode context
+ * @param journal           The recovery journal (may be NULL)
+ * @param nonce             The nonce to distinguish initialized pages
+ * @param cacheSize         The block map cache size, in pages
+ * @param maximumAge        The number of journal blocks before a dirtied page
+ *                          is considered old and must be written out
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeBlockMapCaches(BlockMap            *map,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       RecoveryJournal     *journal,
-                       Nonce                nonce,
-                       PageCount            cacheSize,
-                       BlockCount           maximumAge)
+int makeBlockMapCaches(BlockMap         *map,
+                       PhysicalLayer    *layer,
+                       ReadOnlyNotifier *readOnlyNotifier,
+                       RecoveryJournal  *journal,
+                       Nonce             nonce,
+                       PageCount         cacheSize,
+                       BlockCount        maximumAge)
   __attribute__((warn_unused_result));
 
 /**

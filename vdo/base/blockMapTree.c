@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#3 $
  */
 
 #include "blockMapTree.h"
@@ -98,15 +98,15 @@ static int makeBlockMapVIOs(PhysicalLayer  *layer,
 }
 
 /**********************************************************************/
-int initializeTreeZone(BlockMapZone        *zone,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       BlockCount           eraLength)
+int initializeTreeZone(BlockMapZone     *zone,
+                       PhysicalLayer    *layer,
+                       ReadOnlyNotifier *readOnlyNotifier,
+                       BlockCount        eraLength)
 {
   STATIC_ASSERT_SIZEOF(PageDescriptor, sizeof(uint64_t));
   BlockMapTreeZone *treeZone = &zone->treeZone;
   treeZone->mapZone          = zone;
-  treeZone->readOnlyContext  = readOnlyContext;
+  treeZone->readOnlyNotifier = readOnlyNotifier;
 
   int result = makeDirtyLists(eraLength, writeDirtyPagesCallback, treeZone,
                               &treeZone->dirtyLists);
@@ -215,7 +215,7 @@ static void checkForIOComplete(BlockMapTreeZone *zone)
   }
 
   zone->mapZone->adminState = ADMIN_STATE_CLOSED;
-  if (isReadOnly(zone->readOnlyContext)) {
+  if (isReadOnly(zone->readOnlyNotifier)) {
     setCompletionResult(&zone->mapZone->completion, VDO_READ_ONLY);
   }
   closeObjectPool(zone->vioPool, &zone->mapZone->completion);
@@ -229,7 +229,7 @@ static void checkForIOComplete(BlockMapTreeZone *zone)
  **/
 static void enterZoneReadOnlyMode(BlockMapTreeZone *zone, int result)
 {
-  enterReadOnlyMode(zone->readOnlyContext, result);
+  enterReadOnlyMode(zone->readOnlyNotifier, result);
 
   // We are in read-only mode, so we won't ever write any page out. Just take
   // all waiters off the queue so the tree zone can be closed.

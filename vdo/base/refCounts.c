@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#2 $
  */
 
 #include "refCounts.h"
@@ -34,7 +34,7 @@
 #include "journalPoint.h"
 #include "numUtils.h"
 #include "pbnLock.h"
-#include "readOnlyModeContext.h"
+#include "readOnlyNotifier.h"
 #include "referenceBlock.h"
 #include "referenceOperation.h"
 #include "slab.h"
@@ -170,7 +170,7 @@ int makeRefCounts(PhysicalLayer        *layer,
                   BlockCount            blockCount,
                   Slab                 *slab,
                   PhysicalBlockNumber   origin,
-                  ReadOnlyModeContext  *readOnlyContext,
+                  ReadOnlyNotifier     *readOnlyNotifier,
                   RefCounts           **refCountsPtr)
 {
   BlockCount  refBlockCount = getSavedReferenceCountSize(blockCount);
@@ -203,7 +203,7 @@ int makeRefCounts(PhysicalLayer        *layer,
   refCounts->freeBlocks              = blockCount;
   refCounts->origin                  = origin;
   refCounts->referenceBlockCount     = refBlockCount;
-  refCounts->readOnlyContext         = readOnlyContext;
+  refCounts->readOnlyNotifier        = readOnlyNotifier;
   refCounts->statistics              = &slab->allocator->refCountStatistics;
   refCounts->searchCursor.firstBlock = &refCounts->blocks[0];
   refCounts->searchCursor.lastBlock  = &refCounts->blocks[refBlockCount - 1];
@@ -1022,7 +1022,7 @@ static void checkForIOComplete(RefCounts *refCounts)
 
   refCounts->hasIOWaiter = false;
   finishCompletion(&refCounts->completion,
-                   isReadOnly(refCounts->readOnlyContext)
+                   isReadOnly(refCounts->readOnlyNotifier)
                    ? VDO_READ_ONLY : VDO_SUCCESS);
 }
 
@@ -1062,7 +1062,7 @@ static void updateSlabSummaryAsClean(RefCounts *refCounts)
 /**********************************************************************/
 static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
 {
-  enterReadOnlyMode(refCounts->readOnlyContext, result);
+  enterReadOnlyMode(refCounts->readOnlyNotifier, result);
   checkForIOComplete(refCounts);
 }
 
@@ -1107,7 +1107,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
   block->isWriting = false;
 
   // Re-queue the block if it was re-dirtied while it was writing.
-  if (block->isDirty && !isReadOnly(refCounts->readOnlyContext)) {
+  if (block->isDirty && !isReadOnly(refCounts->readOnlyNotifier)) {
     int result = enqueueWaiter(&refCounts->dirtyBlocks, &block->waiter);
     if (result != VDO_SUCCESS) {
       // The enqueue should never fail.
@@ -1122,7 +1122,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
     return;
   }
 
-  if (isReadOnly(refCounts->readOnlyContext)) {
+  if (isReadOnly(refCounts->readOnlyNotifier)) {
     checkForIOComplete(refCounts);
     return;
   }
@@ -1201,7 +1201,7 @@ static void writeReferenceBlock(Waiter *blockWaiter, void *vioContext)
 static void launchReferenceBlockWrite(Waiter *blockWaiter, void *context)
 {
   RefCounts *refCounts = context;
-  if (isReadOnly(refCounts->readOnlyContext)) {
+  if (isReadOnly(refCounts->readOnlyNotifier)) {
     return;
   }
 

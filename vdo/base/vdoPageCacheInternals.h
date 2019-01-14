@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#2 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -32,7 +32,6 @@
 #include "dirtyLists.h"
 #include "intMap.h"
 #include "physicalLayer.h"
-#include "readOnlyModeContext.h"
 #include "ringNode.h"
 
 enum {
@@ -54,8 +53,8 @@ struct vdoPageCache {
   PhysicalLayer             *layer;
   /** the ID of the thread for this cache's physical zone */
   ThreadID                   threadID;
-  /** the read-only mode context */
-  ReadOnlyModeContext       *readOnlyContext;
+  /** the read-only mode notifier */
+  ReadOnlyNotifier          *readOnlyNotifier;
   /** number of pages in cache */
   PageCount                  pageCount;
   /** function to call on page read */

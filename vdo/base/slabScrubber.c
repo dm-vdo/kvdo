@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#2 $
  */
 
 #include "slabScrubberInternals.h"
@@ -25,14 +25,14 @@
 #include "memoryAlloc.h"
 
 #include "blockAllocator.h"
-#include "readOnlyModeContext.h"
+#include "readOnlyNotifier.h"
 #include "slabRebuild.h"
 
 /**********************************************************************/
-int makeSlabScrubber(PhysicalLayer                  *layer,
-                     BlockCount                      slabJournalSize,
-                     ReadOnlyModeContext            *readOnlyContext,
-                     SlabScrubber                  **scrubberPtr)
+int makeSlabScrubber(PhysicalLayer     *layer,
+                     BlockCount         slabJournalSize,
+                     ReadOnlyNotifier  *readOnlyNotifier,
+                     SlabScrubber     **scrubberPtr)
 {
   SlabScrubber *scrubber;
   int result = ALLOCATE(1, SlabScrubber, __func__, &scrubber);
@@ -50,7 +50,7 @@ int makeSlabScrubber(PhysicalLayer                  *layer,
   initializeCompletion(&scrubber->completion, SLAB_SCRUBBER_COMPLETION, layer);
   initializeRing(&scrubber->highPrioritySlabs);
   initializeRing(&scrubber->slabs);
-  scrubber->readOnlyContext = readOnlyContext;
+  scrubber->readOnlyNotifier = readOnlyNotifier;
   *scrubberPtr              = scrubber;
   return VDO_SUCCESS;
 }
@@ -174,7 +174,7 @@ static void slabScrubbed(VDOCompletion *completion)
  **/
 static void scrubNextSlab(SlabScrubber *scrubber)
 {
-  if (isReadOnly(scrubber->readOnlyContext)) {
+  if (isReadOnly(scrubber->readOnlyNotifier)) {
     setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
     finishScrubbing(scrubber);
     return;
@@ -201,7 +201,7 @@ static void scrubNextSlab(SlabScrubber *scrubber)
 static void handleScrubberError(VDOCompletion *completion)
 {
   SlabScrubber *scrubber = completion->parent;
-  enterReadOnlyMode(scrubber->readOnlyContext, completion->result);
+  enterReadOnlyMode(scrubber->readOnlyNotifier, completion->result);
   setCompletionResult(&scrubber->completion, completion->result);
   finishScrubbing(scrubber);
 }
@@ -253,7 +253,7 @@ void stopScrubbing(SlabScrubber *scrubber)
 int enqueueCleanSlabWaiter(SlabScrubber *scrubber, Waiter *waiter)
 {
   if (!scrubber->isScrubbing) {
-    return (isReadOnly(scrubber->readOnlyContext)
+    return (isReadOnly(scrubber->readOnlyNotifier)
             ? VDO_READ_ONLY : VDO_NO_SPACE);
   }
 

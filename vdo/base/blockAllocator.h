@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#4 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -32,25 +32,25 @@
 /**
  * Create a block allocator.
  *
- * @param [in]  depot               The slab depot for this allocator
- * @param [in]  zoneNumber          The physical zone number for this allocator
- * @param [in]  threadID            The thread ID for this allocator's zone
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  vioPoolSize         The size of the VIO pool
- * @param [in]  layer               The physical layer below this allocator
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [out] allocatorPtr        A pointer to hold the allocator
+ * @param [in]  depot             The slab depot for this allocator
+ * @param [in]  zoneNumber        The physical zone number for this allocator
+ * @param [in]  threadID          The thread ID for this allocator's zone
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  vioPoolSize       The size of the VIO pool
+ * @param [in]  layer             The physical layer below this allocator
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
+ * @param [out] allocatorPtr      A pointer to hold the allocator
  *
  * @return A success or error code
  **/
-int makeBlockAllocator(SlabDepot            *depot,
-                       ZoneCount             zoneNumber,
-                       ThreadID              threadID,
-                       Nonce                 nonce,
-                       BlockCount            vioPoolSize,
-                       PhysicalLayer        *layer,
-                       ReadOnlyModeContext  *readOnlyContext,
-                       BlockAllocator      **allocatorPtr)
+int makeBlockAllocator(SlabDepot         *depot,
+                       ZoneCount          zoneNumber,
+                       ThreadID           threadID,
+                       Nonce              nonce,
+                       BlockCount         vioPoolSize,
+                       PhysicalLayer     *layer,
+                       ReadOnlyNotifier  *readOnlyNotifier,
+                       BlockAllocator   **allocatorPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -59,13 +59,6 @@ int makeBlockAllocator(SlabDepot            *depot,
  * @param blockAllocatorPtr  The reference to the allocator to destroy
  **/
 void freeBlockAllocator(BlockAllocator **blockAllocatorPtr);
-
-/**
- * Inform a block allocator that the VDO has entered read-only mode.
- *
- * @param allocator  The block allocator
- **/
-void notifyBlockAllocatorOfReadOnlyMode(BlockAllocator *allocator);
 
 /**
  * Queue a slab for allocation. Can be called only once per slab.

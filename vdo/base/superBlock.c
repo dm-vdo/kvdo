@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#3 $
  */
 
 #include "superBlock.h"
@@ -227,6 +227,18 @@ static void finishSuperBlockParent(VDOCompletion *completion)
   finishCompletion(parent, completion->result);
 }
 
+/**
+ * Log a super block save error. This error handler is registered in
+ * saveSuperBlockAsync().
+ *
+ * @param completion  The super block VIO
+ **/
+static void handleSaveError(VDOCompletion *completion)
+{
+  logErrorWithStringError(completion->result, "super block save failed");
+  completion->callback(completion);
+}
+
 /**********************************************************************/
 void saveSuperBlockAsync(SuperBlock          *superBlock,
                          PhysicalBlockNumber  superBlockOffset,
@@ -246,8 +258,8 @@ void saveSuperBlockAsync(SuperBlock          *superBlock,
   superBlock->parent                           = parent;
   superBlock->vio->completion.callbackThreadID = parent->callbackThreadID;
   launchWriteMetadataVIOWithFlush(superBlock->vio, superBlockOffset,
-                                  finishSuperBlockParent,
-                                  finishSuperBlockParent, true, true);
+                                  finishSuperBlockParent, handleSaveError,
+                                  true, true);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#2 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -133,27 +133,28 @@ typedef bool VDOPageWriteFunction(void *rawPage,
 /**
  * Construct a PageCache.
  *
- * @param [in]  threadID         The thread ID for this cache's zone
- * @param [in]  layer            The physical layer to read and write
- * @param [in]  readOnlyContext  The read-only mode context
- * @param [in]  pageCount        The number of cache pages to hold
- * @param [in]  readHook         The function to be called when a page is read
- *                               into the cache
- * @param [in]  writeHook        The function to be called after a page is
- *                               written from the cache
- * @param [in]  clientContext    The cache-wide context passed to the read
- *                               and write hooks
- * @param [in]  pageContextSize  The size of the per-page context that will
- *                               be passed to the read and write hooks
- * @param [in]  maximumAge       The number of journal blocks before a dirtied
- *                               page is considered old and must be written out
- * @param [out] cachePtr         A pointer to hold the cache
+ * @param [in]  threadID          The thread ID for this cache's zone
+ * @param [in]  layer             The physical layer to read and write
+ * @param [in]  readOnlyNotifier  The read-only mode context
+ * @param [in]  pageCount         The number of cache pages to hold
+ * @param [in]  readHook          The function to be called when a page is read
+ *                                into the cache
+ * @param [in]  writeHook         The function to be called after a page is
+ *                                written from the cache
+ * @param [in]  clientContext     The cache-wide context passed to the read and
+ *                                write hooks
+ * @param [in]  pageContextSize   The size of the per-page context that will be
+ *                                passed to the read and write hooks
+ * @param [in]  maximumAge        The number of journal blocks before a dirtied
+ *                                page is considered old and must be written
+ *                                out
+ * @param [out] cachePtr          A pointer to hold the cache
  *
  * @return a success or error code
  **/
 int makeVDOPageCache(ThreadID               threadID,
                      PhysicalLayer         *layer,
-                     ReadOnlyModeContext   *readOnlyContext,
+                     ReadOnlyNotifier      *readOnlyNotifier,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,

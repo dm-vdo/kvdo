@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#2 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -96,8 +96,8 @@ struct refCounts {
   /** Whether a close has been requested */
   bool                      closeRequested;
 
-  /** The context for tracking read-only mode */
-  ReadOnlyModeContext      *readOnlyContext;
+  /** The notifier for read-only mode */
+  ReadOnlyNotifier         *readOnlyNotifier;
   /** The refcount statistics, shared by all refcounts in our physical zone */
   AtomicRefCountStatistics *statistics;
   /** The layer PBN for the first ReferenceBlock */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#5 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -27,6 +27,7 @@
 #include "heap.h"
 #include "numUtils.h"
 #include "priorityTable.h"
+#include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
 #include "slabCompletion.h"
@@ -135,6 +136,29 @@ static SlabIterator getSlabIterator(const BlockAllocator *allocator)
                       allocator->zoneNumber, allocator->depot->zoneCount);
 }
 
+/**
+ * Notify a block allocator that the VDO has entered read-only mode.
+ *
+ * <p>Implements ReadOnlyNotification.
+ *
+ * @param listener  The block allocator
+ * @param parent    The completion to notify in order to acknowledge the
+ *                  notification
+ **/
+static void notifyBlockAllocatorOfReadOnlyMode(void          *listener,
+                                               VDOCompletion *parent)
+{
+  BlockAllocator *allocator = listener;
+  assertOnAllocatorThread(allocator->threadID, __func__);
+  SlabIterator iterator = getSlabIterator(allocator);
+  while (hasNextSlab(&iterator)) {
+    Slab *slab = nextSlab(&iterator);
+    abortSlabJournalWaiters(slab->journal);
+  }
+
+  completeCompletion(parent);
+}
+
 /**********************************************************************/
 int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
                           void           *parent,
@@ -168,10 +192,17 @@ static int allocateComponents(BlockAllocator  *allocator,
     return VDO_SUCCESS;
   }
 
+  int result = registerReadOnlyListener(allocator->readOnlyNotifier,
+                                        allocator,
+                                        notifyBlockAllocatorOfReadOnlyMode,
+                                        allocator->threadID);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
   SlabDepot *depot = allocator->depot;
-  int result = initializeEnqueueableCompletion(&allocator->completion,
-                                               BLOCK_ALLOCATOR_COMPLETION,
-                                               layer);
+  result = initializeEnqueueableCompletion(&allocator->completion,
+                                           BLOCK_ALLOCATOR_COMPLETION, layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -190,7 +221,8 @@ static int allocateComponents(BlockAllocator  *allocator,
   }
 
   BlockCount slabJournalSize = depot->slabConfig.slabJournalBlocks;
-  result = makeSlabScrubber(layer, slabJournalSize, allocator->readOnlyContext,
+  result = makeSlabScrubber(layer, slabJournalSize,
+                            allocator->readOnlyNotifier,
                             &allocator->slabScrubber);
   if (result != VDO_SUCCESS) {
     return result;
@@ -227,14 +259,14 @@ static int allocateComponents(BlockAllocator  *allocator,
 }
 
 /**********************************************************************/
-int makeBlockAllocator(SlabDepot            *depot,
-                       ZoneCount             zoneNumber,
-                       ThreadID              threadID,
-                       Nonce                 nonce,
-                       BlockCount            vioPoolSize,
-                       PhysicalLayer        *layer,
-                       ReadOnlyModeContext  *readOnlyContext,
-                       BlockAllocator      **allocatorPtr)
+int makeBlockAllocator(SlabDepot         *depot,
+                       ZoneCount          zoneNumber,
+                       ThreadID           threadID,
+                       Nonce              nonce,
+                       BlockCount         vioPoolSize,
+                       PhysicalLayer     *layer,
+                       ReadOnlyNotifier  *readOnlyNotifier,
+                       BlockAllocator   **allocatorPtr)
 {
 
   BlockAllocator *allocator;
@@ -243,11 +275,11 @@ int makeBlockAllocator(SlabDepot            *depot,
     return result;
   }
 
-  allocator->depot           = depot;
-  allocator->zoneNumber      = zoneNumber;
-  allocator->threadID        = threadID;
-  allocator->nonce           = nonce;
-  allocator->readOnlyContext = readOnlyContext;
+  allocator->depot            = depot;
+  allocator->zoneNumber       = zoneNumber;
+  allocator->threadID         = threadID;
+  allocator->nonce            = nonce;
+  allocator->readOnlyNotifier = readOnlyNotifier;
   initializeRing(&allocator->dirtySlabJournals);
 
   result = allocateComponents(allocator, layer, vioPoolSize);
@@ -285,17 +317,6 @@ int replaceVIOPool(BlockAllocator *allocator,
   freeVIOPool(&allocator->vioPool);
   return makeVIOPool(layer, size, makeAllocatorPoolVIOs, NULL,
                      &allocator->vioPool);
-}
-
-/**********************************************************************/
-void notifyBlockAllocatorOfReadOnlyMode(BlockAllocator *allocator)
-{
-  assertOnAllocatorThread(allocator->threadID, __func__);
-  SlabIterator iterator = getSlabIterator(allocator);
-  while (hasNextSlab(&iterator)) {
-    Slab *slab = nextSlab(&iterator);
-    abortSlabJournalWaiters(slab->journal);
-  }
 }
 
 /**
@@ -336,7 +357,7 @@ void queueSlab(Slab *slab)
                       slab->slabNumber, freeBlocks,
                       allocator->depot->slabConfig.dataBlocks);
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(allocator->readOnlyContext, result);
+    enterReadOnlyMode(allocator->readOnlyNotifier, result);
     return;
   }
 

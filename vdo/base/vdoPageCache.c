@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#2 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -27,8 +27,8 @@
 #include "permassert.h"
 
 #include "constants.h"
-#include "extent.h"
 #include "numUtils.h"
+#include "readOnlyNotifier.h"
 #include "statusCodes.h"
 #include "types.h"
 #include "vio.h"
@@ -115,7 +115,7 @@ static void writeDirtyPagesCallback(RingNode *node, void *context);
 /**********************************************************************/
 int makeVDOPageCache(ThreadID               threadID,
                      PhysicalLayer         *layer,
-                     ReadOnlyModeContext   *readOnlyContext,
+                     ReadOnlyNotifier      *readOnlyNotifier,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,
@@ -137,13 +137,13 @@ int makeVDOPageCache(ThreadID               threadID,
     return result;
   }
 
-  cache->threadID        = threadID;
-  cache->layer           = layer;
-  cache->readOnlyContext = readOnlyContext;
-  cache->pageCount       = pageCount;
-  cache->readHook        = readHook;
-  cache->writeHook       = writeHook;
-  cache->context         = clientContext;
+  cache->threadID         = threadID;
+  cache->layer            = layer;
+  cache->readOnlyNotifier = readOnlyNotifier;
+  cache->pageCount        = pageCount;
+  cache->readHook         = readHook;
+  cache->writeHook        = writeHook;
+  cache->context          = clientContext;
 
   result = allocateCacheComponents(cache);
   if (result != VDO_SUCCESS) {
@@ -582,7 +582,7 @@ static void setPersistentError(VDOPageCache *cache,
     logErrorWithStringError(result,
                             "VDO Page Cache persistent error: %s",
                             context);
-    enterReadOnlyMode(cache->readOnlyContext, result);
+    enterReadOnlyMode(cache->readOnlyNotifier, result);
   }
 
   assertOnCacheThread(cache, __func__);
@@ -684,7 +684,7 @@ static void checkForIOComplete(VDOPageCache *cache)
   if (parent != NULL) {
     cache->flushCompletion = NULL;
     int result
-      = isReadOnly(cache->readOnlyContext) ? VDO_READ_ONLY : VDO_SUCCESS;
+      = isReadOnly(cache->readOnlyNotifier) ? VDO_READ_ONLY : VDO_SUCCESS;
     finishCompletion(parent, result);
   }
 }
@@ -720,7 +720,7 @@ static void handleLoadError(VDOCompletion *completion)
   assertOnCacheThread(cache, __func__);
 
   cache->outstandingReads--;
-  enterReadOnlyMode(cache->readOnlyContext, result);
+  enterReadOnlyMode(cache->readOnlyNotifier, result);
   relaxedAdd64(&cache->stats.failedReads, 1);
   setInfoState(info, PS_FAILED);
   distributeErrorOverQueue(result, &info->waiting);
@@ -1106,7 +1106,7 @@ static void writePages(VDOCompletion *flushCompletion)
   while (cache->pagesInFlush > 0) {
     cache->pagesInFlush--;
     PageInfo *info = pageInfoFromListNode(chopRingNode(&cache->outgoingList));
-    if (isReadOnly(info->cache->readOnlyContext)) {
+    if (isReadOnly(info->cache->readOnlyNotifier)) {
       VDOCompletion *completion = &info->vio->completion;
       resetCompletion(completion);
       completion->callback     = pageIsWrittenOut;
@@ -1186,7 +1186,7 @@ void getVDOPageAsync(VDOCompletion *completion)
   VDOPageCache      *cache       = vdoPageComp->cache;
   assertOnCacheThread(cache, __func__);
 
-  if (vdoPageComp->writable && isReadOnly(cache->readOnlyContext)) {
+  if (vdoPageComp->writable && isReadOnly(cache->readOnlyNotifier)) {
     finishCompletion(completion, VDO_READ_ONLY);
     return;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#2 $
  */
 
 #include "slab.h"
@@ -173,7 +173,7 @@ int allocateRefCountsForSlab(PhysicalLayer *layer, Slab *slab)
 
   result = makeRefCounts(layer, slabConfig->dataBlocks, slab,
                          slab->refCountsOrigin,
-                         allocator->readOnlyContext,
+                         allocator->readOnlyNotifier,
                          &slab->referenceCounts);
   return result;
 }

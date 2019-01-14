@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#5 $
  */
 
 #include "vdoResize.h"
@@ -54,7 +54,7 @@ static void handleUnrecoverableError(VDOCompletion *completion)
 {
   // We failed to revert a failed resize, give up.
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  enterReadOnlyMode(&vdo->readOnlyContext, completion->result);
+  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
   finishParentCallback(completion);
 }
 
@@ -249,7 +249,7 @@ static void checkMayGrowPhysical(VDOCompletion *completion)
   assertOnAdminThread(vdo, __func__);
 
   // This check can only be done from a base code thread.
-  if (isReadOnly(&vdo->readOnlyContext)) {
+  if (isReadOnly(vdo->readOnlyNotifier)) {
     finishCompletion(completion->parent, VDO_READ_ONLY);
     return;
   }

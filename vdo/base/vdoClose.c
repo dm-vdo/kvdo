@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#2 $
  */
 
 #include "vdoClose.h"
@@ -124,7 +124,7 @@ static void waitForReadOnlyMode(VDOCompletion *completion)
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, writeSuperBlockForClose,
                  getAdminThread(getThreadConfig(vdo)));
-  waitUntilNotEnteringReadOnlyMode(vdo, completion);
+  waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier, completion);
 }
 
 /**
@@ -212,7 +212,7 @@ static void closeCallback(VDOCompletion *completion)
 
   prepareSubTask(vdo, closeCompressionPacker,
                  getPackerZoneThread(getThreadConfig(vdo)));
-  waitUntilNotEnteringReadOnlyMode(vdo, completion);
+  waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier, completion);
 }
 
 /**********************************************************************/

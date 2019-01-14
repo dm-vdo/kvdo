@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#2 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -80,25 +80,25 @@ __attribute__((warn_unused_result));
 /**
  * Create a slab summary.
  *
- * @param [in]  layer                      The layer
- * @param [in]  partition                  The partition to hold the summary
- * @param [in]  threadConfig               The thread config of the VDO
- * @param [in]  slabSizeShift              The number of bits in the slab size
- * @param [in]  maximumFreeBlocksPerSlab   The maximum number of free blocks
- *                                         a slab can have
- * @param [in]  readOnlyContext            The context for entering read-only
- *                                         mode
- * @param [out] slabSummaryPtr             A pointer to hold the summary
+ * @param [in]  layer                     The layer
+ * @param [in]  partition                 The partition to hold the summary
+ * @param [in]  threadConfig              The thread config of the VDO
+ * @param [in]  slabSizeShift             The number of bits in the slab size
+ * @param [in]  maximumFreeBlocksPerSlab  The maximum number of free blocks a
+ *                                        slab can have
+ * @param [in]  readOnlyNotifier          The context for entering read-only
+ *                                        mode
+ * @param [out] slabSummaryPtr            A pointer to hold the summary
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSlabSummary(PhysicalLayer        *layer,
-                    Partition            *partition,
-                    const ThreadConfig   *threadConfig,
-                    unsigned int          slabSizeShift,
-                    BlockCount            maximumFreeBlocksPerSlab,
-                    ReadOnlyModeContext  *readOnlyContext,
-                    SlabSummary         **slabSummaryPtr)
+int makeSlabSummary(PhysicalLayer       *layer,
+                    Partition           *partition,
+                    const ThreadConfig  *threadConfig,
+                    unsigned int         slabSizeShift,
+                    BlockCount           maximumFreeBlocksPerSlab,
+                    ReadOnlyNotifier    *readOnlyNotifier,
+                    SlabSummary        **slabSummaryPtr)
   __attribute__((warn_unused_result));
 
 /**
