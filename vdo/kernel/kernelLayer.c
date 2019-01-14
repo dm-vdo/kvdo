@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#23 $
  */
 
 #include "kernelLayer.h"
@@ -914,8 +914,8 @@ void freeKernelLayer(KernelLayer *layer)
     // fall through
 
   case LAYER_BUFFER_POOLS_INITIALIZED:
-    freeBufferPool(&layer->dataKVIOPool);
-    freeBufferPool(&layer->traceBufferPool);
+    free_buffer_pool(&layer->dataKVIOPool);
+    free_buffer_pool(&layer->traceBufferPool);
     // fall through
 
   case LAYER_SIMPLE_THINGS_INITIALIZED:

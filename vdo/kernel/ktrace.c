@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#3 $
  */
 
 #include "ktrace.h"
@@ -98,8 +98,8 @@ static int allocTraceDataBuffer(void *poolData, void **dataPtr)
 /*************************************************************************/
 int allocTraceFromPool(KernelLayer *layer, Trace **tracePointer)
 {
-  int result = allocBufferFromPool(layer->traceBufferPool,
-                                   (void **) tracePointer);
+  int result = alloc_buffer_from_pool(layer->traceBufferPool,
+                                      (void **) tracePointer);
   if (result == VDO_SUCCESS) {
     (*tracePointer)->used = 0;
   }
@@ -109,7 +109,7 @@ int allocTraceFromPool(KernelLayer *layer, Trace **tracePointer)
 /*************************************************************************/
 void freeTraceToPool(KernelLayer *layer, Trace *trace)
 {
-  freeBufferToPool(layer->traceBufferPool, trace);
+  free_buffer_to_pool(layer->traceBufferPool, trace);
 }
 
 /*************************************************************************/
@@ -122,9 +122,9 @@ int traceKernelLayerInit(KernelLayer *layer)
     traceRecordsNeeded += layer->requestLimiter.limit;
   }
   if (traceRecordsNeeded > 0) {
-    return makeBufferPool("KVDO Trace Data Pool", traceRecordsNeeded,
-                          allocTraceDataBuffer, freeTraceDataBuffer, NULL,
-                          layer, &layer->traceBufferPool);
+    return make_buffer_pool("KVDO Trace Data Pool", traceRecordsNeeded,
+                            allocTraceDataBuffer, freeTraceDataBuffer, NULL,
+                            layer, &layer->traceBufferPool);
   }
   return VDO_SUCCESS;
 }

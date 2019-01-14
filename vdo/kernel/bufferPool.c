@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#3 $
  */
 
 #include "bufferPool.h"
@@ -49,10 +49,10 @@ struct bufferPool {
   void                    *data; // Associated pool data
   spinlock_t               lock; // Locks this object
   unsigned int             size; // Total number of buffers
-  struct list_head         freeObjectList; // List of free buffers
-  struct list_head         spareListNodes; // Unused list nodes
-  unsigned int             numBusy; // Number of buffers in use
-  unsigned int             maxBusy; // Maximum value of the above
+  struct list_head         free_object_list; // List of free buffers
+  struct list_head         spare_list_nodes; // Unused list nodes
+  unsigned int             num_busy; // Number of buffers in use
+  unsigned int             max_busy; // Maximum value of the above
   BufferAllocateFunction  *alloc; // Allocate function for buffer data
   BufferFreeFunction      *free; // Free function for buffer data
   BufferDumpFunction      *dump; // Dump function for buffer data
@@ -61,13 +61,13 @@ struct bufferPool {
 };
 
 /*************************************************************************/
-int makeBufferPool(const char              *poolName,
+int make_buffer_pool(const char            *pool_name,
                    unsigned int             size,
-                   BufferAllocateFunction  *allocateFunction,
-                   BufferFreeFunction      *freeFunction,
-                   BufferDumpFunction      *dumpFunction,
-                   void                    *poolData,
-                   BufferPool             **poolPtr)
+                   BufferAllocateFunction  *allocate_function,
+                   BufferFreeFunction      *free_function,
+                   BufferDumpFunction      *dump_function,
+                   void                    *pool_data,
+                   BufferPool             **pool_ptr)
 {
   BufferPool *pool;
 
@@ -81,54 +81,55 @@ int makeBufferPool(const char              *poolName,
                     &pool->bhead);
   if (result != VDO_SUCCESS) {
     logError("buffer element array allocation failure %d", result);
-    freeBufferPool(&pool);
+    free_buffer_pool(&pool);
     return result;
   }
 
   result = ALLOCATE(size, void *, "object pointers", &pool->objects);
   if (result != VDO_SUCCESS) {
     logError("buffer object array allocation failure %d", result);
-    freeBufferPool(&pool);
+    free_buffer_pool(&pool);
     return result;
   }
 
-  pool->name  = poolName;
-  pool->alloc = allocateFunction;
-  pool->free  = freeFunction;
-  pool->dump  = dumpFunction;
-  pool->data  = poolData;
+  pool->name  = pool_name;
+  pool->alloc = allocate_function;
+  pool->free  = free_function;
+  pool->dump  = dump_function;
+  pool->data  = pool_data;
   pool->size  = size;
   spin_lock_init(&pool->lock);
-  INIT_LIST_HEAD(&pool->freeObjectList);
-  INIT_LIST_HEAD(&pool->spareListNodes);
+  INIT_LIST_HEAD(&pool->free_object_list);
+  INIT_LIST_HEAD(&pool->spare_list_nodes);
   struct buffer_element *bh = pool->bhead;
   for (int i = 0; i < pool->size; i++) {
     result = pool->alloc(pool->data, &bh->data);
     if (result != VDO_SUCCESS) {
       logError("verify buffer data allocation failure %d", result);
-      freeBufferPool(&pool);
+      free_buffer_pool(&pool);
       return result;
     }
     pool->objects[i] = bh->data;
-    list_add(&bh->list, &pool->freeObjectList);
+    list_add(&bh->list, &pool->free_object_list);
     bh++;
   }
-  pool->numBusy = pool->maxBusy = 0;
+  pool->num_busy = pool->max_busy = 0;
 
-  *poolPtr = pool;
+  *pool_ptr = pool;
   return VDO_SUCCESS;
 }
 
 /*************************************************************************/
-void freeBufferPool(BufferPool **poolPtr)
+void free_buffer_pool(BufferPool **pool_ptr)
 {
-  BufferPool *pool = *poolPtr;
+  BufferPool *pool = *pool_ptr;
   if (pool == NULL) {
     return;
   }
 
-  ASSERT_LOG_ONLY((pool->numBusy == 0), "freeing busy buffer pool, numBusy=%d",
-                  pool->numBusy);
+  ASSERT_LOG_ONLY((pool->num_busy == 0),
+                  "freeing busy buffer pool, num_busy=%d",
+                  pool->num_busy);
   if (pool->objects != NULL) {
     for (int i = 0; i < pool->size; i++) {
       if (pool->objects[i] != NULL) {
@@ -139,14 +140,14 @@ void freeBufferPool(BufferPool **poolPtr)
   }
   FREE(pool->bhead);
   FREE(pool);
-  *poolPtr = NULL;
+  *pool_ptr = NULL;
 }
 
 /*************************************************************************/
 static bool inFreeList(BufferPool *pool, void *data)
 {
   struct list_head *node;
-  list_for_each(node, &pool->freeObjectList) {
+  list_for_each(node, &pool->free_object_list) {
     if (container_of(node, struct buffer_element, list)->data == data) {
       return true;
     }
@@ -155,7 +156,7 @@ static bool inFreeList(BufferPool *pool, void *data)
 }
 
 /*************************************************************************/
-void dumpBufferPool(BufferPool *pool, bool dumpElements)
+void dump_buffer_pool(BufferPool *pool, bool dump_elements)
 {
   // In order that syslog can empty its buffer, sleep after 35 elements for
   // 4ms (till the second clock tick).  These numbers chosen in October
@@ -167,9 +168,9 @@ void dumpBufferPool(BufferPool *pool, bool dumpElements)
     return;
   }
   spin_lock(&pool->lock);
-  logInfo("%s: %u of %u busy (max %u)", pool->name, pool->numBusy, pool->size,
-          pool->maxBusy);
-  if (dumpElements && (pool->dump != NULL)) {
+  logInfo("%s: %u of %u busy (max %u)", pool->name, pool->num_busy, pool->size,
+          pool->max_busy);
+  if (dump_elements && (pool->dump != NULL)) {
     int dumped = 0;
     for (int i = 0; i < pool->size; i++) {
       if (!inFreeList(pool, pool->objects[i])) {
@@ -187,26 +188,26 @@ void dumpBufferPool(BufferPool *pool, bool dumpElements)
 }
 
 /*************************************************************************/
-int allocBufferFromPool(BufferPool *pool, void **dataPtr)
+int alloc_buffer_from_pool(BufferPool *pool, void **dataPtr)
 {
   if (pool == NULL) {
     return UDS_INVALID_ARGUMENT;
   }
 
   spin_lock(&pool->lock);
-  if (unlikely(list_empty(&pool->freeObjectList))) {
+  if (unlikely(list_empty(&pool->free_object_list))) {
     spin_unlock(&pool->lock);
     logDebug("no free buffers");
     return -ENOMEM;
   }
 
-  struct buffer_element *bh = list_first_entry(&pool->freeObjectList,
+  struct buffer_element *bh = list_first_entry(&pool->free_object_list,
                                                struct buffer_element,
                                                list);
-  list_move(&bh->list, &pool->spareListNodes);
-  pool->numBusy++;
-  if (pool->numBusy > pool->maxBusy) {
-    pool->maxBusy = pool->numBusy;
+  list_move(&bh->list, &pool->spare_list_nodes);
+  pool->num_busy++;
+  if (pool->num_busy > pool->max_busy) {
+    pool->max_busy = pool->num_busy;
   }
   *dataPtr = bh->data;
   spin_unlock(&pool->lock);
@@ -217,20 +218,20 @@ int allocBufferFromPool(BufferPool *pool, void **dataPtr)
 /*************************************************************************/
 static bool freeBufferToPoolInternal(BufferPool *pool, void *data)
 {
-  if (unlikely(list_empty(&pool->spareListNodes))) {
+  if (unlikely(list_empty(&pool->spare_list_nodes))) {
     return false;
   }
-  struct buffer_element *bh = list_first_entry(&pool->spareListNodes,
+  struct buffer_element *bh = list_first_entry(&pool->spare_list_nodes,
                                                struct buffer_element,
                                                list);
-  list_move(&bh->list, &pool->freeObjectList);
+  list_move(&bh->list, &pool->free_object_list);
   bh->data = data;
-  pool->numBusy--;
+  pool->num_busy--;
   return true;
 }
 
 /*************************************************************************/
-void freeBufferToPool(BufferPool *pool, void *data)
+void free_buffer_to_pool(BufferPool *pool, void *data)
 {
   spin_lock(&pool->lock);
   bool success = freeBufferToPoolInternal(pool, data);
@@ -241,7 +242,7 @@ void freeBufferToPool(BufferPool *pool, void *data)
 }
 
 /*************************************************************************/
-void freeBuffersToPool(BufferPool *pool, void **data, int count)
+void free_buffers_to_pool(BufferPool *pool, void **data, int count)
 {
   spin_lock(&pool->lock);
   bool success = true;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#16 $
  */
 
 #include "dataKVIO.h"
@@ -653,7 +653,8 @@ static int makeDataKVIO(KernelLayer  *layer,
                         DataKVIO    **dataKVIOPtr)
 {
   DataKVIO *dataKVIO;
-  int result = allocBufferFromPool(layer->dataKVIOPool, (void **) &dataKVIO);
+  int result = alloc_buffer_from_pool(layer->dataKVIOPool,
+                                      (void **) &dataKVIO);
   if (result != VDO_SUCCESS) {
     return logErrorWithStringError(result, "data kvio allocation failure");
   }
@@ -1219,9 +1220,9 @@ int makeDataKVIOBufferPool(KernelLayer  *layer,
                            uint32_t      poolSize,
                            BufferPool  **bufferPoolPtr)
 {
-  return makeBufferPool("DataKVIO Pool", poolSize,
-                        makePooledDataKVIO, freePooledDataKVIO,
-                        dumpPooledDataKVIO, layer, bufferPoolPtr);
+  return make_buffer_pool("DataKVIO Pool", poolSize,
+                          makePooledDataKVIO, freePooledDataKVIO,
+                          dumpPooledDataKVIO, layer, bufferPoolPtr);
 }
 
 /**********************************************************************/

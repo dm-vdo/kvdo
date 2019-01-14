@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#3 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -42,55 +42,56 @@ typedef void BufferDumpFunction(void *poolData, void *data);
  * allocated up front and placed on a free list, which manages the
  * reuse of the individual buffers in the pool.
  *
- * @param [in]  poolName         Name of the pool
- * @param [in]  size             The number of elements to create for this pool
- * @param [in]  allocateFunction The function to call to create the actual data
- *                               for each element
- * @param [in]  freeFunction     The function to call to free the actual data
- *                               for each element
- * @param [in]  dumpFunction     The function to call to dump the actual data
- *                               for each element into the log
- * @param [in]  poolData         A pointer to the pool's associated data
- * @param [out] poolPtr          A pointer to hold the pool that was created
+ * @param [in]  pool_name          Name of the pool
+ * @param [in]  size               The number of elements to create for this
+ *                                 pool
+ * @param [in]  allocate_function  The function to call to create the actual
+ *                                 data for each element
+ * @param [in]  free_function      The function to call to free the actual
+ *                                 data for each element
+ * @param [in]  dump_function      The function to call to dump the actual
+ *                                 data for each element into the log
+ * @param [in]  pool_data          A pointer to the pool's associated data
+ * @param [out] pool_ptr           A pointer to hold the pool that was created
  *
  * @return a success or error code
  */
-int makeBufferPool(const char              *poolName,
-                   unsigned int             size,
-                   BufferAllocateFunction  *allocateFunction,
-                   BufferFreeFunction      *freeFunction,
-                   BufferDumpFunction      *dumpFunction,
-                   void                    *poolData,
-                   BufferPool             **poolPtr)
+int make_buffer_pool(const char              *pool_name,
+                     unsigned int             size,
+                     BufferAllocateFunction  *allocate_function,
+                     BufferFreeFunction      *free_function,
+                     BufferDumpFunction      *dump_function,
+                     void                    *pool_data,
+                     BufferPool             **pool_ptr)
   __attribute__((warn_unused_result));
 
 /**
  * Free a buffer pool and null out the reference to it. This will free
  * all the elements of the pool as well.
  *
- * @param [in]  poolPtr   The reference to the pool to free
+ * @param [in]  pool_ptr   The reference to the pool to free
  **/
-void freeBufferPool(BufferPool **poolPtr);
+void free_buffer_pool(BufferPool **pool_ptr);
 
 /**
  * Dump a buffer pool to the log.
  *
- * @param [in] pool          The buffer pool to allocate from
- * @param [in] dumpElements  True for complete output, or false for a
- *                           one-line summary
+ * @param [in] pool           The buffer pool to allocate from
+ * @param [in] dump_elements  True for complete output, or false for a
+ *                            one-line summary
  **/
-void dumpBufferPool(BufferPool *pool, bool dumpElements);
+void dump_buffer_pool(BufferPool *pool, bool dump_elements);
 
 /**
  * Acquires a free buffer from the free list of the pool and
  * returns it's associated data.
  *
  * @param [in]  pool      The buffer pool to allocate from
- * @param [out] dataPtr   A pointer to hold the buffer data
+ * @param [out] data_ptr   A pointer to hold the buffer data
  *
  * @return a success or error code
  */
-int allocBufferFromPool(BufferPool *pool, void **dataPtr)
+int alloc_buffer_from_pool(BufferPool *pool, void **data_ptr)
   __attribute__((warn_unused_result));
 
 /**
@@ -99,7 +100,7 @@ int allocBufferFromPool(BufferPool *pool, void **dataPtr)
  * @param [in] pool   The buffer pool to return the buffer to
  * @param [in] data   The buffer data to return
  */
-void freeBufferToPool(BufferPool *pool, void *data);
+void free_buffer_to_pool(BufferPool *pool, void *data);
 
 /**
  * Returns a set of buffers to the free list of a pool
@@ -108,7 +109,7 @@ void freeBufferToPool(BufferPool *pool, void *data);
  * @param [in] data   The buffer data to return
  * @param [in] count  Number of entries in the data array
  */
-void freeBuffersToPool(BufferPool *pool, void **data, int count);
+void free_buffers_to_pool(BufferPool *pool, void **data, int count);
 
 /**
  * Control structure for freeing (releasing back to the pool) pointers
@@ -122,7 +123,7 @@ void freeBuffersToPool(BufferPool *pool, void **data, int count);
  * the locking that we're trying to minimize.
  *
  * We collect pointers until the array is full or until there are no
- * more available, and we call freeBuffersToPool to release a batch
+ * more available, and we call free_buffers_to_pool to release a batch
  * all at once.
  **/
 struct free_buffer_pointers {
@@ -152,7 +153,7 @@ static inline void initFreeBufferPointers(struct free_buffer_pointers *fbp,
  **/
 static inline void freeBufferPointers(struct free_buffer_pointers *fbp)
 {
-  freeBuffersToPool(fbp->pool, fbp->pointers, fbp->index);
+  free_buffers_to_pool(fbp->pool, fbp->pointers, fbp->index);
   fbp->index = 0;
 }
 
