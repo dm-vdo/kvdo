@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#9 $
  */
 
 #include "dmvdo.h"
@@ -756,11 +756,15 @@ static void vdoResume(struct dm_target *ti)
   unregisterThreadDeviceID();
 }
 
+/* 
+ * If anything changes that affects how user tools will interact
+ * with vdo, update the version number and make sure 
+ * documentation about the change is complete so tools can
+ * properly update their management code.
+ */
 static struct target_type vdoTargetBio = {
   .name            = "vdo",
-  .version         = {
-    VDO_VERSION_MAJOR, VDO_VERSION_MINOR, VDO_VERSION_MICRO,
-  },
+  .version         = {6, 2, 0},
   .module          = THIS_MODULE,
   .ctr             = vdoCtr,
   .dtr             = vdoDtr,
