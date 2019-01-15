@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#4 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -89,7 +89,7 @@ int parse_device_config(int                    argc,
                         char                 **argv,
                         struct dm_target      *ti,
                         bool                   verbose,
-                        struct device_config **configPtr)
+                        struct device_config **config_ptr)
   __attribute__((warn_unused_result));
 
 /**

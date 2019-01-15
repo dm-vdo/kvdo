@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#5 $
  */
 
 #include "deviceConfig.h"
@@ -65,13 +65,13 @@ static const uint8_t POOL_NAME_ARG_INDEX[] = {8, 10, 8};
  **/
 static int getVersionNumber(int            argc,
                             char         **argv,
-                            char         **errorPtr,
+                            char         **error_ptr,
                             TableVersion  *version_ptr)
 {
   // version, if it exists, is in a form of V<n>
   if (sscanf(argv[0], "V%u", version_ptr) == 1) {
     if (*version_ptr < 1 || *version_ptr > TABLE_VERSION) {
-      *errorPtr = "Unknown version number detected";
+      *error_ptr = "Unknown version number detected";
       return VDO_BAD_CONFIGURATION;
     }
   } else {
@@ -84,11 +84,11 @@ static int getVersionNumber(int            argc,
   // its an empty list.
   if (*version_ptr <= 1) {
     if (argc != REQUIRED_ARGC[*version_ptr]) {
-      *errorPtr = "Incorrect number of arguments for version";
+      *error_ptr = "Incorrect number of arguments for version";
       return VDO_BAD_CONFIGURATION;      
     }
   } else if (argc < REQUIRED_ARGC[*version_ptr]) {
-    *errorPtr = "Incorrect number of arguments for version";
+    *error_ptr = "Incorrect number of arguments for version";
     return VDO_BAD_CONFIGURATION;
   }
 
