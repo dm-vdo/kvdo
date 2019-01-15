@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#8 $
  */
 
 #include "dmvdo.h"
@@ -523,7 +523,8 @@ static int vdoInitialize(struct dm_target     *ti,
   logDebug("Block map maximum age  = %u", config->blockMapMaximumAge);
   logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled
                                            ? "on" : "off"));
-  logDebug("Write policy           = %s", getConfigWritePolicyString(config));
+  logDebug("Write policy           = %s",
+           get_config_write_policy_string(config));
 
   // The threadConfig will be copied by the VDO if it's successfully
   // created.
@@ -583,7 +584,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 {
   // Mild hack to avoid bumping instance number when we needn't.
   char *poolName;
-  int result = getPoolNameFromArgv(argc, argv, &ti->error, &poolName);
+  int result = get_pool_name_from_argv(argc, argv, &ti->error, &poolName);
   if (result != VDO_SUCCESS) {
     return -EINVAL;
   }
@@ -608,7 +609,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 
   bool verbose = (oldLayer == NULL);
   struct device_config *config = NULL;
-  result = parseDeviceConfig(argc, argv, ti, verbose, &config);
+  result = parse_device_config(argc, argv, ti, verbose, &config);
   if (result != VDO_SUCCESS) {
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
@@ -631,7 +632,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
     result = prepareToModifyKernelLayer(oldLayer, config, &ti->error);
     if (result != VDO_SUCCESS) {
       result = mapToSystemError(result);
-      freeDeviceConfig(&config);
+      free_device_config(&config);
     } else {
       acquireKernelLayerReference(oldLayer, config);
       ti->private = config;
@@ -646,7 +647,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   if (result != VDO_SUCCESS) {
     // vdoInitialize calls into various VDO routines, so map error
     result = mapToSystemError(result);
-    freeDeviceConfig(&config);
+    free_device_config(&config);
   }
 
   unregisterThreadDeviceID();
@@ -682,7 +683,7 @@ static void vdoDtr(struct dm_target *ti)
     unregisterAllocatingThread();
   }
 
-  freeDeviceConfig(&config);
+  free_device_config(&config);
   ti->private = NULL;
 }
 

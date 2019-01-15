@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#4 $
  */
 
 #include "deviceConfig.h"
@@ -56,62 +56,62 @@ static const uint8_t POOL_NAME_ARG_INDEX[] = {8, 10, 8};
 /**
  * Decide the version number from argv.
  *
- * @param [in]  argc         The number of table values
- * @param [in]  argv         The array of table values
- * @param [out] errorPtr     A pointer to return a error string in
- * @param [out] versionPtr   A pointer to return the version
+ * @param [in]  argc          The number of table values
+ * @param [in]  argv          The array of table values
+ * @param [out] error_ptr     A pointer to return a error string in
+ * @param [out] version_ptr   A pointer to return the version
  *
  * @return VDO_SUCCESS or an error code
  **/
 static int getVersionNumber(int            argc,
                             char         **argv,
                             char         **errorPtr,
-                            TableVersion  *versionPtr)
+                            TableVersion  *version_ptr)
 {
   // version, if it exists, is in a form of V<n>
-  if (sscanf(argv[0], "V%u", versionPtr) == 1) {
-    if (*versionPtr < 1 || *versionPtr > TABLE_VERSION) {
+  if (sscanf(argv[0], "V%u", version_ptr) == 1) {
+    if (*version_ptr < 1 || *version_ptr > TABLE_VERSION) {
       *errorPtr = "Unknown version number detected";
       return VDO_BAD_CONFIGURATION;
     }
   } else {
     // V0 actually has no version number in the table string
-    *versionPtr = 0;
+    *version_ptr = 0;
   }
 
   // V0 and V1 have no optional parameters. There will always be
   // a parameter for thread config, even if its a "." to show
   // its an empty list.
-  if (*versionPtr <= 1) {
-    if (argc != REQUIRED_ARGC[*versionPtr]) {
+  if (*version_ptr <= 1) {
+    if (argc != REQUIRED_ARGC[*version_ptr]) {
       *errorPtr = "Incorrect number of arguments for version";
       return VDO_BAD_CONFIGURATION;      
     }
-  } else if (argc < REQUIRED_ARGC[*versionPtr]) {
+  } else if (argc < REQUIRED_ARGC[*version_ptr]) {
     *errorPtr = "Incorrect number of arguments for version";
     return VDO_BAD_CONFIGURATION;
   }
 
-  if (*versionPtr != TABLE_VERSION) {
+  if (*version_ptr != TABLE_VERSION) {
     logWarning("Detected version mismatch between kernel module and tools "
-	       " kernel: %d, tool: %d", TABLE_VERSION, *versionPtr);
+	       " kernel: %d, tool: %d", TABLE_VERSION, *version_ptr);
     logWarning("Please consider upgrading management tools to match kernel.");
   }
   return VDO_SUCCESS; 
 }
 
 /**********************************************************************/
-int getPoolNameFromArgv(int    argc,
-                        char **argv,
-                        char **errorPtr,
-                        char **poolNamePtr)
+int get_pool_name_from_argv(int    argc,
+                            char **argv,
+                            char **error_ptr,
+                            char **pool_name_ptr)
 {
   TableVersion version;
-  int result = getVersionNumber(argc, argv, errorPtr, &version);
+  int result = getVersionNumber(argc, argv, error_ptr, &version);
   if (result != VDO_SUCCESS) {
     return result;
   }
-  *poolNamePtr = argv[POOL_NAME_ARG_INDEX[version]];
+  *pool_name_ptr = argv[POOL_NAME_ARG_INDEX[version]];
   return VDO_SUCCESS;
 }
 
@@ -150,9 +150,9 @@ static void resolveConfigWithDevice(struct device_config *config,
     config->writePolicy
       = (flushSupported ? WRITE_POLICY_ASYNC : WRITE_POLICY_SYNC);
     logInfo("Using write policy %s automatically.",
-            getConfigWritePolicyString(config));
+            get_config_write_policy_string(config));
   } else {
-    logInfo("Using write policy %s.", getConfigWritePolicyString(config));
+    logInfo("Using write policy %s.", get_config_write_policy_string(config));
   }
 
   if (flushSupported && (config->writePolicy == WRITE_POLICY_SYNC)) {
@@ -161,37 +161,38 @@ static void resolveConfigWithDevice(struct device_config *config,
   }
 
   if (config->version == 0) {
-    uint64_t deviceSize = i_size_read(dev->bdev->bd_inode);
-    config->physicalBlocks = deviceSize / VDO_BLOCK_SIZE;
+    uint64_t device_size = i_size_read(dev->bdev->bd_inode);
+    config->physicalBlocks = device_size / VDO_BLOCK_SIZE;
   }
 }
 
 /**
  * Parse a two-valued option into a bool.
  *
- * @param [in]  boolStr    The string value to convert to a bool
- * @param [in]  trueStr    The string value which should be converted to true
- * @param [in]  falseStr   The string value which should be converted to false
- * @param [out] boolPtr    A pointer to return the bool value in
+ * @param [in]  bool_str    The string value to convert to a bool
+ * @param [in]  true_str    The string value which should be converted to true
+ * @param [in]  false_str   The string value which should be converted to false
+ * @param [out] bool_ptr    A pointer to return the bool value in
  *
- * @return VDO_SUCCESS or an error if boolStr is neither trueStr nor falseStr
+ * @return VDO_SUCCESS or an error if bool_str is neither true_str
+ *                        nor false_str
  **/
 __attribute__((warn_unused_result))
-static inline int parseBool(const char *boolStr,
-                            const char *trueStr,
-                            const char *falseStr,
-                            bool       *boolPtr)
+static inline int parse_bool(const char *bool_str,
+                             const char *true_str,
+                             const char *false_str,
+                             bool       *bool_ptr)
 {
   bool value = false;
-  if (strcmp(boolStr, trueStr) == 0) {
+  if (strcmp(bool_str, true_str) == 0) {
     value = true;
-  } else if (strcmp(boolStr, falseStr) == 0) {
+  } else if (strcmp(bool_str, false_str) == 0) {
     value = false;
   } else {
     return VDO_BAD_CONFIGURATION;
   }
 
-  *boolPtr = value;
+  *bool_ptr = value;
   return VDO_SUCCESS;
 }
 
@@ -203,18 +204,18 @@ static inline int parseBool(const char *boolStr,
  * -EINVAL returned. If the thread name is unknown, a message is logged
  * but no error is returned.
  *
- * @param threadParamType  The type of thread specified
- * @param count            The thread count requested
- * @param config           The configuration data structure to update
+ * @param thread_param_type  The type of thread specified
+ * @param count              The thread count requested
+ * @param config             The configuration data structure to update
  *
  * @return   VDO_SUCCESS or -EINVAL
  **/
-static int processOneThreadConfigSpec(const char *threadParamType,
-                                      unsigned int count,
-                                      struct thread_count_config *config)
+static int process_one_thread_config_spec(const char *thread_param_type,
+                                          unsigned int count,
+                                          struct thread_count_config *config)
 {
   // Handle limited thread parameters
-  if (strcmp(threadParamType, "bioRotationInterval") == 0) {
+  if (strcmp(thread_param_type, "bioRotationInterval") == 0) {
     if (count == 0) {
       logError("thread config string error:"
                " 'bioRotationInterval' of at least 1 is required");
@@ -227,7 +228,7 @@ static int processOneThreadConfigSpec(const char *threadParamType,
     }
     config->bioRotationInterval = count;
     return VDO_SUCCESS;
-  } else if (strcmp(threadParamType, "logical") == 0) {
+  } else if (strcmp(thread_param_type, "logical") == 0) {
     if (count > LOGICAL_THREAD_COUNT_LIMIT) {
       logError("thread config string error: at most %d 'logical' threads"
                " are allowed",
@@ -236,7 +237,7 @@ static int processOneThreadConfigSpec(const char *threadParamType,
     }
     config->logicalZones = count;
     return VDO_SUCCESS;
-  } else if (strcmp(threadParamType, "physical") == 0) {
+  } else if (strcmp(thread_param_type, "physical") == 0) {
     if (count > PHYSICAL_THREAD_COUNT_LIMIT) {
       logError("thread config string error: at most %d 'physical' threads"
                " are allowed",
@@ -250,14 +251,14 @@ static int processOneThreadConfigSpec(const char *threadParamType,
     if (count > THREAD_COUNT_LIMIT) {
       logError("thread config string error: at most %d '%s' threads"
                " are allowed",
-               THREAD_COUNT_LIMIT, threadParamType);
+               THREAD_COUNT_LIMIT, thread_param_type);
       return -EINVAL;
     }
 
-    if (strcmp(threadParamType, "hash") == 0) {
+    if (strcmp(thread_param_type, "hash") == 0) {
       config->hashZones = count;
       return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "cpu") == 0) {
+    } else if (strcmp(thread_param_type, "cpu") == 0) {
       if (count == 0) {
         logError("thread config string error:"
                  " at least one 'cpu' thread required");
@@ -265,10 +266,10 @@ static int processOneThreadConfigSpec(const char *threadParamType,
       }
       config->cpuThreads = count;
       return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "ack") == 0) {
+    } else if (strcmp(thread_param_type, "ack") == 0) {
       config->bioAckThreads = count;
       return VDO_SUCCESS;
-    } else if (strcmp(threadParamType, "bio") == 0) {
+    } else if (strcmp(thread_param_type, "bio") == 0) {
       if (count == 0) {
         logError("thread config string error:"
                  " at least one 'bio' thread required");
@@ -281,7 +282,7 @@ static int processOneThreadConfigSpec(const char *threadParamType,
 
   // Don't fail, just log. This will handle version mismatches between
   // user mode tools and kernel.
-  logInfo("unknown thread parameter type \"%s\"", threadParamType);
+  logInfo("unknown thread parameter type \"%s\"", thread_param_type);
   return VDO_SUCCESS;
 }
 
@@ -292,8 +293,8 @@ static int processOneThreadConfigSpec(const char *threadParamType,
  * @param spec    The thread parameter specification string
  * @param config  The configuration data to be updated
  **/
-static int parseOneThreadConfigSpec(const char                 *spec,
-                                    struct thread_count_config *config)
+static int parse_one_thread_config_spec(const char                 *spec,
+                                        struct thread_count_config *config)
 {
   char **fields;
   int result = splitString(spec, '=', &fields);
@@ -317,7 +318,7 @@ static int parseOneThreadConfigSpec(const char                 *spec,
     return result;
   }
 
-  result = processOneThreadConfigSpec(fields[0], count, config);
+  result = process_one_thread_config_spec(fields[0], count, config);
   freeStringArray(fields);
   return result;
 }
@@ -343,8 +344,8 @@ static int parseOneThreadConfigSpec(const char                 *spec,
  *
  * @return   VDO_SUCCESS or -EINVAL or -ENOMEM
  **/
-static int parseThreadConfigString(const char                 *string,
-                                   struct thread_count_config *config)
+static int parse_thread_config_string(const char                 *string,
+                                      struct thread_count_config *config)
 {
   int result = VDO_SUCCESS;
 
@@ -355,7 +356,7 @@ static int parseThreadConfigString(const char                 *string,
       return result;
     }
     for (unsigned int i = 0; specs[i] != NULL; i++) {
-      result = parseOneThreadConfigSpec(specs[i], config);
+      result = parse_one_thread_config_spec(specs[i], config);
       if (result != VDO_SUCCESS) {
 	break;
       }
@@ -366,12 +367,12 @@ static int parseThreadConfigString(const char                 *string,
 }
 
 /**
- * Process one component of an optional parameter string                             and
- * update the configuration data structure.
+ * Process one component of an optional parameter string and update
+ * the configuration data structure.
  *
- * If the value requested is                            invalid, a message is logged and
- * -EINVAL returned. If the key is                      unknown, a message is logged
- * but no error is returned.
+ * If the value requested is invalid, a message is logged and -EINVAL
+ * returned. If the key is unknown, a message is logged but no error
+ * is returned.
  *
  * @param key    The optional parameter key name
  * @param value  The optional parameter value
@@ -379,9 +380,9 @@ static int parseThreadConfigString(const char                 *string,
  *
  * @return   VDO_SUCCESS or -EINVAL
  **/
-static int processOneKeyValuePair(const char           *key,
-                                  unsigned int          value,
-                                  struct device_config *config)
+static int process_one_key_value_pair(const char           *key,
+                                      unsigned int          value,
+                                      struct device_config *config)
 {
   // Non thread optional parameters
   if (strcmp(key, "maxDiscard") == 0) {
@@ -400,7 +401,7 @@ static int processOneKeyValuePair(const char           *key,
     return VDO_SUCCESS;
   } 
   // Handles unknown key names
-  return processOneThreadConfigSpec(key, value, &config->threadCounts);
+  return process_one_thread_config_spec(key, value, &config->threadCounts);
 }
 
 /**
@@ -413,9 +414,9 @@ static int processOneKeyValuePair(const char           *key,
  *
  * @return   VDO_SUCCESS or error
  **/
-static int parseOneKeyValuePair(const char           *key,
-				const char           *value,
-                                struct device_config *config)
+static int parse_one_key_value_pair(const char           *key,
+                                    const char           *value,
+                                    struct device_config *config)
 {
   unsigned int count;
   int result = stringToUInt(value, &count);
@@ -424,19 +425,19 @@ static int parseOneKeyValuePair(const char           *key,
              value);
     return result;
   }
-  return processOneKeyValuePair(key, count, config);
+  return process_one_key_value_pair(key, count, config);
 }
 
 /**
  * Parse all key/value pairs from a list of arguments.
  *
- * If an error occurs during parsing of a single key/value   pair, we deem
+ * If an error occurs during parsing of a single key/value pair, we deem
  * it serious enough to stop further parsing. 
  *
  * This function can't set the "reason" value the caller wants to pass
- *                                                           back, because we'd want to format it to say which field was
- *                                                           invalid, and we can't allocate the "reason" strings dynamically. So
- * if an error                                               occurs, we'll log the details and return the error.
+ * back, because we'd want to format it to say which field was
+ * invalid, and we can't allocate the "reason" strings dynamically. So
+ * if an error occurs, we'll log the details and return the error.
  * 
  * @param argc     The total number of arguments in list
  * @param argv     The list of key/value pairs
@@ -444,13 +445,13 @@ static int parseOneKeyValuePair(const char           *key,
  *
  * @return   VDO_SUCCESS or error
  **/
-static int parseKeyValuePairs(int                    argc, 
-			      char                 **argv, 
-			      struct device_config  *config)
+static int parse_key_value_pairs(int                    argc, 
+                                 char                 **argv, 
+                                 struct device_config  *config)
 {
   int result = VDO_SUCCESS;
   while (argc) {
-    result = parseOneKeyValuePair(argv[0], argv[1], config);
+    result = parse_one_key_value_pair(argv[0], argv[1], config);
     if (result != VDO_SUCCESS) {
       break;
     }
@@ -476,33 +477,33 @@ static int parseKeyValuePairs(int                    argc,
  * separated by a space.
  *
  * @param argSet   The structure holding the arguments to parse
- * @param errorPtr Pointer to a buffer to hold the error string
+ * @param error_ptr Pointer to a buffer to hold the error string
  * @param config   Pointer to device configuration data to update
  *
  * @return   VDO_SUCCESS or error
  */
-int parseOptionalArguments(struct dm_arg_set     *argSet,
-			   char                 **errorPtr,
-			   struct device_config  *config)
+int parse_optional_arguments(struct dm_arg_set     *argSet,
+                             char                 **error_ptr,
+                             struct device_config  *config)
 {
   int result = VDO_SUCCESS;
 
   if (config->version == 0 || config->version == 1) {
-    result = parseThreadConfigString(argSet->argv[0],
+    result = parse_thread_config_string(argSet->argv[0],
 				     &config->threadCounts);
     if (result != VDO_SUCCESS) {
-      *errorPtr = "Invalid thread-count configuration";
+      *error_ptr = "Invalid thread-count configuration";
       return VDO_BAD_CONFIGURATION;
     }
   } else {
     if ((argSet->argc % 2) != 0) {
-      *errorPtr = "Odd number of optional arguments given but they"
+      *error_ptr = "Odd number of optional arguments given but they"
 	          " should be <key> <value> pairs";  
       return VDO_BAD_CONFIGURATION;
     }
-    result = parseKeyValuePairs(argSet->argc, argSet->argv, config);
+    result = parse_key_value_pairs(argSet->argc, argSet->argv, config);
     if (result != VDO_SUCCESS) {
-      *errorPtr = "Invalid optional argument configuration";
+      *error_ptr = "Invalid optional argument configuration";
       return VDO_BAD_CONFIGURATION;
     }
   }
@@ -512,30 +513,31 @@ int parseOptionalArguments(struct dm_arg_set     *argSet,
 /**
  * Handle a parsing error.
  *
- * @param configPtr     A pointer to the config to free
- * @param errorPtr      A place to store a constant string about the error
- * @param errorStr      A constant string to store in errorPtr
+ * @param config_ptr     A pointer to the config to free
+ * @param error_ptr      A place to store a constant string about the error
+ * @param error_str      A constant string to store in error_ptr
  **/
-static void handleParseError(struct device_config **configPtr,
-                             char                 **errorPtr,
-                             char                  *errorStr)
+static void handle_parse_error(struct device_config **config_ptr,
+                               char                 **error_ptr,
+                               char                  *error_str)
 {
-  freeDeviceConfig(configPtr);
-  *errorPtr = errorStr;
+  free_device_config(config_ptr);
+  *error_ptr = error_str;
 }
 
 /**********************************************************************/
-int parseDeviceConfig(int                    argc,
-                      char                 **argv,
-                      struct dm_target      *ti,
-                      bool                   verbose,
-                      struct device_config **configPtr)
+int parse_device_config(int                    argc,
+                        char                 **argv,
+                        struct dm_target      *ti,
+                        bool                   verbose,
+                        struct device_config **config_ptr)
 {
-  char **errorPtr = &ti->error;
+  char **error_ptr = &ti->error;
   struct device_config *config = NULL;
   int result = ALLOCATE(1, struct device_config, "device_config", &config);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Could not allocate config structure");
+    handle_parse_error(&config, error_ptr,
+                       "Could not allocate config structure");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -544,7 +546,7 @@ int parseDeviceConfig(int                    argc,
   // Save the original string.
   result = joinStrings(argv, argc, ' ', &config->originalString);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Could not populate string");
+    handle_parse_error(&config, error_ptr, "Could not populate string");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -573,10 +575,10 @@ int parseDeviceConfig(int                    argc,
   argSet.argc = argc;
   argSet.argv = argv;
 
-  result = getVersionNumber(argc, argv, errorPtr, &config->version);
+  result = getVersionNumber(argc, argv, error_ptr, &config->version);
   if (result != VDO_SUCCESS) {
-    // getVersionNumber sets errorPtr itself.
-    handleParseError(&config, errorPtr, *errorPtr);
+    // getVersionNumber sets error_ptr itself.
+    handle_parse_error(&config, error_ptr, *error_ptr);
     return result;
   }
   // Move the arg pointer forward only if the argument was there.
@@ -587,7 +589,8 @@ int parseDeviceConfig(int                    argc,
   result = duplicateString(dm_shift_arg(&argSet), "parent device name",
                            &config->parentDeviceName);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Could not copy parent device name");
+    handle_parse_error(&config, error_ptr,
+                       "Could not copy parent device name");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -595,16 +598,16 @@ int parseDeviceConfig(int                    argc,
   if (config->version >= 1) {
     result = kstrtoull(dm_shift_arg(&argSet), 10, &config->physicalBlocks);
     if (result != VDO_SUCCESS) {
-      handleParseError(&config, errorPtr, "Invalid physical block count");
+      handle_parse_error(&config, error_ptr, "Invalid physical block count");
       return VDO_BAD_CONFIGURATION;
     }
   }
 
   // Get the logical block size and validate
   bool enable512e;
-  result = parseBool(dm_shift_arg(&argSet), "512", "4096", &enable512e);
+  result = parse_bool(dm_shift_arg(&argSet), "512", "4096", &enable512e);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Invalid logical block size");
+    handle_parse_error(&config, error_ptr, "Invalid logical block size");
     return VDO_BAD_CONFIGURATION;
   }
   config->logicalBlockSize = (enable512e ? 512 : 4096);
@@ -617,22 +620,23 @@ int parseDeviceConfig(int                    argc,
   // Get the page cache size.
   result = stringToUInt(dm_shift_arg(&argSet), &config->cacheSize);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Invalid block map page cache size");
+    handle_parse_error(&config, error_ptr,
+                       "Invalid block map page cache size");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the block map era length.
   result = stringToUInt(dm_shift_arg(&argSet), &config->blockMapMaximumAge);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Invalid block map maximum age");
+    handle_parse_error(&config, error_ptr, "Invalid block map maximum age");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the MD RAID5 optimization mode and validate
-  result = parseBool(dm_shift_arg(&argSet), "on", "off",
-                     &config->mdRaid5ModeEnabled);
+  result = parse_bool(dm_shift_arg(&argSet), "on", "off",
+                      &config->mdRaid5ModeEnabled);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Invalid MD RAID5 mode");
+    handle_parse_error(&config, error_ptr, "Invalid MD RAID5 mode");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -644,7 +648,7 @@ int parseDeviceConfig(int                    argc,
   } else if (strcmp(argSet.argv[0], "auto") == 0) {
     config->writePolicy = WRITE_POLICY_AUTO;
   } else {
-    handleParseError(&config, errorPtr, "Invalid write policy");
+    handle_parse_error(&config, error_ptr, "Invalid write policy");
     return VDO_BAD_CONFIGURATION;
   }
   dm_shift_arg(&argSet);
@@ -652,7 +656,8 @@ int parseDeviceConfig(int                    argc,
   // Make sure the enum to get the pool name from argv directly is still in
   // sync with the parsing of the table line.
   if (&argSet.argv[0] != &argv[POOL_NAME_ARG_INDEX[config->version]]) {
-    handleParseError(&config, errorPtr, "Pool name not in expected location");
+    handle_parse_error(&config, error_ptr,
+                       "Pool name not in expected location");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -661,15 +666,15 @@ int parseDeviceConfig(int                    argc,
   result = duplicateString(dm_shift_arg(&argSet), "pool name", 
 			   &config->poolName);
   if (result != VDO_SUCCESS) {
-    handleParseError(&config, errorPtr, "Could not copy pool name");
+    handle_parse_error(&config, error_ptr, "Could not copy pool name");
     return VDO_BAD_CONFIGURATION;
   }
 
   // Get the optional arguments and validate.
-  result = parseOptionalArguments(&argSet, errorPtr, config);
+  result = parse_optional_arguments(&argSet, error_ptr, config);
   if (result != VDO_SUCCESS) {
-    // parseOptionalArguments sets errorPtr itself.
-    handleParseError(&config, errorPtr, *errorPtr);
+    // parse_optional_arguments sets error_ptr itself.
+    handle_parse_error(&config, error_ptr, *error_ptr);
     return result;
   }
 
@@ -683,9 +688,9 @@ int parseDeviceConfig(int                    argc,
       || ((config->threadCounts.physicalZones == 0)
           != (config->threadCounts.hashZones == 0))
       ) {
-    handleParseError(&config, errorPtr,
-                     "Logical, physical, and hash zones counts must all be"
-                     " zero or all non-zero");
+    handle_parse_error(&config, error_ptr,
+                       "Logical, physical, and hash zones counts must all be"
+                       " zero or all non-zero");
     return VDO_BAD_CONFIGURATION;
   }
 
@@ -694,26 +699,26 @@ int parseDeviceConfig(int                    argc,
   if (result != 0) {
     logError("couldn't open device \"%s\": error %d",
              config->parentDeviceName, result);
-    handleParseError(&config, errorPtr, "Unable to open storage device");
+    handle_parse_error(&config, error_ptr, "Unable to open storage device");
     return VDO_BAD_CONFIGURATION;
   }
 
   resolveConfigWithDevice(config, verbose);
 
-  *configPtr = config;
+  *config_ptr = config;
   return result;
 }
 
 /**********************************************************************/
-void freeDeviceConfig(struct device_config **configPtr)
+void free_device_config(struct device_config **config_ptr)
 {
-  if (configPtr == NULL) {
+  if (config_ptr == NULL) {
     return;
   }
 
-  struct device_config *config = *configPtr;
+  struct device_config *config = *config_ptr;
   if (config == NULL) {
-    *configPtr = NULL;
+    *config_ptr = NULL;
     return;
   }
 
@@ -726,11 +731,11 @@ void freeDeviceConfig(struct device_config **configPtr)
   FREE(config->originalString);
 
   FREE(config);
-  *configPtr = NULL;
+  *config_ptr = NULL;
 }
 
 /**********************************************************************/
-const char *getConfigWritePolicyString(struct device_config *config)
+const char *get_config_write_policy_string(struct device_config *config)
 {
   if (config->writePolicy == WRITE_POLICY_AUTO) {
     return "auto";

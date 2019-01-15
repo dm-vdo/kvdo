@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#25 $
  */
 
 #include "kernelLayer.h"
@@ -841,8 +841,8 @@ int modifyKernelLayer(KernelLayer          *layer,
      * policy change is written to synchronous storage.
      */
     logInfo("Modifying device '%s' write policy from %s to %s",
-            config->poolName, getConfigWritePolicyString(extantConfig),
-            getConfigWritePolicyString(config));
+            config->poolName, get_config_write_policy_string(extantConfig),
+            get_config_write_policy_string(config));
     setWritePolicy(layer->kvdo.vdo, config->writePolicy);
   }
 

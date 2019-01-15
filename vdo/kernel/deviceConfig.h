@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#3 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -68,7 +68,7 @@ struct device_config {
  *
  * @return VDO_SUCCESS or an error code
  **/
-int getPoolNameFromArgv(int    argc,
+int get_pool_name_from_argv(int    argc,
                         char **argv,
                         char **errorPtr,
                         char **poolNamePtr)
@@ -77,27 +77,27 @@ int getPoolNameFromArgv(int    argc,
 /**
  * Convert the dmsetup table into a struct device_config.
  *
- * @param [in]  argc        The number of table values
- * @param [in]  argv        The array of table values
- * @param [in]  ti          The target structure for this table
- * @param [in]  verbose     Whether to log about the underlying device
- * @param [out] configPtr   A pointer to return the allocated config
+ * @param [in]  argc         The number of table values
+ * @param [in]  argv         The array of table values
+ * @param [in]  ti           The target structure for this table
+ * @param [in]  verbose      Whether to log about the underlying device
+ * @param [out] config_ptr   A pointer to return the allocated config
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parseDeviceConfig(int                    argc,
-                      char                 **argv,
-                      struct dm_target      *ti,
-                      bool                   verbose,
-                      struct device_config **configPtr)
+int parse_device_config(int                    argc,
+                        char                 **argv,
+                        struct dm_target      *ti,
+                        bool                   verbose,
+                        struct device_config **configPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Free a device config created by parseDeviceConfig().
+ * Free a device config created by parse_device_config().
  *
- * @param configPtr  The pointer holding the config, which will be nulled
+ * @param config_ptr  The pointer holding the config, which will be nulled
  **/
-void freeDeviceConfig(struct device_config **configPtr);
+void free_device_config(struct device_config **config_ptr);
 
 /**
  * Get the text describing the write policy.
@@ -106,7 +106,7 @@ void freeDeviceConfig(struct device_config **configPtr);
  *
  * @returns a pointer to a string describing the write policy
  **/
-const char *getConfigWritePolicyString(struct device_config *config)
+const char *get_config_write_policy_string(struct device_config *config)
   __attribute__((warn_unused_result));
 
 #endif // DEVICE_CONFIG_H
