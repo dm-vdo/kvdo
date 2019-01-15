@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#24 $
  */
 
 #include "kernelLayer.h"
@@ -201,7 +201,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
    * page cache or roll their own.
    */
   if (!limiterPoll(&layer->requestLimiter)) {
-    addToDeadlockQueue(&layer->deadlockQueue, bio, arrivalTime);
+    add_to_deadlock_queue(&layer->deadlockQueue, bio, arrivalTime);
     logWarning("queued an I/O request to avoid deadlock!");
 
     return DM_MAPIO_SUBMITTED;
@@ -298,7 +298,7 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
   // If we had to buffer some requests to avoid deadlock, release them now.
   while (count > 0) {
     Jiffies arrivalTime = 0;
-    struct bio *bio = pollDeadlockQueue(&layer->deadlockQueue, &arrivalTime);
+    struct bio *bio = poll_deadlock_queue(&layer->deadlockQueue, &arrivalTime);
     if (likely(bio == NULL)) {
       break;
     }
@@ -550,7 +550,7 @@ int makeKernelLayer(uint64_t               startingSector,
    */
   setKernelLayerState(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-  initializeDeadlockQueue(&layer->deadlockQueue);
+  initialize_deadlock_queue(&layer->deadlockQueue);
 
   int requestLimit = defaultMaxRequestsActive;
   initializeLimiter(&layer->requestLimiter, requestLimit);

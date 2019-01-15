@@ -16,22 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.c#3 $
  */
 
 #include "deadlockQueue.h"
 
 /**********************************************************************/
-void initializeDeadlockQueue(struct deadlock_queue *queue)
+void initialize_deadlock_queue(struct deadlock_queue *queue)
 {
   spin_lock_init(&queue->lock);
   bio_list_init(&queue->list);
 }
 
 /**********************************************************************/
-void addToDeadlockQueue(struct deadlock_queue *queue,
-                        struct bio            *bio,
-                        Jiffies                arrivalTime)
+void add_to_deadlock_queue(struct deadlock_queue *queue,
+                           struct bio            *bio,
+                           Jiffies                arrival_time)
 {
   spin_lock(&queue->lock);
   if (bio_list_empty(&queue->list)) {
@@ -40,7 +40,7 @@ void addToDeadlockQueue(struct deadlock_queue *queue,
      * some of them. Oh well. If we've gotten here, we're trying to avoid a
      * deadlock; stats are a secondary concern.
      */
-    queue->arrivalTime = arrivalTime;
+    queue->arrivalTime = arrival_time;
   }
   bio_list_add(&queue->list, bio);
   spin_unlock(&queue->lock);
