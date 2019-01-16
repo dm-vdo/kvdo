@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#2 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -27,7 +27,7 @@
 /**
  * Initialize the necessary structures for the device registry.
  **/
-void initializeDeviceRegistryOnce(void);
+void initialize_device_registry_once(void);
 
 /**
  * Get a layer by name, if any layer has that device name.
@@ -36,7 +36,7 @@ void initializeDeviceRegistryOnce(void);
  *
  * @return the layer, if any was found
  **/
-KernelLayer *getLayerByName(char *name)
+KernelLayer *get_layer_by_name(char *name)
   __attribute__((warn_unused_result));
 
 /**
@@ -48,7 +48,7 @@ KernelLayer *getLayerByName(char *name)
  *
  * @return VDO_SUCCESS or an error
  **/
-int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
+int add_layer_to_device_registry(char *name, KernelLayer *layer)
   __attribute__((warn_unused_result));
 
 /**
@@ -56,6 +56,6 @@ int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
  *
  * @param name  The name of the layer to remove
  **/
-void removeLayerFromDeviceRegistry(char *name);
+void remove_layer_from_device_registry(char *name);
 
 #endif // DEVICE_REGISTRY_H

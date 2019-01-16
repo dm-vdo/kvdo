@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#10 $
  */
 
 #include "dmvdo.h"
@@ -592,7 +592,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   RegisteredThread allocatingThread;
   registerAllocatingThread(&allocatingThread, NULL);
 
-  KernelLayer *oldLayer = getLayerByName(poolName);
+  KernelLayer *oldLayer = get_layer_by_name(poolName);
   unsigned int instance;
   if (oldLayer == NULL) {
     result = allocateKVDOInstance(&instance);
@@ -812,7 +812,7 @@ static int __init vdoInit(void)
 
   initializeThreadDeviceRegistry();
   initializeStandardErrorBlocks();
-  initializeDeviceRegistryOnce();
+  initialize_device_registry_once();
   logInfo("loaded version %s", CURRENT_VERSION);
 
   result = dm_register_target(&vdoTargetBio);

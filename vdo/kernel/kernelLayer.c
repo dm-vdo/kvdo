@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#26 $
  */
 
 #include "kernelLayer.h"
@@ -577,7 +577,7 @@ int makeKernelLayer(uint64_t               startingSector,
   // is fully allocated.
   layer->callbacks.congested_fn          = kvdoIsCongested;
 
-  result = addLayerToDeviceRegistry(config->poolName, layer);
+  result = add_layer_to_device_registry(config->poolName, layer);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot add layer to device registry";
     freeKernelLayer(layer);
@@ -931,7 +931,7 @@ void freeKernelLayer(KernelLayer *layer)
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
     free_batch_processor(&layer->dataKVIOReleaser);
-    removeLayerFromDeviceRegistry(layer->deviceConfig->poolName);
+    remove_layer_from_device_registry(layer->deviceConfig->poolName);
     break;
 
   default:

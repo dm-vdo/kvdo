@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#3 $
  */
 
 #include "deviceRegistry.h"
@@ -45,7 +45,7 @@ struct registered_device {
 static struct device_registry registry;
 
 /**********************************************************************/
-void initializeDeviceRegistryOnce(void)
+void initialize_device_registry_once(void)
 {
   INIT_LIST_HEAD(&registry.links);
   rwlock_init(&registry.lock);
@@ -60,7 +60,7 @@ void initializeDeviceRegistryOnce(void)
  * @return the device object found, if any
  **/
 __attribute__((warn_unused_result))
-static struct registered_device *findLayerLocked(char *name)
+static struct registered_device *find_layer_locked(char *name)
 {
   struct registered_device *device;
   list_for_each_entry(device, &registry.links, links) {
@@ -72,10 +72,10 @@ static struct registered_device *findLayerLocked(char *name)
 }
 
 /**********************************************************************/
-KernelLayer *getLayerByName(char *name)
+KernelLayer *get_layer_by_name(char *name)
 {
   read_lock(&registry.lock);
-  struct registered_device *device = findLayerLocked(name);
+  struct registered_device *device = find_layer_locked(name);
   read_unlock(&registry.lock);
   if (device == NULL) {
     return NULL;
@@ -84,28 +84,28 @@ KernelLayer *getLayerByName(char *name)
 }
 
 /**********************************************************************/
-int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
+int add_layer_to_device_registry(char *name, KernelLayer *layer)
 {
-  struct registered_device *newDevice;
-  int result = ALLOCATE(1, struct registered_device, __func__, &newDevice);
+  struct registered_device *new_device;
+  int result = ALLOCATE(1, struct registered_device, __func__, &new_device);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = duplicateString(name, "name", &newDevice->name);
+  result = duplicateString(name, "name", &new_device->name);
   if (result != VDO_SUCCESS) {
-    FREE(newDevice);
+    FREE(new_device);
     return result;
   }
 
-  INIT_LIST_HEAD(&newDevice->links);
-  newDevice->layer = layer;
+  INIT_LIST_HEAD(&new_device->links);
+  new_device->layer = layer;
 
   write_lock(&registry.lock);
-  struct registered_device *oldDevice = findLayerLocked(name);
-  result = ASSERT(oldDevice == NULL, "Device not already registered");
+  struct registered_device *old_device = find_layer_locked(name);
+  result = ASSERT(old_device == NULL, "Device not already registered");
   if (result == VDO_SUCCESS) {
-    list_add_tail(&newDevice->links, &registry.links);
+    list_add_tail(&new_device->links, &registry.links);
   }
   write_unlock(&registry.lock);
 
@@ -113,10 +113,10 @@ int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void removeLayerFromDeviceRegistry(char *name)
+void remove_layer_from_device_registry(char *name)
 {
   write_lock(&registry.lock);
-  struct registered_device *device = findLayerLocked(name);
+  struct registered_device *device = find_layer_locked(name);
   if (device != NULL) {
     list_del_init(&device->links);
     FREE(device->name);
