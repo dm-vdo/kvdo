@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#2 $
  */
 
 #include "objectPool.h"
@@ -24,6 +24,11 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
+
+#include "adminState.h"
+#include "completion.h"
+#include "types.h"
+#include "waitQueue.h"
 
 /**
  * An ObjectPool is a collection of preallocated objects.

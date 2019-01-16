@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#5 $
  */
 
 #ifndef TYPES_H
@@ -449,20 +449,5 @@ typedef void AsyncDataOperation(DataVIO *dataVIO);
 typedef struct enqueueable {
   VDOCompletion *completion;
 } Enqueueable;
-
-typedef enum {
-  ADMIN_STATE_NORMAL_OPERATION = 0,
-  ADMIN_STATE_CLOSE_REQUESTED,
-  ADMIN_STATE_CLOSING,
-  ADMIN_STATE_CLOSED,
-  ADMIN_STATE_SUSPENDED,
-} AdminState;
-
-/**********************************************************************/
-static inline bool isClosing(AdminState state)
-{
-  return ((state >= ADMIN_STATE_CLOSE_REQUESTED)
-          && (state <= ADMIN_STATE_CLOSED));
-}
 
 #endif // TYPES_H
