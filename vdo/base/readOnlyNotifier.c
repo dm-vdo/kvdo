@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#3 $
  */
 
 #include "readOnlyNotifier.h"
 
+#include "atomic.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -28,6 +29,35 @@
 #include "completion.h"
 #include "physicalLayer.h"
 #include "threadConfig.h"
+
+/**
+ * A ReadOnlyNotifier has a single completion which is used to perform
+ * read-only notifications, however, enterReadOnlyMode() may be called from any
+ * base thread. A pair of atomic fields are used to control the read-only mode
+ * entry process. The first field holds the read-only error. The second is the
+ * state field, which may hold any of the four special values enumerated here.
+ *
+ * When enterReadOnlyMode() is called from some base thread, a compare-and-swap
+ * is done on the readOnlyError, setting it to the supplied error if the value
+ * was VDO_SUCCESS. If this fails, some other thread has already intiated
+ * read-only entry or scheduled a pending entry, so the call exits. Otherwise,
+ * a compare-and-swap is done on the state, setting it to NOTIFYING if the
+ * value was MAY_NOTIFY. If this succeeds, the caller initiates the
+ * notification. If this failed due to notifications being disallowed, the
+ * notifier will be in the MAY_NOT_NOTIFY state but readOnlyError will not be
+ * VDO_SUCCESS. This configuration will indicate to allowReadOnlyModeEntry()
+ * that there is a pending notification to perform.
+ **/
+enum {
+  /** Notifications are allowed but not in progress */
+  MAY_NOTIFY = 0,
+  /** A notification is in progress */
+  NOTIFYING,
+  /** Notifications are not allowed */
+  MAY_NOT_NOTIFY,
+  /** A notification has completed */
+  NOTIFIED,
+};
 
 /**
  * An object to be notified when the VDO enters read-only mode
@@ -47,40 +77,32 @@ struct readOnlyListener {
  * Data associated with each base code thread.
  **/
 typedef struct threadData {
-  /** The completion for entering read-only mode */
-  VDOCompletion          completion;
-  /** The ReadOnlyNotifier to which this structure belongs */
-  ReadOnlyNotifier      *notifier;
-  /** The thread this represents */
-  ThreadID               threadID;
-  /** Whether this thread is in read-only mode */
-  bool                   isReadOnly;
-  /** Whether this thread is entering read-only mode */
-  bool                   isEnteringReadOnlyMode;
-  /** Whether this thread may enter read-only mode */
-  bool                   mayEnterReadOnlyMode;
-  /** The error code for entering read-only mode */
-  int                    readOnlyError;
-  /** A completion to notify when this thread is not entering read-only mode */
-  VDOCompletion         *superBlockIdleWaiter;
-  /** A completion which is waiting to enter read-only mode */
-  VDOCompletion         *readOnlyModeWaiter;
+  /**
+   * Each thread maintains its own notion of whether the VDO is read-only so
+   * that the read-only state can be checked from any base thread without
+   * worrying about synchronization or thread safety. This does mean that
+   * knowledge of the VDO going read-only does not occur simultaneously across
+   * the VDO's threads, but that does not seem to cause any problems.
+   */
+  bool              isReadOnly;
   /**
    * A list of objects waiting to be notified on this thread that the VDO has
    * entered read-only mode.
    **/
-  ReadOnlyListener      *listeners;
+  ReadOnlyListener *listeners;
 } ThreadData;
 
 struct readOnlyNotifier {
-  /** The completion for waiting until not entering read-only mode */
+  /** The completion for entering read-only mode */
   VDOCompletion       completion;
-  /** Whether the listener has already started a notification */
-  bool                isReadOnly;
+  /** A completion waiting for notifications to be drained or enabled */
+  VDOCompletion      *waiter;
+  /** The code of the error which put the VDO into read-only mode */
+  Atomic32            readOnlyError;
+  /** The current state of the notifier (values described above) */
+  Atomic32            state;
   /** The thread config of the VDO */
   const ThreadConfig *threadConfig;
-  /** The ID of the admin thread */
-  ThreadID            adminThreadID;
   /** The array of per-thread data */
   ThreadData          threadData[];
 };
@@ -95,22 +117,8 @@ struct readOnlyNotifier {
 static inline ReadOnlyNotifier *asNotifier(VDOCompletion *completion)
 {
   STATIC_ASSERT(offsetof(ReadOnlyNotifier, completion) == 0);
-  assertCompletionType(completion->type, WAIT_FOR_READ_ONLY_MODE_COMPLETION);
-  return (ReadOnlyNotifier *) completion;
-}
-
-/**
- * Convert a generic VDOCompletion to a ThreadData.
- *
- * @param completion The completion to convert
- *
- * @return The completion as a ThreadData
- **/
-static ThreadData *asThreadData(VDOCompletion *completion)
-{
-  STATIC_ASSERT(offsetof(ThreadData, completion) == 0);
   assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
-  return (ThreadData *) completion;
+  return (ReadOnlyNotifier *) completion;
 }
 
 /**********************************************************************/
@@ -127,31 +135,22 @@ int makeReadOnlyNotifier(bool                 isReadOnly,
     return result;
   }
 
-  notifier->isReadOnly    = isReadOnly;
-  notifier->threadConfig  = threadConfig;
-
+  notifier->threadConfig = threadConfig;
+  if (isReadOnly) {
+    atomicStore32(&notifier->readOnlyError, (uint32_t) VDO_READ_ONLY);
+    atomicStore32(&notifier->state, NOTIFIED);
+  } else {
+    atomicStore32(&notifier->state, MAY_NOTIFY);
+  }
   result = initializeEnqueueableCompletion(&notifier->completion,
-                                           WAIT_FOR_READ_ONLY_MODE_COMPLETION,
-                                           layer);
+                                           READ_ONLY_MODE_COMPLETION, layer);
   if (result != VDO_SUCCESS) {
     freeReadOnlyNotifier(&notifier);
     return result;
   }
 
   for (ThreadCount id = 0; id < threadConfig->baseThreadCount; id++) {
-    notifier->threadData[id] = (ThreadData) {
-      .notifier             = notifier,
-      .threadID             = id,
-      .isReadOnly           = isReadOnly,
-      .mayEnterReadOnlyMode = true,
-    };
-    result
-      = initializeEnqueueableCompletion(&notifier->threadData[id].completion,
-                                        READ_ONLY_MODE_COMPLETION, layer);
-    if (result != VDO_SUCCESS) {
-      freeReadOnlyNotifier(&notifier);
-      return result;
-    }
+    notifier->threadData[id].isReadOnly = isReadOnly;
   }
 
   *notifierPtr = notifier;
@@ -168,9 +167,8 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr)
 
   for (ThreadCount id = 0; id < notifier->threadConfig->baseThreadCount;
        id++) {
-    ThreadData *threadData = &notifier->threadData[id];
-    destroyEnqueueable(&threadData->completion);
-    ReadOnlyListener *listener = threadData->listeners;
+    ThreadData       *threadData = &notifier->threadData[id];
+    ReadOnlyListener *listener   = threadData->listeners;
     while (listener != NULL) {
       ReadOnlyListener *toFree = listener;
       listener = listener->next;
@@ -184,35 +182,18 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr)
 }
 
 /**
- * Check whether a thread is entering read-only mode. If so, wait until it
- * isn't. If not, go on to the next thread. If it is the last thread, notify
- * the parent that no threads are entering read-only mode. This callback is
- * registered in waitUntilNotEnteringReadOnlyMode() and also called from
- * finishEnteringReadOnlyMode().
+ * Check that a function was called on the admin thread.
  *
- * @param completion  The wait completion
+ * @param notifier  The notifier
+ * @param caller    The name of the function (for logging)
  **/
-static void waitUntilThreadNotEnteringReadOnlyMode(VDOCompletion *completion)
+static void assertOnAdminThread(ReadOnlyNotifier *notifier, const char *caller)
 {
-  ReadOnlyNotifier *notifier   = asNotifier(completion);
-  ThreadID          threadID   = completion->callbackThreadID;
-  ThreadData       *threadData = &notifier->threadData[threadID];
-
-  if (threadData->isEnteringReadOnlyMode) {
-    threadData->superBlockIdleWaiter = completion;
-    return;
-  }
-
-  threadData->mayEnterReadOnlyMode = false;
-  if (++threadID == notifier->threadConfig->baseThreadCount) {
-    VDOCompletion *parent = completion->parent;
-    completion->parent    = NULL;
-    completeCompletion(parent);
-    return;
-  }
-
-  launchCallback(completion, waitUntilThreadNotEnteringReadOnlyMode, threadID);
+  ThreadID threadID = getCallbackThreadID();
+  ASSERT_LOG_ONLY((getAdminThread(notifier->threadConfig) == threadID),
+                  "%s called on admin thread", caller);
 }
+
 
 /**********************************************************************/
 void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
@@ -223,17 +204,31 @@ void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
     return;
   }
 
-  if (notifier->completion.parent != NULL) {
+  assertOnAdminThread(notifier, __func__);
+  if (notifier->waiter != NULL) {
     finishCompletion(parent, VDO_COMPONENT_BUSY);
     return;
   }
 
-  ThreadID adminThreadID = getAdminThread(notifier->threadConfig);
-  ASSERT_LOG_ONLY((getCallbackThreadID() == adminThreadID),
-                  "waitUntilNotEnteringReadOnlyMode() called on admin thread");
-  launchCallbackWithParent(&notifier->completion,
-                           waitUntilThreadNotEnteringReadOnlyMode,
-                           adminThreadID, parent);
+  uint32_t state = atomicLoad32(&notifier->state);
+  if ((state == MAY_NOT_NOTIFY) || (state == NOTIFIED)) {
+    // Notifications are already done or disallowed.
+    completeCompletion(parent);
+    return;
+  }
+
+  if (compareAndSwap32(&notifier->state, MAY_NOTIFY, MAY_NOT_NOTIFY)) {
+    // A notification was not in progress, and now they are disallowed.
+    completeCompletion(parent);
+    return;
+  }
+
+  /*
+   * A notification is in progress, so wait for it to finish. There is no race
+   * here since the notification can't finish while the admin thread is in this
+   * method.
+   */
+  notifier->waiter = parent;
 }
 
 /**
@@ -243,13 +238,14 @@ void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
  **/
 static void finishEnteringReadOnlyMode(VDOCompletion *completion)
 {
-  ThreadData *threadData = asThreadData(completion);
-  threadData->isEnteringReadOnlyMode = false;
+  ReadOnlyNotifier *notifier = asNotifier(completion);
+  assertOnAdminThread(notifier, __func__);
+  atomicStore32(&notifier->state, NOTIFIED);
 
-  VDOCompletion *waiter = threadData->superBlockIdleWaiter;
+  VDOCompletion *waiter = notifier->waiter;
   if (waiter != NULL) {
-    threadData->superBlockIdleWaiter = NULL;
-    waitUntilThreadNotEnteringReadOnlyMode(waiter);
+    notifier->waiter = NULL;
+    finishCompletion(waiter, completion->result);
   }
 }
 
@@ -261,13 +257,18 @@ static void finishEnteringReadOnlyMode(VDOCompletion *completion)
 static void makeThreadReadOnly(VDOCompletion *completion)
 {
   ThreadID          threadID   = completion->callbackThreadID;
-  ReadOnlyNotifier *notifier   = asThreadData(completion)->notifier;
-  ThreadData       *threadData = &notifier->threadData[threadID];
+  ReadOnlyNotifier *notifier   = asNotifier(completion);
   ReadOnlyListener *listener   = completion->parent;
   if (listener == NULL) {
     // This is the first call on this thread
+    ThreadData *threadData = &notifier->threadData[threadID];
     threadData->isReadOnly = true;
-    listener = threadData->listeners;
+    listener               = threadData->listeners;
+    if (threadID == 0) {
+      // Note: This message must be recognizable by Permabit::VDODeviceBase.
+      logErrorWithStringError((int) atomicLoad32(&notifier->readOnlyError),
+                              "Unrecoverable error, entering read-only mode");
+    }
   } else {
     // We've just finished notifying a listener
     listener = listener->next;
@@ -295,32 +296,41 @@ static void makeThreadReadOnly(VDOCompletion *completion)
   invokeCallback(completion);
 }
 
-/**
- * Start a read-only notification if one has not already been done.
- *
- * @param completion      The read-only mode completion
- **/
-static void startNotification(VDOCompletion *completion)
+/**********************************************************************/
+void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier, VDOCompletion *parent)
 {
-  ThreadData       *threadData    = asThreadData(completion);
-  ReadOnlyNotifier *notifier      = threadData->notifier;
-  ThreadID          adminThreadID = getAdminThread(notifier->threadConfig);
-  ASSERT_LOG_ONLY((getCallbackThreadID() == adminThreadID),
-                  "startNotification() called on admin thread");
-
-  if (notifier->isReadOnly) {
-    // We've already entered read-only mode.
-    launchCallback(completion, finishEnteringReadOnlyMode,
-                   threadData->threadID);
+  assertOnAdminThread(notifier, __func__);
+  if (notifier->waiter != NULL) {
+    finishCompletion(parent, VDO_COMPONENT_BUSY);
     return;
   }
 
-  notifier->isReadOnly = true;
+   if (!compareAndSwap32(&notifier->state, MAY_NOT_NOTIFY, MAY_NOTIFY)) {
+    // Notifications were already allowed or complete
+    completeCompletion(parent);
+    return;
+  }
 
-  // Note: This message must be recognizable by Permabit::VDODeviceBase.
-  logErrorWithStringError(threadData->readOnlyError,
-                          "Unrecoverable error, entering read-only mode");
-  makeThreadReadOnly(completion);
+  if ((int) atomicLoad32(&notifier->readOnlyError) == VDO_SUCCESS) {
+    // We're done
+    completeCompletion(parent);
+    return;
+  }
+
+  // There may have been a pending notification
+  if (!compareAndSwap32(&notifier->state, MAY_NOTIFY, NOTIFYING)) {
+    /*
+     * There wasn't, the error check raced with a thread calling
+     * enterReadOnlyMode() after we set the state to MAY_NOTIFY. It has already
+     * started the notification.
+     */
+    completeCompletion(parent);
+    return;
+  }
+
+  // Do the pending notification.
+  notifier->waiter = parent;
+  makeThreadReadOnly(&notifier->completion);
 }
 
 /**********************************************************************/
@@ -328,18 +338,23 @@ void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode)
 {
   ThreadData *threadData = &notifier->threadData[getCallbackThreadID()];
   if (threadData->isReadOnly) {
+    // This thread has already gone read-only.
     return;
   }
 
+  // Record for this thread that the VDO is read-only.
   threadData->isReadOnly = true;
-  if (threadData->mayEnterReadOnlyMode == false) {
+
+  if (!compareAndSwap32(&notifier->readOnlyError, (uint32_t) VDO_SUCCESS,
+                        (uint32_t) errorCode)) {
+    // The notifier is already aware of a read-only error
     return;
   }
 
-  threadData->isEnteringReadOnlyMode = true;
-  threadData->readOnlyError          = errorCode;
-  launchCallback(&threadData->completion, startNotification,
-                 getAdminThread(notifier->threadConfig));
+  if (compareAndSwap32(&notifier->state, MAY_NOTIFY, NOTIFYING)) {
+    // Initiate a notification starting on the lowest numbered thread.
+    launchCallback(&notifier->completion, makeThreadReadOnly, 0);
+  }
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#4 $
  */
 
 #include "completion.h"
@@ -61,7 +61,6 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "VDO_EXTENT_COMPLETION",
   "VDO_PAGE_COMPLETION",
   "VIO_COMPLETION",
-  "WAIT_FOR_READ_ONLY_MODE_COMPLETION",
   "WRAPPING_COMPLETION",
 };
 

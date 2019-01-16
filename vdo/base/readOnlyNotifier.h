@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#2 $
  */
 
 /*
@@ -68,7 +68,8 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr);
 
 /**
  * Wait until no read-only notifications are in progress and prevent any
- * subsequent notifications.
+ * subsequent notifications. Notifications may be re-enabled by calling
+ * allowReadOnlyModeEntry().
  *
  * @param notifier  The read-only notifier on which to wait
  * @param parent    The completion to notify when no threads are entering
@@ -76,6 +77,22 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr);
  **/
 void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
                                       VDOCompletion    *parent);
+
+/**
+ * Allow the notifier to put the VDO into read-only mode, reversing the effects
+ * of waitUntilNotEnteringReadOnlyMode(). If some thread tried to put the VDO
+ * into read-only mode while notifications were disallowed, it will be done
+ * when this method is called. If that happens, the parent will not be notified
+ * until the VDO has actually entered read-only mode and attempted to save the
+ * super block.
+ *
+ * <p>This method may only be called from the admin thread.
+ *
+ * @param notifier  The notifier
+ * @param parent    The object to notify once the operation is complete
+ **/
+void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier,
+                            VDOCompletion    *parent);
 
 /**
  * Put a VDO into read-only mode and save the read-only state in the super
