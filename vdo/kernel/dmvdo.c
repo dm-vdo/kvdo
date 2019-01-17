@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#11 $
  */
 
 #include "dmvdo.h"
@@ -364,7 +364,7 @@ static int processVDOMessage(KernelLayer   *layer,
 
   // Dump messages should always be processed
   if (strcasecmp(argv[0], "dump") == 0) {
-    return vdoDump(layer, argc, argv, "dmsetup message");
+    return vdo_dump(layer, argc, argv, "dmsetup message");
   }
 
   if (argc == 1) {
@@ -674,7 +674,7 @@ static void vdoDtr(struct dm_target *ti)
     logInfo("stopping device '%s'", config->poolName);
 
     if (layer->dumpOnShutdown) {
-      vdoDumpAll(layer, "device shutdown");
+      vdo_dump_all(layer, "device shutdown");
     }
 
     freeKernelLayer(layer);

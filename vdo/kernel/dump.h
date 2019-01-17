@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#2 $
  */
 
 #ifndef DUMP_H
@@ -33,7 +33,7 @@
  * @param argv    The argument list
  * @param why     Reason for doing the dump
  **/
-int vdoDump(KernelLayer  *layer,
+int vdo_dump(KernelLayer  *layer,
             unsigned int  argc,
             char * const *argv,
             const char   *why);
@@ -46,6 +46,6 @@ int vdoDump(KernelLayer  *layer,
  * @param layer   The kernel layer
  * @param why     Reason for doing the dump
  **/
-void vdoDumpAll(KernelLayer *layer, const char *why);
+void vdo_dump_all(KernelLayer *layer, const char *why);
 
 #endif // DUMP_H

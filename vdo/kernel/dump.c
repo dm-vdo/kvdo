@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#3 $
  */
 
 #include "dump.h"
@@ -50,7 +50,7 @@ enum dumpOptions {
   SKIP_DEFAULT
 };
 
-enum dumpOptionFlags {
+enum dump_option_flags {
   // WorkQueues
   FLAG_SHOW_ALBIREO_QUEUE = (1 << SHOW_ALBIREO_QUEUE),
   FLAG_SHOW_BIO_ACK_QUEUE = (1 << SHOW_BIO_ACK_QUEUE),
@@ -77,16 +77,16 @@ enum {
 };
 
 /**********************************************************************/
-static inline bool isArgString(const char *arg, const char *thisOption)
+static inline bool is_arg_string(const char *arg, const char *thisOption)
 {
   // device-mapper convention seems to be case-independent options
   return strncasecmp(arg, thisOption, strlen(thisOption)) == 0;
 }
 
 /**********************************************************************/
-static void doDump(KernelLayer  *layer,
-                   unsigned int  dumpOptionsRequested,
-                   const char   *why)
+static void do_dump(KernelLayer  *layer,
+                    unsigned int  dump_options_requested,
+                    const char   *why)
 {
   logInfo("%s dump triggered via %s", THIS_MODULE->name, why);
   // XXX Add in number of outstanding requests being processed by vdo
@@ -97,24 +97,24 @@ static void doDump(KernelLayer  *layer,
   logInfo("%" PRIu32 " device requests outstanding (max %" PRIu32 "), "
           "%" PRId64 " bio requests outstanding, poolName '%s'",
           active, maximum, outstanding, layer->deviceConfig->poolName);
-  if ((dumpOptionsRequested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
+  if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
     dumpKVDOWorkQueue(&layer->kvdo);
   }
-  if ((dumpOptionsRequested & FLAG_SHOW_BIO_QUEUE) != 0) {
+  if ((dump_options_requested & FLAG_SHOW_BIO_QUEUE) != 0) {
     dumpBioWorkQueue(layer->ioSubmitter);
   }
   if (useBioAckQueue(layer)
-      && ((dumpOptionsRequested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
+      && ((dump_options_requested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
     dumpWorkQueue(layer->bioAckQueue);
   }
-  if ((dumpOptionsRequested & FLAG_SHOW_CPU_QUEUES) != 0) {
+  if ((dump_options_requested & FLAG_SHOW_CPU_QUEUES) != 0) {
     dumpWorkQueue(layer->cpuQueue);
   }
   dumpDedupeIndex(layer->dedupeIndex,
-                  (dumpOptionsRequested & FLAG_SHOW_ALBIREO_QUEUE) != 0);
+                  (dump_options_requested & FLAG_SHOW_ALBIREO_QUEUE) != 0);
   dump_buffer_pool(layer->dataKVIOPool,
-                   (dumpOptionsRequested & FLAG_SHOW_VIO_POOL) != 0);
-  if ((dumpOptionsRequested & FLAG_SHOW_VDO_STATUS) != 0) {
+                   (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
+  if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
     // Options should become more fine-grained when we have more to
     // display here.
     dumpKVDOStatus(&layer->kvdo);
@@ -124,16 +124,16 @@ static void doDump(KernelLayer  *layer,
 }
 
 /**********************************************************************/
-static int parseDumpOptions(unsigned int  argc,
-                            char * const *argv,
-                            unsigned int *dumpOptionsRequestedPtr)
+static int parse_dump_options(unsigned int  argc,
+                              char * const *argv,
+                              unsigned int *dump_options_requested_ptr)
 {
-  unsigned int dumpOptionsRequested = 0;
+  unsigned int dump_options_requested = 0;
 
   static const struct {
     const char   *name;
     unsigned int  flags;
-  } optionNames[] = {
+  } option_names[] = {
     // Should "albireo" mean sending queue + receiving thread + outstanding?
     { "dedupe",      FLAG_SKIP_DEFAULT | FLAG_SHOW_ALBIREO_QUEUE },
     { "dedupeq",     FLAG_SKIP_DEFAULT | FLAG_SHOW_ALBIREO_QUEUE },
@@ -160,47 +160,47 @@ static int parseDumpOptions(unsigned int  argc,
     { "all",      ~0 },
   };
 
-  bool optionsOkay = true;
+  bool options_okay = true;
   for (int i = 1; i < argc; i++) {
     int j;
-    for (j = 0; j < COUNT_OF(optionNames); j++) {
-      if (isArgString(argv[i], optionNames[j].name)) {
-        dumpOptionsRequested |= optionNames[j].flags;
+    for (j = 0; j < COUNT_OF(option_names); j++) {
+      if (is_arg_string(argv[i], option_names[j].name)) {
+        dump_options_requested |= option_names[j].flags;
         break;
       }
     }
-    if (j == COUNT_OF(optionNames)) {
+    if (j == COUNT_OF(option_names)) {
       logWarning("dump option name '%s' unknown", argv[i]);
-      optionsOkay = false;
+      options_okay = false;
     }
   }
-  if (!optionsOkay) {
+  if (!options_okay) {
     return -EINVAL;
   }
-  if ((dumpOptionsRequested & FLAG_SKIP_DEFAULT) == 0) {
-    dumpOptionsRequested |= DEFAULT_DUMP_FLAGS;
+  if ((dump_options_requested & FLAG_SKIP_DEFAULT) == 0) {
+    dump_options_requested |= DEFAULT_DUMP_FLAGS;
   }
-  *dumpOptionsRequestedPtr = dumpOptionsRequested;
+  *dump_options_requested_ptr = dump_options_requested;
   return 0;
 }
 
 /**********************************************************************/
-int vdoDump(KernelLayer  *layer,
-            unsigned int  argc,
-            char * const *argv,
-            const char   *why)
+int vdo_dump(KernelLayer  *layer,
+             unsigned int  argc,
+             char * const *argv,
+             const char   *why)
 {
-  unsigned int dumpOptionsRequested = 0;
-  int result = parseDumpOptions(argc, argv, &dumpOptionsRequested);
+  unsigned int dump_options_requested = 0;
+  int result = parse_dump_options(argc, argv, &dump_options_requested);
   if (result != 0) {
     return result;
   }
-  doDump(layer, dumpOptionsRequested, why);
+  do_dump(layer, dump_options_requested, why);
   return 0;
 }
 
 /**********************************************************************/
-void vdoDumpAll(KernelLayer *layer, const char *why)
+void vdo_dump_all(KernelLayer *layer, const char *why)
 {
-  doDump(layer, ~0, why);
+  do_dump(layer, ~0, why);
 }
