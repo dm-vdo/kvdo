@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.h#2 $
  */
 
 #ifndef ERRORS_H
@@ -77,15 +77,15 @@ enum udsInternalErrorCodes {
 };
 
 enum {
-  ERRBUF_SIZE = 128 // default size for buffer passed to stringError
+  ERRBUF_SIZE = 128 // default size for buffer passed to string_error
 };
 
-const char *stringError(int errnum, char *buf, size_t buflen);
-const char *stringErrorName(int errnum, char *buf, size_t buflen);
+const char *string_error(int errnum, char *buf, size_t buflen);
+const char *string_error_name(int errnum, char *buf, size_t buflen);
 
-int makeUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-bool isUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-int sansUnrecoverable(int resultCode) __attribute__((warn_unused_result));
+int make_unrecoverable(int resultCode) __attribute__((warn_unused_result));
+bool is_unrecoverable(int resultCode) __attribute__((warn_unused_result));
+int sans_unrecoverable(int resultCode) __attribute__((warn_unused_result));
 
 typedef struct errorInfo {
   const char *name;
@@ -98,27 +98,27 @@ typedef struct errorInfo {
  * @note Must be called once, before any of the other routines in this
  * file.
  **/
-void initializeStandardErrorBlocks(void);
+void initialize_standard_error_blocks(void);
 
 /**
- * Register an error code block for stringError and stringErrorName.
+ * Register an error code block for string_error and string_error_name.
  *
- * @param blockName         the name of the block of error codes
- * @param firstError        the first error code in the block
- * @param lastReservedError one past the highest possible error in the block
- * @param infos             a pointer to the error info array for the block
- * @param infoSize          the size of the error info array, which determines
- *                          the last actual error for which information is
- *                          available
+ * @param block_name          the name of the block of error codes
+ * @param first_error         the first error code in the block
+ * @param last_reserved_error one past the highest possible error in the block
+ * @param infos               a pointer to the error info array for the block
+ * @param info_size           the size of the error info array, which
+ *                            determines the last actual error for which
+ *                            information is available
  *
  * @return a success or error code, particularly UDS_DUPLICATE_NAME if the
  *         block name is already present, or UDS_ALREADY_REGISTERED if a
  *         block with the specified error code is present
  **/
-int registerErrorBlock(const char      *blockName,
-                       int              firstError,
-                       int              lastReservedError,
-                       const ErrorInfo *infos,
-                       size_t           infoSize);
+int register_error_block(const char      *block_name,
+                         int              first_error,
+                         int              last_reserved_error,
+                         const ErrorInfo *infos,
+                         size_t           info_size);
 
 #endif /* ERRORS_H */

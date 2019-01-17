@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#27 $
  */
 
 #include "kernelLayer.h"
@@ -109,7 +109,7 @@ int mapToSystemError(int error)
   }
   // VDO or UDS error
   char errorName[80], errorMessage[ERRBUF_SIZE];
-  switch (sansUnrecoverable(error)) {
+  switch (sans_unrecoverable(error)) {
   case VDO_NO_SPACE:
     return -ENOSPC;
   case VDO_READ_ONLY:
@@ -117,8 +117,8 @@ int mapToSystemError(int error)
   default:
     logInfo("%s: mapping internal status code %d (%s: %s) to EIO",
             __func__, error,
-            stringErrorName(error, errorName, sizeof(errorName)),
-            stringError(error, errorMessage, sizeof(errorMessage)));
+            string_error_name(error, errorName, sizeof(errorName)),
+            string_error(error, errorMessage, sizeof(errorMessage)));
     return -EIO;
   }
 }
@@ -1040,8 +1040,8 @@ int stopKernelLayer(KernelLayer *layer)
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
     logError("%s: Close device failed %d (%s: %s)",
              __func__, result,
-             stringErrorName(result, errorName, sizeof(errorName)),
-             stringError(result, errorMessage, sizeof(errorMessage)));
+             string_error_name(result, errorName, sizeof(errorName)),
+             string_error(result, errorMessage, sizeof(errorMessage)));
   }
 
   switch (getKernelLayerState(layer)) {

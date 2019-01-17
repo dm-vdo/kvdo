@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#3 $
  */
 
 #include "logger.h"
@@ -398,7 +398,7 @@ int vLogWithStringError(int         priority,
 {
   char errbuf[ERRBUF_SIZE] = "";
   logEmbeddedMessage(priority, NULL, format, args, ": %s (%d)",
-                     stringError(errnum, errbuf, sizeof(errbuf)),
+                     string_error(errnum, errbuf, sizeof(errbuf)),
                      errnum);
   return errnum;
 }
@@ -498,7 +498,7 @@ int logUnrecoverable(int errnum, const char *format, ...)
   va_start(args, format);
   vLogWithStringError(LOG_CRIT, errnum, format, args);
   va_end(args);
-  return makeUnrecoverable(errnum);
+  return make_unrecoverable(errnum);
 }
 
 /**********************************************************************/

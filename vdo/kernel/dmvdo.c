@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#12 $
  */
 
 #include "dmvdo.h"
@@ -811,7 +811,7 @@ static int __init vdoInit(void)
   int result = 0;
 
   initializeThreadDeviceRegistry();
-  initializeStandardErrorBlocks();
+  initialize_standard_error_blocks();
   initialize_device_registry_once();
   logInfo("loaded version %s", CURRENT_VERSION);
 
