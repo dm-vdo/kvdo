@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#29 $
  */
 
 #include "kernelLayer.h"
@@ -955,7 +955,7 @@ void freeKernelLayer(KernelLayer *layer)
   freeDedupeIndex(&layer->dedupeIndex);
 
   if (releaseInstance) {
-    releaseKVDOInstance(layer->instance);
+    release_kvdo_instance(layer->instance);
   }
 
   // The call to kobject_put on the kobj sysfs node will decrement its

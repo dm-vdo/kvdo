@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#2 $
  */
 
 #include "instanceNumber.h"
@@ -49,24 +49,25 @@ enum {
   BIT_COUNT_INCREMENT = 100,
 };
 
-static struct mutex   instanceNumberLock;
-static unsigned int   bitCount;
+static struct mutex   instance_number_lock;
+static unsigned int   bit_count;
 static unsigned long *words;
-static unsigned int   instanceCount;
-static unsigned int   nextInstance;
+static unsigned int   instance_count;
+static unsigned int   next_instance;
 
 /**
  * Return the number of bytes needed to store a bit array of the specified
  * capacity in an array of unsigned longs.
  *
- * @param bitCount  The number of bits the array must hold
+ * @param bit_count  The number of bits the array must hold
  *
  * @return the number of bytes needed for the array reperesentation
  **/
-static size_t getBitArraySize(unsigned int bitCount)
+static size_t get_bit_array_size(unsigned int bit_count)
 {
   // Round up to a multiple of the word size and convert to a byte count.
-  return (computeBucketCount(bitCount, BITS_PER_LONG) * sizeof(unsigned long));
+  return (computeBucketCount(bit_count, BITS_PER_LONG)
+          * sizeof(unsigned long));
 }
 
 /**
@@ -76,31 +77,31 @@ static size_t getBitArraySize(unsigned int bitCount)
  *
  * @return UDS_SUCCESS or an error code from the allocation
  **/
-static int growBitArray(void)
+static int grow_bit_array(void)
 {
-  unsigned int newCount = maxUInt(bitCount + BIT_COUNT_INCREMENT,
-                                  BIT_COUNT_MINIMUM);
-  unsigned long *newWords;
+  unsigned int new_count = maxUInt(bit_count + BIT_COUNT_INCREMENT,
+                                   BIT_COUNT_MINIMUM);
+  unsigned long *new_words;
   int result = reallocateMemory(words,
-                                getBitArraySize(bitCount),
-                                getBitArraySize(newCount),
+                                get_bit_array_size(bit_count),
+                                get_bit_array_size(new_count),
                                 "instance number bit array",
-                                &newWords);
+                                &new_words);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  bitCount = newCount;
-  words    = newWords;
+  bit_count = new_count;
+  words     = new_words;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int allocateKVDOInstanceLocked(unsigned int *instancePtr)
+static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 {
   // If there are no unallocated instances, grow the bit array.
-  if (instanceCount >= bitCount) {
-    int result = growBitArray();
+  if (instance_count >= bit_count) {
+    int result = grow_bit_array();
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -108,64 +109,64 @@ static int allocateKVDOInstanceLocked(unsigned int *instancePtr)
 
   // There must be a zero bit somewhere now. Find it, starting just after the
   // last instance allocated.
-  unsigned int instance = find_next_zero_bit(words, bitCount, nextInstance);
-  if (instance >= bitCount) {
-    // Nothing free after nextInstance, so wrap around to instance zero.
-    instance = find_first_zero_bit(words, bitCount);
-    int result = ASSERT(instance < bitCount, "impossibly, no zero bit found");
+  unsigned int instance = find_next_zero_bit(words, bit_count, next_instance);
+  if (instance >= bit_count) {
+    // Nothing free after next_instance, so wrap around to instance zero.
+    instance = find_first_zero_bit(words, bit_count);
+    int result = ASSERT(instance < bit_count, "impossibly, no zero bit found");
     if (result != UDS_SUCCESS) {
       return result;
     }
   }
 
   __set_bit(instance, words);
-  instanceCount += 1;
-  nextInstance = instance + 1;
-  *instancePtr = instance;
+  instance_count += 1;
+  next_instance = instance + 1;
+  *instance_ptr = instance;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int allocateKVDOInstance(unsigned int *instancePtr)
+int allocate_kvdo_instance(unsigned int *instance_ptr)
 {
-  mutex_lock(&instanceNumberLock);
-  int result = allocateKVDOInstanceLocked(instancePtr);
-  mutex_unlock(&instanceNumberLock);
+  mutex_lock(&instance_number_lock);
+  int result = allocate_kvdo_instance_locked(instance_ptr);
+  mutex_unlock(&instance_number_lock);
   return result;
 }
 
 /**********************************************************************/
-void releaseKVDOInstance(unsigned int instance)
+void release_kvdo_instance(unsigned int instance)
 {
-  mutex_lock(&instanceNumberLock);
-  if (instance >= bitCount) {
+  mutex_lock(&instance_number_lock);
+  if (instance >= bit_count) {
     ASSERT_LOG_ONLY(false, "instance number %u must be less than bit count %u",
-                    instance, bitCount);
+                    instance, bit_count);
   } else if (test_bit(instance, words) == 0) {
     ASSERT_LOG_ONLY(false, "instance number %u must be allocated", instance);
   } else {
     __clear_bit(instance, words);
-    instanceCount -= 1;
+    instance_count -= 1;
   }
-  mutex_unlock(&instanceNumberLock);
+  mutex_unlock(&instance_number_lock);
 }
 
 /**********************************************************************/
-void initializeInstanceNumberTracking(void)
+void initialize_instance_number_tracking(void)
 {
-  mutex_init(&instanceNumberLock);
+  mutex_init(&instance_number_lock);
 }
 
 /**********************************************************************/
-void cleanUpInstanceNumberTracking(void)
+void clean_up_instance_number_tracking(void)
 {
-  ASSERT_LOG_ONLY(instanceCount == 0,
+  ASSERT_LOG_ONLY(instance_count == 0,
                   "should have no instance numbers still in use, but have %u",
-                  instanceCount);
+                  instance_count);
   FREE(words);
   words = NULL;
-  bitCount = 0;
-  instanceCount = 0;
-  nextInstance = 0;
-  mutex_destroy(&instanceNumberLock);
+  bit_count = 0;
+  instance_count = 0;
+  next_instance = 0;
+  mutex_destroy(&instance_number_lock);
 }

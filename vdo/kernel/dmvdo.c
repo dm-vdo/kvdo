@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#13 $
  */
 
 #include "dmvdo.h"
@@ -488,7 +488,7 @@ static void cleanupInitialize(struct dm_target *ti,
     freeKernelLayer(layer);
   } else {
     // With no KernelLayer taking ownership we have to release explicitly.
-    releaseKVDOInstance(instance);
+    release_kvdo_instance(instance);
   }
 
   ti->error = why;
@@ -595,7 +595,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   KernelLayer *oldLayer = get_layer_by_name(poolName);
   unsigned int instance;
   if (oldLayer == NULL) {
-    result = allocateKVDOInstance(&instance);
+    result = allocate_kvdo_instance(&instance);
     if (result != VDO_SUCCESS) {
       unregisterAllocatingThread();
       return -ENOMEM;
@@ -614,7 +614,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
     if (oldLayer == NULL) {
-      releaseKVDOInstance(instance);
+      release_kvdo_instance(instance);
     }
     return -EINVAL;
   }
@@ -800,7 +800,7 @@ static void vdoDestroy(void)
     dm_unregister_target(&vdoTargetBio);
   }
 
-  cleanUpInstanceNumberTracking();
+  clean_up_instance_number_tracking();
 
   logInfo("unloaded version %s", CURRENT_VERSION);
 }
@@ -838,7 +838,7 @@ static int __init vdoInit(void)
 
   initWorkQueueOnce();
   initializeTraceLoggingOnce();
-  initializeInstanceNumberTracking();
+  initialize_instance_number_tracking();
 
   kvdoGlobals.status = READY;
   return result;

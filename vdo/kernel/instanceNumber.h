@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.h#2 $
  */
 
 /**
@@ -26,21 +26,21 @@
  *
  * @result  UDS_SUCCESS or an error code
  **/
-int allocateKVDOInstance(unsigned int *instancePtr);
+int allocate_kvdo_instance(unsigned int *instancePtr);
 
 /**
  * Release an instance number previously allocated.
  *
  * @param instance  The instance number to release
  **/
-void releaseKVDOInstance(unsigned int instance);
+void release_kvdo_instance(unsigned int instance);
 
 /**
  * Initialize the instance-number tracking data structures.
  **/
-void initializeInstanceNumberTracking(void);
+void initialize_instance_number_tracking(void);
 
 /**
  * Free up the instance-number tracking data structures.
  **/
-void cleanUpInstanceNumberTracking(void);
+void clean_up_instance_number_tracking(void);
