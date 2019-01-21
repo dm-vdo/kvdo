@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#28 $
  */
 
 #include "kernelLayer.h"

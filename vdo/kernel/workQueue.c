@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#4 $
  */
 
 #include "workQueue.h"
@@ -432,8 +432,8 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
     schedule_timeout(timeoutInterval);
     queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
     uint64_t callDurationNS = queue->mostRecentWakeup - timeBeforeSchedule;
-    enterHistogramSample(queue->stats.scheduleTimeHistogram,
-                         callDurationNS / 1000);
+    enter_histogram_sample(queue->stats.scheduleTimeHistogram,
+                           callDurationNS / 1000);
 
     /*
      * Check again before resetting firstWakeup for more accurate
@@ -457,10 +457,10 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
      */
     loadFence();
     if (firstWakeup != 0) {
-      enterHistogramSample(queue->stats.wakeupLatencyHistogram,
-                           (currentTime(CT_MONOTONIC) - firstWakeup) / 1000);
-      enterHistogramSample(queue->stats.wakeupQueueLengthHistogram,
-                           getPendingCount(queue));
+      enter_histogram_sample(queue->stats.wakeupLatencyHistogram,
+                             (currentTime(CT_MONOTONIC) - firstWakeup) / 1000);
+      enter_histogram_sample(queue->stats.wakeupQueueLengthHistogram,
+                             getPendingCount(queue));
     }
   }
   finish_wait(&queue->waitingWorkerThreads, &wait);
@@ -533,15 +533,15 @@ static void processWorkItem(SimpleWorkQueue *queue,
     cond_resched();
     uint64_t timeAfterReschedule = currentTime(CT_MONOTONIC);
 
-    enterHistogramSample(queue->stats.rescheduleQueueLengthHistogram,
-                         queueLen);
+    enter_histogram_sample(queue->stats.rescheduleQueueLengthHistogram,
+                           queueLen);
     uint64_t runTimeNS = timeBeforeReschedule - queue->mostRecentWakeup;
-    enterHistogramSample(queue->stats.runTimeBeforeRescheduleHistogram,
-                         runTimeNS / 1000);
+    enter_histogram_sample(queue->stats.runTimeBeforeRescheduleHistogram,
+                           runTimeNS / 1000);
     atomic64_add(runTimeNS, &queue->stats.runTime);
     uint64_t callTimeNS = timeAfterReschedule - timeBeforeReschedule;
-    enterHistogramSample(queue->stats.rescheduleTimeHistogram,
-                         callTimeNS / 1000);
+    enter_histogram_sample(queue->stats.rescheduleTimeHistogram,
+                           callTimeNS / 1000);
     atomic64_add(callTimeNS, &queue->stats.rescheduleTime);
     queue->mostRecentWakeup = timeAfterReschedule;
   }

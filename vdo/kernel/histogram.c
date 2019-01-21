@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#3 $
  */
 
 #include <linux/kobject.h>
@@ -61,29 +61,30 @@ enum {
  * than one), but as the x86-64 platforms we've encountered appear to use 1 or
  * 4 milliseconds per jiffy, we don't support non-integer values yet.
  *
- * All internal processing uses the values as passed to enterHistogramSample.
+ * All internal processing uses the values as passed to enter_histogram_sample.
  * Conversions only affect the values seen or input through the /sys interface,
  * including possibly rounding a "limit" value entered.
  */
 
 struct histogram {
-  // These fields are ordered so that enterHistogramSample touches
+  // These fields are ordered so that enter_histogram_sample touches
   // only the first cache line.
-  atomic64_t     *counters;     // Counter for each bucket
-  uint64_t        limit;        // We want to know how many samples are larger
-  atomic64_t      sum;          // Sum of all the samples
-  atomic64_t      count;        // Number of samples
-  atomic64_t      minimum;      // Minimum value
-  atomic64_t      maximum;      // Maximum value
-  atomic64_t      unacceptable; // Number of samples that exceed the limit
-  int             numBuckets;   // The number of buckets
-  bool            logFlag;      // True if the y scale should be logarithmic
+  atomic64_t     *counters;       // Counter for each bucket
+  uint64_t        limit;          // We want to know how many samples are
+                                  //   larger
+  atomic64_t      sum;            // Sum of all the samples
+  atomic64_t      count;          // Number of samples
+  atomic64_t      minimum;        // Minimum value
+  atomic64_t      maximum;        // Maximum value
+  atomic64_t      unacceptable;   // Number of samples that exceed the limit
+  int             num_buckets;    // The number of buckets
+  bool            log_flag;       // True if the y scale should be logarithmic
   // These fields are used only when reporting results.
-  const char     *label;        // Histogram label
-  const char     *countedItems; // Name for things being counted
-  const char     *metric;       // Term for value used to divide into buckets
-  const char     *sampleUnits;  // Unit for measuring metric; NULL for count
-  unsigned int    conversionFactor; // Converts input units to reporting units
+  const char     *label;          // Histogram label
+  const char     *counted_items;  // Name for things being counted
+  const char     *metric;         // Term for value used to divide into buckets
+  const char     *sample_units;   // Unit for measuring metric; NULL for count
+  unsigned int    conversion_factor; // Converts input units to reporting units
   struct kobject  kobj;
 };
 
@@ -92,7 +93,7 @@ struct histogram {
  * histogram.  We arbitrarily limit the histogram to 12 orders of magnitude.
  */
 enum { MAX_LOG_SIZE = 12 };
-static const uint64_t bottomValue[1 + 10 * MAX_LOG_SIZE] = {
+static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
   // 0 to 10 - The first 10 buckets are linear
   0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
   // 10 to 100 - From this point on, the Nth entry of the table is
@@ -128,16 +129,17 @@ static const uint64_t bottomValue[1 + 10 * MAX_LOG_SIZE] = {
 };
 
 /***********************************************************************/
-static unsigned int divideRoundingToNearest(uint64_t number, uint64_t divisor)
+static unsigned int divide_rounding_to_nearest(uint64_t number,
+                                               uint64_t divisor)
 {
   number += divisor / 2;
   return number / divisor;
 }
 
 /***********************************************************************/
-static int maxBucket(Histogram *h)
+static int max_bucket(Histogram *h)
 {
-  int max = h->numBuckets;
+  int max = h->num_buckets;
   while ((max >= 0) && (atomic64_read(&h->counters[max]) == 0)) {
     max--;
   }
@@ -154,7 +156,7 @@ struct histogram_attribute {
 };
 
 /***********************************************************************/
-static void histogramKobjRelease(struct kobject *kobj)
+static void histogram_kobj_release(struct kobject *kobj)
 {
   Histogram *h = container_of(kobj, Histogram, kobj);
   FREE(h->counters);
@@ -162,9 +164,9 @@ static void histogramKobjRelease(struct kobject *kobj)
 }
 
 /***********************************************************************/
-static ssize_t histogramShow(struct kobject   *kobj,
-                             struct attribute *attr,
-                             char             *buf)
+static ssize_t histogram_show(struct kobject   *kobj,
+                              struct attribute *attr,
+                              char             *buf)
 {
   struct histogram_attribute *ha = container_of(attr,
                                                 struct histogram_attribute,
@@ -177,10 +179,10 @@ static ssize_t histogramShow(struct kobject   *kobj,
 }
 
 /***********************************************************************/
-static ssize_t histogramStore(struct kobject   *kobj,
-                              struct attribute *attr,
-                              const char       *buf,
-                              size_t            length)
+static ssize_t histogram_store(struct kobject   *kobj,
+                               struct attribute *attr,
+                               const char       *buf,
+                               size_t            length)
 {
   struct histogram_attribute *ha = container_of(attr,
                                                 struct histogram_attribute,
@@ -193,23 +195,23 @@ static ssize_t histogramStore(struct kobject   *kobj,
 }
 
 /***********************************************************************/
-static ssize_t histogramShowCount(Histogram *h, char *buf)
+static ssize_t histogram_show_count(Histogram *h, char *buf)
 {
   int64_t count = atomic64_read(&h->count);
   return sprintf(buf, "%" PRId64 "\n", count);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowHistogram(Histogram *h, char *buffer)
+static ssize_t histogram_show_histogram(Histogram *h, char *buffer)
 {
   /*
    * We're given one page in which to write. The caller logs a complaint if we
    * report that we've written too much, so we'll truncate to PAGE_SIZE-1.
    */
-  size_t bufferSize = PAGE_SIZE;
+  size_t buffer_size = PAGE_SIZE;
   bool bars = true;
   ssize_t length = 0;
-  int max = maxBucket(h);
+  int max = max_bucket(h);
   // If max is -1, we'll fall through to reporting the total of zero.
 
   enum { BAR_SIZE = 50 };
@@ -223,100 +225,100 @@ static ssize_t histogramShowHistogram(Histogram *h, char *buffer)
     total += atomic64_read(&h->counters[i]);
   }
 
-  length += snprintf(buffer, bufferSize, "%s Histogram - number of %s by %s",
-                     h->label, h->countedItems, h->metric);
-  if (length >= (bufferSize - 1)) {
-    return bufferSize - 1;
+  length += snprintf(buffer, buffer_size, "%s Histogram - number of %s by %s",
+                     h->label, h->counted_items, h->metric);
+  if (length >= (buffer_size - 1)) {
+    return buffer_size - 1;
   }
-  if (h->sampleUnits != NULL) {
-    length += snprintf(buffer + length, bufferSize - length, " (%s)",
-                       h->sampleUnits);
-    if (length >= (bufferSize - 1)) {
-      return bufferSize - 1;
+  if (h->sample_units != NULL) {
+    length += snprintf(buffer + length, buffer_size - length, " (%s)",
+                       h->sample_units);
+    if (length >= (buffer_size - 1)) {
+      return buffer_size - 1;
     }
   }
-  length += snprintf(buffer + length, bufferSize - length, "\n");
-  if (length >= (bufferSize - 1)) {
-    return bufferSize - 1;
+  length += snprintf(buffer + length, buffer_size - length, "\n");
+  if (length >= (buffer_size - 1)) {
+    return buffer_size - 1;
   }
   for (int i = 0; i <= max; i++) {
     uint64_t value = atomic64_read(&h->counters[i]);
 
-    unsigned int barLength;
+    unsigned int bar_length;
     if (bars && (total != 0)) {
       // +1 for the space at the beginning
-      barLength = (divideRoundingToNearest(value * BAR_SIZE, total) + 1);
-      if (barLength == 1) {
+      bar_length = (divide_rounding_to_nearest(value * BAR_SIZE, total) + 1);
+      if (bar_length == 1) {
         // Don't bother printing just the initial space.
-        barLength = 0;
+        bar_length = 0;
       }
     } else {
       // 0 means skip the space and the bar
-      barLength = 0;
+      bar_length = 0;
     }
 
-    if (h->logFlag) {
-      if (i == h->numBuckets) {
-        length += snprintf(buffer + length, bufferSize - length, "%-16s",
+    if (h->log_flag) {
+      if (i == h->num_buckets) {
+        length += snprintf(buffer + length, buffer_size - length, "%-16s",
                            "Bigger");
       } else {
-        unsigned int lower = h->conversionFactor * bottomValue[i];
-        unsigned int upper = h->conversionFactor * bottomValue[i + 1] - 1;
-        length += snprintf(buffer + length, bufferSize - length, "%6u - %7u",
+        unsigned int lower = h->conversion_factor * bottom_value[i];
+        unsigned int upper = h->conversion_factor * bottom_value[i + 1] - 1;
+        length += snprintf(buffer + length, buffer_size - length, "%6u - %7u",
                            lower, upper);
       }
     } else {
-      if (i == h->numBuckets) {
-        length += snprintf(buffer + length, bufferSize - length, "%6s",
+      if (i == h->num_buckets) {
+        length += snprintf(buffer + length, buffer_size - length, "%6s",
                            "Bigger");
       } else {
-        length += snprintf(buffer + length, bufferSize - length, "%6d", i);
+        length += snprintf(buffer + length, buffer_size - length, "%6d", i);
       }
     }
-    if (length >= (bufferSize - 1)) {
-      return bufferSize - 1;
+    if (length >= (buffer_size - 1)) {
+      return buffer_size - 1;
     }
-    length += snprintf(buffer + length, bufferSize - length,
-                       " : %12llu%.*s\n", value, barLength, bar);
-    if (length >= (bufferSize - 1)) {
-      return bufferSize - 1;
+    length += snprintf(buffer + length, buffer_size - length,
+                       " : %12llu%.*s\n", value, bar_length, bar);
+    if (length >= (buffer_size - 1)) {
+      return buffer_size - 1;
     }
   }
 
-  length += snprintf(buffer + length, bufferSize - length,
+  length += snprintf(buffer + length, buffer_size - length,
                      "total %llu\n", total);
-  return minSizeT(bufferSize - 1, length);
+  return minSizeT(buffer_size - 1, length);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowMaximum(Histogram *h, char *buf)
+static ssize_t histogram_show_maximum(Histogram *h, char *buf)
 {
   // Maximum is initialized to 0.
   unsigned long value = atomic64_read(&h->maximum);
-  return sprintf(buf, "%lu\n", h->conversionFactor * value);
+  return sprintf(buf, "%lu\n", h->conversion_factor * value);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowMinimum(Histogram *h, char *buf)
+static ssize_t histogram_show_minimum(Histogram *h, char *buf)
 {
   // Minimum is initialized to -1.
   unsigned long value = ((atomic64_read(&h->count) > 0)
                          ? atomic64_read(&h->minimum)
                          : 0);
-  return sprintf(buf, "%lu\n", h->conversionFactor * value);
+  return sprintf(buf, "%lu\n", h->conversion_factor * value);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowLimit(Histogram *h, char *buf)
+static ssize_t histogram_show_limit(Histogram *h, char *buf)
 {
   // Display the limit in the reporting units
-  return sprintf(buf, "%u\n", (unsigned int)(h->conversionFactor * h->limit));
+  return sprintf(buf, "%u\n", (unsigned int)(h->conversion_factor * h->limit));
 }
 
 /***********************************************************************/
-static ssize_t histogramStoreLimit(Histogram  *h,
-                                   const char *buf,
-                                   size_t      length)
+static ssize_t histogram_store_limit(Histogram  *h,
+                                     const char *buf,
+                                     size_t      length)
 {
   unsigned int value;
   if ((length > 12) || (sscanf(buf, "%u", &value) != 1)) {
@@ -328,46 +330,46 @@ static ssize_t histogramStoreLimit(Histogram  *h,
    *
    * computeBucketCount could also be called "divideRoundingUp".
    */
-  h->limit = computeBucketCount(value, h->conversionFactor);
+  h->limit = computeBucketCount(value, h->conversion_factor);
   atomic64_set(&h->unacceptable, 0);
   return length;
 }
 
 /***********************************************************************/
-static ssize_t histogramShowMean(Histogram *h, char *buf)
+static ssize_t histogram_show_mean(Histogram *h, char *buf)
 {
   uint64_t count = atomic64_read(&h->count);
   if (count == 0) {
     return sprintf(buf, "0/0\n");
   }
   // Compute mean, scaled up by 1000, in reporting units
-  unsigned long sumTimes1000InReportingUnits
-    = h->conversionFactor * atomic64_read(&h->sum) * 1000;
-  unsigned int meanTimes1000
-    = divideRoundingToNearest(sumTimes1000InReportingUnits, count);
+  unsigned long sum_times1000_in_reporting_units
+    = h->conversion_factor * atomic64_read(&h->sum) * 1000;
+  unsigned int mean_times1000
+    = divide_rounding_to_nearest(sum_times1000_in_reporting_units, count);
   // Print mean with fractional part
-  return sprintf(buf, "%u.%03u\n", meanTimes1000 / 1000,
-                 meanTimes1000 % 1000);
+  return sprintf(buf, "%u.%03u\n", mean_times1000 / 1000,
+                 mean_times1000 % 1000);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowUnacceptable(Histogram *h, char *buf)
+static ssize_t histogram_show_unacceptable(Histogram *h, char *buf)
 {
   int64_t count = atomic64_read(&h->unacceptable);
   return sprintf(buf, "%" PRId64 "\n", count);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowLabel(Histogram *h, char *buf)
+static ssize_t histogram_show_label(Histogram *h, char *buf)
 {
   return sprintf(buf, "%s\n", h->label);
 }
 
 /***********************************************************************/
-static ssize_t histogramShowUnit(Histogram *h, char *buf)
+static ssize_t histogram_show_unit(Histogram *h, char *buf)
 {
-  if (h->sampleUnits != NULL) {
-    return sprintf(buf, "%s\n", h->sampleUnits);
+  if (h->sample_units != NULL) {
+    return sprintf(buf, "%s\n", h->sample_units);
   } else {
     *buf = 0;
     return 0;
@@ -376,103 +378,103 @@ static ssize_t histogramShowUnit(Histogram *h, char *buf)
 
 /***********************************************************************/
 
-static struct sysfs_ops histogramSysfsOps = {
-  .show  = histogramShow,
-  .store = histogramStore,
+static struct sysfs_ops histogram_sysfs_ops = {
+  .show  = histogram_show,
+  .store = histogram_store,
 };
 
-static struct histogram_attribute countAttribute = {
+static struct histogram_attribute count_attribute = {
   .attr = { .name = "count", .mode = 0444, },
-  .show = histogramShowCount,
+  .show = histogram_show_count,
 };
 
-static struct histogram_attribute histogramAttribute = {
+static struct histogram_attribute histogram_attribute = {
   .attr = { .name = "histogram", .mode = 0444, },
-  .show = histogramShowHistogram,
+  .show = histogram_show_histogram,
 };
 
-static struct histogram_attribute labelAttribute = {
+static struct histogram_attribute label_attribute = {
   .attr = { .name = "label", .mode = 0444, },
-  .show = histogramShowLabel,
+  .show = histogram_show_label,
 };
 
-static struct histogram_attribute maximumAttribute = {
+static struct histogram_attribute maximum_attribute = {
   .attr = { .name = "maximum", .mode = 0444, },
-  .show = histogramShowMaximum,
+  .show = histogram_show_maximum,
 };
 
-static struct histogram_attribute minimumAttribute = {
+static struct histogram_attribute minimum_attribute = {
   .attr = { .name = "minimum", .mode = 0444, },
-  .show = histogramShowMinimum,
+  .show = histogram_show_minimum,
 };
 
-static struct histogram_attribute limitAttribute = {
+static struct histogram_attribute limit_attribute = {
   .attr  = { .name = "limit", .mode = 0644, },
-  .show  = histogramShowLimit,
-  .store = histogramStoreLimit,
+  .show  = histogram_show_limit,
+  .store = histogram_store_limit,
 };
 
-static struct histogram_attribute meanAttribute = {
+static struct histogram_attribute mean_attribute = {
   .attr = { .name = "mean", .mode = 0444, },
-  .show = histogramShowMean,
+  .show = histogram_show_mean,
 };
 
-static struct histogram_attribute unacceptableAttribute = {
+static struct histogram_attribute unacceptable_attribute = {
   .attr = { .name = "unacceptable", .mode = 0444, },
-  .show = histogramShowUnacceptable,
+  .show = histogram_show_unacceptable,
 };
 
-static struct histogram_attribute unitAttribute = {
+static struct histogram_attribute unit_attribute = {
   .attr = { .name = "unit", .mode = 0444, },
-  .show = histogramShowUnit,
+  .show = histogram_show_unit,
 };
 
 // "Real" histogram plotting.
-static struct attribute *histogramAttributes[] = {
-  &countAttribute.attr,
-  &histogramAttribute.attr,
-  &labelAttribute.attr,
-  &limitAttribute.attr,
-  &maximumAttribute.attr,
-  &meanAttribute.attr,
-  &minimumAttribute.attr,
-  &unacceptableAttribute.attr,
-  &unitAttribute.attr,
+static struct attribute *histogram_attributes[] = {
+  &count_attribute.attr,
+  &histogram_attribute.attr,
+  &label_attribute.attr,
+  &limit_attribute.attr,
+  &maximum_attribute.attr,
+  &mean_attribute.attr,
+  &minimum_attribute.attr,
+  &unacceptable_attribute.attr,
+  &unit_attribute.attr,
   NULL,
 };
 
-static struct kobj_type histogramKobjType = {
-  .release       = histogramKobjRelease,
-  .sysfs_ops     = &histogramSysfsOps,
-  .default_attrs = histogramAttributes,
+static struct kobj_type histogram_kobj_type = {
+  .release       = histogram_kobj_release,
+  .sysfs_ops     = &histogram_sysfs_ops,
+  .default_attrs = histogram_attributes,
 };
 
-static struct attribute *bucketlessHistogramAttributes[] = {
-  &countAttribute.attr,
-  &labelAttribute.attr,
-  &maximumAttribute.attr,
-  &meanAttribute.attr,
-  &minimumAttribute.attr,
-  &unitAttribute.attr,
+static struct attribute *bucketless_histogram_attributes[] = {
+  &count_attribute.attr,
+  &label_attribute.attr,
+  &maximum_attribute.attr,
+  &mean_attribute.attr,
+  &minimum_attribute.attr,
+  &unit_attribute.attr,
   NULL,
 };
 
-static struct kobj_type bucketlessHistogramKobjType = {
-  .release       = histogramKobjRelease,
-  .sysfs_ops     = &histogramSysfsOps,
-  .default_attrs = bucketlessHistogramAttributes,
+static struct kobj_type bucketless_histogram_kobj_type = {
+  .release       = histogram_kobj_release,
+  .sysfs_ops     = &histogram_sysfs_ops,
+  .default_attrs = bucketless_histogram_attributes,
 };
 
 /***********************************************************************/
-static Histogram *makeHistogram(struct kobject *parent,
-                                const char     *name,
-                                const char     *label,
-                                const char     *countedItems,
-                                const char     *metric,
-                                const char     *sampleUnits,
-                                int             numBuckets,
-                                unsigned long   conversionFactor,
-                                bool            logFlag)
+static Histogram *make_histogram(struct kobject *parent,
+                                 const char     *name,
+                                 const char     *label,
+                                 const char     *counted_items,
+                                 const char     *metric,
+                                 const char     *sample_units,
+                                 int             num_buckets,
+                                 unsigned long   conversion_factor,
+                                 bool            log_flag)
 {
   Histogram *h;
   if (ALLOCATE(1, Histogram, "histogram", &h) != UDS_SUCCESS) {
@@ -480,55 +482,55 @@ static Histogram *makeHistogram(struct kobject *parent,
   }
 
   if (NO_BUCKETS) {
-    numBuckets = 0;             // plus 1 for "bigger" bucket
+    num_buckets = 0;             // plus 1 for "bigger" bucket
   }
 
-  if (numBuckets <= 10) {
+  if (num_buckets <= 10) {
     /*
      * The first buckets in a "logarithmic" histogram are still
      * linear, but the bucket-search mechanism is a wee bit slower
      * than for linear, so change the type.
      */
-    logFlag = false;
+    log_flag = false;
   }
 
-  h->label            = label;
-  h->countedItems     = countedItems;
-  h->metric           = metric;
-  h->sampleUnits      = sampleUnits;
-  h->logFlag          = logFlag;
-  h->numBuckets       = numBuckets;
-  h->conversionFactor = conversionFactor;
+  h->label             = label;
+  h->counted_items     = counted_items;
+  h->metric            = metric;
+  h->sample_units      = sample_units;
+  h->log_flag          = log_flag;
+  h->num_buckets       = num_buckets;
+  h->conversion_factor = conversion_factor;
   atomic64_set(&h->minimum, -1UL);
 
-  if (ALLOCATE(h->numBuckets + 1, atomic64_t, "histogram counters",
+  if (ALLOCATE(h->num_buckets + 1, atomic64_t, "histogram counters",
                &h->counters) != UDS_SUCCESS) {
-    histogramKobjRelease(&h->kobj);
+    histogram_kobj_release(&h->kobj);
     return NULL;
   }
 
   kobject_init(&h->kobj,
-               ((numBuckets > 0)
-                ? &histogramKobjType
-                : &bucketlessHistogramKobjType));
+               ((num_buckets > 0)
+                ? &histogram_kobj_type
+                : &bucketless_histogram_kobj_type));
   if (kobject_add(&h->kobj, parent, name) != 0) {
-    histogramKobjRelease(&h->kobj);
+    histogram_kobj_release(&h->kobj);
     return NULL;
   }
   return h;
 }
 
 /***********************************************************************/
-Histogram *makeLinearHistogram(struct kobject *parent,
-                               const char     *name,
-                               const char     *initLabel,
-                               const char     *countedItems,
-                               const char     *metric,
-                               const char     *sampleUnits,
-                               int             size)
+Histogram *make_linear_histogram(struct kobject *parent,
+                                 const char     *name,
+                                 const char     *init_label,
+                                 const char     *counted_items,
+                                 const char     *metric,
+                                 const char     *sample_units,
+                                 int             size)
 {
-  return makeHistogram(parent, name, initLabel, countedItems,
-                       metric, sampleUnits, size, 1, false);
+  return make_histogram(parent, name, init_label, counted_items,
+                        metric, sample_units, size, 1, false);
 }
 
 
@@ -538,63 +540,67 @@ Histogram *makeLinearHistogram(struct kobject *parent,
  * Limits the histogram size, and computes the bucket count from the
  * orders-of-magnitude count.
  *
- * @param parent            The parent kobject.
- * @param name              The short name of the histogram.  This label is
- *                          used for the sysfs node.
- * @param initLabel         The label for the sampled data.  This label is used
- *                          when we plot the data.
- * @param countedItems      A name (plural) for the things being counted.
- * @param metric            The measure being used to divide samples into
- *                          buckets.
- * @param sampleUnits       The units (plural) for the metric, or NULL if it's
- *                          a simple counter.
- * @param logSize           The number of buckets.  There are buckets for a
- *                          range of sizes up to 10^logSize, and an extra
- *                          bucket for larger samples.
- * @param conversionFactor  Unit conversion factor for reporting.
+ * @param parent             The parent kobject.
+ * @param name               The short name of the histogram.  This label is
+ *                           used for the sysfs node.
+ * @param init_label         The label for the sampled data.  This label is
+ *                           used when we plot the data.
+ * @param counted_items      A name (plural) for the things being counted.
+ * @param metric             The measure being used to divide samples into
+ *                           buckets.
+ * @param sample_units       The units (plural) for the metric, or NULL if it's
+ *                           a simple counter.
+ * @param log_size           The number of buckets.  There are buckets for a
+ *                           range of sizes up to 10^log_size, and an extra
+ *                           bucket for larger samples.
+ * @param conversion_factor  Unit conversion factor for reporting.
  *
  * @return the histogram
  **/
 static Histogram *
-makeLogarithmicHistogramWithConversionFactor(struct kobject *parent,
-                                             const char     *name,
-                                             const char     *initLabel,
-                                             const char     *countedItems,
-                                             const char     *metric,
-                                             const char     *sampleUnits,
-                                             int             logSize,
-                                             uint64_t        conversionFactor)
+make_logarithmic_histogram_with_conversion_factor(struct kobject *parent,
+                                                  const char     *name,
+                                                  const char     *init_label,
+                                                  const char     *counted_items,
+                                                  const char     *metric,
+                                                  const char     *sample_units,
+                                                  int             log_size,
+                                                  uint64_t        conversion_factor)
 {
-  if (logSize > MAX_LOG_SIZE) {
-    logSize = MAX_LOG_SIZE;
+  if (log_size > MAX_LOG_SIZE) {
+    log_size = MAX_LOG_SIZE;
   }
-  return makeHistogram(parent, name,
-                       initLabel, countedItems, metric, sampleUnits,
-                       10 * logSize, conversionFactor, true);
+  return make_histogram(parent, name,
+                        init_label, counted_items, metric, sample_units,
+                        10 * log_size, conversion_factor, true);
 }
 
 /***********************************************************************/
-Histogram *makeLogarithmicHistogram(struct kobject *parent,
-                                    const char     *name,
-                                    const char     *initLabel,
-                                    const char     *countedItems,
-                                    const char     *metric,
-                                    const char     *sampleUnits,
-                                    int             logSize)
+Histogram *make_logarithmic_histogram(struct kobject *parent,
+                                      const char     *name,
+                                      const char     *init_label,
+                                      const char     *counted_items,
+                                      const char     *metric,
+                                      const char     *sample_units,
+                                      int             log_size)
 {
-  return makeLogarithmicHistogramWithConversionFactor(parent, name, initLabel,
-                                                      countedItems,
-                                                      metric, sampleUnits,
-                                                      logSize, 1);
+  return make_logarithmic_histogram_with_conversion_factor(parent,
+                                                           name,
+                                                           init_label,
+                                                           counted_items,
+                                                           metric,
+                                                           sample_units,
+                                                           log_size,
+                                                           1);
 }
 
 /***********************************************************************/
-Histogram *makeLogarithmicJiffiesHistogram(struct kobject *parent,
-                                           const char     *name,
-                                           const char     *initLabel,
-                                           const char     *countedItems,
-                                           const char     *metric,
-                                           int             logSize)
+Histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
+                                              const char     *name,
+                                              const char     *init_label,
+                                              const char     *counted_items,
+                                              const char     *metric,
+                                              int             log_size)
 {
   /*
    * If these fail, we have a jiffy duration that is not an integral number of
@@ -602,23 +608,26 @@ Histogram *makeLogarithmicJiffiesHistogram(struct kobject *parent,
    */
   STATIC_ASSERT(HZ <= MSEC_PER_SEC);
   STATIC_ASSERT((MSEC_PER_SEC % HZ) == 0);
-  return makeLogarithmicHistogramWithConversionFactor(parent, name, initLabel,
-                                                      countedItems,
-                                                      metric, "milliseconds",
-                                                      logSize,
-                                                      jiffies_to_msecs(1));
+  return make_logarithmic_histogram_with_conversion_factor(parent,
+                                                           name,
+                                                           init_label,
+                                                           counted_items,
+                                                           metric,
+                                                           "milliseconds",
+                                                           log_size,
+                                                           jiffies_to_msecs(1));
 }
 
 /***********************************************************************/
-void enterHistogramSample(Histogram *h, uint64_t sample)
+void enter_histogram_sample(Histogram *h, uint64_t sample)
 {
   int bucket;
-  if (h->logFlag) {
+  if (h->log_flag) {
     int lo = 0;
-    int hi = h->numBuckets;
+    int hi = h->num_buckets;
     while (lo < hi) {
       int middle = (lo + hi) / 2;
-      if (sample < bottomValue[middle + 1]) {
+      if (sample < bottom_value[middle + 1]) {
         hi = middle;
       } else {
         lo = middle + 1;
@@ -626,7 +635,7 @@ void enterHistogramSample(Histogram *h, uint64_t sample)
     }
     bucket = lo;
   } else {
-    bucket = sample < h->numBuckets ? sample : h->numBuckets;
+    bucket = sample < h->num_buckets ? sample : h->num_buckets;
   }
   atomic64_inc(&h->counters[bucket]);
   atomic64_inc(&h->count);
@@ -640,27 +649,27 @@ void enterHistogramSample(Histogram *h, uint64_t sample)
    * do more than a single read, with no memory barrier, from a cache
    * line we've already referenced above.
    */
-  uint64_t oldMaximum = atomic64_read(&h->maximum);
-  while (oldMaximum < sample) {
-    uint64_t readValue = atomic64_cmpxchg(&h->maximum, oldMaximum, sample);
-    if (readValue == oldMaximum) {
+  uint64_t old_maximum = atomic64_read(&h->maximum);
+  while (old_maximum < sample) {
+    uint64_t read_value = atomic64_cmpxchg(&h->maximum, old_maximum, sample);
+    if (read_value == old_maximum) {
       break;
     }
-    oldMaximum = readValue;
+    old_maximum = read_value;
   }
 
-  uint64_t oldMinimum = atomic64_read(&h->minimum);
-  while (oldMinimum > sample) {
-    uint64_t readValue = atomic64_cmpxchg(&h->minimum, oldMinimum, sample);
-    if (readValue == oldMinimum) {
+  uint64_t old_minimum = atomic64_read(&h->minimum);
+  while (old_minimum > sample) {
+    uint64_t read_value = atomic64_cmpxchg(&h->minimum, old_minimum, sample);
+    if (read_value == old_minimum) {
       break;
     }
-    oldMinimum = readValue;
+    old_minimum = read_value;
   }
 }
 
 /***********************************************************************/
-void freeHistogram(Histogram **hp)
+void free_histogram(Histogram **hp)
 {
   if (*hp != NULL) {
     Histogram *h = *hp;

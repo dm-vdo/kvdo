@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#2 $
  */
 
 #include "workQueueStats.h"
@@ -38,7 +38,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->queueTimeHistogram
-    = makeLogarithmicHistogram(queueKObject, "queue_time",
+    = make_logarithmic_histogram(queueKObject, "queue_time",
                                "Queue Time", "work items", "wait time",
                                "microseconds", 9);
   if (stats->queueTimeHistogram == NULL) {
@@ -46,7 +46,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->rescheduleQueueLengthHistogram
-    = makeLogarithmicHistogram(queueKObject, "reschedule_queue_length",
+    = make_logarithmic_histogram(queueKObject, "reschedule_queue_length",
                                "Reschedule Queue Length", "calls",
                                "queued work items", NULL, 4);
   if (stats->rescheduleQueueLengthHistogram == NULL) {
@@ -54,7 +54,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->rescheduleTimeHistogram
-    = makeLogarithmicHistogram(queueKObject, "reschedule_time",
+    = make_logarithmic_histogram(queueKObject, "reschedule_time",
                                "Reschedule Time", "calls",
                                "sleep interval", "microseconds", 9);
   if (stats->rescheduleTimeHistogram == NULL) {
@@ -62,7 +62,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->runTimeBeforeRescheduleHistogram
-    = makeLogarithmicHistogram(queueKObject, "run_time_before_reschedule",
+    = make_logarithmic_histogram(queueKObject, "run_time_before_reschedule",
                                "Run Time Before Reschedule",
                                "calls", "run time", "microseconds", 9);
   if (stats->runTimeBeforeRescheduleHistogram == NULL) {
@@ -70,7 +70,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->scheduleTimeHistogram
-    = makeLogarithmicHistogram(queueKObject, "schedule_time",
+    = make_logarithmic_histogram(queueKObject, "schedule_time",
                                "Schedule Time",
                                "calls", "sleep interval", "microseconds", 9);
   if (stats->scheduleTimeHistogram == NULL) {
@@ -78,7 +78,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->wakeupLatencyHistogram
-    = makeLogarithmicHistogram(queueKObject, "wakeup_latency",
+    = make_logarithmic_histogram(queueKObject, "wakeup_latency",
                                "Wakeup Latency",
                                "wakeups", "latency", "microseconds", 9);
   if (stats->wakeupLatencyHistogram == NULL) {
@@ -86,7 +86,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->wakeupQueueLengthHistogram
-    = makeLogarithmicHistogram(queueKObject, "wakeup_queue_length",
+    = make_logarithmic_histogram(queueKObject, "wakeup_queue_length",
                                "Wakeup Queue Length", "wakeups",
                                "queued work items", NULL, 4);
   if (stats->wakeupQueueLengthHistogram == NULL) {
@@ -99,13 +99,13 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
 /**********************************************************************/
 void cleanupWorkQueueStats(KvdoWorkQueueStats *stats)
 {
-  freeHistogram(&stats->queueTimeHistogram);
-  freeHistogram(&stats->rescheduleQueueLengthHistogram);
-  freeHistogram(&stats->rescheduleTimeHistogram);
-  freeHistogram(&stats->runTimeBeforeRescheduleHistogram);
-  freeHistogram(&stats->scheduleTimeHistogram);
-  freeHistogram(&stats->wakeupLatencyHistogram);
-  freeHistogram(&stats->wakeupQueueLengthHistogram);
+  free_histogram(&stats->queueTimeHistogram);
+  free_histogram(&stats->rescheduleQueueLengthHistogram);
+  free_histogram(&stats->rescheduleTimeHistogram);
+  free_histogram(&stats->runTimeBeforeRescheduleHistogram);
+  free_histogram(&stats->scheduleTimeHistogram);
+  free_histogram(&stats->wakeupLatencyHistogram);
+  free_histogram(&stats->wakeupQueueLengthHistogram);
 }
 
 /**********************************************************************/
