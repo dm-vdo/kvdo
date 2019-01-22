@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#10 $
  */
 
 #include "ioSubmitter.h"
@@ -251,7 +251,7 @@ void completeAsyncBio(struct bio *bio, int error)
       return;
     }
   }
-  kvdo_continue_kvio(kvio, error);
+  kvdoContinueKvio(kvio, error);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#9 $
  */
 
 #ifndef DATA_KVIO_H
@@ -293,7 +293,7 @@ static inline void launchDataKVIOOnBIOAckQueue(DataKVIO         *dataKVIO,
  **/
 static inline void kvdoEnqueueDataVIOCallback(DataKVIO *dataKVIO)
 {
-  kvdo_enqueue_vio_callback(dataKVIOAsKVIO(dataKVIO));
+  kvdoEnqueueVIOCallback(dataKVIOAsKVIO(dataKVIO));
 }
 
 /**

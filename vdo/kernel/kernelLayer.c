@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#33 $
  */
 
 #include "kernelLayer.h"
@@ -410,10 +410,10 @@ void destroyVIO(VIO **vioPtr)
   if (isCompressedWriteVIO(vio)) {
     struct compressed_write_kvio *compressedWriteKVIO
       = allocatingVIOAsCompressedWriteKVIO(vioAsAllocatingVIO(vio));
-    free_compressed_write_kvio(&compressedWriteKVIO);
+    freeCompressedWriteKVIO(&compressedWriteKVIO);
   } else {
     struct metadata_kvio *metadataKVIO = vioAsMetadataKVIO(vio);
-    free_metadata_kvio(&metadataKVIO);
+    freeMetadataKVIO(&metadataKVIO);
   }
 
   *vioPtr = NULL;
@@ -563,13 +563,13 @@ int makeKernelLayer(uint64_t               startingSector,
 
   layer->common.getBlockCount            = kvdoGetBlockCount;
   layer->common.isFlushRequired          = isFlushRequired;
-  layer->common.createMetadataVIO        = kvdo_create_metadata_vio;
-  layer->common.createCompressedWriteVIO = kvdo_create_compressed_write_vio;
+  layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
+  layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
   layer->common.completeFlush            = kvdo_complete_flush;
   layer->common.enqueue                  = kvdoEnqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
   layer->common.completeAdminOperation   = kvdoCompleteSyncOperation;
-  layer->common.flush                    = kvdo_flush_vio;
+  layer->common.flush                    = kvdoFlushVIO;
   spin_lock_init(&layer->flushLock);
   mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);

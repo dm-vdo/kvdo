@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#9 $
  */
 
 #include "kvio.h"
@@ -39,32 +39,32 @@
  *
  * @param item    The work item of the VIO to complete
  **/
-static void kvdo_handle_vio_callback(KvdoWorkItem *item)
+static void kvdoHandleVIOCallback(KvdoWorkItem *item)
 {
   KVIO *kvio = workItemAsKVIO(item);
   runCallback(vioAsCompletion(kvio->vio));
 }
 
 /**********************************************************************/
-void kvdo_enqueue_vio_callback(KVIO *kvio)
+void kvdoEnqueueVIOCallback(KVIO *kvio)
 {
-  enqueueKVIO(kvio, kvdo_handle_vio_callback,
+  enqueueKVIO(kvio, kvdoHandleVIOCallback,
               (KvdoWorkFunction) vioAsCompletion(kvio->vio)->callback,
               REQ_Q_ACTION_VIO_CALLBACK);
 }
 
 /**********************************************************************/
-void kvdo_continue_kvio(KVIO *kvio, int error)
+void kvdoContinueKvio(KVIO *kvio, int error)
 {
   if (unlikely(error != VDO_SUCCESS)) {
     setCompletionResult(vioAsCompletion(kvio->vio), error);
   }
-  kvdo_enqueue_vio_callback(kvio);
+  kvdoEnqueueVIOCallback(kvio);
 }
 
 /**********************************************************************/
 // noinline ensures systemtap can hook in here
-static noinline void maybe_log_kvio_trace(KVIO *kvio)
+static noinline void maybeLogKvioTrace(KVIO *kvio)
 {
   if (kvio->layer->traceLogging) {
     logKvioTrace(kvio);
@@ -72,44 +72,43 @@ static noinline void maybe_log_kvio_trace(KVIO *kvio)
 }
 
 /**********************************************************************/
-static void free_kvio(KVIO **kvio_ptr)
+static void freeKVIO(KVIO **kvioPtr)
 {
-  KVIO *kvio = *kvio_ptr;
+  KVIO *kvio = *kvioPtr;
   if (kvio == NULL) {
     return;
   }
 
   if (unlikely(kvio->vio->trace != NULL)) {
-    maybe_log_kvio_trace(kvio);
+    maybeLogKvioTrace(kvio);
     FREE(kvio->vio->trace);
   }
 
   free_bio(kvio->bio, kvio->layer);
   FREE(kvio);
-  *kvio_ptr = NULL;
+  *kvioPtr = NULL;
 }
 
 /**********************************************************************/
-void free_metadata_kvio(struct metadata_kvio **metadata_kvio_ptr)
+void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr)
 {
-  free_kvio((KVIO **) metadata_kvio_ptr);
+  freeKVIO((KVIO **) metadataKVIOPtr);
 }
 
 /**********************************************************************/
-void free_compressed_write_kvio(
-  struct compressed_write_kvio **compressed_write_kvio_ptr)
+void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
-  free_kvio((KVIO **) compressed_write_kvio_ptr);
+  freeKVIO((KVIO **) compressedWriteKVIOPtr);
 }
 
 /**********************************************************************/
-void write_compressed_block(AllocatingVIO *allocating_vio)
+void writeCompressedBlock(AllocatingVIO *allocatingVIO)
 {
   // This method assumes that compressed writes never set the flush or FUA
   // bits.
-  struct compressed_write_kvio *compressed_write_kvio
-    = allocatingVIOAsCompressedWriteKVIO(allocating_vio);
-  KVIO *kvio       = compressedWriteKVIOAsKVIO(compressed_write_kvio);
+  struct compressed_write_kvio *compressedWriteKVIO
+    = allocatingVIOAsCompressedWriteKVIO(allocatingVIO);
+  KVIO *kvio       = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
   struct bio *bio  = kvio->bio;
   reset_bio(bio, kvio->layer);
   set_bio_operation_write(bio);
@@ -124,14 +123,14 @@ void write_compressed_block(AllocatingVIO *allocating_vio)
  *
  * @return The action with which to submit the VIO's bio.
  **/
-static inline BioQAction get_metadata_action(VIO *vio)
+static inline BioQAction getMetadataAction(VIO *vio)
 {
   return ((vio->priority == VIO_PRIORITY_HIGH)
           ? BIO_Q_ACTION_HIGH : BIO_Q_ACTION_METADATA);
 }
 
 /**********************************************************************/
-void submit_metadata_vio(VIO *vio)
+void submitMetadataVIO(VIO *vio)
 {
   KVIO       *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   struct bio *bio  = kvio->bio;
@@ -157,7 +156,7 @@ void submit_metadata_vio(VIO *vio)
   if (vioRequiresFlushAfter(vio)) {
     set_bio_operation_flag_fua(bio);
   }
-  submitBio(bio, get_metadata_action(vio));
+  submitBio(bio, getMetadataAction(vio));
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
@@ -167,7 +166,7 @@ void submit_metadata_vio(VIO *vio)
  *
  * @param bio    The bio to complete
  **/
-static void complete_flush_bio(struct bio *bio)
+static void completeFlushBio(struct bio *bio)
 #else
 /**
  * Handle the completion of a base-code initiated flush by continuing the flush
@@ -176,28 +175,28 @@ static void complete_flush_bio(struct bio *bio)
  * @param bio    The bio to complete
  * @param error  Possible error from underlying block device
  **/
-static void complete_flush_bio(struct bio *bio, int error)
+static void completeFlushBio(struct bio *bio, int error)
 #endif
 {
   KVIO *kvio   = (KVIO *) bio->bi_private;
   // Restore the bio's notion of its own data.
   reset_bio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  kvdo_continue_kvio(kvio, get_bio_result(bio));
+  kvdoContinueKvio(kvio, get_bio_result(bio));
 #else
-  kvdo_continue_kvio(kvio, error);
+  kvdoContinueKvio(kvio, error);
 #endif
 }
 
 /**********************************************************************/
-void kvdo_flush_vio(VIO *vio)
+void kvdoFlushVIO(VIO *vio)
 {
   KVIO        *kvio  = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   struct bio  *bio   = kvio->bio;
   KernelLayer *layer = kvio->layer;
   reset_bio(bio, layer);
-  prepare_flush_bio(bio, kvio, getKernelLayerBdev(layer), complete_flush_bio);
-  submitBio(bio, get_metadata_action(vio));
+  prepare_flush_bio(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
+  submitBio(bio, getMetadataAction(vio));
 }
 
 /*
@@ -219,7 +218,7 @@ void kvdo_flush_vio(VIO *vio)
  *         this one
  */
 static noinline bool
-sample_this_vio(KVIO *kvio, KernelLayer *layer, struct bio *bio)
+sampleThisVIO(KVIO *kvio, KernelLayer *layer, struct bio *bio)
 {
   bool result = true;
   // Ensure the arguments and result exist at the same time, for SystemTap.
@@ -234,17 +233,17 @@ sample_this_vio(KVIO *kvio, KernelLayer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-void initialize_kvio(KVIO        *kvio,
-                     KernelLayer *layer,
-                     VIOType      vio_type,
-                     VIOPriority  priority,
-                     void        *parent,
-                     struct bio  *bio)
+void initializeKVIO(KVIO        *kvio,
+                    KernelLayer *layer,
+                    VIOType      vioType,
+                    VIOPriority  priority,
+                    void        *parent,
+                    struct bio  *bio)
 {
   if (layer->vioTraceRecording
-      && sample_this_vio(kvio, layer, bio)
+      && sampleThisVIO(kvio, layer, bio)
       && sampleThisOne(&layer->traceSampleCounter)) {
-    int result = (isDataVIOType(vio_type)
+    int result = (isDataVIOType(vioType)
                   ? allocTraceFromPool(layer, &kvio->vio->trace)
                   : ALLOCATE(1, Trace, "trace", &kvio->vio->trace));
     if (result != VDO_SUCCESS) {
@@ -258,7 +257,7 @@ void initialize_kvio(KVIO        *kvio,
     bio->bi_private = kvio;
   }
 
-  initializeVIO(kvio->vio, vio_type, priority, parent, getVDO(&layer->kvdo),
+  initializeVIO(kvio->vio, vioType, priority, parent, getVDO(&layer->kvdo),
                 &layer->common);
 
   // XXX: The "init" label should be replaced depending on the
@@ -273,23 +272,23 @@ void initialize_kvio(KVIO        *kvio,
 /**
  * Construct a metadata KVIO.
  *
- * @param [in]  layer              The physical layer
- * @param [in]  vio_type           The type of VIO to create
- * @param [in]  priority           The relative priority to assign to the
- *                                 metadata_kvio
- * @param [in]  parent             The parent of the metadata_kvio completion
- * @param [in]  bio                The bio to associate with this metadata_kvio
- * @param [out] metadata_kvio_ptr  A pointer to hold the new metadata_kvio
+ * @param [in]  layer            The physical layer
+ * @param [in]  vioType          The type of VIO to create
+ * @param [in]  priority         The relative priority to assign to the
+ *                               metadata_kvio
+ * @param [in]  parent           The parent of the metadata_kvio completion
+ * @param [in]  bio              The bio to associate with this metadata_kvio
+ * @param [out] metadataKVIOPtr  A pointer to hold the new metadata_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int make_metadata_kvio(KernelLayer           *layer,
-                              VIOType                vio_type,
-                              VIOPriority            priority,
-                              void                  *parent,
-                              struct bio            *bio,
-                              struct metadata_kvio **metadata_kvio_ptr)
+static int makeMetadataKVIO(KernelLayer           *layer,
+                            VIOType                vioType,
+                            VIOPriority            priority,
+                            void                  *parent,
+                            struct bio            *bio,
+                            struct metadata_kvio **metadataKVIOPtr)
 {
   // If struct metadata_kvio grows past 256 bytes, we'll lose benefits of
   // VDOSTORY-176.
@@ -297,112 +296,112 @@ static int make_metadata_kvio(KernelLayer           *layer,
 
   // Metadata VIOs should use direct allocation and not use the buffer pool,
   // which is reserved for submissions from the linux block layer.
-  struct metadata_kvio *metadata_kvio;
-  int result = ALLOCATE(1, struct metadata_kvio, __func__, &metadata_kvio);
+  struct metadata_kvio *metadataKVIO;
+  int result = ALLOCATE(1, struct metadata_kvio, __func__, &metadataKVIO);
   if (result != VDO_SUCCESS) {
     logError("metadata KVIO allocation failure %d", result);
     return result;
   }
 
-  KVIO *kvio = &metadata_kvio->kvio;
-  kvio->vio  = &metadata_kvio->vio;
-  initialize_kvio(kvio, layer, vio_type, priority, parent, bio);
-  *metadata_kvio_ptr = metadata_kvio;
+  KVIO *kvio = &metadataKVIO->kvio;
+  kvio->vio  = &metadataKVIO->vio;
+  initializeKVIO(kvio, layer, vioType, priority, parent, bio);
+  *metadataKVIOPtr = metadataKVIO;
   return VDO_SUCCESS;
 }
 
 /**
  * Construct a struct compressed_write_kvio.
  *
- * @param [in]  layer                      The physical layer
- * @param [in]  parent                     The parent of the
- *                                         compressed_write_kvio completion
- * @param [in]  bio                        The bio to associate with this
- *                                         compressed_write_kvio
- * @param [out] compressed_write_kvio_ptr  A pointer to hold the new
- *                                         compressed_write_kvio
+ * @param [in]  layer                   The physical layer
+ * @param [in]  parent                  The parent of the compressed_write_kvio
+ *                                      completion
+ * @param [in]  bio                     The bio to associate with this
+ *                                      compressed_write_kvio
+ * @param [out] compressedWriteKVIOPtr  A pointer to hold the new
+ *                                      compressed_write_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
 static int
-make_compressed_write_kvio(KernelLayer                *layer,
+makeCompressedWriteKVIO(KernelLayer                   *layer,
                         void                          *parent,
                         struct bio                    *bio,
-                        struct compressed_write_kvio **compressed_write_kvio_ptr)
+                        struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
   // Compressed write VIOs should use direct allocation and not use the buffer
   // pool, which is reserved for submissions from the linux block layer.
-  struct compressed_write_kvio *compressed_write_kvio;
+  struct compressed_write_kvio *compressedWriteKVIO;
   int result = ALLOCATE(1, struct compressed_write_kvio, __func__,
-                        &compressed_write_kvio);
+                        &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {
     logError("compressed write KVIO allocation failure %d", result);
     return result;
   }
 
-  KVIO *kvio = &compressed_write_kvio->kvio;
-  kvio->vio  = allocatingVIOAsVIO(&compressed_write_kvio->allocatingVIO);
-  initialize_kvio(kvio, layer, VIO_TYPE_COMPRESSED_BLOCK,
+  KVIO *kvio = &compressedWriteKVIO->kvio;
+  kvio->vio  = allocatingVIOAsVIO(&compressedWriteKVIO->allocatingVIO);
+  initializeKVIO(kvio, layer, VIO_TYPE_COMPRESSED_BLOCK,
                  VIO_PRIORITY_COMPRESSED_DATA, parent, bio);
-  *compressed_write_kvio_ptr = compressed_write_kvio;
+  *compressedWriteKVIOPtr = compressedWriteKVIO;
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int kvdo_create_metadata_vio(PhysicalLayer  *layer,
-                             VIOType         vio_type,
-                             VIOPriority     priority,
-                             void           *parent,
-                             char           *data,
-                             VIO           **vio_ptr)
+int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
+                          VIOType         vioType,
+                          VIOPriority     priority,
+                          void           *parent,
+                          char           *data,
+                          VIO           **vioPtr)
 {
-  int result = ASSERT(isMetadataVIOType(vio_type),
-                      "%d is a metadata type", vio_type);
+  int result = ASSERT(isMetadataVIOType(vioType),
+                      "%d is a metadata type", vioType);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   struct bio *bio;
-  KernelLayer *kernel_layer = asKernelLayer(layer);
-  result = create_bio(kernel_layer, data, &bio);
+  KernelLayer *kernelLayer = asKernelLayer(layer);
+  result = create_bio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  struct metadata_kvio *metadata_kvio;
-  result = make_metadata_kvio(kernel_layer, vio_type, priority, parent, bio,
-                              &metadata_kvio);
+  struct metadata_kvio *metadataKVIO;
+  result = makeMetadataKVIO(kernelLayer, vioType, priority, parent, bio,
+                            &metadataKVIO);
   if (result != VDO_SUCCESS) {
-    free_bio(bio, kernel_layer);
+    free_bio(bio, kernelLayer);
     return result;
   }
 
-  *vio_ptr = &metadata_kvio->vio;
+  *vioPtr = &metadataKVIO->vio;
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int kvdo_create_compressed_write_vio(PhysicalLayer  *layer,
-                                     void           *parent,
-                                     char           *data,
-                                     AllocatingVIO **allocating_vio_ptr)
+int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
+                                 void           *parent,
+                                 char           *data,
+                                 AllocatingVIO **allocatingVIOPtr)
 {
   struct bio *bio;
-  KernelLayer *kernel_layer = asKernelLayer(layer);
-  int result = create_bio(kernel_layer, data, &bio);
+  KernelLayer *kernelLayer = asKernelLayer(layer);
+  int result = create_bio(kernelLayer, data, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  struct compressed_write_kvio *compressed_write_kvio;
-  result = make_compressed_write_kvio(kernel_layer, parent, bio,
-                                   &compressed_write_kvio);
+  struct compressed_write_kvio *compressedWriteKVIO;
+  result = makeCompressedWriteKVIO(kernelLayer, parent, bio,
+                                   &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {
-    free_bio(bio, kernel_layer);
+    free_bio(bio, kernelLayer);
     return result;
   }
 
-  *allocating_vio_ptr = &compressed_write_kvio->allocatingVIO;
+  *allocatingVIOPtr = &compressedWriteKVIO->allocatingVIO;
   return VDO_SUCCESS;
 }
