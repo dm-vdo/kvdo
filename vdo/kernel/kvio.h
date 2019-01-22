@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#6 $
  */
 
 #ifndef KVIO_H
@@ -228,7 +228,7 @@ static inline void launchKVIO(KVIO             *kvio,
  *
  * @param kvio The KVIO to enqueue
  **/
-void kvdoEnqueueVIOCallback(KVIO *kvio);
+void kvdo_enqueue_vio_callback(KVIO *kvio);
 
 /**
  * Handles kvio-related I/O post-processing.
@@ -236,39 +236,41 @@ void kvdoEnqueueVIOCallback(KVIO *kvio);
  * @param kvio  The kvio to finalize
  * @param error Possible error
  **/
-void kvdoContinueKvio(KVIO *kvio, int error);
+void kvdo_continue_kvio(KVIO *kvio, int error);
 
 /**
  * Initialize a KVIO.
  *
  * @param kvio      The KVIO to initialize
  * @param layer     The physical layer
- * @param vioType   The type of VIO to create
+ * @param vio_type  The type of VIO to create
  * @param priority  The relative priority to assign to the KVIO
  * @param parent    The parent of the KVIO completion
  * @param bio       The bio to associate with this KVIO
  **/
-void initializeKVIO(KVIO        *kvio,
-                    KernelLayer *layer,
-                    VIOType      vioType,
-                    VIOPriority  priority,
-                    void        *parent,
-                    struct bio  *bio);
+void initialize_kvio(KVIO        *kvio,
+                     KernelLayer *layer,
+                     VIOType      vio_type,
+                     VIOPriority  priority,
+                     void        *parent,
+                     struct bio  *bio);
 
 /**
  * Destroy a struct metadata_kvio and NULL out the pointer to it.
  *
- * @param metadataKVIOPtr  A pointer to the struct metadata_kvio to destroy
+ * @param metadata_kvio_ptr  A pointer to the struct metadata_kvio to destroy
  **/
-void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr);
+void free_metadata_kvio(struct metadata_kvio **metadata_kvio_ptr);
 
 /**
  * Destroy a struct compressed_write_kvio and NULL out the pointer to it.
  *
- * @param compressedWriteKVIOPtr  A pointer to the compressed_write_kvio to
- *                                destroy
+ * @param compressed_write_kvio_ptr  A pointer to the compressed_write_kvio to
+ *                                   destroy
  **/
-void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr);
+
+void free_compressed_write_kvio(
+  struct compressed_write_kvio **compressed_write_kvio_ptr);
 
 /**
  * Create a new VIO (and its enclosing KVIO) for metadata operations.
@@ -276,20 +278,20 @@ void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOP
  * <p>Implements MetadataVIOCreator.
  *
  * @param [in]  layer     The physical layer
- * @param [in]  vioType   The type of VIO to create
+ * @param [in]  vio_type  The type of VIO to create
  * @param [in]  priority  The relative priority to assign to the VIO
  * @param [in]  parent    The parent to assign to the VIO's completion
  * @param [in]  data      The buffer
- * @param [out] vioPtr    A pointer to hold new VIO
+ * @param [out] vio_ptr   A pointer to hold new VIO
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
-                          VIOType         vioType,
-                          VIOPriority     priority,
-                          void           *parent,
-                          char           *data,
-                          VIO           **vioPtr)
+int kvdo_create_metadata_vio(PhysicalLayer  *layer,
+                             VIOType         vio_type,
+                             VIOPriority     priority,
+                             void           *parent,
+                             char           *data,
+                             VIO           **vio_ptr)
   __attribute__((warn_unused_result));
 
 /**
@@ -297,18 +299,18 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
  *
  * <p>Implements CompressedWriteVIOCreator.
  *
- * @param [in]  layer             The physical layer
- * @param [in]  parent            The parent to assign to the AllocatingVIO's
- *                                completion
- * @param [in]  data              The buffer
- * @param [out] allocatingVIOPtr  A pointer to hold new AllocatingVIO
+ * @param [in]  layer               The physical layer
+ * @param [in]  parent              The parent to assign to the AllocatingVIO's
+ *                                  completion
+ * @param [in]  data                The buffer
+ * @param [out] allocating_vio_ptr  A pointer to hold new AllocatingVIO
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
-                                 void           *parent,
-                                 char           *data,
-                                 AllocatingVIO **allocatingVIOPtr)
+int kvdo_create_compressed_write_vio(PhysicalLayer  *layer,
+                                     void           *parent,
+                                     char           *data,
+                                     AllocatingVIO **allocating_vio_ptr)
   __attribute__((warn_unused_result));
 
 /**
@@ -318,6 +320,6 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
  *
  * @param vio  The VIO to flush
  **/
-void kvdoFlushVIO(VIO *vio);
+void kvdo_flush_vio(VIO *vio);
 
 #endif /* KVIO_H */
