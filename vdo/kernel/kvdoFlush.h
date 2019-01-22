@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#3 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -31,7 +31,7 @@
  *
  * @param flushPtr  A pointer to hold the new flush
  **/
-int makeKVDOFlush(KVDOFlush **flushPtr);
+int make_kvdo_flush(KVDOFlush **flushPtr);
 
 /**
  * Answer the question as to whether VDO should be processing REQ_FLUSH
@@ -42,7 +42,7 @@ int makeKVDOFlush(KVDOFlush **flushPtr);
  * @return true if VDO should process empty flush requests, or false if
  *         they should just be forwarded to our storage device.
  **/
-bool shouldProcessFlush(KernelLayer *layer);
+bool should_process_flush(KernelLayer *layer);
 
 /**
  * Function called to start processing a flush request. It is called when we
@@ -52,14 +52,14 @@ bool shouldProcessFlush(KernelLayer *layer);
  * @param layer  The physical layer
  * @param bio    The bio containing an empty flush request
  **/
-void launchKVDOFlush(KernelLayer *layer, struct bio *bio);
+void launch_kvdo_flush(KernelLayer *layer, struct bio *bio);
 
 /**
  * Function called from base VDO to complete and free a flush request.
  *
  * @param kfp  Pointer to the flush request
  **/
-void kvdoCompleteFlush(VDOFlush **kfp);
+void kvdo_complete_flush(VDOFlush **kfp);
 
 /**
  * Issue a flush request and wait for it to complete.
@@ -68,6 +68,6 @@ void kvdoCompleteFlush(VDOFlush **kfp);
  *
  * @return VDO_SUCCESS or an error
  */
-int synchronousFlush(KernelLayer *layer);
+int synchronous_flush(KernelLayer *layer);
 
 #endif /* KVDO_FLUSH_H */

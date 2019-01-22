@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#30 $
  */
 
 #include "kernelLayer.h"
@@ -236,8 +236,8 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
       // We expect flushes to be of size 0.
       return -EINVAL;
     }
-    if (shouldProcessFlush(layer)) {
-      launchKVDOFlush(layer, bio);
+    if (should_process_flush(layer)) {
+      launch_kvdo_flush(layer, bio);
       return DM_MAPIO_SUBMITTED;
     } else {
       // We're not acknowledging this bio now, but we'll never touch it
@@ -422,7 +422,7 @@ void destroyVIO(VIO **vioPtr)
 /**********************************************************************/
 static bool isFlushRequired(PhysicalLayer *common)
 {
-  return shouldProcessFlush(asKernelLayer(common));
+  return should_process_flush(asKernelLayer(common));
 }
 
 /**
@@ -565,7 +565,7 @@ int makeKernelLayer(uint64_t               startingSector,
   layer->common.isFlushRequired          = isFlushRequired;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
   layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
-  layer->common.completeFlush            = kvdoCompleteFlush;
+  layer->common.completeFlush            = kvdo_complete_flush;
   layer->common.enqueue                  = kvdoEnqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
   layer->common.completeAdminOperation   = kvdoCompleteSyncOperation;
@@ -612,7 +612,7 @@ int makeKernelLayer(uint64_t               startingSector,
   }
 
   // Spare KVDOFlush, so that we will always have at least one available
-  result = makeKVDOFlush(&layer->spareKVDOFlush);
+  result = make_kvdo_flush(&layer->spareKVDOFlush);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot allocate KVDOFlush record";
     freeKernelLayer(layer);
@@ -1084,7 +1084,7 @@ int suspendKernelLayer(KernelLayer *layer)
    * the suspend, even if it hasn't been flushed yet.
    */
   waitForNoRequestsActive(layer);
-  int result = synchronousFlush(layer);
+  int result = synchronous_flush(layer);
   if (result != VDO_SUCCESS) {
     setKVDOReadOnly(&layer->kvdo, result);
   }

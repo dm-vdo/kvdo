@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#14 $
  */
 
 #include "dmvdo.h"
@@ -448,7 +448,7 @@ static void configureTargetCapabilities(struct dm_target *ti,
    * device in the stack accepts flushes. Hence if the device under VDO
    * accepts flushes, we will receive flushes.
    **/
-  ti->flush_supported = shouldProcessFlush(layer);
+  ti->flush_supported = should_process_flush(layer);
   ti->num_discard_bios = 1;
   ti->num_flush_bios = 1;
 
