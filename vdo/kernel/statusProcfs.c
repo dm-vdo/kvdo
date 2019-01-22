@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#4 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -142,7 +142,7 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
               &layer->biosAcknowledgedPartial);
   stats->biosInProgress = subtractBioStats(stats->biosIn,
                                            stats->biosAcknowledged);
-  stats->memoryUsage = getMemoryUsage();
+  stats->memoryUsage = get_memory_usage();
   getIndexStatistics(layer->dedupeIndex, &stats->index);
 }
 
