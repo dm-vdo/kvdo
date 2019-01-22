@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#4 $
  */
 
 #include "dump.h"
@@ -91,7 +91,7 @@ static void do_dump(KernelLayer  *layer,
   logInfo("%s dump triggered via %s", THIS_MODULE->name, why);
   // XXX Add in number of outstanding requests being processed by vdo
   uint32_t active, maximum;
-  getLimiterValuesAtomically(&layer->requestLimiter, &active, &maximum);
+  get_limiter_values_atomically(&layer->requestLimiter, &active, &maximum);
   int64_t outstanding = atomic64_read(&layer->biosSubmitted)
                         - atomic64_read(&layer->biosCompleted);
   logInfo("%" PRIu32 " device requests outstanding (max %" PRIu32 "), "

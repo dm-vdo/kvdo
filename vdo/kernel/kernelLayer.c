@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#32 $
  */
 
 #include "kernelLayer.h"
@@ -134,7 +134,7 @@ void waitForNoRequestsActive(KernelLayer *layer)
 {
   // Do nothing if there are no requests active.  This check is not necessary
   // for correctness but does reduce log message traffic.
-  if (limiterIsIdle(&layer->requestLimiter)) {
+  if (limiter_is_idle(&layer->requestLimiter)) {
     return;
   }
 
@@ -143,7 +143,7 @@ void waitForNoRequestsActive(KernelLayer *layer)
   // while waiting will end up in the packer.
   bool wasCompressing = setKVDOCompressing(&layer->kvdo, false);
   // Now wait for there to be no active requests
-  limiterWaitForIdle(&layer->requestLimiter);
+  limiter_wait_for_idle(&layer->requestLimiter);
   // Reset the compression state after all requests are done
   if (wasCompressing) {
     setKVDOCompressing(&layer->kvdo, true);
@@ -200,7 +200,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
    * buffering on top of VDO, they're welcome to access it through the kernel
    * page cache or roll their own.
    */
-  if (!limiterPoll(&layer->requestLimiter)) {
+  if (!limiter_poll(&layer->requestLimiter)) {
     add_to_deadlock_queue(&layer->deadlockQueue, bio, arrivalTime);
     logWarning("queued an I/O request to avoid deadlock!");
 
@@ -208,7 +208,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
   }
 
   bool hasDiscardPermit
-    = (is_discard_bio(bio) && limiterPoll(&layer->discardLimiter));
+    = (is_discard_bio(bio) && limiter_poll(&layer->discardLimiter));
   int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
                                          hasDiscardPermit);
   // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
@@ -271,10 +271,10 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
   }
   bool hasDiscardPermit = false;
   if (is_discard_bio(bio)) {
-    limiterWaitForOneFree(&layer->discardLimiter);
+    limiter_wait_for_one_free(&layer->discardLimiter);
     hasDiscardPermit = true;
   }
-  limiterWaitForOneFree(&layer->requestLimiter);
+  limiter_wait_for_one_free(&layer->requestLimiter);
 
   int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
                                          hasDiscardPermit);
@@ -304,7 +304,7 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
     }
 
     bool hasDiscardPermit
-      = (is_discard_bio(bio) && limiterPoll(&layer->discardLimiter));
+      = (is_discard_bio(bio) && limiter_poll(&layer->discardLimiter));
     int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
                                            hasDiscardPermit);
     if (result != VDO_SUCCESS) {
@@ -315,7 +315,7 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
   }
   // Notify the limiter, so it can wake any blocked processes.
   if (count > 0) {
-    limiterReleaseMany(&layer->requestLimiter, count);
+    limiter_release_many(&layer->requestLimiter, count);
   }
 }
 
@@ -467,7 +467,7 @@ static int kvdoIsCongested(struct dm_target_callbacks *callbacks,
                            int                         bdi_bits)
 {
   KernelLayer *layer = container_of(callbacks, KernelLayer, callbacks);
-  if (!limiterHasOneFree(&layer->requestLimiter)) {
+  if (!limiter_has_one_free(&layer->requestLimiter)) {
     return 1;
   }
 
@@ -553,8 +553,8 @@ int makeKernelLayer(uint64_t               startingSector,
   initialize_deadlock_queue(&layer->deadlockQueue);
 
   int requestLimit = defaultMaxRequestsActive;
-  initializeLimiter(&layer->requestLimiter, requestLimit);
-  initializeLimiter(&layer->discardLimiter, requestLimit * 3 / 4);
+  initialize_limiter(&layer->requestLimiter, requestLimit);
+  initialize_limiter(&layer->discardLimiter, requestLimit * 3 / 4);
 
   layer->allocationsAllowed   = true;
   layer->instance             = instance;

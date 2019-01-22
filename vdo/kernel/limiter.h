@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#3 $
  */
 
 #ifndef LIMITER_H
@@ -34,7 +34,7 @@ struct limiter {
   // A spinlock controlling access to the contents of this struct
   spinlock_t        lock;
   // The queue of threads waiting for a resource to become available
-  wait_queue_head_t waiterQueue;
+  wait_queue_head_t waiter_queue;
   // The number of resources in use
   uint32_t          active;
   // The maximum number number of resources that have ever been in use
@@ -50,9 +50,9 @@ struct limiter {
  * @param active   The number of requests in progress
  * @param maximum  The maximum number of requests that have ever been active
  **/
-void getLimiterValuesAtomically(struct limiter *limiter,
-                                uint32_t       *active,
-                                uint32_t       *maximum);
+void get_limiter_values_atomically(struct limiter *limiter,
+                                   uint32_t       *active,
+                                   uint32_t       *maximum);
 
 /**
  * Initialize a limiter structure
@@ -60,7 +60,7 @@ void getLimiterValuesAtomically(struct limiter *limiter,
  * @param limiter  The limiter
  * @param limit    The limit to the number of active resources
  **/
-void initializeLimiter(struct limiter *limiter, uint32_t limit);
+void initialize_limiter(struct limiter *limiter, uint32_t limit);
 
 /**
  * Determine whether there are any active resources
@@ -69,7 +69,7 @@ void initializeLimiter(struct limiter *limiter, uint32_t limit);
  *
  * @return true if there are no active resources
  **/
-bool limiterIsIdle(struct limiter *limiter);
+bool limiter_is_idle(struct limiter *limiter);
 
 /**
  * Determine whether there are any available resources
@@ -78,7 +78,7 @@ bool limiterIsIdle(struct limiter *limiter);
  *
  * @return true if there are any available resources
  **/
-bool limiterHasOneFree(struct limiter *limiter);
+bool limiter_has_one_free(struct limiter *limiter);
 
 /**
  * Release resources, making them available for other uses
@@ -86,7 +86,7 @@ bool limiterHasOneFree(struct limiter *limiter);
  * @param limiter  The limiter
  * @param count    The number of resources to release
  **/
-void limiterReleaseMany(struct limiter *limiter, uint32_t count);
+void limiter_release_many(struct limiter *limiter, uint32_t count);
 
 /**
  * Release one resource, making it available for another use
@@ -95,7 +95,7 @@ void limiterReleaseMany(struct limiter *limiter, uint32_t count);
  **/
 static inline void limiterRelease(struct limiter *limiter)
 {
-  limiterReleaseMany(limiter, 1);
+  limiter_release_many(limiter, 1);
 }
 
 /**
@@ -103,7 +103,7 @@ static inline void limiterRelease(struct limiter *limiter)
  *
  * @param limiter  The limiter
  **/
-void limiterWaitForIdle(struct limiter *limiter);
+void limiter_wait_for_idle(struct limiter *limiter);
 
 /**
  * Prepare to start using one resource, waiting if there are too many resources
@@ -112,7 +112,7 @@ void limiterWaitForIdle(struct limiter *limiter);
  *
  * @param limiter  The limiter
  **/
-void limiterWaitForOneFree(struct limiter *limiter);
+void limiter_wait_for_one_free(struct limiter *limiter);
 
 /**
  * Attempt to reserve one resource, without waiting. After returning from this
@@ -123,6 +123,6 @@ void limiterWaitForOneFree(struct limiter *limiter);
  *
  * @return true iff the resource was allocated
  **/
-bool limiterPoll(struct limiter *limiter);
+bool limiter_poll(struct limiter *limiter);
 
 #endif /* LIMITER_H */

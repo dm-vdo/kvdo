@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#3 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -117,8 +117,9 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
   stats->version        = STATISTICS_VERSION;
   stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
   stats->instance       = layer->instance;
-  getLimiterValuesAtomically(&layer->requestLimiter,
-                             &stats->currentVIOsInProgress, &stats->maxVIOs);
+  get_limiter_values_atomically(&layer->requestLimiter,
+                                &stats->currentVIOsInProgress,
+                                &stats->maxVIOs);
   // albireoTimeoutReport gives the number of timeouts, and dedupeContextBusy
   // gives the number of queries not made because of earlier timeouts.
   stats->dedupeAdviceTimeouts = (getDedupeTimeoutCount(layer->dedupeIndex)
