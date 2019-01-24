@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#2 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -166,9 +166,9 @@ static inline uint64_t getSampleAverage(const SimpleStats *stats)
  * @param  item      The work item enqueued
  * @param  priority  The work item's priority
  **/
-void updateWorkItemStatsForEnqueue(KvdoWorkItemStats *stats,
-                                   KvdoWorkItem      *item,
-                                   int                priority);
+void update_work_item_stats_for_enqueue(KvdoWorkItemStats *stats,
+                                        KvdoWorkItem      *item,
+                                        int                priority);
 
 /**
  * Update all work queue statistics (work-item and otherwise) after enqueueing
@@ -238,7 +238,7 @@ static inline void updateWorkItemStatsForWorkTime(KvdoWorkItemStats *stats,
  * @param buffer        The output buffer
  * @param bufferLength  The size of the output buffer
  **/
-char *getFunctionName(void *pointer, char *buffer, size_t bufferLength);
+char *get_function_name(void *pointer, char *buffer, size_t bufferLength);
 
 /**
  * Dump statistics broken down by work function and priority into the
@@ -246,7 +246,7 @@ char *getFunctionName(void *pointer, char *buffer, size_t bufferLength);
  *
  * @param  stats  The statistics structure
  **/
-void logWorkItemStats(const KvdoWorkItemStats *stats);
+void log_work_item_stats(const KvdoWorkItemStats *stats);
 
 /**
  * Format counters for per-work-function stats for reporting via /sys.
@@ -257,8 +257,8 @@ void logWorkItemStats(const KvdoWorkItemStats *stats);
  *
  * @return  The size of the string actually written
  **/
-size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
-                           char                    *buffer,
-                           size_t                   length);
+size_t format_work_item_stats(const KvdoWorkItemStats *stats,
+                              char                    *buffer,
+                              size_t                   length);
 
 #endif // WORK_ITEM_STATS_H

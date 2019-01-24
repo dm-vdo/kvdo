@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#2 $
  */
 
 #include "workQueueSysfs.h"
@@ -64,8 +64,8 @@ static ssize_t typeShow(const KvdoWorkQueue *queue, char *buf)
 static ssize_t workFunctionsShow(const KvdoWorkQueue *queue, char *buf)
 {
   const SimpleWorkQueue *simpleQueue = asConstSimpleWorkQueue(queue);
-  return formatWorkItemStats(&simpleQueue->stats.workItemStats, buf,
-                             PAGE_SIZE);
+  return format_work_item_stats(&simpleQueue->stats.workItemStats, buf,
+                                PAGE_SIZE);
 }
 
 /**********************************************************************/

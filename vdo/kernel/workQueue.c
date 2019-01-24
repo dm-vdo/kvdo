@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#5 $
  */
 
 #include "workQueue.h"
@@ -1038,7 +1038,7 @@ static void dumpSimpleWorkQueue(SimpleWorkQueue *queue)
           threadStatus,
           taskStateReport);
 
-  logWorkItemStats(&queueData.stats.workItemStats);
+  log_work_item_stats(&queueData.stats.workItemStats);
   logWorkQueueStats(queue);
 
   mutex_unlock(&queueDataLock);
@@ -1067,8 +1067,8 @@ void dumpWorkItemToBuffer(KvdoWorkItem *item, char *buffer, size_t length)
     = snprintf(buffer, length, "%.*s/", TASK_COMM_LEN,
                item->myQueue == NULL ? "-" : item->myQueue->name);
   if (currentLength < length) {
-    getFunctionName(item->statsFunction, buffer + currentLength,
-                    length - currentLength);
+    get_function_name(item->statsFunction, buffer + currentLength,
+                      length - currentLength);
   }
 }
 

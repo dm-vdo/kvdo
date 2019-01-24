@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#2 $
  */
 
 #include "workItemStats.h"
@@ -37,9 +37,9 @@
  *           NUM_WORK_QUEUE_ITEM_STATS if the table is full of
  *           non-matching entries.
  **/
-static inline unsigned int scanStatTable(const KvdoWorkFunctionTable *table,
-                                         KvdoWorkFunction             work,
-                                         unsigned int                 priority)
+static inline unsigned int scan_stat_table(const KvdoWorkFunctionTable *table,
+                                           KvdoWorkFunction             work,
+                                           unsigned int                 priority)
 {
   unsigned int i;
   /*
@@ -70,15 +70,15 @@ static inline unsigned int scanStatTable(const KvdoWorkFunctionTable *table,
  * @return   The index of the matching slot, or NUM_WORK_QUEUE_ITEM_STATS
  *           if the table is full of non-matching entries.
  **/
-static unsigned int getStatTableIndex(KvdoWorkItemStats *stats,
-                                      KvdoWorkFunction   work,
-                                      unsigned int       priority)
+static unsigned int  get_stat_table_index(KvdoWorkItemStats *stats,
+                                          KvdoWorkFunction   work,
+                                          unsigned int       priority)
 {
-  KvdoWorkFunctionTable *functionTable = &stats->functionTable;
+  KvdoWorkFunctionTable *function_table = &stats->functionTable;
 
-  unsigned int index = scanStatTable(functionTable, work, priority);
+  unsigned int index = scan_stat_table(function_table, work, priority);
   if (unlikely(index == NUM_WORK_QUEUE_ITEM_STATS)
-      || likely(functionTable->functions[index] != NULL)) {
+      || likely(function_table->functions[index] != NULL)) {
     return index;
   }
 
@@ -86,12 +86,12 @@ static unsigned int getStatTableIndex(KvdoWorkItemStats *stats,
   // The delayed-work-item processing uses queue->lock in some cases,
   // and one case may call into this function, so we can't reuse
   // queue->lock here.
-  spin_lock_irqsave(&functionTable->lock, flags);
+  spin_lock_irqsave(&function_table->lock, flags);
   // Recheck now that we've got the lock...
-  index = scanStatTable(functionTable, work, priority);
+  index = scan_stat_table(function_table, work, priority);
   if ((index == NUM_WORK_QUEUE_ITEM_STATS)
-      || (functionTable->functions[index] != NULL)) {
-    spin_unlock_irqrestore(&functionTable->lock, flags);
+      || (function_table->functions[index] != NULL)) {
+    spin_unlock_irqrestore(&function_table->lock, flags);
     return index;
   }
 
@@ -102,10 +102,10 @@ static unsigned int getStatTableIndex(KvdoWorkItemStats *stats,
    * filling in the value. (And, to make this work, we have to read
    * the work function first and priority second, when comparing.)
    */
-  functionTable->priorities[index] = priority;
+  function_table->priorities[index] = priority;
   smp_wmb();
-  functionTable->functions[index] = work;
-  spin_unlock_irqrestore(&functionTable->lock, flags);
+  function_table->functions[index] = work;
+  spin_unlock_irqrestore(&function_table->lock, flags);
   return index;
 }
 
@@ -113,17 +113,17 @@ static unsigned int getStatTableIndex(KvdoWorkItemStats *stats,
  * Get counters on work items, identified by index into the internal
  * array.
  *
- * @param [in]  stats         The collected statistics
- * @param [in]  index         The index
- * @param [out] enqueuedPtr   The total work items enqueued
- * @param [out] processedPtr  The number of work items processed
- * @param [out] pendingPtr    The number of work items still pending
+ * @param [in]  stats          The collected statistics
+ * @param [in]  index          The index
+ * @param [out] enqueued_ptr   The total work items enqueued
+ * @param [out] processed_ptr  The number of work items processed
+ * @param [out] pending_ptr    The number of work items still pending
  **/
-static void getWorkItemCountsByItem(const KvdoWorkItemStats *stats,
-                                    unsigned int             index,
-                                    uint64_t                *enqueuedPtr,
-                                    uint64_t                *processedPtr,
-                                    unsigned int            *pendingPtr)
+static void get_work_item_counts_by_item(const KvdoWorkItemStats *stats,
+                                         unsigned int             index,
+                                         uint64_t                *enqueued_ptr,
+                                         uint64_t                *processed_ptr,
+                                         unsigned int            *pending_ptr)
 {
   uint64_t enqueued  = atomic64_read(&stats->enqueued[index]);
   uint64_t processed = stats->times[index].count;
@@ -138,25 +138,25 @@ static void getWorkItemCountsByItem(const KvdoWorkItemStats *stats,
       pending = UINT_MAX;
     }
   }
-  *enqueuedPtr  = enqueued;
-  *processedPtr = processed;
-  *pendingPtr   = pending;
+  *enqueued_ptr  = enqueued;
+  *processed_ptr = processed;
+  *pending_ptr   = pending;
 }
 
 /**
  * Get counters on work items not covered by any index value.
  *
  * @param [in]  stats         The collected statistics
- * @param [out] enqueuedPtr   The total work items enqueued
- * @param [out] processedPtr  The number of work items processed
+ * @param [out] enqueued_ptr   The total work items enqueued
+ * @param [out] processed_ptr  The number of work items processed
  **/
 static void getOtherWorkItemCounts(const KvdoWorkItemStats *stats,
-                                   uint64_t                *enqueuedPtr,
-                                   uint64_t                *processedPtr)
+                                   uint64_t                *enqueued_ptr,
+                                   uint64_t                *processed_ptr)
 {
   unsigned int pending;
-  getWorkItemCountsByItem(stats, NUM_WORK_QUEUE_ITEM_STATS,
-                          enqueuedPtr, processedPtr, &pending);
+  get_work_item_counts_by_item(stats, NUM_WORK_QUEUE_ITEM_STATS,
+                               enqueued_ptr, processed_ptr, &pending);
 }
 
 /**
@@ -169,11 +169,11 @@ static void getOtherWorkItemCounts(const KvdoWorkItemStats *stats,
  * @param [out] mean   The mean execution time
  * @param [out] max    The maximum execution time
  **/
-static void getWorkItemTimesByItem(const KvdoWorkItemStats *stats,
-                                   unsigned int             index,
-                                   uint64_t                *min,
-                                   uint64_t                *mean,
-                                   uint64_t                *max)
+static void get_work_item_times_by_item(const KvdoWorkItemStats *stats,
+                                        unsigned int             index,
+                                        uint64_t                *min,
+                                        uint64_t                *mean,
+                                        uint64_t                *max)
 {
   *min  = stats->times[index].min;
   *mean = getSampleAverage(&stats->times[index]);
@@ -181,17 +181,17 @@ static void getWorkItemTimesByItem(const KvdoWorkItemStats *stats,
 }
 
 /**********************************************************************/
-void updateWorkItemStatsForEnqueue(KvdoWorkItemStats *stats,
-                                   KvdoWorkItem      *item,
-                                   int                priority)
+void update_work_item_stats_for_enqueue(KvdoWorkItemStats *stats,
+                                        KvdoWorkItem      *item,
+                                        int                priority)
 {
-  item->statTableIndex = getStatTableIndex(stats, item->statsFunction,
-                                           priority);
+  item->statTableIndex = get_stat_table_index(stats, item->statsFunction,
+                                              priority);
   atomic64_add(1, &stats->enqueued[item->statTableIndex]);
 }
 
 /**********************************************************************/
-char *getFunctionName(void *pointer, char *buffer, size_t bufferLength)
+char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 {
   if (pointer == NULL) {
     /*
@@ -199,7 +199,7 @@ char *getFunctionName(void *pointer, char *buffer, size_t bufferLength)
      * leading spaces. We sometimes use this when logging lots of
      * data; don't be so verbose.
      */
-    strncpy(buffer, "-", bufferLength);
+    strncpy(buffer, "-", buffer_length);
   } else {
     /*
      * Use a non-const array instead of a string literal below to
@@ -208,9 +208,9 @@ char *getFunctionName(void *pointer, char *buffer, size_t bufferLength)
      * code.
      */
     static char truncatedFunctionNameFormatString[] = "%.*ps";
-    snprintf(buffer, bufferLength,
+    snprintf(buffer, buffer_length,
              truncatedFunctionNameFormatString,
-             bufferLength - 1,
+             buffer_length - 1,
              pointer);
 
     char *space = strchr(buffer, ' ');
@@ -223,17 +223,17 @@ char *getFunctionName(void *pointer, char *buffer, size_t bufferLength)
 }
 
 /**********************************************************************/
-size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
-                           char                    *buffer,
-                           size_t                   length)
+size_t format_work_item_stats(const KvdoWorkItemStats *stats,
+                              char                    *buffer,
+                              size_t                   length)
 {
-  const KvdoWorkFunctionTable *functionIDs = &stats->functionTable;
-  size_t currentOffset = 0;
+  const KvdoWorkFunctionTable *function_ids = &stats->functionTable;
+  size_t current_offset = 0;
 
   uint64_t enqueued, processed;
   int i;
   for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
-    if (functionIDs->functions[i] == NULL) {
+    if (function_ids->functions[i] == NULL) {
       break;
     }
     if (atomic64_read(&stats->enqueued[i]) == 0) {
@@ -248,60 +248,60 @@ size_t formatWorkItemStats(const KvdoWorkItemStats *stats,
      * we'll go ahead and print the not-necessarily-redundant values.
      */
     unsigned int pending;
-    getWorkItemCountsByItem(stats, i, &enqueued, &processed, &pending);
+    get_work_item_counts_by_item(stats, i, &enqueued, &processed, &pending);
 
     // Format: fn prio enq proc timeo [ min max mean ]
     if (ENABLE_PER_FUNCTION_TIMING_STATS) {
       uint64_t min, mean, max;
-      getWorkItemTimesByItem(stats, i, &min, &mean, &max);
-      currentOffset += snprintf(buffer + currentOffset,
-                                length - currentOffset,
-                                "%-36ps %d %10llu %10" PRIu64
-                                " %10llu %10llu %10" PRIu64
-                                "\n",
-                                functionIDs->functions[i],
-                                functionIDs->priorities[i],
-                                enqueued, processed,
-                                min, max, mean);
+      get_work_item_times_by_item(stats, i, &min, &mean, &max);
+      current_offset += snprintf(buffer + current_offset,
+                                 length - current_offset,
+                                 "%-36ps %d %10llu %10" PRIu64
+                                 " %10llu %10llu %10" PRIu64
+                                 "\n",
+                                 function_ids->functions[i],
+                                 function_ids->priorities[i],
+                                 enqueued, processed,
+                                 min, max, mean);
     } else {
-      currentOffset += snprintf(buffer + currentOffset,
-                                length - currentOffset,
-                                "%-36ps %d %10llu %10" PRIu64
-                                "\n",
-                                functionIDs->functions[i],
-                                functionIDs->priorities[i],
-                                enqueued, processed);
+      current_offset += snprintf(buffer + current_offset,
+                                 length - current_offset,
+                                 "%-36ps %d %10llu %10" PRIu64
+                                 "\n",
+                                 function_ids->functions[i],
+                                 function_ids->priorities[i],
+                                 enqueued, processed);
     }
-    if (currentOffset >= length) {
+    if (current_offset >= length) {
       break;
     }
   }
-  if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (currentOffset < length)) {
+  if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (current_offset < length)) {
     uint64_t enqueued, processed;
     getOtherWorkItemCounts(stats, &enqueued, &processed);
     if (enqueued > 0) {
-      currentOffset += snprintf(buffer + currentOffset,
-                                length - currentOffset,
-                                "%-36s %d %10llu %10" PRIu64
-                                "\n",
-                                "OTHER", 0,
-                                enqueued, processed);
+      current_offset += snprintf(buffer + current_offset,
+                                 length - current_offset,
+                                 "%-36s %d %10llu %10" PRIu64
+                                 "\n",
+                                 "OTHER", 0,
+                                 enqueued, processed);
     }
   }
-  return currentOffset;
+  return current_offset;
 }
 
 /**********************************************************************/
-void logWorkItemStats(const KvdoWorkItemStats *stats)
+void log_work_item_stats(const KvdoWorkItemStats *stats)
 {
-  uint64_t totalEnqueued = 0;
-  uint64_t totalProcessed = 0;
+  uint64_t total_enqueued = 0;
+  uint64_t total_processed = 0;
 
-  const KvdoWorkFunctionTable *functionIDs = &stats->functionTable;
+  const KvdoWorkFunctionTable *function_ids = &stats->functionTable;
 
   int i;
   for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
-    if (functionIDs->functions[i] == NULL) {
+    if (function_ids->functions[i] == NULL) {
       break;
     }
     if (atomic64_read(&stats->enqueued[i]) == 0) {
@@ -317,28 +317,28 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
      */
     uint64_t enqueued, processed;
     unsigned int pending;
-    getWorkItemCountsByItem(stats, i, &enqueued, &processed, &pending);
-    totalEnqueued  += enqueued;
-    totalProcessed += processed;
+    get_work_item_counts_by_item(stats, i, &enqueued, &processed, &pending);
+    total_enqueued  += enqueued;
+    total_processed += processed;
 
     static char work[256]; // arbitrary size
-    getFunctionName(functionIDs->functions[i], work, sizeof(work));
+    get_function_name(function_ids->functions[i], work, sizeof(work));
 
     if (ENABLE_PER_FUNCTION_TIMING_STATS) {
       uint64_t min, mean, max;
-      getWorkItemTimesByItem(stats, i, &min, &mean, &max);
+      get_work_item_times_by_item(stats, i, &min, &mean, &max);
       logInfo("  priority %d: %u pending"
               " %llu enqueued %llu processed"
               " %s"
               " times %llu/%llu/%lluns",
-              functionIDs->priorities[i],
+              function_ids->priorities[i],
               pending, enqueued, processed, work,
               min, mean, max);
     } else {
       logInfo("  priority %d: %u pending"
               " %llu enqueued %llu processed"
               " %s",
-              functionIDs->priorities[i],
+              function_ids->priorities[i],
               pending, enqueued, processed, work);
     }
   }
@@ -346,12 +346,12 @@ void logWorkItemStats(const KvdoWorkItemStats *stats)
     uint64_t enqueued, processed;
     getOtherWorkItemCounts(stats, &enqueued, &processed);
     if (enqueued > 0) {
-      totalEnqueued  += enqueued;
-      totalProcessed += processed;
+      total_enqueued  += enqueued;
+      total_processed += processed;
       logInfo("  ... others: %llu enqueued %llu processed",
               enqueued, processed);
     }
   }
   logInfo("  total: %llu enqueued %llu processed",
-          totalEnqueued, totalProcessed);
+          total_enqueued, total_processed);
 }
