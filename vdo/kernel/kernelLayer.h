@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#10 $
  */
 
 #ifndef KERNELLAYER_H
@@ -471,7 +471,7 @@ void waitForNoRequestsActive(KernelLayer *layer);
  */
 static inline void enqueueCPUWorkQueue(KernelLayer *layer, KvdoWorkItem *item)
 {
-  enqueueWorkQueue(layer->cpuQueue, item);
+  enqueue_work_queue(layer->cpuQueue, item);
 }
 
 /**

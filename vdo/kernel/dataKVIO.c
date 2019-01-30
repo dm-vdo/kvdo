@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#20 $
  */
 
 #include "dataKVIO.h"
@@ -596,7 +596,7 @@ static void kvdoCompressWork(KvdoWorkItem *item)
   DataKVIO    *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
-  char *context = getWorkQueuePrivateData();
+  char *context = get_work_queue_private_data();
   int size = LZ4_compress_ctx_limitedOutput(context, dataKVIO->dataBlock,
                                             dataKVIO->scratchBlock,
                                             VDO_BLOCK_SIZE,
@@ -1171,8 +1171,9 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
    * in some circumstances syslogd may have trouble keeping up, so
    * keep it BRIEF rather than user-friendly.
    */
-  dumpWorkItemToBuffer(&dataKVIO->kvio.enqueueable.workItem,
-                       vioWorkItemDumpBuffer, sizeof(vioWorkItemDumpBuffer));
+  dump_work_item_to_buffer(&dataKVIO->kvio.enqueueable.workItem,
+                           vioWorkItemDumpBuffer,
+                           sizeof(vioWorkItemDumpBuffer));
   // Another static buffer...
   // log10(256) = 2.408+, round up:
   enum { DECIMAL_DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t)) };

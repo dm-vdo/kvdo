@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#4 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -46,7 +46,7 @@ struct kvdoWorkItem {
   /** An index into the statistics table; filled in by workQueueStats code */
   unsigned int      statTableIndex;
   /**
-   * The action code given to setupWorkItem, from which a priority will be
+   * The action code given to setup_work_item, from which a priority will be
    * determined.
    **/
   unsigned int      action;
@@ -68,7 +68,7 @@ struct kvdoWorkItem {
  *
  * Actions are intended to distinguish general classes of activity for
  * prioritization purposes, but not necessarily to indicate specific work
- * functions. They are indicated to setupWorkItem numerically, using an
+ * functions. They are indicated to setup_work_item numerically, using an
  * enumerator defined per kind of work queue -- bio submission work queue
  * actions use BioQAction, cpu actions use CPUQAction, etc. For example, for
  * the CPU work queues, data compression can be prioritized separately from
@@ -136,52 +136,53 @@ typedef struct kvdoWorkQueueType {
  * If multiple threads are requested, work items will be distributed to them in
  * round-robin fashion.
  *
- * @param [in]  threadNamePrefix The per-device prefix to use in thread names
- * @param [in]  name             The queue name
- * @param [in]  parentKobject    The parent sysfs node
- * @param [in]  owner            The kernel layer owning the work queue
- * @param [in]  private          Private data of the queue for use by work
- *                               items or other queue-specific functions
- * @param [in]  threadPrivates   If non-NULL, an array of separate private
- *                               data pointers, one for each service thread,
- *                               to use instead of sharing 'private'
- * @param [in]  type             The work queue type defining the lifecycle
- *                               functions, queue actions, priorities, and
- *                               timeout behavior
- * @param [in]  threadCount      Number of service threads to set up
- * @param [out] queuePtr         Where to store the queue handle
+ * @param [in]  thread_name_prefix The per-device prefix to use in thread
+ *                                 names
+ * @param [in]  name               The queue name
+ * @param [in]  parent_kobject     The parent sysfs node
+ * @param [in]  owner              The kernel layer owning the work queue
+ * @param [in]  private            Private data of the queue for use by work
+ *                                 items or other queue-specific functions
+ * @param [in]  thread_privates    If non-NULL, an array of separate private
+ *                                 data pointers, one for each service thread,
+ *                                 to use instead of sharing 'private'
+ * @param [in]  type               The work queue type defining the lifecycle
+ *                                 functions, queue actions, priorities, and
+ *                                 timeout behavior
+ * @param [in]  thread_count       Number of service threads to set up
+ * @param [out] queue_ptr          Where to store the queue handle
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeWorkQueue(const char               *threadNamePrefix,
-                  const char               *name,
-                  struct kobject           *parentKobject,
-                  KernelLayer              *owner,
-                  void                     *private,
-                  const KvdoWorkQueueType  *type,
-                  unsigned int              threadCount,
-                  void                     *threadPrivates[],
-                  KvdoWorkQueue           **queuePtr);
+int make_work_queue(const char               *thread_name_prefix,
+                    const char               *name,
+                    struct kobject           *parent_kobject,
+                    KernelLayer              *owner,
+                    void                     *private,
+                    const KvdoWorkQueueType  *type,
+                    unsigned int              thread_count,
+                    void                     *thread_privates[],
+                    KvdoWorkQueue           **queue_ptr);
 
 /**
  * Set up the fields of a work queue item.
  *
- * Before the first setup call (setupWorkItem or setupWorkItemWithTimeout), the
- * work item must have been initialized to all-zero. Resetting a
- * previously-used work item does not require another memset.
+ * Before the first setup call (setup_work_item), the work item must
+ * have been initialized to all-zero. Resetting a previously-used work
+ * item does not require another memset.
  *
  * The action code is typically defined in a work-queue-type-specific
  * enumeration; see the description of KvdoWorkQueueAction.
  *
- * @param item           The work item to initialize
- * @param work           The function pointer to execute
- * @param statsFunction  A function pointer to record for stats, or NULL
- * @param action         Action code, for determination of priority
+ * @param item            The work item to initialize
+ * @param work            The function pointer to execute
+ * @param stats_function  A function pointer to record for stats, or NULL
+ * @param action          Action code, for determination of priority
  **/
-void setupWorkItem(KvdoWorkItem     *item,
-                   KvdoWorkFunction  work,
-                   void             *statsFunction,
-                   unsigned int      action);
+void setup_work_item(KvdoWorkItem     *item,
+                     KvdoWorkFunction  work,
+                     void             *stats_function,
+                     unsigned int      action);
 
 /**
  * Add a work item to a work queue.
@@ -192,7 +193,7 @@ void setupWorkItem(KvdoWorkItem     *item,
  * @param queue      The queue handle
  * @param item       The work item to be processed
  **/
-void enqueueWorkQueue(KvdoWorkQueue *queue, KvdoWorkItem *item);
+void enqueue_work_queue(KvdoWorkQueue *queue, KvdoWorkItem *item);
 
 /**
  * Add a work item to a work queue, to be run at a later point in time.
@@ -203,13 +204,13 @@ void enqueueWorkQueue(KvdoWorkQueue *queue, KvdoWorkItem *item);
  * work items should work, but they will execute in the order they were
  * enqueued.
  *
- * @param queue           The queue handle
- * @param item            The work item to be processed
- * @param executionTime   When to run the work item (jiffies)
+ * @param queue            The queue handle
+ * @param item             The work item to be processed
+ * @param execution_time   When to run the work item (jiffies)
  **/
-void enqueueWorkQueueDelayed(KvdoWorkQueue *queue,
-                             KvdoWorkItem  *item,
-                             Jiffies        executionTime);
+void enqueue_work_queue_delayed(KvdoWorkQueue *queue,
+                                KvdoWorkItem  *item,
+                                Jiffies        execution_time);
 
 /**
  * Shut down a work queue's worker thread.
@@ -224,21 +225,21 @@ void enqueueWorkQueueDelayed(KvdoWorkQueue *queue,
  *
  * @param queue  The work queue to shut down
  **/
-void finishWorkQueue(KvdoWorkQueue *queue);
+void finish_work_queue(KvdoWorkQueue *queue);
 
 /**
  * Free a work queue and null out the reference to it.
  *
- * @param queuePtr  Where the queue handle is found
+ * @param queue_ptr  Where the queue handle is found
  **/
-void freeWorkQueue(KvdoWorkQueue **queuePtr);
+void free_work_queue(KvdoWorkQueue **queue_ptr);
 
 /**
  * Print work queue state and statistics to the kernel log.
  *
  * @param queue  The work queue to examine
  **/
-void dumpWorkQueue(KvdoWorkQueue *queue);
+void dump_work_queue(KvdoWorkQueue *queue);
 
 /**
  * Write to the buffer some info about the work item, for logging.
@@ -249,13 +250,13 @@ void dumpWorkQueue(KvdoWorkQueue *queue);
  * @param buffer  The message buffer to fill in
  * @param length  The length of the message buffer
  **/
-void dumpWorkItemToBuffer(KvdoWorkItem *item, char *buffer, size_t length);
+void dump_work_item_to_buffer(KvdoWorkItem *item, char *buffer, size_t length);
 
 
 /**
  * Initialize work queue internals at module load time.
  **/
-void initWorkQueueOnce(void);
+void init_work_queue_once(void);
 
 /**
  * Checks whether two work items have the same action codes
@@ -277,14 +278,14 @@ static inline bool areWorkItemActionsEqual(KvdoWorkItem *item1,
  * @return  The private data pointer, or NULL if none or if the current
  *          thread is not a work queue thread.
  **/
-void *getWorkQueuePrivateData(void);
+void *get_work_queue_private_data(void);
 
 /**
  * Returns the work queue pointer for the current thread, if any.
  *
  * @return   The work queue pointer or NULL
  **/
-KvdoWorkQueue *getCurrentWorkQueue(void);
+KvdoWorkQueue *get_current_work_queue(void);
 
 /**
  * Returns the kernel layer that owns the work queue.
@@ -293,6 +294,6 @@ KvdoWorkQueue *getCurrentWorkQueue(void);
  *
  * @return   The owner pointer supplied at work queue creation
  **/
-KernelLayer *getWorkQueueOwner(KvdoWorkQueue *queue);
+KernelLayer *get_work_queue_owner(KvdoWorkQueue *queue);
 
 #endif /* ALBIREO_WORK_QUEUE_H */

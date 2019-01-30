@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#6 $
  */
 
 #include "kvdoFlush.h"
@@ -93,8 +93,8 @@ static void initialize_kvdo_flush(KVDOFlush *kvdo_flush, KernelLayer *layer)
 /**********************************************************************/
 static void enqueue_kvdo_flush(KVDOFlush *kvdo_flush)
 {
-  setupWorkItem(&kvdo_flush->work_item, kvdo_flush_work, NULL,
-                REQ_Q_ACTION_FLUSH);
+  setup_work_item(&kvdo_flush->work_item, kvdo_flush_work, NULL,
+                  REQ_Q_ACTION_FLUSH);
   KVDO *kvdo = &kvdo_flush->layer->kvdo;
   enqueueKVDOWork(kvdo, &kvdo_flush->work_item,
                   getPackerZoneThread(getThreadConfig(kvdo->vdo)));
@@ -213,8 +213,8 @@ void kvdo_complete_flush(VDOFlush **kfp)
 {
   if (*kfp != NULL) {
     KVDOFlush *kvdo_flush = container_of(*kfp, KVDOFlush, vdo_flush);
-    setupWorkItem(&kvdo_flush->work_item, kvdo_complete_flush_work, NULL,
-                  BIO_Q_ACTION_FLUSH);
+    setup_work_item(&kvdo_flush->work_item, kvdo_complete_flush_work, NULL,
+                    BIO_Q_ACTION_FLUSH);
     enqueueBioWorkItem(kvdo_flush->layer->ioSubmitter,
                        &kvdo_flush->work_item);
     *kfp = NULL;

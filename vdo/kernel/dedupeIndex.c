@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#8 $
  */
 
 #include "dedupeIndex.h"
@@ -360,8 +360,8 @@ static void initPeriodicEventReporter(PeriodicEventReporter *reporter,
                                       unsigned long          reportingInterval,
                                       KernelLayer           *layer)
 {
-  setupWorkItem(&reporter->workItem, reportEventsWork, NULL,
-                CPU_Q_ACTION_EVENT_REPORTER);
+  setup_work_item(&reporter->workItem, reportEventsWork, NULL,
+                  CPU_Q_ACTION_EVENT_REPORTER);
   reporter->format            = format;
   reporter->reportingInterval = msecs_to_jiffies(reportingInterval);
   reporter->layer             = layer;
@@ -381,9 +381,9 @@ static void reportDedupeTimeout(PeriodicEventReporter *reporter)
   atomic64_inc(&reporter->value);
   int oldWorkItemQueued = atomic_xchg(&reporter->workItemQueued, 1);
   if (oldWorkItemQueued == 0) {
-    enqueueWorkQueueDelayed(reporter->layer->cpuQueue,
-                            &reporter->workItem,
-                            jiffies + reporter->reportingInterval);
+    enqueue_work_queue_delayed(reporter->layer->cpuQueue,
+                               &reporter->workItem,
+                               jiffies + reporter->reportingInterval);
   }
 }
 
@@ -458,12 +458,12 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
       encodeUDSAdvice(udsRequest, getDedupeAdvice(dedupeContext));
     }
 
-    setupWorkItem(&kvio->enqueueable.workItem, startIndexOperation, NULL,
-                  UDS_Q_ACTION);
+    setup_work_item(&kvio->enqueueable.workItem, startIndexOperation, NULL,
+                    UDS_Q_ACTION);
 
     spin_lock(&index->stateLock);
     if (index->deduping) {
-      enqueueWorkQueue(index->udsQueue, &kvio->enqueueable.workItem);
+      enqueue_work_queue(index->udsQueue, &kvio->enqueueable.workItem);
       unsigned int active = atomic_inc_return(&index->active);
       if (active > index->maximum) {
         index->maximum = active;
@@ -670,8 +670,8 @@ static void setTargetState(DedupeIndex *index,
     index->indexTarget = target;
     index->changing = true;
     index->deduping = false;
-    setupWorkItem(&index->workItem, changeDedupeState, NULL, UDS_Q_ACTION);
-    enqueueWorkQueue(index->udsQueue, &index->workItem);
+    setup_work_item(&index->workItem, changeDedupeState, NULL, UDS_Q_ACTION);
+    enqueue_work_queue(index->udsQueue, &index->workItem);
   } else {
     // Online vs. offline changes happen immediately
     index->deduping = index->dedupeFlag && (index->indexState == IS_OPENED);
@@ -699,7 +699,7 @@ void dumpDedupeIndex(DedupeIndex *index, bool showQueue)
     logInfo("UDS index: changing to state: %s", target);
   }
   if (showQueue) {
-    dumpWorkQueue(index->udsQueue);
+    dump_work_queue(index->udsQueue);
   }
 }
 
@@ -708,7 +708,7 @@ void finishDedupeIndex(DedupeIndex *index)
 {
   setTargetState(index, IS_CLOSED, false, false, false);
   udsFreeConfiguration(index->configuration);
-  finishWorkQueue(index->udsQueue);
+  finish_work_queue(index->udsQueue);
 }
 
 /*****************************************************************************/
@@ -720,7 +720,7 @@ void freeDedupeIndex(DedupeIndex **indexPtr)
   DedupeIndex *index = *indexPtr;
   *indexPtr = NULL;
 
-  freeWorkQueue(&index->udsQueue);
+  free_work_queue(&index->udsQueue);
   stopPeriodicEventReporter(&index->timeoutReporter);
   spin_lock_bh(&index->pendingLock);
   if (index->startedTimer) {
@@ -930,10 +930,10 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
       { .name = "uds_action", .code = UDS_Q_ACTION, .priority = 0 },
     },
   };
-  result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
-                         &layer->wqDirectory, layer, index,
-                         &udsQueueType, 1, NULL,
-                         &index->udsQueue);
+  result = make_work_queue(layer->threadNamePrefix, "dedupeQ",
+                           &layer->wqDirectory, layer, index,
+                           &udsQueueType, 1, NULL,
+                           &index->udsQueue);
   if (result != VDO_SUCCESS) {
     logError("UDS index queue initialization failed (%d)", result);
     udsFreeConfiguration(index->configuration);
@@ -945,7 +945,7 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
   kobject_init(&index->dedupeObject, &dedupeKobjType);
   result = kobject_add(&index->dedupeObject, &layer->kobj, "dedupe");
   if (result != VDO_SUCCESS) {
-    freeWorkQueue(&index->udsQueue);
+    free_work_queue(&index->udsQueue);
     udsFreeConfiguration(index->configuration);
     FREE(index->indexName);
     FREE(index);

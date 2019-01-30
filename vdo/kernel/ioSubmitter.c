@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#11 $
  */
 
 #include "ioSubmitter.h"
@@ -142,10 +142,10 @@ static void assertRunningInBioQueue(void)
 static inline struct bio_queue_data *getCurrentBioQueueData(void)
 {
   struct bio_queue_data *bioQueueData
-    = (struct bio_queue_data *) getWorkQueuePrivateData();
+    = (struct bio_queue_data *) get_work_queue_private_data();
   // Does it look like a bio queue thread?
   BUG_ON(bioQueueData == NULL);
-  BUG_ON(bioQueueData->queue != getCurrentWorkQueue());
+  BUG_ON(bioQueueData->queue != get_current_work_queue());
   return bioQueueData;
 }
 
@@ -325,7 +325,7 @@ static void processBioMap(KvdoWorkItem *item)
     // 1. Use each bio's kvio when submitting. Any other kvio is not safe
     // 2. Detach the bio list from the kvio before submitting, because it
     //    could get reused/free'd up before all bios are submitted.
-    struct bio_queue_data *bioQueueData = getWorkQueuePrivateData();
+    struct bio_queue_data *bioQueueData = get_work_queue_private_data();
     struct bio   *bio                   = NULL;
     mutex_lock(&bioQueueData->lock);
     if (!bio_list_empty(&kvio->biosMerged)) {
@@ -558,9 +558,9 @@ static int initializeBioQueue(struct bio_queue_data *bioQueueData,
 #endif
   bioQueueData->queueNumber = queueNumber;
 
-  return makeWorkQueue(threadNamePrefix, queueName, &layer->wqDirectory,
-                       layer, bioQueueData, &bioQueueType, 1, NULL,
-                       &bioQueueData->queue);
+  return make_work_queue(threadNamePrefix, queueName, &layer->wqDirectory,
+                         layer, bioQueueData, &bioQueueType, 1, NULL,
+                         &bioQueueData->queue);
 }
 
 /**********************************************************************/
@@ -639,7 +639,7 @@ int makeIOSubmitter(const char    *threadNamePrefix,
 void cleanupIOSubmitter(IOSubmitter *ioSubmitter)
 {
   for (int i=ioSubmitter->numBioQueuesUsed - 1; i >= 0; i--) {
-    finishWorkQueue(ioSubmitter->bioQueueData[i].queue);
+    finish_work_queue(ioSubmitter->bioQueueData[i].queue);
   }
 }
 
@@ -648,7 +648,7 @@ void freeIOSubmitter(IOSubmitter *ioSubmitter)
 {
   for (int i = ioSubmitter->numBioQueuesUsed - 1; i >= 0; i--) {
     ioSubmitter->numBioQueuesUsed--;
-    freeWorkQueue(&ioSubmitter->bioQueueData[i].queue);
+    free_work_queue(&ioSubmitter->bioQueueData[i].queue);
     if (USE_BIOMAP) {
       freeIntMap(&ioSubmitter->bioQueueData[i].map);
     }
@@ -660,7 +660,7 @@ void freeIOSubmitter(IOSubmitter *ioSubmitter)
 void dumpBioWorkQueue(IOSubmitter *ioSubmitter)
 {
   for (int i=0; i < ioSubmitter->numBioQueuesUsed; i++) {
-    dumpWorkQueue(ioSubmitter->bioQueueData[i].queue);
+    dump_work_queue(ioSubmitter->bioQueueData[i].queue);
   }
 }
 
@@ -669,6 +669,6 @@ void dumpBioWorkQueue(IOSubmitter *ioSubmitter)
 void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem)
 {
   unsigned int bioQueueIndex = advanceBioRotor(ioSubmitter);
-  enqueueWorkQueue(ioSubmitter->bioQueueData[bioQueueIndex].queue,
-                   workItem);
+  enqueue_work_queue(ioSubmitter->bioQueueData[bioQueueIndex].queue,
+                     workItem);
 }

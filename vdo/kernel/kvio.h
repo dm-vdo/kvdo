@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#8 $
  */
 
 #ifndef KVIO_H
@@ -174,7 +174,7 @@ static inline KVIO *workItemAsKVIO(KvdoWorkItem *item)
  **/
 static inline void enqueueKVIOWork(KvdoWorkQueue *queue, KVIO *kvio)
 {
-  enqueueWorkQueue(queue, &kvio->enqueueable.workItem);
+  enqueue_work_queue(queue, &kvio->enqueueable.workItem);
 }
 
 /**
@@ -201,7 +201,7 @@ static inline void setupKVIOWork(KVIO             *kvio,
                                  void             *statsFunction,
                                  unsigned int      action)
 {
-  setupWorkItem(&kvio->enqueueable.workItem, work, statsFunction, action);
+  setup_work_item(&kvio->enqueueable.workItem, work, statsFunction, action);
 }
 
 /**

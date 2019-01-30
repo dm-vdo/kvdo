@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#34 $
  */
 
 #include "kernelLayer.h"
@@ -260,9 +260,9 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
     return -EIO;
   }
 
-  KvdoWorkQueue *currentWorkQueue = getCurrentWorkQueue();
+  KvdoWorkQueue *currentWorkQueue = get_current_work_queue();
   if ((currentWorkQueue != NULL)
-      && (layer == getWorkQueueOwner(currentWorkQueue))) {
+      && (layer == get_work_queue_owner(currentWorkQueue))) {
     /*
      * This prohibits sleeping during I/O submission to VDO from its own
      * thread.
@@ -719,10 +719,10 @@ int makeKernelLayer(uint64_t               startingSector,
 
   // Bio ack queue
   if (useBioAckQueue(layer)) {
-    result = makeWorkQueue(layer->threadNamePrefix, "ackQ",
-                           &layer->wqDirectory, layer, layer, &bioAckQType,
-                           config->threadCounts.bioAckThreads, NULL,
-                           &layer->bioAckQueue);
+    result = make_work_queue(layer->threadNamePrefix, "ackQ",
+                             &layer->wqDirectory, layer, layer, &bioAckQType,
+                             config->threadCounts.bioAckThreads, NULL,
+                             &layer->bioAckQueue);
     if (result != VDO_SUCCESS) {
       *reason = "bio ack queue initialization failed";
       freeKernelLayer(layer);
@@ -733,11 +733,12 @@ int makeKernelLayer(uint64_t               startingSector,
   setKernelLayerState(layer, LAYER_BIO_ACK_QUEUE_INITIALIZED);
 
   // CPU Queues
-  result = makeWorkQueue(layer->threadNamePrefix, "cpuQ", &layer->wqDirectory,
-                         layer, layer, &cpuQType,
-                         config->threadCounts.cpuThreads,
-                         (void **) layer->compressionContext,
-                         &layer->cpuQueue);
+  result = make_work_queue(layer->threadNamePrefix, "cpuQ",
+                           &layer->wqDirectory,
+                           layer, layer, &cpuQType,
+                           config->threadCounts.cpuThreads,
+                           (void **) layer->compressionContext,
+                           &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
     *reason = "CPU queue initialization failed";
     freeKernelLayer(layer);
@@ -892,14 +893,14 @@ void freeKernelLayer(KernelLayer *layer)
 
   case LAYER_STOPPED:
   case LAYER_CPU_QUEUE_INITIALIZED:
-    finishWorkQueue(layer->cpuQueue);
+    finish_work_queue(layer->cpuQueue);
     usedCpuQueue = true;
     releaseInstance = true;
     // fall through
 
   case LAYER_BIO_ACK_QUEUE_INITIALIZED:
     if (useBioAckQueue(layer)) {
-      finishWorkQueue(layer->bioAckQueue);
+      finish_work_queue(layer->bioAckQueue);
       usedBioAckQueue = true;
     }
     // fall through
@@ -940,10 +941,10 @@ void freeKernelLayer(KernelLayer *layer)
 
   // Late deallocation of resources in work queues.
   if (usedCpuQueue) {
-    freeWorkQueue(&layer->cpuQueue);
+    free_work_queue(&layer->cpuQueue);
   }
   if (usedBioAckQueue) {
-    freeWorkQueue(&layer->bioAckQueue);
+    free_work_queue(&layer->bioAckQueue);
   }
   if (layer->ioSubmitter) {
     freeIOSubmitter(layer->ioSubmitter);

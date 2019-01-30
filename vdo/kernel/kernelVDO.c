@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#11 $
  */
 
 #include "kernelVDOInternals.h"
@@ -106,17 +106,17 @@ int initializeKVDO(KVDO                *kvdo,
     // Copy only LEN - 1 bytes and ensure NULL termination.
     getVDOThreadName(threadConfig, kvdo->initializedThreadCount,
                      queueName, sizeof(queueName));
-    int result = makeWorkQueue(layer->threadNamePrefix, queueName,
-                               &layer->wqDirectory, layer, thread,
-                               &requestQueueType, 1, NULL,
-                               &thread->requestQueue);
+    int result = make_work_queue(layer->threadNamePrefix, queueName,
+                                 &layer->wqDirectory, layer, thread,
+                                 &requestQueueType, 1, NULL,
+                                 &thread->requestQueue);
     if (result != VDO_SUCCESS) {
       *reason = "Cannot initialize request queue";
       while (kvdo->initializedThreadCount > 0) {
         unsigned int threadToDestroy = kvdo->initializedThreadCount - 1;
         thread = &kvdo->threads[threadToDestroy];
-        finishWorkQueue(thread->requestQueue);
-        freeWorkQueue(&thread->requestQueue);
+        finish_work_queue(thread->requestQueue);
+        free_work_queue(&thread->requestQueue);
         kvdo->initializedThreadCount--;
       }
       FREE(kvdo->threads);
@@ -162,7 +162,7 @@ int stopKVDO(KVDO *kvdo)
 void finishKVDO(KVDO *kvdo)
 {
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    finishWorkQueue(kvdo->threads[i].requestQueue);
+    finish_work_queue(kvdo->threads[i].requestQueue);
   }
 }
 
@@ -171,7 +171,7 @@ void destroyKVDO(KVDO *kvdo)
 {
   destroyVDO(kvdo->vdo);
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    freeWorkQueue(&kvdo->threads[i].requestQueue);
+    free_work_queue(&kvdo->threads[i].requestQueue);
   }
   FREE(kvdo->threads);
   kvdo->threads = NULL;
@@ -182,7 +182,7 @@ void destroyKVDO(KVDO *kvdo)
 void dumpKVDOWorkQueue(KVDO *kvdo)
 {
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
-    dumpWorkQueue(kvdo->threads[i].requestQueue);
+    dump_work_queue(kvdo->threads[i].requestQueue);
   }
 }
 
@@ -217,7 +217,7 @@ static void performKVDOOperation(KVDO              *kvdo,
   struct sync_queue_work  sync;
 
   memset(&sync, 0, sizeof(sync));
-  setupWorkItem(&sync.workItem, action, NULL, REQ_Q_ACTION_SYNC);
+  setup_work_item(&sync.workItem, action, NULL, REQ_Q_ACTION_SYNC);
   sync.kvdo       = kvdo;
   sync.data       = data;
   sync.completion = completion;
@@ -455,7 +455,7 @@ WritePolicy getKVDOWritePolicy(KVDO *kvdo)
 void enqueueKVDOThreadWork(struct kvdo_thread *thread,
                            KvdoWorkItem       *item)
 {
-  enqueueWorkQueue(thread->requestQueue, item);
+  enqueue_work_queue(thread->requestQueue, item);
 }
 
 /**********************************************************************/
@@ -504,9 +504,9 @@ void kvdoEnqueue(Enqueueable *enqueueable)
     vioAddTraceRecord(asVIO(enqueueable->completion),
                       THIS_LOCATION("$F($cb)"));
   }
-  setupWorkItem(&kvdoEnqueueable->workItem, kvdoEnqueueWork,
-                (KvdoWorkFunction) enqueueable->completion->callback,
-                REQ_Q_ACTION_COMPLETION);
+  setup_work_item(&kvdoEnqueueable->workItem, kvdoEnqueueWork,
+                  (KvdoWorkFunction) enqueueable->completion->callback,
+                  REQ_Q_ACTION_COMPLETION);
   enqueueKVDOThreadWork(&layer->kvdo.threads[threadID],
                         &kvdoEnqueueable->workItem);
 }
@@ -514,7 +514,7 @@ void kvdoEnqueue(Enqueueable *enqueueable)
 /**********************************************************************/
 ThreadID getCallbackThreadID(void)
 {
-  struct kvdo_thread *thread = getWorkQueuePrivateData();
+  struct kvdo_thread *thread = get_work_queue_private_data();
   if (thread == NULL) {
     return INVALID_THREAD_ID;
   }
