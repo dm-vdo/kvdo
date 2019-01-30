@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#2 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
@@ -35,12 +35,12 @@
  * Layout of a special structure stored at a consistent place on the
  * stack in work queue threads.
  */
-typedef struct workQueueStackHandle {
+struct work_queue_stack_handle {
   unsigned long    nonce;
   SimpleWorkQueue *queue;
-} WorkQueueStackHandle;
+};
 
-typedef struct workQueueStackHandleGlobals {
+struct work_queue_stack_handle_globals {
   /*
    * Location in the stack, relative to the task structure which is
    * contained in the same memory allocation.
@@ -50,7 +50,7 @@ typedef struct workQueueStackHandleGlobals {
    * A lock is used to guard against multiple updaters, but once an
    * update is done, the offset variable will be read-only.
    */
-  spinlock_t    offsetLock;
+  spinlock_t    offset_lock;
   /*
    * A nonce chosen differently each time the module is loaded, used
    * as a marker so we can check that the current thread really is a
@@ -58,9 +58,9 @@ typedef struct workQueueStackHandleGlobals {
    * work queues are created.
    */
   unsigned long nonce;
-} WorkQueueStackHandleGlobals;
+};
 
-extern WorkQueueStackHandleGlobals workQueueStackHandleGlobals;
+extern struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
 
 /**
  * Initialize a stack handle associated with a work queue.
@@ -68,8 +68,9 @@ extern WorkQueueStackHandleGlobals workQueueStackHandleGlobals;
  * @param [out] handle  The handle to be initialized
  * @param [in]  queue   The work queue pointer
  **/
-void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
-                                    SimpleWorkQueue      *queue);
+void initialize_work_queue_stack_handle(
+  struct work_queue_stack_handle *handle,
+  SimpleWorkQueue                *queue);
 
 /**
  * Return the work queue pointer recorded at initialization time in
@@ -78,12 +79,12 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
  *
  * @return   the work queue pointer, or NULL
  **/
-static inline SimpleWorkQueue *getCurrentThreadWorkQueue(void)
+static inline SimpleWorkQueue *get_current_thread_work_queue(void)
 {
-  WorkQueueStackHandle *handle
-    = (WorkQueueStackHandle *)(task_stack_page(current)
-                               + workQueueStackHandleGlobals.offset);
-  if (likely(handle->nonce == workQueueStackHandleGlobals.nonce)) {
+  struct work_queue_stack_handle *handle
+    = (struct work_queue_stack_handle *)(task_stack_page(current)
+                                         + work_queue_stack_handle_globals.offset);
+  if (likely(handle->nonce == work_queue_stack_handle_globals.nonce)) {
     return handle->queue;
   } else {
     return NULL;
@@ -94,6 +95,6 @@ static inline SimpleWorkQueue *getCurrentThreadWorkQueue(void)
  * Initialize the global state used by the work-queue stack-handle
  * code.
  **/
-void initWorkQueueStackHandleOnce(void);
+void init_work_queue_stack_handle_once(void);
 
 #endif // WORK_QUEUE_HANDLE_H

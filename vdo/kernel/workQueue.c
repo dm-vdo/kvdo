@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#7 $
  */
 
 #include "workQueue.h"
@@ -589,8 +589,8 @@ static int work_queue_runner(void *ptr)
   SimpleWorkQueue *queue = ptr;
   kobject_get(&queue->common.kobj);
 
-  WorkQueueStackHandle queue_handle;
-  initializeWorkQueueStackHandle(&queue_handle, queue);
+  struct work_queue_stack_handle queue_handle;
+  initialize_work_queue_stack_handle(&queue_handle, queue);
   queue->stats.startTime = queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
   unsigned long flags;
   spin_lock_irqsave(&queue->lock, flags);
@@ -1134,7 +1134,7 @@ void enqueue_work_queue_delayed(KvdoWorkQueue *kvdo_work_queue,
 /**********************************************************************/
 KvdoWorkQueue *get_current_work_queue(void)
 {
-  SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
+  SimpleWorkQueue *queue = get_current_thread_work_queue();
   return (queue == NULL) ? NULL : &queue->common;
 }
 
@@ -1147,7 +1147,7 @@ KernelLayer *get_work_queue_owner(KvdoWorkQueue *queue)
 /**********************************************************************/
 void *get_work_queue_private_data(void)
 {
-  SimpleWorkQueue *queue = getCurrentThreadWorkQueue();
+  SimpleWorkQueue *queue = get_current_thread_work_queue();
   return (queue != NULL) ? queue->private : NULL;
 }
 
@@ -1156,5 +1156,5 @@ void init_work_queue_once(void)
 {
   // We can't use DEFINE_MUTEX because it's not compatible with c99 mode.
   mutex_init(&queue_data_lock);
-  initWorkQueueStackHandleOnce();
+  init_work_queue_stack_handle_once();
 }

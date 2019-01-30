@@ -16,35 +16,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#2 $
  */
 
 #include "workQueueHandle.h"
 
-WorkQueueStackHandleGlobals workQueueStackHandleGlobals;
+struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
 
 /**********************************************************************/
-void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
-                                    SimpleWorkQueue      *queue)
+void initialize_work_queue_stack_handle(
+  struct work_queue_stack_handle *handle,
+  SimpleWorkQueue                *queue)
 {
-  handle->nonce = workQueueStackHandleGlobals.nonce;
+  handle->nonce = work_queue_stack_handle_globals.nonce;
   handle->queue = queue;
 
   long offset = (char *) handle - (char *) task_stack_page(current);
-  spin_lock(&workQueueStackHandleGlobals.offsetLock);
-  if (workQueueStackHandleGlobals.offset == 0) {
-    workQueueStackHandleGlobals.offset = offset;
-    spin_unlock(&workQueueStackHandleGlobals.offsetLock);
+  spin_lock(&work_queue_stack_handle_globals.offset_lock);
+  if (work_queue_stack_handle_globals.offset == 0) {
+    work_queue_stack_handle_globals.offset = offset;
+    spin_unlock(&work_queue_stack_handle_globals.offset_lock);
   } else {
-    long foundOffset = workQueueStackHandleGlobals.offset;
-    spin_unlock(&workQueueStackHandleGlobals.offsetLock);
-    BUG_ON(foundOffset != offset);
+    long found_offset = work_queue_stack_handle_globals.offset;
+    spin_unlock(&work_queue_stack_handle_globals.offset_lock);
+    BUG_ON(found_offset != offset);
   }
 }
 
 /**********************************************************************/
-void initWorkQueueStackHandleOnce(void)
+void init_work_queue_stack_handle_once(void)
 {
-  spin_lock_init(&workQueueStackHandleGlobals.offsetLock);
-  workQueueStackHandleGlobals.nonce = currentTime(CT_MONOTONIC);
+  spin_lock_init(&work_queue_stack_handle_globals.offset_lock);
+  work_queue_stack_handle_globals.nonce = currentTime(CT_MONOTONIC);
 }
