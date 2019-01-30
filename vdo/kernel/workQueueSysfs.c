@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#3 $
  */
 
 #include "workQueueSysfs.h"
@@ -50,7 +50,7 @@ static ssize_t pidShow(const KvdoWorkQueue *queue, char *buf)
 /**********************************************************************/
 static ssize_t timesShow(const KvdoWorkQueue *queue, char *buf)
 {
-  return formatRunTimeStats(&asConstSimpleWorkQueue(queue)->stats, buf);
+  return format_run_time_stats(&asConstSimpleWorkQueue(queue)->stats, buf);
 }
 
 /**********************************************************************/

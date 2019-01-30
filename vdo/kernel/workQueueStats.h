@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#4 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -88,13 +88,13 @@ typedef struct kvdoWorkQueueStats {
 /**
  * Initialize the work queue's statistics tracking.
  *
- * @param stats         The statistics structure
- * @param queueKObject  The sysfs directory kobject for the work queue
+ * @param stats           The statistics structure
+ * @param queue_kobject   The sysfs directory kobject for the work queue
  *
  * @return  0 or a kernel error code
  **/
-int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
-                             struct kobject     *queueKObject)
+int initialize_work_queue_stats(KvdoWorkQueueStats *stats,
+                                struct kobject     *queue_kobject)
   __attribute__((warn_unused_result));
 
 /**
@@ -102,7 +102,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
  *
  * @param stats  The statistics structure
  **/
-void cleanupWorkQueueStats(KvdoWorkQueueStats *stats);
+void cleanup_work_queue_stats(KvdoWorkQueueStats *stats);
 
 /**
  * Update the work queue statistics tracking to note the enqueueing of
@@ -112,9 +112,9 @@ void cleanupWorkQueueStats(KvdoWorkQueueStats *stats);
  * @param item      The work item being enqueued
  * @param priority  The priority of the work item
  **/
-static inline void updateStatsForEnqueue(KvdoWorkQueueStats *stats,
-                                         KvdoWorkItem       *item,
-                                         int                 priority)
+static inline void update_stats_for_enqueue(KvdoWorkQueueStats *stats,
+                                            KvdoWorkItem       *item,
+                                            int                 priority)
 {
   update_work_item_stats_for_enqueue(&stats->workItemStats, item, priority);
   item->enqueueTime = currentTime(CT_MONOTONIC);
@@ -127,8 +127,8 @@ static inline void updateStatsForEnqueue(KvdoWorkQueueStats *stats,
  * @param stats  The statistics structure
  * @param item   The work item being enqueued
  **/
-static inline void updateStatsForDequeue(KvdoWorkQueueStats *stats,
-                                         KvdoWorkItem       *item)
+static inline void update_stats_for_dequeue(KvdoWorkQueueStats *stats,
+                                            KvdoWorkItem       *item)
 {
   updateWorkItemStatsForDequeue(&stats->workItemStats, item);
   enter_histogram_sample(stats->queueTimeHistogram,
@@ -144,7 +144,7 @@ static inline void updateStatsForDequeue(KvdoWorkQueueStats *stats,
  *
  * @param queue  The work queue
  **/
-void logWorkQueueStats(const struct simpleWorkQueue *queue);
+void log_work_queue_stats(const struct simpleWorkQueue *queue);
 
 /**
  * Format the thread lifetime, run time, and suspend time into a
@@ -153,6 +153,6 @@ void logWorkQueueStats(const struct simpleWorkQueue *queue);
  * @param [in]  stats   The stats structure containing the run-time info
  * @param [out] buffer  The buffer in which to report the info
  **/
-ssize_t formatRunTimeStats(const KvdoWorkQueueStats *stats, char *buffer);
+ssize_t format_run_time_stats(const KvdoWorkQueueStats *stats, char *buffer);
 
 #endif // WORK_QUEUE_STATS_H

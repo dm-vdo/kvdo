@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#8 $
  */
 
 #include "workQueue.h"
@@ -212,7 +212,7 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
   unsigned int priority = READ_ONCE(queue->priorityMap[item->action]);
 
   // Update statistics.
-  updateStatsForEnqueue(&queue->stats, item, priority);
+  update_stats_for_enqueue(&queue->stats, item, priority);
 
   item->myQueue = &queue->common;
 
@@ -506,7 +506,7 @@ static void process_work_item(SimpleWorkQueue *queue,
              "item %" PRIptr " from queue %" PRIptr
              " marked as being in this queue (%" PRIptr ")",
              item, queue, item->myQueue) == UDS_SUCCESS) {
-    updateStatsForDequeue(&queue->stats, item);
+    update_stats_for_dequeue(&queue->stats, item);
     item->myQueue = NULL;
   }
 
@@ -796,7 +796,7 @@ static int make_simple_work_queue(const char               *thread_name_prefix,
       return result;
     }
   }
-  result = initializeWorkQueueStats(&queue->stats, &queue->common.kobj);
+  result = initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
   if (result != 0) {
     logError("Cannot initialize statistics tracking: %d", result);
     free_simple_work_queue(queue);
@@ -959,7 +959,7 @@ static void free_simple_work_queue(SimpleWorkQueue *queue)
   for (unsigned int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
     freeFunnelQueue(queue->priorityLists[i]);
   }
-  cleanupWorkQueueStats(&queue->stats);
+  cleanup_work_queue_stats(&queue->stats);
   kobject_put(&queue->common.kobj);
 }
 
@@ -1044,7 +1044,7 @@ static void dump_simple_work_queue(SimpleWorkQueue *queue)
           task_state_report);
 
   log_work_item_stats(&queue_data.stats.workItemStats);
-  logWorkQueueStats(queue);
+  log_work_queue_stats(queue);
 
   mutex_unlock(&queue_data_lock);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#3 $
  */
 
 #include "workQueueStats.h"
@@ -27,8 +27,8 @@
 #include "workQueueInternals.h"
 
 /**********************************************************************/
-int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
-                             struct kobject     *queueKObject)
+int initialize_work_queue_stats(KvdoWorkQueueStats *stats,
+                                struct kobject     *queue_kobject)
 {
   spin_lock_init(&stats->workItemStats.functionTable.lock);
   if (ENABLE_PER_FUNCTION_TIMING_STATS) {
@@ -38,57 +38,57 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
   }
 
   stats->queueTimeHistogram
-    = make_logarithmic_histogram(queueKObject, "queue_time",
-                               "Queue Time", "work items", "wait time",
-                               "microseconds", 9);
+    = make_logarithmic_histogram(queue_kobject, "queue_time",
+                                 "Queue Time", "work items", "wait time",
+                                 "microseconds", 9);
   if (stats->queueTimeHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->rescheduleQueueLengthHistogram
-    = make_logarithmic_histogram(queueKObject, "reschedule_queue_length",
-                               "Reschedule Queue Length", "calls",
-                               "queued work items", NULL, 4);
+    = make_logarithmic_histogram(queue_kobject, "reschedule_queue_length",
+                                 "Reschedule Queue Length", "calls",
+                                 "queued work items", NULL, 4);
   if (stats->rescheduleQueueLengthHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->rescheduleTimeHistogram
-    = make_logarithmic_histogram(queueKObject, "reschedule_time",
-                               "Reschedule Time", "calls",
-                               "sleep interval", "microseconds", 9);
+    = make_logarithmic_histogram(queue_kobject, "reschedule_time",
+                                 "Reschedule Time", "calls",
+                                 "sleep interval", "microseconds", 9);
   if (stats->rescheduleTimeHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->runTimeBeforeRescheduleHistogram
-    = make_logarithmic_histogram(queueKObject, "run_time_before_reschedule",
-                               "Run Time Before Reschedule",
-                               "calls", "run time", "microseconds", 9);
+    = make_logarithmic_histogram(queue_kobject, "run_time_before_reschedule",
+                                 "Run Time Before Reschedule",
+                                 "calls", "run time", "microseconds", 9);
   if (stats->runTimeBeforeRescheduleHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->scheduleTimeHistogram
-    = make_logarithmic_histogram(queueKObject, "schedule_time",
-                               "Schedule Time",
-                               "calls", "sleep interval", "microseconds", 9);
+    = make_logarithmic_histogram(queue_kobject, "schedule_time",
+                                 "Schedule Time",
+                                 "calls", "sleep interval", "microseconds", 9);
   if (stats->scheduleTimeHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->wakeupLatencyHistogram
-    = make_logarithmic_histogram(queueKObject, "wakeup_latency",
-                               "Wakeup Latency",
-                               "wakeups", "latency", "microseconds", 9);
+    = make_logarithmic_histogram(queue_kobject, "wakeup_latency",
+                                 "Wakeup Latency",
+                                 "wakeups", "latency", "microseconds", 9);
   if (stats->wakeupLatencyHistogram == NULL) {
     return -ENOMEM;
   }
 
   stats->wakeupQueueLengthHistogram
-    = make_logarithmic_histogram(queueKObject, "wakeup_queue_length",
-                               "Wakeup Queue Length", "wakeups",
-                               "queued work items", NULL, 4);
+    = make_logarithmic_histogram(queue_kobject, "wakeup_queue_length",
+                                 "Wakeup Queue Length", "wakeups",
+                                 "queued work items", NULL, 4);
   if (stats->wakeupQueueLengthHistogram == NULL) {
     return -ENOMEM;
   }
@@ -97,7 +97,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
 }
 
 /**********************************************************************/
-void cleanupWorkQueueStats(KvdoWorkQueueStats *stats)
+void cleanup_work_queue_stats(KvdoWorkQueueStats *stats)
 {
   free_histogram(&stats->queueTimeHistogram);
   free_histogram(&stats->rescheduleQueueLengthHistogram);
@@ -109,50 +109,50 @@ void cleanupWorkQueueStats(KvdoWorkQueueStats *stats)
 }
 
 /**********************************************************************/
-static uint64_t getTotalProcessed(const SimpleWorkQueue *queue)
+static uint64_t get_total_processed(const SimpleWorkQueue *queue)
 {
-  uint64_t totalProcessed = 0;
+  uint64_t total_processed = 0;
   for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-    totalProcessed += queue->stats.workItemStats.times[i].count;
+    total_processed += queue->stats.workItemStats.times[i].count;
   }
-  return totalProcessed;
+  return total_processed;
 }
 
 /**********************************************************************/
-void logWorkQueueStats(const SimpleWorkQueue *queue)
+void log_work_queue_stats(const SimpleWorkQueue *queue)
 {
-  uint64_t runtimeNS = 0;
+  uint64_t runtime_ns = 0;
   if (queue->thread != NULL) {
-    runtimeNS += queue->thread->se.sum_exec_runtime;
+    runtime_ns += queue->thread->se.sum_exec_runtime;
   }
 
-  unsigned long nsPerWorkItem = 0;
-  uint64_t totalProcessed = getTotalProcessed(queue);
-  if (totalProcessed > 0) {
-    nsPerWorkItem = runtimeNS / totalProcessed;
+  unsigned long ns_per_work_item = 0;
+  uint64_t total_processed = get_total_processed(queue);
+  if (total_processed > 0) {
+    ns_per_work_item = runtime_ns / total_processed;
   }
-  unsigned long runtimeMS = runtimeNS / 1000;
+  unsigned long runtime_ms = runtime_ns / 1000;
   logInfo("workQ %" PRIptr " (%s) thread cpu usage %lu.%06lus, %" PRIu64
           " tasks, %lu.%03luus/task",
           queue,
           queue->common.name,
-          runtimeMS / 1000000, runtimeMS % 1000000,
-          totalProcessed,
-          nsPerWorkItem / 1000, nsPerWorkItem % 1000);
+          runtime_ms / 1000000, runtime_ms % 1000000,
+          total_processed,
+          ns_per_work_item / 1000, ns_per_work_item % 1000);
 }
 
 /**********************************************************************/
-ssize_t formatRunTimeStats(const KvdoWorkQueueStats *stats, char *buffer)
+ssize_t format_run_time_stats(const KvdoWorkQueueStats *stats, char *buffer)
 {
   // Get snapshots of all three at approximately the same time.
-  uint64_t startTime = stats->startTime;
-  uint64_t runTime = atomic64_read(&stats->runTime);
-  uint64_t rescheduleTime = atomic64_read(&stats->rescheduleTime);
+  uint64_t start_time = stats->startTime;
+  uint64_t run_time = atomic64_read(&stats->runTime);
+  uint64_t reschedule_time = atomic64_read(&stats->rescheduleTime);
   loadFence();                  // rdtsc barrier
   uint64_t now = currentTime(CT_MONOTONIC);
-  uint64_t lifetime = now - startTime;
+  uint64_t lifetime = now - start_time;
 
   return sprintf(buffer,
                  "%llu %llu %llu\n",
-                 lifetime, runTime, rescheduleTime);
+                 lifetime, run_time, reschedule_time);
 }
