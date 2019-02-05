@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#5 $
  */
 
 #include "batchProcessor.h"
@@ -154,8 +154,10 @@ static void schedule_batch_processing(struct batch_processor *batch)
 }
 
 /**********************************************************************/
-int make_batch_processor(KernelLayer *layer, BatchProcessorCallback callback,
-			 void *closure, struct batch_processor **batch_ptr)
+int make_batch_processor(KernelLayer *layer,
+			 BatchProcessorCallback callback,
+			 void *closure,
+			 struct batch_processor **batch_ptr)
 {
 	struct batch_processor *batch;
 
@@ -171,13 +173,14 @@ int make_batch_processor(KernelLayer *layer, BatchProcessorCallback callback,
 	}
 
 	spin_lock_init(&batch->consumerLock);
-	setup_work_item(&batch->workItem, batchProcessorWork,
-                        (KvdoWorkFunction)callback,
-                        CPU_Q_ACTION_COMPLETE_KVIO);
+	setup_work_item(&batch->workItem,
+			batchProcessorWork,
+			(KvdoWorkFunction)callback,
+			CPU_Q_ACTION_COMPLETE_KVIO);
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	batch->callback = callback;
-	batch->closure = closure;
-	batch->layer = layer;
+	batch->closure  = closure;
+	batch->layer    = layer;
 
 	*batch_ptr = batch;
 	return UDS_SUCCESS;
