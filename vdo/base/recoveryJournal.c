@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#4 $
  */
 
 #include "recoveryJournal.h"
@@ -460,9 +460,6 @@ int makeRecoveryJournal(Nonce                nonce,
       return result;
     }
 
-    setActiveBlock(journal);
-    journal->flushVIO->completion.callbackThreadID = journal->threadID;
-
     result = registerReadOnlyListener(readOnlyNotifier, journal,
                                       notifyRecoveryJournalOfReadOnlyMode,
                                       journal->threadID);
@@ -470,6 +467,10 @@ int makeRecoveryJournal(Nonce                nonce,
       freeRecoveryJournal(&journal);
       return result;
     }
+
+    setActiveBlock(journal);
+    journal->flushVIO->completion.callbackThreadID = journal->threadID;
+    // Must not fail after this point since active blocks won't be freed.
   }
 
   *journalPtr = journal;
