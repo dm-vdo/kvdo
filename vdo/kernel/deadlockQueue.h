@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deadlockQueue.h#4 $
  */
 
 #ifndef DEADLOCK_QUEUE_H
@@ -31,15 +31,16 @@
  * become available to process them.
  **/
 struct deadlock_queue {
-  /* Protection for the other fields. */
-  spinlock_t      lock;
-  /* List of bios we had to accept but don't have VIOs for. */
-  struct bio_list list;
-  /*
-   * Arrival time to use for statistics tracking for the above bios, since we
-   * haven't the space to store individual arrival times for each.
-   */
-  Jiffies         arrivalTime;
+	/* Protection for the other fields. */
+	spinlock_t lock;
+	/* List of bios we had to accept but don't have VIOs for. */
+	struct bio_list list;
+	/*
+	 * Arrival time to use for statistics tracking for the above
+	 * bios, since we haven't the space to store individual
+	 * arrival times for each.
+	 */
+	Jiffies arrival_time;
 };
 
 /**
@@ -54,7 +55,7 @@ void initialize_deadlock_queue(struct deadlock_queue *queue);
  * processing yet.
  *
  * This excess buffering on top of what the caller implements is generally a
- * bad                                         idea, and should be used only when necessary, such as to avoid a
+ * bad idea, and should be used only when necessary, such as to avoid a
  * possible deadlock situation.
  *
  * @param queue         The incoming-bio queue structure
@@ -63,8 +64,8 @@ void initialize_deadlock_queue(struct deadlock_queue *queue);
  **/
 
 void add_to_deadlock_queue(struct deadlock_queue *queue,
-                           struct bio            *bio,
-                           Jiffies                arrival_time);
+			   struct bio *bio,
+			   Jiffies arrival_time);
 
 /**
  * Pull an incoming bio off the queue.
@@ -78,17 +79,16 @@ void add_to_deadlock_queue(struct deadlock_queue *queue,
  *
  * @return  a bio pointer, or NULL if none were queued
  **/
-static inline struct bio 
-*poll_deadlock_queue(struct deadlock_queue     *queue,
-                     Jiffies                   *arrival_time)
+static inline struct bio *poll_deadlock_queue(struct deadlock_queue *queue,
+					      Jiffies *arrival_time)
 {
-  spin_lock(&queue->lock);
-  struct bio *bio = bio_list_pop(&queue->list);
-  if (unlikely(bio != NULL)) {
-    *arrival_time = queue->arrivalTime;
-  }
-  spin_unlock(&queue->lock);
-  return bio;
+	spin_lock(&queue->lock);
+	struct bio *bio = bio_list_pop(&queue->list);
+	if (unlikely(bio != NULL)) {
+		*arrival_time = queue->arrival_time;
+	}
+	spin_unlock(&queue->lock);
+	return bio;
 }
 
 #endif // DEADLOCK_QUEUE_H
