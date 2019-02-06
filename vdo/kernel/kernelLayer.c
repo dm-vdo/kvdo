@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#35 $
  */
 
 #include "kernelLayer.h"
@@ -381,7 +381,7 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
   set_bio_block_device(bio, getKernelLayerBdev(kernelLayer));
   set_bio_sector(bio, blockToSector(kernelLayer, startBlock));
   set_bio_operation_read(bio);
-  result = submitBioAndWait(bio);
+  result = submit_bio_and_wait(bio);
   if (result != 0) {
     logErrorWithStringError(result, "synchronous read failed");
     result = -EIO;

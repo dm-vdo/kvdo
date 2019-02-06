@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#7 $
  */
 
 #include "kvdoFlush.h"
@@ -231,11 +231,11 @@ int synchronous_flush(KernelLayer *layer)
   bio_init(&bio);
 #endif
   prepare_flush_bio(&bio, layer, getKernelLayerBdev(layer), NULL);
-  int result = submitBioAndWait(&bio);
+  int result = submit_bio_and_wait(&bio);
   atomic64_inc(&layer->flushOut);
   if (result != 0) {
     logErrorWithStringError(result, "synchronous flush failed");
-    result = -EIO;
+    result          = -EIO;
   }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)

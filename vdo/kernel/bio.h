@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#6 $
  */
 
 #ifndef BIO_H
@@ -28,7 +28,7 @@
 
 #include "kernelTypes.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 #define USE_BI_ITER 1
 #endif
 
@@ -60,134 +60,135 @@ void set_bio_operation(struct bio *bio, unsigned int operation);
 /**********************************************************************/
 static inline void set_bio_operation_read(struct bio *bio)
 {
-  set_bio_operation(bio, READ);
+	set_bio_operation(bio, READ);
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_write(struct bio *bio)
 {
-  set_bio_operation(bio, WRITE);
+	set_bio_operation(bio, WRITE);
 }
 
 /**********************************************************************/
 static inline void clear_bio_operation_and_flags(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  bio->bi_opf = 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	bio->bi_opf = 0;
 #else
-  bio->bi_rw = 0;
+	bio->bi_rw = 0;
 #endif
 }
 
 /**********************************************************************/
 static inline void copy_bio_operation_and_flags(struct bio *to,
-                                                struct bio *from)
+						struct bio *from)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  to->bi_opf = from->bi_opf;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	to->bi_opf = from->bi_opf;
 #else
-  to->bi_rw = from->bi_rw;
+	to->bi_rw  = from->bi_rw;
 #endif
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag(struct bio *bio, unsigned int flag)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  bio->bi_opf |= flag;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	bio->bi_opf |= flag;
 #else
-  bio->bi_rw |= flag;
+	bio->bi_rw |= flag;
 #endif
 }
 
 /**********************************************************************/
 static inline void clear_bio_operation_flag(struct bio *bio, unsigned int flag)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  bio->bi_opf &= ~flag;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	bio->bi_opf &= ~flag;
 #else
-  bio->bi_rw &= ~flag;
+	bio->bi_rw &= ~flag;
 #endif
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag_preflush(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  set_bio_operation_flag(bio, REQ_PREFLUSH);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	set_bio_operation_flag(bio, REQ_PREFLUSH);
 #else
-  // Preflushes and empty flushes are not currently distinguished.
-  set_bio_operation(bio, WRITE_FLUSH);
+	// Preflushes and empty flushes are not currently distinguished.
+	set_bio_operation(bio, WRITE_FLUSH);
 #endif
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag_sync(struct bio *bio)
 {
-  set_bio_operation_flag(bio, REQ_SYNC);
+	set_bio_operation_flag(bio, REQ_SYNC);
 }
 
 /**********************************************************************/
 static inline void clear_bio_operation_flag_sync(struct bio *bio)
 {
-  clear_bio_operation_flag(bio, REQ_SYNC);
+	clear_bio_operation_flag(bio, REQ_SYNC);
 }
 
 /**********************************************************************/
 static inline void set_bio_operation_flag_fua(struct bio *bio)
 {
-  set_bio_operation_flag(bio, REQ_FUA);
+	set_bio_operation_flag(bio, REQ_FUA);
 }
 
 /**********************************************************************/
 static inline void clear_bio_operation_flag_fua(struct bio *bio)
 {
-  clear_bio_operation_flag(bio, REQ_FUA);
+	clear_bio_operation_flag(bio, REQ_FUA);
 }
 
 /**********************************************************************/
 static inline bool is_discard_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	return (bio != NULL) && (bio_op(bio) == REQ_OP_DISCARD);
 #else
-  return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
+	return (bio != NULL) && ((bio->bi_rw & REQ_DISCARD) != 0);
 #endif
 }
 
 /**********************************************************************/
 static inline bool is_flush_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  return (bio_op(bio) == REQ_OP_FLUSH) || ((bio->bi_opf & REQ_PREFLUSH) != 0);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	return (bio_op(bio) == REQ_OP_FLUSH) ||
+	       ((bio->bi_opf & REQ_PREFLUSH) != 0);
 #else
-  return (bio->bi_rw & REQ_FLUSH) != 0;
+	return (bio->bi_rw & REQ_FLUSH) != 0;
 #endif
 }
 
 /**********************************************************************/
 static inline bool is_fua_bio(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  return (bio->bi_opf & REQ_FUA) != 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	return (bio->bi_opf & REQ_FUA) != 0;
 #else
-  return (bio->bi_rw & REQ_FUA) != 0;
+	return (bio->bi_rw & REQ_FUA) != 0;
 #endif
 }
 
 /**********************************************************************/
 static inline bool is_read_bio(struct bio *bio)
 {
-  return bio_data_dir(bio) == READ;
+	return bio_data_dir(bio) == READ;
 }
 
 /**********************************************************************/
 static inline bool is_write_bio(struct bio *bio)
 {
-  return bio_data_dir(bio) == WRITE;
+	return bio_data_dir(bio) == WRITE;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Get the error from the bio.
  *
@@ -197,10 +198,10 @@ static inline bool is_write_bio(struct bio *bio)
  **/
 static inline int get_bio_result(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  return blk_status_to_errno(bio->bi_status);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	return blk_status_to_errno(bio->bi_status);
 #else
-  return bio->bi_error;
+	return bio->bi_error;
 #endif
 }
 #endif // newer than 4.4
@@ -211,13 +212,13 @@ static inline int get_bio_result(struct bio *bio)
  * @param bio     The bio to modify
  * @param device  The new block device for the bio
  **/
-static inline void set_bio_block_device(struct bio          *bio,
-                                        struct block_device *device)
+static inline void set_bio_block_device(struct bio *bio,
+					struct block_device *device)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
-  bio_set_dev(bio, device);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+	bio_set_dev(bio, device);
 #else
-  bio->bi_bdev = device;
+	bio->bi_bdev = device;
 #endif
 }
 
@@ -231,9 +232,9 @@ static inline void set_bio_block_device(struct bio          *bio,
 static inline unsigned int get_bio_size(struct bio *bio)
 {
 #ifdef USE_BI_ITER
-  return bio->bi_iter.bi_size;
+	return bio->bi_iter.bi_size;
 #else
-  return bio->bi_size;
+	return bio->bi_size;
 #endif
 }
 
@@ -246,9 +247,9 @@ static inline unsigned int get_bio_size(struct bio *bio)
 static inline void set_bio_sector(struct bio *bio, sector_t sector)
 {
 #ifdef USE_BI_ITER
-  bio->bi_iter.bi_sector = sector;
+	bio->bi_iter.bi_sector = sector;
 #else
-  bio->bi_sector = sector;
+	bio->bi_sector = sector;
 #endif
 }
 
@@ -262,9 +263,9 @@ static inline void set_bio_sector(struct bio *bio, sector_t sector)
 static inline sector_t get_bio_sector(struct bio *bio)
 {
 #ifdef USE_BI_ITER
-  return bio->bi_iter.bi_sector;
+	return bio->bi_iter.bi_sector;
 #else
-  return bio->bi_sector;
+	return bio->bi_sector;
 #endif
 }
 
@@ -276,14 +277,14 @@ static inline sector_t get_bio_sector(struct bio *bio)
  **/
 static inline void complete_bio(struct bio *bio, int error)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  bio->bi_status = errno_to_blk_status(error);
-  bio_endio(bio);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  bio->bi_error = error;
-  bio_endio(bio);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
+	bio->bi_status = errno_to_blk_status(error);
+	bio_endio(bio);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
+	bio->bi_error = error;
+	bio_endio(bio);
 #else
-  bio_endio(bio, error);
+	bio_endio(bio, error);
 #endif
 }
 
@@ -339,10 +340,10 @@ int create_bio(KernelLayer *layer, char *data, struct bio **bio_ptr);
  * @param device           The device to flush
  * @param end_io_callback  The function to call when the flush is complete
  **/
-void prepare_flush_bio(struct bio          *bio,
-                       void                *context,
-                       struct block_device *device,
-                       bio_end_io_t        *end_io_callback);
+void prepare_flush_bio(struct bio *bio,
+		       void *context,
+		       struct block_device *device,
+		       bio_end_io_t *end_io_callback);
 
 /**
  * Perform IO with a bio, waiting for completion and returning its result.
@@ -352,15 +353,15 @@ void prepare_flush_bio(struct bio          *bio,
  *
  * @return The bio result
  **/
-static inline int submitBioAndWait(struct bio *bio)
+static inline int submit_bio_and_wait(struct bio *bio)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0)
-  submit_bio_wait(bio);
-  int result = get_bio_result(bio);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+	submit_bio_wait(bio);
+	int result = get_bio_result(bio);
 #else
-  int result = submit_bio_wait(bio->bi_rw, bio);
+	int result = submit_bio_wait(bio->bi_rw, bio);
 #endif
-  return result;
+	return result;
 }
 
 #endif /* BIO_H */
