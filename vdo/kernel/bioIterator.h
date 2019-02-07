@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bioIterator.h#5 $
  */
 
 #ifndef BIO_ITERATOR_H
@@ -28,13 +28,13 @@
 #include "kernelTypes.h"
 
 struct bio_iterator {
-  struct bio       *bio;
+	struct bio *bio;
 #ifdef USE_BI_ITER
-  struct bvec_iter  iter;
-  // Needed so we can store the return value of bio_iter_iovec.
-  struct bio_vec    temp;
+	struct bvec_iter iter;
+	// Needed so we can store the return value of bio_iter_iovec.
+	struct bio_vec temp;
 #else
-  int               index;
+	int index;
 #endif
 };
 
@@ -47,15 +47,15 @@ struct bio_iterator {
  **/
 static struct bio_iterator create_bio_iterator(struct bio *bio)
 {
-  struct bio_iterator  iterator = {
-    .bio   = bio,
+	struct bio_iterator iterator = {
+		.bio = bio,
 #ifdef USE_BI_ITER
-    .iter  = bio->bi_iter,
+		.iter = bio->bi_iter,
 #else
-    .index = bio->bi_idx,
+		.index = bio->bi_idx,
 #endif
-  };
-  return iterator;
+	};
+	return iterator;
 }
 
 /**
@@ -67,19 +67,19 @@ static struct bio_iterator create_bio_iterator(struct bio *bio)
  **/
 static struct bio_vec *get_next_biovec(struct bio_iterator *iterator)
 {
-  struct bio *bio = iterator->bio;
+	struct bio *bio = iterator->bio;
 #ifdef USE_BI_ITER
-  if (iterator->iter.bi_size == 0) {
-    return NULL;
-  }
+	if (iterator->iter.bi_size == 0) {
+		return NULL;
+	}
 
-  iterator->temp = bio_iter_iovec(bio, iterator->iter);
-  return &iterator->temp;
+	iterator->temp = bio_iter_iovec(bio, iterator->iter);
+	return &iterator->temp;
 #else
-  if (iterator->index >= bio->bi_vcnt) {
-    return NULL;
-  }
-  return bio_iovec_idx(bio, iterator->index);
+	if (iterator->index >= bio->bi_vcnt) {
+		return NULL;
+	}
+	return bio_iovec_idx(bio, iterator->index);
 #endif
 }
 
@@ -91,9 +91,9 @@ static struct bio_vec *get_next_biovec(struct bio_iterator *iterator)
 static void advance_bio_iterator(struct bio_iterator *iterator)
 {
 #ifdef USE_BI_ITER
-  bio_advance_iter(iterator->bio, &iterator->iter, iterator->temp.bv_len);
+	bio_advance_iter(iterator->bio, &iterator->iter, iterator->temp.bv_len);
 #else
-  iterator->index++;
+	iterator->index++;
 #endif
 }
 
