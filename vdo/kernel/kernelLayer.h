@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#11 $
  */
 
 #ifndef KERNELLAYER_H
@@ -532,7 +532,7 @@ int resizeLogical(KernelLayer *layer, BlockCount logicalCount);
  **/
 static inline bool useBioAckQueue(KernelLayer *layer)
 {
-  return layer->deviceConfig->threadCounts.bioAckThreads > 0;
+  return layer->deviceConfig->thread_counts.bio_ack_threads > 0;
 }
 
 /**

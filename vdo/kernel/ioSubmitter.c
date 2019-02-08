@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#12 $
  */
 
 #include "ioSubmitter.h"
@@ -518,7 +518,7 @@ void submitBio(struct bio *bio, BioQAction action)
    * Setting the sync-flag on journal-related bios is expected to reduce
    * latency on journal updates submitted to an MD RAID5 device.
    */
-  if (layer->deviceConfig->mdRaid5ModeEnabled) {
+  if (layer->deviceConfig->md_raid5_mode_enabled) {
     if (isData(kvio)) {
       // Clear the bits for sync I/O RW flags on data block bios.
       clear_bio_operation_flag_sync(bio);

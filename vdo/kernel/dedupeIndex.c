@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#9 $
  */
 
 #include "dedupeIndex.h"
@@ -905,7 +905,7 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
 
   result = allocSprintf("index name", &index->indexName,
                         "dev=%s offset=4096 size=%llu",
-                        layer->deviceConfig->parentDeviceName,
+                        layer->deviceConfig->parent_device_name,
                         getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
   if (result != UDS_SUCCESS) {
     logError("Creating index name failed (%d)", result);

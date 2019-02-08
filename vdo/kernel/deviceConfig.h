@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#5 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -25,54 +25,56 @@
 
 #include "kernelTypes.h"
 
-// This structure is memcmp'd for equality. Keep it
-// packed and don't add any fields that are not
-// properly set in both extant and parsed configs.
+/*
+ * This structure is memcmp'd for equality. Keep it packed and don't
+ * add any fields that are not properly set in both extant and parsed
+ * configs.
+ */
 struct thread_count_config {
-  int bioAckThreads;
-  int bioThreads;
-  int bioRotationInterval;
-  int cpuThreads;
-  int logicalZones;
-  int physicalZones;
-  int hashZones;
+	int bio_ack_threads;
+	int bio_threads;
+	int bio_rotation_interval;
+	int cpu_threads;
+	int logical_zones;
+	int physical_zones;
+	int hash_zones;
 } __attribute__((packed));
 
 typedef uint32_t TableVersion;
 
 struct device_config {
-  struct dm_target           *owningTarget;
-  struct dm_dev              *ownedDevice;
-  KernelLayer                *layer;
-  char                       *originalString;
-  TableVersion                version;
-  char                       *parentDeviceName;
-  BlockCount                  physicalBlocks;
-  unsigned int                logicalBlockSize;
-  WritePolicy                 writePolicy;
-  unsigned int                cacheSize;
-  unsigned int                blockMapMaximumAge;
-  bool                        mdRaid5ModeEnabled;
-  char                       *poolName;
-  struct thread_count_config  threadCounts;
-  BlockCount                  maxDiscardBlocks;
+	struct dm_target *owning_target;
+	struct dm_dev *owned_device;
+	KernelLayer *layer;
+	char *original_string;
+	TableVersion version;
+	char *parent_device_name;
+	BlockCount physical_blocks;
+	unsigned int logical_block_size;
+	WritePolicy write_policy;
+	unsigned int cache_size;
+	unsigned int block_map_maximum_age;
+	bool md_raid5_mode_enabled;
+	char *pool_name;
+	struct thread_count_config thread_counts;
+	BlockCount max_discard_blocks;
 };
 
 /**
  * Grab a pointer to the pool name out of argv.
  *
- * @param [in]  argc         The number of table values
- * @param [in]  argv         The array of table values
- * @param [out] errorPtr     A pointer to return a error string in
- * @param [out] poolNamePtr  A pointer to return the pool name
+ * @param [in]  argc           The number of table values
+ * @param [in]  argv           The array of table values
+ * @param [out] error_ptr      A pointer to return a error string in
+ * @param [out] pool_name_ptr  A pointer to return the pool name
  *
  * @return VDO_SUCCESS or an error code
  **/
-int get_pool_name_from_argv(int    argc,
-                        char **argv,
-                        char **errorPtr,
-                        char **poolNamePtr)
-  __attribute__((warn_unused_result));
+int get_pool_name_from_argv(int argc,
+			    char **argv,
+			    char **error_ptr,
+			    char **pool_name_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Convert the dmsetup table into a struct device_config.
@@ -85,12 +87,12 @@ int get_pool_name_from_argv(int    argc,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int parse_device_config(int                    argc,
-                        char                 **argv,
-                        struct dm_target      *ti,
-                        bool                   verbose,
-                        struct device_config **config_ptr)
-  __attribute__((warn_unused_result));
+int parse_device_config(int argc,
+			char **argv,
+			struct dm_target *ti,
+			bool verbose,
+			struct device_config **config_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a device config created by parse_device_config().
@@ -107,6 +109,6 @@ void free_device_config(struct device_config **config_ptr);
  * @returns a pointer to a string describing the write policy
  **/
 const char *get_config_write_policy_string(struct device_config *config)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 #endif // DEVICE_CONFIG_H

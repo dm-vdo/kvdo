@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#36 $
  */
 
 #include "kernelLayer.h"
@@ -93,7 +93,7 @@ CRC32Checksum updateCRC32(CRC32Checksum  crc,
 /**********************************************************************/
 static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 {
-  return asKernelLayer(header)->deviceConfig->physicalBlocks;
+  return asKernelLayer(header)->deviceConfig->physical_blocks;
 }
 
 /**********************************************************************/
@@ -289,7 +289,7 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
 /**********************************************************************/
 struct block_device *getKernelLayerBdev(const KernelLayer *layer)
 {
-  return layer->deviceConfig->ownedDevice->bdev;
+  return layer->deviceConfig->owned_device->bdev;
 }
 
 /**********************************************************************/
@@ -523,7 +523,7 @@ int makeKernelLayer(uint64_t               startingSector,
   // reference count, and when the count goes to 0 the KernelLayer will
   // be freed.
   kobject_init(&layer->kobj, &kernelLayerKobjType);
-  result = kobject_add(&layer->kobj, parentKobject, config->poolName);
+  result = kobject_add(&layer->kobj, parentKobject, config->pool_name);
   if (result != 0) {
     *reason = "Cannot add sysfs node";
     kobject_put(&layer->kobj);
@@ -577,7 +577,7 @@ int makeKernelLayer(uint64_t               startingSector,
   // is fully allocated.
   layer->callbacks.congested_fn          = kvdoIsCongested;
 
-  result = add_layer_to_device_registry(config->poolName, layer);
+  result = add_layer_to_device_registry(config->pool_name, layer);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot add layer to device registry";
     freeKernelLayer(layer);
@@ -587,9 +587,9 @@ int makeKernelLayer(uint64_t               startingSector,
   snprintf(layer->threadNamePrefix, sizeof(layer->threadNamePrefix), "%s%u",
            THIS_MODULE->name, instance);
 
-  result = makeThreadConfig(config->threadCounts.logicalZones,
-                            config->threadCounts.physicalZones,
-                            config->threadCounts.hashZones,
+  result    = makeThreadConfig(config->thread_counts.logical_zones,
+                            config->thread_counts.physical_zones,
+                            config->thread_counts.hash_zones,
                             threadConfigPointer);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot create thread configuration";
@@ -598,9 +598,9 @@ int makeKernelLayer(uint64_t               startingSector,
   }
 
   logInfo("zones: %d logical, %d physical, %d hash; base threads: %d",
-          config->threadCounts.logicalZones,
-          config->threadCounts.physicalZones,
-          config->threadCounts.hashZones,
+          config->thread_counts.logical_zones,
+          config->thread_counts.physical_zones,
+          config->thread_counts.hash_zones,
           (*threadConfigPointer)->baseThreadCount);
 
   result = make_batch_processor(layer, returnDataKVIOBatchToPool, layer,
@@ -640,14 +640,14 @@ int makeKernelLayer(uint64_t               startingSector,
   }
 
   // Compression context storage
-  result = ALLOCATE(config->threadCounts.cpuThreads, char *, "LZ4 context",
+  result = ALLOCATE(config->thread_counts.cpu_threads, char *, "LZ4 context",
                     &layer->compressionContext);
   if (result != VDO_SUCCESS) {
     *reason = "cannot allocate LZ4 context";
     freeKernelLayer(layer);
     return result;
   }
-  for (int i = 0; i < config->threadCounts.cpuThreads; i++) {
+  for (int i = 0; i < config->thread_counts.cpu_threads; i++) {
     result = ALLOCATE(LZ4_context_size(), char, "LZ4 context",
                       &layer->compressionContext[i]);
     if (result != VDO_SUCCESS) {
@@ -675,9 +675,9 @@ int makeKernelLayer(uint64_t               startingSector,
   }
 
   // KVIO and VIO pool
-  BUG_ON(layer->deviceConfig->logicalBlockSize <= 0);
+  BUG_ON(layer->deviceConfig->logical_block_size <= 0);
   BUG_ON(layer->requestLimiter.limit <= 0);
-  BUG_ON(layer->deviceConfig->ownedDevice == NULL);
+  BUG_ON(layer->deviceConfig->owned_device == NULL);
   result = makeDataKVIOBufferPool(layer, layer->requestLimiter.limit,
                                   &layer->dataKVIOPool);
   if (result != VDO_SUCCESS) {
@@ -702,9 +702,9 @@ int makeKernelLayer(uint64_t               startingSector,
   setKernelLayerState(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
   // Bio queue
-  result = makeIOSubmitter(layer->threadNamePrefix,
-                           config->threadCounts.bioThreads,
-                           config->threadCounts.bioRotationInterval,
+  result    = makeIOSubmitter(layer->threadNamePrefix,
+                           config->thread_counts.bio_threads,
+                           config->thread_counts.bio_rotation_interval,
                            layer->requestLimiter.limit,
                            layer,
                            &layer->ioSubmitter);
@@ -721,7 +721,7 @@ int makeKernelLayer(uint64_t               startingSector,
   if (useBioAckQueue(layer)) {
     result = make_work_queue(layer->threadNamePrefix, "ackQ",
                              &layer->wqDirectory, layer, layer, &bioAckQType,
-                             config->threadCounts.bioAckThreads, NULL,
+                             config->thread_counts.bio_ack_threads, NULL,
                              &layer->bioAckQueue);
     if (result != VDO_SUCCESS) {
       *reason = "bio ack queue initialization failed";
@@ -736,7 +736,7 @@ int makeKernelLayer(uint64_t               startingSector,
   result = make_work_queue(layer->threadNamePrefix, "cpuQ",
                            &layer->wqDirectory,
                            layer, layer, &cpuQType,
-                           config->threadCounts.cpuThreads,
+                           config->thread_counts.cpu_threads,
                            (void **) layer->compressionContext,
                            &layer->cpuQueue);
   if (result != VDO_SUCCESS) {
@@ -757,37 +757,38 @@ int prepareToModifyKernelLayer(KernelLayer           *layer,
                                char                 **errorPtr)
 {
   struct device_config *extantConfig = layer->deviceConfig;
-  if (config->owningTarget->begin != extantConfig->owningTarget->begin) {
+  if (config->owning_target->begin != extantConfig->owning_target->begin) {
     *errorPtr = "Starting sector cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (strcmp(config->parentDeviceName, extantConfig->parentDeviceName) != 0) {
+  if (strcmp(config->parent_device_name,
+             extantConfig->parent_device_name) != 0) {
     *errorPtr = "Underlying device cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->logicalBlockSize != extantConfig->logicalBlockSize) {
+  if (config->logical_block_size != extantConfig->logical_block_size) {
     *errorPtr = "Logical block size cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->cacheSize != extantConfig->cacheSize) {
+  if (config->cache_size != extantConfig->cache_size) {
     *errorPtr = "Block map cache size cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->blockMapMaximumAge != extantConfig->blockMapMaximumAge) {
+  if (config->block_map_maximum_age != extantConfig->block_map_maximum_age) {
     *errorPtr = "Block map maximum age cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (config->mdRaid5ModeEnabled != extantConfig->mdRaid5ModeEnabled) {
+  if (config->md_raid5_mode_enabled != extantConfig->md_raid5_mode_enabled) {
     *errorPtr = "mdRaid5Mode cannot change";
     return VDO_PARAMETER_MISMATCH;
   }
 
-  if (memcmp(&config->threadCounts, &extantConfig->threadCounts,
+  if (memcmp(&config->thread_counts, &extantConfig->thread_counts,
 	     sizeof(struct thread_count_config)) != 0) {
     *errorPtr = "Thread configuration cannot change";
     return VDO_PARAMETER_MISMATCH;
@@ -795,12 +796,12 @@ int prepareToModifyKernelLayer(KernelLayer           *layer,
 
   // Below here are the actions to take when a non-immutable property changes.
 
-  if (config->writePolicy != extantConfig->writePolicy) {
+  if (config->write_policy != extantConfig->write_policy) {
     // Nothing needs doing right now for a write policy change.
   }
 
-  if (config->owningTarget->len != extantConfig->owningTarget->len) {
-    size_t logicalBytes = to_bytes(config->owningTarget->len);
+  if (config->owning_target->len != extantConfig->owning_target->len) {
+    size_t logicalBytes = to_bytes(config->owning_target->len);
     if ((logicalBytes % VDO_BLOCK_SIZE) != 0) {
       *errorPtr = "Logical size must be a multiple of 4096";
       return VDO_PARAMETER_MISMATCH;
@@ -813,8 +814,8 @@ int prepareToModifyKernelLayer(KernelLayer           *layer,
     }
   }
 
-  if (config->physicalBlocks != extantConfig->physicalBlocks) {
-    int result = prepareToResizePhysical(layer, config->physicalBlocks);
+  if (config->physical_blocks != extantConfig->physical_blocks) {
+    int result = prepareToResizePhysical(layer, config->physical_blocks);
     if (result != VDO_SUCCESS) {
       *errorPtr = "Device prepareToGrowPhysical failed";
       return result;
@@ -832,7 +833,7 @@ int modifyKernelLayer(KernelLayer          *layer,
 
   // A failure here is unrecoverable. So there is no problem if it happens.
 
-  if (config->writePolicy != extantConfig->writePolicy) {
+  if (config->write_policy != extantConfig->write_policy) {
     /*
      * Ordinarily, when going from async to sync, we must flush any metadata
      * written. However, because the underlying storage must have gone into
@@ -842,13 +843,13 @@ int modifyKernelLayer(KernelLayer          *layer,
      * policy change is written to synchronous storage.
      */
     logInfo("Modifying device '%s' write policy from %s to %s",
-            config->poolName, get_config_write_policy_string(extantConfig),
+            config->pool_name, get_config_write_policy_string(extantConfig),
             get_config_write_policy_string(config));
-    setWritePolicy(layer->kvdo.vdo, config->writePolicy);
+    setWritePolicy(layer->kvdo.vdo, config->write_policy);
   }
 
-  if (config->owningTarget->len != extantConfig->owningTarget->len) {
-    size_t logicalBytes = to_bytes(config->owningTarget->len);
+  if (config->owning_target->len != extantConfig->owning_target->len) {
+    size_t logicalBytes = to_bytes(config->owning_target->len);
     int result = resizeLogical(layer, logicalBytes / VDO_BLOCK_SIZE);
     if (result != VDO_SUCCESS) {
       return result;
@@ -857,9 +858,9 @@ int modifyKernelLayer(KernelLayer          *layer,
 
   // Grow physical if the version is 0, so we can't tell if we
   // got an old-style growPhysical command, or if size changed.
-  if ((config->physicalBlocks != extantConfig->physicalBlocks)
+  if ((config->physical_blocks != extantConfig->physical_blocks)
       || (config->version == 0)) {
-    int result = resizePhysical(layer, config->physicalBlocks);
+    int result = resizePhysical(layer, config->physical_blocks);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -921,7 +922,7 @@ void freeKernelLayer(KernelLayer *layer)
 
   case LAYER_SIMPLE_THINGS_INITIALIZED:
     if (layer->compressionContext != NULL) {
-      for (int i = 0; i < layer->deviceConfig->threadCounts.cpuThreads; i++) {
+      for (int i = 0; i < layer->deviceConfig->thread_counts.cpu_threads; i++) {
         FREE(layer->compressionContext[i]);
       }
       FREE(layer->compressionContext);
@@ -932,7 +933,7 @@ void freeKernelLayer(KernelLayer *layer)
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
     free_batch_processor(&layer->dataKVIOReleaser);
-    remove_layer_from_device_registry(layer->deviceConfig->poolName);
+    remove_layer_from_device_registry(layer->deviceConfig->pool_name);
     break;
 
   default:
@@ -1007,7 +1008,7 @@ int startKernelLayer(KernelLayer          *layer,
   // messages) if this is known to be a newly-formatted volume.
   startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
 
-  result = vdoCreateProcfsEntry(layer, layer->deviceConfig->poolName,
+  result = vdoCreateProcfsEntry(layer, layer->deviceConfig->pool_name,
                                 &layer->procfsPrivate);
   if (result != VDO_SUCCESS) {
     *reason = "Could not create proc filesystem entry";
@@ -1035,7 +1036,7 @@ int stopKernelLayer(KernelLayer *layer)
     kobject_put(&layer->statsDirectory);
     wait_for_completion(&layer->statsShutdown);
   }
-  vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
+  vdoDestroyProcfsEntry(layer->deviceConfig->pool_name, layer->procfsPrivate);
 
   int result = stopKVDO(&layer->kvdo);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {

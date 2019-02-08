@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#16 $
  */
 
 #include "dmvdo.h"
@@ -115,7 +115,7 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
 
-  limits->logical_block_size  = layer->deviceConfig->logicalBlockSize;
+  limits->logical_block_size  = layer->deviceConfig->logical_block_size;
   limits->physical_block_size = VDO_BLOCK_SIZE;
 
   // The minimum io size for random io
@@ -141,7 +141,7 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
    * most especially in dm-thin to determine whether to pass down discards.
    */
   limits->max_discard_sectors 
-    = layer->deviceConfig->maxDiscardBlocks * VDO_SECTORS_PER_BLOCK;
+    = layer->deviceConfig->max_discard_blocks * VDO_SECTORS_PER_BLOCK;
 
   limits->discard_granularity = VDO_BLOCK_SIZE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
@@ -155,9 +155,9 @@ static int vdoIterateDevices(struct dm_target           *ti,
                              void                       *data)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
-  sector_t len = blockToSector(layer, layer->deviceConfig->physicalBlocks);
+  sector_t len = blockToSector(layer, layer->deviceConfig->physical_blocks);
 
-  return fn(ti, layer->deviceConfig->ownedDevice, 0, len, data);
+  return fn(ti, layer->deviceConfig->owned_device, 0, len, data);
 }
 
 /*
@@ -197,7 +197,7 @@ static void vdoStatus(struct dm_target *ti,
 
   case STATUSTYPE_TABLE:
     // Report the string actually specified in the beginning.
-    DMEMIT("%s", ((struct device_config *) ti->private)->originalString);
+    DMEMIT("%s", ((struct device_config *) ti->private)->original_string);
     break;
   }
 
@@ -300,7 +300,7 @@ static int processVDOMessageLocked(KernelLayer   *layer,
         // logInfo("Mismatch between growPhysical method and table version.");
         // return -EINVAL;
       } else {
-        layer->deviceConfig->physicalBlocks
+        layer->deviceConfig->physical_blocks
           = getUnderlyingDeviceBlockCount(layer);
       }
       return 0;
@@ -508,20 +508,20 @@ static int vdoInitialize(struct dm_target     *ti,
                          unsigned int          instance,
                          struct device_config *config)
 {
-  logInfo("starting device '%s'", config->poolName);
+  logInfo("starting device '%s'", config->pool_name);
 
   uint64_t   blockSize      = VDO_BLOCK_SIZE;
   uint64_t   logicalSize    = to_bytes(ti->len);
   BlockCount logicalBlocks  = logicalSize / blockSize;
 
   logDebug("Logical block size     = %llu",
-           (uint64_t) config->logicalBlockSize);
+           (uint64_t) config->logical_block_size);
   logDebug("Logical blocks         = %llu", logicalBlocks);
   logDebug("Physical block size    = %llu", (uint64_t) blockSize);
-  logDebug("Physical blocks        = %llu", config->physicalBlocks);
-  logDebug("Block map cache blocks = %u", config->cacheSize);
-  logDebug("Block map maximum age  = %u", config->blockMapMaximumAge);
-  logDebug("MD RAID5 mode          = %s", (config->mdRaid5ModeEnabled
+  logDebug("Physical blocks        = %llu", config->physical_blocks);
+  logDebug("Block map cache blocks = %u", config->cache_size);
+  logDebug("Block map maximum age  = %u", config->block_map_maximum_age);
+  logDebug("MD RAID5 mode          = %s", (config->md_raid5_mode_enabled
                                            ? "on" : "off"));
   logDebug("Write policy           = %s",
            get_config_write_policy_string(config));
@@ -529,10 +529,10 @@ static int vdoInitialize(struct dm_target     *ti,
   // The threadConfig will be copied by the VDO if it's successfully
   // created.
   VDOLoadConfig loadConfig = {
-    .cacheSize    = config->cacheSize,
+    .cacheSize    = config->cache_size,
     .threadConfig = NULL,
-    .writePolicy  = config->writePolicy,
-    .maximumAge   = config->blockMapMaximumAge,
+    .writePolicy  = config->write_policy,
+    .maximumAge   = config->block_map_maximum_age,
   };
 
   char        *failureReason;
@@ -552,7 +552,7 @@ static int vdoInitialize(struct dm_target     *ti,
   // VDOLoadConfig.
   setLoadConfigFromGeometry(&layer->geometry, &loadConfig);
 
-  if (config->cacheSize < (2 * MAXIMUM_USER_VIOS
+  if (config->cache_size < (2 * MAXIMUM_USER_VIOS
                    * loadConfig.threadConfig->logicalZoneCount)) {
     logWarning("Insufficient block map cache for logical zones");
     cleanupInitialize(ti, loadConfig.threadConfig, layer, instance,
@@ -575,7 +575,7 @@ static int vdoInitialize(struct dm_target     *ti,
   ti->private = config;
   configureTargetCapabilities(ti, layer);
 
-  logInfo("device '%s' started", config->poolName);
+  logInfo("device '%s' started", config->pool_name);
   return VDO_SUCCESS;
 }
 
@@ -628,7 +628,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
      * are not, but we can't do that till new VDO Manager does the right
      * order.
      */
-    logInfo("preparing to modify device '%s'", config->poolName);
+    logInfo("preparing to modify device '%s'", config->pool_name);
     result = prepareToModifyKernelLayer(oldLayer, config, &ti->error);
     if (result != VDO_SUCCESS) {
       result = mapToSystemError(result);
@@ -671,14 +671,14 @@ static void vdoDtr(struct dm_target *ti)
     registerAllocatingThread(&allocatingThread, NULL);
 
     waitForNoRequestsActive(layer);
-    logInfo("stopping device '%s'", config->poolName);
+    logInfo("stopping device '%s'", config->pool_name);
 
     if (layer->dumpOnShutdown) {
       vdo_dump_all(layer, "device shutdown");
     }
 
     freeKernelLayer(layer);
-    logInfo("device '%s' stopped", config->poolName);
+    logInfo("device '%s' stopped", config->pool_name);
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
   }
@@ -705,7 +705,7 @@ static void vdoPostsuspend(struct dm_target *ti)
   KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
-  const char *poolName = layer->deviceConfig->poolName;
+  const char *poolName = layer->deviceConfig->pool_name;
   logInfo("suspending device '%s'", poolName);
   int result = suspendKernelLayer(layer);
   if (result == VDO_SUCCESS) {
@@ -724,14 +724,14 @@ static int vdoPreresume(struct dm_target *ti)
   struct device_config *config = ti->private;
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
-  logInfo("resuming device '%s'", config->poolName);
+  logInfo("resuming device '%s'", config->pool_name);
 
   // This is a noop if nothing has changed, and by calling it every time
   // we capture old-style growPhysicals, which change the config in place.
   int result = modifyKernelLayer(layer, config);
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
-                            " failed", config->poolName);
+                            " failed", config->pool_name);
     setKernelLayerActiveConfig(layer, config);
     setKVDOReadOnly(&layer->kvdo, result);
   } else {
@@ -739,7 +739,7 @@ static int vdoPreresume(struct dm_target *ti)
     result = resumeKernelLayer(layer);
     if (result != VDO_SUCCESS) {
       logError("resume of device '%s' failed with error: %d",
-	       layer->deviceConfig->poolName, result);
+	       layer->deviceConfig->pool_name, result);
     }
   }
   unregisterThreadDeviceID();
@@ -752,7 +752,7 @@ static void vdoResume(struct dm_target *ti)
   KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
-  logInfo("device '%s' resumed", layer->deviceConfig->poolName);
+  logInfo("device '%s' resumed", layer->deviceConfig->pool_name);
   unregisterThreadDeviceID();
 }
 
