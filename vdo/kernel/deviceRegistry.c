@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#4 $
  */
 
 #include "deviceRegistry.h"
@@ -32,14 +32,14 @@
  * is adequate. We can use a PointerMap if we need to later.
  */
 struct device_registry {
-  struct list_head links;
-  rwlock_t         lock;
+	struct list_head links;
+	rwlock_t lock;
 };
 
 struct registered_device {
-  struct list_head    links;
-  char               *name;
-  KernelLayer        *layer;
+	struct list_head links;
+	char *name;
+	KernelLayer *layer;
 };
 
 static struct device_registry registry;
@@ -47,8 +47,8 @@ static struct device_registry registry;
 /**********************************************************************/
 void initialize_device_registry_once(void)
 {
-  INIT_LIST_HEAD(&registry.links);
-  rwlock_init(&registry.lock);
+	INIT_LIST_HEAD(&registry.links);
+	rwlock_init(&registry.lock);
 }
 
 /**
@@ -62,65 +62,66 @@ void initialize_device_registry_once(void)
 __attribute__((warn_unused_result))
 static struct registered_device *find_layer_locked(char *name)
 {
-  struct registered_device *device;
-  list_for_each_entry(device, &registry.links, links) {
-    if (strcmp(device->name, name) == 0) {
-      return device;
-    }
-  }
-  return NULL;
+	struct registered_device *device;
+	list_for_each_entry (device, &registry.links, links) {
+		if (strcmp(device->name, name) == 0) {
+			return device;
+		}
+	}
+	return NULL;
 }
 
 /**********************************************************************/
 KernelLayer *get_layer_by_name(char *name)
 {
-  read_lock(&registry.lock);
-  struct registered_device *device = find_layer_locked(name);
-  read_unlock(&registry.lock);
-  if (device == NULL) {
-    return NULL;
-  }
-  return device->layer;
+	read_lock(&registry.lock);
+	struct registered_device *device = find_layer_locked(name);
+	read_unlock(&registry.lock);
+	if (device == NULL) {
+		return NULL;
+	}
+	return device->layer;
 }
 
 /**********************************************************************/
 int add_layer_to_device_registry(char *name, KernelLayer *layer)
 {
-  struct registered_device *new_device;
-  int result = ALLOCATE(1, struct registered_device, __func__, &new_device);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct registered_device *new_device;
+	int result =
+		ALLOCATE(1, struct registered_device, __func__, &new_device);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = duplicateString(name, "name", &new_device->name);
-  if (result != VDO_SUCCESS) {
-    FREE(new_device);
-    return result;
-  }
+	result = duplicateString(name, "name", &new_device->name);
+	if (result != VDO_SUCCESS) {
+		FREE(new_device);
+		return result;
+	}
 
-  INIT_LIST_HEAD(&new_device->links);
-  new_device->layer = layer;
+	INIT_LIST_HEAD(&new_device->links);
+	new_device->layer = layer;
 
-  write_lock(&registry.lock);
-  struct registered_device *old_device = find_layer_locked(name);
-  result = ASSERT(old_device == NULL, "Device not already registered");
-  if (result == VDO_SUCCESS) {
-    list_add_tail(&new_device->links, &registry.links);
-  }
-  write_unlock(&registry.lock);
+	write_lock(&registry.lock);
+	struct registered_device *old_device = find_layer_locked(name);
+	result = ASSERT(old_device == NULL, "Device not already registered");
+	if (result == VDO_SUCCESS) {
+		list_add_tail(&new_device->links, &registry.links);
+	}
+	write_unlock(&registry.lock);
 
-  return result;
+	return result;
 }
 
 /**********************************************************************/
 void remove_layer_from_device_registry(char *name)
 {
-  write_lock(&registry.lock);
-  struct registered_device *device = find_layer_locked(name);
-  if (device != NULL) {
-    list_del_init(&device->links);
-    FREE(device->name);
-  }
-  write_unlock(&registry.lock);
-  FREE(device);
+	write_lock(&registry.lock);
+	struct registered_device *device = find_layer_locked(name);
+	if (device != NULL) {
+		list_del_init(&device->links);
+		FREE(device->name);
+	}
+	write_unlock(&registry.lock);
+	FREE(device);
 }
