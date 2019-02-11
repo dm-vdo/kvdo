@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.h#3 $
  */
 
 #ifndef DUMP_H
@@ -33,10 +33,10 @@
  * @param argv    The argument list
  * @param why     Reason for doing the dump
  **/
-int vdo_dump(KernelLayer  *layer,
-            unsigned int  argc,
-            char * const *argv,
-            const char   *why);
+int vdo_dump(KernelLayer *layer,
+	     unsigned int argc,
+	     char *const *argv,
+	     const char *why);
 
 /**
  * Dump lots of internal state and statistics to the kernel log.
