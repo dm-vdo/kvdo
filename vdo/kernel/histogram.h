@@ -16,15 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.h#3 $
  */
 
 #ifndef HISTOGRAM_H
 #define HISTOGRAM_H
 
 #include <linux/types.h>
-
-typedef struct histogram Histogram;
 
 /**
  * Allocate and initialize a histogram that uses linearly sized buckets.
@@ -36,10 +34,10 @@ typedef struct histogram Histogram;
  * flushes grouped by latency (milliseconds)". Thus counted_items and
  * sample_units should be plural.
  *
- * The sampleUnits string will also be reported separately via another /sys
- * entry to aid in programmatic processing of the results, so the strings used
- * should be consistent (e.g., always "milliseconds" and not "ms" for
- * milliseconds).
+ * The sampleUnits string will also be reported separately via another
+ * /sys entry to aid in programmatic processing of the results, so the
+ * strings used should be consistent (e.g., always "milliseconds" and
+ * not "ms" for milliseconds).
  *
  * @param parent        The parent kobject.
  * @param name          The short name of the histogram.  This label is used
@@ -56,13 +54,13 @@ typedef struct histogram Histogram;
  *
  * @return the histogram
  **/
-Histogram *make_linear_histogram(struct kobject *parent,
-                                 const char     *name,
-                                 const char     *init_label,
-                                 const char     *counted_items,
-                                 const char     *metric,
-                                 const char     *sample_units,
-                                 int             size);
+struct histogram *make_linear_histogram(struct kobject *parent,
+					const char *name,
+					const char *init_label,
+					const char *counted_items,
+					const char *metric,
+					const char *sample_units,
+					int size);
 
 /**
  * Allocate and initialize a histogram that uses logarithmically sized
@@ -77,19 +75,19 @@ Histogram *make_linear_histogram(struct kobject *parent,
  * @param metric        The measure being used to divide samples into buckets.
  * @param sample_units  The unit (plural) for the metric, or NULL if it's a
  *                      simple counter.
- * @param logSize       The number of buckets.  There are buckets for a range
+ * @param log_size      The number of buckets.  There are buckets for a range
  *                      of sizes up to 10^logSize, and an extra bucket for
  *                      larger samples.
  *
  * @return the histogram
  **/
-Histogram *make_logarithmic_histogram(struct kobject *parent,
-                                      const char     *name,
-                                      const char     *init_label,
-                                      const char     *counted_items,
-                                      const char     *metric,
-                                      const char     *sample_units,
-                                      int             logSize);
+struct histogram *make_logarithmic_histogram(struct kobject *parent,
+					     const char *name,
+					     const char *init_label,
+					     const char *counted_items,
+					     const char *metric,
+					     const char *sample_units,
+					     int log_size);
 
 /**
  * Allocate and initialize a histogram that uses logarithmically sized
@@ -103,18 +101,18 @@ Histogram *make_logarithmic_histogram(struct kobject *parent,
  *                      when we plot the data.
  * @param counted_items A name (plural) for the things being counted.
  * @param metric        The measure being used to divide samples into buckets.
- * @param logSize       The number of buckets.  There are buckets for a range
+ * @param log_size      The number of buckets.  There are buckets for a range
  *                      of sizes up to 10^logSize, and an extra bucket for
  *                      larger samples.
  *
  * @return the histogram
  **/
-Histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
-                                              const char     *name,
-                                              const char     *init_label,
-                                              const char     *counted_items,
-                                              const char     *metric,
-                                              int             logSize);
+struct histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
+						     const char *name,
+						     const char *init_label,
+						     const char *counted_items,
+						     const char *metric,
+						     int log_size);
 
 /**
  * Enter a sample into a histogram
@@ -122,13 +120,13 @@ Histogram *make_logarithmic_jiffies_histogram(struct kobject *parent,
  * @param h       The histogram
  * @param sample  The sample
  **/
-void enter_histogram_sample(Histogram *h, uint64_t sample);
+void enter_histogram_sample(struct histogram *h, uint64_t sample);
 
 /**
  * Free a histogram and null out the reference to it.
  *
  * @param hp  The reference to the histogram.
  **/
-void free_histogram(Histogram **hp);
+void free_histogram(struct histogram **hp);
 
 #endif /* HISTOGRAM_H */

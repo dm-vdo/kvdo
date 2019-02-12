@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#5 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -70,19 +70,19 @@ typedef struct kvdoWorkQueueStats {
   atomic64_t         rescheduleTime;
 
   // Histogram of the queue times of work items (microseconds)
-  Histogram         *queueTimeHistogram;
+  struct histogram  *queueTimeHistogram;
   // How busy we are when cond_resched is called
-  Histogram         *rescheduleQueueLengthHistogram;
+  struct histogram  *rescheduleQueueLengthHistogram;
   // Histogram of the time cond_resched makes us sleep for (microseconds)
-  Histogram         *rescheduleTimeHistogram;
+  struct histogram  *rescheduleTimeHistogram;
   // Histogram of the run time between cond_resched calls (microseconds)
-  Histogram         *runTimeBeforeRescheduleHistogram;
+  struct histogram  *runTimeBeforeRescheduleHistogram;
   // Histogram of the time schedule_timeout lets us sleep for (microseconds)
-  Histogram         *scheduleTimeHistogram;
+  struct histogram  *scheduleTimeHistogram;
   // How long from thread wakeup call to thread actually running (microseconds)
-  Histogram         *wakeupLatencyHistogram;
+  struct histogram  *wakeupLatencyHistogram;
   // How much work is pending by the time we start running
-  Histogram         *wakeupQueueLengthHistogram;
+  struct histogram  *wakeupQueueLengthHistogram;
 } KvdoWorkQueueStats;
 
 /**
