@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.h#3 $
  */
 
 /**
  * Allocate an instance number.
  *
- * @param [out] instancePtr  An integer to hold the allocated instance number
+ * @param [out] instance_ptr  An integer to hold the allocated instance number
  *
  * @result  UDS_SUCCESS or an error code
  **/
-int allocate_kvdo_instance(unsigned int *instancePtr);
+int allocate_kvdo_instance(unsigned int *instance_ptr);
 
 /**
  * Release an instance number previously allocated.
