@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#4 $
  */
 
 #include "instanceNumber.h"
@@ -79,8 +79,8 @@ static size_t get_bit_array_size(unsigned int bit_count)
  **/
 static int grow_bit_array(void)
 {
-	unsigned int new_count =
-		maxUInt(bit_count + BIT_COUNT_INCREMENT, BIT_COUNT_MINIMUM);
+	unsigned int new_count = maxUInt(bit_count + BIT_COUNT_INCREMENT,
+					 BIT_COUNT_MINIMUM);
 	unsigned long *new_words;
 	int result = reallocateMemory(words,
 				      get_bit_array_size(bit_count),
@@ -114,7 +114,7 @@ static int allocate_kvdo_instance_locked(unsigned int *instance_ptr)
 	if (instance >= bit_count) {
 		// Nothing free after next_instance, so wrap around to instance
 		// zero.
-		instance   = find_first_zero_bit(words, bit_count);
+		instance = find_first_zero_bit(words, bit_count);
 		int result = ASSERT(instance < bit_count,
 				    "impossibly, no zero bit found");
 		if (result != UDS_SUCCESS) {
