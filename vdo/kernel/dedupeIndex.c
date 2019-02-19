@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#10 $
  */
 
 #include "dedupeIndex.h"
@@ -33,6 +33,15 @@ typedef struct udsAttribute {
   struct attribute attr;
   const char *(*showString)(DedupeIndex *);
 } UDSAttribute;
+
+/*****************************************************************************/
+
+typedef struct dedupeSuspend {
+  KvdoWorkItem        workItem;
+  struct completion   completion;
+  struct dedupeIndex *index;
+  bool                saveFlag;
+} DedupeSuspend;
 
 /*****************************************************************************/
 
@@ -91,7 +100,6 @@ typedef struct periodicEventReporter {
 
 struct dedupeIndex {
   struct kobject         dedupeObject;
-  KvdoWorkItem           workItem;
   RegisteredThread       allocatingThread;
   char                  *indexName;
   UdsConfiguration       configuration;
@@ -103,6 +111,7 @@ struct dedupeIndex {
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
   spinlock_t             stateLock;
+  KvdoWorkItem           workItem;    // protected by stateLock
   KvdoWorkQueue         *udsQueue;    // protected by stateLock
   unsigned int           maximum;     // protected by stateLock
   IndexState             indexState;  // protected by stateLock
@@ -294,6 +303,41 @@ static void finishIndexOperation(UdsRequest *udsRequest)
   } else {
     compareAndSwap32(&dedupeContext->requestState, UR_TIMED_OUT, UR_IDLE);
   }
+}
+
+/*****************************************************************************/
+static void suspendIndex(KvdoWorkItem *item)
+{
+  DedupeSuspend *dedupeSuspend = container_of(item, DedupeSuspend, workItem);
+  DedupeIndex *index = dedupeSuspend->index;
+  spin_lock(&index->stateLock);
+  IndexState indexState = index->indexState;
+  spin_unlock(&index->stateLock);
+  if (indexState == IS_OPENED) {
+    int result = udsFlushBlockContext(index->blockContext);
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Error flushing dedupe index");
+    } else if (dedupeSuspend->saveFlag) {
+      result = udsSaveIndex(index->indexSession);
+      if (result != UDS_SUCCESS) {
+        logErrorWithStringError(result, "Error saving dedupe index");
+      }
+    }
+  }
+  complete(&dedupeSuspend->completion);
+}
+
+/*****************************************************************************/
+void suspendDedupeIndex(DedupeIndex *index, bool saveFlag)
+{
+  DedupeSuspend dedupeSuspend = {
+    .index    = index,
+    .saveFlag = saveFlag,
+  };
+  init_completion(&dedupeSuspend.completion);
+  setup_work_item(&dedupeSuspend.workItem, suspendIndex, NULL, UDS_Q_ACTION);
+  enqueue_work_queue(index->udsQueue, &dedupeSuspend.workItem);
+  wait_for_completion(&dedupeSuspend.completion);
 }
 
 /*****************************************************************************/
