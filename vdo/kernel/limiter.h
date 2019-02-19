@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.h#4 $
  */
 
 #ifndef LIMITER_H
@@ -31,16 +31,16 @@
  */
 
 struct limiter {
-  // A spinlock controlling access to the contents of this struct
-  spinlock_t        lock;
-  // The queue of threads waiting for a resource to become available
-  wait_queue_head_t waiter_queue;
-  // The number of resources in use
-  uint32_t          active;
-  // The maximum number number of resources that have ever been in use
-  uint32_t          maximum;
-  // The limit to the number of resources that are allowed to be used
-  uint32_t          limit;
+	// A spinlock controlling access to the contents of this struct
+	spinlock_t lock;
+	// The queue of threads waiting for a resource to become available
+	wait_queue_head_t waiter_queue;
+	// The number of resources in use
+	uint32_t active;
+	// The maximum number number of resources that have ever been in use
+	uint32_t maximum;
+	// The limit to the number of resources that are allowed to be used
+	uint32_t limit;
 };
 
 /**
@@ -51,8 +51,8 @@ struct limiter {
  * @param maximum  The maximum number of requests that have ever been active
  **/
 void get_limiter_values_atomically(struct limiter *limiter,
-                                   uint32_t       *active,
-                                   uint32_t       *maximum);
+				   uint32_t *active,
+				   uint32_t *maximum);
 
 /**
  * Initialize a limiter structure
@@ -93,9 +93,9 @@ void limiter_release_many(struct limiter *limiter, uint32_t count);
  *
  * @param limiter  The limiter
  **/
-static inline void limiterRelease(struct limiter *limiter)
+static inline void limiter_release(struct limiter *limiter)
 {
-  limiter_release_many(limiter, 1);
+	limiter_release_many(limiter, 1);
 }
 
 /**
@@ -108,7 +108,7 @@ void limiter_wait_for_idle(struct limiter *limiter);
 /**
  * Prepare to start using one resource, waiting if there are too many resources
  * already in use. After returning from this routine, the caller may use the
- * resource, and must call limiterRelease after freeing the resource.
+ * resource, and must call limiter_release after freeing the resource.
  *
  * @param limiter  The limiter
  **/
@@ -117,7 +117,7 @@ void limiter_wait_for_one_free(struct limiter *limiter);
 /**
  * Attempt to reserve one resource, without waiting. After returning from this
  * routine, if allocation was successful, the caller may use the resource, and
- * must call limiterRelease after freeing the resource.
+ * must call limiter_release after freeing the resource.
  *
  * @param limiter  The limiter
  *

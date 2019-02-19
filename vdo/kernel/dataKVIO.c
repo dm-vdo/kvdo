@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#22 $
  */
 
 #include "dataKVIO.h"
@@ -802,7 +802,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
   if ((completion->result != VDO_SUCCESS)
       || (dataKVIO->remainingDiscard == 0)) {
     if (dataKVIO->hasDiscardPermit) {
-      limiterRelease(&layer->discardLimiter);
+      limiter_release(&layer->discardLimiter);
       dataKVIO->hasDiscardPermit = false;
     }
     kvdoCompleteDataKVIO(completion);
@@ -860,9 +860,9 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
   if (unlikely(result != VDO_SUCCESS)) {
     logInfo("%s: KVIO allocation failure", __func__);
     if (hasDiscardPermit) {
-      limiterRelease(&layer->discardLimiter);
+      limiter_release(&layer->discardLimiter);
     }
-    limiterRelease(&layer->requestLimiter);
+    limiter_release(&layer->requestLimiter);
     return mapToSystemError(result);
   }
 
