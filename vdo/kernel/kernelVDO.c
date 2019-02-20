@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#12 $
  */
 
 #include "kernelVDOInternals.h"
@@ -452,8 +452,8 @@ WritePolicy getKVDOWritePolicy(KVDO *kvdo)
 }
 
 /**********************************************************************/
-void enqueueKVDOThreadWork(struct kvdo_thread *thread,
-                           KvdoWorkItem       *item)
+void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
+                              KvdoWorkItem       *item)
 {
   enqueue_work_queue(thread->requestQueue, item);
 }
@@ -461,7 +461,7 @@ void enqueueKVDOThreadWork(struct kvdo_thread *thread,
 /**********************************************************************/
 void enqueueKVDOWork(KVDO *kvdo, KvdoWorkItem *item, ThreadID threadID)
 {
-  enqueueKVDOThreadWork(&kvdo->threads[threadID], item);
+  enqueue_kvdo_thread_work(&kvdo->threads[threadID], item);
 }
 
 /**********************************************************************/
@@ -507,8 +507,8 @@ void kvdoEnqueue(Enqueueable *enqueueable)
   setup_work_item(&kvdoEnqueueable->workItem, kvdoEnqueueWork,
                   (KvdoWorkFunction) enqueueable->completion->callback,
                   REQ_Q_ACTION_COMPLETION);
-  enqueueKVDOThreadWork(&layer->kvdo.threads[threadID],
-                        &kvdoEnqueueable->workItem);
+  enqueue_kvdo_thread_work(&layer->kvdo.threads[threadID],
+                           &kvdoEnqueueable->workItem);
 }
 
 /**********************************************************************/
