@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#13 $
  */
 
 #ifndef KERNELLAYER_H
@@ -103,7 +103,7 @@ struct kernelLayer {
   struct deadlock_queue    deadlockQueue;
   // for REQ_FLUSH processing
   struct bio_list          waitingFlushes;
-  KVDOFlush               *spareKVDOFlush;
+  struct kvdo_flush       *spareKVDOFlush;
   spinlock_t               flushLock;
   Jiffies                  flushArrivalTime;
   /**

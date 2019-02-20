@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#4 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -27,11 +27,11 @@
 #include "kernelLayer.h"
 
 /**
- * Create a KVDOFlush.
+ * Create a kvdo_flush structure.
  *
- * @param flushPtr  A pointer to hold the new flush
+ * @param flush_ptr  A pointer to hold the new flush
  **/
-int make_kvdo_flush(KVDOFlush **flushPtr);
+int make_kvdo_flush(struct kvdo_flush **flush_ptr);
 
 /**
  * Answer the question as to whether VDO should be processing REQ_FLUSH

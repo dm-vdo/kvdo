@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#8 $
  */
 
 #include "kvdoFlush.h"
@@ -32,34 +32,34 @@
 /**
  * A specific (concrete) encapsulation of flush requests.
  *
- * <p>We attempt to allocate a KVDOFlush objects for each incoming flush bio.
- * In case the allocate fails, a spare object is pre-allocated by and stored
- * in the kernel layer. The first time an allocation fails, the spare is used.
- * If another allocation fails while the spare is in use, it will merely be
- * queued for later processing.
+ * <p>We attempt to allocate a kvdo_flush structure for each incoming flush
+ * bio. In case the allocate fails, a spare structure is pre-allocated by and
+ * stored in the kernel layer. The first time an allocation fails, the spare
+ * is used. If another allocation fails while the spare is in use, it will
+ * merely be queued for later processing.
  *
- * <p>When a KVDOFlush is complete, it will either be freed, immediately
+ * <p>When a kvdo_flush is complete, it will either be freed, immediately
  * re-used for queued flushes, or stashed in the kernel layer as the new spare
- * object. This ensures that we will always make forward progress.
+ * structure. This ensures that we will always make forward progress.
  **/
-struct kvdoFlush {
-  KvdoWorkItem     work_item;
-  KernelLayer     *layer;
-  struct bio_list  bios;
-  Jiffies          arrival_time;  // Time when earliest bio appeared
-  VDOFlush         vdo_flush;
+struct kvdo_flush {
+	KvdoWorkItem work_item;
+	KernelLayer *layer;
+	struct bio_list bios;
+	Jiffies arrival_time; // Time when earliest bio appeared
+	VDOFlush vdo_flush;
 };
 
 /**********************************************************************/
-int make_kvdo_flush(KVDOFlush **flushPtr)
+int make_kvdo_flush(struct kvdo_flush **flush_ptr)
 {
-  return ALLOCATE(1, KVDOFlush, __func__, flushPtr);
+	return ALLOCATE(1, struct kvdo_flush, __func__, flush_ptr);
 }
 
 /**********************************************************************/
 bool should_process_flush(KernelLayer *layer)
 {
-  return (getKVDOWritePolicy(&layer->kvdo) == WRITE_POLICY_ASYNC);
+	return (getKVDOWritePolicy(&layer->kvdo) == WRITE_POLICY_ASYNC);
 }
 
 /**
@@ -69,114 +69,126 @@ bool should_process_flush(KernelLayer *layer)
  **/
 static void kvdo_flush_work(KvdoWorkItem *item)
 {
-  KVDOFlush *kvdo_flush = container_of(item, KVDOFlush, work_item);
-  flush(kvdo_flush->layer->kvdo.vdo, &kvdo_flush->vdo_flush);
+	struct kvdo_flush *kvdo_flush = container_of(item,
+						     struct kvdo_flush,
+						     work_item);
+	flush(kvdo_flush->layer->kvdo.vdo, &kvdo_flush->vdo_flush);
 }
 
 /**
- * Initialize a KVDOFlush object, transferring all the bios in the kernel
+ * Initialize a kvdo_flush structure, transferring all the bios in the kernel
  * layer's waitingFlushes list to it. The caller MUST already hold the layer's
  * flushLock.
  *
  * @param kvdo_flush  The flush to initialize
- * @param layer      The kernel layer on which the flushLock is held
+ * @param layer       The kernel layer on which the flushLock is held
  **/
-static void initialize_kvdo_flush(KVDOFlush *kvdo_flush, KernelLayer *layer)
+static void initialize_kvdo_flush(struct kvdo_flush *kvdo_flush,
+				  KernelLayer *layer)
 {
-  kvdo_flush->layer = layer;
-  bio_list_init(&kvdo_flush->bios);
-  bio_list_merge(&kvdo_flush->bios, &layer->waitingFlushes);
-  bio_list_init(&layer->waitingFlushes);
-  kvdo_flush->arrival_time = layer->flushArrivalTime;
+	kvdo_flush->layer = layer;
+	bio_list_init(&kvdo_flush->bios);
+	bio_list_merge(&kvdo_flush->bios, &layer->waitingFlushes);
+	bio_list_init(&layer->waitingFlushes);
+	kvdo_flush->arrival_time = layer->flushArrivalTime;
 }
 
 /**********************************************************************/
-static void enqueue_kvdo_flush(KVDOFlush *kvdo_flush)
+static void enqueue_kvdo_flush(struct kvdo_flush *kvdo_flush)
 {
-  setup_work_item(&kvdo_flush->work_item, kvdo_flush_work, NULL,
-                  REQ_Q_ACTION_FLUSH);
-  KVDO *kvdo = &kvdo_flush->layer->kvdo;
-  enqueueKVDOWork(kvdo, &kvdo_flush->work_item,
-                  getPackerZoneThread(getThreadConfig(kvdo->vdo)));
+	setup_work_item(&kvdo_flush->work_item,
+			kvdo_flush_work,
+			NULL,
+			REQ_Q_ACTION_FLUSH);
+	KVDO *kvdo = &kvdo_flush->layer->kvdo;
+	enqueueKVDOWork(kvdo,
+			&kvdo_flush->work_item,
+			getPackerZoneThread(getThreadConfig(kvdo->vdo)));
 }
 
 /**********************************************************************/
 void launch_kvdo_flush(KernelLayer *layer, struct bio *bio)
 {
-  // Try to allocate a KVDOFlush to represent the flush request. If the
-  // allocation fails, we'll deal with it later.
-  KVDOFlush *kvdo_flush = ALLOCATE_NOWAIT(KVDOFlush, __func__);
+	// Try to allocate a kvdo_flush to represent the flush request.
+	// If the allocation fails, we'll deal with it later.
+	struct kvdo_flush *kvdo_flush = ALLOCATE_NOWAIT(struct kvdo_flush,
+							__func__);
 
-  spin_lock(&layer->flushLock);
+	spin_lock(&layer->flushLock);
 
-  // We have a new bio to start.  Add it to the list.  If it becomes the
-  // only entry on the list, record the time.
-  if (bio_list_empty(&layer->waitingFlushes)) {
-    layer->flushArrivalTime = jiffies;
-  }
-  bio_list_add(&layer->waitingFlushes, bio);
+	// We have a new bio to start.  Add it to the list.  If it becomes the
+	// only entry on the list, record the time.
+	if (bio_list_empty(&layer->waitingFlushes)) {
+		layer->flushArrivalTime = jiffies;
+	}
+	bio_list_add(&layer->waitingFlushes, bio);
 
-  if (kvdo_flush == NULL) {
-    // The KVDOFlush allocation failed. Try to use the spare KVDOFlush object.
-    if (layer->spareKVDOFlush == NULL) {
-      // The spare is already in use. This bio is on waitingFlushes and it
-      // will be handled by a flush completion or by a bio that can allocate.
-      spin_unlock(&layer->flushLock);
-      return;
-    }
+	if (kvdo_flush == NULL) {
+		// The kvdo_flush allocation failed. Try to use the spare
+		// kvdo_flush structure.
+		if (layer->spareKVDOFlush == NULL) {
+			// The spare is already in use. This bio is on
+			// waitingFlushes and it will be handled by a flush
+			// completion or by a bio that can allocate.
+			spin_unlock(&layer->flushLock);
+			return;
+		}
 
-    // Take and use the spare KVDOFlush object.
-    kvdo_flush = layer->spareKVDOFlush;
-    layer->spareKVDOFlush = NULL;
-  }
+		// Take and use the spare kvdo_flush structure.
+		kvdo_flush = layer->spareKVDOFlush;
+		layer->spareKVDOFlush = NULL;
+	}
 
-  // We have flushes to start. Capture them in the KVDOFlush object.
-  initialize_kvdo_flush(kvdo_flush, layer);
+	// We have flushes to start. Capture them in the kvdo_flush structure.
+	initialize_kvdo_flush(kvdo_flush, layer);
 
-  spin_unlock(&layer->flushLock);
+	spin_unlock(&layer->flushLock);
 
-  // Finish launching the flushes.
-  enqueue_kvdo_flush(kvdo_flush);
+	// Finish launching the flushes.
+	enqueue_kvdo_flush(kvdo_flush);
 }
 
 /**
- * Release a KVDOFlush object that has completed its work. If there are any
- * pending flush requests whose KVDOFlush allocation failed, they will be
- * launched by immediately re-using the released KVDOFlush. If there is no
- * spare KVDOFlush, the released object will become the spare. Otherwise, the
- * KVDOFlush will be freed.
+ * Release a kvdo_flush structure that has completed its work. If there are
+ * any pending flush requests whose kvdo_flush allocation failed, they will be
+ * launched by immediately re-using the released kvdo_flush. If there is no
+ * spare kvdo_flush, the released structure  will become the spare. Otherwise,
+ * the kvdo_flush will be freed.
  *
- * @param kvdo_flush  The completed flush object to re-use or free
+ * @param kvdo_flush  The completed flush structure to re-use or free
  **/
-static void release_kvdo_flush(KVDOFlush *kvdo_flush)
+static void release_kvdo_flush(struct kvdo_flush *kvdo_flush)
 {
-  KernelLayer *layer = kvdo_flush->layer;
-  bool relaunch_flush = false;
-  bool free_flush     = false;
+	KernelLayer *layer = kvdo_flush->layer;
+	bool relaunch_flush = false;
+	bool free_flush = false;
 
-  spin_lock(&layer->flushLock);
-  if (bio_list_empty(&layer->waitingFlushes)) {
-    // Nothing needs to be started.  Save one spare KVDOFlush object.
-    if (layer->spareKVDOFlush == NULL) {
-      // Make the new spare all zero, just like a newly allocated one.
-      memset(kvdo_flush, 0, sizeof(*kvdo_flush));
-      layer->spareKVDOFlush = kvdo_flush;
-    } else {
-      free_flush = true;
-    }
-  } else {
-    // We have flushes to start.  Capture them in the KVDOFlush object.
-    initialize_kvdo_flush(kvdo_flush, layer);
-    relaunch_flush = true;
-  }
-  spin_unlock(&layer->flushLock);
+	spin_lock(&layer->flushLock);
+	if (bio_list_empty(&layer->waitingFlushes)) {
+		// Nothing needs to be started.  Save one spare kvdo_flush
+		// structure.
+		if (layer->spareKVDOFlush == NULL) {
+			// Make the new spare all zero, just like a newly
+			// allocated one.
+			memset(kvdo_flush, 0, sizeof(*kvdo_flush));
+			layer->spareKVDOFlush = kvdo_flush;
+		} else {
+			free_flush = true;
+		}
+	} else {
+		// We have flushes to start.  Capture them in the kvdo_flush
+		// structure.
+		initialize_kvdo_flush(kvdo_flush, layer);
+		relaunch_flush = true;
+	}
+	spin_unlock(&layer->flushLock);
 
-  if (relaunch_flush) {
-    // Finish launching the flushes.
-    enqueue_kvdo_flush(kvdo_flush);
-  } else if (free_flush) {
-    FREE(kvdo_flush);
-  }
+	if (relaunch_flush) {
+		// Finish launching the flushes.
+		enqueue_kvdo_flush(kvdo_flush);
+	} else if (free_flush) {
+		FREE(kvdo_flush);
+	}
 }
 
 /**
@@ -186,60 +198,69 @@ static void release_kvdo_flush(KVDOFlush *kvdo_flush)
  **/
 static void kvdo_complete_flush_work(KvdoWorkItem *item)
 {
-  KVDOFlush   *kvdo_flush = container_of(item, KVDOFlush, work_item);
-  KernelLayer *layer      = kvdo_flush->layer;
+	struct kvdo_flush *kvdo_flush = container_of(item,
+						     struct kvdo_flush,
+						     work_item);
+	KernelLayer *layer = kvdo_flush->layer;
 
-  struct bio *bio;
-  while ((bio = bio_list_pop(&kvdo_flush->bios)) != NULL) {
-    // We're not acknowledging this bio now, but we'll never touch it
-    // again, so this is the last chance to account for it.
-    count_bios(&layer->biosAcknowledged, bio);
+	struct bio *bio;
+	while ((bio = bio_list_pop(&kvdo_flush->bios)) != NULL) {
+		// We're not acknowledging this bio now, but we'll never touch
+		// it again, so this is the last chance to account for it.
+		count_bios(&layer->biosAcknowledged, bio);
 
-    // Make sure the bio is a empty flush bio.
-    prepare_flush_bio(bio, bio->bi_private, getKernelLayerBdev(layer),
-                      bio->bi_end_io);
-    atomic64_inc(&layer->flushOut);
-    generic_make_request(bio);
-  }
+		// Make sure the bio is an empty flush bio.
+		prepare_flush_bio(bio,
+				  bio->bi_private,
+				  getKernelLayerBdev(layer),
+				  bio->bi_end_io);
+		atomic64_inc(&layer->flushOut);
+		generic_make_request(bio);
+	}
 
 
-  // Release the KVDOFlush object, freeing it, re-using it as the spare, or
-  // using it to launch any flushes that had to wait when allocations failed.
-  release_kvdo_flush(kvdo_flush);
+	// Release the kvdo_flush structure, freeing it, re-using it as the
+	// spare, or using it to launch any flushes that had to wait when
+	// allocations failed.
+	release_kvdo_flush(kvdo_flush);
 }
 
 /**********************************************************************/
 void kvdo_complete_flush(VDOFlush **kfp)
 {
-  if (*kfp != NULL) {
-    KVDOFlush *kvdo_flush = container_of(*kfp, KVDOFlush, vdo_flush);
-    setup_work_item(&kvdo_flush->work_item, kvdo_complete_flush_work, NULL,
-                    BIO_Q_ACTION_FLUSH);
-    enqueueBioWorkItem(kvdo_flush->layer->ioSubmitter,
-                       &kvdo_flush->work_item);
-    *kfp = NULL;
-  }
+	if (*kfp != NULL) {
+		struct kvdo_flush *kvdo_flush = container_of(*kfp,
+							     struct kvdo_flush,
+							     vdo_flush);
+		setup_work_item(&kvdo_flush->work_item,
+				kvdo_complete_flush_work,
+				NULL,
+				BIO_Q_ACTION_FLUSH);
+		enqueueBioWorkItem(kvdo_flush->layer->ioSubmitter,
+				   &kvdo_flush->work_item);
+		*kfp = NULL;
+	}
 }
 
 /**********************************************************************/
 int synchronous_flush(KernelLayer *layer)
 {
-  struct bio bio;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,10,0)
-  bio_init(&bio, 0, 0);
+	struct bio bio;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	bio_init(&bio, 0, 0);
 #else
-  bio_init(&bio);
+	bio_init(&bio);
 #endif
-  prepare_flush_bio(&bio, layer, getKernelLayerBdev(layer), NULL);
-  int result = submit_bio_and_wait(&bio);
-  atomic64_inc(&layer->flushOut);
-  if (result != 0) {
-    logErrorWithStringError(result, "synchronous flush failed");
-    result          = -EIO;
-  }
+	prepare_flush_bio(&bio, layer, getKernelLayerBdev(layer), NULL);
+	int result = submit_bio_and_wait(&bio);
+	atomic64_inc(&layer->flushOut);
+	if (result != 0) {
+		logErrorWithStringError(result, "synchronous flush failed");
+		result = -EIO;
+	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,12,0)
-  bio_uninit(&bio);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
+	bio_uninit(&bio);
 #endif
-  return result;
+	return result;
 }
