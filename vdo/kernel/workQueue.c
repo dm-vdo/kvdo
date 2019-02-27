@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#9 $
  */
 
 #include "workQueue.h"
@@ -267,7 +267,7 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
  **/
 static unsigned int get_pending_count(SimpleWorkQueue *queue)
 {
-  KvdoWorkItemStats *stats = &queue->stats.workItemStats;
+  struct kvdo_work_item_stats *stats = &queue->stats.workItemStats;
   long long pending = 0;
   for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
     pending += atomic64_read(&stats->enqueued[i]);
@@ -512,12 +512,12 @@ static void process_work_item(SimpleWorkQueue *queue,
 
   // Save the index, so we can use it after the work function.
   unsigned int index = item->statTableIndex;
-  uint64_t work_start_time = recordStartTime(index);
+  uint64_t work_start_time = record_start_time(index);
   item->work(item);
   // We just surrendered control of the work item; no more access.
   item = NULL;
-  updateWorkItemStatsForWorkTime(&queue->stats.workItemStats, index,
-                                 work_start_time);
+  update_work_item_stats_for_work_time(&queue->stats.workItemStats, index,
+                                       work_start_time);
 
   /*
    * Be friendly to a CPU that has other work to do, if the kernel has told us

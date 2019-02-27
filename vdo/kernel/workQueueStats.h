@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#6 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -46,14 +46,14 @@ struct simpleWorkQueue;
  */
 typedef struct kvdoWorkQueueStats {
   // Per-work-function counters and optional nanosecond timing data
-  KvdoWorkItemStats  workItemStats;
+  struct kvdo_work_item_stats workItemStats;
   // How often we go to sleep waiting for work
-  uint64_t           waits;
+  uint64_t                    waits;
 
   // Run time data, for monitoring utilization levels.
 
   // Thread start time, from which we can compute lifetime thus far.
-  uint64_t           startTime;
+  uint64_t                    startTime;
   /*
    * Time the thread has not been blocked waiting for a new work item,
    * nor in cond_resched(). This will include time the thread has been
@@ -64,25 +64,25 @@ typedef struct kvdoWorkQueueStats {
    * the latter doesn't count run time not followed by a cond_resched
    * call.
    */
-  atomic64_t         runTime;
+  atomic64_t                  runTime;
   // Time the thread has been suspended via cond_resched().
   // (Duplicates data hidden within rescheduleTimeHistogram.)
-  atomic64_t         rescheduleTime;
+  atomic64_t                  rescheduleTime;
 
   // Histogram of the queue times of work items (microseconds)
-  struct histogram  *queueTimeHistogram;
+  struct histogram           *queueTimeHistogram;
   // How busy we are when cond_resched is called
-  struct histogram  *rescheduleQueueLengthHistogram;
+  struct histogram           *rescheduleQueueLengthHistogram;
   // Histogram of the time cond_resched makes us sleep for (microseconds)
-  struct histogram  *rescheduleTimeHistogram;
+  struct histogram           *rescheduleTimeHistogram;
   // Histogram of the run time between cond_resched calls (microseconds)
-  struct histogram  *runTimeBeforeRescheduleHistogram;
+  struct histogram           *runTimeBeforeRescheduleHistogram;
   // Histogram of the time schedule_timeout lets us sleep for (microseconds)
-  struct histogram  *scheduleTimeHistogram;
+  struct histogram           *scheduleTimeHistogram;
   // How long from thread wakeup call to thread actually running (microseconds)
-  struct histogram  *wakeupLatencyHistogram;
+  struct histogram           *wakeupLatencyHistogram;
   // How much work is pending by the time we start running
-  struct histogram  *wakeupQueueLengthHistogram;
+  struct histogram           *wakeupQueueLengthHistogram;
 } KvdoWorkQueueStats;
 
 /**
@@ -130,7 +130,7 @@ static inline void update_stats_for_enqueue(KvdoWorkQueueStats *stats,
 static inline void update_stats_for_dequeue(KvdoWorkQueueStats *stats,
                                             KvdoWorkItem       *item)
 {
-  updateWorkItemStatsForDequeue(&stats->workItemStats, item);
+  update_work_item_stats_for_dequeue(&stats->workItemStats, item);
   enter_histogram_sample(stats->queueTimeHistogram,
                        (currentTime(CT_MONOTONIC) - item->enqueueTime) / 1000);
   item->enqueueTime = 0;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#4 $
  */
 
 #include "workQueueStats.h"
@@ -30,10 +30,10 @@
 int initialize_work_queue_stats(KvdoWorkQueueStats *stats,
                                 struct kobject     *queue_kobject)
 {
-  spin_lock_init(&stats->workItemStats.functionTable.lock);
+  spin_lock_init(&stats->workItemStats.function_table.lock);
   if (ENABLE_PER_FUNCTION_TIMING_STATS) {
     for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-      initSimpleStats(&stats->workItemStats.times[i]);
+      init_simple_stats(&stats->workItemStats.times[i]);
     }
   }
 

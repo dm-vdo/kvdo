@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#3 $
  */
 
 #include "workItemStats.h"
@@ -37,26 +37,27 @@
  *           NUM_WORK_QUEUE_ITEM_STATS if the table is full of
  *           non-matching entries.
  **/
-static inline unsigned int scan_stat_table(const KvdoWorkFunctionTable *table,
-                                           KvdoWorkFunction             work,
-                                           unsigned int                 priority)
+static inline unsigned int
+scan_stat_table(const struct kvdo_work_function_table *table,
+		KvdoWorkFunction work,
+		unsigned int priority)
 {
-  unsigned int i;
-  /*
-   * See comments in getStatTableIndex regarding order of memory
-   * accesses. Work function first, then a barrier, then priority.
-   */
-  for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
-    if (table->functions[i] == NULL) {
-      return i;
-    } else if (table->functions[i] == work) {
-      smp_rmb();
-      if (table->priorities[i] == priority) {
-        return i;
-      }
-    }
-  }
-  return NUM_WORK_QUEUE_ITEM_STATS;
+	unsigned int i;
+	/*
+	 * See comments in get_stat_table_index regarding order of memory
+	 * accesses. Work function first, then a barrier, then priority.
+	 */
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		if (table->functions[i] == NULL) {
+			return i;
+		} else if (table->functions[i] == work) {
+			smp_rmb();
+			if (table->priorities[i] == priority) {
+				return i;
+			}
+		}
+	}
+	return NUM_WORK_QUEUE_ITEM_STATS;
 }
 
 /**
@@ -70,43 +71,44 @@ static inline unsigned int scan_stat_table(const KvdoWorkFunctionTable *table,
  * @return   The index of the matching slot, or NUM_WORK_QUEUE_ITEM_STATS
  *           if the table is full of non-matching entries.
  **/
-static unsigned int  get_stat_table_index(KvdoWorkItemStats *stats,
-                                          KvdoWorkFunction   work,
-                                          unsigned int       priority)
+static unsigned int get_stat_table_index(struct kvdo_work_item_stats *stats,
+					 KvdoWorkFunction work,
+					 unsigned int priority)
 {
-  KvdoWorkFunctionTable *function_table = &stats->functionTable;
+	struct kvdo_work_function_table *function_table =
+		&stats->function_table;
 
-  unsigned int index = scan_stat_table(function_table, work, priority);
-  if (unlikely(index == NUM_WORK_QUEUE_ITEM_STATS)
-      || likely(function_table->functions[index] != NULL)) {
-    return index;
-  }
+	unsigned int index = scan_stat_table(function_table, work, priority);
+	if (unlikely(index == NUM_WORK_QUEUE_ITEM_STATS) ||
+	    likely(function_table->functions[index] != NULL)) {
+		return index;
+	}
 
-  unsigned long flags = 0;
-  // The delayed-work-item processing uses queue->lock in some cases,
-  // and one case may call into this function, so we can't reuse
-  // queue->lock here.
-  spin_lock_irqsave(&function_table->lock, flags);
-  // Recheck now that we've got the lock...
-  index = scan_stat_table(function_table, work, priority);
-  if ((index == NUM_WORK_QUEUE_ITEM_STATS)
-      || (function_table->functions[index] != NULL)) {
-    spin_unlock_irqrestore(&function_table->lock, flags);
-    return index;
-  }
+	unsigned long flags = 0;
+	// The delayed-work-item processing uses queue->lock in some cases,
+	// and one case may call into this function, so we can't reuse
+	// queue->lock here.
+	spin_lock_irqsave(&function_table->lock, flags);
+	// Recheck now that we've got the lock...
+	index = scan_stat_table(function_table, work, priority);
+	if ((index == NUM_WORK_QUEUE_ITEM_STATS) ||
+	    (function_table->functions[index] != NULL)) {
+		spin_unlock_irqrestore(&function_table->lock, flags);
+		return index;
+	}
 
-  /*
-   * An uninitialized priority is indistinguishable from a zero
-   * priority. So store the priority first, and enforce the ordering,
-   * so that a non-null work function pointer indicates we've finished
-   * filling in the value. (And, to make this work, we have to read
-   * the work function first and priority second, when comparing.)
-   */
-  function_table->priorities[index] = priority;
-  smp_wmb();
-  function_table->functions[index] = work;
-  spin_unlock_irqrestore(&function_table->lock, flags);
-  return index;
+	/*
+	 * An uninitialized priority is indistinguishable from a zero
+	 * priority. So store the priority first, and enforce the ordering,
+	 * so that a non-null work function pointer indicates we've finished
+	 * filling in the value. (And, to make this work, we have to read
+	 * the work function first and priority second, when comparing.)
+	 */
+	function_table->priorities[index] = priority;
+	smp_wmb();
+	function_table->functions[index] = work;
+	spin_unlock_irqrestore(&function_table->lock, flags);
+	return index;
 }
 
 /**
@@ -119,44 +121,49 @@ static unsigned int  get_stat_table_index(KvdoWorkItemStats *stats,
  * @param [out] processed_ptr  The number of work items processed
  * @param [out] pending_ptr    The number of work items still pending
  **/
-static void get_work_item_counts_by_item(const KvdoWorkItemStats *stats,
-                                         unsigned int             index,
-                                         uint64_t                *enqueued_ptr,
-                                         uint64_t                *processed_ptr,
-                                         unsigned int            *pending_ptr)
+static void
+get_work_item_counts_by_item(const struct kvdo_work_item_stats *stats,
+			     unsigned int index,
+			     uint64_t *enqueued_ptr,
+			     uint64_t *processed_ptr,
+			     unsigned int *pending_ptr)
 {
-  uint64_t enqueued  = atomic64_read(&stats->enqueued[index]);
-  uint64_t processed = stats->times[index].count;
-  unsigned int pending;
-  if (enqueued < processed) {
-    // Probably just out of sync.
-    pending = 1;
-  } else {
-    pending = enqueued - processed;
-    // Pedantic paranoia: Check for overflow of the 32-bit "pending".
-    if ((pending + processed) < enqueued) {
-      pending = UINT_MAX;
-    }
-  }
-  *enqueued_ptr  = enqueued;
-  *processed_ptr = processed;
-  *pending_ptr   = pending;
+	uint64_t enqueued = atomic64_read(&stats->enqueued[index]);
+	uint64_t processed = stats->times[index].count;
+	unsigned int pending;
+	if (enqueued < processed) {
+		// Probably just out of sync.
+		pending = 1;
+	} else {
+		pending = enqueued - processed;
+		// Pedantic paranoia: Check for overflow of the 32-bit
+		// "pending".
+		if ((pending + processed) < enqueued) {
+			pending = UINT_MAX;
+		}
+	}
+	*enqueued_ptr = enqueued;
+	*processed_ptr = processed;
+	*pending_ptr = pending;
 }
 
 /**
  * Get counters on work items not covered by any index value.
  *
- * @param [in]  stats         The collected statistics
+ * @param [in]  stats          The collected statistics
  * @param [out] enqueued_ptr   The total work items enqueued
  * @param [out] processed_ptr  The number of work items processed
  **/
-static void getOtherWorkItemCounts(const KvdoWorkItemStats *stats,
-                                   uint64_t                *enqueued_ptr,
-                                   uint64_t                *processed_ptr)
+static void get_other_work_item_counts(const struct kvdo_work_item_stats *stats,
+				       uint64_t *enqueued_ptr,
+				       uint64_t *processed_ptr)
 {
-  unsigned int pending;
-  get_work_item_counts_by_item(stats, NUM_WORK_QUEUE_ITEM_STATS,
-                               enqueued_ptr, processed_ptr, &pending);
+	unsigned int pending;
+	get_work_item_counts_by_item(stats,
+				     NUM_WORK_QUEUE_ITEM_STATS,
+				     enqueued_ptr,
+				     processed_ptr,
+				     &pending);
 }
 
 /**
@@ -169,189 +176,232 @@ static void getOtherWorkItemCounts(const KvdoWorkItemStats *stats,
  * @param [out] mean   The mean execution time
  * @param [out] max    The maximum execution time
  **/
-static void get_work_item_times_by_item(const KvdoWorkItemStats *stats,
-                                        unsigned int             index,
-                                        uint64_t                *min,
-                                        uint64_t                *mean,
-                                        uint64_t                *max)
+static void
+get_work_item_times_by_item(const struct kvdo_work_item_stats *stats,
+			    unsigned int index,
+			    uint64_t *min,
+			    uint64_t *mean,
+			    uint64_t *max)
 {
-  *min  = stats->times[index].min;
-  *mean = getSampleAverage(&stats->times[index]);
-  *max  = stats->times[index].max;
+	*min = stats->times[index].min;
+	*mean = get_sample_average(&stats->times[index]);
+	*max = stats->times[index].max;
 }
 
 /**********************************************************************/
-void update_work_item_stats_for_enqueue(KvdoWorkItemStats *stats,
-                                        KvdoWorkItem      *item,
-                                        int                priority)
+void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
+					KvdoWorkItem *item,
+					int priority)
 {
-  item->statTableIndex = get_stat_table_index(stats, item->statsFunction,
-                                              priority);
-  atomic64_add(1, &stats->enqueued[item->statTableIndex]);
+	item->statTableIndex = get_stat_table_index(stats,
+						    item->statsFunction,
+						    priority);
+	atomic64_add(1, &stats->enqueued[item->statTableIndex]);
 }
 
 /**********************************************************************/
 char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 {
-  if (pointer == NULL) {
-    /*
-     * Format "%ps" logs a null pointer as "(null)" with a bunch of
-     * leading spaces. We sometimes use this when logging lots of
-     * data; don't be so verbose.
-     */
-    strncpy(buffer, "-", buffer_length);
-  } else {
-    /*
-     * Use a non-const array instead of a string literal below to
-     * defeat gcc's format checking, which doesn't understand that
-     * "%ps" actually does support a precision spec in Linux kernel
-     * code.
-     */
-    static char truncatedFunctionNameFormatString[] = "%.*ps";
-    snprintf(buffer, buffer_length,
-             truncatedFunctionNameFormatString,
-             buffer_length - 1,
-             pointer);
+	if (pointer == NULL) {
+		/*
+		 * Format "%ps" logs a null pointer as "(null)" with a bunch of
+		 * leading spaces. We sometimes use this when logging lots of
+		 * data; don't be so verbose.
+		 */
+		strncpy(buffer, "-", buffer_length);
+	} else {
+		/*
+		 * Use a non-const array instead of a string literal below to
+		 * defeat gcc's format checking, which doesn't understand that
+		 * "%ps" actually does support a precision spec in Linux kernel
+		 * code.
+		 */
+		static char truncated_function_name_format_string[] = "%.*ps";
+		snprintf(buffer,
+			 buffer_length,
+			 truncated_function_name_format_string,
+			 buffer_length - 1,
+			 pointer);
 
-    char *space = strchr(buffer, ' ');
-    if (space != NULL) {
-      *space = '\0';
-    }
-  }
+		char *space = strchr(buffer, ' ');
+		if (space != NULL) {
+			*space = '\0';
+		}
+	}
 
-  return buffer;
+	return buffer;
 }
 
 /**********************************************************************/
-size_t format_work_item_stats(const KvdoWorkItemStats *stats,
-                              char                    *buffer,
-                              size_t                   length)
+size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
+			      char *buffer,
+			      size_t length)
 {
-  const KvdoWorkFunctionTable *function_ids = &stats->functionTable;
-  size_t current_offset = 0;
+	const struct kvdo_work_function_table *function_ids =
+		&stats->function_table;
+	size_t current_offset = 0;
 
-  uint64_t enqueued, processed;
-  int i;
-  for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
-    if (function_ids->functions[i] == NULL) {
-      break;
-    }
-    if (atomic64_read(&stats->enqueued[i]) == 0) {
-      continue;
-    }
-    /*
-     * The reporting of all of "pending", "enqueued" and "processed"
-     * here seems redundant, but "pending" is limited to 0 in the case
-     * where "processed" exceeds "enqueued", either through current
-     * activity and a lack of synchronization when fetching stats, or
-     * a coding bug. This report is intended largely for debugging, so
-     * we'll go ahead and print the not-necessarily-redundant values.
-     */
-    unsigned int pending;
-    get_work_item_counts_by_item(stats, i, &enqueued, &processed, &pending);
+	uint64_t enqueued, processed;
+	int i;
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		if (function_ids->functions[i] == NULL) {
+			break;
+		}
+		if (atomic64_read(&stats->enqueued[i]) == 0) {
+			continue;
+		}
+		/*
+		 * The reporting of all of "pending", "enqueued" and "processed"
+		 * here seems redundant, but "pending" is limited to 0 in the
+		 * case where "processed" exceeds "enqueued", either through
+		 * current activity and a lack of synchronization when fetching
+		 * stats, or a coding bug. This report is intended largely for
+		 * debugging, so we'll go ahead and print the
+		 * not-necessarily-redundant values.
+		 */
+		unsigned int pending;
+		get_work_item_counts_by_item(stats,
+					     i,
+					     &enqueued,
+					     &processed,
+					     &pending);
 
-    // Format: fn prio enq proc timeo [ min max mean ]
-    if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-      uint64_t min, mean, max;
-      get_work_item_times_by_item(stats, i, &min, &mean, &max);
-      current_offset += snprintf(buffer + current_offset,
-                                 length - current_offset,
-                                 "%-36ps %d %10llu %10" PRIu64
-                                 " %10llu %10llu %10" PRIu64
-                                 "\n",
-                                 function_ids->functions[i],
-                                 function_ids->priorities[i],
-                                 enqueued, processed,
-                                 min, max, mean);
-    } else {
-      current_offset += snprintf(buffer + current_offset,
-                                 length - current_offset,
-                                 "%-36ps %d %10llu %10" PRIu64
-                                 "\n",
-                                 function_ids->functions[i],
-                                 function_ids->priorities[i],
-                                 enqueued, processed);
-    }
-    if (current_offset >= length) {
-      break;
-    }
-  }
-  if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (current_offset < length)) {
-    uint64_t enqueued, processed;
-    getOtherWorkItemCounts(stats, &enqueued, &processed);
-    if (enqueued > 0) {
-      current_offset += snprintf(buffer + current_offset,
-                                 length - current_offset,
-                                 "%-36s %d %10llu %10" PRIu64
-                                 "\n",
-                                 "OTHER", 0,
-                                 enqueued, processed);
-    }
-  }
-  return current_offset;
+		// Format: fn prio enq proc timeo [ min max mean ]
+		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
+			uint64_t min, mean, max;
+			get_work_item_times_by_item(stats,
+						    i,
+						    &min,
+						    &mean,
+						    &max);
+			current_offset +=
+				snprintf(buffer + current_offset,
+					 length - current_offset,
+					 "%-36ps %d %10llu %10" PRIu64
+					 " %10llu %10" PRIu64
+					 " %10llu\n",
+					 function_ids->functions[i],
+					 function_ids->priorities[i],
+					 enqueued,
+					 processed,
+					 min,
+					 max,
+					 mean);
+		} else {
+			current_offset += snprintf(buffer + current_offset,
+						   length - current_offset,
+						   "%-36ps %d %10" PRIu64
+						   " %10llu\n",
+						   function_ids->functions[i],
+						   function_ids->priorities[i],
+						   enqueued,
+						   processed);
+		}
+		if (current_offset >= length) {
+			break;
+		}
+	}
+	if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (current_offset < length)) {
+		uint64_t enqueued, processed;
+		get_other_work_item_counts(stats, &enqueued, &processed);
+		if (enqueued > 0) {
+			current_offset += snprintf(buffer + current_offset,
+						   length - current_offset,
+						   "%-36s %d %10" PRIu64
+						   " %10llu\n",
+						   "OTHER",
+						   0,
+						   enqueued,
+						   processed);
+		}
+	}
+	return current_offset;
 }
 
 /**********************************************************************/
-void log_work_item_stats(const KvdoWorkItemStats *stats)
+void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 {
-  uint64_t total_enqueued = 0;
-  uint64_t total_processed = 0;
+	uint64_t total_enqueued = 0;
+	uint64_t total_processed = 0;
 
-  const KvdoWorkFunctionTable *function_ids = &stats->functionTable;
+	const struct kvdo_work_function_table *function_ids =
+		&stats->function_table;
 
-  int i;
-  for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
-    if (function_ids->functions[i] == NULL) {
-      break;
-    }
-    if (atomic64_read(&stats->enqueued[i]) == 0) {
-      continue;
-    }
-    /*
-     * The reporting of all of "pending", "enqueued" and "processed"
-     * here seems redundant, but "pending" is limited to 0 in the case
-     * where "processed" exceeds "enqueued", either through current
-     * activity and a lack of synchronization when fetching stats, or
-     * a coding bug. This report is intended largely for debugging, so
-     * we'll go ahead and print the not-necessarily-redundant values.
-     */
-    uint64_t enqueued, processed;
-    unsigned int pending;
-    get_work_item_counts_by_item(stats, i, &enqueued, &processed, &pending);
-    total_enqueued  += enqueued;
-    total_processed += processed;
+	int i;
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
+		if (function_ids->functions[i] == NULL) {
+			break;
+		}
+		if (atomic64_read(&stats->enqueued[i]) == 0) {
+			continue;
+		}
+		/*
+		 * The reporting of all of "pending", "enqueued" and "processed"
+		 * here seems redundant, but "pending" is limited to 0 in the
+		 * case where "processed" exceeds "enqueued", either through
+		 * current activity and a lack of synchronization when fetching
+		 * stats, or a coding bug. This report is intended largely for
+		 * debugging, so we'll go ahead and print the
+		 * not-necessarily-redundant values.
+		 */
+		uint64_t enqueued, processed;
+		unsigned int pending;
+		get_work_item_counts_by_item(stats,
+					     i,
+					     &enqueued,
+					     &processed,
+					     &pending);
+		total_enqueued += enqueued;
+		total_processed += processed;
 
-    static char work[256]; // arbitrary size
-    get_function_name(function_ids->functions[i], work, sizeof(work));
+		static char work[256]; // arbitrary size
+		get_function_name(function_ids->functions[i],
+				  work,
+				  sizeof(work));
 
-    if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-      uint64_t min, mean, max;
-      get_work_item_times_by_item(stats, i, &min, &mean, &max);
-      logInfo("  priority %d: %u pending"
-              " %llu enqueued %llu processed"
-              " %s"
-              " times %llu/%llu/%lluns",
-              function_ids->priorities[i],
-              pending, enqueued, processed, work,
-              min, mean, max);
-    } else {
-      logInfo("  priority %d: %u pending"
-              " %llu enqueued %llu processed"
-              " %s",
-              function_ids->priorities[i],
-              pending, enqueued, processed, work);
-    }
-  }
-  if (i == NUM_WORK_QUEUE_ITEM_STATS) {
-    uint64_t enqueued, processed;
-    getOtherWorkItemCounts(stats, &enqueued, &processed);
-    if (enqueued > 0) {
-      total_enqueued  += enqueued;
-      total_processed += processed;
-      logInfo("  ... others: %llu enqueued %llu processed",
-              enqueued, processed);
-    }
-  }
-  logInfo("  total: %llu enqueued %llu processed",
-          total_enqueued, total_processed);
+		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
+			uint64_t min, mean, max;
+			get_work_item_times_by_item(stats,
+						    i,
+						    &min,
+						    &mean,
+						    &max);
+			logInfo("  priority %d: %u pending"
+				" %llu enqueued %llu processed"
+				" %s"
+				" times %llu/%llu/%lluns",
+				function_ids->priorities[i],
+				pending,
+				enqueued,
+				processed,
+				work,
+				min,
+				mean,
+				max);
+		} else {
+			logInfo("  priority %d: %u pending"
+				" %llu enqueued %llu processed"
+				" %s",
+				function_ids->priorities[i],
+				pending,
+				enqueued,
+				processed,
+				work);
+		}
+	}
+	if (i == NUM_WORK_QUEUE_ITEM_STATS) {
+		uint64_t enqueued, processed;
+		get_other_work_item_counts(stats, &enqueued, &processed);
+		if (enqueued > 0) {
+			total_enqueued += enqueued;
+			total_processed += processed;
+			logInfo("  ... others: %llu enqueued %" PRIu64
+				" processed",
+				enqueued,
+				processed);
+		}
+	}
+	logInfo("  total: %llu enqueued %llu processed",
+		total_enqueued,
+		total_processed);
 }
