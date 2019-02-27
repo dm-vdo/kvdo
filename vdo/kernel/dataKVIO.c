@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#23 $
  */
 
 #include "dataKVIO.h"
@@ -105,7 +105,7 @@ static void kvioCompletionTap1(DataKVIO *dataKVIO)
   barrier();
   __asm__ __volatile__(""
                        :
-                       : "g" (dataKVIO), "g" (baseTraceLocation),
+                       : "m" (dataKVIO), "m" (baseTraceLocation),
                          "r" (dataKVIO->kvio.layer));
 }
 
@@ -122,7 +122,7 @@ static void kvioCompletionTap2(DataKVIO *dataKVIO)
 {
   // Hack to ensure variable doesn't get optimized out.
   barrier();
-  __asm__ __volatile__("" : : "g" (dataKVIO), "r" (dataKVIO->kvio.layer));
+  __asm__ __volatile__("" : : "m" (dataKVIO), "r" (dataKVIO->kvio.layer));
 }
 
 /**********************************************************************/
