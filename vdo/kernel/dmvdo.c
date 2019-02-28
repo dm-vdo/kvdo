@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#17 $
  */
 
 #include "dmvdo.h"
@@ -790,7 +790,7 @@ static void vdoDestroy(void)
   kvdoGlobals.status = SHUTTING_DOWN;
 
   if (sysfsInitialized) {
-    vdoPutSysfs(&kvdoGlobals.kobj);
+    vdo_put_sysfs(&kvdoGlobals.kobj);
   }
   vdoDestroyProcfs();
 
@@ -827,11 +827,11 @@ static int __init vdoInit(void)
 
   vdoInitProcfs();
 
-  result = vdoInitSysfs(&kvdoGlobals.kobj);
+  result = vdo_init_sysfs(&kvdoGlobals.kobj);
   if (result < 0) {
     logError("sysfs initialization failed %d", result);
     vdoDestroy();
-    // vdoInitSysfs only returns system error codes
+    // vdo_init_sysfs only returns system error codes
     return result;
   }
   sysfsInitialized = true;

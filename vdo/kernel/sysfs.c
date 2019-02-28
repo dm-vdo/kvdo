@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#3 $
  */
 
 #include "sysfs.h"
@@ -28,323 +28,367 @@
 #include "dmvdo.h"
 #include "logger.h"
 
-extern int defaultMaxRequestsActive;
+extern int default_max_requests_active;
 
-typedef struct vdoAttribute {
-  struct attribute                             attr;
-  ssize_t (*show)(struct kvdo_module_globals  *kvdoGlobals,
-                  struct attribute            *attr,
-                  char                        *buf);
-  ssize_t (*store)(struct kvdo_module_globals *kvdoGlobals,
-                   const char                 *value,
-                   size_t                      count);
-  // Location of value, if .show == showInt or showUInt or showBool.
-  void                                        *valuePtr;
-} VDOAttribute;
+struct vdo_attribute {
+	struct attribute attr;
+	ssize_t (*show)(struct kvdo_module_globals *kvdo_globals,
+			struct attribute *attr,
+			char *buf);
+	ssize_t (*store)(struct kvdo_module_globals *kvdo_globals,
+			 const char *value,
+			 size_t count);
+	// Location of value, if .show == show_int or show_uint or show_bool.
+	void *value_ptr;
+};
 
-static char *statusStrings[] = {
-  "UNINITIALIZED",
-  "READY",
-  "SHUTTING DOWN",
+static char *status_strings[] = {
+	"UNINITIALIZED",
+	"READY",
+	"SHUTTING DOWN",
 };
 
 /**********************************************************************/
-static ssize_t vdoStatusShow(struct kvdo_module_globals *kvdoGlobals,
-                             struct attribute           *attr,
-                             char                       *buf)
+static ssize_t vdo_status_show(struct kvdo_module_globals *kvdo_globals,
+			       struct attribute *attr,
+			       char *buf)
 {
-  return sprintf(buf, "%s\n", statusStrings[kvdoGlobals->status]);
+	return sprintf(buf, "%s\n", status_strings[kvdo_globals->status]);
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelShow(struct kvdo_module_globals *kvdoGlobals,
-                               struct attribute           *attr,
-                               char                       *buf)
+static ssize_t vdo_log_level_show(struct kvdo_module_globals *kvdo_globals,
+				  struct attribute *attr,
+				  char *buf)
 {
-  return sprintf(buf, "%s\n", priorityToString(getLogLevel()));
+	return sprintf(buf, "%s\n", priorityToString(getLogLevel()));
 }
 
 /**********************************************************************/
-static ssize_t vdoLogLevelStore(struct kvdo_module_globals *kvdoGlobals,
-                                const char                 *buf,
-                                size_t                      n)
+static ssize_t vdo_log_level_store(struct kvdo_module_globals *kvdo_globals,
+				   const char *buf,
+				   size_t n)
 {
-  static char internalBuf[11];
+	static char internal_buf[11];
 
-  if (n > 10) {
-    return -EINVAL;
-  }
+	if (n > 10) {
+		return -EINVAL;
+	}
 
-  memset(internalBuf, '\000', sizeof(internalBuf));
-  memcpy(internalBuf, buf, n);
-  if (internalBuf[n - 1] == '\n') {
-    internalBuf[n - 1] = '\000';
-  }
-  setLogLevel(stringToPriority(internalBuf));
-  return n;
+	memset(internal_buf, '\000', sizeof(internal_buf));
+	memcpy(internal_buf, buf, n);
+	if (internal_buf[n - 1] == '\n') {
+		internal_buf[n - 1] = '\000';
+	}
+	setLogLevel(stringToPriority(internal_buf));
+	return n;
 }
 
 /**********************************************************************/
-static ssize_t scanInt(const char *buf,
-                       size_t      n,
-                       int        *valuePtr,
-                       int         minimum,
-                       int         maximum)
+static ssize_t scan_int(const char *buf,
+			size_t n,
+			int *value_ptr,
+			int minimum,
+			int maximum)
 {
-  if (n > 12) {
-    return -EINVAL;
-  }
-  unsigned int value;
-  if (sscanf(buf, "%d", &value) != 1) {
-    return -EINVAL;
-  }
-  if (value < minimum) {
-    value = minimum;
-  } else if (value > maximum) {
-    value = maximum;
-  }
-  *valuePtr = value;
-  return n;
+	if (n > 12) {
+		return -EINVAL;
+	}
+	unsigned int value;
+	if (sscanf(buf, "%d", &value) != 1) {
+		return -EINVAL;
+	}
+	if (value < minimum) {
+		value = minimum;
+	} else if (value > maximum) {
+		value = maximum;
+	}
+	*value_ptr = value;
+	return n;
 }
 
 /**********************************************************************/
-static ssize_t showInt(struct kvdo_module_globals *kvdoGlobals,
-                       struct attribute           *attr,
-                       char                       *buf)
+static ssize_t show_int(struct kvdo_module_globals *kvdo_globals,
+			struct attribute *attr,
+			char *buf)
 {
-  VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
+	struct vdo_attribute *vdo_attr = container_of(attr,
+						      struct vdo_attribute,
+						      attr);
 
-  return sprintf(buf, "%d\n", *(int *)vdoAttr->valuePtr);
+	return sprintf(buf, "%d\n", *(int *)vdo_attr->value_ptr);
 }
 
 /**********************************************************************/
-static ssize_t scanUInt(const char   *buf,
-                        size_t        n,
-                        unsigned int *valuePtr,
-                        unsigned int  minimum,
-                        unsigned int  maximum)
+static ssize_t scan_uint(const char *buf,
+			 size_t n,
+			 unsigned int *value_ptr,
+			 unsigned int minimum,
+			 unsigned int maximum)
 {
-  if (n > 12) {
-    return -EINVAL;
-  }
-  unsigned int value;
-  if (sscanf(buf, "%u", &value) != 1) {
-    return -EINVAL;
-  }
-  if (value < minimum) {
-    value = minimum;
-  } else if (value > maximum) {
-    value = maximum;
-  }
-  *valuePtr = value;
-  return n;
+	if (n > 12) {
+		return -EINVAL;
+	}
+	unsigned int value;
+	if (sscanf(buf, "%u", &value) != 1) {
+		return -EINVAL;
+	}
+	if (value < minimum) {
+		value = minimum;
+	} else if (value > maximum) {
+		value = maximum;
+	}
+	*value_ptr = value;
+	return n;
 }
 
 /**********************************************************************/
-static ssize_t showUInt(struct kvdo_module_globals *kvdoGlobals,
-                        struct attribute           *attr,
-                        char                       *buf)
+static ssize_t show_uint(struct kvdo_module_globals *kvdo_globals,
+			 struct attribute *attr,
+			 char *buf)
 {
-  VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
+	struct vdo_attribute *vdo_attr = container_of(attr,
+						      struct vdo_attribute,
+						      attr);
 
-  return sprintf(buf, "%u\n", *(unsigned int *)vdoAttr->valuePtr);
+	return sprintf(buf, "%u\n", *(unsigned int *)vdo_attr->value_ptr);
 }
 
 /**********************************************************************/
-static ssize_t scanBool(const char *buf, size_t n, bool *valuePtr)
+static ssize_t scan_bool(const char *buf, size_t n, bool *value_ptr)
 {
-  unsigned int intValue = 0;
-  n = scanUInt(buf, n, &intValue, 0, 1);
-  if (n > 0) {
-    *valuePtr = (intValue != 0);
-  }
-  return n;
+	unsigned int int_value = 0;
+	n = scan_uint(buf, n, &int_value, 0, 1);
+	if (n > 0) {
+		*value_ptr = (int_value != 0);
+	}
+	return n;
 }
 
 /**********************************************************************/
-static ssize_t showBool(struct kvdo_module_globals *kvdoGlobals,
-                        struct attribute           *attr,
-                        char                       *buf)
+static ssize_t show_bool(struct kvdo_module_globals *kvdo_globals,
+			 struct attribute *attr,
+			 char *buf)
 {
-  VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
+	struct vdo_attribute *vdo_attr = container_of(attr,
+						      struct vdo_attribute,
+						      attr);
 
-  return sprintf(buf, "%u\n", *(bool *)vdoAttr->valuePtr ? 1 : 0);
+	return sprintf(buf, "%u\n", *(bool *)vdo_attr->value_ptr ? 1 : 0);
 }
 
 /**********************************************************************/
-static ssize_t vdoTraceRecordingStore(struct kvdo_module_globals *kvdoGlobals,
-                                      const char                 *buf,
-                                      size_t                      n)
+static ssize_t
+vdo_trace_recording_store(struct kvdo_module_globals *kvdo_globals,
+			  const char *buf,
+			  size_t n)
 {
-  return scanBool(buf, n, &traceRecording);
+	return scan_bool(buf, n, &traceRecording);
 }
 
 /**********************************************************************/
-static ssize_t vdoMaxReqActiveStore(struct kvdo_module_globals *kvdoGlobals,
-                                    const char                 *buf,
-                                    size_t                      n)
+static ssize_t
+vdo_max_req_active_store(struct kvdo_module_globals *kvdo_globals,
+			 const char *buf,
+			 size_t n)
 {
-  /*
-   * The base code has some hardcoded assumptions about the maximum
-   * number of requests that can be in progress. Maybe someday we'll
-   * do calculations with the actual number; for now, just make sure
-   * the assumption holds.
-   */
-  return scanInt(buf, n, &defaultMaxRequestsActive, 1, MAXIMUM_USER_VIOS);
+	/*
+	 * The base code has some hardcoded assumptions about the maximum
+	 * number of requests that can be in progress. Maybe someday we'll
+	 * do calculations with the actual number; for now, just make sure
+	 * the assumption holds.
+	 */
+	return scan_int(buf,
+			n,
+			&default_max_requests_active,
+			1,
+			MAXIMUM_USER_VIOS);
 }
 
 /**********************************************************************/
-static ssize_t vdoAlbireoTimeoutIntervalStore(struct kvdo_module_globals *kvdoGlobals,
-                                              const char                 *buf,
-                                              size_t                      n)
+static ssize_t
+vdo_albireo_timeout_interval_store(struct kvdo_module_globals *kvdo_globals,
+				   const char *buf,
+				   size_t n)
 {
-  unsigned int value;
-  ssize_t result = scanUInt(buf, n, &value, 0, UINT_MAX);
-  if (result > 0) {
-    setAlbireoTimeoutInterval(value);
-  }
-  return result;
+	unsigned int value;
+	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
+	if (result > 0) {
+		setAlbireoTimeoutInterval(value);
+	}
+	return result;
 }
 
 /**********************************************************************/
-static ssize_t vdoMinAlbireoTimerIntervalStore(struct kvdo_module_globals *kvdoGlobals,
-                                               const char                 *buf,
-                                               size_t                      n)
+static ssize_t
+vdo_min_albireo_timer_interval_store(struct kvdo_module_globals *kvdo_globals,
+				     const char *buf,
+				     size_t n)
 {
-  unsigned int value;
-  ssize_t result = scanUInt(buf, n, &value, 0, UINT_MAX);
-  if (result > 0) {
-    setMinAlbireoTimerInterval(value);
-  }
-  return result;
+	unsigned int value;
+	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
+	if (result > 0) {
+		setMinAlbireoTimerInterval(value);
+	}
+	return result;
 }
 
 /**********************************************************************/
-static ssize_t vdoVersionShow(struct kvdo_module_globals *kvdoGlobals,
-                              struct attribute           *attr,
-                              char                       *buf)
+static ssize_t vdo_version_show(struct kvdo_module_globals *kvdo_globals,
+				struct attribute *attr,
+				char *buf)
 {
-  return sprintf(buf, "%s\n", CURRENT_VERSION);
+	return sprintf(buf, "%s\n", CURRENT_VERSION);
 }
 
 /**********************************************************************/
-static ssize_t vdoAttrShow(struct kobject   *kobj,
-                           struct attribute *attr,
-                           char             *buf)
+static ssize_t
+vdo_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
-  VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
-  if (vdoAttr->show == NULL) {
-    return -EINVAL;
-  }
+	struct vdo_attribute *vdo_attr = container_of(attr,
+						      struct vdo_attribute,
+						      attr);
+	if (vdo_attr->show == NULL) {
+		return -EINVAL;
+	}
 
-  struct kvdo_module_globals *kvdoGlobals;
-  kvdoGlobals = container_of(kobj, struct kvdo_module_globals, kobj);
-  return (*vdoAttr->show)(kvdoGlobals, attr, buf);
+	struct kvdo_module_globals *kvdo_globals;
+	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
+	return (*vdo_attr->show)(kvdo_globals, attr, buf);
 }
 
 /**********************************************************************/
-static ssize_t vdoAttrStore(struct kobject   *kobj,
-                            struct attribute *attr,
-                            const char       *buf,
-                            size_t            length)
+static ssize_t vdo_attr_store(struct kobject *kobj,
+			      struct attribute *attr,
+			      const char *buf,
+			      size_t length)
 {
-  VDOAttribute *vdoAttr = container_of(attr, VDOAttribute, attr);
-  if (vdoAttr->store == NULL) {
-    return -EINVAL;
-  }
+	struct vdo_attribute *vdo_attr =
+		container_of(attr, struct vdo_attribute, attr);
+	if (vdo_attr->store == NULL) {
+		return -EINVAL;
+	}
 
-  struct kvdo_module_globals *kvdoGlobals;
-  kvdoGlobals = container_of(kobj, struct kvdo_module_globals, kobj);
-  return (*vdoAttr->store)(kvdoGlobals, buf, length);
+	struct kvdo_module_globals *kvdo_globals;
+	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
+	return (*vdo_attr->store)(kvdo_globals, buf, length);
 }
 
-static VDOAttribute vdoStatusAttr = {
-  .attr  = { .name = "status", .mode = 0444, },
-  .show  = vdoStatusShow,
+static struct vdo_attribute vdo_status_attr = {
+	.attr =
+		{
+			.name = "status",
+			.mode = 0444,
+		},
+	.show = vdo_status_show,
 };
 
-static VDOAttribute vdoLogLevelAttr = {
-  .attr  = {.name = "log_level", .mode = 0644, },
-  .show  = vdoLogLevelShow,
-  .store = vdoLogLevelStore,
+static struct vdo_attribute vdo_log_level_attr = {
+	.attr =
+		{
+			.name = "log_level",
+			.mode = 0644,
+		},
+	.show = vdo_log_level_show,
+	.store = vdo_log_level_store,
 };
 
-static VDOAttribute vdoMaxReqActiveAttr = {
-  .attr     = {.name = "max_requests_active", .mode = 0644, },
-  .show     = showInt,
-  .store    = vdoMaxReqActiveStore,
-  .valuePtr = &defaultMaxRequestsActive,
+static struct vdo_attribute vdo_max_req_active_attr = {
+	.attr =
+		{
+			.name = "max_requests_active",
+			.mode = 0644,
+		},
+	.show = show_int,
+	.store = vdo_max_req_active_store,
+	.value_ptr = &default_max_requests_active,
 };
 
-static VDOAttribute vdoAlbireoTimeoutInterval = {
-  .attr     = {.name = "deduplication_timeout_interval", .mode = 0644, },
-  .show     = showUInt,
-  .store    = vdoAlbireoTimeoutIntervalStore,
-  .valuePtr = &albireoTimeoutInterval,
+static struct vdo_attribute vdo_albireo_timeout_interval = {
+	.attr =
+		{
+			.name = "deduplication_timeout_interval",
+			.mode = 0644,
+		},
+	.show = show_uint,
+	.store = vdo_albireo_timeout_interval_store,
+	.value_ptr = &albireoTimeoutInterval,
 };
 
-static VDOAttribute vdoMinAlbireoTimerInterval = {
-  .attr     = {.name = "min_deduplication_timer_interval", .mode = 0644, },
-  .show     = showUInt,
-  .store    = vdoMinAlbireoTimerIntervalStore,
-  .valuePtr = &minAlbireoTimerInterval,
+static struct vdo_attribute vdo_min_albireo_timer_interval = {
+	.attr =
+		{
+			.name = "min_deduplication_timer_interval",
+			.mode = 0644,
+		},
+	.show = show_uint,
+	.store = vdo_min_albireo_timer_interval_store,
+	.value_ptr = &minAlbireoTimerInterval,
 };
 
-static VDOAttribute vdoTraceRecording = {
-  .attr     = {.name = "trace_recording", .mode = 0644, },
-  .show     = showBool,
-  .store    = vdoTraceRecordingStore,
-  .valuePtr = &traceRecording,
+static struct vdo_attribute vdo_trace_recording = {
+	.attr =
+		{
+			.name = "trace_recording",
+			.mode = 0644,
+		},
+	.show = show_bool,
+	.store = vdo_trace_recording_store,
+	.value_ptr = &traceRecording,
 };
 
-static VDOAttribute vdoVersionAttr = {
-  .attr  = { .name = "version", .mode = 0444, },
-  .show  = vdoVersionShow,
+static struct vdo_attribute vdo_version_attr = {
+	.attr =
+		{
+			.name = "version",
+			.mode = 0444,
+		},
+	.show = vdo_version_show,
 };
 
 static struct attribute *defaultAttrs[] = {
-  &vdoStatusAttr.attr,
-  &vdoLogLevelAttr.attr,
-  &vdoMaxReqActiveAttr.attr,
-  &vdoAlbireoTimeoutInterval.attr,
-  &vdoMinAlbireoTimerInterval.attr,
-  &vdoTraceRecording.attr,
-  &vdoVersionAttr.attr,
-  NULL
+	&vdo_status_attr.attr,
+	&vdo_log_level_attr.attr,
+	&vdo_max_req_active_attr.attr,
+	&vdo_albireo_timeout_interval.attr,
+	&vdo_min_albireo_timer_interval.attr,
+	&vdo_trace_recording.attr,
+	&vdo_version_attr.attr,
+	NULL
 };
 
-static struct sysfs_ops vdoSysfsOps = {
-  .show  = vdoAttrShow,
-  .store = vdoAttrStore,
+static struct sysfs_ops vdo_sysfs_ops = {
+	.show = vdo_attr_show,
+	.store = vdo_attr_store,
 };
 
 /**********************************************************************/
-static void vdoRelease(struct kobject *kobj)
+static void vdo_release(struct kobject *kobj)
 {
-  return;
+	return;
 }
 
 struct kobj_type vdo_ktype = {
-  .release   = vdoRelease,
-  .sysfs_ops = &vdoSysfsOps,
-  .default_attrs = defaultAttrs,
+	.release = vdo_release,
+	.sysfs_ops = &vdo_sysfs_ops,
+	.default_attrs = defaultAttrs,
 };
 
 /**********************************************************************/
-int vdoInitSysfs(struct kobject *moduleObject)
+int vdo_init_sysfs(struct kobject *module_object)
 {
-  kobject_init(moduleObject, &vdo_ktype);
-  int result = kobject_add(moduleObject, NULL, THIS_MODULE->name);
-  if (result < 0) {
-    logError("kobject_add failed with status %d", -result);
-    kobject_put(moduleObject);
-  }
-  logDebug("added sysfs objects");
-  return result;
+	kobject_init(module_object, &vdo_ktype);
+	int result = kobject_add(module_object, NULL, THIS_MODULE->name);
+	if (result < 0) {
+		logError("kobject_add failed with status %d", -result);
+		kobject_put(module_object);
+	}
+	logDebug("added sysfs objects");
+	return result;
 };
 
 /**********************************************************************/
-void vdoPutSysfs(struct kobject *moduleObject)
+void vdo_put_sysfs(struct kobject *module_object)
 {
-  kobject_put(moduleObject);
+	kobject_put(module_object);
 }

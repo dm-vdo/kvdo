@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#38 $
  */
 
 #include "kernelLayer.h"
@@ -76,7 +76,7 @@ static const KvdoWorkQueueType cpuQType = {
 
 // 2000 is half the number of entries currently in our page cache,
 // to allow for each in-progress operation to update two pages.
-int defaultMaxRequestsActive = 2000;
+int default_max_requests_active = 2000;
 
 /**********************************************************************/
 CRC32Checksum updateCRC32(CRC32Checksum  crc,
@@ -552,7 +552,7 @@ int makeKernelLayer(uint64_t               startingSector,
 
   initialize_deadlock_queue(&layer->deadlockQueue);
 
-  int requestLimit = defaultMaxRequestsActive;
+  int requestLimit = default_max_requests_active;
   initialize_limiter(&layer->requestLimiter, requestLimit);
   initialize_limiter(&layer->discardLimiter, requestLimit * 3 / 4);
 
