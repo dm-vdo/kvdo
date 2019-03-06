@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#3 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -179,8 +179,8 @@ asConstSimpleWorkQueue(const struct kvdo_work_queue *queue)
           : container_of(queue, SimpleWorkQueue, common));
 }
 
-static inline RoundRobinWorkQueue *asRoundRobinWorkQueue(
-  struct kvdo_work_queue *queue)
+static inline
+RoundRobinWorkQueue *asRoundRobinWorkQueue(struct kvdo_work_queue *queue)
 {
   return ((queue == NULL)
           ? NULL
