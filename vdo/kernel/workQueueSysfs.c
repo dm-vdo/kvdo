@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#4 $
  */
 
 #include "workQueueSysfs.h"
@@ -30,38 +30,41 @@
 
 typedef struct workQueueAttribute {
   struct attribute attr;
-  ssize_t (*show)(const KvdoWorkQueue *queue, char *buf);
-  ssize_t (*store)(KvdoWorkQueue *queue, const char *buf, size_t length);
+  ssize_t (*show)(const struct kvdo_work_queue *queue, char *buf);
+  ssize_t (*store)(struct kvdo_work_queue *queue,
+                   const char             *buf,
+                   size_t                  length);
+
 } WorkQueueAttribute;
 
 /**********************************************************************/
-static ssize_t nameShow(const KvdoWorkQueue *queue, char *buf)
+static ssize_t nameShow(const struct kvdo_work_queue *queue, char *buf)
 {
   return sprintf(buf, "%s\n", queue->name);
 }
 
 /**********************************************************************/
-static ssize_t pidShow(const KvdoWorkQueue *queue, char *buf)
+static ssize_t pidShow(const struct kvdo_work_queue *queue, char *buf)
 {
   return sprintf(buf, "%ld\n",
                  (long) atomic_read(&asConstSimpleWorkQueue(queue)->threadID));
 }
 
 /**********************************************************************/
-static ssize_t timesShow(const KvdoWorkQueue *queue, char *buf)
+static ssize_t timesShow(const struct kvdo_work_queue *queue, char *buf)
 {
   return format_run_time_stats(&asConstSimpleWorkQueue(queue)->stats, buf);
 }
 
 /**********************************************************************/
-static ssize_t typeShow(const KvdoWorkQueue *queue, char *buf)
+static ssize_t typeShow(const struct kvdo_work_queue *queue, char *buf)
 {
   strcpy(buf, queue->roundRobinMode ? "round-robin\n" : "simple\n");
   return strlen(buf);
 }
 
 /**********************************************************************/
-static ssize_t workFunctionsShow(const KvdoWorkQueue *queue, char *buf)
+static ssize_t workFunctionsShow(const struct kvdo_work_queue *queue, char *buf)
 {
   const SimpleWorkQueue *simpleQueue = asConstSimpleWorkQueue(queue);
   return format_work_item_stats(&simpleQueue->stats.workItemStats, buf,
@@ -124,7 +127,9 @@ static ssize_t workQueueAttrShow(struct kobject   *kobj,
   if (wqAttr->show == NULL) {
     return -EINVAL;
   }
-  KvdoWorkQueue *queue = container_of(kobj, KvdoWorkQueue, kobj);
+  struct kvdo_work_queue *queue = container_of(kobj,
+                                               struct kvdo_work_queue,
+                                               kobj);
   return wqAttr->show(queue, buf);
 }
 
@@ -138,7 +143,9 @@ static ssize_t workQueueAttrStore(struct kobject   *kobj,
   if (wqAttr->store == NULL) {
     return -EINVAL;
   }
-  KvdoWorkQueue *queue = container_of(kobj, KvdoWorkQueue, kobj);
+  struct kvdo_work_queue *queue = container_of(kobj,
+                                               struct kvdo_work_queue,
+                                               kobj);
   return wqAttr->store(queue, buf, length);
 }
 
@@ -151,7 +158,9 @@ static struct sysfs_ops workQueueSysfsOps = {
 /**********************************************************************/
 static void workQueueRelease(struct kobject *kobj)
 {
-  KvdoWorkQueue *queue = container_of(kobj, KvdoWorkQueue, kobj);
+  struct kvdo_work_queue *queue = container_of(kobj,
+                                               struct kvdo_work_queue,
+                                               kobj);
   FREE(queue->name);
   if (queue->roundRobinMode) {
     FREE(asRoundRobinWorkQueue(queue));

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#11 $
  */
 
 #include "dedupeIndex.h"
@@ -99,34 +99,34 @@ typedef struct periodicEventReporter {
 /*****************************************************************************/
 
 struct dedupeIndex {
-  struct kobject         dedupeObject;
-  RegisteredThread       allocatingThread;
-  char                  *indexName;
-  UdsConfiguration       configuration;
-  UdsBlockContext        blockContext;
-  UdsIndexSession        indexSession;
-  atomic_t               active;
+  struct kobject           dedupeObject;
+  RegisteredThread         allocatingThread;
+  char                    *indexName;
+  UdsConfiguration         configuration;
+  UdsBlockContext          blockContext;
+  UdsIndexSession          indexSession;
+  atomic_t                 active;
   // for reporting UDS timeouts
-  PeriodicEventReporter  timeoutReporter;
+  PeriodicEventReporter    timeoutReporter;
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
-  spinlock_t             stateLock;
-  KvdoWorkItem           workItem;    // protected by stateLock
-  KvdoWorkQueue         *udsQueue;    // protected by stateLock
-  unsigned int           maximum;     // protected by stateLock
-  IndexState             indexState;  // protected by stateLock
-  IndexState             indexTarget; // protected by stateLock
-  bool                   changing;    // protected by stateLock
-  bool                   createFlag;  // protected by stateLock
-  bool                   dedupeFlag;  // protected by stateLock
-  bool                   deduping;    // protected by stateLock
-  bool                   errorFlag;   // protected by stateLock
+  spinlock_t               stateLock;
+  KvdoWorkItem             workItem;    // protected by stateLock
+  struct kvdo_work_queue  *udsQueue;    // protected by stateLock
+  unsigned int             maximum;     // protected by stateLock
+  IndexState               indexState;  // protected by stateLock
+  IndexState               indexTarget; // protected by stateLock
+  bool                     changing;    // protected by stateLock
+  bool                     createFlag;  // protected by stateLock
+  bool                     dedupeFlag;  // protected by stateLock
+  bool                     deduping;    // protected by stateLock
+  bool                     errorFlag;   // protected by stateLock
   // This spinlock protects the pending list, the pending flag in each KVIO,
   // and the timeout list.
-  spinlock_t             pendingLock;
-  struct list_head       pendingHead;  // protected by pendingLock
-  struct timer_list      pendingTimer; // protected by pendingLock
-  bool                   startedTimer; // protected by pendingLock
+  spinlock_t               pendingLock;
+  struct list_head         pendingHead;  // protected by pendingLock
+  struct timer_list        pendingTimer; // protected by pendingLock
+  bool                     startedTimer; // protected by pendingLock
 };
 
 /*****************************************************************************/

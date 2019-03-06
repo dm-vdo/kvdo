@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#9 $
  */
 
 #ifndef KVIO_H
@@ -172,7 +172,7 @@ static inline KVIO *workItemAsKVIO(KvdoWorkItem *item)
  * @param queue  The queue
  * @param kvio   The KVIO
  **/
-static inline void enqueueKVIOWork(KvdoWorkQueue *queue, KVIO *kvio)
+static inline void enqueueKVIOWork(struct kvdo_work_queue *queue, KVIO *kvio)
 {
   enqueue_work_queue(queue, &kvio->enqueueable.workItem);
 }
@@ -213,11 +213,11 @@ static inline void setupKVIOWork(KVIO             *kvio,
  * @param action         Action code, mapping to a relative priority
  * @param queue          The queue on which to enqueue the KVIO
  **/
-static inline void launchKVIO(KVIO             *kvio,
-                              KvdoWorkFunction  work,
-                              void             *statsFunction,
-                              unsigned int      action,
-                              KvdoWorkQueue    *queue)
+static inline void launchKVIO(KVIO			*kvio,
+                              KvdoWorkFunction		 work,
+                              void			*statsFunction,
+                              unsigned int		 action,
+                              struct kvdo_work_queue    *queue)
 {
   setupKVIOWork(kvio, work, statsFunction, action);
   enqueueKVIOWork(queue, kvio);

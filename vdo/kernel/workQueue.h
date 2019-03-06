@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#5 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -38,29 +38,29 @@ enum {
 
 struct kvdoWorkItem {
   /** Entry link for lock-free work queue */
-  FunnelQueueEntry  workQueueEntryLink;
+  FunnelQueueEntry        workQueueEntryLink;
   /** Function to be called */
-  KvdoWorkFunction  work;
+  KvdoWorkFunction        work;
   /** Optional alternate function for display in queue stats */
-  void             *statsFunction;
+  void                   *statsFunction;
   /** An index into the statistics table; filled in by workQueueStats code */
-  unsigned int      statTableIndex;
+  unsigned int            statTableIndex;
   /**
    * The action code given to setup_work_item, from which a priority will be
    * determined.
    **/
-  unsigned int      action;
+  unsigned int            action;
   /** The work queue in which the item is enqueued, or NULL if not enqueued. */
-  KvdoWorkQueue    *myQueue;
+  struct kvdo_work_queue *myQueue;
   /**
    * Time at which to execute in jiffies for a delayed work item, or zero to
    * queue for execution ASAP.
    **/
-  Jiffies           executionTime;
+  Jiffies                 executionTime;
   /** List management for delayed or expired work items */
-  KvdoWorkItem     *next;
+  KvdoWorkItem           *next;
   /** Time of enqueueing, in ns, for recording queue (waiting) time stats */
-  uint64_t          enqueueTime;
+  uint64_t                enqueueTime;
 };
 
 /**
@@ -162,7 +162,7 @@ int make_work_queue(const char               *thread_name_prefix,
                     const KvdoWorkQueueType  *type,
                     unsigned int              thread_count,
                     void                     *thread_privates[],
-                    KvdoWorkQueue           **queue_ptr);
+                    struct kvdo_work_queue  **queue_ptr);
 
 /**
  * Set up the fields of a work queue item.
@@ -193,7 +193,7 @@ void setup_work_item(KvdoWorkItem     *item,
  * @param queue      The queue handle
  * @param item       The work item to be processed
  **/
-void enqueue_work_queue(KvdoWorkQueue *queue, KvdoWorkItem *item);
+void enqueue_work_queue(struct kvdo_work_queue *queue, KvdoWorkItem *item);
 
 /**
  * Add a work item to a work queue, to be run at a later point in time.
@@ -208,9 +208,9 @@ void enqueue_work_queue(KvdoWorkQueue *queue, KvdoWorkItem *item);
  * @param item             The work item to be processed
  * @param execution_time   When to run the work item (jiffies)
  **/
-void enqueue_work_queue_delayed(KvdoWorkQueue *queue,
-                                KvdoWorkItem  *item,
-                                Jiffies        execution_time);
+void enqueue_work_queue_delayed(struct kvdo_work_queue  *queue,
+                                KvdoWorkItem            *item,
+                                Jiffies                  execution_time);
 
 /**
  * Shut down a work queue's worker thread.
@@ -225,21 +225,21 @@ void enqueue_work_queue_delayed(KvdoWorkQueue *queue,
  *
  * @param queue  The work queue to shut down
  **/
-void finish_work_queue(KvdoWorkQueue *queue);
+void finish_work_queue(struct kvdo_work_queue *queue);
 
 /**
  * Free a work queue and null out the reference to it.
  *
  * @param queue_ptr  Where the queue handle is found
  **/
-void free_work_queue(KvdoWorkQueue **queue_ptr);
+void free_work_queue(struct kvdo_work_queue **queue_ptr);
 
 /**
  * Print work queue state and statistics to the kernel log.
  *
  * @param queue  The work queue to examine
  **/
-void dump_work_queue(KvdoWorkQueue *queue);
+void dump_work_queue(struct kvdo_work_queue *queue);
 
 /**
  * Write to the buffer some info about the work item, for logging.
@@ -285,7 +285,7 @@ void *get_work_queue_private_data(void);
  *
  * @return   The work queue pointer or NULL
  **/
-KvdoWorkQueue *get_current_work_queue(void);
+struct kvdo_work_queue *get_current_work_queue(void);
 
 /**
  * Returns the kernel layer that owns the work queue.
@@ -294,6 +294,6 @@ KvdoWorkQueue *get_current_work_queue(void);
  *
  * @return   The owner pointer supplied at work queue creation
  **/
-KernelLayer *get_work_queue_owner(KvdoWorkQueue *queue);
+KernelLayer *get_work_queue_owner(struct kvdo_work_queue *queue);
 
 #endif /* ALBIREO_WORK_QUEUE_H */

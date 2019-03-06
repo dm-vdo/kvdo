@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#10 $
  */
 
 #include "workQueue.h"
@@ -146,7 +146,7 @@ static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
  *
  * @return  a simple work queue
  **/
-static inline SimpleWorkQueue *pick_simple_queue(KvdoWorkQueue *queue)
+static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
 {
   return (queue->roundRobinMode
           ? next_service_queue(asRoundRobinWorkQueue(queue))
@@ -580,7 +580,7 @@ static void service_work_queue(SimpleWorkQueue *queue)
  * Initialize per-thread data for a new worker thread and run the work queue.
  * Called in a new thread created by kthread_run().
  *
- * @param ptr  A pointer to the KvdoWorkQueue to run.
+ * @param ptr  A pointer to the kvdo_work_queue to run.
  *
  * @return  0 (indicating success to kthread_run())
  **/
@@ -836,7 +836,7 @@ int make_work_queue(const char               *thread_name_prefix,
                     const KvdoWorkQueueType  *type,
                     unsigned int              thread_count,
                     void                     *thread_privates[],
-                    KvdoWorkQueue           **queue_ptr)
+                    struct kvdo_work_queue  **queue_ptr)
 {
   if (thread_count == 1) {
     void *context = (thread_privates != NULL) ? thread_privates[0] : private;
@@ -939,7 +939,7 @@ static void finish_round_robin_work_queue(RoundRobinWorkQueue *queue)
 }
 
 /**********************************************************************/
-void finish_work_queue(KvdoWorkQueue *queue)
+void finish_work_queue(struct kvdo_work_queue *queue)
 {
   if (queue->roundRobinMode) {
     finish_round_robin_work_queue(asRoundRobinWorkQueue(queue));
@@ -983,9 +983,9 @@ static void free_round_robin_work_queue(RoundRobinWorkQueue *queue)
 }
 
 /**********************************************************************/
-void free_work_queue(KvdoWorkQueue **queue_ptr)
+void free_work_queue(struct kvdo_work_queue **queue_ptr)
 {
-  KvdoWorkQueue *queue = *queue_ptr;
+  struct kvdo_work_queue *queue = *queue_ptr;
   if (queue == NULL) {
     return;
   }
@@ -1053,7 +1053,7 @@ static void dump_simple_work_queue(SimpleWorkQueue *queue)
 }
 
 /**********************************************************************/
-void dump_work_queue(KvdoWorkQueue *queue)
+void dump_work_queue(struct kvdo_work_queue *queue)
 {
   if (queue->roundRobinMode) {
     RoundRobinWorkQueue *round_robin_queue = asRoundRobinWorkQueue(queue);
@@ -1080,7 +1080,8 @@ void dump_work_item_to_buffer(KvdoWorkItem *item, char *buffer, size_t length)
 // Work submission
 
 /**********************************************************************/
-void enqueue_work_queue(KvdoWorkQueue *kvdoWorkQueue, KvdoWorkItem *item)
+void enqueue_work_queue(struct kvdo_work_queue  *kvdoWorkQueue,
+                        KvdoWorkItem            *item)
 {
   SimpleWorkQueue *queue = pick_simple_queue(kvdoWorkQueue);
 
@@ -1092,9 +1093,9 @@ void enqueue_work_queue(KvdoWorkQueue *kvdoWorkQueue, KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-void enqueue_work_queue_delayed(KvdoWorkQueue *kvdo_work_queue,
-                                KvdoWorkItem  *item,
-                                Jiffies        execution_time)
+void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
+                                KvdoWorkItem           *item,
+                                Jiffies                 execution_time)
 {
   if (execution_time <= jiffies) {
     enqueue_work_queue(kvdo_work_queue, item);
@@ -1132,14 +1133,14 @@ void enqueue_work_queue_delayed(KvdoWorkQueue *kvdo_work_queue,
 
 
 /**********************************************************************/
-KvdoWorkQueue *get_current_work_queue(void)
+struct kvdo_work_queue *get_current_work_queue(void)
 {
   SimpleWorkQueue *queue = get_current_thread_work_queue();
   return (queue == NULL) ? NULL : &queue->common;
 }
 
 /**********************************************************************/
-KernelLayer *get_work_queue_owner(KvdoWorkQueue *queue)
+KernelLayer *get_work_queue_owner(struct kvdo_work_queue *queue)
 {
   return queue->owner;
 }

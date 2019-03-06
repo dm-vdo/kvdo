@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#39 $
  */
 
 #include "kernelLayer.h"
@@ -260,7 +260,7 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
     return -EIO;
   }
 
-  KvdoWorkQueue *currentWorkQueue = get_current_work_queue();
+  struct kvdo_work_queue *currentWorkQueue = get_current_work_queue();
   if ((currentWorkQueue != NULL)
       && (layer == get_work_queue_owner(currentWorkQueue))) {
     /*

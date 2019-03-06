@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#2 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -44,7 +44,7 @@ typedef struct kvdoWorkItemList {
  * represented via the same common sub-structure, though there's actually not a
  * great deal of overlap between the two types internally.
  **/
-struct kvdoWorkQueue {
+struct kvdo_work_queue {
   /** Name of just the work queue (e.g., "cpuQ12") */
   char           *name;
   /**
@@ -63,7 +63,7 @@ typedef struct roundRobinWorkQueue RoundRobinWorkQueue;
 
 struct simpleWorkQueue {
   /** Common work queue bits */
-  KvdoWorkQueue            common;
+  struct kvdo_work_queue   common;
   /** A copy of .thread->pid, for safety in the sysfs support */
   atomic_t                 threadID;
   /**
@@ -87,9 +87,10 @@ struct simpleWorkQueue {
   /** Opaque private data pointer, defined by higher level code */
   void                    *private;
   /** In a subordinate work queue, a link back to the round-robin parent */
-  KvdoWorkQueue           *parentQueue;
+  struct kvdo_work_queue  *parentQueue;
   /** Padding for cache line separation */
-  char                     pad[CACHE_LINE_BYTES - sizeof(KvdoWorkQueue *)];
+  char                     pad[CACHE_LINE_BYTES
+                               - sizeof(struct kvdo_work_queue *)];
   /** Lock protecting delayedItems, priorityMap, numPriorityLists, started */
   spinlock_t               lock;
   /** Any worker threads (zero or one) waiting for new work to do */
@@ -156,14 +157,14 @@ struct simpleWorkQueue {
 
 struct roundRobinWorkQueue {
   /** Common work queue bits */
-  KvdoWorkQueue     common;
+  struct kvdo_work_queue   common;
   /** Simple work queues, for actually getting stuff done */
-  SimpleWorkQueue **serviceQueues;
+  SimpleWorkQueue        **serviceQueues;
   /** Number of subordinate work queues */
-  unsigned int      numServiceQueues;
+  unsigned int             numServiceQueues;
 };
 
-static inline SimpleWorkQueue *asSimpleWorkQueue(KvdoWorkQueue *queue)
+static inline SimpleWorkQueue *asSimpleWorkQueue(struct kvdo_work_queue *queue)
 {
   return ((queue == NULL)
           ? NULL
@@ -171,14 +172,15 @@ static inline SimpleWorkQueue *asSimpleWorkQueue(KvdoWorkQueue *queue)
 }
 
 static inline const SimpleWorkQueue *
-asConstSimpleWorkQueue(const KvdoWorkQueue *queue)
+asConstSimpleWorkQueue(const struct kvdo_work_queue *queue)
 {
   return ((queue == NULL)
           ? NULL
           : container_of(queue, SimpleWorkQueue, common));
 }
 
-static inline RoundRobinWorkQueue *asRoundRobinWorkQueue(KvdoWorkQueue *queue)
+static inline RoundRobinWorkQueue *asRoundRobinWorkQueue(
+  struct kvdo_work_queue *queue)
 {
   return ((queue == NULL)
           ? NULL

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#5 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,10 +28,10 @@
 #include "workQueue.h"
 
 struct kvdo_thread {
-  KVDO              *kvdo;
-  ThreadID           threadID;
-  KvdoWorkQueue     *requestQueue;
-  RegisteredThread   allocatingThread;
+  KVDO                   *kvdo;
+  ThreadID                threadID;
+  struct kvdo_work_queue *requestQueue;
+  RegisteredThread        allocatingThread;
 };
 
 struct kvdo {
