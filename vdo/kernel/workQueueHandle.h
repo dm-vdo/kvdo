@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#3 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
 #define WORK_QUEUE_HANDLE_H
 
 #include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,11,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
 #include <linux/sched/task_stack.h>
 #else
 #include <linux/sched.h>
@@ -36,28 +36,28 @@
  * stack in work queue threads.
  */
 struct work_queue_stack_handle {
-  unsigned long    nonce;
-  SimpleWorkQueue *queue;
+	unsigned long nonce;
+	SimpleWorkQueue *queue;
 };
 
 struct work_queue_stack_handle_globals {
-  /*
-   * Location in the stack, relative to the task structure which is
-   * contained in the same memory allocation.
-   */
-  long          offset;
-  /*
-   * A lock is used to guard against multiple updaters, but once an
-   * update is done, the offset variable will be read-only.
-   */
-  spinlock_t    offset_lock;
-  /*
-   * A nonce chosen differently each time the module is loaded, used
-   * as a marker so we can check that the current thread really is a
-   * work queue thread. Set at module initialization time, before any
-   * work queues are created.
-   */
-  unsigned long nonce;
+	/*
+	 * Location in the stack, relative to the task structure which is
+	 * contained in the same memory allocation.
+	 */
+	long offset;
+	/*
+	 * A lock is used to guard against multiple updaters, but once an
+	 * update is done, the offset variable will be read-only.
+	 */
+	spinlock_t offset_lock;
+	/*
+	 * A nonce chosen differently each time the module is loaded, used
+	 * as a marker so we can check that the current thread really is a
+	 * work queue thread. Set at module initialization time, before any
+	 * work queues are created.
+	 */
+	unsigned long nonce;
 };
 
 extern struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
@@ -68,9 +68,8 @@ extern struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
  * @param [out] handle  The handle to be initialized
  * @param [in]  queue   The work queue pointer
  **/
-void initialize_work_queue_stack_handle(
-  struct work_queue_stack_handle *handle,
-  SimpleWorkQueue                *queue);
+void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
+					SimpleWorkQueue *queue);
 
 /**
  * Return the work queue pointer recorded at initialization time in
@@ -81,14 +80,14 @@ void initialize_work_queue_stack_handle(
  **/
 static inline SimpleWorkQueue *get_current_thread_work_queue(void)
 {
-  struct work_queue_stack_handle *handle
-    = (struct work_queue_stack_handle *)(task_stack_page(current)
-                                         + work_queue_stack_handle_globals.offset);
-  if (likely(handle->nonce == work_queue_stack_handle_globals.nonce)) {
-    return handle->queue;
-  } else {
-    return NULL;
-  }
+	struct work_queue_stack_handle *handle =
+		(struct work_queue_stack_handle *)(task_stack_page(current) +
+						   work_queue_stack_handle_globals.offset);
+	if (likely(handle->nonce == work_queue_stack_handle_globals.nonce)) {
+		return handle->queue;
+	} else {
+		return NULL;
+	}
 }
 
 /**

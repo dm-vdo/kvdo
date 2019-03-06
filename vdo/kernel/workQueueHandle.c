@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#3 $
  */
 
 #include "workQueueHandle.h"
@@ -24,28 +24,27 @@
 struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
 
 /**********************************************************************/
-void initialize_work_queue_stack_handle(
-  struct work_queue_stack_handle *handle,
-  SimpleWorkQueue                *queue)
+void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
+					SimpleWorkQueue *queue)
 {
-  handle->nonce = work_queue_stack_handle_globals.nonce;
-  handle->queue = queue;
+	handle->nonce = work_queue_stack_handle_globals.nonce;
+	handle->queue = queue;
 
-  long offset = (char *) handle - (char *) task_stack_page(current);
-  spin_lock(&work_queue_stack_handle_globals.offset_lock);
-  if (work_queue_stack_handle_globals.offset == 0) {
-    work_queue_stack_handle_globals.offset = offset;
-    spin_unlock(&work_queue_stack_handle_globals.offset_lock);
-  } else {
-    long found_offset = work_queue_stack_handle_globals.offset;
-    spin_unlock(&work_queue_stack_handle_globals.offset_lock);
-    BUG_ON(found_offset != offset);
-  }
+	long offset = (char *)handle - (char *)task_stack_page(current);
+	spin_lock(&work_queue_stack_handle_globals.offset_lock);
+	if (work_queue_stack_handle_globals.offset == 0) {
+		work_queue_stack_handle_globals.offset = offset;
+		spin_unlock(&work_queue_stack_handle_globals.offset_lock);
+	} else {
+		long found_offset = work_queue_stack_handle_globals.offset;
+		spin_unlock(&work_queue_stack_handle_globals.offset_lock);
+		BUG_ON(found_offset != offset);
+	}
 }
 
 /**********************************************************************/
 void init_work_queue_stack_handle_once(void)
 {
-  spin_lock_init(&work_queue_stack_handle_globals.offset_lock);
-  work_queue_stack_handle_globals.nonce = currentTime(CT_MONOTONIC);
+	spin_lock_init(&work_queue_stack_handle_globals.offset_lock);
+	work_queue_stack_handle_globals.nonce = currentTime(CT_MONOTONIC);
 }
