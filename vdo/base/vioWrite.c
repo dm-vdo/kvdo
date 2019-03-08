@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#7 $
  */
 
 /*
@@ -375,24 +375,25 @@ static bool abortOnError(int             result,
     return false;
   }
 
-  bool readOnly
-    = ((result == VDO_READ_ONLY)
-       || (readOnlyAction == READ_ONLY)
-       || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO)));
+  if ((result == VDO_READ_ONLY)
+      || (readOnlyAction == READ_ONLY)
+      || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
+    ReadOnlyNotifier *notifier = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
+    if (!isReadOnly(notifier)) {
+      if (result != VDO_READ_ONLY) {
+        logErrorWithStringError(result, "Preparing to enter read-only mode:"
+                                " DataVIO for LBN %llu (becoming mapped"
+                                " to %llu, previously mapped"
+                                " to %llu, allocated %llu) is"
+                                " completing with a fatal error after"
+                                " operation %s", dataVIO->logical.lbn,
+                                dataVIO->newMapped.pbn, dataVIO->mapped.pbn,
+                                getDataVIOAllocation(dataVIO),
+                                getOperationName(dataVIO));
+      }
 
-  if (readOnly) {
-    if (result != VDO_READ_ONLY) {
-      logErrorWithStringError(result, "Preparing to enter read-only mode:"
-                              " DataVIO for LBN %llu (becoming mapped"
-                              " to %llu, previously mapped"
-                              " to %llu, allocated %llu) is"
-                              " completing with a fatal error after"
-                              " operation %s", dataVIO->logical.lbn,
-                              dataVIO->newMapped.pbn, dataVIO->mapped.pbn,
-                              getDataVIOAllocation(dataVIO),
-                              getOperationName(dataVIO));
+      enterReadOnlyMode(notifier, result);
     }
-    enterReadOnlyMode(getVDOFromDataVIO(dataVIO)->readOnlyNotifier, result);
   }
 
   if (dataVIO->hashLock != NULL) {

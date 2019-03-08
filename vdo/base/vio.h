@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#5 $
  */
 
 #ifndef VIO_H
 #define VIO_H
+
+#include <stdarg.h>
 
 #include "completion.h"
 #include "trace.h"
@@ -151,13 +153,13 @@ void vioDoneCallback(VDOCompletion *completion);
 const char *getVIOReadWriteFlavor(const VIO *vio);
 
 /**
- * Update per-VIO error stats.
+ * Update per-VIO error stats and log the error.
  *
- * @param vio  The VIO which got an error
- *
- * @return The level at which to log the error
+ * @param vio     The VIO which got an error
+ * @param format  The format of the message to log (a printf style format)
  **/
-int updateVIOErrorStats(VIO *vio);
+void updateVIOErrorStats(VIO *vio, const char *format, ...)
+  __attribute__((format(printf, 2, 3)));
 
 /**
  * Add a trace record for the current source location.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#3 $
  */
 
 #include "dataVIO.h"
@@ -126,11 +126,11 @@ void completeDataVIO(VDOCompletion *completion)
   DataVIO *dataVIO = asDataVIO(completion);
   if (completion->result != VDO_SUCCESS) {
     VIO *vio = dataVIOAsVIO(dataVIO);
-    logWithStringError(updateVIOErrorStats(vio), completion->result,
-                       "Completing %s VIO for LBN %" PRIu64
-                       " with error after %s",
-                       getVIOReadWriteFlavor(vio), dataVIO->logical.lbn,
-                       getOperationName(dataVIO));
+    updateVIOErrorStats(vio,
+                        "Completing %s VIO for LBN %" PRIu64
+                        " with error after %s",
+                        getVIOReadWriteFlavor(vio), dataVIO->logical.lbn,
+                        getOperationName(dataVIO));
   }
 
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("$F($io)"));

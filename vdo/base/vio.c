@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#7 $
  */
 
 #include "vio.h"
@@ -73,20 +73,28 @@ const char *getVIOReadWriteFlavor(const VIO *vio)
 }
 
 /**********************************************************************/
-int updateVIOErrorStats(VIO *vio)
+void updateVIOErrorStats(VIO *vio, const char *format, ...)
 {
-  switch (vioAsCompletion(vio)->result) {
+  int priority;
+  int result = vioAsCompletion(vio)->result;
+  switch (result) {
   case VDO_READ_ONLY:
     atomicAdd64(&vio->vdo->errorStats.readOnlyErrorCount, 1);
-    return LOG_DEBUG;
+    return;
 
   case VDO_NO_SPACE:
     atomicAdd64(&vio->vdo->errorStats.noSpaceErrorCount, 1);
-    return LOG_DEBUG;
+    priority = LOG_DEBUG;
+    break;
 
   default:
-    return LOG_ERR;
+    priority = LOG_ERR;
   }
+
+  va_list args;
+  va_start(args, format);
+  vLogWithStringError(priority, result, format, args);
+  va_end(args);
 }
 
 /**
@@ -97,10 +105,10 @@ int updateVIOErrorStats(VIO *vio)
 static void handleMetadataIOError(VDOCompletion *completion)
 {
   VIO *vio = asVIO(completion);
-  logWithStringError(updateVIOErrorStats(vio), completion->result,
-                     "Completing %s VIO of type %u for physical block %"
-                     PRIu64 " with error",
-                     getVIOReadWriteFlavor(vio), vio->type, vio->physical);
+  updateVIOErrorStats(vio,
+                      "Completing %s VIO of type %u for physical block %"
+                       PRIu64 " with error",
+                       getVIOReadWriteFlavor(vio), vio->type, vio->physical);
   vioDoneCallback(completion);
 }
 
