@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#15 $
  */
 
 #ifndef KERNELLAYER_H
@@ -124,7 +124,7 @@ struct kernelLayer {
   uint64_t                 startingSectorOffset;
   VolumeGeometry           geometry;
   // Memory allocation
-  BufferPool              *dataKVIOPool;
+  struct buffer_pool      *dataKVIOPool;
   // Albireo specific info
   DedupeIndex             *dedupeIndex;
   // Statistics
@@ -156,7 +156,7 @@ struct kernelLayer {
   /* Should we log tracing info? */
   bool                     traceLogging;
   /* Storage for trace data. */
-  BufferPool              *traceBufferPool;
+  struct buffer_pool      *traceBufferPool;
   /* Private storage for procfs. */
   void                    *procfsPrivate;
   /* For returning batches of DataKVIOs to their pool */

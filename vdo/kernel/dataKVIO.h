@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#12 $
  */
 
 #ifndef DATA_KVIO_H
@@ -368,9 +368,9 @@ void kvdoReadBlock(DataVIO             *dataVIO,
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeDataKVIOBufferPool(KernelLayer  *layer,
-                           uint32_t      poolSize,
-                           BufferPool  **bufferPoolPtr)
+int makeDataKVIOBufferPool(KernelLayer          *layer,
+                           uint32_t              poolSize,
+                           struct buffer_pool  **bufferPoolPtr)
   __attribute__((warn_unused_result));
 
 /**

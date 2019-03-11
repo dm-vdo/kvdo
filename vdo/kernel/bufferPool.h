@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.h#4 $
  */
 #ifndef BUFFERPOOL_H
 #define BUFFERPOOL_H
@@ -31,11 +31,11 @@
 #include <linux/kernel.h>
 #include <linux/types.h>
 
-typedef struct bufferPool BufferPool;
+struct buffer_pool;
 
-typedef int BufferAllocateFunction(void *poolData, void **dataPtr);
-typedef void BufferFreeFunction(void *poolData, void *data);
-typedef void BufferDumpFunction(void *poolData, void *data);
+typedef int buffer_allocate_function(void *pool_data, void **data_ptr);
+typedef void buffer_free_function(void *pool_data, void *data);
+typedef void buffer_dump_function(void *pool_data, void *data);
 
 /**
  * Creates a generic pool of buffer data. The elements in the pool are
@@ -56,14 +56,14 @@ typedef void BufferDumpFunction(void *poolData, void *data);
  *
  * @return a success or error code
  */
-int make_buffer_pool(const char              *pool_name,
-                     unsigned int             size,
-                     BufferAllocateFunction  *allocate_function,
-                     BufferFreeFunction      *free_function,
-                     BufferDumpFunction      *dump_function,
-                     void                    *pool_data,
-                     BufferPool             **pool_ptr)
-  __attribute__((warn_unused_result));
+int make_buffer_pool(const char *pool_name,
+		     unsigned int size,
+		     buffer_allocate_function *allocate_function,
+		     buffer_free_function *free_function,
+		     buffer_dump_function *dump_function,
+		     void *pool_data,
+		     struct buffer_pool **pool_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a buffer pool and null out the reference to it. This will free
@@ -71,7 +71,7 @@ int make_buffer_pool(const char              *pool_name,
  *
  * @param [in]  pool_ptr   The reference to the pool to free
  **/
-void free_buffer_pool(BufferPool **pool_ptr);
+void free_buffer_pool(struct buffer_pool **pool_ptr);
 
 /**
  * Dump a buffer pool to the log.
@@ -80,7 +80,7 @@ void free_buffer_pool(BufferPool **pool_ptr);
  * @param [in] dump_elements  True for complete output, or false for a
  *                            one-line summary
  **/
-void dump_buffer_pool(BufferPool *pool, bool dump_elements);
+void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements);
 
 /**
  * Acquires a free buffer from the free list of the pool and
@@ -91,8 +91,8 @@ void dump_buffer_pool(BufferPool *pool, bool dump_elements);
  *
  * @return a success or error code
  */
-int alloc_buffer_from_pool(BufferPool *pool, void **data_ptr)
-  __attribute__((warn_unused_result));
+int alloc_buffer_from_pool(struct buffer_pool *pool, void **data_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Returns a buffer to the free list of a pool
@@ -100,7 +100,7 @@ int alloc_buffer_from_pool(BufferPool *pool, void **data_ptr)
  * @param [in] pool   The buffer pool to return the buffer to
  * @param [in] data   The buffer data to return
  */
-void free_buffer_to_pool(BufferPool *pool, void *data);
+void free_buffer_to_pool(struct buffer_pool *pool, void *data);
 
 /**
  * Returns a set of buffers to the free list of a pool
@@ -109,7 +109,7 @@ void free_buffer_to_pool(BufferPool *pool, void *data);
  * @param [in] data   The buffer data to return
  * @param [in] count  Number of entries in the data array
  */
-void free_buffers_to_pool(BufferPool *pool, void **data, int count);
+void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count);
 
 /**
  * Control structure for freeing (releasing back to the pool) pointers
@@ -127,9 +127,9 @@ void free_buffers_to_pool(BufferPool *pool, void **data, int count);
  * all at once.
  **/
 struct free_buffer_pointers {
-  BufferPool *pool;
-  int         index;
-  void       *pointers[30]; // size is arbitrary
+	struct buffer_pool *pool;
+	int index;
+	void *pointers[30]; // size is arbitrary
 };
 
 /**
@@ -139,11 +139,11 @@ struct free_buffer_pointers {
  * @param [out] fbp   The (caller-allocated) control structure
  * @param [in]  pool  The buffer pool to return objects to.
  **/
-static inline void initFreeBufferPointers(struct free_buffer_pointers *fbp,
-                                          BufferPool                  *pool)
+static inline void init_free_buffer_pointers(struct free_buffer_pointers *fbp,
+					     struct buffer_pool *pool)
 {
-  fbp->index = 0;
-  fbp->pool  = pool;
+	fbp->index = 0;
+	fbp->pool = pool;
 }
 
 /**
@@ -151,10 +151,10 @@ static inline void initFreeBufferPointers(struct free_buffer_pointers *fbp,
  *
  * @param [in]  fbp  The control structure
  **/
-static inline void freeBufferPointers(struct free_buffer_pointers *fbp)
+static inline void free_buffer_pointers(struct free_buffer_pointers *fbp)
 {
-  free_buffers_to_pool(fbp->pool, fbp->pointers, fbp->index);
-  fbp->index = 0;
+	free_buffers_to_pool(fbp->pool, fbp->pointers, fbp->index);
+	fbp->index = 0;
 }
 
 /**
@@ -164,14 +164,14 @@ static inline void freeBufferPointers(struct free_buffer_pointers *fbp)
  * @param [in]  fbp      The control structure
  * @param [in]  pointer  The buffer pointer to release
  **/
-static inline void addFreeBufferPointer(struct free_buffer_pointers *fbp,
-                                        void                        *pointer)
+static inline void add_free_buffer_pointer(struct free_buffer_pointers *fbp,
+					   void *pointer)
 {
-  fbp->pointers[fbp->index] = pointer;
-  fbp->index++;
-  if (fbp->index == ARRAY_SIZE(fbp->pointers)) {
-    freeBufferPointers(fbp);
-  }
+	fbp->pointers[fbp->index] = pointer;
+	fbp->index++;
+	if (fbp->index == ARRAY_SIZE(fbp->pointers)) {
+		free_buffer_pointers(fbp);
+	}
 }
 
 #endif /* BUFFERPOOL_H */

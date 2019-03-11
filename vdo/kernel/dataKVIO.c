@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#24 $
  */
 
 #include "dataKVIO.h"
@@ -174,7 +174,7 @@ static noinline void cleanDataKVIO(DataKVIO                    *dataKVIO,
     freeTraceToPool(kvio->layer, kvio->vio->trace);
   }
 
-  addFreeBufferPointer(fbp, dataKVIO);
+  add_free_buffer_pointer(fbp, dataKVIO);
 }
 
 /**********************************************************************/
@@ -186,7 +186,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
   ASSERT_LOG_ONLY(layer != NULL, "layer not null");
 
   struct free_buffer_pointers fbp;
-  initFreeBufferPointers(&fbp, layer->dataKVIOPool);
+  init_free_buffer_pointers(&fbp, layer->dataKVIOPool);
 
   KvdoWorkItem *item;
   while ((item = next_batch_item(batch)) != NULL) {
@@ -196,7 +196,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
   }
 
   if (fbp.index > 0) {
-    freeBufferPointers(&fbp);
+    free_buffer_pointers(&fbp);
   }
 
   completeManyRequests(layer, count);
@@ -960,7 +960,7 @@ void updateDedupeIndex(DataVIO *dataVIO)
 }
 
 /**
- * Implements BufferFreeFunction.
+ * Implements buffer_free_function.
  **/
 static void freePooledDataKVIO(void *poolData, void *data)
 {
@@ -1060,7 +1060,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
 }
 
 /**
- * Implements BufferAllocateFunction.
+ * Implements buffer_allocate_function.
  **/
 static int makePooledDataKVIO(void *poolData, void **dataPtr)
 {
@@ -1145,7 +1145,7 @@ static void encodeVIODumpFlags(DataVIO *dataVIO, char buffer[8])
 /**
  * Dump out info on a DataKVIO from the DataKVIO pool.
  *
- * <p>Implements BufferDumpFunction.
+ * <p>Implements buffer_dump_function.
  *
  * @param poolData  The pool data
  * @param data      The DataKVIO to dump
@@ -1217,9 +1217,9 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
 }
 
 /**********************************************************************/
-int makeDataKVIOBufferPool(KernelLayer  *layer,
-                           uint32_t      poolSize,
-                           BufferPool  **bufferPoolPtr)
+int makeDataKVIOBufferPool(KernelLayer          *layer,
+                           uint32_t              poolSize,
+                           struct buffer_pool  **bufferPoolPtr)
 {
   return make_buffer_pool("DataKVIO Pool", poolSize,
                           makePooledDataKVIO, freePooledDataKVIO,
