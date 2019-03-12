@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#2 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -26,7 +26,6 @@
 
 typedef enum {
   ADMIN_STATE_NORMAL_OPERATION = 0,
-  ADMIN_STATE_CLOSE_REQUESTED,
   ADMIN_STATE_CLOSING,
   ADMIN_STATE_CLOSED,
   ADMIN_STATE_SUSPENDED,
@@ -35,8 +34,7 @@ typedef enum {
 /**********************************************************************/
 static inline bool isClosing(AdminState state)
 {
-  return ((state >= ADMIN_STATE_CLOSE_REQUESTED)
-          && (state <= ADMIN_STATE_CLOSED));
+  return ((state == ADMIN_STATE_CLOSING) || (state == ADMIN_STATE_CLOSED));
 }
 
 #endif // ADMIN_STATE_H

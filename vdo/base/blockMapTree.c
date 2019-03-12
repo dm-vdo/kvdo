@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#4 $
  */
 
 #include "blockMapTree.h"
@@ -593,7 +593,8 @@ void closeZoneTrees(BlockMapTreeZone *zone)
   }
 
   if (zone->activeLookups > 0) {
-    zone->mapZone->adminState = ADMIN_STATE_CLOSE_REQUESTED;
+    // This method should only be called when there are no active DataVIOs.
+    finishCompletion(&zone->mapZone->completion, VDO_INVALID_ADMIN_STATE);
     return;
   }
 
@@ -650,10 +651,7 @@ static void finishLookup(DataVIO *dataVIO, int result)
   setCompletionResult(completion, result);
   launchCallback(completion, dataVIO->treeLock.callback,
                  dataVIO->treeLock.threadID);
-  if ((--zone->activeLookups == 0)
-      && (zone->mapZone->adminState == ADMIN_STATE_CLOSE_REQUESTED)) {
-    closeZoneTrees(zone);
-  }
+  --zone->activeLookups;
 }
 
 /**
