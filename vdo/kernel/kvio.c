@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#10 $
  */
 
 #include "kvio.h"
@@ -113,7 +113,7 @@ void writeCompressedBlock(AllocatingVIO *allocatingVIO)
   reset_bio(bio, kvio->layer);
   set_bio_operation_write(bio);
   set_bio_sector(bio, blockToSector(kvio->layer, kvio->vio->physical));
-  submitBio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
+  vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
 /**
@@ -156,7 +156,7 @@ void submitMetadataVIO(VIO *vio)
   if (vioRequiresFlushAfter(vio)) {
     set_bio_operation_flag_fua(bio);
   }
-  submitBio(bio, getMetadataAction(vio));
+  vdo_submit_bio(bio, getMetadataAction(vio));
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
@@ -196,7 +196,7 @@ void kvdoFlushVIO(VIO *vio)
   KernelLayer *layer = kvio->layer;
   reset_bio(bio, layer);
   prepare_flush_bio(bio, kvio, getKernelLayerBdev(layer), completeFlushBio);
-  submitBio(bio, getMetadataAction(vio));
+  vdo_submit_bio(bio, getMetadataAction(vio));
 }
 
 /*

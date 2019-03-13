@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#3 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -32,9 +32,9 @@
  *
  * @param bio  the bio to count
  **/
-void countCompletedBios(struct bio *bio);
+void count_completed_bios(struct bio *bio);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Completes a bio relating to a kvio, causing the completion callback
  * to be invoked.
@@ -46,7 +46,7 @@ void countCompletedBios(struct bio *bio);
  *
  * @param bio   The bio to complete
  **/
-void completeAsyncBio(struct bio *bio);
+void complete_async_bio(struct bio *bio);
 #else
 /**
  * Completes a bio relating to a kvio, causing the completion callback
@@ -60,68 +60,70 @@ void completeAsyncBio(struct bio *bio);
  * @param bio   The bio to complete
  * @param error Possible error from underlying block device
  **/
-void completeAsyncBio(struct bio *bio, int error);
+void complete_async_bio(struct bio *bio, int error);
 #endif
 
 /**
- * Create a IOSubmitter structure for a new physical layer.
+ * Create a io_submitter structure for a new physical layer.
  *
- * @param [in]  threadNamePrefix  The per-device prefix to use in process names
- * @param [in]  threadCount       Number of bio-submission threads to set up
- * @param [in]  rotationInterval  Interval to use when rotating between
- *                                bio-submission threads when enqueuing work
- *                                items
- * @param [in]  maxRequestsActive Number of bios for merge tracking
- * @param [in]  layer             The kernel layer
- * @param [out] ioSubmitter       Pointer to the new data structure
+ * @param [in]  thread_name_prefix  The per-device prefix to use in process
+ *                                  names
+ * @param [in]  thread_count        Number of bio-submission threads to set up
+ * @param [in]  rotation_interval   Interval to use when rotating between
+ *                                  bio-submission threads when enqueuing work
+ *                                  items
+ * @param [in]  max_requests_active Number of bios for merge tracking
+ * @param [in]  layer               The kernel layer
+ * @param [out] io_submitter        Pointer to the new data structure
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeIOSubmitter(const char    *threadNamePrefix,
-                    unsigned int   threadCount,
-                    unsigned int   rotationInterval,
-                    unsigned int   maxRequestsActive,
-                    KernelLayer   *layer,
-                    IOSubmitter  **ioSubmitter);
+int make_io_submitter(const char *thread_name_prefix,
+		      unsigned int thread_count,
+		      unsigned int rotation_interval,
+		      unsigned int max_requests_active,
+		      KernelLayer *layer,
+		      struct io_submitter **io_submitter);
 
 /**
- * Tear down the IOSubmitter fields as needed for a physical layer.
+ * Tear down the io_submitter fields as needed for a physical layer.
  *
- * @param [in]  ioSubmitter    The I/O submitter data to tear down
+ * @param [in]  io_submitter    The I/O submitter data to tear down
  **/
-void cleanupIOSubmitter(IOSubmitter *ioSubmitter);
+void cleanup_io_submitter(struct io_submitter *io_submitter);
 
 /**
- * Free the IOSubmitter fields and structure as needed for a
+ * Free the io_submitter fields and structure as needed for a
  * physical layer. This must be called after
- * cleanupIOSubmitter(). It is used to release resources late in
+ * cleanup_io_submitter(). It is used to release resources late in
  * the shutdown process to avoid or reduce the chance of race
  * conditions.
  *
- * @param [in]  ioSubmitter    The I/O submitter data to destroy
+ * @param [in]  io_submitter    The I/O submitter data to destroy
  **/
-void freeIOSubmitter(IOSubmitter *ioSubmitter);
+void free_io_submitter(struct io_submitter *io_submitter);
 
 /**
  * Dump info to the kernel log about the work queue used by the
  * physical layer. For debugging only.
  *
- * @param [in]  ioSubmitter        The I/O submitter data
+ * @param [in]  io_submitter        The I/O submitter data
  **/
-void dumpBioWorkQueue(IOSubmitter *ioSubmitter);
+void dump_bio_work_queue(struct io_submitter *io_submitter);
 
 
 /**
  * Enqueue a work item to run in the work queue(s) used for bio
  * submissions from the physical layer.
  *
- * Outside of IOSubmitter, used only for finishing processing of empty
+ * Outside of io_submitter, used only for finishing processing of empty
  * flush bios by sending them to the storage device.
  *
- * @param ioSubmitter        The I/O submitter data to update
- * @param workItem           The new work item to run
+ * @param io_submitter        The I/O submitter data to update
+ * @param work_item           The new work item to run
  **/
-void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem);
+void enqueue_bio_work_item(struct io_submitter *io_submitter,
+			   KvdoWorkItem *work_item);
 
 /**
  * Submit bio but don't block.
@@ -138,6 +140,6 @@ void enqueueBioWorkItem(IOSubmitter *ioSubmitter, KvdoWorkItem *workItem);
  * @param bio      the block I/O operation descriptor to submit
  * @param action   the action code specifying the priority for the operation
  **/
-void submitBio(struct bio *bio, BioQAction action);
+void vdo_submit_bio(struct bio *bio, BioQAction action);
 
 #endif // IOSUBMITTER_H

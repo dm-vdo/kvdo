@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#25 $
  */
 
 #include "dataKVIO.h"
@@ -302,9 +302,9 @@ static void resetUserBio(struct bio *bio, int error)
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-  completeAsyncBio(bio);
+  complete_async_bio(bio);
 #else
-  completeAsyncBio(bio, error);
+  complete_async_bio(bio, error);
 #endif
 }
 
@@ -390,7 +390,7 @@ static void readBioCallback(struct bio *bio, int result)
   DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
   dataKVIO->readBlock.data = dataKVIO->readBlock.buffer;
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
-  countCompletedBios(bio);
+  count_completed_bios(bio);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   completeRead(dataKVIO, get_bio_result(bio));
 #else
@@ -422,7 +422,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
   set_bio_sector(bio, blockToSector(layer, location));
   set_bio_operation_read(bio);
   bio->bi_end_io = readBioCallback;
-  submitBio(bio, action);
+  vdo_submit_bio(bio, action);
 }
 
 /**********************************************************************/
@@ -442,7 +442,7 @@ void readDataVIO(DataVIO *dataVIO)
   struct bio *bio  = kvio->bio;
   bio->bi_end_io   = resetUserBio;
   set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
-  submitBio(bio, BIO_Q_ACTION_DATA);
+  vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
 /**********************************************************************/
@@ -493,7 +493,7 @@ void writeDataVIO(DataVIO *dataVIO)
   struct bio *bio  = kvio->bio;
   set_bio_operation_write(bio);
   set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
-  submitBio(bio, BIO_Q_ACTION_DATA);
+  vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
 /**
@@ -770,7 +770,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
   }
 
   set_bio_block_device(bio, getKernelLayerBdev(layer));
-  bio->bi_end_io = completeAsyncBio;
+  bio->bi_end_io = complete_async_bio;
   *dataKVIOPtr   = dataKVIO;
   return VDO_SUCCESS;
 }

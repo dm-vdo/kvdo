@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#9 $
  */
 
 #include "kvdoFlush.h"
@@ -236,8 +236,8 @@ void kvdo_complete_flush(VDOFlush **kfp)
 				kvdo_complete_flush_work,
 				NULL,
 				BIO_Q_ACTION_FLUSH);
-		enqueueBioWorkItem(kvdo_flush->layer->ioSubmitter,
-				   &kvdo_flush->work_item);
+		enqueue_bio_work_item(kvdo_flush->layer->ioSubmitter,
+				      &kvdo_flush->work_item);
 		*kfp = NULL;
 	}
 }

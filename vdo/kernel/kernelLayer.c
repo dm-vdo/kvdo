@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#40 $
  */
 
 #include "kernelLayer.h"
@@ -702,12 +702,12 @@ int makeKernelLayer(uint64_t               startingSector,
   setKernelLayerState(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
   // Bio queue
-  result    = makeIOSubmitter(layer->threadNamePrefix,
-                           config->thread_counts.bio_threads,
-                           config->thread_counts.bio_rotation_interval,
-                           layer->requestLimiter.limit,
-                           layer,
-                           &layer->ioSubmitter);
+  result    = make_io_submitter(layer->threadNamePrefix,
+                                config->thread_counts.bio_threads,
+                                config->thread_counts.bio_rotation_interval,
+                                layer->requestLimiter.limit,
+                                layer,
+                                &layer->ioSubmitter);
   if (result != VDO_SUCCESS) {
     // If initialization of the bio-queues failed, they are cleaned
     // up already, so just free the rest of the kernel layer.
@@ -907,7 +907,7 @@ void freeKernelLayer(KernelLayer *layer)
     // fall through
 
   case LAYER_BIO_DATA_INITIALIZED:
-    cleanupIOSubmitter(layer->ioSubmitter);
+    cleanup_io_submitter(layer->ioSubmitter);
     // fall through
 
   case LAYER_REQUEST_QUEUE_INITIALIZED:
@@ -948,7 +948,7 @@ void freeKernelLayer(KernelLayer *layer)
     free_work_queue(&layer->bioAckQueue);
   }
   if (layer->ioSubmitter) {
-    freeIOSubmitter(layer->ioSubmitter);
+    free_io_submitter(layer->ioSubmitter);
   }
   if (usedKVDO) {
     destroyKVDO(&layer->kvdo);

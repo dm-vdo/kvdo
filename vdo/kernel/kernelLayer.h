@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#16 $
  */
 
 #ifndef KERNELLAYER_H
@@ -110,7 +110,7 @@ struct kernelLayer {
    * Bio submission manager used for sending bios to the storage
    * device.
    **/
-  IOSubmitter             *ioSubmitter;
+  struct io_submitter     *ioSubmitter;
   /**
    * Work queue (possibly with multiple threads) for miscellaneous
    * CPU-intensive, non-blocking work.
