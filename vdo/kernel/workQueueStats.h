@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#7 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -44,46 +44,48 @@ struct simpleWorkQueue;
  * worker thread. The trailing fields here are updated only by the
  * worker thread.
  */
-typedef struct kvdoWorkQueueStats {
-  // Per-work-function counters and optional nanosecond timing data
-  struct kvdo_work_item_stats workItemStats;
-  // How often we go to sleep waiting for work
-  uint64_t                    waits;
+struct kvdo_work_queue_stats {
+	// Per-work-function counters and optional nanosecond timing data
+	struct kvdo_work_item_stats workItemStats;
+	// How often we go to sleep waiting for work
+	uint64_t waits;
 
-  // Run time data, for monitoring utilization levels.
+	// Run time data, for monitoring utilization levels.
 
-  // Thread start time, from which we can compute lifetime thus far.
-  uint64_t                    startTime;
-  /*
-   * Time the thread has not been blocked waiting for a new work item,
-   * nor in cond_resched(). This will include time the thread has been
-   * blocked by some kernel function invoked by the work functions
-   * (e.g., waiting for socket buffer space).
-   *
-   * This is not redundant with runTimeBeforeRescheduleHistogram, as
-   * the latter doesn't count run time not followed by a cond_resched
-   * call.
-   */
-  atomic64_t                  runTime;
-  // Time the thread has been suspended via cond_resched().
-  // (Duplicates data hidden within rescheduleTimeHistogram.)
-  atomic64_t                  rescheduleTime;
+	// Thread start time, from which we can compute lifetime thus far.
+	uint64_t start_time;
+	/*
+	 * Time the thread has not been blocked waiting for a new work item,
+	 * nor in cond_resched(). This will include time the thread has been
+	 * blocked by some kernel function invoked by the work functions
+	 * (e.g., waiting for socket buffer space).
+	 *
+	 * This is not redundant with run_time_before_reschedule_histogram, as
+	 * the latter doesn't count run time not followed by a cond_resched
+	 * call.
+	 */
+	atomic64_t run_time;
+	// Time the thread has been suspended via cond_resched().
+	// (Duplicates data hidden within reschedule_time_histogram.)
+	atomic64_t reschedule_time;
 
-  // Histogram of the queue times of work items (microseconds)
-  struct histogram           *queueTimeHistogram;
-  // How busy we are when cond_resched is called
-  struct histogram           *rescheduleQueueLengthHistogram;
-  // Histogram of the time cond_resched makes us sleep for (microseconds)
-  struct histogram           *rescheduleTimeHistogram;
-  // Histogram of the run time between cond_resched calls (microseconds)
-  struct histogram           *runTimeBeforeRescheduleHistogram;
-  // Histogram of the time schedule_timeout lets us sleep for (microseconds)
-  struct histogram           *scheduleTimeHistogram;
-  // How long from thread wakeup call to thread actually running (microseconds)
-  struct histogram           *wakeupLatencyHistogram;
-  // How much work is pending by the time we start running
-  struct histogram           *wakeupQueueLengthHistogram;
-} KvdoWorkQueueStats;
+	// Histogram of the queue times of work items (microseconds)
+	struct histogram *queue_time_histogram;
+	// How busy we are when cond_resched is called
+	struct histogram *reschedule_queue_length_histogram;
+	// Histogram of the time cond_resched makes us sleep for (microseconds)
+	struct histogram *reschedule_time_histogram;
+	// Histogram of the run time between cond_resched calls (microseconds)
+	struct histogram *run_time_before_reschedule_histogram;
+	// Histogram of the time schedule_timeout lets us sleep for
+	// (microseconds)
+	struct histogram *schedule_time_histogram;
+	// How long from thread wakeup call to thread actually running
+	// (microseconds)
+	struct histogram *wakeup_latency_histogram;
+	// How much work is pending by the time we start running
+	struct histogram *wakeup_queue_length_histogram;
+};
 
 /**
  * Initialize the work queue's statistics tracking.
@@ -93,16 +95,16 @@ typedef struct kvdoWorkQueueStats {
  *
  * @return  0 or a kernel error code
  **/
-int initialize_work_queue_stats(KvdoWorkQueueStats *stats,
-                                struct kobject     *queue_kobject)
-  __attribute__((warn_unused_result));
+int initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
+				struct kobject *queue_kobject)
+	__attribute__((warn_unused_result));
 
 /**
  * Tear down any allocated storage or objects for statistics tracking.
  *
  * @param stats  The statistics structure
  **/
-void cleanup_work_queue_stats(KvdoWorkQueueStats *stats);
+void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats);
 
 /**
  * Update the work queue statistics tracking to note the enqueueing of
@@ -112,12 +114,13 @@ void cleanup_work_queue_stats(KvdoWorkQueueStats *stats);
  * @param item      The work item being enqueued
  * @param priority  The priority of the work item
  **/
-static inline void update_stats_for_enqueue(KvdoWorkQueueStats *stats,
-                                            KvdoWorkItem       *item,
-                                            int                 priority)
+static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
+					    KvdoWorkItem *item,
+					    int priority)
 {
-  update_work_item_stats_for_enqueue(&stats->workItemStats, item, priority);
-  item->enqueueTime = currentTime(CT_MONOTONIC);
+	update_work_item_stats_for_enqueue(&stats->workItemStats, item,
+					   priority);
+	item->enqueueTime = currentTime(CT_MONOTONIC);
 }
 
 /**
@@ -127,13 +130,14 @@ static inline void update_stats_for_enqueue(KvdoWorkQueueStats *stats,
  * @param stats  The statistics structure
  * @param item   The work item being enqueued
  **/
-static inline void update_stats_for_dequeue(KvdoWorkQueueStats *stats,
-                                            KvdoWorkItem       *item)
+static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
+					    KvdoWorkItem *item)
 {
-  update_work_item_stats_for_dequeue(&stats->workItemStats, item);
-  enter_histogram_sample(stats->queueTimeHistogram,
-                       (currentTime(CT_MONOTONIC) - item->enqueueTime) / 1000);
-  item->enqueueTime = 0;
+	update_work_item_stats_for_dequeue(&stats->workItemStats, item);
+	enter_histogram_sample(stats->queue_time_histogram,
+			       (currentTime(CT_MONOTONIC) - item->enqueueTime) /
+				       1000);
+	item->enqueueTime = 0;
 }
 
 /**
@@ -153,6 +157,7 @@ void log_work_queue_stats(const struct simpleWorkQueue *queue);
  * @param [in]  stats   The stats structure containing the run-time info
  * @param [out] buffer  The buffer in which to report the info
  **/
-ssize_t format_run_time_stats(const KvdoWorkQueueStats *stats, char *buffer);
+ssize_t format_run_time_stats(const struct kvdo_work_queue_stats *stats,
+			      char *buffer);
 
 #endif // WORK_QUEUE_STATS_H

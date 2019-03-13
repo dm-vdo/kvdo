@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#4 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -63,38 +63,38 @@ typedef struct roundRobinWorkQueue RoundRobinWorkQueue;
 
 struct simpleWorkQueue {
   /** Common work queue bits */
-  struct kvdo_work_queue   common;
+  struct kvdo_work_queue       common;
   /** A copy of .thread->pid, for safety in the sysfs support */
-  atomic_t                 threadID;
+  atomic_t                     threadID;
   /**
    * Number of priorities actually used, so we don't keep re-checking unused
    * funnel queues.
    **/
-  unsigned int             numPriorityLists;
+  unsigned int                 numPriorityLists;
   /**
    * Map from action codes to priorities.
    *
    * This mapping can be changed at run time in internal builds, for tuning
    * purposes.
    **/
-  uint8_t                  priorityMap[WORK_QUEUE_ACTION_COUNT];
+  uint8_t                      priorityMap[WORK_QUEUE_ACTION_COUNT];
   /** The funnel queues */
-  FunnelQueue             *priorityLists[WORK_QUEUE_PRIORITY_COUNT];
+  FunnelQueue                 *priorityLists[WORK_QUEUE_PRIORITY_COUNT];
   /** The kernel thread */
-  struct task_struct      *thread;
+  struct task_struct          *thread;
   /** Life cycle functions, etc */
-  const KvdoWorkQueueType *type;
+  const KvdoWorkQueueType     *type;
   /** Opaque private data pointer, defined by higher level code */
-  void                    *private;
+  void                        *private;
   /** In a subordinate work queue, a link back to the round-robin parent */
-  struct kvdo_work_queue  *parentQueue;
+  struct kvdo_work_queue      *parentQueue;
   /** Padding for cache line separation */
-  char                     pad[CACHE_LINE_BYTES
-                               - sizeof(struct kvdo_work_queue *)];
+  char                         pad[CACHE_LINE_BYTES
+                                   - sizeof(struct kvdo_work_queue *)];
   /** Lock protecting delayedItems, priorityMap, numPriorityLists, started */
-  spinlock_t               lock;
+  spinlock_t                   lock;
   /** Any worker threads (zero or one) waiting for new work to do */
-  wait_queue_head_t        waitingWorkerThreads;
+  wait_queue_head_t            waitingWorkerThreads;
   /**
    * Hack to reduce wakeup calls if the worker thread is running. See comments
    * in workQueue.c.
@@ -102,14 +102,14 @@ struct simpleWorkQueue {
    * There is a lot of redundancy with "firstWakeup", though, and the pair
    * should be re-examined.
    **/
-  atomic_t                 idle;
+  atomic_t                     idle;
   /** Wait list for synchronization during worker thread startup */
-  wait_queue_head_t        startWaiters;
+  wait_queue_head_t            startWaiters;
   /** Worker thread status (boolean) */
-  bool                     started;
+  bool                         started;
 
   /** List of delayed work items; usually only one, if any */
-  KvdoWorkItemList         delayedItems;
+  KvdoWorkItemList             delayedItems;
   /**
    * Timer for pulling delayed work items off their list and submitting them to
    * run.
@@ -118,7 +118,7 @@ struct simpleWorkQueue {
    * currently firing and the callback about to acquire the lock) iff
    * delayedItems is nonempty.
    **/
-  struct timer_list        delayedItemsTimer;
+  struct timer_list            delayedItemsTimer;
 
   /**
    * Timestamp (ns) from the submitting thread that decided to wake us up; also
@@ -146,13 +146,13 @@ struct simpleWorkQueue {
    *
    * There is some redundancy between this and "idle" above.
    **/
-  atomic64_t               firstWakeup;
+  atomic64_t                   firstWakeup;
   /** Padding for cache line separation */
-  char                     pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
+  char                         pad2[CACHE_LINE_BYTES - sizeof(atomic64_t)];
   /** Scheduling and work-function statistics */
-  KvdoWorkQueueStats       stats;
+  struct kvdo_work_queue_stats stats;
   /** Last time (ns) the scheduler actually woke us up */
-  uint64_t                 mostRecentWakeup;
+  uint64_t                     mostRecentWakeup;
 };
 
 struct roundRobinWorkQueue {

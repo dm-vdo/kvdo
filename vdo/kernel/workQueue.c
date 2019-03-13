@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#11 $
  */
 
 #include "workQueue.h"
@@ -428,12 +428,12 @@ static KvdoWorkItem *wait_for_next_work_item(SimpleWorkQueue *queue,
     queue->stats.waits++;
     uint64_t time_before_schedule = currentTime(CT_MONOTONIC);
     atomic64_add(time_before_schedule - queue->mostRecentWakeup,
-                 &queue->stats.runTime);
+                 &queue->stats.run_time);
     // Wake up often, to address the missed-wakeup race.
     schedule_timeout(timeout_interval);
     queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
     uint64_t call_duration_ns = queue->mostRecentWakeup - time_before_schedule;
-    enter_histogram_sample(queue->stats.scheduleTimeHistogram,
+    enter_histogram_sample(queue->stats.schedule_time_histogram,
                            call_duration_ns / 1000);
 
     /*
@@ -458,10 +458,10 @@ static KvdoWorkItem *wait_for_next_work_item(SimpleWorkQueue *queue,
      */
     loadFence();
     if (first_wakeup != 0) {
-      enter_histogram_sample(queue->stats.wakeupLatencyHistogram,
+      enter_histogram_sample(queue->stats.wakeup_latency_histogram,
                              (currentTime(CT_MONOTONIC) - first_wakeup)
                              / 1000);
-      enter_histogram_sample(queue->stats.wakeupQueueLengthHistogram,
+      enter_histogram_sample(queue->stats.wakeup_queue_length_histogram,
                              get_pending_count(queue));
     }
   }
@@ -535,16 +535,16 @@ static void process_work_item(SimpleWorkQueue *queue,
     cond_resched();
     uint64_t time_after_reschedule = currentTime(CT_MONOTONIC);
 
-    enter_histogram_sample(queue->stats.rescheduleQueueLengthHistogram,
+    enter_histogram_sample(queue->stats.reschedule_queue_length_histogram,
                            queue_len);
     uint64_t run_time_ns = time_before_reschedule - queue->mostRecentWakeup;
-    enter_histogram_sample(queue->stats.runTimeBeforeRescheduleHistogram,
+    enter_histogram_sample(queue->stats.run_time_before_reschedule_histogram,
                            run_time_ns / 1000);
-    atomic64_add(run_time_ns, &queue->stats.runTime);
+    atomic64_add(run_time_ns, &queue->stats.run_time);
     uint64_t call_time_ns = time_after_reschedule - time_before_reschedule;
-    enter_histogram_sample(queue->stats.rescheduleTimeHistogram,
+    enter_histogram_sample(queue->stats.reschedule_time_histogram,
                            call_time_ns / 1000);
-    atomic64_add(call_time_ns, &queue->stats.rescheduleTime);
+    atomic64_add(call_time_ns, &queue->stats.reschedule_time);
     queue->mostRecentWakeup = time_after_reschedule;
   }
 }
@@ -591,7 +591,8 @@ static int work_queue_runner(void *ptr)
 
   struct work_queue_stack_handle queue_handle;
   initialize_work_queue_stack_handle(&queue_handle, queue);
-  queue->stats.startTime = queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
+  queue->stats.start_time = queue->mostRecentWakeup
+    = currentTime(CT_MONOTONIC);
   unsigned long flags;
   spin_lock_irqsave(&queue->lock, flags);
   queue->started = true;
