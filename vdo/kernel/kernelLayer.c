@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#41 $
  */
 
 #include "kernelLayer.h"
@@ -1008,8 +1008,8 @@ int startKernelLayer(KernelLayer          *layer,
   // messages) if this is known to be a newly-formatted volume.
   startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
 
-  result = vdoCreateProcfsEntry(layer, layer->deviceConfig->pool_name,
-                                &layer->procfsPrivate);
+  result = vdo_create_procfs_entry(layer, layer->deviceConfig->pool_name,
+                                   &layer->procfsPrivate);
   if (result != VDO_SUCCESS) {
     *reason = "Could not create proc filesystem entry";
     stopKernelLayer(layer);
@@ -1036,7 +1036,8 @@ int stopKernelLayer(KernelLayer *layer)
     kobject_put(&layer->statsDirectory);
     wait_for_completion(&layer->statsShutdown);
   }
-  vdoDestroyProcfsEntry(layer->deviceConfig->pool_name, layer->procfsPrivate);
+  vdo_destroy_procfs_entry(layer->deviceConfig->pool_name,
+                           layer->procfsPrivate);
 
   int result = stopKVDO(&layer->kvdo);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {

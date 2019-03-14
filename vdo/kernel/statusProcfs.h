@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.h#2 $
  *
  */
 
@@ -33,13 +33,13 @@
  *
  * @return 0 on success, nonzero on failure
  */
-int vdoInitProcfs(void);
+int vdo_init_procfs(void);
 
 /**
  * Destroys the /proc/vdo directory. Should be called once when the
  * module is unloaded.
  */
-void vdoDestroyProcfs(void);
+void vdo_destroy_procfs(void);
 
 /**
  * Creates a subdirectory in the /proc/vdo filesystem for a particular
@@ -51,7 +51,9 @@ void vdoDestroyProcfs(void);
  *
  * @return 0 on success, nonzero on failure
  */
-int vdoCreateProcfsEntry(KernelLayer *layer, const char *name, void **private);
+int vdo_create_procfs_entry(KernelLayer *layer,
+			    const char *name,
+			    void **private);
 
 /**
  * Destroys a subdirectory in the /proc/vdo filesystem for a
@@ -60,7 +62,7 @@ int vdoCreateProcfsEntry(KernelLayer *layer, const char *name, void **private);
  * @param name     the subdirectory name
  * @param private  private storage for procfs data
  */
-void vdoDestroyProcfsEntry(const char *name, void *private);
+void vdo_destroy_procfs_entry(const char *name, void *private);
 
 /**
  * Retrieves the current kernel statistics.
@@ -68,6 +70,6 @@ void vdoDestroyProcfsEntry(const char *name, void *private);
  * @param layer    the kernel layer
  * @param stats    pointer to the structure to fill in
  */
-void getKernelStats(KernelLayer *layer, KernelStatistics *stats);
+void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats);
 
 #endif  /* STATUS_PROC_H */

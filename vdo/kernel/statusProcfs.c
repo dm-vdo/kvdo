@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#6 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -50,199 +50,212 @@
 #include "threadDevice.h"
 #include "vdoCommon.h"
 
-static struct proc_dir_entry *procfsRoot = NULL;
+static struct proc_dir_entry *procfs_root = NULL;
 
 /**********************************************************************/
-static int statusDedupeShow(struct seq_file *m, void *v)
+static int status_dedupe_show(struct seq_file *m, void *v)
 {
-  KernelLayer *layer = (KernelLayer *) m->private;
-  VDOStatistics *stats;
-  size_t len = sizeof(VDOStatistics);
-  RegisteredThread allocatingThread, instanceThread;
-  registerAllocatingThread(&allocatingThread, NULL);
-  registerThreadDevice(&instanceThread, layer);
-  int result = ALLOCATE(1, VDOStatistics, __func__, &stats);
-  if (result == VDO_SUCCESS) {
-    getKVDOStatistics(&layer->kvdo, stats);
-    seq_write(m, stats, len);
-    FREE(stats);
-  }
-  unregisterThreadDeviceID();
-  unregisterAllocatingThread();
-  return result;
+	KernelLayer *layer = (KernelLayer *)m->private;
+	VDOStatistics *stats;
+	size_t len = sizeof(VDOStatistics);
+	RegisteredThread allocating_thread, instance_thread;
+	registerAllocatingThread(&allocating_thread, NULL);
+	registerThreadDevice(&instance_thread, layer);
+	int result = ALLOCATE(1, VDOStatistics, __func__, &stats);
+	if (result == VDO_SUCCESS) {
+		getKVDOStatistics(&layer->kvdo, stats);
+		seq_write(m, stats, len);
+		FREE(stats);
+	}
+	unregisterThreadDeviceID();
+	unregisterAllocatingThread();
+	return result;
 }
 
 /**********************************************************************/
-static int statusDedupeOpen(struct inode *inode, struct file *file)
+static int status_dedupe_open(struct inode *inode, struct file *file)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
-  return single_open(file, statusDedupeShow, PDE_DATA(inode));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+	return single_open(file, status_dedupe_show, PDE_DATA(inode));
 #else
-  return single_open(file, statusDedupeShow, PDE(inode)->data);
+	return single_open(file, status_dedupe_show, PDE(inode)->data);
 #endif
 }
 
-static const struct file_operations vdoProcfsDedupeOps = {
-  .open = statusDedupeOpen,
-  .read = seq_read,
-  .llseek = seq_lseek,
-  .release = single_release,
+static const struct file_operations vdo_procfs_dedupe_ops = {
+	.open = status_dedupe_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
 };
 
 /**********************************************************************/
-static void copyBioStat(BioStats *b, const AtomicBioStats *a)
+static void copy_bio_stat(BioStats *b, const AtomicBioStats *a)
 {
-  b->read    = atomic64_read(&a->read);
-  b->write   = atomic64_read(&a->write);
-  b->discard = atomic64_read(&a->discard);
-  b->flush   = atomic64_read(&a->flush);
-  b->fua     = atomic64_read(&a->fua);
+	b->read = atomic64_read(&a->read);
+	b->write = atomic64_read(&a->write);
+	b->discard = atomic64_read(&a->discard);
+	b->flush = atomic64_read(&a->flush);
+	b->fua = atomic64_read(&a->fua);
 }
 
 /**********************************************************************/
-static BioStats subtractBioStats(BioStats minuend, BioStats subtrahend)
+static BioStats subtract_bio_stats(BioStats minuend, BioStats subtrahend)
 {
-  return (BioStats) {
-    .read    = minuend.read - subtrahend.read,
-    .write   = minuend.write - subtrahend.write,
-    .discard = minuend.discard - subtrahend.discard,
-    .flush   = minuend.flush - subtrahend.flush,
-    .fua     = minuend.fua - subtrahend.fua,
-  };
+	return (BioStats){
+		.read = minuend.read - subtrahend.read,
+		.write = minuend.write - subtrahend.write,
+		.discard = minuend.discard - subtrahend.discard,
+		.flush = minuend.flush - subtrahend.flush,
+		.fua = minuend.fua - subtrahend.fua,
+	};
 }
 
 /**********************************************************************/
-void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
+void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats)
 {
-  stats->version        = STATISTICS_VERSION;
-  stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
-  stats->instance       = layer->instance;
-  get_limiter_values_atomically(&layer->requestLimiter,
-                                &stats->currentVIOsInProgress,
-                                &stats->maxVIOs);
-  // albireoTimeoutReport gives the number of timeouts, and dedupeContextBusy
-  // gives the number of queries not made because of earlier timeouts.
-  stats->dedupeAdviceTimeouts = (getDedupeTimeoutCount(layer->dedupeIndex)
-                                 + atomic64_read(&layer->dedupeContextBusy));
-  stats->flushOut             = atomic64_read(&layer->flushOut);
-  stats->logicalBlockSize     = layer->deviceConfig->logical_block_size;
-  copyBioStat(&stats->biosIn, &layer->biosIn);
-  copyBioStat(&stats->biosInPartial, &layer->biosInPartial);
-  copyBioStat(&stats->biosOut, &layer->biosOut);
-  copyBioStat(&stats->biosMeta, &layer->biosMeta);
-  copyBioStat(&stats->biosJournal, &layer->biosJournal);
-  copyBioStat(&stats->biosPageCache, &layer->biosPageCache);
-  copyBioStat(&stats->biosOutCompleted, &layer->biosOutCompleted);
-  copyBioStat(&stats->biosMetaCompleted, &layer->biosMetaCompleted);
-  copyBioStat(&stats->biosJournalCompleted, &layer->biosJournalCompleted);
-  copyBioStat(&stats->biosPageCacheCompleted,
-              &layer->biosPageCacheCompleted);
-  copyBioStat(&stats->biosAcknowledged, &layer->biosAcknowledged);
-  copyBioStat(&stats->biosAcknowledgedPartial,
-              &layer->biosAcknowledgedPartial);
-  stats->biosInProgress = subtractBioStats(stats->biosIn,
-                                           stats->biosAcknowledged);
-  stats->memoryUsage = get_memory_usage();
-  getIndexStatistics(layer->dedupeIndex, &stats->index);
+	stats->version = STATISTICS_VERSION;
+	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
+	stats->instance = layer->instance;
+	get_limiter_values_atomically(&layer->requestLimiter,
+				      &stats->currentVIOsInProgress,
+				      &stats->maxVIOs);
+	// albireoTimeoutReport gives the number of timeouts, and
+	// dedupeContextBusy gives the number of queries not made because of
+	// earlier timeouts.
+	stats->dedupeAdviceTimeouts =
+		(getDedupeTimeoutCount(layer->dedupeIndex) +
+		 atomic64_read(&layer->dedupeContextBusy));
+	stats->flushOut = atomic64_read(&layer->flushOut);
+	stats->logicalBlockSize = layer->deviceConfig->logical_block_size;
+	copy_bio_stat(&stats->biosIn, &layer->biosIn);
+	copy_bio_stat(&stats->biosInPartial, &layer->biosInPartial);
+	copy_bio_stat(&stats->biosOut, &layer->biosOut);
+	copy_bio_stat(&stats->biosMeta, &layer->biosMeta);
+	copy_bio_stat(&stats->biosJournal, &layer->biosJournal);
+	copy_bio_stat(&stats->biosPageCache, &layer->biosPageCache);
+	copy_bio_stat(&stats->biosOutCompleted, &layer->biosOutCompleted);
+	copy_bio_stat(&stats->biosMetaCompleted, &layer->biosMetaCompleted);
+	copy_bio_stat(&stats->biosJournalCompleted,
+		      &layer->biosJournalCompleted);
+	copy_bio_stat(&stats->biosPageCacheCompleted,
+		      &layer->biosPageCacheCompleted);
+	copy_bio_stat(&stats->biosAcknowledged, &layer->biosAcknowledged);
+	copy_bio_stat(&stats->biosAcknowledgedPartial,
+		      &layer->biosAcknowledgedPartial);
+	stats->biosInProgress =
+		subtract_bio_stats(stats->biosIn, stats->biosAcknowledged);
+	stats->memoryUsage = get_memory_usage();
+	getIndexStatistics(layer->dedupeIndex, &stats->index);
 }
 
 /**********************************************************************/
-static int statusKernelShow(struct seq_file *m, void *v)
+static int status_kernel_show(struct seq_file *m, void *v)
 {
-  KernelLayer *layer = (KernelLayer *) m->private;
-  KernelStatistics *stats;
-  size_t len = sizeof(KernelStatistics);
-  RegisteredThread allocatingThread, instanceThread;
-  registerAllocatingThread(&allocatingThread, NULL);
-  registerThreadDevice(&instanceThread, layer);
-  int result = ALLOCATE(1, KernelStatistics, __func__, &stats);
-  if (result == VDO_SUCCESS) {
-    getKernelStats(layer, stats);
-    seq_write(m, stats, len);
-    FREE(stats);
-  }
-  unregisterThreadDeviceID();
-  unregisterAllocatingThread();
-  return result;
+	KernelLayer *layer = (KernelLayer *)m->private;
+	KernelStatistics *stats;
+	size_t len = sizeof(KernelStatistics);
+	RegisteredThread allocating_thread, instance_thread;
+	registerAllocatingThread(&allocating_thread, NULL);
+	registerThreadDevice(&instance_thread, layer);
+	int result = ALLOCATE(1, KernelStatistics, __func__, &stats);
+	if (result == VDO_SUCCESS) {
+		get_kernel_stats(layer, stats);
+		seq_write(m, stats, len);
+		FREE(stats);
+	}
+	unregisterThreadDeviceID();
+	unregisterAllocatingThread();
+	return result;
 }
 
 /**********************************************************************/
-static int statusKernelOpen(struct inode *inode, struct file *file)
+static int status_kernel_open(struct inode *inode, struct file *file)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
-  return single_open(file, statusKernelShow, PDE_DATA(inode));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+	return single_open(file, status_kernel_show, PDE_DATA(inode));
 #else
-  return single_open(file, statusKernelShow, PDE(inode)->data);
+	return single_open(file, status_kernel_show, PDE(inode)->data);
 #endif
 }
 
-static const struct file_operations vdoProcfsKernelOps = {
-  .open = statusKernelOpen,
-  .read = seq_read,
-  .llseek = seq_lseek,
-  .release = single_release,
+static const struct file_operations vdo_procfs_kernel_ops = {
+	.open = status_kernel_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
 };
 
 /**********************************************************************/
-int vdoInitProcfs()
+int vdo_init_procfs()
 {
-  const char *procfsName = getProcRoot();
-  procfsRoot = proc_mkdir(procfsName, NULL);
-  if (procfsRoot == NULL) {
-    logWarning("Could not create proc filesystem root %s\n", procfsName);
-    return -ENOMEM;
-  }
-  return VDO_SUCCESS;
+	const char *procfs_name = getProcRoot();
+	procfs_root = proc_mkdir(procfs_name, NULL);
+	if (procfs_root == NULL) {
+		logWarning("Could not create proc filesystem root %s\n",
+			   procfs_name);
+		return -ENOMEM;
+	}
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void vdoDestroyProcfs()
+void vdo_destroy_procfs()
 {
-  remove_proc_entry(getProcRoot(), NULL);
-  procfsRoot = NULL;
+	remove_proc_entry(getProcRoot(), NULL);
+	procfs_root = NULL;
 }
 
 /**********************************************************************/
-int vdoCreateProcfsEntry(KernelLayer *layer, const char *name, void **private)
+int vdo_create_procfs_entry(KernelLayer *layer,
+			    const char *name,
+			    void **private)
 {
-  int result = VDO_SUCCESS;
+	int result = VDO_SUCCESS;
 
-  if (procfsRoot != NULL) {
-    struct proc_dir_entry *fsDir;
-    fsDir = proc_mkdir(name, procfsRoot);
-    if (fsDir == NULL) {
-      result = -ENOMEM;
-    } else {
-      if (proc_create_data(getVDOStatisticsProcFile(), 0644, fsDir,
-                           &vdoProcfsDedupeOps, layer) == NULL) {
-        result = -ENOMEM;
-      } else if (proc_create_data(getKernelStatisticsProcFile(), 0644, fsDir,
-                                  &vdoProcfsKernelOps, layer) == NULL) {
-        result = -ENOMEM;
-      }
-    }
-    if (result < 0) {
-      vdoDestroyProcfsEntry(name, fsDir);
-    } else {
-      *private = fsDir;
-    }
-  } else {
-    logWarning("No proc filesystem root set, skipping %s\n", name);
-  }
-  return result;
+	if (procfs_root != NULL) {
+		struct proc_dir_entry *fs_dir;
+		fs_dir = proc_mkdir(name, procfs_root);
+		if (fs_dir == NULL) {
+			result = -ENOMEM;
+		} else {
+			if (proc_create_data(getVDOStatisticsProcFile(),
+					     0644,
+					     fs_dir,
+					     &vdo_procfs_dedupe_ops,
+					     layer) == NULL) {
+				result = -ENOMEM;
+			} else if (proc_create_data(getKernelStatisticsProcFile(),
+						    0644,
+						    fs_dir,
+						    &vdo_procfs_kernel_ops,
+						    layer) == NULL) {
+				result = -ENOMEM;
+			}
+		}
+		if (result < 0) {
+			vdo_destroy_procfs_entry(name, fs_dir);
+		} else {
+			*private = fs_dir;
+		}
+	} else {
+		logWarning("No proc filesystem root set, skipping %s\n", name);
+	}
+	return result;
 }
 
 /**********************************************************************/
-void vdoDestroyProcfsEntry(const char *name, void *private)
+void vdo_destroy_procfs_entry(const char *name, void *private)
 {
-  if (procfsRoot != NULL) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
-    remove_proc_subtree(name, procfsRoot);
+	if (procfs_root != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
+		remove_proc_subtree(name, procfs_root);
 #else
-    struct proc_dir_entry *fsDir = (struct proc_dir_entry *) private;
-    remove_proc_entry(getVDOStatisticsProcFile(), fsDir);
-    remove_proc_entry(getKernelStatisticsProcFile(), fsDir);
-    remove_proc_entry(name, procfsRoot);
+		struct proc_dir_entry *fs_dir =
+			(struct proc_dir_entry *)private;
+		remove_proc_entry(getVDOStatisticsProcFile(), fs_dir);
+		remove_proc_entry(getKernelStatisticsProcFile(), fs_dir);
+		remove_proc_entry(name, procfs_root);
 #endif
-  }
+	}
 }
