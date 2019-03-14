@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#12 $
  */
 
 #include "workQueue.h"
@@ -782,7 +782,7 @@ static int make_simple_work_queue(const char               *thread_name_prefix,
               (unsigned long) queue);
 #endif
 
-  kobject_init(&queue->common.kobj, &simpleWorkQueueKobjType);
+  kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
   result = kobject_add(&queue->common.kobj, parent_kobject, queue->common.name);
   if (result != 0) {
     logError("Cannot add sysfs node: %d", result);
@@ -876,7 +876,7 @@ int make_work_queue(const char               *thread_name_prefix,
     return -ENOMEM;
   }
 
-  kobject_init(&queue->common.kobj, &roundRobinWorkQueueKobjType);
+  kobject_init(&queue->common.kobj, &round_robin_work_queue_kobj_type);
   result = kobject_add(&queue->common.kobj, parent_kobject, queue->common.name);
   if (result != 0) {
     logError("Cannot add sysfs node: %d", result);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.h#2 $
  */
 
 #ifndef WORK_QUEUE_SYSFS_H
@@ -24,7 +24,7 @@
 
 #include <linux/kobject.h>
 
-extern struct kobj_type roundRobinWorkQueueKobjType;
-extern struct kobj_type simpleWorkQueueKobjType;
+extern struct kobj_type round_robin_work_queue_kobj_type;
+extern struct kobj_type simple_work_queue_kobj_type;
 
 #endif // WORK_QUEUE_SYSFS_H
