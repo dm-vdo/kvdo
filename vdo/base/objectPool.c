@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#3 $
  */
 
 #include "objectPool.h"
@@ -34,15 +34,23 @@
  * An ObjectPool is a collection of preallocated objects.
  **/
 struct objectPool {
+  /** The number of objects managed by the pool */
   size_t         poolSize;
-  RingNode       available;     // entries
+  /** The list of objects which are available */
+  RingNode       available;
+  /** The queue of requestors waiting for objects from the pool */
   WaitQueue      waiting;
+  /** The number of objects currently in use */
   size_t         busyCount;
-  RingNode       busy;          // entries
+  /** The list of objects which are in use */
+  RingNode       busy;
+  /** The administrative state of the pool */
   AdminState     adminState;
-  VDOCompletion *completion;
+  /** The number of requests when no object was available */
   uint64_t       outageCount;
+  /** The number of requests while the pool was quiescent */
   uint64_t       suspendCount;
+  /** The objects managed by the pool */
   void          *entryData;
 };
 
@@ -123,104 +131,60 @@ static void grantObject(ObjectPool *pool, Waiter *waiter)
 /**********************************************************************/
 int acquireEntryFromObjectPool(ObjectPool *pool, Waiter *waiter)
 {
-  if (pool->adminState == ADMIN_STATE_CLOSED) {
-    return VDO_SHUTTING_DOWN;
-  }
-
-  if ((pool->adminState == ADMIN_STATE_SUSPENDED)
-      || isRingEmpty(&pool->available)) {
-    int result = enqueueWaiter(&pool->waiting, waiter);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
-
-    if (pool->adminState == ADMIN_STATE_SUSPENDED) {
-      pool->suspendCount++;
-    } else {
-      pool->outageCount++;
-    }
-
+  bool suspended = isQuiescent(&pool->adminState);
+  if (!suspended && !isRingEmpty(&pool->available)) {
+    grantObject(pool, waiter);
     return VDO_SUCCESS;
   }
 
-  grantObject(pool, waiter);
-  return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-static void checkNotBusy(ObjectPool *pool)
-{
-  if (pool->busyCount != 0) {
-    return;
+  if (suspended) {
+    pool->suspendCount++;
+  } else {
+    pool->outageCount++;
   }
 
-  VDOCompletion *completion = pool->completion;
-  if (completion != NULL) {
-    pool->completion = NULL;
-    if (pool->adminState == ADMIN_STATE_CLOSING) {
-      pool->adminState = ADMIN_STATE_CLOSED;
-    }
-    finishCompletion(completion, VDO_SUCCESS);
-  }
+  return enqueueWaiter(&pool->waiting, waiter);
 }
 
 /**********************************************************************/
 void returnEntryToObjectPool(ObjectPool *pool, RingNode *entry)
 {
-  if ((pool->adminState != ADMIN_STATE_SUSPENDED)
-      && hasWaiters(&pool->waiting)) {
+  ASSERT_LOG_ONLY(!isQuiescent(&pool->adminState),
+                  "Quiescent object pool has no outstanding objects");
+  if (hasWaiters(&pool->waiting)) {
     notifyNextWaiter(&pool->waiting, NULL, entry);
     return;
   }
 
-  pool->busyCount--;
   pushRingNode(&pool->available, entry);
-  if (pool->adminState != ADMIN_STATE_NORMAL_OPERATION) {
-    checkNotBusy(pool);
+  if (--pool->busyCount == 0) {
+    finishDraining(&pool->adminState);
   }
 }
 
 /**********************************************************************/
-void suspendObjectPool(ObjectPool *pool, VDOCompletion *completion)
+void drainObjectPool(ObjectPool     *pool,
+                     AdminStateCode  drainRequest,
+                     VDOCompletion  *completion)
 {
-  ASSERT_LOG_ONLY((pool->adminState == ADMIN_STATE_NORMAL_OPERATION),
-                  "object pool in normal operation");
-  pool->completion = completion;
-  pool->adminState = ADMIN_STATE_SUSPENDED;
-  checkNotBusy(pool);
+  if (startDraining(&pool->adminState, drainRequest, completion)
+      && (pool->busyCount == 0)) {
+    finishDraining(&pool->adminState);
+  }
 }
 
 /**********************************************************************/
 void resumeObjectPool(ObjectPool *pool)
 {
-  if (!(pool->adminState == ADMIN_STATE_SUSPENDED)) {
+  if (!resumeIfQuiescent(&pool->adminState)) {
     return;
   }
 
-  pool->adminState    = ADMIN_STATE_NORMAL_OPERATION;
   pool->outageCount  += pool->suspendCount;
   pool->suspendCount  = 0;
   while (hasWaiters(&pool->waiting) && !isRingEmpty(&pool->available)) {
     grantObject(pool, dequeueNextWaiter(&pool->waiting));
   }
-}
-
-/**********************************************************************/
-void openObjectPool(ObjectPool *pool)
-{
-  ASSERT_LOG_ONLY((pool->adminState == ADMIN_STATE_CLOSED),
-                  "object pool is closed");
-  pool->adminState = ADMIN_STATE_NORMAL_OPERATION;
-}
-
-/**********************************************************************/
-void closeObjectPool(ObjectPool *pool, VDOCompletion *completion)
-{
-  ASSERT_LOG_ONLY((pool->adminState == ADMIN_STATE_NORMAL_OPERATION),
-                  "object pool in normal operation");
-  pool->completion = completion;
-  pool->adminState = ADMIN_STATE_CLOSING;
-  checkNotBusy(pool);
 }
 
 /**********************************************************************/

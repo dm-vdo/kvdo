@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#6 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -24,8 +24,10 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "heap.h"
 #include "numUtils.h"
+#include "objectPool.h"
 #include "priorityTable.h"
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
@@ -655,7 +657,7 @@ static void doCloseAllocatorStep(VDOCompletion *completion)
     return;
 
   case CLOSE_ALLOCATOR_VIO_POOL:
-    closeObjectPool(allocator->vioPool, completion);
+    drainObjectPool(allocator->vioPool, ADMIN_STATE_SAVING, completion);
     return;
 
   default:

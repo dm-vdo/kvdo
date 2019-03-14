@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#4 $
  */
 
 #ifndef COMPLETION_H
@@ -208,6 +208,21 @@ static inline void finishCompletion(VDOCompletion *completion, int result)
   setCompletionResult(completion, result);
   completeCompletion(completion);
 }
+
+/**
+ * Complete a completion and NULL out the reference to it.
+ *
+ * @param completionPtr  A pointer to the completion to release
+ **/
+void releaseCompletion(VDOCompletion **completionPtr);
+
+/**
+ * Finish a completion and NULL out the reference to it.
+ *
+ * @param completionPtr  A pointer to the completion to release
+ * @param result         The result of the completion
+ **/
+void releaseCompletionWithResult(VDOCompletion **completionPtr, int result);
 
 /**
  * A callback to finish the parent of a completion.

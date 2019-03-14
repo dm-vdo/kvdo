@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#5 $
  */
 
 #include "blockMapTree.h"
@@ -209,16 +209,16 @@ bool copyValidPage(char                *buffer,
  **/
 static void checkForIOComplete(BlockMapTreeZone *zone)
 {
-  if ((zone->mapZone->adminState != ADMIN_STATE_CLOSING)
-      || (zone->activeLookups > 0) || hasWaiters(&zone->flushWaiters)) {
+  AdminStateCode code = zone->mapZone->adminState.state;
+  if ((zone->activeLookups > 0) || hasWaiters(&zone->flushWaiters)
+      || !finishDraining(&zone->mapZone->adminState)) {
     return;
   }
 
-  zone->mapZone->adminState = ADMIN_STATE_CLOSED;
   if (isReadOnly(zone->readOnlyNotifier)) {
     setCompletionResult(&zone->mapZone->completion, VDO_READ_ONLY);
   }
-  closeObjectPool(zone->vioPool, &zone->mapZone->completion);
+  drainObjectPool(zone->vioPool, code, &zone->mapZone->completion);
 }
 
 /**
@@ -587,7 +587,7 @@ void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period)
 /**********************************************************************/
 void closeZoneTrees(BlockMapTreeZone *zone)
 {
-  if (zone->mapZone->adminState == ADMIN_STATE_CLOSED) {
+  if (isQuiescent(&zone->mapZone->adminState)) {
     finishCompletion(&zone->mapZone->completion, VDO_SUCCESS);
     return;
   }
@@ -598,7 +598,10 @@ void closeZoneTrees(BlockMapTreeZone *zone)
     return;
   }
 
-  zone->mapZone->adminState = ADMIN_STATE_CLOSING;
+  if (!startDraining(&zone->mapZone->adminState, ADMIN_STATE_SAVING, NULL)) {
+    return;
+  }
+
   flushDirtyLists(zone->dirtyLists);
   checkForIOComplete(zone);
 }
@@ -606,7 +609,7 @@ void closeZoneTrees(BlockMapTreeZone *zone)
 /**********************************************************************/
 void suspendZoneTrees(BlockMapTreeZone *zone, VDOCompletion *completion)
 {
-  suspendObjectPool(zone->vioPool, completion);
+  drainObjectPool(zone->vioPool, ADMIN_STATE_SUSPENDING, completion);
 }
 
 /**********************************************************************/
@@ -1184,7 +1187,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
 {
   BlockMapTreeZone *zone = getBlockMapTreeZone(dataVIO);
   zone->activeLookups++;
-  if (isClosing(zone->mapZone->adminState)) {
+  if (isDraining(&zone->mapZone->adminState)) {
     finishLookup(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }

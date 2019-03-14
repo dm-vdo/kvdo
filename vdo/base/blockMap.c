@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#5 $
  */
 
 #include "blockMap.h"
@@ -552,8 +552,10 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
 static void reopenBlockMapZone(VDOCompletion *completion)
 {
   BlockMapZone *zone = (BlockMapZone *) completion;
-  zone->adminState = ADMIN_STATE_NORMAL_OPERATION;
-  openObjectPool(zone->treeZone.vioPool);
+  if (resumeIfQuiescent(&zone->adminState)) {
+    resumeObjectPool(zone->treeZone.vioPool);
+  }
+
   flushVDOPageCacheAsync(zone->pageCache, completion->parent);
 }
 
@@ -739,7 +741,7 @@ static void setupMappedBlock(DataVIO   *dataVIO,
                              VDOAction *action)
 {
   BlockMapZone *zone = getBlockMapForZone(dataVIO->logical.zone);
-  if (isClosing(zone->adminState)) {
+  if (isDraining(&zone->adminState)) {
     finishDataVIO(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }
