@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#42 $
  */
 
 #include "kernelLayer.h"
@@ -522,14 +522,14 @@ int makeKernelLayer(uint64_t               startingSector,
   // After this point, calling kobject_put on kobj will decrement its
   // reference count, and when the count goes to 0 the KernelLayer will
   // be freed.
-  kobject_init(&layer->kobj, &kernelLayerKobjType);
+  kobject_init(&layer->kobj, &kernel_layer_kobj_type);
   result = kobject_add(&layer->kobj, parentKobject, config->pool_name);
   if (result != 0) {
     *reason = "Cannot add sysfs node";
     kobject_put(&layer->kobj);
     return result;
   }
-  kobject_init(&layer->wqDirectory, &workQueueDirectoryKobjType);
+  kobject_init(&layer->wqDirectory, &work_queue_directory_kobj_type);
   result = kobject_add(&layer->wqDirectory, &layer->kobj, "work_queues");
   if (result != 0) {
     *reason = "Cannot add sysfs node";
@@ -992,8 +992,8 @@ int startKernelLayer(KernelLayer          *layer,
 
   static struct kobj_type statsDirectoryKobjType = {
     .release       = poolStatsRelease,
-    .sysfs_ops     = &poolStatsSysfsOps,
-    .default_attrs = poolStatsAttrs,
+    .sysfs_ops     = &pool_stats_sysfs_ops,
+    .default_attrs = pool_stats_attrs,
   };
   kobject_init(&layer->statsDirectory, &statsDirectoryKobjType);
   result = kobject_add(&layer->statsDirectory, &layer->kobj, "statistics");

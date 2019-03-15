@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#2 $
  */
 
 #include "poolSysfs.h"
@@ -27,204 +27,240 @@
 
 #include "dedupeIndex.h"
 
-typedef struct poolAttribute {
-  struct attribute attr;
-  ssize_t (*show)(KernelLayer *layer, char *buf);
-  ssize_t (*store)(KernelLayer *layer, const char *value, size_t count);
-} PoolAttribute;
-
-/**********************************************************************/
-static ssize_t vdoPoolAttrShow(struct kobject   *kobj,
-                               struct attribute *attr,
-                               char             *buf)
-{
-  PoolAttribute *poolAttr = container_of(attr, PoolAttribute, attr);
-  if (poolAttr->show == NULL) {
-    return -EINVAL;
-  }
-  KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
-  return poolAttr->show(layer, buf);
-}
-
-/**********************************************************************/
-static ssize_t vdoPoolAttrStore(struct kobject   *kobj,
-                                struct attribute *attr,
-                                const char       *buf,
-                                size_t            length)
-{
-  PoolAttribute *poolAttr = container_of(attr, PoolAttribute, attr);
-  if (poolAttr->store == NULL) {
-    return -EINVAL;
-  }
-  KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
-  return poolAttr->store(layer, buf, length);
-}
-
-static struct sysfs_ops vdoPoolSysfsOps = {
-  .show  = vdoPoolAttrShow,
-  .store = vdoPoolAttrStore,
+struct pool_attribute {
+	struct attribute attr;
+	ssize_t (*show)(KernelLayer *layer, char *buf);
+	ssize_t (*store)(KernelLayer *layer, const char *value, size_t count);
 };
 
 /**********************************************************************/
-static ssize_t poolCompressingShow(KernelLayer *layer, char *buf)
+static ssize_t vdo_pool_attr_show(struct kobject *kobj,
+				  struct attribute *attr,
+				  char *buf)
 {
-  return sprintf(buf, "%s\n", (getKVDOCompressing(&layer->kvdo) ? "1" : "0"));
+	struct pool_attribute *pool_attr = container_of(attr,
+							struct pool_attribute,
+							attr);
+	if (pool_attr->show == NULL) {
+		return -EINVAL;
+	}
+	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	return pool_attr->show(layer, buf);
 }
 
 /**********************************************************************/
-static ssize_t poolDiscardsActiveShow(KernelLayer *layer, char *buf)
+static ssize_t vdo_pool_attr_store(struct kobject *kobj,
+				   struct attribute *attr,
+				   const char *buf,
+				   size_t length)
 {
-  return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.active);
+	struct pool_attribute *pool_attr = container_of(attr,
+							struct pool_attribute,
+							attr);
+	if (pool_attr->store == NULL) {
+		return -EINVAL;
+	}
+	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	return pool_attr->store(layer, buf, length);
 }
 
-/**********************************************************************/
-static ssize_t poolDiscardsLimitShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.limit);
-}
-
-/**********************************************************************/
-static ssize_t poolDiscardsLimitStore(KernelLayer *layer,
-                                      const char  *buf,
-                                      size_t       length)
-{
-  unsigned int value;
-  if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
-    return -EINVAL;
-  }
-  layer->discardLimiter.limit = value;
-  return length;
-}
-
-/**********************************************************************/
-static ssize_t poolDiscardsMaximumShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.maximum);
-}
-
-/**********************************************************************/
-static ssize_t poolInstanceShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%u\n", layer->instance);
-}
-
-/**********************************************************************/
-static ssize_t poolRequestsActiveShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.active);
-}
-
-/**********************************************************************/
-static ssize_t poolRequestsLimitShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.limit);
-}
-
-/**********************************************************************/
-static ssize_t poolRequestsMaximumShow(KernelLayer *layer, char *buf)
-{
-  return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.maximum);
-}
-
-/**********************************************************************/
-static void vdoPoolRelease(struct kobject *kobj)
-{
-  KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
-  freeVDO(&layer->kvdo.vdo);
-  FREE(layer);
-}
-
-static PoolAttribute vdoPoolCompressingAttr = {
-  .attr  = { .name = "compressing", .mode = 0444, },
-  .show  = poolCompressingShow,
-};
-
-static PoolAttribute vdoPoolDiscardsActiveAttr = {
-  .attr  = { .name = "discards_active", .mode = 0444, },
-  .show  = poolDiscardsActiveShow,
-};
-
-static PoolAttribute vdoPoolDiscardsLimitAttr = {
-  .attr  = { .name = "discards_limit", .mode = 0644, },
-  .show  = poolDiscardsLimitShow,
-  .store = poolDiscardsLimitStore,
-};
-
-static PoolAttribute vdoPoolDiscardsMaximumAttr = {
-  .attr  = { .name = "discards_maximum", .mode = 0444, },
-  .show  = poolDiscardsMaximumShow,
-};
-
-static PoolAttribute vdoPoolInstanceAttr = {
-  .attr  = { .name = "instance", .mode = 0444, },
-  .show  = poolInstanceShow,
-};
-
-static PoolAttribute vdoPoolRequestsActiveAttr = {
-  .attr  = { .name = "requests_active", .mode = 0444, },
-  .show  = poolRequestsActiveShow,
-};
-
-static PoolAttribute vdoPoolRequestsLimitAttr = {
-  .attr  = { .name = "requests_limit", .mode = 0444, },
-  .show  = poolRequestsLimitShow,
-};
-
-static PoolAttribute vdoPoolRequestsMaximumAttr = {
-  .attr  = { .name = "requests_maximum", .mode = 0444, },
-  .show  = poolRequestsMaximumShow,
-};
-
-static struct attribute *poolAttrs[] = {
-  &vdoPoolCompressingAttr.attr,
-  &vdoPoolDiscardsActiveAttr.attr,
-  &vdoPoolDiscardsLimitAttr.attr,
-  &vdoPoolDiscardsMaximumAttr.attr,
-  &vdoPoolInstanceAttr.attr,
-  &vdoPoolRequestsActiveAttr.attr,
-  &vdoPoolRequestsLimitAttr.attr,
-  &vdoPoolRequestsMaximumAttr.attr,
-  NULL,
-};
-
-struct kobj_type kernelLayerKobjType = {
-  .release       = vdoPoolRelease,
-  .sysfs_ops     = &vdoPoolSysfsOps,
-  .default_attrs = poolAttrs,
+static struct sysfs_ops vdo_pool_sysfs_ops = {
+	.show = vdo_pool_attr_show,
+	.store = vdo_pool_attr_store,
 };
 
 /**********************************************************************/
-static void workQueueDirectoryRelease(struct kobject *kobj)
+static ssize_t pool_compressing_show(KernelLayer *layer, char *buf)
 {
-  /*
-   * The workQueueDirectory holds an implicit reference to its parent,
-   * the kernelLayer object (->kobj), so even if there are some
-   * external references held to the workQueueDirectory when work
-   * queue shutdown calls kobject_put on the kernelLayer object, the
-   * kernelLayer object won't actually be released and won't free the
-   * KernelLayer storage until the workQueueDirectory object is
-   * released first.
-   *
-   * So, we don't need to do any additional explicit management here.
-   *
-   * (But we aren't allowed to use a NULL function pointer to indicate
-   * a no-op.)
-   */
+	return sprintf(buf, "%s\n",
+		       (getKVDOCompressing(&layer->kvdo) ? "1" : "0"));
 }
 
 /**********************************************************************/
-static struct attribute *noAttrs[] = {
-  NULL,
+static ssize_t pool_discards_active_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.active);
+}
+
+/**********************************************************************/
+static ssize_t pool_discards_limit_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.limit);
+}
+
+/**********************************************************************/
+static ssize_t pool_discards_limit_store(KernelLayer *layer, const char *buf,
+					 size_t length)
+{
+	unsigned int value;
+	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
+		return -EINVAL;
+	}
+	layer->discardLimiter.limit = value;
+	return length;
+}
+
+/**********************************************************************/
+static ssize_t pool_discards_maximum_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.maximum);
+}
+
+/**********************************************************************/
+static ssize_t pool_instance_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%u\n", layer->instance);
+}
+
+/**********************************************************************/
+static ssize_t pool_requests_active_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.active);
+}
+
+/**********************************************************************/
+static ssize_t pool_requests_limit_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.limit);
+}
+
+/**********************************************************************/
+static ssize_t pool_requests_maximum_show(KernelLayer *layer, char *buf)
+{
+	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.maximum);
+}
+
+/**********************************************************************/
+static void vdo_pool_release(struct kobject *kobj)
+{
+	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	freeVDO(&layer->kvdo.vdo);
+	FREE(layer);
+}
+
+static struct pool_attribute vdo_pool_compressing_attr = {
+	.attr =
+		{
+			.name = "compressing",
+			.mode = 0444,
+		},
+	.show = pool_compressing_show,
 };
 
-static struct sysfs_ops noSysfsOps = {
-  // These should never be reachable since there are no attributes.
-  .show  = NULL,
-  .store = NULL,
+static struct pool_attribute vdo_pool_discards_active_attr = {
+	.attr =
+		{
+			.name = "discards_active",
+			.mode = 0444,
+		},
+	.show = pool_discards_active_show,
 };
 
-struct kobj_type workQueueDirectoryKobjType = {
-  .release       = workQueueDirectoryRelease,
-  .sysfs_ops     = &noSysfsOps,
-  .default_attrs = noAttrs,
+static struct pool_attribute vdo_pool_discards_limit_attr = {
+	.attr =
+		{
+			.name = "discards_limit",
+			.mode = 0644,
+		},
+	.show = pool_discards_limit_show,
+	.store = pool_discards_limit_store,
+};
+
+static struct pool_attribute vdo_pool_discards_maximum_attr = {
+	.attr =
+		{
+			.name = "discards_maximum",
+			.mode = 0444,
+		},
+	.show = pool_discards_maximum_show,
+};
+
+static struct pool_attribute vdo_pool_instance_attr = {
+	.attr =
+		{
+			.name = "instance",
+			.mode = 0444,
+		},
+	.show = pool_instance_show,
+};
+
+static struct pool_attribute vdo_pool_requests_active_attr = {
+	.attr =
+		{
+			.name = "requests_active",
+			.mode = 0444,
+		},
+	.show = pool_requests_active_show,
+};
+
+static struct pool_attribute vdo_pool_requests_limit_attr = {
+	.attr =
+		{
+			.name = "requests_limit",
+			.mode = 0444,
+		},
+	.show = pool_requests_limit_show,
+};
+
+static struct pool_attribute vdo_pool_requests_maximum_attr = {
+	.attr =
+		{
+			.name = "requests_maximum",
+			.mode = 0444,
+		},
+	.show = pool_requests_maximum_show,
+};
+
+static struct attribute *pool_attrs[] = {
+	&vdo_pool_compressing_attr.attr,
+	&vdo_pool_discards_active_attr.attr,
+	&vdo_pool_discards_limit_attr.attr,
+	&vdo_pool_discards_maximum_attr.attr,
+	&vdo_pool_instance_attr.attr,
+	&vdo_pool_requests_active_attr.attr,
+	&vdo_pool_requests_limit_attr.attr,
+	&vdo_pool_requests_maximum_attr.attr,
+	NULL,
+};
+
+struct kobj_type kernel_layer_kobj_type = {
+	.release = vdo_pool_release,
+	.sysfs_ops = &vdo_pool_sysfs_ops,
+	.default_attrs = pool_attrs,
+};
+
+/**********************************************************************/
+static void work_queue_directory_release(struct kobject *kobj)
+{
+	/*
+	 * The work_queue_directory holds an implicit reference to its parent,
+	 * the kernelLayer object (->kobj), so even if there are some
+	 * external references held to the work_queue_directory when work
+	 * queue shutdown calls kobject_put on the kernelLayer object, the
+	 * kernelLayer object won't actually be released and won't free the
+	 * KernelLayer storage until the work_queue_directory object is
+	 * released first.
+	 *
+	 * So, we don't need to do any additional explicit management here.
+	 *
+	 * (But we aren't allowed to use a NULL function pointer to indicate
+	 * a no-op.)
+	 */
+}
+
+/**********************************************************************/
+static struct attribute *no_attrs[] = {
+	NULL,
+};
+
+static struct sysfs_ops no_sysfs_ops = {
+	// These should never be reachable since there are no attributes.
+	.show = NULL,
+	.store = NULL,
+};
+
+struct kobj_type work_queue_directory_kobj_type = {
+	.release = work_queue_directory_release,
+	.sysfs_ops = &no_sysfs_ops,
+	.default_attrs = no_attrs,
 };
