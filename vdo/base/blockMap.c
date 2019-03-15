@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#6 $
  */
 
 #include "blockMap.h"
@@ -77,11 +77,10 @@ typedef struct {
  **/
 static int validatePageOnRead(void                *buffer,
                               PhysicalBlockNumber  pbn,
-                              void                *clientContext,
+                              BlockMapZone        *zone,
                               void                *pageContext)
 {
   BlockMapPage        *page    = buffer;
-  BlockMapZone        *zone    = clientContext;
   BlockMapPageContext *context = pageContext;
   Nonce                nonce   = zone->blockMap->nonce;
 
@@ -106,12 +105,11 @@ static int validatePageOnRead(void                *buffer,
  *
  * Implements VDOPageWriteFunction.
  **/
-static bool handlePageWrite(void *rawPage,
-                            void *clientContext,
-                            void *pageContext)
+static bool handlePageWrite(void         *rawPage,
+                            BlockMapZone *zone,
+                            void         *pageContext)
 {
   BlockMapPage        *page    = rawPage;
-  BlockMapZone        *zone    = clientContext;
   BlockMapPageContext *context = pageContext;
 
   if (markBlockMapPageInitialized(page, true)) {
@@ -280,21 +278,15 @@ static int initializeBlockMapZone(BlockMapZone     *zone,
 {
   STATIC_ASSERT(offsetof(BlockMapZone, completion) == 0);
   initializeCompletion(&zone->completion, BLOCK_MAP_ZONE_COMPLETION, layer);
-  int result = initializeTreeZone(zone, layer, readOnlyNotifier, maximumAge);
+  zone->readOnlyNotifier = readOnlyNotifier;
+  int result = initializeTreeZone(zone, layer, maximumAge);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return makeVDOPageCache(zone->threadID,
-                          layer,
-                          readOnlyNotifier,
-                          cacheSize,
-                          validatePageOnRead,
-                          handlePageWrite,
-                          zone,
-                          sizeof(BlockMapPageContext),
-                          maximumAge,
-                          &zone->pageCache);
+  return makeVDOPageCache(layer, cacheSize, validatePageOnRead,
+                          handlePageWrite, sizeof(BlockMapPageContext),
+                          maximumAge, zone, &zone->pageCache);
 }
 
 /**********************************************************************/

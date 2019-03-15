@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#3 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -32,7 +32,6 @@ typedef struct treePage TreePage;
  *
  * @param zone              The BlockMapZone of the tree zone to intialize
  * @param layer             The physical layer
- * @param readOnlyNotifier  The ReadOnlyNotifier for the VDO
  * @param maximumAge        The number of journal blocks before a dirtied page
  *                          is considered old and may be written out
  *
@@ -40,7 +39,6 @@ typedef struct treePage TreePage;
  **/
 int initializeTreeZone(BlockMapZone     *zone,
                        PhysicalLayer    *layer,
-                       ReadOnlyNotifier *readOnlyNotifier,
                        BlockCount        maximumAge)
   __attribute__((warn_unused_result));
 

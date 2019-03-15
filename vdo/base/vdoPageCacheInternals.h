@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -28,6 +28,7 @@
 # include <stdint.h>
 #endif
 
+#include "blockMapInternals.h"
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
@@ -51,18 +52,12 @@ typedef RingNode PageInfoNode;
 struct vdoPageCache {
   /** the physical layer to page to */
   PhysicalLayer             *layer;
-  /** the ID of the thread for this cache's physical zone */
-  ThreadID                   threadID;
-  /** the read-only mode notifier */
-  ReadOnlyNotifier          *readOnlyNotifier;
   /** number of pages in cache */
   PageCount                  pageCount;
   /** function to call on page read */
   VDOPageReadFunction       *readHook;
   /** function to call on page write */
   VDOPageWriteFunction      *writeHook;
-  /** the cache-wide client context passed to the read and write hooks */
-  void                      *context;
   /** number of pages to write in the current batch */
   PageCount                  pagesInBatch;
   /** Whether the VDO is doing a read-only rebuild */
@@ -104,6 +99,8 @@ struct vdoPageCache {
   uint32_t                   pressureReport;
   /** completion to notify when all I/O has completed */
   VDOCompletion             *flushCompletion;
+  /** the block map zone to which this cache belongs */
+  BlockMapZone              *zone;
 };
 
 /**

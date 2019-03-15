@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#5 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -48,8 +48,6 @@ struct blockMapTreeZone {
   IntMap              *loadingPages;
   /** The pool of VIOs for tree I/O */
   ObjectPool          *vioPool;
-  /** The ReadOnlyNotifier of the VDO */
-  ReadOnlyNotifier    *readOnlyNotifier;
   /** The tree page which has issued or will be issuing a flush */
   TreePage            *flusher;
   /** The queue of pages waiting for a flush so they can be written out */
@@ -74,6 +72,8 @@ struct blockMapZone {
   ThreadID          threadID;
   /** The BlockMap which owns this BlockMapZone */
   BlockMap         *blockMap;
+  /** The ReadOnlyNotifier of the VDO */
+  ReadOnlyNotifier *readOnlyNotifier;
   /** The page cache for this zone */
   VDOPageCache     *pageCache;
   /** The per-zone portion of the tree for this zone */

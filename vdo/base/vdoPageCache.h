@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#3 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -102,17 +102,17 @@ typedef struct {
  *
  * <p>If specified, this function is called when a page is fetched from disk.
  *
- * @param rawPage        The raw memory of the freshly-fetched page
- * @param pbn            The absolute physical block number of the page
- * @param clientContext  A pointer to client-specific data for the entire cache
- * @param pageContext    A pointer to client-specific data for the new page
+ * @param rawPage      The raw memory of the freshly-fetched page
+ * @param pbn          The absolute physical block number of the page
+ * @param zone         The block map zone to which the cache belongs
+ * @param pageContext  A pointer to client-specific data for the new page
  *
  * @return VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
  *         formatted
  **/
 typedef int VDOPageReadFunction(void                *rawPage,
                                 PhysicalBlockNumber  pbn,
-                                void                *clientContext,
+                                BlockMapZone        *zone,
                                 void                *pageContext);
 
 /**
@@ -120,47 +120,42 @@ typedef int VDOPageReadFunction(void                *rawPage,
  *
  * <p>If specified, this function is called when a page is written to disk.
  *
- * @param rawPage        The raw memory of the freshly-written page
- * @param clientContext  A pointer to client-specific data for the entire cache
- * @param pageContext    A pointer to client-specific data for the new page
+ * @param rawPage      The raw memory of the freshly-written page
+ * @param zone         The block map zone to which the cache belongs
+ * @param pageContext  A pointer to client-specific data for the new page
  *
  * @return whether the page needs to be rewritten
  **/
-typedef bool VDOPageWriteFunction(void *rawPage,
-                                  void *clientContext,
-                                  void *pageContext);
+typedef bool VDOPageWriteFunction(void         *rawPage,
+                                  BlockMapZone *zone,
+                                  void         *pageContext);
 
 /**
  * Construct a PageCache.
  *
- * @param [in]  threadID          The thread ID for this cache's zone
  * @param [in]  layer             The physical layer to read and write
- * @param [in]  readOnlyNotifier  The read-only mode context
  * @param [in]  pageCount         The number of cache pages to hold
  * @param [in]  readHook          The function to be called when a page is read
  *                                into the cache
  * @param [in]  writeHook         The function to be called after a page is
  *                                written from the cache
- * @param [in]  clientContext     The cache-wide context passed to the read and
- *                                write hooks
  * @param [in]  pageContextSize   The size of the per-page context that will be
  *                                passed to the read and write hooks
  * @param [in]  maximumAge        The number of journal blocks before a dirtied
  *                                page is considered old and must be written
  *                                out
+ * @param [in]  zone              The block map zone which owns this cache
  * @param [out] cachePtr          A pointer to hold the cache
  *
  * @return a success or error code
  **/
-int makeVDOPageCache(ThreadID               threadID,
-                     PhysicalLayer         *layer,
-                     ReadOnlyNotifier      *readOnlyNotifier,
+int makeVDOPageCache(PhysicalLayer         *layer,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,
-                     void                  *clientContext,
                      size_t                 pageContextSize,
                      BlockCount             maximumAge,
+                     BlockMapZone          *zone,
                      VDOPageCache         **cachePtr)
   __attribute__((warn_unused_result));
 
