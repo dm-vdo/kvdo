@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/readOnlyVolume.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/readOnlyVolume.c#3 $
  */
 
 #include "readOnlyVolume.h"
@@ -27,18 +27,10 @@
 /**********************************************************************/
 int makeReadOnlyVolume(const Configuration  *config,
                        IndexLayout          *layout,
-                       unsigned int          indexId,
                        Volume              **newVolume)
 {
-  return allocateVolume(config, layout, indexId,
-                        VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
+  return allocateVolume(config, layout, VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
                         1, READ_ONLY_VOLUME, newVolume);
-}
-
-/**********************************************************************/
-void freeReadOnlyVolume(Volume *volume)
-{
-  releaseVolume(volume);
 }
 
 /**********************************************************************/

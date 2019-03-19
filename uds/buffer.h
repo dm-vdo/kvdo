@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/buffer.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/buffer.h#3 $
  */
 
 #ifndef BUFFER_H
@@ -82,6 +82,12 @@ int growBuffer(Buffer *buffer, size_t length)
  **/
 bool ensureAvailableSpace(Buffer *buffer, size_t bytes)
   __attribute__((warn_unused_result));
+
+/**
+ * Clear the buffer. The start position is set to zero and the end position
+ * is set to the buffer length.
+ **/
+void clearBuffer(Buffer *buffer);  
 
 /**
  * Eliminate buffer contents which have been extracted. This function copies
@@ -288,6 +294,22 @@ int putBytes(Buffer *buffer, size_t length, const void *source)
   __attribute__((warn_unused_result));
 
 /**
+ * Copy the contents of a source buffer into the target buffer. Advances the
+ * start of the source buffer and the end of the target buffer past the copied
+ * data.
+ *
+ * @param target The buffer to receive the copy of the data
+ * @param source The buffer containing the data to copy
+ * @param length The length of the data to copy
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if the target buffer does not have
+ *         length bytes available or if the source buffer does not have length
+ *         bytes of content
+ **/
+int putBuffer(Buffer *target, Buffer *source, size_t length)
+  __attribute__((warn_unused_result));
+
+/**
  * Zero bytes in a buffer starting at the start pointer, and advance the
  * end of the buffer past the zeros.
  *
@@ -427,6 +449,153 @@ int getUInt64BEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
  *         in the buffer
  **/
 int putUInt64BEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get a 2 byte, little endian encoded integer from a buffer and
+ * advance the start pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     A pointer to hold the integer
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
+ *         bytes available
+ **/
+int getUInt16LEFromBuffer(Buffer *buffer, uint16_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Put a 2 byte, little endian encoded integer into a buffer and advance the
+ * end pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     The integer to put
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 2
+ *         bytes available
+ **/
+int putUInt16LEIntoBuffer(Buffer *buffer, uint16_t ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get a series of 2 byte, little endian encoded integer from a buffer
+ * and advance the start pointer past them.
+ *
+ * @param buffer The buffer
+ * @param count  The number of integers to get
+ * @param ui     A pointer to hold the integers
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
+ *         in the buffer
+ **/
+int getUInt16LEsFromBuffer(Buffer *buffer, size_t count, uint16_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Put a series of 2 byte, little endian encoded integers into a
+ * buffer and advance the end pointer past them.
+ *
+ * @param buffer The buffer
+ * @param count  The number of integers to put
+ * @param ui     A pointer to the integers
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
+ *         in the buffer
+ **/
+int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get a 4 byte, little endian encoded integer from a buffer and advance the
+ * start pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     A pointer to hold the integer
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
+ *         bytes available
+ **/
+int getUInt32LEFromBuffer(Buffer *buffer, uint32_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Put a 4 byte, little endian encoded integer into a buffer and advance the
+ * end pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     The integer to put
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
+ *         bytes available
+ **/
+int putUInt32LEIntoBuffer(Buffer *buffer, uint32_t ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get an 8 byte, little endian encoded, unsigned integer from a
+ * buffer and advance the start pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     A pointer to hold the integer
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
+ *         bytes available
+ **/
+int getUInt64LEFromBuffer(Buffer *buffer, uint64_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Put an 8 byte, little endian encoded signed integer into a buffer
+ * and advance the end pointer past it.
+ *
+ * @param buffer The buffer
+ * @param i      The integer to put
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
+ *         bytes available
+ **/
+int putInt64LEIntoBuffer(Buffer *buffer, int64_t i)
+  __attribute__((warn_unused_result));
+
+ /**
+ * Put an 8 byte, little endian encoded integer into a buffer and advance the
+ * end pointer past it.
+ *
+ * @param buffer The buffer
+ * @param ui     The integer to put
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 8
+ *         bytes available
+ **/
+int putUInt64LEIntoBuffer(Buffer *buffer, uint64_t ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get a series of 8 byte, little endian encoded integer from a buffer
+ * and advance the start pointer past them.
+ *
+ * @param buffer The buffer
+ * @param count  The number of integers to get
+ * @param ui     A pointer to hold the integers
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough data
+ *         in the buffer
+ **/
+int getUInt64LEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Put a series of 8 byte, little endian encoded integers into a buffer and
+ * advance the end pointer past them.
+ *
+ * @param buffer The buffer
+ * @param count  The number of integers to put
+ * @param ui     A pointer to the integers
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there is not enough space
+ *         in the buffer
+ **/
+int putUInt64LEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
   __attribute__((warn_unused_result));
 
 #endif /* BUFFER_H */

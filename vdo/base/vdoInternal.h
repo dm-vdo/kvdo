@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/vdoInternal.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoInternal.h#5 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,8 +24,7 @@
 
 #include "vdo.h"
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "header.h"
 #include "packer.h"
 #include "readOnlyModeContextInternals.h"

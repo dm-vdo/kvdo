@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/regionIndexState.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/regionIndexState.h#2 $
  */
 
 #ifndef REGION_INDEX_STATE_H
@@ -38,14 +38,13 @@ typedef struct regionIndexState {
  * Allocate a region index state structure.
  *
  * @param sfl           A single file layout.
- * @param indexId       The sub-index id for this index.
+ * @param zoneCount     The number of zones
  * @param length        Number of components to hold.
  * @param statePtr      The pointer to hold the new index state.
  *
  * @return UDS_SUCCESS or an error code.
  **/
 int makeRegionIndexState(SingleFileLayout  *sfl,
-                         unsigned int       indexId,
                          unsigned int       zoneCount,
                          unsigned int       length,
                          IndexState       **statePtr)

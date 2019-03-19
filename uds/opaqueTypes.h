@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/opaqueTypes.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/opaqueTypes.h#1 $
  */
 
 #ifndef OPAQUE_TYPES_H
@@ -34,7 +34,6 @@ typedef struct indexRouterStatCounters IndexRouterStatCounters;
 typedef struct indexSession            IndexSession;
 typedef struct serverConnection        ServerConnection;
 typedef struct request                 Request;
-typedef struct requestLimit            RequestLimit;
 typedef struct requestQueue            RequestQueue;
 
 #endif /* OPAQUE_TYPES_H */

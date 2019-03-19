@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/regionIndexState.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/regionIndexState.c#3 $
  */
 
 #include "regionIndexStateInternal.h"
@@ -32,7 +32,6 @@ static const IndexStateOps *getRegionIndexStateOps(void);
 
 /*****************************************************************************/
 int makeRegionIndexState(SingleFileLayout  *sfl,
-                         unsigned int       indexId,
                          unsigned int       zoneCount,
                          unsigned int       length,
                          IndexState       **statePtr)
@@ -43,7 +42,7 @@ int makeRegionIndexState(SingleFileLayout  *sfl,
     return result;
   }
 
-  result = initIndexState(&ris->state, indexId, zoneCount, length,
+  result = initIndexState(&ris->state, 0, zoneCount, length,
                           getRegionIndexStateOps());
   if (result != UDS_SUCCESS) {
     FREE(ris);
@@ -98,9 +97,12 @@ static int ris_addComponent(IndexState               *state,
 static int ris_loadState(IndexState *state, bool *replayPtr)
 {
   RegionIndexState *ris = asRegionIndexState(state);
+  int result = ASSERT((state->id == 0), "Cannot have multiple subindices");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
-  int result = findLatestIndexSaveSlot(ris->sfl, state->id, &ris->loadZones,
-                                       &ris->loadSlot);
+  result = findLatestIndexSaveSlot(ris->sfl, &ris->loadZones, &ris->loadSlot);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -115,15 +117,16 @@ static int ris_loadState(IndexState *state, bool *replayPtr)
 static int ris_prepareSave(IndexState *state, IndexSaveType saveType)
 {
   RegionIndexState *ris = asRegionIndexState(state);
-
-  int result = setupSingleFileIndexSaveSlot(ris->sfl, state->id,
-                                            state->zoneCount, saveType,
-                                            &ris->saveSlot);
+  int result = ASSERT((state->id == 0), "Cannot have multiple subindices");
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "%s: cannot prepare index %s",
-                                   indexSaveTypeName(saveType),
-                                   __func__);
+    return result;
+  }
+
+  result = setupSingleFileIndexSaveSlot(ris->sfl, state->zoneCount, saveType,
+                                        &ris->saveSlot);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "%s: cannot prepare index %s",
+                                   indexSaveTypeName(saveType), __func__);
   }
 
   return UDS_SUCCESS;
@@ -133,11 +136,14 @@ static int ris_prepareSave(IndexState *state, IndexSaveType saveType)
 static int ris_commitSave(IndexState *state)
 {
   RegionIndexState *ris = asRegionIndexState(state);
-
-  int result = commitSingleFileIndexSave(ris->sfl, state->id, ris->saveSlot);
+  int result = ASSERT((state->id == 0), "Cannot have multiple subindices");
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "%s: cannot commit index save",
+    return result;
+  }
+
+  result = commitSingleFileIndexSave(ris->sfl, ris->saveSlot);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "%s: cannot commit index save",
                                    __func__);
   }
 
@@ -149,12 +155,15 @@ static int ris_commitSave(IndexState *state)
 static int ris_cleanupSave(IndexState *state)
 {
   RegionIndexState *ris = asRegionIndexState(state);
+  int result = ASSERT((state->id == 0), "Cannot have multiple subindices");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
-  int result = cancelSingleFileIndexSave(ris->sfl, state->id, ris->saveSlot);
+  result = cancelSingleFileIndexSave(ris->sfl, ris->saveSlot);
   ris->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "%s: cannot cancel index save",
+    return logErrorWithStringError(result, "%s: cannot cancel index save",
                                    __func__);
   }
   return UDS_SUCCESS;
@@ -173,13 +182,15 @@ static int ris_writeSingleComponent(IndexState     *state
 static int ris_discardSaves(IndexState *state, DiscardType dt)
 {
   RegionIndexState *ris = asRegionIndexState(state);
+  int result = ASSERT((state->id == 0), "Cannot have multiple subindices");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
-  int result = discardSingleFileIndexSaves(ris->sfl, state->id,
-                                           dt == DT_DISCARD_ALL);
+  result = discardSingleFileIndexSaves(ris->sfl, dt == DT_DISCARD_ALL);
   ris->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "%s: cannot destroy %s", __func__,
+    return logErrorWithStringError(result, "%s: cannot destroy %s", __func__,
                                    ((dt == DT_DISCARD_ALL)
                                     ? "all index saves"
                                     : "latest index save"));
@@ -229,14 +240,17 @@ int openRegionStateRegion(RegionIndexState  *ris,
                                    __func__);
   }
 
-  int result = ASSERT((slot < ris->sfl->super.maxSaves),
-                      "%s not started", operation);
+  int result = ASSERT((ris->state.id == 0), "Cannot have multiple subindices");
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT((slot < ris->sfl->super.maxSaves), "%s not started",
+                  operation);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  SubIndexLayout  *sil = &ris->sfl->indexes[ris->state.id];
-  IndexSaveLayout *isl = &sil->saves[slot];
+  IndexSaveLayout *isl = &ris->sfl->index.saves[slot];
 
   LayoutRegion *lr = NULL;
   switch (kind) {

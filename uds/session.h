@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/session.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/session.h#2 $
  */
 
 /**
@@ -106,26 +106,28 @@ void waitForIdleSession(Session *session);
 
 /**
  * Initializes a session, assigning it an ID and adding it to a session group.
- * Always succeeds.  NOTE: the caller holds a reference to the session upon
- * return.
+ * NOTE: the caller holds a reference to the session upon a successful return.
  *
- * @param group     Session group in which to create the session
- * @param session   Caller-allocated session structure to initialize
- * @param contents  Caller contents to associate with the session (may be a
- *                  structure that contains the session structure itself)
+ * @param group      Session group in which to create the session
+ * @param session    Caller-allocated session structure to initialize
+ * @param contents   Caller contents to associate with the session (may be a
+ *                   structure that contains the session structure itself)
+ * @param sessionID  Session ID for the session initialized is stored here
  *
- * @return          Session ID for the session initialized
+ * @return UDS_SUCCESS or an error code
  **/
-SessionID initializeSession(SessionGroup *group, Session *session,
-                            SessionContents contents)
+int initializeSession(SessionGroup    *group,
+                      Session         *session,
+                      SessionContents  contents,
+                      SessionID       *sessionID)
   __attribute__((warn_unused_result));
 
 /**
  * Acquire a reference to a session group.
  *
- * @param group           the session group to reference
+ * @param group  the session group to reference
  *
- * @return                UDS_SUCCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int acquireSessionGroup(SessionGroup *group)
   __attribute__((warn_unused_result));

@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/sysfs.c#9 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/sysfs.c#2 $
  */
 
 #include "sysfs.h"
 
 #include <linux/kobject.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -96,12 +97,12 @@ static struct kobj_type emptyObjectType = {
   .default_attrs = emptyAttrs,
 };
 
+
 /**********************************************************************/
 // This is the the code for the /sys/<module_name>/parameter directory.
 //
 // <dir>/log_level                 UDS_LOG_LEVEL
 // <dir>/parallel_factor           UDS_PARALLEL_FACTOR
-// <dir>/time_request_turnaround   UDS_TIME_REQUEST_TURNAROUND
 // <dir>/volume_read_threads       UDS_VOLUME_READ_THREADS
 //
 /**********************************************************************/
@@ -198,11 +199,6 @@ static ParameterAttribute parallelFactorAttr = {
   .name = "UDS_PARALLEL_FACTOR",
 };
 
-static ParameterAttribute timeRequestTurnaroundAttr = {
-  .attr = { .name = "time_request_turnaround", .mode = 0600 },
-  .name = "UDS_TIME_REQUEST_TURNAROUND",
-};
-
 static ParameterAttribute volumeReadThreadsAttr = {
   .attr = { .name = "volume_read_threads", .mode = 0600 },
   .name = "UDS_VOLUME_READ_THREADS",
@@ -211,7 +207,6 @@ static ParameterAttribute volumeReadThreadsAttr = {
 static struct attribute *parameterAttrs[] = {
   &logLevelAttr.attr,
   &parallelFactorAttr.attr,
-  &timeRequestTurnaroundAttr.attr,
   &volumeReadThreadsAttr.attr,
   NULL,
 };
@@ -232,15 +227,15 @@ int initSysfs(void)
 {
   memset(&objectRoot, 0, sizeof(objectRoot));
   kobject_init(&objectRoot.kobj, &emptyObjectType);
-  kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
   int result = kobject_add(&objectRoot.kobj, NULL, THIS_MODULE->name);
   if (result == 0) {
     objectRoot.flag = true;
+    kobject_init(&objectRoot.parameterKobj, &parameterObjectType);
     result = kobject_add(&objectRoot.parameterKobj, &objectRoot.kobj,
                          "parameter");
-  }
-  if (result == 0) {
-    objectRoot.parameterFlag = true;
+    if (result == 0) {
+      objectRoot.parameterFlag = true;
+    }
   }
   if (result != 0) {
     putSysfs();

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.h#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.h#9 $
  */
 
 #ifndef VOLUME_H
@@ -111,7 +111,6 @@ typedef struct volume {
  *
  * @param config           The configuration to use.
  * @param layout           The index layout
- * @param indexId          The index ordinal number
  * @param readQueueMaxSize The maximum size of the read queue.
  * @param zoneCount        The number of zones to use.
  * @param newVolume        A pointer to hold a pointer to the new volume.
@@ -120,7 +119,6 @@ typedef struct volume {
  **/
 int makeVolume(const Configuration  *config,
                IndexLayout          *layout,
-               unsigned int          indexId,
                unsigned int          readQueueMaxSize,
                unsigned int          zoneCount,
                Volume              **newVolume)
@@ -134,16 +132,6 @@ int makeVolume(const Configuration  *config,
 void freeVolume(Volume *volume);
 
 /**
- * Close a volume. This does not free memory.
- *
- * @param volume The volume to close.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int closeVolume(Volume *volume)
-  __attribute__((warn_unused_result));
-
-/**
  * Enqueue a page read.
  *
  * @param volume       the volume
@@ -154,23 +142,6 @@ int closeVolume(Volume *volume)
  **/
 int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
   __attribute__((warn_unused_result));
-
-/**
- * Create the reader thread pool
- *
- * @param volume                The volume
- * @param numReaderThreads      How many threads to create
- *
- * @return UDS_SUCCESS or an error code
- **/
-int createReaderThreads(Volume *volume, unsigned int numReaderThreads);
-
-/**
- * Destroy the reader thread pool
- *
- * @param volume The volume
- **/
-void destroyReaderThreads(Volume *volume);
 
 /**
  * Format a new, empty volume on stable storage.
@@ -207,10 +178,10 @@ int formatVolume(IORegion *region, const Geometry *geometry)
  *              identical and maintain the invariant that
  *              pcn == vcn % chaptersPerVolume.
  **/
-int findVolumeChapterBoundaries(const Volume *volume,
-                                uint64_t     *lowestVCN,
-                                uint64_t     *highestVCN,
-                                bool         *isEmpty)
+int findVolumeChapterBoundaries(Volume   *volume,
+                                uint64_t *lowestVCN,
+                                uint64_t *highestVCN,
+                                bool     *isEmpty)
   __attribute__((warn_unused_result));
 
 /**
@@ -350,7 +321,7 @@ int writeChapter(Volume                 *volume,
  * @param [out] pageData        an array to receive the raw index page data
  * @param [out] indexPages      an array of ChapterIndexPages to initialize
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int readChapterIndexFromVolume(const Volume     *volume,
                                uint64_t          virtualChapter,
@@ -377,7 +348,7 @@ int readChapterIndexFromVolume(const Volume     *volume,
  * @param probeType    The type of cache access being done
  * @param entryPtr     A pointer to hold the retrieved cached entry
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getPageLocked(Volume          *volume,
                   Request         *request,
@@ -409,7 +380,7 @@ int getPageLocked(Volume          *volume,
  * @param probeType    The type of cache access being done
  * @param entryPtr     A pointer to hold the retrieved cached entry
  *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
 int getPageProtected(Volume          *volume,
                      Request         *request,
@@ -434,22 +405,22 @@ int getPageProtected(Volume          *volume,
  * multi-threading to access the volume. These include rebuild, volume
  * explorer, and certain unit tests.
  *
+ * @param volume        The volume containing the page
+ * @param chapter       The number of the chapter containing the page
+ * @param pageNumber    The number of the page
+ * @param probeType     The type of cache access being done
+ * @param dataPtr       Pointer to hold the retrieved page, NULL if not wanted
+ * @param indexPagePtr  Pointer to hold the retrieved chapter index page, or
+ *                      NULL if not wanted
  *
- * @param volume      The volume containing the page
- * @param request     The request originating the search
- * @param chapter     The number of the chapter containing the page
- * @param pageNumber  The number of the page
- * @param probeType   The type of cache access being done
- * @param pagePtr     A pointer to hold the retrieved page
- *
- * @return UDS_SUCESS or an error code
+ * @return UDS_SUCCESS or an error code
  **/
-int getPage(Volume          *volume,
-            Request         *request,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **pagePtr)
+int getPage(Volume            *volume,
+            unsigned int       chapter,
+            unsigned int       pageNumber,
+            CacheProbeType     probeType,
+            byte             **dataPtr,
+            ChapterIndexPage **indexPagePtr)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/
@@ -467,16 +438,14 @@ off_t offsetForChapter(const Geometry *geometry,
 void getCacheCounters(Volume *volume, CacheCounters *counters);
 
 /**********************************************************************/
-int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
-                                    unsigned int    maxBadChapters,
-                                    uint64_t       *lowestVCN,
-                                    uint64_t       *highestVCN,
-                                    int (*probeFunc)(const void   *aux,
+int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
+                                    unsigned int  maxBadChapters,
+                                    uint64_t     *lowestVCN,
+                                    uint64_t     *highestVCN,
+                                    int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
-                                                     uint64_t     *vcn,
-                                                     byte         *buffer),
-                                    const void     *aux,
-                                    byte           *buffer)
+                                                     uint64_t     *vcn),
+                                    void *aux)
   __attribute__((warn_unused_result));
 
 #endif /* VOLUME_H */

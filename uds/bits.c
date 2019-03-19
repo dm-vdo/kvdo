@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bits.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/bits.c#1 $
  */
 
 #include "bits.h"
@@ -39,11 +39,12 @@ enum { MAX_BIG_FIELD_BITS = (sizeof(uint64_t) - 1) * CHAR_BIT + 1 };
  *
  * @return the bit field
  **/
-static INLINE uint64_t getBigField(const byte *memory, uint64_t offset,
-                                   int size)
+static INLINE uint64_t getBigField(const byte *memory,
+                                   uint64_t    offset,
+                                   int         size)
 {
-  const uint64_t *addr = (const uint64_t *) (memory + offset / CHAR_BIT);
-  return (*addr >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
+  const void *addr = memory + offset / CHAR_BIT;
+  return (getUInt64LE(addr) >> (offset % CHAR_BIT)) & ((1UL << size) - 1);
 }
 
 /**
@@ -59,10 +60,12 @@ static INLINE uint64_t getBigField(const byte *memory, uint64_t offset,
 static INLINE void setBigField(uint64_t value, byte *memory, uint64_t offset,
                                int size)
 {
-  uint64_t *addr = (uint64_t *) (memory + offset / CHAR_BIT);
+  void *addr = memory + offset / CHAR_BIT;
   int shift = offset % CHAR_BIT;
-  *addr &= ~(((1UL << size) - 1) << shift);
-  *addr |= value << shift;
+  uint64_t data = getUInt64LE(addr);
+  data &= ~(((1UL << size) - 1) << shift);
+  data |= value << shift;
+  storeUInt64LE(addr, data);
 }
 
 /***********************************************************************/
@@ -71,7 +74,7 @@ void getBytes(const byte *memory, uint64_t offset, byte *destination, int size)
   const byte *addr = memory + offset / CHAR_BIT;
   int shift = offset % CHAR_BIT;
   while (--size >= 0) {
-    *destination++ = *(const uint16_t *) addr++ >> shift;
+    *destination++ = getUInt16LE(addr++) >> shift;
   }
 }
 
@@ -82,8 +85,8 @@ void setBytes(byte *memory, uint64_t offset, const byte *source, int size)
   int shift = offset % CHAR_BIT;
   uint16_t mask = ~((uint16_t) 0xFF << shift);
   while (--size >= 0) {
-    uint16_t *addr16 = (uint16_t *) (addr++);
-    *addr16 = (*addr16 & mask) | (*source++ << shift);
+    uint16_t data = (getUInt16LE(addr) & mask) | (*source++ << shift);
+    storeUInt16LE(addr++, data);
   }
 }
 
@@ -110,7 +113,7 @@ void moveBits(const byte *sMemory, uint64_t source, byte *dMemory,
       const byte *src = sMemory + (source - offset) / CHAR_BIT;
       byte *dest = dMemory + destination / CHAR_BIT;
       while (size > MAX_BIG_FIELD_BITS) {
-        *(uint32_t *) dest = *(const uint64_t *) src >> offset;
+        storeUInt32LE(dest, getUInt64LE(src) >> offset);
         src  += sizeof(uint32_t);
         dest += sizeof(uint32_t);
         source      += UINT32_BIT;
@@ -136,7 +139,7 @@ void moveBits(const byte *sMemory, uint64_t source, byte *dMemory,
         src  -= sizeof(uint32_t);
         dest -= sizeof(uint32_t);
         size -= UINT32_BIT;
-        *(uint32_t *) dest = *(const uint64_t *) src >> offset;
+        storeUInt32LE(dest, getUInt64LE(src) >> offset);
       }
     }
   }

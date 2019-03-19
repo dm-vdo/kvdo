@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/volume.c#10 $
+ * $Id: //eng/uds-releases/gloria/src/uds/volume.c#12 $
  */
 
 #include "volume.h"
@@ -86,9 +86,8 @@ int formatVolume(IORegion *region, const Geometry *geometry)
 {
   // Create the header page with the magic number and version.
   byte *headerPage;
-  int result =
-    ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte, "header page",
-                        &headerPage);
+  int result = ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte,
+                                   "volume header page", &headerPage);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -109,74 +108,6 @@ int formatVolume(IORegion *region, const Geometry *geometry)
   }
 
   return syncRegionContents(region);
-}
-
-/**********************************************************************/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          indexId,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
-{
-  unsigned int volumeReadThreads;
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
-      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
-    volumeReadThreads = value.value.u_uint;
-  } else {
-    volumeReadThreads = VOLUME_READ_THREADS;
-  }
-
-  if (readQueueMaxSize <= volumeReadThreads) {
-    logError("Number of read threads must be smaller than read queue");
-    return UDS_INVALID_ARGUMENT;
-  }
-
-  Volume *volume;
-
-  int result = allocateVolume(config, layout, indexId, readQueueMaxSize,
-                              zoneCount, !READ_ONLY_VOLUME,
-                              &volume);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  initMutex(&volume->readThreadsMutex);
-  initCond(&volume->readThreadsReadDoneCond);
-  initCond(&volume->readThreadsCond);
-  result = createReaderThreads(volume, volumeReadThreads);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  *newVolume = volume;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void freeVolume(Volume *volume)
-{
-  if (volume == NULL) {
-    return;
-  }
-
-  destroyReaderThreads(volume);
-  destroyCond(&volume->readThreadsCond);
-  destroyCond(&volume->readThreadsReadDoneCond);
-  destroyMutex(&volume->readThreadsMutex);
-  releaseVolume(volume);
-}
-
-/**********************************************************************/
-int closeVolume(Volume *volume)
-{
-  int result = invalidatePageCache(volume->pageCache);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  return doneWithVolume(volume);
 }
 
 /**********************************************************************/
@@ -328,8 +259,9 @@ static int initChapterIndexPage(const Volume     *volume,
 }
 
 /**********************************************************************/
-static int initializeIndexPage(Volume *volume, unsigned int physicalPage,
-                               CachedPage *page)
+static int initializeIndexPage(const Volume *volume,
+                               unsigned int  physicalPage,
+                               CachedPage   *page)
 {
   unsigned int chapter = mapToChapterNumber(volume->geometry, physicalPage);
   unsigned int indexPageNumber = mapToPageNumber(volume->geometry,
@@ -447,40 +379,6 @@ static void readThreadFunction(void *arg)
   }
   unlockMutex(&volume->readThreadsMutex);
   logDebug("reader done");
-}
-
-/**********************************************************************/
-int createReaderThreads(Volume *volume, unsigned int numReaderThreads)
-{
-  volume->numReadThreads = numReaderThreads;
-  int result = ALLOCATE(numReaderThreads, Thread,
-                        "reader threads", &volume->readerThreads);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  for (unsigned int i = 0; i < numReaderThreads; i++) {
-    result = createThread(readThreadFunction, (void *) volume, "reader",
-                          &volume->readerThreads[i]);
-    if (result != UDS_SUCCESS) {
-      return UDS_ENOTHREADS;
-    }
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void destroyReaderThreads(Volume *volume)
-{
-  lockMutex(&volume->readThreadsMutex);
-  volume->readerState |= READER_STATE_EXIT;
-  broadcastCond(&volume->readThreadsCond);
-  unlockMutex(&volume->readThreadsMutex);
-
-  for (unsigned int i = 0; i < volume->numReadThreads; i++) {
-    joinThreads(volume->readerThreads[i]);
-  }
-  FREE(volume->readerThreads);
 }
 
 /**********************************************************************/
@@ -666,24 +564,26 @@ int getPageProtected(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume          *volume,
-            Request         *request,
-            unsigned int     chapter,
-            unsigned int     pageNumber,
-            CacheProbeType   probeType,
-            byte           **pagePtr)
+int getPage(Volume            *volume,
+            unsigned int       chapter,
+            unsigned int       pageNumber,
+            CacheProbeType     probeType,
+            byte             **dataPtr,
+            ChapterIndexPage **indexPagePtr)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, chapter, pageNumber);
 
   lockMutex(&volume->readThreadsMutex);
   CachedPage *page = NULL;
-  int result = getPageLocked(volume, request, physicalPage, probeType,
-                             &page);
+  int result = getPageLocked(volume, NULL, physicalPage, probeType, &page);
   unlockMutex(&volume->readThreadsMutex);
 
-  if (pagePtr != NULL) {
-    *pagePtr = (page != NULL) ? page->data : NULL;
+  if (dataPtr != NULL) {
+    *dataPtr = (page != NULL) ? page->data : NULL;
+  }
+  if (indexPagePtr != NULL) {
+    *indexPagePtr = (page != NULL) ? &page->indexPage : NULL;
   }
   return result;
 }
@@ -1108,33 +1008,23 @@ off_t offsetForChapter(const Geometry *geometry,
 }
 
 /**********************************************************************/
-static int probeChapter(const Volume *volume,
+static int probeChapter(Volume       *volume,
                         unsigned int  chapterNumber,
-                        uint64_t     *virtualChapterNumber,
-                        byte         *buffer)
+                        uint64_t     *virtualChapterNumber)
 {
   const Geometry *geometry = volume->geometry;
-  off_t baseOffset = offsetForChapter(geometry, chapterNumber);
   unsigned int expectedListNumber = 0;
   uint64_t lastVCN = UINT64_MAX;
 
   for (unsigned int i = 0; i < geometry->indexPagesPerChapter; ++i) {
-    int result = readFromRegion(volume->region,
-                                baseOffset + (i * geometry->bytesPerPage),
-                                buffer, geometry->bytesPerPage, NULL);
-    if (result != UDS_SUCCESS) {
-      logWarningWithStringError(result, "%s got readFromRegion error",
-                                __func__);
-      return result;
-    }
-
-    ChapterIndexPage page;
-    result = initializeChapterIndexPage(&page, geometry, buffer, volume->nonce);
+    ChapterIndexPage *page;
+    int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
+                         NULL, &page);
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    uint64_t vcn = getChapterIndexVirtualChapterNumber(&page);
+    uint64_t vcn = getChapterIndexVirtualChapterNumber(page);
     if (lastVCN == UINT64_MAX) {
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
@@ -1144,16 +1034,16 @@ static int probeChapter(const Volume *volume,
       return UDS_CORRUPT_COMPONENT;
     }
 
-    if (expectedListNumber != getChapterIndexLowestListNumber(&page)) {
+    if (expectedListNumber != getChapterIndexLowestListNumber(page)) {
       logError("inconsistent chapter %u index page %u: expected list number %u"
                ", got list number %u",
                chapterNumber, i, expectedListNumber,
-               getChapterIndexLowestListNumber(&page));
+               getChapterIndexLowestListNumber(page));
       return UDS_CORRUPT_COMPONENT;
     }
-    expectedListNumber = getChapterIndexHighestListNumber(&page) + 1;
+    expectedListNumber = getChapterIndexHighestListNumber(page) + 1;
 
-    result = validateChapterIndexPage(&page, geometry);
+    result = validateChapterIndexPage(page, geometry);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1173,14 +1063,12 @@ static int probeChapter(const Volume *volume,
 }
 
 /**********************************************************************/
-static int probeWrapper(const void   *aux,
+static int probeWrapper(void         *aux,
                         unsigned int  chapterNumber,
-                        uint64_t     *virtualChapterNumber,
-                        byte         *buffer)
+                        uint64_t     *virtualChapterNumber)
 {
-  const Volume *volume = aux;
-  int result = probeChapter(volume, chapterNumber, virtualChapterNumber,
-                            buffer);
+  Volume *volume = aux;
+  int result = probeChapter(volume, chapterNumber, virtualChapterNumber);
   if ((result == UDS_CORRUPT_COMPONENT) || (result == UDS_CORRUPT_DATA)) {
     *virtualChapterNumber = UINT64_MAX;
     return UDS_SUCCESS;
@@ -1189,16 +1077,10 @@ static int probeWrapper(const void   *aux,
 }
 
 /**********************************************************************/
-static int findRealEndOfVolume(const Volume *volume,
+static int findRealEndOfVolume(Volume       *volume,
                                unsigned int  limit,
                                unsigned int *limitPtr)
 {
-  byte *buffer;
-  int result = ALLOCATE_IO_ALIGNED(volume->geometry->bytesPerPage, byte,
-                                   __func__, &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   /*
    * Start checking from the end of the volume. As long as we hit corrupt
    * data, start skipping larger and larger amounts until we find real data.
@@ -1210,7 +1092,7 @@ static int findRealEndOfVolume(const Volume *volume,
   while (limit > 0) {
     unsigned int chapter = (span > limit) ? 0 : limit - span;
     uint64_t vcn = 0;
-    int result = probeChapter(volume, chapter, &vcn, buffer);
+    int result = probeChapter(volume, chapter, &vcn);
     if (result == UDS_SUCCESS) {
       if (span == 1) {
         break;
@@ -1223,7 +1105,6 @@ static int findRealEndOfVolume(const Volume *volume,
         span *= 2;
       }
     } else {
-      FREE(buffer);
       return logErrorWithStringError(result, "cannot determine end of volume");
     }
   }
@@ -1231,15 +1112,14 @@ static int findRealEndOfVolume(const Volume *volume,
   if (limitPtr != NULL) {
     *limitPtr = limit;
   }
-  FREE(buffer);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int findVolumeChapterBoundaries(const Volume *volume,
-                                uint64_t     *lowestVCN,
-                                uint64_t     *highestVCN,
-                                bool         *isEmpty)
+int findVolumeChapterBoundaries(Volume   *volume,
+                                uint64_t *lowestVCN,
+                                uint64_t *highestVCN,
+                                bool     *isEmpty)
 {
   const Geometry *geometry = volume->geometry;
 
@@ -1289,31 +1169,21 @@ int findVolumeChapterBoundaries(const Volume *volume,
     return UDS_SUCCESS;
   }
 
-  byte *buffer;
-  result = ALLOCATE_IO_ALIGNED(volume->geometry->bytesPerPage, byte, __func__,
-                               &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   *isEmpty = false;
-  result = findVolumeChapterBoundariesImpl(chapterLimit, MAX_BAD_CHAPTERS,
-                                           lowestVCN, highestVCN, probeWrapper,
-                                           volume, buffer);
-  FREE(buffer);
-  return result;
+  return findVolumeChapterBoundariesImpl(chapterLimit, MAX_BAD_CHAPTERS,
+                                         lowestVCN, highestVCN, probeWrapper,
+                                         volume);
 }
 
 /**********************************************************************/
-int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
-                                    unsigned int    maxBadChapters,
-                                    uint64_t       *lowestVCN,
-                                    uint64_t       *highestVCN,
-                                    int (*probeFunc)(const void   *aux,
+int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
+                                    unsigned int  maxBadChapters,
+                                    uint64_t     *lowestVCN,
+                                    uint64_t     *highestVCN,
+                                    int (*probeFunc)(void         *aux,
                                                      unsigned int  chapter,
-                                                     uint64_t     *vcn,
-                                                     byte         *buffer),
-                                    const void     *aux,
-                                    byte           *buffer)
+                                                     uint64_t     *vcn),
+                                    void *aux)
 {
   if (chapterLimit == 0) {
     *lowestVCN = 0;
@@ -1333,7 +1203,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
   uint64_t firstVCN = UINT64_MAX;
 
   // doesn't matter if this results in a bad spot (UINT64_MAX)
-  int result = (*probeFunc)(aux, 0, &firstVCN, buffer);
+  int result = (*probeFunc)(aux, 0, &firstVCN);
   if (result != UDS_SUCCESS) {
     return UDS_SUCCESS;
   }
@@ -1353,7 +1223,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
     unsigned int chapter = (leftChapter + rightChapter) / 2;
     uint64_t probeVCN;
 
-    result = (*probeFunc)(aux, chapter, &probeVCN, buffer);
+    result = (*probeFunc)(aux, chapter, &probeVCN);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1377,7 +1247,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
   // At this point, leftChapter is the chapter with the lowest virtual chapter
   // number.
 
-  result = (*probeFunc)(aux, leftChapter, &lowest, buffer);
+  result = (*probeFunc)(aux, leftChapter, &lowest);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1395,7 +1265,7 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
 
   for (;;) {
     rightChapter = (rightChapter + chapterLimit - 1) % chapterLimit;
-    result = (*probeFunc)(aux, rightChapter, &highest, buffer);
+    result = (*probeFunc)(aux, rightChapter, &highest);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -1411,4 +1281,114 @@ int findVolumeChapterBoundariesImpl(unsigned int    chapterLimit,
   *lowestVCN = lowest;
   *highestVCN = highest;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int makeVolume(const Configuration  *config,
+               IndexLayout          *layout,
+               unsigned int          readQueueMaxSize,
+               unsigned int          zoneCount,
+               Volume              **newVolume)
+{
+  unsigned int volumeReadThreads;
+
+  UdsParameterValue value;
+  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
+      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
+    volumeReadThreads = value.value.u_uint;
+  } else {
+    volumeReadThreads = VOLUME_READ_THREADS;
+  }
+
+  if (readQueueMaxSize <= volumeReadThreads) {
+    logError("Number of read threads must be smaller than read queue");
+    return UDS_INVALID_ARGUMENT;
+  }
+
+  Volume *volume;
+
+  int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
+                              !READ_ONLY_VOLUME, &volume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = initMutex(&volume->readThreadsMutex);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = initCond(&volume->readThreadsReadDoneCond);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = initCond(&volume->readThreadsCond);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  // Start the reader threads.  If this allocation succeeds, freeVolume knows
+  // that it needs to try and stop those threads.
+  result = ALLOCATE(volumeReadThreads, Thread, "reader threads",
+                    &volume->readerThreads);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  for (unsigned int i = 0; i < volumeReadThreads; i++) {
+    result = createThread(readThreadFunction, (void *) volume, "reader",
+                          &volume->readerThreads[i]);
+    if (result != UDS_SUCCESS) {
+      freeVolume(volume);
+      return result;
+    }
+    // We only stop as many threads as actually got started.
+    volume->numReadThreads = i + 1;
+  }
+
+  *newVolume = volume;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+void freeVolume(Volume *volume)
+{
+  if (volume == NULL) {
+    return;
+  }
+
+  // If readerThreads is NULL, then we haven't set up the reader threads.
+  if (volume->readerThreads != NULL) {
+    // Stop the reader threads.  It is ok if there aren't any of them.
+    lockMutex(&volume->readThreadsMutex);
+    volume->readerState |= READER_STATE_EXIT;
+    broadcastCond(&volume->readThreadsCond);
+    unlockMutex(&volume->readThreadsMutex);
+    for (unsigned int i = 0; i < volume->numReadThreads; i++) {
+      joinThreads(volume->readerThreads[i]);
+    }
+    FREE(volume->readerThreads);
+    volume->readerThreads = NULL;
+  }
+
+  if (volume->region != NULL) {
+    int result = syncAndCloseRegion(&volume->region, "index volume");
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result,
+                              "error closing volume, releasing anyway");
+    }
+  }
+
+  destroyCond(&volume->readThreadsCond);
+  destroyCond(&volume->readThreadsReadDoneCond);
+  destroyMutex(&volume->readThreadsMutex);
+  freeIndexPageMap(volume->indexPageMap);
+  freePageCache(volume->pageCache);
+  freeRadixSorter(volume->radixSorter);
+  freeSparseCache(volume->sparseCache);
+  FREE(volume->geometry);
+  FREE(volume->recordPointers);
+  FREE(volume->scratchPage);
+  FREE(volume);
 }

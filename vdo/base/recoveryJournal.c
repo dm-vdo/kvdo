@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/recoveryJournal.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/recoveryJournal.c#6 $
  */
 
 #include "recoveryJournal.h"
@@ -556,8 +556,6 @@ int makeRecoveryJournal(Nonce                 nonce,
       return result;
     }
 
-    setActiveBlock(journal);
-
     result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
                       &journal->unusedFlushVIOData);
     if (result != VDO_SUCCESS) {
@@ -573,6 +571,7 @@ int makeRecoveryJournal(Nonce                 nonce,
       return result;
     }
 
+    setActiveBlock(journal);
     journal->flushVIO->completion.callbackThreadID = journal->threadID;
   }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/errors.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/errors.c#1 $
  */
 
 #include "errors.h"
@@ -46,7 +46,7 @@ static const struct errorInfo errorList[] = {
   { "UDS_SHORT_READ", "Could not read requested number of bytes" },
   { "UDS_AI_ERROR", "Network address and service translation error" },
   { "UDS_RESOURCE_LIMIT_EXCEEDED", "Internal resource limits exceeded" },
-  { "UDS_WRONG_CONTEXT_TYPE", "Context type mismatch" },
+  { "UDS_VOLUME_OVERFLOW", "Memory overflow due to storage failure" },
   { "UDS_BLOCK_ADDRESS_REQUIRED", "A block address is required" },
   { "UDS_CHUNK_DATA_REQUIRED", "Block data is required" },
   { "UDS_CHUNK_NAME_REQUIRED", "A chunk name is required" },

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/nonce.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/nonce.c#2 $
  */
 
 #include "nonce.h"
@@ -29,17 +29,10 @@
 /*****************************************************************************/
 static uint64_t hashStuff(uint64_t start, const void *data, size_t len)
 {
-  enum {
-    HASH_SIZE = 32,             // for MurmurHash3_x64_128_double
-  };
-
-  byte hashBuffer[HASH_SIZE];
-
-  uint32_t seed0 = start ^ (start >> 27);
-  uint32_t seed1 = (start << 5) ^ ~(start >> 37);
-
-  MurmurHash3_x64_128_double(data, len, seed0, seed1, hashBuffer);
-  return *(uint64_t *)(hashBuffer + 4);
+  uint32_t seed = start ^ (start >> 27);
+  byte hashBuffer[16];
+  MurmurHash3_x64_128(data, len, seed, hashBuffer);
+  return getUInt64LE(hashBuffer + 4);
 }
 
 /*****************************************************************************/

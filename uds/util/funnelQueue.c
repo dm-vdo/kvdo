@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/funnelQueue.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.c#4 $
  */
 
 #include "funnelQueue.h"
@@ -28,15 +28,6 @@
 /**********************************************************************/
 int makeFunnelQueue(FunnelQueue **queuePtr)
 {
-  /*
-   * This implementation has only been thoroughly analyzed for the memory fence
-   * semantics of the X86 architecture.  If ported to some other architecture
-   * that supports the atomic pointer swap in funnelQueueAdd(), correctness of
-   * the consumer code in funnelQueuePoll() with respect to that swap must be
-   * verified for that architecture.
-   */
-  STATIC_ASSERT(__x86_64__);
-
   // Allocate the queue on a cache line boundary so the producer and consumer
   // fields in the structure will land on separate cache lines.
   FunnelQueue *queue;
@@ -62,14 +53,14 @@ void freeFunnelQueue(FunnelQueue *queue)
 }
 
 /**********************************************************************/
-FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
+static FunnelQueueEntry *getOldest(FunnelQueue *queue)
 {
-  /*
-   * Barrier requirements: We need a read barrier between reading a "next"
-   * field pointer value and reading anything it points to. There's an
-   * accompanying barrier in funnelQueuePut between its caller setting up the
-   * entry and making it visible.
-   */
+ /*
+  * Barrier requirements: We need a read barrier between reading a "next"
+  * field pointer value and reading anything it points to. There's an
+  * accompanying barrier in funnelQueuePut between its caller setting up the
+  * entry and making it visible.
+  */
   FunnelQueueEntry *oldest = queue->oldest;
   FunnelQueueEntry *next   = oldest->next;
 
@@ -109,6 +100,16 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
       return NULL;
     }
   }
+  return oldest;
+}
+
+/**********************************************************************/
+FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
+{
+  FunnelQueueEntry *oldest = getOldest(queue);
+  if (oldest == NULL) {
+    return oldest;
+  }
 
   /*
    * Dequeue the oldest entry and return it. Only one consumer thread may call
@@ -116,15 +117,26 @@ FunnelQueueEntry *funnelQueuePoll(FunnelQueue *queue)
    * queue->oldest is owned by the consumer and oldest->next is never used by
    * a producer thread after it is swung from NULL to non-NULL.
    */
-  queue->oldest = next;
-  oldest->next = NULL;
+  queue->oldest = oldest->next;
   /*
    * Make sure the caller sees the proper stored data for this entry.
    *
-   * Since we've already fetched the entry pointer we stored in "oldest", this
-   * also ensures that on entry to the next call we'll properly see the
-   * dependent data.
+   * Since we've already fetched the entry pointer we stored in
+   * "queue->oldest", this also ensures that on entry to the next call we'll
+   * properly see the dependent data.
    */
   smp_rmb();
+  /*
+   * If "oldest" is a very light-weight work item, we'll be looking
+   * for the next one very soon, so prefetch it now.
+   */
+  prefetchAddress(queue->oldest, true);
+  oldest->next = NULL;
   return oldest;
+}
+
+/**********************************************************************/
+bool isFunnelQueueEmpty(FunnelQueue *queue)
+{
+  return getOldest(queue) == NULL;
 }

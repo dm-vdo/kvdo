@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexPageMap.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexPageMap.h#1 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -154,7 +154,7 @@ int dumpIndexPageMap(const IndexPageMap *map, unsigned int  chapter);
  *
  * @param geometry      The index geometry.
  *
- * @retun The number of bytes required to save the index page map.
+ * @return The number of bytes required to save the index page map.
  **/
 uint64_t computeIndexPageMapSaveSize(const Geometry *geometry);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/grid.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/grid.c#4 $
  */
 
 #include "grid.h"
@@ -40,15 +40,15 @@ struct fillData {
 /**********************************************************************/
 static int printUserConfiguration(Grid *grid)
 {
-  char *udsConfigString;
+  char *udsConfigString = NULL;
   int result = printUdsConfiguration(&grid->userConfig, 2, &udsConfigString);
-  if (result == UDS_SUCCESS) {
-    logDebug("Configuration:\n%s", udsConfigString);
-  } else {
-    logErrorWithStringError(result, "Failed allocate configuration string");
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result,
+                                   "Failed allocate configuration string");
   }
+  logDebug("Configuration:\n%s", udsConfigString);
   FREE(udsConfigString);
-  return result;
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -165,36 +165,29 @@ int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
 }
 
 /**********************************************************************/
-int saveGrid(Grid *grid)
+int saveAndFreeGrid(Grid *grid, bool saveFlag)
 {
   if (grid == NULL) {
     return UDS_SUCCESS;
   }
 
   int result = UDS_SUCCESS;
-  for (unsigned int i = 0; i < grid->numRouters; i++) {
-    IndexRouter *router = grid->routers[i];
-    if (router != NULL) {
-      result = router->methods->saveState(router);
-      if (result != UDS_SUCCESS) {
-        logWarningWithStringError(result, "index router save state problem");
+  if (grid->routers != NULL) {
+    for (unsigned int i = 0; i < grid->numRouters; i++) {
+      IndexRouter *router = grid->routers[i];
+      if (router != NULL) {
+        int routerResult = saveAndFreeIndexRouter(router, saveFlag);
+        if (routerResult != UDS_SUCCESS) {
+          logWarningWithStringError(routerResult,
+                                    "index router save state problem");
+          result = routerResult;
+        }
       }
     }
   }
-  return result;
-}
 
-/**********************************************************************/
-void freeGrid(Grid *grid)
-{
-  if (grid == NULL) {
-    return;
-  }
-
-  for (unsigned int i = 0; i < grid->numRouters; i++) {
-    freeIndexRouter(grid->routers[i]);
-  }
   freeIndexLayout(&grid->layout);
   FREE(grid->routers);
   FREE(grid);
+  return result;
 }

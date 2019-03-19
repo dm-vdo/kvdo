@@ -16,43 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/localIndexRouter.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#5 $
  */
 
 #include "localIndexRouter.h"
 
 #include "compiler.h"
-#include "context.h"
-#include "errors.h"
-#include "featureDefs.h"
-#include "hashUtils.h"
-#include "index.h"
 #include "indexCheckpoint.h"
-#include "indexConfig.h"
-#include "indexRouter.h"
-#include "localIndexRouterPrivate.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "permassert.h"
-#include "request.h"
 #include "requestQueue.h"
-#include "threads.h"
-#include "timeUtils.h"
-#include "uds.h"
 #include "zone.h"
 
-// Data exchanged with per-router filling threads.
-struct fillData {
-  // Subindex to fill from this thread
-  Index *subindex;
-  // Seed value for PRNG
-  int    seed;
-  // UDS_SUCCESS or error from router
-  int    result;
-};
-
-static int saveIndexRouterState(IndexRouter *header);
-static void freeLocalIndexRouter(IndexRouter *header);
+static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag);
 static RequestQueue *selectIndexRouterQueue(IndexRouter  *header,
                                             Request      *request,
                                             RequestStage  nextStage);
@@ -62,37 +38,12 @@ static int getRouterStatistics(IndexRouter *header,
 static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency);
 
 static const IndexRouterMethods methods = {
-  .saveState              = saveIndexRouterState,
-  .free                   = freeLocalIndexRouter,
+  .saveAndFree            = saveAndFreeLocalIndexRouter,
   .selectQueue            = selectIndexRouterQueue,
   .execute                = executeIndexRouterRequest,
   .getStatistics          = getRouterStatistics,
   .setCheckpointFrequency = setCheckpointFrequency,
 };
-
-// ************** Start of index router request histogram code **************
-#if HISTOGRAMS
-#include "histogram.h"
-
-Histogram *executeIndexRouterRequestHistogram = NULL;
-const char *executeIndexRouterRequestHistogramName = NULL;
-
-static void finishServiceHistogram(void)
-{
-  plotHistogram(executeIndexRouterRequestHistogramName,
-                executeIndexRouterRequestHistogram);
-  freeHistogram(&executeIndexRouterRequestHistogram);
-}
-
-void doServiceHistogram(const char *name)
-{
-  executeIndexRouterRequestHistogramName = name;
-  executeIndexRouterRequestHistogram
-    = makeLogarithmicHistogram("executeIndexRouterRequest duration", 6);
-  atexit(finishServiceHistogram);
-}
-#endif /* HISTOGRAMS */
-// ************** End of index router request histogram code **************
 
 /*
  * Convert a LocalIndexRouter pointer to the public IndexRouter pointer.
@@ -176,14 +127,8 @@ static void triageRequest(Request *request)
 static int initializeLocalIndexQueues(LocalIndexRouter *router,
                                       const Geometry   *geometry)
 {
-  int result = ALLOCATE(router->zoneCount, RequestQueue *,
-                        "zone queue array", &router->zoneQueues);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   for (unsigned int i = 0; i < router->zoneCount; i++) {
-    result = makeRequestQueue("indexW", &executeZoneRequest,
+    int result = makeRequestQueue("indexW", &executeZoneRequest,
                               &router->zoneQueues[i]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -192,27 +137,14 @@ static int initializeLocalIndexQueues(LocalIndexRouter *router,
 
   // The triage queue is only needed for sparse multi-zone indexes.
   if ((router->zoneCount > 1) && isSparse(geometry)) {
-    result = makeRequestQueue("triageW", &triageRequest, &router->triageQueue);
+    int result = makeRequestQueue("triageW", &triageRequest,
+                                  &router->triageQueue);
     if (result != UDS_SUCCESS) {
       return result;
     }
   }
 
   return UDS_SUCCESS;
-}
-
-/**
- * Shutdown the zone queues, the triage queue, and related structures.
- *
- * @param router          the router containing the queues
- **/
-static void shutdownLocalIndexQueues(LocalIndexRouter *router)
-{
-  requestQueueFinish(router->triageQueue);
-  for (unsigned int i = 0; i < router->zoneCount; i++) {
-    requestQueueFinish(router->zoneQueues[i]);
-  }
-  FREE(router->zoneQueues);
 }
 
 /**********************************************************************/
@@ -229,17 +161,17 @@ int makeLocalIndexRouter(IndexLayout          *layout,
                          IndexRouterCallback   callback,
                          IndexRouter         **newRouter)
 {
+  unsigned int zoneCount = getZoneCount();
   LocalIndexRouter *router;
-  int result = ALLOCATE_EXTENDED(LocalIndexRouter, 1, Index *,
+  int result = ALLOCATE_EXTENDED(LocalIndexRouter, zoneCount, RequestQueue *,
                                  "index router", &router);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  router->header.type     = ROUTER_LOCAL;
   router->header.methods  = &methods;
   router->header.callback = callback;
-  router->zoneCount       = getZoneCount();
+  router->zoneCount       = zoneCount;
 
   result = initializeLocalIndexQueues(router, config->geometry);
   if (result != UDS_SUCCESS) {
@@ -247,7 +179,7 @@ int makeLocalIndexRouter(IndexLayout          *layout,
     return result;
   }
 
-  result = makeIndex(layout, config, 0, router->zoneCount, loadType,
+  result = makeIndex(layout, config, router->zoneCount, loadType,
                      &router->index);
   if (result != UDS_SUCCESS) {
     freeIndexRouter(asIndexRouter(router));
@@ -259,22 +191,25 @@ int makeLocalIndexRouter(IndexLayout          *layout,
 }
 
 /**********************************************************************/
-static int saveIndexRouterState(IndexRouter *header)
-{
-  LocalIndexRouter *router = asLocalIndexRouter(header);
-  return saveIndex(router->index);
-}
-
-/**********************************************************************/
-static void freeLocalIndexRouter(IndexRouter *header)
+static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
   if (router == NULL) {
-    return;
+    return UDS_SUCCESS;
   }
-  shutdownLocalIndexQueues(router);
+  requestQueueFinish(router->triageQueue);
+  for (unsigned int i = 0; i < router->zoneCount; i++) {
+    requestQueueFinish(router->zoneQueues[i]);
+  }
+
+  int result = UDS_SUCCESS;
+  if (saveFlag) {
+    result = saveIndex(router->index);
+  }
+
   freeIndex(router->index);
   FREE(router);
+  return result;
 }
 
 /**********************************************************************/
@@ -329,13 +264,6 @@ static void executeIndexRouterRequest(IndexRouter *header, Request *request)
     return;
   }
 
-#if HISTOGRAMS
-  AbsTime startTime = ABSTIME_EPOCH;
-  if (executeIndexRouterRequestHistogram != NULL) {
-    startTime = currentTime(CT_MONOTONIC);
-  }
-#endif /* HISTOGRAMS */
-
   Index *index = router->index;
   int result = dispatchIndexRequest(index, request);
   if (result == UDS_QUEUED) {
@@ -345,15 +273,6 @@ static void executeIndexRouterRequest(IndexRouter *header, Request *request)
 
   request->status = result;
   router->header.callback(request);
-
-#if HISTOGRAMS
-  if (executeIndexRouterRequestHistogram != NULL) {
-    AbsTime endTime = currentTime(CT_MONOTONIC);
-    enterHistogramSample(executeIndexRouterRequestHistogram,
-                         relTimeToMicroseconds(timeDifference(endTime,
-                                                              startTime)));;
-  }
-#endif /* HISTOGRAMS */
 }
 
 /**********************************************************************/

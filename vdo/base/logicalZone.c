@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/logicalZone.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/logicalZone.c#2 $
  */
 
 #include "logicalZone.h"
 
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "util/atomic.h"
 
+#include "atomic.h"
 #include "blockMap.h"
 #include "completion.h"
 #include "constants.h"

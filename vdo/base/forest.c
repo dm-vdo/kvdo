@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/forest.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/forest.c#3 $
  */
 
 #include "forest.h"
@@ -545,8 +545,19 @@ void traverseForest(BlockMap      *map,
 BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
 {
   Boundary newSizes;
-  BlockCount approximateNonLeaves = computeNewPages(rootCount, 0, NULL,
-                                                    logicalBlocks, &newSizes);
-  return (approximateNonLeaves
-          + computeBlockMapPageCount(logicalBlocks - approximateNonLeaves));
+  BlockCount approximateNonLeaves
+    = computeNewPages(rootCount, 0, NULL, logicalBlocks, &newSizes);
+
+  // Exclude the tree roots since those aren't allocated from slabs,
+  // and also exclude the super-roots, which only exist in memory.
+  approximateNonLeaves
+    -= rootCount * (newSizes.levels[BLOCK_MAP_TREE_HEIGHT - 2]
+                    + newSizes.levels[BLOCK_MAP_TREE_HEIGHT - 1]);
+
+  BlockCount approximateLeaves
+    = computeBlockMapPageCount(logicalBlocks - approximateNonLeaves);
+
+  // This can be a slight over-estimate since the tree will never have to
+  // address these blocks, so it might be a tiny bit smaller.
+  return (approximateNonLeaves + approximateLeaves);
 }

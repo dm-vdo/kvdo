@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bufferedReader.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/bufferedReader.h#1 $
  */
 
 #ifndef BUFFERED_READER_H
@@ -86,8 +86,8 @@ int readBufferedData(BufferedReader *reader,
  * @param value         The value that must match the buffer contents.
  * @param length        The length of the value that must match.
  *
- * @param UDS_SUCCESS or an error code, specifically UDS_CORRUPT_FILE if the
- *        required value fails to match.
+ * @return UDS_SUCCESS or an error code, specifically UDS_CORRUPT_FILE
+ *         if the required value fails to match.
  *
  * @note If the value matches, the matching contents are consumed. However,
  *       if the match fails, any buffer contents are left as is.

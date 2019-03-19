@@ -16,11 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/workQueueStats.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueueStats.c#3 $
  */
 
 #include "workQueueStats.h"
 
+#include "atomic.h"
 #include "logger.h"
 #include "workItemStats.h"
 #include "workQueueInternals.h"
@@ -88,7 +89,7 @@ int initializeWorkQueueStats(KvdoWorkQueueStats *stats,
     = makeLogarithmicHistogram(queueKObject, "wakeup_queue_length",
                                "Wakeup Queue Length", "wakeups",
                                "queued work items", NULL, 4);
-  if (stats->rescheduleQueueLengthHistogram == NULL) {
+  if (stats->wakeupQueueLengthHistogram == NULL) {
     return -ENOMEM;
   }
 

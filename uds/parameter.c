@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/parameter.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/parameter.c#1 $
  */
 
 #include "parameter.h"
@@ -38,11 +38,9 @@ const UdsParameterValue UDS_PARAM_FALSE = {
   .value.u_bool = false,
 };
 
-const char * const UDS_PARALLEL_FACTOR         = "UDS_PARALLEL_FACTOR";
-const char * const UDS_TIME_REQUEST_TURNAROUND = "UDS_TIME_REQUEST_TURNAROUND";
-const char * const UDS_VOLUME_READ_THREADS     = "UDS_VOLUME_READ_THREADS";
-
-const char * const UDS_PARAMETER_TEST_PARAM    = "UDS_PARAMETER_TEST_PARAM";
+const char *const UDS_PARALLEL_FACTOR      = "UDS_PARALLEL_FACTOR";
+const char *const UDS_VOLUME_READ_THREADS  = "UDS_VOLUME_READ_THREADS";
+const char *const UDS_PARAMETER_TEST_PARAM = "UDS_PARAMETER_TEST_PARAM";
 
 static int defineParameterTestParam(ParameterDefinition *);
 
@@ -51,7 +49,6 @@ static const struct paramDef {
   int               (*func)(ParameterDefinition *pd);
 } definitions[] = {
   { &UDS_PARALLEL_FACTOR,         defineParallelFactor        },
-  { &UDS_TIME_REQUEST_TURNAROUND, defineTimeRequestTurnaround },
   { &UDS_VOLUME_READ_THREADS,     defineVolumeReadThreads     },
   { &UDS_PARAMETER_TEST_PARAM,    defineParameterTestParam    },
 };

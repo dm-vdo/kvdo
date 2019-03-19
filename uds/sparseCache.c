@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/sparseCache.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/sparseCache.c#3 $
  */
 
 /**
@@ -293,6 +293,7 @@ static void scoreChapterMiss(SparseCache *cache)
  * Check if the cache entry that is about to be replaced is already dead, and
  * if it's not, add to tally of evicted or invalidated cache entries.
  *
+ * @param zone       the zone used to find the oldest chapter
  * @param cache      the cache to update
  * @param chapter    the cache entry about to be replaced
  **/

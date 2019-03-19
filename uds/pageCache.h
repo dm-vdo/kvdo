@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/pageCache.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/pageCache.h#8 $
  */
 
 #ifndef PAGE_CACHE_H_
 #define PAGE_CACHE_H_
 
+#include "atomicDefs.h"
 #include "cacheCounters.h"
 #include "chapterIndex.h"
 #include "common.h"
@@ -36,17 +37,15 @@ typedef struct udsQueueHead UdsQueueHead;
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool                readPending;
+  bool              readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int        physicalPage;
-  /* the value of the volume clock when this page was cached */
-  uint64_t            birth;
+  unsigned int      physicalPage;
   /* the value of the volume clock when this page was last used */
-  uint64_t            lastUsed;
+  int64_t           lastUsed;
   /* the cache page data */
-  byte               *data;
+  byte             *data;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage    indexPage;
+  ChapterIndexPage  indexPage;
 } CachedPage;
 
 enum {
@@ -96,24 +95,29 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) {
 } SearchPendingCounter;
 
 typedef struct pageCache {
-  /* the number of index entries */
-  unsigned int            numIndexEntries;
-  /* The max number of cached entries */
-  uint16_t                numCacheEntries;
-  /*
-   * The index used to quickly access page in cache - top bit is a 'queued'
-   * flag
-   */
-  volatile uint16_t      *index;
-  /* The cache */
-  CachedPage             *cache;
-  /* The data buffer for the cache */
-  byte                   *data;
-  /* Cache counters for stats */
-  CacheCounters           counters;
-
-  /* Queued reads, as a circular array, with first and last indexes */
-  QueuedRead             *readQueue;
+  // Geometry governing the volume
+  const Geometry *geometry;
+  // The number of zones
+  unsigned int    zoneCount;
+  // The number of index entries
+  unsigned int    numIndexEntries;
+  // The max number of cached entries
+  uint16_t        numCacheEntries;
+  // The index used to quickly access page in cache - top bit is a 'queued'
+  // flag
+  uint16_t       *index;
+  // The cache
+  CachedPage     *cache;
+  // The data buffer for the cache
+  byte           *data;
+  // A counter for each zone to keep track of when a search is occurring
+  // within that zone.
+  SearchPendingCounter *searchPendingCounters;
+  // Queued reads, as a circular array, with first and last indexes
+  QueuedRead     *readQueue;
+  // Cache counters for stats.  This is the first field of a PageCache that is
+  // not constant after the struct is initialized.
+  CacheCounters   counters;
   /**
    * Entries are enqueued at readQueueLast.
    * To 'reserve' entries, we get the entry pointed to by readQueueLastRead
@@ -139,14 +143,8 @@ typedef struct pageCache {
   uint16_t              readQueueLast;
   // The size of the read queue
   unsigned int          readQueueMaxSize;
-  // A counter for each zone to keep track of when a search is occurring
-  // within that zone.
-  SearchPendingCounter *searchPendingCounters;
-  unsigned int          zoneCount;
   // Page access counter
-  uint64_t              clock;
-  // Geometry governing the volume
-  const Geometry       *geometry;
+  atomic64_t            clock;
 } PageCache;
 
 /**
@@ -173,16 +171,6 @@ int makePageCache(const Geometry  *geometry,
  * @param cache the volumecache
  **/
 void freePageCache(PageCache *cache);
-
-/**
- * Invalidates a pages cache
- *
- * @param cache the page cache
- *
- * @return UDS_SUCCESS or an error code
- **/
-int invalidatePageCache(PageCache *cache)
-  __attribute__((warn_unused_result));
 
 /**
  * Invalidates a page cache for a particular chapter
@@ -518,13 +506,5 @@ static INLINE void endPendingSearch(PageCache    *cache,
   invalidateCounter += COUNTER_LSB;
   setInvalidateCounter(cache, zoneNumber, invalidateCounter);
 }
-
-/**
- * Wait for all pending searches on a page in the cache to complete
- *
- * @param cache         the page cache
- * @param physicalPage  the page to check searches on
- **/
-void waitForPendingSearches(PageCache *cache, unsigned int physicalPage);
 
 #endif /* PAGE_CACHE_H_ */

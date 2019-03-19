@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/typeDefs.h#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/typeDefs.h#1 $
  */
 
 #ifndef LINUX_KERNEL_TYPE_DEFS_H

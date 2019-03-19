@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.c#9 $
  */
 
 #include "index.h"
@@ -43,24 +43,25 @@ static int replayIndexFromCheckpoint(Index *index,
   // Find the volume chapter boundaries
   uint64_t lowestVCN, highestVCN;
   bool isEmpty = false;
+  IndexLookupMode oldLookupMode = index->volume->lookupMode;
+  index->volume->lookupMode = LOOKUP_FOR_REBUILD;
   int result = findVolumeChapterBoundaries(index->volume, &lowestVCN,
                                            &highestVCN, &isEmpty);
+  index->volume->lookupMode = oldLookupMode;
   if (result != UDS_SUCCESS) {
     return logFatalWithStringError(result,
-                                   "index_%u: cannot replay index: "
-                                   "unknown volume chapter boundaries",
-                                   index->id);
+                                   "cannot replay index: "
+                                   "unknown volume chapter boundaries");
   }
   if (lowestVCN > highestVCN) {
-    logFatal("index_%u: cannot replay index: no valid chapters exist",
-             index->id);
+    logFatal("cannot replay index: no valid chapters exist");
     return UDS_CORRUPT_COMPONENT;
   }
 
   if (isEmpty) {
     // The volume is empty, so the index should also be empty
     if (index->newestVirtualChapter != 0) {
-      logFatal("index_%u: cannot replay index from empty volume", index->id);
+      logFatal("cannot replay index from empty volume");
       return UDS_CORRUPT_COMPONENT;
     }
     return UDS_SUCCESS;
@@ -101,9 +102,8 @@ static int loadIndex(Index *index, bool allowReplay)
     = ((index->lastCheckpoint != NO_LAST_CHECKPOINT)
        ? index->lastCheckpoint : 0);
 
-  logInfo("index_%u: loaded index from chapter %" PRIu64 " through chapter %"
-          PRIu64,
-          index->id, index->oldestVirtualChapter, lastCheckpointChapter);
+  logInfo("loaded index from chapter %" PRIu64 " through chapter %" PRIu64,
+          index->oldestVirtualChapter, lastCheckpointChapter);
 
   if (replayRequired) {
     result = replayIndexFromCheckpoint(index, lastCheckpointChapter);
@@ -125,17 +125,18 @@ static int rebuildIndex(Index *index)
   // Find the volume chapter boundaries
   uint64_t lowestVCN, highestVCN;
   bool isEmpty = false;
+  IndexLookupMode oldLookupMode = index->volume->lookupMode;
+  index->volume->lookupMode = LOOKUP_FOR_REBUILD;
   int result = findVolumeChapterBoundaries(index->volume, &lowestVCN,
                                            &highestVCN, &isEmpty);
+  index->volume->lookupMode = oldLookupMode;
   if (result != UDS_SUCCESS) {
     return logFatalWithStringError(result,
-                                   "index_%u: cannot rebuild index: "
-                                   "unknown volume chapter boundaries",
-                                   index->id);
+                                   "cannot rebuild index: "
+                                   "unknown volume chapter boundaries");
   }
   if (lowestVCN > highestVCN) {
-    logFatal("index_%u: cannot rebuild index: no valid chapters exist",
-             index->id);
+    logFatal("cannot rebuild index: no valid chapters exist");
     return UDS_CORRUPT_COMPONENT;
   }
 
@@ -155,9 +156,8 @@ static int rebuildIndex(Index *index)
   if ((index->newestVirtualChapter - index->oldestVirtualChapter) >
       index->volume->geometry->chaptersPerVolume) {
     return logFatalWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "index_%u: cannot rebuild index: "
-                                   "volume chapter boundaries too large",
-                                   index->id);
+                                   "cannot rebuild index: "
+                                   "volume chapter boundaries too large");
   }
 
   setMasterIndexOpenChapter(index->masterIndex, 0);
@@ -180,32 +180,22 @@ static int rebuildIndex(Index *index)
 /**********************************************************************/
 int makeIndex(IndexLayout          *layout,
               const Configuration  *config,
-              unsigned int          id,
               unsigned int          zoneCount,
               LoadType              loadType,
               Index               **newIndex)
 {
   Index *index;
-  int result = allocateIndex(layout, config, id, zoneCount, loadType,
+  int result = allocateIndex(layout, config, zoneCount, loadType,
                              !READ_ONLY_INDEX, &index);
   if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "index_%u: could not allocate index",
-                                   id);
+    return logErrorWithStringError(result, "could not allocate index");
   }
 
-  uint64_t nonce = 0;
-  result = getVolumeNonce(layout, id, &nonce);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
+  uint64_t nonce = getVolumeNonce(layout);
   result = makeMasterIndex(config, zoneCount, nonce, &index->masterIndex);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
-    return logErrorWithStringError(result,
-                                   "index_%u: could not make master index",
-                                   id);
+    return logErrorWithStringError(result, "could not make master index");
   }
 
   result = addIndexStateComponent(index->state, MASTER_INDEX_INFO, NULL,
@@ -235,14 +225,11 @@ int makeIndex(IndexLayout          *layout,
     }
     result = loadIndex(index, loadType == LOAD_REBUILD);
     if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "index_%u: index could not be loaded",
-                              index->id);
+      logErrorWithStringError(result, "index could not be loaded");
       if (loadType == LOAD_REBUILD) {
         result = rebuildIndex(index);
         if (result != UDS_SUCCESS) {
-          logErrorWithStringError(result,
-                                  "index_%u: index could not be rebuilt",
-                                  index->id);
+          logErrorWithStringError(result, "index could not be rebuilt");
         }
       }
     }
@@ -252,7 +239,7 @@ int makeIndex(IndexLayout          *layout,
 
   if (result != UDS_SUCCESS) {
     freeIndex(index);
-    return logUnrecoverable(result, "index_%u: fatal error in makeIndex", id);
+    return logUnrecoverable(result, "fatal error in makeIndex");
   }
 
   *newIndex = index;
@@ -270,7 +257,7 @@ void freeIndex(Index *index)
   if (index->masterIndex != NULL) {
     freeMasterIndex(index->masterIndex);
   }
-  releaseIndex(index, !READ_ONLY_INDEX);
+  releaseIndex(index);
 }
 
 /**********************************************************************/
@@ -278,14 +265,14 @@ static int saveIndexComponents(Index *index)
 {
   int result = finishCheckpointing(index);
   if (result != UDS_SUCCESS) {
-    logInfo("index_%u: save failed", index->id);
+    logInfo("save index failed");
     return result;
   }
   beginSave(index, false, index->newestVirtualChapter);
 
   result = saveIndexState(index->state);
   if (result != UDS_SUCCESS) {
-    logInfo("index_%u: save failed", index->id);
+    logInfo("save index failed");
     index->lastCheckpoint = index->prevCheckpoint;
   }
 
@@ -303,12 +290,16 @@ int saveIndex(Index *index)
     return result;
   }
 
-  // Save the volume file
-  result = closeVolume(index->volume);
-  if (result != UDS_SUCCESS) {
+  // Ensure that the volume is securely on storage
+  result = syncRegionContents(index->volume->region);
+  switch (result) {
+  case UDS_SUCCESS:
+  case UDS_UNSUPPORTED:
+    break;
+  default:
     // If we couldn't save the volume, the index state is useless
     discardIndexStateData(index->state);
-    return result;
+    return logErrorWithStringError(result, "cannot sync volume IORegion");
   }
 
   return saveIndexComponents(index);
@@ -552,19 +543,18 @@ static int dispatchIndexZoneRequest(IndexZone *zone, Request *request)
   case REQUEST_UPDATE:
   case REQUEST_QUERY:
     result = searchIndexZone(zone, request);
-    result = logUnrecoverable(result, "index_%u: searchLockedIndex() failed",
-                              zone->index->id);
+    result = logUnrecoverable(result, "searchIndexZone() failed");
     break;
 
   case REQUEST_DELETE:
     result = removeFromIndexZone(zone, request);
-    result = logUnrecoverable(result, "index_%u: removeFromIndexZone() failed",
-                              zone->index->id);
+    result = logUnrecoverable(result, "removeFromIndexZone() failed");
     break;
 
   default:
     result = logWarningWithStringError(UDS_INVALID_ARGUMENT,
-                                       "attempted to execute invalid action: %d",
+                                       "attempted to execute invalid action:"
+                                       " %d",
                                        request->action);
   }
 
@@ -577,72 +567,34 @@ int dispatchIndexRequest(Index *index, Request *request)
   return dispatchIndexZoneRequest(getRequestZone(index, request), request);
 }
 
-/**
- * Get a page from the volume for rebuild. This will always be a synchronous
- * read.
- *
- * @param index                 The index containing the page
- * @param virtualChapterNumber  The number of the chapter containing the page
- * @param pageNumber            The number of the page
- * @param probeType             The type of cache access being done
- * @param pagePtr               A pointer to hold the page
- *
- * @return UDS_SUCCESS or an error code
- **/
-static int getPageForRebuild(Index         *index,
-                             uint64_t       virtualChapterNumber,
-                             unsigned int   pageNumber,
-                             CacheProbeType probeType,
-                             byte         **pagePtr)
-{
-  unsigned int physicalChapterNumber
-    = mapToPhysicalChapter(index->volume->geometry, virtualChapterNumber);
-  // Make sure the page read is synchronous
-  return getPage(index->volume, NULL, physicalChapterNumber, pageNumber,
-                 probeType, pagePtr);
-}
-
 /**********************************************************************/
 static int rebuildIndexPageMap(Index *index, uint64_t vcn)
 {
   Geometry *geometry = index->volume->geometry;
-  unsigned int chapter = mapToPhysicalChapter(index->volume->geometry, vcn);
+  unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
   for (unsigned int indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    byte *indexPage;
-    int result = getPageForRebuild(index, chapter, indexPageNumber,
-                                   CACHE_PROBE_INDEX_FIRST, &indexPage);
+    ChapterIndexPage *chapterIndexPage;
+    int result = getPage(index->volume, chapter, indexPageNumber,
+                         CACHE_PROBE_INDEX_FIRST, NULL, &chapterIndexPage);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
-                                     "index_%u: Failed to read "
-                                     "index page %u in chapter %u",
-                                     index->id, indexPageNumber, chapter);
+                                     "failed to read index page %u"
+                                     " in chapter %u",
+                                     indexPageNumber, chapter);
     }
-
-    ChapterIndexPage chapterIndexPage;
-    result = initializeChapterIndexPage(&chapterIndexPage, geometry, indexPage,
-                                        index->volume->nonce);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(
-        result, "index_%u: failed to initialize chapter %u index page %u",
-        index->id, chapter, indexPageNumber);
-    }
-
     unsigned int highestDeltaList
-      = getDeltaIndexHighestListNumber(&chapterIndexPage.deltaIndex);
-    result = updateIndexPageMap(index->volume->indexPageMap,
-                                vcn,
-                                chapter,
-                                indexPageNumber,
-                                highestDeltaList);
+      = getChapterIndexHighestListNumber(chapterIndexPage);
+    result = updateIndexPageMap(index->volume->indexPageMap, vcn, chapter,
+                                indexPageNumber, highestDeltaList);
     if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(
-        result, "index_%u: failed to update chapter %u index page %u",
-        index->id, chapter, indexPageNumber);
+      return logErrorWithStringError(result,
+                                     "failed to update chapter %u index page"
+                                     " %u",
+                                     chapter, indexPageNumber);
     }
   }
-
   return UDS_SUCCESS;
 }
 
@@ -748,8 +700,7 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber)
                            : openChapterNumber - 1);
 
   const char *what = (checkpoint ? "checkpoint" : "save");
-  logInfo("index_%u: beginning %s (vcn %"PRIu64")",
-          index->id, what, index->lastCheckpoint);
+  logInfo("beginning %s (vcn %" PRIu64 ")", what, index->lastCheckpoint);
 
 }
 
@@ -758,8 +709,9 @@ int replayVolume(Index *index, uint64_t fromVCN)
 {
   int result;
   uint64_t uptoVCN = index->newestVirtualChapter;
-  logInfo("index_%u: Replaying volume from chapter %"PRIu64
-          " through chapter %"PRIu64, index->id, fromVCN, uptoVCN);
+  logInfo("Replaying volume from chapter %" PRIu64 " through chapter %"
+          PRIu64,
+          fromVCN, uptoVCN);
   setMasterIndexOpenChapter(index->masterIndex, uptoVCN);
   setMasterIndexOpenChapter(index->masterIndex, fromVCN);
 
@@ -792,20 +744,21 @@ int replayVolume(Index *index, uint64_t fromVCN)
     result = rebuildIndexPageMap(index, vcn);
     if (result != UDS_SUCCESS) {
       index->volume->lookupMode = oldLookupMode;
-      return logErrorWithStringError(
-        result, "index_%u: could not rebuild index page map for chapter %u",
-        index->id, chapter);
+      return logErrorWithStringError(result,
+                                     "could not rebuild index page map for"
+                                     " chapter %u",
+                                     chapter);
     }
 
     for (unsigned int j = 0; j < geometry->recordPagesPerChapter; j++) {
       unsigned int recordPageNumber = geometry->indexPagesPerChapter + j;
       byte *recordPage;
-      result = getPageForRebuild(index, chapter, recordPageNumber,
-                                 CACHE_PROBE_RECORD_FIRST, &recordPage);
+      result = getPage(index->volume, chapter, recordPageNumber,
+                       CACHE_PROBE_RECORD_FIRST, &recordPage, NULL);
       if (result != UDS_SUCCESS) {
         index->volume->lookupMode = oldLookupMode;
-        return logUnrecoverable(result, "index_%u: could not get page %d",
-                                index->id, recordPageNumber);
+        return logUnrecoverable(result, "could not get page %d",
+                                recordPageNumber);
       }
       for (unsigned int k = 0; k < geometry->recordsPerPage; k++) {
         const byte *nameBytes = recordPage + (k * BYTES_PER_RECORD);
@@ -820,9 +773,9 @@ int replayVolume(Index *index, uint64_t fromVCN)
             strncpy(hexName, "<unknown>", sizeof(hexName));
           }
           index->volume->lookupMode = oldLookupMode;
-          return logUnrecoverable(result, "index_%u: "
+          return logUnrecoverable(result,
                                   "could not find block %s during rebuild",
-                                  index->id, hexName);
+                                  hexName);
         }
       }
     }

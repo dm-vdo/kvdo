@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/pageCache.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/pageCache.c#9 $
  */
 
 #include "pageCache.h"
@@ -69,9 +69,7 @@ int assertPageInCache(PageCache *cache, CachedPage *page)
 static void clearPage(PageCache *cache, CachedPage *page)
 {
   page->physicalPage = cache->numIndexEntries;
-
-  page->birth = 0;
-  page->lastUsed = 0;
+  WRITE_ONCE(page->lastUsed, 0);
 }
 
 /**
@@ -91,23 +89,75 @@ static int getPageNoStats(PageCache     *cache,
                           int           *queueIndex,
                           CachedPage   **pagePtr)
 {
+  /*
+   * ASSERTION: We are either a zone thread holding a searchPendingCounter,
+   *            or we are any thread holding the readThreadsMutex.
+   *
+   * Holding only a searchPendingCounter is the most frequent case.
+   */
+
   int result = ASSERT((physicalPage < cache->numIndexEntries),
                       "physical page %u is invalid", physicalPage);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  uint16_t     indexValue = cache->index[physicalPage];
-  bool         queued     = (indexValue & VOLUME_CACHE_QUEUED_FLAG) != 0;
-  uint16_t     index      = indexValue & ~VOLUME_CACHE_QUEUED_FLAG;
+  /*
+   * It would be unlikely that the compiler turns the usage of indexValue into
+   * two reads of cache->index, but it would be possible and very bad if those
+   * reads did not return the same bits.
+   */
+  uint16_t indexValue = READ_ONCE(cache->index[physicalPage]);
+  bool     queued     = (indexValue & VOLUME_CACHE_QUEUED_FLAG) != 0;
+  uint16_t index      = indexValue & ~VOLUME_CACHE_QUEUED_FLAG;
 
-  *pagePtr = ((!queued && (index < cache->numCacheEntries))
-              ? &cache->cache[index]
-              : NULL);
+  if (!queued && (index < cache->numCacheEntries)) {
+    *pagePtr = &cache->cache[index];
+    /*
+     * We have acquired access to the cached page, but unless we hold the
+     * readThreadsMutex, we need a read memory barrier now.  The corresponding
+     * write memory barrier is in putPageInCache.
+     */
+    smp_rmb();
+  } else {
+    *pagePtr = NULL;
+  }
   if (queueIndex != NULL) {
     *queueIndex = queued ? index : -1;
   }
   return UDS_SUCCESS;
+}
+
+/**
+ * Wait for all pending searches on a page in the cache to complete
+ *
+ * @param cache         the page cache
+ * @param physicalPage  the page to check searches on
+ **/
+static void waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
+{
+  /*
+   * We hold the readThreadsMutex.  We are waiting for threads that do not hold
+   * the readThreadsMutex.  Those threads have "locked" their targeted page by
+   * setting the searchPendingCounter.  The corresponding write memory barrier
+   * is in beginPendingSearch.
+   */
+  smp_mb();
+
+  InvalidateCounter initialCounters[cache->zoneCount];
+  for (unsigned int i = 0; i < cache->zoneCount; i++) {
+    initialCounters[i] = getInvalidateCounter(cache, i);
+  }
+  for (unsigned int i = 0; i < cache->zoneCount; i++) {
+    if (searchPending(initialCounters[i])
+        && (pageBeingSearched(initialCounters[i]) == physicalPage)) {
+      // There is an active search using the physical page.
+      // We need to wait for the search to finish.
+      while (initialCounters[i] == getInvalidateCounter(cache, i)) {
+        yieldScheduler();
+      }
+    }
+  }
 }
 
 /**
@@ -124,6 +174,7 @@ static int invalidatePageInCache(PageCache          *cache,
                                  CachedPage         *page,
                                  InvalidationReason  reason)
 {
+  // We hold the readThreadsMutex.
   if (page == NULL) {
     return UDS_SUCCESS;
   }
@@ -147,7 +198,7 @@ static int invalidatePageInCache(PageCache          *cache,
       }
     }
 
-    cache->index[page->physicalPage] = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
     waitForPendingSearches(cache, page->physicalPage);
   }
 
@@ -163,6 +214,7 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
                                      InvalidationReason  reason,
                                      bool                mustFind)
 {
+  // We hold the readThreadsMutex.
   if (cache == NULL) {
     return UDS_SUCCESS;
   }
@@ -197,7 +249,7 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
 
   // Move the cached page to the least recently used end of the list
   // so it will be replaced before any page with valid data.
-  page->lastUsed = 0;
+  WRITE_ONCE(page->lastUsed, 0);
 
   return UDS_SUCCESS;
 }
@@ -215,6 +267,7 @@ static int initializePageCache(PageCache      *cache,
   cache->numCacheEntries = chaptersInCache * geometry->recordPagesPerChapter;
   cache->readQueueMaxSize = readQueueMaxSize;
   cache->zoneCount = zoneCount;
+  atomic64_set(&cache->clock, 1);
 
   int result = ALLOCATE(readQueueMaxSize, QueuedRead,
                         "volume read queue", &cache->readQueue);
@@ -235,8 +288,8 @@ static int initializePageCache(PageCache      *cache,
     return result;
   }
 
-  result = ALLOCATE(cache->numIndexEntries, volatile uint16_t,
-                    "page cache index", &cache->index);
+  result = ALLOCATE(cache->numIndexEntries, uint16_t, "page cache index",
+                    &cache->index);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -253,7 +306,8 @@ static int initializePageCache(PageCache      *cache,
   }
 
   unsigned long dataSize = geometry->bytesPerPage * cache->numCacheEntries;
-  result = ALLOCATE_IO_ALIGNED(dataSize, byte, "cache page data", &cache->data);
+  result = ALLOCATE_IO_ALIGNED(dataSize, byte, "cache page data",
+                               &cache->data);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -312,8 +366,7 @@ void freePageCache(PageCache *cache)
   if (cache == NULL) {
     return;
   }
-
-  freeVolatile(cache->index);
+  FREE(cache->index);
   FREE(cache->data);
   FREE(cache->cache);
   FREE(cache->searchPendingCounters);
@@ -322,32 +375,12 @@ void freePageCache(PageCache *cache)
 }
 
 /**********************************************************************/
-int invalidatePageCache(PageCache *cache)
-{
-  if (cache == NULL) {
-    return UDS_SUCCESS;
-  }
-  // Invalidate all cached entries since the volume could change while closed.
-  for (unsigned int i = 0; i < cache->numIndexEntries; i++) {
-    CachedPage *page;
-    int result = getPageNoStats(cache, i, NULL, &page);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    result = invalidatePageInCache(cache, page, INVALIDATION_INIT_SHUTDOWN);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
 int invalidatePageCacheForChapter(PageCache          *cache,
                                   unsigned int        chapter,
                                   unsigned int        pagesPerChapter,
                                   InvalidationReason  reason)
 {
+  // We hold the readThreadsMutex.
   if ((cache == NULL) || (cache->cache == NULL)) {
     return UDS_SUCCESS;
   }
@@ -369,12 +402,11 @@ int invalidatePageCacheForChapter(PageCache          *cache,
 /*********************************************************************/
 void makePageMostRecent(PageCache *cache, CachedPage *page)
 {
-  if (cache == NULL) {
-    return;
+  // ASSERTION: We are either a zone thread holding a searchPendingCounter,
+  //            or we are any thread holding the readThreadsMutex.
+  if (atomic64_read(&cache->clock) != READ_ONCE(page->lastUsed)) {
+    WRITE_ONCE(page->lastUsed, atomic64_inc_return(&cache->clock));
   }
-
-  cache->clock += 1;
-  page->lastUsed = cache->clock;
 }
 
 /**
@@ -389,24 +421,28 @@ void makePageMostRecent(PageCache *cache, CachedPage *page)
 __attribute__((warn_unused_result))
 static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
 {
-  bool foundOldest = false;
-  uint16_t oldestIndex = 0;
+  // We hold the readThreadsMutex.
+  int oldestIndex = 0;
+  // Our first candidate is any page that does have a pending read.  We ensure
+  // above that there are more entries than read threads, so there must be one.
+  for (unsigned int i = 0;; i++) {
+    if (i >= cache->numCacheEntries) {
+      // This should never happen.
+      return ASSERT(false, "oldest page is not NULL");
+    }
+    if (!cache->cache[i].readPending) {
+      oldestIndex = i;
+      break;
+    }
+  }
+  // Now find the least recently used page that does not have a pending read.
   for (unsigned int i = 0; i < cache->numCacheEntries; i++) {
-    if (!cache->cache[i].readPending &&
-        (!foundOldest
-         || cache->cache[i].lastUsed <= cache->cache[oldestIndex].lastUsed)) {
-      foundOldest = true;
+    if (!cache->cache[i].readPending
+        && (READ_ONCE(cache->cache[i].lastUsed)
+            <= READ_ONCE(cache->cache[oldestIndex].lastUsed))) {
       oldestIndex = i;
     }
   }
-
-  // We ensure above that there are more entries than read threads,
-  // so this should never happen.
-  int result = ASSERT(foundOldest, "oldest page is not NULL");
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   *pagePtr = &cache->cache[oldestIndex];
   return UDS_SUCCESS;
 }
@@ -417,6 +453,8 @@ int getPageFromCache(PageCache     *cache,
                      int            probeType,
                      CachedPage   **pagePtr)
 {
+  // ASSERTION: We are in a zone thread.
+  // ASSERTION: We holding a searchPendingCounter or the readThreadsMutex.
   if (cache == NULL) {
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "cannot get page with NULL cache");
@@ -446,9 +484,10 @@ int getPageFromCache(PageCache     *cache,
 /***********************************************************************/
 int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
 {
-  uint16_t first        = cache->readQueueFirst;
-  uint16_t last         = cache->readQueueLast;
-  uint16_t next         = (last + 1) % cache->readQueueMaxSize;
+  // We hold the readThreadsMutex.
+  uint16_t first = cache->readQueueFirst;
+  uint16_t last  = cache->readQueueLast;
+  uint16_t next  = (last + 1) % cache->readQueueMaxSize;
   uint16_t readQueuePos;
 
   if ((cache->index[physicalPage] & VOLUME_CACHE_QUEUED_FLAG) == 0) {
@@ -463,7 +502,8 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
 
     /* point the cache index to it */
     readQueuePos = last;
-    cache->index[physicalPage] = readQueuePos | VOLUME_CACHE_QUEUED_FLAG;
+    WRITE_ONCE(cache->index[physicalPage],
+               readQueuePos | VOLUME_CACHE_QUEUED_FLAG);
     STAILQ_INIT(&cache->readQueue[readQueuePos].queueHead);
     /* bump the last pointer */
     cache->readQueueLast = next;
@@ -489,6 +529,7 @@ bool reserveReadQueueEntry(PageCache    *cache,
                            unsigned int *physicalPage,
                            bool         *invalid)
 {
+  // We hold the readThreadsMutex.
   uint16_t lastRead = cache->readQueueLastRead;
 
   // No items to dequeue
@@ -499,13 +540,13 @@ bool reserveReadQueueEntry(PageCache    *cache,
   unsigned int pageNo    = cache->readQueue[lastRead].physicalPage;
   bool         isInvalid = cache->readQueue[lastRead].invalid;
 
-  uint16_t     indexValue = cache->index[pageNo];
-  bool         queued     = (indexValue & VOLUME_CACHE_QUEUED_FLAG) != 0;
+  uint16_t indexValue = cache->index[pageNo];
+  bool     queued     = (indexValue & VOLUME_CACHE_QUEUED_FLAG) != 0;
 
   // ALB-1429 ... need to check to see if its still queued before resetting
   if (isInvalid && queued) {
     // invalidate cache index slot
-    cache->index[pageNo] = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[pageNo], cache->numCacheEntries);
   }
 
   // If a sync read has taken this page, set invalid to true so we don't
@@ -528,6 +569,7 @@ bool reserveReadQueueEntry(PageCache    *cache,
 /************************************************************************/
 void releaseReadQueueEntry(PageCache *cache, unsigned int queuePos)
 {
+  // We hold the readThreadsMutex.
   cache->readQueue[queuePos].reserved = false;
 
   uint16_t lastRead = cache->readQueueLastRead;
@@ -544,12 +586,13 @@ void releaseReadQueueEntry(PageCache *cache, unsigned int queuePos)
 int selectVictimInCache(PageCache   *cache,
                         CachedPage **pagePtr)
 {
+  // We hold the readThreadsMutex.
   if (cache == NULL) {
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "cannot put page in NULL cache");
   }
 
-  CachedPage *page;
+  CachedPage *page = NULL;
   int result = getLeastRecentPage(cache, &page);
   if (result != UDS_SUCCESS) {
     return result;
@@ -564,7 +607,7 @@ int selectVictimInCache(PageCache   *cache,
   // it from the page map, and update cache stats
   if (page->physicalPage != cache->numIndexEntries) {
     cache->counters.evictions++;
-    cache->index[page->physicalPage] = cache->numCacheEntries;
+    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
     waitForPendingSearches(cache, page->physicalPage);
   }
 
@@ -580,12 +623,11 @@ int putPageInCache(PageCache    *cache,
                    unsigned int  physicalPage,
                    CachedPage   *page)
 {
+  // We hold the readThreadsMutex.
   if (cache == NULL) {
     return logWarningWithStringError(UDS_BAD_STATE,
                                      "cannot complete page in NULL cache");
   }
-
-  cache->clock += 1;
 
   int result = ASSERT((page != NULL), "page to install exists");
   if (result != UDS_SUCCESS) {
@@ -601,7 +643,6 @@ int putPageInCache(PageCache    *cache,
   clearPage(cache, page);
 
   page->physicalPage = physicalPage;
-  page->birth = cache->clock;
 
   // Figure out the index into the cache array using pointer arithmetic
   uint16_t value = page - cache->cache;
@@ -614,12 +655,15 @@ int putPageInCache(PageCache    *cache,
 
   page->readPending = false;
 
-  // We want to make sure the page is completely set up before placing it in
-  // the page map
+  /*
+   * We hold the readThreadsMutex, but we must have a write memory barrier
+   * before making the CachedPage available to the readers that do not hold the
+   * mutex.  The corresponding read memory barrier is in getPageNoStats.
+   */
   smp_wmb();
 
   // Point the page map to the new page. Will clear queued flag
-  cache->index[physicalPage] = value;
+  WRITE_ONCE(cache->index[physicalPage], value);
 
   return UDS_SUCCESS;
 }
@@ -629,6 +673,7 @@ void cancelPageInCache(PageCache    *cache,
                        unsigned int  physicalPage,
                        CachedPage   *page)
 {
+  // We hold the readThreadsMutex.
   if (cache == NULL) {
     logWarning("cannot cancel page in NULL cache");
     return;
@@ -646,42 +691,10 @@ void cancelPageInCache(PageCache    *cache,
   }
 
   clearPage(cache, page);
-
   page->readPending = false;
 
-  // We want to make sure the page is completely set up before clearing the
-  // page map
-  smp_wmb();
-
   // Clear the page map for the new page. Will clear queued flag
-  cache->index[physicalPage] = cache->numCacheEntries;
-}
-
-/***********************************************************************/
-void waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
-{
-  /*
-   * We are waiting for threads that do not hold the readThreadsMutex.
-   * Those threads have "locked" their targeted page by setting the
-   * searchPendingCounter.  The corresponding write memory barrier
-   * is in beginPendingSearch.
-   */
-  smp_mb();
-
-  InvalidateCounter initialCounters[cache->zoneCount];
-  for (unsigned int i = 0; i < cache->zoneCount; i++) {
-    initialCounters[i] = getInvalidateCounter(cache, i);
-  }
-  for (unsigned int i = 0; i < cache->zoneCount; i++) {
-    if (searchPending(initialCounters[i])
-        && (pageBeingSearched(initialCounters[i]) == physicalPage)) {
-      // There is an active search using the physical page.
-      // We need to wait for the search to finish.
-      while (initialCounters[i] == getInvalidateCounter(cache, i)) {
-        yieldScheduler();
-      }
-    }
-  }
+  WRITE_ONCE(cache->index[physicalPage], cache->numCacheEntries);
 }
 
 /**********************************************************************/

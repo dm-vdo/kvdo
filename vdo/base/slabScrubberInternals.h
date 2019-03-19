@@ -16,16 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/slabScrubberInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabScrubberInternals.h#2 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
 #define SLAB_SCRUBBER_INTERNALS_H
 
-#include "util/atomic.h"
-
 #include "slabScrubber.h"
 
+#include "atomic.h"
 #include "ringNode.h"
 
 struct slabScrubber {

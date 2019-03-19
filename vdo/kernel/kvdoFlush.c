@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/kvdoFlush.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvdoFlush.c#3 $
  */
 
 #include "kvdoFlush.h"
@@ -104,7 +104,7 @@ void launchKVDOFlush(KernelLayer *layer, BIO *bio)
 {
   // Try to allocate a KVDOFlush to represent the flush request. If the
   // allocation fails, we'll deal with it later.
-  KVDOFlush *kvdoFlush = kzalloc(sizeof(KVDOFlush), GFP_NOWAIT);
+  KVDOFlush *kvdoFlush = ALLOCATE_NOWAIT(KVDOFlush, __func__);
 
   spin_lock(&layer->flushLock);
 
@@ -174,7 +174,7 @@ static void releaseKVDOFlush(KVDOFlush *kvdoFlush)
     // Finish launching the flushes.
     enqueueKVDOFlush(kvdoFlush);
   } else if (freeFlush) {
-    kfree(kvdoFlush);
+    FREE(kvdoFlush);
   }
 }
 

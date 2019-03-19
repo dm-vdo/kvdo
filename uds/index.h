@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/index.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.h#4 $
  */
 
 #ifndef INDEX_H
@@ -36,7 +36,6 @@
 typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
-  unsigned int   id;
   bool           existed;
   IndexLayout   *layout;
   IndexState    *state;
@@ -70,7 +69,6 @@ typedef struct index {
  *
  * @param layout         The index layout
  * @param config         The configuration to use
- * @param id             The id for this index to use
  * @param zoneCount      The number of zones for this index to use
  * @param loadType       How to create the index:  it can be create only,
  *                       allow loading from files, and allow rebuilding
@@ -81,7 +79,6 @@ typedef struct index {
  **/
 int makeIndex(IndexLayout          *layout,
               const Configuration  *config,
-              unsigned int          id,
               unsigned int          zoneCount,
               LoadType              loadType,
               Index               **newIndex)
@@ -89,6 +86,19 @@ int makeIndex(IndexLayout          *layout,
 
 /**
  * Save an index.
+ *
+ * After this operation completes, the index must be freed.  Saving the index
+ * will shutdown the chapter writer, and there is no provision for restarting
+ * it.
+ *
+ * The normal users follow saveIndex immediately with a freeIndex.  But some
+ * tests use the IndexLayout to modify the saved index.  The Index will then
+ * have some cached information that does not reflect these updates.
+ *
+ * XXX - If we put a use count on the IndexLayout, and implement a get/put
+ *       mechanism, we can refactor into a safer saveAndFreeIndex method.  The
+ *       tests could then "get" the IndexLayout and use it to modify the saved
+ *       index after the Index is freed.
  *
  * @param index   The index to save
  *

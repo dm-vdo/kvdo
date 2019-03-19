@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/slabDepot.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabDepot.c#4 $
  */
 
 #include "slabDepot.h"
@@ -134,7 +134,6 @@ static int allocateSlabs(SlabDepot     *depot,
   bool resizing = false;
   if (depot->slabs != NULL) {
     memcpy(depot->newSlabs, depot->slabs, depot->slabCount * sizeof(Slab *));
-    depot->newSlabCount = depot->slabCount;
     resizing = true;
   }
 
@@ -144,8 +143,8 @@ static int allocateSlabs(SlabDepot     *depot,
 
   // The translation between allocator partition PBNs and layer PBNs.
   BlockCount translation = depot->origin - depot->firstBlock;
-  for (depot->newSlabCount = depot->slabCount;
-       depot->newSlabCount < slabCount; depot->newSlabCount++) {
+  depot->newSlabCount = depot->slabCount;
+  while (depot->newSlabCount < slabCount) {
     BlockAllocator *allocator
       = depot->allocators[depot->newSlabCount % depot->zoneCount];
     Slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
@@ -154,6 +153,8 @@ static int allocateSlabs(SlabDepot     *depot,
     if (result != VDO_SUCCESS) {
       return result;
     }
+    // Increment here to ensure that abandonNewSlabs will clean up correctly.
+    depot->newSlabCount++;
 
     slabOrigin += slabSize;
 

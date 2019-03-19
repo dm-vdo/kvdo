@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/blockAllocatorInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockAllocatorInternals.h#2 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
 #define BLOCK_ALLOCATOR_INTERNALS_H
 
-#include "util/atomic.h"
-
+#include "atomic.h"
 #include "blockAllocator.h"
 #include "priorityTable.h"
 #include "ringNode.h"

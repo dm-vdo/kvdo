@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/threadData.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/threadData.h#2 $
  */
 
 #ifndef THREAD_DATA_H
@@ -61,30 +61,31 @@ struct threadData {
 };
 
 /**
- * Initialize the data for a thread.
+ * Create and initialize an array of ThreadData structures for all the base
+ * threads in the VDO.
  *
- * @param threadData    The data to initialize
- * @param threadID      The ID of the thread this data is for
- * @param isReadOnly    <code>true</code> if this thread should be in
- *                      read-only mode
- * @param threadConfig  The thread configuration of the VDO
- * @param layer         The physical layer of the VDO
+ * @param [in]  isReadOnly    <code>true</code> if the threads should be in
+ *                            read-only mode
+ * @param [in]  threadConfig  The thread configuration of the VDO
+ * @param [in]  layer         The physical layer of the VDO
+ * @param [out] threadsPtr    A pointer to receive the new array
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeThreadData(ThreadData         *threadData,
-                         ThreadID            threadID,
-                         bool                isReadOnly,
-                         const ThreadConfig *threadConfig,
-                         PhysicalLayer      *layer)
+int makeThreadDataArray(bool                 isReadOnly,
+                        const ThreadConfig  *threadConfig,
+                        PhysicalLayer       *layer,
+                        ThreadData         **threadsPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Clean up thread data resources.
+ * Destroy and free an array of ThreadData structures, then null out the
+ * reference to it.
  *
- * @param threadData  The thread data to uninitialize
+ * @param threadsPtr  The reference to the array to free
+ * @param count       The number of thread structures in the array
  **/
-void uninitializeThreadData(ThreadData *threadData);
+void freeThreadDataArray(ThreadData **threadsPtr, ThreadCount count);
 
 /**
  * Get the next physical zone from which to allocate.

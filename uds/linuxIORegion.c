@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/linuxIORegion.c#6 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/linuxIORegion.c#6 $
  */
 
 #include "linuxIORegion.h"
@@ -25,26 +25,45 @@
 #include <linux/blkdev.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
+#include <linux/mount.h>
 #include <linux/task_io_accounting_ops.h>
+#include <linux/uio.h>
 #include <linux/version.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
+#include "permassert.h"
 #include "timeUtils.h"
 
-// Size a bio to be able to read or write 64K in a single request.
-enum { BVEC_COUNT = 64 * 1024 / PAGE_SIZE };
-
 enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
+
+/*
+ * XXX We used to use PAGE_SIZE, but in kernel mode we may write the
+ * full buffer at times when we've only been given 4kB of data,
+ * possibly causing us to overwrite real data on disk.
+ *
+ * We ought to be able to use larger buffers and only write the data
+ * desired, or with minimal round-up as required by the block layer.
+ *
+ * Also, a larger size should still work fine for reading, but
+ * getBestSize doesn't get an indication of the intended I/O
+ * direction.
+ */
+enum { KERNEL_UDS_BLOCK_SIZE = 4096 };
 
 typedef struct {
   struct completion *wait;
   int                result;
 } LinuxIOCompletion;
 
-enum { SECTOR_SHIFT = 9 };
-enum { SECTOR_SIZE  = 1 << SECTOR_SHIFT };
+// Some new Linuxes define this for us.
+#ifndef SECTOR_SHIFT
+#define SECTOR_SHIFT 9
+#endif
+#ifndef SECTOR_SIZE
+#define SECTOR_SIZE (1 << SECTOR_SHIFT)
+#endif
 
 typedef struct {
   IORegion             common;
@@ -77,7 +96,9 @@ static int validateIO(LinuxIORegion *lior,
                       size_t        *length,
                       bool           writing)
 {
-  if (offset_in_page(buffer) != 0) {
+  size_t pageOffset = offset_in_page(buffer);
+  if ((pageOffset != 0)
+      && ((pageOffset % KERNEL_UDS_BLOCK_SIZE) != 0)) {
     // No need to cry wolf.  Our callers are prepared to deal with this.
     return UDS_INCORRECT_ALIGNMENT;
   }
@@ -147,7 +168,7 @@ static void lior_endio(struct bio *bio, int err)
 {
   LinuxIOCompletion *lioc = (LinuxIOCompletion *)bio->bi_private;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
-  lioc->result = blk_status_to_errno(bio->bi_status);
+  lioc->result = -blk_status_to_errno(bio->bi_status);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
   lioc->result = -bio->bi_error;
 #else
@@ -202,7 +223,11 @@ static int lior_io(LinuxIORegion *lior,
                    size_t         size,
                    int            rw)
 {
-  struct bio *bio = bio_alloc(GFP_KERNEL, BVEC_COUNT);
+  unsigned int bvec_count = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+  if (bvec_count > UIO_MAXIOV) {
+    bvec_count = UIO_MAXIOV;
+  }
+  struct bio *bio = bio_alloc(GFP_KERNEL, bvec_count);
   if (IS_ERR(bio)) {
     return logErrorWithStringError(ENOMEM, "cannot allocate a struct bio");
   }
@@ -214,7 +239,7 @@ static int lior_io(LinuxIORegion *lior,
     struct page *page = (is_vmalloc_addr(buffer)
                          ? vmalloc_to_page(buffer)
                          : virt_to_page(buffer));
-    if (bio_add_page(bio, page, ioSize, 0) == 0) {
+    if (bio_add_page(bio, page, ioSize, offset_in_page(buffer)) == 0) {
       // bio is full, so submit it ...
       result = lior_bio_submit(bio, rw);
       // ... and start a new bio
@@ -294,7 +319,8 @@ static int lior_getBlockSize(IORegion *region, size_t *blockSize)
 /*****************************************************************************/
 static int lior_getBestSize(IORegion *region, size_t *bufferSize)
 {
-  *bufferSize = PAGE_SIZE;
+  STATIC_ASSERT(PAGE_SIZE >= KERNEL_UDS_BLOCK_SIZE);
+  *bufferSize = KERNEL_UDS_BLOCK_SIZE;
   return UDS_SUCCESS;
 }
 
@@ -312,7 +338,13 @@ int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
                                    "size not a multiple of blockSize");
   }
 
-  struct block_device *bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
+  struct block_device *bdev;
+  dev_t device = name_to_dev_t(path);
+  if (device != 0) {
+    bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
+  } else {
+    bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
+  }
   if (IS_ERR(bdev)) {
     logErrorWithStringError(-PTR_ERR(bdev), "%s is not a block device", path);
     return UDS_INVALID_ARGUMENT;

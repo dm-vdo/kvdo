@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/config.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/config.c#1 $
  */
 
 #include "config.h"
@@ -222,7 +222,7 @@ static int gridConfigToString(UdsGridConfig gridConfig, char **output)
 /**********************************************************************/
 void logGridConfig(UdsGridConfig gridConfig, const char *message)
 {
-  char *gridConfigString;
+  char *gridConfigString = NULL;
   int result = gridConfigToString(gridConfig, &gridConfigString);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to allocate grid config string");

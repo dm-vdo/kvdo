@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/atomic.h#4 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/atomic.h#1 $
  */
 
 #ifndef ATOMIC_H

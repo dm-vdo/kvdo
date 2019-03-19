@@ -16,18 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/requestQueue.c#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/requestQueue.c#3 $
  */
 
 #include "requestQueue.h"
 
+#include "atomicDefs.h"
 #include "logger.h"
 #include "permassert.h"
 #include "request.h"
 #include "memoryAlloc.h"
 #include "threads.h"
 #include "timeUtils.h"
-#include "util/atomic.h"
 #include "util/eventCount.h"
 #include "util/funnelQueue.h"
 
@@ -93,10 +93,10 @@ struct requestQueue {
   Thread thread;                // thread id of the worker thread
   bool   started;               // true if the worker was started
 
-  volatile bool alive;          // when true, requests can be enqueued
+  bool alive;                   // when true, requests can be enqueued
 
   /** A flag set when the worker is waiting without a timeout */
-  Atomic32 dormant;
+  atomic_t dormant;
 
   // The following fields are mutable state private to the worker thread. The
   // first field is aligned to avoid cache line sharing with preceding fields.
@@ -144,7 +144,7 @@ static void adjustWaitTime(RequestQueue *queue)
 static RelTime *getWakeTime(RequestQueue *queue)
 {
   if (queue->waitNanoseconds >= MAXIMUM_WAIT_TIME) {
-    if (relaxedLoad32(&queue->dormant)) {
+    if (atomic_read(&queue->dormant)) {
       // The dormant flag was set on the last timeout cycle and nothing
       // changed, so wait with no timeout and reset the wait time.
       queue->waitNanoseconds = DEFAULT_WAIT_TIME;
@@ -153,7 +153,7 @@ static RelTime *getWakeTime(RequestQueue *queue)
     // Wait one time with the dormant flag set, ensuring that enqueuers will
     // have a chance to see that the flag is set.
     queue->waitNanoseconds = MAXIMUM_WAIT_TIME;
-    atomicStore32(&queue->dormant, true);
+    atomic_set_release(&queue->dormant, true);
   } else if (queue->waitNanoseconds < MINIMUM_WAIT_TIME) {
     // If the producer is very fast or the scheduler just doesn't wake us
     // promptly, waiting for very short times won't make the batches smaller.
@@ -217,19 +217,24 @@ static Request *dequeueRequest(RequestQueue *queue)
     // EventCount is signalled after this returns, we won't wait later on.
     EventToken waitToken = eventCountPrepare(queue->workEvent);
 
+    // First poll for shutdown to ensure we don't miss work that was enqueued
+    // immediately before a shutdown request.
+    bool shuttingDown = !READ_ONCE(queue->alive);
+    if (shuttingDown) {
+      /*
+       * Ensure that we see any requests that were guaranteed to have been
+       * fully enqueued before shutdown was flagged.  The corresponding write
+       * barrier is in requestQueueFinish.
+       */
+      smp_rmb();
+    }
+
     // Poll again before waiting--a request may have been enqueued just before
     // we got the event key.
     request = pollQueues(queue);
-    if (request != NULL) {
+    if ((request != NULL) || shuttingDown) {
       eventCountCancel(queue->workEvent, waitToken);
       return request;
-    }
-
-    // There's really no more work right now. Before waiting, check if we've
-    // been told to exit.
-    if (!queue->alive) {
-      eventCountCancel(queue->workEvent, waitToken);
-      return NULL;
     }
 
     // We're about to wait again, so update the wait time to reflect the batch
@@ -244,7 +249,7 @@ static Request *dequeueRequest(RequestQueue *queue)
     if (wakeTime == NULL) {
       // We've been roused from dormancy. Clear the flag so enqueuers can stop
       // broadcasting (no fence needed for this transition).
-      relaxedStore32(&queue->dormant, false);
+      atomic_set(&queue->dormant, false);
       // Reset the timeout back to the default since we don't know how long
       // we've been asleep and we also want to be responsive to a new burst.
       queue->waitNanoseconds = DEFAULT_WAIT_TIME;
@@ -335,7 +340,7 @@ void requestQueueEnqueue(RequestQueue *queue, Request *request)
    * timeout). An atomic load (read fence) isn't needed here since we know the
    * queue operation acts as one.
    */
-  if (relaxedLoad32(&queue->dormant) || unbatched) {
+  if (atomic_read(&queue->dormant) || unbatched) {
     eventCountBroadcast(queue->workEvent);
   }
 }
@@ -347,8 +352,17 @@ void requestQueueFinish(RequestQueue *queue)
     return;
   }
 
-  // Mark the queue as dead, informing the the worker thread it should exit.
-  queue->alive = false;
+  /*
+   * This memory barrier ensures that any requests we queued will be seen.  The
+   * point is that when dequeueRequest sees the following update to the alive
+   * flag, it will also be able to see any change we made to a next field in
+   * the FunnelQueue entry.  The corresponding read barrier is in
+   * dequeueRequest.
+   */
+  smp_wmb();
+
+  // Mark the queue as dead.
+  WRITE_ONCE(queue->alive, false);
 
   if (queue->started) {
     // Wake the worker so it notices that it should exit.

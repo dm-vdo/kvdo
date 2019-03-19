@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/grid.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/grid.h#3 $
  */
 
 #ifndef GRID_H
@@ -104,31 +104,24 @@ int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
   __attribute__((warn_unused_result));
 
 /**
- * Flush and save state for all the routers.
+ * Flush all the routers, optionally save state for all the routers, and free
+ * all components of the grid.
  *
- * @param grid   The index grid to save.
+ * @param grid      The index grid to save and free.
+ * @param saveFlag  True to save the grid.
  *
- * @return       Either UDS_SUCCESS or an error code
+ * @return Either UDS_SUCCESS or an error code
  **/
-int saveGrid(Grid *grid) __attribute__((warn_unused_result));
+int saveAndFreeGrid(Grid *grid, bool saveFlag);
 
 /**
- * Free all components of the grid and erase them.
+ * Free all components of the grid.
  *
  * @param grid   The index grid to free
  **/
-void freeGrid(Grid *grid);
-
-/**
- * Check whether a grid is local.
- *
- * @param grid The grid to check
- *
- * @return <code>true</code> if the router is local
- **/
-static INLINE bool isGridLocal(Grid *grid)
+static INLINE void freeGrid(Grid *grid)
 {
-  return isRouterLocal(grid->routers[0]);
+  saveAndFreeGrid(grid, false);
 }
 
 #endif /* GRID_H */

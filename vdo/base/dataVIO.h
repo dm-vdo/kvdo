@@ -16,15 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/dataVIO.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/dataVIO.h#7 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
 
-#include "util/atomic.h"
-
 #include "allocatingVIO.h"
+#include "atomic.h"
 #include "blockMapEntry.h"
 #include "blockMappingState.h"
 #include "constants.h"

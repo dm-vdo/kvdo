@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/dataKVIO.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#11 $
  */
 
 #include "dataKVIO.h"
@@ -135,7 +135,7 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 #endif
 
   countBios(&layer->biosAcknowledged, bio);
-  if (getBioSize(bio) < VDO_BLOCK_SIZE) {
+  if (dataKVIO->isPartial) {
     countBios(&layer->biosAcknowledgedPartial, bio);
   }
 
@@ -546,8 +546,9 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
   dataKVIO->isPartial = ((getBioSize(bio) < VDO_BLOCK_SIZE)
                          || (dataKVIO->offset != 0));
 
-  DataVIO *dataVIO = &dataKVIO->dataVIO;
-  if (!dataKVIO->isPartial) {
+  if (dataKVIO->isPartial) {
+    countBios(&layer->biosInPartial, bio);
+  } else {
     /*
      * Note that we unconditionally fill in the dataBlock array for
      * non-read operations. There are places like kvdoCopyVIO that may
@@ -564,7 +565,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
        */
       memset(dataKVIO->dataBlock, 0, VDO_BLOCK_SIZE);
     } else if (bio_data_dir(bio) == WRITE) {
-      dataVIO->isZeroBlock = bioIsZeroData(bio);
+      dataKVIO->dataVIO.isZeroBlock = bioIsZeroData(bio);
       // Copy the bio data to a char array so that we can continue to use
       // the data after we acknowledge the bio.
       bioCopyDataIn(bio, dataKVIO->dataBlock);
@@ -673,10 +674,6 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
                               uint64_t     arrivalTime,
                               bool         hasDiscardPermit)
 {
-  if (getBioSize(bio) < VDO_BLOCK_SIZE) {
-    countBios(&layer->biosInPartial, bio);
-  }
-
 
   DataKVIO *dataKVIO = NULL;
   int result = kvdoCreateKVIOFromBio(layer, bio, arrivalTime, &dataKVIO);
@@ -850,11 +847,13 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio data",
                           &dataKVIO->dataBlock);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result, "DataKVIO data allocation failure");
   }
 
   result = createBio(layer, dataKVIO->dataBlock, &dataKVIO->dataBlockBio);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
                                    "DataKVIO data bio allocation failure");
   }
@@ -863,6 +862,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
     result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
                             &dataKVIO->readBlock.buffer);
     if (result != VDO_SUCCESS) {
+      freePooledDataKVIO(layer, dataKVIO);
       return logErrorWithStringError(result,
                                      "DataKVIO read allocation failure");
     }
@@ -870,6 +870,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
     result = createBio(layer, dataKVIO->readBlock.buffer,
                        &dataKVIO->readBlock.bio);
     if (result != VDO_SUCCESS) {
+      freePooledDataKVIO(layer, dataKVIO);
       return logErrorWithStringError(result,
                                      "DataKVIO read bio allocation failure");
     }
@@ -880,6 +881,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio scratch",
                           &dataKVIO->scratchBlock);
   if (result != VDO_SUCCESS) {
+    freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
                                    "DataKVIO scratch allocation failure");
   }

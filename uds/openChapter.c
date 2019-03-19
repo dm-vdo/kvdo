@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/openChapter.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/openChapter.c#3 $
  */
 
 #include "openChapter.h"
@@ -24,6 +24,7 @@
 #include "compiler.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "numeric.h"
 
 static int readOpenChapters(ReadPortal *portal);
 static int writeOpenChapters(IndexComponent *component,
@@ -44,7 +45,6 @@ const IndexComponentInfo OPEN_CHAPTER_INFO = {
 
 static const byte OPEN_CHAPTER_MAGIC[]       = "ALBOC";
 static const byte OPEN_CHAPTER_VERSION[]     = "02.00";
-static const byte OPEN_CHAPTER_VERSION_1_2[] = "01.02";
 
 enum {
   OPEN_CHAPTER_MAGIC_LENGTH   = sizeof(OPEN_CHAPTER_MAGIC) - 1,
@@ -169,7 +169,12 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
     totalRecords += openChapterSize(index->zones[i]->openChapter);
   }
 
-  result = writeToBufferedWriter(writer, &totalRecords, sizeof(totalRecords));
+  // Store the record count in little-endian order.
+  byte totalRecordData[sizeof(totalRecords)];
+  storeUInt32LE(totalRecordData, totalRecords);
+
+  result = writeToBufferedWriter(writer, totalRecordData,
+                                 sizeof(totalRecordData));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -239,54 +244,25 @@ static int readVersion(BufferedReader *reader, const byte **version)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  if (memcmp(OPEN_CHAPTER_VERSION, buffer, sizeof(buffer)) == 0) {
-    *version = OPEN_CHAPTER_VERSION;
-    return UDS_SUCCESS;
-  }
-  if (memcmp(OPEN_CHAPTER_VERSION_1_2, buffer, sizeof(buffer)) == 0) {
-    *version = OPEN_CHAPTER_VERSION_1_2;
-    return UDS_SUCCESS;
-  }
-
-  return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                 "Invalid open chapter version: %.*s",
-                                 (int) sizeof(buffer), buffer);
-}
-
-/**********************************************************************/
-static int loadVersion12(Index *index, BufferedReader *reader)
-{
-  // The old version only works with one zone (enforced by readOnlyIndex).
-  OpenChapterZone *openChapter = index->zones[0]->openChapter;
-
-  // Read and immediately validate the size field since we need to use
-  // it to know how many records to read.
-  uint32_t size;
-  int result = readFromBufferedReader(reader, &size, sizeof(size));
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  if (size >= openChapter->capacity) {
+  if (memcmp(OPEN_CHAPTER_VERSION, buffer, sizeof(buffer)) != 0) {
     return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "Invalid open chapter size: %u", size);
+                                   "Invalid open chapter version: %.*s",
+                                   (int) sizeof(buffer), buffer);
   }
-  openChapter->size = (size_t) size;
-
-  // Only read in the records that were added: [1 .. size].
-  // Don't bother reading in the slot array since the reader doesn't use it
-  unsigned int recordBytes = (size * sizeof(UdsChunkRecord));
-  return readFromBufferedReader(reader, &openChapter->records[1], recordBytes);
+  *version = OPEN_CHAPTER_VERSION;
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 static int loadVersion20(Index *index, BufferedReader *reader)
 {
-  uint32_t numRecords;
-  int result = readFromBufferedReader(reader, &numRecords, sizeof(numRecords));
+  byte numRecordsData[sizeof(uint32_t)];
+  int result
+    = readFromBufferedReader(reader, &numRecordsData, sizeof(numRecordsData));
   if (result != UDS_SUCCESS) {
     return result;
   }
+  uint32_t numRecords = getUInt32LE(numRecordsData);
 
   // Keep track of which zones cannot accept any more records.
   bool fullFlags[index->zoneCount];
@@ -336,10 +312,6 @@ int loadOpenChapters(Index *index, BufferedReader *reader)
   result = readVersion(reader, &version);
   if (result != UDS_SUCCESS) {
     return result;
-  }
-
-  if (version == OPEN_CHAPTER_VERSION_1_2) {
-    return loadVersion12(index, reader);
   }
 
   return loadVersion20(index, reader);

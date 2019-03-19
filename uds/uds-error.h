@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds-error.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/public/uds-error.h#1 $
  */
 
 /**
@@ -69,8 +69,8 @@ enum udsStatusCodes {
   UDS_AI_ERROR                    = UDS_ERROR_CODE_BASE + 14,
   /** Internal resource limits exceeded */
   UDS_RESOURCE_LIMIT_EXCEEDED     = UDS_ERROR_CODE_BASE + 15,
-  /** Context type does not match method type */
-  UDS_WRONG_CONTEXT_TYPE          = UDS_ERROR_CODE_BASE + 16,
+  /** Memory overflow due to storage failure */
+  UDS_VOLUME_OVERFLOW             = UDS_ERROR_CODE_BASE + 16,
   /** Block address required */
   UDS_BLOCK_ADDRESS_REQUIRED      = UDS_ERROR_CODE_BASE + 17,
   /** Block data required */

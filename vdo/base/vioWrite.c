@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/vioWrite.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vioWrite.c#8 $
  */
 
 /*
@@ -186,9 +186,9 @@
 #include "vioWrite.h"
 
 #include "logger.h"
-#include "util/atomic.h"
 
 #include "allocatingVIO.h"
+#include "atomic.h"
 #include "blockMap.h"
 #include "compressionState.h"
 #include "dataVIO.h"

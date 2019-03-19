@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexComponent.h#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexComponent.h#1 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -308,7 +308,6 @@ static inline int discardIndexComponent(IndexComponent *component)
  * Count the number of parts for this portal.
  *
  * @param [in]  portal          The component portal.
- * @param [out] parts           The number of parts.
  *
  * @return UDS_SUCCESS or an error code.
  **/

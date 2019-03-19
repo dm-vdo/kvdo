@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/memoryLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryLinuxKernel.c#8 $
  */
 
 #include <linux/delay.h>
@@ -27,74 +27,21 @@
 #include <linux/vmalloc.h>
 #include <linux/version.h>
 
+#include "compilerDefs.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
-static ThreadRegistry allocatingThreads;
-
-// We allocate very few large objects, and allocation/deallocation isn't done
-// in a performance-critical stage for us, so a linked list should be fine.
-typedef struct vmallocBlockInfo {
-  void                    *ptr;
-  size_t                   size;
-  struct vmallocBlockInfo *next;
-} VmallocBlockInfo;
-
-static struct {
-  spinlock_t        lock;
-  size_t            kmallocBlocks;
-  size_t            kmallocBytes;
-  size_t            vmallocBlocks;
-  size_t            vmallocBytes;
-  size_t            peakBytes;
-  size_t            bioCount;
-  size_t            peakBioCount;
-  VmallocBlockInfo *vmallocList;
-} memoryStats __cacheline_aligned;
 
 /*
- * We do not use kernel functions like the kvasprintf() method, which allocate
- * memory indirectly using kmalloc.
+ ******************************************************************************
+ * Production: UDS and VDO keep track of which threads are allowed to allocate
+ * memory freely, and which threads must be careful to not do a memory
+ * allocation that does an I/O request.  The allocatingThreads ThreadsRegistry
+ * and its associated methods implement this tracking.
  */
 
-/**
- * Determine whether allocating a memory block should use kmalloc or vmalloc.
- *
- * vmalloc can allocate any integral number of pages.
- *
- * kmalloc can allocate any number of bytes up to a configured limit, which
- * defaults to 8 megabytes on some of our systems.  kmalloc is especially good
- * when memory is being both allocated and freed, and it does this efficiently
- * in a multi CPU environment.
- *
- * kmalloc usually rounds the size of the block up to the next power of two.
- * So when the requested block is bigger than PAGE_SIZE / 2 bytes, kmalloc will
- * never give you less space than the corresponding vmalloc allocation.
- * Sometimes vmalloc will use less overhead than kmalloc.
- *
- * The advantages of kmalloc do not help out Albireo, because we allocate all
- * our memory up front and do not free and reallocate it.  Sometimes we have
- * problems using kmalloc, because the Linux memory page map can become so
- * fragmented that kmalloc will not give us a 32KB chunk.  We have used vmalloc
- * as a backup to kmalloc in the past, and a followup vmalloc of 32KB will
- * work.  But there is no strong case to be made for using kmalloc over vmalloc
- * for these size chunks.
- *
- * The kmalloc/vmalloc boundary is set at 4KB, and kmalloc gets the 4KB
- * requests.  There is no strong reason for favoring either kmalloc or vmalloc
- * for 4KB requests, except that the keeping of vmalloc statistics uses a
- * linked list implementation.  Using a simple test, this choice of boundary
- * results in 132 vmalloc calls.  Using vmalloc for requests of exactly 4KB
- * results in an additional 6374 vmalloc calls, which will require a change to
- * the code that tracks vmalloc statistics.
- *
- * @param size  How many bytes to allocate
- **/
-static INLINE bool useKmalloc(size_t size)
-{
-  return size <= PAGE_SIZE;
-}
+static ThreadRegistry allocatingThreads;
 
 /*****************************************************************************/
 static bool allocationsAllowed(void)
@@ -118,6 +65,40 @@ void unregisterAllocatingThread(void)
 {
   unregisterThread(&allocatingThreads);
 }
+
+/*
+ ******************************************************************************
+ * Production: We track how much memory has been allocated and freed.  When we
+ * unload the UDS module, we log an error if we have not freed all the memory
+ * that we allocated.  Nearly all memory allocation and freeing is done using
+ * this module.
+ *
+ * We do not use kernel functions like the kvasprintf() method, which allocate
+ * memory indirectly using kmalloc.
+ *
+ * These data structures and methods are used to track the amount of memory
+ * used.
+ */
+
+// We allocate very few large objects, and allocation/deallocation isn't done
+// in a performance-critical stage for us, so a linked list should be fine.
+typedef struct vmallocBlockInfo {
+  void                    *ptr;
+  size_t                   size;
+  struct vmallocBlockInfo *next;
+} VmallocBlockInfo;
+
+static struct {
+  spinlock_t        lock;
+  size_t            kmallocBlocks;
+  size_t            kmallocBytes;
+  size_t            vmallocBlocks;
+  size_t            vmallocBytes;
+  size_t            peakBytes;
+  size_t            bioCount;
+  size_t            peakBioCount;
+  VmallocBlockInfo *vmallocList;
+} memoryStats __cacheline_aligned;
 
 /*****************************************************************************/
 static void updatePeakUsage(void)
@@ -182,8 +163,49 @@ static void removeVmallocBlock(void *ptr)
   if (block != NULL) {
     FREE(block);
   } else {
-    logInfo("attempting to remove ptr %p not found in vmalloc list", ptr);
+    logInfo("attempting to remove ptr %" PRIptr " not found in vmalloc list",
+	    ptr);
   }
+}
+
+
+
+/**
+ * Determine whether allocating a memory block should use kmalloc or vmalloc.
+ *
+ * vmalloc can allocate any integral number of pages.
+ *
+ * kmalloc can allocate any number of bytes up to a configured limit, which
+ * defaults to 8 megabytes on some of our systems.  kmalloc is especially good
+ * when memory is being both allocated and freed, and it does this efficiently
+ * in a multi CPU environment.
+ *
+ * kmalloc usually rounds the size of the block up to the next power of two.
+ * So when the requested block is bigger than PAGE_SIZE / 2 bytes, kmalloc will
+ * never give you less space than the corresponding vmalloc allocation.
+ * Sometimes vmalloc will use less overhead than kmalloc.
+ *
+ * The advantages of kmalloc do not help out UDS or VDO, because we allocate
+ * all our memory up front and do not free and reallocate it.  Sometimes we
+ * have problems using kmalloc, because the Linux memory page map can become so
+ * fragmented that kmalloc will not give us a 32KB chunk.  We have used vmalloc
+ * as a backup to kmalloc in the past, and a followup vmalloc of 32KB will
+ * work.  But there is no strong case to be made for using kmalloc over vmalloc
+ * for these size chunks.
+ *
+ * The kmalloc/vmalloc boundary is set at 4KB, and kmalloc gets the 4KB
+ * requests.  There is no strong reason for favoring either kmalloc or vmalloc
+ * for 4KB requests, except that the keeping of vmalloc statistics uses a
+ * linked list implementation.  Using a simple test, this choice of boundary
+ * results in 132 vmalloc calls.  Using vmalloc for requests of exactly 4KB
+ * results in an additional 6374 vmalloc calls, which will require a change to
+ * the code that tracks vmalloc statistics.
+ *
+ * @param size  How many bytes to allocate
+ **/
+static INLINE bool useKmalloc(size_t size)
+{
+  return size <= PAGE_SIZE;
 }
 
 /*****************************************************************************/
@@ -196,6 +218,7 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
     *((void **) ptr) = NULL;
     return UDS_SUCCESS;
   }
+
 
   /*
    * The __GFP_RETRY_MAYFAIL means: The VM implementation will retry memory
@@ -300,6 +323,17 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
 }
 
 /*****************************************************************************/
+void *allocateMemoryNowait(size_t      size,
+                           const char *what __attribute__((unused)))
+{
+  void *p = kmalloc(size, GFP_NOWAIT | __GFP_ZERO);
+  if (p != NULL) {
+    addKmallocBlock(ksize(p));
+  }
+  return p;
+}
+
+/*****************************************************************************/
 void freeMemory(void *ptr)
 {
   if (ptr != NULL) {
@@ -314,13 +348,16 @@ void freeMemory(void *ptr)
 }
 
 /*****************************************************************************/
-int doPlatformVasprintf(char **strp, const char *fmt, va_list ap)
+int doPlatformVasprintf(const char  *what,
+                        char       **strp,
+                        const char  *fmt,
+                        va_list      ap)
 {
   va_list args;
   va_copy(args, ap);
   int count = vsnprintf(NULL, 0, fmt, args) + 1;
   va_end(args);
-  int result = ALLOCATE(count, char, NULL, strp);
+  int result = ALLOCATE(count, char, what, strp);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -360,6 +397,7 @@ int reallocateMemory(void       *ptr,
 /*****************************************************************************/
 void memoryInit(void)
 {
+
   spin_lock_init(&memoryStats.lock);
   initializeThreadRegistry(&allocatingThreads);
 }
@@ -368,6 +406,7 @@ void memoryInit(void)
 /*****************************************************************************/
 void memoryExit(void)
 {
+
   ASSERT_LOG_ONLY(memoryStats.kmallocBytes == 0,
                   "kmalloc memory used (%zd bytes in %zd blocks)"
                   " is returned to the kernel",
@@ -379,11 +418,13 @@ void memoryExit(void)
   logDebug("%s peak usage %zd bytes", THIS_MODULE->name,
            memoryStats.peakBytes);
 
-  ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
-                  "bio structures used (%zd) are returned to the kernel",
-                  memoryStats.bioCount);
-  logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
-           memoryStats.peakBioCount);
+  if (memoryStats.peakBioCount > 0) {
+    ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
+                    "bio structures used (%zd) are returned to the kernel",
+                    memoryStats.bioCount);
+    logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
+             memoryStats.peakBioCount);
+  }
 }
 
 /**********************************************************************/
@@ -448,4 +489,3 @@ void reportMemoryUsage()
   logInfo("  %" PRIu64 " bio structs, peak %" PRIu64,
           bioCount, peakBioCount);
 }
-

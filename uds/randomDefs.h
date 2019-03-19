@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/randomDefs.h#3 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/randomDefs.h#1 $
  */
 
 #ifndef LINUX_KERNEL_RANDOM_DEFS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexZone.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexZone.c#3 $
  */
 
 #include "indexZone.h"
@@ -255,9 +255,7 @@ int openNextChapter(IndexZone *zone, Request *request)
   uint64_t closedChapter = zone->newestVirtualChapter++;
   result = reapOldestChapter(zone);
   if (result != UDS_SUCCESS) {
-    return logUnrecoverable(result,
-                            "index_%u: reapOldestChapter() failed",
-                            zone->index->id);
+    return logUnrecoverable(result, "reapOldestChapter failed");
   }
 
   resetOpenChapter(zone->openChapter);

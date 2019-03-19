@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/request.h#6 $
+ * $Id: //eng/uds-releases/gloria/src/uds/request.h#2 $
  */
 
 #ifndef REQUEST_H
@@ -67,9 +67,6 @@ typedef enum {
   // REQUEST_COLLECT_CONTEXT_STATS messages are sent to the callback thread
   // from a client thread requesting the context statistics.
   REQUEST_COLLECT_CONTEXT_STATS,
-  // REQUEST_RESET_CONTEXT_STATS messages are sent to the callback thread from a
-  // client thread resetting the context statistics.
-  REQUEST_RESET_CONTEXT_STATS
 } RequestAction;
 
 /**
@@ -162,56 +159,19 @@ struct request {
   ZoneMessage      zoneMessage;
   bool             isControlMessage;
 
-  bool           fromCallback;  // true if issued within a callback
   bool           unbatched;     // if true, must wake worker when enqueued
   bool           requeued;
   RequestAction  action;        // the action for the index to perform
   unsigned int   zoneNumber;    // the zone for this request to use
-  UdsCookie      cookie;
   IndexRegion    location;      // if and where the block was found
 
   bool             slLocationKnown; // slow lane has determined a location
   IndexRegion      slLocation;      // location determined by slowlane
 
   SynchronousCallback *synchronous; // wait/wake object if request synchronous
-  AbsTime              initTime; // initial entry into request queues
 };
 
 typedef void (*RequestRestarter)(Request *);
-
-/**
- * Create an index request.
- *
- * @param contextId   The id of the context making the request
- * @param requestPtr  A pointer to hold the new request
- *
- * @return            UDS_SUCCESS or an error code
- **/
-int createRequest(unsigned int contextId, Request **requestPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Make a request from an API client, and start it on its way. If the request
- * is synchronous, this will wait until the request has completed before
- * returning.
- *
- * @param contextId       The id of the context of the request
- * @param callbackType    The type of the request
- * @param update          If <code>true</code>, move any found record
- *                        to the front of the index on a query request
- * @param chunkName       The name of the chunk in question (may be NULL)
- * @param cookie          Opaque, request specific client data (may be NULL)
- * @param metadata        The metadata for the request (may be NULL)
- *
- * @return UDS_SUCCESS or an error code
- **/
-int launchClientRequest(unsigned int        contextId,
-                        UdsCallbackType     callbackType,
-                        bool                update,
-                        const UdsChunkName *chunkName,
-                        UdsCookie           cookie,
-                        void               *metadata)
-  __attribute__((warn_unused_result));
 
 /**
  * Start a request from an API client on a block context.  The request is
@@ -359,15 +319,4 @@ static INLINE CacheProbeType cacheProbeType(Request *request,
     return isIndexPage ? CACHE_PROBE_INDEX_FIRST : CACHE_PROBE_RECORD_FIRST;
   }
 }
-
-#ifdef HISTOGRAMS
-/**
- * Start doing a histogram of the turnaround time, and arrange for it to
- * be plotted at the program termination.
- *
- * @param name  Base name of the histogram file
- **/
-void doTurnaroundHistogram(const char *name);
-
-#endif /* HISTOGRAMS */
 #endif /* REQUEST_H */

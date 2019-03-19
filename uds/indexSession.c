@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.c#5 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -25,6 +25,43 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "udsState.h"
+
+/**********************************************************************/
+static void handleCallbacks(Request *request)
+{
+  if (request->isControlMessage) {
+    request->status = dispatchContextControlRequest(request);
+    /*
+     * This is a synchronous control request for collecting or resetting the
+     * context statistics, so we use enterCallbackStage() to return the
+     * request to the client thread even though this is the callback thread.
+     */
+    enterCallbackStage(request);
+    return;
+  }
+
+  if (request->status == UDS_SUCCESS) {
+    // Measure the turnaround time of this request and include that time,
+    // along with the rest of the request, in the context's StatCounters.
+    updateRequestContextStats(request);
+  }
+
+  if (request->callback != NULL) {
+    // The request has specified its own callback and does not expect to be
+    // freed, but free the serverContext that's hidden from the client.
+    FREE(request->serverContext);
+    request->serverContext = NULL;
+    UdsContext *context = request->context;
+    request->found = (request->location != LOC_UNAVAILABLE);
+    request->callback((UdsRequest *) request);
+    releaseBaseContext(context);
+    return;
+  }
+
+  // Should not get here, because this is either a control message or it has a
+  // callback method.
+  freeRequest(request);
+}
 
 /**********************************************************************/
 int checkIndexSession(IndexSession *indexSession)
@@ -43,14 +80,14 @@ int checkIndexSession(IndexSession *indexSession)
 /**********************************************************************/
 IndexSessionState getIndexSessionState(IndexSession *indexSession)
 {
-  return (IndexSessionState) (int32_t) atomicLoad32(&indexSession->state);
+  return atomic_read_acquire(&indexSession->state);
 }
 
 /**********************************************************************/
 void setIndexSessionState(IndexSession      *indexSession,
                           IndexSessionState  state)
 {
-  atomicStore32(&indexSession->state, state);
+  atomic_set_release(&indexSession->state, state);
 }
 
 /**********************************************************************/
@@ -84,39 +121,33 @@ void releaseIndexSession(IndexSession *indexSession)
 int makeEmptyIndexSession(IndexSession **indexSessionPtr)
 {
   IndexSession *session;
-  int result
-    = ALLOCATE(1, IndexSession, "empty index session", &session);
+  int result = ALLOCATE(1, IndexSession, "empty index session", &session);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  setIndexSessionState(session, IS_INIT);
+  result = makeRequestQueue("callbackW", &handleCallbacks,
+                            &session->callbackQueue);
+  if (result != UDS_SUCCESS) {
+    FREE(session);
+    return result;
+  }
 
+  setIndexSessionState(session, IS_INIT);
   *indexSessionPtr = session;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int saveIndexSession(IndexSession *indexSession)
-{
-  if (indexSession == NULL) {
-    return UDS_SUCCESS;
-  }
-
-  int result = saveGrid(indexSession->grid);
-  freeGrid(indexSession->grid);
-  return result;
-}
-
-/**********************************************************************/
 int saveAndFreeIndexSession(IndexSession *indexSession)
 {
-  int result = saveIndexSession(indexSession);
+  int result = saveAndFreeGrid(indexSession->grid, true);
   if (result != UDS_SUCCESS) {
-    logInfoWithStringError(result, "ignoring error from saveIndexSession");
+    logInfoWithStringError(result, "ignoring error from saveAndFreeGrid");
   }
-  logDebug("Closed index session (%u, %p)", indexSession->session.id,
-           (void *) indexSession);
+  requestQueueFinish(indexSession->callbackQueue);
+  indexSession->callbackQueue = NULL;
+  logDebug("Closed index session %u", indexSession->session.id);
   FREE(indexSession);
   return result;
 }
@@ -136,8 +167,7 @@ int udsCloseIndexSession(UdsIndexSession session)
   IndexSession *indexSession
     = (IndexSession *) getSessionContents(baseSession);
 
-  logDebug("Closing index session (%u, %p)", session.id,
-           (void *) indexSession);
+  logDebug("Closing index session %u", session.id);
   finishSession(indexSessionGroup, &indexSession->session);
   result = saveAndFreeIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);
@@ -156,4 +186,51 @@ int udsSetCheckpointFrequency(UdsIndexSession session, unsigned int frequency)
   result = setGridCheckpointFrequency(indexSession->grid, frequency);
   releaseIndexSession(indexSession);
   return result;
+}
+
+/**********************************************************************/
+int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf)
+{
+  if (conf == NULL) {
+    return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
+                                   "received a NULL config pointer");
+  }
+  IndexSession *indexSession;
+  int result = getIndexSession(session.id, &indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ALLOCATE(1, struct udsConfiguration, __func__, conf);
+  if (result == UDS_SUCCESS) {
+    **conf = indexSession->grid->userConfig;
+  }
+  releaseIndexSession(indexSession);
+  return result;
+}
+
+/**********************************************************************/
+int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats)
+{
+  if (stats == NULL) {
+    return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
+                                   "received a NULL index stats pointer");
+  }
+  IndexSession *indexSession;
+  int result = getIndexSession(session.id, &indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  IndexRouterStatCounters routerStats;
+  result = getGridStatistics(indexSession->grid, &routerStats);
+  releaseIndexSession(indexSession);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "%s failed", __func__);
+  }
+  stats->entriesIndexed   = routerStats.entriesIndexed;
+  stats->memoryUsed       = routerStats.memoryUsed;
+  stats->diskUsed         = routerStats.diskUsed;
+  stats->collisions       = routerStats.collisions;
+  stats->entriesDiscarded = routerStats.entriesDiscarded;
+  stats->checkpoints      = routerStats.checkpoints;
+  return UDS_SUCCESS;
 }

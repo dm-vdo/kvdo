@@ -21,8 +21,8 @@
 
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "util/atomic.h"
 
+#include "atomic.h"
 #include "compressedBlock.h"
 #include "intMap.h"
 #include "lz4.h"

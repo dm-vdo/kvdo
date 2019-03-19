@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/workQueue.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/workQueue.c#6 $
  */
 
 #include "workQueue.h"
@@ -25,6 +25,7 @@
 #include <linux/kthread.h>
 #include <linux/version.h>
 
+#include "atomic.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
@@ -746,6 +747,13 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
               (unsigned long) queue);
 #endif
 
+  kobject_init(&queue->common.kobj, &simpleWorkQueueKobjType);
+  result = kobject_add(&queue->common.kobj, parentKobject, queue->common.name);
+  if (result != 0) {
+    logError("Cannot add sysfs node: %d", result);
+    freeSimpleWorkQueue(queue);
+    return result;
+  }
   queue->numPriorityLists = numPriorityLists;
   for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
     result = makeFunnelQueue(&queue->priorityLists[i]);
@@ -754,19 +762,9 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
       return result;
     }
   }
-
-  kobject_init(&queue->common.kobj, &simpleWorkQueueKobjType);
-  result = kobject_add(&queue->common.kobj, parentKobject, queue->common.name);
-  if (result != 0) {
-    logError("Cannot add sysfs node: %d", result);
-    finishSimpleWorkQueue(queue);
-    freeSimpleWorkQueue(queue);
-    return result;
-  }
   result = initializeWorkQueueStats(&queue->stats, &queue->common.kobj);
   if (result != 0) {
     logError("Cannot initialize statistics tracking: %d", result);
-    finishSimpleWorkQueue(queue);
     freeSimpleWorkQueue(queue);
     return result;
   }
@@ -777,7 +775,6 @@ static int makeSimpleWorkQueue(const char               *threadNamePrefix,
                        queue->common.name);
 
   if (IS_ERR(thread)) {
-    finishSimpleWorkQueue(queue);
     freeSimpleWorkQueue(queue);
     return (int) PTR_ERR(thread);
   }
@@ -836,6 +833,7 @@ int makeWorkQueue(const char               *threadNamePrefix,
 
   result = duplicateString(name, "queue name", &queue->common.name);
   if (result != VDO_SUCCESS) {
+    FREE(queue->serviceQueues);
     FREE(queue);
     return -ENOMEM;
   }
@@ -954,6 +952,8 @@ void freeWorkQueue(KvdoWorkQueue **queuePtr)
     return;
   }
   *queuePtr = NULL;
+
+  finishWorkQueue(queue);
 
   if (queue->roundRobinMode) {
     freeRoundRobinWorkQueue(asRoundRobinWorkQueue(queue));

@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/udsIndex.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/udsIndex.c#19 $
  */
 
 #include "udsIndex.h"
@@ -53,12 +53,6 @@ typedef struct udsAttribute {
 /*****************************************************************************/
 
 enum { UDS_Q_ACTION };
-
-static const KvdoWorkQueueType udsQueueType = {
-  .actionTable  = {
-    { .name = "uds_action", .code = UDS_Q_ACTION, .priority = 0 },
-  },
-};
 
 /*****************************************************************************/
 
@@ -90,6 +84,7 @@ typedef struct udsIndex {
   DedupeIndex        common;
   struct kobject     dedupeObject;
   KvdoWorkItem       workItem;
+  RegisteredThread   allocatingThread;
   char              *indexName;
   UdsConfiguration   configuration;
   UdsBlockContext    blockContext;
@@ -343,6 +338,10 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
       atomicStore32(&dedupeContext->requestState, UR_IDLE);
     }
     spin_unlock(&index->stateLock);
+  } else {
+    // A previous user of the KVIO had a dedupe timeout
+    // and its request is still outstanding.
+    atomic64_inc(&kvio->layer->dedupeContextBusy);
   }
   if (kvio != NULL) {
     invokeDedupeCallback(dataKVIO);
@@ -379,7 +378,7 @@ static void closeSession(UDSIndex *index)
   }
   spin_lock(&index->stateLock);
   index->indexState = IS_CLOSED;
-  index->errorFlag = result != UDS_SUCCESS;
+  index->errorFlag |= result != UDS_SUCCESS;
   // ASSERTION: We leave in IS_CLOSED state.
 }
 
@@ -394,21 +393,6 @@ static void openContext(UDSIndex *index)
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Error closing block context for %s",
                             index->indexName);
-  } else {
-    UdsConfiguration configuration;
-    result = udsGetBlockContextConfiguration(index->blockContext,
-                                             &configuration);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "Error reading configuration for %s",
-                              index->indexName);
-    } else {
-      if (udsConfigurationGetNonce(index->configuration)
-          != udsConfigurationGetNonce(configuration)) {
-        logError("Index does not belong to this VDO device");
-        result = EINVAL;
-      }
-      udsFreeConfiguration(configuration);
-    }
   }
   spin_lock(&index->stateLock);
   if (result == UDS_SUCCESS) {
@@ -417,7 +401,7 @@ static void openContext(UDSIndex *index)
   } else {
     index->indexTarget = IS_CLOSED;
     index->errorFlag = true;
-    // ASSERTION: On failure, we leave in IS_CLOSED state.
+    // ASSERTION: On failure, we leave in IS_INDEXSESSION state.
   }
 }
 
@@ -433,17 +417,47 @@ static void openSession(UDSIndex *index)
   index->errorFlag = false;
   // Open the index session, while not holding the stateLock
   spin_unlock(&index->stateLock);
-  int result = (createFlag
-                ? udsCreateLocalIndex(index->indexName, index->configuration,
-                                      &index->indexSession)
-                : udsRebuildLocalIndex(index->indexName,
-                                       &index->indexSession));
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "Error %s index %s",
-                            createFlag ? "creating" : "opening",
-                            index->indexName);
+  bool nextCreateFlag = false;
+  int result = UDS_SUCCESS;
+  if (createFlag) {
+    result = udsCreateLocalIndex(index->indexName, index->configuration,
+                                 &index->indexSession);
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Error creating index %s",
+                              index->indexName);
+    }
+  } else {
+    result = udsRebuildLocalIndex(index->indexName, &index->indexSession);
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Error opening index %s",
+                              index->indexName);
+    } else {
+      UdsConfiguration configuration;
+      result = udsGetIndexConfiguration(index->indexSession, &configuration);
+      if (result != UDS_SUCCESS) {
+        logErrorWithStringError(result, "Error reading configuration for %s",
+                                index->indexName);
+        int closeResult = udsCloseIndexSession(index->indexSession);
+        if (closeResult != UDS_SUCCESS) {
+          logErrorWithStringError(closeResult, "Error closing index %s",
+                                  index->indexName);
+        }
+      } else {
+        if (udsConfigurationGetNonce(index->configuration)
+            != udsConfigurationGetNonce(configuration)) {
+          logError("Index does not belong to this VDO device");
+          // We have an index, but it was made for some other VDO device.  We
+          // will close the index and then try to create a new index.
+          nextCreateFlag = true;
+        }
+        udsFreeConfiguration(configuration);
+      }
+    }
   }
   spin_lock(&index->stateLock);
+  if (nextCreateFlag) {
+    index->createFlag = true;
+  }
   if (!createFlag) {
     switch (result) {
     case UDS_CORRUPT_COMPONENT:
@@ -620,7 +634,6 @@ static void getUDSStatistics(DedupeIndex *dedupeIndex, IndexStatistics *stats)
   }
 }
 
-/*****************************************************************************/
 
 /*****************************************************************************/
 static int processMessage(DedupeIndex *dedupeIndex, const char *name)
@@ -726,11 +739,31 @@ static struct kobj_type dedupeKobjType = {
 };
 
 /*****************************************************************************/
+static void startUDSQueue(void *ptr)
+{
+  /*
+   * Allow the UDS dedupe worker thread to do memory allocations.  It will
+   * only do allocations during the UDS calls that open or close an index,
+   * but those allocations can safely sleep while reserving a large amount
+   * of memory.  We could use an allocationsAllowed boolean (like the base
+   * threads do), but it would be an unnecessary embellishment.
+   */
+  UDSIndex *index = ptr;
+  registerAllocatingThread(&index->allocatingThread, NULL);
+}
+
+/*****************************************************************************/
+static void finishUDSQueue(void *ptr)
+{
+  unregisterAllocatingThread();
+}
+
+/*****************************************************************************/
 int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
 {
   UDSIndex *index;
   int result = ALLOCATE(1, UDSIndex, "UDS index data", &index);
-  if (result != VDO_SUCCESS) {
+  if (result != UDS_SUCCESS) {
     return result;
   }
 
@@ -738,18 +771,8 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
                         "dev=%s offset=4096 size=%" PRIu64,
                         layer->deviceConfig->parentDeviceName,
                         getIndexRegionSize(layer->geometry) * VDO_BLOCK_SIZE);
-  if (result < 0) {
+  if (result != UDS_SUCCESS) {
     logError("Creating index name failed (%d)", result);
-    FREE(index);
-    return result;
-  }
-
-  result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
-                         &layer->wqDirectory, layer, index, &udsQueueType, 1,
-                         &index->udsQueue);
-  if (result < 0) {
-    logError("UDS index queue initialization failed (%d)", result);
-    FREE(index->indexName);
     FREE(index);
     return result;
   }
@@ -757,7 +780,6 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
                                          &index->configuration);
   if (result != VDO_SUCCESS) {
-    freeWorkQueue(&index->udsQueue);
     FREE(index->indexName);
     FREE(index);
     return result;
@@ -765,11 +787,29 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   udsConfigurationSetNonce(index->configuration,
                            (UdsNonce) layer->geometry.nonce);
 
+  static const KvdoWorkQueueType udsQueueType = {
+    .start        = startUDSQueue,
+    .finish       = finishUDSQueue,
+    .actionTable  = {
+      { .name = "uds_action", .code = UDS_Q_ACTION, .priority = 0 },
+    },
+  };
+  result = makeWorkQueue(layer->threadNamePrefix, "dedupeQ",
+                         &layer->wqDirectory, layer, index, &udsQueueType, 1,
+                         &index->udsQueue);
+  if (result != VDO_SUCCESS) {
+    logError("UDS index queue initialization failed (%d)", result);
+    udsFreeConfiguration(index->configuration);
+    FREE(index->indexName);
+    FREE(index);
+    return result;
+  }
+
   kobject_init(&index->dedupeObject, &dedupeKobjType);
   result = kobject_add(&index->dedupeObject, &layer->kobj, "dedupe");
   if (result != VDO_SUCCESS) {
-    udsFreeConfiguration(index->configuration);
     freeWorkQueue(&index->udsQueue);
+    udsFreeConfiguration(index->configuration);
     FREE(index->indexName);
     FREE(index);
     return result;

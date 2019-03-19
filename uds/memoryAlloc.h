@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/memoryAlloc.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/memoryAlloc.h#2 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -54,13 +54,18 @@ void freeMemory(void *ptr);
  * Allocate storage and do a vsprintf into it.  The memory allocation part of
  * this operation is platform dependent.
  *
- * @param [out] strp    The pointer in which to store the allocated string.
- * @param [in]  fmt     The sprintf format parameter.
+ * @param what  A description of what is being allocated.
+ * @param strp  The pointer in which to store the allocated string.
+ * @param fmt   The sprintf format parameter.
+ * @param ap    The format argument list
  *
  * @return UDS_SUCCESS or an error code
  **/
-int doPlatformVasprintf(char **strp, const char *fmt, va_list ap)
-  __attribute__((format(printf, 2, 0), warn_unused_result));
+int doPlatformVasprintf(const char  *what,
+                        char       **strp,
+                        const char  *fmt,
+                        va_list      ap)
+  __attribute__((format(printf, 3, 0), warn_unused_result));
 
 /**
  * Allocate storage based on element counts, sizes, and alignment.
@@ -94,24 +99,18 @@ static INLINE int doAllocation(size_t      count,
                                const char *what,
                                void       *ptr)
 {
-  size_t totalSize;
-
-  // Compute full size with overflow checking.
-  // Takes advantage of x86_64's 64*64=>128 widening multiply.
-  typedef unsigned int uint128_t __attribute__((mode(TI)));
-  // Sanity-check that it is indeed as big as we need.
-  STATIC_ASSERT(sizeof(uint128_t) >= (2 * sizeof(size_t)));
-  uint128_t wideCount = count;
-  uint128_t wideSize = size;
-  uint128_t product = wideCount * wideSize + extra;
-  /*
-   * This is kind of a hack: We rely on the fact that SIZE_MAX would
-   * cover the entire address space (minus one byte) and thus the
-   * system can never allocate that much and the call will always
-   * fail.  So we can report an overflow as "out of memory" by asking
-   * for "merely" SIZE_MAX bytes.
-   */
-  totalSize = ((product >> 64) != 0) ? SIZE_MAX : (size_t) product;
+  size_t totalSize = count * size + extra;
+  // Overflow check:
+  if ((size > 0) && (count > ((SIZE_MAX - extra) / size))) {
+    /*
+     * This is kind of a hack: We rely on the fact that SIZE_MAX would
+     * cover the entire address space (minus one byte) and thus the
+     * system can never allocate that much and the call will always
+     * fail.  So we can report an overflow as "out of memory" by asking
+     * for "merely" SIZE_MAX bytes.
+     */
+    totalSize = SIZE_MAX;
+  }
 
   return allocateMemory(totalSize, align, what, ptr);
 }

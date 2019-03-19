@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds.h#11 $
+ * $Id: //eng/uds-releases/gloria/src/public/uds.h#3 $
  */
 
 /**
@@ -116,12 +116,6 @@ typedef struct udsIndexSession {
 } UdsIndexSession;
 
 /**
- * The opaque data passed between an asynchronous UDS call and
- * its corresponding callback.
- **/
-typedef void *UdsCookie;
-
-/**
  * The data used to configure a new index.
  **/
 typedef struct udsConfiguration *UdsConfiguration;
@@ -156,8 +150,6 @@ typedef struct udsIndexStats {
  * is more recent.
  **/
 typedef struct udsContextStats {
-  /** The time at which context statistics were last reset */
-  time_t   resetTime;
   /** The time at which context statistics were last fetched */
   time_t   currentTime;
   /**
@@ -223,18 +215,6 @@ typedef struct udsContextStats {
    * statistics were last reset
    **/
   uint64_t requests;
-  /** Maximum number of outstanding requests allowed for this context */
-  unsigned int requestQueueLimit;
-  /**
-   * The total turnaround time for all requests since context
-   * statistics were last reset, measured in microseconds
-   **/
-  uint64_t requestTurnaroundTime;
-  /**
-   * The maximum turnaround time for all requests since context
-   * statistics were last reset, measured in microseconds
-   **/
-  uint64_t maximumTurnaroundTime;
 } UdsContextStats;
 
 /**
@@ -509,6 +489,28 @@ int udsAddGridServer(UdsGridConfig gridConfig,
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsCloseIndexSession(UdsIndexSession session);
+
+/**
+ * Returns the configuration for the given index session.
+ *
+ * @param [in]  session The session
+ * @param [out] conf    The index configuration
+ *
+ * @return              Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
+
+/**
+ * Fetches index statistics for the given index session.
+ *
+ * @param [in]  session The session
+ * @param [out] stats   The index statistics structure to fill
+ *
+ * @return              Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
 
 /**
  * The possible status that an index server can return.

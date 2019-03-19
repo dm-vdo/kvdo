@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/parameter.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/parameter.h#1 $
  */
 
 #ifndef PARAMETER_H
@@ -24,18 +24,6 @@
 
 #include "typeDefs.h"
 #include "uds-param.h"
-
-/*
- * Internal-use parameter:
- *
- * UDS_TIME_REQUEST_TURNAROUND
- *      BOOLEAN         True, False                             [False]
- *      STRING          "true", "false", "yes", "no" (case-insensitive)
- *      Whether contexts should track how long each request took. Although
- *      stored as an unsigned int, the validation function will accept
- *      strings as well. This parameter affects how block, stream, or file
- *      contexts create requests.
- */
 
 /**
  * A parameter definition stores the name, the current value (which includes
@@ -72,7 +60,6 @@ struct parameterDefinition {
 };
 
 extern const char * const UDS_PARALLEL_FACTOR;
-extern const char * const UDS_TIME_REQUEST_TURNAROUND;
 extern const char * const UDS_VOLUME_READ_THREADS;
 extern const char * const UDS_PARAMETER_TEST_PARAM;
 
@@ -96,7 +83,6 @@ extern const char * const UDS_PARAMETER_TEST_PARAM;
  **/
 
 extern int defineParallelFactor(ParameterDefinition *pd);
-extern int defineTimeRequestTurnaround(ParameterDefinition *pd);
 extern int defineVolumeReadThreads(ParameterDefinition *pd);
 extern int setTestParameterDefinitionFunc(int (*func)(ParameterDefinition *))
   __attribute__((warn_unused_result));

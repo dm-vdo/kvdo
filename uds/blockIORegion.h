@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/blockIORegion.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/blockIORegion.h#1 $
  */
 
 #ifndef BLOCK_IO_REGION_H
@@ -30,7 +30,7 @@
  * Obtain access to a block-based subregion of an IORegion.
  *
  * @param [in]  parent          An underlying region to read and write from.
- * @parent[in]  access          Access type (must be compatible with that of
+ * @param [in]  access          Access type (must be compatible with that of
  *                                underlying region).
  * @param [in]  start           Start of data region.
  * @param [in]  end             End of data region.

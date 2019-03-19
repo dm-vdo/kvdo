@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/statusProcfs.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/statusProcfs.c#4 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -119,10 +119,12 @@ void getKernelStats(KernelLayer *layer, KernelStatistics *stats)
   stats->instance       = layer->instance;
   getLimiterValuesAtomically(&layer->requestLimiter,
                              &stats->currentVIOsInProgress, &stats->maxVIOs);
-  stats->dedupeAdviceTimeouts
-    = getEventCount(&layer->albireoTimeoutReporter);
-  stats->flushOut     = atomic64_read(&layer->flushOut);
-  stats->logicalBlockSize = layer->logicalBlockSize;
+  // albireoTimeoutReport gives the number of timeouts, and dedupeContextBusy
+  // gives the number of queries not made because of earlier timeouts.
+  stats->dedupeAdviceTimeouts = (getEventCount(&layer->albireoTimeoutReporter)
+                                 + atomic64_read(&layer->dedupeContextBusy));
+  stats->flushOut             = atomic64_read(&layer->flushOut);
+  stats->logicalBlockSize     = layer->logicalBlockSize;
   copyBioStat(&stats->biosIn, &layer->biosIn);
   copyBioStat(&stats->biosInPartial, &layer->biosInPartial);
   copyBioStat(&stats->biosOut, &layer->biosOut);

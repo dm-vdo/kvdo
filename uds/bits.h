@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/bits.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/bits.h#1 $
  */
 
 #ifndef BITS_H
 #define BITS_H 1
 
 #include "compiler.h"
+#include "numeric.h"
 #include "typeDefs.h"
 
 /*
@@ -71,8 +72,8 @@ enum { POST_FIELD_GUARD_BYTES = sizeof(uint64_t) - 1 };
 static INLINE unsigned int getField(const byte *memory, uint64_t offset,
                                     int size)
 {
-  const uint32_t *addr = (const uint32_t *) (memory + offset / CHAR_BIT);
-  return (*addr >> (offset % CHAR_BIT)) & ((1 << size) - 1);
+  const void *addr = memory + offset / CHAR_BIT;
+  return (getUInt32LE(addr) >> (offset % CHAR_BIT)) & ((1 << size) - 1);
 }
 
 /**
@@ -88,10 +89,12 @@ static INLINE unsigned int getField(const byte *memory, uint64_t offset,
 static INLINE void setField(unsigned int value, byte *memory, uint64_t offset,
                             int size)
 {
-  uint32_t *addr = (uint32_t *) (memory + offset / CHAR_BIT);
+  void *addr = memory + offset / CHAR_BIT;
   int shift = offset % CHAR_BIT;
-  *addr &= ~(((1 << size) - 1) << shift);
-  *addr |= value << shift;
+  uint32_t data = getUInt32LE(addr);
+  data &= ~(((1 << size) - 1) << shift);
+  data |= value << shift;
+  storeUInt32LE(addr, data);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/kernelLayer.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.h#8 $
  */
 
 #ifndef KERNELLAYER_H
@@ -24,6 +24,7 @@
 
 #include <linux/device-mapper.h>
 
+#include "atomic.h"
 #include "constants.h"
 #include "flush.h"
 #include "intMap.h"
@@ -170,6 +171,7 @@ struct kernelLayer {
   // Statistics
   atomic64_t              biosSubmitted;
   atomic64_t              biosCompleted;
+  atomic64_t              dedupeContextBusy;
   atomic64_t              flushOut;
   AtomicBioStats          biosIn;
   AtomicBioStats          biosInPartial;

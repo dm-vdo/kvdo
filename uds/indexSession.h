@@ -16,16 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexSession.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexSession.h#2 $
  */
 
 #ifndef INDEX_SESSION_H
 #define INDEX_SESSION_H
 
+#include "atomicDefs.h"
+#include "cpu.h"
 #include "opaqueTypes.h"
 #include "session.h"
 #include "uds.h"
-#include "util/atomic.h"
 
 typedef enum {
   IS_INIT     = 1,
@@ -33,13 +34,31 @@ typedef enum {
   IS_DISABLED = 3
 } IndexSessionState;
 
+typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
+  uint64_t postsFound;            /* Post calls that found an entry */
+  uint64_t postsFoundOpenChapter; /* Post calls found in the open chapter */
+  uint64_t postsFoundDense;       /* Post calls found in the dense index */
+  uint64_t postsFoundSparse;      /* Post calls found in the sparse index */
+  uint64_t postsNotFound;         /* Post calls that did not find an entry */
+  uint64_t updatesFound;          /* Update calls that found an entry */
+  uint64_t updatesNotFound;       /* Update calls that did not find an entry */
+  uint64_t deletionsFound;        /* Delete calls that found an entry */
+  uint64_t deletionsNotFound;     /* Delete calls that did not find an entry */
+  uint64_t queriesFound;          /* Query calls that found an entry */
+  uint64_t queriesNotFound;       /* Query calls that did not find an entry */
+  uint64_t requests;              /* Total number of requests */
+} SessionStats;
+
 /**
  * Structure corresponding to a UdsIndexSession
  **/
 struct indexSession {
-  Session   session;
-  Atomic32  state;        // an atomically updated IndexSessionState value
-  Grid     *grid;
+  Session       session;
+  atomic_t      state;         // atomically updated IndexSessionState
+  Grid         *grid;
+  RequestQueue *callbackQueue;
+  // Request statistics, all owned by the callback thread
+  SessionStats  stats;
 };
 
 /**

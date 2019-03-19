@@ -16,26 +16,73 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexConfig.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexConfig.c#4 $
  */
 
 #include "indexConfig.h"
 
+#include "buffer.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
 static const byte INDEX_CONFIG_MAGIC[]        = "ALBIC";
 static const byte INDEX_CONFIG_VERSION[]      = "06.02";
 static const byte INDEX_CONFIG_VERSION_6_01[] = "06.01";
-static const byte INDEX_CONFIG_VERSION_4_13[] = "04.13";
-static const byte INDEX_CONFIG_VERSION_4_12[] = "04.12";
-static const byte INDEX_CONFIG_VERSION_4_11[] = "04.11";
-static const byte INDEX_CONFIG_VERSION_4_01[] = "04.01";
 
 enum {
   INDEX_CONFIG_MAGIC_LENGTH   = sizeof(INDEX_CONFIG_MAGIC) - 1,
   INDEX_CONFIG_VERSION_LENGTH = sizeof(INDEX_CONFIG_VERSION) - 1
 };
+
+/**********************************************************************/
+__attribute__((warn_unused_result))
+static int decodeIndexConfig(Buffer *buffer, UdsConfiguration config)
+{
+  int result = getUInt32LEFromBuffer(buffer, &config->recordPagesPerChapter);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->chaptersPerVolume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->sparseChaptersPerVolume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->cacheChapters);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->checkpointFrequency);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->masterIndexMeanDelta);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->bytesPerPage);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &config->sparseSampleRate);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &config->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
+                           "%zu bytes decoded of %zu expected",
+                           bufferLength(buffer) - contentLength(buffer),
+                           bufferLength(buffer));
+  if (result != UDS_SUCCESS) {
+    result = UDS_CORRUPT_COMPONENT;
+  }
+  return result;
+}
 
 /**********************************************************************/
 static int readVersion(BufferedReader    *reader,
@@ -49,9 +96,22 @@ static int readVersion(BufferedReader    *reader,
     return logErrorWithStringError(result, "cannot read index config version");
   }
   if (memcmp(INDEX_CONFIG_VERSION, buffer, INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    result = readFromBufferedReader(reader, conf, sizeof(*conf));
+    Buffer *buffer;
+    result = makeBuffer(sizeof(*conf), &buffer);
     if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "cannot read config data");
+      return result;
+    }
+    result = readFromBufferedReader(reader, getBufferContents(buffer),
+                                    bufferLength(buffer));
+    if (result != UDS_SUCCESS) {
+      freeBuffer(&buffer);
+      return logErrorWithStringError(result, "cannot read config data");
+    }
+    clearBuffer(buffer);
+    result = decodeIndexConfig(buffer, conf);
+    freeBuffer(&buffer);
+    if (result != UDS_SUCCESS) {
+      return result;
     }
     if (versionPtr != NULL) {
       *versionPtr = "current";
@@ -77,112 +137,6 @@ static int readVersion(BufferedReader    *reader,
     conf->nonce                   = 0;
     if (versionPtr != NULL) {
       *versionPtr = "6.01";
-    }
-    return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_13, buffer,
-                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration4_13 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "failed to read version 4.13 config file");
-      return result;
-    }
-    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
-    conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
-    /* Skip masterIndexAddressBits; it's obsolete */
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
-    conf->nonce                   = 0;
-    if (versionPtr != NULL) {
-      *versionPtr = "4.13";
-    }
-    if (oldConf.subIndexCount != 1) {
-      return UDS_INVALID_ARGUMENT;
-    }
-    return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_12, buffer,
-                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration4_12 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "failed to read version 4.12 config file");
-      return result;
-    }
-    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
-    conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
-    /* Skip masterIndexAddressBits; it's obsolete */
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
-    conf->nonce                   = 0;
-    if (versionPtr != NULL) {
-      *versionPtr = "4.12";
-    }
-    if (oldConf.subIndexCount != 1) {
-      return UDS_INVALID_ARGUMENT;
-    }
-    return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_11, buffer,
-                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration4_11 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "failed to read version 4.11 config file");
-      return result;
-    }
-    conf->recordPagesPerChapter   = oldConf.recordPagesPerChapter;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = oldConf.masterIndexMeanDelta;
-    conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
-    /* Skip masterIndexDeltaBits; it's obsolete */
-    /* Skip masterIndexAddressBits; it's obsolete */
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
-    conf->nonce                   = 0;
-    if (versionPtr != NULL) {
-      *versionPtr = "4.11";
-    }
-    if (oldConf.subIndexCount != 1) {
-      return UDS_INVALID_ARGUMENT;
-    }
-    return UDS_UNSUPPORTED_VERSION;
-  } else if (memcmp(INDEX_CONFIG_VERSION_4_01, buffer,
-                    INDEX_CONFIG_VERSION_LENGTH) == 0) {
-    struct udsConfiguration4_01 oldConf;
-    result = readFromBufferedReader(reader, &oldConf, sizeof(oldConf));
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "failed to read version 4.01 config file");
-      return result;
-    }
-    conf->recordPagesPerChapter   = oldConf.indexSize / 4;
-    conf->chaptersPerVolume       = oldConf.chaptersPerVolume;
-    conf->sparseChaptersPerVolume = oldConf.sparseChaptersPerVolume;
-    conf->cacheChapters           = oldConf.cacheChapters;
-    conf->checkpointFrequency     = oldConf.checkpointFrequency;
-    conf->masterIndexMeanDelta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
-    conf->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
-    /* Skip masterIndexDeltaBits; it's obsolete */
-    /* Skip masterIndexAddressBits; it's obsolete */
-    conf->sparseSampleRate        = oldConf.sparseSampleRate;
-    conf->nonce                   = 0;
-    if (versionPtr != NULL) {
-      *versionPtr = "4.01";
-    }
-    if (oldConf.subIndexCount != 1) {
-      return UDS_INVALID_ARGUMENT;
     }
     return UDS_UNSUPPORTED_VERSION;
   }
@@ -216,6 +170,52 @@ int readConfigContents(BufferedReader   *reader,
 }
 
 /**********************************************************************/
+__attribute__((warn_unused_result))
+static int encodeIndexConfig(Buffer *buffer, UdsConfiguration config)
+{
+  int result = putUInt32LEIntoBuffer(buffer, config->recordPagesPerChapter);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->chaptersPerVolume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->sparseChaptersPerVolume);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->cacheChapters);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config-> checkpointFrequency);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->masterIndexMeanDelta);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->bytesPerPage);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, config->sparseSampleRate);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt64LEIntoBuffer(buffer, config->nonce);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(*config),
+                           "%zu bytes encoded, of %zu expected",
+                           contentLength(buffer), sizeof(*config));
+  return result;
+}
+
+/**********************************************************************/
 int writeConfigContents(BufferedWriter   *writer,
                         UdsConfiguration  config)
 {
@@ -229,7 +229,20 @@ int writeConfigContents(BufferedWriter   *writer,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  return writeToBufferedWriter(writer, config, sizeof(*config));
+  Buffer *buffer;
+  result = makeBuffer(sizeof(*config), &buffer);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = encodeIndexConfig(buffer, config);
+  if (result != UDS_SUCCESS) {
+    freeBuffer(&buffer);
+    return result;
+  }
+  result = writeToBufferedWriter(writer, getBufferContents(buffer),
+                                 contentLength(buffer));
+  freeBuffer(&buffer);
+  return result;
 }
 
 /**********************************************************************/

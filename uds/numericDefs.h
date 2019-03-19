@@ -16,18 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/numericDefs.h#2 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/numericDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_NUMERIC_DEFS_H
 #define LINUX_KERNEL_NUMERIC_DEFS_H 1
 
-// Linux user mode defines these for us, but the linux kernel does not.
-// Until we figure it out, this will let us make progress.
-#define BIG_ENDIAN    4321
-#define LITTLE_ENDIAN 1234
-#define BYTE_ORDER    LITTLE_ENDIAN
-
+#ifdef __x86_64__
+/*
+ * __builtin_bswap16 should work fine here too, but check for a
+ * performance impact before changing it, just to be safe.
+ */
 #define bswap_16(x) \
   (__extension__                                                        \
    ({ register unsigned short int __v, __x = (unsigned short int) (x);  \
@@ -36,5 +35,8 @@
               : "0" (__x)                                               \
               : "cc");                                                  \
      __v; }))
+#else
+#define bswap_16(x) __builtin_bswap16(x)
+#endif
 
 #endif /* LINUX_KERNEL_NUMERIC_DEFS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/permassertLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/permassertLinuxKernel.c#1 $
  */
 
 #include "logger.h"

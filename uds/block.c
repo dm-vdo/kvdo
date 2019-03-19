@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/block.c#8 $
+ * $Id: //eng/uds-releases/gloria/src/uds/block.c#2 $
  */
 
 #include "uds-block.h"
@@ -27,14 +27,15 @@
 #include "uds-error.h"
 
 /**********************************************************************/
-int udsOpenBlockContext(UdsIndexSession     session,
-                        unsigned int        metadataSize,
-                        UdsBlockContext    *context)
+int udsOpenBlockContext(UdsIndexSession  session,
+                        unsigned int     metadataSize __attribute__((unused)),
+                        UdsBlockContext *context)
 {
+  // XXX the metadataSize argument is unused and can be deleted
   if (context == NULL) {
     return UDS_CONTEXT_PTR_REQUIRED;
   }
-  return openContext(session, metadataSize, &context->id);
+  return openContext(session, &context->id);
 }
 
 /**********************************************************************/
@@ -70,42 +71,6 @@ int udsStartChunkOperation(UdsRequest *request)
 }
 
 /**********************************************************************/
-int udsPostBlockName(UdsBlockContext     context,
-                     UdsCookie           cookie,
-                     UdsBlockAddress     blockAddress,
-                     const UdsChunkName *chunkName)
-{
-  if (blockAddress == NULL) {
-    return UDS_BLOCK_ADDRESS_REQUIRED;
-  }
-  return launchClientRequest(context.id, UDS_POST, false, chunkName, cookie,
-                             blockAddress);
-}
-
-/**********************************************************************/
-int udsRegisterDedupeBlockCallback(UdsBlockContext         context,
-                                   UdsDedupeBlockCallback  callbackFunction,
-                                   void                   *callbackArgument)
-{
-  return registerDedupeCallback(context.id, callbackFunction,
-                                callbackArgument);
-}
-
-/**********************************************************************/
-int udsSetBlockContextRequestQueueLimit(UdsBlockContext context,
-                                        unsigned int    maxRequests)
-{
-  return setRequestQueueLimit(context.id, maxRequests);
-}
-
-/**********************************************************************/
-int udsGetBlockContextConfiguration(UdsBlockContext   context,
-                                    UdsConfiguration *conf)
-{
-  return getConfiguration(context.id, conf);
-}
-
-/**********************************************************************/
 int udsGetBlockContextIndexStats(UdsBlockContext  context,
                                  UdsIndexStats   *stats)
 {
@@ -116,10 +81,4 @@ int udsGetBlockContextIndexStats(UdsBlockContext  context,
 int udsGetBlockContextStats(UdsBlockContext context, UdsContextStats *stats)
 {
   return getContextStats(context.id, stats);
-}
-
-/**********************************************************************/
-int udsResetBlockContextStats(UdsBlockContext context)
-{
-  return resetStats(context.id);
 }

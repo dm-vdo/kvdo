@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/public/uds-block.h#10 $
+ * $Id: //eng/uds-releases/gloria/src/public/uds-block.h#2 $
  */
 
 /**
@@ -61,52 +61,6 @@ struct udsChunkData {
  * possible.
  **/
 typedef void *UdsBlockAddress;
-
-/**
- * Callback function invoked to inform the Application Software that an
- * operation completed.
- *
- * The <code>context</code>, <code>type</code>, <code>status</code>,
- * <code>cookie</code>, and <code>callbackArgument</code> parameters
- * are always set.  The rest of them depend on the callback type.
- *
- * <ul>
- * <li> <code>duplicateAddress</code>: is set except for #UDS_DELETE.</li>
- * <li> <code>canonicalAddress</code>: is set if the chunk existed.</li>
- * <li> <code>blockName</code>: is always set.</li>
- * <li> <code>blockLength</code>: is zero</li>
- * </ul>
- *
- * On a duplicate block callback, retain the canonical address and adjust the
- * duplicate address to share data with the canonical address.
- *
- * All callbacks are invoked in one thread, so the callback function should
- * not block.  In addition, this function should not call exit() or make
- * additional calls into the index.
- *
- * @param [in,out] context      The context
- * @param [in] type             The callback type
- * @param [in] status           The request status (either
- *                              #UDS_SUCCESS or an error code)
- * @param [in] cookie           The opaque data from the call that invoked
- *                              this callback
- * @param [in] duplicateAddress The duplicate address, which can possibly be
- *                              freed
- * @param [in] canonicalAddress The canonical address of the chunk
- * @param [in] blockName        The name (hash) of the chunk being referenced,
- *                              used for unmapping or remapping this block
- * @param [in] callbackArgument The <code>callbackArgument</code> given when
- *                              registering the callback
- **/
-typedef void (*UdsDedupeBlockCallback)(UdsBlockContext  context,
-                                       UdsCallbackType  type,
-                                       int              status,
-                                       UdsCookie        cookie,
-                                       UdsBlockAddress  duplicateAddress,
-                                       UdsBlockAddress  canonicalAddress,
-                                       UdsChunkName    *blockName,
-                                       void            *callbackArgument);
-
 /** @{ */
 /** @name Context Management */
 
@@ -127,8 +81,7 @@ typedef void (*UdsDedupeBlockCallback)(UdsBlockContext  context,
  * #udsOpenBlockContext to open a fresh block context.
  *
  * @param [in] session       The index session
- * @param [in] metadataSize  The size of metadata to be passed using the
- *                           context
+ * @param [in] metadataSize  This value is unused
  * @param [out] context      The new block context
  *
  * @return Either #UDS_SUCCESS or an error code
@@ -160,77 +113,10 @@ int udsCloseBlockContext(UdsBlockContext context);
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsFlushBlockContext(UdsBlockContext context);
-
-/**
- * Registers a callback to be invoked when asynchronous index operations are
- * complete.
- *
- * The #udsPostBlockName function invokes the registered callback to inform the
- * Application Software that an operation is complete.
- *
- * @param [in] context          The library context
- * @param [in] cb               The callback function, or <code>NULL</code>
- *                              to unregister an existing callback
- * @param [in] callbackArgument Opaque argument for the callback
- *
- * @return                      Either #UDS_SUCCESS or an error code
- *
- * @see #UdsDedupeBlockCallback
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsRegisterDedupeBlockCallback(UdsBlockContext         context,
-                                   UdsDedupeBlockCallback  cb,
-                                   void                   *callbackArgument);
-
-/**
- * Controls the maximum size of the backlog of pending requests
- * managed within the UDS library.
- *
- * Higher values allow for more parallelism and better amortize
- * processing time (especially when the fingerprint API is not used),
- * but also tends to increase turnaround time of individual requests.
- *
- * @param [in] context          The library context
- * @param [in] maxRequests      The maximum backlog size
- *
- * @return                      Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsSetBlockContextRequestQueueLimit(UdsBlockContext context,
-                                        unsigned int    maxRequests);
 /** @} */
 
 /** @{ */
 /** @name Deduplication */
-
-/**
- * Indexes a block name and asynchronously associates it with a particular
- * address;  if a callback function has been registered, it is invoked upon
- * completion.
- *
- * This is an asynchronous interface to the block-oriented UDS
- * API.  The Application Software provides the block's name. UDS then
- * checks this name against its index.
- * <ul>
- *   <li>If the block is new, it is stored in the index.</li>
- *   <li>If the block is a duplicate of an indexed block, UDS returns the
- *       canonical block address via the #UdsDedupeBlockCallback callback.</li>
- * </ul>
- *
- * @param [in] context      The context for the block
- * @param [in] cookie       Opaque data for the callback
- * @param [in] blockAddress The address of the block being referenced
- * @param [in] chunkName    The name of the block
- *
- * @return                  Either #UDS_SUCCESS or an error code
- *
- * @see #udsRegisterDedupeBlockCallback
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsPostBlockName(UdsBlockContext     context,
-                     UdsCookie           cookie,
-                     UdsBlockAddress     blockAddress,
-                     const UdsChunkName *chunkName);
 
 typedef struct udsRequest UdsRequest;
 
@@ -357,18 +243,6 @@ int udsStartChunkOperation(UdsRequest *request);
 /** @name Monitoring */
 
 /**
- * Returns the configuration for the given context.
- *
- * @param [in]  context The block context
- * @param [out] conf    The index configuration
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetBlockContextConfiguration(UdsBlockContext   context,
-                                    UdsConfiguration *conf);
-
-/**
  * Fetches index statistics for the given context.
  *
  * @param [in]  context The block context
@@ -391,16 +265,6 @@ int udsGetBlockContextIndexStats(UdsBlockContext  context,
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsGetBlockContextStats(UdsBlockContext  context,
                             UdsContextStats *stats);
-
-/**
- * Resets context statistics for the given context.
- *
- * @param [in] context The block context to reset
- *
- * @return             Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsResetBlockContextStats(UdsBlockContext context);
 
 /** @} */
 

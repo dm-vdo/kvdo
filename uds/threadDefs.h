@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/kernelLinux/uds/threadDefs.h#6 $
+ * $Id: //eng/uds-releases/gloria/kernelLinux/uds/threadDefs.h#4 $
  */
 
 #ifndef LINUX_KERNEL_THREAD_DEFS_H
@@ -24,7 +24,6 @@
 
 #include <linux/completion.h>
 #include <linux/mutex.h>
-#include <linux/semaphore.h>
 
 #include "compiler.h"
 #include "uds-error.h"
@@ -35,8 +34,13 @@ typedef pid_t                ThreadId;
 
 typedef struct { EventCount *eventCount;    } CondVar;
 typedef struct mutex                          Mutex;
-typedef struct { struct hr_semaphore *psem; } Semaphore;
 typedef struct completion                     SynchronousCallback;
+
+typedef struct hr_semaphore {
+  raw_spinlock_t   lock;
+  unsigned int     count;
+  struct list_head waitList;
+} Semaphore;
 
 typedef struct {
   Semaphore mutex;       // Mutex for this barrier object
@@ -70,6 +74,7 @@ static INLINE int initializeMutex(Mutex *mutex,
  *
  * @return UDS_SUCCESS or an error code
  **/
+__attribute__((warn_unused_result))
 static INLINE int initMutex(Mutex *mutex)
 {
   mutex_init(mutex);

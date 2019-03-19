@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/eventCount.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/eventCount.c#3 $
  */
 
 /**
@@ -33,7 +33,7 @@
  * the waiter count. The key invariant is a strict accounting of the number of
  * tokens issued. Every token returned by eventCountPrepare() is a contract
  * that the caller will call acquireSemaphore() and a signaller will call
- * releaseSemapore(), each exactly once. Atomic updates to the state field
+ * releaseSemaphore(), each exactly once. Atomic updates to the state field
  * ensure that each token is counted once and that tokens are not lost.
  * Cancelling a token attempts to take a fast-path by simply decrementing the
  * waiters field, but if the token has already been claimed by a signaller,
@@ -85,13 +85,12 @@
  * line. The instrumentation counters increase the size of the structure so it
  * rounds up to use two (64-byte x86) cache lines.
  *
- * XXX Should instrumentation fields be #ifdef'ed out if not enabled?
  * XXX Need interface to access or display instrumentation counters.
  **/
 
 #include "eventCount.h"
 
-#include "atomic.h"
+#include "atomicDefs.h"
 #include "common.h"
 #include "compiler.h"
 #include "cpu.h"
@@ -104,43 +103,21 @@ enum {
   ONE_EVENT    = (1 << 16),       // value used to increment the event counter
   WAITERS_MASK = (ONE_EVENT - 1), // bit mask to access the waiters field
   EVENTS_MASK  = ~WAITERS_MASK,   // bit mask to access the event counter
-
-  // Change to "true" to enable instrumentation counters.
-  INSTRUMENTED = false
 };
 
 struct eventCount {
   // Atomically mutable state:
   // low  16 bits: the number of wait tokens not posted to the semaphore
   // high 48 bits: current event counter
-  Atomic64 state;
+  atomic64_t state;
 
   // Semaphore used to block threads when waiting is required.
   Semaphore semaphore;
 
   // Instrumentation counters.
-  Atomic64 signals;   // # of signal() calls
-  Atomic64 wakeups;   // # of releaseSemapore() calls
-  Atomic64 waits;     // # of eventCountWait() calls
-  Atomic64 sleeps;    // # of acquireSemaphore() calls
-  Atomic64 timeouts;  // # of sem_timedwait() timeouts
 
   // Declare alignment so we don't share a cache line.
-}  __attribute__((aligned(CACHE_LINE_BYTES)));
-
-/**
- * Atomically add a value to an instrumentation counter. This will be a no-op
- * if instrumentation is not enabled at compile time.
- *
- * @param counter  pointer to the counter
- * @param delta    the value to add
- **/
-static INLINE void instrumentedAdd(Atomic64 *counter, int64_t delta)
-{
-  if (INSTRUMENTED) {
-    atomicAdd64(counter, delta);
-  }
-}
+} __attribute__((aligned(CACHE_LINE_BYTES)));
 
 /**
  * Test the event field in two tokens for equality.
@@ -155,13 +132,14 @@ static INLINE bool sameEvent(EventToken token1, EventToken token2)
 /**********************************************************************/
 void eventCountBroadcast(EventCount *ec)
 {
-  instrumentedAdd(&ec->signals, 1);
 
-  memoryFence();
+  // Even if there are no waiters (yet), we will need a memory barrier.
+  smp_mb();
 
-  unsigned int waiters;
-  for (;;) {
-    uint64_t state = relaxedLoad64(&ec->state);
+  uint64_t waiters;
+  uint64_t state = atomic64_read(&ec->state);
+  uint64_t oldState = state;
+  do {
     // Check if there are any tokens that have not yet been been transferred
     // to the semaphore. This is the fast no-waiters path.
     waiters = (state & WAITERS_MASK);
@@ -172,18 +150,17 @@ void eventCountBroadcast(EventCount *ec)
     }
 
     /*
-     * Attempt to atomically claim all the wait tokens and bump the event
-     * count using an atomic compare-and-swap.
+     * Attempt to atomically claim all the wait tokens and bump the event count
+     * using an atomic compare-and-swap.  This operation contains a memory
+     * barrier.
      */
     EventToken newState = ((state & ~WAITERS_MASK) + ONE_EVENT);
-    if (likely(compareAndSwap64(&ec->state, state, newState))) {
-      break;
-    }
-    // The CAS failed because we lost a race with a new waiter or another
+    oldState = state;
+    state = atomic64_cmpxchg(&ec->state, oldState, newState);
+    // The cmpxchg fails when we lose a race with a new waiter or another
     // signaller, so try again.
-  }
+  } while (unlikely(state != oldState));
 
-  instrumentedAdd(&ec->wakeups, waiters);
 
   /*
    * Wake the waiters by posting to the semaphore. This effectively transfers
@@ -208,14 +185,16 @@ void eventCountBroadcast(EventCount *ec)
  **/
 static INLINE bool fastCancel(EventCount *ec, EventToken token)
 {
-  EventToken currentToken = relaxedLoad64(&ec->state);
+  EventToken currentToken = atomic64_read(&ec->state);
   while (sameEvent(currentToken, token)) {
     // Try to decrement the waiter count via compare-and-swap as if we had
     // never prepared to wait.
-    if (compareAndSwap64(&ec->state, currentToken, currentToken - 1)) {
+    EventToken et = atomic64_cmpxchg(&ec->state, currentToken,
+                                     currentToken - 1);
+    if (et == currentToken) {
       return true;
     }
-    currentToken = relaxedLoad64(&ec->state);
+    currentToken = et;
   }
   return false;
 }
@@ -239,12 +218,10 @@ static bool consumeWaitToken(EventCount *ec, const RelTime *timeout)
     return true;
   }
 
-  instrumentedAdd(&ec->sleeps, 1);
 
   if (timeout == NULL) {
     acquireSemaphore(&ec->semaphore, __func__);
   } else if (!attemptSemaphore(&ec->semaphore, *timeout, __func__)) {
-    instrumentedAdd(&ec->timeouts, 1);
     return false;
   }
   return true;
@@ -253,15 +230,15 @@ static bool consumeWaitToken(EventCount *ec, const RelTime *timeout)
 /**********************************************************************/
 int makeEventCount(EventCount **ecPtr)
 {
-  // Allocate the event count on a cache line boundary so there will not
-  // be false sharing of the line with any other data structure.
+  // The event count will be allocated on a cache line boundary so there will
+  // not be false sharing of the line with any other data structure.
   EventCount *ec = NULL;
-  int result = allocateCacheAligned(sizeof(EventCount), "event count", &ec);
+  int result = ALLOCATE(1, EventCount, "event count", &ec);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  relaxedStore64(&ec->state, 0);
+  atomic64_set(&ec->state, 0);
   result = initializeSemaphore(&ec->semaphore, 0, __func__);
   if (result != UDS_SUCCESS) {
     FREE(ec);
@@ -285,25 +262,24 @@ void freeEventCount(EventCount *ec)
 /**********************************************************************/
 EventToken eventCountPrepare(EventCount *ec)
 {
-  return atomicAdd64(&ec->state, ONE_WAITER);
+  return atomic64_add_return(ONE_WAITER, &ec->state);
 }
 
 /**********************************************************************/
-int eventCountCancel(EventCount *ec, EventToken token)
+void eventCountCancel(EventCount *ec, EventToken token)
 {
   // Decrement the waiter count if the event hasn't been signalled.
   if (fastCancel(ec, token)) {
-    return UDS_SUCCESS;
+    return;
   }
   // A signaller has already transferred (or promised to transfer) our token
   // to the semaphore, so we must consume it from the semaphore by waiting.
-  return eventCountWait(ec, token, NULL);
+  eventCountWait(ec, token, NULL);
 }
 
 /**********************************************************************/
 bool eventCountWait(EventCount *ec, EventToken token, const RelTime *timeout)
 {
-  instrumentedAdd(&ec->waits, 1);
 
   for (;;) {
     // Wait for a signaller to transfer our wait token to the semaphore.
@@ -327,7 +303,7 @@ bool eventCountWait(EventCount *ec, EventToken token, const RelTime *timeout)
     // A wait token has now been consumed from the semaphore.
 
     // Stop waiting if the count has changed since the token was acquired.
-    if (!sameEvent(token, relaxedLoad64(&ec->state))) {
+    if (!sameEvent(token, atomic64_read(&ec->state))) {
       return true;
     }
 

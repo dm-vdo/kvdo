@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/timeUtils.h#4 $
+ * $Id: //eng/uds-releases/gloria/src/uds/timeUtils.h#1 $
  */
 
 #ifndef TIME_UTILS_H
@@ -145,7 +145,7 @@ static INLINE RelTime secondsToRelTime(int64_t seconds)
 /**
  * Convert milliseconds to a RelTime value
  *
- * @param seconds  A number of milliseconds
+ * @param milliseconds  A number of milliseconds
  *
  * @return the equivalent number of milliseconds as a RelTime
  **/
@@ -157,7 +157,7 @@ static INLINE RelTime millisecondsToRelTime(int64_t milliseconds)
 /**
  * Convert microseconds to a RelTime value
  *
- * @param seconds  A number of microseconds
+ * @param microseconds  A number of microseconds
  *
  * @return the equivalent number of microseconds as a RelTime
  **/
@@ -169,7 +169,7 @@ static INLINE RelTime microsecondsToRelTime(int64_t microseconds)
 /**
  * Convert nanoseconds to a RelTime value
  *
- * @param seconds  A number of nanoseconds
+ * @param nanoseconds  A number of nanoseconds
  *
  * @return the equivalent number of nanoseconds as a RelTime
  **/

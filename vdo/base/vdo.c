@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/vdo.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdo.c#8 $
  */
 
 /*
@@ -194,13 +194,8 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  if (vdo->threadData != NULL) {
-    for (ThreadID thread = 0; thread < threadConfig->baseThreadCount;
-         thread++) {
-      uninitializeThreadData(&vdo->threadData[thread]);
-    }
-    FREE(vdo->threadData);
-    vdo->threadData = NULL;
+  if (threadConfig != NULL) {
+    freeThreadDataArray(&vdo->threadData, threadConfig->baseThreadCount);
   }
 
   freeAdminCompletion(&vdo->adminCompletion);

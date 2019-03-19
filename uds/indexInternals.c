@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexInternals.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexInternals.c#5 $
  */
 
 #include "indexInternals.h"
@@ -43,7 +43,6 @@ static const unsigned int MAX_COMPONENT_COUNT = 4;
 /**********************************************************************/
 int allocateIndex(IndexLayout          *layout,
                   const Configuration  *config,
-                  unsigned int          id,
                   unsigned int          zoneCount,
                   LoadType              loadType,
                   bool                  readOnly,
@@ -55,7 +54,7 @@ int allocateIndex(IndexLayout          *layout,
       return EINVAL;
     }
     IORegion *region = NULL;
-    int result = openVolumeRegion(layout, id, IO_CREATE_WRITE, &region);
+    int result = openVolumeRegion(layout, IO_CREATE_WRITE, &region);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -84,9 +83,8 @@ int allocateIndex(IndexLayout          *layout,
   }
   setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
 
-  index->layout                = layout;
-  index->id                    = id;
-  index->zoneCount             = (readOnly ? 1 : zoneCount);
+  index->layout    = layout;
+  index->zoneCount = (readOnly ? 1 : zoneCount);
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
                     &index->zones);
@@ -95,8 +93,8 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  result = makeIndexState(layout, index->id, index->zoneCount,
-                          MAX_COMPONENT_COUNT, &index->state);
+  result = makeIndexState(layout, index->zoneCount, MAX_COMPONENT_COUNT,
+                          &index->state);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;
@@ -110,10 +108,9 @@ int allocateIndex(IndexLayout          *layout,
   }
 
   if (readOnly) {
-    result = makeReadOnlyVolume(config, index->layout, index->id,
-                                &index->volume);
+    result = makeReadOnlyVolume(config, index->layout, &index->volume);
   } else {
-    result = makeVolume(config, index->layout, index->id,
+    result = makeVolume(config, index->layout,
                         VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
                         index->zoneCount, &index->volume);
   }
@@ -144,7 +141,7 @@ int allocateIndex(IndexLayout          *layout,
 }
 
 /**********************************************************************/
-void releaseIndex(Index *index, bool readOnly)
+void releaseIndex(Index *index)
 {
   if (index == NULL) {
     return;
@@ -157,11 +154,7 @@ void releaseIndex(Index *index, bool readOnly)
     FREE(index->zones);
   }
 
-  if (readOnly) {
-    freeReadOnlyVolume(index->volume);
-  } else {
-    freeVolume(index->volume);
-  }
+  freeVolume(index->volume);
 
   freeIndexState(&index->state);
   freeIndexCheckpoint(index->checkpoint);

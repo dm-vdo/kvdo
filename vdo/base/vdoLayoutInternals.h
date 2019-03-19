@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/vdoLayoutInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLayoutInternals.h#2 $
  */
 
 #ifndef VDO_LAYOUT_INTERNALS_H
@@ -34,6 +34,8 @@ struct vdoLayout {
   FixedLayout         *previousLayout;
   // The first block in the layouts
   PhysicalBlockNumber  startingOffset;
+  // A pointer to the copy completion (if there is one)
+  VDOCompletion       *copyCompletion;
 };
 
 #endif // VDO_LAYOUT_INTERNALS_H

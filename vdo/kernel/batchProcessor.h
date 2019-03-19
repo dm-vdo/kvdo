@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/kernel/batchProcessor.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/batchProcessor.h#2 $
  */
 
 #ifndef BATCHPROCESSOR_H
 #define BATCHPROCESSOR_H
 
-#include "funnelQueue.h"
 #include "kernelTypes.h"
+#include "util/funnelQueue.h"
 
 /**
  * Control data for managing collections of objects to be operated on

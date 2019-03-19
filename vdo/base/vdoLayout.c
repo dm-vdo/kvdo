@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/vdoLayout.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vdoLayout.c#3 $
  */
 
 #include "vdoLayout.h"
@@ -202,6 +202,7 @@ void freeVDOLayout(VDOLayout **vdoLayoutPtr)
     return;
   }
 
+  freeCopyCompletion(&vdoLayout->copyCompletion);
   freeFixedLayout(&vdoLayout->nextLayout);
   freeFixedLayout(&vdoLayout->layout);
   freeFixedLayout(&vdoLayout->previousLayout);
@@ -266,13 +267,22 @@ static BlockCount getPartitionSize(VDOLayout *layout, PartitionID partitionID)
 }
 
 /**********************************************************************/
-int prepareToGrowVDOLayout(VDOLayout  *vdoLayout,
-                           BlockCount  oldPhysicalBlocks,
-                           BlockCount  newPhysicalBlocks)
+int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
+                           BlockCount     oldPhysicalBlocks,
+                           BlockCount     newPhysicalBlocks,
+                           PhysicalLayer *layer)
 {
   if (getNextVDOLayoutSize(vdoLayout) == newPhysicalBlocks) {
     // We are already prepared to grow to the new size, so we're done.
     return VDO_SUCCESS;
+  }
+
+  // Make a copy completion if there isn't one
+  if (vdoLayout->copyCompletion == NULL) {
+    int result = makeCopyCompletion(layer, &vdoLayout->copyCompletion);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
   }
 
   // Free any unused preparation.
@@ -290,6 +300,7 @@ int prepareToGrowVDOLayout(VDOLayout  *vdoLayout,
                                                    SLAB_SUMMARY_PARTITION),
                                   &vdoLayout->nextLayout);
   if (result != VDO_SUCCESS) {
+    freeCopyCompletion(&vdoLayout->copyCompletion);
     return result;
   }
 
@@ -305,6 +316,7 @@ int prepareToGrowVDOLayout(VDOLayout  *vdoLayout,
   if (minNewSize > newPhysicalBlocks) {
     // Copying the journal and summary would destroy some old metadata.
     freeFixedLayout(&vdoLayout->nextLayout);
+    freeCopyCompletion(&vdoLayout->copyCompletion);
     return VDO_INCREMENT_TOO_SMALL;
   }
 
@@ -383,6 +395,8 @@ void finishVDOLayoutGrowth(VDOLayout *vdoLayout)
   if (vdoLayout->layout != vdoLayout->nextLayout) {
     freeFixedLayout(&vdoLayout->nextLayout);
   }
+
+  freeCopyCompletion(&vdoLayout->copyCompletion);
 }
 
 /**********************************************************************/
@@ -390,7 +404,8 @@ void copyPartition(VDOLayout     *layout,
                    PartitionID    partitionID,
                    VDOCompletion *parent)
 {
-  copyPartitionAsync(parent->layer, getVDOPartition(layout, partitionID),
+  copyPartitionAsync(layout->copyCompletion,
+                     getVDOPartition(layout, partitionID),
                      getPartitionFromNextLayout(layout, partitionID), parent);
 }
 

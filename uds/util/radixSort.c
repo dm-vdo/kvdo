@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/util/radixSort.c#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/util/radixSort.c#1 $
  */
 
 /*
@@ -197,12 +197,14 @@ static INLINE void measureBins(const Task task, Histogram *bins)
  * stack for each pile containing lots of keys, or a new task is is put on
  * the list for each pile containing few keys.
  *
- * @param stack   pointer the top of the stack
- * @param list    pointer the head of the list
- * @param pile    array that will be filled pointers to the end of each pile
- * @param bins    the histogram of the sizes of each pile
- * @param offset  the next radix position to sort by
- * @param length  the number of bytes remaining in the sort keys
+ * @param stack      pointer the top of the stack
+ * @param endOfStack the end of the stack
+ * @param list       pointer the head of the list
+ * @param pile       array that will be filled pointers to the end of each pile
+ * @param bins       the histogram of the sizes of each pile
+ * @param firstKey   the first key of the stack
+ * @param offset     the next radix position to sort by
+ * @param length     the number of bytes remaining in the sort keys
  *
  * @return UDS_SUCCESS or an error code
  **/

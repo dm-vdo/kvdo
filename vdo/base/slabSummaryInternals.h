@@ -16,15 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium-rhel7.6/src/c++/vdo/base/slabSummaryInternals.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/slabSummaryInternals.h#2 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
 #define SLAB_SUMMARY_INTERNALS_H
 
-#include "util/atomic.h"
-
 #include "slabSummary.h"
+
+#include "atomic.h"
 
 typedef struct slabSummaryEntry {
   /** The offset of the tail block within the slab journal */

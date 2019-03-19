@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/flanders/src/uds/indexState.h#2 $
+ * $Id: //eng/uds-releases/gloria/src/uds/indexState.h#1 $
  */
 
 #ifndef INDEX_STATE_H
@@ -64,7 +64,7 @@ void freeIndexState(IndexState **statePtr);
  * Add an index component to an index state.
  *
  * @param state     The index directory in which to add this component.
- * @param file      The index component file specification.
+ * @param info      The index component file specification.
  * @param data      The per-component data structure.
  * @param context   The load/save context of the component.
  *
@@ -223,7 +223,7 @@ int discardLastIndexStateSave(IndexState *state);
  * Find index component, for testing.
  *
  * @param state The index state
- * @param file  The index component file specification
+ * @param info  The index component file specification
  *
  * @return      The index component, or NULL if not found
  **/
@@ -235,7 +235,7 @@ IndexComponent *findIndexComponent(const IndexState         *state,
  * Write a single index component, for testing.
  *
  * @param state The index state
- * @param file  The index component file specification
+ * @param info  The index component file specification
  *
  * @return      UDS_SUCCESS or error code
  **/
