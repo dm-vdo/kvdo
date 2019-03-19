@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#11 $
  */
 
 #include "kvio.h"
@@ -41,12 +41,12 @@
  **/
 static void kvdoHandleVIOCallback(KvdoWorkItem *item)
 {
-  KVIO *kvio = workItemAsKVIO(item);
+  struct kvio *kvio = workItemAsKVIO(item);
   runCallback(vioAsCompletion(kvio->vio));
 }
 
 /**********************************************************************/
-void kvdoEnqueueVIOCallback(KVIO *kvio)
+void kvdoEnqueueVIOCallback(struct kvio *kvio)
 {
   enqueueKVIO(kvio, kvdoHandleVIOCallback,
               (KvdoWorkFunction) vioAsCompletion(kvio->vio)->callback,
@@ -54,7 +54,7 @@ void kvdoEnqueueVIOCallback(KVIO *kvio)
 }
 
 /**********************************************************************/
-void kvdoContinueKvio(KVIO *kvio, int error)
+void kvdoContinueKvio(struct kvio *kvio, int error)
 {
   if (unlikely(error != VDO_SUCCESS)) {
     setCompletionResult(vioAsCompletion(kvio->vio), error);
@@ -64,7 +64,7 @@ void kvdoContinueKvio(KVIO *kvio, int error)
 
 /**********************************************************************/
 // noinline ensures systemtap can hook in here
-static noinline void maybeLogKvioTrace(KVIO *kvio)
+static noinline void maybeLogKvioTrace(struct kvio *kvio)
 {
   if (kvio->layer->traceLogging) {
     logKvioTrace(kvio);
@@ -72,9 +72,9 @@ static noinline void maybeLogKvioTrace(KVIO *kvio)
 }
 
 /**********************************************************************/
-static void freeKVIO(KVIO **kvioPtr)
+static void freeKVIO(struct kvio **kvioPtr)
 {
-  KVIO *kvio = *kvioPtr;
+  struct kvio *kvio = *kvioPtr;
   if (kvio == NULL) {
     return;
   }
@@ -92,13 +92,13 @@ static void freeKVIO(KVIO **kvioPtr)
 /**********************************************************************/
 void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr)
 {
-  freeKVIO((KVIO **) metadataKVIOPtr);
+  freeKVIO((struct kvio **) metadataKVIOPtr);
 }
 
 /**********************************************************************/
 void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr)
 {
-  freeKVIO((KVIO **) compressedWriteKVIOPtr);
+  freeKVIO((struct kvio **) compressedWriteKVIOPtr);
 }
 
 /**********************************************************************/
@@ -108,8 +108,8 @@ void writeCompressedBlock(AllocatingVIO *allocatingVIO)
   // bits.
   struct compressed_write_kvio *compressedWriteKVIO
     = allocatingVIOAsCompressedWriteKVIO(allocatingVIO);
-  KVIO *kvio       = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
-  struct bio *bio  = kvio->bio;
+  struct kvio *kvio = compressedWriteKVIOAsKVIO(compressedWriteKVIO);
+  struct bio *bio = kvio->bio;
   reset_bio(bio, kvio->layer);
   set_bio_operation_write(bio);
   set_bio_sector(bio, blockToSector(kvio->layer, kvio->vio->physical));
@@ -132,8 +132,8 @@ static inline BioQAction getMetadataAction(VIO *vio)
 /**********************************************************************/
 void submitMetadataVIO(VIO *vio)
 {
-  KVIO       *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
-  struct bio *bio  = kvio->bio;
+  struct kvio *kvio = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
+  struct bio *bio = kvio->bio;
   reset_bio(bio, kvio->layer);
 
   set_bio_sector(bio, blockToSector(kvio->layer, vio->physical));
@@ -178,7 +178,7 @@ static void completeFlushBio(struct bio *bio)
 static void completeFlushBio(struct bio *bio, int error)
 #endif
 {
-  KVIO *kvio   = (KVIO *) bio->bi_private;
+  struct kvio *kvio = (struct kvio *) bio->bi_private;
   // Restore the bio's notion of its own data.
   reset_bio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
@@ -191,7 +191,7 @@ static void completeFlushBio(struct bio *bio, int error)
 /**********************************************************************/
 void kvdoFlushVIO(VIO *vio)
 {
-  KVIO        *kvio  = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
+  struct kvio *kvio  = metadataKVIOAsKVIO(vioAsMetadataKVIO(vio));
   struct bio  *bio   = kvio->bio;
   KernelLayer *layer = kvio->layer;
   reset_bio(bio, layer);
@@ -210,7 +210,7 @@ void kvdoFlushVIO(VIO *vio)
  * Must be "noinline" so that SystemTap can find the return
  * instruction and modify the return value.
  *
- * @param kvio   The KVIO being initialized
+ * @param kvio   The kvio being initialized
  * @param layer  The kernel layer
  * @param bio    The incoming I/O request
  *
@@ -218,7 +218,7 @@ void kvdoFlushVIO(VIO *vio)
  *         this one
  */
 static noinline bool
-sampleThisVIO(KVIO *kvio, KernelLayer *layer, struct bio *bio)
+sampleThisVIO(struct kvio *kvio, KernelLayer *layer, struct bio *bio)
 {
   bool result = true;
   // Ensure the arguments and result exist at the same time, for SystemTap.
@@ -233,7 +233,7 @@ sampleThisVIO(KVIO *kvio, KernelLayer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-void initializeKVIO(KVIO        *kvio,
+void initializeKVIO(struct kvio *kvio,
                     KernelLayer *layer,
                     VIOType      vioType,
                     VIOPriority  priority,
@@ -270,7 +270,7 @@ void initializeKVIO(KVIO        *kvio,
 }
 
 /**
- * Construct a metadata KVIO.
+ * Construct a metadata kvio.
  *
  * @param [in]  layer            The physical layer
  * @param [in]  vioType          The type of VIO to create
@@ -299,12 +299,12 @@ static int makeMetadataKVIO(KernelLayer           *layer,
   struct metadata_kvio *metadataKVIO;
   int result = ALLOCATE(1, struct metadata_kvio, __func__, &metadataKVIO);
   if (result != VDO_SUCCESS) {
-    logError("metadata KVIO allocation failure %d", result);
+    logError("metadata kvio allocation failure %d", result);
     return result;
   }
 
-  KVIO *kvio = &metadataKVIO->kvio;
-  kvio->vio  = &metadataKVIO->vio;
+  struct kvio *kvio = &metadataKVIO->kvio;
+  kvio->vio = &metadataKVIO->vio;
   initializeKVIO(kvio, layer, vioType, priority, parent, bio);
   *metadataKVIOPtr = metadataKVIO;
   return VDO_SUCCESS;
@@ -336,12 +336,12 @@ makeCompressedWriteKVIO(KernelLayer                   *layer,
   int result = ALLOCATE(1, struct compressed_write_kvio, __func__,
                         &compressedWriteKVIO);
   if (result != VDO_SUCCESS) {
-    logError("compressed write KVIO allocation failure %d", result);
+    logError("compressed write kvio allocation failure %d", result);
     return result;
   }
 
-  KVIO *kvio = &compressedWriteKVIO->kvio;
-  kvio->vio  = allocatingVIOAsVIO(&compressedWriteKVIO->allocatingVIO);
+  struct kvio *kvio = &compressedWriteKVIO->kvio;
+  kvio->vio = allocatingVIOAsVIO(&compressedWriteKVIO->allocatingVIO);
   initializeKVIO(kvio, layer, VIO_TYPE_COMPRESSED_BLOCK,
                  VIO_PRIORITY_COMPRESSED_DATA, parent, bio);
   *compressedWriteKVIOPtr = compressedWriteKVIO;

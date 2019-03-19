@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#16 $
  */
 
 #include "ioSubmitter.h"
@@ -211,7 +211,7 @@ static void assert_running_in_bio_queue_for_pbn(PhysicalBlockNumber pbn)
  * @param kvio the kvio associated with the bio
  * @param bio  the bio to count
  */
-static void count_all_bios_completed(KVIO *kvio, struct bio *bio)
+static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
 {
 	KernelLayer *layer = kvio->layer;
 	if (isData(kvio)) {
@@ -230,7 +230,7 @@ static void count_all_bios_completed(KVIO *kvio, struct bio *bio)
 /**********************************************************************/
 void count_completed_bios(struct bio *bio)
 {
-	KVIO *kvio = (KVIO *)bio->bi_private;
+	struct kvio *kvio = (struct kvio *)bio->bi_private;
 	KernelLayer *layer = kvio->layer;
 	atomic64_inc(&layer->biosCompleted);
 	count_all_bios_completed(kvio, bio);
@@ -246,7 +246,7 @@ void complete_async_bio(struct bio *bio, int error)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 	int error = get_bio_result(bio);
 #endif
-	KVIO *kvio = (KVIO *)bio->bi_private;
+	struct kvio *kvio = (struct kvio *)bio->bi_private;
 	kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
 	if ((error == 0) && isData(kvio) && isReadVIO(kvio->vio)) {
@@ -266,7 +266,7 @@ void complete_async_bio(struct bio *bio, int error)
  * @param kvio the kvio associated with the bio
  * @param bio  the bio to count
  */
-static void count_all_bios(KVIO *kvio, struct bio *bio)
+static void count_all_bios(struct kvio *kvio, struct bio *bio)
 {
 	KernelLayer *layer = kvio->layer;
 	if (isData(kvio)) {
@@ -286,12 +286,12 @@ static void count_all_bios(KVIO *kvio, struct bio *bio)
  * Update stats and tracing info, then submit the supplied bio to the
  * OS for processing.
  *
- * @param kvio      The KVIO associated with the bio
+ * @param kvio      The kvio associated with the bio
  * @param bio       The bio to submit to the OS
  * @param location  Call site location for tracing
  **/
-static void send_bio_to_device(KVIO *kvio,
-			       struct bio *bio,
+static void send_bio_to_device(struct kvio  *kvio,
+			       struct bio   *bio,
 			       TraceLocation location)
 {
 	assert_running_in_bio_queue_for_pbn(kvio->vio->physical);
@@ -314,13 +314,13 @@ static void send_bio_to_device(KVIO *kvio,
  * submitted. In both cases, the bi_end_io callback is invoked when
  * each I/O operation completes.
  *
- * @param item  The work item in the KVIO "owning" either the bio to
+ * @param item  The work item in the kvio "owning" either the bio to
  *              submit, or the head of the bio_list to be submitted.
  **/
 static void process_bio_map(KvdoWorkItem *item)
 {
 	assert_running_in_bio_queue();
-	KVIO *kvio = workItemAsKVIO(item);
+	struct kvio *kvio = workItemAsKVIO(item);
 	/*
 	 * XXX Make these paths more regular: Should bi_bdev be set here, or
 	 * in the caller, or in the callback function? Should we call
@@ -351,7 +351,7 @@ static void process_bio_map(KvdoWorkItem *item)
 		kvio = NULL;
 
 		while (bio != NULL) {
-			KVIO *kvio_bio = bio->bi_private;
+			struct kvio *kvio_bio = bio->bi_private;
 			struct bio *next = bio->bi_next;
 			bio->bi_next = NULL;
 			set_bio_block_device(bio,
@@ -380,9 +380,9 @@ static void process_bio_map(KvdoWorkItem *item)
  *
  * @return the kvio to merge to, NULL if no merging is possible
  */
-static KVIO *get_mergeable_locked(IntMap *map,
-				  KVIO *kvio,
-				  unsigned int merge_type)
+static struct kvio *get_mergeable_locked(IntMap *map,
+				  struct kvio   *kvio,
+				  unsigned int   merge_type)
 {
 	struct bio *bio = kvio->bioToSubmit;
 	sector_t merge_sector = get_bio_sector(bio);
@@ -395,7 +395,7 @@ static KVIO *get_mergeable_locked(IntMap *map,
 		break;
 	}
 
-	KVIO *kvio_merge = intMapGet(map, merge_sector);
+	struct kvio *kvio_merge = intMapGet(map, merge_sector);
 
 	if (kvio_merge != NULL) {
 		if (!areWorkItemActionsEqual(
@@ -442,18 +442,18 @@ static inline unsigned int advance_bio_rotor(struct io_submitter *bio_data)
 
 /**********************************************************************/
 static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
-			      KVIO *kvio,
+			      struct kvio *kvio,
 			      struct bio *bio)
 {
 	bool merged = false;
 
 	mutex_lock(&bio_queue_data->lock);
-	KVIO *prev_kvio = get_mergeable_locked(bio_queue_data->map,
-					       kvio,
-					       ELEVATOR_BACK_MERGE);
-	KVIO *next_kvio = get_mergeable_locked(bio_queue_data->map,
-					       kvio,
-					       ELEVATOR_FRONT_MERGE);
+	struct kvio *prev_kvio = get_mergeable_locked(bio_queue_data->map,
+                                                      kvio,
+                                                      ELEVATOR_BACK_MERGE);
+	struct kvio *next_kvio = get_mergeable_locked(bio_queue_data->map,
+                                                      kvio,
+                                                      ELEVATOR_FRONT_MERGE);
 	if (prev_kvio == next_kvio) {
 		next_kvio = NULL;
 	}
@@ -524,7 +524,7 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 /**********************************************************************/
 void vdo_submit_bio(struct bio *bio, BioQAction action)
 {
-	KVIO *kvio = bio->bi_private;
+	struct kvio *kvio = bio->bi_private;
 	kvio->bioToSubmit = bio;
 	setupKVIOWork(kvio, process_bio_map, (KvdoWorkFunction)bio->bi_end_io,
 		      action);

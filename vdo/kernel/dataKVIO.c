@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#26 $
  */
 
 #include "dataKVIO.h"
@@ -164,8 +164,8 @@ static noinline void cleanDataKVIO(DataKVIO                    *dataKVIO,
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   kvdoAcknowledgeDataKVIO(dataKVIO);
 
-  KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
-  kvio->bio  = NULL;
+  struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
+  kvio->bio = NULL;
 
   if (unlikely(kvio->vio->trace != NULL)) {
     maybeLogDataKVIOTrace(dataKVIO);
@@ -386,7 +386,7 @@ static void readBioCallback(struct bio *bio)
 static void readBioCallback(struct bio *bio, int result)
 #endif
 {
-  KVIO *kvio = (KVIO *) bio->bi_private;
+  struct kvio *kvio = (struct kvio *) bio->bi_private;
   DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
   dataKVIO->readBlock.data = dataKVIO->readBlock.buffer;
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
@@ -438,9 +438,9 @@ void readDataVIO(DataVIO *dataVIO)
     return;
   }
 
-  KVIO       *kvio = dataVIOAsKVIO(dataVIO);
-  struct bio *bio  = kvio->bio;
-  bio->bi_end_io   = resetUserBio;
+  struct kvio *kvio = dataVIOAsKVIO(dataVIO);
+  struct bio *bio   = kvio->bio;
+  bio->bi_end_io    = resetUserBio;
   set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
   vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
@@ -471,7 +471,7 @@ void acknowledgeDataVIO(DataVIO *dataVIO)
     return;
   }
 
-  // We've finished with the KVIO; acknowledge completion of the bio to the
+  // We've finished with the kvio; acknowledge completion of the bio to the
   // kernel.
   if (useBioAckQueue(layer)) {
     dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
@@ -489,8 +489,8 @@ void writeDataVIO(DataVIO *dataVIO)
                   "kvdoWriteDataVIO() called on write DataVIO");
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("$F;io=writeData;j=normal"));
 
-  KVIO       *kvio = dataVIOAsKVIO(dataVIO);
-  struct bio *bio  = kvio->bio;
+  struct kvio *kvio = dataVIOAsKVIO(dataVIO);
+  struct bio *bio   = kvio->bio;
   set_bio_operation_write(bio);
   set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->newMapped.pbn));
   vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
@@ -499,7 +499,7 @@ void writeDataVIO(DataVIO *dataVIO)
 /**
  * Determines whether the data block buffer is all zeros.
  *
- * @param dataKVIO  The data KVIO to check
+ * @param dataKVIO  The DataKVIO to check
  *
  * @return true is all zeroes, false otherwise
  **/
@@ -663,7 +663,7 @@ static int makeDataKVIO(KernelLayer  *layer,
     setWriteProtect(dataKVIO, WP_DATA_KVIO_SIZE, false);
   }
 
-  KVIO *kvio = &dataKVIO->kvio;
+  struct kvio *kvio = &dataKVIO->kvio;
   kvio->vio = dataVIOAsVIO(&dataKVIO->dataVIO);
   memset(&kvio->enqueueable, 0, sizeof(KvdoEnqueueable));
   memset(&dataKVIO->dedupeContext.pendingList, 0, sizeof(struct list_head));
@@ -783,13 +783,13 @@ static void launchDataKVIOWork(KvdoWorkItem *item)
 
 /**
  * Continue discard processing for requests that span multiple physical blocks.
- * If all have been processed the KVIO is completed.  If we have already seen
+ * If all have been processed the kvio is completed.  If we have already seen
  * an error, we skip the rest of the discard and fail immediately.
  *
  * <p>Invoked in a request-queue thread after the discard of a block has
  * completed.
  *
- * @param completion  A completion representing the discard KVIO
+ * @param completion  A completion representing the discard kvio
  **/
 static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
 {
@@ -835,7 +835,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
 /**
  * Finish a partial read.
  *
- * @param completion  The partial read KVIO
+ * @param completion  The partial read kvio
  **/
 static void kvdoCompletePartialRead(VDOCompletion *completion)
 {
@@ -858,7 +858,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
   DataKVIO *dataKVIO = NULL;
   int result = kvdoCreateKVIOFromBio(layer, bio, arrivalTime, &dataKVIO);
   if (unlikely(result != VDO_SUCCESS)) {
-    logInfo("%s: KVIO allocation failure", __func__);
+    logInfo("%s: kvio allocation failure", __func__);
     if (hasDiscardPermit) {
       limiter_release(&layer->discardLimiter);
     }
@@ -871,7 +871,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
    * in from device-mapper. We have to be able to handle any size discards
    * and with various sector offsets within a block.
    */
-  KVIO         *kvio      = &dataKVIO->kvio;
+  struct kvio  *kvio      = &dataKVIO->kvio;
   VDOAction    *callback  = kvdoCompleteDataKVIO;
   VIOOperation  operation = VIO_WRITE;
   bool          isTrim    = false;

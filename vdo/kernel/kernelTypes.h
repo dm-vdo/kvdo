@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelTypes.h#6 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -42,6 +42,7 @@ typedef int64_t TimeoutJiffies;
 struct io_submitter;
 struct kvdoFlush;
 struct kvdo_work_queue;
+struct kvio;
 
 typedef struct atomicBioStats AtomicBioStats;
 typedef struct dataKVIO       DataKVIO;
@@ -50,9 +51,8 @@ typedef struct dedupeIndex    DedupeIndex;
 typedef struct kernelLayer    KernelLayer;
 typedef struct kvdo           KVDO;
 typedef struct kvdoWorkItem   KvdoWorkItem;
-typedef struct kvio           KVIO;
 
-typedef void (*KVIOCallback)(KVIO *kvio);
+typedef void (*KVIOCallback)(struct kvio *kvio);
 typedef void (*DataKVIOCallback)(DataKVIO *dataKVIO);
 typedef void (*KvdoWorkFunction)(KvdoWorkItem *workItem);
 

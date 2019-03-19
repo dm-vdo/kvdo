@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#13 $
  */
 
 #ifndef DATA_KVIO_H
@@ -85,9 +85,9 @@ struct read_block {
 struct dataKVIO {
   /* The embedded base code's DataVIO */
   DataVIO                     dataVIO;
-  /* The embedded KVIO */
-  KVIO                        kvio;
-  /* The bio from the request which is being serviced by this KVIO. */
+  /* The embedded kvio */
+  struct kvio                 kvio;
+  /* The bio from the request which is being serviced by this kvio. */
   struct external_io_request  externalIORequest;
   /* Dedupe */
   DedupeContext               dedupeContext;
@@ -115,26 +115,26 @@ struct dataKVIO {
 };
 
 /**
- * Convert a KVIO to a DataKVIO.
+ * Convert a kvio to a DataKVIO.
  *
- * @param kvio  The KVIO to convert
+ * @param kvio  The kvio to convert
  *
- * @return The KVIO as a DataKVIO
+ * @return The kvio as a DataKVIO
  **/
-static inline DataKVIO *kvioAsDataKVIO(KVIO *kvio)
+static inline DataKVIO *kvioAsDataKVIO(struct kvio *kvio)
 {
-  ASSERT_LOG_ONLY(isData(kvio), "KVIO is a DataKVIO");
+  ASSERT_LOG_ONLY(isData(kvio), "struct kvio is a DataKVIO");
   return container_of(kvio, DataKVIO, kvio);
 }
 
 /**
- * Convert a DataKVIO to a KVIO.
+ * Convert a DataKVIO to a kvio.
  *
  * @param dataKVIO  The DataKVIO to convert
  *
- * @return The DataKVIO as a KVIO
+ * @return The DataKVIO as a kvio
  **/
-static inline KVIO *dataKVIOAsKVIO(DataKVIO *dataKVIO)
+static inline struct kvio *dataKVIOAsKVIO(DataKVIO *dataKVIO)
 {
   return &dataKVIO->kvio;
 }
@@ -152,13 +152,13 @@ static inline DataKVIO *dataVIOAsDataKVIO(DataVIO *dataVIO)
 }
 
 /**
- * Returns a pointer to the KVIO associated with a DataVIO.
+ * Returns a pointer to the kvio associated with a DataVIO.
  *
  * @param dataVIO  the DataVIO
  *
- * @return the KVIO
+ * @return the kvio
  **/
-static inline KVIO *dataVIOAsKVIO(DataVIO *dataVIO)
+static inline struct kvio *dataVIOAsKVIO(DataVIO *dataVIO)
 {
   return dataKVIOAsKVIO(dataVIOAsDataKVIO(dataVIO));
 }
@@ -265,7 +265,7 @@ static inline void launchDataKVIOOnCPUQueue(DataKVIO         *dataKVIO,
                                             void             *statsFunction,
                                             unsigned int      action)
 {
-  KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
+  struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
   launchKVIO(kvio, work, statsFunction, action, kvio->layer->cpuQueue);
 }
 
@@ -282,7 +282,7 @@ static inline void launchDataKVIOOnBIOAckQueue(DataKVIO         *dataKVIO,
                                                void             *statsFunction,
                                                unsigned int      action)
 {
-  KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
+  struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
   launchKVIO(kvio, work, statsFunction, action, kvio->layer->bioAckQueue);
 }
 
@@ -309,15 +309,15 @@ static inline bool requestorSetFUA(DataKVIO *dataKVIO)
 }
 
 /**
- * Associate a KVIO with a bio passed in from the block layer, and start
- * processing the KVIO.
+ * Associate a kvio with a bio passed in from the block layer, and start
+ * processing the kvio.
  *
- * If setting up a KVIO fails, a message is logged, and the limiter permits
+ * If setting up a kvio fails, a message is logged, and the limiter permits
  * (request and maybe discard) released, but the caller is responsible for
  * disposing of the bio.
  *
  * @param layer                 The physical layer
- * @param bio                   The bio for which to create KVIO
+ * @param bio                   The bio for which to create kvio
  * @param arrivalTime           The time (in jiffies) when the external request
  *                              entered the device mapbio function
  * @param hasDiscardPermit      Whether we got a permit from the discardLimiter

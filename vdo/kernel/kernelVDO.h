@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#6 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -249,7 +249,7 @@ void enqueueKVDOWork(KVDO *kvdo, KvdoWorkItem *item, ThreadID threadID);
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
  **/
-void enqueueKVIO(KVIO             *kvio,
+void enqueueKVIO(struct kvio      *kvio,
                  KvdoWorkFunction  work,
                  void             *statsFunction,
                  unsigned int      action);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#4 $
  */
 
 #include "ktrace.h"
@@ -136,7 +136,7 @@ void initializeTraceLoggingOnce(void)
 }
 
 /*************************************************************************/
-void logKvioTrace(KVIO *kvio)
+void logKvioTrace(struct kvio *kvio)
 {
   KernelLayer *layer = kvio->layer;
 

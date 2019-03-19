@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#10 $
  */
 
 #ifndef KVIO_H
@@ -45,7 +45,7 @@ struct kvio {
   struct bio        *bioToSubmit;
   /**
    * A list of enqueued bios with consecutive block numbers, stored by
-   * enqueueBioMap under the first-enqueued KVIO. The other KVIOs are
+   * enqueueBioMap under the first-enqueued kvio. The other KVIOs are
    * found via their bio entries in this list, and are not added to
    * the work queue as separate work items.
    **/
@@ -55,47 +55,47 @@ struct kvio {
 };
 
 struct metadata_kvio {
-  KVIO kvio;
-  VIO  vio;
+  struct kvio kvio;
+  VIO         vio;
 };
 
 struct compressed_write_kvio {
-  KVIO          kvio;
+  struct kvio   kvio;
   AllocatingVIO allocatingVIO;
 };
 
 /**
- * Determine whether a KVIO is a data VIO or not
+ * Determine whether a kvio is a data VIO or not
  *
- * @param kvio  The KVIO to check
+ * @param kvio  The kvio to check
  *
- * @return <code>true</code> if a data KVIO
+ * @return <code>true</code> if a data kvio
  */
-static inline bool isData(KVIO *kvio)
+static inline bool isData(struct kvio *kvio)
 {
   return isDataVIO(kvio->vio);
 }
 
 /**
- * Determine whether a KVIO is a compressed block write VIO or not
+ * Determine whether a kvio is a compressed block write VIO or not
  *
- * @param kvio  The KVIO to check
+ * @param kvio  The kvio to check
  *
  * @return <code>true</code> if a compressed block writer
  */
-static inline bool isCompressedWriter(KVIO *kvio)
+static inline bool isCompressedWriter(struct kvio *kvio)
 {
   return isCompressedWriteVIO(kvio->vio);
 }
 
 /**
- * Determine whether a KVIO is a metadata VIO or not
+ * Determine whether a kvio is a metadata VIO or not
  *
- * @param kvio  The KVIO to check
+ * @param kvio  The kvio to check
  *
- * @return <code>true</code> if a metadata KVIO
+ * @return <code>true</code> if a metadata kvio
  */
-static inline bool isMetadata(KVIO *kvio)
+static inline bool isMetadata(struct kvio *kvio)
 {
   return isMetadataVIO(kvio->vio);
 }
@@ -105,7 +105,7 @@ static inline bool isMetadata(KVIO *kvio)
  *
  * @param vio  The VIO to convert
  *
- * @return the VIO as a KVIO
+ * @return the VIO as a metadata_kvio
  **/
 static inline struct metadata_kvio *vioAsMetadataKVIO(VIO *vio)
 {
@@ -114,13 +114,14 @@ static inline struct metadata_kvio *vioAsMetadataKVIO(VIO *vio)
 }
 
 /**
- * Convert a struct metadata_kvio to a KVIO.
+ * Convert a metadata_kvio to a kvio.
  *
- * @param metadataKVIO  The struct metadata_kvio to convert
+ * @param metadataKVIO  The metadata_kvio to convert
  *
- * @return The struct metadata_kvio as a KVIO
+ * @return The metadata_kvio as a kvio
  **/
-static inline KVIO *metadataKVIOAsKVIO(struct metadata_kvio *metadataKVIO)
+static inline struct kvio *
+metadataKVIOAsKVIO(struct metadata_kvio *metadataKVIO)
 {
   return &metadataKVIO->kvio;
 }
@@ -142,37 +143,38 @@ allocatingVIOAsCompressedWriteKVIO(AllocatingVIO *allocatingVIO)
 }
 
 /**
- * Convert a struct compressed_write_kvio to a KVIO.
+ * Convert a compressed_write_kvio to a kvio.
  *
- * @param compressedWriteKVIO  The struct compressed_write_kvio to convert
+ * @param compressedWriteKVIO  The compressed_write_kvio to convert
  *
- * @return The struct compressed_write_kvio as a KVIO
+ * @return The compressed_write_kvio as a kvio
  **/
-static inline
-KVIO *compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
+static inline struct kvio *
+compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
 {
   return &compressedWriteKVIO->kvio;
 }
 
 /**
- * Returns a pointer to the KVIO wrapping a work item
+ * Returns a pointer to the kvio wrapping a work item
  *
  * @param item  the work item
  *
- * @return the KVIO
+ * @return the kvio
  **/
-static inline KVIO *workItemAsKVIO(KvdoWorkItem *item)
+static inline struct kvio *workItemAsKVIO(KvdoWorkItem *item)
 {
-  return container_of(item, KVIO, enqueueable.workItem);
+  return container_of(item, struct kvio, enqueueable.workItem);
 }
 
 /**
- * Enqueue a KVIO on a work queue.
+ * Enqueue a kvio on a work queue.
  *
  * @param queue  The queue
- * @param kvio   The KVIO
+ * @param kvio   The kvio
  **/
-static inline void enqueueKVIOWork(struct kvdo_work_queue *queue, KVIO *kvio)
+static inline void enqueueKVIOWork(struct kvdo_work_queue *queue,
+                                   struct kvio *kvio)
 {
   enqueue_work_queue(queue, &kvio->enqueueable.workItem);
 }
@@ -180,23 +182,24 @@ static inline void enqueueKVIOWork(struct kvdo_work_queue *queue, KVIO *kvio)
 /**
  * Add a trace record for the current source location.
  *
- * @param kvio      The KVIO structure to be updated
+ * @param kvio      The kvio structure to be updated
  * @param location  The source-location descriptor to be recorded
  **/
-static inline void kvioAddTraceRecord(KVIO *kvio, TraceLocation location)
+static inline void kvioAddTraceRecord(struct kvio *kvio,
+                                      TraceLocation location)
 {
   vioAddTraceRecord(kvio->vio, location);
 }
 
 /**
- * Set up the work item for a KVIO.
+ * Set up the work item for a kvio.
  *
- * @param kvio           The KVIO to set up
+ * @param kvio           The kvio to set up
  * @param work           The function pointer to execute
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
  **/
-static inline void setupKVIOWork(KVIO             *kvio,
+static inline void setupKVIOWork(struct kvio      *kvio,
                                  KvdoWorkFunction  work,
                                  void             *statsFunction,
                                  unsigned int      action)
@@ -205,15 +208,15 @@ static inline void setupKVIOWork(KVIO             *kvio,
 }
 
 /**
- * Set up and enqueue a KVIO.
+ * Set up and enqueue a kvio.
  *
- * @param kvio           The KVIO to set up
+ * @param kvio           The kvio to set up
  * @param work           The function pointer to execute
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
- * @param queue          The queue on which to enqueue the KVIO
+ * @param queue          The queue on which to enqueue the kvio
  **/
-static inline void launchKVIO(KVIO			*kvio,
+static inline void launchKVIO(struct kvio	        *kvio,
                               KvdoWorkFunction		 work,
                               void			*statsFunction,
                               unsigned int		 action,
@@ -224,11 +227,11 @@ static inline void launchKVIO(KVIO			*kvio,
 }
 
 /**
- * Move a KVIO back to the base threads.
+ * Move a kvio back to the base threads.
  *
- * @param kvio The KVIO to enqueue
+ * @param kvio The kvio to enqueue
  **/
-void kvdoEnqueueVIOCallback(KVIO *kvio);
+void kvdoEnqueueVIOCallback(struct kvio *kvio);
 
 /**
  * Handles kvio-related I/O post-processing.
@@ -236,19 +239,19 @@ void kvdoEnqueueVIOCallback(KVIO *kvio);
  * @param kvio  The kvio to finalize
  * @param error Possible error
  **/
-void kvdoContinueKvio(KVIO *kvio, int error);
+void kvdoContinueKvio(struct kvio *kvio, int error);
 
 /**
- * Initialize a KVIO.
+ * Initialize a kvio structure.
  *
- * @param kvio      The KVIO to initialize
+ * @param kvio      The kvio to initialize
  * @param layer     The physical layer
  * @param vioType   The type of VIO to create
- * @param priority  The relative priority to assign to the KVIO
- * @param parent    The parent of the KVIO completion
- * @param bio       The bio to associate with this KVIO
+ * @param priority  The relative priority to assign to the kvio
+ * @param parent    The parent of the kvio completion
+ * @param bio       The bio to associate with this kvio
  **/
-void initializeKVIO(KVIO        *kvio,
+void initializeKVIO(struct kvio *kvio,
                     KernelLayer *layer,
                     VIOType      vioType,
                     VIOPriority  priority,
@@ -271,7 +274,7 @@ void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr);
 void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr);
 
 /**
- * Create a new VIO (and its enclosing KVIO) for metadata operations.
+ * Create a new VIO (and its enclosing kvio) for metadata operations.
  *
  * <p>Implements MetadataVIOCreator.
  *
@@ -293,7 +296,7 @@ int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
   __attribute__((warn_unused_result));
 
 /**
- * Create a new AllocatingVIO (and its enclosing KVIO) for compressed writes.
+ * Create a new AllocatingVIO (and its enclosing kvio) for compressed writes.
  *
  * <p>Implements CompressedWriteVIOCreator.
  *

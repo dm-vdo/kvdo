@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#12 $
  */
 
 #include "dedupeIndex.h"
@@ -121,7 +121,7 @@ struct dedupeIndex {
   bool                     dedupeFlag;  // protected by stateLock
   bool                     deduping;    // protected by stateLock
   bool                     errorFlag;   // protected by stateLock
-  // This spinlock protects the pending list, the pending flag in each KVIO,
+  // This spinlock protects the pending list, the pending flag in each kvio,
   // and the timeout list.
   spinlock_t               pendingLock;
   struct list_head         pendingHead;  // protected by pendingLock
@@ -279,7 +279,7 @@ static void finishIndexOperation(UdsRequest *udsRequest)
                                     dedupeContext.udsRequest);
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
   if (compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE)) {
-    KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
+    struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
     DedupeIndex *index = kvio->layer->dedupeIndex;
 
     spin_lock_bh(&index->pendingLock);
@@ -353,7 +353,7 @@ static void startExpirationTimer(DedupeIndex *index, DataKVIO *dataKVIO)
 /*****************************************************************************/
 static void startIndexOperation(KvdoWorkItem *item)
 {
-  KVIO *kvio = workItemAsKVIO(item);
+  struct kvio *kvio = workItemAsKVIO(item);
   DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
   DedupeIndex *index = kvio->layer->dedupeIndex;
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
@@ -486,7 +486,7 @@ static void timeoutIndexOperations(unsigned long arg)
 static void enqueueIndexOperation(DataKVIO        *dataKVIO,
                                   UdsCallbackType  operation)
 {
-  KVIO *kvio = dataKVIOAsKVIO(dataKVIO);
+  struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
   DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
   DedupeIndex *index = kvio->layer->dedupeIndex;
   dedupeContext->status         = UDS_SUCCESS;
@@ -518,7 +518,7 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
     }
     spin_unlock(&index->stateLock);
   } else {
-    // A previous user of the KVIO had a dedupe timeout
+    // A previous user of the kvio had a dedupe timeout
     // and its request is still outstanding.
     atomic64_inc(&kvio->layer->dedupeContextBusy);
   }
