@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#17 $
  */
 
 #ifndef KERNELLAYER_H
@@ -98,7 +98,7 @@ struct kernelLayer {
   /** Limit the number of requests that are being processed. */
   struct limiter           requestLimiter;
   struct limiter           discardLimiter;
-  KVDO                     kvdo;
+  struct kvdo              kvdo;
   /** Incoming bios we've had to buffer to avoid deadlock. */
   struct deadlock_queue    deadlockQueue;
   // for REQ_FLUSH processing

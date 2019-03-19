@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#14 $
  */
 
 #include "kernelVDOInternals.h"
@@ -45,7 +45,7 @@ enum { PARANOID_THREAD_CONSISTENCY_CHECKS = 0 };
 static void startKVDORequestQueue(void *ptr)
 {
   struct kvdo_thread *thread = ptr;
-  KVDO               *kvdo   = thread->kvdo;
+  struct kvdo        *kvdo   = thread->kvdo;
   KernelLayer        *layer  = container_of(kvdo, KernelLayer, kvdo);
   registerAllocatingThread(&thread->allocatingThread,
                            &layer->allocationsAllowed);
@@ -81,7 +81,7 @@ static const KvdoWorkQueueType requestQueueType = {
 };
 
 /**********************************************************************/
-int initializeKVDO(KVDO                *kvdo,
+int initializeKVDO(struct kvdo         *kvdo,
                    const ThreadConfig  *threadConfig,
                    char               **reason)
 {
@@ -128,7 +128,7 @@ int initializeKVDO(KVDO                *kvdo,
 }
 
 /**********************************************************************/
-int startKVDO(KVDO                 *kvdo,
+int startKVDO(struct kvdo          *kvdo,
               PhysicalLayer        *common,
               const VDOLoadConfig  *loadConfig,
               bool                  vioTraceRecording,
@@ -147,7 +147,7 @@ int startKVDO(KVDO                 *kvdo,
 }
 
 /**********************************************************************/
-int stopKVDO(KVDO *kvdo)
+int stopKVDO(struct kvdo *kvdo)
 {
   if (kvdo->vdo == NULL) {
     return VDO_SUCCESS;
@@ -159,7 +159,7 @@ int stopKVDO(KVDO *kvdo)
 }
 
 /**********************************************************************/
-void finishKVDO(KVDO *kvdo)
+void finishKVDO(struct kvdo *kvdo)
 {
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
     finish_work_queue(kvdo->threads[i].requestQueue);
@@ -167,7 +167,7 @@ void finishKVDO(KVDO *kvdo)
 }
 
 /**********************************************************************/
-void destroyKVDO(KVDO *kvdo)
+void destroyKVDO(struct kvdo *kvdo)
 {
   destroyVDO(kvdo->vdo);
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
@@ -179,7 +179,7 @@ void destroyKVDO(KVDO *kvdo)
 
 
 /**********************************************************************/
-void dumpKVDOWorkQueue(KVDO *kvdo)
+void dumpKVDOWorkQueue(struct kvdo *kvdo)
 {
   for (int i = 0; i < kvdo->initializedThreadCount; i++) {
     dump_work_queue(kvdo->threads[i].requestQueue);
@@ -189,7 +189,7 @@ void dumpKVDOWorkQueue(KVDO *kvdo)
 /**********************************************************************/
 struct sync_queue_work {
   KvdoWorkItem       workItem;
-  KVDO              *kvdo;
+  struct kvdo       *kvdo;
   void              *data;
   struct completion *completion;
 };
@@ -208,7 +208,7 @@ struct sync_queue_work {
  *
  * @return VDO_SUCCESS of an error code
  **/
-static void performKVDOOperation(KVDO              *kvdo,
+static void performKVDOOperation(struct kvdo       *kvdo,
                                  KvdoWorkFunction   action,
                                  void              *data,
                                  ThreadID           threadID,
@@ -250,7 +250,7 @@ static void setCompressingWork(KvdoWorkItem *item)
 }
 
 /***********************************************************************/
-bool setKVDOCompressing(KVDO *kvdo, bool enableCompression)
+bool setKVDOCompressing(struct kvdo *kvdo, bool enableCompression)
 {
   struct completion compressWait;
   struct vdo_compress_data data;
@@ -278,7 +278,7 @@ static void enterReadOnlyModeWork(KvdoWorkItem *item)
 }
 
 /***********************************************************************/
-void setKVDOReadOnly(KVDO *kvdo, int result)
+void setKVDOReadOnly(struct kvdo *kvdo, int result)
 {
   struct completion readOnlyWait;
   struct vdo_read_only_data data;
@@ -304,7 +304,7 @@ static void getVDOStatisticsWork(KvdoWorkItem *item)
 }
 
 /***********************************************************************/
-void getKVDOStatistics(KVDO *kvdo, VDOStatistics *stats)
+void getKVDOStatistics(struct kvdo *kvdo, VDOStatistics *stats)
 {
   struct completion statsWait;
   memset(stats, 0, sizeof(VDOStatistics));
@@ -341,7 +341,7 @@ static void initializeVDOActionData(struct vdo_action_data *data,
 }
 
 /**
- * The VDO callback that completes the KVDO completion.
+ * The VDO callback that completes the kvdo completion.
  *
  * @param vdoCompletion     The VDO completion which was acted upon.
  **/
@@ -359,7 +359,7 @@ static void finishVDOAction(VDOCompletion *vdoCompletion)
  * structure so that the corresponding kernel completion is completed
  * when the VDO completion is.
  *
- * @param item          A KVDO work queue item.
+ * @param item          A kvdo work queue item.
  **/
 static void performVDOActionWork(KvdoWorkItem *item)
 {
@@ -374,7 +374,7 @@ static void performVDOActionWork(KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-int performKVDOExtendedCommand(KVDO *kvdo, int argc, char **argv)
+int performKVDOExtendedCommand(struct kvdo *kvdo, int argc, char **argv)
 {
   struct vdo_action_data data;
   VDOCommandCompletion   cmd;
@@ -393,26 +393,26 @@ int performKVDOExtendedCommand(KVDO *kvdo, int argc, char **argv)
 }
 
 /**********************************************************************/
-void dumpKVDOStatus(KVDO *kvdo)
+void dumpKVDOStatus(struct kvdo *kvdo)
 {
   dumpVDOStatus(kvdo->vdo);
 }
 
 /**********************************************************************/
-bool getKVDOCompressing(KVDO *kvdo)
+bool getKVDOCompressing(struct kvdo *kvdo)
 {
   return getVDOCompressing(kvdo->vdo);
 }
 
 /**********************************************************************/
-int kvdoPrepareToGrowPhysical(KVDO *kvdo, BlockCount physicalCount)
+int kvdoPrepareToGrowPhysical(struct kvdo *kvdo, BlockCount physicalCount)
 {
   VDO *vdo = kvdo->vdo;
   return prepareToGrowPhysical(vdo, physicalCount);
 }
 
 /**********************************************************************/
-int kvdoResizePhysical(KVDO *kvdo, BlockCount physicalCount)
+int kvdoResizePhysical(struct kvdo *kvdo, BlockCount physicalCount)
 {
   KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
   init_completion(&layer->callbackSync);
@@ -426,14 +426,14 @@ int kvdoResizePhysical(KVDO *kvdo, BlockCount physicalCount)
 }
 
 /**********************************************************************/
-int kvdoPrepareToGrowLogical(KVDO *kvdo, BlockCount logicalCount)
+int kvdoPrepareToGrowLogical(struct kvdo *kvdo, BlockCount logicalCount)
 {
   VDO *vdo = kvdo->vdo;
   return prepareToGrowLogical(vdo, logicalCount);
 }
 
 /**********************************************************************/
-int kvdoResizeLogical(KVDO *kvdo, BlockCount logicalCount)
+int kvdoResizeLogical(struct kvdo *kvdo, BlockCount logicalCount)
 {
   KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
   init_completion(&layer->callbackSync);
@@ -446,7 +446,7 @@ int kvdoResizeLogical(KVDO *kvdo, BlockCount logicalCount)
 }
 
 /**********************************************************************/
-WritePolicy getKVDOWritePolicy(KVDO *kvdo)
+WritePolicy getKVDOWritePolicy(struct kvdo *kvdo)
 {
   return getWritePolicy(kvdo->vdo);
 }
@@ -459,7 +459,7 @@ void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
 }
 
 /**********************************************************************/
-void enqueueKVDOWork(KVDO *kvdo, KvdoWorkItem *item, ThreadID threadID)
+void enqueueKVDOWork(struct kvdo *kvdo, KvdoWorkItem *item, ThreadID threadID)
 {
   enqueue_kvdo_thread_work(&kvdo->threads[threadID], item);
 }
@@ -521,7 +521,7 @@ ThreadID getCallbackThreadID(void)
 
   ThreadID threadID = thread->threadID;
   if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
-    KVDO        *kvdo        = thread->kvdo;
+    struct kvdo *kvdo        = thread->kvdo;
     KernelLayer *kernelLayer = container_of(kvdo, KernelLayer, kvdo);
     BUG_ON(&kernelLayer->kvdo != kvdo);
     BUG_ON(threadID >= kvdo->initializedThreadCount);

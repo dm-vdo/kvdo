@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#7 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -28,7 +28,7 @@
 #include "workQueue.h"
 
 struct kvdo_thread {
-  KVDO                   *kvdo;
+  struct kvdo            *kvdo;
   ThreadID                threadID;
   struct kvdo_work_queue *requestQueue;
   RegisteredThread        allocatingThread;
@@ -55,20 +55,20 @@ typedef enum reqQAction {
 /**
  * Initialize the base code interface.
  *
- * @param [in]  kvdo          The KVDO to be initialized
+ * @param [in]  kvdo          The kvdo to be initialized
  * @param [in]  threadConfig  The base-code thread configuration
  * @param [out] reason        The reason for failure
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int initializeKVDO(KVDO                *kvdo,
+int initializeKVDO(struct kvdo         *kvdo,
                    const ThreadConfig  *threadConfig,
                    char               **reason);
 
 /**
  * Starts the base VDO instance associated with the kernel layer
  *
- * @param [in]  kvdo                  The KVDO to be started
+ * @param [in]  kvdo                  The kvdo to be started
  * @param [in]  common                The physical layer pointer
  * @param [in]  loadConfig            Load-time parameters for the VDO
  * @param [in]  vioTraceRecording     Debug flag to store
@@ -76,7 +76,7 @@ int initializeKVDO(KVDO                *kvdo,
  *
  * @return VDO_SUCCESS if started, otherwise error
  */
-int startKVDO(KVDO                 *kvdo,
+int startKVDO(struct kvdo          *kvdo,
               PhysicalLayer        *common,
               const VDOLoadConfig  *loadConfig,
               bool                  vioTraceRecording,
@@ -85,45 +85,45 @@ int startKVDO(KVDO                 *kvdo,
 /**
  * Stops the base VDO instance associated with the kernel layer
  *
- * @param kvdo          The KVDO to be stopped
+ * @param kvdo          The kvdo to be stopped
  *
  * @return VDO_SUCCESS if stopped, otherwise error
  */
-int stopKVDO(KVDO *kvdo);
+int stopKVDO(struct kvdo *kvdo);
 
 /**
  * Shut down the base code interface. The kvdo object must first be
  * stopped.
  *
- * @param kvdo         The KVDO to be shut down
+ * @param kvdo         The kvdo to be shut down
  **/
-void finishKVDO(KVDO *kvdo);
+void finishKVDO(struct kvdo *kvdo);
 
 /**
- * Free up storage of the base code interface. The KVDO object must
+ * Free up storage of the base code interface. The kvdo object must
  * first have been "finished".
  *
- * @param kvdo         The KVDO object to be destroyed
+ * @param kvdo         The kvdo object to be destroyed
  **/
-void destroyKVDO(KVDO *kvdo);
+void destroyKVDO(struct kvdo *kvdo);
 
 
 /**
  * Dump to the kernel log any work-queue info associated with the base
  * code.
  *
- * @param kvdo     The KVDO object to be examined
+ * @param kvdo     The kvdo object to be examined
  **/
-void dumpKVDOWorkQueue(KVDO *kvdo);
+void dumpKVDOWorkQueue(struct kvdo *kvdo);
 
 /**
  * Get the VDO pointer for a kvdo object
  *
- * @param kvdo          The KVDO object
+ * @param kvdo          The kvdo object
  *
  * @return the VDO pointer
  */
-static inline VDO *getVDO(KVDO *kvdo)
+static inline VDO *getVDO(struct kvdo *kvdo)
 {
   return kvdo->vdo;
 }
@@ -131,114 +131,114 @@ static inline VDO *getVDO(KVDO *kvdo)
 /**
  * Set whether compression is enabled.
  *
- * @param kvdo               The KVDO object
+ * @param kvdo               The kvdo object
  * @param enableCompression  The new compression mode
  *
  * @return state of compression before new value is set
  **/
-bool setKVDOCompressing(KVDO *kvdo, bool enableCompression);
+bool setKVDOCompressing(struct kvdo *kvdo, bool enableCompression);
 
 /**
  * Get the current compression mode
  *
- * @param kvdo          The KVDO object to be queried
+ * @param kvdo          The kvdo object to be queried
  *
  * @return whether compression is currently enabled
  */
-bool getKVDOCompressing(KVDO *kvdo);
+bool getKVDOCompressing(struct kvdo *kvdo);
 
 /**
  * Gets the latest statistics gathered by the base code.
  *
- * @param kvdo  the KVDO object
+ * @param kvdo  the kvdo object
  * @param stats the statistics struct to fill in
  */
-void getKVDOStatistics(KVDO *kvdo, VDOStatistics *stats);
+void getKVDOStatistics(struct kvdo *kvdo, VDOStatistics *stats);
 
 /**
  * Get the current write policy
  *
- * @param kvdo          The KVDO to be queried
+ * @param kvdo          The kvdo to be queried
  *
  * @return  the write policy in effect
  */
-WritePolicy getKVDOWritePolicy(KVDO *kvdo);
+WritePolicy getKVDOWritePolicy(struct kvdo *kvdo);
 
 /**
  * Dump base code status information to the kernel log for debugging.
  *
- * @param kvdo          The KVDO to be examined
+ * @param kvdo          The kvdo to be examined
  */
-void dumpKVDOStatus(KVDO *kvdo);
+void dumpKVDOStatus(struct kvdo *kvdo);
 
 /**
  * Request the base code prepare to grow the physical space.
  *
- * @param kvdo           The KVDO to be updated
+ * @param kvdo           The kvdo to be updated
  * @param physicalCount  The new size
  *
  * @return VDO_SUCCESS or error
  */
-int kvdoPrepareToGrowPhysical(KVDO *kvdo, BlockCount physicalCount);
+int kvdoPrepareToGrowPhysical(struct kvdo *kvdo, BlockCount physicalCount);
 
 /**
  * Notify the base code of resized physical storage.
  *
- * @param kvdo           The KVDO to be updated
+ * @param kvdo           The kvdo to be updated
  * @param physicalCount  The new size
  *
  * @return VDO_SUCCESS or error
  */
-int kvdoResizePhysical(KVDO *kvdo, BlockCount physicalCount);
+int kvdoResizePhysical(struct kvdo *kvdo, BlockCount physicalCount);
 
 /**
  * Request the base code prepare to grow the logical space.
  *
- * @param kvdo          The KVDO to be updated
+ * @param kvdo          The kvdo to be updated
  * @param logicalCount  The new size
  *
  * @return VDO_SUCCESS or error
  */
-int kvdoPrepareToGrowLogical(KVDO *kvdo, BlockCount logicalCount);
+int kvdoPrepareToGrowLogical(struct kvdo *kvdo, BlockCount logicalCount);
 
 /**
  * Request the base code grow the logical space.
  *
- * @param kvdo          The KVDO to be updated
+ * @param kvdo          The kvdo to be updated
  * @param logicalCount  The new size
  *
  * @return VDO_SUCCESS or error
  */
-int kvdoResizeLogical(KVDO *kvdo, BlockCount logicalCount);
+int kvdoResizeLogical(struct kvdo *kvdo, BlockCount logicalCount);
 
 /**
  * Request the base code go read-only.
  *
- * @param kvdo          The KVDO to be updated
+ * @param kvdo          The kvdo to be updated
  * @param result        The error code causing the read only
  */
-void setKVDOReadOnly(KVDO *kvdo, int result);
+void setKVDOReadOnly(struct kvdo *kvdo, int result);
 
 /**
  * Perform an extended base-code command
  *
- * @param kvdo          The KVDO upon which to perform the operation.
+ * @param kvdo          The kvdo upon which to perform the operation.
  * @param argc          The number of arguments to the command.
  * @param argv          The command arguments. Note that all extended
  *                        command argv[0] strings start with "x-".
  *
  * @return VDO_SUCCESS or an error code
  **/
-int performKVDOExtendedCommand(KVDO *kvdo, int argc, char **argv);
+int performKVDOExtendedCommand(struct kvdo *kvdo, int argc, char **argv);
 
 /**
  * Enqueue a work item to be processed in the base code context.
  *
- * @param kvdo         The KVDO object in which to run the work item
+ * @param kvdo         The kvdo object in which to run the work item
  * @param item         The work item to be run
  * @param threadID     The thread on which to run the work item
  **/
-void enqueueKVDOWork(KVDO *kvdo, KvdoWorkItem *item, ThreadID threadID);
+void enqueueKVDOWork(struct kvdo *kvdo, KvdoWorkItem *item, ThreadID threadID);
 
 /**
  * Set up and enqueue a VIO's work item to be processed in the base code
