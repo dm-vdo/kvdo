@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#18 $
  */
 
 #ifndef KERNELLAYER_H
@@ -63,7 +63,7 @@ typedef enum {
 } KernelLayerState;
 
 /* Keep struct bio statistics atomically */
-struct atomicBioStats {
+struct atomic_bio_stats {
   atomic64_t read;              // Number of not REQ_WRITE bios
   atomic64_t write;             // Number of REQ_WRITE bios
   atomic64_t discard;           // Number of REQ_DISCARD bios
@@ -126,24 +126,24 @@ struct kernelLayer {
   // Memory allocation
   struct buffer_pool      *dataKVIOPool;
   // Albireo specific info
-  DedupeIndex             *dedupeIndex;
+  struct dedupe_index     *dedupeIndex;
   // Statistics
   atomic64_t               biosSubmitted;
   atomic64_t               biosCompleted;
   atomic64_t               dedupeContextBusy;
   atomic64_t               flushOut;
-  AtomicBioStats           biosIn;
-  AtomicBioStats           biosInPartial;
-  AtomicBioStats           biosOut;
-  AtomicBioStats           biosOutCompleted;
-  AtomicBioStats           biosAcknowledged;
-  AtomicBioStats           biosAcknowledgedPartial;
-  AtomicBioStats           biosMeta;
-  AtomicBioStats           biosMetaCompleted;
-  AtomicBioStats           biosJournal;
-  AtomicBioStats           biosPageCache;
-  AtomicBioStats           biosJournalCompleted;
-  AtomicBioStats           biosPageCacheCompleted;
+  struct atomic_bio_stats  biosIn;
+  struct atomic_bio_stats  biosInPartial;
+  struct atomic_bio_stats  biosOut;
+  struct atomic_bio_stats  biosOutCompleted;
+  struct atomic_bio_stats  biosAcknowledged;
+  struct atomic_bio_stats  biosAcknowledgedPartial;
+  struct atomic_bio_stats  biosMeta;
+  struct atomic_bio_stats  biosMetaCompleted;
+  struct atomic_bio_stats  biosJournal;
+  struct atomic_bio_stats  biosPageCache;
+  struct atomic_bio_stats  biosJournalCompleted;
+  struct atomic_bio_stats  biosPageCacheCompleted;
   // Debugging
   /* Whether to dump VDO state on shutdown */
   bool                     dumpOnShutdown;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#5 $
  */
 
 #include "physicalLayer.h"
@@ -89,7 +89,7 @@ static bool memoryEqual(void   *pointerArgument1,
  **/
 static void verifyDuplicationWork(KvdoWorkItem *item)
 {
-  DataKVIO *dataKVIO = workItemAsDataKVIO(item);
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
   if (likely(memoryEqual(dataKVIO->dataBlock, dataKVIO->readBlock.data,
@@ -106,9 +106,9 @@ static void verifyDuplicationWork(KvdoWorkItem *item)
  * Verify the Albireo-provided deduplication advice, and invoke a
  * callback once the answer is available.
  *
- * @param dataKVIO  The DataKVIO that we are looking to dedupe.
+ * @param dataKVIO  The data_kvio that we are looking to dedupe.
  **/
-static void verifyReadBlockCallback(DataKVIO *dataKVIO)
+static void verifyReadBlockCallback(struct data_kvio *dataKVIO)
 {
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   int err = dataKVIO->readBlock.status;
@@ -145,7 +145,7 @@ void verifyDuplication(DataVIO *dataVIO)
 bool compareDataVIOs(DataVIO *first, DataVIO *second)
 {
   dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
-  DataKVIO *a = dataVIOAsDataKVIO(first);
-  DataKVIO *b = dataVIOAsDataKVIO(second);
+  struct data_kvio *a = dataVIOAsDataKVIO(first);
+  struct data_kvio *b = dataVIOAsDataKVIO(second);
   return memoryEqual(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
 }

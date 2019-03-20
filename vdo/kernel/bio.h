@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#7 $
  */
 
 #ifndef BIO_H
@@ -303,7 +303,7 @@ void free_bio(struct bio *bio, KernelLayer *layer);
  * @param bio_stats  Statistics structure to update
  * @param bio        The bio
  **/
-void count_bios(AtomicBioStats *bio_stats, struct bio *bio);
+void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
 
 /**
  * Reset a bio so it can be used again. May only be used on a VDO-allocated

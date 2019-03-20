@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#14 $
  */
 
 #ifndef DATA_KVIO_H
@@ -43,7 +43,7 @@ struct external_io_request {
 };
 
 /* Dedupe support */
-struct dedupeContext {
+struct dedupe_context {
   UdsRequest          udsRequest;
   struct list_head    pendingList;
   Jiffies             submissionTime;
@@ -82,7 +82,7 @@ struct read_block {
   int                  status;
 };
 
-struct dataKVIO {
+struct data_kvio {
   /* The embedded base code's DataVIO */
   DataVIO                     dataVIO;
   /* The embedded kvio */
@@ -90,7 +90,7 @@ struct dataKVIO {
   /* The bio from the request which is being serviced by this kvio. */
   struct external_io_request  externalIORequest;
   /* Dedupe */
-  DedupeContext               dedupeContext;
+  struct dedupe_context       dedupeContext;
   /* Read cache */
   struct read_block           readBlock;
   /* partial block support */
@@ -115,40 +115,40 @@ struct dataKVIO {
 };
 
 /**
- * Convert a kvio to a DataKVIO.
+ * Convert a kvio to a data_kvio.
  *
  * @param kvio  The kvio to convert
  *
- * @return The kvio as a DataKVIO
+ * @return The kvio as a data_kvio
  **/
-static inline DataKVIO *kvioAsDataKVIO(struct kvio *kvio)
+static inline struct data_kvio *kvioAsDataKVIO(struct kvio *kvio)
 {
-  ASSERT_LOG_ONLY(isData(kvio), "struct kvio is a DataKVIO");
-  return container_of(kvio, DataKVIO, kvio);
+  ASSERT_LOG_ONLY(isData(kvio), "kvio is a data_kvio");
+  return container_of(kvio, struct data_kvio, kvio);
 }
 
 /**
- * Convert a DataKVIO to a kvio.
+ * Convert a data_kvio to a kvio.
  *
- * @param dataKVIO  The DataKVIO to convert
+ * @param dataKVIO  The data_kvio to convert
  *
- * @return The DataKVIO as a kvio
+ * @return The data_kvio as a kvio
  **/
-static inline struct kvio *dataKVIOAsKVIO(DataKVIO *dataKVIO)
+static inline struct kvio *dataKVIOAsKVIO(struct data_kvio *dataKVIO)
 {
   return &dataKVIO->kvio;
 }
 
 /**
- * Returns a pointer to the DataKVIO wrapping a DataVIO.
+ * Returns a pointer to the data_kvio wrapping a DataVIO.
  *
  * @param dataVIO  the DataVIO
  *
- * @return the DataKVIO
+ * @return the data_kvio
  **/
-static inline DataKVIO *dataVIOAsDataKVIO(DataVIO *dataVIO)
+static inline struct data_kvio *dataVIOAsDataKVIO(DataVIO *dataVIO)
 {
-  return container_of(dataVIO, DataKVIO, dataVIO);
+  return container_of(dataVIO, struct data_kvio, dataVIO);
 }
 
 /**
@@ -164,63 +164,63 @@ static inline struct kvio *dataVIOAsKVIO(DataVIO *dataVIO)
 }
 
 /**
- * Returns a pointer to the DataKVIO wrapping a work item.
+ * Returns a pointer to the data_kvio wrapping a work item.
  *
  * @param item  the work item
  *
- * @return the DataKVIO
+ * @return the data_kvio
  **/
-static inline DataKVIO *workItemAsDataKVIO(KvdoWorkItem *item)
+static inline struct data_kvio *workItemAsDataKVIO(KvdoWorkItem *item)
 {
   return kvioAsDataKVIO(workItemAsKVIO(item));
 }
 
 /**
- * Get the WorkItem from a DataKVIO.
+ * Get the WorkItem from a data_kvio.
  *
- * @param dataKVIO  The DataKVIO
+ * @param dataKVIO  The data_kvio
  *
- * @return the DataKVIO's work item
+ * @return the data_kvio's work item
  **/
-static inline KvdoWorkItem *workItemFromDataKVIO(DataKVIO *dataKVIO)
+static inline KvdoWorkItem *workItemFromDataKVIO(struct data_kvio *dataKVIO)
 {
   return &dataKVIOAsKVIO(dataKVIO)->enqueueable.workItem;
 }
 
 /**
- * Get the bio from a DataKVIO.
+ * Get the bio from a data_kvio.
  *
- * @param dataKVIO  The DataKVIO from which to get the bio
+ * @param dataKVIO  The data_kvio from which to get the bio
  *
- * @return The DataKVIO's bio
+ * @return The data_kvio's bio
  **/
-static inline struct bio *getBIOFromDataKVIO(DataKVIO *dataKVIO)
+static inline struct bio *getBIOFromDataKVIO(struct data_kvio *dataKVIO)
 {
   return dataKVIOAsKVIO(dataKVIO)->bio;
 }
 
 /**
- * Get the KernelLayer from a DataKVIO.
+ * Get the KernelLayer from a data_kvio.
  *
- * @param dataKVIO  The DataKVIO from which to get the KernelLayer
+ * @param dataKVIO  The data_kvio from which to get the KernelLayer
  *
- * @return The DataKVIO's KernelLayer
+ * @return The data_kvio's KernelLayer
  **/
-static inline KernelLayer *getLayerFromDataKVIO(DataKVIO *dataKVIO)
+static inline KernelLayer *getLayerFromDataKVIO(struct data_kvio *dataKVIO)
 {
   return dataKVIOAsKVIO(dataKVIO)->layer;
 }
 
 /**
- * Set up and enqueue a DataKVIO's work item to be processed in the base code
+ * Set up and enqueue a data_kvio's work item to be processed in the base code
  * context.
  *
- * @param dataKVIO       The DataKVIO with the work item to be run
+ * @param dataKVIO       The data_kvio with the work item to be run
  * @param work           The function pointer to execute
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
  **/
-static inline void enqueueDataKVIO(DataKVIO         *dataKVIO,
+static inline void enqueueDataKVIO(struct data_kvio *dataKVIO,
                                    KvdoWorkFunction  work,
                                    void             *statsFunction,
                                    unsigned int      action)
@@ -229,13 +229,13 @@ static inline void enqueueDataKVIO(DataKVIO         *dataKVIO,
 }
 
 /**
- * Enqueue a DataKVIO on a work queue.
+ * Enqueue a data_kvio on a work queue.
  *
  * @param queue     The queue
- * @param dataKVIO  The DataKVIO
+ * @param dataKVIO  The data_kvio
  **/
 static inline void enqueueDataKVIOWork(struct kvdo_work_queue *queue,
-                                       DataKVIO               *dataKVIO)
+                                       struct data_kvio       *dataKVIO)
 {
   enqueueKVIOWork(queue, dataKVIOAsKVIO(dataKVIO));
 }
@@ -243,24 +243,24 @@ static inline void enqueueDataKVIOWork(struct kvdo_work_queue *queue,
 /**
  * Add a trace record for the current source location.
  *
- * @param dataKVIO  The DataKVIO structure to be updated
+ * @param dataKVIO  The data_kvio structure to be updated
  * @param location  The source-location descriptor to be recorded
  **/
-static inline void dataKVIOAddTraceRecord(DataKVIO      *dataKVIO,
-                                          TraceLocation  location)
+static inline void dataKVIOAddTraceRecord(struct data_kvio *dataKVIO,
+                                          TraceLocation     location)
 {
   dataVIOAddTraceRecord(&dataKVIO->dataVIO, location);
 }
 
 /**
- * Set up and enqueue a DataKVIO on the CPU queue.
+ * Set up and enqueue a data_kvio on the CPU queue.
  *
- * @param dataKVIO       The DataKVIO to set up
+ * @param dataKVIO       The data_kvio to set up
  * @param work           The function pointer to execute
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
  **/
-static inline void launchDataKVIOOnCPUQueue(DataKVIO         *dataKVIO,
+static inline void launchDataKVIOOnCPUQueue(struct data_kvio *dataKVIO,
                                             KvdoWorkFunction  work,
                                             void             *statsFunction,
                                             unsigned int      action)
@@ -270,14 +270,14 @@ static inline void launchDataKVIOOnCPUQueue(DataKVIO         *dataKVIO,
 }
 
 /**
- * Set up and enqueue a DataKVIO on the bio Ack queue.
+ * Set up and enqueue a data_kvio on the bio Ack queue.
  *
- * @param dataKVIO       The DataKVIO to set up
+ * @param dataKVIO       The data_kvio to set up
  * @param work           The function pointer to execute
  * @param statsFunction  A function pointer to record for stats, or NULL
  * @param action         Action code, mapping to a relative priority
  **/
-static inline void launchDataKVIOOnBIOAckQueue(DataKVIO         *dataKVIO,
+static inline void launchDataKVIOOnBIOAckQueue(struct data_kvio *dataKVIO,
                                                KvdoWorkFunction  work,
                                                void             *statsFunction,
                                                unsigned int      action)
@@ -287,11 +287,11 @@ static inline void launchDataKVIOOnBIOAckQueue(DataKVIO         *dataKVIO,
 }
 
 /**
- * Move a DataKVIO back to the base threads.
+ * Move a data_kvio back to the base threads.
  *
- * @param dataKVIO The DataKVIO to enqueue
+ * @param dataKVIO The data_kvio to enqueue
  **/
-static inline void kvdoEnqueueDataVIOCallback(DataKVIO *dataKVIO)
+static inline void kvdoEnqueueDataVIOCallback(struct data_kvio *dataKVIO)
 {
   kvdoEnqueueVIOCallback(dataKVIOAsKVIO(dataKVIO));
 }
@@ -299,11 +299,11 @@ static inline void kvdoEnqueueDataVIOCallback(DataKVIO *dataKVIO)
 /**
  * Check whether the external request bio had FUA set.
  *
- * @param dataKVIO  The DataKVIO to check
+ * @param dataKVIO  The data_kvio to check
  *
  * @return <code>true</code> if the external request bio had FUA set
  **/
-static inline bool requestorSetFUA(DataKVIO *dataKVIO)
+static inline bool requestorSetFUA(struct data_kvio *dataKVIO)
 {
   return ((dataKVIO->externalIORequest.rw & REQ_FUA) == REQ_FUA);
 }
@@ -374,24 +374,25 @@ int makeDataKVIOBufferPool(KernelLayer          *layer,
   __attribute__((warn_unused_result));
 
 /**
- * Get the state needed to generate UDS metadata from the DataKVIO
- * associated with a DedupeContext.
+ * Get the state needed to generate UDS metadata from the data_kvio
+ * associated with a dedupe_context.
  *
- * @param context  The DedupeContext
+ * @param context  The dedupe_context
  *
  * @return the advice to store in the UDS index
  **/
-DataLocation getDedupeAdvice(const DedupeContext *context)
+DataLocation getDedupeAdvice(const struct dedupe_context *context)
   __attribute__((warn_unused_result));
 
 /**
- * Set the result of a dedupe query for the DataKVIO associated with a
- * DedupeContext.
+ * Set the result of a dedupe query for the data_kvio associated with a
+ * dedupe_context.
  *
  * @param context  The context receiving advice
  * @param advice   A data location at which the chunk named in the context
  *                 might be stored (will be NULL if no advice was found)
  **/
-void setDedupeAdvice(DedupeContext *context, const DataLocation *advice);
+void setDedupeAdvice(struct dedupe_context *context,
+                     const DataLocation *advice);
 
 #endif /* DATA_KVIO_H */

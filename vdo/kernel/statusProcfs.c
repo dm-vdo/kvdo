@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#7 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -90,7 +90,7 @@ static const struct file_operations vdo_procfs_dedupe_ops = {
 };
 
 /**********************************************************************/
-static void copy_bio_stat(BioStats *b, const AtomicBioStats *a)
+static void copy_bio_stat(BioStats *b, const struct atomic_bio_stats *a)
 {
 	b->read = atomic64_read(&a->read);
 	b->write = atomic64_read(&a->write);

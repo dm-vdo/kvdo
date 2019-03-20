@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#10 $
  */
 
 #include "bio.h"
@@ -95,7 +95,7 @@ void free_bio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void count_bios(AtomicBioStats *bio_stats, struct bio *bio)
+void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio)
 {
 	if (is_write_bio(bio)) {
 		atomic64_inc(&bio_stats->write);

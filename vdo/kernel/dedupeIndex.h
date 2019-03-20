@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#7 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -32,7 +32,7 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
+int makeDedupeIndex(struct dedupe_index **indexPtr, KernelLayer *layer)
   __attribute__((warn_unused_result));
 
 
@@ -42,14 +42,14 @@ int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
  * @param index      The dedupe index
  * @param showQueue  true to dump a dedupe work queue
  **/
-void dumpDedupeIndex(DedupeIndex *index, bool showQueue);
+void dumpDedupeIndex(struct dedupe_index *index, bool showQueue);
 
 /**
  * Free the dedupe index
  *
  * @param indexPtr  The dedupe index
  **/
-void freeDedupeIndex(DedupeIndex **indexPtr);
+void freeDedupeIndex(struct dedupe_index **indexPtr);
 
 /**
  * Get the name of the deduplication state
@@ -58,7 +58,7 @@ void freeDedupeIndex(DedupeIndex **indexPtr);
  *
  * @return the dedupe state name
  **/
-const char *getDedupeStateName(DedupeIndex *index);
+const char *getDedupeStateName(struct dedupe_index *index);
 
 /**
  * Get the dedupe timeout count.
@@ -67,7 +67,7 @@ const char *getDedupeStateName(DedupeIndex *index);
  *
  * @return The number of dedupe timeouts noted
  **/
-uint64_t getDedupeTimeoutCount(DedupeIndex *index);
+uint64_t getDedupeTimeoutCount(struct dedupe_index *index);
 
 /**
  * Get the index statistics
@@ -75,14 +75,14 @@ uint64_t getDedupeTimeoutCount(DedupeIndex *index);
  * @param index  The dedupe index
  * @param stats  The index statistics
  **/
-void getIndexStatistics(DedupeIndex *index, IndexStatistics *stats);
+void getIndexStatistics(struct dedupe_index *index, IndexStatistics *stats);
 
 /**
  * Return from a dedupe operation by invoking the callback function
  *
- * @param dataKVIO  The DataKVIO
+ * @param dataKVIO  The data_kvio
  **/
-static inline void invokeDedupeCallback(DataKVIO *dataKVIO)
+static inline void invokeDedupeCallback(struct data_kvio *dataKVIO)
 {
 
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION("$F($dup);cb=dedupe($dup)"));
@@ -97,12 +97,12 @@ static inline void invokeDedupeCallback(DataKVIO *dataKVIO)
  *
  * @return 0 or an error code
  **/
-int messageDedupeIndex(DedupeIndex *index, const char *name);
+int messageDedupeIndex(struct dedupe_index *index, const char *name);
 
 /**
- * Look up the chunkname of the DataKVIO and identify duplicated chunks.
+ * Look up the chunkname of the data_kvio and identify duplicated chunks.
  *
- * @param dataKVIO  The DataKVIO. These fields are used:
+ * @param dataKVIO  The data_kvio. These fields are used:
  *                  dedupeContext.chunkName is the chunk name.
  *                  The advice to offer to the index will be obtained
  *                  via getDedupeAdvice(). The advice found in the index
@@ -110,19 +110,19 @@ int messageDedupeIndex(DedupeIndex *index, const char *name);
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-void postDedupeAdvice(DataKVIO *dataKVIO);
+void postDedupeAdvice(struct data_kvio *dataKVIO);
 
 /**
- * Look up the chunkname of the DataKVIO and identify duplicated chunks.
+ * Look up the chunkname of the data_kvio and identify duplicated chunks.
  *
- * @param dataKVIO  The DataKVIO. These fields are used:
+ * @param dataKVIO  The data_kvio. These fields are used:
  *                  dedupeContext.chunkName is the chunk name.
  *                  The advice found in the index (or NULL if none) will
  *                  be returned via setDedupeAdvice().
  *                  dedupeContext.status is set to the return status code of
  *                  any asynchronous index processing.
  **/
-void queryDedupeAdvice(DataKVIO *dataKVIO);
+void queryDedupeAdvice(struct data_kvio *dataKVIO);
 
 /**
  * Start the dedupe index.
@@ -131,7 +131,7 @@ void queryDedupeAdvice(DataKVIO *dataKVIO);
  * @param createFlag  If true, create a new index without first attempting
  *                    to load an existing index
  **/
-void startDedupeIndex(DedupeIndex *index, bool createFlag);
+void startDedupeIndex(struct dedupe_index *index, bool createFlag);
 
 /**
  * Stop the dedupe index.  May be called by any thread, but will wait for
@@ -139,7 +139,7 @@ void startDedupeIndex(DedupeIndex *index, bool createFlag);
  *
  * @param index  The dedupe index
  **/
-void stopDedupeIndex(DedupeIndex *index);
+void stopDedupeIndex(struct dedupe_index *index);
 
 /**
  * Wait until the dedupe index has completed all its outstanding I/O.
@@ -147,26 +147,26 @@ void stopDedupeIndex(DedupeIndex *index);
  * @param index     The dedupe index
  * @param saveFlag  True if we should save the index
  **/
-void suspendDedupeIndex(DedupeIndex *index, bool saveFlag);
+void suspendDedupeIndex(struct dedupe_index *index, bool saveFlag);
 
 /**
  * Finish the dedupe index.
  *
  * @param index  The dedupe index
  **/
-void finishDedupeIndex(DedupeIndex *index);
+void finishDedupeIndex(struct dedupe_index *index);
 
 /**
- * Look up the chunkname of the DataKVIO and associate the new PBN with the
+ * Look up the chunkname of the data_kvio and associate the new PBN with the
  * name.
  *
- * @param dataKVIO  The DataKVIO. These fields are used:
+ * @param dataKVIO  The data_kvio. These fields are used:
  *                  dedupeContext.chunkName is the chunk name.
  *                  The advice to offer to the index will be obtained
  *                  via getDedupeAdvice(). dedupeContext.status is set to the
  *                  return status code of any asynchronous index processing.
  **/
-void updateDedupeAdvice(DataKVIO *dataKVIO);
+void updateDedupeAdvice(struct data_kvio *dataKVIO);
 
 // Interval (in milliseconds or jiffies) from submission until switching to
 // fast path and skipping Albireo.

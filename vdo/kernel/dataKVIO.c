@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#27 $
  */
 
 #include "dataKVIO.h"
@@ -44,8 +44,8 @@ static void dumpPooledDataKVIO(void *poolData, void *data);
 
 enum {
   WRITE_PROTECT_FREE_POOL = 0,
-  WP_DATA_KVIO_SIZE       = (sizeof(DataKVIO) + PAGE_SIZE - 1
-                             - ((sizeof(DataKVIO) + PAGE_SIZE - 1)
+  WP_DATA_KVIO_SIZE       = (sizeof(struct data_kvio) + PAGE_SIZE - 1
+                             - ((sizeof(struct data_kvio) + PAGE_SIZE - 1)
                                 % PAGE_SIZE))
 };
 
@@ -72,7 +72,7 @@ setWriteProtect(void   *address,
 }
 
 /**********************************************************************/
-static void maybeLogDataKVIOTrace(DataKVIO *dataKVIO)
+static void maybeLogDataKVIOTrace(struct data_kvio *dataKVIO)
 {
   if (dataKVIO->kvio.layer->traceLogging) {
     logKvioTrace(&dataKVIO->kvio);
@@ -88,7 +88,7 @@ static void maybeLogDataKVIOTrace(DataKVIO *dataKVIO)
  *
  * @param dataKVIO  The VIO we're finishing up
  **/
-static void kvioCompletionTap1(DataKVIO *dataKVIO)
+static void kvioCompletionTap1(struct data_kvio *dataKVIO)
 {
   /*
    * Ensure that dataKVIO doesn't get optimized out, even under inline
@@ -118,7 +118,7 @@ static void kvioCompletionTap1(DataKVIO *dataKVIO)
  *
  * @param dataKVIO  The VIO we're finishing up
  **/
-static void kvioCompletionTap2(DataKVIO *dataKVIO)
+static void kvioCompletionTap2(struct data_kvio *dataKVIO)
 {
   // Hack to ensure variable doesn't get optimized out.
   barrier();
@@ -126,7 +126,7 @@ static void kvioCompletionTap2(DataKVIO *dataKVIO)
 }
 
 /**********************************************************************/
-static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
+static void kvdoAcknowledgeDataKVIO(struct data_kvio *dataKVIO)
 {
   KernelLayer                *layer             = dataKVIO->kvio.layer;
   struct external_io_request *externalIORequest = &dataKVIO->externalIORequest;
@@ -158,7 +158,7 @@ static void kvdoAcknowledgeDataKVIO(DataKVIO *dataKVIO)
 }
 
 /**********************************************************************/
-static noinline void cleanDataKVIO(DataKVIO                    *dataKVIO,
+static noinline void cleanDataKVIO(struct data_kvio            *dataKVIO,
                                    struct free_buffer_pointers *fbp)
 {
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
@@ -205,7 +205,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
 /**********************************************************************/
 static void kvdoAcknowledgeThenCompleteDataKVIO(KvdoWorkItem *item)
 {
-  DataKVIO *dataKVIO = workItemAsDataKVIO(item);
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   kvdoAcknowledgeDataKVIO(dataKVIO);
   add_to_batch_processor(dataKVIO->kvio.layer->dataKVIOReleaser, item);
 }
@@ -213,7 +213,7 @@ static void kvdoAcknowledgeThenCompleteDataKVIO(KvdoWorkItem *item)
 /**********************************************************************/
 void kvdoCompleteDataKVIO(VDOCompletion *completion)
 {
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(asDataVIO(completion));
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(asDataVIO(completion));
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
   KernelLayer *layer = getLayerFromDataKVIO(dataKVIO);
@@ -231,11 +231,11 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
  * Copy the uncompressed data from a compressed block read into the user
  * bio which requested the read.
  *
- * @param workItem  The DataKVIO which requested the read
+ * @param workItem  The data_kvio which requested the read
  **/
 static void copyReadBlockData(KvdoWorkItem *workItem)
 {
-  DataKVIO *dataKVIO = workItemAsDataKVIO(workItem);
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(workItem);
 
   // For a read-modify-write, copy the data into the dataBlock buffer so it
   // will be set up for the write phase.
@@ -260,9 +260,9 @@ static void copyReadBlockData(KvdoWorkItem *workItem)
 /**
  * Finish reading data for a compressed block.
  *
- * @param dataKVIO  The DataKVIO which requested the read
+ * @param dataKVIO  The data_kvio which requested the read
  **/
-static void readDataKVIOReadBlockCallback(DataKVIO *dataKVIO)
+static void readDataKVIOReadBlockCallback(struct data_kvio *dataKVIO)
 {
   if (dataKVIO->readBlock.status != VDO_SUCCESS) {
     setCompletionResult(dataVIOAsCompletion(&dataKVIO->dataVIO),
@@ -310,17 +310,17 @@ static void resetUserBio(struct bio *bio, int error)
 
 /**
  * Uncompress the data that's just been read and then call back the requesting
- * DataKVIO.
+ * data_kvio.
  *
- * @param workItem  The DataKVIO requesting the data
+ * @param workItem  The data_kvio requesting the data
  **/
 static void uncompressReadBlock(KvdoWorkItem *workItem)
 {
-  DataKVIO          *dataKVIO  = workItemAsDataKVIO(workItem);
+  struct data_kvio  *dataKVIO  = workItemAsDataKVIO(workItem);
   struct read_block *readBlock = &dataKVIO->readBlock;
   BlockSize          blockSize = VDO_BLOCK_SIZE;
 
-  // The DataKVIO's scratch block will be used to contain the
+  // The data_kvio's scratch block will be used to contain the
   // uncompressed data.
   uint16_t fragmentOffset, fragmentSize;
   char *compressedData = readBlock->data;
@@ -350,12 +350,12 @@ static void uncompressReadBlock(KvdoWorkItem *workItem)
 
 /**
  * Now that we have gotten the data from storage, uncompress the data if
- * necessary and then call back the requesting DataKVIO.
+ * necessary and then call back the requesting data_kvio.
  *
- * @param dataKVIO  The DataKVIO requesting the data
+ * @param dataKVIO  The data_kvio requesting the data
  * @param result    The result of the read operation
  **/
-static void completeRead(DataKVIO *dataKVIO, int result)
+static void completeRead(struct data_kvio *dataKVIO, int result)
 {
   struct read_block *readBlock = &dataKVIO->readBlock;
   readBlock->status            = result;
@@ -387,7 +387,7 @@ static void readBioCallback(struct bio *bio, int result)
 #endif
 {
   struct kvio *kvio = (struct kvio *) bio->bi_private;
-  DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
+  struct data_kvio *dataKVIO = kvioAsDataKVIO(kvio);
   dataKVIO->readBlock.data = dataKVIO->readBlock.buffer;
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   count_completed_bios(bio);
@@ -407,7 +407,7 @@ void kvdoReadBlock(DataVIO             *dataVIO,
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
 
-  DataKVIO          *dataKVIO  = dataVIOAsDataKVIO(dataVIO);
+  struct data_kvio  *dataKVIO  = dataVIOAsDataKVIO(dataVIO);
   struct read_block *readBlock = &dataKVIO->readBlock;
   KernelLayer       *layer     = getLayerFromDataKVIO(dataKVIO);
 
@@ -448,7 +448,7 @@ void readDataVIO(DataVIO *dataVIO)
 /**********************************************************************/
 static void kvdoAcknowledgeDataKVIOThenContinue(KvdoWorkItem *item)
 {
-  DataKVIO *dataKVIO = workItemAsDataKVIO(item);
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
   kvdoAcknowledgeDataKVIO(dataKVIO);
   // Even if we're not using bio-ack threads, we may be in the wrong
@@ -459,8 +459,8 @@ static void kvdoAcknowledgeDataKVIOThenContinue(KvdoWorkItem *item)
 /**********************************************************************/
 void acknowledgeDataVIO(DataVIO *dataVIO)
 {
-  DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(dataVIO);
+  KernelLayer *layer         = getLayerFromDataKVIO(dataKVIO);
 
   // If the remaining discard work is not completely processed by this VIO,
   // don't acknowledge it yet.
@@ -499,11 +499,11 @@ void writeDataVIO(DataVIO *dataVIO)
 /**
  * Determines whether the data block buffer is all zeros.
  *
- * @param dataKVIO  The DataKVIO to check
+ * @param dataKVIO  The data_kvio to check
  *
  * @return true is all zeroes, false otherwise
  **/
-static inline bool isZeroBlock(DataKVIO *dataKVIO)
+static inline bool isZeroBlock(struct data_kvio *dataKVIO)
 {
   const char *buffer = dataKVIO->dataBlock;
   /*
@@ -555,9 +555,9 @@ static inline bool isZeroBlock(DataKVIO *dataKVIO)
 void applyPartialWrite(DataVIO *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
-  DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  struct bio  *bio      = dataKVIO->externalIORequest.bio;
-  KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(dataVIO);
+  struct bio  *bio           = dataKVIO->externalIORequest.bio;
+  KernelLayer *layer         = getLayerFromDataKVIO(dataKVIO);
   reset_bio(dataKVIO->dataBlockBio, layer);
 
   if (!is_discard_bio(bio)) {
@@ -593,7 +593,7 @@ void copyData(DataVIO *source, DataVIO *destination)
 /**********************************************************************/
 static void kvdoCompressWork(KvdoWorkItem *item)
 {
-  DataKVIO    *dataKVIO = workItemAsDataKVIO(item);
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
   char *context = get_work_queue_private_data();
@@ -626,7 +626,7 @@ void compressDataVIO(DataVIO *dataVIO)
    * was a partial one (r/m/w), and it is part of a larger discard, we cannot
    * compress this VIO. We need to make sure the VIO completes ASAP.
    */
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   if (is_discard_bio(dataKVIO->externalIORequest.bio)
       && (dataKVIO->remainingDiscard > 0)) {
     dataVIO->compression.size = VDO_BLOCK_SIZE + 1;
@@ -639,20 +639,20 @@ void compressDataVIO(DataVIO *dataVIO)
 }
 
 /**
- * Construct a DataKVIO.
+ * Construct a data_kvio.
  *
  * @param [in]  layer        The physical layer
- * @param [in]  bio          The bio to associate with this DataKVIO
- * @param [out] dataKVIOPtr  A pointer to hold the new DataKVIO
+ * @param [in]  bio          The bio to associate with this data_kvio
+ * @param [out] dataKVIOPtr  A pointer to hold the new data_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int makeDataKVIO(KernelLayer  *layer,
-                        struct bio   *bio,
-                        DataKVIO    **dataKVIOPtr)
+static int makeDataKVIO(KernelLayer       *layer,
+                        struct bio        *bio,
+                        struct data_kvio **dataKVIOPtr)
 {
-  DataKVIO *dataKVIO;
+  struct data_kvio *dataKVIO;
   int result = alloc_buffer_from_pool(layer->dataKVIOPool,
                                       (void **) &dataKVIO);
   if (result != VDO_SUCCESS) {
@@ -684,21 +684,21 @@ static int makeDataKVIO(KernelLayer  *layer,
 /**
  * Creates a new DataVIO structure. A DataVIO represents a single logical
  * block of data. It is what most VDO operations work with. This function also
- * creates a wrapping DataKVIO structure that is used when we want to
+ * creates a wrapping data_kvio structure that is used when we want to
  * physically read or write the data associated with the DataVIO.
  *
  * @param [in]  layer        The physical layer
- * @param [in]  bio          The bio from the request the new DataKVIO will
+ * @param [in]  bio          The bio from the request the new data_kvio will
  *                           service
  * @param [in]  arrivalTime  The arrival time of the bio
- * @param [out] dataKVIOPtr  A pointer to hold the new DataKVIO
+ * @param [out] dataKVIOPtr  A pointer to hold the new data_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
-                                 struct bio   *bio,
-                                 Jiffies       arrivalTime,
-                                 DataKVIO    **dataKVIOPtr)
+static int kvdoCreateKVIOFromBio(KernelLayer       *layer,
+                                 struct bio        *bio,
+                                 Jiffies            arrivalTime,
+                                 struct data_kvio **dataKVIOPtr)
 {
   struct external_io_request externalIORequest = {
     .bio         = bio,
@@ -715,8 +715,8 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
   // bi_rw field from externalIORequest.rw).
   clear_bio_operation_flag_fua(bio);
 
-  DataKVIO *dataKVIO = NULL;
-  int       result   = makeDataKVIO(layer, bio, &dataKVIO);
+  struct data_kvio *dataKVIO = NULL;
+  int               result   = makeDataKVIO(layer, bio, &dataKVIO);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -793,9 +793,9 @@ static void launchDataKVIOWork(KvdoWorkItem *item)
  **/
 static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
 {
-  DataVIO     *dataVIO  = asDataVIO(completion);
-  DataKVIO    *dataKVIO = dataVIOAsDataKVIO(dataVIO);
-  KernelLayer *layer    = getLayerFromDataKVIO(dataKVIO);
+  DataVIO          *dataVIO  = asDataVIO(completion);
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(dataVIO);
+  KernelLayer      *layer    = getLayerFromDataKVIO(dataKVIO);
   dataKVIO->remainingDiscard
     -= min(dataKVIO->remainingDiscard,
            (DiscardSize) (VDO_BLOCK_SIZE - dataKVIO->offset));
@@ -839,7 +839,7 @@ static void kvdoContinueDiscardKVIO(VDOCompletion *completion)
  **/
 static void kvdoCompletePartialRead(VDOCompletion *completion)
 {
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(asDataVIO(completion));
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(asDataVIO(completion));
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
 
   bio_copy_data_out(dataKVIO->externalIORequest.bio,
@@ -855,7 +855,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
                               bool         hasDiscardPermit)
 {
 
-  DataKVIO *dataKVIO = NULL;
+  struct data_kvio *dataKVIO = NULL;
   int result = kvdoCreateKVIOFromBio(layer, bio, arrivalTime, &dataKVIO);
   if (unlikely(result != VDO_SUCCESS)) {
     logInfo("%s: kvio allocation failure", __func__);
@@ -908,14 +908,14 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
 }
 
 /**
- * Hash a DataKVIO and set its chunk name.
+ * Hash a data_kvio and set its chunk name.
  *
- * @param item  The DataKVIO to be hashed
+ * @param item  The data_kvio to be hashed
  **/
 static void kvdoHashDataWork(KvdoWorkItem *item)
 {
-  DataKVIO *dataKVIO = workItemAsDataKVIO(item);
-  DataVIO  *dataVIO  = &dataKVIO->dataVIO;
+  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
+  DataVIO          *dataVIO  = &dataKVIO->dataVIO;
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
 
   MurmurHash3_x64_128(dataKVIO->dataBlock, VDO_BLOCK_SIZE, 0x62ea60be,
@@ -943,7 +943,7 @@ void checkForDuplication(DataVIO *dataVIO)
   ASSERT_LOG_ONLY(dataVIO->newMapped.state != MAPPING_STATE_UNMAPPED,
                   "discard not checked for duplication");
 
-  DataKVIO *dataKVIO = dataVIOAsDataKVIO(dataVIO);
+  struct data_kvio *dataKVIO = dataVIOAsDataKVIO(dataVIO);
   if (hasAllocation(dataVIO)) {
     postDedupeAdvice(dataKVIO);
   } else {
@@ -968,8 +968,8 @@ static void freePooledDataKVIO(void *poolData, void *data)
     return;
   }
 
-  DataKVIO    *dataKVIO = (DataKVIO *) data;
-  KernelLayer *layer    = (KernelLayer *) poolData;
+  struct data_kvio *dataKVIO = (struct data_kvio *) data;
+  KernelLayer      *layer    = (KernelLayer *) poolData;
   if (WRITE_PROTECT_FREE_POOL) {
     setWriteProtect(dataKVIO, WP_DATA_KVIO_SIZE, false);
   }
@@ -989,29 +989,31 @@ static void freePooledDataKVIO(void *poolData, void *data)
 }
 
 /**
- * Allocate a DataKVIO. This function is the internals of makePooledDataKVIO().
+ * Allocate a data_kvio. This function is the internals of
+ * makePooledDataKVIO().
  *
- * @param [in]  layer        The layer in which the DataKVIO will operate
- * @param [out] dataKVIOPtr  A pointer to hold the newly allocated DataKVIO
+ * @param [in]  layer        The layer in which the data_kvio will operate
+ * @param [out] dataKVIOPtr  A pointer to hold the newly allocated data_kvio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
+static int allocatePooledDataKVIO(KernelLayer       *layer,
+                                  struct data_kvio **dataKVIOPtr)
 {
-  DataKVIO *dataKVIO;
+  struct data_kvio *dataKVIO;
   int result;
   if (WRITE_PROTECT_FREE_POOL) {
-    STATIC_ASSERT(WP_DATA_KVIO_SIZE >= sizeof(DataKVIO));
+    STATIC_ASSERT(WP_DATA_KVIO_SIZE >= sizeof(struct data_kvio));
     result = allocateMemory(WP_DATA_KVIO_SIZE, 0, __func__, &dataKVIO);
     if (result == VDO_SUCCESS) {
       BUG_ON((((size_t) dataKVIO) & (PAGE_SIZE - 1)) != 0);
     }
   } else {
-    result = ALLOCATE(1, DataKVIO, __func__, &dataKVIO);
+    result = ALLOCATE(1, struct data_kvio, __func__, &dataKVIO);
   }
 
   if (result != VDO_SUCCESS) {
-    return logErrorWithStringError(result, "DataKVIO allocation failure");
+    return logErrorWithStringError(result, "data_kvio allocation failure");
   }
 
   STATIC_ASSERT(VDO_BLOCK_SIZE <= PAGE_SIZE);
@@ -1019,14 +1021,14 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
                           &dataKVIO->dataBlock);
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
-    return logErrorWithStringError(result, "DataKVIO data allocation failure");
+    return logErrorWithStringError(result, "data_kvio data allocation failure");
   }
 
   result = create_bio(layer, dataKVIO->dataBlock, &dataKVIO->dataBlockBio);
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
-                                   "DataKVIO data bio allocation failure");
+                                   "data_kvio data bio allocation failure");
   }
 
   result = allocateMemory(VDO_BLOCK_SIZE, 0, "kvio read buffer",
@@ -1034,7 +1036,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
-                                   "DataKVIO read allocation failure");
+                                   "data_kvio read allocation failure");
   }
 
   result = create_bio(layer, dataKVIO->readBlock.buffer,
@@ -1042,7 +1044,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
-                                   "DataKVIO read bio allocation failure");
+                                   "data_kvio read bio allocation failure");
   }
 
   dataKVIO->readBlock.bio->bi_private = &dataKVIO->kvio;
@@ -1052,7 +1054,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(layer, dataKVIO);
     return logErrorWithStringError(result,
-                                   "DataKVIO scratch allocation failure");
+                                   "data_kvio scratch allocation failure");
   }
 
   *dataKVIOPtr = dataKVIO;
@@ -1064,7 +1066,7 @@ static int allocatePooledDataKVIO(KernelLayer *layer, DataKVIO **dataKVIOPtr)
  **/
 static int makePooledDataKVIO(void *poolData, void **dataPtr)
 {
-  DataKVIO *dataKVIO = NULL;
+  struct data_kvio *dataKVIO = NULL;
   int result = allocatePooledDataKVIO((KernelLayer *) poolData, &dataKVIO);
   if (result != VDO_SUCCESS) {
     freePooledDataKVIO(poolData, dataKVIO);
@@ -1143,18 +1145,18 @@ static void encodeVIODumpFlags(DataVIO *dataVIO, char buffer[8])
 }
 
 /**
- * Dump out info on a DataKVIO from the DataKVIO pool.
+ * Dump out info on a data_kvio from the data_kvio pool.
  *
  * <p>Implements buffer_dump_function.
  *
  * @param poolData  The pool data
- * @param data      The DataKVIO to dump
+ * @param data      The data_kvio to dump
  **/
 static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
                                void *data)
 {
-  DataKVIO *dataKVIO = (DataKVIO *) data;
-  DataVIO  *dataVIO  = &dataKVIO->dataVIO;
+  struct data_kvio *dataKVIO = (struct data_kvio *) data;
+  DataVIO          *dataVIO  = &dataKVIO->dataVIO;
 
   /*
    * This just needs to be big enough to hold a queue (thread) name
@@ -1221,15 +1223,17 @@ int makeDataKVIOBufferPool(KernelLayer          *layer,
                            uint32_t              poolSize,
                            struct buffer_pool  **bufferPoolPtr)
 {
-  return make_buffer_pool("DataKVIO Pool", poolSize,
+  return make_buffer_pool("data_kvio pool", poolSize,
                           makePooledDataKVIO, freePooledDataKVIO,
                           dumpPooledDataKVIO, layer, bufferPoolPtr);
 }
 
 /**********************************************************************/
-DataLocation getDedupeAdvice(const DedupeContext *context)
+DataLocation getDedupeAdvice(const struct dedupe_context *context)
 {
-  DataKVIO *dataKVIO = container_of(context, DataKVIO, dedupeContext);
+  struct data_kvio *dataKVIO = container_of(context,
+                                            struct data_kvio,
+                                            dedupeContext);
   return (DataLocation) {
     .state = dataKVIO->dataVIO.newMapped.state,
     .pbn   = dataKVIO->dataVIO.newMapped.pbn,
@@ -1237,8 +1241,11 @@ DataLocation getDedupeAdvice(const DedupeContext *context)
 }
 
 /**********************************************************************/
-void setDedupeAdvice(DedupeContext *context, const DataLocation *advice)
+void setDedupeAdvice(struct dedupe_context *context,
+                     const DataLocation *advice)
 {
-  DataKVIO *dataKVIO = container_of(context, DataKVIO, dedupeContext);
+  struct data_kvio *dataKVIO = container_of(context,
+                                            struct data_kvio,
+                                            dedupeContext);
   receiveDedupeAdvice(&dataKVIO->dataVIO, advice);
 }

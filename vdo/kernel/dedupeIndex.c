@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#13 $
  */
 
 #include "dedupeIndex.h"
@@ -31,16 +31,16 @@
 
 typedef struct udsAttribute {
   struct attribute attr;
-  const char *(*showString)(DedupeIndex *);
+  const char *(*showString)(struct dedupe_index *);
 } UDSAttribute;
 
 /*****************************************************************************/
 
 typedef struct dedupeSuspend {
-  KvdoWorkItem        workItem;
-  struct completion   completion;
-  struct dedupeIndex *index;
-  bool                saveFlag;
+  KvdoWorkItem         workItem;
+  struct completion    completion;
+  struct dedupe_index *index;
+  bool                 saveFlag;
 } DedupeSuspend;
 
 /*****************************************************************************/
@@ -98,7 +98,7 @@ typedef struct periodicEventReporter {
 
 /*****************************************************************************/
 
-struct dedupeIndex {
+struct dedupe_index {
   struct kobject           dedupeObject;
   RegisteredThread         allocatingThread;
   char                    *indexName;
@@ -161,7 +161,8 @@ static Jiffies albireoTimeoutJiffies = 0;
 static Jiffies minAlbireoTimerJiffies = 0;
 
 /*****************************************************************************/
-static const char *indexStateToString(DedupeIndex *index, IndexState state)
+static const char *indexStateToString(struct dedupe_index *index,
+                                      IndexState state)
 {
   switch (state) {
   case IS_CLOSED:
@@ -275,12 +276,13 @@ void setMinAlbireoTimerInterval(unsigned int value)
 /*****************************************************************************/
 static void finishIndexOperation(UdsRequest *udsRequest)
 {
-  DataKVIO *dataKVIO = container_of(udsRequest, DataKVIO,
-                                    dedupeContext.udsRequest);
-  DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
+  struct data_kvio *dataKVIO = container_of(udsRequest,
+                                            struct data_kvio,
+                                            dedupeContext.udsRequest);
+  struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
   if (compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE)) {
     struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
-    DedupeIndex *index = kvio->layer->dedupeIndex;
+    struct dedupe_index *index = kvio->layer->dedupeIndex;
 
     spin_lock_bh(&index->pendingLock);
     if (dedupeContext->isPending) {
@@ -309,7 +311,7 @@ static void finishIndexOperation(UdsRequest *udsRequest)
 static void suspendIndex(KvdoWorkItem *item)
 {
   DedupeSuspend *dedupeSuspend = container_of(item, DedupeSuspend, workItem);
-  DedupeIndex *index = dedupeSuspend->index;
+  struct dedupe_index *index = dedupeSuspend->index;
   spin_lock(&index->stateLock);
   IndexState indexState = index->indexState;
   spin_unlock(&index->stateLock);
@@ -328,7 +330,7 @@ static void suspendIndex(KvdoWorkItem *item)
 }
 
 /*****************************************************************************/
-void suspendDedupeIndex(DedupeIndex *index, bool saveFlag)
+void suspendDedupeIndex(struct dedupe_index *index, bool saveFlag)
 {
   DedupeSuspend dedupeSuspend = {
     .index    = index,
@@ -341,7 +343,8 @@ void suspendDedupeIndex(DedupeIndex *index, bool saveFlag)
 }
 
 /*****************************************************************************/
-static void startExpirationTimer(DedupeIndex *index, DataKVIO *dataKVIO)
+static void startExpirationTimer(struct dedupe_index *index,
+                                 struct data_kvio    *dataKVIO)
 {
   if (!index->startedTimer) {
     index->startedTimer = true;
@@ -354,9 +357,9 @@ static void startExpirationTimer(DedupeIndex *index, DataKVIO *dataKVIO)
 static void startIndexOperation(KvdoWorkItem *item)
 {
   struct kvio *kvio = workItemAsKVIO(item);
-  DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
-  DedupeIndex *index = kvio->layer->dedupeIndex;
-  DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
+  struct data_kvio *dataKVIO = kvioAsDataKVIO(kvio);
+  struct dedupe_index *index = kvio->layer->dedupeIndex;
+  struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
 
   spin_lock_bh(&index->pendingLock);
   list_add_tail(&dedupeContext->pendingList, &index->pendingHead);
@@ -373,7 +376,7 @@ static void startIndexOperation(KvdoWorkItem *item)
 }
 
 /**********************************************************************/
-uint64_t getDedupeTimeoutCount(DedupeIndex *index)
+uint64_t getDedupeTimeoutCount(struct dedupe_index *index)
 {
   return atomic64_read(&index->timeoutReporter.value);
 }
@@ -445,9 +448,9 @@ static void timeoutIndexOperations(unsigned long arg)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-  DedupeIndex *index = from_timer(index, t, pendingTimer);
+  struct dedupe_index *index = from_timer(index, t, pendingTimer);
 #else
-  DedupeIndex *index = (DedupeIndex *) arg;
+  struct dedupe_index *index = (struct dedupe_index *) arg;
 #endif
   LIST_HEAD(expiredHead);
   uint64_t timeoutJiffies = msecs_to_jiffies(albireoTimeoutInterval);
@@ -455,9 +458,10 @@ static void timeoutIndexOperations(unsigned long arg)
   spin_lock_bh(&index->pendingLock);
   index->startedTimer = false;
   while (!list_empty(&index->pendingHead)) {
-    DataKVIO *dataKVIO = list_first_entry(&index->pendingHead, DataKVIO,
-                                          dedupeContext.pendingList);
-    DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
+    struct data_kvio *dataKVIO = list_first_entry(&index->pendingHead,
+                                                  struct data_kvio,
+                                                  dedupeContext.pendingList);
+    struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
     if (earliestSubmissionAllowed <= dedupeContext->submissionTime) {
       startExpirationTimer(index, dataKVIO);
       break;
@@ -468,9 +472,10 @@ static void timeoutIndexOperations(unsigned long arg)
   }
   spin_unlock_bh(&index->pendingLock);
   while (!list_empty(&expiredHead)) {
-    DataKVIO *dataKVIO = list_first_entry(&expiredHead, DataKVIO,
-                                          dedupeContext.pendingList);
-    DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
+    struct data_kvio *dataKVIO = list_first_entry(&expiredHead,
+                                                  struct data_kvio,
+                                                  dedupeContext.pendingList);
+    struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
     list_del(&dedupeContext->pendingList);
     if (compareAndSwap32(&dedupeContext->requestState,
                          UR_BUSY, UR_TIMED_OUT)) {
@@ -483,13 +488,13 @@ static void timeoutIndexOperations(unsigned long arg)
 }
 
 /*****************************************************************************/
-static void enqueueIndexOperation(DataKVIO        *dataKVIO,
-                                  UdsCallbackType  operation)
+static void enqueueIndexOperation(struct data_kvio *dataKVIO,
+                                  UdsCallbackType   operation)
 {
   struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
-  DedupeContext *dedupeContext = &dataKVIO->dedupeContext;
-  DedupeIndex *index = kvio->layer->dedupeIndex;
-  dedupeContext->status         = UDS_SUCCESS;
+  struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
+  struct dedupe_index *index = kvio->layer->dedupeIndex;
+  dedupeContext->status = UDS_SUCCESS;
   dedupeContext->submissionTime = jiffies;
   if (compareAndSwap32(&dedupeContext->requestState, UR_IDLE, UR_BUSY)) {
     UdsRequest *udsRequest = &dataKVIO->dedupeContext.udsRequest;
@@ -528,7 +533,7 @@ static void enqueueIndexOperation(DataKVIO        *dataKVIO,
 }
 
 /*****************************************************************************/
-static void closeContext(DedupeIndex *index)
+static void closeContext(struct dedupe_index *index)
 {
   // ASSERTION: We enter in IS_OPENED state.  Change the index state so that
   // the it will be reported to the outside world as "closing".
@@ -545,7 +550,7 @@ static void closeContext(DedupeIndex *index)
 }
 
 /*****************************************************************************/
-static void closeSession(DedupeIndex *index)
+static void closeSession(struct dedupe_index *index)
 {
   // ASSERTION: We enter in IS_INDEXSESSION state.
   // Close the index session, while not holding the stateLock.
@@ -562,7 +567,7 @@ static void closeSession(DedupeIndex *index)
 }
 
 /*****************************************************************************/
-static void openContext(DedupeIndex *index)
+static void openContext(struct dedupe_index *index)
 {
   // ASSERTION: We enter in IS_INDEXSESSION state.
   // Open the block context, while not holding the stateLock.
@@ -585,7 +590,7 @@ static void openContext(DedupeIndex *index)
 }
 
 /*****************************************************************************/
-static void openSession(DedupeIndex *index)
+static void openSession(struct dedupe_index *index)
 {
   // ASSERTION: We enter in IS_CLOSED state.
   bool createFlag = index->createFlag;
@@ -665,7 +670,9 @@ static void openSession(DedupeIndex *index)
 /*****************************************************************************/
 static void changeDedupeState(KvdoWorkItem *item)
 {
-  DedupeIndex *index = container_of(item, DedupeIndex, workItem);
+  struct dedupe_index *index = container_of(item,
+                                            struct dedupe_index,
+                                            workItem);
   spin_lock(&index->stateLock);
   // Loop until the index is in the target state and the create flag is clear.
   while ((index->indexState != index->indexTarget) || index->createFlag) {
@@ -691,11 +698,11 @@ static void changeDedupeState(KvdoWorkItem *item)
 }
 
 /*****************************************************************************/
-static void setTargetState(DedupeIndex *index,
-                           IndexState   target,
-                           bool         changeDedupe,
-                           bool         dedupe,
-                           bool         setCreate)
+static void setTargetState(struct dedupe_index *index,
+                           IndexState           target,
+                           bool                 changeDedupe,
+                           bool                 dedupe,
+                           bool                 setCreate)
 {
   spin_lock(&index->stateLock);
   const char *oldState = indexStateToString(index, index->indexTarget);
@@ -730,7 +737,7 @@ static void setTargetState(DedupeIndex *index,
 /*****************************************************************************/
 
 /*****************************************************************************/
-void dumpDedupeIndex(DedupeIndex *index, bool showQueue)
+void dumpDedupeIndex(struct dedupe_index *index, bool showQueue)
 {
   spin_lock(&index->stateLock);
   const char *state = indexStateToString(index, index->indexState);
@@ -748,7 +755,7 @@ void dumpDedupeIndex(DedupeIndex *index, bool showQueue)
 }
 
 /*****************************************************************************/
-void finishDedupeIndex(DedupeIndex *index)
+void finishDedupeIndex(struct dedupe_index *index)
 {
   setTargetState(index, IS_CLOSED, false, false, false);
   udsFreeConfiguration(index->configuration);
@@ -756,12 +763,12 @@ void finishDedupeIndex(DedupeIndex *index)
 }
 
 /*****************************************************************************/
-void freeDedupeIndex(DedupeIndex **indexPtr)
+void freeDedupeIndex(struct dedupe_index **indexPtr)
 {
   if (*indexPtr == NULL) {
     return;
   }
-  DedupeIndex *index = *indexPtr;
+  struct dedupe_index *index = *indexPtr;
   *indexPtr = NULL;
 
   free_work_queue(&index->udsQueue);
@@ -775,7 +782,7 @@ void freeDedupeIndex(DedupeIndex **indexPtr)
 }
 
 /*****************************************************************************/
-const char *getDedupeStateName(DedupeIndex *index)
+const char *getDedupeStateName(struct dedupe_index *index)
 {
   spin_lock(&index->stateLock);
   const char *state = indexStateToString(index, index->indexState);
@@ -784,7 +791,7 @@ const char *getDedupeStateName(DedupeIndex *index)
 }
 
 /*****************************************************************************/
-void getIndexStatistics(DedupeIndex *index, IndexStatistics *stats)
+void getIndexStatistics(struct dedupe_index *index, IndexStatistics *stats)
 {
   spin_lock(&index->stateLock);
   IndexState      indexState   = index->indexState;
@@ -816,7 +823,7 @@ void getIndexStatistics(DedupeIndex *index, IndexStatistics *stats)
 
 
 /*****************************************************************************/
-int messageDedupeIndex(DedupeIndex *index, const char *name)
+int messageDedupeIndex(struct dedupe_index *index, const char *name)
 {
   if (strcasecmp(name, "index-create") == 0) {
     setTargetState(index, IS_OPENED, false, false, true);
@@ -832,31 +839,31 @@ int messageDedupeIndex(DedupeIndex *index, const char *name)
 }
 
 /*****************************************************************************/
-void postDedupeAdvice(DataKVIO *dataKVIO)
+void postDedupeAdvice(struct data_kvio *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_POST);
 }
 
 /*****************************************************************************/
-void queryDedupeAdvice(DataKVIO *dataKVIO)
+void queryDedupeAdvice(struct data_kvio *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_QUERY);
 }
 
 /*****************************************************************************/
-void startDedupeIndex(DedupeIndex *index, bool createFlag)
+void startDedupeIndex(struct dedupe_index *index, bool createFlag)
 {
   setTargetState(index, IS_OPENED, true, true, createFlag);
 }
 
 /*****************************************************************************/
-void stopDedupeIndex(DedupeIndex *index)
+void stopDedupeIndex(struct dedupe_index *index)
 {
   setTargetState(index, IS_CLOSED, false, false, false);
 }
 
 /*****************************************************************************/
-void updateDedupeAdvice(DataKVIO *dataKVIO)
+void updateDedupeAdvice(struct data_kvio *dataKVIO)
 {
   enqueueIndexOperation(dataKVIO, UDS_UPDATE);
 }
@@ -864,7 +871,9 @@ void updateDedupeAdvice(DataKVIO *dataKVIO)
 /*****************************************************************************/
 static void dedupeKobjRelease(struct kobject *kobj)
 {
-  DedupeIndex *index = container_of(kobj, DedupeIndex, dedupeObject);
+  struct dedupe_index *index = container_of(kobj,
+                                            struct dedupe_index,
+                                            dedupeObject);
   FREE(index->indexName);
   FREE(index);
 }
@@ -875,7 +884,9 @@ static ssize_t dedupeStatusShow(struct kobject   *kobj,
                                 char             *buf)
 {
   UDSAttribute *ua = container_of(attr, UDSAttribute, attr);
-  DedupeIndex *index = container_of(kobj, DedupeIndex, dedupeObject);
+  struct dedupe_index *index = container_of(kobj,
+                                            struct dedupe_index,
+                                            dedupeObject);
   if (ua->showString != NULL) {
     return sprintf(buf, "%s\n", ua->showString(index));
   } else {
@@ -925,7 +936,7 @@ static void startUDSQueue(void *ptr)
    * of memory.  We could use an allocationsAllowed boolean (like the base
    * threads do), but it would be an unnecessary embellishment.
    */
-  DedupeIndex *index = ptr;
+  struct dedupe_index *index = ptr;
   registerAllocatingThread(&index->allocatingThread, NULL);
 }
 
@@ -936,13 +947,13 @@ static void finishUDSQueue(void *ptr)
 }
 
 /*****************************************************************************/
-int makeDedupeIndex(DedupeIndex **indexPtr, KernelLayer *layer)
+int makeDedupeIndex(struct dedupe_index **indexPtr, KernelLayer *layer)
 {
   setAlbireoTimeoutInterval(albireoTimeoutInterval);
   setMinAlbireoTimerInterval(minAlbireoTimerInterval);
 
-  DedupeIndex *index;
-  int result = ALLOCATE(1, DedupeIndex, "UDS index data", &index);
+  struct dedupe_index *index;
+  int result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
   if (result != UDS_SUCCESS) {
     return result;
   }
