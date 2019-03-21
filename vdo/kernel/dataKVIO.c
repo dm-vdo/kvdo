@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#28 $
  */
 
 #include "dataKVIO.h"
@@ -188,7 +188,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
   struct free_buffer_pointers fbp;
   init_free_buffer_pointers(&fbp, layer->dataKVIOPool);
 
-  KvdoWorkItem *item;
+  struct kvdo_work_item *item;
   while ((item = next_batch_item(batch)) != NULL) {
     cleanDataKVIO(workItemAsDataKVIO(item), &fbp);
     cond_resched_batch_processor(batch);
@@ -203,7 +203,7 @@ void returnDataKVIOBatchToPool(struct batch_processor *batch, void *closure)
 }
 
 /**********************************************************************/
-static void kvdoAcknowledgeThenCompleteDataKVIO(KvdoWorkItem *item)
+static void kvdoAcknowledgeThenCompleteDataKVIO(struct kvdo_work_item *item)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   kvdoAcknowledgeDataKVIO(dataKVIO);
@@ -233,7 +233,7 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
  *
  * @param workItem  The data_kvio which requested the read
  **/
-static void copyReadBlockData(KvdoWorkItem *workItem)
+static void copyReadBlockData(struct kvdo_work_item *workItem)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(workItem);
 
@@ -314,7 +314,7 @@ static void resetUserBio(struct bio *bio, int error)
  *
  * @param workItem  The data_kvio requesting the data
  **/
-static void uncompressReadBlock(KvdoWorkItem *workItem)
+static void uncompressReadBlock(struct kvdo_work_item *workItem)
 {
   struct data_kvio  *dataKVIO  = workItemAsDataKVIO(workItem);
   struct read_block *readBlock = &dataKVIO->readBlock;
@@ -446,7 +446,7 @@ void readDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-static void kvdoAcknowledgeDataKVIOThenContinue(KvdoWorkItem *item)
+static void kvdoAcknowledgeDataKVIOThenContinue(struct kvdo_work_item *item)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
@@ -591,7 +591,7 @@ void copyData(DataVIO *source, DataVIO *destination)
 }
 
 /**********************************************************************/
-static void kvdoCompressWork(KvdoWorkItem *item)
+static void kvdoCompressWork(struct kvdo_work_item *item)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
@@ -776,7 +776,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer       *layer,
 }
 
 /**********************************************************************/
-static void launchDataKVIOWork(KvdoWorkItem *item)
+static void launchDataKVIOWork(struct kvdo_work_item *item)
 {
   runCallback(vioAsCompletion(workItemAsKVIO(item)->vio));
 }
@@ -912,7 +912,7 @@ int kvdoLaunchDataKVIOFromBio(KernelLayer *layer,
  *
  * @param item  The data_kvio to be hashed
  **/
-static void kvdoHashDataWork(KvdoWorkItem *item)
+static void kvdoHashDataWork(struct kvdo_work_item *item)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   DataVIO          *dataVIO  = &dataKVIO->dataVIO;

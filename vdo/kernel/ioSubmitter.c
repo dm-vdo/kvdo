@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#18 $
  */
 
 #include "ioSubmitter.h"
@@ -317,7 +317,7 @@ static void send_bio_to_device(struct kvio  *kvio,
  * @param item  The work item in the kvio "owning" either the bio to
  *              submit, or the head of the bio_list to be submitted.
  **/
-static void process_bio_map(KvdoWorkItem *item)
+static void process_bio_map(struct kvdo_work_item *item)
 {
 	assert_running_in_bio_queue();
 	struct kvio *kvio = workItemAsKVIO(item);
@@ -713,7 +713,7 @@ void dump_bio_work_queue(struct io_submitter *io_submitter)
 
 /**********************************************************************/
 void enqueue_bio_work_item(struct io_submitter *io_submitter,
-			   KvdoWorkItem *work_item)
+			   struct kvdo_work_item *work_item)
 {
 	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
 	enqueue_work_queue(io_submitter->bio_queue_data[bio_queue_index].queue,

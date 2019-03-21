@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#5 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -32,7 +32,7 @@
 #include "workQueueStats.h"
 
 typedef struct kvdoWorkItemList {
-  KvdoWorkItem *tail;
+  struct kvdo_work_item *tail;
 } KvdoWorkItemList;
 
 /**

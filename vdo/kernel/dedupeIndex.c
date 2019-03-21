@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#14 $
  */
 
 #include "dedupeIndex.h"
@@ -37,10 +37,10 @@ typedef struct udsAttribute {
 /*****************************************************************************/
 
 typedef struct dedupeSuspend {
-  KvdoWorkItem         workItem;
-  struct completion    completion;
-  struct dedupe_index *index;
-  bool                 saveFlag;
+  struct kvdo_work_item  workItem;
+  struct completion      completion;
+  struct dedupe_index   *index;
+  bool                   saveFlag;
 } DedupeSuspend;
 
 /*****************************************************************************/
@@ -77,10 +77,10 @@ enum {
 
 // Data managing the reporting of UDS timeouts
 typedef struct periodicEventReporter {
-  uint64_t             lastReportedValue;
-  const char          *format;
-  atomic64_t           value;
-  Jiffies              reportingInterval; // jiffies
+  uint64_t               lastReportedValue;
+  const char            *format;
+  atomic64_t             value;
+  Jiffies                reportingInterval; // jiffies
   /*
    * Just an approximation.  If nonzero, then either the work item has
    * been queued to run, or some other thread currently has
@@ -91,9 +91,9 @@ typedef struct periodicEventReporter {
    * the work item queued twice.  Use an atomic xchg or cmpxchg to
    * test-and-set it, and an atomic store to clear it.
    */
-  atomic_t             workItemQueued;
-  KvdoWorkItem         workItem;
-  KernelLayer         *layer;
+  atomic_t               workItemQueued;
+  struct kvdo_work_item  workItem;
+  KernelLayer           *layer;
 } PeriodicEventReporter;
 
 /*****************************************************************************/
@@ -111,7 +111,7 @@ struct dedupe_index {
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
   spinlock_t               stateLock;
-  KvdoWorkItem             workItem;    // protected by stateLock
+  struct kvdo_work_item    workItem;    // protected by stateLock
   struct kvdo_work_queue  *udsQueue;    // protected by stateLock
   unsigned int             maximum;     // protected by stateLock
   IndexState               indexState;  // protected by stateLock
@@ -308,7 +308,7 @@ static void finishIndexOperation(UdsRequest *udsRequest)
 }
 
 /*****************************************************************************/
-static void suspendIndex(KvdoWorkItem *item)
+static void suspendIndex(struct kvdo_work_item *item)
 {
   DedupeSuspend *dedupeSuspend = container_of(item, DedupeSuspend, workItem);
   struct dedupe_index *index = dedupeSuspend->index;
@@ -354,7 +354,7 @@ static void startExpirationTimer(struct dedupe_index *index,
 }
 
 /*****************************************************************************/
-static void startIndexOperation(KvdoWorkItem *item)
+static void startIndexOperation(struct kvdo_work_item *item)
 {
   struct kvio *kvio = workItemAsKVIO(item);
   struct data_kvio *dataKVIO = kvioAsDataKVIO(kvio);
@@ -394,7 +394,7 @@ static void reportEvents(PeriodicEventReporter *reporter)
 }
 
 /**********************************************************************/
-static void reportEventsWork(KvdoWorkItem *item)
+static void reportEventsWork(struct kvdo_work_item *item)
 {
   PeriodicEventReporter *reporter = container_of(item, PeriodicEventReporter,
                                                  workItem);
@@ -668,7 +668,7 @@ static void openSession(struct dedupe_index *index)
 }
 
 /*****************************************************************************/
-static void changeDedupeState(KvdoWorkItem *item)
+static void changeDedupeState(struct kvdo_work_item *item)
 {
   struct dedupe_index *index = container_of(item,
                                             struct dedupe_index,

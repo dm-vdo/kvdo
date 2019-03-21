@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#19 $
  */
 
 #ifndef KERNELLAYER_H
@@ -206,8 +206,8 @@ typedef void (*DedupeShutdownCallbackFunction)(KernelLayer *layer);
  * layer work item.
  */
 typedef struct kvdoEnqueueable {
-  KvdoWorkItem workItem;
-  Enqueueable  enqueueable;
+  struct kvdo_work_item workItem;
+  Enqueueable           enqueueable;
 } KvdoEnqueueable;
 
 /**
@@ -469,7 +469,8 @@ void waitForNoRequestsActive(KernelLayer *layer);
  * @param layer The kernel layer
  * @param item  The work item to enqueue
  */
-static inline void enqueueCPUWorkQueue(KernelLayer *layer, KvdoWorkItem *item)
+static inline void enqueueCPUWorkQueue(KernelLayer           *layer,
+                                       struct kvdo_work_item *item)
 {
   enqueue_work_queue(layer->cpuQueue, item);
 }

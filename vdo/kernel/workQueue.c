@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#13 $
  */
 
 #include "workQueue.h"
@@ -67,12 +67,13 @@ static void initialize_work_item_list(KvdoWorkItemList *list)
 }
 
 /**********************************************************************/
-static void add_to_work_item_list(KvdoWorkItemList *list, KvdoWorkItem *item)
+static void add_to_work_item_list(KvdoWorkItemList *list,
+                                  struct kvdo_work_item *item)
 {
   if (list->tail == NULL) {
     item->next = item;
   } else {
-    KvdoWorkItem *head = list->tail->next;
+    struct kvdo_work_item *head = list->tail->next;
     list->tail->next = item;
     item->next = head;
   }
@@ -86,14 +87,14 @@ static bool is_work_item_list_empty(KvdoWorkItemList *list)
 }
 
 /**********************************************************************/
-static KvdoWorkItem *work_item_list_poll(KvdoWorkItemList *list)
+static struct kvdo_work_item *work_item_list_poll(KvdoWorkItemList *list)
 {
-  KvdoWorkItem *tail = list->tail;
+  struct kvdo_work_item *tail = list->tail;
   if (tail == NULL) {
     return NULL;
   }
   // Extract and return head of list.
-  KvdoWorkItem *head = tail->next;
+  struct kvdo_work_item *head = tail->next;
   // Only one entry?
   if (head == tail) {
     list->tail = NULL;
@@ -105,9 +106,9 @@ static KvdoWorkItem *work_item_list_poll(KvdoWorkItemList *list)
 }
 
 /**********************************************************************/
-static KvdoWorkItem *work_item_list_peek(KvdoWorkItemList *list)
+static struct kvdo_work_item *work_item_list_peek(KvdoWorkItemList *list)
 {
-  KvdoWorkItem *tail = list->tail;
+  struct kvdo_work_item *tail = list->tail;
   return tail ? tail->next : NULL;
 }
 
@@ -169,13 +170,13 @@ static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
  *
  * @return  a work item pointer, or NULL
  **/
-static KvdoWorkItem *poll_for_work_item(SimpleWorkQueue *queue)
+static struct kvdo_work_item *poll_for_work_item(SimpleWorkQueue *queue)
 {
-  KvdoWorkItem *item = NULL;
+  struct kvdo_work_item *item = NULL;
   for (int i = READ_ONCE(queue->numPriorityLists) - 1; i >= 0; i--) {
     FunnelQueueEntry *link = funnelQueuePoll(queue->priorityLists[i]);
     if (link != NULL) {
-      item = container_of(link, KvdoWorkItem, workQueueEntryLink);
+      item = container_of(link, struct kvdo_work_item, workQueueEntryLink);
       break;
     }
   }
@@ -197,7 +198,7 @@ static KvdoWorkItem *poll_for_work_item(SimpleWorkQueue *queue)
  **/
 __attribute__((warn_unused_result))
 static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
-                                    KvdoWorkItem *item)
+                                    struct kvdo_work_item *item)
 {
   ASSERT_LOG_ONLY(item->myQueue == NULL,
                   "item %" PRIptr " (fn %" PRIptr "/%" PRIptr
@@ -319,7 +320,7 @@ static void run_finish_hook(SimpleWorkQueue *queue)
  *
  * @return  the newly found work item, if any
  **/
-static KvdoWorkItem *run_suspend_hook(SimpleWorkQueue *queue)
+static struct kvdo_work_item *run_suspend_hook(SimpleWorkQueue *queue)
 {
   if (queue->type->suspend == NULL) {
     return NULL;
@@ -360,10 +361,11 @@ static bool has_delayed_work_items(SimpleWorkQueue *queue)
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static KvdoWorkItem *wait_for_next_work_item(SimpleWorkQueue *queue,
-                                             TimeoutJiffies   timeout_interval)
+static struct kvdo_work_item *
+wait_for_next_work_item(SimpleWorkQueue *queue,
+                        TimeoutJiffies   timeout_interval)
 {
-  KvdoWorkItem *item = run_suspend_hook(queue);
+  struct kvdo_work_item *item = run_suspend_hook(queue);
   if (item != NULL) {
     return item;
   }
@@ -483,10 +485,11 @@ static KvdoWorkItem *wait_for_next_work_item(SimpleWorkQueue *queue,
  *
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
-static KvdoWorkItem *get_next_work_item(SimpleWorkQueue *queue,
-                                        TimeoutJiffies   timeout_interval)
+static struct kvdo_work_item *
+get_next_work_item(SimpleWorkQueue *queue,
+                   TimeoutJiffies   timeout_interval)
 {
-  KvdoWorkItem *item = poll_for_work_item(queue);
+  struct kvdo_work_item *item = poll_for_work_item(queue);
   if (item != NULL) {
     return item;
   }
@@ -499,8 +502,8 @@ static KvdoWorkItem *get_next_work_item(SimpleWorkQueue *queue,
  * @param [in]     queue  the work queue the item is from
  * @param [in]     item   the work item to run
  **/
-static void process_work_item(SimpleWorkQueue *queue,
-                              KvdoWorkItem    *item)
+static void process_work_item(SimpleWorkQueue       *queue,
+                              struct kvdo_work_item *item)
 {
   if (ASSERT(item->myQueue == &queue->common,
              "item %" PRIptr " from queue %" PRIptr
@@ -564,7 +567,7 @@ static void service_work_queue(SimpleWorkQueue *queue)
   run_start_hook(queue);
 
   while (true) {
-    KvdoWorkItem *item = get_next_work_item(queue, timeout_interval);
+    struct kvdo_work_item *item = get_next_work_item(queue, timeout_interval);
     if (item == NULL) {
       // No work items but kthread_should_stop was triggered.
       break;
@@ -610,10 +613,10 @@ static int work_queue_runner(void *ptr)
 // Preparing work items
 
 /**********************************************************************/
-void setup_work_item(KvdoWorkItem     *item,
-                     KvdoWorkFunction  work,
-                     void             *stats_function,
-                     unsigned int      action)
+void setup_work_item(struct kvdo_work_item *item,
+                     KvdoWorkFunction       work,
+                     void                  *stats_function,
+                     unsigned int           action)
 {
   ASSERT_LOG_ONLY(item->myQueue == NULL,
                   "setup_work_item not called on enqueued work item");
@@ -668,7 +671,7 @@ static void process_delayed_work_items(unsigned long data)
   unsigned long flags;
   spin_lock_irqsave(&queue->lock, flags);
   while (!is_work_item_list_empty(&queue->delayedItems)) {
-    KvdoWorkItem *item = work_item_list_peek(&queue->delayedItems);
+    struct kvdo_work_item *item = work_item_list_peek(&queue->delayedItems);
     if (item->executionTime > jiffies) {
       next_execution_time = item->executionTime;
       reschedule = true;
@@ -1067,7 +1070,9 @@ void dump_work_queue(struct kvdo_work_queue *queue)
 }
 
 /**********************************************************************/
-void dump_work_item_to_buffer(KvdoWorkItem *item, char *buffer, size_t length)
+void dump_work_item_to_buffer(struct kvdo_work_item *item,
+                              char *buffer,
+                              size_t length)
 {
   size_t current_length
     = snprintf(buffer, length, "%.*s/", TASK_COMM_LEN,
@@ -1081,8 +1086,8 @@ void dump_work_item_to_buffer(KvdoWorkItem *item, char *buffer, size_t length)
 // Work submission
 
 /**********************************************************************/
-void enqueue_work_queue(struct kvdo_work_queue  *kvdoWorkQueue,
-                        KvdoWorkItem            *item)
+void enqueue_work_queue(struct kvdo_work_queue *kvdoWorkQueue,
+                        struct kvdo_work_item  *item)
 {
   SimpleWorkQueue *queue = pick_simple_queue(kvdoWorkQueue);
 
@@ -1095,7 +1100,7 @@ void enqueue_work_queue(struct kvdo_work_queue  *kvdoWorkQueue,
 
 /**********************************************************************/
 void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
-                                KvdoWorkItem           *item,
+                                struct kvdo_work_item  *item,
                                 Jiffies                 execution_time)
 {
   if (execution_time <= jiffies) {

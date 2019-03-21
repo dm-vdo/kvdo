@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#6 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -36,7 +36,7 @@ enum {
   WORK_QUEUE_PRIORITY_COUNT = 4,
 };
 
-struct kvdoWorkItem {
+struct kvdo_work_item {
   /** Entry link for lock-free work queue */
   FunnelQueueEntry        workQueueEntryLink;
   /** Function to be called */
@@ -58,7 +58,7 @@ struct kvdoWorkItem {
    **/
   Jiffies                 executionTime;
   /** List management for delayed or expired work items */
-  KvdoWorkItem           *next;
+  struct kvdo_work_item  *next;
   /** Time of enqueueing, in ns, for recording queue (waiting) time stats */
   uint64_t                enqueueTime;
 };
@@ -179,10 +179,10 @@ int make_work_queue(const char               *thread_name_prefix,
  * @param stats_function  A function pointer to record for stats, or NULL
  * @param action          Action code, for determination of priority
  **/
-void setup_work_item(KvdoWorkItem     *item,
-                     KvdoWorkFunction  work,
-                     void             *stats_function,
-                     unsigned int      action);
+void setup_work_item(struct kvdo_work_item  *item,
+                     KvdoWorkFunction        work,
+                     void                   *stats_function,
+                     unsigned int            action);
 
 /**
  * Add a work item to a work queue.
@@ -193,7 +193,8 @@ void setup_work_item(KvdoWorkItem     *item,
  * @param queue      The queue handle
  * @param item       The work item to be processed
  **/
-void enqueue_work_queue(struct kvdo_work_queue *queue, KvdoWorkItem *item);
+void enqueue_work_queue(struct kvdo_work_queue *queue,
+                        struct kvdo_work_item  *item);
 
 /**
  * Add a work item to a work queue, to be run at a later point in time.
@@ -209,7 +210,7 @@ void enqueue_work_queue(struct kvdo_work_queue *queue, KvdoWorkItem *item);
  * @param execution_time   When to run the work item (jiffies)
  **/
 void enqueue_work_queue_delayed(struct kvdo_work_queue  *queue,
-                                KvdoWorkItem            *item,
+                                struct kvdo_work_item   *item,
                                 Jiffies                  execution_time);
 
 /**
@@ -250,7 +251,9 @@ void dump_work_queue(struct kvdo_work_queue *queue);
  * @param buffer  The message buffer to fill in
  * @param length  The length of the message buffer
  **/
-void dump_work_item_to_buffer(KvdoWorkItem *item, char *buffer, size_t length);
+void dump_work_item_to_buffer(struct kvdo_work_item *item,
+                              char                  *buffer,
+                              size_t                 length);
 
 
 /**
@@ -266,8 +269,8 @@ void init_work_queue_once(void);
  *
  * @return TRUE if the actions are the same, FALSE otherwise
  */
-static inline bool areWorkItemActionsEqual(KvdoWorkItem *item1,
-                                           KvdoWorkItem *item2)
+static inline bool areWorkItemActionsEqual(struct kvdo_work_item *item1,
+                                           struct kvdo_work_item *item2)
 {
   return item1->action == item2->action;
 }

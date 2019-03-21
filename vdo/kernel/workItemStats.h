@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#4 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -167,7 +167,7 @@ static inline uint64_t get_sample_average(const struct simple_stats *stats)
  * @param  priority  The work item's priority
  **/
 void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
-					KvdoWorkItem *item,
+					struct kvdo_work_item *item,
 					int priority);
 
 /**
@@ -188,7 +188,7 @@ void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
  **/
 static inline void
 update_work_item_stats_for_dequeue(struct kvdo_work_item_stats *stats,
-				   KvdoWorkItem *item)
+				   struct kvdo_work_item *item)
 {
 	// The times[].count field is overloaded as a count of items
 	// processed.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#6 $
  */
 
 #include "physicalLayer.h"
@@ -87,7 +87,7 @@ static bool memoryEqual(void   *pointerArgument1,
  *
  * @param item  The workitem from the queue
  **/
-static void verifyDuplicationWork(KvdoWorkItem *item)
+static void verifyDuplicationWork(struct kvdo_work_item *item)
 {
   struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
   dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#8 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -115,7 +115,7 @@ void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats);
  * @param priority  The priority of the work item
  **/
 static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
-					    KvdoWorkItem *item,
+					    struct kvdo_work_item *item,
 					    int priority)
 {
 	update_work_item_stats_for_enqueue(&stats->workItemStats, item,
@@ -131,7 +131,7 @@ static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
  * @param item   The work item being enqueued
  **/
 static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
-					    KvdoWorkItem *item)
+					    struct kvdo_work_item *item)
 {
 	update_work_item_stats_for_dequeue(&stats->workItemStats, item);
 	enter_histogram_sample(stats->queue_time_histogram,

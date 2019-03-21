@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#11 $
  */
 
 #ifndef KVIO_H
@@ -162,7 +162,7 @@ compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
  *
  * @return the kvio
  **/
-static inline struct kvio *workItemAsKVIO(KvdoWorkItem *item)
+static inline struct kvio *workItemAsKVIO(struct kvdo_work_item *item)
 {
   return container_of(item, struct kvio, enqueueable.workItem);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#11 $
  */
 
 #include "kvdoFlush.h"
@@ -43,7 +43,7 @@
  * structure. This ensures that we will always make forward progress.
  **/
 struct kvdo_flush {
-	KvdoWorkItem work_item;
+	struct kvdo_work_item work_item;
 	KernelLayer *layer;
 	struct bio_list bios;
 	Jiffies arrival_time; // Time when earliest bio appeared
@@ -67,7 +67,7 @@ bool should_process_flush(KernelLayer *layer)
  *
  * @param item  The work item representing the flush request
  **/
-static void kvdo_flush_work(KvdoWorkItem *item)
+static void kvdo_flush_work(struct kvdo_work_item *item)
 {
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,
@@ -196,7 +196,7 @@ static void release_kvdo_flush(struct kvdo_flush *kvdo_flush)
  *
  * @param item    The flush-request work item
  **/
-static void kvdo_complete_flush_work(KvdoWorkItem *item)
+static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 {
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,

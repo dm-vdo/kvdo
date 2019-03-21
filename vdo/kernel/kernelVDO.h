@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#8 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -35,13 +35,13 @@ struct kvdo_thread {
 };
 
 struct kvdo {
-  struct kvdo_thread *threads;
-  ThreadID            initializedThreadCount;
-  KvdoWorkItem        workItem;
-  VDOAction          *action;
-  VDOCompletion      *completion;
+  struct kvdo_thread	*threads;
+  ThreadID		 initializedThreadCount;
+  struct kvdo_work_item  workItem;
+  VDOAction		*action;
+  VDOCompletion		*completion;
   // Base-code device info
-  VDO                *vdo;
+  VDO			*vdo;
 };
 
 typedef enum reqQAction {
@@ -238,7 +238,9 @@ int performKVDOExtendedCommand(struct kvdo *kvdo, int argc, char **argv);
  * @param item         The work item to be run
  * @param threadID     The thread on which to run the work item
  **/
-void enqueueKVDOWork(struct kvdo *kvdo, KvdoWorkItem *item, ThreadID threadID);
+void enqueueKVDOWork(struct kvdo           *kvdo,
+                     struct kvdo_work_item *item,
+                     ThreadID               threadID);
 
 /**
  * Set up and enqueue a VIO's work item to be processed in the base code
