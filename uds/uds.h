@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/public/uds.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#1 $
  */
 
 /**
@@ -30,10 +30,6 @@
  **/
 #ifndef UDS_H
 #define UDS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "uds-platform.h"
 
@@ -108,7 +104,7 @@ typedef struct udsChunkName {
 } UdsChunkName;
 
 /**
- * An active index session, either local or grid.
+ * An active index session.
  **/
 typedef struct udsIndexSession {
   /** The session ID. */
@@ -132,8 +128,6 @@ typedef struct udsIndexStats {
   uint64_t      entriesIndexed;
   /** An estimate of the index's memory usage */
   uint64_t      memoryUsed;
-  /** An estimate of the index's size on disk */
-  uint64_t      diskUsed;
   /** The number of collisions recorded in the master index */
   uint64_t      collisions;
   /** The number of entries discarded from the index since index startup */
@@ -432,53 +426,24 @@ UDS_ATTR_WARN_UNUSED_RESULT
 int udsRebuildLocalIndex(const char *name, UdsIndexSession *session);
 
 /**
- * The structure that holds a grid configuration.
- **/
-typedef struct udsGridConfig *UdsGridConfig;
-
-/**
- * Creates a new grid configuration.
+ * Waits until all callbacks for index operations are complete.
  *
- * @param [out] gridConfig  The new grid configuration
+ * @param [in] session  The session to flush
  *
- * @return                  Either #UDS_SUCCESS or an error code
+ * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsInitializeGridConfig(UdsGridConfig *gridConfig);
+int udsFlushIndexSession(UdsIndexSession session);
 
 /**
- * Frees a grid configuration.
+ * Save an index, without closing the index session.
  *
- * @param [in,out] gridConfig           The grid configuration to free
- **/
-void udsFreeGridConfig(UdsGridConfig gridConfig);
-
-/**
- * Adds a server name and port to an existing grid configuration.
- *
- * @param [in,out] gridConfig    The grid configuration being modified
- * @param [in] host              The server running the UDS Grid server (albserver)
- * @param [in] port              The port number to connect to
- *
- * @return                       Either #UDS_SUCCESS or an error
- *                               code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsAddGridServer(UdsGridConfig gridConfig,
-                     const char *host,
-                     const char *port);
-
-
-/**
- * Saves an index, without closing the index session.
- *
- * The underlying local index is flushed and changes to the index are saved so
- * that #udsLoadLocalIndex can re-open it.
+ * Changes to the index are saved so that #udsLoadLocalIndex can re-open it.
  *
  * During the call to #udsSaveIndex, there should be no other call to
  * #udsSaveIndex and there should be no calls to #udsStartChunkOperation.
  *
- * @param [in] session  The session that has the open index 
+ * @param [in] session  The session to save
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
@@ -488,18 +453,17 @@ int udsSaveIndex(UdsIndexSession session);
 /**
  * Closes an index session.
  *
- * Flushes and saves changes to the index.  Use #udsCloseIndexSession
- * for index sessions created by #udsCreateLocalIndex, #udsLoadLocalIndex,
- * or #udsRebuildLocalIndex.
+ * Saves changes to the index and closes the index session.  Use
+ * #udsCloseIndexSession for index sessions created by #udsCreateLocalIndex,
+ * #udsLoadLocalIndex, or #udsRebuildLocalIndex.
  *
- * The underlying local index is flushed and properly checkpointed so that
- * #udsLoadLocalIndex can re-open it.
+ * The index is saved so that #udsLoadLocalIndex can re-open it.
  *
  * Any contexts opened for this session will no longer be valid, and
  * #UDS_DISABLED will be returned if any subsequent operations are
  * attempted on them.
  *
- * @param [in,out] session The session to close
+ * @param [in] session  The session to close
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
@@ -529,21 +493,15 @@ UDS_ATTR_WARN_UNUSED_RESULT
 int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
 
 /**
- * The possible status that an index server can return.
+ * Fetches index session statistics for the given index session.
+ *
+ * @param [in]  session  The session
+ * @param [out] stats    The context statistics structure to fill
+ *
+ * @return              Either #UDS_SUCCESS or an error code
  **/
-typedef enum {
-  /** The server's status is unknown. */
-  UDS_STATUS_UNKNOWN = 0,
-  /** The server is starting up and possibly rebuilding the index. */
-  UDS_STATUS_STARTING,
-  /** The server is up and ready to receive index requests. */
-  UDS_STATUS_ONLINE,
-  /** The server is saving in-memory state to persistent storage. */
-  UDS_STATUS_STOPPING,
-  /** The machine is up but there is no server running. */
-  UDS_STATUS_OFFLINE
-} UdsGridServerStatus;
-
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexSessionStats(UdsIndexSession session, UdsContextStats *stats);
 
 /**
  * Convert an error code to a string.
@@ -558,7 +516,6 @@ UDS_ATTR_WARN_UNUSED_RESULT
 const char *udsStringError(int errnum, char *buf, size_t buflen);
 
 
-
 /**
  * Shutdown the UDS library. This is normally called implicitly
  * when a program using the library exits.
@@ -571,9 +528,5 @@ void udsShutdown(void);
 enum {
   UDS_STRING_ERROR_BUFSIZE = 128
 };
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
 
 #endif /* UDS_H */

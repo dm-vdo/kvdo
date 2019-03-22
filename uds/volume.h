@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#1 $
  */
 
 #ifndef VOLUME_H
@@ -72,8 +72,6 @@ typedef struct volume {
   IORegion              *region;
   /* Whether the volume is read-only or not */
   bool                   readOnly;
-  /* The size of the volume on disk in bytes */
-  off_t                  volumeSize;
   /* The nonce used to save the volume */
   uint64_t               nonce;
   /* A single page sized scratch buffer */
@@ -254,14 +252,6 @@ int forgetChapter(Volume             *volume,
   __attribute__((warn_unused_result));
 
 /**
- * Updates the size of the volume if needed
- *
- * @param volume the volume to update
- * @param size   the new size
- **/
-void updateVolumeSize(Volume *volume, off_t size);
-
-/**
  * Write a chapter's worth of index pages to a volume
  *
  * @param volume                the volume containing the chapter
@@ -427,15 +417,9 @@ int getPage(Volume            *volume,
 size_t getCacheSize(Volume *volume) __attribute__((warn_unused_result));
 
 /**********************************************************************/
-off_t getVolumeSize(Volume *volume) __attribute__((warn_unused_result));
-
-/**********************************************************************/
 off_t offsetForChapter(const Geometry *geometry,
                        unsigned int    chapter)
   __attribute__((warn_unused_result));
-
-/**********************************************************************/
-void getCacheCounters(Volume *volume, CacheCounters *counters);
 
 /**********************************************************************/
 int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,

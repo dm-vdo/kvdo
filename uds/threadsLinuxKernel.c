@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/threadsLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#1 $
  */
 
 #include <linux/kthread.h>
@@ -24,19 +24,17 @@
 
 #include "memoryAlloc.h"
 #include "logger.h"
-#include "queue.h"
 #include "threads.h"
 #include "uds-error.h"
 
-LIST__HEAD(kernelThreadListHead, kernelThread);
-static struct kernelThreadListHead kernelThreadList;
+static struct hlist_head kernelThreadList;
 static struct mutex kernelThreadMutex;
 static OnceState kernelThreadOnce;
 
 typedef struct kernelThread {
   void (*threadFunc)(void *);
   void *threadData;
-  LIST_ENTRY(kernelThread) threadLinks;
+  struct hlist_node threadLinks;
   struct task_struct *threadTask;
   struct completion threadDone;
 } KernelThread;
@@ -54,7 +52,7 @@ static int threadStarter(void *arg)
   kt->threadTask = current;
   performOnce(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
-  LIST_INSERT_HEAD(&kernelThreadList, kt, threadLinks);
+  hlist_add_head(&kt->threadLinks, &kernelThreadList);
   mutex_unlock(&kernelThreadMutex);
   RegisteredThread allocatingThread;
   registerAllocatingThread(&allocatingThread, NULL);
@@ -117,7 +115,7 @@ int joinThreads(Thread kt)
   while (wait_for_completion_interruptible(&kt->threadDone) != 0) {
   }
   mutex_lock(&kernelThreadMutex);
-  LIST_REMOVE(kt, threadLinks);
+  hlist_del(&kt->threadLinks);
   mutex_unlock(&kernelThreadMutex);
   FREE(kt);
   return UDS_SUCCESS;
@@ -130,7 +128,7 @@ void applyToThreads(void applyFunc(void *, struct task_struct *),
   KernelThread *kt;
   performOnce(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
-  LIST_FOREACH(kt, &kernelThreadList, threadLinks) {
+  hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
     applyFunc(argument, kt->threadTask);
   }
   mutex_unlock(&kernelThreadMutex);
@@ -143,7 +141,7 @@ void exitThread(void)
   struct completion *completion = NULL;
   performOnce(&kernelThreadOnce, kernelThreadInit);
   mutex_lock(&kernelThreadMutex);
-  LIST_FOREACH(kt, &kernelThreadList, threadLinks) {
+  hlist_for_each_entry(kt, &kernelThreadList, threadLinks) {
     if (kt->threadTask == current) {
       completion = &kt->threadDone;
       break;
@@ -217,23 +215,4 @@ int yieldScheduler(void)
 {
   yield();
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int initializeSynchronousRequest(SynchronousCallback *callback)
-{
-  init_completion(callback);
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void awaitSynchronousRequest(SynchronousCallback *callback)
-{
-  wait_for_completion(callback);
-}
-
-/**********************************************************************/
-void awakenSynchronousRequest(SynchronousCallback *callback)
-{
-  complete(callback);
 }

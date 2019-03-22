@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/pageCache.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#1 $
  */
 
 #include "pageCache.h"
@@ -707,8 +707,3 @@ size_t getPageCacheSize(PageCache *cache)
           * cache->numCacheEntries);
 }
 
-/**********************************************************************/
-void getPageCacheCounters(PageCache *cache, CacheCounters *counters)
-{
-  *counters = cache->counters;
-}

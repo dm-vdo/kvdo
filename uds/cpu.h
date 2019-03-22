@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/cpu.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/cpu.h#1 $
  */
 
 #ifndef CPU_H

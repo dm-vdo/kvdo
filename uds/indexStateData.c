@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexStateData.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexStateData.c#1 $
  */
 
 #include "indexStateData.h"
@@ -162,7 +162,7 @@ static int readIndexStateData(ReadPortal *portal)
     return result;
   }
 
-  Index *index = componentDataForPortal(portal);
+  Index *index = indexComponentData(portal->component);
   index->newestVirtualChapter = state.newestChapter;
   index->oldestVirtualChapter = state.oldestChapter;
   index->lastCheckpoint       = state.lastCheckpoint;

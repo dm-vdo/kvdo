@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#1 $
  */
 
 #ifndef PAGE_CACHE_H_
@@ -376,13 +376,6 @@ void cancelPageInCache(PageCache    *cache,
 size_t getPageCacheSize(PageCache *cache)
   __attribute__((warn_unused_result));
 
-/**
- * Get the page cache stat counters
- *
- * @param cache     the page cache
- * @param counters  the cache's counters
- **/
-void getPageCacheCounters(PageCache *cache, CacheCounters *counters);
 
 /**
  * Read the InvalidateCounter for the given zone.

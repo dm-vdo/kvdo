@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexPageMap.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#1 $
  */
 
 #include "indexPageMap.h"
@@ -313,7 +313,7 @@ static int decodeIndexPageMap(Buffer *buffer, IndexPageMap *map)
 /*****************************************************************************/
 static int readIndexPageMap(ReadPortal *portal)
 {
-  IndexPageMap *map = componentDataForPortal(portal);
+  IndexPageMap *map = indexComponentData(portal->component);
 
   BufferedReader *reader = NULL;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/linuxIORegion.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/linuxIORegion.c#1 $
  */
 
 #include "linuxIORegion.h"
@@ -30,6 +30,7 @@
 #include <linux/uio.h>
 #include <linux/version.h>
 
+#include "ioFactory.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
@@ -37,20 +38,6 @@
 #include "timeUtils.h"
 
 enum { BLK_FMODE = FMODE_READ | FMODE_WRITE };
-
-/*
- * XXX We used to use PAGE_SIZE, but in kernel mode we may write the
- * full buffer at times when we've only been given 4kB of data,
- * possibly causing us to overwrite real data on disk.
- *
- * We ought to be able to use larger buffers and only write the data
- * desired, or with minimal round-up as required by the block layer.
- *
- * Also, a larger size should still work fine for reading, but
- * getBestSize doesn't get an indication of the intended I/O
- * direction.
- */
-enum { KERNEL_UDS_BLOCK_SIZE = 4096 };
 
 typedef struct {
   struct completion *wait;
@@ -67,6 +54,7 @@ typedef struct {
 
 typedef struct {
   IORegion             common;
+  IOFactory           *factory;
   struct block_device *bdev;
   uint64_t             size;
   void                *zeroBlock;
@@ -82,10 +70,10 @@ static INLINE LinuxIORegion *asLinuxIORegion(IORegion *region)
 static int lior_close(IORegion *region)
 {
   LinuxIORegion *lior = asLinuxIORegion(region);
-  blkdev_put(lior->bdev, BLK_FMODE);
+  int result = putIOFactory(lior->factory);
   FREE(lior->zeroBlock);
   FREE(lior);
-  return UDS_SUCCESS;
+  return result;
 }
 
 /*****************************************************************************/
@@ -98,7 +86,7 @@ static int validateIO(LinuxIORegion *lior,
 {
   size_t pageOffset = offset_in_page(buffer);
   if ((pageOffset != 0)
-      && ((pageOffset % KERNEL_UDS_BLOCK_SIZE) != 0)) {
+      && ((pageOffset % UDS_BLOCK_SIZE) != 0)) {
     // No need to cry wolf.  Our callers are prepared to deal with this.
     return UDS_INCORRECT_ALIGNMENT;
   }
@@ -319,8 +307,8 @@ static int lior_getBlockSize(IORegion *region, size_t *blockSize)
 /*****************************************************************************/
 static int lior_getBestSize(IORegion *region, size_t *bufferSize)
 {
-  STATIC_ASSERT(PAGE_SIZE >= KERNEL_UDS_BLOCK_SIZE);
-  *bufferSize = KERNEL_UDS_BLOCK_SIZE;
+  STATIC_ASSERT(PAGE_SIZE >= UDS_BLOCK_SIZE);
+  *bufferSize = UDS_BLOCK_SIZE;
   return UDS_SUCCESS;
 }
 
@@ -331,29 +319,21 @@ static int lior_syncContents(IORegion *region __attribute__((unused)))
 }
 
 /*****************************************************************************/
-int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
+int makeLinuxRegion(IOFactory            *factory,
+                    struct block_device  *bdev,
+                    off_t                 offset,
+                    size_t                size,
+                    IORegion            **regionPtr)
 {
+  size += offset;
   if (size % SECTOR_SIZE != 0) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
                                    "size not a multiple of blockSize");
   }
 
-  struct block_device *bdev;
-  dev_t device = name_to_dev_t(path);
-  if (device != 0) {
-    bdev = blkdev_get_by_dev(device, BLK_FMODE, NULL);
-  } else {
-    bdev = blkdev_get_by_path(path, BLK_FMODE, NULL);
-  }
-  if (IS_ERR(bdev)) {
-    logErrorWithStringError(-PTR_ERR(bdev), "%s is not a block device", path);
-    return UDS_INVALID_ARGUMENT;
-  }
-
   LinuxIORegion *lior = NULL;
   int result = ALLOCATE(1, LinuxIORegion, "Linux IO region", &lior);
   if (result != UDS_SUCCESS) {
-    blkdev_put(bdev, BLK_FMODE);
     return result;
   }
 
@@ -361,10 +341,11 @@ int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
   result = ALLOCATE_IO_ALIGNED(PAGE_SIZE, byte, "Linux zero block", &buf);
   if (result != UDS_SUCCESS) {
     FREE(lior);
-    blkdev_put(bdev, BLK_FMODE);
     return result;
   }
   memset(buf, 0, PAGE_SIZE);
+
+  getIOFactory(factory);
 
   lior->common.clear        = lior_clear;
   lior->common.close        = lior_close;
@@ -375,6 +356,7 @@ int openLinuxRegion(const char *path, uint64_t size, IORegion **regionPtr)
   lior->common.read         = lior_read;
   lior->common.syncContents = lior_syncContents;
   lior->common.write        = lior_write;
+  lior->factory   = factory;
   lior->bdev      = bdev;
   lior->size      = size;
   lior->zeroBlock = buf;

@@ -16,14 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/udsState.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsState.h#1 $
  */
 
 #ifndef UDS_STATE_H
 #define UDS_STATE_H
 
-#include "featureDefs.h"
-#include "requestQueue.h"
 #include "session.h"
 
 /**
@@ -47,41 +45,6 @@ void unlockGlobalStateMutex(void);
  * @return              UDS_SUCCESS or error code
  **/
 int checkLibraryRunning(void);
-
-/**
- * Return a path to the directory containing scanner modules.
- *
- * @return              the module directory path
- **/
-const char *getModuleDir(void);
-
-#if GRID
-/**
- * Initialize the remote queue
- *
- * @return     UDS_SUCCESS or an error code
- **/
-int initializeRemoteQueue(void) __attribute__((warn_unused_result));
-
-/**
- * Return the queue for requests going to remote servers.
- *
- * @return udsState.remoteQueue
- **/
-RequestQueue *getRemoteQueue(void) __attribute__((warn_unused_result));
-
-/**
- * Frees the remote queue.
- */
-void freeRemoteQueue(void);
-#endif /* GRID */
-
-/**
- * Return the SessionGroup that dispenses UdsContexts.
- *
- * @return udsState.contexts
- **/
-SessionGroup *getContextGroup(void);
 
 /**
  * Return the SessionGroup that dispenses IndexSessions.

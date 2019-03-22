@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/udsModule.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#1 $
  */
 
 #include <linux/module.h>
@@ -75,16 +75,12 @@ EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
 EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
 EXPORT_SYMBOL_GPL(udsSaveIndex);
 EXPORT_SYMBOL_GPL(udsCloseIndexSession);
+EXPORT_SYMBOL_GPL(udsFlushIndexSession);
 EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
 EXPORT_SYMBOL_GPL(udsGetIndexStats);
+EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
 EXPORT_SYMBOL_GPL(udsStringError);
-
-EXPORT_SYMBOL_GPL(udsOpenBlockContext);
-EXPORT_SYMBOL_GPL(udsCloseBlockContext);
-EXPORT_SYMBOL_GPL(udsFlushBlockContext);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
-EXPORT_SYMBOL_GPL(udsGetBlockContextIndexStats);
-EXPORT_SYMBOL_GPL(udsGetBlockContextStats);
 
 EXPORT_SYMBOL_GPL(UDS_PARAM_FALSE);
 EXPORT_SYMBOL_GPL(UDS_PARAM_TRUE);

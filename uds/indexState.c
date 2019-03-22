@@ -16,71 +16,72 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexState.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#1 $
  */
 
-#include "indexStateInternals.h"
+#include "indexState.h"
 
 #include "errors.h"
-#include "indexComponentInternal.h"
+#include "indexComponent.h"
+#include "indexLayout.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
-/**********************************************************************/
-int initIndexState(IndexState          *state,
-                   unsigned int         id,
-                   unsigned int         zoneCount,
-                   unsigned int         length,
-                   const IndexStateOps *ops)
+/*****************************************************************************/
+int makeIndexState(IndexLayout   *layout,
+                   unsigned int   numZones,
+                   unsigned int   maxComponents,
+                   IndexState   **statePtr)
 {
-  if (length == 0) {
+  if (maxComponents == 0) {
     return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "cannot make index state with length 0");
+      UDS_INVALID_ARGUMENT, "cannot make index state with maxComponents 0");
   }
 
-  state->id        = id;
-  state->zoneCount = zoneCount;
-  state->count     = 0;
-  state->length    = length;
-  state->saving    = false;
-  state->ops       = ops;
+  IndexState *state = NULL;
+  int result = ALLOCATE_EXTENDED(IndexState, maxComponents, IndexComponent *,
+                                 "index state", &state);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
 
-  return ALLOCATE(state->length, IndexComponent *, "index state entries",
-                  &state->entries);
+  state->count     = 0;
+  state->layout    = layout;
+  state->length    = maxComponents;
+  state->loadZones = 0;
+  state->loadSlot  = UINT_MAX;
+  state->saveSlot  = UINT_MAX;
+  state->saving    = false;
+  state->zoneCount = numZones;
+
+  *statePtr = state;
+  return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-void destroyIndexState(IndexState *state)
+/*****************************************************************************/
+void freeIndexState(IndexState **statePtr)
 {
+  IndexState *state = *statePtr;
+  *statePtr = NULL;
   if (state != NULL) {
     for (unsigned int i = 0; i < state->count; ++i) {
       freeIndexComponent(&state->entries[i]);
     }
-    FREE(state->entries);
+    FREE(state);
   }
-}
-
-/**********************************************************************/
-void freeIndexState(IndexState **statePtr)
-{
-  if (*statePtr != NULL) {
-    (*statePtr)->ops->freeFunc(*statePtr);
-    *statePtr = NULL;
-  }
-}
-
-/**********************************************************************/
-int addIndexStateComponent(IndexState               *state,
-                           const IndexComponentInfo *info,
-                           void                     *data,
-                           void                     *context)
-{
-  return state->ops->addComponent(state, info, data, context);
 }
 
 /*****************************************************************************/
-int addComponentToIndexState(IndexState     *state,
-                             IndexComponent *component)
+/**
+ * Add a component to the index state.
+ *
+ * @param state         The index state.
+ * @param component     The index component.
+ *
+ * @return      UDS_SUCCESS or an error code.
+ **/
+static int addComponentToIndexState(IndexState     *state,
+                                    IndexComponent *component)
 {
   if (findIndexComponent(state, component->info) != NULL) {
     return logErrorWithStringError(
@@ -100,7 +101,29 @@ int addComponentToIndexState(IndexState     *state,
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
+int addIndexStateComponent(IndexState               *state,
+                           const IndexComponentInfo *info,
+                           void                     *data,
+                           void                     *context)
+{
+  IndexComponent *component = NULL;
+  int result = makeIndexComponent(state, info, state->zoneCount, data, context,
+                                  &component);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result,
+                                   "cannot make region index component");
+  }
+
+  result = addComponentToIndexState(state, component);
+  if (result != UDS_SUCCESS) {
+    freeIndexComponent(&component);
+    return result;
+  }
+  return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
 IndexComponent *findIndexComponent(const IndexState         *state,
                                    const IndexComponentInfo *info)
 {
@@ -113,35 +136,63 @@ IndexComponent *findIndexComponent(const IndexState         *state,
   }
   return NULL;
 }
-/**********************************************************************/
-int loadIndexState(IndexState *state,
-                   bool       *replayPtr)
+
+/*****************************************************************************/
+static const char *indexSaveTypeName(IndexSaveType saveType)
 {
-  return state->ops->loadState(state, replayPtr);
+  return saveType == IS_SAVE ? "save" : "checkpoint";
 }
 
-/**
- *  Prepare to save the index state.
- *
- *  @param state        the index state
- *  @param type         whether a checkpoint or save
- *
- *  @return UDS_SUCCESS or an error code
- *
- *  @note mostly this waits for previous async operations to complete,
- *        removes the deletion directory as well as any partially-saved
- *        next state directory, and then makes a new empty next state directory.
- **/
-static int prepareToSave(IndexState *state, IndexSaveType type)
+/*****************************************************************************/
+int loadIndexState(IndexState *state, bool *replayPtr)
+{
+  int result = findLatestIndexSaveSlot(state->layout, &state->loadZones,
+                                       &state->loadSlot);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  bool replayRequired = false;
+  for (unsigned int i = 0; i < state->count; ++i) {
+    IndexComponent *component = state->entries[i];
+    result = readIndexComponent(component);
+    if (result != UDS_SUCCESS) {
+      if (!missingIndexComponentRequiresReplay(component)) {
+        state->loadZones = 0;
+        state->loadSlot  = UINT_MAX;
+        return logErrorWithStringError(result, "index component %s",
+                                       indexComponentName(component));
+      }
+      replayRequired = true;
+    }
+  }
+
+  state->loadZones = 0;
+  state->loadSlot  = UINT_MAX;
+  if (replayPtr != NULL) {
+    *replayPtr = replayRequired;
+  }
+  return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
+int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
 {
   if (state->saving) {
     return logErrorWithStringError(UDS_BAD_STATE,
                                    "already saving the index state");
   }
-  return state->ops->prepareSave(state, type);
+  int result = setupIndexSaveSlot(state->layout, state->zoneCount, saveType,
+                                  &state->saveSlot);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "cannot prepare index %s",
+                                   indexSaveTypeName(saveType));
+  }
+
+  return UDS_SUCCESS;
 }
 
-/************************************************************************/
+/*****************************************************************************/
 /**
  *  Complete the saving of an index state.
  *
@@ -152,56 +203,51 @@ static int prepareToSave(IndexState *state, IndexSaveType type)
 static int completeIndexSaving(IndexState *state)
 {
   state->saving = false;
-
-  int result = state->ops->commitSave(state);
+  int result = commitIndexSave(state->layout, state->saveSlot);
+  state->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot commit index state");
   }
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int genericLoadIndexState(IndexState *state,
-                          bool       *replayPtr)
+/*****************************************************************************/
+static int cleanupSave(IndexState *state)
 {
-  bool replayRequired = false;
-  for (unsigned int i = 0; i < state->count; ++i) {
-    IndexComponent *component = state->entries[i];
-    int result = readIndexComponent(component);
-    if (result != UDS_SUCCESS) {
-      if (!missingIndexComponentRequiresReplay(component)) {
-        return logErrorWithStringError(result,
-                                       "index component %s",
-                                       indexComponentName(component));
-      }
-      replayRequired = true;
-    }
-  }
-
-  if (replayPtr != NULL) {
-    *replayPtr = replayRequired;
+  int result = cancelIndexSave(state->layout, state->saveSlot);
+  state->saveSlot = UINT_MAX;
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "cannot cancel index save");
   }
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int genericSaveIndexState(IndexState *state)
+/*****************************************************************************/
+int saveIndexState(IndexState *state)
 {
-  int result = UDS_SUCCESS;
+  int result = prepareToSaveIndexState(state, IS_SAVE);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
   for (unsigned int i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     result = writeIndexComponent(component);
     if (result != UDS_SUCCESS) {
-      break;
+      cleanupSave(state);
+      return result;
     }
   }
-  return result;
+  return completeIndexSaving(state);
 }
 
-/**********************************************************************/
-int genericWriteIndexStateCheckpoint(IndexState *state)
+/*****************************************************************************/
+int writeIndexStateCheckpoint(IndexState *state)
 {
-  int result = UDS_SUCCESS;
+  int result = prepareToSaveIndexState(state, IS_CHECKPOINT);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
   for (unsigned int i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
@@ -209,61 +255,18 @@ int genericWriteIndexStateCheckpoint(IndexState *state)
     }
     result = writeIndexComponent(component);
     if (result != UDS_SUCCESS) {
-      break;
+      cleanupSave(state);
+      return result;
     }
   }
 
-  return result;
+  return completeIndexSaving(state);
 }
 
-/**********************************************************************/
-int saveIndexState(IndexState *state)
-{
-  int result = prepareToSave(state, IS_SAVE);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = state->ops->saveState(state);
-  if (result != UDS_SUCCESS) {
-    state->ops->cleanupSave(state);
-    return result;
-  }
-
-  result = completeIndexSaving(state);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int writeIndexStateCheckpoint(IndexState *state)
-{
-  int result = prepareToSave(state, IS_CHECKPOINT);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = state->ops->writeCheckpoint(state);
-  if (result != UDS_SUCCESS) {
-    state->ops->cleanupSave(state);
-    return result;
-  }
-
-  result = completeIndexSaving(state);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
+/*****************************************************************************/
 int startIndexStateCheckpoint(IndexState *state)
 {
-  int result = prepareToSave(state, IS_CHECKPOINT);
+  int result = prepareToSaveIndexState(state, IS_CHECKPOINT);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -285,7 +288,7 @@ int startIndexStateCheckpoint(IndexState *state)
   return result;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
 {
   if (!state->saving) {
@@ -359,7 +362,7 @@ static int doIndexStateCheckpointInZone(IndexState       *state,
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int performIndexStateCheckpointInZone(IndexState       *state,
                                       unsigned int      zone,
                                       CompletionStatus *completed)
@@ -369,7 +372,7 @@ int performIndexStateCheckpointInZone(IndexState       *state,
                                       completed);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int finishIndexStateCheckpointInZone(IndexState       *state,
                                      unsigned int      zone,
                                      CompletionStatus *completed)
@@ -379,17 +382,16 @@ int finishIndexStateCheckpointInZone(IndexState       *state,
                                       completed);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int abortIndexStateCheckpointInZone(IndexState       *state,
                                     unsigned int      zone,
                                     CompletionStatus *completed)
 {
   return doIndexStateCheckpointInZone(state, zone,
-                                      &abortIndexComponentZoneSave,
-                                      completed);
+                                      &abortIndexComponentZoneSave, completed);
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int finishIndexStateCheckpoint(IndexState *state)
 {
   if (!state->saving) {
@@ -416,7 +418,7 @@ int finishIndexStateCheckpoint(IndexState *state)
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int abortIndexStateCheckpoint(IndexState *state)
 {
   if (!state->saving) {
@@ -438,44 +440,55 @@ int abortIndexStateCheckpoint(IndexState *state)
     }
   }
 
-  state->ops->cleanupSave(state);
+  cleanupSave(state);
   state->saving = false;
 
   return result;
 }
 
-/**********************************************************************/
-int writeSingleIndexStateComponent(IndexState               *state,
-                                   const IndexComponentInfo *info)
-{
-  IndexComponent *component = findIndexComponent(state, info);
-
-  if (component == NULL) {
-    return UDS_INVALID_ARGUMENT;
-  }
-
-  int result = prepareToSave(state, IS_SAVE);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return state->ops->writeSingleComponent(state, component);
-}
-
-/**********************************************************************/
+/*****************************************************************************/
 int discardIndexStateData(IndexState *state)
 {
-  return state->ops->discardSaves(state, DT_DISCARD_ALL);
+  int result = discardIndexSaves(state->layout, true);
+  state->saveSlot = UINT_MAX;
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result,
+                                   "%s: cannot destroy all index saves",
+                                   __func__);
+  }
+  return UDS_SUCCESS;
 }
 
-/**********************************************************************/
+/*****************************************************************************/
 int discardLastIndexStateSave(IndexState *state)
 {
-  return state->ops->discardSaves(state, DT_DISCARD_LATEST);
+  int result = discardIndexSaves(state->layout, false);
+  state->saveSlot = UINT_MAX;
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result,
+                                   "%s: cannot destroy latest index save",
+                                   __func__);
+  }
+  return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-const char *indexSaveTypeName(IndexSaveType saveType)
+/*****************************************************************************/
+int openStateRegion(IndexState    *state,
+                    IOAccessMode   mode,
+                    RegionKind     kind,
+                    unsigned int   zone,
+                    IORegion     **regionPtr)
 {
-  return saveType == IS_SAVE ? "save" : "checkpoint";
+  unsigned int  slot;
+
+  if (mode == IO_READ) {
+    slot = state->loadSlot;
+  } else if (mode == IO_WRITE) {
+    slot = state->saveSlot;
+  } else {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "%s: only IO_READ and IO_WRITE valid",
+                                   __func__);
+  }
+  return getIndexRegion(state->layout, slot, mode, kind, zone, regionPtr);
 }

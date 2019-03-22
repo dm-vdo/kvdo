@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexInternals.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#1 $
  */
 
 #include "indexInternals.h"
@@ -85,7 +85,7 @@ int allocateIndex(IndexLayout          *layout,
   }
   setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
 
-  index->layout    = layout;
+  getIndexLayout(layout, &index->layout);
   index->zoneCount = (readOnly ? 1 : zoneCount);
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
@@ -160,5 +160,6 @@ void releaseIndex(Index *index)
 
   freeIndexState(&index->state);
   freeIndexCheckpoint(index->checkpoint);
+  freeIndexLayout(&index->layout);
   FREE(index);
 }

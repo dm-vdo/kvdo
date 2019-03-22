@@ -16,14 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/index.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.h#1 $
  */
 
 #ifndef INDEX_H
 #define INDEX_H
 
 #include "chapterWriter.h"
-#include "indexRouterStats.h"
 #include "indexLayout.h"
 #include "indexZone.h"
 #include "loadType.h"
@@ -95,11 +94,6 @@ int makeIndex(IndexLayout          *layout,
  * Some users follow saveIndex immediately with a freeIndex.  But some tests
  * use the IndexLayout to modify the saved index.  The Index will then have
  * some cached information that does not reflect these updates.
- *
- * XXX - If we put a use count on the IndexLayout, and implement a get/put
- *       mechanism, we can refactor into a safer saveAndFreeIndex method.  The
- *       tests could then "get" the IndexLayout and use it to modify the saved
- *       index after the Index is freed.
  *
  * @param index   The index to save
  *
@@ -174,7 +168,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
  * @param index     The index
  * @param counters  the statistic counters for the index
  **/
-void getIndexStats(Index *index, IndexRouterStatCounters *counters);
+void getIndexStats(Index *index, UdsIndexStats *counters);
 
 /**
  * Set lookup state for this index.  Disabling lookups means assume

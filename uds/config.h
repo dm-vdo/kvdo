@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/config.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/config.h#1 $
  */
 
 #ifndef CONFIG_H
@@ -85,12 +85,6 @@ typedef struct indexLocation {
   char *directory;
 } IndexLocation;
 
-struct udsGridConfig {
-  unsigned int numLocations;
-  unsigned int maxLocations;
-  IndexLocation *locations;
-};
-
 /**
  * A set of configuration parameters for the indexer.
  **/
@@ -138,49 +132,11 @@ int writeConfigContents(BufferedWriter   *writer,
   __attribute__((warn_unused_result));
 
 /**
- * Add a grid server or local directory to a grid config.
- *
- * @param gridConfig  The configuration to which to add the server
- * @param host        The server host
- * @param port        The server port
- * @param directory   The index directory.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int addGridServer(UdsGridConfig  gridConfig,
-                  const char    *host,
-                  const char    *port,
-                  const char    *directory)
-  __attribute__((warn_unused_result));
-
-/**
  * Free the memory used by an IndexLocation.
  *
  * @param loc   index location to free
  **/
 void freeIndexLocation(IndexLocation *loc);
-
-/**
- * Print an index location to a string.
- *
- * @param indexLocation  The index location
- * @param output         The output string.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int printIndexLocation(const IndexLocation  *indexLocation,
-                       char                **output)
-  __attribute__((warn_unused_result));
-
-/**
- * Log the grid configuration
- *
- * @param gridConfig  The grid configuration
- * @param message     The message to log with the configuration
- *
- * @return UDS_SUCCESS or an error code
- **/
-void logGridConfig(UdsGridConfig gridConfig, const char *message);
 
 /**
  * Compare two configurations for equality.
@@ -194,15 +150,10 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
   __attribute__((warn_unused_result));
 
 /**
- * Print a user configuration to a string.
+ * Log a user configuration.
  *
  * @param conf    The configuration
- * @param indent  The indentation to use before the data
- * @param output  The output string.
- *
- * @return UDS_SUCCESS or an error code
  **/
-int printUdsConfiguration(UdsConfiguration conf, int indent, char **output)
-  __attribute__((warn_unused_result));
+void logUdsConfiguration(UdsConfiguration conf);
 
 #endif /* CONFIG_H */

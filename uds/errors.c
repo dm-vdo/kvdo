@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/errors.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#1 $
  */
 
 #include "errors.h"
@@ -115,11 +115,6 @@ static const struct errorInfo internalErrorList[] = {
   { "UDS_BAD_IO_DIRECTION", "Bad I/O direction" },
   { "UDS_INCORRECT_ALIGNMENT", "Offset not at block alignment" },
   { "UDS_OUT_OF_RANGE", "Cannot access data outside specified limits" },
-};
-
-/** Error attributes - or into top half of error code */
-enum {
-  UDS_UNRECOVERABLE = (1 << 17)
 };
 
 typedef struct errorBlock {
@@ -255,9 +250,7 @@ const char *stringError(int errnum, char *buf, size_t buflen)
 /*****************************************************************************/
 const char *stringErrorName(int errnum, char *buf, size_t buflen)
 {
-  if (isUnrecoverable(errnum)) {
-    errnum = sansUnrecoverable(errnum);
-  }
+  errnum = sansUnrecoverable(errnum);
 
   char *buffer = buf;
   char *bufEnd = buf + buflen;
@@ -290,18 +283,6 @@ int makeUnrecoverable(int resultCode)
   return ((resultCode == UDS_SUCCESS)
           ? resultCode
           : (resultCode | UDS_UNRECOVERABLE));
-}
-
-/*****************************************************************************/
-int sansUnrecoverable(int resultCode)
-{
-  return resultCode & ~UDS_UNRECOVERABLE;
-}
-
-/*****************************************************************************/
-bool isUnrecoverable(int resultCode)
-{
-  return (bool)(resultCode & UDS_UNRECOVERABLE);
 }
 
 /*****************************************************************************/

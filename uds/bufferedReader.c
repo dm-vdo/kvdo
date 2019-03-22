@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/bufferedReader.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/bufferedReader.c#1 $
  */
 
 #include "bufferedReader.h"
@@ -119,6 +119,10 @@ int readBufferedData(BufferedReader *reader,
       dp             += n;
       length         -= n;
       reader->offset += n;
+      // We don't copy the bypassed data into the buffer, so it has to be
+      // emptied just as if we had repositioned it forwards (ALB-2989).
+      reader->bufpos = reader->buffer;
+      reader->extent = reader->buffer;
 
       if (n < len) {
         reader->eof = true;

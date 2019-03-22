@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/cacheCounters.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/cacheCounters.h#1 $
  */
 
 #ifndef CACHE_COUNTERS_H
@@ -98,14 +98,6 @@ typedef enum cacheResultKind {
   /** The requested entry wasn't found in the cache but is queued for read */
   CACHE_RESULT_QUEUED
 } CacheResultKind;
-
-/**
- * Add (accumulate) cache counts.
- *
- * @param stats   accumulated stats
- * @param addend  additional values to be added in
- **/
-void addCacheCounters(CacheCounters *stats, const CacheCounters *addend);
 
 /**
  * Increment one of the cache counters.

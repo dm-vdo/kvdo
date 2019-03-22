@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/errors.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.h#1 $
  */
 
 #ifndef ERRORS_H
@@ -87,12 +87,25 @@ enum {
   ERRBUF_SIZE = 128 // default size for buffer passed to stringError
 };
 
+// Error attributes - or into top half of error code
+enum { UDS_UNRECOVERABLE = (1 << 17) };
+
 const char *stringError(int errnum, char *buf, size_t buflen);
 const char *stringErrorName(int errnum, char *buf, size_t buflen);
 
 int makeUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-bool isUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-int sansUnrecoverable(int resultCode) __attribute__((warn_unused_result));
+
+__attribute__((warn_unused_result))
+static INLINE bool isUnrecoverable(int resultCode)
+{
+  return (resultCode & UDS_UNRECOVERABLE) != 0;
+}
+
+__attribute__((warn_unused_result))
+static INLINE int sansUnrecoverable(int resultCode)
+{
+  return resultCode & ~UDS_UNRECOVERABLE;
+}
 
 typedef struct errorInfo {
   const char *name;

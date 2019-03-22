@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/indexLayoutLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#1 $
  */
 
 #include "indexLayout.h"
@@ -24,7 +24,6 @@
 #include "linuxIORegion.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "singleFileLayout.h"
 
 /*****************************************************************************/
 int makeIndexLayout(const char              *name,
@@ -68,25 +67,27 @@ int makeIndexLayout(const char              *name,
     }
   }
 
-  IORegion *region = NULL;
-  if (dev != NULL) {
-    result = openLinuxRegion(dev, offset + size, &region);
-  } else {
-    FREE(params);
-    return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                   "no index specified");
-  }
+  IOFactory *factory = NULL;
+  result = makeIOFactory(dev, &factory);
   FREE(params);
   if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
     return result;
   }
-
+  IORegion *region = NULL;
+  result = makeIORegion(factory, offset, size, &region);
+  int freeResult = putIOFactory(factory);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  if (freeResult != UDS_SUCCESS) {
+    closeIORegion(&region);
+    return freeResult;
+  }
 
   if (newLayout) {
-    result = createSingleFileLayout(region, offset, size, config, layoutPtr);
+    result = makeIndexLayoutForCreate(region, offset, size, config, layoutPtr);
   } else {
-    result = loadSingleFileLayout(region, offset, layoutPtr);
+    result = makeIndexLayoutForLoad(region, offset, layoutPtr);
   }
   if (result != UDS_SUCCESS) {
     closeIORegion(&region);

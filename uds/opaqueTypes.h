@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/opaqueTypes.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/opaqueTypes.h#1 $
  */
 
 #ifndef OPAQUE_TYPES_H
@@ -27,12 +27,8 @@
  * for which many users of those structures do need to know the details
  * of the structures themselves.
  */
-typedef struct aipContext              AIPContext;
-typedef struct grid                    Grid;
 typedef struct indexRouter             IndexRouter;
-typedef struct indexRouterStatCounters IndexRouterStatCounters;
 typedef struct indexSession            IndexSession;
-typedef struct serverConnection        ServerConnection;
 typedef struct request                 Request;
 typedef struct requestQueue            RequestQueue;
 

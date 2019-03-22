@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/sparseCache.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/sparseCache.h#1 $
  */
 
 #ifndef SPARSE_CACHE_H
@@ -74,14 +74,6 @@ void freeSparseCache(SparseCache *cache);
  **/
 size_t getSparseCacheMemorySize(const SparseCache *cache);
 
-/**
- * Get the current cache counter values from a sparse cache.
- *
- * @param cache  the cache from which to gather counters
- *
- * @return statistics from the sparse cache
- **/
-CacheCounters getSparseCacheCounters(const SparseCache *cache);
 
 /**
  * Check whether a sparse chapter index is present in the chapter cache. This

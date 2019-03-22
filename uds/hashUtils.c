@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/hashUtils.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/hashUtils.c#1 $
  */
 
 #include "hashUtils.h"
@@ -92,5 +92,5 @@ unsigned int computeBits(unsigned int maxValue)
 void hashUtilsCompileTimeAssertions(void)
 {
   STATIC_ASSERT((UDS_CHUNK_NAME_SIZE % sizeof(uint64_t)) == 0);
-  STATIC_ASSERT((UDS_CHUNK_NAME_SIZE == 32) || (UDS_CHUNK_NAME_SIZE == 16));
+  STATIC_ASSERT(UDS_CHUNK_NAME_SIZE == 16);
 }

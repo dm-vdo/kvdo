@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/udsMain.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#1 $
  */
 
 #include "uds.h"
 
 #include "config.h"
-#include "featureDefs.h"
 #include "geometry.h"
-#include "grid.h"
 #include "indexLayout.h"
+#include "indexRouter.h"
 #include "indexSession.h"
+#include "loadType.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "udsState.h"
@@ -57,9 +57,7 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
    * Change Configuration_x1, which tests these values and expects to see them
    *
    * Bump the index configuration version number.  This bump ensures that
-   * the test infrastructure will be forced to test the new configuration,
-   * and also prevents a grid trying to run with both old and new
-   * configurations on different servers.
+   * the test infrastructure will be forced to test the new configuration.
    */
 
   unsigned int chaptersPerVolume, recordPagesPerChapter, checkpointFrequency;
@@ -200,62 +198,70 @@ void udsFreeConfiguration(UdsConfiguration userConfig)
 }
 
 /**********************************************************************/
-static int initializeIndexSession(IndexSession     *indexSession,
-                                  UdsGridConfig     gridConfig,
-                                  LoadType          loadType,
-                                  UdsConfiguration  userConfig)
+static int initializeIndexSessionWithLayout(IndexSession     *indexSession,
+                                            IndexLayout      *layout,
+                                            LoadType          loadType,
+                                            UdsConfiguration  userConfig)
 {
-  int result;
-  if (gridConfig->numLocations == 0) {
-    return logErrorWithStringError(UDS_GRID_NO_SERVERS,
-                                   "No locations specified");
+  if (userConfig != NULL) {
+    indexSession->userConfig = *userConfig;
+  }
+  int result = ((loadType == LOAD_CREATE)
+                ? writeIndexConfig(layout, &indexSession->userConfig)
+                : readIndexConfig(layout, &indexSession->userConfig));
+  if (result != UDS_SUCCESS) {
+    return result;
   }
 
-  logGridConfig(gridConfig, getLoadType(loadType));
-
-  if (loadType == LOAD_ATTACH) {
-#if GRID
-    result = makeRemoteGrid(gridConfig, enterCallbackStage,
-                            &indexSession->grid);
-#else /* !GRID */
-    result = UDS_UNSUPPORTED;
-#endif /* GRID */
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "Failed to initialize grid");
-      return result;
-    }
-  } else {
-    IndexLayout *layout;
-    result = makeIndexLayout(gridConfig->locations[0].directory,
-                             loadType == LOAD_CREATE, userConfig, &layout);
-    if (result == UDS_SUCCESS) {
-      result = makeLocalGrid(layout, loadType, userConfig, enterCallbackStage,
-                             &indexSession->grid);
-      if (result == UDS_SUCCESS) {
-        // on success, the layout becomes owned by the grid...
-        result = removeSafetySeal(layout);
-      } else {
-        // on failure, we must free the layout
-        freeIndexLayout(&layout);
-      }
-    }
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
-      return result;
-    }
+  Configuration *indexConfig;
+  result = makeConfiguration(&indexSession->userConfig, &indexConfig);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Failed to allocate config");
+    return result;
+  }
+  result = makeIndexRouter(layout, indexConfig, loadType, enterCallbackStage,
+                           &indexSession->router);
+  freeConfiguration(indexConfig);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Failed to make router");
+    return result;
   }
 
+  logUdsConfiguration(&indexSession->userConfig);
+  result = removeSafetySeal(layout);
   setIndexSessionState(indexSession, IS_READY);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int makeIndexSession(UdsGridConfig     gridConfig,
+static int initializeIndexSession(IndexSession     *indexSession,
+                                  const char       *name,
+                                  LoadType          loadType,
+                                  UdsConfiguration  userConfig)
+{
+  IndexLayout *layout;
+  int result = makeIndexLayout(name, loadType == LOAD_CREATE, userConfig,
+                               &layout);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  result = initializeIndexSessionWithLayout(indexSession, layout, loadType,
+                                            userConfig);
+  freeIndexLayout(&layout);
+  return result;
+}
+
+/**********************************************************************/
+static int makeIndexSession(const char       *name,
                             LoadType          loadType,
                             UdsConfiguration  userConfig,
-                            unsigned int     *indexSessionID)
+                            UdsIndexSession  *session)
 {
-  if (indexSessionID == NULL) {
+  if (name == NULL) {
+    return UDS_INDEX_NAME_REQUIRED;
+  }
+  if (session == NULL) {
     return UDS_NO_INDEXSESSION;
   }
   udsInitialize();
@@ -298,8 +304,11 @@ static int makeIndexSession(UdsGridConfig     gridConfig,
   // to base context is released below
   unlockGlobalStateMutex();
 
-  result = initializeIndexSession(indexSession, gridConfig, loadType,
-                                  userConfig);
+  logNotice("%s: %s", getLoadType(loadType), name);
+  result = initializeIndexSession(indexSession, name, loadType, userConfig);
+  if (result != UDS_SUCCESS) {
+    logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
+  }
 
   lockGlobalStateMutex();
   if (result != UDS_SUCCESS) {
@@ -307,59 +316,14 @@ static int makeIndexSession(UdsGridConfig     gridConfig,
     saveAndFreeIndexSession(indexSession);
     releaseSessionGroup(indexSessionGroup);
     unlockGlobalStateMutex();
-    return handleError(NULL, result);
+    return sansUnrecoverable(result);
   }
-  *indexSessionID = id;
+  session->id = id;
   logDebug("Created index session (%u)", id);
   releaseIndexSession(indexSession);
   releaseSessionGroup(indexSessionGroup);
   unlockGlobalStateMutex();
   return UDS_SUCCESS;
-}
-
-// ============================================================================
-// INDEX SESSION API
-// ============================================================================
-
-/**
- * Make a local index.
- *
- * @param name        The name of the index directory
- * @param loadType    How to create the index. It can be create only,
- *                    allow loading from files, and allow rebuilding
- *                    from the volume
- * @param userConfig  The configuration of the index
- * @param session     An index session connected to connect to the index
- *
- * @return UDS_SUCCESS or an error
- **/
-static int makeLocalIndex(const char       *name,
-                          LoadType          loadType,
-                          UdsConfiguration  userConfig,
-                          UdsIndexSession  *session)
-{
-  if (name == NULL) {
-    return UDS_INDEX_NAME_REQUIRED;
-  }
-  if (session == NULL) {
-    return UDS_NO_INDEXSESSION;
-  }
-
-  UdsGridConfig gridConfig;
-  int result = udsInitializeGridConfig(&gridConfig);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = addGridServer(gridConfig, NULL, NULL, name);
-  if (result != UDS_SUCCESS) {
-    udsFreeGridConfig(gridConfig);
-    return result;
-  }
-
-  result = makeIndexSession(gridConfig, loadType, userConfig, &session->id);
-  udsFreeGridConfig(gridConfig);
-  return result;
 }
 
 /**********************************************************************/
@@ -371,33 +335,22 @@ int udsCreateLocalIndex(const char       *name,
     return logErrorWithStringError(UDS_CONF_REQUIRED,
                                    "received an invalid config");
   }
-  return makeLocalIndex(name, LOAD_CREATE, userConfig, session);
+  return makeIndexSession(name, LOAD_CREATE, userConfig, session);
 }
 
 /**********************************************************************/
 int udsLoadLocalIndex(const char               *name,
                       UdsIndexSession          *session)
 {
-  return makeLocalIndex(name, LOAD_LOAD, NULL, session);
+  return makeIndexSession(name, LOAD_LOAD, NULL, session);
 }
 
 /**********************************************************************/
 int udsRebuildLocalIndex(const char            *name,
                          UdsIndexSession       *session)
 {
-  return makeLocalIndex(name, LOAD_REBUILD, NULL, session);
+  return makeIndexSession(name, LOAD_REBUILD, NULL, session);
 }
-
-#if GRID
-/**********************************************************************/
-int udsAttachGridIndex(UdsGridConfig gridConfig, UdsIndexSession *session)
-{
-  if (session == NULL) {
-    return UDS_NO_INDEXSESSION;
-  }
-  return makeIndexSession(gridConfig, LOAD_ATTACH, NULL, &session->id);
-}
-#endif /* GRID */
 
 /**********************************************************************/
 const char *udsGetVersion(void)

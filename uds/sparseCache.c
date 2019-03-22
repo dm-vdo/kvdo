@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/sparseCache.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/sparseCache.c#1 $
  */
 
 /**
@@ -367,23 +367,6 @@ void freeSparseCache(SparseCache *cache)
   FREE(cache);
 }
 
-/**********************************************************************/
-CacheCounters getSparseCacheCounters(const SparseCache *cache)
-{
-  CacheCounters counters = {
-    .sparseChapters = {
-      .hits      = cache->counters.chapterHits,
-      .misses    = cache->counters.chapterMisses,
-    },
-    .sparseSearches = {
-      .hits      = cache->counters.searchHits,
-      .misses    = cache->counters.searchMisses,
-    },
-    .evictions   = cache->counters.evictions,
-    .expirations = cache->counters.invalidations,
-  };
-  return counters;
-}
 
 /**********************************************************************/
 bool sparseCacheContains(SparseCache  *cache,

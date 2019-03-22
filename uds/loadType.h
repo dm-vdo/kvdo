@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/loadType.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/loadType.h#1 $
  */
 
 #ifndef LOAD_TYPE_H
@@ -33,9 +33,8 @@
  *    LOAD_CREATE     local   udsCreateLocalIndex
  *    LOAD_LOAD       local   udsLoadLocalIndex
  *    LOAD_REBUILD    local   udsRebuildLocalIndex
- *    LOAD_ATTACH     remote  udsAttachGridIndex
  *
- * Usage number 2 is to record how a local index was really opened.  As in this
+ * Usage number 2 is to record how an index was really opened.  As in this
  * table:
  *
  *    LOAD_CREATE   new empty index
@@ -49,7 +48,6 @@ typedef enum {
   LOAD_CREATE,
   LOAD_LOAD,
   LOAD_REBUILD,
-  LOAD_ATTACH,
   LOAD_EMPTY,
   LOAD_REPLAY,
 } LoadType;

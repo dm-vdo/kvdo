@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/index.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#1 $
  */
 
 #include "index.h"
@@ -795,7 +795,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
 }
 
 /**********************************************************************/
-void getIndexStats(Index *index, IndexRouterStatCounters *counters)
+void getIndexStats(Index *index, UdsIndexStats *counters)
 {
   uint64_t cwAllocated = getChapterWriterMemoryAllocated(index->chapterWriter);
   // We're accessing the master index while not on a zone thread, but that's
@@ -803,16 +803,12 @@ void getIndexStats(Index *index, IndexRouterStatCounters *counters)
   MasterIndexStats denseStats, sparseStats;
   getMasterIndexStats(index->masterIndex, &denseStats, &sparseStats);
 
-  memset(counters, 0, sizeof(IndexRouterStatCounters));
-  getCacheCounters(index->volume, &counters->volumeCache);
-
   counters->entriesIndexed   = (denseStats.recordCount
                                 + sparseStats.recordCount);
   counters->memoryUsed       = ((uint64_t) denseStats.memoryAllocated
                                 + (uint64_t) sparseStats.memoryAllocated
                                 + (uint64_t) getCacheSize(index->volume)
                                 + cwAllocated);
-  counters->diskUsed         = (uint64_t) getVolumeSize(index->volume);
   counters->collisions       = (denseStats.collisionCount
                                 + sparseStats.collisionCount);
   counters->entriesDiscarded = (denseStats.discardCount

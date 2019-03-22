@@ -16,20 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/udsState.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsState.c#1 $
  */
 
 #include "udsState.h"
 
 #include "atomicDefs.h"
-#include "context.h"
 #include "errors.h"
 #include "featureDefs.h"
 #include "indexSession.h"
 #include "indexRouter.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "request.h"
 
 /**
  * The current library state.
@@ -44,11 +42,7 @@ typedef struct {
   char              cookie[16]; // for locating udsState in core file
   char              version[16]; // for double-checking library version
   Mutex             mutex;
-#if GRID
-  RequestQueue     *remoteQueue;
-#endif /* GRID */
   SessionGroup     *indexSessions;
-  SessionGroup     *contexts;
   UdsGState         currentState;
 #if DESTRUCTOR
   UdsShutdownHook  *shutdownHook;
@@ -95,53 +89,6 @@ int checkLibraryRunning(void)
   }
 }
 
-#if GRID
-/**
- * Request processing function for the remote index request queue.
- *
- * @param request  the request to send to a remote index
- **/
-static void remoteIndexRequestProcessor(Request *request)
-{
-  request->router->methods->execute(request->router, request);
-}
-
-/**********************************************************************/
-int initializeRemoteQueue(void)
-{
-  int ret = UDS_SUCCESS;
-  if (udsState.remoteQueue == NULL) {
-    lockMutex(&udsState.mutex);
-    if (udsState.remoteQueue == NULL) {
-      ret = makeRequestQueue("uds:remoteW", &remoteIndexRequestProcessor,
-                             &udsState.remoteQueue);
-    }
-    unlockMutex(&udsState.mutex);
-  }
-  return ret;
-}
-
-/**********************************************************************/
-RequestQueue *getRemoteQueue(void)
-{
-  return udsState.remoteQueue;
-}
-
-/**********************************************************************/
-void freeRemoteQueue(void)
-{
-  requestQueueFinish(udsState.remoteQueue);
-  udsState.remoteQueue = NULL;
-}
-#endif /* GRID */
-
-/**********************************************************************/
-SessionGroup *getContextGroup(void)
-{
-  udsInitialize();
-  return udsState.contexts;
-}
-
 /**********************************************************************/
 SessionGroup *getIndexSessionGroup(void)
 {
@@ -156,12 +103,6 @@ SessionGroup *getIndexSessionGroup(void)
  */
 
 /**********************************************************************/
-static void forceFreeContext(SessionContents contents)
-{
-  freeContext((UdsContext *) contents);
-}
-
-/**********************************************************************/
 static void forceFreeIndexSession(SessionContents contents)
 {
   saveAndFreeIndexSession((IndexSession *) contents);
@@ -170,14 +111,9 @@ static void forceFreeIndexSession(SessionContents contents)
 /**********************************************************************/
 static int udsInitializeLocked(void)
 {
-  // Create the session and context containers.
-  int result = makeSessionGroup(UDS_NOCONTEXT, forceFreeContext,
-                                &udsState.contexts);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = makeSessionGroup(UDS_NO_INDEXSESSION, forceFreeIndexSession,
-                            &udsState.indexSessions);
+  // Create the session container.
+  int result = makeSessionGroup(UDS_NO_INDEXSESSION, forceFreeIndexSession,
+                                &udsState.indexSessions);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -234,15 +170,8 @@ static void udsShutdownDestructor(void)
 static void udsShutdownOnce(void)
 {
   lockMutex(&udsState.mutex);
-  // Prevent the creation of new contexts.
+  // Prevent the creation of new sessions.
   udsState.currentState = UDS_GS_SHUTTING_DOWN;
-
-  // Shut down all contexts, waiting for outstanding requests to complete and
-  // release their contexts.
-  if (udsState.contexts != NULL) {
-    shutdownSessionGroup(udsState.contexts);
-    udsState.contexts = NULL;
-  }
 
   // Shut down all index sessions, waiting for outstanding operations to
   // complete.
@@ -250,11 +179,6 @@ static void udsShutdownOnce(void)
     shutdownSessionGroup(udsState.indexSessions);
     udsState.indexSessions = NULL;
   }
-
-  // Shut down the queues
-#if GRID
-  freeRemoteQueue();
-#endif /* GRID */
   unlockMutex(&udsState.mutex);
 
   destroyMutex(&udsState.mutex);

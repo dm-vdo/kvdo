@@ -16,33 +16,154 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/singleFileLayout.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#1 $
  */
 
-#include "singleFileLayoutInternals.h"
+#include "indexLayout.h"
 
-#include <stdarg.h>
-
-#include "accessMode.h"
 #include "blockIORegion.h"
 #include "buffer.h"
+#include "bufferedIORegion.h"
 #include "bufferedReaderInternals.h"
 #include "bufferedWriterInternals.h"
 #include "compiler.h"
 #include "config.h"
 #include "indexConfig.h"
-#include "indexPageMap.h"
 #include "layoutRegion.h"
 #include "logger.h"
+#include "masterIndexOps.h"
 #include "memoryAlloc.h"
 #include "nonce.h"
 #include "openChapter.h"
-#include "regionIdentifiers.h"
-#include "regionIndexState.h"
-#include "timeUtils.h"
-#include "zone.h"
 
-static void initializeSingleFileIndexLayoutOps(SingleFileLayout *sfl);
+/*
+ * Overall layout of an index on disk:
+ *
+ * The layout is divided into a number of fixed-size regions, the sizes of
+ * which are computed when the index is created. Every header and region
+ * begins on 4K block boundary. Save regions are further sub-divided into
+ * regions of their own.
+ *
+ * Each region has a kind and an instance number. Some kinds only have one
+ * instance and therefore use RL_SOLE_INSTANCE (-1) as the instance number.
+ * The RL_KIND_INDEX uses instances to represent sub-indices, where used.
+ * A save region can either hold a checkpoint or a clean shutdown (determined
+ * by the type). The instances determine which available save slot is used.
+ * The RL_KIND_MASTER_INDEX uses instances to record which zone is being saved.
+ *
+ *     +-+-+--------+--------+--------+-----+---  -+-+
+ *     | | |   I N D E X   0      101, 0    | ...  | |
+ *     |H|C+--------+--------+--------+-----+---  -+S|
+ *     |D|f| Volume | Save   | Save   |     |      |e|
+ *     |R|g| Region | Region | Region | ... | ...  |a|
+ *     | | | 201 -1 | 202  0 | 202  1 |     |      |l|
+ *     +-+-+--------+--------+--------+-----+---  -+-+
+ *
+ * The header contains the encoded regional layout table as well as
+ * the saved index configuration record. The sub-index regions and their
+ * subdivisions are maintained in the same table.
+ *
+ * There are at least two save regions per sub-index to preserve the old
+ * state should the saving of a state be incomplete. They are used in
+ * a round-robin fashion.
+ *
+ * Anatomy of a save region:
+ *
+ *     +-+-----+------+------+-----+   -+-----+
+ *     |H| IPM | MI   | MI   |     |    | OC  |
+ *     |D|     | zone | zone | ... |    |     |
+ *     |R| 301 | 302  | 302  |     |    | 303 |
+ *     | | -1  | 0    | 1    |     |    | -1  |
+ *     +-+-----+------+------+-----+   -+-----+
+ *
+ * Every region header has a type (and version). In save regions,
+ * the open chapter only appears in RL_TYPE_SAVE not RL_TYPE_CHECKPOINT,
+ * although the same space is reserved for both.
+ *
+ * The header contains the encoded regional layout table as well as the
+ * index state record for that save or checkpoint. Each save or checkpoint
+ * has a unique generation number and nonce which is used to seed the
+ * checksums of those regions.
+ */
+
+typedef struct indexSaveData_v1 {
+  uint64_t      timestamp;              // ms since epoch...
+  uint64_t      nonce;
+  uint32_t      version;                // 1
+  uint32_t      unused__;
+} IndexSaveData;
+
+typedef struct indexSaveLayout {
+  LayoutRegion     indexSave;
+  LayoutRegion     header;
+  unsigned int     numZones;
+  LayoutRegion     indexPageMap;
+  LayoutRegion     freeSpace;
+  LayoutRegion    *masterIndexZones;
+  LayoutRegion    *openChapter;
+  IndexSaveType    saveType;
+  IndexSaveData    saveData;
+  Buffer          *indexStateBuffer;
+  bool             read;
+  bool             written;
+} IndexSaveLayout;
+
+typedef struct subIndexLayout {
+  LayoutRegion     subIndex;
+  uint64_t         nonce;
+  LayoutRegion     volume;
+  IndexSaveLayout *saves;
+} SubIndexLayout;
+
+typedef struct superBlockData_v1 {
+  byte       magicLabel[32];
+  byte       nonceInfo[32];
+  uint64_t   nonce;
+  uint32_t   version;                   // 1
+  uint32_t   blockSize;                 // for verification
+  uint16_t   numIndexes;                // 1
+  uint16_t   maxSaves;
+  uint64_t   openChapterBlocks;
+  uint64_t   pageMapBlocks;
+} SuperBlockData;
+
+struct indexLayout {
+  IORegion       *region;
+  SuperBlockData  super;
+  LayoutRegion    header;
+  LayoutRegion    config;
+  SubIndexLayout  index;
+  LayoutRegion    seal;
+  uint64_t        totalBlocks;
+  int             useCount;
+  bool            loaded;
+  bool            saved;
+  bool            close;
+};
+
+/**
+ * Structure used to compute single file layout sizes.
+ *
+ * Note that the masterIndexBlocks represent all zones and are sized for
+ * the maximum number of blocks that would be needed regardless of the number
+ * of zones (up to the maximum value) that are used at run time.
+ *
+ * Similarly, the number of saves is sized for the minimum safe value
+ * assuming checkpointing is enabled, since that is also a run-time parameter.
+ **/
+typedef struct saveLayoutSizes {
+  Configuration config;                 // this is a captive copy
+  Geometry      geometry;               // this is a captive copy
+  unsigned int  numSaves;               // per sub-index
+  size_t        blockSize;              // in bytes
+  uint64_t      volumeBlocks;           // per sub-index
+  uint64_t      masterIndexBlocks;      // per save
+  uint64_t      pageMapBlocks;          // per save
+  uint64_t      openChapterBlocks;      // per save
+  uint64_t      saveBlocks;             // per sub-index
+  uint64_t      subIndexBlocks;         // per sub-index
+  uint64_t      totalBlocks;            // for whole layout
+} SaveLayoutSizes;
 
 enum {
   DEFAULT_BLOCK_SIZE      = 4096,
@@ -54,6 +175,25 @@ static const byte SINGLE_FILE_MAGIC_1[32] = "*ALBIREO*SINGLE*FILE*LAYOUT*001*";
 enum {
   SINGLE_FILE_MAGIC_1_LENGTH = sizeof(SINGLE_FILE_MAGIC_1),
 };
+
+static void destroySingleFileLayout(IndexLayout *layout);
+static int getSingleFileLayoutReader(IndexLayout     *layout,
+                                     LayoutRegion    *lr,
+                                     BufferedReader **readerPtr)
+  __attribute__((warn_unused_result));
+static int getSingleFileLayoutRegion(IndexLayout   *layout,
+                                     LayoutRegion  *lr,
+                                     IOAccessMode   access,
+                                     IORegion     **regionPtr)
+  __attribute__((warn_unused_result));
+static int reconstituteSingleFileLayout(IndexLayout    *layout,
+                                        IORegion       *region,
+                                        SuperBlockData *super,
+                                        RegionTable    *table,
+                                        uint64_t        firstBlock)
+  __attribute__((warn_unused_result));
+static int writeIndexSaveLayout(IndexLayout *layout, IndexSaveLayout *isl)
+  __attribute__((warn_unused_result));
 
 /*****************************************************************************/
 static INLINE uint64_t blockCount(uint64_t bytes, uint32_t blockSize)
@@ -492,11 +632,11 @@ static int readSuperBlockData(BufferedReader *reader,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int allocateSingleFileParts(SingleFileLayout *sfl,
-                                   SuperBlockData   *super)
+static int allocateSingleFileParts(IndexLayout    *layout,
+                                   SuperBlockData *super)
 {
-  int result = ALLOCATE(super->maxSaves, IndexSaveLayout,
-                        "SFL index save layout", &sfl->index.saves);
+  int result = ALLOCATE(super->maxSaves, IndexSaveLayout, __func__,
+                        &layout->index.saves);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -506,11 +646,11 @@ static int allocateSingleFileParts(SingleFileLayout *sfl,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int loadSuperBlock(SingleFileLayout *sfl,
-                          size_t            blockSize,
-                          uint64_t          firstBlock,
-                          IORegion         *region,
-                          BufferedReader   *reader)
+static int loadSuperBlock(IndexLayout    *layout,
+                          size_t          blockSize,
+                          uint64_t        firstBlock,
+                          IORegion       *region,
+                          BufferedReader *reader)
 {
   RegionTable *table = NULL;
   int result = loadRegionTable(reader, &table);
@@ -539,13 +679,13 @@ static int loadSuperBlock(SingleFileLayout *sfl,
                                    superBlockData.blockSize, blockSize);
   }
 
-  result = allocateSingleFileParts(sfl, &superBlockData);
+  result = allocateSingleFileParts(layout, &superBlockData);
   if (result != UDS_SUCCESS) {
     FREE(table);
     return result;
   }
 
-  result = reconstituteSingleFileLayout(sfl, region, &superBlockData, table,
+  result = reconstituteSingleFileLayout(layout, region, &superBlockData, table,
                                         firstBlock);
   FREE(table);
   return result;
@@ -932,18 +1072,18 @@ static int loadIndexSave(IndexSaveLayout *isl,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int loadSubIndexRegions(SingleFileLayout *sfl)
+static int loadSubIndexRegions(IndexLayout *layout)
 {
-  for (unsigned int j = 0; j < sfl->super.maxSaves; ++j) {
-    IndexSaveLayout *isl = &sfl->index.saves[j];
+  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
+    IndexSaveLayout *isl = &layout->index.saves[j];
 
     BufferedReader *reader;
-    int result = getSingleFileLayoutReader(sfl, &isl->indexSave, &reader);
+    int result = getSingleFileLayoutReader(layout, &isl->indexSave, &reader);
     if (result != UDS_SUCCESS) {
       logErrorWithStringError(result, "cannot get reader for index 0 save %u",
                               j);
       while (j-- > 0) {
-        IndexSaveLayout *isl = &sfl->index.saves[j];
+        IndexSaveLayout *isl = &layout->index.saves[j];
         FREE(isl->masterIndexZones);
         FREE(isl->openChapter);
         freeBuffer(&isl->indexStateBuffer);
@@ -951,11 +1091,11 @@ static int loadSubIndexRegions(SingleFileLayout *sfl)
       return result;
     }
 
-    result = loadIndexSave(isl, &sfl->super, reader, j);
+    result = loadIndexSave(isl, &layout->super, reader, j);
     freeBufferedReader(reader);
     if (result != UDS_SUCCESS) {
       while (j-- > 0) {
-        IndexSaveLayout *isl = &sfl->index.saves[j];
+        IndexSaveLayout *isl = &layout->index.saves[j];
         FREE(isl->masterIndexZones);
         FREE(isl->openChapter);
         freeBuffer(&isl->indexStateBuffer);
@@ -967,9 +1107,9 @@ static int loadSubIndexRegions(SingleFileLayout *sfl)
 }
 
 /*****************************************************************************/
-int loadSingleFileLayout(IORegion       *region,
-                         uint64_t        offset,
-                         IndexLayout   **layoutPtr)
+int makeIndexLayoutForLoad(IORegion     *region,
+                           uint64_t      offset,
+                           IndexLayout **layoutPtr)
 {
   size_t blockSize = 0;
   int result = validateOffsetAndBlockSize(region, offset, &blockSize);
@@ -991,32 +1131,33 @@ int loadSingleFileLayout(IORegion       *region,
     return result;
   }
 
-  SingleFileLayout *sfl = NULL;
-  result = ALLOCATE(1, SingleFileLayout, "single file layout", &sfl);
+  IndexLayout *layout = NULL;
+  result = ALLOCATE(1, IndexLayout, __func__, &layout);
   if (result != UDS_SUCCESS) {
     freeBufferedReader(reader);
     closeIORegion(&superBlockRegion);
     return result;
   }
 
-  result = loadSuperBlock(sfl, blockSize, offset / blockSize, region, reader);
+  result = loadSuperBlock(layout, blockSize, offset / blockSize, region,
+                          reader);
   freeBufferedReader(reader);
   closeIORegion(&superBlockRegion);
   if (result != UDS_SUCCESS) {
-    FREE(sfl->index.saves);
-    FREE(sfl);
+    FREE(layout->index.saves);
+    FREE(layout);
     return result;
   }
 
-  result = loadSubIndexRegions(sfl);
+  result = loadSubIndexRegions(layout);
   if (result != UDS_SUCCESS) {
-    FREE(sfl->index.saves);
-    FREE(sfl);
+    FREE(layout->index.saves);
+    FREE(layout);
     return result;
   }
 
-  sfl->loaded = true;
-  *layoutPtr = &sfl->common;
+  layout->loaded = true;
+  *layoutPtr = layout;
   return result;
 }
 
@@ -1131,7 +1272,7 @@ static int setupSubIndex(SubIndexLayout  *sil,
 /**
  * Initialize a single file layout using the save layout sizes specified.
  *
- * @param sfl     the layout to initialize
+ * @param layout  the layout to initialize
  * @param region  the IO region for this layout
  * @param offset  the offset in bytes from the start of the backing storage
  * @param size    the size in bytes of the backing storage
@@ -1145,16 +1286,16 @@ static int setupSubIndex(SubIndexLayout  *sil,
  *         various other errors
  **/
 __attribute__((warn_unused_result))
-static int initSingleFileLayout(SingleFileLayout *sfl,
-                                IORegion         *region,
-                                uint64_t          offset,
-                                uint64_t          size,
-                                SaveLayoutSizes  *sls)
+static int initSingleFileLayout(IndexLayout     *layout,
+                                IORegion        *region,
+                                uint64_t         offset,
+                                uint64_t         size,
+                                SaveLayoutSizes *sls)
 {
-  initializeSingleFileIndexLayoutOps(sfl);
-  sfl->region            = region;
-  sfl->totalBlocks       = sls->totalBlocks;
-  sfl->close             = true;
+  layout->region      = region;
+  layout->totalBlocks = sls->totalBlocks;
+  layout->useCount    = 1;
+  layout->close       = true;
 
   if (size < sls->totalBlocks * sls->blockSize) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
@@ -1162,7 +1303,7 @@ static int initSingleFileLayout(SingleFileLayout *sfl,
   }
 
   off_t limit = 0;
-  int result = getRegionLimit(sfl->region, &limit);
+  int result = getRegionLimit(layout->region, &limit);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1172,23 +1313,26 @@ static int initSingleFileLayout(SingleFileLayout *sfl,
   }
 
   generateSuperBlockData(sls->blockSize, sls->numSaves, sls->openChapterBlocks,
-                         sls->pageMapBlocks, &sfl->super);
+                         sls->pageMapBlocks, &layout->super);
 
-  result = allocateSingleFileParts(sfl, &sfl->super);
+  result = allocateSingleFileParts(layout, &layout->super);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   uint64_t nextBlock = offset / sls->blockSize;
 
-  setupLayout(&sfl->header, &nextBlock, 1, RL_KIND_HEADER, RL_SOLE_INSTANCE);
-  setupLayout(&sfl->config, &nextBlock, 1, RL_KIND_CONFIG, RL_SOLE_INSTANCE);
-  result = setupSubIndex(&sfl->index, &nextBlock, sls, 0, sfl->super.nonce);
+  setupLayout(&layout->header, &nextBlock, 1, RL_KIND_HEADER,
+              RL_SOLE_INSTANCE);
+  setupLayout(&layout->config, &nextBlock, 1, RL_KIND_CONFIG,
+              RL_SOLE_INSTANCE);
+  result = setupSubIndex(&layout->index, &nextBlock, sls, 0,
+                         layout->super.nonce);
   if (result != UDS_SUCCESS) {
-    destroySingleFileLayout(sfl);
+    destroySingleFileLayout(layout);
     return result;
   }
-  setupLayout(&sfl->seal, &nextBlock, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
+  setupLayout(&layout->seal, &nextBlock, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
   if (nextBlock * sls->blockSize > offset + size) {
     return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
                                    "layout does not fit as expected");
@@ -1228,17 +1372,31 @@ static void expectSubIndex(SubIndexLayout *sil,
 }
 
 /*****************************************************************************/
-int reconstituteSingleFileLayout(SingleFileLayout     *sfl,
-                                 IORegion             *region,
-                                 SuperBlockData       *super,
-                                 RegionTable          *table,
-                                 uint64_t              firstBlock)
+
+/**
+ * Initialize a single file layout from the region table and super block data
+ * stored in stable storage.
+ *
+ * @param layout      the layout to initialize
+ * @param region      the IO region for this layout
+ * @param super       the super block data read from the superblock
+ * @param table       the region table read from the superblock
+ * @param firstBlock  the first block number in the region
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+static int reconstituteSingleFileLayout(IndexLayout    *layout,
+                                        IORegion       *region,
+                                        SuperBlockData *super,
+                                        RegionTable    *table,
+                                        uint64_t        firstBlock)
 {
-  initializeSingleFileIndexLayoutOps(sfl);
-  sfl->region      = region;
-  sfl->super       = *super;
-  sfl->totalBlocks = table->header.regionBlocks;
-  sfl->close       = true;
+  layout->region      = region;
+  layout->super       = *super;
+  layout->totalBlocks = table->header.regionBlocks;
+  layout->useCount    = 1;
+  layout->close       = true;
 
   RegionIterator iter = {
     .nextRegion = table->regions,
@@ -1247,16 +1405,18 @@ int reconstituteSingleFileLayout(SingleFileLayout     *sfl,
     .result     = UDS_SUCCESS
   };
 
-  expectLayout(true, &sfl->header, &iter, 1, RL_KIND_HEADER, RL_SOLE_INSTANCE);
-  expectLayout(true, &sfl->config, &iter, 1, RL_KIND_CONFIG, RL_SOLE_INSTANCE);
-  expectSubIndex(&sfl->index, &iter, &sfl->super, 0);
-  expectLayout(true, &sfl->seal, &iter, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
+  expectLayout(true, &layout->header, &iter, 1, RL_KIND_HEADER,
+               RL_SOLE_INSTANCE);
+  expectLayout(true, &layout->config, &iter, 1, RL_KIND_CONFIG,
+               RL_SOLE_INSTANCE);
+  expectSubIndex(&layout->index, &iter, &layout->super, 0);
+  expectLayout(true, &layout->seal, &iter, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
 
   if (iter.result != UDS_SUCCESS) {
     return iter.result;
   }
 
-  if (iter.nextBlock != firstBlock + sfl->totalBlocks) {
+  if (iter.nextBlock != firstBlock + layout->totalBlocks) {
     return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
                                    "layout table does not span total blocks");
   }
@@ -1264,38 +1424,33 @@ int reconstituteSingleFileLayout(SingleFileLayout     *sfl,
 }
 
 /*****************************************************************************/
-void destroySingleFileLayout(SingleFileLayout *sfl)
+static void destroySingleFileLayout(IndexLayout *layout)
 {
-  if (sfl == NULL) {
+  if (layout == NULL) {
     return;
   }
-  SubIndexLayout *sil = &sfl->index;
-  for (unsigned int j = 0; j < sfl->super.maxSaves; ++j) {
+  SubIndexLayout *sil = &layout->index;
+  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
     IndexSaveLayout *isl = &sil->saves[j];
     FREE(isl->masterIndexZones);
     FREE(isl->openChapter);
     freeBuffer(&isl->indexStateBuffer);
   }
   FREE(sil->saves);
-  if (sfl->close) {
-    closeIORegion(&sfl->region);
-    sfl->close = false;
+  if (layout->close) {
+    closeIORegion(&layout->region);
+    layout->close = false;
   }
 }
 
 /*****************************************************************************/
-static int writeIndexSaveLayout(SingleFileLayout *sfl,
-                                IndexSaveLayout  *isl)
-  __attribute__((warn_unused_result));
-
-/*****************************************************************************/
 __attribute__((warn_unused_result))
-static int saveSubIndexRegions(SingleFileLayout *sfl)
+static int saveSubIndexRegions(IndexLayout *layout)
 {
-  SubIndexLayout *sil = &sfl->index;
-  for (unsigned int j = 0; j < sfl->super.maxSaves; ++j) {
+  SubIndexLayout *sil = &layout->index;
+  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
     IndexSaveLayout *isl = &sil->saves[j];
-    int result = writeIndexSaveLayout(sfl, isl);
+    int result = writeIndexSaveLayout(layout, isl);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "unable to format index %u save 0 layout",
@@ -1307,38 +1462,38 @@ static int saveSubIndexRegions(SingleFileLayout *sfl)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int makeSingleFileRegionTable(SingleFileLayout  *sfl,
-                                     unsigned int      *numRegionsPtr,
-                                     RegionTable      **tablePtr)
+static int makeSingleFileRegionTable(IndexLayout   *layout,
+                                     unsigned int  *numRegionsPtr,
+                                     RegionTable  **tablePtr)
 {
   unsigned int numRegions =
     1 +                      // header
     1 +                      // config
     1 +                      // index
     1 +                      // volume
-    sfl->super.maxSaves +    // saves
+    layout->super.maxSaves + // saves
     1;                       // seal
 
   RegionTable *table;
   int result = ALLOCATE_EXTENDED(RegionTable, numRegions, LayoutRegion,
-                                 "layout region table for SFL", &table);
+                                 "layout region table", &table);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   LayoutRegion *lr = &table->regions[0];
-  *lr++ = sfl->header;
-  *lr++ = sfl->config;
-  SubIndexLayout *sil = &sfl->index;
+  *lr++ = layout->header;
+  *lr++ = layout->config;
+  SubIndexLayout *sil = &layout->index;
   *lr++ = sil->subIndex;
   *lr++ = sil->volume;
-  for (unsigned int j = 0; j < sfl->super.maxSaves; ++j) {
+  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
     *lr++ = sil->saves[j].indexSave;
   }
-  *lr++ = sfl->seal;
+  *lr++ = layout->seal;
 
   result = ASSERT((lr == &table->regions[numRegions]),
-                  "incorrect number of SFL regions");
+                  "incorrect number of regions");
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1494,18 +1649,18 @@ static int encodeSuperBlockData(Buffer *buffer, SuperBlockData *super)
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int writeSingleFileHeader(SingleFileLayout *sfl,
-                                 RegionTable      *table,
-                                 unsigned int      numRegions,
-                                 BufferedWriter   *writer)
+static int writeSingleFileHeader(IndexLayout    *layout,
+                                 RegionTable    *table,
+                                 unsigned int    numRegions,
+                                 BufferedWriter *writer)
 {
   table->header = (RegionHeader) {
     .magic        = REGION_MAGIC,
-    .regionBlocks = sfl->totalBlocks,
+    .regionBlocks = layout->totalBlocks,
     .type         = RH_TYPE_SUPER,
     .version      = 1,
     .numRegions   = numRegions,
-    .payload      = sizeof(sfl->super),
+    .payload      = sizeof(layout->super),
   };
 
   size_t tableSize = sizeof(RegionTable) + numRegions * sizeof(LayoutRegion);
@@ -1533,12 +1688,12 @@ static int writeSingleFileHeader(SingleFileLayout *sfl,
     return result;
   }
 
-  result = makeBuffer(sizeof(sfl->super), &buffer);
+  result = makeBuffer(sizeof(layout->super), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = encodeSuperBlockData(buffer, &sfl->super);
+  result = encodeSuperBlockData(buffer, &layout->super);
   if (result != UDS_SUCCESS) {
     freeBuffer(&buffer);
     return result;
@@ -1554,12 +1709,12 @@ static int writeSingleFileHeader(SingleFileLayout *sfl,
 }
 
 /*****************************************************************************/
-static int getSingleFileLayoutWriter(SingleFileLayout  *sfl,
-                                     LayoutRegion      *lr,
-                                     BufferedWriter   **writerPtr)
+static int getSingleFileLayoutWriter(IndexLayout     *layout,
+                                     LayoutRegion    *lr,
+                                     BufferedWriter **writerPtr)
 {
   IORegion *region = NULL;
-  int result = getSingleFileLayoutRegion(sfl, lr, IO_WRITE, &region);
+  int result = getSingleFileLayoutRegion(layout, lr, IO_WRITE, &region);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1576,43 +1731,57 @@ static int getSingleFileLayoutWriter(SingleFileLayout  *sfl,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int saveSingleFileConfiguration(SingleFileLayout *sfl)
+static int saveSingleFileConfiguration(IndexLayout *layout)
 {
-  int result = saveSubIndexRegions(sfl);
+  int result = saveSubIndexRegions(layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   RegionTable  *table;
   unsigned int  numRegions;
-  result = makeSingleFileRegionTable(sfl, &numRegions, &table);
+  result = makeSingleFileRegionTable(layout, &numRegions, &table);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   BufferedWriter *writer = NULL;
-  result = getSingleFileLayoutWriter(sfl, &sfl->header, &writer);
+  result = getSingleFileLayoutWriter(layout, &layout->header, &writer);
   if (result != UDS_SUCCESS) {
     FREE(table);
     return result;
   }
 
-  result = writeSingleFileHeader(sfl, table, numRegions, writer);
+  result = writeSingleFileHeader(layout, table, numRegions, writer);
   FREE(table);
   freeBufferedWriter(writer);
 
-  sfl->saved = true;
+  layout->saved = true;
   return result;
 }
 
 /*****************************************************************************/
-static void sfl_freeMe(IndexLayout *layout)
+void freeIndexLayout(IndexLayout **layoutPtr)
 {
-  if (layout) {
-    SingleFileLayout *sfl = asSingleFileLayout(layout);
-    destroySingleFileLayout(sfl);
-    FREE(sfl);
+  if (layoutPtr == NULL) {
+    return;
   }
+
+  IndexLayout *layout = *layoutPtr;
+  *layoutPtr = NULL;
+
+  if ((layout != NULL) && (--layout->useCount == 0)) {
+    destroySingleFileLayout(layout);
+    FREE(layout);
+  }
+}
+
+/*****************************************************************************/
+
+void getIndexLayout(IndexLayout *layout, IndexLayout **layoutPtr)
+{
+  ++layout->useCount;
+  *layoutPtr = layout;
 }
 
 /*****************************************************************************/
@@ -1632,93 +1801,10 @@ typedef struct indexSealData {
 } IndexSealData;
 
 /*****************************************************************************/
-static int sfl_writeSeal(IndexLayout *layout)
+int removeSafetySeal(IndexLayout *layout)
 {
-  static AbsTime epoch = ABSTIME_EPOCH;
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  Buffer *buffer;
-  int result = makeBuffer(sizeof(IndexSealData), &buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = putBytes(buffer, INDEX_SEAL_MAGIC_LENGTH, INDEX_SEAL_MAGIC);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  // Padding
-  result = zeroBytes(buffer, INDEX_SEAL_PADDING);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  uint64_t timestamp = timeDifference(currentTime(CT_REALTIME), epoch);
-  result = putUInt64LEIntoBuffer(buffer, timestamp);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = zeroBytes(buffer, sizeof(((IndexSealData *)0)->hash));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(IndexSealData),
-                           "%zu bytes encoded, of %zu expected",
-                           contentLength(buffer), sizeof(IndexSealData));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  uint64_t nonce = generateSecondaryNonce(sfl->super.nonce,
-                                          getBufferContents(buffer),
-                                          sizeof(IndexSealData));
-  result = resetBufferEnd(buffer,
-                          contentLength(buffer) - sizeof(IndexSealData));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = putUInt64LEIntoBuffer(buffer, nonce);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-
   BufferedWriter *writer = NULL;
-  result = getSingleFileLayoutWriter(sfl, &sfl->seal, &writer);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
-  if (result != UDS_SUCCESS) {
-    freeBufferedWriter(writer);
-    return logErrorWithStringError(result, "failed to write safety seal");
-  }
-
-  result = flushBufferedWriter(writer);
-  if (result != UDS_SUCCESS) {
-    freeBufferedWriter(writer);
-    return logErrorWithStringError(result, "failed to flush safety seal");
-  }
-
-  freeBufferedWriter(writer);
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int sfl_removeSeal(IndexLayout *layout)
-{
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  BufferedWriter *writer = NULL;
-  int result = getSingleFileLayoutWriter(sfl, &sfl->seal, &writer);
+  int result = getSingleFileLayoutWriter(layout, &layout->seal, &writer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1743,52 +1829,10 @@ static int sfl_removeSeal(IndexLayout *layout)
 }
 
 /*****************************************************************************/
-static int sfl_checkIndexExists(IndexLayout *layout, bool *exists)
+int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
 {
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  if (exists != NULL) {
-    *exists = (sfl->loaded || sfl->saved);
-  }
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int sfl_checkSealed(IndexLayout *layout, bool *sealed)
-{
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
-  BufferedReader *reader = NULL;
-  int result = getSingleFileLayoutReader(sfl, &sfl->seal, &reader);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  bool isSealed = false;
-  byte buffer[sizeof(IndexSealData)];
-  result = readFromBufferedReader(reader, buffer, sizeof(buffer));
-  if ((result == UDS_SUCCESS)
-      && (memcmp(buffer, INDEX_SEAL_MAGIC, INDEX_SEAL_MAGIC_LENGTH) == 0)) {
-    size_t offset = INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_PADDING;
-    uint64_t hash = getUInt64LE(buffer + offset);
-    storeUInt64LE(buffer + offset, 0L);
-    isSealed = (hash == generateSecondaryNonce(sfl->super.nonce, &buffer,
-                                               sizeof(buffer)));
-  }
-  freeBufferedReader(reader);
-  if (sealed != NULL) {
-    *sealed = isSealed;
-  }
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static int sfl_writeConfig(IndexLayout *layout, UdsConfiguration config)
-{
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
   BufferedWriter *writer = NULL;
-  int result = getSingleFileLayoutWriter(sfl, &sfl->config, &writer);
+  int result = getSingleFileLayoutWriter(layout, &layout->config, &writer);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "failed to open config region");
   }
@@ -1808,12 +1852,10 @@ static int sfl_writeConfig(IndexLayout *layout, UdsConfiguration config)
 }
 
 /*****************************************************************************/
-static int sfl_readConfig(IndexLayout *layout, UdsConfiguration config)
+int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
 {
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-
   BufferedReader *reader = NULL;
-  int result = getSingleFileLayoutReader(sfl, &sfl->config, &reader);
+  int result = getSingleFileLayoutReader(layout, &layout->config, &reader);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "failed to open config reader");
   }
@@ -1828,12 +1870,11 @@ static int sfl_readConfig(IndexLayout *layout, UdsConfiguration config)
 }
 
 /*****************************************************************************/
-static int sfl_openVolumeRegion(IndexLayout        *layout,
-                                IOAccessMode        access,
-                                IORegion          **regionPtr)
+int openVolumeRegion(IndexLayout   *layout,
+                     IOAccessMode   access,
+                     IORegion     **regionPtr)
 {
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-  int result = getSingleFileLayoutRegion(sfl, &sfl->index.volume, access,
+  int result = getSingleFileLayoutRegion(layout, &layout->index.volume, access,
                                          regionPtr);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
@@ -1843,43 +1884,16 @@ static int sfl_openVolumeRegion(IndexLayout        *layout,
 }
 
 /*****************************************************************************/
-static int sfl_makeIndexState(IndexLayout   *layout,
-                              unsigned int   numZones,
-                              unsigned int   maxComponents,
-                              IndexState   **statePtr)
+uint64_t getVolumeNonce(IndexLayout *layout)
 {
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-  return makeRegionIndexState(sfl, numZones, maxComponents, statePtr);
+  return layout->index.nonce;
 }
 
 /*****************************************************************************/
-static uint64_t sfl_getVolumeNonce(IndexLayout *layout)
-{
-  SingleFileLayout *sfl = asSingleFileLayout(layout);
-  return sfl->index.nonce;
-}
-
-/*****************************************************************************/
-
-static void initializeSingleFileIndexLayoutOps(SingleFileLayout *sfl)
-{
-  sfl->common.free             = sfl_freeMe;
-  sfl->common.writeSeal        = sfl_writeSeal;
-  sfl->common.removeSeal       = sfl_removeSeal;
-  sfl->common.checkIndexExists = sfl_checkIndexExists;
-  sfl->common.checkSealed      = sfl_checkSealed;
-  sfl->common.writeConfig      = sfl_writeConfig;
-  sfl->common.readConfig       = sfl_readConfig;
-  sfl->common.openVolumeRegion = sfl_openVolumeRegion;
-  sfl->common.makeIndexState   = sfl_makeIndexState;
-  sfl->common.getVolumeNonce   = sfl_getVolumeNonce;
-}
-
-/*****************************************************************************/
-int getSingleFileLayoutRegion(SingleFileLayout  *sfl,
-                              LayoutRegion      *lr,
-                              IOAccessMode       access,
-                              IORegion         **regionPtr)
+static int getSingleFileLayoutRegion(IndexLayout   *layout,
+                                     LayoutRegion  *lr,
+                                     IOAccessMode   access,
+                                     IORegion     **regionPtr)
 {
   int result = ASSERT((lr->kind != RL_KIND_SCRATCH) && (lr->numBlocks > 0),
                       "layout region is invalid");
@@ -1887,20 +1901,20 @@ int getSingleFileLayoutRegion(SingleFileLayout  *sfl,
     return result;
   }
 
-  off_t start = lr->startBlock * sfl->super.blockSize;
-  off_t end   = start + lr->numBlocks * sfl->super.blockSize;
+  off_t start = lr->startBlock * layout->super.blockSize;
+  off_t end   = start + lr->numBlocks * layout->super.blockSize;
 
-  return openBlockRegion(sfl->region, access, start, end, regionPtr);
+  return openBlockRegion(layout->region, access, start, end, regionPtr);
 }
 
 /*****************************************************************************/
-int getSingleFileLayoutReader(SingleFileLayout  *sfl,
-                              LayoutRegion      *lr,
-                              BufferedReader   **readerPtr)
+static int getSingleFileLayoutReader(IndexLayout     *layout,
+                                     LayoutRegion    *lr,
+                                     BufferedReader **readerPtr)
 
 {
   IORegion *region = NULL;
-  int result = getSingleFileLayoutRegion(sfl, lr, IO_READ, &region);
+  int result = getSingleFileLayoutRegion(layout, lr, IO_READ, &region);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1942,9 +1956,9 @@ static uint64_t generateIndexSaveNonce(uint64_t         volumeNonce,
 }
 
 /*****************************************************************************/
-int validateIndexSaveLayout(IndexSaveLayout *isl,
-                            uint64_t         volumeNonce,
-                            uint64_t        *saveTimePtr)
+static int validateIndexSaveLayout(IndexSaveLayout *isl,
+                                   uint64_t         volumeNonce,
+                                   uint64_t        *saveTimePtr)
 {
   if (isl->saveType == NO_SAVE || isl->numZones == 0 ||
       isl->saveData.timestamp == 0)
@@ -2078,42 +2092,42 @@ static int instantiateIndexSaveLayout(IndexSaveLayout *isl,
 
 /*****************************************************************************/
 __attribute__((warn_unused_result))
-static int invalidateOldSave(SingleFileLayout *sfl, IndexSaveLayout *isl)
+static int invalidateOldSave(IndexLayout *layout, IndexSaveLayout *isl)
 {
   uint64_t startBlock = isl->indexSave.startBlock;
   uint64_t saveBlocks = isl->indexSave.numBlocks;
   unsigned int save   = isl->indexSave.instance;
 
   int result = resetIndexSaveLayout(isl, &startBlock, saveBlocks,
-                                    sfl->super.pageMapBlocks, save);
+                                    layout->super.pageMapBlocks, save);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  return writeIndexSaveLayout(sfl, isl);
+  return writeIndexSaveLayout(layout, isl);
 }
 
 /*****************************************************************************/
-int setupSingleFileIndexSaveSlot(SingleFileLayout *sfl,
-                                 unsigned int      numZones,
-                                 IndexSaveType     saveType,
-                                 unsigned int     *saveSlotPtr)
+int setupIndexSaveSlot(IndexLayout   *layout,
+                       unsigned int   numZones,
+                       IndexSaveType  saveType,
+                       unsigned int  *saveSlotPtr)
 {
-  SubIndexLayout *sil = &sfl->index;
+  SubIndexLayout *sil = &layout->index;
 
   IndexSaveLayout *isl = NULL;
-  int result = selectOldestIndexSaveLayout(sil, sfl->super.maxSaves, &isl);
+  int result = selectOldestIndexSaveLayout(sil, layout->super.maxSaves, &isl);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = invalidateOldSave(sfl, isl);
+  result = invalidateOldSave(layout, isl);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = instantiateIndexSaveLayout(isl, &sfl->super, sil->nonce, numZones,
-                                      saveType);
+  result = instantiateIndexSaveLayout(isl, &layout->super, sil->nonce,
+                                      numZones, saveType);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -2123,14 +2137,14 @@ int setupSingleFileIndexSaveSlot(SingleFileLayout *sfl,
 }
 
 /*****************************************************************************/
-int findLatestIndexSaveSlot(SingleFileLayout *sfl,
-                            unsigned int     *numZonesPtr,
-                            unsigned int     *slotPtr)
+int findLatestIndexSaveSlot(IndexLayout  *layout,
+                            unsigned int *numZonesPtr,
+                            unsigned int *slotPtr)
 {
-  SubIndexLayout *sil = &sfl->index;
+  SubIndexLayout *sil = &layout->index;
 
   IndexSaveLayout *isl = NULL;
-  int result = selectLatestIndexSaveLayout(sil, sfl->super.maxSaves, &isl);
+  int result = selectLatestIndexSaveLayout(sil, layout->super.maxSaves, &isl);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -2295,8 +2309,7 @@ static int writeIndexSaveHeader(IndexSaveLayout *isl,
 }
 
 /*****************************************************************************/
-static int writeIndexSaveLayout(SingleFileLayout *sfl,
-                                IndexSaveLayout  *isl)
+static int writeIndexSaveLayout(IndexLayout *layout, IndexSaveLayout *isl)
 {
   unsigned int  numRegions;
   RegionTable  *table;
@@ -2306,7 +2319,7 @@ static int writeIndexSaveLayout(SingleFileLayout *sfl,
   }
 
   BufferedWriter *writer = NULL;
-  result = getSingleFileLayoutWriter(sfl, &isl->header, &writer);
+  result = getSingleFileLayoutWriter(layout, &isl->header, &writer);
   if (result != UDS_SUCCESS) {
     FREE(table);
     return result;
@@ -2321,22 +2334,22 @@ static int writeIndexSaveLayout(SingleFileLayout *sfl,
 }
 
 /*****************************************************************************/
-int commitSingleFileIndexSave(SingleFileLayout *sfl, unsigned int saveSlot)
+int commitIndexSave(IndexLayout *layout, unsigned int saveSlot)
 {
-  int result = ASSERT((saveSlot < sfl->super.maxSaves),
+  int result = ASSERT((saveSlot < layout->super.maxSaves),
                       "save slot out of range");
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  IndexSaveLayout *isl = &sfl->index.saves[saveSlot];
+  IndexSaveLayout *isl = &layout->index.saves[saveSlot];
 
   if (bufferUsed(isl->indexStateBuffer) == 0) {
     return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
                                    "%s: no index state data saved", __func__);
   }
 
-  return writeIndexSaveLayout(sfl, isl);
+  return writeIndexSaveLayout(layout, isl);
 }
 
 /*****************************************************************************/
@@ -2351,35 +2364,35 @@ static void mutilateIndexSaveInfo(IndexSaveLayout *isl)
 }
 
 /*****************************************************************************/
-int cancelSingleFileIndexSave(SingleFileLayout *sfl, unsigned int saveSlot)
+int cancelIndexSave(IndexLayout *layout, unsigned int saveSlot)
 {
-  int result = ASSERT((saveSlot < sfl->super.maxSaves),
+  int result = ASSERT((saveSlot < layout->super.maxSaves),
                       "save slot out of range");
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  mutilateIndexSaveInfo(&sfl->index.saves[saveSlot]);
+  mutilateIndexSaveInfo(&layout->index.saves[saveSlot]);
 
   return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
-int discardSingleFileIndexSaves(SingleFileLayout *sfl, bool all)
+int discardIndexSaves(IndexLayout *layout, bool all)
 {
   int result = UDS_SUCCESS;
-  SubIndexLayout *sil = &sfl->index;
+  SubIndexLayout *sil = &layout->index;
 
   if (all) {
-    for (unsigned int i = 0; i < sfl->super.maxSaves; ++i) {
+    for (unsigned int i = 0; i < layout->super.maxSaves; ++i) {
       IndexSaveLayout *isl = &sil->saves[i];
-      result = firstError(result, invalidateOldSave(sfl, isl));
+      result = firstError(result, invalidateOldSave(layout, isl));
     }
   } else {
     IndexSaveLayout *isl;
-    result = selectLatestIndexSaveLayout(sil, sfl->super.maxSaves, &isl);
+    result = selectLatestIndexSaveLayout(sil, layout->super.maxSaves, &isl);
     if (result == UDS_SUCCESS) {
-      result = invalidateOldSave(sfl, isl);
+      result = invalidateOldSave(layout, isl);
     }
   }
 
@@ -2387,11 +2400,11 @@ int discardSingleFileIndexSaves(SingleFileLayout *sfl, bool all)
 }
 
 /*****************************************************************************/
-int createSingleFileLayout(IORegion                *region,
-                           uint64_t                 offset,
-                           uint64_t                 size,
-                           const UdsConfiguration   config,
-                           IndexLayout            **layoutPtr)
+int makeIndexLayoutForCreate(IORegion                *region,
+                             uint64_t                 offset,
+                             uint64_t                 size,
+                             const UdsConfiguration   config,
+                             IndexLayout            **layoutPtr)
 {
   if (config == NULL) {
     return UDS_CONF_PTR_REQUIRED;
@@ -2426,26 +2439,109 @@ int createSingleFileLayout(IORegion                *region,
     recomputeSizes(&sizes, size / sizes.blockSize);
   }
 
-  SingleFileLayout *sfl = NULL;
-  result = ALLOCATE(1, SingleFileLayout, "single file layout", &sfl);
+  IndexLayout *layout = NULL;
+  result = ALLOCATE(1, IndexLayout, __func__, &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = initSingleFileLayout(sfl, region, offset, size, &sizes);
+  result = initSingleFileLayout(layout, region, offset, size, &sizes);
   if (result != UDS_SUCCESS) {
-    FREE(sfl);
+    FREE(layout);
     return result;
   }
 
-  result = saveSingleFileConfiguration(sfl);
+  result = saveSingleFileConfiguration(layout);
   if (result != UDS_SUCCESS) {
-    sfl->close = false;
-    destroySingleFileLayout(sfl);
-    FREE(sfl);
+    layout->close = false;
+    destroySingleFileLayout(layout);
+    FREE(layout);
     return result;
   }
 
-  *layoutPtr = &sfl->common;
+  *layoutPtr = layout;
   return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
+
+/**
+ * Open an IORegion for a specified state, mode, kind, and zone.
+ * This helper function is used by RegionIndexComponent.
+ *
+ * @param layout        The index layout
+ * @param slot          The slot
+ * @param mode          One of IO_READ or IO_WRITE.
+ * @param kind          The kind if index save region to open.
+ * @param zone          The zone number for the region.
+ * @param regionPtr     Where to store the region.
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+int getIndexRegion(IndexLayout   *layout,
+                   unsigned int   slot,
+                   IOAccessMode   mode,
+                   RegionKind     kind,
+                   unsigned int   zone,
+                   IORegion     **regionPtr)
+{
+  const char *operation;
+  if (mode == IO_READ) {
+    operation = "load";
+  } else if (mode == IO_WRITE) {
+    operation = "save";
+  } else {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "%s: only IO_READ and IO_WRITE valid",
+                                   __func__);
+  }
+
+  int result = ASSERT((slot < layout->super.maxSaves), "%s not started",
+                  operation);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  IndexSaveLayout *isl = &layout->index.saves[slot];
+
+  LayoutRegion *lr = NULL;
+  switch (kind) {
+    case RL_KIND_INDEX_PAGE_MAP:
+      lr = &isl->indexPageMap;
+      break;
+
+    case RL_KIND_OPEN_CHAPTER:
+      if (isl->openChapter == NULL) {
+        return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
+                                       "%s: %s has no open chapter",
+                                       __func__, operation);
+      }
+      lr = isl->openChapter;
+      break;
+
+    case RL_KIND_MASTER_INDEX:
+      if (isl->masterIndexZones == NULL || zone >= isl->numZones) {
+        return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
+                                       "%s: %s has no master index zone %u",
+                                       __func__, operation, zone);
+      }
+      lr = &isl->masterIndexZones[zone];
+      break;
+
+    case RL_KIND_INDEX_STATE:
+      if (isl->indexStateBuffer == NULL) {
+        return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
+                                       "%s: %s has no index state buffer",
+                                       __func__, operation);
+      }
+      return makeBufferedRegion(isl->indexStateBuffer, 0, regionPtr);
+      break;
+
+    default:
+      return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                     "%s: unexpected kind %u",
+                                     __func__, kind);
+  }
+
+  return getSingleFileLayoutRegion(layout, lr, mode, regionPtr);
 }

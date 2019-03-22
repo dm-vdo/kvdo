@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/deltaMemory.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaMemory.c#1 $
  */
 #include "deltaMemory.h"
 
@@ -24,7 +24,6 @@
 #include "buffer.h"
 #include "compiler.h"
 #include "errors.h"
-#include "featureDefs.h"
 #include "hashUtils.h"
 #include "logger.h"
 #include "memoryAlloc.h"

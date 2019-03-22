@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/hashUtils.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/hashUtils.h#1 $
  */
 
 #ifndef HASH_UTILS_H
@@ -29,7 +29,6 @@
 #include "uds.h"
 
 // How various portions of a hash are apportioned.  Size dependent.
-#if UDS_CHUNK_NAME_SIZE == 16
 enum {
   MASTER_INDEX_BYTES_OFFSET  = 0,  // size 8
   CHAPTER_INDEX_BYTES_OFFSET = 8,  // size 6
@@ -38,18 +37,6 @@ enum {
   CHAPTER_INDEX_BYTES_COUNT  = 6,
   SAMPLE_BYTES_COUNT         = 2,
 };
-#else
-enum {
-  SAMPLE_BYTES_OFFSET        = 0,  // size 4
-  CHAPTER_INDEX_BYTES_OFFSET = 12, // size 8
-  GRID_BYTES_OFFSET          = 20, // size 4
-  MASTER_INDEX_BYTES_OFFSET  = 24, // size 8
-  SAMPLE_BYTES_COUNT         = 4,
-  CHAPTER_INDEX_BYTES_COUNT  = 8,
-  GRID_BYTES_COUNT           = 4,
-  MASTER_INDEX_BYTES_COUNT   = 8
-};
-#endif
 
 /**
  * Extract the portion of a block name used by the chapter index.
@@ -60,32 +47,11 @@ enum {
  **/
 static INLINE uint64_t extractChapterIndexBytes(const UdsChunkName *name)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    // Get the high order 16 bits, then the low order 32 bits
-    uint64_t bytes
-      = (uint64_t) getUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET]) << 32;
-    bytes |= getUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
-    return bytes;
-  } else {
-    return getUInt64BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET]);
-  }
-}
-
-/**
- * Extract the portion of a block name used by the grid router.
- *
- * @param name The block name
- *
- * @return The grid router portion of the block name
- **/
-static INLINE uint32_t extractGridRouterBytes(const UdsChunkName *name
-                                              __attribute__((unused)))
-{
-#if UDS_CHUNK_NAME_SIZE == 16
-  return 0;
-#else
-  return getUInt32BE(&name->name[GRID_BYTES_OFFSET]);
-#endif
+  // Get the high order 16 bits, then the low order 32 bits
+  uint64_t bytes
+    = (uint64_t) getUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET]) << 32;
+  bytes |= getUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2]);
+  return bytes;
 }
 
 /**
@@ -109,11 +75,7 @@ static INLINE uint64_t extractMasterIndexBytes(const UdsChunkName *name)
  **/
 static INLINE uint32_t extractSamplingBytes(const UdsChunkName *name)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    return getUInt16BE(&name->name[SAMPLE_BYTES_OFFSET]);
-  } else {
-    return getUInt32BE(&name->name[SAMPLE_BYTES_OFFSET]);
-  }
+  return getUInt16BE(&name->name[SAMPLE_BYTES_OFFSET]);
 }
 
 /**
@@ -127,14 +89,9 @@ static INLINE uint32_t extractSamplingBytes(const UdsChunkName *name)
 static INLINE unsigned int hashToChapterDeltaList(const UdsChunkName *name,
                                                   const Geometry     *geometry)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    return (unsigned int) ((extractChapterIndexBytes(name)
-                            >> geometry->chapterAddressBits)
-                           & ((1 << geometry->chapterDeltaListBits) - 1));
-  } else {
-    return (unsigned int) ((extractChapterIndexBytes(name))
-                           & ((1 << geometry->chapterDeltaListBits) - 1));
-  }
+  return (unsigned int) ((extractChapterIndexBytes(name)
+                          >> geometry->chapterAddressBits)
+                         & ((1 << geometry->chapterDeltaListBits) - 1));
 }
 
 /**
@@ -148,14 +105,8 @@ static INLINE unsigned int hashToChapterDeltaList(const UdsChunkName *name,
 static INLINE unsigned int hashToChapterDeltaAddress(const UdsChunkName *name,
                                                      const Geometry *geometry)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    return (unsigned int) (extractChapterIndexBytes(name)
-                           & ((1 << geometry->chapterAddressBits) - 1));
-  } else {
-    // the actual number of bits should come from the geometry.
-    return (unsigned int) ((extractChapterIndexBytes(name) >> 32)
-                           & ((1 << geometry->chapterAddressBits) - 1));
-  }
+  return (unsigned int) (extractChapterIndexBytes(name)
+                         & ((1 << geometry->chapterAddressBits) - 1));
 }
 
 /**
@@ -225,15 +176,11 @@ unsigned int computeBits(unsigned int maxValue)
  **/
 static INLINE void setChapterIndexBytes(UdsChunkName *name, uint64_t value)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    // Store the high order bytes, then the low-order bytes
-    storeUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET],
-                  (uint16_t)(value >> 32));
-    storeUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2],
-                  (uint32_t)value);
-  } else {
-    storeUInt64BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET], value);
-  }
+  // Store the high order bytes, then the low-order bytes
+  storeUInt16BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET],
+                (uint16_t)(value >> 32));
+  storeUInt32BE(&name->name[CHAPTER_INDEX_BYTES_OFFSET + 2],
+                (uint32_t)value);
 }
 
 /**
@@ -248,13 +195,8 @@ static INLINE void setChapterDeltaListBits(UdsChunkName   *name,
                                            uint64_t        value)
 {
   uint64_t deltaAddress = hashToChapterDeltaAddress(name, geometry);
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    deltaAddress |= value << geometry->chapterAddressBits;
-    setChapterIndexBytes(name, deltaAddress);
-  } else {
-    // the actual number of bits should come from the geometry.
-    setChapterIndexBytes(name, (deltaAddress << 32) | value);
-  }
+  deltaAddress |= value << geometry->chapterAddressBits;
+  setChapterIndexBytes(name, deltaAddress);
 }
 
 /**
@@ -265,11 +207,7 @@ static INLINE void setChapterDeltaListBits(UdsChunkName   *name,
  **/
 static INLINE void setMasterIndexBytes(UdsChunkName *name, uint64_t val)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    storeUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET], val);
-  } else {
-    storeUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET], val);
-  }
+  storeUInt64BE(&name->name[MASTER_INDEX_BYTES_OFFSET], val);
 }
 
 /**
@@ -280,11 +218,7 @@ static INLINE void setMasterIndexBytes(UdsChunkName *name, uint64_t val)
  **/
 static INLINE void setSamplingBytes(UdsChunkName *name, uint32_t value)
 {
-  if (UDS_CHUNK_NAME_SIZE == 16) {
-    storeUInt16BE(&name->name[SAMPLE_BYTES_OFFSET], (uint16_t)value);
-  } else {
-    storeUInt32BE(&name->name[SAMPLE_BYTES_OFFSET], value);
-  }
+  storeUInt16BE(&name->name[SAMPLE_BYTES_OFFSET], (uint16_t)value);
 }
 
 /**

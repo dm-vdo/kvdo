@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexSession.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#1 $
  */
 
 #ifndef INDEX_SESSION_H
 #define INDEX_SESSION_H
 
 #include "atomicDefs.h"
+#include "config.h"
 #include "cpu.h"
 #include "opaqueTypes.h"
 #include "session.h"
@@ -53,12 +54,14 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
  * Structure corresponding to a UdsIndexSession
  **/
 struct indexSession {
-  Session       session;
-  atomic_t      state;         // atomically updated IndexSessionState
-  Grid         *grid;
-  RequestQueue *callbackQueue;
+  Session                  session;
+  // atomically updated IndexSessionState
+  atomic_t                 state;
+  IndexRouter             *router;
+  RequestQueue            *callbackQueue;
+  struct udsConfiguration  userConfig;
   // Request statistics, all owned by the callback thread
-  SessionStats  stats;
+  SessionStats             stats;
 };
 
 /**

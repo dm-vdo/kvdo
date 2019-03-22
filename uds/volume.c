@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#1 $
  */
 
 #include "volume.h"
@@ -388,10 +388,9 @@ static int readPageLocked(Volume        *volume,
                           bool           syncRead,
                           CachedPage   **pagePtr)
 {
-  syncRead |= (volume->lookupMode == LOOKUP_FOR_REBUILD)
+  syncRead |= ((volume->lookupMode == LOOKUP_FOR_REBUILD)
                || (request == NULL)
-               || ((request->context == NULL)
-                   && (request->serverContext == NULL));
+               || (request->indexSession == NULL));
 
   int result = UDS_SUCCESS;
 
@@ -781,14 +780,6 @@ static int writeScratchPage(Volume *volume, off_t *offset)
   return result;
 }
 
-/**********************************************************************/
-void updateVolumeSize(Volume *volume, off_t size)
-{
-  if (volume->volumeSize < size) {
-    volume->volumeSize = size;
-  }
-}
-
 /**
  * Donate index page data to the page cache for an index page that was just
  * written to the volume. The index page data is expected to be in the
@@ -969,14 +960,7 @@ int writeChapter(Volume                 *volume,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  updateVolumeSize(volume, chapterOffset + geometry->bytesPerChapter);
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-off_t getVolumeSize(Volume *volume)
-{
-  return volume->volumeSize;
 }
 
 /**********************************************************************/
@@ -987,16 +971,6 @@ size_t getCacheSize(Volume *volume)
     size += getSparseCacheMemorySize(volume->sparseCache);
   }
   return size;
-}
-
-/**********************************************************************/
-void getCacheCounters(Volume *volume, CacheCounters *counters)
-{
-  getPageCacheCounters(volume->pageCache, counters);
-  if (isSparse(volume->geometry)) {
-    CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
-    addCacheCounters(counters, &sparseCounters);
-  }
 }
 
 /**********************************************************************/

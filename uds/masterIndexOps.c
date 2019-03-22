@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#1 $
  */
 #include "masterIndexOps.h"
 
@@ -84,8 +84,8 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
 /**********************************************************************/
 static int readMasterIndex(ReadPortal *portal)
 {
-  MasterIndex *masterIndex = componentContextForPortal(portal);
-  unsigned int numZones = countPartsForPortal(portal);
+  MasterIndex *masterIndex = indexComponentContext(portal->component);
+  unsigned int numZones = portal->zones;
   if (numZones > MAX_ZONES) {
     return logErrorWithStringError(UDS_BAD_STATE,
                                    "zone count %u must not exceed MAX_ZONES",

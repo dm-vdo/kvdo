@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/openChapter.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#1 $
  */
 
 #include "openChapter.h"
@@ -320,7 +320,7 @@ int loadOpenChapters(Index *index, BufferedReader *reader)
 /**********************************************************************/
 int readOpenChapters(ReadPortal *portal)
 {
-  Index *index = componentDataForPortal(portal);
+  Index *index = indexComponentData(portal->component);
 
   BufferedReader *reader;
   int result = getBufferedReaderForPortal(portal, 0, &reader);
