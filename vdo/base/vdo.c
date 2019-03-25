@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#5 $
  */
 
 /*
@@ -667,18 +667,6 @@ int enableReadOnlyEntry(VDO *vdo)
 bool inReadOnlyMode(const VDO *vdo)
 {
   return (vdo->state == VDO_READ_ONLY_MODE);
-}
-
-/**********************************************************************/
-bool isClean(const VDO *vdo)
-{
-  return ((vdo->state == VDO_CLEAN) || (vdo->state == VDO_NEW));
-}
-
-/**********************************************************************/
-bool wasClean(const VDO *vdo)
-{
-  return ((vdo->loadState == VDO_CLEAN) || (vdo->loadState == VDO_NEW));
 }
 
 /**********************************************************************/

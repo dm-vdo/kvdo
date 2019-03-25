@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#3 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -248,26 +248,6 @@ RecoveryJournal *getRecoveryJournal(VDO *vdo)
  * @return <code>true</code> if the VDO is in read-only mode
  **/
 bool inReadOnlyMode(const VDO *vdo)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether the VDO is in a clean state.
- *
- * @param vdo  The VDO to query
- *
- * @return <code>true</code> if the VDO is clean
- **/
-bool isClean(const VDO *vdo)
-  __attribute__((warn_unused_result));
-
-/**
- * Check whether the VDO was in a clean state when it was loaded.
- *
- * @param vdo  The VDO to query
- *
- * @return <code>true</code> if the VDO was clean
- **/
-bool wasClean(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**
