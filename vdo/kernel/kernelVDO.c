@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#16 $
  */
 
 #include "kernelVDOInternals.h"
@@ -474,7 +474,7 @@ void enqueueKVIO(struct kvio      *kvio,
 {
   ThreadID threadID = vioAsCompletion(kvio->vio)->callbackThreadID;
   BUG_ON(threadID >= kvio->layer->kvdo.initializedThreadCount);
-  launchKVIO(kvio, work, statsFunction, action,
+  launch_kvio(kvio, work, statsFunction, action,
              kvio->layer->kvdo.threads[threadID].requestQueue);
 }
 

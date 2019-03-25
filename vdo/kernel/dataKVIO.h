@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#16 $
  */
 
 #ifndef DATA_KVIO_H
@@ -123,7 +123,7 @@ struct data_kvio {
  **/
 static inline struct data_kvio *kvioAsDataKVIO(struct kvio *kvio)
 {
-  ASSERT_LOG_ONLY(isData(kvio), "kvio is a data_kvio");
+  ASSERT_LOG_ONLY(is_data(kvio), "kvio is a data_kvio");
   return container_of(kvio, struct data_kvio, kvio);
 }
 
@@ -172,7 +172,7 @@ static inline struct kvio *dataVIOAsKVIO(DataVIO *dataVIO)
  **/
 static inline struct data_kvio *workItemAsDataKVIO(struct kvdo_work_item *item)
 {
-  return kvioAsDataKVIO(workItemAsKVIO(item));
+  return kvioAsDataKVIO(work_item_as_kvio(item));
 }
 
 /**
@@ -238,7 +238,7 @@ static inline void enqueueDataKVIO(struct data_kvio *dataKVIO,
 static inline void enqueueDataKVIOWork(struct kvdo_work_queue *queue,
                                        struct data_kvio       *dataKVIO)
 {
-  enqueueKVIOWork(queue, dataKVIOAsKVIO(dataKVIO));
+  enqueue_kvio_work(queue, dataKVIOAsKVIO(dataKVIO));
 }
 
 /**
@@ -267,7 +267,7 @@ static inline void launchDataKVIOOnCPUQueue(struct data_kvio *dataKVIO,
                                             unsigned int      action)
 {
   struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
-  launchKVIO(kvio, work, statsFunction, action, kvio->layer->cpuQueue);
+  launch_kvio(kvio, work, statsFunction, action, kvio->layer->cpuQueue);
 }
 
 /**
@@ -284,7 +284,7 @@ static inline void launchDataKVIOOnBIOAckQueue(struct data_kvio *dataKVIO,
                                                unsigned int      action)
 {
   struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
-  launchKVIO(kvio, work, statsFunction, action, kvio->layer->bioAckQueue);
+  launch_kvio(kvio, work, statsFunction, action, kvio->layer->bioAckQueue);
 }
 
 /**
@@ -294,7 +294,7 @@ static inline void launchDataKVIOOnBIOAckQueue(struct data_kvio *dataKVIO,
  **/
 static inline void kvdoEnqueueDataVIOCallback(struct data_kvio *dataKVIO)
 {
-  kvdoEnqueueVIOCallback(dataKVIOAsKVIO(dataKVIO));
+  kvdo_enqueue_vio_callback(dataKVIOAsKVIO(dataKVIO));
 }
 
 /**

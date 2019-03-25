@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#12 $
  */
 
 #ifndef KVIO_H
@@ -31,37 +31,37 @@
  * A specific (semi-opaque) encapsulation of a single block
  **/
 struct kvio {
-  KvdoEnqueueable    enqueueable;
-  VIO               *vio;
-  KernelLayer       *layer;
-  struct bio        *bio;
+	KvdoEnqueueable enqueueable;
+	VIO *vio;
+	KernelLayer *layer;
+	struct bio *bio;
 
-  /**
-   * A bio pointer used in enqueueBioMap (used via submitBio etc), to
-   * pass information -- which bio to submit to the storage device --
-   * across a thread switch. This may match another bio pointer in
-   * this structure, or could point somewhere else.
-   **/
-  struct bio        *bioToSubmit;
-  /**
-   * A list of enqueued bios with consecutive block numbers, stored by
-   * enqueueBioMap under the first-enqueued kvio. The other KVIOs are
-   * found via their bio entries in this list, and are not added to
-   * the work queue as separate work items.
-   **/
-  struct bio_list    biosMerged;
-  /** A slot for an arbitrary bit of data, for use by systemtap. */
-  long               debugSlot;
+	/**
+	 * A bio pointer used in enqueueBioMap (used via vdo_submit_bio etc),
+	 * to pass information -- which bio to submit to the storage device --
+	 * across a thread switch. This may match another bio pointer in
+	 * this structure, or could point somewhere else.
+	 **/
+	struct bio *bio_to_submit;
+	/**
+	 * A list of enqueued bios with consecutive block numbers, stored by
+	 * enqueueBioMap under the first-enqueued kvio. The other KVIOs are
+	 * found via their bio entries in this list, and are not added to
+	 * the work queue as separate work items.
+	 **/
+	struct bio_list bios_merged;
+	/** A slot for an arbitrary bit of data, for use by systemtap. */
+	long debug_slot;
 };
 
 struct metadata_kvio {
-  struct kvio kvio;
-  VIO         vio;
+	struct kvio kvio;
+	VIO vio;
 };
 
 struct compressed_write_kvio {
-  struct kvio   kvio;
-  AllocatingVIO allocatingVIO;
+	struct kvio kvio;
+	AllocatingVIO allocating_vio;
 };
 
 /**
@@ -71,9 +71,9 @@ struct compressed_write_kvio {
  *
  * @return <code>true</code> if a data kvio
  */
-static inline bool isData(struct kvio *kvio)
+static inline bool is_data(struct kvio *kvio)
 {
-  return isDataVIO(kvio->vio);
+	return isDataVIO(kvio->vio);
 }
 
 /**
@@ -83,9 +83,9 @@ static inline bool isData(struct kvio *kvio)
  *
  * @return <code>true</code> if a compressed block writer
  */
-static inline bool isCompressedWriter(struct kvio *kvio)
+static inline bool is_compressed_writer(struct kvio *kvio)
 {
-  return isCompressedWriteVIO(kvio->vio);
+	return isCompressedWriteVIO(kvio->vio);
 }
 
 /**
@@ -95,9 +95,9 @@ static inline bool isCompressedWriter(struct kvio *kvio)
  *
  * @return <code>true</code> if a metadata kvio
  */
-static inline bool isMetadata(struct kvio *kvio)
+static inline bool is_metadata(struct kvio *kvio)
 {
-  return isMetadataVIO(kvio->vio);
+	return isMetadataVIO(kvio->vio);
 }
 
 /**
@@ -107,52 +107,53 @@ static inline bool isMetadata(struct kvio *kvio)
  *
  * @return the VIO as a metadata_kvio
  **/
-static inline struct metadata_kvio *vioAsMetadataKVIO(VIO *vio)
+static inline struct metadata_kvio *vio_as_metadata_kvio(VIO *vio)
 {
-  ASSERT_LOG_ONLY(isMetadataVIO(vio), "VIO is a metadata VIO");
-  return container_of(vio, struct metadata_kvio, vio);
+	ASSERT_LOG_ONLY(isMetadataVIO(vio), "VIO is a metadata VIO");
+	return container_of(vio, struct metadata_kvio, vio);
 }
 
 /**
  * Convert a metadata_kvio to a kvio.
  *
- * @param metadataKVIO  The metadata_kvio to convert
+ * @param metadata_kvio  The metadata_kvio to convert
  *
  * @return The metadata_kvio as a kvio
  **/
 static inline struct kvio *
-metadataKVIOAsKVIO(struct metadata_kvio *metadataKVIO)
+metadata_kvio_as_kvio(struct metadata_kvio *metadata_kvio)
 {
-  return &metadataKVIO->kvio;
+	return &metadata_kvio->kvio;
 }
 
 /**
- * Returns a pointer to the struct compressed_write_kvio wrapping an AllocatingVIO.
+ * Returns a pointer to the struct compressed_write_kvio wrapping an
+ * AllocatingVIO.
  *
- * @param allocatingVIO  The AllocatingVIO to convert
+ * @param allocating_vio  The AllocatingVio to convert
  *
  * @return the struct compressed_write_kvio
  **/
 static inline struct compressed_write_kvio *
-allocatingVIOAsCompressedWriteKVIO(AllocatingVIO *allocatingVIO)
+allocating_vio_as_compressed_write_kvio(AllocatingVIO *allocating_vio)
 {
-  ASSERT_LOG_ONLY(isCompressedWriteAllocatingVIO(allocatingVIO),
-                  "AllocatingVIO is a compressed write");
-  return container_of(allocatingVIO, struct compressed_write_kvio,
-                      allocatingVIO);
+	ASSERT_LOG_ONLY(isCompressedWriteAllocatingVIO(allocating_vio),
+			"AllocatingVIO is a compressed write");
+	return container_of(allocating_vio, struct compressed_write_kvio,
+			    allocating_vio);
 }
 
 /**
  * Convert a compressed_write_kvio to a kvio.
  *
- * @param compressedWriteKVIO  The compressed_write_kvio to convert
+ * @param compressed_write_kvio  The compressed_write_kvio to convert
  *
  * @return The compressed_write_kvio as a kvio
  **/
 static inline struct kvio *
-compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
+compressed_write_kvio_as_kvio(struct compressed_write_kvio *compressed_write_kvio)
 {
-  return &compressedWriteKVIO->kvio;
+	return &compressed_write_kvio->kvio;
 }
 
 /**
@@ -162,9 +163,9 @@ compressedWriteKVIOAsKVIO(struct compressed_write_kvio *compressedWriteKVIO)
  *
  * @return the kvio
  **/
-static inline struct kvio *workItemAsKVIO(struct kvdo_work_item *item)
+static inline struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
 {
-  return container_of(item, struct kvio, enqueueable.workItem);
+	return container_of(item, struct kvio, enqueueable.workItem);
 }
 
 /**
@@ -173,10 +174,10 @@ static inline struct kvio *workItemAsKVIO(struct kvdo_work_item *item)
  * @param queue  The queue
  * @param kvio   The kvio
  **/
-static inline void enqueueKVIOWork(struct kvdo_work_queue *queue,
-                                   struct kvio *kvio)
+static inline void enqueue_kvio_work(struct kvdo_work_queue *queue,
+				     struct kvio *kvio)
 {
-  enqueue_work_queue(queue, &kvio->enqueueable.workItem);
+	enqueue_work_queue(queue, &kvio->enqueueable.workItem);
 }
 
 /**
@@ -185,45 +186,48 @@ static inline void enqueueKVIOWork(struct kvdo_work_queue *queue,
  * @param kvio      The kvio structure to be updated
  * @param location  The source-location descriptor to be recorded
  **/
-static inline void kvioAddTraceRecord(struct kvio *kvio,
-                                      TraceLocation location)
+static inline void kvio_add_trace_record(struct kvio *kvio,
+					 TraceLocation location)
 {
-  vioAddTraceRecord(kvio->vio, location);
+	vioAddTraceRecord(kvio->vio, location);
 }
 
 /**
  * Set up the work item for a kvio.
  *
- * @param kvio           The kvio to set up
- * @param work           The function pointer to execute
- * @param statsFunction  A function pointer to record for stats, or NULL
- * @param action         Action code, mapping to a relative priority
+ * @param kvio            The kvio to set up
+ * @param work            The function pointer to execute
+ * @param stats_function  A function pointer to record for stats, or NULL
+ * @param action          Action code, mapping to a relative priority
  **/
-static inline void setupKVIOWork(struct kvio      *kvio,
-                                 KvdoWorkFunction  work,
-                                 void             *statsFunction,
-                                 unsigned int      action)
+static inline void setup_kvio_work(struct kvio *kvio,
+				   KvdoWorkFunction work,
+				   void *stats_function,
+				   unsigned int action)
 {
-  setup_work_item(&kvio->enqueueable.workItem, work, statsFunction, action);
+	setup_work_item(&kvio->enqueueable.workItem,
+			work,
+			stats_function,
+			action);
 }
 
 /**
  * Set up and enqueue a kvio.
  *
- * @param kvio           The kvio to set up
- * @param work           The function pointer to execute
- * @param statsFunction  A function pointer to record for stats, or NULL
- * @param action         Action code, mapping to a relative priority
- * @param queue          The queue on which to enqueue the kvio
+ * @param kvio            The kvio to set up
+ * @param work            The function pointer to execute
+ * @param stats_function  A function pointer to record for stats, or NULL
+ * @param action          Action code, mapping to a relative priority
+ * @param queue           The queue on which to enqueue the kvio
  **/
-static inline void launchKVIO(struct kvio	        *kvio,
-                              KvdoWorkFunction		 work,
-                              void			*statsFunction,
-                              unsigned int		 action,
-                              struct kvdo_work_queue    *queue)
+static inline void launch_kvio(struct kvio *kvio,
+			       KvdoWorkFunction work,
+			       void *stats_function,
+			       unsigned int action,
+			       struct kvdo_work_queue *queue)
 {
-  setupKVIOWork(kvio, work, statsFunction, action);
-  enqueueKVIOWork(queue, kvio);
+	setup_kvio_work(kvio, work, stats_function, action);
+	enqueue_kvio_work(queue, kvio);
 }
 
 /**
@@ -231,7 +235,7 @@ static inline void launchKVIO(struct kvio	        *kvio,
  *
  * @param kvio The kvio to enqueue
  **/
-void kvdoEnqueueVIOCallback(struct kvio *kvio);
+void kvdo_enqueue_vio_callback(struct kvio *kvio);
 
 /**
  * Handles kvio-related I/O post-processing.
@@ -239,80 +243,81 @@ void kvdoEnqueueVIOCallback(struct kvio *kvio);
  * @param kvio  The kvio to finalize
  * @param error Possible error
  **/
-void kvdoContinueKvio(struct kvio *kvio, int error);
+void kvdo_continue_kvio(struct kvio *kvio, int error);
 
 /**
  * Initialize a kvio structure.
  *
- * @param kvio      The kvio to initialize
- * @param layer     The physical layer
- * @param vioType   The type of VIO to create
- * @param priority  The relative priority to assign to the kvio
- * @param parent    The parent of the kvio completion
- * @param bio       The bio to associate with this kvio
+ * @param kvio       The kvio to initialize
+ * @param layer      The physical layer
+ * @param vio_type   The type of VIO to create
+ * @param priority   The relative priority to assign to the kvio
+ * @param parent     The parent of the kvio completion
+ * @param bio        The bio to associate with this kvio
  **/
-void initializeKVIO(struct kvio *kvio,
-                    KernelLayer *layer,
-                    VIOType      vioType,
-                    VIOPriority  priority,
-                    void        *parent,
-                    struct bio  *bio);
+void initialize_kvio(struct kvio *kvio,
+		     KernelLayer *layer,
+		     VIOType vio_type,
+		     VIOPriority priority,
+		     void *parent,
+		     struct bio *bio);
 
 /**
  * Destroy a struct metadata_kvio and NULL out the pointer to it.
  *
- * @param metadataKVIOPtr  A pointer to the struct metadata_kvio to destroy
+ * @param metadata_kvio_ptr  A pointer to the struct metadata_kvio to destroy
  **/
-void freeMetadataKVIO(struct metadata_kvio **metadataKVIOPtr);
+void free_metadata_kvio(struct metadata_kvio **metadata_kvio_ptr);
 
 /**
  * Destroy a struct compressed_write_kvio and NULL out the pointer to it.
  *
- * @param compressedWriteKVIOPtr  A pointer to the compressed_write_kvio to
- *                                destroy
+ * @param compressed_write_kvio_ptr  A pointer to the compressed_write_kvio to
+ *                                   destroy
  **/
-void freeCompressedWriteKVIO(struct compressed_write_kvio **compressedWriteKVIOPtr);
+void
+free_compressed_write_kvio(struct compressed_write_kvio **compressed_write_kvio_ptr);
 
 /**
  * Create a new VIO (and its enclosing kvio) for metadata operations.
  *
  * <p>Implements MetadataVIOCreator.
  *
- * @param [in]  layer     The physical layer
- * @param [in]  vioType   The type of VIO to create
- * @param [in]  priority  The relative priority to assign to the VIO
- * @param [in]  parent    The parent to assign to the VIO's completion
- * @param [in]  data      The buffer
- * @param [out] vioPtr    A pointer to hold new VIO
+ * @param [in]  layer      The physical layer
+ * @param [in]  vio_type   The type of VIO to create
+ * @param [in]  priority   The relative priority to assign to the VIO
+ * @param [in]  parent     The parent to assign to the VIO's completion
+ * @param [in]  data       The buffer
+ * @param [out] vio_ptr    A pointer to hold new VIO
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdoCreateMetadataVIO(PhysicalLayer  *layer,
-                          VIOType         vioType,
-                          VIOPriority     priority,
-                          void           *parent,
-                          char           *data,
-                          VIO           **vioPtr)
-  __attribute__((warn_unused_result));
+int kvdo_create_metadata_vio(PhysicalLayer *layer,
+			     VIOType vio_type,
+			     VIOPriority priority,
+			     void *parent,
+			     char *data,
+			     VIO **vio_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Create a new AllocatingVIO (and its enclosing kvio) for compressed writes.
  *
  * <p>Implements CompressedWriteVIOCreator.
  *
- * @param [in]  layer             The physical layer
- * @param [in]  parent            The parent to assign to the AllocatingVIO's
- *                                completion
- * @param [in]  data              The buffer
- * @param [out] allocatingVIOPtr  A pointer to hold new AllocatingVIO
+ * @param [in]  layer              The physical layer
+ * @param [in]  parent             The parent to assign to the AllocatingVIO's
+ *                                 completion
+ * @param [in]  data               The buffer
+ * @param [out] allocating_vio_ptr  A pointer to hold new AllocatingVIO
  *
  * @return VDO_SUCCESS or an error
  **/
-int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
-                                 void           *parent,
-                                 char           *data,
-                                 AllocatingVIO **allocatingVIOPtr)
-  __attribute__((warn_unused_result));
+int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
+				     void *parent,
+				     char *data,
+				     AllocatingVIO **allocating_vio_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Issue an empty flush to the lower layer using the bio in a metadata VIO.
@@ -321,6 +326,6 @@ int kvdoCreateCompressedWriteVIO(PhysicalLayer  *layer,
  *
  * @param vio  The VIO to flush
  **/
-void kvdoFlushVIO(VIO *vio);
+void kvdo_flush_vio(VIO *vio);
 
 #endif /* KVIO_H */

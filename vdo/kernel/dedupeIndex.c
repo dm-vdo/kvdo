@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#16 $
  */
 
 #include "dedupeIndex.h"
@@ -354,7 +354,7 @@ static void startExpirationTimer(struct dedupe_index *index,
 /*****************************************************************************/
 static void startIndexOperation(struct kvdo_work_item *item)
 {
-  struct kvio *kvio = workItemAsKVIO(item);
+  struct kvio *kvio = work_item_as_kvio(item);
   struct data_kvio *dataKVIO = kvioAsDataKVIO(kvio);
   struct dedupe_index *index = kvio->layer->dedupeIndex;
   struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;

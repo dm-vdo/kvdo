@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#5 $
  */
 
 #include "ktrace.h"
@@ -147,16 +147,16 @@ void logKvioTrace(struct kvio *kvio)
   // Yes, the 37 is arbitrary and meaningless.
 
   if (layer->traceLogging && ((traceLoggingState.counter % 1024) == 37)) {
-    kvioAddTraceRecord(kvio, THIS_LOCATION(NULL));
+    kvio_add_trace_record(kvio, THIS_LOCATION(NULL));
     size_t traceLen = 0;
     formatTrace(kvio->vio->trace, traceLoggingState.buffer,
                 sizeof(traceLoggingState.buffer), &traceLen);
 
-    if (isMetadata(kvio)) {
+    if (is_metadata(kvio)) {
       logInfo("finishing kvio %s meta @%" PRIptr " %s",
               (isWriteVIO(kvio->vio) ? "read" : "write"),
               kvio, traceLoggingState.buffer);
-    } else if (isCompressedWriter(kvio)) {
+    } else if (is_compressed_writer(kvio)) {
       logInfo("finishing kvio write comp @%" PRIptr " %s",
               kvio, traceLoggingState.buffer);
     } else {

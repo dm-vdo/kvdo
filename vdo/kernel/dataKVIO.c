@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#29 $
  */
 
 #include "dataKVIO.h"
@@ -668,15 +668,15 @@ static int makeDataKVIO(KernelLayer       *layer,
   memset(&kvio->enqueueable, 0, sizeof(KvdoEnqueueable));
   memset(&dataKVIO->dedupeContext.pendingList, 0, sizeof(struct list_head));
   memset(&dataKVIO->dataVIO, 0, sizeof(DataVIO));
-  kvio->bioToSubmit = NULL;
-  bio_list_init(&kvio->biosMerged);
+  kvio->bio_to_submit = NULL;
+  bio_list_init(&kvio->bios_merged);
 
   // The dataBlock is only needed for writes and some partial reads.
   if (is_write_bio(bio) || (get_bio_size(bio) < VDO_BLOCK_SIZE)) {
     reset_bio(dataKVIO->dataBlockBio, layer);
   }
 
-  initializeKVIO(kvio, layer, VIO_TYPE_DATA, VIO_PRIORITY_DATA, NULL, bio);
+  initialize_kvio(kvio, layer, VIO_TYPE_DATA, VIO_PRIORITY_DATA, NULL, bio);
   *dataKVIOPtr = dataKVIO;
   return VDO_SUCCESS;
 }
@@ -778,7 +778,7 @@ static int kvdoCreateKVIOFromBio(KernelLayer       *layer,
 /**********************************************************************/
 static void launchDataKVIOWork(struct kvdo_work_item *item)
 {
-  runCallback(vioAsCompletion(workItemAsKVIO(item)->vio));
+  runCallback(vioAsCompletion(work_item_as_kvio(item)->vio));
 }
 
 /**
@@ -1211,7 +1211,7 @@ static void dumpPooledDataKVIO(void *poolData __attribute__((unused)),
           dataKVIO, vioBlockNumberDumpBuffer, vioFlushGenerationBuffer,
           getOperationName(dataVIO), vioWorkItemDumpBuffer, flagsDumpBuffer);
   // might want info on: wantAlbireoAnswer / operation / status
-  // might want info on: bio / bioToSubmit / biosMerged
+  // might want info on: bio / bio_to_submit / bios_merged
 
   dumpVIOWaiters(&dataVIO->logical.waiters, "lbn");
 
