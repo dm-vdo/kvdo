@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#8 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -63,7 +63,7 @@ static int status_dedupe_show(struct seq_file *m, void *v)
 	registerThreadDevice(&instance_thread, layer);
 	int result = ALLOCATE(1, VDOStatistics, __func__, &stats);
 	if (result == VDO_SUCCESS) {
-		getKVDOStatistics(&layer->kvdo, stats);
+		get_kvdo_statistics(&layer->kvdo, stats);
 		seq_write(m, stats, len);
 		FREE(stats);
 	}

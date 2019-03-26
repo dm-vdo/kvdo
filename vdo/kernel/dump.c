@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#9 $
  */
 
 #include "dump.h"
@@ -100,7 +100,7 @@ static void do_dump(KernelLayer *layer,
 		outstanding,
 		layer->deviceConfig->pool_name);
 	if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
-		dumpKVDOWorkQueue(&layer->kvdo);
+		dump_kvdo_work_queue(&layer->kvdo);
 	}
 	if ((dump_options_requested & FLAG_SHOW_BIO_QUEUE) != 0) {
 		dump_bio_work_queue(layer->ioSubmitter);
@@ -120,7 +120,7 @@ static void do_dump(KernelLayer *layer,
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
 		// Options should become more fine-grained when we have more to
 		// display here.
-		dumpKVDOStatus(&layer->kvdo);
+		dump_kvdo_status(&layer->kvdo);
 	}
 	reportMemoryUsage();
 	logInfo("end of %s dump", THIS_MODULE->name);

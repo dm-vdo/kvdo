@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#20 $
  */
 
 #include "dmvdo.h"
@@ -182,14 +182,14 @@ static void vdoStatus(struct dm_target *ti,
   case STATUSTYPE_INFO:
     // Report info for dmsetup status
     mutex_lock(&layer->statsMutex);
-    getKVDOStatistics(&layer->kvdo, &layer->vdoStatsStorage);
+    get_kvdo_statistics(&layer->kvdo, &layer->vdoStatsStorage);
     VDOStatistics *stats = &layer->vdoStatsStorage;
     DMEMIT("/dev/%s %s %s %s %s %llu %llu",
            bdevname(getKernelLayerBdev(layer), nameBuffer),
 	   stats->mode,
 	   stats->inRecoveryMode ? "recovering" : "-",
 	   getDedupeStateName(layer->dedupeIndex),
-	   getKVDOCompressing(&layer->kvdo) ? "online" : "offline",
+	   get_kvdo_compressing(&layer->kvdo) ? "online" : "offline",
 	   stats->dataBlocksUsed + stats->overheadBlocksUsed,
 	   stats->physicalBlocks);
     mutex_unlock(&layer->statsMutex);
@@ -254,7 +254,7 @@ static int processVDOMessageLocked(KernelLayer   *layer,
 {
   // Messages with variable numbers of arguments.
   if (strncasecmp(argv[0], "x-", 2) == 0) {
-    int result = performKVDOExtendedCommand(&layer->kvdo, argc, argv);
+    int result = perform_kvdo_extended_command(&layer->kvdo, argc, argv);
     if (result == VDO_UNKNOWN_COMMAND) {
       logWarning("unknown extended command '%s' to dmsetup message", argv[0]);
       result = -EINVAL;
@@ -311,12 +311,12 @@ static int processVDOMessageLocked(KernelLayer   *layer,
   case 2:
     if (strcasecmp(argv[0], "compression") == 0) {
       if (strcasecmp(argv[1], "on") == 0) {
-        setKVDOCompressing(&layer->kvdo, true);
+        set_kvdo_compressing(&layer->kvdo, true);
         return 0;
       }
 
       if (strcasecmp(argv[1], "off") == 0) {
-        setKVDOCompressing(&layer->kvdo, false);
+        set_kvdo_compressing(&layer->kvdo, false);
         return 0;
       }
 
@@ -733,7 +733,7 @@ static int vdoPreresume(struct dm_target *ti)
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
                             " failed", config->pool_name);
     setKernelLayerActiveConfig(layer, config);
-    setKVDOReadOnly(&layer->kvdo, result);
+    set_kvdo_read_only(&layer->kvdo, result);
   } else {
     setKernelLayerActiveConfig(layer, config);
     result = resumeKernelLayer(layer);

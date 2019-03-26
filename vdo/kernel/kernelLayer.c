@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#45 $
  */
 
 #include "kernelLayer.h"
@@ -141,12 +141,12 @@ void waitForNoRequestsActive(KernelLayer *layer)
   // We have to make sure to flush the packer before waiting. We do this
   // by turning off compression, which also means no new entries coming in
   // while waiting will end up in the packer.
-  bool wasCompressing = setKVDOCompressing(&layer->kvdo, false);
+  bool wasCompressing = set_kvdo_compressing(&layer->kvdo, false);
   // Now wait for there to be no active requests
   limiter_wait_for_idle(&layer->requestLimiter);
   // Reset the compression state after all requests are done
   if (wasCompressing) {
-    setKVDOCompressing(&layer->kvdo, true);
+    set_kvdo_compressing(&layer->kvdo, true);
   }
 }
 
@@ -566,7 +566,7 @@ int makeKernelLayer(uint64_t               startingSector,
   layer->common.createMetadataVIO        = kvdo_create_metadata_vio;
   layer->common.createCompressedWriteVIO = kvdo_create_compressed_write_vio;
   layer->common.completeFlush            = kvdo_complete_flush;
-  layer->common.enqueue                  = kvdoEnqueue;
+  layer->common.enqueue                  = kvdo_enqueue;
   layer->common.waitForAdminOperation    = waitForSyncOperation;
   layer->common.completeAdminOperation   = kvdoCompleteSyncOperation;
   layer->common.flush                    = kvdo_flush_vio;
@@ -693,7 +693,7 @@ int makeKernelLayer(uint64_t               startingSector,
    */
 
   // Base-code thread, etc
-  result = initializeKVDO(&layer->kvdo, *threadConfigPointer, reason);
+  result = initialize_kvdo(&layer->kvdo, *threadConfigPointer, reason);
   if (result != VDO_SUCCESS) {
     freeKernelLayer(layer);
     return result;
@@ -911,7 +911,7 @@ void freeKernelLayer(KernelLayer *layer)
     // fall through
 
   case LAYER_REQUEST_QUEUE_INITIALIZED:
-    finishKVDO(&layer->kvdo);
+    finish_kvdo(&layer->kvdo);
     usedKVDO = true;
     // fall through
 
@@ -951,7 +951,7 @@ void freeKernelLayer(KernelLayer *layer)
     free_io_submitter(layer->ioSubmitter);
   }
   if (usedKVDO) {
-    destroyKVDO(&layer->kvdo);
+    destroy_kvdo(&layer->kvdo);
   }
 
   freeDedupeIndex(&layer->dedupeIndex);
@@ -983,7 +983,7 @@ int startKernelLayer(KernelLayer          *layer,
                   "startKernelLayer may only be invoked after initialization");
   setKernelLayerState(layer, LAYER_RUNNING);
 
-  int result = startKVDO(&layer->kvdo, &layer->common, loadConfig,
+  int result = start_kvdo(&layer->kvdo, &layer->common, loadConfig,
                          layer->vioTraceRecording, reason);
   if (result != VDO_SUCCESS) {
     stopKernelLayer(layer);
@@ -1039,7 +1039,7 @@ int stopKernelLayer(KernelLayer *layer)
   vdo_destroy_procfs_entry(layer->deviceConfig->pool_name,
                            layer->procfsPrivate);
 
-  int result = stopKVDO(&layer->kvdo);
+  int result = stop_kvdo(&layer->kvdo);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
     logError("%s: Close device failed %d (%s: %s)",
              __func__, result,
@@ -1089,7 +1089,7 @@ int suspendKernelLayer(KernelLayer *layer)
   waitForNoRequestsActive(layer);
   int result = synchronous_flush(layer);
   if (result != VDO_SUCCESS) {
-    setKVDOReadOnly(&layer->kvdo, result);
+    set_kvdo_read_only(&layer->kvdo, result);
   }
   suspendDedupeIndex(layer->dedupeIndex, !layer->noFlushSuspend);
   return result;
@@ -1110,9 +1110,9 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
   logInfo("Preparing to resize physical to %llu", physicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
-  int result = kvdoPrepareToGrowPhysical(&layer->kvdo, physicalCount);
+  int result = kvdo_prepare_to_grow_physical(&layer->kvdo, physicalCount);
   if (result != VDO_SUCCESS) {
-    // kvdoPrepareToGrowPhysical logs errors.
+    // kvdo_prepare_to_grow_physical logs errors.
     if (result == VDO_PARAMETER_MISMATCH) {
       // If we don't trap this case, mapToSystemError() will remap it to -EIO,
       // which is misleading and ahistorical.
@@ -1131,9 +1131,9 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 {
   // We must not mark the layer as allowing allocations when it is suspended
   // lest an allocation attempt block on writing IO to the suspended VDO.
-  int result = kvdoResizePhysical(&layer->kvdo, physicalCount);
+  int result = kvdo_resize_physical(&layer->kvdo, physicalCount);
   if (result != VDO_SUCCESS) {
-    // kvdoResizePhysical logs errors
+    // kvdo_resize_physical logs errors
     return result;
   }
   return VDO_SUCCESS;
@@ -1145,9 +1145,9 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
   logInfo("Preparing to resize logical to %llu", logicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
   // since IO triggered by this allocation to VDO can finish just fine.
-  int result = kvdoPrepareToGrowLogical(&layer->kvdo, logicalCount);
+  int result = kvdo_prepare_to_grow_logical(&layer->kvdo, logicalCount);
   if (result != VDO_SUCCESS) {
-    // kvdoPrepareToGrowLogical logs errors
+    // kvdo_prepare_to_grow_logical logs errors
     return result;
   }
 
@@ -1161,9 +1161,9 @@ int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
   logInfo("Resizing logical to %llu", logicalCount);
   // We must not mark the layer as allowing allocations when it is suspended
   // lest an allocation attempt block on writing IO to the suspended VDO.
-  int result = kvdoResizeLogical(&layer->kvdo, logicalCount);
+  int result = kvdo_resize_logical(&layer->kvdo, logicalCount);
   if (result != VDO_SUCCESS) {
-    // kvdoResizeLogical logs errors
+    // kvdo_resize_logical logs errors
     return result;
   }
 
