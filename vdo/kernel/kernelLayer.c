@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#46 $
  */
 
 #include "kernelLayer.h"
@@ -667,7 +667,7 @@ int makeKernelLayer(uint64_t               startingSector,
 
   // Trace pool
   BUG_ON(layer->requestLimiter.limit <= 0);
-  result = traceKernelLayerInit(layer);
+  result = trace_kernel_layer_init(layer);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot initialize trace data";
     freeKernelLayer(layer);

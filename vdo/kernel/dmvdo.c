@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#21 $
  */
 
 #include "dmvdo.h"
@@ -837,7 +837,7 @@ static int __init vdoInit(void)
   sysfsInitialized = true;
 
   init_work_queue_once();
-  initializeTraceLoggingOnce();
+  initialize_trace_logging_once();
   initialize_instance_number_tracking();
 
   kvdoGlobals.status = READY;

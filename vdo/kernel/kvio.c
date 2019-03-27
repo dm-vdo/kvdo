@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#15 $
  */
 
 #include "kvio.h"
@@ -68,7 +68,7 @@ void kvdo_continue_kvio(struct kvio *kvio, int error)
 static noinline void maybe_log_kvio_trace(struct kvio *kvio)
 {
 	if (kvio->layer->traceLogging) {
-		logKvioTrace(kvio);
+		log_kvio_trace(kvio);
 	}
 }
 
@@ -209,7 +209,7 @@ void kvdo_flush_vio(VIO *vio)
  * Hook for a SystemTap probe to potentially restrict the choices
  * of which VIOs should have their latencies tracked.
  *
- * Normally returns true. Even if true is returned, sampleThisOne may
+ * Normally returns true. Even if true is returned, sample_this_one may
  * cut down the monitored VIOs by some fraction so as to reduce the
  * impact on system performance.
  *
@@ -245,10 +245,10 @@ void initialize_kvio(struct kvio *kvio,
 		     struct bio *bio)
 {
 	if (layer->vioTraceRecording && sample_this_vio(kvio, layer, bio) &&
-	    sampleThisOne(&layer->traceSampleCounter)) {
+	    sample_this_one(&layer->traceSampleCounter)) {
 		int result =
 			(isDataVIOType(vio_type) ?
-				 allocTraceFromPool(layer, &kvio->vio->trace) :
+				 alloc_trace_from_pool(layer, &kvio->vio->trace) :
 				 ALLOCATE(1, Trace, "trace",
 					  &kvio->vio->trace));
 		if (result != VDO_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#31 $
  */
 
 #include "dataKVIO.h"
@@ -75,7 +75,7 @@ setWriteProtect(void   *address,
 static void maybeLogDataKVIOTrace(struct data_kvio *dataKVIO)
 {
   if (dataKVIO->kvio.layer->traceLogging) {
-    logKvioTrace(&dataKVIO->kvio);
+    log_kvio_trace(&dataKVIO->kvio);
   }
 }
 
@@ -171,7 +171,7 @@ static noinline void cleanDataKVIO(struct data_kvio            *dataKVIO,
     maybeLogDataKVIOTrace(dataKVIO);
     kvioCompletionTap1(dataKVIO);
     kvioCompletionTap2(dataKVIO);
-    freeTraceToPool(kvio->layer, kvio->vio->trace);
+    free_trace_to_pool(kvio->layer, kvio->vio->trace);
   }
 
   add_free_buffer_pointer(fbp, dataKVIO);

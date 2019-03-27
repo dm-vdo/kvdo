@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#4 $
  */
 
 #include "sysfs.h"
@@ -183,7 +183,7 @@ vdo_trace_recording_store(struct kvdo_module_globals *kvdo_globals,
 			  const char *buf,
 			  size_t n)
 {
-	return scan_bool(buf, n, &traceRecording);
+	return scan_bool(buf, n, &trace_recording);
 }
 
 /**********************************************************************/
@@ -334,7 +334,7 @@ static struct vdo_attribute vdo_trace_recording = {
 		},
 	.show = show_bool,
 	.store = vdo_trace_recording_store,
-	.value_ptr = &traceRecording,
+	.value_ptr = &trace_recording,
 };
 
 static struct vdo_attribute vdo_version_attr = {

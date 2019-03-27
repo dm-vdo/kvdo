@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#3 $
  */
 
 #ifndef KTRACE_H
@@ -32,15 +32,15 @@ struct kvio;
 
 // Implement event sampling once per N.
 struct sample_counter {
-  unsigned int interval;
-  unsigned int tick;
-  spinlock_t   lock;
+	unsigned int interval;
+	unsigned int tick;
+	spinlock_t lock;
 };
 
 /**
  * Flag indicating whether newly created VDO devices should record trace info.
  **/
-extern bool traceRecording;
+extern bool trace_recording;
 
 /**
  * Updates the counter state and returns true once each time the
@@ -50,7 +50,7 @@ extern bool traceRecording;
  *
  * @return whether to do sampling on this invocation
  **/
-bool sampleThisOne(struct sample_counter *counter);
+bool sample_this_one(struct sample_counter *counter);
 
 /**
  * Initialize trace data in the KernelLayer
@@ -59,22 +59,22 @@ bool sampleThisOne(struct sample_counter *counter);
  *
  * @return VDO_SUCCESS, or an error code
  **/
-int traceKernelLayerInit(struct kernelLayer *layer);
+int trace_kernel_layer_init(struct kernelLayer *layer);
 
 /**
  * Initialize the mutex used when logging latency tracing data.
  **/
-void initializeTraceLoggingOnce(void);
+void initialize_trace_logging_once(void);
 
 /**
  * Allocate a trace buffer
  *
- * @param layer         The KernelLayer
- * @param tracePointer  The trace buffer is returned here
+ * @param layer          The KernelLayer
+ * @param trace_pointer  The trace buffer is returned here
  *
  * @return VDO_SUCCESS or an error code
  **/
-int allocTraceFromPool(struct kernelLayer *layer, Trace **tracePointer);
+int alloc_trace_from_pool(struct kernelLayer *layer, Trace **trace_pointer);
 
 /**
  * Free a trace buffer
@@ -82,13 +82,13 @@ int allocTraceFromPool(struct kernelLayer *layer, Trace **tracePointer);
  * @param layer  The KernelLayer
  * @param trace  The trace buffer
  **/
-void freeTraceToPool(struct kernelLayer *layer, Trace *trace);
+void free_trace_to_pool(struct kernelLayer *layer, Trace *trace);
 
 /**
  * Log the trace at kvio freeing time
  *
  * @param kvio  The kvio structure
  **/
-void logKvioTrace(struct kvio *kvio);
+void log_kvio_trace(struct kvio *kvio);
 
 #endif /* KTRACE_H */
