@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#6 $
  */
 
 #include "completion.h"
@@ -35,7 +35,6 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "ASYNC_ACTION_CONTEXT",
   "BLOCK_ALLOCATOR_COMPLETION",
   "BLOCK_MAP_RECOVERY_COMPLETION",
-  "BLOCK_MAP_ZONE_COMPLETION",
   "CHECK_IDENTIFIER_COMPLETION",
   "EXTERNAL_COMPLETION",
   "FLUSH_NOTIFICATION_COMPLETION",

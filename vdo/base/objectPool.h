@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.h#3 $
  */
 
 #ifndef OBJECT_POOL_H
@@ -56,6 +56,14 @@ void freeObjectPool(ObjectPool **poolPtr);
  * @return entryData  The entry data which was stored at pool construction time
  **/
 void *getObjectPoolEntryData(ObjectPool *pool);
+
+/**
+ * Check whether an object pool has outstanding entries.
+ *
+ * @return <code>true</code> if the pool is busy
+ **/
+bool isPoolBusy(ObjectPool *pool)
+  __attribute__((warn_unused_result));
 
 /**
  * Add an entry to an object pool (used at construction time).

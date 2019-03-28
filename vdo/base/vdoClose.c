@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#3 $
  */
 
 #include "vdoClose.h"
@@ -166,7 +166,7 @@ static void closeMap(VDOCompletion *completion)
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, closeJournal,
                  getJournalZoneThread(getThreadConfig(vdo)));
-  closeBlockMap(vdo->blockMap, completion);
+  drainBlockMap(vdo->blockMap, ADMIN_STATE_SAVING, completion);
 }
 
 /**

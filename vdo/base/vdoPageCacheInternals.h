@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#4 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -97,8 +97,6 @@ struct vdoPageCache {
   AtomicPageCacheStatistics  stats;
   /** counter for pressure reports */
   uint32_t                   pressureReport;
-  /** completion to notify when all I/O has completed */
-  VDOCompletion             *flushCompletion;
   /** the block map zone to which this cache belongs */
   BlockMapZone              *zone;
 };
@@ -293,15 +291,5 @@ PageInfo *vpcFindPage(VDOPageCache *cache, PhysicalBlockNumber pbn)
  **/
 const char *vpcPageStateName(PageState state)
   __attribute__((warn_unused_result));
-
-// TESTING SUPPORT
-
-/**
- * Wait for all outstanding I/O to complete, without issuing any.
- *
- * @param cache   the cache in question
- * @param parent  the completion to notify
- **/
-void syncVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

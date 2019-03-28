@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#4 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -27,6 +27,7 @@
 
 typedef enum {
   ADMIN_STATE_NORMAL_OPERATION = 0,
+  ADMIN_STATE_FLUSHING,
   ADMIN_STATE_SAVING,
   ADMIN_STATE_SAVED,
   ADMIN_STATE_SUSPENDING,
@@ -39,6 +40,19 @@ typedef struct {
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
 } AdminState;
+
+/**
+ * Check whether an AdminState is flushing.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is flushing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isFlushing(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_FLUSHING);
+}
 
 /**
  * Check whether an AdminState is saving.
@@ -102,7 +116,7 @@ static inline bool isSuspended(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isDraining(AdminState *state)
 {
-  return (isSaving(state) || isSuspending(state));
+  return (isFlushing(state) || isSaving(state) || isSuspending(state));
 }
 
 /**
@@ -161,7 +175,6 @@ bool finishDrainingWithResult(AdminState *state, int result);
  *
  * @return <code>true</code> if the state was resumed
  **/
-bool resumeIfQuiescent(AdminState *state)
-  __attribute__((warn_unused_result));
+bool resumeIfQuiescent(AdminState *state);
 
 #endif // ADMIN_STATE_H

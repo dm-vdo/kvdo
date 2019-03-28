@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#4 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
 #define VDO_PAGE_CACHE_H
 
+#include "adminState.h"
 #include "atomic.h"
 #include "completion.h"
 #include "types.h"
@@ -341,13 +342,11 @@ void *dereferenceWritableVDOPage(VDOCompletion *completion);
 void *getVDOPageCompletionContext(VDOCompletion *completion);
 
 /**
- * Flush all dirty pages in the VDO page cache, and wait until no page
- * operations are in flight.
+ * Drain I/O for a page cache.
  *
- * @param cache   the cache to flush
- * @param parent  a completion to notify when the cache is flushed
+ * @param cache  The cache to drain
  **/
-void flushVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent);
+void drainVDOPageCache(VDOPageCache *cache);
 
 /**
  * Invalidate all entries in the VDO page cache. There must not be any

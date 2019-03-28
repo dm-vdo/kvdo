@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#2 $
  */
 
 #include "adminState.h"
@@ -30,6 +30,7 @@
 static bool isDrainOperation(AdminStateCode operation)
 {
   switch (operation) {
+  case ADMIN_STATE_FLUSHING:
   case ADMIN_STATE_SAVING:
   case ADMIN_STATE_SUSPENDING:
     return true;
@@ -71,6 +72,10 @@ bool finishDraining(AdminState *state)
 bool finishDrainingWithResult(AdminState *state, int result)
 {
   switch (state->state) {
+  case ADMIN_STATE_FLUSHING:
+    state->state = ADMIN_STATE_NORMAL_OPERATION;
+    break;
+
   case ADMIN_STATE_SAVING:
     state->state = ADMIN_STATE_SAVED;
     break;

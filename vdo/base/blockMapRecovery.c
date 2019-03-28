@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#2 $
  */
 
 #include "blockMapRecovery.h"
@@ -30,6 +30,7 @@
 #include "numUtils.h"
 #include "refCounts.h"
 #include "slabDepot.h"
+#include "types.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
 
@@ -44,6 +45,8 @@ typedef struct {
   VDOCompletion         completion;
   /** the completion for flushing the block map */
   VDOCompletion         subTaskCompletion;
+  /** the thread from which the block map may be flushed */
+  ThreadID              adminThread;
   /** the thread on which all block map operations must be done */
   ThreadID              logicalThreadID;
   /** the block map */
@@ -154,8 +157,11 @@ static void freeRecoveryCompletion(VDOCompletion **completionPtr)
     return;
   }
 
+  BlockMapRecoveryCompletion *recovery
+    = asBlockMapRecoveryCompletion(*completionPtr);
   destroyEnqueueable(completion);
-  FREE(asBlockMapRecoveryCompletion(*completionPtr));
+  destroyEnqueueable(&recovery->subTaskCompletion);
+  FREE(recovery);
   *completionPtr = NULL;
 }
 
@@ -211,14 +217,22 @@ static int makeRecoveryCompletion(VDO                         *vdo,
     return result;
   }
 
+  result = initializeEnqueueableCompletion(&recovery->subTaskCompletion,
+                                           SUB_TASK_COMPLETION, vdo->layer);
+  if (result != VDO_SUCCESS) {
+    VDOCompletion *completion = &recovery->completion;
+    freeRecoveryCompletion(&completion);
+    return result;
+  }
+
   recovery->blockMap       = blockMap;
   recovery->journalEntries = journalEntries;
   recovery->pageCount      = pageCount;
   recovery->currentEntry   = &recovery->journalEntries[entryCount - 1];
 
-  initializeCompletion(&recovery->subTaskCompletion, SUB_TASK_COMPLETION,
-                       vdo->layer);
-  recovery->logicalThreadID = getLogicalZoneThread(getThreadConfig(vdo), 0);
+  const ThreadConfig *threadConfig = getThreadConfig(vdo);
+  recovery->adminThread     = getAdminThread(threadConfig);
+  recovery->logicalThreadID = getLogicalZoneThread(threadConfig, 0);
 
   // Organize the journal entries into a binary heap so we can iterate over
   // them in sorted order incrementally, avoiding an expensive sort call.
@@ -240,6 +254,19 @@ static int makeRecoveryCompletion(VDO                         *vdo,
   return VDO_SUCCESS;
 }
 
+/**********************************************************************/
+static void flushBlockMap(VDOCompletion *completion)
+{
+  logInfo("Flushing block map changes");
+  BlockMapRecoveryCompletion *recovery
+    = asBlockMapRecoveryCompletion(completion->parent);
+  ASSERT_LOG_ONLY((completion->callbackThreadID == recovery->adminThread),
+                  "flushBlockMap() called on admin thread");
+
+  prepareToFinishParent(completion, completion->parent);
+  drainBlockMap(recovery->blockMap, ADMIN_STATE_FLUSHING, completion);
+}
+
 /**
  * Check whether the recovery is done. If so, finish it by either flushing the
  * block map (if the recovery was successful), or by cleaning up (if it
@@ -258,7 +285,6 @@ static bool finishIfDone(BlockMapRecoveryCompletion *recovery)
     return false;
   }
 
-  VDOPageCache *cache = getBlockMapZone(recovery->blockMap, 0)->pageCache;
   if (recovery->aborted) {
     /*
      * We need to be careful here to only free completions that exist. But
@@ -272,10 +298,10 @@ static bool finishIfDone(BlockMapRecoveryCompletion *recovery)
     }
     completeCompletion(&recovery->completion);
   } else {
-    logInfo("Flushing block map changes");
-    prepareToFinishParent(&recovery->subTaskCompletion, &recovery->completion);
-    flushVDOPageCacheAsync(cache, &recovery->subTaskCompletion);
+    launchCallbackWithParent(&recovery->subTaskCompletion, flushBlockMap,
+                             recovery->adminThread, &recovery->completion);
   }
+
   return true;
 }
 

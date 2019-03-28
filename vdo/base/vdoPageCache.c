@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#4 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -26,6 +26,7 @@
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "adminState.h"
 #include "constants.h"
 #include "numUtils.h"
 #include "readOnlyNotifier.h"
@@ -215,6 +216,17 @@ static inline void assertOnCacheThread(VDOPageCache *cache,
   ASSERT_LOG_ONLY((threadID == cache->zone->threadID),
                   "%s() must only be called on cache thread %d, not thread %d",
                   functionName, cache->zone->threadID, threadID);
+}
+
+/**
+ * Assert that a page cache may issue I/O.
+ *
+ * @param cache  the page cache
+ **/
+static inline void assertIOAllowed(VDOPageCache *cache)
+{
+  ASSERT_LOG_ONLY(!isQuiescent(&cache->zone->adminState),
+                  "VDO page cache may issue I/O");
 }
 
 /**
@@ -671,16 +683,10 @@ static VDOPageCompletion *validateCompletedPage(VDOCompletion *completion,
  **/
 static void checkForIOComplete(VDOPageCache *cache)
 {
-  if ((cache->outstandingReads + cache->outstandingWrites) > 0) {
-    return;
-  }
-
-  VDOCompletion *parent = cache->flushCompletion;
-  if (parent != NULL) {
-    cache->flushCompletion = NULL;
-    int result = (isReadOnly(cache->zone->readOnlyNotifier)
-                  ? VDO_READ_ONLY : VDO_SUCCESS);
-    finishCompletion(parent, result);
+  if ((cache->outstandingReads + cache->outstandingWrites) == 0) {
+    finishDrainingWithResult(&cache->zone->adminState,
+                             (isReadOnly(cache->zone->readOnlyNotifier)
+                              ? VDO_READ_ONLY : VDO_SUCCESS));
   }
 }
 
@@ -773,6 +779,9 @@ static void handleRebuildReadError(VDOCompletion *completion)
 __attribute__((warn_unused_result))
 static int launchPageLoad(PageInfo *info, PhysicalBlockNumber pbn)
 {
+  VDOPageCache *cache = info->cache;
+  assertIOAllowed(cache);
+
   int result = setInfoPBN(info, pbn);
   if (result != VDO_SUCCESS) {
     return result;
@@ -784,7 +793,6 @@ static int launchPageLoad(PageInfo *info, PhysicalBlockNumber pbn)
   }
 
   setInfoState(info, PS_INCOMING);
-  VDOPageCache *cache = info->cache;
   cache->outstandingReads++;
   relaxedAdd64(&cache->stats.pagesLoaded, 1);
   launchReadMetadataVIO(info->vio, pbn,
@@ -819,6 +827,8 @@ static void savePages(VDOPageCache *cache)
   if ((cache->pagesInFlush > 0) || (cache->pagesToFlush == 0)) {
     return;
   }
+
+  assertIOAllowed(cache);
 
   PageInfo *info      = pageInfoFromListNode(cache->outgoingList.next);
   cache->pagesInFlush = cache->pagesToFlush;
@@ -1290,29 +1300,17 @@ void *getVDOPageCompletionContext(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void flushVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent)
+void drainVDOPageCache(VDOPageCache *cache)
 {
   assertOnCacheThread(cache, __func__);
-  if (cache->flushCompletion != NULL) {
-    logWarning("async cache operation already in progress, can't flush");
-    finishCompletion(parent, VDO_COMPONENT_BUSY);
-    return;
+  ASSERT_LOG_ONLY(isDraining(&cache->zone->adminState),
+                  "drainVDOPageCache() called during block map drain");
+
+  if (!isSuspending(&cache->zone->adminState)) {
+    flushDirtyLists(cache->dirtyLists);
+    savePages(cache);
   }
 
-  for (PageInfo *info = cache->infos; info < cache->infos + cache->pageCount;
-       ++info) {
-    if (info->busy > 0) {
-      logWarning("unexpected busy page %lu during cache flush",
-                 info - cache->infos);
-      finishCompletion(parent, VDO_COMPONENT_BUSY);
-      return;
-    }
-  }
-
-  // Write out all dirty pages.
-  flushDirtyLists(cache->dirtyLists);
-  cache->flushCompletion = parent;
-  savePages(cache);
   checkForIOComplete(cache);
 }
 
@@ -1334,19 +1332,4 @@ int invalidateVDOPageCache(VDOPageCache *cache)
   // Reset the pageMap by re-allocating it.
   freeIntMap(&cache->pageMap);
   return makeIntMap(cache->pageCount, 0, &cache->pageMap);
-}
-
-/**********************************************************************/
-void syncVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent)
-{
-  assertOnCacheThread(cache, __func__);
-
-  if (cache->flushCompletion != NULL) {
-    logWarning("async cache operation already in progress, can't sync");
-    finishCompletion(parent, VDO_COMPONENT_BUSY);
-    return;
-  }
-
-  cache->flushCompletion = parent;
-  checkForIOComplete(cache);
 }

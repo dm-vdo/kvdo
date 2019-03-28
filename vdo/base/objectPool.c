@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/objectPool.c#4 $
  */
 
 #include "objectPool.h"
@@ -93,6 +93,12 @@ void freeObjectPool(ObjectPool **poolPtr)
 void *getObjectPoolEntryData(ObjectPool *pool)
 {
   return pool->entryData;
+}
+
+/**********************************************************************/
+bool isPoolBusy(ObjectPool *pool)
+{
+  return (pool->busyCount != 0);
 }
 
 /**********************************************************************/

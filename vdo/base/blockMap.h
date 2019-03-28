@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#3 $
  */
 
 #ifndef BLOCK_MAP_H
 #define BLOCK_MAP_H
 
+#include "adminState.h"
 #include "blockMapEntry.h"
 #include "completion.h"
 #include "fixedLayout.h"
@@ -49,6 +50,25 @@ int makeBlockMap(BlockCount           logicalBlocks,
   __attribute__((warn_unused_result));
 
 /**
+ * Quiesce all block map I/O, possibly writing out all dirty metadata.
+ *
+ * @param map        The block map to drain
+ * @param operation  The type of drain to perform
+ * @param parent     The completion to notify when the drain is complete
+ **/
+void drainBlockMap(BlockMap       *map,
+                   AdminStateCode  operation,
+                   VDOCompletion  *parent);
+
+/**
+ * Resume I/O for a quiescent block map.
+ *
+ * @param map     The block map to resume
+ * @param parent  The completion to notify when the resume is complete
+ **/
+void resumeBlockMap(BlockMap *map, VDOCompletion *parent);
+
+/**
  * Prepare to grow the block map by allocating an expanded collection of trees.
  *
  * @param map               The block map to grow
@@ -73,10 +93,9 @@ BlockCount getNewEntryCount(BlockMap *map)
 /**
  * Grow a block map on which prepareToGrowBlockMap() has already been called.
  *
- * @param map         The block map to grow
- * @param completion  The object to notify when the growth is complete
+ * @param map  The block map to grow
  **/
-void growBlockMap(BlockMap *map, VDOCompletion *completion);
+void growBlockMap(BlockMap *map);
 
 /**
  * Abandon any preparations which were made to grow this block map.
@@ -239,25 +258,6 @@ BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
  *                             journal block
  **/
 void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber);
-
-/**
- * Flush any dirty pages in the trees or page caches.
- *
- * @param map     The block map to flush
- * @param parent  The completion to notify when the block map is flushed
- **/
-void flushBlockMap(BlockMap *map, VDOCompletion *parent);
-
-/**
- * Mark the block map as closing so that all subsequent lookup requests will be
- * rejected. Asynchronously flush all dirty pages from all zones of the block
- * map.
- *
- *
- * @param map     The block map to close
- * @param parent  The completion to finish when the close is complete
- **/
-void closeBlockMap(BlockMap *map, VDOCompletion *parent);
 
 /**
  * Get the block number of the physical block containing the data for the
