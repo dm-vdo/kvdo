@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/packer.c#4 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/packer.c#5 $
  */
 
 #include "packerInternals.h"
@@ -437,10 +437,10 @@ static void completeOutputBin(VDOCompletion *completion)
 
   VIO *vio = asVIO(completion);
   if (completion->result != VDO_SUCCESS) {
-    logWithStringError(updateVIOErrorStats(vio), completion->result,
-                       "Completing compressed write VIO for physical block %"
-                       PRIu64 " with error",
-                       vio->physical);
+    updateVIOErrorStats(vio,
+                        "Completing compressed write VIO for physical block %"
+                        PRIu64 " with error",
+                        vio->physical);
   }
 
   Packer *packer = vio->vdo->packer;

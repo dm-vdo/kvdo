@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vio.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/vio.c#3 $
  */
 
 #include "vio.h"
@@ -25,6 +25,10 @@
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
+
+#ifdef __KERNEL__
+#include <linux/ratelimit.h>
+#endif
 
 /**********************************************************************/
 void freeVIO(VIO **vioPtr)
@@ -73,20 +77,37 @@ const char *getVIOReadWriteFlavor(const VIO *vio)
 }
 
 /**********************************************************************/
-int updateVIOErrorStats(VIO *vio)
+void updateVIOErrorStats(VIO *vio, const char *format, ...)
 {
-  switch (vioAsCompletion(vio)->result) {
+  int priority;
+  int result = vioAsCompletion(vio)->result;
+  switch (result) {
   case VDO_READ_ONLY:
     atomicAdd64(&vio->vdo->errorStats.readOnlyErrorCount, 1);
-    return LOG_DEBUG;
+    return;
 
   case VDO_NO_SPACE:
     atomicAdd64(&vio->vdo->errorStats.noSpaceErrorCount, 1);
-    return LOG_DEBUG;
+    priority = LOG_DEBUG;
+    break;
 
   default:
-    return LOG_ERR;
+    priority = LOG_ERR;
   }
+
+#ifdef __KERNEL__
+  static DEFINE_RATELIMIT_STATE(errorLimiter, DEFAULT_RATELIMIT_INTERVAL,
+                                DEFAULT_RATELIMIT_BURST);
+
+  if (!__ratelimit(&errorLimiter)) {
+    return;
+  }
+#endif
+
+  va_list args;
+  va_start(args, format);
+  vLogWithStringError(priority, result, format, args);
+  va_end(args);
 }
 
 /**
@@ -97,10 +118,10 @@ int updateVIOErrorStats(VIO *vio)
 static void handleMetadataIOError(VDOCompletion *completion)
 {
   VIO *vio = asVIO(completion);
-  logWithStringError(updateVIOErrorStats(vio), completion->result,
-                     "Completing %s VIO of type %u for physical block %"
-                     PRIu64 " with error",
-                     getVIOReadWriteFlavor(vio), vio->type, vio->physical);
+  updateVIOErrorStats(vio,
+                      "Completing %s VIO of type %u for physical block %"
+                       PRIu64 " with error",
+                       getVIOReadWriteFlavor(vio), vio->type, vio->physical);
   vioDoneCallback(completion);
 }
 
