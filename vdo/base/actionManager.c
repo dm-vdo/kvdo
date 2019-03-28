@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#3 $
  */
 
 #include "actionManager.h"
@@ -301,7 +301,9 @@ void scheduleAction(ActionManager    *manager,
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");
   if (hasNextAction(manager)) {
-    finishCompletion(parent, VDO_COMPONENT_BUSY);
+    if (parent != NULL) {
+      finishCompletion(parent, VDO_COMPONENT_BUSY);
+    }
     return;
   }
 
