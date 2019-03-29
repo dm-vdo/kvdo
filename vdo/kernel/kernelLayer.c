@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#47 $
  */
 
 #include "kernelLayer.h"
@@ -158,12 +158,13 @@ void waitForNoRequestsActive(KernelLayer *layer)
  * administrator that something has gone wrong, while we attempt to continue
  * processing other requests.
  *
- * If a request permit can be acquired immediately, kvdoLaunchDataKVIOFromBio
- * will be called. (If the bio is a discard operation, a permit from the
- * discard limiter will be requested but the call will be made with or without
- * it.) If the request permit is not available, the bio will be saved on a list
- * to be launched later. Either way, this function will not block, and will
- * take responsibility for processing the bio.
+ * If a request permit can be acquired immediately,
+ * kvdo_launch_data_kvio_from_bio will be called. (If the bio is a discard
+ * operation, a permit from the discard limiter will be requested but the call
+ * will be made with or without it.) If the request permit is not available,
+ * the bio will be saved on a list to be launched later. Either way, this
+ * function will not block, and will take responsibility for processing the
+ * bio.
  *
  * @param layer        The kernel layer
  * @param bio          The bio to launch
@@ -209,9 +210,9 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
 
   bool hasDiscardPermit
     = (is_discard_bio(bio) && limiter_poll(&layer->discardLimiter));
-  int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
-                                         hasDiscardPermit);
-  // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
+  int result = kvdo_launch_data_kvio_from_bio(layer, bio, arrivalTime,
+                                              hasDiscardPermit);
+  // Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s) now.
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -276,9 +277,9 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
   }
   limiter_wait_for_one_free(&layer->requestLimiter);
 
-  int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
-                                         hasDiscardPermit);
-  // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
+  int result = kvdo_launch_data_kvio_from_bio(layer, bio, arrivalTime,
+                                              hasDiscardPermit);
+  // Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s) now.
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -305,12 +306,12 @@ void completeManyRequests(KernelLayer *layer, uint32_t count)
 
     bool hasDiscardPermit
       = (is_discard_bio(bio) && limiter_poll(&layer->discardLimiter));
-    int result = kvdoLaunchDataKVIOFromBio(layer, bio, arrivalTime,
-                                           hasDiscardPermit);
+    int result = kvdo_launch_data_kvio_from_bio(layer, bio, arrivalTime,
+                                                hasDiscardPermit);
     if (result != VDO_SUCCESS) {
       complete_bio(bio, result);
     }
-    // Succeed or fail, kvdoLaunchDataKVIOFromBio owns the permit(s) now.
+    // Succeed or fail, kvdo_launch_data_kvio_from_bio owns the permit(s) now.
     count--;
   }
   // Notify the limiter, so it can wake any blocked processes.
@@ -603,7 +604,7 @@ int makeKernelLayer(uint64_t               startingSector,
           config->thread_counts.hash_zones,
           (*threadConfigPointer)->baseThreadCount);
 
-  result = make_batch_processor(layer, returnDataKVIOBatchToPool, layer,
+  result = make_batch_processor(layer, return_data_kvio_batch_to_pool, layer,
                                 &layer->dataKVIOReleaser);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot allocate KVIO-freeing batch processor";
@@ -678,8 +679,8 @@ int makeKernelLayer(uint64_t               startingSector,
   BUG_ON(layer->deviceConfig->logical_block_size <= 0);
   BUG_ON(layer->requestLimiter.limit <= 0);
   BUG_ON(layer->deviceConfig->owned_device == NULL);
-  result = makeDataKVIOBufferPool(layer, layer->requestLimiter.limit,
-                                  &layer->dataKVIOPool);
+  result = make_data_kvio_buffer_pool(layer, layer->requestLimiter.limit,
+                                      &layer->dataKVIOPool);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot allocate vio data";
     freeKernelLayer(layer);

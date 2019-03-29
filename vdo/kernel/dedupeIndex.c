@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#17 $
  */
 
 #include "dedupeIndex.h"
@@ -279,7 +279,7 @@ static void finishIndexOperation(UdsRequest *udsRequest)
                                             dedupeContext.udsRequest);
   struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
   if (compareAndSwap32(&dedupeContext->requestState, UR_BUSY, UR_IDLE)) {
-    struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
+    struct kvio *kvio = data_kvio_as_kvio(dataKVIO);
     struct dedupe_index *index = kvio->layer->dedupeIndex;
 
     spin_lock_bh(&index->pendingLock);
@@ -293,9 +293,9 @@ static void finishIndexOperation(UdsRequest *udsRequest)
     if ((udsRequest->type == UDS_POST) || (udsRequest->type == UDS_QUERY)) {
       DataLocation advice;
       if (decodeUDSAdvice(udsRequest, &advice)) {
-        setDedupeAdvice(dedupeContext, &advice);
+        set_dedupe_advice(dedupeContext, &advice);
       } else {
-        setDedupeAdvice(dedupeContext, NULL);
+        set_dedupe_advice(dedupeContext, NULL);
       }
     }
     invokeDedupeCallback(dataKVIO);
@@ -355,7 +355,7 @@ static void startExpirationTimer(struct dedupe_index *index,
 static void startIndexOperation(struct kvdo_work_item *item)
 {
   struct kvio *kvio = work_item_as_kvio(item);
-  struct data_kvio *dataKVIO = kvioAsDataKVIO(kvio);
+  struct data_kvio *dataKVIO = kvio_as_data_kvio(kvio);
   struct dedupe_index *index = kvio->layer->dedupeIndex;
   struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
 
@@ -489,7 +489,7 @@ static void timeoutIndexOperations(unsigned long arg)
 static void enqueueIndexOperation(struct data_kvio *dataKVIO,
                                   UdsCallbackType   operation)
 {
-  struct kvio *kvio = dataKVIOAsKVIO(dataKVIO);
+  struct kvio *kvio = data_kvio_as_kvio(dataKVIO);
   struct dedupe_context *dedupeContext = &dataKVIO->dedupeContext;
   struct dedupe_index *index = kvio->layer->dedupeIndex;
   dedupeContext->status = UDS_SUCCESS;
@@ -502,7 +502,7 @@ static void enqueueIndexOperation(struct data_kvio *dataKVIO,
     udsRequest->type      = operation;
     udsRequest->update    = true;
     if ((operation == UDS_POST) || (operation == UDS_UPDATE)) {
-      encodeUDSAdvice(udsRequest, getDedupeAdvice(dedupeContext));
+      encodeUDSAdvice(udsRequest, get_dedupe_advice(dedupeContext));
     }
 
     setup_work_item(&kvio->enqueueable.workItem, startIndexOperation, NULL,

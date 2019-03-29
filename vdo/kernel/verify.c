@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#7 $
  */
 
 #include "physicalLayer.h"
@@ -89,8 +89,8 @@ static bool memoryEqual(void   *pointerArgument1,
  **/
 static void verifyDuplicationWork(struct kvdo_work_item *item)
 {
-  struct data_kvio *dataKVIO = workItemAsDataKVIO(item);
-  dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));
+  struct data_kvio *dataKVIO = work_item_as_data_kvio(item);
+  data_kvio_add_trace_record(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
   if (likely(memoryEqual(dataKVIO->dataBlock, dataKVIO->readBlock.data,
                          VDO_BLOCK_SIZE))) {
@@ -99,7 +99,7 @@ static void verifyDuplicationWork(struct kvdo_work_item *item)
     dataKVIO->dataVIO.isDuplicate = false;
   }
 
-  kvdoEnqueueDataVIOCallback(dataKVIO);
+  kvdo_enqueue_data_vio_callback(dataKVIO);
 }
 
 /**
@@ -110,17 +110,17 @@ static void verifyDuplicationWork(struct kvdo_work_item *item)
  **/
 static void verifyReadBlockCallback(struct data_kvio *dataKVIO)
 {
-  dataKVIOAddTraceRecord(dataKVIO, THIS_LOCATION(NULL));
+  data_kvio_add_trace_record(dataKVIO, THIS_LOCATION(NULL));
   int err = dataKVIO->readBlock.status;
   if (unlikely(err != 0)) {
     logDebug("%s: err %d", __func__, err);
     dataKVIO->dataVIO.isDuplicate = false;
-    kvdoEnqueueDataVIOCallback(dataKVIO);
+    kvdo_enqueue_data_vio_callback(dataKVIO);
     return;
   }
 
-  launchDataKVIOOnCPUQueue(dataKVIO, verifyDuplicationWork, NULL,
-                           CPU_Q_ACTION_COMPRESS_BLOCK);
+  launch_data_kvio_on_cpu_queue(dataKVIO, verifyDuplicationWork, NULL,
+                                CPU_Q_ACTION_COMPRESS_BLOCK);
 }
 
 /**********************************************************************/
@@ -137,15 +137,15 @@ void verifyDuplication(DataVIO *dataVIO)
   TraceLocation location
     = THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
   dataVIOAddTraceRecord(dataVIO, location);
-  kvdoReadBlock(dataVIO, dataVIO->duplicate.pbn, dataVIO->duplicate.state,
-                BIO_Q_ACTION_VERIFY, verifyReadBlockCallback);
+  kvdo_read_block(dataVIO, dataVIO->duplicate.pbn, dataVIO->duplicate.state,
+                  BIO_Q_ACTION_VERIFY, verifyReadBlockCallback);
 }
 
 /**********************************************************************/
 bool compareDataVIOs(DataVIO *first, DataVIO *second)
 {
   dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
-  struct data_kvio *a = dataVIOAsDataKVIO(first);
-  struct data_kvio *b = dataVIOAsDataKVIO(second);
+  struct data_kvio *a = data_vio_as_data_kvio(first);
+  struct data_kvio *b = data_vio_as_data_kvio(second);
   return memoryEqual(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
 }
