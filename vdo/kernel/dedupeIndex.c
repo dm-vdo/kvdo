@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#18 $
  */
 
 #include "dedupeIndex.h"
@@ -757,7 +757,7 @@ void getIndexStatistics(struct dedupe_index *index, IndexStatistics *stats)
       logErrorWithStringError(result, "Error reading index stats");
     }
     UdsContextStats contextStats;
-    result = udsGetIndexStats(index->indexSession, &indexStats);
+    result = udsGetIndexSessionStats(index->indexSession, &contextStats);
     if (result == UDS_SUCCESS) {
       stats->postsFound      = contextStats.postsFound;
       stats->postsNotFound   = contextStats.postsNotFound;
