@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#3 $
  */
 
 #include "adminState.h"
@@ -25,6 +25,33 @@
 
 #include "completion.h"
 #include "types.h"
+
+/**********************************************************************/
+const char *getAdminStateName(const AdminState *state)
+{
+  switch (state->state) {
+  case ADMIN_STATE_NORMAL_OPERATION:
+    return "ADMIN_STATE_NORMAL_OPERATION";
+
+  case ADMIN_STATE_FLUSHING:
+    return "ADMIN_STATE_FLUSHING";
+
+  case ADMIN_STATE_SAVING:
+    return "ADMIN_STATE_SAVING";
+
+  case ADMIN_STATE_SAVED:
+    return "ADMIN_STATE_SAVED";
+
+  case ADMIN_STATE_SUSPENDING:
+    return "ADMIN_STATE_SUSPENDING";
+
+  case ADMIN_STATE_SUSPENDED:
+    return "ADMIN_STATE_SUSPENDED";
+
+  default:
+    return "INVALID ADMIN_STATE";
+  }
+}
 
 /**********************************************************************/
 static bool isDrainOperation(AdminStateCode operation)

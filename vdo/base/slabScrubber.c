@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#3 $
  */
 
 #include "slabScrubberInternals.h"
@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "blockAllocator.h"
 #include "readOnlyNotifier.h"
 #include "slabRebuild.h"
@@ -51,7 +52,8 @@ int makeSlabScrubber(PhysicalLayer     *layer,
   initializeRing(&scrubber->highPrioritySlabs);
   initializeRing(&scrubber->slabs);
   scrubber->readOnlyNotifier = readOnlyNotifier;
-  *scrubberPtr              = scrubber;
+  scrubber->adminState.state = ADMIN_STATE_SUSPENDED;
+  *scrubberPtr               = scrubber;
   return VDO_SUCCESS;
 }
 
@@ -66,12 +68,6 @@ void freeSlabScrubber(SlabScrubber **scrubberPtr)
   freeSlabRebuildCompletion(&scrubber->slabRebuildCompletion);
   FREE(scrubber);
   *scrubberPtr = NULL;
-}
-
-/**********************************************************************/
-bool isScrubbing(SlabScrubber *scrubber)
-{
-  return scrubber->isScrubbing;
 }
 
 /**
@@ -134,24 +130,71 @@ void registerSlabForScrubbing(SlabScrubber *scrubber,
 }
 
 /**
- * Stop scrubbing, either because we've been told to or because there are
- * no more slabs to scrub.
+ * Stop scrubbing, either because there are no more slabs to scrub or because
+ * there's been an error.
  *
  * @param scrubber  The scrubber
  **/
 static void finishScrubbing(SlabScrubber *scrubber)
 {
-  scrubber->isScrubbing      = false;
-  scrubber->highPriorityOnly = false;
-  notifyAllWaiters(&scrubber->waiters, NULL, NULL);
   if (!hasSlabsToScrub(scrubber)) {
     freeSlabRebuildCompletion(&scrubber->slabRebuildCompletion);
   }
+
+  // Inform whoever is waiting that scrubbing has completed.
   completeCompletion(&scrubber->completion);
+
+  bool notify = hasWaiters(&scrubber->waiters);
+
+  // Note that the scrubber has stopped, and inform anyone who might be waiting
+  // for that to happen.
+  if (!finishDraining(&scrubber->adminState)) {
+    scrubber->adminState.state = ADMIN_STATE_SUSPENDED;
+  }
+
+  /*
+   * We can't notify waiters until after we've finished draining or they'll
+   * just requeue. Fortunately if there were waiters, we can't have been freed
+   * yet.
+   */
+  if (notify) {
+    notifyAllWaiters(&scrubber->waiters, NULL, NULL);
+  }
 }
 
-/**********************************************************************/
-static void scrubNextSlab(SlabScrubber *scrubber);
+/**
+ * Scrub the next slab if there is one.
+ *
+ * @param scrubber  The scrubber
+ **/
+static void scrubNextSlab(SlabScrubber *scrubber)
+{
+  // Note: this notify call is always safe only because scrubbing can only
+  // be started when the VDO is quiescent.
+  notifyAllWaiters(&scrubber->waiters, NULL, NULL);
+  if (isReadOnly(scrubber->readOnlyNotifier)) {
+    setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
+    finishScrubbing(scrubber);
+    return;
+  }
+
+  Slab *slab = getNextSlab(scrubber);
+  if ((slab == NULL)
+      || (scrubber->highPriorityOnly
+          && isRingEmpty(&scrubber->highPrioritySlabs))) {
+    scrubber->highPriorityOnly = false;
+    finishScrubbing(scrubber);
+    return;
+  }
+
+  if (finishDraining(&scrubber->adminState)) {
+    return;
+  }
+
+  unspliceRingNode(&slab->ringNode);
+  resetCompletion(scrubber->slabRebuildCompletion);
+  scrubSlab(slab, scrubber->slabRebuildCompletion);
+}
 
 /**
  * Notify the scrubber that a slab has been scrubbed. This callback is
@@ -163,34 +206,7 @@ static void slabScrubbed(VDOCompletion *completion)
 {
   SlabScrubber *scrubber = completion->parent;
   relaxedAdd64(&scrubber->slabCount, -1);
-  notifyAllWaiters(&scrubber->waiters, NULL, NULL);
   scrubNextSlab(scrubber);
-}
-
-/**
- * Scrub the next slab if there is one.
- *
- * @param scrubber  The scrubber
- **/
-static void scrubNextSlab(SlabScrubber *scrubber)
-{
-  if (isReadOnly(scrubber->readOnlyNotifier)) {
-    setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
-    finishScrubbing(scrubber);
-    return;
-  }
-
-  Slab *slab = getNextSlab(scrubber);
-  if (scrubber->stopScrubbing || (slab == NULL)
-      || (scrubber->highPriorityOnly
-          && isRingEmpty(&scrubber->highPrioritySlabs))) {
-    finishScrubbing(scrubber);
-    return;
-  }
-
-  unspliceRingNode(&slab->ringNode);
-  resetCompletion(scrubber->slabRebuildCompletion);
-  scrubSlab(slab, scrubber->slabRebuildCompletion);
 }
 
 /**
@@ -203,17 +219,17 @@ static void handleScrubberError(VDOCompletion *completion)
   SlabScrubber *scrubber = completion->parent;
   enterReadOnlyMode(scrubber->readOnlyNotifier, completion->result);
   setCompletionResult(&scrubber->completion, completion->result);
-  finishScrubbing(scrubber);
+  scrubNextSlab(scrubber);
 }
 
 /**********************************************************************/
 void scrubSlabs(SlabScrubber *scrubber,
                 void         *parent,
                 VDOAction    *callback,
-                VDOAction    *errorHandler,
-                ThreadID      threadID)
+                VDOAction    *errorHandler)
 {
-  scrubber->isScrubbing = true;
+  resumeIfQuiescent(&scrubber->adminState);
+  ThreadID threadID = getCallbackThreadID();
   prepareCompletion(&scrubber->completion, callback, errorHandler, threadID,
                     parent);
   if (!hasSlabsToScrub(scrubber)) {
@@ -222,7 +238,7 @@ void scrubSlabs(SlabScrubber *scrubber,
   }
 
   prepareCompletion(scrubber->slabRebuildCompletion, slabScrubbed,
-                    handleScrubberError, getCallbackThreadID(), scrubber);
+                    handleScrubberError, threadID, scrubber);
   scrubNextSlab(scrubber);
 }
 
@@ -240,21 +256,36 @@ void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
     }
   }
   scrubber->highPriorityOnly = true;
-  scrubSlabs(scrubber, parent, callback, errorHandler, getCallbackThreadID());
+  scrubSlabs(scrubber, parent, callback, errorHandler);
 }
 
 /**********************************************************************/
-void stopScrubbing(SlabScrubber *scrubber)
+void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
 {
-  scrubber->stopScrubbing = true;
+  if (isQuiescent(&scrubber->adminState)) {
+    completeCompletion(parent);
+  } else {
+    startDraining(&scrubber->adminState, ADMIN_STATE_SUSPENDING, parent);
+  }
+}
+
+/**********************************************************************/
+void resumeScrubbing(SlabScrubber *scrubber)
+{
+  if (resumeIfQuiescent(&scrubber->adminState)) {
+    scrubNextSlab(scrubber);
+  }
 }
 
 /**********************************************************************/
 int enqueueCleanSlabWaiter(SlabScrubber *scrubber, Waiter *waiter)
 {
-  if (!scrubber->isScrubbing) {
-    return (isReadOnly(scrubber->readOnlyNotifier)
-            ? VDO_READ_ONLY : VDO_NO_SPACE);
+  if (isReadOnly(scrubber->readOnlyNotifier)) {
+    return VDO_READ_ONLY;
+  }
+
+  if (isQuiescent(&scrubber->adminState)) {
+    return VDO_NO_SPACE;
   }
 
   return enqueueWaiter(&scrubber->waiters, waiter);
@@ -263,10 +294,9 @@ int enqueueCleanSlabWaiter(SlabScrubber *scrubber, Waiter *waiter)
 /**********************************************************************/
 void dumpSlabScrubber(const SlabScrubber *scrubber)
 {
-  logInfo("slabScrubber slabCount %u waiters %zu %s%s%s",
+  logInfo("slabScrubber slabCount %u waiters %zu %s%s",
           getScrubberSlabCount(scrubber),
           countWaiters(&scrubber->waiters),
-          scrubber->isScrubbing ? "isScrubbing " : "",
-          scrubber->stopScrubbing ? "stopScrubbing " : "",
-          scrubber->highPriorityOnly ? "highPriorityOnly " : "");
+          getAdminStateName(&scrubber->adminState),
+          scrubber->highPriorityOnly ? ", highPriorityOnly " : "");
 }

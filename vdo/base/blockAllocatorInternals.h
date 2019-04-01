@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#3 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -38,6 +38,7 @@ enum {
 
 typedef enum {
   CLOSE_ALLOCATOR_START = 0,
+  CLOSE_ALLOCATOR_STEP_STOP_SCRUBBING,
   CLOSE_ALLOCATOR_STEP_SAVE_SLABS,
   CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY,
   CLOSE_ALLOCATOR_VIO_POOL,

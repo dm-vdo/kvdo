@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#5 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -40,6 +40,14 @@ typedef struct {
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
 } AdminState;
+
+/**
+ * Get the name of an AdminStateCode for logging purposes.
+ *
+ * @param state  The AdminState
+ **/
+const char *getAdminStateName(const AdminState *state)
+  __attribute__((warn_unused_result));
 
 /**
  * Check whether an AdminState is flushing.
@@ -144,8 +152,7 @@ static inline bool isQuiescent(AdminState *state)
  **/
 bool startDraining(AdminState     *state,
                    AdminStateCode  operation,
-                   VDOCompletion  *waiter)
-  __attribute__((warn_unused_result));
+                   VDOCompletion  *waiter);
 
 /**
  * Finish a drain operation if one was in progress.

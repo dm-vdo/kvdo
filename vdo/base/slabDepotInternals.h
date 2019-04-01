@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#7 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -57,7 +57,7 @@ struct slabDepot {
   /** Whether a save has been requested */
   bool                  saveRequested;
 
-  /** The completion for scrubbing or resizing */
+  /** The completion for scrubbing */
   VDOCompletion         scrubbingCompletion;
   Atomic32              zonesToScrub;
 
@@ -100,12 +100,14 @@ void destroySlab(Slab *slab);
 void registerSlabWithDepot(Slab *slab);
 
 /**
- * Notify a slab depot that one of its allocators has stopped scrubbing slabs.
+ * Notify a slab depot that one of its allocators has finished scrubbing slabs.
+ * This method should only be called if the scrubbing was successful. This
+ * callback is registered by each block allocator in
+ * scrubAllUnrecoveredSlabsInZone().
  *
- * @param depot   The depot to notify
- * @param result  The result of the scrubbing operation
+ * @param completion  A completion whose parent must be a slab depot
  **/
-void notifyZoneStoppedScrubbing(SlabDepot *depot, int result);
+void notifyZoneFinishedScrubbing(VDOCompletion *completion);
 
 /**
  * Check whether two depots are equivalent (i.e. represent the same

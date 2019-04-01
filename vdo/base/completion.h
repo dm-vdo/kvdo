@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#6 $
  */
 
 #ifndef COMPLETION_H
@@ -230,6 +230,17 @@ void releaseCompletionWithResult(VDOCompletion **completionPtr, int result);
  *                    be finished
  **/
 void finishParentCallback(VDOCompletion *completion);
+
+/**
+ * A callback which does nothing. This callback is intended to be set as an
+ * error handler in the case where an error should do nothing.
+ *
+ * @param completion  The completion being called back
+ **/
+static inline
+void noopCallback(VDOCompletion *completion __attribute__((unused)))
+{
+}
 
 /**
  * Destroy the enqueueable associated with this completion.

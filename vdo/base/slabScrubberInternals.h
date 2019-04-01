@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#3 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -24,6 +24,7 @@
 
 #include "slabScrubber.h"
 
+#include "adminState.h"
 #include "atomic.h"
 #include "ringNode.h"
 
@@ -40,10 +41,8 @@ struct slabScrubber {
   // modified by the physical zone thread, but is queried by other threads.
   Atomic64          slabCount;
 
-  /** Whether the scrubber is actively scrubbing */
-  bool              isScrubbing;
-  /** Whether the scrubber has been asked to stop scrubbing */
-  bool              stopScrubbing;
+  /** The administrative state of the scrubber */
+  AdminState        adminState;
   /** Whether to only scrub high-priority slabs */
   bool              highPriorityOnly;
   /** The completion for rebuilding a slab */

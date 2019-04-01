@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#8 $
  */
 
 #include "slabDepot.h"
@@ -1116,9 +1116,9 @@ void scrubAllUnrecoveredSlabs(SlabDepot     *depot,
 }
 
 /**********************************************************************/
-void notifyZoneStoppedScrubbing(SlabDepot *depot, int result)
+void notifyZoneFinishedScrubbing(VDOCompletion *completion)
 {
-  setCompletionResult(&depot->scrubbingCompletion, result);
+  SlabDepot *depot = completion->parent;
   if (atomicAdd32(&depot->zonesToScrub, -1) == 0) {
     // We're the last!
     completeCompletion(&depot->scrubbingCompletion);
