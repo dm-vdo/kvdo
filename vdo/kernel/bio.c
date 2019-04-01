@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#11 $
  */
 
 #include "bio.h"
@@ -28,8 +28,10 @@
 #include "flush.h"
 #include "recoveryJournal.h"
 
-#include "bioIterator.h"
 #include "ioSubmitter.h"
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
+#include "bioIterator.h"
 
 /**
  * Gets the raw buffer from a biovec.
@@ -42,10 +44,23 @@ static char *get_buffer_for_biovec(struct bio_vec *biovec)
 {
 	return (page_address(biovec->bv_page) + biovec->bv_offset);
 }
+#endif
 
 /**********************************************************************/
 void bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
+	// 4.14 is probably newer than necessary.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	struct bio_vec biovec;
+	struct bvec_iter iter; 
+	unsigned long flags;
+	bio_for_each_segment(biovec, bio, iter) {
+		void *from = bvec_kmap_irq(&biovec, &flags);
+		memcpy(data_ptr, from, biovec.bv_len);
+		data_ptr += biovec.bv_len;
+		bvec_kunmap_irq(from, &flags);
+	}
+#else
 	struct bio_vec *biovec;
 	for (struct bio_iterator iter = create_bio_iterator(bio);
 	     (biovec = get_next_biovec(&iter)) != NULL;
@@ -53,11 +68,24 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr)
 		memcpy(data_ptr, get_buffer_for_biovec(biovec), biovec->bv_len);
 		data_ptr += biovec->bv_len;
 	}
+#endif
 }
 
 /**********************************************************************/
 void bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+	struct bio_vec biovec;
+	struct bvec_iter iter; 
+	unsigned long flags;
+	bio_for_each_segment(biovec, bio, iter) {
+		void *dest = bvec_kmap_irq(&biovec, &flags);
+		memcpy(dest, data_ptr, biovec.bv_len);
+		data_ptr += biovec.bv_len;
+		flush_dcache_page(biovec.bv_page);
+		bvec_kunmap_irq(dest, &flags);
+	}
+#else
 	struct bio_vec *biovec;
 	for (struct bio_iterator iter = create_bio_iterator(bio);
 	     (biovec = get_next_biovec(&iter)) != NULL;
@@ -66,6 +94,7 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 		flush_dcache_page(biovec->bv_page);
 		data_ptr += biovec->bv_len;
 	}
+#endif
 }
 
 /**********************************************************************/
