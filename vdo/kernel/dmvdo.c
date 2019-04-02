@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#22 $
  */
 
 #include "dmvdo.h"
@@ -188,7 +188,7 @@ static void vdoStatus(struct dm_target *ti,
            bdevname(getKernelLayerBdev(layer), nameBuffer),
 	   stats->mode,
 	   stats->inRecoveryMode ? "recovering" : "-",
-	   getDedupeStateName(layer->dedupeIndex),
+	   get_dedupe_state_name(layer->dedupeIndex),
 	   get_kvdo_compressing(&layer->kvdo) ? "online" : "offline",
 	   stats->dataBlocksUsed + stats->overheadBlocksUsed,
 	   stats->physicalBlocks);
@@ -377,22 +377,22 @@ static int processVDOMessage(KernelLayer   *layer,
     if ((strcasecmp(argv[0], "index-create") == 0)
         || (strcasecmp(argv[0], "index-disable") == 0)
         || (strcasecmp(argv[0], "index-enable") == 0)) {
-      return messageDedupeIndex(layer->dedupeIndex, argv[0]);
+      return message_dedupe_index(layer->dedupeIndex, argv[0]);
     }
 
     // XXX - the "connect" messages are misnamed for the kernel index.  These
     //       messages should go away when all callers have been fixed to use
     //       "index-enable" or "index-disable".
     if (strcasecmp(argv[0], "reconnect") == 0) {
-      return messageDedupeIndex(layer->dedupeIndex, "index-enable");
+      return message_dedupe_index(layer->dedupeIndex, "index-enable");
     }
 
     if (strcasecmp(argv[0], "connect") == 0) {
-      return messageDedupeIndex(layer->dedupeIndex, "index-enable");
+      return message_dedupe_index(layer->dedupeIndex, "index-enable");
     }
 
     if (strcasecmp(argv[0], "disconnect") == 0) {
-      return messageDedupeIndex(layer->dedupeIndex, "index-disable");
+      return message_dedupe_index(layer->dedupeIndex, "index-disable");
     }
   }
 

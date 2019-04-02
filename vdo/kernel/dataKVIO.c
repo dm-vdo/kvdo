@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#33 $
  */
 
 #include "dataKVIO.h"
@@ -989,19 +989,19 @@ void checkForDuplication(DataVIO *data_vio)
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	if (hasAllocation(data_vio)) {
-		postDedupeAdvice(data_kvio);
+		post_dedupe_advice(data_kvio);
 	} else {
 		// This block has not actually been written (presumably because
 		// we are full), so attempt to dedupe without posting bogus
 		// advice.
-		queryDedupeAdvice(data_kvio);
+		query_dedupe_advice(data_kvio);
 	}
 }
 
 /**********************************************************************/
 void updateDedupeIndex(DataVIO *data_vio)
 {
-	updateDedupeAdvice(data_vio_as_data_kvio(data_vio));
+	update_dedupe_advice(data_vio_as_data_kvio(data_vio));
 }
 
 /**

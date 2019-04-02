@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#48 $
  */
 
 #include "kernelLayer.h"
@@ -633,7 +633,7 @@ int makeKernelLayer(uint64_t               startingSector,
 
   // Dedupe Index
   BUG_ON(layer->threadNamePrefix[0] == '\0');
-  result = makeDedupeIndex(&layer->dedupeIndex, layer);
+  result = make_dedupe_index(&layer->dedupeIndex, layer);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot initialize dedupe index";
     freeKernelLayer(layer);
@@ -929,7 +929,7 @@ void freeKernelLayer(KernelLayer *layer)
       FREE(layer->compressionContext);
     }
     if (layer->dedupeIndex != NULL) {
-      finishDedupeIndex(layer->dedupeIndex);
+      finish_dedupe_index(layer->dedupeIndex);
     }
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
@@ -955,7 +955,7 @@ void freeKernelLayer(KernelLayer *layer)
     destroy_kvdo(&layer->kvdo);
   }
 
-  freeDedupeIndex(&layer->dedupeIndex);
+  free_dedupe_index(&layer->dedupeIndex);
 
   if (releaseInstance) {
     release_kvdo_instance(layer->instance);
@@ -1007,7 +1007,7 @@ int startKernelLayer(KernelLayer          *layer,
 
   // Don't try to load or rebuild the index first (and log scary error
   // messages) if this is known to be a newly-formatted volume.
-  startDedupeIndex(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+  start_dedupe_index(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
 
   result = vdo_create_procfs_entry(layer, layer->deviceConfig->pool_name,
                                    &layer->procfsPrivate);
@@ -1052,7 +1052,7 @@ int stopKernelLayer(KernelLayer *layer)
   case LAYER_SUSPENDED:
   case LAYER_RUNNING:
     setKernelLayerState(layer, LAYER_STOPPING);
-    stopDedupeIndex(layer->dedupeIndex);
+    stop_dedupe_index(layer->dedupeIndex);
     // fall through
 
   case LAYER_STOPPING:
@@ -1092,7 +1092,7 @@ int suspendKernelLayer(KernelLayer *layer)
   if (result != VDO_SUCCESS) {
     set_kvdo_read_only(&layer->kvdo, result);
   }
-  suspendDedupeIndex(layer->dedupeIndex, !layer->noFlushSuspend);
+  suspend_dedupe_index(layer->dedupeIndex, !layer->noFlushSuspend);
   return result;
 }
 

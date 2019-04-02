@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#5 $
  */
 
 #include "sysfs.h"
@@ -214,7 +214,7 @@ vdo_albireo_timeout_interval_store(struct kvdo_module_globals *kvdo_globals,
 	unsigned int value;
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
 	if (result > 0) {
-		setAlbireoTimeoutInterval(value);
+		set_albireo_timeout_interval(value);
 	}
 	return result;
 }
@@ -228,7 +228,7 @@ vdo_min_albireo_timer_interval_store(struct kvdo_module_globals *kvdo_globals,
 	unsigned int value;
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
 	if (result > 0) {
-		setMinAlbireoTimerInterval(value);
+		set_min_albireo_timer_interval(value);
 	}
 	return result;
 }
@@ -312,7 +312,7 @@ static struct vdo_attribute vdo_albireo_timeout_interval = {
 		},
 	.show = show_uint,
 	.store = vdo_albireo_timeout_interval_store,
-	.value_ptr = &albireoTimeoutInterval,
+	.value_ptr = &albireo_timeout_interval,
 };
 
 static struct vdo_attribute vdo_min_albireo_timer_interval = {
@@ -323,7 +323,7 @@ static struct vdo_attribute vdo_min_albireo_timer_interval = {
 		},
 	.show = show_uint,
 	.store = vdo_min_albireo_timer_interval_store,
-	.value_ptr = &minAlbireoTimerInterval,
+	.value_ptr = &min_albireo_timer_interval,
 };
 
 static struct vdo_attribute vdo_trace_recording = {

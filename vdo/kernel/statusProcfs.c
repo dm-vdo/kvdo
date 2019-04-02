@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#9 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -124,7 +124,7 @@ void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats)
 	// dedupeContextBusy gives the number of queries not made because of
 	// earlier timeouts.
 	stats->dedupeAdviceTimeouts =
-		(getDedupeTimeoutCount(layer->dedupeIndex) +
+		(get_dedupe_timeout_count(layer->dedupeIndex) +
 		 atomic64_read(&layer->dedupeContextBusy));
 	stats->flushOut = atomic64_read(&layer->flushOut);
 	stats->logicalBlockSize = layer->deviceConfig->logical_block_size;
@@ -146,7 +146,7 @@ void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats)
 	stats->biosInProgress =
 		subtract_bio_stats(stats->biosIn, stats->biosAcknowledged);
 	stats->memoryUsage = get_memory_usage();
-	getIndexStatistics(layer->dedupeIndex, &stats->index);
+	get_index_statistics(layer->dedupeIndex, &stats->index);
 }
 
 /**********************************************************************/
