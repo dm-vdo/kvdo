@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#24 $
  */
 
 #include "dmvdo.h"
@@ -52,16 +52,17 @@ struct kvdo_module_globals kvdoGlobals;
  * ones. 4.3 to 4.18 kernels have removed the code in blkdev_issue_discard
  * and so in place of that, we use the code in device mapper itself to
  * split the discards. Unfortunately, it uses the same value to split large
- * discards as it does to split large data bios. 
+ * discards as it does to split large data bios.
  *
  * In kernel version 4.18, support for splitting discards was added
- * back into blkdev_issue_discard. Since this mode of splitting 
+ * back into blkdev_issue_discard. Since this mode of splitting
  * (based on max_discard_sectors) is preferable to splitting always
  * on 4k, we are turning off the device mapper splitting from 4.18
  * on.
  */
-#define HAS_NO_BLKDEV_SPLIT LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0) \
-                            && LINUX_VERSION_CODE < KERNEL_VERSION(4,18,0)
+#define HAS_NO_BLKDEV_SPLIT                              \
+	LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) && \
+		LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 
 /**********************************************************************/
 
@@ -72,9 +73,9 @@ struct kvdo_module_globals kvdoGlobals;
  *
  * @return The kernel layer, or NULL.
  **/
-static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
+static KernelLayer *get_kernel_layer_for_target(struct dm_target *ti)
 {
-  return ((struct device_config *) ti->private)->layer;
+	return ((struct device_config *)ti->private)->layer;
 }
 
 /**
@@ -104,60 +105,63 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
  *                             mapper devices to defer an I/O request
  *                             during suspend/resume processing.
  **/
-static int vdoMapBio(struct dm_target *ti, struct bio *bio)
+static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  return kvdoMapBio(layer, bio);
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	return kvdoMapBio(layer, bio);
 }
 
 /**********************************************************************/
-static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
+static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
 
-  limits->logical_block_size  = layer->deviceConfig->logical_block_size;
-  limits->physical_block_size = VDO_BLOCK_SIZE;
+	limits->logical_block_size = layer->deviceConfig->logical_block_size;
+	limits->physical_block_size = VDO_BLOCK_SIZE;
 
-  // The minimum io size for random io
-  blk_limits_io_min(limits, VDO_BLOCK_SIZE);
-  // The optimal io size for streamed/sequential io
-  blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
+	// The minimum io size for random io
+	blk_limits_io_min(limits, VDO_BLOCK_SIZE);
+	// The optimal io size for streamed/sequential io
+	blk_limits_io_opt(limits, VDO_BLOCK_SIZE);
 
-  /*
-   * Sets the maximum discard size that will be passed into VDO. This value
-   * comes from a table line value passed in during dmsetup create.
-   *
-   * The value 1024 is the largest usable value on HD systems.  A 2048 sector
-   * discard on a busy HD system takes 31 seconds.  We should use a value no
-   * higher than 1024, which takes 15 to 16 seconds on a busy HD system.
-   *
-   * But using large values results in 120 second blocked task warnings in
-   * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
-   * smallest reasonable value.  See VDO-3062 and VDO-3087.
-   *
-   * We allow setting of the value for max_discard_sectors even in situations 
-   * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
-   * value is still used in other code, like sysfs display of queue limits and 
-   * most especially in dm-thin to determine whether to pass down discards.
-   */
-  limits->max_discard_sectors 
-    = layer->deviceConfig->max_discard_blocks * VDO_SECTORS_PER_BLOCK;
+	/*
+	 * Sets the maximum discard size that will be passed into VDO. This
+	 * value comes from a table line value passed in during dmsetup create.
+	 *
+	 * The value 1024 is the largest usable value on HD systems.  A 2048
+	 * sector discard on a busy HD system takes 31 seconds.  We should use a
+	 * value no higher than 1024, which takes 15 to 16 seconds on a busy HD
+	 * system.
+	 *
+	 * But using large values results in 120 second blocked task warnings in
+	 * /var/log/kern.log.  In order to avoid these warnings, we choose to
+	 * use the smallest reasonable value.  See VDO-3062 and VDO-3087.
+	 *
+	 * We allow setting of the value for max_discard_sectors even in
+	 * situations where we only split on 4k (see comments for
+	 * HAS_NO_BLKDEV_SPLIT) as the value is still used in other code, like
+	 * sysfs display of queue limits and most especially in dm-thin to
+	 * determine whether to pass down discards.
+	 */
+	limits->max_discard_sectors =
+		layer->deviceConfig->max_discard_blocks * VDO_SECTORS_PER_BLOCK;
 
-  limits->discard_granularity = VDO_BLOCK_SIZE;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,11,0)
-  limits->discard_zeroes_data = 1;
+	limits->discard_granularity = VDO_BLOCK_SIZE;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
+	limits->discard_zeroes_data = 1;
 #endif
 }
 
 /**********************************************************************/
-static int vdoIterateDevices(struct dm_target           *ti,
-                             iterate_devices_callout_fn  fn,
-                             void                       *data)
+static int vdo_iterate_devices(struct dm_target *ti,
+			       iterate_devices_callout_fn fn,
+			       void *data)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  sector_t len = blockToSector(layer, layer->deviceConfig->physical_blocks);
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	sector_t len =
+		blockToSector(layer, layer->deviceConfig->physical_blocks);
 
-  return fn(ti, layer->deviceConfig->owned_device, 0, len, data);
+	return fn(ti, layer->deviceConfig->owned_device, 0, len, data);
 }
 
 /*
@@ -167,41 +171,44 @@ static int vdoIterateDevices(struct dm_target           *ti,
  */
 
 /**********************************************************************/
-static void vdoStatus(struct dm_target *ti,
-                      status_type_t     status_type,
-                      unsigned int      status_flags,
-                      char             *result,
-                      unsigned int      maxlen)
+static void vdo_status(struct dm_target *ti,
+		       status_type_t status_type,
+		       unsigned int status_flags,
+		       char *result,
+		       unsigned int maxlen)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  char nameBuffer[BDEVNAME_SIZE];
-  // N.B.: The DMEMIT macro uses the variables named "sz", "result", "maxlen".
-  int sz = 0;
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	char name_buffer[BDEVNAME_SIZE];
+	// N.B.: The DMEMIT macro uses the variables named "sz", "result",
+	// "maxlen".
+	int sz = 0;
 
-  switch (status_type) {
-  case STATUSTYPE_INFO:
-    // Report info for dmsetup status
-    mutex_lock(&layer->statsMutex);
-    get_kvdo_statistics(&layer->kvdo, &layer->vdoStatsStorage);
-    VDOStatistics *stats = &layer->vdoStatsStorage;
-    DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-           bdevname(getKernelLayerBdev(layer), nameBuffer),
-	   stats->mode,
-	   stats->inRecoveryMode ? "recovering" : "-",
-	   get_dedupe_state_name(layer->dedupeIndex),
-	   get_kvdo_compressing(&layer->kvdo) ? "online" : "offline",
-	   stats->dataBlocksUsed + stats->overheadBlocksUsed,
-	   stats->physicalBlocks);
-    mutex_unlock(&layer->statsMutex);
-    break;
+	switch (status_type) {
+	case STATUSTYPE_INFO:
+		// Report info for dmsetup status
+		mutex_lock(&layer->statsMutex);
+		get_kvdo_statistics(&layer->kvdo, &layer->vdoStatsStorage);
+		VDOStatistics *stats = &layer->vdoStatsStorage;
+		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
+		       bdevname(getKernelLayerBdev(layer), name_buffer),
+		       stats->mode,
+		       stats->inRecoveryMode ? "recovering" : "-",
+		       get_dedupe_state_name(layer->dedupeIndex),
+		       get_kvdo_compressing(&layer->kvdo) ? "online" :
+							    "offline",
+		       stats->dataBlocksUsed + stats->overheadBlocksUsed,
+		       stats->physicalBlocks);
+		mutex_unlock(&layer->statsMutex);
+		break;
 
-  case STATUSTYPE_TABLE:
-    // Report the string actually specified in the beginning.
-    DMEMIT("%s", ((struct device_config *) ti->private)->original_string);
-    break;
-  }
+	case STATUSTYPE_TABLE:
+		// Report the string actually specified in the beginning.
+		DMEMIT("%s",
+		       ((struct device_config *)ti->private)->original_string);
+		break;
+	}
 
-//  spin_unlock_irqrestore(&layer->lock, flags);
+	//  spin_unlock_irqrestore(&layer->lock, flags);
 }
 
 
@@ -212,28 +219,31 @@ static void vdoStatus(struct dm_target *ti,
  *
  * @return The size in blocks
  **/
-static BlockCount getUnderlyingDeviceBlockCount(KernelLayer *layer)
+static BlockCount get_underlying_device_block_count(KernelLayer *layer)
 {
-  uint64_t physicalSize = i_size_read(getKernelLayerBdev(layer)->bd_inode);
-  return physicalSize / VDO_BLOCK_SIZE;
+	uint64_t physical_size =
+		i_size_read(getKernelLayerBdev(layer)->bd_inode);
+	return physical_size / VDO_BLOCK_SIZE;
 }
 
 /**********************************************************************/
-static int vdoPrepareToGrowLogical(KernelLayer *layer, char *sizeString)
+static int vdo_prepare_to_grow_logical(KernelLayer *layer, char *size_string)
 {
-  BlockCount logicalCount;
-  if (sscanf(sizeString, "%llu", &logicalCount) != 1) {
-    logWarning("Logical block count \"%s\" is not a number", sizeString);
-    return -EINVAL;
-  }
+	BlockCount logical_count;
+	if (sscanf(size_string, "%llu", &logical_count) != 1) {
+		logWarning("Logical block count \"%s\" is not a number",
+			   size_string);
+		return -EINVAL;
+	}
 
-  if (logicalCount > MAXIMUM_LOGICAL_BLOCKS) {
-    logWarning("Logical block count \"%llu\" exceeds the maximum (%"
-               PRIu64 ")", logicalCount, MAXIMUM_LOGICAL_BLOCKS);
-    return -EINVAL;
-  }
+	if (logical_count > MAXIMUM_LOGICAL_BLOCKS) {
+		logWarning("Logical block count \"%" PRIu64
+			   "\" exceeds the maximum (%llu)",
+			   logical_count, MAXIMUM_LOGICAL_BLOCKS);
+		return -EINVAL;
+	}
 
-  return prepareToResizeLogical(layer, logicalCount);
+	return prepareToResizeLogical(layer, logical_count);
 }
 
 /**
@@ -248,96 +258,106 @@ static int vdoPrepareToGrowLogical(KernelLayer *layer, char *sizeString)
  *                 the message
  **/
 __attribute__((warn_unused_result))
-static int processVDOMessageLocked(KernelLayer   *layer,
-                                   unsigned int   argc,
-                                   char         **argv)
+static int process_vdo_message_locked(KernelLayer *layer,
+				      unsigned int argc,
+				      char **argv)
 {
-  // Messages with variable numbers of arguments.
-  if (strncasecmp(argv[0], "x-", 2) == 0) {
-    int result = perform_kvdo_extended_command(&layer->kvdo, argc, argv);
-    if (result == VDO_UNKNOWN_COMMAND) {
-      logWarning("unknown extended command '%s' to dmsetup message", argv[0]);
-      result = -EINVAL;
-    }
+	// Messages with variable numbers of arguments.
+	if (strncasecmp(argv[0], "x-", 2) == 0) {
+		int result =
+			perform_kvdo_extended_command(&layer->kvdo, argc, argv);
+		if (result == VDO_UNKNOWN_COMMAND) {
+			logWarning("unknown extended command '%s' to dmsetup message",
+				   argv[0]);
+			result = -EINVAL;
+		}
 
-    return result;
-  }
+		return result;
+	}
 
-  // Messages with fixed numbers of arguments.
-  switch (argc) {
-  case 1:
-    if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-      waitForNoRequestsActive(layer);
-      return 0;
-    }
+	// Messages with fixed numbers of arguments.
+	switch (argc) {
+	case 1:
+		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
+			waitForNoRequestsActive(layer);
+			return 0;
+		}
 
-    if (strcasecmp(argv[0], "trace-on") == 0) {
-      logInfo("Tracing on");
-      layer->traceLogging = true;
-      return 0;
-    }
+		if (strcasecmp(argv[0], "trace-on") == 0) {
+			logInfo("Tracing on");
+			layer->traceLogging = true;
+			return 0;
+		}
 
-    if (strcasecmp(argv[0], "trace-off") == 0) {
-      logInfo("Tracing off");
-      layer->traceLogging = false;
-      return 0;
-    }
+		if (strcasecmp(argv[0], "trace-off") == 0) {
+			logInfo("Tracing off");
+			layer->traceLogging = false;
+			return 0;
+		}
 
-    if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-      return prepareToResizePhysical(layer,
-                                     getUnderlyingDeviceBlockCount(layer));
-    }
+		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
+			return prepareToResizePhysical(
+				layer,
+				get_underlying_device_block_count(layer));
+		}
 
-    if (strcasecmp(argv[0], "growPhysical") == 0) {
-      // The actual growPhysical will happen when the device is resumed.
+		if (strcasecmp(argv[0], "growPhysical") == 0) {
+			/*
+			 * The actual growPhysical will happen when the device
+			 * is resumed.
+			 */
 
-      if (layer->deviceConfig->version != 0) {
-        // XXX Uncomment this branch when new VDO manager is updated to not
-        // send this message.
+			if (layer->deviceConfig->version != 0) {
+				/*
+				 * XXX Uncomment this branch when new VDO
+				 * manager is updated to not send this
+				 * message. Old style message on new style
+				 * table is unexpected; it means the user
+				 * started the VDO with new manager and is
+				 * growing with old.
+				 */
 
-        // Old style message on new style table is unexpected; it means the
-        // user started the VDO with new manager and is growing with old.
-        // logInfo("Mismatch between growPhysical method and table version.");
-        // return -EINVAL;
-      } else {
-        layer->deviceConfig->physical_blocks
-          = getUnderlyingDeviceBlockCount(layer);
-      }
-      return 0;
-    }
+				// logInfo("Mismatch between growPhysical method
+				// and table version."); return -EINVAL;
+			} else {
+				layer->deviceConfig->physical_blocks =
+					get_underlying_device_block_count(layer);
+			}
+			return 0;
+		}
 
-    break;
+		break;
 
-  case 2:
-    if (strcasecmp(argv[0], "compression") == 0) {
-      if (strcasecmp(argv[1], "on") == 0) {
-        set_kvdo_compressing(&layer->kvdo, true);
-        return 0;
-      }
+	case 2:
+		if (strcasecmp(argv[0], "compression") == 0) {
+			if (strcasecmp(argv[1], "on") == 0) {
+				set_kvdo_compressing(&layer->kvdo, true);
+				return 0;
+			}
 
-      if (strcasecmp(argv[1], "off") == 0) {
-        set_kvdo_compressing(&layer->kvdo, false);
-        return 0;
-      }
+			if (strcasecmp(argv[1], "off") == 0) {
+				set_kvdo_compressing(&layer->kvdo, false);
+				return 0;
+			}
 
-      logWarning("invalid argument '%s' to dmsetup compression message",
-                 argv[1]);
-      return -EINVAL;
-    }
+			logWarning("invalid argument '%s' to dmsetup compression message",
+				   argv[1]);
+			return -EINVAL;
+		}
 
-    if (strcasecmp(argv[0], "prepareToGrowLogical") == 0) {
-      return vdoPrepareToGrowLogical(layer, argv[1]);
-    }
+		if (strcasecmp(argv[0], "prepareToGrowLogical") == 0) {
+			return vdo_prepare_to_grow_logical(layer, argv[1]);
+		}
 
-    break;
+		break;
 
 
-  default:
-    break;
-  }
+	default:
+		break;
+	}
 
-  logWarning("unrecognized dmsetup message '%s' received", argv[0]);
-  return -EINVAL;
+	logWarning("unrecognized dmsetup message '%s' received", argv[0]);
+	return -EINVAL;
 }
 
 /**
@@ -352,83 +372,90 @@ static int processVDOMessageLocked(KernelLayer   *layer,
  *                processsing the message
  **/
 __attribute__((warn_unused_result))
-static int processVDOMessage(KernelLayer   *layer,
-                             unsigned int   argc,
-                             char         **argv)
+static int process_vdo_message(KernelLayer *layer,
+			       unsigned int argc,
+			       char **argv)
 {
-  /*
-   * All messages which may be processed in parallel with other messages should
-   * be handled here before the atomic check below. Messages which should be
-   * exclusive should be processed in processVDOMessageLocked().
-   */
+	/*
+	 * All messages which may be processed in parallel with other messages
+	 * should be handled here before the atomic check below. Messages which
+	 * should be exclusive should be processed in
+	 * process_vdo_message_locked().
+	 */
 
-  // Dump messages should always be processed
-  if (strcasecmp(argv[0], "dump") == 0) {
-    return vdo_dump(layer, argc, argv, "dmsetup message");
-  }
+	// Dump messages should always be processed
+	if (strcasecmp(argv[0], "dump") == 0) {
+		return vdo_dump(layer, argc, argv, "dmsetup message");
+	}
 
-  if (argc == 1) {
-    if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
-      layer->dumpOnShutdown = true;
-      return 0;
-    }
+	if (argc == 1) {
+		if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
+			layer->dumpOnShutdown = true;
+			return 0;
+		}
 
-    // Index messages should always be processed
-    if ((strcasecmp(argv[0], "index-create") == 0)
-        || (strcasecmp(argv[0], "index-disable") == 0)
-        || (strcasecmp(argv[0], "index-enable") == 0)) {
-      return message_dedupe_index(layer->dedupeIndex, argv[0]);
-    }
+		// Index messages should always be processed
+		if ((strcasecmp(argv[0], "index-create") == 0) ||
+		    (strcasecmp(argv[0], "index-disable") == 0)
+		    || (strcasecmp(argv[0], "index-enable") == 0)) {
+			return message_dedupe_index(layer->dedupeIndex,
+						    argv[0]);
+		}
 
-    // XXX - the "connect" messages are misnamed for the kernel index.  These
-    //       messages should go away when all callers have been fixed to use
-    //       "index-enable" or "index-disable".
-    if (strcasecmp(argv[0], "reconnect") == 0) {
-      return message_dedupe_index(layer->dedupeIndex, "index-enable");
-    }
+		/*
+		 * XXX - the "connect" messages are misnamed for the kernel
+		 * index. These messages should go away when all callers have
+		 * been fixed to use "index-enable" or "index-disable".
+		 */
+		if (strcasecmp(argv[0], "reconnect") == 0) {
+			return message_dedupe_index(layer->dedupeIndex,
+						    "index-enable");
+		}
 
-    if (strcasecmp(argv[0], "connect") == 0) {
-      return message_dedupe_index(layer->dedupeIndex, "index-enable");
-    }
+		if (strcasecmp(argv[0], "connect") == 0) {
+			return message_dedupe_index(layer->dedupeIndex,
+						    "index-enable");
+		}
 
-    if (strcasecmp(argv[0], "disconnect") == 0) {
-      return message_dedupe_index(layer->dedupeIndex, "index-disable");
-    }
-  }
+		if (strcasecmp(argv[0], "disconnect") == 0) {
+			return message_dedupe_index(layer->dedupeIndex,
+						    "index-disable");
+		}
+	}
 
-  if (!compareAndSwapBool(&layer->processingMessage, false, true)) {
-    return -EBUSY;
-  }
+	if (!compareAndSwapBool(&layer->processingMessage, false, true)) {
+		return -EBUSY;
+	}
 
-  int result = processVDOMessageLocked(layer, argc, argv);
-  atomicStoreBool(&layer->processingMessage, false);
-  return result;
+	int result = process_vdo_message_locked(layer, argc, argv);
+	atomicStoreBool(&layer->processingMessage, false);
+	return result;
 }
 
 /**********************************************************************/
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,17,0)
-static int vdoMessage(struct dm_target  *ti,
-                      unsigned int       argc,
-                      char             **argv,
-                      char              *resultBuffer,
-                      unsigned int       maxlen)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+static int vdo_message(struct dm_target *ti,
+		       unsigned int argc,
+		       char **argv,
+		       char *result_buffer,
+		       unsigned int maxlen)
 #else
-static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
+static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
 #endif
 {
-  if (argc == 0) {
-    logWarning("unspecified dmsetup message");
-    return -EINVAL;
-  }
+	if (argc == 0) {
+		logWarning("unspecified dmsetup message");
+		return -EINVAL;
+	}
 
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  RegisteredThread allocatingThread, instanceThread;
-  registerAllocatingThread(&allocatingThread, NULL);
-  registerThreadDevice(&instanceThread, layer);
-  int result = processVDOMessage(layer, argc, argv);
-  unregisterThreadDeviceID();
-  unregisterAllocatingThread();
-  return mapToSystemError(result);
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	RegisteredThread allocating_thread, instance_thread;
+	registerAllocatingThread(&allocating_thread, NULL);
+	registerThreadDevice(&instance_thread, layer);
+	int result = process_vdo_message(layer, argc, argv);
+	unregisterThreadDeviceID();
+	unregisterAllocatingThread();
+	return mapToSystemError(result);
 }
 
 /**
@@ -437,61 +464,62 @@ static int vdoMessage(struct dm_target *ti, unsigned int argc, char **argv)
  * @param ti    The device mapper target representing our device
  * @param layer The kernel layer to get the write policy from
  **/
-static void configureTargetCapabilities(struct dm_target *ti,
-                                        KernelLayer      *layer)
+static void configure_target_capabilities(struct dm_target *ti,
+					  KernelLayer *layer)
 {
-  ti->discards_supported = 1;
+	ti->discards_supported = 1;
 
-  /**
-   * This may appear to indicate we don't support flushes in sync mode.
-   * However, dm will set up the request queue to accept flushes if any
-   * device in the stack accepts flushes. Hence if the device under VDO
-   * accepts flushes, we will receive flushes.
-   **/
-  ti->flush_supported = should_process_flush(layer);
-  ti->num_discard_bios = 1;
-  ti->num_flush_bios = 1;
+	/**
+	 * This may appear to indicate we don't support flushes in sync mode.
+	 * However, dm will set up the request queue to accept flushes if any
+	 * device in the stack accepts flushes. Hence if the device under VDO
+	 * accepts flushes, we will receive flushes.
+	 **/
+	ti->flush_supported = should_process_flush(layer);
+	ti->num_discard_bios = 1;
+	ti->num_flush_bios = 1;
 
-  // If this value changes, please make sure to update the
-  // value for maxDiscardSectors accordingly.
-  BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
+	// If this value changes, please make sure to update the
+	// value for maxDiscardSectors accordingly.
+	BUG_ON(dm_set_target_max_io_len(ti, VDO_SECTORS_PER_BLOCK) != 0);
 
 /*
  * Please see comments above where the macro is defined.
  */
 #if HAS_NO_BLKDEV_SPLIT
-  ti->split_discard_bios = 1;
+	ti->split_discard_bios = 1;
 #endif
-  dm_table_add_target_callbacks(ti->table, &layer->callbacks);
+	dm_table_add_target_callbacks(ti->table, &layer->callbacks);
 }
 
 /**
- * Handle a vdoInitialize failure, freeing all appropriate structures.
+ * Handle a vdo_initialize failure, freeing all appropriate structures.
  *
- * @param ti            The device mapper target representing our device
- * @param threadConfig  The thread config (possibly NULL)
- * @param layer         The kernel layer (possibly NULL)
- * @param instance      The instance number to be released
- * @param why           The reason for failure
+ * @param ti             The device mapper target representing our device
+ * @param thread_config  The thread config (possibly NULL)
+ * @param layer          The kernel layer (possibly NULL)
+ * @param instance       The instance number to be released
+ * @param why            The reason for failure
  **/
-static void cleanupInitialize(struct dm_target *ti,
-                              ThreadConfig     *threadConfig,
-                              KernelLayer      *layer,
-                              unsigned int      instance,
-                              char             *why)
+static void cleanup_initialize(struct dm_target *ti,
+			       ThreadConfig *thread_config,
+			       KernelLayer *layer,
+			       unsigned int instance,
+			       char *why)
 {
-  if (threadConfig != NULL) {
-    freeThreadConfig(&threadConfig);
-  }
-  if (layer != NULL) {
-    // This releases the instance number too.
-    freeKernelLayer(layer);
-  } else {
-    // With no KernelLayer taking ownership we have to release explicitly.
-    release_kvdo_instance(instance);
-  }
+	if (thread_config != NULL) {
+		freeThreadConfig(&thread_config);
+	}
+	if (layer != NULL) {
+		// This releases the instance number too.
+		freeKernelLayer(layer);
+	} else {
+		// With no KernelLayer taking ownership we have to release
+		// explicitly.
+		release_kvdo_instance(instance);
+	}
 
-  ti->error = why;
+	ti->error = why;
 }
 
 /**
@@ -504,354 +532,373 @@ static void cleanupInitialize(struct dm_target *ti,
  * @return  VDO_SUCCESS or an error code
  *
  **/
-static int vdoInitialize(struct dm_target     *ti,
-                         unsigned int          instance,
-                         struct device_config *config)
+static int vdo_initialize(struct dm_target *ti,
+			  unsigned int instance,
+			  struct device_config *config)
 {
-  logInfo("starting device '%s'", config->pool_name);
+	logInfo("starting device '%s'", config->pool_name);
 
-  uint64_t   blockSize      = VDO_BLOCK_SIZE;
-  uint64_t   logicalSize    = to_bytes(ti->len);
-  BlockCount logicalBlocks  = logicalSize / blockSize;
+	uint64_t block_size = VDO_BLOCK_SIZE;
+	uint64_t logical_size = to_bytes(ti->len);
+	BlockCount logical_blocks = logical_size / block_size;
 
-  logDebug("Logical block size     = %llu",
-           (uint64_t) config->logical_block_size);
-  logDebug("Logical blocks         = %llu", logicalBlocks);
-  logDebug("Physical block size    = %llu", (uint64_t) blockSize);
-  logDebug("Physical blocks        = %llu", config->physical_blocks);
-  logDebug("Block map cache blocks = %u", config->cache_size);
-  logDebug("Block map maximum age  = %u", config->block_map_maximum_age);
-  logDebug("MD RAID5 mode          = %s", (config->md_raid5_mode_enabled
-                                           ? "on" : "off"));
-  logDebug("Write policy           = %s",
-           get_config_write_policy_string(config));
+	logDebug("Logical block size     = %llu",
+		 (uint64_t)config->logical_block_size);
+	logDebug("Logical blocks         = %llu", logical_blocks);
+	logDebug("Physical block size    = %llu", (uint64_t)block_size);
+	logDebug("Physical blocks        = %llu", config->physical_blocks);
+	logDebug("Block map cache blocks = %u", config->cache_size);
+	logDebug("Block map maximum age  = %u", config->block_map_maximum_age);
+	logDebug("MD RAID5 mode          = %s",
+		 (config->md_raid5_mode_enabled ? "on" : "off"));
+	logDebug("Write policy           = %s",
+		 get_config_write_policy_string(config));
 
-  // The threadConfig will be copied by the VDO if it's successfully
-  // created.
-  VDOLoadConfig loadConfig = {
-    .cacheSize    = config->cache_size,
-    .threadConfig = NULL,
-    .writePolicy  = config->write_policy,
-    .maximumAge   = config->block_map_maximum_age,
-  };
+	// The thread_config will be copied by the VDO if it's successfully
+	// created.
+	VDOLoadConfig load_config = {
+		.cacheSize = config->cache_size,
+		.threadConfig = NULL,
+		.writePolicy = config->write_policy,
+		.maximumAge = config->block_map_maximum_age,
+	};
 
-  char        *failureReason;
-  KernelLayer *layer;
-  int result = makeKernelLayer(ti->begin, instance, config,
-                               &kvdoGlobals.kobj, &loadConfig.threadConfig,
-                               &failureReason, &layer);
-  if (result != VDO_SUCCESS) {
-    logError("Could not create kernel physical layer. (VDO error %d,"
-             " message %s)", result, failureReason);
-    cleanupInitialize(ti, loadConfig.threadConfig, NULL, instance,
-                      failureReason);
-    return result;
-  }
+	char *failure_reason;
+	KernelLayer *layer;
+	int result = makeKernelLayer(ti->begin,
+				     instance,
+				     config,
+				     &kvdoGlobals.kobj,
+				     &load_config.threadConfig,
+				     &failure_reason,
+				     &layer);
+	if (result != VDO_SUCCESS) {
+		logError(
+			"Could not create kernel physical layer. (VDO error %d, message %s)",
+			result,
+			failure_reason);
+		cleanup_initialize(ti,
+				   load_config.threadConfig,
+				   NULL,
+				   instance,
+				   failure_reason);
+		return result;
+	}
 
-  // Now that we have read the geometry, we can finish setting up the
-  // VDOLoadConfig.
-  setLoadConfigFromGeometry(&layer->geometry, &loadConfig);
+	// Now that we have read the geometry, we can finish setting up the
+	// VDOLoadConfig.
+	setLoadConfigFromGeometry(&layer->geometry, &load_config);
 
-  if (config->cache_size < (2 * MAXIMUM_USER_VIOS
-                   * loadConfig.threadConfig->logicalZoneCount)) {
-    logWarning("Insufficient block map cache for logical zones");
-    cleanupInitialize(ti, loadConfig.threadConfig, layer, instance,
-                      "Insufficient block map cache for logical zones");
-    return VDO_BAD_CONFIGURATION;
-  }
+	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *
+				  load_config.threadConfig->logicalZoneCount)) {
+		logWarning("Insufficient block map cache for logical zones");
+		cleanup_initialize(ti,
+				   load_config.threadConfig,
+				   layer,
+				   instance,
+				   "Insufficient block map cache for logical zones");
+		return VDO_BAD_CONFIGURATION;
+	}
 
-  // Henceforth it is the kernel layer's responsibility to clean up the
-  // ThreadConfig.
-  result = startKernelLayer(layer, &loadConfig, &failureReason);
-  if (result != VDO_SUCCESS) {
-    logError("Could not start kernel physical layer. (VDO error %d,"
-             " message %s)", result, failureReason);
-    cleanupInitialize(ti, NULL, layer, instance, failureReason);
-    return result;
-  }
+	// Henceforth it is the kernel layer's responsibility to clean up the
+	// ThreadConfig.
+	result = startKernelLayer(layer, &load_config, &failure_reason);
+	if (result != VDO_SUCCESS) {
+		logError("Could not start kernel physical layer. (VDO error %d, message %s)",
+			 result, failure_reason);
+		cleanup_initialize(ti, NULL, layer, instance, failure_reason);
+		return result;
+	}
 
-  acquireKernelLayerReference(layer, config);
-  setKernelLayerActiveConfig(layer, config);
-  ti->private = config;
-  configureTargetCapabilities(ti, layer);
+	acquireKernelLayerReference(layer, config);
+	setKernelLayerActiveConfig(layer, config);
+	ti->private = config;
+	configure_target_capabilities(ti, layer);
 
-  logInfo("device '%s' started", config->pool_name);
-  return VDO_SUCCESS;
+	logInfo("device '%s' started", config->pool_name);
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
+static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-  // Mild hack to avoid bumping instance number when we needn't.
-  char *poolName;
-  int result = get_pool_name_from_argv(argc, argv, &ti->error, &poolName);
-  if (result != VDO_SUCCESS) {
-    return -EINVAL;
-  }
+	// Mild hack to avoid bumping instance number when we needn't.
+	char *pool_name;
+	int result = get_pool_name_from_argv(argc,
+					     argv,
+					     &ti->error,
+					     &pool_name);
+	if (result != VDO_SUCCESS) {
+		return -EINVAL;
+	}
 
-  RegisteredThread allocatingThread;
-  registerAllocatingThread(&allocatingThread, NULL);
+	RegisteredThread allocating_thread;
+	registerAllocatingThread(&allocating_thread, NULL);
 
-  KernelLayer *oldLayer = get_layer_by_name(poolName);
-  unsigned int instance;
-  if (oldLayer == NULL) {
-    result = allocate_kvdo_instance(&instance);
-    if (result != VDO_SUCCESS) {
-      unregisterAllocatingThread();
-      return -ENOMEM;
-    }
-  } else {
-    instance = oldLayer->instance;
-  }
+	KernelLayer *old_layer = get_layer_by_name(pool_name);
+	unsigned int instance;
+	if (old_layer == NULL) {
+		result = allocate_kvdo_instance(&instance);
+		if (result != VDO_SUCCESS) {
+			unregisterAllocatingThread();
+			return -ENOMEM;
+		}
+	} else {
+		instance = old_layer->instance;
+	}
 
-  RegisteredThread instanceThread;
-  registerThreadDeviceID(&instanceThread, &instance);
+	RegisteredThread instance_thread;
+	registerThreadDeviceID(&instance_thread, &instance);
 
-  bool verbose = (oldLayer == NULL);
-  struct device_config *config = NULL;
-  result = parse_device_config(argc, argv, ti, verbose, &config);
-  if (result != VDO_SUCCESS) {
-    unregisterThreadDeviceID();
-    unregisterAllocatingThread();
-    if (oldLayer == NULL) {
-      release_kvdo_instance(instance);
-    }
-    return -EINVAL;
-  }
+	bool verbose = (old_layer == NULL);
+	struct device_config *config = NULL;
+	result = parse_device_config(argc, argv, ti, verbose, &config);
+	if (result != VDO_SUCCESS) {
+		unregisterThreadDeviceID();
+		unregisterAllocatingThread();
+		if (old_layer == NULL) {
+			release_kvdo_instance(instance);
+		}
+		return -EINVAL;
+	}
 
-  // Is there already a device of this name?
-  if (oldLayer != NULL) {
-    /*
-     * To preserve backward compatibility with old VDO Managers, we need to
-     * allow this to happen when either suspended or not. We could assert
-     * that if the config is version 0, we are suspended, and if not, we
-     * are not, but we can't do that till new VDO Manager does the right
-     * order.
-     */
-    logInfo("preparing to modify device '%s'", config->pool_name);
-    result = prepareToModifyKernelLayer(oldLayer, config, &ti->error);
-    if (result != VDO_SUCCESS) {
-      result = mapToSystemError(result);
-      free_device_config(&config);
-    } else {
-      acquireKernelLayerReference(oldLayer, config);
-      ti->private = config;
-      configureTargetCapabilities(ti, oldLayer);
-    }
-    unregisterThreadDeviceID();
-    unregisterAllocatingThread();
-    return result;
-  }
+	// Is there already a device of this name?
+	if (old_layer != NULL) {
+		/*
+		 * To preserve backward compatibility with old VDO Managers, we
+		 * need to allow this to happen when either suspended or not. We
+		 * could assert that if the config is version 0, we are
+		 * suspended, and if not, we are not, but we can't do that till
+		 * new VDO Manager does the right order.
+		 */
+		logInfo("preparing to modify device '%s'", config->pool_name);
+		result = prepareToModifyKernelLayer(old_layer, config,
+						    &ti->error);
+		if (result != VDO_SUCCESS) {
+			result = mapToSystemError(result);
+			free_device_config(&config);
+		} else {
+			acquireKernelLayerReference(old_layer, config);
+			ti->private = config;
+			configure_target_capabilities(ti, old_layer);
+		}
+		unregisterThreadDeviceID();
+		unregisterAllocatingThread();
+		return result;
+	}
 
-  result = vdoInitialize(ti, instance, config);
-  if (result != VDO_SUCCESS) {
-    // vdoInitialize calls into various VDO routines, so map error
-    result = mapToSystemError(result);
-    free_device_config(&config);
-  }
+	result = vdo_initialize(ti, instance, config);
+	if (result != VDO_SUCCESS) {
+		// vdo_initialize calls into various VDO routines, so map error
+		result = mapToSystemError(result);
+		free_device_config(&config);
+	}
 
-  unregisterThreadDeviceID();
-  unregisterAllocatingThread();
-  return result;
+	unregisterThreadDeviceID();
+	unregisterAllocatingThread();
+	return result;
 }
 
 /**********************************************************************/
-static void vdoDtr(struct dm_target *ti)
+static void vdo_dtr(struct dm_target *ti)
 {
-  struct device_config *config = ti->private;
-  KernelLayer  *layer  = getKernelLayerForTarget(ti);
+	struct device_config *config = ti->private;
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
 
-  releaseKernelLayerReference(layer, config);
+	releaseKernelLayerReference(layer, config);
 
-  if (layer->configReferences == 0) {
-    // This was the last config referencing the layer. Free it.
-    unsigned int instance = layer->instance;
-    RegisteredThread allocatingThread, instanceThread;
-    registerThreadDeviceID(&instanceThread, &instance);
-    registerAllocatingThread(&allocatingThread, NULL);
+	if (layer->configReferences == 0) {
+		// This was the last config referencing the layer. Free it.
+		unsigned int instance = layer->instance;
+		RegisteredThread allocating_thread, instance_thread;
+		registerThreadDeviceID(&instance_thread, &instance);
+		registerAllocatingThread(&allocating_thread, NULL);
 
-    waitForNoRequestsActive(layer);
-    logInfo("stopping device '%s'", config->pool_name);
+		waitForNoRequestsActive(layer);
+		logInfo("stopping device '%s'", config->pool_name);
 
-    if (layer->dumpOnShutdown) {
-      vdo_dump_all(layer, "device shutdown");
-    }
+		if (layer->dumpOnShutdown) {
+			vdo_dump_all(layer, "device shutdown");
+		}
 
-    freeKernelLayer(layer);
-    logInfo("device '%s' stopped", config->pool_name);
-    unregisterThreadDeviceID();
-    unregisterAllocatingThread();
-  }
+		freeKernelLayer(layer);
+		logInfo("device '%s' stopped", config->pool_name);
+		unregisterThreadDeviceID();
+		unregisterAllocatingThread();
+	}
 
-  free_device_config(&config);
-  ti->private = NULL;
+	free_device_config(&config);
+	ti->private = NULL;
 }
 
 /**********************************************************************/
-static void vdoPresuspend(struct dm_target *ti)
+static void vdo_presuspend(struct dm_target *ti)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  RegisteredThread instanceThread;
-  registerThreadDevice(&instanceThread, layer);  
-  if (dm_noflush_suspending(ti)) {
-    layer->noFlushSuspend = true;
-  }
-  unregisterThreadDeviceID();
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	RegisteredThread instance_thread;
+	registerThreadDevice(&instance_thread, layer);
+	if (dm_noflush_suspending(ti)) {
+		layer->noFlushSuspend = true;
+	}
+	unregisterThreadDeviceID();
 }
 
 /**********************************************************************/
-static void vdoPostsuspend(struct dm_target *ti)
+static void vdo_postsuspend(struct dm_target *ti)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  RegisteredThread instanceThread;
-  registerThreadDevice(&instanceThread, layer);
-  const char *poolName = layer->deviceConfig->pool_name;
-  logInfo("suspending device '%s'", poolName);
-  int result = suspendKernelLayer(layer);
-  if (result == VDO_SUCCESS) {
-    logInfo("device '%s' suspended", poolName);
-  } else {
-    logError("suspend of device '%s' failed with error: %d", poolName, result);
-  }
-  layer->noFlushSuspend = false;
-  unregisterThreadDeviceID();
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	RegisteredThread instance_thread;
+	registerThreadDevice(&instance_thread, layer);
+	const char *pool_name = layer->deviceConfig->pool_name;
+	logInfo("suspending device '%s'", pool_name);
+	int result = suspendKernelLayer(layer);
+	if (result == VDO_SUCCESS) {
+		logInfo("device '%s' suspended", pool_name);
+	} else {
+		logError("suspend of device '%s' failed with error: %d",
+			 pool_name,
+			 result);
+	}
+	layer->noFlushSuspend = false;
+	unregisterThreadDeviceID();
 }
 
 /**********************************************************************/
-static int vdoPreresume(struct dm_target *ti)
+static int vdo_preresume(struct dm_target *ti)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  struct device_config *config = ti->private;
-  RegisteredThread instanceThread;
-  registerThreadDevice(&instanceThread, layer);
-  logInfo("resuming device '%s'", config->pool_name);
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct device_config *config = ti->private;
+	RegisteredThread instance_thread;
+	registerThreadDevice(&instance_thread, layer);
+	logInfo("resuming device '%s'", config->pool_name);
 
-  // This is a noop if nothing has changed, and by calling it every time
-  // we capture old-style growPhysicals, which change the config in place.
-  int result = modifyKernelLayer(layer, config);
-  if (result != VDO_SUCCESS) {
-    logErrorWithStringError(result, "Commit of modifications to device '%s'"
-                            " failed", config->pool_name);
-    setKernelLayerActiveConfig(layer, config);
-    set_kvdo_read_only(&layer->kvdo, result);
-  } else {
-    setKernelLayerActiveConfig(layer, config);
-    result = resumeKernelLayer(layer);
-    if (result != VDO_SUCCESS) {
-      logError("resume of device '%s' failed with error: %d",
-	       layer->deviceConfig->pool_name, result);
-    }
-  }
-  unregisterThreadDeviceID();
-  return mapToSystemError(result);
+	// This is a noop if nothing has changed, and by calling it every time
+	// we capture old-style growPhysicals, which change the config in place.
+	int result = modifyKernelLayer(layer, config);
+	if (result != VDO_SUCCESS) {
+		logErrorWithStringError(result,
+					"Commit of modifications to device '%s' failed",
+					config->pool_name);
+		setKernelLayerActiveConfig(layer, config);
+		set_kvdo_read_only(&layer->kvdo, result);
+	} else {
+		setKernelLayerActiveConfig(layer, config);
+		result = resumeKernelLayer(layer);
+		if (result != VDO_SUCCESS) {
+			logError("resume of device '%s' failed with error: %d",
+				 layer->deviceConfig->pool_name, result);
+		}
+	}
+	unregisterThreadDeviceID();
+	return mapToSystemError(result);
 }
 
 /**********************************************************************/
-static void vdoResume(struct dm_target *ti)
+static void vdo_resume(struct dm_target *ti)
 {
-  KernelLayer *layer = getKernelLayerForTarget(ti);
-  RegisteredThread instanceThread;
-  registerThreadDevice(&instanceThread, layer);
-  logInfo("device '%s' resumed", layer->deviceConfig->pool_name);
-  unregisterThreadDeviceID();
+	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	RegisteredThread instance_thread;
+	registerThreadDevice(&instance_thread, layer);
+	logInfo("device '%s' resumed", layer->deviceConfig->pool_name);
+	unregisterThreadDeviceID();
 }
 
-/* 
+/*
  * If anything changes that affects how user tools will interact
- * with vdo, update the version number and make sure 
+ * with vdo, update the version number and make sure
  * documentation about the change is complete so tools can
  * properly update their management code.
  */
-static struct target_type vdoTargetBio = {
-  .name            = "vdo",
-  .version         = {6, 2, 0},
-  .module          = THIS_MODULE,
-  .ctr             = vdoCtr,
-  .dtr             = vdoDtr,
-  .io_hints        = vdoIoHints,
-  .iterate_devices = vdoIterateDevices,
-  .map             = vdoMapBio,
-  .message         = vdoMessage,
-  .status          = vdoStatus,
-  .presuspend      = vdoPresuspend,
-  .postsuspend     = vdoPostsuspend,
-  .preresume       = vdoPreresume,
-  .resume          = vdoResume,
+static struct target_type vdo_target_bio = {
+	.name = "vdo",
+	.version = { 6, 2, 0 },
+	.module = THIS_MODULE,
+	.ctr = vdo_ctr,
+	.dtr = vdo_dtr,
+	.io_hints = vdo_io_hints,
+	.iterate_devices = vdo_iterate_devices,
+	.map = vdo_map_bio,
+	.message = vdo_message,
+	.status = vdo_status,
+	.presuspend = vdo_presuspend,
+	.postsuspend = vdo_postsuspend,
+	.preresume = vdo_preresume,
+	.resume = vdo_resume,
 };
 
-static bool dmRegistered     = false;
-static bool sysfsInitialized = false;
+static bool dm_registered = false;
+static bool sysfs_initialized = false;
 
 /**********************************************************************/
-static void vdoDestroy(void)
+static void vdo_destroy(void)
 {
-  logDebug("in %s", __func__);
+	logDebug("in %s", __func__);
 
-  kvdoGlobals.status = SHUTTING_DOWN;
+	kvdoGlobals.status = SHUTTING_DOWN;
 
-  if (sysfsInitialized) {
-    vdo_put_sysfs(&kvdoGlobals.kobj);
-  }
-  vdo_destroy_procfs();
+	if (sysfs_initialized) {
+		vdo_put_sysfs(&kvdoGlobals.kobj);
+	}
+	vdo_destroy_procfs();
 
-  kvdoGlobals.status = UNINITIALIZED;
+	kvdoGlobals.status = UNINITIALIZED;
 
-  if (dmRegistered) {
-    dm_unregister_target(&vdoTargetBio);
-  }
+	if (dm_registered) {
+		dm_unregister_target(&vdo_target_bio);
+	}
 
-  clean_up_instance_number_tracking();
+	clean_up_instance_number_tracking();
 
-  logInfo("unloaded version %s", CURRENT_VERSION);
+	logInfo("unloaded version %s", CURRENT_VERSION);
 }
 
 /**********************************************************************/
-static int __init vdoInit(void)
+static int __init vdo_init(void)
 {
-  int result = 0;
+	int result = 0;
 
-  initializeThreadDeviceRegistry();
-  initialize_standard_error_blocks();
-  initialize_device_registry_once();
-  logInfo("loaded version %s", CURRENT_VERSION);
+	initializeThreadDeviceRegistry();
+	initialize_standard_error_blocks();
+	initialize_device_registry_once();
+	logInfo("loaded version %s", CURRENT_VERSION);
 
-  result = dm_register_target(&vdoTargetBio);
-  if (result < 0) {
-    logError("dm_register_target failed %d", result);
-    vdoDestroy();
-    return result;
-  }
-  dmRegistered = true;
+	result = dm_register_target(&vdo_target_bio);
+	if (result < 0) {
+		logError("dm_register_target failed %d", result);
+		vdo_destroy();
+		return result;
+	}
+	dm_registered = true;
 
-  kvdoGlobals.status = UNINITIALIZED;
+	kvdoGlobals.status = UNINITIALIZED;
 
-  vdo_init_procfs();
+	vdo_init_procfs();
 
-  result = vdo_init_sysfs(&kvdoGlobals.kobj);
-  if (result < 0) {
-    logError("sysfs initialization failed %d", result);
-    vdoDestroy();
-    // vdo_init_sysfs only returns system error codes
-    return result;
-  }
-  sysfsInitialized = true;
+	result = vdo_init_sysfs(&kvdoGlobals.kobj);
+	if (result < 0) {
+		logError("sysfs initialization failed %d", result);
+		vdo_destroy();
+		// vdo_init_sysfs only returns system error codes
+		return result;
+	}
+	sysfs_initialized = true;
 
-  init_work_queue_once();
-  initialize_trace_logging_once();
-  initialize_instance_number_tracking();
+	init_work_queue_once();
+	initialize_trace_logging_once();
+	initialize_instance_number_tracking();
 
-  kvdoGlobals.status = READY;
-  return result;
+	kvdoGlobals.status = READY;
+	return result;
 }
 
 /**********************************************************************/
-static void __exit vdoExit(void)
+static void __exit vdo_exit(void)
 {
-  vdoDestroy();
+	vdo_destroy();
 }
 
-module_init(vdoInit);
-module_exit(vdoExit);
+module_init(vdo_init);
+module_exit(vdo_exit);
 
 MODULE_DESCRIPTION(DM_NAME " target for transparent deduplication");
 MODULE_AUTHOR("Red Hat, Inc.");
