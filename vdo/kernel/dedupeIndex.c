@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#20 $
  */
 
 #include "dedupeIndex.h"
@@ -829,7 +829,10 @@ void get_index_statistics(struct dedupe_index *index, IndexStatistics *stats)
 /*****************************************************************************/
 int message_dedupe_index(struct dedupe_index *index, const char *name)
 {
-	if (strcasecmp(name, "index-create") == 0) {
+	if (strcasecmp(name, "index-close") == 0) {
+		set_target_state(index, IS_CLOSED, false, false, false);
+		return 0;
+	} else if (strcasecmp(name, "index-create") == 0) {
 		set_target_state(index, IS_OPENED, false, false, true);
 		return 0;
 	} else if (strcasecmp(name, "index-disable") == 0) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#25 $
  */
 
 #include "dmvdo.h"
@@ -395,9 +395,10 @@ static int process_vdo_message(KernelLayer *layer,
 		}
 
 		// Index messages should always be processed
-		if ((strcasecmp(argv[0], "index-create") == 0) ||
-		    (strcasecmp(argv[0], "index-disable") == 0)
-		    || (strcasecmp(argv[0], "index-enable") == 0)) {
+		if ((strcasecmp(argv[0], "index-close") == 0) ||
+		    (strcasecmp(argv[0], "index-create") == 0) ||
+		    (strcasecmp(argv[0], "index-disable") == 0) ||
+		    (strcasecmp(argv[0], "index-enable") == 0)) {
 			return message_dedupe_index(layer->dedupeIndex,
 						    argv[0]);
 		}
