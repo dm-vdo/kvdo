@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#8 $
  */
 
 #include "physicalLayer.h"
@@ -35,41 +35,43 @@
  * optimized for large blocks, and the performance penalty turns out
  * to be significant if you're doing lots of 4KB comparisons.
  *
- * @param pointerArgument1  first data block
- * @param pointerArgument2  second data block
- * @param length            length of the data block
+ * @param pointer_argument1  first data block
+ * @param pointer_argument2  second data block
+ * @param length             length of the data block
  *
  * @return   true iff the two blocks are equal
  **/
 __attribute__((warn_unused_result))
-static bool memoryEqual(void   *pointerArgument1,
-                        void   *pointerArgument2,
-                        size_t  length)
+static bool
+memory_equal(void *pointer_argument1,
+	     void *pointer_argument2,
+	     size_t length)
 {
-  byte *pointer1 = pointerArgument1;
-  byte *pointer2 = pointerArgument2;
-  while (length >= sizeof(uint64_t)) {
-    /*
-     * get_unaligned is just for paranoia.  (1) On x86_64 it is
-     * treated the same as an aligned access.  (2) In this use case,
-     * one or both of the inputs will almost(?) always be aligned.
-     */
-    if (get_unaligned((u64 *) pointer1) != get_unaligned((u64 *) pointer2)) {
-      return false;
-    }
-    pointer1 += sizeof(uint64_t);
-    pointer2 += sizeof(uint64_t);
-    length -= sizeof(uint64_t);
-  }
-  while (length > 0) {
-    if (*pointer1 != *pointer2) {
-      return false;
-    }
-    pointer1++;
-    pointer2++;
-    length--;
-  }
-  return true;
+	byte *pointer1 = pointer_argument1;
+	byte *pointer2 = pointer_argument2;
+	while (length >= sizeof(uint64_t)) {
+		/*
+		 * get_unaligned is just for paranoia.  (1) On x86_64 it is
+		 * treated the same as an aligned access.  (2) In this use case,
+		 * one or both of the inputs will almost(?) always be aligned.
+		 */
+		if (get_unaligned((u64 *)pointer1) !=
+		    get_unaligned((u64 *)pointer2)) {
+			return false;
+		}
+		pointer1 += sizeof(uint64_t);
+		pointer2 += sizeof(uint64_t);
+		length -= sizeof(uint64_t);
+	}
+	while (length > 0) {
+		if (*pointer1 != *pointer2) {
+			return false;
+		}
+		pointer1++;
+		pointer2++;
+		length--;
+	}
+	return true;
 }
 
 /**
@@ -87,65 +89,73 @@ static bool memoryEqual(void   *pointerArgument1,
  *
  * @param item  The workitem from the queue
  **/
-static void verifyDuplicationWork(struct kvdo_work_item *item)
+static void verify_duplication_work(struct kvdo_work_item *item)
 {
-  struct data_kvio *dataKVIO = work_item_as_data_kvio(item);
-  data_kvio_add_trace_record(dataKVIO, THIS_LOCATION("$F;j=dedupe;cb=verify"));
+	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
+	data_kvio_add_trace_record(data_kvio,
+				   THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
-  if (likely(memoryEqual(dataKVIO->dataBlock, dataKVIO->readBlock.data,
-                         VDO_BLOCK_SIZE))) {
-    // Leave dataKVIO->dataVIO.isDuplicate set to true.
-  } else {
-    dataKVIO->dataVIO.isDuplicate = false;
-  }
+	if (likely(memory_equal(data_kvio->dataBlock,
+				data_kvio->readBlock.data,
+			       VDO_BLOCK_SIZE))) {
+		// Leave data_kvio->dataVIO.isDuplicate set to true.
+	} else {
+		data_kvio->dataVIO.isDuplicate = false;
+	}
 
-  kvdo_enqueue_data_vio_callback(dataKVIO);
+	kvdo_enqueue_data_vio_callback(data_kvio);
 }
 
 /**
  * Verify the Albireo-provided deduplication advice, and invoke a
  * callback once the answer is available.
  *
- * @param dataKVIO  The data_kvio that we are looking to dedupe.
+ * @param data_kvio  The data_kvio that we are looking to dedupe.
  **/
-static void verifyReadBlockCallback(struct data_kvio *dataKVIO)
+static void verify_read_block_callback(struct data_kvio *data_kvio)
 {
-  data_kvio_add_trace_record(dataKVIO, THIS_LOCATION(NULL));
-  int err = dataKVIO->readBlock.status;
-  if (unlikely(err != 0)) {
-    logDebug("%s: err %d", __func__, err);
-    dataKVIO->dataVIO.isDuplicate = false;
-    kvdo_enqueue_data_vio_callback(dataKVIO);
-    return;
-  }
+	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
+	int err = data_kvio->readBlock.status;
+	if (unlikely(err != 0)) {
+		logDebug("%s: err %d", __func__, err);
+		data_kvio->dataVIO.isDuplicate = false;
+		kvdo_enqueue_data_vio_callback(data_kvio);
+		return;
+	}
 
-  launch_data_kvio_on_cpu_queue(dataKVIO, verifyDuplicationWork, NULL,
-                                CPU_Q_ACTION_COMPRESS_BLOCK);
+	launch_data_kvio_on_cpu_queue(data_kvio,
+				      verify_duplication_work,
+				      NULL,
+				      CPU_Q_ACTION_COMPRESS_BLOCK);
 }
 
 /**********************************************************************/
-void verifyDuplication(DataVIO *dataVIO)
+void verifyDuplication(DataVIO *data_vio)
 {
-  ASSERT_LOG_ONLY(dataVIO->isDuplicate, "advice to verify must be valid");
-  ASSERT_LOG_ONLY(dataVIO->duplicate.state != MAPPING_STATE_UNMAPPED,
-                  "advice to verify must not be a discard");
-  ASSERT_LOG_ONLY(dataVIO->duplicate.pbn != ZERO_BLOCK,
-                  "advice to verify must not point to the zero block");
-  ASSERT_LOG_ONLY(!dataVIO->isZeroBlock,
-                  "zeroed block should not have advice to verify");
+	ASSERT_LOG_ONLY(data_vio->isDuplicate,
+			"advice to verify must be valid");
+	ASSERT_LOG_ONLY(data_vio->duplicate.state != MAPPING_STATE_UNMAPPED,
+			"advice to verify must not be a discard");
+	ASSERT_LOG_ONLY(data_vio->duplicate.pbn != ZERO_BLOCK,
+			"advice to verify must not point to the zero block");
+	ASSERT_LOG_ONLY(!data_vio->isZeroBlock,
+			"zeroed block should not have advice to verify");
 
-  TraceLocation location
-    = THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
-  dataVIOAddTraceRecord(dataVIO, location);
-  kvdo_read_block(dataVIO, dataVIO->duplicate.pbn, dataVIO->duplicate.state,
-                  BIO_Q_ACTION_VERIFY, verifyReadBlockCallback);
+	TraceLocation location =
+		THIS_LOCATION("verifyDuplication;dup=update(verify);io=verify");
+	dataVIOAddTraceRecord(data_vio, location);
+	kvdo_read_block(data_vio,
+			data_vio->duplicate.pbn,
+			data_vio->duplicate.state,
+			BIO_Q_ACTION_VERIFY,
+			verify_read_block_callback);
 }
 
 /**********************************************************************/
 bool compareDataVIOs(DataVIO *first, DataVIO *second)
 {
-  dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
-  struct data_kvio *a = data_vio_as_data_kvio(first);
-  struct data_kvio *b = data_vio_as_data_kvio(second);
-  return memoryEqual(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
+	dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
+	struct data_kvio *a = data_vio_as_data_kvio(first);
+	struct data_kvio *b = data_vio_as_data_kvio(second);
+	return memory_equal(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
 }
