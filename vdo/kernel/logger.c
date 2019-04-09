@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#4 $
  */
 
 #include "logger.h"
@@ -171,7 +171,7 @@ static void emitLogMessage(const char             *level,
 
   // Not at interrupt level; we have a process we can look at, and
   // might have a device ID.
-  int deviceInstance = getThreadDeviceID();
+  int deviceInstance = get_thread_device_id();
   if (deviceInstance != -1) {
     printk("%s%s%u:%s: %s%pV%pV\n",
            level, moduleName, deviceInstance, current->comm,

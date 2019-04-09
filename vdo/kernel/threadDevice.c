@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#2 $
  */
 
 #include "threadDevice.h"
@@ -27,29 +27,30 @@
  * A registry of all threads temporarily associated with particular
  * VDO devices.
  */
-static ThreadRegistry deviceIDThreadRegistry;
+static ThreadRegistry device_id_thread_registry;
 
 /**********************************************************************/
-void registerThreadDeviceID(RegisteredThread *newThread, unsigned int *idPtr)
+void register_thread_device_id(RegisteredThread *new_thread,
+			       unsigned int *id_ptr)
 {
-  registerThread(&deviceIDThreadRegistry, newThread, idPtr);
+	registerThread(&device_id_thread_registry, new_thread, id_ptr);
 }
 
 /**********************************************************************/
-void unregisterThreadDeviceID(void)
+void unregister_thread_device_id(void)
 {
-  unregisterThread(&deviceIDThreadRegistry);
+	unregisterThread(&device_id_thread_registry);
 }
 
 /**********************************************************************/
-int getThreadDeviceID(void)
+int get_thread_device_id(void)
 {
-  const unsigned int *pointer = lookupThread(&deviceIDThreadRegistry);
-  return pointer ? *pointer : -1;
+	const unsigned int *pointer = lookupThread(&device_id_thread_registry);
+	return pointer ? *pointer : -1;
 }
 
 /**********************************************************************/
-void initializeThreadDeviceRegistry(void)
+void initialize_thread_device_registry(void)
 {
-  initializeThreadRegistry(&deviceIDThreadRegistry);
+	initializeThreadRegistry(&device_id_thread_registry);
 }

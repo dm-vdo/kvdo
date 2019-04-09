@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.h#2 $
  */
 
 #include "kernelLayer.h"
@@ -26,36 +26,37 @@
  * VDO device id number, for logging purposes.
  *
  * Any such registered thread must later be unregistered via
- * unregisterThreadDeviceID.
+ * unregister_thread_device_id.
  *
  * The pointed-to ID number should be nonzero.
  *
- * @param newThread  RegisteredThread structure to use for the current thread
- * @param idPtr      Location where the ID number is stored
+ * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param id_ptr      Location where the ID number is stored
  **/
-void registerThreadDeviceID(RegisteredThread *newThread, unsigned int *idPtr);
+void register_thread_device_id(RegisteredThread *new_thread,
+			       unsigned int *id_ptr);
 
 /**
  * Temporarily register the current thread as being associated with an
  * existing VDO device, for logging purposes.
  *
  * Any such registered thread must later be unregistered via
- * unregisterThreadDeviceID.
+ * unregister_thread_device_id.
  *
- * @param newThread  RegisteredThread structure to use for the current thread
- * @param layer      The KernelLayer object for the VDO device
+ * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param layer       The KernelLayer object for the VDO device
  **/
-static inline void registerThreadDevice(RegisteredThread *newThread,
-                                        KernelLayer      *layer)
+static inline void register_thread_device(RegisteredThread *new_thread,
+					  KernelLayer *layer)
 {
-  registerThreadDeviceID(newThread, &layer->instance);
+	register_thread_device_id(new_thread, &layer->instance);
 }
 
 /**
  * Cancel registration of the current thread as being associated with
  * a VDO device or device ID number.
  **/
-void unregisterThreadDeviceID(void);
+void unregister_thread_device_id(void);
 
 /**
  * Get the VDO device ID number temporarily associated with the
@@ -63,9 +64,9 @@ void unregisterThreadDeviceID(void);
  *
  * @return  the device ID number, if any, or -1
  **/
-int getThreadDeviceID(void);
+int get_thread_device_id(void);
 
 /**
  * Initialize the thread device-ID registry.
  **/
-void initializeThreadDeviceRegistry(void);
+void initialize_thread_device_registry(void);

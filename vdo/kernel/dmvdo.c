@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#26 $
  */
 
 #include "dmvdo.h"
@@ -452,9 +452,9 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
 	KernelLayer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread allocating_thread, instance_thread;
 	registerAllocatingThread(&allocating_thread, NULL);
-	registerThreadDevice(&instance_thread, layer);
+	register_thread_device(&instance_thread, layer);
 	int result = process_vdo_message(layer, argc, argv);
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 	unregisterAllocatingThread();
 	return mapToSystemError(result);
 }
@@ -649,13 +649,13 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	RegisteredThread instance_thread;
-	registerThreadDeviceID(&instance_thread, &instance);
+	register_thread_device_id(&instance_thread, &instance);
 
 	bool verbose = (old_layer == NULL);
 	struct device_config *config = NULL;
 	result = parse_device_config(argc, argv, ti, verbose, &config);
 	if (result != VDO_SUCCESS) {
-		unregisterThreadDeviceID();
+		unregister_thread_device_id();
 		unregisterAllocatingThread();
 		if (old_layer == NULL) {
 			release_kvdo_instance(instance);
@@ -683,7 +683,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			ti->private = config;
 			configure_target_capabilities(ti, old_layer);
 		}
-		unregisterThreadDeviceID();
+		unregister_thread_device_id();
 		unregisterAllocatingThread();
 		return result;
 	}
@@ -695,7 +695,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		free_device_config(&config);
 	}
 
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 	unregisterAllocatingThread();
 	return result;
 }
@@ -712,7 +712,7 @@ static void vdo_dtr(struct dm_target *ti)
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		RegisteredThread allocating_thread, instance_thread;
-		registerThreadDeviceID(&instance_thread, &instance);
+		register_thread_device_id(&instance_thread, &instance);
 		registerAllocatingThread(&allocating_thread, NULL);
 
 		waitForNoRequestsActive(layer);
@@ -724,7 +724,7 @@ static void vdo_dtr(struct dm_target *ti)
 
 		freeKernelLayer(layer);
 		logInfo("device '%s' stopped", config->pool_name);
-		unregisterThreadDeviceID();
+		unregister_thread_device_id();
 		unregisterAllocatingThread();
 	}
 
@@ -737,11 +737,11 @@ static void vdo_presuspend(struct dm_target *ti)
 {
 	KernelLayer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
-	registerThreadDevice(&instance_thread, layer);
+	register_thread_device(&instance_thread, layer);
 	if (dm_noflush_suspending(ti)) {
 		layer->noFlushSuspend = true;
 	}
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 }
 
 /**********************************************************************/
@@ -749,7 +749,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 {
 	KernelLayer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
-	registerThreadDevice(&instance_thread, layer);
+	register_thread_device(&instance_thread, layer);
 	const char *pool_name = layer->deviceConfig->pool_name;
 	logInfo("suspending device '%s'", pool_name);
 	int result = suspendKernelLayer(layer);
@@ -761,7 +761,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 			 result);
 	}
 	layer->noFlushSuspend = false;
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 }
 
 /**********************************************************************/
@@ -770,7 +770,7 @@ static int vdo_preresume(struct dm_target *ti)
 	KernelLayer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
 	RegisteredThread instance_thread;
-	registerThreadDevice(&instance_thread, layer);
+	register_thread_device(&instance_thread, layer);
 	logInfo("resuming device '%s'", config->pool_name);
 
 	// This is a noop if nothing has changed, and by calling it every time
@@ -790,7 +790,7 @@ static int vdo_preresume(struct dm_target *ti)
 				 layer->deviceConfig->pool_name, result);
 		}
 	}
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 	return mapToSystemError(result);
 }
 
@@ -799,9 +799,9 @@ static void vdo_resume(struct dm_target *ti)
 {
 	KernelLayer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
-	registerThreadDevice(&instance_thread, layer);
+	register_thread_device(&instance_thread, layer);
 	logInfo("device '%s' resumed", layer->deviceConfig->pool_name);
-	unregisterThreadDeviceID();
+	unregister_thread_device_id();
 }
 
 /*
@@ -858,7 +858,7 @@ static int __init vdo_init(void)
 {
 	int result = 0;
 
-	initializeThreadDeviceRegistry();
+	initialize_thread_device_registry();
 	initialize_standard_error_blocks();
 	initialize_device_registry_once();
 	logInfo("loaded version %s", CURRENT_VERSION);
