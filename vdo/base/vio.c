@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#8 $
  */
 
 #include "vio.h"
@@ -25,6 +25,10 @@
 
 #include "dataVIO.h"
 #include "vdoInternal.h"
+
+#ifdef __KERNEL__
+#include <linux/ratelimit.h>
+#endif
 
 /**********************************************************************/
 void freeVIO(VIO **vioPtr)
@@ -90,6 +94,15 @@ void updateVIOErrorStats(VIO *vio, const char *format, ...)
   default:
     priority = LOG_ERR;
   }
+
+#ifdef __KERNEL__
+  static DEFINE_RATELIMIT_STATE(errorLimiter, DEFAULT_RATELIMIT_INTERVAL,
+                                DEFAULT_RATELIMIT_BURST);
+
+  if (!__ratelimit(&errorLimiter)) {
+    return;
+  }
+#endif
 
   va_list args;
   va_start(args, format);

@@ -20,6 +20,9 @@ EXTRA_CFLAGS =	-std=gnu99					\
 		-DCURRENT_VERSION=\"$(VDO_VERSION)\"		\
 		$(INCLUDES)
 
+CFLAGS_vio.o= -std=gnu89
+CFLAGS_REMOVE_vio.o= -std=gnu99
+
 obj-m += kvdo.o
 
 kvdo-objs = $(OBJECTS)
