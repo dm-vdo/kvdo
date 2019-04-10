@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#5 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -56,7 +56,7 @@ struct simple_stats {
  * parts are updated by various threads as described below. The last
  * element of each array, index NUM_WORK_QUEUE_ITEM_STATS, is updated
  * only if we have filled the arrays and can't add the current work
- * function/priority. See how the statTableIndex field is set in
+ * function/priority. See how the stat_table_index field is set in
  * workItemStats.c.
  *
  * All fields may additionally be read when reporting statistics
@@ -193,7 +193,7 @@ update_work_item_stats_for_dequeue(struct kvdo_work_item_stats *stats,
 	// The times[].count field is overloaded as a count of items
 	// processed.
 	if (!ENABLE_PER_FUNCTION_TIMING_STATS) {
-		stats->times[item->statTableIndex].count++;
+		stats->times[item->stat_table_index].count++;
 	} else {
 		// In this case, update_work_item_stats_for_work_time will
 		// bump the counter.

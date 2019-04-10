@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#14 $
  */
 
 #include "workQueue.h"
@@ -40,14 +40,18 @@
 #include "workQueueSysfs.h"
 
 enum {
-  // Time between work queue heartbeats in usec. The default kernel
-  // configurations generally have 1ms or 4ms tick rates, so let's make this a
-  // multiple for accuracy.
-  FUNNEL_HEARTBEAT_INTERVAL = 4000,
+	/*
+	 * Time between work queue heartbeats in usec. The default kernel
+	 * configurations generally have 1ms or 4ms tick rates, so let's make
+	 * this a multiple for accuracy.
+	 */
+	FUNNEL_HEARTBEAT_INTERVAL = 4000,
 
-  // Time to wait for a work queue to flush remaining items during shutdown.
-  // Specified in milliseconds.
-  FUNNEL_FINISH_SLEEP = 5000,
+	/*
+	 * Time to wait for a work queue to flush remaining items during
+	 * shutdown.  Specified in milliseconds.
+	 */
+	FUNNEL_FINISH_SLEEP = 5000,
 };
 
 static struct mutex queue_data_lock;
@@ -63,53 +67,53 @@ static void finish_simple_work_queue(SimpleWorkQueue *queue);
 /**********************************************************************/
 static void initialize_work_item_list(KvdoWorkItemList *list)
 {
-  list->tail = NULL;
+	list->tail = NULL;
 }
 
 /**********************************************************************/
 static void add_to_work_item_list(KvdoWorkItemList *list,
-                                  struct kvdo_work_item *item)
+				  struct kvdo_work_item *item)
 {
-  if (list->tail == NULL) {
-    item->next = item;
-  } else {
-    struct kvdo_work_item *head = list->tail->next;
-    list->tail->next = item;
-    item->next = head;
-  }
-  list->tail = item;
+	if (list->tail == NULL) {
+		item->next = item;
+	} else {
+		struct kvdo_work_item *head = list->tail->next;
+		list->tail->next = item;
+		item->next = head;
+	}
+	list->tail = item;
 }
 
 /**********************************************************************/
 static bool is_work_item_list_empty(KvdoWorkItemList *list)
 {
-  return list->tail == NULL;
+	return list->tail == NULL;
 }
 
 /**********************************************************************/
 static struct kvdo_work_item *work_item_list_poll(KvdoWorkItemList *list)
 {
-  struct kvdo_work_item *tail = list->tail;
-  if (tail == NULL) {
-    return NULL;
-  }
-  // Extract and return head of list.
-  struct kvdo_work_item *head = tail->next;
-  // Only one entry?
-  if (head == tail) {
-    list->tail = NULL;
-  } else {
-    tail->next = head->next;
-  }
-  head->next = NULL;
-  return head;
+	struct kvdo_work_item *tail = list->tail;
+	if (tail == NULL) {
+		return NULL;
+	}
+	// Extract and return head of list.
+	struct kvdo_work_item *head = tail->next;
+	// Only one entry?
+	if (head == tail) {
+		list->tail = NULL;
+	} else {
+		tail->next = head->next;
+	}
+	head->next = NULL;
+	return head;
 }
 
 /**********************************************************************/
 static struct kvdo_work_item *work_item_list_peek(KvdoWorkItemList *list)
 {
-  struct kvdo_work_item *tail = list->tail;
-  return tail ? tail->next : NULL;
+	struct kvdo_work_item *tail = list->tail;
+	return tail ? tail->next : NULL;
 }
 
 // Finding the SimpleWorkQueue to actually operate on.
@@ -124,17 +128,17 @@ static struct kvdo_work_item *work_item_list_peek(KvdoWorkItemList *list)
  **/
 static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
 {
-  /*
-   * It shouldn't be a big deal if the same rotor gets used for multiple work
-   * queues. Any patterns that might develop are likely to be disrupted by
-   * random ordering of multiple work items and migration between cores,
-   * unless the load is so light as to be regular in ordering of tasks and the
-   * threads are confined to individual cores; with a load that light we won't
-   * care.
-   */
-  unsigned int rotor = this_cpu_inc_return(serviceQueueRotor);
-  unsigned int index = rotor % queue->numServiceQueues;
-  return queue->serviceQueues[index];
+	/*
+	 * It shouldn't be a big deal if the same rotor gets used for multiple
+	 * work queues. Any patterns that might develop are likely to be
+	 * disrupted by random ordering of multiple work items and migration
+	 * between cores, unless the load is so light as to be regular in
+	 * ordering of tasks and the threads are confined to individual cores;
+	 * with a load that light we won't care.
+	 */
+	unsigned int rotor = this_cpu_inc_return(serviceQueueRotor);
+	unsigned int index = rotor % queue->numServiceQueues;
+	return queue->serviceQueues[index];
 }
 
 /**
@@ -149,9 +153,9 @@ static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
  **/
 static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
 {
-  return (queue->roundRobinMode
-          ? next_service_queue(asRoundRobinWorkQueue(queue))
-          : asSimpleWorkQueue(queue));
+	return (queue->roundRobinMode ?
+			next_service_queue(asRoundRobinWorkQueue(queue)) :
+			asSimpleWorkQueue(queue));
 }
 
 // Processing normal work items.
@@ -172,16 +176,19 @@ static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
  **/
 static struct kvdo_work_item *poll_for_work_item(SimpleWorkQueue *queue)
 {
-  struct kvdo_work_item *item = NULL;
-  for (int i = READ_ONCE(queue->numPriorityLists) - 1; i >= 0; i--) {
-    FunnelQueueEntry *link = funnelQueuePoll(queue->priorityLists[i]);
-    if (link != NULL) {
-      item = container_of(link, struct kvdo_work_item, workQueueEntryLink);
-      break;
-    }
-  }
+	struct kvdo_work_item *item = NULL;
+	for (int i = READ_ONCE(queue->numPriorityLists) - 1; i >= 0; i--) {
+		FunnelQueueEntry *link =
+			funnelQueuePoll(queue->priorityLists[i]);
+		if (link != NULL) {
+			item = container_of(link,
+					    struct kvdo_work_item,
+					    work_queue_entry_link);
+			break;
+		}
+	}
 
-  return item;
+	return item;
 }
 
 /**
@@ -198,62 +205,63 @@ static struct kvdo_work_item *poll_for_work_item(SimpleWorkQueue *queue)
  **/
 __attribute__((warn_unused_result))
 static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
-                                    struct kvdo_work_item *item)
+				    struct kvdo_work_item *item)
 {
-  ASSERT_LOG_ONLY(item->myQueue == NULL,
-                  "item %" PRIptr " (fn %" PRIptr "/%" PRIptr
-                  ") to enqueue (%" PRIptr
-                  ") is not already queued (%" PRIptr ")",
-                  item, item->work, item->statsFunction, queue,
-                  item->myQueue);
-  if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
-             "action is in range for queue") != VDO_SUCCESS) {
-    item->action = 0;
-  }
-  unsigned int priority = READ_ONCE(queue->priorityMap[item->action]);
+	ASSERT_LOG_ONLY(item->my_queue == NULL,
+			"item %" PRIptr " (fn %" PRIptr "/%" PRIptr
+			") to enqueue (%" PRIptr
+			") is not already queued (%" PRIptr ")",
+			item, item->work, item->stats_function, queue,
+			item->my_queue);
+	if (ASSERT(item->action < WORK_QUEUE_ACTION_COUNT,
+		   "action is in range for queue") != VDO_SUCCESS) {
+		item->action = 0;
+	}
+	unsigned int priority = READ_ONCE(queue->priorityMap[item->action]);
 
-  // Update statistics.
-  update_stats_for_enqueue(&queue->stats, item, priority);
+	// Update statistics.
+	update_stats_for_enqueue(&queue->stats, item, priority);
 
-  item->myQueue = &queue->common;
+	item->my_queue = &queue->common;
 
-  // Funnel queue handles the synchronization for the put.
-  funnelQueuePut(queue->priorityLists[priority], &item->workQueueEntryLink);
+	// Funnel queue handles the synchronization for the put.
+	funnelQueuePut(queue->priorityLists[priority],
+		       &item->work_queue_entry_link);
 
-  /*
-   * Due to how funnel-queue synchronization is handled (just atomic
-   * operations), the simplest safe implementation here would be to wake-up any
-   * waiting threads after enqueueing each item. Even if the funnel queue is
-   * not empty at the time of adding an item to the queue, the consumer thread
-   * may not see this since it is not guaranteed to have the same view of the
-   * queue as a producer thread.
-   *
-   * However, the above is wasteful so instead we attempt to minimize the
-   * number of thread wakeups. This is normally unsafe due to the above
-   * consumer-producer synchronization constraints. To correct this a timeout
-   * mechanism is used to wake the thread periodically to handle the occasional
-   * race condition that triggers and results in this thread not being woken
-   * properly.
-   *
-   * In most cases, the above timeout will not occur prior to some other work
-   * item being added after the queue is set to idle state, so thread wakeups
-   * will generally be triggered much faster than this interval. The timeout
-   * provides protection against the cases where more work items are either not
-   * added or are added too infrequently.
-   *
-   * This is also why we can get away with the normally-unsafe optimization for
-   * the common case by checking queue->idle first without synchronization. The
-   * race condition exists, but another work item getting enqueued can wake us
-   * up, and if we don't get that either, we still have the timeout to fall
-   * back on.
-   *
-   * Developed and tuned for some x86 boxes; untested whether this is any
-   * better or worse for other platforms, with or without the explicit memory
-   * barrier.
-   */
-  smp_mb();
-  return ((atomic_read(&queue->idle) == 1)
-          && (atomic_cmpxchg(&queue->idle, 1, 0) == 1));
+	/*
+	 * Due to how funnel-queue synchronization is handled (just atomic
+	 * operations), the simplest safe implementation here would be to
+	 * wake-up any waiting threads after enqueueing each item. Even if the
+	 * funnel queue is not empty at the time of adding an item to the queue,
+	 * the consumer thread may not see this since it is not guaranteed to
+	 * have the same view of the queue as a producer thread.
+	 *
+	 * However, the above is wasteful so instead we attempt to minimize the
+	 * number of thread wakeups. This is normally unsafe due to the above
+	 * consumer-producer synchronization constraints. To correct this a
+	 * timeout mechanism is used to wake the thread periodically to handle
+	 * the occasional race condition that triggers and results in this
+	 * thread not being woken properly.
+	 *
+	 * In most cases, the above timeout will not occur prior to some other
+	 * work item being added after the queue is set to idle state, so thread
+	 * wakeups will generally be triggered much faster than this interval.
+	 * The timeout provides protection against the cases where more work
+	 * items are either not added or are added too infrequently.
+	 *
+	 * This is also why we can get away with the normally-unsafe
+	 * optimization for the common case by checking queue->idle first
+	 * without synchronization. The race condition exists, but another work
+	 * item getting enqueued can wake us up, and if we don't get that
+	 * either, we still have the timeout to fall back on.
+	 *
+	 * Developed and tuned for some x86 boxes; untested whether this is any
+	 * better or worse for other platforms, with or without the explicit
+	 * memory barrier.
+	 */
+	smp_mb();
+	return ((atomic_read(&queue->idle) == 1) &&
+		(atomic_cmpxchg(&queue->idle, 1, 0) == 1));
 }
 
 /**
@@ -268,20 +276,21 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
  **/
 static unsigned int get_pending_count(SimpleWorkQueue *queue)
 {
-  struct kvdo_work_item_stats *stats = &queue->stats.workItemStats;
-  long long pending = 0;
-  for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
-    pending += atomic64_read(&stats->enqueued[i]);
-    pending -= stats->times[i].count;
-  }
-  if (pending < 0) {
-    /*
-     * If we fetched numbers that were changing, we can get negative results.
-     * Just return an indication that there's some activity.
-     */
-    pending = 1;
-  }
-  return pending;
+	struct kvdo_work_item_stats *stats = &queue->stats.workItemStats;
+	long long pending = 0;
+	for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+		pending += atomic64_read(&stats->enqueued[i]);
+		pending -= stats->times[i].count;
+	}
+	if (pending < 0) {
+		/*
+		 * If we fetched numbers that were changing, we can get negative
+		 * results. Just return an indication that there's some
+		 * activity.
+		 */
+		pending = 1;
+	}
+	return pending;
 }
 
 /**
@@ -291,9 +300,9 @@ static unsigned int get_pending_count(SimpleWorkQueue *queue)
  **/
 static void run_start_hook(SimpleWorkQueue *queue)
 {
-  if (queue->type->start != NULL) {
-    queue->type->start(queue->private);
-  }
+	if (queue->type->start != NULL) {
+		queue->type->start(queue->private);
+	}
 }
 
 /**
@@ -303,9 +312,9 @@ static void run_start_hook(SimpleWorkQueue *queue)
  **/
 static void run_finish_hook(SimpleWorkQueue *queue)
 {
-  if (queue->type->finish != NULL) {
-    queue->type->finish(queue->private);
-  }
+	if (queue->type->finish != NULL) {
+		queue->type->finish(queue->private);
+	}
 }
 
 /**
@@ -322,12 +331,12 @@ static void run_finish_hook(SimpleWorkQueue *queue)
  **/
 static struct kvdo_work_item *run_suspend_hook(SimpleWorkQueue *queue)
 {
-  if (queue->type->suspend == NULL) {
-    return NULL;
-  }
+	if (queue->type->suspend == NULL) {
+		return NULL;
+	}
 
-  queue->type->suspend(queue->private);
-  return poll_for_work_item(queue);
+	queue->type->suspend(queue->private);
+	return poll_for_work_item(queue);
 }
 
 /**
@@ -339,12 +348,12 @@ static struct kvdo_work_item *run_suspend_hook(SimpleWorkQueue *queue)
  **/
 static bool has_delayed_work_items(SimpleWorkQueue *queue)
 {
-  bool result;
-  unsigned long flags;
-  spin_lock_irqsave(&queue->lock, flags);
-  result = !is_work_item_list_empty(&queue->delayedItems);
-  spin_unlock_irqrestore(&queue->lock, flags);
-  return result;
+	bool result;
+	unsigned long flags;
+	spin_lock_irqsave(&queue->lock, flags);
+	result = !is_work_item_list_empty(&queue->delayedItems);
+	spin_unlock_irqrestore(&queue->lock, flags);
+	return result;
 }
 
 /**
@@ -362,115 +371,128 @@ static bool has_delayed_work_items(SimpleWorkQueue *queue)
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct kvdo_work_item *
-wait_for_next_work_item(SimpleWorkQueue *queue,
-                        TimeoutJiffies   timeout_interval)
+wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 {
-  struct kvdo_work_item *item = run_suspend_hook(queue);
-  if (item != NULL) {
-    return item;
-  }
+	struct kvdo_work_item *item = run_suspend_hook(queue);
+	if (item != NULL) {
+		return item;
+	}
 
-  DEFINE_WAIT(wait);
-  while (true) {
-    atomic64_set(&queue->firstWakeup, 0);
-    prepare_to_wait(&queue->waitingWorkerThreads, &wait, TASK_INTERRUPTIBLE);
-    /*
-     * Don't set the idle flag until a wakeup will not be lost.
-     *
-     * Force synchronization between setting the idle flag and checking the
-     * funnel queue; the producer side will do them in the reverse order.
-     * (There's still a race condition we've chosen to allow, because we've got
-     * a timeout below that unwedges us if we hit it, but this may narrow the
-     * window a little.)
-     */
-    atomic_set(&queue->idle, 1);
-    memoryFence(); // store-load barrier between "idle" and funnel queue
+	DEFINE_WAIT(wait);
+	while (true) {
+		atomic64_set(&queue->firstWakeup, 0);
+		prepare_to_wait(&queue->waitingWorkerThreads,
+				&wait,
+				TASK_INTERRUPTIBLE);
+		/*
+		 * Don't set the idle flag until a wakeup will not be lost.
+		 *
+		 * Force synchronization between setting the idle flag and
+		 * checking the funnel queue; the producer side will do them in
+		 * the reverse order. (There's still a race condition we've
+		 * chosen to allow, because we've got a timeout below that
+		 * unwedges us if we hit it, but this may narrow the window a
+		 * little.)
+		 */
+		atomic_set(&queue->idle, 1);
+		memoryFence(); // store-load barrier between "idle" and funnel
+			       // queue
 
-    item = poll_for_work_item(queue);
-    if (item != NULL) {
-      break;
-    }
+		item = poll_for_work_item(queue);
+		if (item != NULL) {
+			break;
+		}
 
-    /*
-     * We need to check for thread-stop after setting TASK_INTERRUPTIBLE state
-     * up above. Otherwise, schedule() will put the thread to sleep and might
-     * miss a wakeup from kthread_stop() call in finish_work_queue().
-     *
-     * If there are delayed work items, we need to wait for them to
-     * get run. Then, when we check kthread_should_stop again, we'll
-     * finally exit.
-     */
-    if (kthread_should_stop() && !has_delayed_work_items(queue)) {
-      /*
-       * Recheck once again in case we *just* converted a delayed work item to
-       * a regular enqueued work item.
-       *
-       * It's important that processDelayedWorkItems holds the spin lock until
-       * it finishes enqueueing the work item to run.
-       *
-       * Funnel queues aren't synchronized between producers and consumer.
-       * Normally a producer interrupted mid-update can hide a later producer's
-       * entry until the first completes. This would be a problem, except that
-       * when kthread_stop is called, we should already have ceased adding new
-       * work items and have waited for all the regular work items to finish;
-       * (recurring) delayed work items should be the only exception.
-       *
-       * Worker thread shutdown would be simpler if even the delayed work items
-       * were required to be completed and not re-queued before shutting down a
-       * work queue.
-       */
-      item = poll_for_work_item(queue);
-      break;
-    }
+		/*
+		 * We need to check for thread-stop after setting
+		 * TASK_INTERRUPTIBLE state up above. Otherwise, schedule() will
+		 * put the thread to sleep and might miss a wakeup from
+		 * kthread_stop() call in finish_work_queue().
+		 *
+		 * If there are delayed work items, we need to wait for them to
+		 * get run. Then, when we check kthread_should_stop again, we'll
+		 * finally exit.
+		 */
+		if (kthread_should_stop() && !has_delayed_work_items(queue)) {
+			/*
+			 * Recheck once again in case we *just* converted a
+			 * delayed work item to a regular enqueued work item.
+			 *
+			 * It's important that processDelayedWorkItems holds the
+			 * spin lock until it finishes enqueueing the work item
+			 * to run.
+			 *
+			 * Funnel queues aren't synchronized between producers
+			 * and consumer. Normally a producer interrupted
+			 * mid-update can hide a later producer's entry until
+			 * the first completes. This would be a problem, except
+			 * that when kthread_stop is called, we should already
+			 * have ceased adding new work items and have waited for
+			 * all the regular work items to finish; (recurring)
+			 * delayed work items should be the only exception.
+			 *
+			 * Worker thread shutdown would be simpler if even the
+			 * delayed work items were required to be completed and
+			 * not re-queued before shutting down a work queue.
+			 */
+			item = poll_for_work_item(queue);
+			break;
+		}
 
-    /*
-     * We don't need to update the wait count atomically since this is the only
-     * place it is modified and there is only one thread involved.
-     */
-    queue->stats.waits++;
-    uint64_t time_before_schedule = currentTime(CT_MONOTONIC);
-    atomic64_add(time_before_schedule - queue->mostRecentWakeup,
-                 &queue->stats.run_time);
-    // Wake up often, to address the missed-wakeup race.
-    schedule_timeout(timeout_interval);
-    queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
-    uint64_t call_duration_ns = queue->mostRecentWakeup - time_before_schedule;
-    enter_histogram_sample(queue->stats.schedule_time_histogram,
-                           call_duration_ns / 1000);
+		/*
+		 * We don't need to update the wait count atomically since this
+		 * is the only place it is modified and there is only one thread
+		 * involved.
+		 */
+		queue->stats.waits++;
+		uint64_t time_before_schedule = currentTime(CT_MONOTONIC);
+		atomic64_add(time_before_schedule - queue->mostRecentWakeup,
+			     &queue->stats.run_time);
+		// Wake up often, to address the missed-wakeup race.
+		schedule_timeout(timeout_interval);
+		queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
+		uint64_t call_duration_ns =
+			queue->mostRecentWakeup - time_before_schedule;
+		enter_histogram_sample(queue->stats.schedule_time_histogram,
+				       call_duration_ns / 1000);
 
-    /*
-     * Check again before resetting first_wakeup for more accurate
-     * stats. (It's still racy, which can't be fixed without requiring
-     * tighter synchronization between producer and consumer sides.)
-     */
-    item = poll_for_work_item(queue);
-    if (item != NULL) {
-      break;
-    }
-  }
+		/*
+		 * Check again before resetting first_wakeup for more accurate
+		 * stats. (It's still racy, which can't be fixed without
+		 * requiring tighter synchronization between producer and
+		 * consumer sides.)
+		 */
+		item = poll_for_work_item(queue);
+		if (item != NULL) {
+			break;
+		}
+	}
 
-  if (item != NULL) {
-    uint64_t first_wakeup = atomic64_read(&queue->firstWakeup);
-    /*
-     * We sometimes register negative wakeup latencies without this fencing.
-     * Whether it's forcing full serialization between the read of first_wakeup
-     * and the "rdtsc" that might be used depending on the clock source that
-     * helps, or some extra nanoseconds of delay covering for high-resolution
-     * clocks not being quite in sync between CPUs, is not yet clear.
-     */
-    loadFence();
-    if (first_wakeup != 0) {
-      enter_histogram_sample(queue->stats.wakeup_latency_histogram,
-                             (currentTime(CT_MONOTONIC) - first_wakeup)
-                             / 1000);
-      enter_histogram_sample(queue->stats.wakeup_queue_length_histogram,
-                             get_pending_count(queue));
-    }
-  }
-  finish_wait(&queue->waitingWorkerThreads, &wait);
-  atomic_set(&queue->idle, 0);
+	if (item != NULL) {
+		uint64_t first_wakeup = atomic64_read(&queue->firstWakeup);
+		/*
+		 * We sometimes register negative wakeup latencies without this
+		 * fencing. Whether it's forcing full serialization between the
+		 * read of first_wakeup and the "rdtsc" that might be used
+		 * depending on the clock source that helps, or some extra
+		 * nanoseconds of delay covering for high-resolution clocks not
+		 * being quite in sync between CPUs, is not yet clear.
+		 */
+		loadFence();
+		if (first_wakeup != 0) {
+			enter_histogram_sample(
+				queue->stats.wakeup_latency_histogram,
+				(currentTime(CT_MONOTONIC) - first_wakeup) /
+					1000);
+			enter_histogram_sample(
+				queue->stats.wakeup_queue_length_histogram,
+				get_pending_count(queue));
+		}
+	}
+	finish_wait(&queue->waitingWorkerThreads, &wait);
+	atomic_set(&queue->idle, 0);
 
-  return item;
+	return item;
 }
 
 /**
@@ -486,14 +508,13 @@ wait_for_next_work_item(SimpleWorkQueue *queue,
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct kvdo_work_item *
-get_next_work_item(SimpleWorkQueue *queue,
-                   TimeoutJiffies   timeout_interval)
+get_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 {
-  struct kvdo_work_item *item = poll_for_work_item(queue);
-  if (item != NULL) {
-    return item;
-  }
-  return wait_for_next_work_item(queue, timeout_interval);
+	struct kvdo_work_item *item = poll_for_work_item(queue);
+	if (item != NULL) {
+		return item;
+	}
+	return wait_for_next_work_item(queue, timeout_interval);
 }
 
 /**
@@ -502,54 +523,60 @@ get_next_work_item(SimpleWorkQueue *queue,
  * @param [in]     queue  the work queue the item is from
  * @param [in]     item   the work item to run
  **/
-static void process_work_item(SimpleWorkQueue       *queue,
-                              struct kvdo_work_item *item)
+static void process_work_item(SimpleWorkQueue *queue,
+			      struct kvdo_work_item *item)
 {
-  if (ASSERT(item->myQueue == &queue->common,
-             "item %" PRIptr " from queue %" PRIptr
-             " marked as being in this queue (%" PRIptr ")",
-             item, queue, item->myQueue) == UDS_SUCCESS) {
-    update_stats_for_dequeue(&queue->stats, item);
-    item->myQueue = NULL;
-  }
+	if (ASSERT(item->my_queue == &queue->common,
+		   "item %" PRIptr " from queue %" PRIptr
+		   " marked as being in this queue (%" PRIptr ")",
+		   item, queue, item->my_queue) == UDS_SUCCESS) {
+		update_stats_for_dequeue(&queue->stats, item);
+		item->my_queue = NULL;
+	}
 
-  // Save the index, so we can use it after the work function.
-  unsigned int index = item->statTableIndex;
-  uint64_t work_start_time = record_start_time(index);
-  item->work(item);
-  // We just surrendered control of the work item; no more access.
-  item = NULL;
-  update_work_item_stats_for_work_time(&queue->stats.workItemStats, index,
-                                       work_start_time);
+	// Save the index, so we can use it after the work function.
+	unsigned int index = item->stat_table_index;
+	uint64_t work_start_time = record_start_time(index);
+	item->work(item);
+	// We just surrendered control of the work item; no more access.
+	item = NULL;
+	update_work_item_stats_for_work_time(&queue->stats.workItemStats,
+					     index,
+					     work_start_time);
 
-  /*
-   * Be friendly to a CPU that has other work to do, if the kernel has told us
-   * to. This speeds up some performance tests; that "other work" might include
-   * other VDO threads.
-   *
-   * N.B.: We compute the pending count info here without any synchronization,
-   * but it's for stats reporting only, so being imprecise isn't too big a
-   * deal, as long as reads and writes are atomic operations.
-   */
-  if (need_resched()) {
-    uint64_t time_before_reschedule = currentTime(CT_MONOTONIC);
-    // Record the queue length we have *before* rescheduling.
-    unsigned int queue_len = get_pending_count(queue);
-    cond_resched();
-    uint64_t time_after_reschedule = currentTime(CT_MONOTONIC);
+	/*
+	 * Be friendly to a CPU that has other work to do, if the kernel has
+	 * told us to. This speeds up some performance tests; that "other work"
+	 * might include other VDO threads.
+	 *
+	 * N.B.: We compute the pending count info here without any
+	 * synchronization, but it's for stats reporting only, so being
+	 * imprecise isn't too big a deal, as long as reads and writes are
+	 * atomic operations.
+	 */
+	if (need_resched()) {
+		uint64_t time_before_reschedule = currentTime(CT_MONOTONIC);
+		// Record the queue length we have *before* rescheduling.
+		unsigned int queue_len = get_pending_count(queue);
+		cond_resched();
+		uint64_t time_after_reschedule = currentTime(CT_MONOTONIC);
 
-    enter_histogram_sample(queue->stats.reschedule_queue_length_histogram,
-                           queue_len);
-    uint64_t run_time_ns = time_before_reschedule - queue->mostRecentWakeup;
-    enter_histogram_sample(queue->stats.run_time_before_reschedule_histogram,
-                           run_time_ns / 1000);
-    atomic64_add(run_time_ns, &queue->stats.run_time);
-    uint64_t call_time_ns = time_after_reschedule - time_before_reschedule;
-    enter_histogram_sample(queue->stats.reschedule_time_histogram,
-                           call_time_ns / 1000);
-    atomic64_add(call_time_ns, &queue->stats.reschedule_time);
-    queue->mostRecentWakeup = time_after_reschedule;
-  }
+		enter_histogram_sample(
+			queue->stats.reschedule_queue_length_histogram,
+			queue_len);
+		uint64_t run_time_ns =
+			time_before_reschedule - queue->mostRecentWakeup;
+		enter_histogram_sample(
+			queue->stats.run_time_before_reschedule_histogram,
+			run_time_ns / 1000);
+		atomic64_add(run_time_ns, &queue->stats.run_time);
+		uint64_t call_time_ns =
+			time_after_reschedule - time_before_reschedule;
+		enter_histogram_sample(queue->stats.reschedule_time_histogram,
+				       call_time_ns / 1000);
+		atomic64_add(call_time_ns, &queue->stats.reschedule_time);
+		queue->mostRecentWakeup = time_after_reschedule;
+	}
 }
 
 /**
@@ -561,22 +588,23 @@ static void process_work_item(SimpleWorkQueue       *queue,
  **/
 static void service_work_queue(SimpleWorkQueue *queue)
 {
-  TimeoutJiffies timeout_interval =
-    maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
+	TimeoutJiffies timeout_interval =
+		maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
 
-  run_start_hook(queue);
+	run_start_hook(queue);
 
-  while (true) {
-    struct kvdo_work_item *item = get_next_work_item(queue, timeout_interval);
-    if (item == NULL) {
-      // No work items but kthread_should_stop was triggered.
-      break;
-    }
-    // Process the work item
-    process_work_item(queue, item);
-  }
+	while (true) {
+		struct kvdo_work_item *item =
+			get_next_work_item(queue, timeout_interval);
+		if (item == NULL) {
+			// No work items but kthread_should_stop was triggered.
+			break;
+		}
+		// Process the work item
+		process_work_item(queue, item);
+	}
 
-  run_finish_hook(queue);
+	run_finish_hook(queue);
 }
 
 /**
@@ -589,44 +617,45 @@ static void service_work_queue(SimpleWorkQueue *queue)
  **/
 static int work_queue_runner(void *ptr)
 {
-  SimpleWorkQueue *queue = ptr;
-  kobject_get(&queue->common.kobj);
+	SimpleWorkQueue *queue = ptr;
+	kobject_get(&queue->common.kobj);
 
-  struct work_queue_stack_handle queue_handle;
-  initialize_work_queue_stack_handle(&queue_handle, queue);
-  queue->stats.start_time = queue->mostRecentWakeup
-    = currentTime(CT_MONOTONIC);
-  unsigned long flags;
-  spin_lock_irqsave(&queue->lock, flags);
-  queue->started = true;
-  spin_unlock_irqrestore(&queue->lock, flags);
-  wake_up(&queue->startWaiters);
-  service_work_queue(queue);
+	struct work_queue_stack_handle queue_handle;
+	initialize_work_queue_stack_handle(&queue_handle, queue);
+	queue->stats.start_time = queue->mostRecentWakeup =
+		currentTime(CT_MONOTONIC);
+	unsigned long flags;
+	spin_lock_irqsave(&queue->lock, flags);
+	queue->started = true;
+	spin_unlock_irqrestore(&queue->lock, flags);
+	wake_up(&queue->startWaiters);
+	service_work_queue(queue);
 
-  // Zero out handle structure for safety.
-  memset(&queue_handle, 0, sizeof(queue_handle));
+	// Zero out handle structure for safety.
+	memset(&queue_handle, 0, sizeof(queue_handle));
 
-  kobject_put(&queue->common.kobj);
-  return 0;
+	kobject_put(&queue->common.kobj);
+	return 0;
 }
 
 // Preparing work items
 
 /**********************************************************************/
 void setup_work_item(struct kvdo_work_item *item,
-                     KvdoWorkFunction       work,
-                     void                  *stats_function,
-                     unsigned int           action)
+		     KvdoWorkFunction work,
+		     void *stats_function,
+		     unsigned int action)
 {
-  ASSERT_LOG_ONLY(item->myQueue == NULL,
-                  "setup_work_item not called on enqueued work item");
-  item->work           = work;
-  item->statsFunction  = ((stats_function == NULL) ? work : stats_function);
-  item->statTableIndex = 0;
-  item->action         = action;
-  item->myQueue        = NULL;
-  item->executionTime  = 0;
-  item->next           = NULL;
+	ASSERT_LOG_ONLY(item->my_queue == NULL,
+			"setup_work_item not called on enqueued work item");
+	item->work = work;
+	item->stats_function =
+		((stats_function == NULL) ? work : stats_function);
+	item->stat_table_index = 0;
+	item->action = action;
+	item->my_queue = NULL;
+	item->execution_time = 0;
+	item->next = NULL;
 }
 
 // Thread management
@@ -634,15 +663,15 @@ void setup_work_item(struct kvdo_work_item *item,
 /**********************************************************************/
 static inline void wake_worker_thread(SimpleWorkQueue *queue)
 {
-  smp_mb();
-  atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CT_MONOTONIC));
-  // Despite the name, there's a maximum of one thread in this list.
-  wake_up(&queue->waitingWorkerThreads);
+	smp_mb();
+	atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CT_MONOTONIC));
+	// Despite the name, there's a maximum of one thread in this list.
+	wake_up(&queue->waitingWorkerThreads);
 }
 
 // Delayed work items
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 /**
  * Timer function invoked when a delayed work item is ready to run.
  *
@@ -658,37 +687,38 @@ static void process_delayed_work_items(struct timer_list *timer)
 static void process_delayed_work_items(unsigned long data)
 #endif
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-  SimpleWorkQueue *queue = from_timer(queue, timer, delayedItemsTimer);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+	SimpleWorkQueue *queue = from_timer(queue, timer, delayedItemsTimer);
 #else
-  SimpleWorkQueue *queue = (SimpleWorkQueue *) data;
+	SimpleWorkQueue *queue = (SimpleWorkQueue *)data;
 #endif
 
-  Jiffies next_execution_time = 0;
-  bool    reschedule          = false;
-  bool    needs_wakeup        = false;
+	Jiffies next_execution_time = 0;
+	bool reschedule = false;
+	bool needs_wakeup = false;
 
-  unsigned long flags;
-  spin_lock_irqsave(&queue->lock, flags);
-  while (!is_work_item_list_empty(&queue->delayedItems)) {
-    struct kvdo_work_item *item = work_item_list_peek(&queue->delayedItems);
-    if (item->executionTime > jiffies) {
-      next_execution_time = item->executionTime;
-      reschedule = true;
-      break;
-    }
-    work_item_list_poll(&queue->delayedItems);
-    item->executionTime = 0;    // not actually looked at...
-    item->myQueue = NULL;
-    needs_wakeup |= enqueue_work_queue_item(queue, item);
-  }
-  spin_unlock_irqrestore(&queue->lock, flags);
-  if (reschedule) {
-    mod_timer(&queue->delayedItemsTimer, next_execution_time);
-  }
-  if (needs_wakeup) {
-    wake_worker_thread(queue);
-  }
+	unsigned long flags;
+	spin_lock_irqsave(&queue->lock, flags);
+	while (!is_work_item_list_empty(&queue->delayedItems)) {
+		struct kvdo_work_item *item =
+			work_item_list_peek(&queue->delayedItems);
+		if (item->execution_time > jiffies) {
+			next_execution_time = item->execution_time;
+			reschedule = true;
+			break;
+		}
+		work_item_list_poll(&queue->delayedItems);
+		item->execution_time = 0; // not actually looked at...
+		item->my_queue = NULL;
+		needs_wakeup |= enqueue_work_queue_item(queue, item);
+	}
+	spin_unlock_irqrestore(&queue->lock, flags);
+	if (reschedule) {
+		mod_timer(&queue->delayedItemsTimer, next_execution_time);
+	}
+	if (needs_wakeup) {
+		wake_worker_thread(queue);
+	}
 }
 
 // Creation & teardown
@@ -696,11 +726,11 @@ static void process_delayed_work_items(unsigned long data)
 /**********************************************************************/
 static bool queue_started(SimpleWorkQueue *queue)
 {
-  unsigned long flags;
-  spin_lock_irqsave(&queue->lock, flags);
-  bool started = queue->started;
-  spin_unlock_irqrestore(&queue->lock, flags);
-  return started;
+	unsigned long flags;
+	spin_lock_irqsave(&queue->lock, flags);
+	bool started = queue->started;
+	spin_unlock_irqrestore(&queue->lock, flags);
+	return started;
 }
 
 /**
@@ -720,194 +750,221 @@ static bool queue_started(SimpleWorkQueue *queue)
  *
  * @return  VDO_SUCCESS or an error code
  **/
-static int make_simple_work_queue(const char               *thread_name_prefix,
-                                  const char               *name,
-                                  struct kobject           *parent_kobject,
-                                  KernelLayer              *owner,
-                                  void                     *private,
-                                  const KvdoWorkQueueType  *type,
-                                  SimpleWorkQueue         **queue_ptr)
+static int make_simple_work_queue(const char *thread_name_prefix,
+				  const char *name,
+				  struct kobject *parent_kobject,
+				  KernelLayer *owner,
+				  void *private,
+				  const struct kvdo_work_queue_type *type,
+				  SimpleWorkQueue **queue_ptr)
 {
-  SimpleWorkQueue *queue;
-  int result = ALLOCATE(1, SimpleWorkQueue, "simple work queue", &queue);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	SimpleWorkQueue *queue;
+	int result = ALLOCATE(1, SimpleWorkQueue, "simple work queue", &queue);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  queue->type         = type;
-  queue->private      = private;
-  queue->common.owner = owner;
+	queue->type = type;
+	queue->private = private;
+	queue->common.owner = owner;
 
-  unsigned int num_priority_lists = 1;
-  for (int i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
-    const KvdoWorkQueueAction *action = &queue->type->actionTable[i];
-    if (action->name == NULL) {
-      break;
-    }
-    unsigned int code     = action->code;
-    unsigned int priority = action->priority;
+	unsigned int num_priority_lists = 1;
+	for (int i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
+		const struct kvdo_work_queue_action *action =
+			&queue->type->action_table[i];
+		if (action->name == NULL) {
+			break;
+		}
+		unsigned int code = action->code;
+		unsigned int priority = action->priority;
 
-    result = ASSERT(code < WORK_QUEUE_ACTION_COUNT,
-                    "invalid action code %u in work queue initialization",
-                    code);
-    if (result != VDO_SUCCESS) {
-      FREE(queue);
-      return result;
-    }
-    result = ASSERT(priority < WORK_QUEUE_PRIORITY_COUNT,
-                    "invalid action priority %u in work queue initialization",
-                    priority);
-    if (result != VDO_SUCCESS) {
-      FREE(queue);
-      return result;
-    }
-    queue->priorityMap[code] = priority;
-    if (num_priority_lists <= priority) {
-      num_priority_lists = priority + 1;
-    }
-  }
+		result = ASSERT(
+			code < WORK_QUEUE_ACTION_COUNT,
+			"invalid action code %u in work queue initialization",
+			code);
+		if (result != VDO_SUCCESS) {
+			FREE(queue);
+			return result;
+		}
+		result = ASSERT(
+			priority < WORK_QUEUE_PRIORITY_COUNT,
+			"invalid action priority %u in work queue initialization",
+			priority);
+		if (result != VDO_SUCCESS) {
+			FREE(queue);
+			return result;
+		}
+		queue->priorityMap[code] = priority;
+		if (num_priority_lists <= priority) {
+			num_priority_lists = priority + 1;
+		}
+	}
 
-  result = duplicateString(name, "queue name", &queue->common.name);
-  if (result != VDO_SUCCESS) {
-    FREE(queue);
-    return -ENOMEM;
-  }
+	result = duplicateString(name, "queue name", &queue->common.name);
+	if (result != VDO_SUCCESS) {
+		FREE(queue);
+		return -ENOMEM;
+	}
 
-  init_waitqueue_head(&queue->waitingWorkerThreads);
-  init_waitqueue_head(&queue->startWaiters);
-  spin_lock_init(&queue->lock);
+	init_waitqueue_head(&queue->waitingWorkerThreads);
+	init_waitqueue_head(&queue->startWaiters);
+	spin_lock_init(&queue->lock);
 
-  initialize_work_item_list(&queue->delayedItems);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0)
-  timer_setup(&queue->delayedItemsTimer, process_delayed_work_items, 0);
+	initialize_work_item_list(&queue->delayedItems);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+	timer_setup(&queue->delayedItemsTimer, process_delayed_work_items, 0);
 #else
-  setup_timer(&queue->delayedItemsTimer, process_delayed_work_items,
-              (unsigned long) queue);
+	setup_timer(&queue->delayedItemsTimer,
+		    process_delayed_work_items,
+		    (unsigned long)queue);
 #endif
 
-  kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
-  result = kobject_add(&queue->common.kobj, parent_kobject, queue->common.name);
-  if (result != 0) {
-    logError("Cannot add sysfs node: %d", result);
-    free_simple_work_queue(queue);
-    return result;
-  }
-  queue->numPriorityLists = num_priority_lists;
-  for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-    result = makeFunnelQueue(&queue->priorityLists[i]);
-    if (result != UDS_SUCCESS) {
-      free_simple_work_queue(queue);
-      return result;
-    }
-  }
-  result = initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
-  if (result != 0) {
-    logError("Cannot initialize statistics tracking: %d", result);
-    free_simple_work_queue(queue);
-    return result;
-  }
+	kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
+	result = kobject_add(&queue->common.kobj,
+			     parent_kobject,
+			     queue->common.name);
+	if (result != 0) {
+		logError("Cannot add sysfs node: %d", result);
+		free_simple_work_queue(queue);
+		return result;
+	}
+	queue->numPriorityLists = num_priority_lists;
+	for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+		result = makeFunnelQueue(&queue->priorityLists[i]);
+		if (result != UDS_SUCCESS) {
+			free_simple_work_queue(queue);
+			return result;
+		}
+	}
+	result =
+		initialize_work_queue_stats(&queue->stats, &queue->common.kobj);
+	if (result != 0) {
+		logError("Cannot initialize statistics tracking: %d", result);
+		free_simple_work_queue(queue);
+		return result;
+	}
 
-  queue->started = false;
-  struct task_struct *thread = NULL;
-  thread = kthread_run(work_queue_runner, queue, "%s:%s", thread_name_prefix,
-                       queue->common.name);
+	queue->started = false;
+	struct task_struct *thread = NULL;
+	thread = kthread_run(work_queue_runner,
+			     queue,
+			     "%s:%s",
+			     thread_name_prefix,
+			     queue->common.name);
 
-  if (IS_ERR(thread)) {
-    free_simple_work_queue(queue);
-    return (int) PTR_ERR(thread);
-  }
-  queue->thread = thread;
-  atomic_set(&queue->threadID, thread->pid);
-  /*
-   * If we don't wait to ensure the thread is running VDO code, a
-   * quick kthread_stop (due to errors elsewhere) could cause it to
-   * never get as far as running VDO, skipping the cleanup code.
-   *
-   * Eventually we should just make that path safe too, and then we
-   * won't need this synchronization.
-   */
-  wait_event(queue->startWaiters, queue_started(queue) == true);
-  *queue_ptr = queue;
-  return UDS_SUCCESS;
+	if (IS_ERR(thread)) {
+		free_simple_work_queue(queue);
+		return (int)PTR_ERR(thread);
+	}
+	queue->thread = thread;
+	atomic_set(&queue->threadID, thread->pid);
+	/*
+	 * If we don't wait to ensure the thread is running VDO code, a
+	 * quick kthread_stop (due to errors elsewhere) could cause it to
+	 * never get as far as running VDO, skipping the cleanup code.
+	 *
+	 * Eventually we should just make that path safe too, and then we
+	 * won't need this synchronization.
+	 */
+	wait_event(queue->startWaiters, queue_started(queue) == true);
+	*queue_ptr = queue;
+	return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int make_work_queue(const char               *thread_name_prefix,
-                    const char               *name,
-                    struct kobject           *parent_kobject,
-                    KernelLayer              *owner,
-                    void                     *private,
-                    const KvdoWorkQueueType  *type,
-                    unsigned int              thread_count,
-                    void                     *thread_privates[],
-                    struct kvdo_work_queue  **queue_ptr)
+int make_work_queue(const char *thread_name_prefix,
+		    const char *name,
+		    struct kobject *parent_kobject,
+		    KernelLayer *owner,
+		    void *private,
+		    const struct kvdo_work_queue_type *type,
+		    unsigned int thread_count,
+		    void *thread_privates[],
+		    struct kvdo_work_queue **queue_ptr)
 {
-  if (thread_count == 1) {
-    void *context = (thread_privates != NULL) ? thread_privates[0] : private;
-    SimpleWorkQueue *simple_queue;
-    int result = make_simple_work_queue(thread_name_prefix, name,
-                                        parent_kobject, owner,
-                                        context, type, &simple_queue);
-    if (result == VDO_SUCCESS) {
-      *queue_ptr = &simple_queue->common;
-    }
-    return result;
-  }
+	if (thread_count == 1) {
+		void *context = (thread_privates != NULL) ? thread_privates[0] :
+							    private;
+		SimpleWorkQueue *simple_queue;
+		int result =
+			make_simple_work_queue(thread_name_prefix,
+					       name,
+					       parent_kobject,
+					       owner,
+					       context,
+					       type,
+					       &simple_queue);
+		if (result == VDO_SUCCESS) {
+			*queue_ptr = &simple_queue->common;
+		}
+		return result;
+	}
 
-  RoundRobinWorkQueue *queue;
-  int result = ALLOCATE(1, RoundRobinWorkQueue, "round-robin work queue",
-                        &queue);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	RoundRobinWorkQueue *queue;
+	int result = ALLOCATE(1,
+			      RoundRobinWorkQueue,
+			      "round-robin work queue",
+			      &queue);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = ALLOCATE(thread_count, SimpleWorkQueue *, "subordinate work queues",
-                    &queue->serviceQueues);
-  if (result != UDS_SUCCESS) {
-    FREE(queue);
-    return result;
-  }
+	result = ALLOCATE(thread_count,
+			  SimpleWorkQueue *,
+			  "subordinate work queues",
+			  &queue->serviceQueues);
+	if (result != UDS_SUCCESS) {
+		FREE(queue);
+		return result;
+	}
 
-  queue->numServiceQueues      = thread_count;
-  queue->common.roundRobinMode = true;
-  queue->common.owner          = owner;
+	queue->numServiceQueues = thread_count;
+	queue->common.roundRobinMode = true;
+	queue->common.owner = owner;
 
-  result = duplicateString(name, "queue name", &queue->common.name);
-  if (result != VDO_SUCCESS) {
-    FREE(queue->serviceQueues);
-    FREE(queue);
-    return -ENOMEM;
-  }
+	result = duplicateString(name, "queue name", &queue->common.name);
+	if (result != VDO_SUCCESS) {
+		FREE(queue->serviceQueues);
+		FREE(queue);
+		return -ENOMEM;
+	}
 
-  kobject_init(&queue->common.kobj, &round_robin_work_queue_kobj_type);
-  result = kobject_add(&queue->common.kobj, parent_kobject, queue->common.name);
-  if (result != 0) {
-    logError("Cannot add sysfs node: %d", result);
-    finish_work_queue(&queue->common);
-    kobject_put(&queue->common.kobj);
-    return result;
-  }
+	kobject_init(&queue->common.kobj, &round_robin_work_queue_kobj_type);
+	result = kobject_add(&queue->common.kobj,
+			     parent_kobject,
+			     queue->common.name);
+	if (result != 0) {
+		logError("Cannot add sysfs node: %d", result);
+		finish_work_queue(&queue->common);
+		kobject_put(&queue->common.kobj);
+		return result;
+	}
 
-  *queue_ptr = &queue->common;
+	*queue_ptr = &queue->common;
 
-  char thread_name[TASK_COMM_LEN];
-  for (unsigned int i = 0; i < thread_count; i++) {
-    snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
-    void *context = (thread_privates != NULL) ? thread_privates[i] : private;
-    result = make_simple_work_queue(thread_name_prefix, thread_name,
-                                    &queue->common.kobj, owner, context, type,
-                                    &queue->serviceQueues[i]);
-    if (result != VDO_SUCCESS) {
-      queue->numServiceQueues = i;
-      // Destroy previously created subordinates.
-      finish_work_queue(*queue_ptr);
-      free_work_queue(queue_ptr);
-      return result;
-    }
-    queue->serviceQueues[i]->parentQueue = *queue_ptr;
-  }
+	char thread_name[TASK_COMM_LEN];
+	for (unsigned int i = 0; i < thread_count; i++) {
+		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
+		void *context = (thread_privates != NULL) ? thread_privates[i] :
+							    private;
+		result = make_simple_work_queue(thread_name_prefix,
+						thread_name,
+						&queue->common.kobj,
+						owner,
+						context,
+						type,
+						&queue->serviceQueues[i]);
+		if (result != VDO_SUCCESS) {
+			queue->numServiceQueues = i;
+			// Destroy previously created subordinates.
+			finish_work_queue(*queue_ptr);
+			free_work_queue(queue_ptr);
+			return result;
+		}
+		queue->serviceQueues[i]->parentQueue = *queue_ptr;
+	}
 
-  return VDO_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**
@@ -917,14 +974,14 @@ int make_work_queue(const char               *thread_name_prefix,
  **/
 static void finish_simple_work_queue(SimpleWorkQueue *queue)
 {
-  // Tell the worker thread to shut down.
-  if (queue->thread != NULL) {
-    atomic_set(&queue->threadID, 0);
-    // Waits for thread to exit.
-    kthread_stop(queue->thread);
-  }
+	// Tell the worker thread to shut down.
+	if (queue->thread != NULL) {
+		atomic_set(&queue->threadID, 0);
+		// Waits for thread to exit.
+		kthread_stop(queue->thread);
+	}
 
-  queue->thread = NULL;
+	queue->thread = NULL;
 }
 
 /**
@@ -934,22 +991,22 @@ static void finish_simple_work_queue(SimpleWorkQueue *queue)
  **/
 static void finish_round_robin_work_queue(RoundRobinWorkQueue *queue)
 {
-  SimpleWorkQueue **queue_table = queue->serviceQueues;
-  unsigned int      count       = queue->numServiceQueues;
+	SimpleWorkQueue **queue_table = queue->serviceQueues;
+	unsigned int count = queue->numServiceQueues;
 
-  for (unsigned int i = 0; i < count; i++) {
-    finish_simple_work_queue(queue_table[i]);
-  }
+	for (unsigned int i = 0; i < count; i++) {
+		finish_simple_work_queue(queue_table[i]);
+	}
 }
 
 /**********************************************************************/
 void finish_work_queue(struct kvdo_work_queue *queue)
 {
-  if (queue->roundRobinMode) {
-    finish_round_robin_work_queue(asRoundRobinWorkQueue(queue));
-  } else {
-    finish_simple_work_queue(asSimpleWorkQueue(queue));
-  }
+	if (queue->roundRobinMode) {
+		finish_round_robin_work_queue(asRoundRobinWorkQueue(queue));
+	} else {
+		finish_simple_work_queue(asSimpleWorkQueue(queue));
+	}
 }
 
 /**
@@ -960,11 +1017,11 @@ void finish_work_queue(struct kvdo_work_queue *queue)
  **/
 static void free_simple_work_queue(SimpleWorkQueue *queue)
 {
-  for (unsigned int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-    freeFunnelQueue(queue->priorityLists[i]);
-  }
-  cleanup_work_queue_stats(&queue->stats);
-  kobject_put(&queue->common.kobj);
+	for (unsigned int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+		freeFunnelQueue(queue->priorityLists[i]);
+	}
+	cleanup_work_queue_stats(&queue->stats);
+	kobject_put(&queue->common.kobj);
 }
 
 /**
@@ -975,33 +1032,33 @@ static void free_simple_work_queue(SimpleWorkQueue *queue)
  **/
 static void free_round_robin_work_queue(RoundRobinWorkQueue *queue)
 {
-  SimpleWorkQueue **queue_table = queue->serviceQueues;
-  unsigned int      count       = queue->numServiceQueues;
+	SimpleWorkQueue **queue_table = queue->serviceQueues;
+	unsigned int count = queue->numServiceQueues;
 
-  queue->serviceQueues = NULL;
-  for (unsigned int i = 0; i < count; i++) {
-    free_simple_work_queue(queue_table[i]);
-  }
-  FREE(queue_table);
-  kobject_put(&queue->common.kobj);
+	queue->serviceQueues = NULL;
+	for (unsigned int i = 0; i < count; i++) {
+		free_simple_work_queue(queue_table[i]);
+	}
+	FREE(queue_table);
+	kobject_put(&queue->common.kobj);
 }
 
 /**********************************************************************/
 void free_work_queue(struct kvdo_work_queue **queue_ptr)
 {
-  struct kvdo_work_queue *queue = *queue_ptr;
-  if (queue == NULL) {
-    return;
-  }
-  *queue_ptr = NULL;
+	struct kvdo_work_queue *queue = *queue_ptr;
+	if (queue == NULL) {
+		return;
+	}
+	*queue_ptr = NULL;
 
-  finish_work_queue(queue);
+	finish_work_queue(queue);
 
-  if (queue->roundRobinMode) {
-    free_round_robin_work_queue(asRoundRobinWorkQueue(queue));
-  } else {
-    free_simple_work_queue(asSimpleWorkQueue(queue));
-  }
+	if (queue->roundRobinMode) {
+		free_round_robin_work_queue(asRoundRobinWorkQueue(queue));
+	} else {
+		free_simple_work_queue(asSimpleWorkQueue(queue));
+	}
 }
 
 // Debugging dumps
@@ -1009,130 +1066,137 @@ void free_work_queue(struct kvdo_work_queue **queue_ptr)
 /**********************************************************************/
 static void dump_simple_work_queue(SimpleWorkQueue *queue)
 {
-  mutex_lock(&queue_data_lock);
-  // Take a snapshot to reduce inconsistency in logged numbers.
-  queue_data = *queue;
-  const char *thread_status;
+	mutex_lock(&queue_data_lock);
+	// Take a snapshot to reduce inconsistency in logged numbers.
+	queue_data = *queue;
+	const char *thread_status;
 
-  char task_state_report = '-';
-  if (queue_data.thread != NULL) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
-    task_state_report = task_state_to_char(queue->thread);
+	char task_state_report = '-';
+	if (queue_data.thread != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
+		task_state_report = task_state_to_char(queue->thread);
 #else
-    unsigned int task_state = queue->thread->state & TASK_REPORT;
-    task_state &= 0x1ff;
-    unsigned int task_state_index;
-    if (task_state != 0) {
-      task_state_index = __ffs(task_state)+1;
-      BUG_ON(task_state_index >= sizeof(TASK_STATE_TO_CHAR_STR));
-    } else {
-      task_state_index = 0;
-    }
-    task_state_report = TASK_STATE_TO_CHAR_STR[task_state_index];
+		unsigned int task_state = queue->thread->state & TASK_REPORT;
+		task_state &= 0x1ff;
+		unsigned int task_state_index;
+		if (task_state != 0) {
+			task_state_index = __ffs(task_state) + 1;
+			BUG_ON(task_state_index >=
+			       sizeof(TASK_STATE_TO_CHAR_STR));
+		} else {
+			task_state_index = 0;
+		}
+		task_state_report = TASK_STATE_TO_CHAR_STR[task_state_index];
 #endif
-  }
+	}
 
-  if (queue_data.thread == NULL) {
-    thread_status = "no threads";
-  } else if (atomic_read(&queue_data.idle)) {
-    thread_status = "idle";
-  } else {
-    thread_status = "running";
-  }
-  logInfo("workQ %" PRIptr " (%s) %u entries %llu waits, %s (%c)",
-          &queue->common,
-          queue_data.common.name,
-          get_pending_count(&queue_data),
-          queue_data.stats.waits,
-          thread_status,
-          task_state_report);
+	if (queue_data.thread == NULL) {
+		thread_status = "no threads";
+	} else if (atomic_read(&queue_data.idle)) {
+		thread_status = "idle";
+	} else {
+		thread_status = "running";
+	}
+	logInfo("workQ %" PRIptr " (%s) %u entries %llu waits, %s (%c)",
+		&queue->common,
+		queue_data.common.name,
+		get_pending_count(&queue_data),
+		queue_data.stats.waits,
+		thread_status,
+		task_state_report);
 
-  log_work_item_stats(&queue_data.stats.workItemStats);
-  log_work_queue_stats(queue);
+	log_work_item_stats(&queue_data.stats.workItemStats);
+	log_work_queue_stats(queue);
 
-  mutex_unlock(&queue_data_lock);
+	mutex_unlock(&queue_data_lock);
 
-  // ->lock spin lock status?
-  // ->waitingWorkerThreads wait queue status? anyone waiting?
+	// ->lock spin lock status?
+	// ->waitingWorkerThreads wait queue status? anyone waiting?
 }
 
 /**********************************************************************/
 void dump_work_queue(struct kvdo_work_queue *queue)
 {
-  if (queue->roundRobinMode) {
-    RoundRobinWorkQueue *round_robin_queue = asRoundRobinWorkQueue(queue);
-    for (unsigned int i = 0; i < round_robin_queue->numServiceQueues; i++) {
-      dump_simple_work_queue(round_robin_queue->serviceQueues[i]);
-    }
-  } else {
-    dump_simple_work_queue(asSimpleWorkQueue(queue));
-  }
+	if (queue->roundRobinMode) {
+		RoundRobinWorkQueue *round_robin_queue =
+			asRoundRobinWorkQueue(queue);
+		for (unsigned int i = 0;
+		     i < round_robin_queue->numServiceQueues; i++) {
+			dump_simple_work_queue(round_robin_queue->serviceQueues[i]);
+		}
+	} else {
+		dump_simple_work_queue(asSimpleWorkQueue(queue));
+	}
 }
 
 /**********************************************************************/
 void dump_work_item_to_buffer(struct kvdo_work_item *item,
-                              char *buffer,
-                              size_t length)
+			      char *buffer,
+			      size_t length)
 {
-  size_t current_length
-    = snprintf(buffer, length, "%.*s/", TASK_COMM_LEN,
-               item->myQueue == NULL ? "-" : item->myQueue->name);
-  if (current_length < length) {
-    get_function_name(item->statsFunction, buffer + current_length,
-                      length - current_length);
-  }
+	size_t current_length =
+		snprintf(buffer,
+			 length,
+			 "%.*s/",
+			 TASK_COMM_LEN,
+			 item->my_queue == NULL ? "-" : item->my_queue->name);
+	if (current_length < length) {
+		get_function_name(item->stats_function,
+				  buffer + current_length,
+				  length - current_length);
+	}
 }
 
 // Work submission
 
 /**********************************************************************/
 void enqueue_work_queue(struct kvdo_work_queue *kvdoWorkQueue,
-                        struct kvdo_work_item  *item)
+			struct kvdo_work_item *item)
 {
-  SimpleWorkQueue *queue = pick_simple_queue(kvdoWorkQueue);
+	SimpleWorkQueue *queue = pick_simple_queue(kvdoWorkQueue);
 
-  item->executionTime = 0;
+	item->execution_time = 0;
 
-  if (enqueue_work_queue_item(queue, item)) {
-    wake_worker_thread(queue);
-  }
+	if (enqueue_work_queue_item(queue, item)) {
+		wake_worker_thread(queue);
+	}
 }
 
 /**********************************************************************/
 void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
-                                struct kvdo_work_item  *item,
-                                Jiffies                 execution_time)
+				struct kvdo_work_item *item,
+				Jiffies execution_time)
 {
-  if (execution_time <= jiffies) {
-    enqueue_work_queue(kvdo_work_queue, item);
-    return;
-  }
+	if (execution_time <= jiffies) {
+		enqueue_work_queue(kvdo_work_queue, item);
+		return;
+	}
 
-  SimpleWorkQueue *queue              = pick_simple_queue(kvdo_work_queue);
-  bool             reschedule_timer   = false;
-  unsigned long    flags;
+	SimpleWorkQueue *queue = pick_simple_queue(kvdo_work_queue);
+	bool reschedule_timer = false;
+	unsigned long flags;
 
-  item->executionTime = execution_time;
+	item->execution_time = execution_time;
 
-  // Lock if the work item is delayed. All delayed items are handled via a
-  // single linked list.
-  spin_lock_irqsave(&queue->lock, flags);
+	// Lock if the work item is delayed. All delayed items are handled via a
+	// single linked list.
+	spin_lock_irqsave(&queue->lock, flags);
 
-  if (is_work_item_list_empty(&queue->delayedItems)) {
-    reschedule_timer = true;
-  }
-  /*
-   * XXX We should keep the list sorted, but at the moment the list won't
-   * grow above a single entry anyway.
-   */
-  item->myQueue = &queue->common;
-  add_to_work_item_list(&queue->delayedItems, item);
+	if (is_work_item_list_empty(&queue->delayedItems)) {
+		reschedule_timer = true;
+	}
+	/*
+	 * XXX We should keep the list sorted, but at the moment the list won't
+	 * grow above a single entry anyway.
+	 */
+	item->my_queue = &queue->common;
+	add_to_work_item_list(&queue->delayedItems, item);
 
-  spin_unlock_irqrestore(&queue->lock, flags);
+	spin_unlock_irqrestore(&queue->lock, flags);
 
-  if (reschedule_timer) {
-    mod_timer(&queue->delayedItemsTimer, execution_time);
-  }
+	if (reschedule_timer) {
+		mod_timer(&queue->delayedItemsTimer, execution_time);
+	}
 }
 
 // Misc
@@ -1141,27 +1205,27 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 /**********************************************************************/
 struct kvdo_work_queue *get_current_work_queue(void)
 {
-  SimpleWorkQueue *queue = get_current_thread_work_queue();
-  return (queue == NULL) ? NULL : &queue->common;
+	SimpleWorkQueue *queue = get_current_thread_work_queue();
+	return (queue == NULL) ? NULL : &queue->common;
 }
 
 /**********************************************************************/
 KernelLayer *get_work_queue_owner(struct kvdo_work_queue *queue)
 {
-  return queue->owner;
+	return queue->owner;
 }
 
 /**********************************************************************/
 void *get_work_queue_private_data(void)
 {
-  SimpleWorkQueue *queue = get_current_thread_work_queue();
-  return (queue != NULL) ? queue->private : NULL;
+	SimpleWorkQueue *queue = get_current_thread_work_queue();
+	return (queue != NULL) ? queue->private : NULL;
 }
 
 /**********************************************************************/
 void init_work_queue_once(void)
 {
-  // We can't use DEFINE_MUTEX because it's not compatible with c99 mode.
-  mutex_init(&queue_data_lock);
-  init_work_queue_stack_handle_once();
+	// We can't use DEFINE_MUTEX because it's not compatible with c99 mode.
+	mutex_init(&queue_data_lock);
+	init_work_queue_stack_handle_once();
 }

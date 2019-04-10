@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#7 $
  */
 
 #include "batchProcessor.h"
@@ -190,7 +190,7 @@ int make_batch_processor(KernelLayer *layer,
 void add_to_batch_processor(struct batch_processor *batch,
                             struct kvdo_work_item *item)
 {
-	funnelQueuePut(batch->queue, &item->workQueueEntryLink);
+	funnelQueuePut(batch->queue, &item->work_queue_entry_link);
 	schedule_batch_processing(batch);
 }
 
@@ -203,8 +203,8 @@ struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
 		return NULL;
 	}
 	return container_of(fq_entry,
-                            struct kvdo_work_item,
-                            workQueueEntryLink);
+			    struct kvdo_work_item,
+			    work_queue_entry_link);
 }
 
 /**********************************************************************/

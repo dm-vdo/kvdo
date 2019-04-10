@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#49 $
  */
 
 #include "kernelLayer.h"
@@ -49,16 +49,16 @@
 #include "statusProcfs.h"
 #include "stringUtils.h"
 
-static const KvdoWorkQueueType bioAckQType = {
-  .actionTable = {
+static const struct kvdo_work_queue_type bioAckQType = {
+  .action_table = {
     { .name = "bio_ack",
       .code = BIO_ACK_Q_ACTION_ACK,
       .priority = 0 },
   },
 };
 
-static const KvdoWorkQueueType cpuQType = {
-  .actionTable = {
+static const struct kvdo_work_queue_type cpuQType = {
+  .action_table = {
     { .name = "cpu_complete_kvio",
       .code = CPU_Q_ACTION_COMPLETE_KVIO,
       .priority = 0 },

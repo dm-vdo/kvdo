@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#5 $
  */
 
 #include "workItemStats.h"
@@ -193,10 +193,10 @@ void update_work_item_stats_for_enqueue(struct kvdo_work_item_stats *stats,
 					struct kvdo_work_item *item,
 					int priority)
 {
-	item->statTableIndex = get_stat_table_index(stats,
-						    item->statsFunction,
-						    priority);
-	atomic64_add(1, &stats->enqueued[item->statTableIndex]);
+	item->stat_table_index = get_stat_table_index(stats,
+						      item->stats_function,
+						      priority);
+	atomic64_add(1, &stats->enqueued[item->stat_table_index]);
 }
 
 /**********************************************************************/

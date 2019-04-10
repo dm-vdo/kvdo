@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#18 $
  */
 
 #include "kernelVDOInternals.h"
@@ -58,10 +58,10 @@ static void finish_kvdo_request_queue(void *ptr)
 }
 
 /**********************************************************************/
-static const KvdoWorkQueueType request_queue_type = {
+static const struct kvdo_work_queue_type request_queue_type = {
 	.start = start_kvdo_request_queue,
 	.finish = finish_kvdo_request_queue,
-	.actionTable =
+	.action_table =
 		{
 			{ .name = "req_completion",
 			  .code = REQ_Q_ACTION_COMPLETION,

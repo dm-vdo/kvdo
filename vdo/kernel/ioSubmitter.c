@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#21 $
  */
 
 #include "ioSubmitter.h"
@@ -94,10 +94,10 @@ static void finish_bio_queue(void *ptr)
 	blk_finish_plug(&bio_queue_data->plug);
 }
 
-static const KvdoWorkQueueType bio_queue_type = {
+static const struct kvdo_work_queue_type bio_queue_type = {
 	.start = start_bio_queue,
 	.finish = finish_bio_queue,
-	.actionTable =
+	.action_table =
 		{
 			{ .name = "bio_compressed_data",
 			  .code = BIO_Q_ACTION_COMPRESSED_DATA,
@@ -398,7 +398,7 @@ static struct kvio *get_mergeable_locked(IntMap *map,
 	struct kvio *kvio_merge = intMapGet(map, merge_sector);
 
 	if (kvio_merge != NULL) {
-		if (!areWorkItemActionsEqual(
+		if (!are_work_item_actions_equal(
 			    &kvio->enqueueable.workItem,
 			    &kvio_merge->enqueueable.workItem)) {
 			return NULL;

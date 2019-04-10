@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#6 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -83,7 +83,7 @@ struct simpleWorkQueue {
   /** The kernel thread */
   struct task_struct          *thread;
   /** Life cycle functions, etc */
-  const KvdoWorkQueueType     *type;
+  const struct kvdo_work_queue_type *type;
   /** Opaque private data pointer, defined by higher level code */
   void                        *private;
   /** In a subordinate work queue, a link back to the round-robin parent */

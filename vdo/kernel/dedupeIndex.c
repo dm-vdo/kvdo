@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#21 $
  */
 
 #include "dedupeIndex.h"
@@ -986,10 +986,10 @@ int make_dedupe_index(struct dedupe_index **index_ptr, KernelLayer *layer)
 	udsConfigurationSetNonce(index->configuration,
 				 (UdsNonce)layer->geometry.nonce);
 
-	static const KvdoWorkQueueType uds_queue_type = {
+	static const struct kvdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
-		.actionTable  = {
+		.action_table  = {
 			{ .name = "uds_action",
 			  .code = UDS_Q_ACTION,
 			  .priority = 0 },
