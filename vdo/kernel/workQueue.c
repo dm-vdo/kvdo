@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#15 $
  */
 
 #include "workQueue.h"
@@ -55,23 +55,23 @@ enum {
 };
 
 static struct mutex queue_data_lock;
-static SimpleWorkQueue queue_data;
+static struct simple_work_queue queue_data;
 
-static DEFINE_PER_CPU(unsigned int, serviceQueueRotor);
+static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
-static void free_simple_work_queue(SimpleWorkQueue *queue);
-static void finish_simple_work_queue(SimpleWorkQueue *queue);
+static void free_simple_work_queue(struct simple_work_queue *queue);
+static void finish_simple_work_queue(struct simple_work_queue *queue);
 
 // work item lists (used for delayed work items)
 
 /**********************************************************************/
-static void initialize_work_item_list(KvdoWorkItemList *list)
+static void initialize_work_item_list(struct kvdo_work_item_list *list)
 {
 	list->tail = NULL;
 }
 
 /**********************************************************************/
-static void add_to_work_item_list(KvdoWorkItemList *list,
+static void add_to_work_item_list(struct kvdo_work_item_list *list,
 				  struct kvdo_work_item *item)
 {
 	if (list->tail == NULL) {
@@ -85,13 +85,14 @@ static void add_to_work_item_list(KvdoWorkItemList *list,
 }
 
 /**********************************************************************/
-static bool is_work_item_list_empty(KvdoWorkItemList *list)
+static bool is_work_item_list_empty(struct kvdo_work_item_list *list)
 {
 	return list->tail == NULL;
 }
 
 /**********************************************************************/
-static struct kvdo_work_item *work_item_list_poll(KvdoWorkItemList *list)
+static struct kvdo_work_item *
+work_item_list_poll(struct kvdo_work_item_list *list)
 {
 	struct kvdo_work_item *tail = list->tail;
 	if (tail == NULL) {
@@ -110,13 +111,14 @@ static struct kvdo_work_item *work_item_list_poll(KvdoWorkItemList *list)
 }
 
 /**********************************************************************/
-static struct kvdo_work_item *work_item_list_peek(KvdoWorkItemList *list)
+static struct kvdo_work_item *
+work_item_list_peek(struct kvdo_work_item_list *list)
 {
 	struct kvdo_work_item *tail = list->tail;
 	return tail ? tail->next : NULL;
 }
 
-// Finding the SimpleWorkQueue to actually operate on.
+// Finding the simple_work_queue to actually operate on.
 
 /**
  * Pick the subordinate service queue to use, distributing the work evenly
@@ -126,7 +128,8 @@ static struct kvdo_work_item *work_item_list_peek(KvdoWorkItemList *list)
  *
  * @return  A subordinate work queue
  **/
-static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
+static inline struct simple_work_queue *
+next_service_queue(struct round_robin_work_queue *queue)
 {
 	/*
 	 * It shouldn't be a big deal if the same rotor gets used for multiple
@@ -136,9 +139,9 @@ static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
 	 * ordering of tasks and the threads are confined to individual cores;
 	 * with a load that light we won't care.
 	 */
-	unsigned int rotor = this_cpu_inc_return(serviceQueueRotor);
-	unsigned int index = rotor % queue->numServiceQueues;
-	return queue->serviceQueues[index];
+	unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
+	unsigned int index = rotor % queue->num_service_queues;
+	return queue->service_queues[index];
 }
 
 /**
@@ -151,11 +154,12 @@ static inline SimpleWorkQueue *next_service_queue(RoundRobinWorkQueue *queue)
  *
  * @return  a simple work queue
  **/
-static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
+static inline struct simple_work_queue *
+pick_simple_queue(struct kvdo_work_queue *queue)
 {
-	return (queue->roundRobinMode ?
-			next_service_queue(asRoundRobinWorkQueue(queue)) :
-			asSimpleWorkQueue(queue));
+	return (queue->round_robin_mode ?
+			next_service_queue(as_round_robin_work_queue(queue)) :
+			as_simple_work_queue(queue));
 }
 
 // Processing normal work items.
@@ -174,12 +178,13 @@ static inline SimpleWorkQueue *pick_simple_queue(struct kvdo_work_queue *queue)
  *
  * @return  a work item pointer, or NULL
  **/
-static struct kvdo_work_item *poll_for_work_item(SimpleWorkQueue *queue)
+static struct kvdo_work_item *
+poll_for_work_item(struct simple_work_queue *queue)
 {
 	struct kvdo_work_item *item = NULL;
-	for (int i = READ_ONCE(queue->numPriorityLists) - 1; i >= 0; i--) {
+	for (int i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
 		FunnelQueueEntry *link =
-			funnelQueuePoll(queue->priorityLists[i]);
+			funnelQueuePoll(queue->priority_lists[i]);
 		if (link != NULL) {
 			item = container_of(link,
 					    struct kvdo_work_item,
@@ -204,7 +209,7 @@ static struct kvdo_work_item *poll_for_work_item(SimpleWorkQueue *queue)
  * @return  true iff the caller should wake the worker thread
  **/
 __attribute__((warn_unused_result))
-static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
+static bool enqueue_work_queue_item(struct simple_work_queue *queue,
 				    struct kvdo_work_item *item)
 {
 	ASSERT_LOG_ONLY(item->my_queue == NULL,
@@ -217,7 +222,7 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
 		   "action is in range for queue") != VDO_SUCCESS) {
 		item->action = 0;
 	}
-	unsigned int priority = READ_ONCE(queue->priorityMap[item->action]);
+	unsigned int priority = READ_ONCE(queue->priority_map[item->action]);
 
 	// Update statistics.
 	update_stats_for_enqueue(&queue->stats, item, priority);
@@ -225,7 +230,7 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
 	item->my_queue = &queue->common;
 
 	// Funnel queue handles the synchronization for the put.
-	funnelQueuePut(queue->priorityLists[priority],
+	funnelQueuePut(queue->priority_lists[priority],
 		       &item->work_queue_entry_link);
 
 	/*
@@ -274,7 +279,7 @@ static bool enqueue_work_queue_item(SimpleWorkQueue *queue,
  *
  * @return  the estimate of the number of pending work items
  **/
-static unsigned int get_pending_count(SimpleWorkQueue *queue)
+static unsigned int get_pending_count(struct simple_work_queue *queue)
 {
 	struct kvdo_work_item_stats *stats = &queue->stats.workItemStats;
 	long long pending = 0;
@@ -298,7 +303,7 @@ static unsigned int get_pending_count(SimpleWorkQueue *queue)
  *
  * @param queue  The work queue
  **/
-static void run_start_hook(SimpleWorkQueue *queue)
+static void run_start_hook(struct simple_work_queue *queue)
 {
 	if (queue->type->start != NULL) {
 		queue->type->start(queue->private);
@@ -310,7 +315,7 @@ static void run_start_hook(SimpleWorkQueue *queue)
  *
  * @param queue  The work queue
  **/
-static void run_finish_hook(SimpleWorkQueue *queue)
+static void run_finish_hook(struct simple_work_queue *queue)
 {
 	if (queue->type->finish != NULL) {
 		queue->type->finish(queue->private);
@@ -329,7 +334,7 @@ static void run_finish_hook(SimpleWorkQueue *queue)
  *
  * @return  the newly found work item, if any
  **/
-static struct kvdo_work_item *run_suspend_hook(SimpleWorkQueue *queue)
+static struct kvdo_work_item *run_suspend_hook(struct simple_work_queue *queue)
 {
 	if (queue->type->suspend == NULL) {
 		return NULL;
@@ -346,12 +351,12 @@ static struct kvdo_work_item *run_suspend_hook(SimpleWorkQueue *queue)
  *
  * @return true iff delayed work items are pending
  **/
-static bool has_delayed_work_items(SimpleWorkQueue *queue)
+static bool has_delayed_work_items(struct simple_work_queue *queue)
 {
 	bool result;
 	unsigned long flags;
 	spin_lock_irqsave(&queue->lock, flags);
-	result = !is_work_item_list_empty(&queue->delayedItems);
+	result = !is_work_item_list_empty(&queue->delayed_items);
 	spin_unlock_irqrestore(&queue->lock, flags);
 	return result;
 }
@@ -371,7 +376,8 @@ static bool has_delayed_work_items(SimpleWorkQueue *queue)
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct kvdo_work_item *
-wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
+wait_for_next_work_item(struct simple_work_queue *queue,
+			TimeoutJiffies timeout_interval)
 {
 	struct kvdo_work_item *item = run_suspend_hook(queue);
 	if (item != NULL) {
@@ -380,8 +386,8 @@ wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 
 	DEFINE_WAIT(wait);
 	while (true) {
-		atomic64_set(&queue->firstWakeup, 0);
-		prepare_to_wait(&queue->waitingWorkerThreads,
+		atomic64_set(&queue->first_wakeup, 0);
+		prepare_to_wait(&queue->waiting_worker_threads,
 				&wait,
 				TASK_INTERRUPTIBLE);
 		/*
@@ -446,13 +452,13 @@ wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 		 */
 		queue->stats.waits++;
 		uint64_t time_before_schedule = currentTime(CT_MONOTONIC);
-		atomic64_add(time_before_schedule - queue->mostRecentWakeup,
+		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
 		// Wake up often, to address the missed-wakeup race.
 		schedule_timeout(timeout_interval);
-		queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
+		queue->most_recent_wakeup = currentTime(CT_MONOTONIC);
 		uint64_t call_duration_ns =
-			queue->mostRecentWakeup - time_before_schedule;
+			queue->most_recent_wakeup - time_before_schedule;
 		enter_histogram_sample(queue->stats.schedule_time_histogram,
 				       call_duration_ns / 1000);
 
@@ -469,7 +475,7 @@ wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 	}
 
 	if (item != NULL) {
-		uint64_t first_wakeup = atomic64_read(&queue->firstWakeup);
+		uint64_t first_wakeup = atomic64_read(&queue->first_wakeup);
 		/*
 		 * We sometimes register negative wakeup latencies without this
 		 * fencing. Whether it's forcing full serialization between the
@@ -489,7 +495,7 @@ wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
 				get_pending_count(queue));
 		}
 	}
-	finish_wait(&queue->waitingWorkerThreads, &wait);
+	finish_wait(&queue->waiting_worker_threads, &wait);
 	atomic_set(&queue->idle, 0);
 
 	return item;
@@ -508,7 +514,8 @@ wait_for_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
  * @return  the next work item, or NULL to indicate shutdown is requested
  **/
 static struct kvdo_work_item *
-get_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
+get_next_work_item(struct simple_work_queue *queue,
+		   TimeoutJiffies timeout_interval)
 {
 	struct kvdo_work_item *item = poll_for_work_item(queue);
 	if (item != NULL) {
@@ -523,7 +530,7 @@ get_next_work_item(SimpleWorkQueue *queue, TimeoutJiffies timeout_interval)
  * @param [in]     queue  the work queue the item is from
  * @param [in]     item   the work item to run
  **/
-static void process_work_item(SimpleWorkQueue *queue,
+static void process_work_item(struct simple_work_queue *queue,
 			      struct kvdo_work_item *item)
 {
 	if (ASSERT(item->my_queue == &queue->common,
@@ -565,7 +572,7 @@ static void process_work_item(SimpleWorkQueue *queue,
 			queue->stats.reschedule_queue_length_histogram,
 			queue_len);
 		uint64_t run_time_ns =
-			time_before_reschedule - queue->mostRecentWakeup;
+			time_before_reschedule - queue->most_recent_wakeup;
 		enter_histogram_sample(
 			queue->stats.run_time_before_reschedule_histogram,
 			run_time_ns / 1000);
@@ -575,7 +582,7 @@ static void process_work_item(SimpleWorkQueue *queue,
 		enter_histogram_sample(queue->stats.reschedule_time_histogram,
 				       call_time_ns / 1000);
 		atomic64_add(call_time_ns, &queue->stats.reschedule_time);
-		queue->mostRecentWakeup = time_after_reschedule;
+		queue->most_recent_wakeup = time_after_reschedule;
 	}
 }
 
@@ -586,7 +593,7 @@ static void process_work_item(SimpleWorkQueue *queue,
  *
  * @param queue  The work queue to run
  **/
-static void service_work_queue(SimpleWorkQueue *queue)
+static void service_work_queue(struct simple_work_queue *queue)
 {
 	TimeoutJiffies timeout_interval =
 		maxLong(2, usecs_to_jiffies(FUNNEL_HEARTBEAT_INTERVAL + 1) - 1);
@@ -617,18 +624,18 @@ static void service_work_queue(SimpleWorkQueue *queue)
  **/
 static int work_queue_runner(void *ptr)
 {
-	SimpleWorkQueue *queue = ptr;
+	struct simple_work_queue *queue = ptr;
 	kobject_get(&queue->common.kobj);
 
 	struct work_queue_stack_handle queue_handle;
 	initialize_work_queue_stack_handle(&queue_handle, queue);
-	queue->stats.start_time = queue->mostRecentWakeup =
+	queue->stats.start_time = queue->most_recent_wakeup =
 		currentTime(CT_MONOTONIC);
 	unsigned long flags;
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
 	spin_unlock_irqrestore(&queue->lock, flags);
-	wake_up(&queue->startWaiters);
+	wake_up(&queue->start_waiters);
 	service_work_queue(queue);
 
 	// Zero out handle structure for safety.
@@ -661,12 +668,12 @@ void setup_work_item(struct kvdo_work_item *item,
 // Thread management
 
 /**********************************************************************/
-static inline void wake_worker_thread(SimpleWorkQueue *queue)
+static inline void wake_worker_thread(struct simple_work_queue *queue)
 {
 	smp_mb();
-	atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CT_MONOTONIC));
+	atomic64_cmpxchg(&queue->first_wakeup, 0, currentTime(CT_MONOTONIC));
 	// Despite the name, there's a maximum of one thread in this list.
-	wake_up(&queue->waitingWorkerThreads);
+	wake_up(&queue->waiting_worker_threads);
 }
 
 // Delayed work items
@@ -688,9 +695,11 @@ static void process_delayed_work_items(unsigned long data)
 #endif
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	SimpleWorkQueue *queue = from_timer(queue, timer, delayedItemsTimer);
+	struct simple_work_queue *queue = from_timer(queue,
+						     timer,
+						     delayed_items_timer);
 #else
-	SimpleWorkQueue *queue = (SimpleWorkQueue *)data;
+	struct simple_work_queue *queue = (struct simple_work_queue *)data;
 #endif
 
 	Jiffies next_execution_time = 0;
@@ -699,22 +708,22 @@ static void process_delayed_work_items(unsigned long data)
 
 	unsigned long flags;
 	spin_lock_irqsave(&queue->lock, flags);
-	while (!is_work_item_list_empty(&queue->delayedItems)) {
+	while (!is_work_item_list_empty(&queue->delayed_items)) {
 		struct kvdo_work_item *item =
-			work_item_list_peek(&queue->delayedItems);
+			work_item_list_peek(&queue->delayed_items);
 		if (item->execution_time > jiffies) {
 			next_execution_time = item->execution_time;
 			reschedule = true;
 			break;
 		}
-		work_item_list_poll(&queue->delayedItems);
+		work_item_list_poll(&queue->delayed_items);
 		item->execution_time = 0; // not actually looked at...
 		item->my_queue = NULL;
 		needs_wakeup |= enqueue_work_queue_item(queue, item);
 	}
 	spin_unlock_irqrestore(&queue->lock, flags);
 	if (reschedule) {
-		mod_timer(&queue->delayedItemsTimer, next_execution_time);
+		mod_timer(&queue->delayed_items_timer, next_execution_time);
 	}
 	if (needs_wakeup) {
 		wake_worker_thread(queue);
@@ -724,7 +733,7 @@ static void process_delayed_work_items(unsigned long data)
 // Creation & teardown
 
 /**********************************************************************/
-static bool queue_started(SimpleWorkQueue *queue)
+static bool queue_started(struct simple_work_queue *queue)
 {
 	unsigned long flags;
 	spin_lock_irqsave(&queue->lock, flags);
@@ -756,10 +765,13 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 				  KernelLayer *owner,
 				  void *private,
 				  const struct kvdo_work_queue_type *type,
-				  SimpleWorkQueue **queue_ptr)
+				  struct simple_work_queue **queue_ptr)
 {
-	SimpleWorkQueue *queue;
-	int result = ALLOCATE(1, SimpleWorkQueue, "simple work queue", &queue);
+	struct simple_work_queue *queue;
+	int result = ALLOCATE(1,
+			      struct simple_work_queue,
+			      "simple work queue",
+			      &queue);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -794,7 +806,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 			FREE(queue);
 			return result;
 		}
-		queue->priorityMap[code] = priority;
+		queue->priority_map[code] = priority;
 		if (num_priority_lists <= priority) {
 			num_priority_lists = priority + 1;
 		}
@@ -806,15 +818,17 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return -ENOMEM;
 	}
 
-	init_waitqueue_head(&queue->waitingWorkerThreads);
-	init_waitqueue_head(&queue->startWaiters);
+	init_waitqueue_head(&queue->waiting_worker_threads);
+	init_waitqueue_head(&queue->start_waiters);
 	spin_lock_init(&queue->lock);
 
-	initialize_work_item_list(&queue->delayedItems);
+	initialize_work_item_list(&queue->delayed_items);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	timer_setup(&queue->delayedItemsTimer, process_delayed_work_items, 0);
+	timer_setup(&queue->delayed_items_timer,
+		    process_delayed_work_items,
+		    0);
 #else
-	setup_timer(&queue->delayedItemsTimer,
+	setup_timer(&queue->delayed_items_timer,
 		    process_delayed_work_items,
 		    (unsigned long)queue);
 #endif
@@ -828,9 +842,9 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		free_simple_work_queue(queue);
 		return result;
 	}
-	queue->numPriorityLists = num_priority_lists;
+	queue->num_priority_lists = num_priority_lists;
 	for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-		result = makeFunnelQueue(&queue->priorityLists[i]);
+		result = makeFunnelQueue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
 			return result;
@@ -857,7 +871,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return (int)PTR_ERR(thread);
 	}
 	queue->thread = thread;
-	atomic_set(&queue->threadID, thread->pid);
+	atomic_set(&queue->thread_id, thread->pid);
 	/*
 	 * If we don't wait to ensure the thread is running VDO code, a
 	 * quick kthread_stop (due to errors elsewhere) could cause it to
@@ -866,7 +880,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	 * Eventually we should just make that path safe too, and then we
 	 * won't need this synchronization.
 	 */
-	wait_event(queue->startWaiters, queue_started(queue) == true);
+	wait_event(queue->start_waiters, queue_started(queue) == true);
 	*queue_ptr = queue;
 	return UDS_SUCCESS;
 }
@@ -885,7 +899,7 @@ int make_work_queue(const char *thread_name_prefix,
 	if (thread_count == 1) {
 		void *context = (thread_privates != NULL) ? thread_privates[0] :
 							    private;
-		SimpleWorkQueue *simple_queue;
+		struct simple_work_queue *simple_queue;
 		int result =
 			make_simple_work_queue(thread_name_prefix,
 					       name,
@@ -900,9 +914,9 @@ int make_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 
-	RoundRobinWorkQueue *queue;
+	struct round_robin_work_queue *queue;
 	int result = ALLOCATE(1,
-			      RoundRobinWorkQueue,
+			      struct round_robin_work_queue,
 			      "round-robin work queue",
 			      &queue);
 	if (result != UDS_SUCCESS) {
@@ -910,21 +924,21 @@ int make_work_queue(const char *thread_name_prefix,
 	}
 
 	result = ALLOCATE(thread_count,
-			  SimpleWorkQueue *,
+			  struct simple_work_queue *,
 			  "subordinate work queues",
-			  &queue->serviceQueues);
+			  &queue->service_queues);
 	if (result != UDS_SUCCESS) {
 		FREE(queue);
 		return result;
 	}
 
-	queue->numServiceQueues = thread_count;
-	queue->common.roundRobinMode = true;
+	queue->num_service_queues = thread_count;
+	queue->common.round_robin_mode = true;
 	queue->common.owner = owner;
 
 	result = duplicateString(name, "queue name", &queue->common.name);
 	if (result != VDO_SUCCESS) {
-		FREE(queue->serviceQueues);
+		FREE(queue->service_queues);
 		FREE(queue);
 		return -ENOMEM;
 	}
@@ -953,15 +967,15 @@ int make_work_queue(const char *thread_name_prefix,
 						owner,
 						context,
 						type,
-						&queue->serviceQueues[i]);
+						&queue->service_queues[i]);
 		if (result != VDO_SUCCESS) {
-			queue->numServiceQueues = i;
+			queue->num_service_queues = i;
 			// Destroy previously created subordinates.
 			finish_work_queue(*queue_ptr);
 			free_work_queue(queue_ptr);
 			return result;
 		}
-		queue->serviceQueues[i]->parentQueue = *queue_ptr;
+		queue->service_queues[i]->parent_queue = *queue_ptr;
 	}
 
 	return VDO_SUCCESS;
@@ -972,11 +986,11 @@ int make_work_queue(const char *thread_name_prefix,
  *
  * @param queue  The work queue to shut down
  **/
-static void finish_simple_work_queue(SimpleWorkQueue *queue)
+static void finish_simple_work_queue(struct simple_work_queue *queue)
 {
 	// Tell the worker thread to shut down.
 	if (queue->thread != NULL) {
-		atomic_set(&queue->threadID, 0);
+		atomic_set(&queue->thread_id, 0);
 		// Waits for thread to exit.
 		kthread_stop(queue->thread);
 	}
@@ -989,10 +1003,10 @@ static void finish_simple_work_queue(SimpleWorkQueue *queue)
  *
  * @param queue  The work queue to shut down
  **/
-static void finish_round_robin_work_queue(RoundRobinWorkQueue *queue)
+static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 {
-	SimpleWorkQueue **queue_table = queue->serviceQueues;
-	unsigned int count = queue->numServiceQueues;
+	struct simple_work_queue **queue_table = queue->service_queues;
+	unsigned int count = queue->num_service_queues;
 
 	for (unsigned int i = 0; i < count; i++) {
 		finish_simple_work_queue(queue_table[i]);
@@ -1002,10 +1016,10 @@ static void finish_round_robin_work_queue(RoundRobinWorkQueue *queue)
 /**********************************************************************/
 void finish_work_queue(struct kvdo_work_queue *queue)
 {
-	if (queue->roundRobinMode) {
-		finish_round_robin_work_queue(asRoundRobinWorkQueue(queue));
+	if (queue->round_robin_mode) {
+		finish_round_robin_work_queue(as_round_robin_work_queue(queue));
 	} else {
-		finish_simple_work_queue(asSimpleWorkQueue(queue));
+		finish_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 
@@ -1015,10 +1029,10 @@ void finish_work_queue(struct kvdo_work_queue *queue)
  *
  * @param queue  The work queue
  **/
-static void free_simple_work_queue(SimpleWorkQueue *queue)
+static void free_simple_work_queue(struct simple_work_queue *queue)
 {
 	for (unsigned int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
-		freeFunnelQueue(queue->priorityLists[i]);
+		freeFunnelQueue(queue->priority_lists[i]);
 	}
 	cleanup_work_queue_stats(&queue->stats);
 	kobject_put(&queue->common.kobj);
@@ -1030,12 +1044,12 @@ static void free_simple_work_queue(SimpleWorkQueue *queue)
  *
  * @param queue  The work queue
  **/
-static void free_round_robin_work_queue(RoundRobinWorkQueue *queue)
+static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 {
-	SimpleWorkQueue **queue_table = queue->serviceQueues;
-	unsigned int count = queue->numServiceQueues;
+	struct simple_work_queue **queue_table = queue->service_queues;
+	unsigned int count = queue->num_service_queues;
 
-	queue->serviceQueues = NULL;
+	queue->service_queues = NULL;
 	for (unsigned int i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
 	}
@@ -1054,17 +1068,17 @@ void free_work_queue(struct kvdo_work_queue **queue_ptr)
 
 	finish_work_queue(queue);
 
-	if (queue->roundRobinMode) {
-		free_round_robin_work_queue(asRoundRobinWorkQueue(queue));
+	if (queue->round_robin_mode) {
+		free_round_robin_work_queue(as_round_robin_work_queue(queue));
 	} else {
-		free_simple_work_queue(asSimpleWorkQueue(queue));
+		free_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 
 // Debugging dumps
 
 /**********************************************************************/
-static void dump_simple_work_queue(SimpleWorkQueue *queue)
+static void dump_simple_work_queue(struct simple_work_queue *queue)
 {
 	mutex_lock(&queue_data_lock);
 	// Take a snapshot to reduce inconsistency in logged numbers.
@@ -1111,21 +1125,21 @@ static void dump_simple_work_queue(SimpleWorkQueue *queue)
 	mutex_unlock(&queue_data_lock);
 
 	// ->lock spin lock status?
-	// ->waitingWorkerThreads wait queue status? anyone waiting?
+	// ->waiting_worker_threads wait queue status? anyone waiting?
 }
 
 /**********************************************************************/
 void dump_work_queue(struct kvdo_work_queue *queue)
 {
-	if (queue->roundRobinMode) {
-		RoundRobinWorkQueue *round_robin_queue =
-			asRoundRobinWorkQueue(queue);
+	if (queue->round_robin_mode) {
+		struct round_robin_work_queue *round_robin_queue =
+			as_round_robin_work_queue(queue);
 		for (unsigned int i = 0;
-		     i < round_robin_queue->numServiceQueues; i++) {
-			dump_simple_work_queue(round_robin_queue->serviceQueues[i]);
+		     i < round_robin_queue->num_service_queues; i++) {
+			dump_simple_work_queue(round_robin_queue->service_queues[i]);
 		}
 	} else {
-		dump_simple_work_queue(asSimpleWorkQueue(queue));
+		dump_simple_work_queue(as_simple_work_queue(queue));
 	}
 }
 
@@ -1153,7 +1167,7 @@ void dump_work_item_to_buffer(struct kvdo_work_item *item,
 void enqueue_work_queue(struct kvdo_work_queue *kvdoWorkQueue,
 			struct kvdo_work_item *item)
 {
-	SimpleWorkQueue *queue = pick_simple_queue(kvdoWorkQueue);
+	struct simple_work_queue *queue = pick_simple_queue(kvdoWorkQueue);
 
 	item->execution_time = 0;
 
@@ -1172,7 +1186,7 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 		return;
 	}
 
-	SimpleWorkQueue *queue = pick_simple_queue(kvdo_work_queue);
+	struct simple_work_queue *queue = pick_simple_queue(kvdo_work_queue);
 	bool reschedule_timer = false;
 	unsigned long flags;
 
@@ -1182,7 +1196,7 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 	// single linked list.
 	spin_lock_irqsave(&queue->lock, flags);
 
-	if (is_work_item_list_empty(&queue->delayedItems)) {
+	if (is_work_item_list_empty(&queue->delayed_items)) {
 		reschedule_timer = true;
 	}
 	/*
@@ -1190,12 +1204,12 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 	 * grow above a single entry anyway.
 	 */
 	item->my_queue = &queue->common;
-	add_to_work_item_list(&queue->delayedItems, item);
+	add_to_work_item_list(&queue->delayed_items, item);
 
 	spin_unlock_irqrestore(&queue->lock, flags);
 
 	if (reschedule_timer) {
-		mod_timer(&queue->delayedItemsTimer, execution_time);
+		mod_timer(&queue->delayed_items_timer, execution_time);
 	}
 }
 
@@ -1205,7 +1219,7 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 /**********************************************************************/
 struct kvdo_work_queue *get_current_work_queue(void)
 {
-	SimpleWorkQueue *queue = get_current_thread_work_queue();
+	struct simple_work_queue *queue = get_current_thread_work_queue();
 	return (queue == NULL) ? NULL : &queue->common;
 }
 
@@ -1218,7 +1232,7 @@ KernelLayer *get_work_queue_owner(struct kvdo_work_queue *queue)
 /**********************************************************************/
 void *get_work_queue_private_data(void)
 {
-	SimpleWorkQueue *queue = get_current_thread_work_queue();
+	struct simple_work_queue *queue = get_current_thread_work_queue();
 	return (queue != NULL) ? queue->private : NULL;
 }
 

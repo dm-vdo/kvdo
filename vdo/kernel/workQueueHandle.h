@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#4 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
@@ -37,7 +37,7 @@
  */
 struct work_queue_stack_handle {
 	unsigned long nonce;
-	SimpleWorkQueue *queue;
+	struct simple_work_queue *queue;
 };
 
 struct work_queue_stack_handle_globals {
@@ -69,7 +69,7 @@ extern struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
  * @param [in]  queue   The work queue pointer
  **/
 void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
-					SimpleWorkQueue *queue);
+					struct simple_work_queue *queue);
 
 /**
  * Return the work queue pointer recorded at initialization time in
@@ -78,7 +78,7 @@ void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
  *
  * @return   the work queue pointer, or NULL
  **/
-static inline SimpleWorkQueue *get_current_thread_work_queue(void)
+static inline struct simple_work_queue *get_current_thread_work_queue(void)
 {
 	struct work_queue_stack_handle *handle =
 		(struct work_queue_stack_handle *)(task_stack_page(current) +

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.c#4 $
  */
 
 #include "workQueueHandle.h"
@@ -25,7 +25,7 @@ struct work_queue_stack_handle_globals work_queue_stack_handle_globals;
 
 /**********************************************************************/
 void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
-					SimpleWorkQueue *queue)
+					struct simple_work_queue *queue)
 {
 	handle->nonce = work_queue_stack_handle_globals.nonce;
 	handle->queue = queue;

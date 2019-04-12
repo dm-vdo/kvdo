@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#10 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -30,7 +30,7 @@
 #include "workItemStats.h"
 
 // Defined in workQueueInternals.h after inclusion of workQueueStats.h.
-struct simpleWorkQueue;
+struct simple_work_queue;
 
 /*
  * Tracking statistics.
@@ -148,7 +148,7 @@ static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
  *
  * @param queue  The work queue
  **/
-void log_work_queue_stats(const struct simpleWorkQueue *queue);
+void log_work_queue_stats(const struct simple_work_queue *queue);
 
 /**
  * Format the thread lifetime, run time, and suspend time into a

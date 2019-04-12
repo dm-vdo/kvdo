@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#6 $
  */
 
 #include "workQueueSysfs.h"
@@ -47,20 +47,20 @@ static ssize_t pid_show(const struct kvdo_work_queue *queue, char *buf)
 {
 	return sprintf(buf,
 		       "%ld\n",
-		       (long)atomic_read(&asConstSimpleWorkQueue(queue)->threadID));
+		       (long) atomic_read(&as_const_simple_work_queue(queue)->thread_id));
 }
 
 /**********************************************************************/
 static ssize_t times_show(const struct kvdo_work_queue *queue, char *buf)
 {
-	return format_run_time_stats(&asConstSimpleWorkQueue(queue)->stats,
+	return format_run_time_stats(&as_const_simple_work_queue(queue)->stats,
 				     buf);
 }
 
 /**********************************************************************/
 static ssize_t type_show(const struct kvdo_work_queue *queue, char *buf)
 {
-	strcpy(buf, queue->roundRobinMode ? "round-robin\n" : "simple\n");
+	strcpy(buf, queue->round_robin_mode ? "round-robin\n" : "simple\n");
 	return strlen(buf);
 }
 
@@ -68,7 +68,8 @@ static ssize_t type_show(const struct kvdo_work_queue *queue, char *buf)
 static ssize_t work_functions_show(const struct kvdo_work_queue *queue,
 				   char *buf)
 {
-	const SimpleWorkQueue *simple_queue = asConstSimpleWorkQueue(queue);
+	const struct simple_work_queue *simple_queue =
+		as_const_simple_work_queue(queue);
 	return format_work_item_stats(&simple_queue->stats.workItemStats,
 				      buf,
 				      PAGE_SIZE);
@@ -183,10 +184,10 @@ static void work_queue_release(struct kobject *kobj)
 	struct kvdo_work_queue *queue =
 		container_of(kobj, struct kvdo_work_queue, kobj);
 	FREE(queue->name);
-	if (queue->roundRobinMode) {
-		FREE(asRoundRobinWorkQueue(queue));
+	if (queue->round_robin_mode) {
+		FREE(as_round_robin_work_queue(queue));
 	} else {
-		FREE(asSimpleWorkQueue(queue));
+		FREE(as_simple_work_queue(queue));
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#6 $
  */
 
 #include "workQueueStats.h"
@@ -112,7 +112,7 @@ void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats)
 }
 
 /**********************************************************************/
-static uint64_t get_total_processed(const SimpleWorkQueue *queue)
+static uint64_t get_total_processed(const struct simple_work_queue *queue)
 {
 	uint64_t total_processed = 0;
 	for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
@@ -122,7 +122,7 @@ static uint64_t get_total_processed(const SimpleWorkQueue *queue)
 }
 
 /**********************************************************************/
-void log_work_queue_stats(const SimpleWorkQueue *queue)
+void log_work_queue_stats(const struct simple_work_queue *queue)
 {
 	uint64_t runtime_ns = 0;
 	if (queue->thread != NULL) {
