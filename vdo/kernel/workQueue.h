@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#8 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -165,7 +165,7 @@ struct kvdo_work_queue_type {
 int make_work_queue(const char *thread_name_prefix,
 		    const char *name,
 		    struct kobject *parent_kobject,
-		    KernelLayer *owner,
+		    struct kernel_layer *owner,
 		    void *private,
 		    const struct kvdo_work_queue_type *type,
 		    unsigned int thread_count,
@@ -305,6 +305,6 @@ struct kvdo_work_queue *get_current_work_queue(void);
  *
  * @return   The owner pointer supplied at work queue creation
  **/
-KernelLayer *get_work_queue_owner(struct kvdo_work_queue *queue);
+struct kernel_layer *get_work_queue_owner(struct kvdo_work_queue *queue);
 
 #endif /* ALBIREO_WORK_QUEUE_H */

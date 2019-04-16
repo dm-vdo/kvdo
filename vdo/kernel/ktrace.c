@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#7 $
  */
 
 #include "ktrace.h"
@@ -96,7 +96,7 @@ static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
 }
 
 /*************************************************************************/
-int alloc_trace_from_pool(KernelLayer *layer, Trace **trace_pointer)
+int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer)
 {
 	int result = alloc_buffer_from_pool(layer->traceBufferPool,
 					    (void **)trace_pointer);
@@ -107,13 +107,13 @@ int alloc_trace_from_pool(KernelLayer *layer, Trace **trace_pointer)
 }
 
 /*************************************************************************/
-void free_trace_to_pool(KernelLayer *layer, Trace *trace)
+void free_trace_to_pool(struct kernel_layer *layer, Trace *trace)
 {
 	free_buffer_to_pool(layer->traceBufferPool, trace);
 }
 
 /*************************************************************************/
-int trace_kernel_layer_init(KernelLayer *layer)
+int trace_kernel_layer_init(struct kernel_layer *layer)
 {
 	layer->vioTraceRecording = trace_recording;
 	initialize_sample_counter(&layer->traceSampleCounter,
@@ -143,7 +143,7 @@ void initialize_trace_logging_once(void)
 /*************************************************************************/
 void log_kvio_trace(struct kvio *kvio)
 {
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 
 	mutex_lock(&trace_logging_state.lock);
 	trace_logging_state.counter++;

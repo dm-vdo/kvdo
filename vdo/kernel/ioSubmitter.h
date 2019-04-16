@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.h#5 $
  */
 
 #ifndef IOSUBMITTER_H
@@ -82,7 +82,7 @@ int make_io_submitter(const char *thread_name_prefix,
 		      unsigned int thread_count,
 		      unsigned int rotation_interval,
 		      unsigned int max_requests_active,
-		      KernelLayer *layer,
+		      struct kernel_layer *layer,
 		      struct io_submitter **io_submitter);
 
 /**

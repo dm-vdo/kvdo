@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#16 $
  */
 
 #include "kvio.h"
@@ -196,7 +196,7 @@ void kvdo_flush_vio(VIO *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 	reset_bio(bio, layer);
 	prepare_flush_bio(bio,
 			  kvio,
@@ -223,7 +223,8 @@ void kvdo_flush_vio(VIO *vio)
  * @return whether it's useful to track latency for VIOs looking like
  *         this one
  */
-static noinline bool sample_this_vio(struct kvio *kvio, KernelLayer *layer,
+static noinline bool sample_this_vio(struct kvio *kvio,
+				     struct kernel_layer *layer,
 				     struct bio *bio)
 {
 	bool result = true;
@@ -238,7 +239,7 @@ static noinline bool sample_this_vio(struct kvio *kvio, KernelLayer *layer,
 
 /**********************************************************************/
 void initialize_kvio(struct kvio *kvio,
-		     KernelLayer *layer,
+		     struct kernel_layer *layer,
 		     VIOType vio_type,
 		     VIOPriority priority,
 		     void *parent,
@@ -292,7 +293,7 @@ void initialize_kvio(struct kvio *kvio,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-make_metadata_kvio(KernelLayer *layer,
+make_metadata_kvio(struct kernel_layer *layer,
 		   VIOType vio_type,
 		   VIOPriority priority,
 		   void *parent,
@@ -334,7 +335,7 @@ make_metadata_kvio(KernelLayer *layer,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int make_compressed_write_kvio(KernelLayer *layer,
+static int make_compressed_write_kvio(struct kernel_layer *layer,
 				      void *parent,
 				      struct bio *bio,
 				      struct compressed_write_kvio **compressed_write_kvio_ptr)
@@ -378,7 +379,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	}
 
 	struct bio *bio;
-	KernelLayer *kernel_layer = asKernelLayer(layer);
+	struct kernel_layer *kernel_layer = asKernelLayer(layer);
 	result = create_bio(kernel_layer, data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -403,7 +404,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     AllocatingVIO **allocating_vio_ptr)
 {
 	struct bio *bio;
-	KernelLayer *kernel_layer = asKernelLayer(layer);
+	struct kernel_layer *kernel_layer = asKernelLayer(layer);
 	int result = create_bio(kernel_layer, data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;

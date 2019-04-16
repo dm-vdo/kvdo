@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#19 $
  */
 
 #include "kernelVDOInternals.h"
@@ -46,7 +46,9 @@ static void start_kvdo_request_queue(void *ptr)
 {
 	struct kvdo_thread *thread = ptr;
 	struct kvdo *kvdo = thread->kvdo;
-	KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	registerAllocatingThread(&thread->allocating_thread,
 				 &layer->allocationsAllowed);
 }
@@ -94,7 +96,9 @@ int initialize_kvdo(struct kvdo *kvdo, const ThreadConfig *thread_config,
 		*reason = "Cannot allocation thread structures";
 		return result;
 	}
-	KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	for (kvdo->initialized_thread_count = 0;
 	     kvdo->initialized_thread_count < base_threads;
 	     kvdo->initialized_thread_count++) {
@@ -141,7 +145,7 @@ int start_kvdo(struct kvdo *kvdo,
 	       bool vio_trace_recording,
 	       char **reason)
 {
-	KernelLayer *layer = asKernelLayer(common);
+	struct kernel_layer *layer = asKernelLayer(common);
 	init_completion(&layer->callbackSync);
 	int result = performVDOLoad(kvdo->vdo, load_config);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -160,7 +164,9 @@ int stop_kvdo(struct kvdo *kvdo)
 		return VDO_SUCCESS;
 	}
 
-	KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	init_completion(&layer->callbackSync);
 	return performVDOClose(kvdo->vdo);
 }
@@ -430,7 +436,9 @@ int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count)
 /**********************************************************************/
 int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count)
 {
-	KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	init_completion(&layer->callbackSync);
 	int result = performGrowPhysical(kvdo->vdo, physical_count);
 	if (result != VDO_SUCCESS) {
@@ -451,7 +459,9 @@ int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count)
 /**********************************************************************/
 int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count)
 {
-	KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+	struct kernel_layer *layer = container_of(kvdo,
+						  struct kernel_layer,
+						  kvdo);
 	init_completion(&layer->callbackSync);
 	int result = performGrowLogical(kvdo->vdo, logical_count);
 	if (result != VDO_SUCCESS) {
@@ -507,7 +517,8 @@ void kvdo_enqueue(Enqueueable *enqueueable)
 {
 	KvdoEnqueueable *kvdo_enqueueable =
 		container_of(enqueueable, KvdoEnqueueable, enqueueable);
-	KernelLayer *layer = asKernelLayer(enqueueable->completion->layer);
+	struct kernel_layer *layer =
+		asKernelLayer(enqueueable->completion->layer);
 	ThreadID thread_id = enqueueable->completion->callbackThreadID;
 	if (ASSERT(thread_id < layer->kvdo.initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
@@ -539,8 +550,8 @@ ThreadID getCallbackThreadID(void)
 	ThreadID thread_id = thread->thread_id;
 	if (PARANOID_THREAD_CONSISTENCY_CHECKS) {
 		struct kvdo *kvdo = thread->kvdo;
-		KernelLayer *kernel_layer =
-			container_of(kvdo, KernelLayer, kvdo);
+		struct kernel_layer *kernel_layer =
+			container_of(kvdo, struct kernel_layer, kvdo);
 		BUG_ON(&kernel_layer->kvdo != kvdo);
 		BUG_ON(thread_id >= kvdo->initialized_thread_count);
 		BUG_ON(thread != &kvdo->threads[thread_id]);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#11 $
  */
 
 #include "dump.h"
@@ -82,7 +82,7 @@ static inline bool is_arg_string(const char *arg, const char *this_option)
 }
 
 /**********************************************************************/
-static void do_dump(KernelLayer *layer,
+static void do_dump(struct kernel_layer *layer,
 		    unsigned int dump_options_requested,
 		    const char *why)
 {
@@ -189,7 +189,7 @@ static int parse_dump_options(unsigned int argc,
 }
 
 /**********************************************************************/
-int vdo_dump(KernelLayer *layer,
+int vdo_dump(struct kernel_layer *layer,
 	     unsigned int argc,
 	     char *const *argv,
 	     const char *why)
@@ -204,7 +204,7 @@ int vdo_dump(KernelLayer *layer,
 }
 
 /**********************************************************************/
-void vdo_dump_all(KernelLayer *layer, const char *why)
+void vdo_dump_all(struct kernel_layer *layer, const char *why)
 {
 	do_dump(layer, ~0, why);
 }

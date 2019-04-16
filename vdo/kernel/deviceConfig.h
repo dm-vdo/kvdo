@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#6 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -45,7 +45,7 @@ typedef uint32_t TableVersion;
 struct device_config {
 	struct dm_target *owning_target;
 	struct dm_dev *owned_device;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 	char *original_string;
 	TableVersion version;
 	char *parent_device_name;

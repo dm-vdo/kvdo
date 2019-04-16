@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#19 $
  */
 
 #ifndef DATA_KVIO_H
@@ -203,13 +203,13 @@ static inline struct bio *get_bio_from_data_kvio(struct data_kvio *data_kvio)
 }
 
 /**
- * Get the KernelLayer from a data_kvio.
+ * Get the kernel_layer from a data_kvio.
  *
- * @param data_kvio  The data_kvio from which to get the KernelLayer
+ * @param data_kvio  The data_kvio from which to get the kernel_layer
  *
- * @return The data_kvio's KernelLayer
+ * @return The data_kvio's kernel_layer
  **/
-static inline KernelLayer *
+static inline struct kernel_layer *
 get_layer_from_data_kvio(struct data_kvio *data_kvio)
 {
 	return data_kvio_as_kvio(data_kvio)->layer;
@@ -334,7 +334,7 @@ static inline bool requestor_set_fua(struct data_kvio *data_kvio)
  *
  * @return VDO_SUCCESS or a system error code
  **/
-int kvdo_launch_data_kvio_from_bio(KernelLayer *layer,
+int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 				   struct bio *bio,
 				   Jiffies arrival_time,
 				   bool has_discard_permit)
@@ -379,7 +379,8 @@ void kvdo_read_block(DataVIO *data_vio,
  *
  * @return VDO_SUCCESS or an error
  **/
-int make_data_kvio_buffer_pool(KernelLayer *layer, uint32_t pool_size,
+int make_data_kvio_buffer_pool(struct kernel_layer *layer,
+			       uint32_t pool_size,
 			       struct buffer_pool **buffer_pool_ptr)
 	__attribute__((warn_unused_result));
 

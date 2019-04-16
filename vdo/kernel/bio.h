@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.h#8 $
  */
 
 #ifndef BIO_H
@@ -294,7 +294,7 @@ static inline void complete_bio(struct bio *bio, int error)
  * @param bio    The bio to free
  * @param layer  The layer the bio was created in
  **/
-void free_bio(struct bio *bio, KernelLayer *layer);
+void free_bio(struct bio *bio, struct kernel_layer *layer);
 
 /**
  * Count the statistics for the bios.  This is used for calls into VDO and
@@ -312,7 +312,7 @@ void count_bios(struct atomic_bio_stats *bio_stats, struct bio *bio);
  * @param bio    The bio to reset
  * @param layer  The physical layer
  **/
-void reset_bio(struct bio *bio, KernelLayer *layer);
+void reset_bio(struct bio *bio, struct kernel_layer *layer);
 
 /**
  * Set a bio's data to all zeroes.
@@ -330,7 +330,7 @@ void bio_zero_data(struct bio *bio);
  *
  * @return VDO_SUCCESS or an error
  **/
-int create_bio(KernelLayer *layer, char *data, struct bio **bio_ptr);
+int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr);
 
 /**
  * Prepare a bio to issue a flush to the device below.

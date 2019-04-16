@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#22 $
  */
 
 #include "dedupeIndex.h"
@@ -91,7 +91,7 @@ struct periodic_event_reporter {
 	 */
 	atomic_t work_item_queued;
 	struct kvdo_work_item work_item;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 };
 
 /*****************************************************************************/
@@ -412,7 +412,7 @@ static void
 init_periodic_event_reporter(struct periodic_event_reporter *reporter,
 			     const char *format,
 			     unsigned long reporting_interval,
-			     KernelLayer *layer)
+			     struct kernel_layer *layer)
 {
 	setup_work_item(&reporter->work_item,
 			report_events_work,
@@ -954,7 +954,8 @@ static void finish_uds_queue(void *ptr)
 }
 
 /*****************************************************************************/
-int make_dedupe_index(struct dedupe_index **index_ptr, KernelLayer *layer)
+int make_dedupe_index(struct dedupe_index **index_ptr,
+		      struct kernel_layer *layer)
 {
 	set_albireo_timeout_interval(albireo_timeout_interval);
 	set_min_albireo_timer_interval(min_albireo_timer_interval);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#4 $
  */
 
 #include "poolSysfs.h"
@@ -29,8 +29,8 @@
 
 struct pool_attribute {
 	struct attribute attr;
-	ssize_t (*show)(KernelLayer *layer, char *buf);
-	ssize_t (*store)(KernelLayer *layer, const char *value, size_t count);
+	ssize_t (*show)(struct kernel_layer *layer, char *buf);
+	ssize_t (*store)(struct kernel_layer *layer, const char *value, size_t count);
 };
 
 /**********************************************************************/
@@ -44,7 +44,9 @@ static ssize_t vdo_pool_attr_show(struct kobject *kobj,
 	if (pool_attr->show == NULL) {
 		return -EINVAL;
 	}
-	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	struct kernel_layer *layer = container_of(kobj,
+						  struct kernel_layer,
+						  kobj);
 	return pool_attr->show(layer, buf);
 }
 
@@ -60,7 +62,9 @@ static ssize_t vdo_pool_attr_store(struct kobject *kobj,
 	if (pool_attr->store == NULL) {
 		return -EINVAL;
 	}
-	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	struct kernel_layer *layer = container_of(kobj,
+						  struct kernel_layer,
+						  kobj);
 	return pool_attr->store(layer, buf, length);
 }
 
@@ -70,26 +74,27 @@ static struct sysfs_ops vdo_pool_sysfs_ops = {
 };
 
 /**********************************************************************/
-static ssize_t pool_compressing_show(KernelLayer *layer, char *buf)
+static ssize_t pool_compressing_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%s\n",
 		       (get_kvdo_compressing(&layer->kvdo) ? "1" : "0"));
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_active_show(KernelLayer *layer, char *buf)
+static ssize_t pool_discards_active_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.active);
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_limit_show(KernelLayer *layer, char *buf)
+static ssize_t pool_discards_limit_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.limit);
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_limit_store(KernelLayer *layer, const char *buf,
+static ssize_t pool_discards_limit_store(struct kernel_layer *layer,
+					 const char *buf,
 					 size_t length)
 {
 	unsigned int value;
@@ -101,31 +106,31 @@ static ssize_t pool_discards_limit_store(KernelLayer *layer, const char *buf,
 }
 
 /**********************************************************************/
-static ssize_t pool_discards_maximum_show(KernelLayer *layer, char *buf)
+static ssize_t pool_discards_maximum_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->discardLimiter.maximum);
 }
 
 /**********************************************************************/
-static ssize_t pool_instance_show(KernelLayer *layer, char *buf)
+static ssize_t pool_instance_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%u\n", layer->instance);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_active_show(KernelLayer *layer, char *buf)
+static ssize_t pool_requests_active_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.active);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_limit_show(KernelLayer *layer, char *buf)
+static ssize_t pool_requests_limit_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.limit);
 }
 
 /**********************************************************************/
-static ssize_t pool_requests_maximum_show(KernelLayer *layer, char *buf)
+static ssize_t pool_requests_maximum_show(struct kernel_layer *layer, char *buf)
 {
 	return sprintf(buf, "%" PRIu32 "\n", layer->requestLimiter.maximum);
 }
@@ -133,7 +138,9 @@ static ssize_t pool_requests_maximum_show(KernelLayer *layer, char *buf)
 /**********************************************************************/
 static void vdo_pool_release(struct kobject *kobj)
 {
-	KernelLayer *layer = container_of(kobj, KernelLayer, kobj);
+	struct kernel_layer *layer = container_of(kobj,
+						  struct kernel_layer,
+						  kobj);
 	freeVDO(&layer->kvdo.vdo);
 	FREE(layer);
 }
@@ -234,11 +241,11 @@ static void work_queue_directory_release(struct kobject *kobj)
 {
 	/*
 	 * The work_queue_directory holds an implicit reference to its parent,
-	 * the kernelLayer object (->kobj), so even if there are some
+	 * the kernel_layer object (->kobj), so even if there are some
 	 * external references held to the work_queue_directory when work
-	 * queue shutdown calls kobject_put on the kernelLayer object, the
-	 * kernelLayer object won't actually be released and won't free the
-	 * KernelLayer storage until the work_queue_directory object is
+	 * queue shutdown calls kobject_put on the kernel_layer object, the
+	 * kernel_layer object won't actually be released and won't free the
+	 * kernel_layer storage until the work_queue_directory object is
 	 * released first.
 	 *
 	 * So, we don't need to do any additional explicit management here.

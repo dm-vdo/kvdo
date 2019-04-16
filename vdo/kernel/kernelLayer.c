@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#50 $
  */
 
 #include "kernelLayer.h"
@@ -124,13 +124,14 @@ int mapToSystemError(int error)
 }
 
 /**********************************************************************/
-static void setKernelLayerState(KernelLayer *layer, KernelLayerState newState)
+static void setKernelLayerState(struct kernel_layer *layer,
+                                KernelLayerState newState)
 {
   relaxedStore32(&layer->state, newState);
 }
 
 /**********************************************************************/
-void waitForNoRequestsActive(KernelLayer *layer)
+void waitForNoRequestsActive(struct kernel_layer *layer)
 {
   // Do nothing if there are no requests active.  This check is not necessary
   // for correctness but does reduce log message traffic.
@@ -172,9 +173,9 @@ void waitForNoRequestsActive(KernelLayer *layer)
  *
  * @return  DM_MAPIO_SUBMITTED or a system error code
  **/
-static int launchDataKVIOFromVDOThread(KernelLayer *layer,
-                                       struct bio  *bio,
-                                       Jiffies      arrivalTime)
+static int launchDataKVIOFromVDOThread(struct kernel_layer *layer,
+                                       struct bio          *bio,
+                                       Jiffies              arrivalTime)
 {
   logWarning("kvdoMapBio called from within a VDO thread!");
   /*
@@ -221,7 +222,7 @@ static int launchDataKVIOFromVDOThread(KernelLayer *layer,
 }
 
 /**********************************************************************/
-int kvdoMapBio(KernelLayer *layer, struct bio *bio)
+int kvdoMapBio(struct kernel_layer *layer, struct bio *bio)
 {
   Jiffies          arrivalTime = jiffies;
   KernelLayerState state       = getKernelLayerState(layer);
@@ -288,13 +289,13 @@ int kvdoMapBio(KernelLayer *layer, struct bio *bio)
 }
 
 /**********************************************************************/
-struct block_device *getKernelLayerBdev(const KernelLayer *layer)
+struct block_device *getKernelLayerBdev(const struct kernel_layer *layer)
 {
   return layer->deviceConfig->owned_device->bdev;
 }
 
 /**********************************************************************/
-void completeManyRequests(KernelLayer *layer, uint32_t count)
+void completeManyRequests(struct kernel_layer *layer, uint32_t count)
 {
   // If we had to buffer some requests to avoid deadlock, release them now.
   while (count > 0) {
@@ -372,22 +373,22 @@ static int kvdoSynchronousRead(PhysicalLayer       *layer,
     return VDO_NOT_IMPLEMENTED;
   }
 
-  KernelLayer *kernelLayer = asKernelLayer(layer);
+  struct kernel_layer *kernel_layer = asKernelLayer(layer);
 
   struct bio *bio;
-  int result = create_bio(kernelLayer, buffer, &bio);
+  int result = create_bio(kernel_layer, buffer, &bio);
   if (result != VDO_SUCCESS) {
     return result;
   }
-  set_bio_block_device(bio, getKernelLayerBdev(kernelLayer));
-  set_bio_sector(bio, blockToSector(kernelLayer, startBlock));
+  set_bio_block_device(bio, getKernelLayerBdev(kernel_layer));
+  set_bio_sector(bio, blockToSector(kernel_layer, startBlock));
   set_bio_operation_read(bio);
   result = submit_bio_and_wait(bio);
   if (result != 0) {
     logErrorWithStringError(result, "synchronous read failed");
     result = -EIO;
   }
-  free_bio(bio, kernelLayer);
+  free_bio(bio, kernel_layer);
 
   if (result != VDO_SUCCESS) {
     return result;
@@ -436,7 +437,7 @@ static bool isFlushRequired(PhysicalLayer *common)
  **/
 static void kvdoCompleteSyncOperation(PhysicalLayer *common)
 {
-  KernelLayer *layer = asKernelLayer(common);
+  struct kernel_layer *layer = asKernelLayer(common);
   complete(&layer->callbackSync);
 }
 
@@ -449,7 +450,7 @@ static void kvdoCompleteSyncOperation(PhysicalLayer *common)
  **/
 static void waitForSyncOperation(PhysicalLayer *common)
 {
-  KernelLayer *layer = asKernelLayer(common);
+  struct kernel_layer *layer = asKernelLayer(common);
   // Using the "interruptible" interface means that Linux will not log a
   // message when we wait for more than 120 seconds.
   while (wait_for_completion_interruptible(&layer->callbackSync) != 0) {
@@ -467,7 +468,9 @@ static void waitForSyncOperation(PhysicalLayer *common)
 static int kvdoIsCongested(struct dm_target_callbacks *callbacks,
                            int                         bdi_bits)
 {
-  KernelLayer *layer = container_of(callbacks, KernelLayer, callbacks);
+  struct kernel_layer *layer = container_of(callbacks,
+                                            struct kernel_layer,
+                                            callbacks);
   if (!limiter_has_one_free(&layer->requestLimiter)) {
     return 1;
   }
@@ -489,7 +492,7 @@ int makeKernelLayer(uint64_t               startingSector,
                     struct kobject        *parentKobject,
                     ThreadConfig         **threadConfigPointer,
                     char                 **reason,
-                    KernelLayer          **layerPtr)
+                    struct kernel_layer  **layerPtr)
 {
   // VDO-3769 - Set a generic reason so we don't ever return garbage.
   *reason = "Unspecified error";
@@ -500,8 +503,8 @@ int makeKernelLayer(uint64_t               startingSector,
    * through the freeing of the kernel layer.  After this part you must use
    * freeKernelLayer.
    */
-  KernelLayer *layer;
-  int result = ALLOCATE(1, KernelLayer, "VDO configuration", &layer);
+  struct kernel_layer *layer;
+  int result = ALLOCATE(1, struct kernel_layer, "VDO configuration", &layer);
   if (result != UDS_SUCCESS) {
     *reason = "Cannot allocate VDO configuration";
     return result;
@@ -521,7 +524,7 @@ int makeKernelLayer(uint64_t               startingSector,
   }
 
   // After this point, calling kobject_put on kobj will decrement its
-  // reference count, and when the count goes to 0 the KernelLayer will
+  // reference count, and when the count goes to 0 the struct kernel_layer will
   // be freed.
   kobject_init(&layer->kobj, &kernel_layer_kobj_type);
   result = kobject_add(&layer->kobj, parentKobject, config->pool_name);
@@ -544,7 +547,7 @@ int makeKernelLayer(uint64_t               startingSector,
    * order dependencies and can be done in any order, but freeKernelLayer()
    * cannot be called until all the simple layer properties are set.
    *
-   * The KernelLayer structure starts as all zeros.  Pointer initializations
+   * The kernel_layer structure starts as all zeros.  Pointer initializations
    * consist of replacing a NULL pointer with a non-NULL pointer, which can be
    * easily undone by freeing all of the non-NULL pointers (using the proper
    * free routine).
@@ -753,7 +756,7 @@ int makeKernelLayer(uint64_t               startingSector,
 }
 
 /**********************************************************************/
-int prepareToModifyKernelLayer(KernelLayer           *layer,
+int prepareToModifyKernelLayer(struct kernel_layer   *layer,
                                struct device_config  *config,
                                char                 **errorPtr)
 {
@@ -827,7 +830,7 @@ int prepareToModifyKernelLayer(KernelLayer           *layer,
 }
 
 /**********************************************************************/
-int modifyKernelLayer(KernelLayer          *layer,
+int modifyKernelLayer(struct kernel_layer  *layer,
                       struct device_config *config)
 {
   struct device_config *extantConfig = layer->deviceConfig;
@@ -871,7 +874,7 @@ int modifyKernelLayer(KernelLayer          *layer,
 }
 
 /**********************************************************************/
-void freeKernelLayer(KernelLayer *layer)
+void freeKernelLayer(struct kernel_layer *layer)
 {
   // This is not the cleanest implementation, but given the current timing
   // uncertainties in the shutdown process for work queues, we need to
@@ -971,12 +974,14 @@ void freeKernelLayer(KernelLayer *layer)
 /**********************************************************************/
 static void poolStatsRelease(struct kobject *kobj)
 {
-  KernelLayer *layer = container_of(kobj, KernelLayer, statsDirectory);
+  struct kernel_layer *layer = container_of(kobj,
+                                            struct kernel_layer,
+                                            statsDirectory);
   complete(&layer->statsShutdown);
 }
 
 /**********************************************************************/
-int startKernelLayer(KernelLayer          *layer,
+int startKernelLayer(struct kernel_layer  *layer,
                      const VDOLoadConfig  *loadConfig,
                      char                **reason)
 {
@@ -1023,7 +1028,7 @@ int startKernelLayer(KernelLayer          *layer,
 }
 
 /**********************************************************************/
-int stopKernelLayer(KernelLayer *layer)
+int stopKernelLayer(struct kernel_layer *layer)
 {
   char errorName[80] = "";
   char errorMessage[ERRBUF_SIZE] = "";
@@ -1065,7 +1070,7 @@ int stopKernelLayer(KernelLayer *layer)
 }
 
 /**********************************************************************/
-int suspendKernelLayer(KernelLayer *layer)
+int suspendKernelLayer(struct kernel_layer *layer)
 {
   // It's important to note any error here does not actually stop device-mapper
   // from suspending the device. All this work is done post suspend.
@@ -1097,7 +1102,7 @@ int suspendKernelLayer(KernelLayer *layer)
 }
 
 /**********************************************************************/
-int resumeKernelLayer(KernelLayer *layer)
+int resumeKernelLayer(struct kernel_layer *layer)
 {
   if (getKernelLayerState(layer) == LAYER_SUSPENDED) {
     setKernelLayerState(layer, LAYER_RUNNING);
@@ -1106,7 +1111,8 @@ int resumeKernelLayer(KernelLayer *layer)
 }
 
 /***********************************************************************/
-int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
+int prepareToResizePhysical(struct kernel_layer *layer,
+                            BlockCount physicalCount)
 {
   logInfo("Preparing to resize physical to %llu", physicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
@@ -1128,7 +1134,7 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
 }
 
 /***********************************************************************/
-int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
+int resizePhysical(struct kernel_layer *layer, BlockCount physicalCount)
 {
   // We must not mark the layer as allowing allocations when it is suspended
   // lest an allocation attempt block on writing IO to the suspended VDO.
@@ -1141,7 +1147,8 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount)
 }
 
 /***********************************************************************/
-int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
+int prepareToResizeLogical(struct kernel_layer *layer,
+                           BlockCount logicalCount)
 {
   logInfo("Preparing to resize logical to %llu", logicalCount);
   // Allocations are allowed and permissible through this non-VDO thread,
@@ -1157,7 +1164,7 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount)
 }
 
 /***********************************************************************/
-int resizeLogical(KernelLayer *layer, BlockCount logicalCount)
+int resizeLogical(struct kernel_layer *layer, BlockCount logicalCount)
 {
   logInfo("Resizing logical to %llu", logicalCount);
   // We must not mark the layer as allowing allocations when it is suspended

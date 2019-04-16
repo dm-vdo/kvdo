@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#4 $
  */
 
 #ifndef KTRACE_H
@@ -27,7 +27,7 @@
 #include "common.h"
 #include "trace.h"
 
-struct kernelLayer;
+struct kernel_layer;
 struct kvio;
 
 // Implement event sampling once per N.
@@ -59,7 +59,7 @@ bool sample_this_one(struct sample_counter *counter);
  *
  * @return VDO_SUCCESS, or an error code
  **/
-int trace_kernel_layer_init(struct kernelLayer *layer);
+int trace_kernel_layer_init(struct kernel_layer *layer);
 
 /**
  * Initialize the mutex used when logging latency tracing data.
@@ -74,7 +74,7 @@ void initialize_trace_logging_once(void);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int alloc_trace_from_pool(struct kernelLayer *layer, Trace **trace_pointer);
+int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer);
 
 /**
  * Free a trace buffer
@@ -82,7 +82,7 @@ int alloc_trace_from_pool(struct kernelLayer *layer, Trace **trace_pointer);
  * @param layer  The KernelLayer
  * @param trace  The trace buffer
  **/
-void free_trace_to_pool(struct kernelLayer *layer, Trace *trace);
+void free_trace_to_pool(struct kernel_layer *layer, Trace *trace);
 
 /**
  * Log the trace at kvio freeing time

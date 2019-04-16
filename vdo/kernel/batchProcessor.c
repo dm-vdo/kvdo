@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#8 $
  */
 
 #include "batchProcessor.h"
@@ -77,7 +77,7 @@ struct batch_processor {
 	atomic_t state;
 	BatchProcessorCallback callback;
 	void *closure;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 };
 
 static void schedule_batch_processing(struct batch_processor *batch);
@@ -154,7 +154,7 @@ static void schedule_batch_processing(struct batch_processor *batch)
 }
 
 /**********************************************************************/
-int make_batch_processor(KernelLayer *layer,
+int make_batch_processor(struct kernel_layer *layer,
 			 BatchProcessorCallback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr)

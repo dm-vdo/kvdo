@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#11 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -55,7 +55,7 @@ static struct proc_dir_entry *procfs_root = NULL;
 /**********************************************************************/
 static int status_dedupe_show(struct seq_file *m, void *v)
 {
-	KernelLayer *layer = (KernelLayer *)m->private;
+	struct kernel_layer *layer = (struct kernel_layer *) m->private;
 	VDOStatistics *stats;
 	size_t len = sizeof(VDOStatistics);
 	RegisteredThread allocating_thread, instance_thread;
@@ -112,7 +112,7 @@ static BioStats subtract_bio_stats(BioStats minuend, BioStats subtrahend)
 }
 
 /**********************************************************************/
-void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats)
+void get_kernel_stats(struct kernel_layer *layer, KernelStatistics *stats)
 {
 	stats->version = STATISTICS_VERSION;
 	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
@@ -152,7 +152,7 @@ void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats)
 /**********************************************************************/
 static int status_kernel_show(struct seq_file *m, void *v)
 {
-	KernelLayer *layer = (KernelLayer *)m->private;
+	struct kernel_layer *layer = (struct kernel_layer *) m->private;
 	KernelStatistics *stats;
 	size_t len = sizeof(KernelStatistics);
 	RegisteredThread allocating_thread, instance_thread;
@@ -207,7 +207,7 @@ void vdo_destroy_procfs()
 }
 
 /**********************************************************************/
-int vdo_create_procfs_entry(KernelLayer *layer,
+int vdo_create_procfs_entry(struct kernel_layer *layer,
 			    const char *name,
 			    void **private)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.h#3 $
  *
  */
 
@@ -51,7 +51,7 @@ void vdo_destroy_procfs(void);
  *
  * @return 0 on success, nonzero on failure
  */
-int vdo_create_procfs_entry(KernelLayer *layer,
+int vdo_create_procfs_entry(struct kernel_layer *layer,
 			    const char *name,
 			    void **private);
 
@@ -70,6 +70,6 @@ void vdo_destroy_procfs_entry(const char *name, void *private);
  * @param layer    the kernel layer
  * @param stats    pointer to the structure to fill in
  */
-void get_kernel_stats(KernelLayer *layer, KernelStatistics *stats);
+void get_kernel_stats(struct kernel_layer *layer, KernelStatistics *stats);
 
 #endif  /* STATUS_PROC_H */

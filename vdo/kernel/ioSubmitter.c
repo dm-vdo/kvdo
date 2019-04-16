@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#22 $
  */
 
 #include "ioSubmitter.h"
@@ -213,7 +213,7 @@ static void assert_running_in_bio_queue_for_pbn(PhysicalBlockNumber pbn)
  */
 static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
 {
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 	if (is_data(kvio)) {
 		count_bios(&layer->biosOutCompleted, bio);
 		return;
@@ -231,7 +231,7 @@ static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
 void count_completed_bios(struct bio *bio)
 {
 	struct kvio *kvio = (struct kvio *)bio->bi_private;
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 	atomic64_inc(&layer->biosCompleted);
 	count_all_bios_completed(kvio, bio);
 }
@@ -268,7 +268,7 @@ void complete_async_bio(struct bio *bio, int error)
  */
 static void count_all_bios(struct kvio *kvio, struct bio *bio)
 {
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 	if (is_data(kvio)) {
 		count_bios(&layer->biosOut, bio);
 		return;
@@ -529,7 +529,7 @@ void vdo_submit_bio(struct bio *bio, BioQAction action)
 	setup_kvio_work(kvio, process_bio_map, (KvdoWorkFunction)bio->bi_end_io,
 		      action);
 
-	KernelLayer *layer = kvio->layer;
+	struct kernel_layer *layer = kvio->layer;
 	struct bio_queue_data *bio_queue_data =
 		bio_queue_data_for_pbn(layer->ioSubmitter, kvio->vio->physical);
 
@@ -589,7 +589,7 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 				const char *thread_name_prefix,
 				const char *queue_name,
 				unsigned int queue_number,
-				KernelLayer *layer)
+				struct kernel_layer *layer)
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 38)
 	bio_queue_data->bdev = layer->dev->bdev;
@@ -607,7 +607,7 @@ int make_io_submitter(const char *thread_name_prefix,
 		      unsigned int thread_count,
 		      unsigned int rotation_interval,
 		      unsigned int max_requests_active,
-		      KernelLayer *layer,
+		      struct kernel_layer *layer,
 		      struct io_submitter **io_submitter_ptr)
 {
 	struct io_submitter *io_submitter;

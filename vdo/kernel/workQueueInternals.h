@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#8 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -55,7 +55,7 @@ struct kvdo_work_queue {
 	/** A handle to a sysfs tree for reporting stats and other info */
 	struct kobject kobj;
 	/** The kernel layer owning this work queue */
-	KernelLayer *owner;
+	struct kernel_layer *owner;
 };
 
 struct simple_work_queue {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#12 $
  */
 
 #include "bio.h"
@@ -115,7 +115,7 @@ void set_bio_operation(struct bio *bio, unsigned int operation)
 }
 
 /**********************************************************************/
-void free_bio(struct bio *bio, KernelLayer *layer)
+void free_bio(struct bio *bio, struct kernel_layer *layer)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 	bio_uninit(bio);
@@ -164,7 +164,7 @@ static void set_bio_size(struct bio *bio, BlockSize bio_size)
  * @param bio    The bio to initialize
  * @param layer  The layer to which it belongs.
  **/
-static void initialize_bio(struct bio *bio, KernelLayer *layer)
+static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
 {
 	// Save off important info so it can be set back later
 	unsigned short vcnt = bio->bi_vcnt;
@@ -179,7 +179,7 @@ static void initialize_bio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-void reset_bio(struct bio *bio, KernelLayer *layer)
+void reset_bio(struct bio *bio, struct kernel_layer *layer)
 {
 	// VDO-allocated bios always have a vcnt of 0 (for flushes) or 1 (for
 	// data). Assert that this function is called on bios with vcnt of 0
@@ -199,7 +199,7 @@ void reset_bio(struct bio *bio, KernelLayer *layer)
 }
 
 /**********************************************************************/
-int create_bio(KernelLayer *layer, char *data, struct bio **bio_ptr)
+int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 {
 	int bvec_count = 0;
 	if (data != NULL) {

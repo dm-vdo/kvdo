@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.h#5 $
  */
 
 #ifndef KVDO_FLUSH_H
@@ -42,7 +42,7 @@ int make_kvdo_flush(struct kvdo_flush **flush_ptr);
  * @return true if VDO should process empty flush requests, or false if
  *         they should just be forwarded to our storage device.
  **/
-bool should_process_flush(KernelLayer *layer);
+bool should_process_flush(struct kernel_layer *layer);
 
 /**
  * Function called to start processing a flush request. It is called when we
@@ -52,7 +52,7 @@ bool should_process_flush(KernelLayer *layer);
  * @param layer  The physical layer
  * @param bio    The bio containing an empty flush request
  **/
-void launch_kvdo_flush(KernelLayer *layer, struct bio *bio);
+void launch_kvdo_flush(struct kernel_layer *layer, struct bio *bio);
 
 /**
  * Function called from base VDO to complete and free a flush request.
@@ -68,6 +68,6 @@ void kvdo_complete_flush(VDOFlush **kfp);
  *
  * @return VDO_SUCCESS or an error
  */
-int synchronous_flush(KernelLayer *layer);
+int synchronous_flush(struct kernel_layer *layer);
 
 #endif /* KVDO_FLUSH_H */

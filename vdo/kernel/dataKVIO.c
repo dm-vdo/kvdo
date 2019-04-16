@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#34 $
  */
 
 #include "dataKVIO.h"
@@ -125,7 +125,7 @@ static void kvio_completion_tap2(struct data_kvio *data_kvio)
 /**********************************************************************/
 static void kvdoAcknowledgeDataKVIO(struct data_kvio *data_kvio)
 {
-	KernelLayer *layer = data_kvio->kvio.layer;
+	struct kernel_layer *layer = data_kvio->kvio.layer;
 	struct external_io_request *externalIORequest =
 		&data_kvio->externalIORequest;
 	struct bio *bio = externalIORequest->bio;
@@ -179,7 +179,7 @@ static noinline void clean_data_kvio(struct data_kvio *data_kvio,
 void return_data_kvio_batch_to_pool(struct batch_processor *batch,
 				    void *closure)
 {
-	KernelLayer *layer = closure;
+	struct kernel_layer *layer = closure;
 	uint32_t count = 0;
 	ASSERT_LOG_ONLY(batch != NULL, "batch not null");
 	ASSERT_LOG_ONLY(layer != NULL, "layer not null");
@@ -217,7 +217,7 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
 		data_vio_as_data_kvio(asDataVIO(completion));
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
 
-	KernelLayer *layer = get_layer_from_data_kvio(data_kvio);
+	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 	if (useBioAckQueue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_kvio->externalIORequest.bio != NULL)) {
 		launch_data_kvio_on_bio_ack_queue(
@@ -421,7 +421,7 @@ void kvdo_read_block(DataVIO *dataVIO,
 
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(dataVIO);
 	struct read_block *read_block = &data_kvio->readBlock;
-	KernelLayer *layer = get_layer_from_data_kvio(data_kvio);
+	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 
 	read_block->callback = callback;
 	read_block->status = VDO_SUCCESS;
@@ -477,7 +477,7 @@ kvdo_acknowledge_data_kvio_then_continue(struct kvdo_work_item *item)
 void acknowledgeDataVIO(DataVIO *dataVIO)
 {
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(dataVIO);
-	KernelLayer *layer = get_layer_from_data_kvio(data_kvio);
+	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 
 	// If the remaining discard work is not completely processed by this
 	// VIO, don't acknowledge it yet.
@@ -587,7 +587,7 @@ void applyPartialWrite(DataVIO *data_vio)
 	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct bio *bio = data_kvio->externalIORequest.bio;
-	KernelLayer *layer = get_layer_from_data_kvio(data_kvio);
+	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 	reset_bio(data_kvio->dataBlockBio, layer);
 
 	if (!is_discard_bio(bio)) {
@@ -682,7 +682,7 @@ void compressDataVIO(DataVIO *data_vio)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-makeDataKVIO(KernelLayer *layer,
+makeDataKVIO(struct kernel_layer *layer,
 	     struct bio *bio,
 	     struct data_kvio **data_kvio_ptr)
 {
@@ -736,7 +736,7 @@ makeDataKVIO(KernelLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int kvdoCreateKVIOFromBio(KernelLayer *layer,
+static int kvdoCreateKVIOFromBio(struct kernel_layer *layer,
 				 struct bio *bio,
 				 Jiffies arrival_time,
 				 struct data_kvio **data_kvio_ptr)
@@ -838,7 +838,7 @@ static void kvdo_continue_discard_kvio(VDOCompletion *completion)
 {
 	DataVIO *data_vio = asDataVIO(completion);
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
-	KernelLayer *layer = get_layer_from_data_kvio(data_kvio);
+	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 	data_kvio->remainingDiscard -=
 		min(data_kvio->remainingDiscard,
 		    (DiscardSize)(VDO_BLOCK_SIZE - data_kvio->offset));
@@ -893,8 +893,10 @@ static void kvdoCompletePartialRead(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int kvdo_launch_data_kvio_from_bio(KernelLayer *layer, struct bio *bio,
-				   uint64_t arrival_time, bool hasDiscardPermit)
+int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
+				   struct bio *bio,
+				   uint64_t arrival_time,
+				   bool hasDiscardPermit)
 {
 
 	struct data_kvio *data_kvio = NULL;
@@ -1014,7 +1016,7 @@ static void free_pooled_data_kvio(void *poolData, void *data)
 	}
 
 	struct data_kvio *data_kvio = (struct data_kvio *)data;
-	KernelLayer *layer = (KernelLayer *)poolData;
+	struct kernel_layer *layer = (struct kernel_layer *)poolData;
 	if (WRITE_PROTECT_FREE_POOL) {
 		set_write_protect(data_kvio, WP_DATA_KVIO_SIZE, false);
 	}
@@ -1042,7 +1044,7 @@ static void free_pooled_data_kvio(void *poolData, void *data)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocate_pooled_data_kvio(KernelLayer *layer,
+static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 				     struct data_kvio **data_kvio_ptr)
 {
 	struct data_kvio *data_kvio;
@@ -1117,8 +1119,9 @@ static int allocate_pooled_data_kvio(KernelLayer *layer,
 static int make_pooled_data_kvio(void *pool_data, void **data_ptr)
 {
 	struct data_kvio *data_kvio = NULL;
-	int result = allocate_pooled_data_kvio((KernelLayer *)pool_data,
-					       &data_kvio);
+	int result =
+		allocate_pooled_data_kvio((struct kernel_layer *) pool_data,
+					  &data_kvio);
 	if (result != VDO_SUCCESS) {
 		free_pooled_data_kvio(pool_data, data_kvio);
 		return result;
@@ -1278,7 +1281,7 @@ static void dumpPooledDataKVIO(void *pool_data __attribute__((unused)),
 }
 
 /**********************************************************************/
-int make_data_kvio_buffer_pool(KernelLayer *layer,
+int make_data_kvio_buffer_pool(struct kernel_layer *layer,
 			       uint32_t pool_size,
 			       struct buffer_pool **buffer_pool_ptr)
 {

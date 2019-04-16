@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#13 $
  */
 
 #include "kvdoFlush.h"
@@ -44,7 +44,7 @@
  **/
 struct kvdo_flush {
 	struct kvdo_work_item work_item;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 	struct bio_list bios;
 	Jiffies arrival_time; // Time when earliest bio appeared
 	VDOFlush vdo_flush;
@@ -57,7 +57,7 @@ int make_kvdo_flush(struct kvdo_flush **flush_ptr)
 }
 
 /**********************************************************************/
-bool should_process_flush(KernelLayer *layer)
+bool should_process_flush(struct kernel_layer *layer)
 {
 	return (get_kvdo_write_policy(&layer->kvdo) == WRITE_POLICY_ASYNC);
 }
@@ -84,7 +84,7 @@ static void kvdo_flush_work(struct kvdo_work_item *item)
  * @param layer       The kernel layer on which the flushLock is held
  **/
 static void initialize_kvdo_flush(struct kvdo_flush *kvdo_flush,
-				  KernelLayer *layer)
+				  struct kernel_layer *layer)
 {
 	kvdo_flush->layer = layer;
 	bio_list_init(&kvdo_flush->bios);
@@ -107,7 +107,7 @@ static void enqueue_kvdo_flush(struct kvdo_flush *kvdo_flush)
 }
 
 /**********************************************************************/
-void launch_kvdo_flush(KernelLayer *layer, struct bio *bio)
+void launch_kvdo_flush(struct kernel_layer *layer, struct bio *bio)
 {
 	// Try to allocate a kvdo_flush to represent the flush request.
 	// If the allocation fails, we'll deal with it later.
@@ -159,7 +159,7 @@ void launch_kvdo_flush(KernelLayer *layer, struct bio *bio)
  **/
 static void release_kvdo_flush(struct kvdo_flush *kvdo_flush)
 {
-	KernelLayer *layer = kvdo_flush->layer;
+	struct kernel_layer *layer = kvdo_flush->layer;
 	bool relaunch_flush = false;
 	bool free_flush = false;
 
@@ -201,7 +201,7 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 	struct kvdo_flush *kvdo_flush = container_of(item,
 						     struct kvdo_flush,
 						     work_item);
-	KernelLayer *layer = kvdo_flush->layer;
+	struct kernel_layer *layer = kvdo_flush->layer;
 
 	struct bio *bio;
 	while ((bio = bio_list_pop(&kvdo_flush->bios)) != NULL) {
@@ -243,7 +243,7 @@ void kvdo_complete_flush(VDOFlush **kfp)
 }
 
 /**********************************************************************/
-int synchronous_flush(KernelLayer *layer)
+int synchronous_flush(struct kernel_layer *layer)
 {
 	struct bio bio;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)

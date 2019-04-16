@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#27 $
  */
 
 #include "dmvdo.h"
@@ -73,7 +73,7 @@ struct kvdo_module_globals kvdoGlobals;
  *
  * @return The kernel layer, or NULL.
  **/
-static KernelLayer *get_kernel_layer_for_target(struct dm_target *ti)
+static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 {
 	return ((struct device_config *)ti->private)->layer;
 }
@@ -84,7 +84,7 @@ static KernelLayer *get_kernel_layer_for_target(struct dm_target *ti)
  * submit_bio or generic_make_request.
  *
  * @param ti      The dm_target.  We only need the "private" member to give
- *                us the KernelLayer.
+ *                us the kernel_layer.
  * @param bio     The bio.
  *
  * @return One of these values:
@@ -107,14 +107,14 @@ static KernelLayer *get_kernel_layer_for_target(struct dm_target *ti)
  **/
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	return kvdoMapBio(layer, bio);
 }
 
 /**********************************************************************/
 static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 
 	limits->logical_block_size = layer->deviceConfig->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
@@ -157,7 +157,7 @@ static int vdo_iterate_devices(struct dm_target *ti,
 			       iterate_devices_callout_fn fn,
 			       void *data)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	sector_t len =
 		blockToSector(layer, layer->deviceConfig->physical_blocks);
 
@@ -177,7 +177,7 @@ static void vdo_status(struct dm_target *ti,
 		       char *result,
 		       unsigned int maxlen)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	char name_buffer[BDEVNAME_SIZE];
 	// N.B.: The DMEMIT macro uses the variables named "sz", "result",
 	// "maxlen".
@@ -219,7 +219,7 @@ static void vdo_status(struct dm_target *ti,
  *
  * @return The size in blocks
  **/
-static BlockCount get_underlying_device_block_count(KernelLayer *layer)
+static BlockCount get_underlying_device_block_count(struct kernel_layer *layer)
 {
 	uint64_t physical_size =
 		i_size_read(getKernelLayerBdev(layer)->bd_inode);
@@ -227,7 +227,7 @@ static BlockCount get_underlying_device_block_count(KernelLayer *layer)
 }
 
 /**********************************************************************/
-static int vdo_prepare_to_grow_logical(KernelLayer *layer, char *size_string)
+static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 {
 	BlockCount logical_count;
 	if (sscanf(size_string, "%llu", &logical_count) != 1) {
@@ -258,7 +258,7 @@ static int vdo_prepare_to_grow_logical(KernelLayer *layer, char *size_string)
  *                 the message
  **/
 __attribute__((warn_unused_result))
-static int process_vdo_message_locked(KernelLayer *layer,
+static int process_vdo_message_locked(struct kernel_layer *layer,
 				      unsigned int argc,
 				      char **argv)
 {
@@ -372,7 +372,7 @@ static int process_vdo_message_locked(KernelLayer *layer,
  *                processsing the message
  **/
 __attribute__((warn_unused_result))
-static int process_vdo_message(KernelLayer *layer,
+static int process_vdo_message(struct kernel_layer *layer,
 			       unsigned int argc,
 			       char **argv)
 {
@@ -449,7 +449,7 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
 		return -EINVAL;
 	}
 
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread allocating_thread, instance_thread;
 	registerAllocatingThread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
@@ -466,7 +466,7 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
  * @param layer The kernel layer to get the write policy from
  **/
 static void configure_target_capabilities(struct dm_target *ti,
-					  KernelLayer *layer)
+					  struct kernel_layer *layer)
 {
 	ti->discards_supported = 1;
 
@@ -504,7 +504,7 @@ static void configure_target_capabilities(struct dm_target *ti,
  **/
 static void cleanup_initialize(struct dm_target *ti,
 			       ThreadConfig *thread_config,
-			       KernelLayer *layer,
+			       struct kernel_layer *layer,
 			       unsigned int instance,
 			       char *why)
 {
@@ -515,7 +515,7 @@ static void cleanup_initialize(struct dm_target *ti,
 		// This releases the instance number too.
 		freeKernelLayer(layer);
 	} else {
-		// With no KernelLayer taking ownership we have to release
+		// With no kernel_layer taking ownership we have to release
 		// explicitly.
 		release_kvdo_instance(instance);
 	}
@@ -565,7 +565,7 @@ static int vdo_initialize(struct dm_target *ti,
 	};
 
 	char *failure_reason;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 	int result = makeKernelLayer(ti->begin,
 				     instance,
 				     config,
@@ -636,7 +636,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	RegisteredThread allocating_thread;
 	registerAllocatingThread(&allocating_thread, NULL);
 
-	KernelLayer *old_layer = get_layer_by_name(pool_name);
+	struct kernel_layer *old_layer = get_layer_by_name(pool_name);
 	unsigned int instance;
 	if (old_layer == NULL) {
 		result = allocate_kvdo_instance(&instance);
@@ -704,7 +704,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 
 	releaseKernelLayerReference(layer, config);
 
@@ -735,7 +735,7 @@ static void vdo_dtr(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_presuspend(struct dm_target *ti)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
 	if (dm_noflush_suspending(ti)) {
@@ -747,7 +747,7 @@ static void vdo_presuspend(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_postsuspend(struct dm_target *ti)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
 	const char *pool_name = layer->deviceConfig->pool_name;
@@ -767,7 +767,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 /**********************************************************************/
 static int vdo_preresume(struct dm_target *ti)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
@@ -797,7 +797,7 @@ static int vdo_preresume(struct dm_target *ti)
 /**********************************************************************/
 static void vdo_resume(struct dm_target *ti)
 {
-	KernelLayer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
 	logInfo("device '%s' resumed", layer->deviceConfig->pool_name);

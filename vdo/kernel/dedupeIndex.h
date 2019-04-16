@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#10 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -32,7 +32,8 @@
  *
  * @return VDO_SUCCESS or an error code
  **/
-int make_dedupe_index(struct dedupe_index **index_ptr, KernelLayer *layer)
+int make_dedupe_index(struct dedupe_index **index_ptr,
+		      struct kernel_layer *layer)
 	__attribute__((warn_unused_result));
 
 

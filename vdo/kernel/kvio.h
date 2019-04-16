@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#13 $
  */
 
 #ifndef KVIO_H
@@ -33,7 +33,7 @@
 struct kvio {
 	KvdoEnqueueable enqueueable;
 	VIO *vio;
-	KernelLayer *layer;
+	struct kernel_layer *layer;
 	struct bio *bio;
 
 	/**
@@ -256,7 +256,7 @@ void kvdo_continue_kvio(struct kvio *kvio, int error);
  * @param bio        The bio to associate with this kvio
  **/
 void initialize_kvio(struct kvio *kvio,
-		     KernelLayer *layer,
+		     struct kernel_layer *layer,
 		     VIOType vio_type,
 		     VIOPriority priority,
 		     void *parent,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#20 $
  */
 
 #ifndef KERNELLAYER_H
@@ -74,7 +74,7 @@ struct atomic_bio_stats {
 /**
  * The VDO representation of the target device
  **/
-struct kernelLayer {
+struct kernel_layer {
   PhysicalLayer               common;
   // Layer specific info
   struct device_config       *deviceConfig;
@@ -199,7 +199,7 @@ typedef enum bioAckQAction {
   BIO_ACK_Q_ACTION_ACK,
 } BioAckQAction;
 
-typedef void (*DedupeShutdownCallbackFunction)(KernelLayer *layer);
+typedef void (*DedupeShutdownCallbackFunction)(struct kernel_layer *layer);
 
 /*
  * Wrapper for the Enqueueable object, to associate it with a kernel
@@ -230,7 +230,7 @@ int makeKernelLayer(uint64_t               startingSector,
                     struct kobject        *parentKobject,
                     ThreadConfig         **threadConfigPointer,
                     char                 **reason,
-                    KernelLayer          **layerPtr)
+                    struct kernel_layer  **layerPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -242,7 +242,7 @@ int makeKernelLayer(uint64_t               startingSector,
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToModifyKernelLayer(KernelLayer           *layer,
+int prepareToModifyKernelLayer(struct kernel_layer   *layer,
                                struct device_config  *config,
                                char                 **errorPtr)
   __attribute__((warn_unused_result));
@@ -255,7 +255,7 @@ int prepareToModifyKernelLayer(KernelLayer           *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int modifyKernelLayer(KernelLayer          *layer,
+int modifyKernelLayer(struct kernel_layer  *layer,
                       struct device_config *config)
   __attribute__((warn_unused_result));
 
@@ -265,7 +265,7 @@ int modifyKernelLayer(KernelLayer          *layer,
  * @param layer    The layer, which must have been created by
  *                 makeKernelLayer
  **/
-void freeKernelLayer(KernelLayer *layer);
+void freeKernelLayer(struct kernel_layer *layer);
 
 /**
  * Start the kernel layer.
@@ -278,7 +278,7 @@ void freeKernelLayer(KernelLayer *layer);
  *
  * @note redundant starts are silently ignored
  **/
-int startKernelLayer(KernelLayer          *layer,
+int startKernelLayer(struct kernel_layer  *layer,
                      const VDOLoadConfig  *loadConfig,
                      char                **reason);
 
@@ -289,7 +289,7 @@ int startKernelLayer(KernelLayer          *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int stopKernelLayer(KernelLayer *layer);
+int stopKernelLayer(struct kernel_layer *layer);
 
 /**
  * Suspend the kernel layer.
@@ -298,7 +298,7 @@ int stopKernelLayer(KernelLayer *layer);
  *
  * @return VDO_SUCCESS or an error
  **/
-int suspendKernelLayer(KernelLayer *layer);
+int suspendKernelLayer(struct kernel_layer *layer);
 
 /**
  * Resume the kernel layer.
@@ -307,7 +307,7 @@ int suspendKernelLayer(KernelLayer *layer);
  *
  * @return VDO_SUCCESS or an error
  **/
-int resumeKernelLayer(KernelLayer *layer);
+int resumeKernelLayer(struct kernel_layer *layer);
 
 /**
  * Get the kernel layer state.
@@ -316,7 +316,8 @@ int resumeKernelLayer(KernelLayer *layer);
  *
  * @return the instantaneously correct kernel layer state
  **/
-static inline KernelLayerState getKernelLayerState(const KernelLayer *layer)
+static inline KernelLayerState
+getKernelLayerState(const struct kernel_layer *layer)
 {
   return relaxedLoad32(&layer->state);
 }
@@ -331,18 +332,18 @@ static inline KernelLayerState getKernelLayerState(const KernelLayer *layer)
  *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdoMapBio for
  *         details).
  **/
-int kvdoMapBio(KernelLayer *layer, struct bio *bio);
+int kvdoMapBio(struct kernel_layer *layer, struct bio *bio);
 
 /**
- * Convert a generic PhysicalLayer to a kernelLayer.
+ * Convert a generic PhysicalLayer to a kernel_layer.
  *
  * @param layer The PhysicalLayer to convert
  *
- * @return The PhysicalLayer as a KernelLayer
+ * @return The PhysicalLayer as a struct kernel_layer
  **/
-static inline KernelLayer *asKernelLayer(PhysicalLayer *layer)
+static inline struct kernel_layer *asKernelLayer(PhysicalLayer *layer)
 {
-  return container_of(layer, KernelLayer, common);
+  return container_of(layer, struct kernel_layer, common);
 }
 
 /**
@@ -359,7 +360,8 @@ static inline KernelLayer *asKernelLayer(PhysicalLayer *layer)
  *
  * @return      the sector number/count
  **/
-static inline sector_t blockToSector(KernelLayer *layer, sector_t blockNumber)
+static inline sector_t blockToSector(struct kernel_layer *layer,
+                                     sector_t blockNumber)
 {
   return (blockNumber * VDO_SECTORS_PER_BLOCK);
 }
@@ -374,7 +376,8 @@ static inline sector_t blockToSector(KernelLayer *layer, sector_t blockNumber)
  *
  * @return      the block number/count
  **/
-static inline sector_t sectorToBlock(KernelLayer *layer, sector_t sectorNumber)
+static inline sector_t sectorToBlock(struct kernel_layer *layer,
+                                     sector_t sectorNumber)
 {
   return (sectorNumber / VDO_SECTORS_PER_BLOCK);
 }
@@ -387,8 +390,8 @@ static inline sector_t sectorToBlock(KernelLayer *layer, sector_t sectorNumber)
  *
  * @return      the offset within the block
  **/
-static inline BlockSize sectorToBlockOffset(KernelLayer *layer,
-                                            sector_t     sectorNumber)
+static inline BlockSize sectorToBlockOffset(struct kernel_layer *layer,
+                                            sector_t sectorNumber)
 {
   unsigned int sectorsPerBlockMask = VDO_SECTORS_PER_BLOCK - 1;
   return to_bytes(sectorNumber & sectorsPerBlockMask);
@@ -401,7 +404,7 @@ static inline BlockSize sectorToBlockOffset(KernelLayer *layer,
  *
  * @return The block device object under the layer
  **/
-struct block_device *getKernelLayerBdev(const KernelLayer *layer)
+struct block_device *getKernelLayerBdev(const struct kernel_layer *layer)
   __attribute__((warn_unused_result));
 
 /**
@@ -410,7 +413,7 @@ struct block_device *getKernelLayerBdev(const KernelLayer *layer)
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void acquireKernelLayerReference(KernelLayer          *layer,
+static inline void acquireKernelLayerReference(struct kernel_layer *layer,
                                                struct device_config *config)
 {
   layer->configReferences++;
@@ -423,7 +426,7 @@ static inline void acquireKernelLayerReference(KernelLayer          *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void releaseKernelLayerReference(KernelLayer          *layer,
+static inline void releaseKernelLayerReference(struct kernel_layer  *layer,
                                                struct device_config *config)
 {
   config->layer = NULL;
@@ -436,7 +439,7 @@ static inline void releaseKernelLayerReference(KernelLayer          *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void setKernelLayerActiveConfig(KernelLayer          *layer,
+static inline void setKernelLayerActiveConfig(struct kernel_layer  *layer,
                                               struct device_config *config)
 {
   layer->deviceConfig = config;
@@ -460,7 +463,7 @@ int mapToSystemError(int error);
  *
  * @param layer  The kernel layer for the device
  **/
-void waitForNoRequestsActive(KernelLayer *layer);
+void waitForNoRequestsActive(struct kernel_layer *layer);
 
 /**
  * Enqueues an item on our internal "cpu queues". Since there is more than
@@ -469,7 +472,7 @@ void waitForNoRequestsActive(KernelLayer *layer);
  * @param layer The kernel layer
  * @param item  The work item to enqueue
  */
-static inline void enqueueCPUWorkQueue(KernelLayer           *layer,
+static inline void enqueueCPUWorkQueue(struct kernel_layer   *layer,
                                        struct kvdo_work_item *item)
 {
   enqueue_work_queue(layer->cpuQueue, item);
@@ -484,7 +487,8 @@ static inline void enqueueCPUWorkQueue(KernelLayer           *layer,
  *
  * @return VDO_SUCCESS or an error
  */
-int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount);
+int prepareToResizePhysical(struct kernel_layer *layer,
+                            BlockCount physicalCount);
 
 /**
  * Adjusts parameters to reflect resizing the underlying device.
@@ -495,7 +499,7 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount);
  *
  * @return VDO_SUCCESS or an error
  */
-int resizePhysical(KernelLayer *layer, BlockCount physicalCount);
+int resizePhysical(struct kernel_layer *layer, BlockCount physicalCount);
 
 /**
  * Adjust parameters to prepare to present a larger logical space.
@@ -506,7 +510,7 @@ int resizePhysical(KernelLayer *layer, BlockCount physicalCount);
  *
  * @return VDO_SUCCESS or an error
  */
-int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount);
+int prepareToResizeLogical(struct kernel_layer *layer, BlockCount logicalCount);
 
 /**
  * Adjust parameters to present a larger logical space.
@@ -517,7 +521,7 @@ int prepareToResizeLogical(KernelLayer *layer, BlockCount logicalCount);
  *
  * @return VDO_SUCCESS or an error
  */
-int resizeLogical(KernelLayer *layer, BlockCount logicalCount);
+int resizeLogical(struct kernel_layer *layer, BlockCount logicalCount);
 
 /**
  * Indicate whether the kernel layer is configured to use a separate
@@ -531,7 +535,7 @@ int resizeLogical(KernelLayer *layer, BlockCount logicalCount);
  *
  * @return   Whether a bio-acknowledgement work queue is in use
  **/
-static inline bool useBioAckQueue(KernelLayer *layer)
+static inline bool useBioAckQueue(struct kernel_layer *layer)
 {
   return layer->deviceConfig->thread_counts.bio_ack_threads > 0;
 }
@@ -543,6 +547,6 @@ static inline bool useBioAckQueue(KernelLayer *layer)
  * @param layer  The kernel layer
  * @param count  The number of completed requests
  **/
-void completeManyRequests(KernelLayer *layer, uint32_t count);
+void completeManyRequests(struct kernel_layer *layer, uint32_t count);
 
 #endif /* KERNELLAYER_H */

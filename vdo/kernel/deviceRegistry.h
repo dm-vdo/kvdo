@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#3 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -36,7 +36,7 @@ void initialize_device_registry_once(void);
  *
  * @return the layer, if any was found
  **/
-KernelLayer *get_layer_by_name(char *name)
+struct kernel_layer *get_layer_by_name(char *name)
   __attribute__((warn_unused_result));
 
 /**
@@ -48,7 +48,7 @@ KernelLayer *get_layer_by_name(char *name)
  *
  * @return VDO_SUCCESS or an error
  **/
-int add_layer_to_device_registry(char *name, KernelLayer *layer)
+int add_layer_to_device_registry(char *name, struct kernel_layer *layer)
   __attribute__((warn_unused_result));
 
 /**
