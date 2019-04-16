@@ -16,20 +16,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#4 $
  */
 
 #include "adminState.h"
 
+#include "logger.h"
 #include "permassert.h"
 
 #include "completion.h"
 #include "types.h"
 
-/**********************************************************************/
-const char *getAdminStateName(const AdminState *state)
+/**
+ * Get the name of an AdminStateCode for logging purposes.
+ *
+ * @param code  The AdminStateCode
+ *
+ * @return The name of the state's code
+ **/
+static const char *getAdminStateCodeName(AdminStateCode code)
 {
-  switch (state->state) {
+  switch (code) {
   case ADMIN_STATE_NORMAL_OPERATION:
     return "ADMIN_STATE_NORMAL_OPERATION";
 
@@ -54,17 +61,9 @@ const char *getAdminStateName(const AdminState *state)
 }
 
 /**********************************************************************/
-static bool isDrainOperation(AdminStateCode operation)
+const char *getAdminStateName(const AdminState *state)
 {
-  switch (operation) {
-  case ADMIN_STATE_FLUSHING:
-  case ADMIN_STATE_SAVING:
-  case ADMIN_STATE_SUSPENDING:
-    return true;
-
-  default:
-    return false;
-  }
+  return getAdminStateCodeName(state->state);
 }
 
 /**********************************************************************/
@@ -72,21 +71,29 @@ bool startDraining(AdminState     *state,
                    AdminStateCode  operation,
                    VDOCompletion  *waiter)
 {
-  ASSERT_LOG_ONLY(isDrainOperation(operation),
-                  "startDraining() called with drain operation");
-  if (state->state != ADMIN_STATE_NORMAL_OPERATION) {
-    finishCompletion(waiter, VDO_INVALID_ADMIN_STATE);
-    return false;
+  int result;
+  if (!isOperatingNormally(state)) {
+    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                     "Can't start draining from state %s",
+                                     getAdminStateCodeName(operation));
+  } else if ((operation & ADMIN_FLAG_DRAINING) != ADMIN_FLAG_DRAINING) {
+    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                     "Can't start draining with a non-drain "
+                                     "operation %s",
+                                     getAdminStateCodeName(operation));
+  } else if (state->waiter != NULL) {
+    result = VDO_COMPONENT_BUSY;
+  } else {
+    state->state  = operation;
+    state->waiter = waiter;
+    return true;
   }
 
-  if (state->waiter != NULL) {
-    finishCompletion(waiter, VDO_COMPONENT_BUSY);
-    return false;
+  if (waiter != NULL) {
+    finishCompletion(waiter, result);
   }
 
-  state->state  = operation;
-  state->waiter = waiter;
-  return true;
+  return false;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#6 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -26,12 +26,18 @@
 #include "types.h"
 
 typedef enum {
-  ADMIN_STATE_NORMAL_OPERATION = 0,
-  ADMIN_STATE_FLUSHING,
-  ADMIN_STATE_SAVING,
-  ADMIN_STATE_SAVED,
-  ADMIN_STATE_SUSPENDING,
-  ADMIN_STATE_SUSPENDED,
+  ADMIN_TYPE_NORMAL = 0,
+  ADMIN_TYPE_FLUSH,
+  ADMIN_TYPE_SAVE,
+  ADMIN_TYPE_SUSPEND,
+  ADMIN_FLAG_DRAINING  = 0x100,
+  ADMIN_FLAG_QUIESCENT = 0x200,
+  ADMIN_STATE_NORMAL_OPERATION = ADMIN_TYPE_NORMAL,
+  ADMIN_STATE_FLUSHING         = ADMIN_FLAG_DRAINING | ADMIN_TYPE_FLUSH,
+  ADMIN_STATE_SAVING           = ADMIN_FLAG_DRAINING | ADMIN_TYPE_SAVE,
+  ADMIN_STATE_SAVED            = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SAVE,
+  ADMIN_STATE_SUSPENDING       = ADMIN_FLAG_DRAINING | ADMIN_TYPE_SUSPEND,
+  ADMIN_STATE_SUSPENDED        = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SUSPEND,
 } AdminStateCode;
 
 typedef struct {
@@ -42,50 +48,26 @@ typedef struct {
 } AdminState;
 
 /**
- * Get the name of an AdminStateCode for logging purposes.
+ * Get the name of an AdminState's code for logging purposes.
  *
  * @param state  The AdminState
+ *
+ * @return The name of the state's code
  **/
 const char *getAdminStateName(const AdminState *state)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether an AdminState is flushing.
+ * Check whether an AdminState is in normal operation.
  *
  * @param state  The AdminState to query
  *
- * @return <code>true</code> if the state is flushing
+ * @return <code>true</code> if the state is in normal operation
  **/
 __attribute__((warn_unused_result))
-static inline bool isFlushing(AdminState *state)
+static inline bool isOperatingNormally(AdminState *state)
 {
-  return (state->state == ADMIN_STATE_FLUSHING);
-}
-
-/**
- * Check whether an AdminState is saving.
- *
- * @param state  The AdminState to query
- *
- * @return <code>true</code> if the state is saving
- **/
-__attribute__((warn_unused_result))
-static inline bool isSaving(AdminState *state)
-{
-  return (state->state == ADMIN_STATE_SAVING);
-}
-
-/**
- * Check whether an AdminState is saved.
- *
- * @param state  The AdminState to query
- *
- * @return <code>true</code> if the state is saved
- **/
-__attribute__((warn_unused_result))
-static inline bool isSaved(AdminState *state)
-{
-  return (state->state == ADMIN_STATE_SAVED);
+  return (state->state == ADMIN_STATE_NORMAL_OPERATION);
 }
 
 /**
@@ -102,20 +84,7 @@ static inline bool isSuspending(AdminState *state)
 }
 
 /**
- * Check whether an AdminState is suspended.
- *
- * @param state  The AdminState to query
- *
- * @return <code>true</code> if the state is suspended
- **/
-__attribute__((warn_unused_result))
-static inline bool isSuspended(AdminState *state)
-{
-  return (state->state == ADMIN_STATE_SUSPENDED);
-}
-
-/**
- * Chech whether an AdminState is draining.
+ * Check whether an AdminState is draining.
  *
  * @param state  The AdminState to query
  *
@@ -124,7 +93,7 @@ static inline bool isSuspended(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isDraining(AdminState *state)
 {
-  return (isFlushing(state) || isSaving(state) || isSuspending(state));
+  return ((state->state & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
 }
 
 /**
@@ -137,7 +106,7 @@ static inline bool isDraining(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isQuiescent(AdminState *state)
 {
-  return (isSaved(state) || isSuspended(state));
+  return ((state->state & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
 }
 
 /**
@@ -145,7 +114,8 @@ static inline bool isQuiescent(AdminState *state)
  *
  * @param state      The AdminState
  * @param operation  The type of drain to initiate
- * @param waiter     The completion to notify when the drain is complete
+ * @param waiter     The completion to notify when the drain is complete (may be
+ *                   NULL)
  *
  * @return <code>true</code> if the drain was initiated, if not the waiter
  *         will be notified
