@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/session.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/session.c#2 $
  */
 
 #include "session.h"
@@ -33,15 +33,12 @@ typedef enum {
 
 static const unsigned int SESSION_ID_MAX = UINT_MAX;
 
-LIST__HEAD(sessionListHead, session);
-typedef struct sessionListHead SessionListHead;
-
 struct sessionGroup {
   Mutex             mutex;
   CondVar           releaseCond; // signalled when refCount decremented
   unsigned int      refCount;
   SessionGroupState state;
-  SessionListHead   head;
+  struct hlist_head head;
   SessionID         nextSessionID;
   SessionFree       free;
   int               notFoundResult;
@@ -70,7 +67,7 @@ static void acquireSession(Session *session)
 static Session *searchList(SessionGroup *group, SessionID id)
 {
   Session *session;
-  LIST_FOREACH(session, &group->head, links) {
+  hlist_for_each_entry(session, &group->head, links) {
     if (session->id == id) {
       return session;
     }
@@ -141,7 +138,7 @@ int initializeSession(SessionGroup    *group,
   session->refCount = 1; // start with one reference on the session
   session->contents = contents;
   session->id       = id;
-  LIST_INSERT_HEAD(&group->head, session, links);
+  hlist_add_head(&session->links, &group->head);
   unlockMutex(&group->mutex);
 
   *sessionID = id;
@@ -152,7 +149,7 @@ int initializeSession(SessionGroup    *group,
 static void orphanSessionLocked(Session *session)
 {
   if (session->id != SESSION_ID_NONE) {
-    LIST_REMOVE(session, links);
+    hlist_del(&session->links);
     session->id = SESSION_ID_NONE;
   }
 }
@@ -217,7 +214,7 @@ int makeSessionGroup(int notFoundResult, SessionFree free,
     return result;
   }
 
-  LIST_INIT(&group->head);
+  INIT_HLIST_HEAD(&group->head);
   group->nextSessionID = SESSION_ID_INIT;
   group->refCount = 1; // whoever stores the group has a reference.
   group->state = GROUP_READY;
@@ -253,10 +250,10 @@ void releaseSessionGroup(SessionGroup *group)
 /**********************************************************************/
 void shutdownSessionGroup(SessionGroup *group)
 {
-  Session         *session;
-  SessionListHead  tempHead;
-  SessionFree      freeFunc;
-  LIST_INIT(&tempHead);
+  Session           *session;
+  struct hlist_head  tempHead;
+  SessionFree        freeFunc;
+  INIT_HLIST_HEAD(&tempHead);
 
   lockMutex(&group->mutex);
   group->state = GROUP_SHUTDOWN;
@@ -265,18 +262,18 @@ void shutdownSessionGroup(SessionGroup *group)
   }
 
   freeFunc = group->free;
-  while (!LIST_EMPTY(&group->head)) {
-    session = LIST_FIRST(&group->head);
+  while (!hlist_empty(&group->head)) {
+    session = hlist_entry_safe(group->head.first, Session, links);
     acquireSession(session);
     orphanSessionLocked(session);
-    LIST_INSERT_HEAD(&tempHead, session, links);
+    hlist_add_head(&session->links, &tempHead);
   }
   unlockMutex(&group->mutex);
 
-  while (!LIST_EMPTY(&tempHead)) {
-    session = LIST_FIRST(&tempHead);
+  while (!hlist_empty(&tempHead)) {
+    session = hlist_entry_safe(tempHead.first, Session, links);
     waitForSessionToStop(session);
-    LIST_REMOVE(session, links);
+    hlist_del(&session->links);
     destroyCond(&session->releaseCond);
     destroyMutex(&session->mutex);
     if (freeFunc != NULL) {

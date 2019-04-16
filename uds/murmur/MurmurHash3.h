@@ -39,11 +39,6 @@ void MurmurHash3_x86_128 ( const void * key, int len, uint32_t seed, void * out 
 
 void MurmurHash3_x64_128 ( const void * key, int len, uint32_t seed, void * out );
 
-void MurmurHash3_x64_128_double (const void * key,
-                                 int          len,
-                                 uint32_t     seed1,
-                                 uint32_t     seed2,
-                                 void *       out );
 //-----------------------------------------------------------------------------
 
 #endif // _MURMURHASH3_H_

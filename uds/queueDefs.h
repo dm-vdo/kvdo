@@ -16,22 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDOInternals.h#5 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/queueDefs.h#1 $
  */
 
-#ifndef KERNEL_VDO_INTERNALS_H
-#define KERNEL_VDO_INTERNALS_H
+#ifndef LINUX_KERNEL_QUEUE_DEFS_H
+#define LINUX_KERNEL_QUEUE_DEFS_H
 
-#include "kernelVDO.h"
+#include <linux/list.h>
 
-/**
- * Enqueue a work item to be performed in the base code in a
- * particular thread.
- *
- * @param thread         The KVDO thread on which to run the work item
- * @param item           The work item to be run
- **/
-void enqueue_kvdo_thread_work(struct kvdo_thread *thread,
-			      struct kvdo_work_item *item);
-
-#endif // KERNEL_VDO_INTERNALS_H
+#endif /* LINUX_KERNEL_QUEUE_DEFS_H */

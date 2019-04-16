@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/session.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/session.h#2 $
  */
 
 /**
@@ -35,7 +35,7 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "queue.h"
+#include "queueDefs.h"
 #include "threads.h"
 #include "typeDefs.h"
 
@@ -50,7 +50,7 @@ typedef void * SessionContents;
 typedef void (*SessionFree)(SessionContents contents);
 
 typedef struct session {
-  LIST_ENTRY(session) links;   // linked list, owned by the SessionGroup
+  struct hlist_node links;     // linked list, owned by the SessionGroup
 
   Mutex           mutex;       // protects refCount and idleWaiters
   CondVar         releaseCond; // signalled when refCount decremented
