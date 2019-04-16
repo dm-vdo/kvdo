@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#23 $
  */
 
 #include "dedupeIndex.h"
@@ -556,6 +556,9 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 /*****************************************************************************/
 static void close_session(struct dedupe_index *index)
 {
+	// Change the index state so that get_index_statistics will not try to
+	// use the index session we are closing.
+	index->index_state = IS_CHANGING;
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
 	int result = udsCloseIndexSession(index->index_session);
@@ -576,8 +579,8 @@ static void open_session(struct dedupe_index *index)
 	// ASSERTION: We enter in IS_CLOSED state.
 	bool create_flag = index->create_flag;
 	index->create_flag = false;
-	// Change the index state so that the it will be reported to the outside
-	// world as "opening".
+	// Change the index state so that the it will be reported to the
+	// outside world as "opening".
 	index->index_state = IS_CHANGING;
 	index->error_flag = false;
 	// Open the index session, while not holding the state_lock
