@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#3 $
  */
 #include "deltaIndex.h"
 
@@ -1688,11 +1688,11 @@ unsigned int getDeltaIndexPageCount(unsigned int numEntries,
 /**********************************************************************/
 void logDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
 {
-  logInfo("List 0x%X Key 0x%X Offset 0x%X%s%s ListSize 0x%X%s",
-          deltaEntry->listNumber, deltaEntry->key, deltaEntry->offset,
-          deltaEntry->atEnd ? " end" : "",
-          deltaEntry->isCollision ? " collision" : "",
-          getDeltaListSize(deltaEntry->deltaList),
-          deltaEntry->listOverflow ? " overflow" : "");
+  logRatelimit(logInfo, "List 0x%X Key 0x%X Offset 0x%X%s%s ListSize 0x%X%s",
+               deltaEntry->listNumber, deltaEntry->key, deltaEntry->offset,
+               deltaEntry->atEnd ? " end" : "",
+               deltaEntry->isCollision ? " collision" : "",
+               getDeltaListSize(deltaEntry->deltaList),
+               deltaEntry->listOverflow ? " overflow" : "");
   deltaEntry->listOverflow = false;
 }

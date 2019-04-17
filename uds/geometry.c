@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#2 $
  */
 
 #include "geometry.h"
@@ -134,33 +134,6 @@ int copyGeometry(Geometry *source, Geometry **geometryPtr)
                       source->chaptersPerVolume,
                       source->sparseChaptersPerVolume,
                       geometryPtr);
-}
-
-/**********************************************************************/
-bool verifyGeometry(const Geometry *expected, const Geometry *actual)
-{
-  return (expected->bytesPerPage == actual->bytesPerPage) &&
-    (expected->recordPagesPerChapter == actual->recordPagesPerChapter) &&
-    (expected->chaptersPerVolume == actual->chaptersPerVolume) &&
-    (expected->sparseChaptersPerVolume == actual->sparseChaptersPerVolume) &&
-    (expected->denseChaptersPerVolume == actual->denseChaptersPerVolume) &&
-    (expected->denseChaptersPerVolume ==
-     (expected->chaptersPerVolume - expected->sparseChaptersPerVolume)) &&
-    (expected->chapterDeltaListBits == actual->chapterDeltaListBits) &&
-    (expected->pagesPerVolume == actual->pagesPerVolume) &&
-    (expected->bytesPerVolume == actual->bytesPerVolume) &&
-    (expected->bytesPerChapter == actual->bytesPerChapter) &&
-    (expected->pagesPerChapter == actual->pagesPerChapter) &&
-    (expected->indexPagesPerChapter == actual->indexPagesPerChapter) &&
-    (expected->openChapterLoadRatio == actual->openChapterLoadRatio) &&
-    (expected->recordsPerPage == actual->recordsPerPage) &&
-    (expected->recordsPerChapter == actual->recordsPerChapter) &&
-    (expected->recordsPerVolume == actual->recordsPerVolume) &&
-    (expected->recordPageOffset == actual->recordPageOffset) &&
-    (expected->deltaListsPerChapter == actual->deltaListsPerChapter) &&
-    (expected->chapterMeanDelta == actual->chapterMeanDelta) &&
-    (expected->chapterPayloadBits == actual->chapterPayloadBits) &&
-    (expected->chapterAddressBits == actual->chapterAddressBits);
 }
 
 /**********************************************************************/

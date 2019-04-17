@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndex005.c#3 $
  */
 #include "masterIndex005.h"
 
@@ -830,9 +830,11 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
       uint64_t expireCount
         = 1 + (usedBits - mi5->maxZoneBits) / mi5->chapterZoneBits;
       if (expireCount == 1) {
-        logInfo("masterZone %u:  At chapter %llu, expiring chapter %"
-                PRIu64 " early",
-                zoneNumber, virtualChapter, masterZone->virtualChapterLow);
+        logRatelimit(logInfo,
+                     "masterZone %u:  At chapter %" PRIu64
+                     ", expiring chapter %llu early",
+                     zoneNumber, virtualChapter,
+                     masterZone->virtualChapterLow);
         masterZone->numEarlyFlushes++;
         masterZone->virtualChapterLow++;
       } else {
@@ -845,9 +847,11 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
             += masterZone->virtualChapterHigh - masterZone->virtualChapterLow;
           masterZone->virtualChapterLow = masterZone->virtualChapterHigh;
         }
-        logInfo("masterZone %u:  At chapter %llu, expiring chapters %"
-                PRIu64 " to %llu early", zoneNumber, virtualChapter,
-                firstExpired, masterZone->virtualChapterLow - 1);
+        logRatelimit(logInfo,
+                     "masterZone %u:  At chapter %" PRIu64
+                     ", expiring chapters %llu to %llu early",
+                     zoneNumber, virtualChapter, firstExpired,
+                     masterZone->virtualChapterLow - 1);
       }
     }
   }
@@ -1089,9 +1093,8 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
     record->isFound        = true;
     break;
   case UDS_OVERFLOW:
-    logWarningWithStringError(UDS_OVERFLOW,
-                              "Master index entry dropped due to overflow "
-                              "condition");
+    logRatelimit(logWarningWithStringError, UDS_OVERFLOW,
+                 "Master index entry dropped due to overflow condition");
     logDeltaIndexEntry(&record->deltaEntry);
     break;
   default:

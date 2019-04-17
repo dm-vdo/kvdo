@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/loggerDefs.h#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/loggerDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_LOGGER_DEFS_H
 #define LINUX_KERNEL_LOGGER_DEFS_H
 
+#include <linux/ratelimit.h>
 #include <linux/version.h>
 
 #define LOG_EMERG       0       /* system is unusable */
@@ -35,5 +36,20 @@
 
 // Make it easy to log real pointer values using %px when in development.
 #define PRIptr "pK"
+
+/*
+ * Apply a rate limiter to a log method call.
+ *
+ * @param logFunc  A method that does logging, which is not invoked if the
+ *                 ratelimiter detects that we are calling it frequently.
+ */
+#define logRatelimit(logFunc, ...)                                 \
+  do {                                                             \
+    static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL, \
+                                  DEFAULT_RATELIMIT_BURST);        \
+    if (__ratelimit(&_rs)) {                                       \
+      logFunc(__VA_ARGS__);                                        \
+    }                                                              \
+  } while (0)
 
 #endif // LINUX_KERNEL_LOGGER_DEFS_H
