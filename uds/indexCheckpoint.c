@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexCheckpoint.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexCheckpoint.c#2 $
  */
 
 #include "indexCheckpoint.h"
@@ -242,7 +242,8 @@ int finishCheckpointing(Index *index)
 
   lockMutex(&checkpoint->mutex);
 
-  for (unsigned int z = 0; z < index->zoneCount; ++z) {
+  unsigned int z;
+  for (z = 0; z < index->zoneCount; ++z) {
     if (checkpoint->state != CHECKPOINT_IN_PROGRESS) {
       break;
     }

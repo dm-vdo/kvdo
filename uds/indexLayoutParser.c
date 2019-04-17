@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayoutParser.c#2 $
  */
 
 #include "indexLayoutParser.h"
@@ -52,7 +52,8 @@ static int setParameterValue(LayoutParameter *lp, char *data)
 int parseLayoutString(char *info, LayoutParameter *params, size_t count)
 {
   if (!strchr(info, '=')) {
-    for (LayoutParameter *lp = params; lp < params + count; ++lp) {
+    LayoutParameter *lp;
+    for (lp = params; lp < params + count; ++lp) {
       if (lp->type & LP_DEFAULT) {
         int result = setParameterValue(lp, info);
         if (result != UDS_SUCCESS) {
@@ -62,7 +63,9 @@ int parseLayoutString(char *info, LayoutParameter *params, size_t count)
       }
     }
   } else {
-    for (char *data = NULL, *token = nextToken(info, " ", &data);
+    char *data = NULL;
+    char *token;
+    for (token = nextToken(info, " ", &data);
          token;
          token = nextToken(NULL, " ", &data))
     {

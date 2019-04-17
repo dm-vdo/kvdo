@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.c#2 $
  */
 
 #include "logger.h"
@@ -77,7 +77,8 @@ void setLogLevel(int newLogLevel)
 /*****************************************************************************/
 int stringToPriority(const char *string)
 {
-  for (int i = 0; PRIORITIES[i].name != NULL; i++) {
+  int i;
+  for (i = 0; PRIORITIES[i].name != NULL; i++) {
     if (strcasecmp(string, PRIORITIES[i].name) == 0) {
       return PRIORITIES[i].priority;
     }

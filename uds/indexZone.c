@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#2 $
  */
 
 #include "indexZone.h"
@@ -218,7 +218,8 @@ static int announceChapterClosed(Request   *request,
     }
   };
 
-  for (unsigned int i = 0; i < zone->index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < zone->index->zoneCount; i++) {
     if (zone->id == i) {
       continue;
     }

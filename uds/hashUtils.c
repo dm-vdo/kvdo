@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/hashUtils.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/hashUtils.c#2 $
  */
 
 #include "hashUtils.h"
@@ -46,7 +46,8 @@ static int dataToHex(const unsigned char *data, size_t dataLen,
     return logWarningWithStringError(UDS_INVALID_ARGUMENT,
                                      "hex data incorrect size");
   }
-  for (size_t i = 0; i < dataLen; ++i) {
+  size_t i;
+  for (i = 0; i < dataLen; ++i) {
     int rc = fixedSprintf(__func__, &hex[2 * i], hexLen - (2 * i),
                           UDS_INVALID_ARGUMENT, "%02X", data[i]);
 

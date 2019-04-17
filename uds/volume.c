@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#2 $
  */
 
 #include "volume.h"
@@ -714,7 +714,8 @@ int readChapterIndexFromVolume(const Volume     *volume,
     return result;
   }
 
-  for (unsigned int i = 0; i < volume->geometry->indexPagesPerChapter; i++) {
+  unsigned int i;
+  for (i = 0; i < volume->geometry->indexPagesPerChapter; i++) {
     byte *indexPage = &pageData[i * volume->geometry->bytesPerPage];
     result = initChapterIndexPage(volume, indexPage, physicalChapter,
                                   i, &indexPages[i]);
@@ -838,7 +839,8 @@ int writeIndexPages(Volume            *volume,
   // The first chapter index page is written at the start of the chapter.
   off_t pageOffset = chapterOffset;
 
-  for (unsigned int indexPageNumber = 0;
+  unsigned int indexPageNumber;
+  for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
     // Pack as many delta lists into the scratch page as will fit.
@@ -907,7 +909,8 @@ int writeRecordPages(Volume                *volume,
   // The record array from the open chapter is 1-based.
   const UdsChunkRecord *nextRecord = &records[1];
 
-  for (unsigned int recordPageNumber = 0;
+  unsigned int recordPageNumber;
+  for (recordPageNumber = 0;
        recordPageNumber < geometry->recordPagesPerChapter;
        recordPageNumber++) {
     // Sort the next page of records and copy them to the scratch page
@@ -990,7 +993,8 @@ static int probeChapter(Volume       *volume,
   unsigned int expectedListNumber = 0;
   uint64_t lastVCN = UINT64_MAX;
 
-  for (unsigned int i = 0; i < geometry->indexPagesPerChapter; ++i) {
+  unsigned int i;
+  for (i = 0; i < geometry->indexPagesPerChapter; ++i) {
     ChapterIndexPage *page;
     int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
                          NULL, &page);
@@ -1310,7 +1314,8 @@ int makeVolume(const Configuration  *config,
     freeVolume(volume);
     return result;
   }
-  for (unsigned int i = 0; i < volumeReadThreads; i++) {
+  unsigned int i;
+  for (i = 0; i < volumeReadThreads; i++) {
     result = createThread(readThreadFunction, (void *) volume, "reader",
                           &volume->readerThreads[i]);
     if (result != UDS_SUCCESS) {
@@ -1339,7 +1344,8 @@ void freeVolume(Volume *volume)
     volume->readerState |= READER_STATE_EXIT;
     broadcastCond(&volume->readThreadsCond);
     unlockMutex(&volume->readThreadsMutex);
-    for (unsigned int i = 0; i < volume->numReadThreads; i++) {
+    unsigned int i;
+    for (i = 0; i < volume->numReadThreads; i++) {
       joinThreads(volume->readerThreads[i]);
     }
     FREE(volume->readerThreads);

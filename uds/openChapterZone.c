@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/openChapterZone.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/openChapterZone.c#2 $
  */
 
 #include "openChapterZone.h"
@@ -140,8 +140,9 @@ static UdsChunkRecord *probeChapterSlots(OpenChapterZone    *openChapter,
   UdsChunkRecord *record;
   unsigned int probeSlot;
   unsigned int recordNumber;
+  unsigned int probeAttempts;
 
-  for (unsigned int probeAttempts = 1; ; ++probeAttempts) {
+  for (probeAttempts = 1; ; ++probeAttempts) {
     probeSlot = firstSlot + probe;
     recordNumber = openChapter->slots[probeSlot].recordNumber;
 

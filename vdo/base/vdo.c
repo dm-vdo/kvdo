@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#6 $
  */
 
 /*
@@ -772,28 +772,6 @@ bool getVDOCompressing(VDO *vdo)
 static size_t getBlockMapCacheSize(const VDO *vdo)
 {
   return ((size_t) vdo->loadConfig.cacheSize) * VDO_BLOCK_SIZE;
-}
-
-/**
- * Return a user-visible string describing the current VDO state.
- *
- * @param state  The VDO state to describe
- *
- * @return A string constant describing the state
- **/
-static const char *describeVDOState(VDOState state)
-{
-  // These strings should all fit in the 15 chars of VDOStatistics.mode.
-  switch (state) {
-  case VDO_RECOVERING:
-    return "recovering";
-
-  case VDO_READ_ONLY_MODE:
-    return "read-only";
-
-  default:
-    return "normal";
-  }
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#2 $
  */
 
 #include "indexState.h"
@@ -64,7 +64,8 @@ void freeIndexState(IndexState **statePtr)
   IndexState *state = *statePtr;
   *statePtr = NULL;
   if (state != NULL) {
-    for (unsigned int i = 0; i < state->count; ++i) {
+    unsigned int i;
+    for (i = 0; i < state->count; ++i) {
       freeIndexComponent(&state->entries[i]);
     }
     FREE(state);
@@ -127,7 +128,8 @@ int addIndexStateComponent(IndexState               *state,
 IndexComponent *findIndexComponent(const IndexState         *state,
                                    const IndexComponentInfo *info)
 {
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if ((info == component->info)
         || (strcmp(info->fileName, component->info->fileName) == 0)) {
@@ -153,7 +155,8 @@ int loadIndexState(IndexState *state, bool *replayPtr)
   }
 
   bool replayRequired = false;
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     result = readIndexComponent(component);
     if (result != UDS_SUCCESS) {
@@ -229,7 +232,8 @@ int saveIndexState(IndexState *state)
   if (result != UDS_SUCCESS) {
     return result;
   }
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     result = writeIndexComponent(component);
     if (result != UDS_SUCCESS) {
@@ -248,7 +252,8 @@ int writeIndexStateCheckpoint(IndexState *state)
     return result;
   }
 
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
       continue;
@@ -273,7 +278,8 @@ int startIndexStateCheckpoint(IndexState *state)
 
   state->saving = true;
 
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
       continue;
@@ -295,7 +301,8 @@ int performIndexStateCheckpointChapterSynchronizedSaves(IndexState *state)
     return UDS_SUCCESS;
   }
 
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component) ||
         !deferIndexComponentCheckpointToChapterWriter(component)) {
@@ -337,7 +344,8 @@ static int doIndexStateCheckpointInZone(IndexState       *state,
 
   CompletionStatus status = CS_COMPLETED_PREVIOUSLY;
 
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
       continue;
@@ -398,7 +406,8 @@ int finishIndexStateCheckpoint(IndexState *state)
     return UDS_SUCCESS;
   }
 
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
       continue;
@@ -429,7 +438,8 @@ int abortIndexStateCheckpoint(IndexState *state)
   logError("aborting index state checkpoint");
 
   int result = UDS_SUCCESS;
-  for (unsigned int i = 0; i < state->count; ++i) {
+  unsigned int i;
+  for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
     if (skipIndexComponentOnCheckpoint(component)) {
       continue;

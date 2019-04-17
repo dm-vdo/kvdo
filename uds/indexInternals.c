@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#2 $
  */
 
 #include "indexInternals.h"
@@ -123,7 +123,8 @@ int allocateIndex(IndexLayout          *layout,
   }
   index->volume->lookupMode  = LOOKUP_NORMAL;
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     result = makeIndexZone(index, i, readOnly);
     if (result != UDS_SUCCESS) {
       freeIndex(index);
@@ -150,7 +151,8 @@ void releaseIndex(Index *index)
   }
 
   if (index->zones != NULL) {
-    for (unsigned int i = 0; i < index->zoneCount; i++) {
+    unsigned int i;
+    for (i = 0; i < index->zoneCount; i++) {
       freeIndexZone(index->zones[i]);
     }
     FREE(index->zones);

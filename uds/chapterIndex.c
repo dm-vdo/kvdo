@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#2 $
  */
 
 #include "chapterIndex.h"
@@ -244,7 +244,8 @@ int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
   unsigned int first = getDeltaIndexLowestListNumber(deltaIndex);
   unsigned int last = getDeltaIndexHighestListNumber(deltaIndex);
   // We walk every delta list from start to finish.
-  for (unsigned int listNumber = first; listNumber <= last; listNumber++) {
+  unsigned int listNumber;
+  for (listNumber = first; listNumber <= last; listNumber++) {
     DeltaIndexEntry entry;
     int result = startDeltaIndexSearch(deltaIndex, listNumber - first, 0, true,
                                        &entry);

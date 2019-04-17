@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#2 $
  */
 
 #include "openChapter.h"
@@ -63,8 +63,9 @@ static int fillDeltaChapterIndex(OpenChapterZone **chapterZones,
   // to not have been deleted in this chapter, so use one of those.
   OpenChapterZone *fillChapterZone = NULL;
   UdsChunkRecord  *fillRecord      = NULL;
-  for (unsigned int zone = 0; zone < zoneCount; ++zone) {
-    fillChapterZone = chapterZones[zone];
+  unsigned int z;
+  for (z = 0; z < zoneCount; ++z) {
+    fillChapterZone = chapterZones[z];
     if (fillChapterZone->size == fillChapterZone->capacity) {
       fillRecord = &fillChapterZone->records[fillChapterZone->size];
       break;
@@ -88,8 +89,10 @@ static int fillDeltaChapterIndex(OpenChapterZone **chapterZones,
   unsigned int recordsAdded    = 0;
   unsigned int zone            = 0;
 
-  for (unsigned int page = 0; page < pagesPerChapter; page++) {
-    for (unsigned int i = 0;
+  unsigned int page;
+  for (page = 0; page < pagesPerChapter; page++) {
+    unsigned int i;
+    for (i = 0;
          i < recordsPerPage;
          i++, recordsAdded++, zone = (zone + 1) % zoneCount) {
 
@@ -166,7 +169,8 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
   }
 
   uint32_t totalRecords = 0;
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     totalRecords += openChapterSize(index->zones[i]->openChapter);
   }
 
@@ -184,7 +188,8 @@ int saveOpenChapters(Index *index, BufferedWriter *writer)
   uint32_t recordsAdded = 0;
   unsigned int recordIndex = 1;
   while(recordsAdded < totalRecords) {
-    for (unsigned int i = 0; i < index->zoneCount; i++) {
+    unsigned int i;
+    for (i = 0; i < index->zoneCount; i++) {
       if (recordIndex > index->zones[i]->openChapter->size) {
         continue;
       }
@@ -270,7 +275,8 @@ static int loadVersion20(Index *index, BufferedReader *reader)
 
   // Assign records to the correct zones.
   UdsChunkRecord record;
-  for (uint32_t records = 0; records < numRecords; records++) {
+  uint32_t records;
+  for (records = 0; records < numRecords; records++) {
     result = readFromBufferedReader(reader, &record, sizeof(UdsChunkRecord));
     if (result != UDS_SUCCESS) {
       return result;

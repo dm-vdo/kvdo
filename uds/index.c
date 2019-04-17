@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#2 $
  */
 
 #include "index.h"
@@ -112,7 +112,8 @@ static int loadIndex(Index *index, bool allowReplay)
     }
   }
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     setActiveChapters(index->zones[i]);
   }
 
@@ -172,7 +173,8 @@ static int rebuildIndex(Index *index)
     return result;
   }
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     setActiveChapters(index->zones[i]);
   }
 
@@ -572,7 +574,8 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
 {
   Geometry *geometry = index->volume->geometry;
   unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
-  for (unsigned int indexPageNumber = 0;
+  unsigned int indexPageNumber;
+  for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
     ChapterIndexPage *chapterIndexPage;
@@ -735,7 +738,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
    */
   const Geometry *geometry = index->volume->geometry;
   uint64_t oldIPMupdate = getLastUpdate(index->volume->indexPageMap);
-  for (uint64_t vcn = fromVCN; vcn < uptoVCN; ++vcn) {
+  uint64_t vcn;
+  for (vcn = fromVCN; vcn < uptoVCN; ++vcn) {
     bool willBeSparseChapter = isChapterSparse(index->volume->geometry,
                                                fromVCN, uptoVCN, vcn);
     unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
@@ -749,7 +753,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
                                      chapter);
     }
 
-    for (unsigned int j = 0; j < geometry->recordPagesPerChapter; j++) {
+    unsigned int j;
+    for (j = 0; j < geometry->recordPagesPerChapter; j++) {
       unsigned int recordPageNumber = geometry->indexPagesPerChapter + j;
       byte *recordPage;
       result = getPage(index->volume, chapter, recordPageNumber,
@@ -759,7 +764,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
         return logUnrecoverable(result, "could not get page %d",
                                 recordPageNumber);
       }
-      for (unsigned int k = 0; k < geometry->recordsPerPage; k++) {
+      unsigned int k;
+      for (k = 0; k < geometry->recordsPerPage; k++) {
         const byte *nameBytes = recordPage + (k * BYTES_PER_RECORD);
 
         UdsChunkName name;

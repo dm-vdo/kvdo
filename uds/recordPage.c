@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/recordPage.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/recordPage.c#2 $
  */
 
 #include "recordPage.h"
@@ -56,7 +56,8 @@ int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[])
 
   // Build an array of record pointers. We'll sort the pointers by the block
   // names in the records, which is less work than sorting the record values.
-  for (unsigned int i = 0; i < recordsPerPage; i++) {
+  unsigned int i;
+  for (i = 0; i < recordsPerPage; i++) {
     recordPointers[i] = &records[i];
   }
 

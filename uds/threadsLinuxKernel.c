@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#2 $
  */
 
 #include <linux/kthread.h>
@@ -193,7 +193,8 @@ int enterBarrier(Barrier *barrier, bool *winner)
   bool lastThread = ++barrier->arrived == barrier->threadCount;
   if (lastThread) {
     // This is the last thread to arrive, so wake up the others
-    for (int i = 1; i < barrier->threadCount; i++) {
+    int i;
+    for (i = 1; i < barrier->threadCount; i++) {
       releaseSemaphore(&barrier->wait, __func__);
     }
     // Then reinitialize for the next cycle

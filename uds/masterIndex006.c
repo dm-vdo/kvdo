@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndex006.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndex006.c#2 $
  */
 #include "masterIndex006.h"
 
@@ -108,7 +108,8 @@ static void freeMasterIndex_006(MasterIndex *masterIndex)
   if (masterIndex != NULL) {
     MasterIndex6 *mi6 = container_of(masterIndex, MasterIndex6, common);
     if (mi6->masterZones != NULL) {
-      for (unsigned int zone = 0; zone < mi6->numZones; zone++) {
+      unsigned int zone;
+      for (zone = 0; zone < mi6->numZones; zone++) {
         destroyMutex(&mi6->masterZones[zone].hookMutex);
       }
       FREE(mi6->masterZones);
@@ -329,7 +330,8 @@ static int startRestoringMasterIndex_006(MasterIndex *masterIndex,
     return result;
   }
 
-  for (int i = 0; i < numReaders; i++) {
+  int i;
+  for (i = 0; i < numReaders; i++) {
     Buffer *buffer;
     result = makeBuffer(sizeof(struct mi006_data), &buffer);
     if (result != UDS_SUCCESS) {
@@ -468,7 +470,8 @@ static void setMasterIndexOpenChapter_006(MasterIndex *masterIndex,
                                           uint64_t virtualChapter)
 {
   MasterIndex6 *mi6 = container_of(masterIndex, MasterIndex6, common);
-  for (unsigned int zone = 0; zone < mi6->numZones; zone++) {
+  unsigned int zone;
+  for (zone = 0; zone < mi6->numZones; zone++) {
     setMasterIndexZoneOpenChapter_006(masterIndex, zone, virtualChapter);
   }
 }
@@ -754,7 +757,8 @@ int makeMasterIndex006(const Configuration *config, unsigned int numZones,
 
   result = ALLOCATE(numZones, MasterIndexZone, "master index zones",
                     &mi6->masterZones);
-  for (unsigned int zone = 0; zone < numZones; zone++) {
+  unsigned int zone;
+  for (zone = 0; zone < numZones; zone++) {
     if (result == UDS_SUCCESS) {
       result = initMutex(&mi6->masterZones[zone].hookMutex);
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#2 $
  */
 
 #include "indexRouter.h"
@@ -59,7 +59,8 @@ static void enqueueBarrierMessages(IndexRouter *router,
       }
     }
   };
-  for (unsigned int zone = 0; zone < router->zoneCount; zone++) {
+  unsigned int zone;
+  for (zone = 0; zone < router->zoneCount; zone++) {
     int result = launchZoneControlMessage(REQUEST_SPARSE_CACHE_BARRIER,
                                           barrier, zone, router);
     ASSERT_LOG_ONLY((result == UDS_SUCCESS), "barrier message allocation");
@@ -101,7 +102,8 @@ static void triageRequest(Request *request)
 static int initializeLocalIndexQueues(IndexRouter    *router,
                                       const Geometry *geometry)
 {
-  for (unsigned int i = 0; i < router->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < router->zoneCount; i++) {
     int result = makeRequestQueue("indexW", &executeZoneRequest,
                                   &router->zoneQueues[i]);
     if (result != UDS_SUCCESS) {
@@ -182,7 +184,8 @@ void freeIndexRouter(IndexRouter *router)
     return;
   }
   requestQueueFinish(router->triageQueue);
-  for (unsigned int i = 0; i < router->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < router->zoneCount; i++) {
     requestQueueFinish(router->zoneQueues[i]);
   }
   freeIndex(router->index);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#2 $
  */
 
 #include "indexComponent.h"
@@ -75,7 +75,8 @@ int makeIndexComponent(IndexState                *state,
 static void freeWriteZones(IndexComponent *component)
 {
   if (component->writeZones != NULL) {
-    for (unsigned int z = 0; z < component->numZones; ++z) {
+    unsigned int z;
+    for (z = 0; z < component->numZones; ++z) {
       WriteZone *wz = component->writeZones[z];
       if (wz == NULL) {
         continue;
@@ -115,7 +116,8 @@ static void freeReadPortal(ReadPortal *readPortal)
   if (readPortal == NULL) {
     return;
   }
-  for (unsigned int z = 0; z < readPortal->zones; ++z) {
+  unsigned int z;
+  for (z = 0; z < readPortal->zones; ++z) {
     if (readPortal->readers[z] != NULL) {
       freeBufferedReader(readPortal->readers[z]);
     }
@@ -221,7 +223,8 @@ int readIndexComponent(IndexComponent *component)
     return result;
   }
 
-  for (unsigned int z = 0; z < portal->zones; ++z) {
+  unsigned int z;
+  for (z = 0; z < portal->zones; ++z) {
     result = openStateRegion(component->state, IO_READ, component->info->kind,
                              z, &portal->regions[z]);
     if (result != UDS_SUCCESS) {
@@ -354,9 +357,10 @@ static int doneWithZone(WriteZone *writeZone)
  **/
 static int makeWriteZones(IndexComponent *component)
 {
+  unsigned int z;
   if (component->writeZones != NULL) {
     // just reinitialize states
-    for (unsigned int z = 0; z < component->numZones; ++z) {
+    for (z = 0; z < component->numZones; ++z) {
       WriteZone *wz = component->writeZones[z];
       wz->phase = IWC_IDLE;
     }
@@ -369,7 +373,7 @@ static int makeWriteZones(IndexComponent *component)
     return result;
   }
 
-  for (unsigned int z = 0; z < component->numZones; ++z) {
+  for (z = 0; z < component->numZones; ++z) {
     result = ALLOCATE(1, WriteZone, "plain write zone",
                       &component->writeZones[z]);
     if (result != UDS_SUCCESS) {
@@ -390,8 +394,8 @@ static int makeWriteZones(IndexComponent *component)
 static int openBufferedWriters(IndexComponent *component)
 {
   int result = UDS_SUCCESS;
-
-  for (WriteZone **wzp = component->writeZones;
+  WriteZone **wzp;
+  for (wzp = component->writeZones;
        wzp < component->writeZones + component->numZones;
        ++wzp)
   {
@@ -459,7 +463,8 @@ int writeIndexComponent(IndexComponent *component)
     return result;
   }
 
-  for (unsigned int z = 0; z < component->numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < component->numZones; ++z) {
     WriteZone *writeZone = component->writeZones[z];
 
     result = (*saver)(component, writeZone->writer, z);
@@ -692,7 +697,8 @@ int finishIndexComponentZoneSave(IndexComponent   *component,
 /*****************************************************************************/
 int finishIndexComponentIncrementalSave(IndexComponent *component)
 {
-  for (unsigned int zone = 0; zone < component->numZones; ++zone) {
+  unsigned int zone;
+  for (zone = 0; zone < component->numZones; ++zone) {
     WriteZone *wz = component->writeZones[zone];
     IncrementalWriter incrFunc = getIncrementalWriter(component);
     if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
@@ -759,8 +765,8 @@ int abortIndexComponentZoneSave(IndexComponent   *component,
 int abortIndexComponentIncrementalSave(IndexComponent *component)
 {
   int result = UDS_SUCCESS;
-
-  for (unsigned int zone = 0; zone < component->numZones; ++zone) {
+  unsigned int zone;
+  for (zone = 0; zone < component->numZones; ++zone) {
     WriteZone *wz = component->writeZones[zone];
     IncrementalWriter incrFunc = getIncrementalWriter(component);
     if ((wz->phase != IWC_IDLE) && (wz->phase != IWC_DONE)) {
@@ -796,7 +802,8 @@ int discardIndexComponent(IndexComponent *component)
   unsigned int oldSaveSlot = component->state->saveSlot;
   component->state->saveSlot = saveSlot;
 
-  for (unsigned int z = 0; z < numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < numZones; ++z) {
     IORegion *region;
     result = openStateRegion(component->state, IO_WRITE, component->info->kind,
                              z, &region);

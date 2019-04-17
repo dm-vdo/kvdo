@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#2 $
  */
 #include "masterIndexOps.h"
 
@@ -93,7 +93,8 @@ static int readMasterIndex(ReadPortal *portal)
   }
 
   BufferedReader *readers[MAX_ZONES];
-  for (unsigned int z = 0; z < numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < numZones; ++z) {
     int result = getBufferedReaderForPortal(portal, z, &readers[z]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
@@ -173,7 +174,8 @@ static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
     return result;
   }
   // Loop to read the delta lists, stopping when they have all been processed.
-  for (unsigned int z = 0; z < numReaders; z++) {
+  unsigned int z;
+  for (z = 0; z < numReaders; z++) {
     for (;;) {
       DeltaListSaveInfo dlsi;
       result = readSavedDeltaList(&dlsi, dlData, bufferedReaders[z]);

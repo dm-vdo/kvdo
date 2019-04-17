@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaMemory.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaMemory.c#2 $
  */
 #include "deltaMemory.h"
 
@@ -131,7 +131,8 @@ static void clearTransferFlags(DeltaMemory *deltaMemory)
 static void flagNonEmptyDeltaLists(DeltaMemory *deltaMemory)
 {
   clearTransferFlags(deltaMemory);
-  for (unsigned int i = 0; i < deltaMemory->numLists; i++) {
+  unsigned int i;
+  for (i = 0; i < deltaMemory->numLists; i++) {
     if (getDeltaListSize(&deltaMemory->deltaLists[i + 1]) > 0) {
       setOne(deltaMemory->flags, i, 1);
       deltaMemory->numTransfers++;
@@ -172,7 +173,8 @@ void emptyDeltaLists(DeltaMemory *deltaMemory)
   // we just need to set the starting offsets.
   uint64_t spacing = (numBits - GUARD_BITS) / deltaMemory->numLists;
   uint64_t offset = spacing / 2;
-  for (unsigned int i = 1; i <= deltaMemory->numLists; i++) {
+  unsigned int i;
+  for (i = 1; i <= deltaMemory->numLists; i++) {
     deltaLists[i].startOffset = offset;
     offset += spacing;
   }
@@ -476,7 +478,8 @@ void startSavingDeltaMemory(DeltaMemory *deltaMemory,
 /**********************************************************************/
 int finishSavingDeltaMemory(DeltaMemory *deltaMemory)
 {
-  for (unsigned int i = 0;
+  unsigned int i;
+  for (i = 0;
        !areDeltaMemoryTransfersDone(deltaMemory)
          && (i < deltaMemory->numLists);
        i++) {
@@ -577,7 +580,8 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
   // has a planned use.
   DeltaList *deltaLists = deltaMemory->deltaLists;
   size_t usedSpace = growingSize;
-  for (unsigned int i = 0; i <= deltaMemory->numLists + 1; i++) {
+  unsigned int i;
+  for (i = 0; i <= deltaMemory->numLists + 1; i++) {
     usedSpace += getDeltaListByteSize(&deltaLists[i]);
   }
 
@@ -588,7 +592,7 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
   // Compute the new offsets of the delta lists
   size_t spacing = (deltaMemory->size - usedSpace) / deltaMemory->numLists;
   deltaMemory->tempOffsets[0] = 0;
-  for (unsigned int i = 0; i <= deltaMemory->numLists; i++) {
+  for (i = 0; i <= deltaMemory->numLists; i++) {
     deltaMemory->tempOffsets[i + 1] = (deltaMemory->tempOffsets[i]
                                        + getDeltaListByteSize(&deltaLists[i])
                                        + spacing);
@@ -614,7 +618,7 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
     deltaMemory->rebalanceCount++;
     deltaMemory->rebalanceTime += timeDifference(endTime, startTime);
   } else {
-    for (unsigned int i = 1; i <= deltaMemory->numLists + 1; i++) {
+    for (i = 1; i <= deltaMemory->numLists + 1; i++) {
       deltaLists[i].startOffset = deltaMemory->tempOffsets[i];
     }
   }
@@ -656,7 +660,8 @@ int validateDeltaLists(const DeltaMemory *deltaMemory)
                                      "contain sufficient guard bits:  %d < %d",
                                      numGuardBits, GUARD_BITS);
   }
-  for (unsigned int i = 0; i <= deltaMemory->numLists + 1; i++) {
+  unsigned int i;
+  for (i = 0; i <= deltaMemory->numLists + 1; i++) {
     if (getDeltaListStart(&deltaLists[i]) > getDeltaListEnd(&deltaLists[i])) {
       return logWarningWithStringError(UDS_BAD_STATE,
                                        "invalid delta list %u: [%" PRIu64

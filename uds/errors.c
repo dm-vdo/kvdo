@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#2 $
  */
 
 #include "errors.h"
@@ -187,7 +187,8 @@ static const char *getErrorInfo(int errnum, const ErrorInfo **infoPtr)
     return NULL;
   }
 
-  for (ErrorBlock *block = registeredErrors.blocks;
+  ErrorBlock *block;
+  for (block = registeredErrors.blocks;
        block < registeredErrors.blocks + registeredErrors.count;
        ++block) {
     if ((errnum >= block->base) && (errnum < block->last)) {
@@ -305,7 +306,8 @@ int registerErrorBlock(const char      *blockName,
     return UDS_OVERFLOW;
   }
 
-  for (ErrorBlock *block = registeredErrors.blocks;
+  ErrorBlock *block;
+  for (block = registeredErrors.blocks;
        block < registeredErrors.blocks + registeredErrors.count;
        ++block) {
     if (strcmp(blockName, block->name) == 0) {

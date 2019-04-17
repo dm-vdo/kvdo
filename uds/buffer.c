@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/buffer.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/buffer.c#2 $
  */
 
 #include "buffer.h"
@@ -401,7 +401,8 @@ int getUInt32BEsFromBuffer(Buffer *buffer, size_t count, uint32_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     decodeUInt32BE(buffer->data, &buffer->start, ui + i);
   }
   return UDS_SUCCESS;
@@ -414,7 +415,8 @@ int putUInt32BEsIntoBuffer(Buffer *buffer, size_t count, const uint32_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     encodeUInt32BE(buffer->data, &buffer->end, ui[i]);
   }
   return UDS_SUCCESS;
@@ -427,7 +429,8 @@ int getUInt64BEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     decodeUInt64BE(buffer->data, &buffer->start, ui + i);
   }
   return UDS_SUCCESS;
@@ -440,7 +443,8 @@ int putUInt64BEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     encodeUInt64BE(buffer->data, &buffer->end, ui[i]);
   }
   return UDS_SUCCESS;
@@ -475,7 +479,8 @@ int getUInt16LEsFromBuffer(Buffer *buffer, size_t count, uint16_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     decodeUInt16LE(buffer->data, &buffer->start, ui + i);
   }
   return UDS_SUCCESS;
@@ -488,7 +493,8 @@ int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
   }
   return UDS_SUCCESS;
@@ -556,7 +562,8 @@ int getUInt64LEsFromBuffer(Buffer *buffer, size_t count, uint64_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     decodeUInt64LE(buffer->data, &buffer->start, ui + i);
   }
   return UDS_SUCCESS;
@@ -569,7 +576,8 @@ int putUInt64LEsIntoBuffer(Buffer *buffer, size_t count, const uint64_t *ui)
     return UDS_BUFFER_ERROR;
   }
 
-  for (unsigned int i = 0; i < count; i++) {
+  unsigned int i;
+  for (i = 0; i < count; i++) {
     encodeUInt64LE(buffer->data, &buffer->end, ui[i]);
   }
   return UDS_SUCCESS;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#2 $
  */
 
 #include "indexLayout.h"
@@ -259,11 +259,11 @@ static int computeSizes(SaveLayoutSizes        *sls,
 static void recomputeSizes(SaveLayoutSizes *sls, uint64_t newSize)
 {
   uint64_t extraBlocks = newSize - sls->totalBlocks;
-
   uint64_t extraIndexBlocks = extraBlocks;
 
   unsigned int n = 0;
-  for (unsigned int i = sls->numSaves; i < MAX_SAVES; ++i) {
+  unsigned int i;
+  for (i = sls->numSaves; i < MAX_SAVES; ++i) {
     if (extraIndexBlocks < sls->saveBlocks) {
       break;
     }
@@ -502,7 +502,8 @@ static int loadRegionTable(BufferedReader *reader, RegionTable **tablePtr)
     freeBuffer(&buffer);
     return result;
   }
-  for (unsigned int i = 0; i < header.numRegions; i++){
+  unsigned int i;
+  for (i = 0; i < header.numRegions; i++){
     result = decodeLayoutRegion(buffer, &table->regions[i]);
     if (result != UDS_SUCCESS) {
       FREE(table);
@@ -894,8 +895,8 @@ static void populateIndexSaveLayout(IndexSaveLayout *isl,
 
   if (numZones > 0) {
     uint64_t miBlockCount = blocksAvail / numZones;
-
-    for (unsigned int z = 0; z < numZones; ++z) {
+    unsigned int z;
+    for (z = 0; z < numZones; ++z) {
       LayoutRegion *miz = &isl->masterIndexZones[z];
       setupLayout(miz, &nextBlock, miBlockCount, RL_KIND_MASTER_INDEX, z);
     }
@@ -949,7 +950,8 @@ static int reconstructIndexSave(IndexSaveLayout *isl,
   expectLayout(true, &isl->indexPageMap, &iter, 0,
                RL_KIND_INDEX_PAGE_MAP, RL_SOLE_INSTANCE);
   unsigned int n = 0;
-  for (RegionIterator tmpIter = iter;
+  RegionIterator tmpIter;
+  for (tmpIter = iter;
        expectLayout(false, NULL, &tmpIter, 0, RL_KIND_MASTER_INDEX, n);
        ++n)
     ;
@@ -974,7 +976,8 @@ static int reconstructIndexSave(IndexSaveLayout *isl,
     }
   }
 
-  for (unsigned int z = 0; z < isl->numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < isl->numZones; ++z) {
     expectLayout(true, &isl->masterIndexZones[z], &iter, 0,
                  RL_KIND_MASTER_INDEX, z);
   }
@@ -1074,7 +1077,8 @@ static int loadIndexSave(IndexSaveLayout *isl,
 __attribute__((warn_unused_result))
 static int loadSubIndexRegions(IndexLayout *layout)
 {
-  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
+  unsigned int j;
+  for (j = 0; j < layout->super.maxSaves; ++j) {
     IndexSaveLayout *isl = &layout->index.saves[j];
 
     BufferedReader *reader;
@@ -1251,7 +1255,8 @@ static int setupSubIndex(SubIndexLayout  *sil,
               RL_KIND_INDEX, instance);
   setupLayout(&sil->volume, nextBlockPtr, sls->volumeBlocks,
               RL_KIND_VOLUME, RL_SOLE_INSTANCE);
-  for (unsigned int i = 0; i < sls->numSaves; ++i) {
+  unsigned int i;
+  for (i = 0; i < sls->numSaves; ++i) {
     int result = resetIndexSaveLayout(&sil->saves[i], nextBlockPtr,
                                       sls->saveBlocks, sls->pageMapBlocks, i);
     if (result != UDS_SUCCESS) {
@@ -1359,7 +1364,8 @@ static void expectSubIndex(SubIndexLayout *sil,
 
   expectLayout(true, &sil->volume, iter, 0, RL_KIND_VOLUME, RL_SOLE_INSTANCE);
 
-  for (unsigned int i = 0; i < super->maxSaves; ++i) {
+  unsigned int i;
+  for (i = 0; i < super->maxSaves; ++i) {
     IndexSaveLayout *isl = &sil->saves[i];
     expectLayout(true, &isl->indexSave, iter, 0, RL_KIND_SAVE, i);
   }
@@ -1430,7 +1436,8 @@ static void destroySingleFileLayout(IndexLayout *layout)
     return;
   }
   SubIndexLayout *sil = &layout->index;
-  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
+  unsigned int j;
+  for (j = 0; j < layout->super.maxSaves; ++j) {
     IndexSaveLayout *isl = &sil->saves[j];
     FREE(isl->masterIndexZones);
     FREE(isl->openChapter);
@@ -1448,7 +1455,8 @@ __attribute__((warn_unused_result))
 static int saveSubIndexRegions(IndexLayout *layout)
 {
   SubIndexLayout *sil = &layout->index;
-  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
+  unsigned int j;
+  for (j = 0; j < layout->super.maxSaves; ++j) {
     IndexSaveLayout *isl = &sil->saves[j];
     int result = writeIndexSaveLayout(layout, isl);
     if (result != UDS_SUCCESS) {
@@ -1487,7 +1495,8 @@ static int makeSingleFileRegionTable(IndexLayout   *layout,
   SubIndexLayout *sil = &layout->index;
   *lr++ = sil->subIndex;
   *lr++ = sil->volume;
-  for (unsigned int j = 0; j < layout->super.maxSaves; ++j) {
+  unsigned int j;
+  for (j = 0; j < layout->super.maxSaves; ++j) {
     *lr++ = sil->saves[j].indexSave;
   }
   *lr++ = layout->seal;
@@ -1673,7 +1682,8 @@ static int writeSingleFileHeader(IndexLayout    *layout,
 
   result = encodeRegionHeader(buffer, &table->header);
 
-  for (unsigned int i = 0; i < numRegions; i++) {
+  unsigned int i;
+  for (i = 0; i < numRegions; i++) {
     if (result == UDS_SUCCESS) {
       result = encodeLayoutRegion(buffer, &table->regions[i]);
     }
@@ -1984,7 +1994,8 @@ static int selectOldestIndexSaveLayout(SubIndexLayout   *sil,
   uint64_t         oldestTime = 0;
 
   // find the oldest valid or first invalid slot
-  for (IndexSaveLayout *isl = sil->saves; isl < sil->saves + maxSaves; ++isl) {
+  IndexSaveLayout *isl;
+  for (isl = sil->saves; isl < sil->saves + maxSaves; ++isl) {
     uint64_t saveTime = 0;
     int result = validateIndexSaveLayout(isl, sil->nonce, &saveTime);
     if (result != UDS_SUCCESS) {
@@ -2014,7 +2025,8 @@ static int selectLatestIndexSaveLayout(SubIndexLayout   *sil,
   uint64_t         latestTime = 0;
 
   // find the latest valid save slot
-  for (IndexSaveLayout *isl = sil->saves; isl < sil->saves + maxSaves; ++isl) {
+  IndexSaveLayout *isl;
+  for (isl = sil->saves; isl < sil->saves + maxSaves; ++isl) {
     uint64_t saveTime = 0;
     int result = validateIndexSaveLayout(isl, sil->nonce, &saveTime);
     if (result != UDS_SUCCESS) {
@@ -2184,7 +2196,8 @@ static int makeIndexSaveRegionTable(IndexSaveLayout  *isl,
   LayoutRegion *lr = &table->regions[0];
   *lr++ = isl->header;
   *lr++ = isl->indexPageMap;
-  for (unsigned int z = 0; z < isl->numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < isl->numZones; ++z) {
     *lr++ = isl->masterIndexZones[z];
   }
   if (isl->openChapter) {
@@ -2256,7 +2269,8 @@ static int writeIndexSaveHeader(IndexSaveLayout *isl,
     return result;
   }
 
-  for (unsigned int i = 0; i < numRegions; i++) {
+  unsigned int i;
+  for (i = 0; i < numRegions; i++) {
     result = encodeLayoutRegion(buffer, &table->regions[i]);
     if (result != UDS_SUCCESS) {
       freeBuffer(&buffer);
@@ -2384,7 +2398,8 @@ int discardIndexSaves(IndexLayout *layout, bool all)
   SubIndexLayout *sil = &layout->index;
 
   if (all) {
-    for (unsigned int i = 0; i < layout->super.maxSaves; ++i) {
+    unsigned int i;
+    for (i = 0; i < layout->super.maxSaves; ++i) {
       IndexSaveLayout *isl = &sil->saves[i];
       result = firstError(result, invalidateOldSave(layout, isl));
     }

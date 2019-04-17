@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/parameter.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/parameter.c#2 $
  */
 
 #include "parameter.h"
@@ -89,7 +89,8 @@ static void initParameters(void)
 {
   // note that this early in initialization, we cannot log errors reliably
   memset(&paramTable, 0, sizeof(paramTable));
-  for (unsigned int i = 0; i < COUNT_OF(definitions); ++i) {
+  unsigned int i;
+  for (i = 0; i < COUNT_OF(definitions); ++i) {
     installParamDef(&definitions[i]);
   }
 }
@@ -108,10 +109,10 @@ int udsSetParameter(const char *name, UdsParameterValue value)
     return result;
   }
   result = UDS_UNKNOWN_PARAMETER;
-  for (ParameterDefinition *pd = paramTable.params;
+  ParameterDefinition *pd;
+  for (pd = paramTable.params;
        pd < paramTable.params + paramTable.count;
-       ++pd)
-  {
+       ++pd) {
     if (name == pd->name || strcmp(name, pd->name) == 0) {
       if (pd->validate != NULL) {
         result = pd->validate(&value, pd->validationData, &pd->currentValue);
@@ -138,10 +139,10 @@ int udsGetParameter(const char *name, UdsParameterValue *value)
     return result;
   }
   result = UDS_UNKNOWN_PARAMETER;
-  for (ParameterDefinition *pd = paramTable.params;
+  ParameterDefinition *pd;
+  for (pd = paramTable.params;
        pd < paramTable.params + paramTable.count;
-       ++pd)
-  {
+       ++pd) {
     if (name == pd->name || strcmp(name, pd->name) == 0) {
       if (value != NULL) {
         *value = pd->currentValue;
@@ -184,10 +185,10 @@ int udsResetParameter(const char *name)
     return result;
   }
   result = UDS_UNKNOWN_PARAMETER;
-  for (ParameterDefinition *pd = paramTable.params;
+  ParameterDefinition *pd;
+  for (pd = paramTable.params;
        pd < paramTable.params + paramTable.count;
-       ++pd)
-  {
+       ++pd) {
     if (name == pd->name || strcmp(name, pd->name) == 0) {
       ParameterDefinition copy = *pd;
       result = copy.reset(&copy);
@@ -209,7 +210,8 @@ int udsResetParameter(const char *name)
     }
   }
   if (result == UDS_UNKNOWN_PARAMETER) {
-    for (unsigned int i = 0; i < COUNT_OF(definitions); ++i) {
+    unsigned int i;
+    for (i = 0; i < COUNT_OF(definitions); ++i) {
       if (strcmp(name, *definitions[i].name) == 0) {
         if (installParamDef(&definitions[i])) {
           result = UDS_SUCCESS;

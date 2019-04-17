@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#2 $
  */
 
 #include "pageCache.h"
@@ -145,10 +145,11 @@ static void waitForPendingSearches(PageCache *cache, unsigned int physicalPage)
   smp_mb();
 
   InvalidateCounter initialCounters[MAX_ZONES];
-  for (unsigned int i = 0; i < cache->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < cache->zoneCount; i++) {
     initialCounters[i] = getInvalidateCounter(cache, i);
   }
-  for (unsigned int i = 0; i < cache->zoneCount; i++) {
+  for (i = 0; i < cache->zoneCount; i++) {
     if (searchPending(initialCounters[i])
         && (pageBeingSearched(initialCounters[i]) == physicalPage)) {
       // There is an active search using the physical page.
@@ -295,7 +296,8 @@ static int initializePageCache(PageCache      *cache,
   }
 
   // Initialize index values to invalid values.
-  for (unsigned int i = 0; i < cache->numIndexEntries; i++) {
+  unsigned int i;
+  for (i = 0; i < cache->numIndexEntries; i++) {
     cache->index[i] = cache->numCacheEntries;
   }
 
@@ -312,7 +314,7 @@ static int initializePageCache(PageCache      *cache,
     return result;
   }
 
-  for (unsigned int i = 0; i < cache->numCacheEntries; i++) {
+  for (i = 0; i < cache->numCacheEntries; i++) {
     CachedPage *page = &cache->cache[i];
     page->data = cache->data + (i * cache->geometry->bytesPerPage);
     clearPage(cache, page);
@@ -386,11 +388,11 @@ int invalidatePageCacheForChapter(PageCache          *cache,
   }
 
   int result;
-  for (unsigned int i = 0; i < pagesPerChapter; i++) {
+  unsigned int i;
+  for (i = 0; i < pagesPerChapter; i++) {
     unsigned int physicalPage = 1 + (pagesPerChapter * chapter) + i;
     result = findInvalidateAndMakeLeastRecent(cache, physicalPage,
-                                              cache->readQueue,
-                                              reason, false);
+                                              cache->readQueue, reason, false);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -425,7 +427,8 @@ static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
   int oldestIndex = 0;
   // Our first candidate is any page that does have a pending read.  We ensure
   // above that there are more entries than read threads, so there must be one.
-  for (unsigned int i = 0;; i++) {
+  unsigned int i;
+  for (i = 0;; i++) {
     if (i >= cache->numCacheEntries) {
       // This should never happen.
       return ASSERT(false, "oldest page is not NULL");
@@ -436,7 +439,7 @@ static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
     }
   }
   // Now find the least recently used page that does not have a pending read.
-  for (unsigned int i = 0; i < cache->numCacheEntries; i++) {
+  for (i = 0; i < cache->numCacheEntries; i++) {
     if (!cache->cache[i].readPending
         && (READ_ONCE(cache->cache[i].lastUsed)
             <= READ_ONCE(cache->cache[oldestIndex].lastUsed))) {
