@@ -1,4 +1,4 @@
-VDO_VERSION = 6.2.0.293
+VDO_VERSION = 6.2.1.48
 
 VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))
@@ -19,6 +19,9 @@ EXTRA_CFLAGS =	-std=gnu99					\
 		-DVDO_VERSION_MICRO=$(VDO_VERSION_MICRO)	\
 		-DCURRENT_VERSION=\"$(VDO_VERSION)\"		\
 		$(INCLUDES)
+
+CFLAGS_vio.o= -std=gnu89
+CFLAGS_REMOVE_vio.o= -std=gnu99
 
 obj-m += kvdo.o
 

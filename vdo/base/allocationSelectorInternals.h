@@ -16,19 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyModeContext.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocationSelectorInternals.h#1 $
  */
 
-#include "readOnlyModeContextInternals.h"
+#ifndef ALLOCATION_SELECTOR_INTERNALS_H
+#define ALLOCATION_SELECTOR_INTERNALS_H
 
-/**********************************************************************/
-bool isReadOnly(ReadOnlyModeContext *readOnlyContext)
-{
-  return readOnlyContext->isReadOnly(readOnlyContext->context);
-}
+#include "types.h"
 
-/**********************************************************************/
-void enterReadOnlyMode(ReadOnlyModeContext *readOnlyContext, int errorCode)
-{
-  readOnlyContext->enterReadOnlyMode(readOnlyContext->context, errorCode);
-}
+/** Structure used to select which physical zone to allocate from */
+struct allocationSelector {
+  /** The number of allocations done in the current zone */
+  BlockCount     allocationCount;
+  /** The physical zone to allocate from next */
+  ZoneCount      nextAllocationZone;
+  /** The number of the last physical zone */
+  ZoneCount      lastPhysicalZone;
+};
+
+#endif /* ALLOCATION_SELECTOR_INTERNALS_H */

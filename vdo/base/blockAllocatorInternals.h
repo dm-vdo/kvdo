@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#6 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -38,6 +38,7 @@ enum {
 
 typedef enum {
   CLOSE_ALLOCATOR_START = 0,
+  CLOSE_ALLOCATOR_STEP_STOP_SCRUBBING,
   CLOSE_ALLOCATOR_STEP_SAVE_SLABS,
   CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY,
   CLOSE_ALLOCATOR_VIO_POOL,
@@ -97,8 +98,8 @@ struct blockAllocator {
   SlabDepot                   *depot;
   /** The slab summary zone for this allocator */
   SlabSummaryZone             *summary;
-  /** The context for entering read-only mode */
-  ReadOnlyModeContext         *readOnlyContext;
+  /** The notifier for entering read-only mode */
+  ReadOnlyNotifier            *readOnlyNotifier;
   /** The nonce of the VDO */
   Nonce                        nonce;
   /** The physical zone number of this allocator */

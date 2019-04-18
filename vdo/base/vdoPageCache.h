@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#6 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
 #define VDO_PAGE_CACHE_H
 
+#include "adminState.h"
 #include "atomic.h"
 #include "completion.h"
 #include "types.h"
@@ -102,17 +103,17 @@ typedef struct {
  *
  * <p>If specified, this function is called when a page is fetched from disk.
  *
- * @param rawPage        The raw memory of the freshly-fetched page
- * @param pbn            The absolute physical block number of the page
- * @param clientContext  A pointer to client-specific data for the entire cache
- * @param pageContext    A pointer to client-specific data for the new page
+ * @param rawPage      The raw memory of the freshly-fetched page
+ * @param pbn          The absolute physical block number of the page
+ * @param zone         The block map zone to which the cache belongs
+ * @param pageContext  A pointer to client-specific data for the new page
  *
  * @return VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
  *         formatted
  **/
 typedef int VDOPageReadFunction(void                *rawPage,
                                 PhysicalBlockNumber  pbn,
-                                void                *clientContext,
+                                BlockMapZone        *zone,
                                 void                *pageContext);
 
 /**
@@ -120,46 +121,42 @@ typedef int VDOPageReadFunction(void                *rawPage,
  *
  * <p>If specified, this function is called when a page is written to disk.
  *
- * @param rawPage        The raw memory of the freshly-written page
- * @param clientContext  A pointer to client-specific data for the entire cache
- * @param pageContext    A pointer to client-specific data for the new page
+ * @param rawPage      The raw memory of the freshly-written page
+ * @param zone         The block map zone to which the cache belongs
+ * @param pageContext  A pointer to client-specific data for the new page
  *
  * @return whether the page needs to be rewritten
  **/
-typedef bool VDOPageWriteFunction(void *rawPage,
-                                  void *clientContext,
-                                  void *pageContext);
+typedef bool VDOPageWriteFunction(void         *rawPage,
+                                  BlockMapZone *zone,
+                                  void         *pageContext);
 
 /**
  * Construct a PageCache.
  *
- * @param [in]  threadID         The thread ID for this cache's zone
- * @param [in]  layer            The physical layer to read and write
- * @param [in]  readOnlyContext  The read-only mode context
- * @param [in]  pageCount        The number of cache pages to hold
- * @param [in]  readHook         The function to be called when a page is read
- *                               into the cache
- * @param [in]  writeHook        The function to be called after a page is
- *                               written from the cache
- * @param [in]  clientContext    The cache-wide context passed to the read
- *                               and write hooks
- * @param [in]  pageContextSize  The size of the per-page context that will
- *                               be passed to the read and write hooks
- * @param [in]  maximumAge       The number of journal blocks before a dirtied
- *                               page is considered old and must be written out
- * @param [out] cachePtr         A pointer to hold the cache
+ * @param [in]  layer             The physical layer to read and write
+ * @param [in]  pageCount         The number of cache pages to hold
+ * @param [in]  readHook          The function to be called when a page is read
+ *                                into the cache
+ * @param [in]  writeHook         The function to be called after a page is
+ *                                written from the cache
+ * @param [in]  pageContextSize   The size of the per-page context that will be
+ *                                passed to the read and write hooks
+ * @param [in]  maximumAge        The number of journal blocks before a dirtied
+ *                                page is considered old and must be written
+ *                                out
+ * @param [in]  zone              The block map zone which owns this cache
+ * @param [out] cachePtr          A pointer to hold the cache
  *
  * @return a success or error code
  **/
-int makeVDOPageCache(ThreadID               threadID,
-                     PhysicalLayer         *layer,
-                     ReadOnlyModeContext   *readOnlyContext,
+int makeVDOPageCache(PhysicalLayer         *layer,
                      PageCount              pageCount,
                      VDOPageReadFunction   *readHook,
                      VDOPageWriteFunction  *writeHook,
-                     void                  *clientContext,
                      size_t                 pageContextSize,
                      BlockCount             maximumAge,
+                     BlockMapZone          *zone,
                      VDOPageCache         **cachePtr)
   __attribute__((warn_unused_result));
 
@@ -345,13 +342,11 @@ void *dereferenceWritableVDOPage(VDOCompletion *completion);
 void *getVDOPageCompletionContext(VDOCompletion *completion);
 
 /**
- * Flush all dirty pages in the VDO page cache, and wait until no page
- * operations are in flight.
+ * Drain I/O for a page cache.
  *
- * @param cache   the cache to flush
- * @param parent  a completion to notify when the cache is flushed
+ * @param cache  The cache to drain
  **/
-void flushVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent);
+void drainVDOPageCache(VDOPageCache *cache);
 
 /**
  * Invalidate all entries in the VDO page cache. There must not be any

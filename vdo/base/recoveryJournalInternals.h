@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#8 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -27,7 +27,6 @@
 #include "fixedLayout.h"
 #include "journalPoint.h"
 #include "lockCounter.h"
-#include "readOnlyModeContext.h"
 #include "recoveryJournal.h"
 #include "ringNode.h"
 #include "statistics.h"
@@ -58,8 +57,8 @@ struct recoveryJournal {
    * decrement waiters queues
    **/
   bool                       addingEntries;
-  /** The context for tracking read-only mode */
-  ReadOnlyModeContext       *readOnlyContext;
+  /** The notifier for read-only mode */
+  ReadOnlyNotifier          *readOnlyNotifier;
   /** Whether a request has been made to close the journal */
   bool                       closeRequested;
   /** Whether a reap is in progress */

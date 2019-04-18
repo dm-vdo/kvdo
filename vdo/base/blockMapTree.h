@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#5 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -30,18 +30,16 @@ typedef struct treePage TreePage;
 /**
  * Intialize a BlockMapTreeZone.
  *
- * @param zone             The BlockMapZone of the tree zone to intialize
- * @param layer            The physical layer
- * @param readOnlyContext  The read only context for the VDO
- * @param maximumAge       The number of journal blocks before a dirtied page is
- *                         considered old and may be written out
+ * @param zone              The BlockMapZone of the tree zone to intialize
+ * @param layer             The physical layer
+ * @param maximumAge        The number of journal blocks before a dirtied page
+ *                          is considered old and may be written out
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeTreeZone(BlockMapZone        *zone,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       BlockCount           maximumAge)
+int initializeTreeZone(BlockMapZone     *zone,
+                       PhysicalLayer    *layer,
+                       BlockCount        maximumAge)
   __attribute__((warn_unused_result));
 
 /**
@@ -69,28 +67,13 @@ void setTreeZoneInitialPeriod(BlockMapTreeZone *treeZone,
 void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period);
 
 /**
- * Close the zone trees. This will write out all the dirty tree pages from the
- * zone.
+ * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by
+ * the drain type, all dirty block map trees will be written to disk. This
+ * method must not be called when lookups are active.
  *
- * @param zone  The BlockMapTreeZone whose dirty tree pages are to be written
+ * @param zone  The BlockMapTreeZone to drain
  **/
-void closeZoneTrees(BlockMapTreeZone *zone);
-
-/**
- * Suspend a zone's trees by waiting for all outstanding I/O to complete and
- * preventing any new I/O from launching.
- *
- * @param zone        The BlockMapTreeZone to be suspended
- * @param completion  The object to notify once the suspend is complete
- **/
-void suspendZoneTrees(BlockMapTreeZone *zone, VDOCompletion *completion);
-
-/**
- * Resume a zone's trees from the suspended state.
- *
- * @param zone  The BlockMapTreeZone to resume
- **/
-void resumeZoneTrees(BlockMapTreeZone *zone);
+void drainZoneTrees(BlockMapTreeZone *zone);
 
 /**
  * Look up the PBN of the block map page for a DataVIO's LBN in the arboreal

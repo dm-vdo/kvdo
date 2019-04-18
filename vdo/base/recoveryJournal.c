@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#13 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#16 $
  */
 
 #include "recoveryJournal.h"
@@ -169,7 +169,7 @@ static inline bool hasBlockWaiters(RecoveryJournal *journal)
  **/
 static inline bool checkForClosure(RecoveryJournal *journal)
 {
-  if (isReadOnly(journal->readOnlyContext)) {
+  if (isReadOnly(journal->readOnlyNotifier)) {
     int notifyContext = VDO_READ_ONLY;
     notifyAllWaiters(&journal->decrementWaiters, continueWaiter,
                      &notifyContext);
@@ -186,23 +186,33 @@ static inline bool checkForClosure(RecoveryJournal *journal)
 
   RecoveryJournalBlock *block;
   while ((block = popActiveList(journal)) != NULL) {
-    if (!isReadOnly(journal->readOnlyContext)) {
+    if (!isReadOnly(journal->readOnlyNotifier)) {
       ASSERT_LOG_ONLY(!isRecoveryBlockDirty(block),
                       "all blocks in a journal being closed must be inactive");
     }
     pushRingNode(&journal->freeTailBlocks, &block->ringNode);
   }
 
-  finishCompletion(&journal->completion, (isReadOnly(journal->readOnlyContext)
+  finishCompletion(&journal->completion, (isReadOnly(journal->readOnlyNotifier)
                                           ? VDO_READ_ONLY
                                           : VDO_SUCCESS));
   return true;
 }
 
-/**********************************************************************/
-void notifyRecoveryJournalOfReadOnlyMode(RecoveryJournal *journal)
+/**
+ * Notifiy a recovery journal that the VDO has gone read-only.
+ *
+ * <p>Implements ReadOnlyNotification.
+ *
+ * @param listener  The journal
+ * @param parent    The completion to notify in order to acknowledge the
+ *                  notification
+ **/
+static void notifyRecoveryJournalOfReadOnlyMode(void          *listener,
+                                                VDOCompletion *parent)
 {
-  checkForClosure(journal);
+  checkForClosure(listener);
+  completeCompletion(parent);
 }
 
 /**
@@ -215,7 +225,7 @@ void notifyRecoveryJournalOfReadOnlyMode(RecoveryJournal *journal)
  **/
 static void enterJournalReadOnlyMode(RecoveryJournal *journal, int errorCode)
 {
-  enterReadOnlyMode(journal->readOnlyContext, errorCode);
+  enterReadOnlyMode(journal->readOnlyNotifier, errorCode);
   checkForClosure(journal);
 }
 
@@ -376,15 +386,15 @@ static void reapRecoveryJournalCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int makeRecoveryJournal(Nonce                 nonce,
-                        PhysicalLayer        *layer,
-                        Partition            *partition,
-                        uint64_t              recoveryCount,
-                        BlockCount            journalSize,
-                        BlockCount            tailBufferSize,
-                        ReadOnlyModeContext  *readOnlyContext,
-                        const ThreadConfig   *threadConfig,
-                        RecoveryJournal     **journalPtr)
+int makeRecoveryJournal(Nonce                nonce,
+                        PhysicalLayer       *layer,
+                        Partition           *partition,
+                        uint64_t             recoveryCount,
+                        BlockCount           journalSize,
+                        BlockCount           tailBufferSize,
+                        ReadOnlyNotifier    *readOnlyNotifier,
+                        const ThreadConfig  *threadConfig,
+                        RecoveryJournal    **journalPtr)
 {
   RecoveryJournal *journal;
   int result = ALLOCATE(1, RecoveryJournal, __func__, &journal);
@@ -398,13 +408,13 @@ int makeRecoveryJournal(Nonce                 nonce,
   initializeRing(&journal->freeTailBlocks);
   initializeRing(&journal->activeTailBlocks);
 
-  journal->threadID        = getJournalZoneThread(threadConfig);
-  journal->partition       = partition;
-  journal->nonce           = nonce;
-  journal->recoveryCount   = computeRecoveryCountByte(recoveryCount);
-  journal->size            = journalSize;
-  journal->readOnlyContext = readOnlyContext;
-  journal->tail            = 1;
+  journal->threadID         = getJournalZoneThread(threadConfig);
+  journal->partition        = partition;
+  journal->nonce            = nonce;
+  journal->recoveryCount    = computeRecoveryCountByte(recoveryCount);
+  journal->size             = journalSize;
+  journal->readOnlyNotifier = readOnlyNotifier;
+  journal->tail             = 1;
   journal->slabJournalCommitThreshold = (journalSize * 2) / 3;
   initializeJournalState(journal);
 
@@ -450,8 +460,17 @@ int makeRecoveryJournal(Nonce                 nonce,
       return result;
     }
 
+    result = registerReadOnlyListener(readOnlyNotifier, journal,
+                                      notifyRecoveryJournalOfReadOnlyMode,
+                                      journal->threadID);
+    if (result != VDO_SUCCESS) {
+      freeRecoveryJournal(&journal);
+      return result;
+    }
+
     setActiveBlock(journal);
     journal->flushVIO->completion.callbackThreadID = journal->threadID;
+    // Must not fail after this point since active blocks won't be freed.
   }
 
   *journalPtr = journal;
@@ -522,6 +541,12 @@ void setJournalBlockMapDataBlocksUsed(RecoveryJournal *journal,
                                       BlockCount       pages)
 {
   journal->blockMapDataBlocks = pages;
+}
+
+/**********************************************************************/
+ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
+{
+  return journal->threadID;
 }
 
 /**********************************************************************/
@@ -906,7 +931,7 @@ static void continueCommittedWaiter(Waiter *waiter, void *context)
   journal->commitPoint = dataVIO->recoveryJournalPoint;
 
   int result
-    = (isReadOnly(journal->readOnlyContext) ? VDO_READ_ONLY : VDO_SUCCESS);
+    = (isReadOnly(journal->readOnlyNotifier) ? VDO_READ_ONLY : VDO_SUCCESS);
   continueWaiter(waiter, &result);
 }
 
@@ -936,7 +961,7 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
     }
 
     notifyAllWaiters(&block->commitWaiters, continueCommittedWaiter, journal);
-    if (isReadOnly(journal->readOnlyContext)) {
+    if (isReadOnly(journal->readOnlyNotifier)) {
       notifyAllWaiters(&block->entryWaiters, continueCommittedWaiter, journal);
     } else if (isRecoveryBlockDirty(block) || !isRecoveryBlockFull(block)) {
       // Don't recycle partially-committed or partially-filled blocks.
@@ -1026,7 +1051,7 @@ void addRecoveryJournalEntry(RecoveryJournal *journal, DataVIO *dataVIO)
     return;
   }
 
-  if (isReadOnly(journal->readOnlyContext)) {
+  if (isReadOnly(journal->readOnlyNotifier)) {
     continueDataVIO(dataVIO, VDO_READ_ONLY);
     return;
   }

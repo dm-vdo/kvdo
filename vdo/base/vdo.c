@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#13 $
  */
 
 /*
@@ -39,6 +39,7 @@
 #include "numUtils.h"
 #include "packer.h"
 #include "physicalZone.h"
+#include "readOnlyNotifier.h"
 #include "recoveryJournal.h"
 #include "releaseVersions.h"
 #include "slabDepot.h"
@@ -85,22 +86,6 @@ typedef struct {
   Nonce     nonce;
 } __attribute__((packed)) VDOComponent41_0;
 
-/**
- * Implements ReadOnlyModeQuery.
- **/
-static bool isReadOnlyVDO(void *context)
-{
-  return getThreadData((VDO *) context)->isReadOnly;
-}
-
-/**
- * Implements ReadOnlyModeEnterer.
- **/
-static void enterReadOnlyModeFromContext(void *context, int errorCode)
-{
-  makeVDOReadOnly((VDO *) context, errorCode, true);
-}
-
 /**********************************************************************/
 int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
 {
@@ -115,13 +100,7 @@ int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
     return result;
   }
 
-  vdo->layer           = layer;
-  vdo->readOnlyContext = (ReadOnlyModeContext) {
-    .context           = vdo,
-    .isReadOnly        = isReadOnlyVDO,
-    .enterReadOnlyMode = enterReadOnlyModeFromContext,
-  };
-
+  vdo->layer = layer;
   if (layer->createEnqueueable != NULL) {
     result = makeAdminCompletion(layer, &vdo->adminCompletion);
     if (result != VDO_SUCCESS) {
@@ -189,11 +168,8 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  if (threadConfig != NULL) {
-    freeThreadDataArray(&vdo->threadData, threadConfig->baseThreadCount);
-  }
-
   freeAdminCompletion(&vdo->adminCompletion);
+  freeReadOnlyNotifier(&vdo->readOnlyNotifier);
   freeThreadConfig(&vdo->loadConfig.threadConfig);
 }
 
@@ -658,10 +634,33 @@ int validateVDOConfig(const VDOConfig *config,
   return result;
 }
 
-/**********************************************************************/
-ThreadData *getThreadData(const VDO *vdo)
+/**
+ * Notify a VDO that it is going read-only. This will save the read-only state
+ * to the super block.
+ *
+ * <p>Implements ReadOnlyNotification.
+ *
+ * @param listener  The VDO
+ * @param parent    The completion to notify in order to acknowledge the
+ *                  notification
+ **/
+static void notifyVDOOfReadOnlyMode(void *listener, VDOCompletion *parent)
 {
-  return &vdo->threadData[getCallbackThreadID()];
+  VDO *vdo = listener;
+  if (inReadOnlyMode(vdo)) {
+    completeCompletion(parent);
+  }
+
+  vdo->state = VDO_READ_ONLY_MODE;
+  saveVDOComponentsAsync(vdo, parent);
+}
+
+/**********************************************************************/
+int enableReadOnlyEntry(VDO *vdo)
+{
+  return registerReadOnlyListener(vdo->readOnlyNotifier, vdo,
+                                  notifyVDOOfReadOnlyMode,
+                                  getAdminThread(getThreadConfig(vdo)));
 }
 
 /**********************************************************************/
@@ -728,7 +727,7 @@ void enterRecoveryMode(VDO *vdo)
 {
   assertOnAdminThread(vdo, __func__);
 
-  if (isReadOnlyVDO(vdo)) {
+  if (inReadOnlyMode(vdo)) {
     return;
   }
 
@@ -745,13 +744,19 @@ void leaveRecoveryMode(VDO *vdo)
    * Since scrubbing can be stopped by vdoClose during recovery mode,
    * do not change the VDO state if there are outstanding unrecovered slabs.
    */
-  if (vdo->closeRequested || isReadOnlyVDO(vdo)) {
+  if (vdo->closeRequested || inReadOnlyMode(vdo)) {
     return;
   }
 
   ASSERT_LOG_ONLY(inRecoveryMode(vdo), "VDO is in recovery mode");
   logInfo("Exiting recovery mode");
   vdo->state = VDO_DIRTY;
+}
+
+/**********************************************************************/
+void makeVDOReadOnly(VDO *vdo, int errorCode)
+{
+  enterReadOnlyMode(vdo->readOnlyNotifier, errorCode);
 }
 
 /**********************************************************************/

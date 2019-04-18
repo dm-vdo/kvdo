@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/localIndexRouter.c#5 $
+ * $Id: //eng/uds-releases/homer/src/uds/localIndexRouter.c#3 $
  */
 
 #include "localIndexRouter.h"
@@ -28,14 +28,18 @@
 #include "requestQueue.h"
 #include "zone.h"
 
-static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag);
+static int saveAndFreeLocalIndexRouter(IndexRouter *header,
+                                       bool         saveFlag,
+                                       bool         freeFlag);
 static RequestQueue *selectIndexRouterQueue(IndexRouter  *header,
                                             Request      *request,
                                             RequestStage  nextStage);
 static void executeIndexRouterRequest(IndexRouter *header, Request *request);
 static int getRouterStatistics(IndexRouter *header,
                                IndexRouterStatCounters *counters);
-static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency);
+static void setCheckpointFrequency(IndexRouter *header,
+                                   unsigned int frequency);
+static void waitForIdle(IndexRouter *header);
 
 static const IndexRouterMethods methods = {
   .saveAndFree            = saveAndFreeLocalIndexRouter,
@@ -43,6 +47,7 @@ static const IndexRouterMethods methods = {
   .execute                = executeIndexRouterRequest,
   .getStatistics          = getRouterStatistics,
   .setCheckpointFrequency = setCheckpointFrequency,
+  .waitForIdle            = waitForIdle,
 };
 
 /*
@@ -61,6 +66,8 @@ static INLINE IndexRouter *asIndexRouter(LocalIndexRouter *router)
  **/
 static void executeZoneRequest(Request *request)
 {
+  LocalIndexRouter *router = asLocalIndexRouter(request->router);
+  router->needToSave = true;
   request->router->methods->execute(request->router, request);
 }
 
@@ -171,6 +178,7 @@ int makeLocalIndexRouter(IndexLayout          *layout,
 
   router->header.methods  = &methods;
   router->header.callback = callback;
+  router->needToSave      = true;
   router->zoneCount       = zoneCount;
 
   result = initializeLocalIndexQueues(router, config->geometry);
@@ -186,29 +194,41 @@ int makeLocalIndexRouter(IndexLayout          *layout,
     return logErrorWithStringError(result, "failed to create index");
   }
 
+  router->needToSave = (router->index->loadedType != LOAD_LOAD);
   *newRouter = asIndexRouter(router);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-static int saveAndFreeLocalIndexRouter(IndexRouter *header, bool saveFlag)
+static int saveAndFreeLocalIndexRouter(IndexRouter *header,
+                                       bool         saveFlag,
+                                       bool         freeFlag)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
   if (router == NULL) {
     return UDS_SUCCESS;
   }
-  requestQueueFinish(router->triageQueue);
-  for (unsigned int i = 0; i < router->zoneCount; i++) {
-    requestQueueFinish(router->zoneQueues[i]);
+  if (freeFlag) {
+    requestQueueFinish(router->triageQueue);
+    for (unsigned int i = 0; i < router->zoneCount; i++) {
+      requestQueueFinish(router->zoneQueues[i]);
+    }
   }
 
   int result = UDS_SUCCESS;
   if (saveFlag) {
-    result = saveIndex(router->index);
+    // Wait for all chapters to be written.
+    waitForIdle(header);
+    if (router->needToSave) {
+      result = saveIndex(router->index);
+      router->needToSave = (result != UDS_SUCCESS);
+    }
   }
 
-  freeIndex(router->index);
-  FREE(router);
+  if (freeFlag) {
+    freeIndex(router->index);
+    FREE(router);
+  }
   return result;
 }
 
@@ -289,4 +309,11 @@ static void setCheckpointFrequency(IndexRouter *header, unsigned int frequency)
 {
   LocalIndexRouter *router = asLocalIndexRouter(header);
   setIndexCheckpointFrequency(router->index->checkpoint, frequency);
+}
+
+/**********************************************************************/
+static void waitForIdle(IndexRouter *header)
+{
+  LocalIndexRouter *router = asLocalIndexRouter(header);
+  waitForIdleChapterWriter(router->index->chapterWriter);
 }

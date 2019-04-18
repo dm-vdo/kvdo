@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCacheInternals.h#7 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -28,11 +28,11 @@
 # include <stdint.h>
 #endif
 
+#include "blockMapInternals.h"
 #include "completion.h"
 #include "dirtyLists.h"
 #include "intMap.h"
 #include "physicalLayer.h"
-#include "readOnlyModeContext.h"
 #include "ringNode.h"
 
 #include "permassert.h"
@@ -54,18 +54,12 @@ typedef RingNode PageInfoNode;
 struct vdoPageCache {
   /** the physical layer to page to */
   PhysicalLayer             *layer;
-  /** the ID of the thread for this cache's physical zone */
-  ThreadID                   threadID;
-  /** the read-only mode context */
-  ReadOnlyModeContext       *readOnlyContext;
   /** number of pages in cache */
   PageCount                  pageCount;
   /** function to call on page read */
   VDOPageReadFunction       *readHook;
   /** function to call on page write */
   VDOPageWriteFunction      *writeHook;
-  /** the cache-wide client context passed to the read and write hooks */
-  void                      *context;
   /** number of pages to write in the current batch */
   PageCount                  pagesInBatch;
   /** Whether the VDO is doing a read-only rebuild */
@@ -105,8 +99,8 @@ struct vdoPageCache {
   AtomicPageCacheStatistics  stats;
   /** counter for pressure reports */
   uint32_t                   pressureReport;
-  /** completion to notify when all I/O has completed */
-  VDOCompletion             *flushCompletion;
+  /** the block map zone to which this cache belongs */
+  BlockMapZone              *zone;
 };
 
 /**
@@ -299,15 +293,5 @@ PageInfo *vpcFindPage(VDOPageCache *cache, PhysicalBlockNumber pbn)
  **/
 const char *vpcPageStateName(PageState state)
   __attribute__((warn_unused_result));
-
-// TESTING SUPPORT
-
-/**
- * Wait for all outstanding I/O to complete, without issuing any.
- *
- * @param cache   the cache in question
- * @param parent  the completion to notify
- **/
-void syncVDOPageCacheAsync(VDOPageCache *cache, VDOCompletion *parent);
 
 #endif // VDO_PAGE_CACHE_INTERNALS_H

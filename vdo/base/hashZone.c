@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashZone.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/hashZone.c#3 $
  */
 
 #include "hashZone.h"
@@ -63,8 +63,8 @@ struct hashZone {
   /** Which hash zone this is */
   ZoneCount zoneNumber;
 
-  /** The per-thread data for this zone */
-  const ThreadData *threadData;
+  /** The thread ID for this zone */
+  ThreadID threadID;
 
   /** Mapping from chunkName fields to HashLocks */
   PointerMap *hashLockMap;
@@ -125,11 +125,8 @@ int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
     return result;
   }
 
-  ThreadID threadID = getHashZoneThread(getThreadConfig(vdo), zoneNumber);
-  zone->zoneNumber  = zoneNumber;
-  zone->threadData  = &vdo->threadData[threadID];
-  ASSERT_LOG_ONLY(threadID == getHashZoneThreadID(zone),
-                  "thread IDs in config and thread data must match");
+  zone->zoneNumber = zoneNumber;
+  zone->threadID   = getHashZoneThread(getThreadConfig(vdo), zoneNumber);
   initializeRing(&zone->lockPool);
 
   result = ALLOCATE(LOCK_POOL_CAPACITY, HashLock, "HashLock array",
@@ -172,7 +169,7 @@ ZoneCount getHashZoneNumber(const HashZone *zone)
 /**********************************************************************/
 ThreadID getHashZoneThreadID(const HashZone *zone)
 {
-  return zone->threadData->threadID;
+  return zone->threadID;
 }
 
 /**********************************************************************/

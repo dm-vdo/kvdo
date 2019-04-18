@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubberInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubberInternals.h#4 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -24,32 +24,31 @@
 
 #include "slabScrubber.h"
 
+#include "adminState.h"
 #include "atomic.h"
 #include "ringNode.h"
 
 struct slabScrubber {
-  VDOCompletion                  completion;
+  VDOCompletion     completion;
   /** The queue of slabs to scrub first */
-  RingNode                       highPrioritySlabs;
+  RingNode          highPrioritySlabs;
   /** The queue of slabs to scrub once there are no highPrioritySlabs */
-  RingNode                       slabs;
+  RingNode          slabs;
   /** The queue of VIOs waiting for a slab to be scrubbed */
-  WaitQueue                      waiters;
+  WaitQueue         waiters;
 
   // The number of slabs that are unrecovered or being scrubbed. This field is
   // modified by the physical zone thread, but is queried by other threads.
-  Atomic64                       slabCount;
+  Atomic64          slabCount;
 
-  /** Whether the scrubber is actively scrubbing */
-  bool                           isScrubbing;
-  /** Whether the scrubber has been asked to stop scrubbing */
-  bool                           stopScrubbing;
+  /** The administrative state of the scrubber */
+  AdminState        adminState;
   /** Whether to only scrub high-priority slabs */
-  bool                           highPriorityOnly;
+  bool              highPriorityOnly;
   /** The completion for rebuilding a slab */
-  VDOCompletion                 *slabRebuildCompletion;
+  VDOCompletion    *slabRebuildCompletion;
   /** The context for entering read-only mode */
-  ReadOnlyModeContext           *readOnlyContext;
+  ReadOnlyNotifier *readOnlyNotifier;
 };
 
 #endif // SLAB_SCRUBBER_INTERNALS_H

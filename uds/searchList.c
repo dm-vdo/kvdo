@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/searchList.c#2 $
+ * $Id: //eng/uds-releases/homer/src/uds/searchList.c#1 $
  */
 
 #include "searchList.h"
@@ -38,7 +38,9 @@ int makeSearchList(unsigned int   capacity,
                                   "search list capacity must fit in 8 bits");
   }
 
-  unsigned int bytes = (sizeof(SearchList) + (capacity * sizeof(uint8_t)));
+  // We need three temporary entry arrays for purgeSearchList(). Allocate them
+  // contiguously with the main array.
+  unsigned int bytes = (sizeof(SearchList) + (4 * capacity * sizeof(uint8_t)));
   SearchList *list;
   int result = allocateCacheAligned(bytes, "search list", &list);
   if (result != UDS_SUCCESS) {
@@ -75,17 +77,21 @@ void purgeSearchList(SearchList               *searchList,
     return;
   }
 
-  // Partition the previously-alive entries in the list into three temporary
-  // lists, keeping the current LRU search order within each list.
-  uint8_t alive[searchList->firstDeadEntry];
-  uint8_t skipped[searchList->firstDeadEntry];
-  uint8_t dead[searchList->firstDeadEntry];
+  /*
+   * Partition the previously-alive entries in the list into three temporary
+   * lists, keeping the current LRU search order within each list. The element
+   * array was allocated with enough space for all four lists.
+   */
+  uint8_t *entries = &searchList->entries[0];
+  uint8_t *alive   = &entries[searchList->capacity];
+  uint8_t *skipped = &alive[searchList->capacity];
+  uint8_t *dead    = &skipped[searchList->capacity];
   unsigned int nextAlive   = 0;
   unsigned int nextSkipped = 0;
   unsigned int nextDead    = 0;
 
   for (int i = 0; i < searchList->firstDeadEntry; i++) {
-    uint8_t entry = searchList->entries[i];
+    uint8_t entry = entries[i];
     const CachedChapterIndex *chapter = &chapters[entry];
     if ((chapter->virtualChapter < oldestVirtualChapter)
         || (chapter->virtualChapter == UINT64_MAX)) {
@@ -99,14 +105,13 @@ void purgeSearchList(SearchList               *searchList,
 
   // Copy the temporary lists back to the search list so we wind up with
   // [ alive, alive, skippable, new-dead, new-dead, old-dead, old-dead ]
-  unsigned int size = 0;
-  memcpy(&searchList->entries[size], alive, nextAlive);
-  size += nextAlive;
+  memcpy(entries, alive, nextAlive);
+  entries += nextAlive;
 
-  memcpy(&searchList->entries[size], skipped, nextSkipped);
-  size += nextSkipped;
+  memcpy(entries, skipped, nextSkipped);
+  entries += nextSkipped;
 
-  memcpy(&searchList->entries[size], dead, nextDead);
+  memcpy(entries, dead, nextDead);
   // The first dead entry is now the start of the copied dead list.
-  searchList->firstDeadEntry = size;
+  searchList->firstDeadEntry = (nextAlive + nextSkipped);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#2 $
  */
 
 #ifndef REF_COUNTS_H
@@ -24,24 +24,23 @@
 
 #include "completion.h"
 #include "journalPoint.h"
-#include "readOnlyModeContext.h"
 #include "slab.h"
 #include "types.h"
 
 /**
  * Create a reference counting object.
  *
- * A reference counting object can keep a reference count for every
- * physical block in the VDO configuration. Since we expect the vast
- * majority of the blocks to have 0 or 1 reference counts, the structure is
- * optimized for that situation.
+ * <p>A reference counting object can keep a reference count for every physical
+ * block in the VDO configuration. Since we expect the vast majority of the
+ * blocks to have 0 or 1 reference counts, the structure is optimized for that
+ * situation.
  *
  * @param [in]  layer             The layer which holds the reference counts
  * @param [in]  blockCount        The number of physical blocks that can be
  *                                referenced
  * @param [in]  slab              The slab of the ref counts object
  * @param [in]  origin            The layer PBN at which to save RefCounts
- * @param [in]  readOnlyContext   The context for tracking read-only mode
+ * @param [in]  readOnlyNotifier  The context for tracking read-only mode
  * @param [out] refCountsPtr      The pointer to hold the new ref counts object
  *
  * @return a success or error code
@@ -50,7 +49,7 @@ int makeRefCounts(PhysicalLayer        *layer,
                   BlockCount            blockCount,
                   Slab                 *slab,
                   PhysicalBlockNumber   origin,
-                  ReadOnlyModeContext  *readOnlyContext,
+                  ReadOnlyNotifier     *readOnlyNotifier,
                   RefCounts           **refCountsPtr)
   __attribute__((warn_unused_result));
 

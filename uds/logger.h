@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/logger.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/logger.h#2 $
  */
 
 #ifndef LOGGER_H
@@ -216,12 +216,14 @@ int logFatalWithStringError(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));
 
 /**
- * Log an ERROR level message and return makeUnrecoverable(errnum)
- * UDS_SUCCESS is ignored and returned.
+ * If the result was an error, log an ERROR level message and return
+ * makeUnrecoverable(errnum).  If the result was not an error (UDS_SUCCESS or
+ * UDS_QUEUED), just return the result.
  *
  * @param  errnum Int value of errno or a UDS_* value.
  * @param  format The format of the message (a printf style format)
- * @return makeUnrecoverable(errnum) or UDS_SUCCESS.
+ *
+ * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED.
  **/
 int logUnrecoverable(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));

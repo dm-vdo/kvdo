@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/geometry.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/geometry.h#2 $
  */
 
 #ifndef GEOMETRY_H
@@ -164,19 +164,6 @@ int makeGeometry(size_t       bytesPerPage,
  **/
 int copyGeometry(Geometry  *source,
                  Geometry **geometryPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Compare the geometry read in from a config file with that of
- * the volume file to ensure they are the same.
- *
- * @param expected      The geometry from the config file
- * @param actual        The geometry from the volume file
- *
- * @return true if the geometries are equal, false otherwise
- **/
-
-bool verifyGeometry(const Geometry *expected, const Geometry *actual)
   __attribute__((warn_unused_result));
 
 /**

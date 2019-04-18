@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.h#6 $
  */
 
 #ifndef COMPLETION_H
@@ -34,12 +34,11 @@ typedef enum __attribute__((packed)) {
 
   // Keep the rest of these in sorted order. If you add or remove an entry,
   // be sure to update the corresponding list in completion.c.
+  ACTION_COMPLETION,
   ADMIN_COMPLETION,
   ASYNC_ACTION_CONTEXT,
   BLOCK_ALLOCATOR_COMPLETION,
-  BLOCK_MAP_COMPLETION,
   BLOCK_MAP_RECOVERY_COMPLETION,
-  BLOCK_MAP_ZONE_COMPLETION,
   CHECK_IDENTIFIER_COMPLETION,
   EXTERNAL_COMPLETION,
   FLUSH_NOTIFICATION_COMPLETION,
@@ -54,7 +53,6 @@ typedef enum __attribute__((packed)) {
   REFERENCE_COUNTS_COMPLETION,
   REFERENCE_COUNT_REBUILD_COMPLETION,
   SLAB_COMPLETION,
-  SLAB_DEPOT_COMPLETION,
   SLAB_JOURNAL_COMPLETION,
   SLAB_REBUILD_COMPLETION,
   SLAB_SCRUBBER_COMPLETION,
@@ -66,7 +64,6 @@ typedef enum __attribute__((packed)) {
   VDO_EXTENT_COMPLETION,
   VDO_PAGE_COMPLETION,
   VIO_COMPLETION,
-  WAIT_FOR_READ_ONLY_MODE_COMPLETION,
   WRAPPING_COMPLETION,
 
   // Keep MAX_COMPLETION_TYPE at the bottom.
@@ -212,12 +209,38 @@ static inline void finishCompletion(VDOCompletion *completion, int result)
 }
 
 /**
+ * Complete a completion and NULL out the reference to it.
+ *
+ * @param completionPtr  A pointer to the completion to release
+ **/
+void releaseCompletion(VDOCompletion **completionPtr);
+
+/**
+ * Finish a completion and NULL out the reference to it.
+ *
+ * @param completionPtr  A pointer to the completion to release
+ * @param result         The result of the completion
+ **/
+void releaseCompletionWithResult(VDOCompletion **completionPtr, int result);
+
+/**
  * A callback to finish the parent of a completion.
  *
  * @param completion  The completion which has finished and whose parent should
  *                    be finished
  **/
 void finishParentCallback(VDOCompletion *completion);
+
+/**
+ * A callback which does nothing. This callback is intended to be set as an
+ * error handler in the case where an error should do nothing.
+ *
+ * @param completion  The completion being called back
+ **/
+static inline
+void noopCallback(VDOCompletion *completion __attribute__((unused)))
+{
+}
 
 /**
  * Destroy the enqueueable associated with this completion.

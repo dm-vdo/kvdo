@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/grid.h#3 $
+ * $Id: //eng/uds-releases/homer/src/uds/grid.h#3 $
  */
 
 #ifndef GRID_H
@@ -104,24 +104,41 @@ int setGridCheckpointFrequency(Grid *grid, unsigned int frequency)
   __attribute__((warn_unused_result));
 
 /**
- * Flush all the routers, optionally save state for all the routers, and free
- * all components of the grid.
+ * Wait for the index grid to finish all operations that access a local storage
+ * device.
  *
- * @param grid      The index grid to save and free.
- * @param saveFlag  True to save the grid.
+ * @param grid      The index grid
+ **/
+void waitForIdleGrid(Grid *grid);
+
+/**
+ * Flush all the routers, save and free all components of the grid.
+ *
+ * @param grid  The index grid
  *
  * @return Either UDS_SUCCESS or an error code
  **/
-int saveAndFreeGrid(Grid *grid, bool saveFlag);
+int saveAndFreeGrid(Grid *grid) __attribute__((warn_unused_result));
+
+/**
+ * Save all components of the grid.
+ *
+ * It is the responsibility of the caller to ensure that there are no other
+ * uses of the grid during a call to this method.  It is necessary that there
+ * be no index requests from any block context nor any other attempt to save
+ * the grid until after a call to saveGrid returns.
+ *
+ * @param grid  The index grid
+ *
+ * @return Either UDS_SUCCESS or an error code
+ **/
+int saveGrid(Grid *grid) __attribute__((warn_unused_result));
 
 /**
  * Free all components of the grid.
  *
- * @param grid   The index grid to free
+ * @param grid  The index grid
  **/
-static INLINE void freeGrid(Grid *grid)
-{
-  saveAndFreeGrid(grid, false);
-}
+void freeGrid(Grid *grid);
 
 #endif /* GRID_H */

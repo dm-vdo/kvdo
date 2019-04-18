@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#5 $
  */
 
 #include "packerInternals.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 
 #include "allocatingVIO.h"
+#include "allocationSelector.h"
 #include "compressionState.h"
 #include "dataVIO.h"
 #include "hashLock.h"
@@ -233,6 +234,13 @@ int makePacker(PhysicalLayer       *layer,
   initializeRing(&packer->inputBins);
   initializeRing(&packer->outputBins);
 
+  result = makeAllocationSelector(threadConfig->physicalZoneCount,
+                                  packer->threadID, &packer->selector);
+  if (result != VDO_SUCCESS) {
+    freePacker(&packer);
+    return result;
+  }
+
   for (BlockCount i = 0; i < inputBinCount; i++) {
     int result = makeInputBin(packer);
     if (result != VDO_SUCCESS) {
@@ -286,6 +294,7 @@ void freePacker(Packer **packerPtr)
     freeOutputBin(&output);
   }
 
+  freeAllocationSelector(&packer->selector);
   FREE(packer);
   *packerPtr = NULL;
 }
@@ -437,10 +446,10 @@ static void completeOutputBin(VDOCompletion *completion)
 
   VIO *vio = asVIO(completion);
   if (completion->result != VDO_SUCCESS) {
-    logWithStringError(updateVIOErrorStats(vio), completion->result,
-                       "Completing compressed write VIO for physical block %"
-                       PRIu64 " with error",
-                       vio->physical);
+    updateVIOErrorStats(vio,
+                        "Completing compressed write VIO for physical block %"
+                        PRIu64 " with error",
+                        vio->physical);
   }
 
   Packer *packer = vio->vdo->packer;
@@ -549,7 +558,7 @@ static void continueAfterAllocation(AllocatingVIO *allocatingVIO)
  **/
 static void launchCompressedWrite(Packer *packer, OutputBin *bin)
 {
-  if (isReadOnly(&getVDOFromAllocatingVIO(bin->writer)->readOnlyContext)) {
+  if (isReadOnly(getVDOFromAllocatingVIO(bin->writer)->readOnlyNotifier)) {
     finishOutputBin(packer, bin);
     return;
   }
@@ -558,7 +567,7 @@ static void launchCompressedWrite(Packer *packer, OutputBin *bin)
   resetCompletion(vioAsCompletion(vio));
   vio->callback = completeOutputBin;
   vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
-  allocateDataBlock(bin->writer, VIO_COMPRESSED_WRITE_LOCK,
+  allocateDataBlock(bin->writer, packer->selector, VIO_COMPRESSED_WRITE_LOCK,
                     continueAfterAllocation);
 }
 

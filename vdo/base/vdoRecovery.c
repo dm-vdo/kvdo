@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#9 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -364,7 +364,7 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
     RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
     result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
+      enterReadOnlyMode(recovery->vdo->readOnlyNotifier, result);
       return result;
     }
 
@@ -383,7 +383,7 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
   result = ASSERT((recovery->entryCount <= recovery->increfCount),
                   "approximate incref count is an upper bound");
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
+    enterReadOnlyMode(recovery->vdo->readOnlyNotifier, result);
   }
 
   return result;
@@ -461,7 +461,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
                                            "Read invalid mapping for pbn %"
                                            PRIu64 " with state %u",
                                            mapping.pbn, mapping.state);
-      enterReadOnlyMode(&vdo->readOnlyContext, result);
+      enterReadOnlyMode(vdo->readOnlyNotifier, result);
       finishCompletion(&recovery->completion, result);
       return;
     }
@@ -508,8 +508,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
 
   prepareCompletion(completion, startSuperBlockSave, finishParentCallback,
                     completion->callbackThreadID, completion->parent);
-  flushDepotSlabJournals(vdo->depot, completion, finishParentCallback,
-                         finishParentCallback);
+  flushDepotSlabJournals(vdo->depot, completion);
 }
 
 /**
@@ -783,7 +782,7 @@ void addSlabJournalEntries(VDOCompletion *completion)
       = getEntry(recovery, &recovery->nextRecoveryPoint);
     int result = validateRecoveryJournalEntry(vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(journal->readOnlyContext, result);
+      enterReadOnlyMode(journal->readOnlyNotifier, result);
       finishCompletion(&recovery->completion, result);
       return;
     }
@@ -908,7 +907,7 @@ static int countIncrementEntries(RecoveryCompletion *recovery)
     RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
     int result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(&recovery->vdo->readOnlyContext, result);
+      enterReadOnlyMode(recovery->vdo->readOnlyNotifier, result);
       return result;
     }
     if (isIncrementOperation(entry.operation)) {

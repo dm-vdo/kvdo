@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#22 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#23 $
  */
 
 #include "kernelLayer.h"
@@ -1239,6 +1239,7 @@ int suspendKernelLayer(KernelLayer *layer)
   if (result != VDO_SUCCESS) {
     setKVDOReadOnly(&layer->kvdo, result);
   }
+  suspendDedupeIndex(layer->dedupeIndex, !layer->noFlushSuspend);
   return result;
 }
 

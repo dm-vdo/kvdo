@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#3 $
+ * $Id: //eng/uds-releases/homer/src/uds/deltaIndex.c#1 $
  */
 #include "deltaIndex.h"
 
@@ -843,7 +843,7 @@ static int readDeltaIndexHeader(BufferedReader *reader,
                                 struct di_header *header)
 {
   Buffer *buffer;
-  
+
   int result = makeBuffer(sizeof(*header), &buffer);
   if (result != UDS_SUCCESS) {
     return result;
@@ -866,8 +866,9 @@ static int readDeltaIndexHeader(BufferedReader *reader,
 }
 
 /**********************************************************************/
-int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
-                             BufferedReader **bufferedReaders, int numReaders)
+int startRestoringDeltaIndex(const DeltaIndex  *deltaIndex,
+                             BufferedReader   **bufferedReaders,
+                             int                numReaders)
 {
   if (!deltaIndex->isMutable) {
     return logErrorWithStringError(UDS_BAD_STATE,
@@ -878,13 +879,19 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
                                      "No delta index files");
   }
 
+  unsigned int numZones = numReaders;
+  if (numZones > MAX_ZONES) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "zone count %u must not exceed MAX_ZONES",
+                                   numZones);
+  }
+
   unsigned long recordCount = 0;
   unsigned long collisionCount = 0;
-  unsigned int numZones = numReaders;
-  unsigned int firstList[numZones], numLists[numZones];
-  BufferedReader *reader[numZones];
-  bool zoneFlags[numZones];
-  memset(zoneFlags, false, numZones);
+  unsigned int firstList[MAX_ZONES];
+  unsigned int numLists[MAX_ZONES];
+  BufferedReader *reader[MAX_ZONES];
+  bool zoneFlags[MAX_ZONES] = { false, };
 
   // Read the header from each file, and make sure we have a matching set
   for (unsigned int z = 0; z < numZones; z++) {

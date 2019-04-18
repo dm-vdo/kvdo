@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#10 $
  */
 
 #include "vdoResize.h"
@@ -54,7 +54,7 @@ static void handleUnrecoverableError(VDOCompletion *completion)
 {
   // We failed to revert a failed resize, give up.
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  enterReadOnlyMode(&vdo->readOnlyContext, completion->result);
+  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
   finishParentCallback(completion);
 }
 
@@ -68,8 +68,7 @@ static void resumeSummaryForRevert(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, finishParentCallback, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion, finishParentCallback,
-                    finishParentCallback);
+  resumeSlabSummary(vdo->depot, completion);
 }
 
 /**
@@ -121,8 +120,7 @@ static void resumeSummary(VDOCompletion *completion)
   setSlabSummaryOrigin(getSlabSummary(vdo->depot),
                        getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
   prepareAdminSubTask(vdo, finishVDOResize, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion, finishParentCallback,
-                    finishParentCallback);
+  resumeSlabSummary(vdo->depot, completion);
 }
 
 /**
@@ -135,8 +133,7 @@ static void addNewSlabs(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, resumeSummary, handleUnrecoverableError);
-  useNewSlabs(vdo->depot, completion, finishParentCallback,
-              finishParentCallback);
+  useNewSlabs(vdo->depot, completion);
 }
 
 /**
@@ -181,8 +178,7 @@ static void suspendSummary(VDOCompletion *completion)
   // need to be undone.
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, copySuspendedSummary, abortResize);
-  suspendSlabSummary(vdo->depot, completion, finishParentCallback,
-                     finishParentCallback);
+  suspendSlabSummary(vdo->depot, completion);
 }
 
 /**
@@ -194,18 +190,6 @@ static void growPhysicalCallback(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   assertOnAdminThread(vdo, __func__);
-
-  // This check can only be done from a base code thread.
-  if (isReadOnly(&vdo->readOnlyContext)) {
-    finishCompletion(completion->parent, VDO_READ_ONLY);
-    return;
-  }
-
-  // This check should only be done from a base code thread.
-  if (inRecoveryMode(vdo)) {
-    finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
-    return;
-  }
 
   // Copy the journal into the new layout.
   prepareAdminSubTask(vdo, suspendSummary, finishParentCallback);
@@ -252,6 +236,33 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   return VDO_SUCCESS;
 }
 
+/**
+ * Callback to check that we're not in recovery mode, used in
+ * prepareToGrowPhysical().
+ *
+ * @param completion  The sub-task completion
+ **/
+static void checkMayGrowPhysical(VDOCompletion *completion)
+{
+  VDO *vdo
+    = vdoFromAdminSubTask(completion, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+  assertOnAdminThread(vdo, __func__);
+
+  // This check can only be done from a base code thread.
+  if (isReadOnly(vdo->readOnlyNotifier)) {
+    finishCompletion(completion->parent, VDO_READ_ONLY);
+    return;
+  }
+
+  // This check should only be done from a base code thread.
+  if (inRecoveryMode(vdo)) {
+    finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
+    return;
+  }
+
+  finishCompletion(completion->parent, VDO_SUCCESS);
+}
+
 /**********************************************************************/
 int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 {
@@ -271,14 +282,21 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
     return VDO_PARAMETER_MISMATCH;
   }
 
-  int result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
-                                      newPhysicalBlocks, vdo->layer);
+  int result
+    = performAdminOperation(vdo, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+                            checkMayGrowPhysical);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
+                                  newPhysicalBlocks, vdo->layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
-  result = prepareToGrowSlabDepot(vdo->depot, newDepotSize);
+  result = prepareToGrowSlabDepot(vdo->depot, vdo->layer, newDepotSize);
   if (result != VDO_SUCCESS) {
     finishVDOLayoutGrowth(vdo->layout);
     return result;

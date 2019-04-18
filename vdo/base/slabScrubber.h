@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.h#3 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -29,17 +29,17 @@
 /**
  * Create a slab scrubber
  *
- * @param layer                 The physical layer of the VDO
- * @param slabJournalSize       The size of a slab journal in blocks
- * @param readOnlyContext       The context for entering read-only mode
- * @param scrubberPtr           A pointer to hold the scrubber
+ * @param layer             The physical layer of the VDO
+ * @param slabJournalSize   The size of a slab journal in blocks
+ * @param readOnlyNotifier  The context for entering read-only mode
+ * @param scrubberPtr       A pointer to hold the scrubber
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSlabScrubber(PhysicalLayer                  *layer,
-                     BlockCount                      slabJournalSize,
-                     ReadOnlyModeContext            *readOnlyContext,
-                     SlabScrubber                  **scrubberPtr)
+int makeSlabScrubber(PhysicalLayer     *layer,
+                     BlockCount         slabJournalSize,
+                     ReadOnlyNotifier  *readOnlyNotifier,
+                     SlabScrubber     **scrubberPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -48,16 +48,6 @@ int makeSlabScrubber(PhysicalLayer                  *layer,
  * @param scrubberPtr  A pointer to the scrubber to destroy
  **/
 void freeSlabScrubber(SlabScrubber **scrubberPtr);
-
-/**
- * Check whether a slab scrubber is scrubbing.
- *
- * @param scrubber  The scrubber to check
- *
- * @return <code>true</code> if the scrubber is scrubbing
- **/
-bool isScrubbing(SlabScrubber *scrubber)
-  __attribute__((warn_unused_result));
 
 /**
  * Check whether a scrubber has slabs to scrub.
@@ -88,13 +78,11 @@ void registerSlabForScrubbing(SlabScrubber *scrubber,
  * @param parent        The object to notify when scrubbing is complete
  * @param callback      The function to run when scrubbing is complete
  * @param errorHandler  The handler for scrubbing errors
- * @param threadID      The thread on which to run the callback
  **/
 void scrubSlabs(SlabScrubber *scrubber,
                 void         *parent,
                 VDOAction    *callback,
-                VDOAction    *errorHandler,
-                ThreadID      threadID);
+                VDOAction    *errorHandler);
 
 /**
  * Scrub any slabs which have been registered at high priority with a slab
@@ -119,8 +107,16 @@ void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
  * currently working on.
  *
  * @param scrubber  The scrubber to stop
+ * @param parent    The completion to notify when scrubbing has stopped
  **/
-void stopScrubbing(SlabScrubber *scrubber);
+void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
+
+/**
+ * Tell the scrubber to resume scrubbing if it has been stopped.
+ *
+ * @param scrubber  The scrubber to resume
+ **/
+void resumeScrubbing(SlabScrubber *scrubber);
 
 /**
  * Wait for a clean slab.

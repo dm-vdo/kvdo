@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#4 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -109,7 +109,7 @@ struct slabSummary {
   /** The completion used when combining old zones (load) */
   VDOCompletion                completion;
   /** The context for entering read-only mode */
-  ReadOnlyModeContext         *readOnlyContext;
+  ReadOnlyNotifier            *readOnlyNotifier;
   /** The statistics for this slab summary */
   AtomicSlabSummaryStatistics  statistics;
   /** The start of the slab summary partition relative to the layer */

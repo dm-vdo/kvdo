@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.c#2 $
  */
 
 #include "statusCodes.h"
@@ -64,6 +64,7 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_BAD_MAGIC",             "Bad magic number"                          },
   { "VDO_BAD_NONCE",             "Bad nonce"                                 },
   { "VDO_JOURNAL_OVERFLOW",      "Journal sequence number overflow"          },
+  { "VDO_INVALID_ADMIN_STATE",   "Invalid operation for current state"       },
 };
 
 #ifndef __KERNEL__

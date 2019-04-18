@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepotInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepotInternals.h#8 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -26,36 +26,15 @@
 
 #include "atomic.h"
 
-/**
- * A function which is to be applied asynchronously to all of the allocators of
- * a slab depot.
- *
- * @param allocator     The next allocator to apply the action to
- * @param parent        The object to notify when the action has been applied
- *                      to all of the allocators
- * @param callback      The function to call when the action has been applied
- *                      to all of the allocators
- * @param errorHandler  The handler for errors when applying the action
- **/
-typedef void AllocatorAction(BlockAllocator *allocator,
-                             VDOCompletion  *parent,
-                             VDOAction      *callback,
-                             VDOAction      *errorHandler);
-
-typedef enum {
-  DEPOT_RESIZE_NONE = 0,
-  DEPOT_RESIZE_REGISTER_SLABS,
-  DEPOT_RESIZE_RESUME_SUMMARY,
-  DEPOT_RESIZE_SUSPEND_SUMMARY,
-} DepotResizeStep;
+#include "actionManager.h"
 
 struct slabDepot {
-  VDOCompletion         completion;
   ZoneCount             zoneCount;
   ZoneCount             oldZoneCount;
   SlabConfig            slabConfig;
   SlabSummary          *slabSummary;
-  ReadOnlyModeContext  *readOnlyContext;
+  ReadOnlyNotifier     *readOnlyNotifier;
+  ActionManager        *actionManager;
 
   PhysicalBlockNumber   firstBlock;
   PhysicalBlockNumber   lastBlock;
@@ -67,37 +46,23 @@ struct slabDepot {
   /** The completion for loading slabs */
   VDOCompletion        *slabCompletion;
 
-  /** The parent completion for most per-allocator actions */
-  VDOCompletion         actionCompletion;
-  /** The current action being applied to allocators */
-  AllocatorAction      *action;
-  /** The zone to which the action is being applied */
-  ZoneCount             actingZone;
-
   /** Determines how slabs should be queued during load */
   SlabDepotLoadType     loadType;
 
-  /**
-   * The completion for notifying slab journals to release recovery journal
-   * locks.
-   */
+  /** The state for notifying slab journals to release recovery journal */
   SequenceNumber        activeReleaseRequest;
   SequenceNumber        newReleaseRequest;
   bool                  lockReleaseActive;
-  ThreadID              recoveryJournalThreadID;
 
-  /** The completion for saving the depot */
-  VDOCompletion         saveCompletion;
+  /** Whether a save has been requested */
   bool                  saveRequested;
 
-  /** The completion for scrubbing or resizing */
-  VDOCompletion         subTaskCompletion;
+  /** The completion for scrubbing */
+  VDOCompletion         scrubbingCompletion;
   Atomic32              zonesToScrub;
 
   /** Cached journal pointer for slab creation */
-  RecoveryJournal      *journal; 
-
-  DepotResizeStep       resizeStepRequested;
+  RecoveryJournal      *journal;
 
   /** Array of pointers to individually allocated slabs */
   Slab                **slabs;
@@ -135,11 +100,14 @@ void destroySlab(Slab *slab);
 void registerSlabWithDepot(Slab *slab);
 
 /**
- * Notify a slab depot that one of its allocators has stopped scrubbing slabs.
+ * Notify a slab depot that one of its allocators has finished scrubbing slabs.
+ * This method should only be called if the scrubbing was successful. This
+ * callback is registered by each block allocator in
+ * scrubAllUnrecoveredSlabsInZone().
  *
- * @param depot  The depot to notify
+ * @param completion  A completion whose parent must be a slab depot
  **/
-void notifyZoneStoppedScrubbing(SlabDepot *depot);
+void notifyZoneFinishedScrubbing(VDOCompletion *completion);
 
 /**
  * Check whether two depots are equivalent (i.e. represent the same

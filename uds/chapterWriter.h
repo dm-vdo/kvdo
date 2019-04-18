@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/chapterWriter.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.h#2 $
  */
 
 #ifndef CHAPTER_WRITER_H
@@ -78,10 +78,18 @@ unsigned int startClosingChapter(ChapterWriter   *writer,
 int finishPreviousChapter(ChapterWriter *writer, uint64_t currentChapterNumber)
   __attribute__((warn_unused_result));
 
+
+/**
+ * Wait for the chapter writer thread to finish all writes to storage.
+ *
+ * @param writer  the chapter writer
+ **/
+void waitForIdleChapterWriter(ChapterWriter *writer);
+
 /**
  * Stop the chapter writer and wait for it to finish.
  *
- * @param writer the chapter writer to stop
+ * @param writer  the chapter writer to stop
  *
  * @return UDS_SUCCESS or an error code from the most recent write
  *         request

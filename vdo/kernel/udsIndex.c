@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#11 $
  */
 
 #include "udsIndex.h"
@@ -49,6 +49,15 @@ typedef struct udsAttribute {
   struct attribute attr;
   const char *(*showString)(DedupeIndex *);
 } UDSAttribute;
+
+/*****************************************************************************/
+
+typedef struct udsSuspend {
+  KvdoWorkItem       workItem;
+  struct completion  completion;
+  struct udsIndex   *index;
+  bool               saveFlag;
+} UDSSuspend;
 
 /*****************************************************************************/
 
@@ -83,7 +92,6 @@ typedef enum {
 typedef struct udsIndex {
   DedupeIndex        common;
   struct kobject     dedupeObject;
-  KvdoWorkItem       workItem;
   RegisteredThread   allocatingThread;
   char              *indexName;
   UdsConfiguration   configuration;
@@ -93,6 +101,7 @@ typedef struct udsIndex {
   // This spinlock protects the state fields and the starting of dedupe
   // requests.
   spinlock_t         stateLock;
+  KvdoWorkItem       workItem;    // protected by stateLock
   KvdoWorkQueue     *udsQueue;    // protected by stateLock
   unsigned int       maximum;     // protected by stateLock
   IndexState         indexState;  // protected by stateLock
@@ -579,6 +588,42 @@ static void finishUDSIndex(DedupeIndex *dedupeIndex)
 }
 
 /*****************************************************************************/
+static void suspendIndex(KvdoWorkItem *item)
+{
+  UDSSuspend *udsSuspend = container_of(item, UDSSuspend, workItem);
+  UDSIndex *index = udsSuspend->index;
+  spin_lock(&index->stateLock);
+  IndexState indexState = index->indexState;
+  spin_unlock(&index->stateLock);
+  if (indexState == IS_OPENED) {
+    int result = udsFlushBlockContext(index->blockContext);
+    if (result != UDS_SUCCESS) {
+      logErrorWithStringError(result, "Error flushing dedupe index");
+    } else if (udsSuspend->saveFlag) {
+      result = udsSaveIndex(index->indexSession);
+      if (result != UDS_SUCCESS) {
+        logErrorWithStringError(result, "Error saving dedupe index");
+      }
+    }
+  }
+  complete(&udsSuspend->completion);
+}
+
+/*****************************************************************************/
+static void suspendUDSIndex(DedupeIndex *dedupeIndex, bool saveFlag)
+{
+  UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
+  UDSSuspend udsSuspend = {
+    .index    = index,
+    .saveFlag = saveFlag,
+  };
+  init_completion(&udsSuspend.completion);
+  setupWorkItem(&udsSuspend.workItem, suspendIndex, NULL, UDS_Q_ACTION);
+  enqueueWorkQueue(index->udsQueue, &udsSuspend.workItem);
+  wait_for_completion(&udsSuspend.completion);
+}
+
+/*****************************************************************************/
 static void freeUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
@@ -639,7 +684,10 @@ static void getUDSStatistics(DedupeIndex *dedupeIndex, IndexStatistics *stats)
 static int processMessage(DedupeIndex *dedupeIndex, const char *name)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
-  if (strcasecmp(name, "index-create") == 0) {
+  if (strcasecmp(name, "index-close") == 0) {
+    setTargetState(index, IS_CLOSED, false, false, false);
+    return 0;
+  } else if (strcasecmp(name, "index-create") == 0) {
     setTargetState(index, IS_OPENED, false, false, true);
     return 0;
   } else if (strcasecmp(name, "index-disable") == 0) {
@@ -824,6 +872,7 @@ int makeUDSIndex(KernelLayer *layer, DedupeIndex **indexPtr)
   index->common.query                     = udsQuery;
   index->common.start                     = startUDSIndex;
   index->common.stop                      = stopUDSIndex;
+  index->common.suspend                   = suspendUDSIndex;
   index->common.finish                    = finishUDSIndex;
   index->common.update                    = udsUpdate;
 

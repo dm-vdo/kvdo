@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#6 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -27,10 +27,9 @@
 #include "atomic.h"
 #include "header.h"
 #include "packer.h"
-#include "readOnlyModeContextInternals.h"
 #include "statistics.h"
 #include "superBlock.h"
-#include "threadData.h"
+#include "readOnlyNotifier.h"
 #include "uds.h"
 #include "vdoLayout.h"
 
@@ -48,8 +47,8 @@ typedef struct atomicErrorStatistics {
 struct vdo {
   /* The state of this VDO */
   VDOState              state;
-  /* The context for entering read-only mode */
-  ReadOnlyModeContext   readOnlyContext;
+  /* The read-only notifier */
+  ReadOnlyNotifier     *readOnlyNotifier;
   /* The number of times this VDO has recovered from a dirty state */
   uint64_t              completeRecoveries;
   /* The number of times this VDO has recovered from a read-only state */
@@ -93,9 +92,6 @@ struct vdo {
   VDOState              loadState;
   /* Whether VIO tracing is enabled */
   bool                  vioTraceRecording;
-
-  /* The per-thread data for this VDO */
-  ThreadData            *threadData;
 
   /* The logical zones of this VDO */
   LogicalZone          **logicalZones;
@@ -206,12 +202,13 @@ int validateVDOConfig(const VDOConfig *config,
   __attribute__((warn_unused_result));
 
 /**
- * Get the VDO's thread data for the current thread.
+ * Enable a VDO to enter read-only mode on errors.
  *
- * @param vdo  The VDO
+ * @param vdo  The VDO to enable
+ *
+ * @return VDO_SUCCESS or an error
  **/
-ThreadData *getThreadData(const VDO *vdo)
-  __attribute__((warn_unused_result));
+int enableReadOnlyEntry(VDO *vdo);
 
 /**
  * Get the block map.

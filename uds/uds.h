@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/public/uds.h#3 $
+ * $Id: //eng/uds-releases/homer/src/public/uds.h#2 $
  */
 
 /**
@@ -468,6 +468,22 @@ int udsAddGridServer(UdsGridConfig gridConfig,
                      const char *host,
                      const char *port);
 
+
+/**
+ * Saves an index, without closing the index session.
+ *
+ * The underlying local index is flushed and changes to the index are saved so
+ * that #udsLoadLocalIndex can re-open it.
+ *
+ * During the call to #udsSaveIndex, there should be no other call to
+ * #udsSaveIndex and there should be no calls to #udsStartChunkOperation.
+ *
+ * @param [in] session  The session that has the open index 
+ *
+ * @return Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsSaveIndex(UdsIndexSession session);
 
 /**
  * Closes an index session.

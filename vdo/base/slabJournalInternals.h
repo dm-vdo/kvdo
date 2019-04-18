@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#5 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -26,6 +26,7 @@
 
 #include "numeric.h"
 
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
 #include "blockMapEntry.h"
 #include "journalPoint.h"
@@ -166,12 +167,6 @@ typedef struct {
   SlabJournalPayload           payload;
 } __attribute__((packed)) PackedSlabJournalBlock;
 
-typedef enum {
-  NOT_FLUSHING,
-  FLUSH_REQUESTED,
-  FLUSH_INITIATED,
-} FlushState;
-
 typedef struct {
   uint16_t       count;
   SequenceNumber recoveryStart;
@@ -192,10 +187,8 @@ struct slabJournal {
   /** The parent slab reference of this journal */
   Slab                        *slab;
 
-  /** Whether a flush has been requested or initiated */
-  FlushState                   flushState;
-  /** Whether a request has been made to close the journal */
-  bool                         closeRequested;
+  /** The administrative state of the journal */
+  AdminState                   adminState;
   /** Whether a tail block commit is pending */
   bool                         waitingToCommit;
   /** Whether a completion is waiting for slab journal space */

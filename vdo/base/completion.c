@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#5 $
  */
 
 #include "completion.h"
@@ -30,12 +30,11 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 
   // Keep the rest of these in sorted order. If you add or remove an entry,
   // be sure to update the corresponding list in completion.h.
+  "ACTION_COMPLETION",
   "ADMIN_COMPLETION",
   "ASYNC_ACTION_CONTEXT",
   "BLOCK_ALLOCATOR_COMPLETION",
-  "BLOCK_MAP_COMPLETION",
   "BLOCK_MAP_RECOVERY_COMPLETION",
-  "BLOCK_MAP_ZONE_COMPLETION",
   "CHECK_IDENTIFIER_COMPLETION",
   "EXTERNAL_COMPLETION",
   "FLUSH_NOTIFICATION_COMPLETION",
@@ -50,7 +49,6 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "REFERENCE_COUNTS_COMPLETION",
   "REFERENCE_COUNT_REBUILD_COMPLETION",
   "SLAB_COMPLETION",
-  "SLAB_DEPOT_COMPLETION",
   "SLAB_JOURNAL_COMPLETION",
   "SLAB_REBUILD_COMPLETION",
   "SLAB_SCRUBBER_COMPLETION",
@@ -62,7 +60,6 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "VDO_EXTENT_COMPLETION",
   "VDO_PAGE_COMPLETION",
   "VIO_COMPLETION",
-  "WAIT_FOR_READ_ONLY_MODE_COMPLETION",
   "WRAPPING_COMPLETION",
 };
 
@@ -166,6 +163,29 @@ void completeCompletion(VDOCompletion *completion)
   if (completion->callback != NULL) {
     invokeCallback(completion);
   }
+}
+
+/**********************************************************************/
+void releaseCompletion(VDOCompletion **completionPtr)
+{
+  VDOCompletion *completion = *completionPtr;
+  if (completion == NULL) {
+    return;
+  }
+
+  *completionPtr = NULL;
+  completeCompletion(completion);
+}
+
+/**********************************************************************/
+void releaseCompletionWithResult(VDOCompletion **completionPtr, int result)
+{
+  if (*completionPtr == NULL) {
+    return;
+  }
+
+  setCompletionResult(*completionPtr, result);
+  releaseCompletion(completionPtr);
 }
 
 /**********************************************************************/

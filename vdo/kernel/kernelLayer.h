@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#11 $
  */
 
 #ifndef KERNELLAYER_H
@@ -116,9 +116,9 @@ struct kernelLayer {
   unsigned int            instance;
   /** Contains the current KernelLayerState, which rarely changes */
   Atomic32                state;
+  bool                    noFlushSuspend;
   bool                    allocationsAllowed;
   AtomicBool              processingMessage;
-
   /** Limit the number of requests that are being processed. */
   Limiter                 requestLimiter;
   Limiter                 discardLimiter;

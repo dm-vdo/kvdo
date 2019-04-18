@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/forest.c#6 $
  */
 
 #include "forest.h"
@@ -304,15 +304,16 @@ void abandonForest(BlockMap *map)
 /**********************************************************************/
 void replaceForest(BlockMap *map)
 {
-  Forest *oldForest   = map->forest;
-  map->forest         = map->nextForest;
-  map->nextForest     = NULL;
+  if (map->nextForest != NULL) {
+    if (map->forest != NULL) {
+      deforest(map->forest, map->forest->segments);
+    }
+    map->forest     = map->nextForest;
+    map->nextForest = NULL;
+  }
+
   map->entryCount     = map->nextEntryCount;
   map->nextEntryCount = 0;
-
-  if (oldForest != NULL) {
-    deforest(oldForest, oldForest->segments);
-  }
 }
 
 /**

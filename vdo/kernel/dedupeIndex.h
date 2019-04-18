@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#4 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -102,6 +102,14 @@ struct dedupeIndex {
    * @param index  The dedupe index
    **/
   void (*stop)(DedupeIndex *index);
+
+  /**
+   * Wait until the dedupe index has completed all its outstanding I/O.
+   *
+   * @param index     The dedupe index
+   * @param saveFlag  True if we should save the index
+   **/
+  void (*suspend)(DedupeIndex *index, bool saveFlag);
 
   /**
    * Finish the dedupe index; shuts it down for good and prepares to
@@ -260,6 +268,17 @@ static inline void startDedupeIndex(DedupeIndex *index, bool createFlag)
 static inline void stopDedupeIndex(DedupeIndex *index)
 {
   return index->stop(index);
+}
+
+/**
+ * Wait until the dedupe index has completed all its outstanding I/O.
+ *
+ * @param index     The dedupe index
+ * @param saveFlag  True if we should save the index
+ **/
+static inline void suspendDedupeIndex(DedupeIndex *index, bool saveFlag)
+{
+  index->suspend(index, saveFlag);
 }
 
 /**

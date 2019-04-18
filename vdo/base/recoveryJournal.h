@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -26,7 +26,7 @@
 #include "completion.h"
 #include "fixedLayout.h"
 #include "flush.h"
-#include "readOnlyModeContext.h"
+#include "readOnlyNotifier.h"
 #include "statistics.h"
 #include "trace.h"
 #include "types.h"
@@ -136,36 +136,29 @@ const char *getJournalOperationName(JournalOperation operation)
   __attribute__((warn_unused_result));
 
 /**
- * Inform a recovery journal that the VDO has entered read-only mode.
- *
- * @param journal  The journal to notify
- **/
-void notifyRecoveryJournalOfReadOnlyMode(RecoveryJournal *journal);
-
-/**
  * Create a recovery journal.
  *
- * @param [in]  nonce            the nonce of the VDO
- * @param [in]  layer            the physical layer for the journal
- * @param [in]  partition        the partition for the journal
- * @param [in]  recoveryCount    The VDO's number of completed recoveries
- * @param [in]  journalSize      the number of blocks in the journal on disk
- * @param [in]  tailBufferSize   the number of blocks for tail buffer
- * @param [in]  readOnlyContext  the read-only mode context
- * @param [in]  threadConfig     the thread configuration of the VDO
- * @param [out] journalPtr       the pointer to hold the new recovery journal
+ * @param [in]  nonce             the nonce of the VDO
+ * @param [in]  layer             the physical layer for the journal
+ * @param [in]  partition         the partition for the journal
+ * @param [in]  recoveryCount     The VDO's number of completed recoveries
+ * @param [in]  journalSize       the number of blocks in the journal on disk
+ * @param [in]  tailBufferSize    the number of blocks for tail buffer
+ * @param [in]  readOnlyNotifier  the read-only mode notifier
+ * @param [in]  threadConfig      the thread configuration of the VDO
+ * @param [out] journalPtr        the pointer to hold the new recovery journal
  *
  * @return a success or error code
  **/
-int makeRecoveryJournal(Nonce                 nonce,
-                        PhysicalLayer        *layer,
-                        Partition            *partition,
-                        uint64_t              recoveryCount,
-                        BlockCount            journalSize,
-                        BlockCount            tailBufferSize,
-                        ReadOnlyModeContext  *readOnlyContext,
-                        const ThreadConfig   *threadConfig,
-                        RecoveryJournal     **journalPtr)
+int makeRecoveryJournal(Nonce                nonce,
+                        PhysicalLayer       *layer,
+                        Partition           *partition,
+                        uint64_t             recoveryCount,
+                        BlockCount           journalSize,
+                        BlockCount           tailBufferSize,
+                        ReadOnlyNotifier    *readOnlyNotifier,
+                        const ThreadConfig  *threadConfig,
+                        RecoveryJournal    **journalPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -231,6 +224,16 @@ BlockCount getJournalBlockMapDataBlocksUsed(RecoveryJournal *journal)
  **/
 void setJournalBlockMapDataBlocksUsed(RecoveryJournal *journal,
                                       BlockCount       pages);
+
+/**
+ * Get the ID of a recovery journal's thread.
+ *
+ * @param journal  The journal to query
+ *
+ * @return The ID of the journal's thread.
+ **/
+ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
+  __attribute__((warn_unused_result));
 
 /**
  * Prepare the journal for new entries.

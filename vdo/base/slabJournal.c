@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#6 $
  */
 
 #include "slabJournalInternals.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
 #include "dataVIO.h"
 #include "recoveryJournal.h"
@@ -142,7 +143,7 @@ static inline JournalLock *getLock(SlabJournal    *journal,
 __attribute__((warn_unused_result))
 static inline bool isVDOReadOnly(SlabJournal *journal)
 {
-  return isReadOnly(journal->slab->allocator->readOnlyContext);
+  return isReadOnly(journal->slab->allocator->readOnlyNotifier);
 }
 
 /**
@@ -174,14 +175,14 @@ static inline bool isReaping(SlabJournal *journal)
 }
 
 /**
- * Check whether the journal was requested to flush, has flushed, and has no
- * IO outstanding; if so, notify the completion waiting for the flush.
+ * Check whether the journal has drained (i.e. it has been told to drain,
+ * and I/O is quiescent).
  *
- * @param journal  The journal which may have just flushed
+ * @param journal  The journal
  **/
-static inline void checkForFlushComplete(SlabJournal *journal)
+static inline void checkForDrainComplete(SlabJournal *journal)
 {
-  if ((journal->flushState != FLUSH_INITIATED)
+  if (!isDraining(&journal->adminState)
       || mustMakeEntriesToFlush(journal)
       || isReaping(journal)
       || journal->waitingToCommit
@@ -190,10 +191,9 @@ static inline void checkForFlushComplete(SlabJournal *journal)
     return;
   }
 
-  journal->flushState = NOT_FLUSHING;
-  finishCompletion(&journal->completion,
-                   (isVDOReadOnly(journal) ? VDO_READ_ONLY : VDO_SUCCESS));
-  return;
+  finishDrainingWithResult(&journal->adminState,
+                           ((isVDOReadOnly(journal)
+                             ? VDO_READ_ONLY : VDO_SUCCESS)));
 }
 
 /**
@@ -383,7 +383,7 @@ void abortSlabJournalWaiters(SlabJournal *journal)
                    == journal->slab->allocator->threadID),
                   "abortSlabJournalWaiters() called on correct thread");
   notifyAllWaiters(&journal->entryWaiters, abortWaiter, journal);
-  checkForFlushComplete(journal);
+  checkForDrainComplete(journal);
 }
 
 /**
@@ -397,7 +397,7 @@ void abortSlabJournalWaiters(SlabJournal *journal)
  **/
 static void enterJournalReadOnlyMode(SlabJournal *journal, int errorCode)
 {
-  enterReadOnlyMode(journal->slab->allocator->readOnlyContext, errorCode);
+  enterReadOnlyMode(journal->slab->allocator->readOnlyNotifier, errorCode);
   abortSlabJournalWaiters(journal);
 }
 
@@ -411,7 +411,7 @@ static void finishReaping(SlabJournal *journal)
 {
   journal->head = journal->unreapable;
   addEntries(journal);
-  checkForFlushComplete(journal);
+  checkForDrainComplete(journal);
 }
 
 /**********************************************************************/
@@ -469,10 +469,10 @@ static void flushForReaping(Waiter *waiter, void *vioContext)
  **/
 static void reapSlabJournal(SlabJournal *journal)
 {
-  if (isUnrecoveredSlab(journal->slab) || journal->closeRequested
-      || isVDOReadOnly(journal)) {
-    // We must not reap while we are unrecovered, or when closing or closed,
-    // and might as well not if the VDO is in read-only mode.
+  if (isUnrecoveredSlab(journal->slab) || isQuiescing(&journal->adminState)
+      || isQuiescent(&journal->adminState) || isVDOReadOnly(journal)) {
+    // We must not reap in the first three cases, and there's no point in
+    // read-only mode.
     return;
   }
 
@@ -591,7 +591,7 @@ static void updateTailBlockLocation(SlabJournal *journal)
 {
   if (journal->updatingSlabSummary || isVDOReadOnly(journal)
       || (journal->lastSummarized >= journal->nextCommit)) {
-    checkForFlushComplete(journal);
+    checkForDrainComplete(journal);
     return;
   }
 
@@ -738,14 +738,6 @@ static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
 }
 
 /**********************************************************************/
-static void initiateFlush(SlabJournal *journal)
-{
-  if (journal->flushState == FLUSH_REQUESTED) {
-    journal->flushState = FLUSH_INITIATED;
-  }
-}
-
-/**********************************************************************/
 void commitSlabJournalTail(SlabJournal *journal)
 {
   if ((journal->tailHeader.entryCount == 0)
@@ -754,8 +746,6 @@ void commitSlabJournalTail(SlabJournal *journal)
     // initiating the flush until those entries are ready to write.
     return;
   }
-
-  initiateFlush(journal);
 
   if (isVDOReadOnly(journal)
       || journal->waitingToCommit
@@ -1125,7 +1115,9 @@ static void addEntries(SlabJournal *journal)
 
   journal->addingEntries = false;
 
-  if ((journal->flushState == FLUSH_REQUESTED)
+  // If there are no waiters, and we are flushing or saving, commit the
+  // tail block.
+  if (isDraining(&journal->adminState) && !isSuspending(&journal->adminState)
       && !hasWaiters(&journal->entryWaiters)) {
     commitSlabJournalTail(journal);
   }
@@ -1134,8 +1126,8 @@ static void addEntries(SlabJournal *journal)
 /**********************************************************************/
 void addSlabJournalEntry(SlabJournal *journal, DataVIO *dataVIO)
 {
-  if (journal->closeRequested) {
-    continueDataVIO(dataVIO, VDO_SHUTTING_DOWN);
+  if (isQuiescing(&journal->adminState) || isQuiescent(&journal->adminState)) {
+    continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
     return;
   }
 
@@ -1207,6 +1199,32 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 }
 
 /**********************************************************************/
+static void drainSlabJournal(SlabJournal    *journal,
+                             AdminStateCode  operation,
+                             VDOCompletion  *parent,
+                             VDOAction      *callback,
+                             VDOAction      *errorHandler,
+                             ThreadID        threadID)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID()
+                   == journal->slab->allocator->threadID),
+                  "drainSlabJournal() called on correct thread");
+  if (!isOperatingNormally(&journal->adminState)) {
+    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
+    return;
+  }
+
+  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
+                    parent);
+  startDraining(&journal->adminState, operation, &journal->completion);
+  if (!isSuspending(&journal->adminState)) {
+    commitSlabJournalTail(journal);
+  }
+
+  checkForDrainComplete(journal);
+}
+
+/**********************************************************************/
 void closeSlabJournal(SlabJournal   *journal,
                       VDOCompletion *parent,
                       VDOAction     *callback,
@@ -1216,8 +1234,8 @@ void closeSlabJournal(SlabJournal   *journal,
   ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
                      && hasWaiters(&journal->entryWaiters))),
                   "slab is recovered or has no waiters");
-  journal->closeRequested = true;
-  flushSlabJournal(journal, parent, callback, errorHandler, threadID);
+  drainSlabJournal(journal, ADMIN_STATE_SAVING, parent, callback, errorHandler,
+                   threadID);
 }
 
 /**********************************************************************/
@@ -1227,21 +1245,14 @@ void flushSlabJournal(SlabJournal   *journal,
                       VDOAction     *errorHandler,
                       ThreadID       threadID)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID()
-                   == journal->slab->allocator->threadID),
-                  "flushSlabJournal() called on correct thread");
-  int result = ASSERT((journal->flushState == NOT_FLUSHING),
-                      "slab journal not flushing");
-  if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
-    return;
-  }
+  drainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
+                   errorHandler, threadID);
+}
 
-  journal->flushState = FLUSH_REQUESTED;
-  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
-                    parent);
-  commitSlabJournalTail(journal);
-  checkForFlushComplete(journal);
+/**********************************************************************/
+void resumeSlabJournal(SlabJournal *journal)
+{
+  resumeIfQuiescent(&journal->adminState);
 }
 
 /**

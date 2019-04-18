@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#2 $
  */
 
 #include "slabSummary.h"
@@ -25,7 +25,7 @@
 
 #include "constants.h"
 #include "extent.h"
-#include "readOnlyModeContext.h"
+#include "readOnlyNotifier.h"
 #include "slabDepot.h"
 #include "slabSummaryInternals.h"
 #include "threadConfig.h"
@@ -196,13 +196,13 @@ static int makeSlabSummaryZone(SlabSummary         *summary,
 }
 
 /**********************************************************************/
-int makeSlabSummary(PhysicalLayer        *layer,
-                    Partition            *partition,
-                    const ThreadConfig   *threadConfig,
-                    unsigned int          slabSizeShift,
-                    BlockCount            maximumFreeBlocksPerSlab,
-                    ReadOnlyModeContext  *readOnlyContext,
-                    SlabSummary         **slabSummaryPtr)
+int makeSlabSummary(PhysicalLayer       *layer,
+                    Partition           *partition,
+                    const ThreadConfig  *threadConfig,
+                    unsigned int         slabSizeShift,
+                    BlockCount           maximumFreeBlocksPerSlab,
+                    ReadOnlyNotifier    *readOnlyNotifier,
+                    SlabSummary        **slabSummaryPtr)
 {
   BlockCount blocksPerZone   = getSlabSummaryZoneSize(VDO_BLOCK_SIZE);
   SlabCount  entriesPerBlock = MAX_SLABS / blocksPerZone;
@@ -225,7 +225,7 @@ int makeSlabSummary(PhysicalLayer        *layer,
   }
 
   summary->zoneCount       = threadConfig->physicalZoneCount;
-  summary->readOnlyContext = readOnlyContext;
+  summary->readOnlyNotifier = readOnlyNotifier;
   summary->hintShift       = (slabSizeShift > 6) ? (slabSizeShift - 6) : 0;
   summary->blocksPerZone   = blocksPerZone;
   summary->entriesPerBlock = entriesPerBlock;
@@ -329,7 +329,7 @@ static void checkForSaveComplete(SlabSummaryZone *summaryZone)
   VDOCompletion *saveWaiter = summaryZone->saveWaiter;
   summaryZone->saveWaiter   = NULL;
   finishCompletion(saveWaiter,
-                   (isReadOnly(summaryZone->summary->readOnlyContext)
+                   (isReadOnly(summaryZone->summary->readOnlyNotifier)
                     ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
@@ -343,7 +343,7 @@ static void checkForSaveComplete(SlabSummaryZone *summaryZone)
  **/
 static void notifyWaiters(SlabSummaryZone *summaryZone, WaitQueue *queue)
 {
-  int result = (isReadOnly(summaryZone->summary->readOnlyContext)
+  int result = (isReadOnly(summaryZone->summary->readOnlyNotifier)
                 ? VDO_READ_ONLY : VDO_SUCCESS);
   notifyAllWaiters(queue, NULL, &result);
 }
@@ -390,7 +390,8 @@ static void finishUnwritableBlock(SlabSummaryBlock *block)
 static void handleWriteError(VDOCompletion *completion)
 {
   SlabSummaryBlock *block = completion->parent;
-  enterReadOnlyMode(block->zone->summary->readOnlyContext, completion->result);
+  enterReadOnlyMode(block->zone->summary->readOnlyNotifier,
+                    completion->result);
   finishUnwritableBlock(block);
 }
 
@@ -409,7 +410,7 @@ static void launchWrite(SlabSummaryBlock *block)
 
   block->needsWriting = false;
 
-  if (isReadOnly(block->zone->summary->readOnlyContext)) {
+  if (isReadOnly(block->zone->summary->readOnlyNotifier)) {
     finishUnwritableBlock(block);
     return;
   }
@@ -521,7 +522,7 @@ void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
                             BlockCount       freeBlocks)
 {
   int result;
-  if (isReadOnly(summaryZone->summary->readOnlyContext)) {
+  if (isReadOnly(summaryZone->summary->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
     waiter->callback(waiter, &result);
     return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.h#4 $
+ * $Id: //eng/uds-releases/homer/src/uds/index.h#4 $
  */
 
 #ifndef INDEX_H
@@ -37,6 +37,8 @@ typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
   bool           existed;
+  bool           hasSavedOpenChapter;
+  LoadType       loadedType;
   IndexLayout   *layout;
   IndexState    *state;
   MasterIndex   *masterIndex;
@@ -87,13 +89,12 @@ int makeIndex(IndexLayout          *layout,
 /**
  * Save an index.
  *
- * After this operation completes, the index must be freed.  Saving the index
- * will shutdown the chapter writer, and there is no provision for restarting
- * it.
+ * Before saving an index and while saving an index, the caller must ensure
+ * that there are no index requests in progress.
  *
- * The normal users follow saveIndex immediately with a freeIndex.  But some
- * tests use the IndexLayout to modify the saved index.  The Index will then
- * have some cached information that does not reflect these updates.
+ * Some users follow saveIndex immediately with a freeIndex.  But some tests
+ * use the IndexLayout to modify the saved index.  The Index will then have
+ * some cached information that does not reflect these updates.
  *
  * XXX - If we put a use count on the IndexLayout, and implement a get/put
  *       mechanism, we can refactor into a safer saveAndFreeIndex method.  The

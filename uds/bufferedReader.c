@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/bufferedReader.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/bufferedReader.c#1 $
  */
 
 #include "bufferedReader.h"
@@ -38,6 +38,7 @@ int makeBufferedReader(IORegion *region, BufferedReader **readerPtr)
 
   result = getRegionBestBufferSize(region, &reader->bufsize);
   if (result != UDS_SUCCESS) {
+    FREE(reader);
     return result;
   }
 

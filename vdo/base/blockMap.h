@@ -16,35 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.h#3 $
  */
 
 #ifndef BLOCK_MAP_H
 #define BLOCK_MAP_H
 
+#include "adminState.h"
 #include "blockMapEntry.h"
 #include "completion.h"
 #include "fixedLayout.h"
-#include "readOnlyModeContext.h"
 #include "statistics.h"
 #include "types.h"
-
-/**
- * Compute the size in blocks required for a block map with the specified
- * parameters.
- *
- * @param totalEntries       The number of block map entries
- * @param slabSize           The size of a slab in blocks
- * @param dataBlocksPerSlab  The number of blocks per slab usable for data
- *
- * @return The number of blocks required
- *
- * @note The computation assumes that the page size is an integral multiple
- *       of the block size.
- **/
-BlockCount computeBlockMapSize(BlockCount totalEntries,
-                               BlockCount slabSize,
-                               BlockCount dataBlocksPerSlab);
 
 /**
  * Create a block map.
@@ -65,6 +48,25 @@ int makeBlockMap(BlockCount           logicalBlocks,
                  BlockCount           rootCount,
                  BlockMap           **mapPtr)
   __attribute__((warn_unused_result));
+
+/**
+ * Quiesce all block map I/O, possibly writing out all dirty metadata.
+ *
+ * @param map        The block map to drain
+ * @param operation  The type of drain to perform
+ * @param parent     The completion to notify when the drain is complete
+ **/
+void drainBlockMap(BlockMap       *map,
+                   AdminStateCode  operation,
+                   VDOCompletion  *parent);
+
+/**
+ * Resume I/O for a quiescent block map.
+ *
+ * @param map     The block map to resume
+ * @param parent  The completion to notify when the resume is complete
+ **/
+void resumeBlockMap(BlockMap *map, VDOCompletion *parent);
 
 /**
  * Prepare to grow the block map by allocating an expanded collection of trees.
@@ -91,10 +93,9 @@ BlockCount getNewEntryCount(BlockMap *map)
 /**
  * Grow a block map on which prepareToGrowBlockMap() has already been called.
  *
- * @param map         The block map to grow
- * @param completion  The object to notify when the growth is complete
+ * @param map  The block map to grow
  **/
-void growBlockMap(BlockMap *map, VDOCompletion *completion);
+void growBlockMap(BlockMap *map);
 
 /**
  * Abandon any preparations which were made to grow this block map.
@@ -140,24 +141,24 @@ int decodeSodiumBlockMap(Buffer              *buffer,
 /**
  * Allocate the page caches for a block map.
  *
- * @param map              The block map needing caches.
- * @param layer            The physical layer for the cache
- * @param readOnlyContext  The read only mode context
- * @param journal          The recovery journal (may be NULL)
- * @param nonce            The nonce to distinguish initialized pages
- * @param cacheSize        The block map cache size, in pages
- * @param maximumAge       The number of journal blocks before a dirtied page
- *                         is considered old and must be written out
+ * @param map               The block map needing caches.
+ * @param layer             The physical layer for the cache
+ * @param readOnlyNotifier  The read only mode context
+ * @param journal           The recovery journal (may be NULL)
+ * @param nonce             The nonce to distinguish initialized pages
+ * @param cacheSize         The block map cache size, in pages
+ * @param maximumAge        The number of journal blocks before a dirtied page
+ *                          is considered old and must be written out
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeBlockMapCaches(BlockMap            *map,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       RecoveryJournal     *journal,
-                       Nonce                nonce,
-                       PageCount            cacheSize,
-                       BlockCount           maximumAge)
+int makeBlockMapCaches(BlockMap         *map,
+                       PhysicalLayer    *layer,
+                       ReadOnlyNotifier *readOnlyNotifier,
+                       RecoveryJournal  *journal,
+                       Nonce             nonce,
+                       PageCount         cacheSize,
+                       BlockCount        maximumAge)
   __attribute__((warn_unused_result));
 
 /**
@@ -257,25 +258,6 @@ BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
  *                             journal block
  **/
 void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber);
-
-/**
- * Flush any dirty pages in the trees or page caches.
- *
- * @param map     The block map to flush
- * @param parent  The completion to notify when the block map is flushed
- **/
-void flushBlockMap(BlockMap *map, VDOCompletion *parent);
-
-/**
- * Mark the block map as closing so that all subsequent lookup requests will be
- * rejected. Asynchronously flush all dirty pages from all zones of the block
- * map.
- *
- *
- * @param map     The block map to close
- * @param parent  The completion to finish when the close is complete
- **/
-void closeBlockMap(BlockMap *map, VDOCompletion *parent);
 
 /**
  * Get the block number of the physical block containing the data for the

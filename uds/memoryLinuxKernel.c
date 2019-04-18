@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/kernelLinux/uds/memoryLinuxKernel.c#8 $
+ * $Id: //eng/uds-releases/homer/kernelLinux/uds/memoryLinuxKernel.c#1 $
  */
 
 #include <linux/delay.h>

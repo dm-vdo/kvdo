@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/flush.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/flush.c#2 $
  */
 
 #include "flush.h"
@@ -28,6 +28,7 @@
 #include "completion.h"
 #include "logicalZone.h"
 #include "numUtils.h"
+#include "readOnlyNotifier.h"
 #include "slabDepot.h"
 #include "vdoInternal.h"
 
@@ -132,7 +133,7 @@ static void finishNotification(VDOCompletion *completion)
   Waiter *waiter = dequeueNextWaiter(&flusher->notifiers);
   int     result = enqueueWaiter(&flusher->pendingFlushes, waiter);
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(&flusher->vdo->readOnlyContext, result);
+    enterReadOnlyMode(flusher->vdo->readOnlyNotifier, result);
     VDOFlush *flush = waiterAsFlush(waiter);
     completion->layer->completeFlush(&flush);
     return;
@@ -208,7 +209,7 @@ void flush(VDO *vdo, VDOFlush *flush)
 
   int result = enqueueWaiter(&flusher->notifiers, &flush->waiter);
   if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(&vdo->readOnlyContext, result);
+    enterReadOnlyMode(vdo->readOnlyNotifier, result);
     flusher->completion.layer->completeFlush(&flush);
     return;
   }

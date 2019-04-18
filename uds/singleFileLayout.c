@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/singleFileLayout.c#6 $
+ * $Id: //eng/uds-releases/homer/src/uds/singleFileLayout.c#1 $
  */
 
 #include "singleFileLayoutInternals.h"
@@ -1509,7 +1509,7 @@ static int writeSingleFileHeader(SingleFileLayout *sfl,
   };
 
   size_t tableSize = sizeof(RegionTable) + numRegions * sizeof(LayoutRegion);
-    
+
   Buffer *buffer;
   int result = makeBuffer(tableSize, &buffer);
   if (result != UDS_SUCCESS) {
@@ -1769,7 +1769,7 @@ static int sfl_checkSealed(IndexLayout *layout, bool *sealed)
   result = readFromBufferedReader(reader, buffer, sizeof(buffer));
   if ((result == UDS_SUCCESS)
       && (memcmp(buffer, INDEX_SEAL_MAGIC, INDEX_SEAL_MAGIC_LENGTH) == 0)) {
-    size_t offset = INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_PADDING;      
+    size_t offset = INDEX_SEAL_MAGIC_LENGTH + INDEX_SEAL_PADDING;
     uint64_t hash = getUInt64LE(buffer + offset);
     storeUInt64LE(buffer + offset, 0L);
     isSealed = (hash == generateSecondaryNonce(sfl->super.nonce, &buffer,
@@ -1923,7 +1923,7 @@ static uint64_t generateIndexSaveNonce(uint64_t         volumeNonce,
     IndexSaveData data;
     uint64_t      offset;
   } nonceData;
-  
+
   nonceData.data = isl->saveData;
   nonceData.data.nonce = 0;
   nonceData.offset = isl->indexSave.startBlock;
@@ -2393,6 +2393,10 @@ int createSingleFileLayout(IORegion                *region,
                            const UdsConfiguration   config,
                            IndexLayout            **layoutPtr)
 {
+  if (config == NULL) {
+    return UDS_CONF_PTR_REQUIRED;
+  }
+
   size_t blockSize = 0;
   int result = validateOffsetAndBlockSize(region, offset, &blockSize);
   if (result != UDS_SUCCESS) {

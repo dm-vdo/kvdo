@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/util/funnelQueue.h#5 $
+ * $Id: //eng/uds-releases/homer/src/uds/util/funnelQueue.h#1 $
  */
 
 #ifndef FUNNEL_QUEUE_H

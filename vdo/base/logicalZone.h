@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.h#2 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -137,6 +137,17 @@ int acquireFlushGenerationLock(DataVIO *dataVIO)
  * @param dataVIO  The DataVIO whose lock is to be released
  **/
 void releaseFlushGenerationLock(DataVIO *dataVIO);
+
+/**
+ * Get the selector for deciding which physical zone should be allocated from
+ * next for activities in a logical zone.
+ *
+ * @param zone  The logical zone of the operation which needs an allocation
+ *
+ * @return The allocation selector for this zone
+ **/
+AllocationSelector *getAllocationSelector(LogicalZone *zone)
+  __attribute__((warn_unused_result));
 
 /**
  * Dump information about a logical zone to the log for debugging, in a

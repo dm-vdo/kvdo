@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#4 $
  */
 
 #include "kernelVDOInternals.h"
@@ -27,7 +27,6 @@
 
 #include "statistics.h"
 #include "threadConfig.h"
-#include "threadData.h"
 #include "vdo.h"
 #include "vdoClose.h"
 #include "vdoDebug.h"
@@ -269,7 +268,7 @@ static void enterReadOnlyModeWork(KvdoWorkItem *item)
 {
   SyncQueueWork   *work = container_of(item, SyncQueueWork, workItem);
   VDOReadOnlyData *data = work->data;
-  makeVDOReadOnly(getVDO(work->kvdo), data->result, true);
+  makeVDOReadOnly(getVDO(work->kvdo), data->result);
   complete(work->completion);
 }
 

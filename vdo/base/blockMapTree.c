@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#15 $
  */
 
 #include "blockMapTree.h"
@@ -38,6 +38,7 @@
 #include "slabJournal.h"
 #include "types.h"
 #include "vdoInternal.h"
+#include "vdoPageCache.h"
 #include "vioPool.h"
 
 enum {
@@ -98,15 +99,13 @@ static int makeBlockMapVIOs(PhysicalLayer  *layer,
 }
 
 /**********************************************************************/
-int initializeTreeZone(BlockMapZone        *zone,
-                       PhysicalLayer       *layer,
-                       ReadOnlyModeContext *readOnlyContext,
-                       BlockCount           eraLength)
+int initializeTreeZone(BlockMapZone  *zone,
+                       PhysicalLayer *layer,
+                       BlockCount     eraLength)
 {
   STATIC_ASSERT_SIZEOF(PageDescriptor, sizeof(uint64_t));
   BlockMapTreeZone *treeZone = &zone->treeZone;
   treeZone->mapZone          = zone;
-  treeZone->readOnlyContext  = readOnlyContext;
 
   int result = makeDirtyLists(eraLength, writeDirtyPagesCallback, treeZone,
                               &treeZone->dirtyLists);
@@ -217,23 +216,17 @@ bool copyValidPage(char                *buffer,
 }
 
 /**
- * Check whether the zone has any outstanding I/O, and if not, finish the zone
- * completion.
+ * Check whether the zone has any outstanding I/O, and if not, drain the page
+ * cache.
  *
  * @param zone  The zone to check
  **/
 static void checkForIOComplete(BlockMapTreeZone *zone)
 {
-  if ((zone->mapZone->adminState != ADMIN_STATE_CLOSING)
-      || (zone->activeLookups > 0) || hasWaiters(&zone->flushWaiters)) {
-    return;
+  if (isDraining(&zone->mapZone->adminState) && (zone->activeLookups == 0)
+      && !hasWaiters(&zone->flushWaiters) && !isPoolBusy(zone->vioPool)) {
+    drainVDOPageCache(zone->mapZone->pageCache);
   }
-
-  zone->mapZone->adminState = ADMIN_STATE_CLOSED;
-  if (isReadOnly(zone->readOnlyContext)) {
-    setCompletionResult(&zone->mapZone->completion, VDO_READ_ONLY);
-  }
-  closeObjectPool(zone->vioPool, &zone->mapZone->completion);
 }
 
 /**
@@ -244,7 +237,7 @@ static void checkForIOComplete(BlockMapTreeZone *zone)
  **/
 static void enterZoneReadOnlyMode(BlockMapTreeZone *zone, int result)
 {
-  enterReadOnlyMode(zone->readOnlyContext, result);
+  enterReadOnlyMode(zone->mapZone->readOnlyNotifier, result);
 
   // We are in read-only mode, so we won't ever write any page out. Just take
   // all waiters off the queue so the tree zone can be closed.
@@ -437,6 +430,18 @@ static void writePageIfNotDirtied(Waiter *waiter, void *context)
 }
 
 /**
+ * Return a VIO to the zone's pool.
+ *
+ * @param zone   The zone which owns the pool
+ * @param entry  The pool entry to return
+ **/
+static void returnToPool(BlockMapTreeZone *zone, VIOPoolEntry *entry)
+{
+  returnVIOToPool(zone->vioPool, entry);
+  checkForIOComplete(zone);
+}
+
+/**
  * Handle the successful write of a tree page. This callback is registered in
  * writeInitializedPage().
  *
@@ -452,7 +457,7 @@ static void finishPageWrite(VDOCompletion *completion)
                                        ZONE_TYPE_LOGICAL,
                                        zone->mapZone->zoneNumber);
 
-  bool      dirty = (page->writingGeneration != page->generation);
+  bool dirty    = (page->writingGeneration != page->generation);
   releaseGeneration(zone, page->writingGeneration);
   page->writing = false;
 
@@ -480,8 +485,7 @@ static void finishPageWrite(VDOCompletion *completion)
     return;
   }
 
-  checkForIOComplete(zone);
-  returnVIOToPool(zone->vioPool, entry);
+  returnToPool(zone, entry);
 }
 
 /**
@@ -496,7 +500,7 @@ static void handleWriteError(VDOCompletion *completion)
   VIOPoolEntry     *entry  = completion->parent;
   BlockMapTreeZone *zone   = entry->context;
   enterZoneReadOnlyMode(zone, result);
-  returnVIOToPool(zone->vioPool, entry);
+  returnToPool(zone, entry);
 }
 
 /**
@@ -534,10 +538,10 @@ static void writePage(TreePage *treePage, VIOPoolEntry *entry)
   BlockMapTreeZone *zone = (BlockMapTreeZone *) entry->context;
   if ((zone->flusher != treePage)
       && (isNotOlder(zone, treePage->generation, zone->generation))) {
-    // This page was re-dirtied after the last flush was issued, hence we need
+    // This page was re-dirtied after the last flush was  issued, hence we need
     // to do another flush.
     enqueuePage(treePage, zone);
-    returnVIOToPool(zone->vioPool, entry);
+    returnToPool(zone, entry);
     return;
   }
 
@@ -577,7 +581,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
   BlockMapTreeZone *zone       = (BlockMapTreeZone *) context;
   uint8_t           generation = zone->generation;
   while (!isRingEmpty(expired)) {
-    TreePage *page = treePageFromRingNode(chopRingNode(expired));
+    TreePage       *page       = treePageFromRingNode(chopRingNode(expired));
 
     int result = ASSERT(!isWaiting(&page->waiter),
                         "Newly expired page not already waiting to write");
@@ -600,33 +604,15 @@ void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period)
 }
 
 /**********************************************************************/
-void closeZoneTrees(BlockMapTreeZone *zone)
+void drainZoneTrees(BlockMapTreeZone *zone)
 {
-  if (zone->mapZone->adminState == ADMIN_STATE_CLOSED) {
-    finishCompletion(&zone->mapZone->completion, VDO_SUCCESS);
-    return;
+  ASSERT_LOG_ONLY((zone->activeLookups == 0),
+                  "drainZoneTrees() called with no active lookups");
+  if (!isSuspending(&zone->mapZone->adminState)) {
+    flushDirtyLists(zone->dirtyLists);
   }
 
-  if (zone->activeLookups > 0) {
-    zone->mapZone->adminState = ADMIN_STATE_CLOSE_REQUESTED;
-    return;
-  }
-
-  zone->mapZone->adminState = ADMIN_STATE_CLOSING;
-  flushDirtyLists(zone->dirtyLists);
   checkForIOComplete(zone);
-}
-
-/**********************************************************************/
-void suspendZoneTrees(BlockMapTreeZone *zone, VDOCompletion *completion)
-{
-  suspendObjectPool(zone->vioPool, completion);
-}
-
-/**********************************************************************/
-void resumeZoneTrees(BlockMapTreeZone *zone)
-{
-  resumeObjectPool(zone->vioPool);
 }
 
 /**
@@ -665,10 +651,7 @@ static void finishLookup(DataVIO *dataVIO, int result)
   setCompletionResult(completion, result);
   launchCallback(completion, dataVIO->treeLock.callback,
                  dataVIO->treeLock.threadID);
-  if ((--zone->activeLookups == 0)
-      && (zone->mapZone->adminState == ADMIN_STATE_CLOSE_REQUESTED)) {
-    closeZoneTrees(zone);
-  }
+  --zone->activeLookups;
 }
 
 /**
@@ -1194,6 +1177,7 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO)
   }
 
   allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
+                    getAllocationSelector(dataVIO->logical.zone),
                     VIO_BLOCK_MAP_WRITE_LOCK,
                     continueBlockMapPageAllocation);
 }
@@ -1203,7 +1187,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
 {
   BlockMapTreeZone *zone = getBlockMapTreeZone(dataVIO);
   zone->activeLookups++;
-  if (isClosing(zone->mapZone->adminState)) {
+  if (isDraining(&zone->mapZone->adminState)) {
     finishLookup(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }

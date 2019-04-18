@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/statusCodes.h#2 $
  */
 
 #ifndef STATUS_CODES_H
@@ -112,6 +112,8 @@ enum vdoStatusCodes {
   VDO_BAD_NONCE,
   /** sequence number overflow */
   VDO_JOURNAL_OVERFLOW,
+  /** the VDO is not in a state to perform an admin operation */
+  VDO_INVALID_ADMIN_STATE,
   /** one more than last error code */
   VDO_STATUS_CODE_LAST,
   VDO_STATUS_CODE_BLOCK_END = VDO_BLOCK_END

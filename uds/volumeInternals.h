@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/volumeInternals.h#4 $
+ * $Id: //eng/uds-releases/homer/src/uds/volumeInternals.h#1 $
  */
 
 #ifndef VOLUME_INTERNALS_H
@@ -29,7 +29,7 @@ extern const byte VOLUME_MAGIC_NUMBER[];
 extern const byte VOLUME_VERSION[];
 
 extern const unsigned int VOLUME_MAGIC_LENGTH;
-extern const unsigned int VOLUME_VERSION_LENGTH;
+enum { VOLUME_VERSION_LENGTH = 5 };
 
 extern const bool READ_ONLY_VOLUME;
 

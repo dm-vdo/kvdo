@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/upgrade.c#5 $
  */
 
 #include "upgrade.h"
@@ -26,6 +26,7 @@
 #include "permassert.h"
 
 #include "blockMap.h"
+#include "readOnlyNotifier.h"
 #include "recoveryJournal.h"
 #include "releaseVersions.h"
 #include "slabDepot.h"
@@ -174,7 +175,7 @@ static int finishSodiumDecode(VDO *vdo)
                                    vdo->completeRecoveries,
                                    vdo->config.recoveryJournalSize,
                                    RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-                                   &vdo->readOnlyContext, threadConfig,
+                                   vdo->readOnlyNotifier, threadConfig,
                                    &vdo->recoveryJournal);
   if (result != VDO_SUCCESS) {
     return result;
@@ -188,7 +189,7 @@ static int finishSodiumDecode(VDO *vdo)
   result = decodeSodiumSlabDepot(buffer, threadConfig, vdo->nonce, vdo->layer,
                                  getVDOPartition(vdo->layout,
                                                  SLAB_SUMMARY_PARTITION),
-                                 &vdo->readOnlyContext, vdo->recoveryJournal,
+                                 vdo->readOnlyNotifier, vdo->recoveryJournal,
                                  &vdo->depot);
   if (result != VDO_SUCCESS) {
     return result;
@@ -259,9 +260,9 @@ int upgradePriorVDO(PhysicalLayer *layer)
     return result;
   }
 
-  result = makeThreadDataArray((vdo->state == VDO_READ_ONLY_MODE),
-                               getThreadConfig(vdo), vdo->layer,
-                               &vdo->threadData);
+  const ThreadConfig *threadConfig = getThreadConfig(vdo);
+  result = makeReadOnlyNotifier(inReadOnlyMode(vdo), threadConfig, vdo->layer,
+                                &vdo->readOnlyNotifier);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;

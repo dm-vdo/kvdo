@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioWrite.c#7 $
  */
 
 /*
@@ -315,7 +315,7 @@ static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 
   case VIO_RELEASE_RECOVERY_LOCKS:
     if ((dataVIO->recoverySequenceNumber > 0)
-        && !isReadOnly(&dataVIOAsVIO(dataVIO)->vdo->readOnlyContext)
+        && !isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
         && (dataVIOAsCompletion(dataVIO)->result != VDO_READ_ONLY)) {
       logWarning("VDO not read-only when cleaning DataVIO with RJ lock");
     }
@@ -375,24 +375,25 @@ static bool abortOnError(int             result,
     return false;
   }
 
-  bool readOnly
-    = ((result == VDO_READ_ONLY)
-       || (readOnlyAction == READ_ONLY)
-       || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO)));
+  if ((result == VDO_READ_ONLY)
+      || (readOnlyAction == READ_ONLY)
+      || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
+    ReadOnlyNotifier *notifier = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
+    if (!isReadOnly(notifier)) {
+      if (result != VDO_READ_ONLY) {
+        logErrorWithStringError(result, "Preparing to enter read-only mode:"
+                                " DataVIO for LBN %" PRIu64 " (becoming mapped"
+                                " to %" PRIu64 ", previously mapped"
+                                " to %" PRIu64 ", allocated %" PRIu64 ") is"
+                                " completing with a fatal error after"
+                                " operation %s", dataVIO->logical.lbn,
+                                dataVIO->newMapped.pbn, dataVIO->mapped.pbn,
+                                getDataVIOAllocation(dataVIO),
+                                getOperationName(dataVIO));
+      }
 
-  if (readOnly) {
-    if (result != VDO_READ_ONLY) {
-      logErrorWithStringError(result, "Preparing to enter read-only mode:"
-                              " DataVIO for LBN %" PRIu64 " (becoming mapped"
-                              " to %" PRIu64 ", previously mapped"
-                              " to %" PRIu64 ", allocated %" PRIu64 ") is"
-                              " completing with a fatal error after"
-                              " operation %s", dataVIO->logical.lbn,
-                              dataVIO->newMapped.pbn, dataVIO->mapped.pbn,
-                              getDataVIOAllocation(dataVIO),
-                              getOperationName(dataVIO));
+      enterReadOnlyMode(notifier, result);
     }
-    enterReadOnlyMode(&getVDOFromDataVIO(dataVIO)->readOnlyContext, result);
   }
 
   if (dataVIO->hashLock != NULL) {
@@ -1168,14 +1169,15 @@ static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
     return;
   }
 
-  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO), VIO_WRITE_LOCK,
-                    continueWriteAfterAllocation);
+  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
+                    getAllocationSelector(dataVIO->logical.zone),
+                    VIO_WRITE_LOCK, continueWriteAfterAllocation);
 }
 
 /**********************************************************************/
 void launchWriteDataVIO(DataVIO *dataVIO)
 {
-  if (isReadOnly(&dataVIOAsVIO(dataVIO)->vdo->readOnlyContext)) {
+  if (isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)) {
     finishDataVIO(dataVIO, VDO_READ_ONLY);
     return;
   }

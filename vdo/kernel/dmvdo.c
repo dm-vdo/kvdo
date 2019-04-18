@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#23 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#27 $
  */
 
 #include "dmvdo.h"
@@ -434,7 +434,8 @@ static int processVDOMessage(KernelLayer   *layer,
     }
 
     // Index messages should always be processed
-    if ((strcasecmp(argv[0], "index-create") == 0)
+    if ((strcasecmp(argv[0], "index-close") == 0)
+        || (strcasecmp(argv[0], "index-create") == 0)
         || (strcasecmp(argv[0], "index-disable") == 0)
         || (strcasecmp(argv[0], "index-enable") == 0)) {
       return messageDedupeIndex(layer->dedupeIndex, argv[0]);
@@ -759,6 +760,18 @@ static void vdoDtr(struct dm_target *ti)
 }
 
 /**********************************************************************/
+static void vdoPresuspend(struct dm_target *ti)
+{
+  KernelLayer *layer = getKernelLayerForTarget(ti);
+  RegisteredThread instanceThread;
+  registerThreadDevice(&instanceThread, layer);  
+  if (dm_noflush_suspending(ti)) {
+    layer->noFlushSuspend = true;
+  }
+  unregisterThreadDeviceID();
+}
+
+/**********************************************************************/
 static void vdoPostsuspend(struct dm_target *ti)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
@@ -772,6 +785,7 @@ static void vdoPostsuspend(struct dm_target *ti)
   } else {
     logError("suspend of device '%s' failed with error: %d", poolName, result);
   }
+  layer->noFlushSuspend = false;
   unregisterThreadDeviceID();
 }
 
@@ -790,6 +804,8 @@ static int vdoPreresume(struct dm_target *ti)
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result, "Commit of modifications to device '%s'"
                             " failed", config->poolName);
+    setKernelLayerActiveConfig(layer, config);
+    setKVDOReadOnly(&layer->kvdo, result);
   } else {
     setKernelLayerActiveConfig(layer, config);
     result = resumeKernelLayer(layer);
@@ -812,11 +828,15 @@ static void vdoResume(struct dm_target *ti)
   unregisterThreadDeviceID();
 }
 
+/* 
+ * If anything changes that affects how user tools will interact
+ * with vdo, update the version number and make sure 
+ * documentation about the change is complete so tools can
+ * properly update their management code.
+ */
 static struct target_type vdoTargetBio = {
   .name            = "vdo",
-  .version         = {
-    VDO_VERSION_MAJOR, VDO_VERSION_MINOR, VDO_VERSION_MICRO,
-  },
+  .version         = {6, 2, 0},
   .module          = THIS_MODULE,
   .ctr             = vdoCtr,
   .dtr             = vdoDtr,
@@ -825,6 +845,7 @@ static struct target_type vdoTargetBio = {
   .map             = vdoMapBio,
   .message         = vdoMessage,
   .status          = vdoStatus,
+  .presuspend      = vdoPresuspend,
   .postsuspend     = vdoPostsuspend,
   .preresume       = vdoPreresume,
   .resume          = vdoResume,

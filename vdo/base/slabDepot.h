@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#5 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -65,16 +65,15 @@ SlabCount calculateSlabCount(SlabDepot *depot)
  * Create a slab depot.
  *
  * @param [in]  blockCount        The number of blocks initially available
- * @param [in]  firstBlock        The number of the first block which may
- *                                be allocated
+ * @param [in]  firstBlock        The number of the first block which may be
+ *                                allocated
  * @param [in]  slabConfig        The slab configuration
  * @param [in]  threadConfig      The thread configuration of the VDO
  * @param [in]  nonce             The nonce of the VDO
  * @param [in]  vioPoolSize       The size of the VIO pool
  * @param [in]  layer             The physical layer below this depot
- * @param [in]  summaryPartition  The partition which holds the slab
- *                                summary
- * @param [in]  readOnlyContext   The context for entering read-only mode
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
  * @param [out] depotPtr          A pointer to hold the depot
  *
@@ -88,7 +87,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   BlockCount            vioPoolSize,
                   PhysicalLayer        *layer,
                   Partition            *summaryPartition,
-                  ReadOnlyModeContext  *readOnlyContext,
+                  ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
                   SlabDepot           **depotPtr)
   __attribute__((warn_unused_result));
@@ -122,49 +121,49 @@ int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
 /**
  * Decode the state of a slab depot saved in a buffer.
  *
- * @param [in]  buffer              The buffer containing the saved state
- * @param [in]  threadConfig        The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab summary
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  buffer            The buffer containing the saved state
+ * @param [in]  threadConfig      The thread config of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
-int decodeSodiumSlabDepot(Buffer               *buffer,
-                          const ThreadConfig   *threadConfig,
-                          Nonce                 nonce,
-                          PhysicalLayer        *layer,
-                          Partition            *summaryPartition,
-                          ReadOnlyModeContext  *readOnlyContext,
-                          RecoveryJournal      *recoveryJournal,
-                          SlabDepot           **depotPtr)
+int decodeSodiumSlabDepot(Buffer              *buffer,
+                          const ThreadConfig  *threadConfig,
+                          Nonce                nonce,
+                          PhysicalLayer       *layer,
+                          Partition           *summaryPartition,
+                          ReadOnlyNotifier    *readOnlyNotifier,
+                          RecoveryJournal     *recoveryJournal,
+                          SlabDepot          **depotPtr)
   __attribute__((warn_unused_result));
 
 /**
  * Decode the state of a slab depot saved in a buffer.
  *
- * @param [in]  buffer              The buffer containing the saved state
- * @param [in]  threadConfig        The thread config of the VDO
- * @param [in]  nonce               The nonce of the VDO
- * @param [in]  layer               The physical layer below this depot
- * @param [in]  summaryPartition    The partition which holds the slab summary
- * @param [in]  readOnlyContext     The context for entering read-only mode
- * @param [in]  recoveryJournal     The recovery journal of the VDO
- * @param [out] depotPtr            A pointer to hold the depot
+ * @param [in]  buffer            The buffer containing the saved state
+ * @param [in]  threadConfig      The thread config of the VDO
+ * @param [in]  nonce             The nonce of the VDO
+ * @param [in]  layer             The physical layer below this depot
+ * @param [in]  summaryPartition  The partition which holds the slab summary
+ * @param [in]  readOnlyNotifier  The context for entering read-only mode
+ * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
  **/
-int decodeSlabDepot(Buffer               *buffer,
-                    const ThreadConfig   *threadConfig,
-                    Nonce                 nonce,
-                    PhysicalLayer        *layer,
-                    Partition            *summaryPartition,
-                    ReadOnlyModeContext  *readOnlyContext,
-                    RecoveryJournal      *recoveryJournal,
-                    SlabDepot           **depotPtr)
+int decodeSlabDepot(Buffer              *buffer,
+                    const ThreadConfig  *threadConfig,
+                    Nonce                nonce,
+                    PhysicalLayer       *layer,
+                    Partition           *summaryPartition,
+                    ReadOnlyNotifier    *readOnlyNotifier,
+                    RecoveryJournal     *recoveryJournal,
+                    SlabDepot          **depotPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -392,15 +391,10 @@ void prepareToAllocate(SlabDepot         *depot,
  * Asynchronously flush all slab journals in the depot. This method may be
  * called only before entering normal operation from the load thread.
  *
- * @param depot         The depot whose slab journals need flushing
- * @param parent        The parent completion
- * @param callback      The callback to run when the flush is complete
- * @param errorHandler  The handler for flush errors
+ * @param depot   The depot whose slab journals need flushing
+ * @param parent  The completion to notify when the operation is complete
  **/
-void flushDepotSlabJournals(SlabDepot     *depot,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler);
+void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Update the slab depot to reflect its new size in memory. This size is
@@ -415,51 +409,39 @@ void updateSlabDepotSize(SlabDepot *depot, bool reverting);
  * Allocate new memory needed for a resize of a slab depot to the given size.
  *
  * @param depot    The depot to prepare to resize
+ * @param layer    The layer for making completions
  * @param newSize  The number of blocks in the new depot
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
+int prepareToGrowSlabDepot(SlabDepot     *depot,
+                           PhysicalLayer *layer,
+                           BlockCount     newSize)
   __attribute__((warn_unused_result));
 
 /**
  * Suspend all slab summary zones.
  *
- * @param depot         The depot whose slab summary should be suspended
- * @param parent        The object to notify when the suspend is complete
- * @param callback      The callback to run when the suspend is complete
- * @param errorHandler  The handler for rewrite errors
+ * @param depot   The depot whose slab summary should be suspended
+ * @param parent  The object to notify when the suspend is complete
  **/
-void suspendSlabSummary(SlabDepot     *depot,
-                        VDOCompletion *parent,
-                        VDOAction     *callback,
-                        VDOAction     *errorHandler);
+void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Resume all slab summary zones.
  *
- * @param depot         The depot whose slab summary should be resumed
- * @param parent        The object to notify when the resume is complete
- * @param callback      The callback to run when the resume is complete
- * @param errorHandler  The handler for resume errors
+ * @param depot   The depot whose slab summary should be resumed
+ * @param parent  The object to notify when the resume is complete
  **/
-void resumeSlabSummary(SlabDepot     *depot,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler);
+void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Use the new slabs allocated for resize.
  *
- * @param depot         The depot
- * @param parent        The object to notify when complete
- * @param callback      The callback to run when complete
- * @param errorHandler  The handler for errors
+ * @param depot   The depot
+ * @param parent  The object to notify when complete
  **/
-void useNewSlabs(SlabDepot     *depot,
-                 VDOCompletion *parent,
-                 VDOAction     *callback,
-                 VDOAction     *errorHandler);
+void useNewSlabs(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Abandon any new slabs in this depot, freeing them as needed.

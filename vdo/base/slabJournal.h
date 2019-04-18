@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#2 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -220,6 +220,13 @@ void flushSlabJournal(SlabJournal   *journal,
                       VDOAction     *callback,
                       VDOAction     *errorHandler,
                       ThreadID       threadID);
+
+/**
+ * Resume a quiescent slab journal.
+ *
+ * @param journal  The journal to resume
+ **/
+void resumeSlabJournal(SlabJournal *journal);
 
 /**
  * Decode the slab journal by reading its tail.

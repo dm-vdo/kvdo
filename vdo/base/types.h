@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#7 $
  */
 
 #ifndef TYPES_H
@@ -362,8 +362,10 @@ typedef struct vdoLoadConfig {
 /**
  * Forward declarations of abstract types
  **/
+typedef struct actionManager       ActionManager;
 typedef struct adminCompletion     AdminCompletion;
 typedef struct allocatingVIO       AllocatingVIO;
+typedef struct allocationSelector  AllocationSelector;
 typedef struct blockAllocator      BlockAllocator;
 typedef struct blockMap            BlockMap;
 typedef struct blockMapTree        BlockMapTree;
@@ -384,7 +386,7 @@ typedef struct pbnLock             PBNLock;
 typedef struct physicalLayer       PhysicalLayer;
 typedef struct physicalZone        PhysicalZone;
 typedef struct recoveryJournal     RecoveryJournal;
-typedef struct readOnlyModeContext ReadOnlyModeContext;
+typedef struct readOnlyNotifier    ReadOnlyNotifier;
 typedef struct refCounts           RefCounts;
 typedef struct vdoSlab             Slab;
 typedef struct slabDepot           SlabDepot;
@@ -393,7 +395,6 @@ typedef struct slabJournalEntry    SlabJournalEntry;
 typedef struct slabScrubber        SlabScrubber;
 typedef struct slabSummary         SlabSummary;
 typedef struct slabSummaryZone     SlabSummaryZone;
-typedef struct threadData          ThreadData;
 typedef struct vdo                 VDO;
 typedef struct vdoCompletion       VDOCompletion;
 typedef struct vdoExtent           VDOExtent;
@@ -449,20 +450,5 @@ typedef void AsyncDataOperation(DataVIO *dataVIO);
 typedef struct enqueueable {
   VDOCompletion *completion;
 } Enqueueable;
-
-typedef enum {
-  ADMIN_STATE_NORMAL_OPERATION = 0,
-  ADMIN_STATE_CLOSE_REQUESTED,
-  ADMIN_STATE_CLOSING,
-  ADMIN_STATE_CLOSED,
-  ADMIN_STATE_SUSPENDED,
-} AdminState;
-
-/**********************************************************************/
-static inline bool isClosing(AdminState state)
-{
-  return ((state >= ADMIN_STATE_CLOSE_REQUESTED)
-          && (state <= ADMIN_STATE_CLOSED));
-}
 
 #endif // TYPES_H

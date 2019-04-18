@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/allocatingVIO.h#4 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -25,6 +25,7 @@
 #include "atomic.h"
 #include "pbnLock.h"
 #include "physicalZone.h"
+#include "types.h"
 #include "vio.h"
 #include "waitQueue.h"
 
@@ -240,10 +241,13 @@ static inline void launchPhysicalZoneCallback(AllocatingVIO *allocatingVIO,
  * Allocate a data block to an AllocatingVIO.
  *
  * @param allocatingVIO  The AllocatingVIO which needs an allocation
+ * @param selector       The allocation selector for deciding which physical
+ *                       zone to allocate from
  * @param writeLockType  The type of write lock to obtain on the block
  * @param callback       The function to call once the allocation is complete
  **/
 void allocateDataBlock(AllocatingVIO      *allocatingVIO,
+                       AllocationSelector *selector,
                        PBNLockType         writeLockType,
                        AllocationCallback *callback);
 

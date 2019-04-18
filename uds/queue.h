@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/queue.h#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/queue.h#1 $
  *
  * This is a copy of /usr/include/sys/queue.h from the Linux 3.2 SQUEEZE kernel.
  *

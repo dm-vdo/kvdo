@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/objectPool.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/objectPool.h#3 $
  */
 
 #ifndef OBJECT_POOL_H
@@ -24,6 +24,7 @@
 
 #include "permassert.h"
 
+#include "adminState.h"
 #include "completion.h"
 #include "types.h"
 #include "waitQueue.h"
@@ -55,6 +56,14 @@ void freeObjectPool(ObjectPool **poolPtr);
  * @return entryData  The entry data which was stored at pool construction time
  **/
 void *getObjectPoolEntryData(ObjectPool *pool);
+
+/**
+ * Check whether an object pool has outstanding entries.
+ *
+ * @return <code>true</code> if the pool is busy
+ **/
+bool isPoolBusy(ObjectPool *pool)
+  __attribute__((warn_unused_result));
 
 /**
  * Add an entry to an object pool (used at construction time).
@@ -93,14 +102,17 @@ int acquireEntryFromObjectPool(ObjectPool *pool, Waiter *waiter);
 void returnEntryToObjectPool(ObjectPool *pool, RingNode *entry);
 
 /**
- * Suspend an object pool. Once suspended, any requests for objects from the
- * pool will block until the pool is resumed.
+ * Drain an object pool. If the drain is a save or suspend, object requests
+ * will be blocked once the drain is complete.
  *
  * @param pool        The pool
+ * @param operation   The type of drain
  * @param completion  The object to notify once all objects have been returned
  *                    to the pool
  **/
-void suspendObjectPool(ObjectPool *pool, VDOCompletion *completion);
+void drainObjectPool(ObjectPool     *pool,
+                     AdminStateCode  operation,
+                     VDOCompletion  *completion);
 
 /**
  * Resume an object pool. If it has been suspended, any requests for objects
@@ -110,24 +122,6 @@ void suspendObjectPool(ObjectPool *pool, VDOCompletion *completion);
  * @param pool  The pool
  **/
 void resumeObjectPool(ObjectPool *pool);
-
-/**
- * Close an object pool. This method will complete the supplied completion
- * whenever the pool has no outstanding entries and no waiters. It does not
- * enforce continued closure of the pool, and may starve.
- *
- * @param pool        The pool
- * @param completion  The object to notify once all objects have been returned
- *                    to the pool and the pool has no waiters
- **/
-void closeObjectPool(ObjectPool *pool, VDOCompletion *completion);
-
-/**
- * Open an object pool which has been closed.
- *
- * @param pool  The pool to open
- **/
-void openObjectPool(ObjectPool *pool);
 
 /**
  * Return the outage count of an object pool.
