@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#3 $
  */
 
 #include "indexRouter.h"
@@ -233,9 +233,7 @@ void executeIndexRouterRequest(IndexRouter *router, Request *request)
   }
 
   router->needToSave = true;
-  if (request->requeued &&
-      (request->status != UDS_SUCCESS) &&
-      (request->status != UDS_QUEUED)) {
+  if (request->requeued && !isSuccessful(request->status)) {
     request->status = makeUnrecoverable(request->status);
     router->callback(request);
     return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.h#2 $
  */
 
 #ifndef LOGGER_H
@@ -216,12 +216,14 @@ int logFatalWithStringError(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));
 
 /**
- * Log an ERROR level message and return makeUnrecoverable(errnum)
- * UDS_SUCCESS is ignored and returned.
+ * IF the result is an error, log a FATAL level message and return the result
+ * after marking it unrecoverable.  The UDS_SUCCESS and UDS_QUEUED results are
+ * not considered errors and are returned unmodified.
  *
- * @param  errnum Int value of errno or a UDS_* value.
- * @param  format The format of the message (a printf style format)
- * @return makeUnrecoverable(errnum) or UDS_SUCCESS.
+ * @param errnum  int value of errno or a UDS_* value.
+ * @param format  The format of the message (a printf style format)
+ *
+ * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
 int logUnrecoverable(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));

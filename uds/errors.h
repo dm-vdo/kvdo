@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.h#2 $
  */
 
 #ifndef ERRORS_H
@@ -93,18 +93,56 @@ enum { UDS_UNRECOVERABLE = (1 << 17) };
 const char *stringError(int errnum, char *buf, size_t buflen);
 const char *stringErrorName(int errnum, char *buf, size_t buflen);
 
-int makeUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-
+/*
+ * Identify that an result code is a successful result.
+ *
+ * @param result  A result code
+ *
+ * @return true if the result represents a success.
+ */
 __attribute__((warn_unused_result))
-static INLINE bool isUnrecoverable(int resultCode)
+static INLINE bool isSuccessful(int result)
 {
-  return (resultCode & UDS_UNRECOVERABLE) != 0;
+  return (result == UDS_SUCCESS) || (result == UDS_QUEUED);
 }
 
+/*
+ * Identify that an result code has been marked unrecoverable.
+ *
+ * @param result  A result code
+ *
+ * @return true if the result has been marked unrecoverable.
+ */
 __attribute__((warn_unused_result))
-static INLINE int sansUnrecoverable(int resultCode)
+static INLINE bool isUnrecoverable(int result)
 {
-  return resultCode & ~UDS_UNRECOVERABLE;
+  return (result & UDS_UNRECOVERABLE) != 0;
+}
+
+/*
+ * Mark a result code as unrecoverable.
+ *
+ * @param result  A result code
+ *
+ * @return the result code with the unrecoverable marker added
+ */
+__attribute__((warn_unused_result))
+static INLINE int makeUnrecoverable(int result)
+{
+  return isSuccessful(result) ? result : (result | UDS_UNRECOVERABLE);
+}
+
+/*
+ * Remove the unrecoverable marker from a result code.
+ *
+ * @param result  A result code
+ *
+ * @return the result code with the unrecoverable marker removed
+ */
+__attribute__((warn_unused_result))
+static INLINE int sansUnrecoverable(int result)
+{
+  return result & ~UDS_UNRECOVERABLE;
 }
 
 typedef struct errorInfo {

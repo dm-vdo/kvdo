@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.c#3 $
  */
 
 #include "logger.h"
@@ -301,7 +301,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
 /*****************************************************************************/
 int logUnrecoverable(int errnum, const char *format, ...)
 {
-  if ((errnum == UDS_SUCCESS || errnum == UDS_QUEUED) || (errnum == 0)) {
+  if (isSuccessful(errnum)) {
     return errnum;
   }
   va_list args;

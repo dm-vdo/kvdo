@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#3 $
  */
 
 #include "errors.h"
@@ -276,14 +276,6 @@ const char *stringErrorName(int errnum, char *buf, size_t buflen)
     }
   }
   return buf;
-}
-
-/*****************************************************************************/
-int makeUnrecoverable(int resultCode)
-{
-  return ((resultCode == UDS_SUCCESS)
-          ? resultCode
-          : (resultCode | UDS_UNRECOVERABLE));
 }
 
 /*****************************************************************************/
