@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#23 $
  */
 
 #include "ioSubmitter.h"
@@ -355,7 +355,7 @@ static void process_bio_map(struct kvdo_work_item *item)
 			struct bio *next = bio->bi_next;
 			bio->bi_next = NULL;
 			set_bio_block_device(bio,
-					     getKernelLayerBdev(kvio_bio->layer));
+					     get_kernel_layer_bdev(kvio_bio->layer));
 			send_bio_to_device(kvio_bio,
 					   bio,
 					   THIS_LOCATION("$F($io)"));
@@ -399,8 +399,8 @@ static struct kvio *get_mergeable_locked(IntMap *map,
 
 	if (kvio_merge != NULL) {
 		if (!are_work_item_actions_equal(
-			    &kvio->enqueueable.workItem,
-			    &kvio_merge->enqueueable.workItem)) {
+			    &kvio->enqueueable.work_item,
+			    &kvio_merge->enqueueable.work_item)) {
 			return NULL;
 		} else if (bio_data_dir(bio) !=
 			   bio_data_dir(kvio_merge->bio_to_submit)) {
@@ -522,7 +522,7 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 }
 
 /**********************************************************************/
-void vdo_submit_bio(struct bio *bio, BioQAction action)
+void vdo_submit_bio(struct bio *bio, bio_q_action action)
 {
 	struct kvio *kvio = bio->bi_private;
 	kvio->bio_to_submit = bio;

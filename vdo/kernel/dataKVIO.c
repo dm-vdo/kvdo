@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#35 $
  */
 
 #include "dataKVIO.h"
@@ -136,7 +136,7 @@ static void kvdoAcknowledgeDataKVIO(struct data_kvio *data_kvio)
 	externalIORequest->bio = NULL;
 
 	int error =
-		mapToSystemError(dataVIOAsCompletion(&data_kvio->dataVIO)->result);
+		map_to_system_error(dataVIOAsCompletion(&data_kvio->dataVIO)->result);
 	bio->bi_end_io = externalIORequest->endIO;
 	bio->bi_private = externalIORequest->private;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
@@ -198,7 +198,7 @@ void return_data_kvio_batch_to_pool(struct batch_processor *batch,
 		free_buffer_pointers(&fbp);
 	}
 
-	completeManyRequests(layer, count);
+	complete_many_requests(layer, count);
 }
 
 /**********************************************************************/
@@ -218,7 +218,7 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
 
 	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
-	if (useBioAckQueue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
+	if (use_bio_ack_queue(layer) && USE_BIO_ACK_QUEUE_FOR_READ &&
 	    (data_kvio->externalIORequest.bio != NULL)) {
 		launch_data_kvio_on_bio_ack_queue(
 			data_kvio,
@@ -414,7 +414,7 @@ static void read_bio_callback(struct bio *bio, int result)
 void kvdo_read_block(DataVIO *dataVIO,
 		     PhysicalBlockNumber location,
 		     BlockMappingState mappingState,
-		     BioQAction action,
+		     bio_q_action action,
 		     DataKVIOCallback callback)
 {
 	dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
@@ -432,7 +432,7 @@ void kvdo_read_block(DataVIO *dataVIO,
 	// Read the data directly from the device using the read bio.
 	struct bio *bio = read_block->bio;
 	reset_bio(bio, layer);
-	set_bio_sector(bio, blockToSector(layer, location));
+	set_bio_sector(bio, block_to_sector(layer, location));
 	set_bio_operation_read(bio);
 	bio->bi_end_io = read_bio_callback;
 	vdo_submit_bio(bio, action);
@@ -457,7 +457,7 @@ void readDataVIO(DataVIO *dataVIO)
 	struct kvio *kvio = data_vio_as_kvio(dataVIO);
 	struct bio *bio = kvio->bio;
 	bio->bi_end_io = reset_user_bio;
-	set_bio_sector(bio, blockToSector(kvio->layer, dataVIO->mapped.pbn));
+	set_bio_sector(bio, block_to_sector(kvio->layer, dataVIO->mapped.pbn));
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -490,7 +490,7 @@ void acknowledgeDataVIO(DataVIO *dataVIO)
 
 	// We've finished with the kvio; acknowledge completion of the bio to
 	// the kernel.
-	if (useBioAckQueue(layer)) {
+	if (use_bio_ack_queue(layer)) {
 		dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
 		launch_data_kvio_on_bio_ack_queue(
 			data_kvio,
@@ -515,7 +515,7 @@ void writeDataVIO(DataVIO *data_vio)
 	struct bio *bio = kvio->bio;
 	set_bio_operation_write(bio);
 	set_bio_sector(bio,
-		       blockToSector(kvio->layer, data_vio->newMapped.pbn));
+		       block_to_sector(kvio->layer, data_vio->newMapped.pbn));
 	vdo_submit_bio(bio, BIO_Q_ACTION_DATA);
 }
 
@@ -700,7 +700,7 @@ makeDataKVIO(struct kernel_layer *layer,
 
 	struct kvio *kvio = &data_kvio->kvio;
 	kvio->vio = dataVIOAsVIO(&data_kvio->dataVIO);
-	memset(&kvio->enqueueable, 0, sizeof(KvdoEnqueueable));
+	memset(&kvio->enqueueable, 0, sizeof(struct kvdo_enqueueable));
 	memset(&data_kvio->dedupeContext.pendingList, 0,
 	       sizeof(struct list_head));
 	memset(&data_kvio->dataVIO, 0, sizeof(DataVIO));
@@ -763,7 +763,7 @@ static int kvdoCreateKVIOFromBio(struct kernel_layer *layer,
 	}
 
 	data_kvio->externalIORequest = externalIORequest;
-	data_kvio->offset = sectorToBlockOffset(layer, get_bio_sector(bio));
+	data_kvio->offset = sector_to_block_offset(layer, get_bio_sector(bio));
 	data_kvio->isPartial = ((get_bio_size(bio) < VDO_BLOCK_SIZE) ||
 			       (data_kvio->offset != 0));
 
@@ -812,7 +812,7 @@ static int kvdoCreateKVIOFromBio(struct kernel_layer *layer,
 		data_kvio->readBlock.data = data_kvio->dataBlock;
 	}
 
-	set_bio_block_device(bio, getKernelLayerBdev(layer));
+	set_bio_block_device(bio, get_kernel_layer_bdev(layer));
 	bio->bi_end_io = complete_async_bio;
 	*data_kvio_ptr = data_kvio;
 	return VDO_SUCCESS;
@@ -907,7 +907,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 			limiter_release(&layer->discardLimiter);
 		}
 		limiter_release(&layer->requestLimiter);
-		return mapToSystemError(result);
+		return map_to_system_error(result);
 	}
 
 	/*
@@ -943,8 +943,8 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 		operation |= VIO_FLUSH_AFTER;
 	}
 
-	LogicalBlockNumber lbn = sectorToBlock(
-		layer, get_bio_sector(bio) - layer->startingSectorOffset);
+	LogicalBlockNumber lbn = sector_to_block(layer,
+		get_bio_sector(bio) - layer->startingSectorOffset);
 	prepareDataVIO(&data_kvio->dataVIO, lbn, operation, isTrim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,
 		     vioAsCompletion(kvio->vio)->callback,
@@ -1227,7 +1227,7 @@ static void dumpPooledDataKVIO(void *pool_data __attribute__((unused)),
 	 * in some circumstances syslogd may have trouble keeping up, so
 	 * keep it BRIEF rather than user-friendly.
 	 */
-	dump_work_item_to_buffer(&data_kvio->kvio.enqueueable.workItem,
+	dump_work_item_to_buffer(&data_kvio->kvio.enqueueable.work_item,
 				 vio_work_item_dump_buffer,
 				 sizeof(vio_work_item_dump_buffer));
 	// Another static buffer...

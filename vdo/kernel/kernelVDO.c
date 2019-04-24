@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#20 $
  */
 
 #include "kernelVDOInternals.h"
@@ -145,7 +145,7 @@ int start_kvdo(struct kvdo *kvdo,
 	       bool vio_trace_recording,
 	       char **reason)
 {
-	struct kernel_layer *layer = asKernelLayer(common);
+	struct kernel_layer *layer = as_kernel_layer(common);
 	init_completion(&layer->callbackSync);
 	int result = performVDOLoad(kvdo->vdo, load_config);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -507,18 +507,18 @@ void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 /**********************************************************************/
 static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
 {
-	KvdoEnqueueable *kvdo_enqueueable =
-		container_of(work_item, KvdoEnqueueable, workItem);
+	struct kvdo_enqueueable *kvdo_enqueueable =
+		container_of(work_item, struct kvdo_enqueueable, work_item);
 	runCallback(kvdo_enqueueable->enqueueable.completion);
 }
 
 /**********************************************************************/
 void kvdo_enqueue(Enqueueable *enqueueable)
 {
-	KvdoEnqueueable *kvdo_enqueueable =
-		container_of(enqueueable, KvdoEnqueueable, enqueueable);
+	struct kvdo_enqueueable *kvdo_enqueueable =
+		container_of(enqueueable, struct kvdo_enqueueable, enqueueable);
 	struct kernel_layer *layer =
-		asKernelLayer(enqueueable->completion->layer);
+		as_kernel_layer(enqueueable->completion->layer);
 	ThreadID thread_id = enqueueable->completion->callbackThreadID;
 	if (ASSERT(thread_id < layer->kvdo.initialized_thread_count,
 		   "thread_id %u (completion type %d) is less than thread count %u",
@@ -532,11 +532,11 @@ void kvdo_enqueue(Enqueueable *enqueueable)
 		vioAddTraceRecord(asVIO(enqueueable->completion),
 				  THIS_LOCATION("$F($cb)"));
 	}
-	setup_work_item(&kvdo_enqueueable->workItem, kvdo_enqueue_work,
+	setup_work_item(&kvdo_enqueueable->work_item, kvdo_enqueue_work,
 			(KvdoWorkFunction)enqueueable->completion->callback,
 			REQ_Q_ACTION_COMPLETION);
 	enqueue_kvdo_thread_work(&layer->kvdo.threads[thread_id],
-				 &kvdo_enqueueable->workItem);
+				 &kvdo_enqueueable->work_item);
 }
 
 /**********************************************************************/

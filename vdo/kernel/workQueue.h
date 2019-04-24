@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#9 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -77,12 +77,12 @@ struct kvdo_work_item {
  * prioritization purposes, but not necessarily to indicate specific work
  * functions. They are indicated to setup_work_item numerically, using an
  * enumerator defined per kind of work queue -- bio submission work queue
- * actions use BioQAction, cpu actions use CPUQAction, etc. For example, for
- * the CPU work queues, data compression can be prioritized separately from
- * final cleanup processing of a KVIO or from dedupe verification; base code
- * threads prioritize all VIO callback invocation the same, but separate from
- * sync or heartbeat operations. The bio acknowledgement work queue, on the
- * other hand, only does one thing, so it only defines one action code.
+ * actions use bio_q_action, cpu actions use cpu_q_action, etc. For example,
+ * for the CPU work queues, data compression can be prioritized separately
+ * from final cleanup processing of a KVIO or from dedupe verification; base
+ * code threads prioritize all VIO callback invocation the same, but separate
+ * from sync or heartbeat operations. The bio acknowledgement work queue, on
+ * the other hand, only does one thing, so it only defines one action code.
  *
  * Action codes values must be small integers, 0 through
  * WORK_QUEUE_ACTION_COUNT-1, and should not be duplicated for a queue type.

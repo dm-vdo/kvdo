@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#21 $
  */
 
 #ifndef KERNELLAYER_H
@@ -46,206 +46,207 @@
 #include "workQueue.h"
 
 enum {
-  VDO_SECTORS_PER_BLOCK = (VDO_BLOCK_SIZE >> SECTOR_SHIFT)
+	VDO_SECTORS_PER_BLOCK = (VDO_BLOCK_SIZE >> SECTOR_SHIFT)
 };
 
 typedef enum {
-  LAYER_SIMPLE_THINGS_INITIALIZED,
-  LAYER_BUFFER_POOLS_INITIALIZED,
-  LAYER_REQUEST_QUEUE_INITIALIZED,
-  LAYER_CPU_QUEUE_INITIALIZED,
-  LAYER_BIO_ACK_QUEUE_INITIALIZED,
-  LAYER_BIO_DATA_INITIALIZED,
-  LAYER_RUNNING,
-  LAYER_SUSPENDED,
-  LAYER_STOPPING,
-  LAYER_STOPPED,
-} KernelLayerState;
+	LAYER_SIMPLE_THINGS_INITIALIZED,
+	LAYER_BUFFER_POOLS_INITIALIZED,
+	LAYER_REQUEST_QUEUE_INITIALIZED,
+	LAYER_CPU_QUEUE_INITIALIZED,
+	LAYER_BIO_ACK_QUEUE_INITIALIZED,
+	LAYER_BIO_DATA_INITIALIZED,
+	LAYER_RUNNING,
+	LAYER_SUSPENDED,
+	LAYER_STOPPING,
+	LAYER_STOPPED,
+} kernel_layer_state;
 
 /* Keep struct bio statistics atomically */
 struct atomic_bio_stats {
-  atomic64_t read;              // Number of not REQ_WRITE bios
-  atomic64_t write;             // Number of REQ_WRITE bios
-  atomic64_t discard;           // Number of REQ_DISCARD bios
-  atomic64_t flush;             // Number of REQ_FLUSH bios
-  atomic64_t fua;               // Number of REQ_FUA bios
+	atomic64_t read; // Number of not REQ_WRITE bios
+	atomic64_t write; // Number of REQ_WRITE bios
+	atomic64_t discard; // Number of REQ_DISCARD bios
+	atomic64_t flush; // Number of REQ_FLUSH bios
+	atomic64_t fua; // Number of REQ_FUA bios
 };
 
 /**
  * The VDO representation of the target device
  **/
 struct kernel_layer {
-  PhysicalLayer               common;
-  // Layer specific info
-  struct device_config       *deviceConfig;
-  unsigned int                configReferences;
-  char                        threadNamePrefix[MAX_QUEUE_NAME_LEN];
-  struct kobject              kobj;
-  struct kobject              wqDirectory;
-  struct kobject              statsDirectory;
-  /**
-   * A counter value to attach to thread names and log messages to
-   * identify the individual device.
-   **/
-  unsigned int                instance;
-  /** Contains the current KernelLayerState, which rarely changes */
-  Atomic32                    state;
-  bool                        noFlushSuspend;
-  bool                        allocationsAllowed;
-  AtomicBool                  processingMessage;
-  struct dm_target_callbacks  callbacks;
+	PhysicalLayer common;
+	// Layer specific info
+	struct device_config *deviceConfig;
+	unsigned int configReferences;
+	char threadNamePrefix[MAX_QUEUE_NAME_LEN];
+	struct kobject kobj;
+	struct kobject wqDirectory;
+	struct kobject statsDirectory;
+	/**
+	 * A counter value to attach to thread names and log messages to
+	 * identify the individual device.
+	 **/
+	unsigned int instance;
+	/** Contains the current kernel_layer_state, which rarely changes */
+	Atomic32 state;
+	bool noFlushSuspend;
+	bool allocationsAllowed;
+	AtomicBool processingMessage;
+	struct dm_target_callbacks callbacks;
 
-  /** Limit the number of requests that are being processed. */
-  struct limiter           requestLimiter;
-  struct limiter           discardLimiter;
-  struct kvdo              kvdo;
-  /** Incoming bios we've had to buffer to avoid deadlock. */
-  struct deadlock_queue    deadlockQueue;
-  // for REQ_FLUSH processing
-  struct bio_list          waitingFlushes;
-  struct kvdo_flush       *spareKVDOFlush;
-  spinlock_t               flushLock;
-  Jiffies                  flushArrivalTime;
-  /**
-   * Bio submission manager used for sending bios to the storage
-   * device.
-   **/
-  struct io_submitter     *ioSubmitter;
-  /**
-   * Work queue (possibly with multiple threads) for miscellaneous
-   * CPU-intensive, non-blocking work.
-   **/
-  struct kvdo_work_queue  *cpuQueue;
-  /** N blobs of context data for LZ4 code, one per CPU thread. */
-  char                   **compressionContext;
-  /** Optional work queue for calling bio_endio. */
-  struct kvdo_work_queue  *bioAckQueue;
-  /** Underlying block device info. */
-  uint64_t                 startingSectorOffset;
-  VolumeGeometry           geometry;
-  // Memory allocation
-  struct buffer_pool      *dataKVIOPool;
-  // Albireo specific info
-  struct dedupe_index     *dedupeIndex;
-  // Statistics
-  atomic64_t               biosSubmitted;
-  atomic64_t               biosCompleted;
-  atomic64_t               dedupeContextBusy;
-  atomic64_t               flushOut;
-  struct atomic_bio_stats  biosIn;
-  struct atomic_bio_stats  biosInPartial;
-  struct atomic_bio_stats  biosOut;
-  struct atomic_bio_stats  biosOutCompleted;
-  struct atomic_bio_stats  biosAcknowledged;
-  struct atomic_bio_stats  biosAcknowledgedPartial;
-  struct atomic_bio_stats  biosMeta;
-  struct atomic_bio_stats  biosMetaCompleted;
-  struct atomic_bio_stats  biosJournal;
-  struct atomic_bio_stats  biosPageCache;
-  struct atomic_bio_stats  biosJournalCompleted;
-  struct atomic_bio_stats  biosPageCacheCompleted;
-  // Debugging
-  /* Whether to dump VDO state on shutdown */
-  bool                     dumpOnShutdown;
-  /**
-   * Whether we should collect tracing info. (Actually, this controls
-   *                       allocations; non-null record pointers cause recording.)
-   **/
-  bool                     vioTraceRecording;
-  struct sample_counter    traceSampleCounter;
-  /* Should we log tracing info? */
-  bool                     traceLogging;
-  /* Storage for trace data. */
-  struct buffer_pool      *traceBufferPool;
-  /* Private storage for procfs. */
-  void                    *procfsPrivate;
-  /* For returning batches of DataKVIOs to their pool */
-  struct batch_processor  *dataKVIOReleaser;
+	/** Limit the number of requests that are being processed. */
+	struct limiter requestLimiter;
+	struct limiter discardLimiter;
+	struct kvdo kvdo;
+	/** Incoming bios we've had to buffer to avoid deadlock. */
+	struct deadlock_queue deadlockQueue;
+	// for REQ_FLUSH processing
+	struct bio_list waitingFlushes;
+	struct kvdo_flush *spareKVDOFlush;
+	spinlock_t flushLock;
+	Jiffies flushArrivalTime;
+	/**
+	 * Bio submission manager used for sending bios to the storage
+	 * device.
+	 **/
+	struct io_submitter *ioSubmitter;
+	/**
+	 * Work queue (possibly with multiple threads) for miscellaneous
+	 * CPU-intensive, non-blocking work.
+	 **/
+	struct kvdo_work_queue *cpuQueue;
+	/** N blobs of context data for LZ4 code, one per CPU thread. */
+	char **compressionContext;
+	/** Optional work queue for calling bio_endio. */
+	struct kvdo_work_queue *bioAckQueue;
+	/** Underlying block device info. */
+	uint64_t startingSectorOffset;
+	VolumeGeometry geometry;
+	// Memory allocation
+	struct buffer_pool *dataKVIOPool;
+	// Albireo specific info
+	struct dedupe_index *dedupeIndex;
+	// Statistics
+	atomic64_t biosSubmitted;
+	atomic64_t biosCompleted;
+	atomic64_t dedupeContextBusy;
+	atomic64_t flushOut;
+	struct atomic_bio_stats biosIn;
+	struct atomic_bio_stats biosInPartial;
+	struct atomic_bio_stats biosOut;
+	struct atomic_bio_stats biosOutCompleted;
+	struct atomic_bio_stats biosAcknowledged;
+	struct atomic_bio_stats biosAcknowledgedPartial;
+	struct atomic_bio_stats biosMeta;
+	struct atomic_bio_stats biosMetaCompleted;
+	struct atomic_bio_stats biosJournal;
+	struct atomic_bio_stats biosPageCache;
+	struct atomic_bio_stats biosJournalCompleted;
+	struct atomic_bio_stats biosPageCacheCompleted;
+	// Debugging
+	/* Whether to dump VDO state on shutdown */
+	bool dumpOnShutdown;
+	/**
+	 * Whether we should collect tracing info. (Actually, this controls
+	 * allocations; non-null record pointers cause recording.)
+	 **/
+	bool vioTraceRecording;
+	struct sample_counter traceSampleCounter;
+	/* Should we log tracing info? */
+	bool traceLogging;
+	/* Storage for trace data. */
+	struct buffer_pool *traceBufferPool;
+	/* Private storage for procfs. */
+	void *procfsPrivate;
+	/* For returning batches of DataKVIOs to their pool */
+	struct batch_processor *dataKVIOReleaser;
 
-  // Administrative operations
-  /* The object used to wait for administrative operations to complete */
-  struct completion           callbackSync;
+	// Administrative operations
+	/* The object used to wait for administrative operations to complete */
+	struct completion callbackSync;
 
-  // Statistics reporting
-  /* Protects the *statsStorage structs */
-  struct mutex                statsMutex;
-  /* Used when shutting down the sysfs statistics */
-  struct completion           statsShutdown;;
-  /* true if sysfs statistics directory is set up */
-  bool                    statsAdded;
-  /* Used to gather statistics without allocating memory */
-  VDOStatistics               vdoStatsStorage;
-  KernelStatistics            kernelStatsStorage;
+	// Statistics reporting
+	/* Protects the *statsStorage structs */
+	struct mutex statsMutex;
+	/* Used when shutting down the sysfs statistics */
+	struct completion statsShutdown;
+
+	/* true if sysfs statistics directory is set up */
+	bool statsAdded;
+	/* Used to gather statistics without allocating memory */
+	VDOStatistics vdoStatsStorage;
+	KernelStatistics kernelStatsStorage;
 };
 
-typedef enum bioQAction {
-  BIO_Q_ACTION_COMPRESSED_DATA,
-  BIO_Q_ACTION_DATA,
-  BIO_Q_ACTION_FLUSH,
-  BIO_Q_ACTION_HIGH,
-  BIO_Q_ACTION_METADATA,
-  BIO_Q_ACTION_READCACHE,
-  BIO_Q_ACTION_VERIFY
-} BioQAction;
+typedef enum {
+	BIO_Q_ACTION_COMPRESSED_DATA,
+	BIO_Q_ACTION_DATA,
+	BIO_Q_ACTION_FLUSH,
+	BIO_Q_ACTION_HIGH,
+	BIO_Q_ACTION_METADATA,
+	BIO_Q_ACTION_READCACHE,
+	BIO_Q_ACTION_VERIFY
+} bio_q_action;
 
-typedef enum cpuQAction {
-  CPU_Q_ACTION_COMPLETE_KVIO,
-  CPU_Q_ACTION_COMPRESS_BLOCK,
-  CPU_Q_ACTION_EVENT_REPORTER,
-  CPU_Q_ACTION_HASH_BLOCK,
-} CPUQAction;
+typedef enum {
+	CPU_Q_ACTION_COMPLETE_KVIO,
+	CPU_Q_ACTION_COMPRESS_BLOCK,
+	CPU_Q_ACTION_EVENT_REPORTER,
+	CPU_Q_ACTION_HASH_BLOCK,
+} cpu_q_action;
 
-typedef enum bioAckQAction {
-  BIO_ACK_Q_ACTION_ACK,
-} BioAckQAction;
+typedef enum {
+	BIO_ACK_Q_ACTION_ACK,
+} bio_ack_q_action;
 
-typedef void (*DedupeShutdownCallbackFunction)(struct kernel_layer *layer);
+typedef void (*dedupe_shutdown_callback_function)(struct kernel_layer *layer);
 
 /*
  * Wrapper for the Enqueueable object, to associate it with a kernel
  * layer work item.
  */
-typedef struct kvdoEnqueueable {
-  struct kvdo_work_item workItem;
-  Enqueueable           enqueueable;
-} KvdoEnqueueable;
+struct kvdo_enqueueable {
+	struct kvdo_work_item work_item;
+	Enqueueable enqueueable;
+};
 
 /**
  * Creates a kernel specific physical layer to be used by VDO
  *
- * @param startingSector        The sector offset of our table entry in the
- *                              DM device
- * @param instance              Device instantiation counter
- * @param parentKobject         The parent sysfs node
- * @param config                The device configuration
- * @param threadConfigPointer   Where to store the new threadConfig handle
- * @param reason                The reason for any failure during this call
- * @param layerPtr              A pointer to hold the created layer
+ * @param starting_sector        The sector offset of our table entry in the
+ *                               DM device
+ * @param instance               Device instantiation counter
+ * @param parent_kobject         The parent sysfs node
+ * @param config                 The device configuration
+ * @param thread_config_pointer  Where to store the new threadConfig handle
+ * @param reason                 The reason for any failure during this call
+ * @param layer_ptr              A pointer to hold the created layer
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeKernelLayer(uint64_t               startingSector,
-                    unsigned int           instance,
-                    struct device_config  *config,
-                    struct kobject        *parentKobject,
-                    ThreadConfig         **threadConfigPointer,
-                    char                 **reason,
-                    struct kernel_layer  **layerPtr)
-  __attribute__((warn_unused_result));
+int make_kernel_layer(uint64_t starting_sector,
+		      unsigned int instance,
+		      struct device_config *config,
+		      struct kobject *parent_kobject,
+		      ThreadConfig **thread_config_pointer,
+		      char **reason,
+		      struct kernel_layer **layer_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Prepare to modify a kernel layer.
  *
- * @param layer     The layer to modify
- * @param config    The new device configuration
- * @param errorPtr  A pointer to store the reason for any failure
+ * @param layer      The layer to modify
+ * @param config     The new device configuration
+ * @param error_ptr  A pointer to store the reason for any failure
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToModifyKernelLayer(struct kernel_layer   *layer,
-                               struct device_config  *config,
-                               char                 **errorPtr)
-  __attribute__((warn_unused_result));
+int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
+				   struct device_config *config,
+				   char **error_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Modify a kernel physical layer.
@@ -255,32 +256,32 @@ int prepareToModifyKernelLayer(struct kernel_layer   *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int modifyKernelLayer(struct kernel_layer  *layer,
-                      struct device_config *config)
-  __attribute__((warn_unused_result));
+int modify_kernel_layer(struct kernel_layer *layer,
+			struct device_config *config)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a kernel physical layer.
  *
  * @param layer    The layer, which must have been created by
- *                 makeKernelLayer
+ *                 make_kernel_layer
  **/
-void freeKernelLayer(struct kernel_layer *layer);
+void free_kernel_layer(struct kernel_layer *layer);
 
 /**
  * Start the kernel layer.
  *
- * @param layer       The kernel layer
- * @param loadConfig  Load-time parameters for the VDO
- * @param reason      The reason for any failure during this call
+ * @param layer        The kernel layer
+ * @param load_config  Load-time parameters for the VDO
+ * @param reason       The reason for any failure during this call
  *
  * @return VDO_SUCCESS or an error
  *
  * @note redundant starts are silently ignored
  **/
-int startKernelLayer(struct kernel_layer  *layer,
-                     const VDOLoadConfig  *loadConfig,
-                     char                **reason);
+int start_kernel_layer(struct kernel_layer *layer,
+		       const VDOLoadConfig *load_config,
+		       char **reason);
 
 /**
  * Stop the kernel layer.
@@ -289,7 +290,7 @@ int startKernelLayer(struct kernel_layer  *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int stopKernelLayer(struct kernel_layer *layer);
+int stop_kernel_layer(struct kernel_layer *layer);
 
 /**
  * Suspend the kernel layer.
@@ -298,7 +299,7 @@ int stopKernelLayer(struct kernel_layer *layer);
  *
  * @return VDO_SUCCESS or an error
  **/
-int suspendKernelLayer(struct kernel_layer *layer);
+int suspend_kernel_layer(struct kernel_layer *layer);
 
 /**
  * Resume the kernel layer.
@@ -307,7 +308,7 @@ int suspendKernelLayer(struct kernel_layer *layer);
  *
  * @return VDO_SUCCESS or an error
  **/
-int resumeKernelLayer(struct kernel_layer *layer);
+int resume_kernel_layer(struct kernel_layer *layer);
 
 /**
  * Get the kernel layer state.
@@ -316,10 +317,10 @@ int resumeKernelLayer(struct kernel_layer *layer);
  *
  * @return the instantaneously correct kernel layer state
  **/
-static inline KernelLayerState
-getKernelLayerState(const struct kernel_layer *layer)
+static inline kernel_layer_state
+get_kernel_layer_state(const struct kernel_layer *layer)
 {
-  return relaxedLoad32(&layer->state);
+	return relaxedLoad32(&layer->state);
 }
 
 /**
@@ -332,7 +333,7 @@ getKernelLayerState(const struct kernel_layer *layer)
  *         or DM_MAPIO_REMAPPED or DM_MAPPED_SUBMITTED (see vdoMapBio for
  *         details).
  **/
-int kvdoMapBio(struct kernel_layer *layer, struct bio *bio);
+int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio);
 
 /**
  * Convert a generic PhysicalLayer to a kernel_layer.
@@ -341,9 +342,9 @@ int kvdoMapBio(struct kernel_layer *layer, struct bio *bio);
  *
  * @return The PhysicalLayer as a struct kernel_layer
  **/
-static inline struct kernel_layer *asKernelLayer(PhysicalLayer *layer)
+static inline struct kernel_layer *as_kernel_layer(PhysicalLayer *layer)
 {
-  return container_of(layer, struct kernel_layer, common);
+	return container_of(layer, struct kernel_layer, common);
 }
 
 /**
@@ -355,15 +356,15 @@ static inline struct kernel_layer *asKernelLayer(PhysicalLayer *layer)
  * without casting, resulting in 32-bit arithmetic that accidentally
  * produces wrong results in devices over 2TB (2**32 sectors).
  *
- * @param [in] layer        the physical layer
- * @param [in] blockNumber  the block number/count
+ * @param [in] layer         the physical layer
+ * @param [in] block_number  the block number/count
  *
  * @return      the sector number/count
  **/
-static inline sector_t blockToSector(struct kernel_layer *layer,
-                                     sector_t blockNumber)
+static inline sector_t block_to_sector(struct kernel_layer *layer,
+				       sector_t block_number)
 {
-  return (blockNumber * VDO_SECTORS_PER_BLOCK);
+	return (block_number * VDO_SECTORS_PER_BLOCK);
 }
 
 /**
@@ -371,30 +372,30 @@ static inline sector_t blockToSector(struct kernel_layer *layer,
  * check to make sure the sector number is an integral number of
  * blocks.
  *
- * @param [in] layer         the physical layer
- * @param [in] sectorNumber  the sector number/count
+ * @param [in] layer          the physical layer
+ * @param [in] sector_number  the sector number/count
  *
  * @return      the block number/count
  **/
-static inline sector_t sectorToBlock(struct kernel_layer *layer,
-                                     sector_t sectorNumber)
+static inline sector_t sector_to_block(struct kernel_layer *layer,
+				       sector_t sector_number)
 {
-  return (sectorNumber / VDO_SECTORS_PER_BLOCK);
+	return (sector_number / VDO_SECTORS_PER_BLOCK);
 }
 
 /**
  * Convert a sector number to an offset within a block.
  *
- * @param [in] layer         the physical layer
- * @param [in] sectorNumber  the sector number
+ * @param [in] layer          the physical layer
+ * @param [in] sector_number  the sector number
  *
  * @return      the offset within the block
  **/
-static inline BlockSize sectorToBlockOffset(struct kernel_layer *layer,
-                                            sector_t sectorNumber)
+static inline BlockSize sector_to_block_offset(struct kernel_layer *layer,
+					       sector_t sector_number)
 {
-  unsigned int sectorsPerBlockMask = VDO_SECTORS_PER_BLOCK - 1;
-  return to_bytes(sectorNumber & sectorsPerBlockMask);
+	unsigned int sectors_per_block_mask = VDO_SECTORS_PER_BLOCK - 1;
+	return to_bytes(sector_number & sectors_per_block_mask);
 }
 
 /**
@@ -404,8 +405,8 @@ static inline BlockSize sectorToBlockOffset(struct kernel_layer *layer,
  *
  * @return The block device object under the layer
  **/
-struct block_device *getKernelLayerBdev(const struct kernel_layer *layer)
-  __attribute__((warn_unused_result));
+struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
+	__attribute__((warn_unused_result));
 
 /**
  * Acquire a reference from the config to the kernel layer.
@@ -413,11 +414,11 @@ struct block_device *getKernelLayerBdev(const struct kernel_layer *layer)
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void acquireKernelLayerReference(struct kernel_layer *layer,
-                                               struct device_config *config)
+static inline void acquire_kernel_layer_reference(struct kernel_layer *layer,
+						  struct device_config *config)
 {
-  layer->configReferences++;
-  config->layer = layer;
+	layer->configReferences++;
+	config->layer = layer;
 }
 
 /**
@@ -426,11 +427,11 @@ static inline void acquireKernelLayerReference(struct kernel_layer *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void releaseKernelLayerReference(struct kernel_layer  *layer,
-                                               struct device_config *config)
+static inline void release_kernel_layer_reference(struct kernel_layer *layer,
+						  struct device_config *config)
 {
-  config->layer = NULL;
-  layer->configReferences--;
+	config->layer = NULL;
+	layer->configReferences--;
 }
 
 /**
@@ -439,10 +440,10 @@ static inline void releaseKernelLayerReference(struct kernel_layer  *layer,
  * @param layer   The kernel layer in question
  * @param config  The config in question
  **/
-static inline void setKernelLayerActiveConfig(struct kernel_layer  *layer,
-                                              struct device_config *config)
+static inline void set_kernel_layer_active_config(struct kernel_layer *layer,
+						  struct device_config *config)
 {
-  layer->deviceConfig = config;
+	layer->deviceConfig = config;
 }
 
 /**
@@ -456,14 +457,14 @@ static inline void setKernelLayerActiveConfig(struct kernel_layer  *layer,
  *
  * @return   a system error code value
  **/
-int mapToSystemError(int error);
+int map_to_system_error(int error);
 
 /**
  * Wait until there are no requests in progress.
  *
  * @param layer  The kernel layer for the device
  **/
-void waitForNoRequestsActive(struct kernel_layer *layer);
+void wait_for_no_requests_active(struct kernel_layer *layer);
 
 /**
  * Enqueues an item on our internal "cpu queues". Since there is more than
@@ -472,56 +473,57 @@ void waitForNoRequestsActive(struct kernel_layer *layer);
  * @param layer The kernel layer
  * @param item  The work item to enqueue
  */
-static inline void enqueueCPUWorkQueue(struct kernel_layer   *layer,
-                                       struct kvdo_work_item *item)
+static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
+					  struct kvdo_work_item *item)
 {
-  enqueue_work_queue(layer->cpuQueue, item);
+	enqueue_work_queue(layer->cpuQueue, item);
 }
 
 /**
  * Adjust parameters to prepare to use a larger physical space.
  * The size must be larger than the current size.
  *
- * @param layer          the kernel layer
- * @param physicalCount  the new physical size in blocks
+ * @param layer           the kernel layer
+ * @param physical_count  the new physical size in blocks
  *
  * @return VDO_SUCCESS or an error
  */
-int prepareToResizePhysical(struct kernel_layer *layer,
-                            BlockCount physicalCount);
+int prepare_to_resize_physical(struct kernel_layer *layer,
+			       BlockCount physical_count);
 
 /**
  * Adjusts parameters to reflect resizing the underlying device.
  * The size must be larger than the current size.
  *
- * @param layer            the kernel layer
- * @param physicalCount    the new physical count in blocks
+ * @param layer           the kernel layer
+ * @param physical_count  the new physical count in blocks
  *
  * @return VDO_SUCCESS or an error
  */
-int resizePhysical(struct kernel_layer *layer, BlockCount physicalCount);
+int resize_physical(struct kernel_layer *layer, BlockCount physical_count);
 
 /**
  * Adjust parameters to prepare to present a larger logical space.
  * The size must be larger than the current size.
  *
- * @param layer         the kernel layer
- * @param logicalCount  the new logical size in blocks
+ * @param layer          the kernel layer
+ * @param logical_count  the new logical size in blocks
  *
  * @return VDO_SUCCESS or an error
  */
-int prepareToResizeLogical(struct kernel_layer *layer, BlockCount logicalCount);
+int prepare_to_resize_logical(struct kernel_layer *layer,
+			      BlockCount logical_count);
 
 /**
  * Adjust parameters to present a larger logical space.
  * The size must be larger than the current size.
  *
- * @param layer         the kernel layer
- * @param logicalCount  the new logical size in blocks
+ * @param layer          the kernel layer
+ * @param logical_count  the new logical size in blocks
  *
  * @return VDO_SUCCESS or an error
  */
-int resizeLogical(struct kernel_layer *layer, BlockCount logicalCount);
+int resize_logical(struct kernel_layer *layer, BlockCount logical_count);
 
 /**
  * Indicate whether the kernel layer is configured to use a separate
@@ -535,9 +537,9 @@ int resizeLogical(struct kernel_layer *layer, BlockCount logicalCount);
  *
  * @return   Whether a bio-acknowledgement work queue is in use
  **/
-static inline bool useBioAckQueue(struct kernel_layer *layer)
+static inline bool use_bio_ack_queue(struct kernel_layer *layer)
 {
-  return layer->deviceConfig->thread_counts.bio_ack_threads > 0;
+	return layer->deviceConfig->thread_counts.bio_ack_threads > 0;
 }
 
 /**
@@ -547,6 +549,6 @@ static inline bool useBioAckQueue(struct kernel_layer *layer)
  * @param layer  The kernel layer
  * @param count  The number of completed requests
  **/
-void completeManyRequests(struct kernel_layer *layer, uint32_t count);
+void complete_many_requests(struct kernel_layer *layer, uint32_t count);
 
 #endif /* KERNELLAYER_H */

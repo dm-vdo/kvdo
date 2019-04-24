@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#12 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -385,16 +385,16 @@ ThreadID getCallbackThreadID(void);
  *
  * @return The updated value of the checksum
  **/
-CRC32Checksum updateCRC32(CRC32Checksum  crc,
-                          const byte    *buffer,
-                          size_t         length);
+CRC32Checksum update_crc32(CRC32Checksum  crc,
+                           const byte    *buffer,
+                           size_t         length);
 
 /**
  * Destroy a vio. The pointer to the VIO will be nulled out.
  *
  * @param vioPtr  A pointer to the VIO to destroy
  **/
-void destroyVIO(VIO **vioPtr);
+void destroy_vio(VIO **vioPtr);
 
 /**
  * Read or write a single metadata VIO.

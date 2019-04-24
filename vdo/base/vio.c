@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#9 $
  */
 
 #include "vio.h"
@@ -38,7 +38,7 @@ void freeVIO(VIO **vioPtr)
     return;
   }
 
-  destroyVIO(vioPtr);
+  destroy_vio(vioPtr);
 }
 
 /**********************************************************************/

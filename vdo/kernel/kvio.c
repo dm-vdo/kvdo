@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#17 $
  */
 
 #include "kvio.h"
@@ -115,7 +115,7 @@ void writeCompressedBlock(AllocatingVIO *allocating_vio)
 	struct bio *bio = kvio->bio;
 	reset_bio(bio, kvio->layer);
 	set_bio_operation_write(bio);
-	set_bio_sector(bio, blockToSector(kvio->layer, kvio->vio->physical));
+	set_bio_sector(bio, block_to_sector(kvio->layer, kvio->vio->physical));
 	vdo_submit_bio(bio, BIO_Q_ACTION_COMPRESSED_DATA);
 }
 
@@ -126,7 +126,7 @@ void writeCompressedBlock(AllocatingVIO *allocating_vio)
  *
  * @return The action with which to submit the VIO's bio.
  **/
-static inline BioQAction get_metadata_action(VIO *vio)
+static inline bio_q_action get_metadata_action(VIO *vio)
 {
 	return ((vio->priority == VIO_PRIORITY_HIGH) ? BIO_Q_ACTION_HIGH :
 						       BIO_Q_ACTION_METADATA);
@@ -139,7 +139,7 @@ void submitMetadataVIO(VIO *vio)
 	struct bio *bio = kvio->bio;
 	reset_bio(bio, kvio->layer);
 
-	set_bio_sector(bio, blockToSector(kvio->layer, vio->physical));
+	set_bio_sector(bio, block_to_sector(kvio->layer, vio->physical));
 
 	// Metadata I/Os bypass the read cache.
 	if (isReadVIO(vio)) {
@@ -200,7 +200,7 @@ void kvdo_flush_vio(VIO *vio)
 	reset_bio(bio, layer);
 	prepare_flush_bio(bio,
 			  kvio,
-			  getKernelLayerBdev(layer),
+			  get_kernel_layer_bdev(layer),
 			  complete_flush_bio);
 	vdo_submit_bio(bio, get_metadata_action(vio));
 }
@@ -379,7 +379,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	}
 
 	struct bio *bio;
-	struct kernel_layer *kernel_layer = asKernelLayer(layer);
+	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	result = create_bio(kernel_layer, data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -404,7 +404,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     AllocatingVIO **allocating_vio_ptr)
 {
 	struct bio *bio;
-	struct kernel_layer *kernel_layer = asKernelLayer(layer);
+	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	int result = create_bio(kernel_layer, data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;

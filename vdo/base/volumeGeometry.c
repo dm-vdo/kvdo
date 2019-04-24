@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#3 $
  */
 
 #include "volumeGeometry.h"
@@ -370,8 +370,8 @@ int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
   }
 
   // Checksum everything decoded so far.
-  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM, block,
-                                       uncompactedAmount(buffer));
+  CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, block,
+                                        uncompactedAmount(buffer));
   CRC32Checksum savedChecksum;
   result = getUInt32LEFromBuffer(buffer, &savedChecksum);
   if (result != VDO_SUCCESS) {
@@ -497,8 +497,8 @@ int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
   }
 
   // Checksum everything encoded so far and then encode the checksum.
-  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM, (byte *) block,
-                                       contentLength(buffer));
+  CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM, (byte *) block,
+                                        contentLength(buffer));
   result = putUInt32LEIntoBuffer(buffer, checksum);
   if (result != VDO_SUCCESS) {
     freeBuffer(&buffer);

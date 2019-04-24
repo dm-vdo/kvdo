@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#14 $
  */
 
 #ifndef KVIO_H
@@ -31,7 +31,7 @@
  * A specific (semi-opaque) encapsulation of a single block
  **/
 struct kvio {
-	KvdoEnqueueable enqueueable;
+	struct kvdo_enqueueable enqueueable;
 	VIO *vio;
 	struct kernel_layer *layer;
 	struct bio *bio;
@@ -165,7 +165,7 @@ compressed_write_kvio_as_kvio(struct compressed_write_kvio *compressed_write_kvi
  **/
 static inline struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
 {
-	return container_of(item, struct kvio, enqueueable.workItem);
+	return container_of(item, struct kvio, enqueueable.work_item);
 }
 
 /**
@@ -177,7 +177,7 @@ static inline struct kvio *work_item_as_kvio(struct kvdo_work_item *item)
 static inline void enqueue_kvio_work(struct kvdo_work_queue *queue,
 				     struct kvio *kvio)
 {
-	enqueue_work_queue(queue, &kvio->enqueueable.workItem);
+	enqueue_work_queue(queue, &kvio->enqueueable.work_item);
 }
 
 /**
@@ -205,7 +205,7 @@ static inline void setup_kvio_work(struct kvio *kvio,
 				   void *stats_function,
 				   unsigned int action)
 {
-	setup_work_item(&kvio->enqueueable.workItem,
+	setup_work_item(&kvio->enqueueable.work_item,
 			work,
 			stats_function,
 			action);

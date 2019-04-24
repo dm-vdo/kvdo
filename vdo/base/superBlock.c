@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#4 $
  */
 
 #include "superBlock.h"
@@ -188,9 +188,9 @@ static int encodeSuperBlock(SuperBlock *superBlock)
   }
 
   // Compute and encode the checksum.
-  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM,
-                                       superBlock->encodedSuperBlock,
-                                       contentLength(buffer));
+  CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM,
+                                        superBlock->encodedSuperBlock,
+                                        contentLength(buffer));
   result = putUInt32LEIntoBuffer(buffer, checksum);
   if (result != UDS_SUCCESS) {
     return result;
@@ -317,9 +317,9 @@ static int decodeSuperBlock(SuperBlock *superBlock)
   }
 
   // Checksum everything up to but not including the saved checksum itself.
-  CRC32Checksum checksum = updateCRC32(INITIAL_CHECKSUM,
-                                       superBlock->encodedSuperBlock,
-                                       uncompactedAmount(buffer));
+  CRC32Checksum checksum = update_crc32(INITIAL_CHECKSUM,
+                                        superBlock->encodedSuperBlock,
+                                        uncompactedAmount(buffer));
 
   // Decode and verify the saved checksum.
   CRC32Checksum savedChecksum;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#9 $
  */
 
 #include "batchProcessor.h"
@@ -149,7 +149,7 @@ static void schedule_batch_processing(struct batch_processor *batch)
 		&batch->state, BATCH_PROCESSOR_IDLE, BATCH_PROCESSOR_ENQUEUED);
 	bool do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
 	if (do_schedule) {
-		enqueueCPUWorkQueue(batch->layer, &batch->workItem);
+		enqueue_cpu_work_queue(batch->layer, &batch->workItem);
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#28 $
  */
 
 #include "dmvdo.h"
@@ -108,7 +108,7 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
-	return kvdoMapBio(layer, bio);
+	return kvdo_map_bio(layer, bio);
 }
 
 /**********************************************************************/
@@ -159,7 +159,7 @@ static int vdo_iterate_devices(struct dm_target *ti,
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	sector_t len =
-		blockToSector(layer, layer->deviceConfig->physical_blocks);
+		block_to_sector(layer, layer->deviceConfig->physical_blocks);
 
 	return fn(ti, layer->deviceConfig->owned_device, 0, len, data);
 }
@@ -190,7 +190,7 @@ static void vdo_status(struct dm_target *ti,
 		get_kvdo_statistics(&layer->kvdo, &layer->vdoStatsStorage);
 		VDOStatistics *stats = &layer->vdoStatsStorage;
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
-		       bdevname(getKernelLayerBdev(layer), name_buffer),
+		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
 		       stats->mode,
 		       stats->inRecoveryMode ? "recovering" : "-",
 		       get_dedupe_state_name(layer->dedupeIndex),
@@ -222,7 +222,7 @@ static void vdo_status(struct dm_target *ti,
 static BlockCount get_underlying_device_block_count(struct kernel_layer *layer)
 {
 	uint64_t physical_size =
-		i_size_read(getKernelLayerBdev(layer)->bd_inode);
+		i_size_read(get_kernel_layer_bdev(layer)->bd_inode);
 	return physical_size / VDO_BLOCK_SIZE;
 }
 
@@ -243,7 +243,7 @@ static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_st
 		return -EINVAL;
 	}
 
-	return prepareToResizeLogical(layer, logical_count);
+	return prepare_to_resize_logical(layer, logical_count);
 }
 
 /**
@@ -279,7 +279,7 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 	switch (argc) {
 	case 1:
 		if (strcasecmp(argv[0], "sync-dedupe") == 0) {
-			waitForNoRequestsActive(layer);
+			wait_for_no_requests_active(layer);
 			return 0;
 		}
 
@@ -296,7 +296,7 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 		}
 
 		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-			return prepareToResizePhysical(
+			return prepare_to_resize_physical(
 				layer,
 				get_underlying_device_block_count(layer));
 		}
@@ -456,7 +456,7 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
 	int result = process_vdo_message(layer, argc, argv);
 	unregister_thread_device_id();
 	unregisterAllocatingThread();
-	return mapToSystemError(result);
+	return map_to_system_error(result);
 }
 
 /**
@@ -513,7 +513,7 @@ static void cleanup_initialize(struct dm_target *ti,
 	}
 	if (layer != NULL) {
 		// This releases the instance number too.
-		freeKernelLayer(layer);
+		free_kernel_layer(layer);
 	} else {
 		// With no kernel_layer taking ownership we have to release
 		// explicitly.
@@ -566,13 +566,13 @@ static int vdo_initialize(struct dm_target *ti,
 
 	char *failure_reason;
 	struct kernel_layer *layer;
-	int result = makeKernelLayer(ti->begin,
-				     instance,
-				     config,
-				     &kvdoGlobals.kobj,
-				     &load_config.threadConfig,
-				     &failure_reason,
-				     &layer);
+	int result = make_kernel_layer(ti->begin,
+				       instance,
+				       config,
+				       &kvdoGlobals.kobj,
+				       &load_config.threadConfig,
+				       &failure_reason,
+				       &layer);
 	if (result != VDO_SUCCESS) {
 		logError(
 			"Could not create kernel physical layer. (VDO error %d, message %s)",
@@ -603,7 +603,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	// Henceforth it is the kernel layer's responsibility to clean up the
 	// ThreadConfig.
-	result = startKernelLayer(layer, &load_config, &failure_reason);
+	result = start_kernel_layer(layer, &load_config, &failure_reason);
 	if (result != VDO_SUCCESS) {
 		logError("Could not start kernel physical layer. (VDO error %d, message %s)",
 			 result, failure_reason);
@@ -611,8 +611,8 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	acquireKernelLayerReference(layer, config);
-	setKernelLayerActiveConfig(layer, config);
+	acquire_kernel_layer_reference(layer, config);
+	set_kernel_layer_active_config(layer, config);
 	ti->private = config;
 	configure_target_capabilities(ti, layer);
 
@@ -673,13 +673,14 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		 * new VDO Manager does the right order.
 		 */
 		logInfo("preparing to modify device '%s'", config->pool_name);
-		result = prepareToModifyKernelLayer(old_layer, config,
-						    &ti->error);
+		result = prepare_to_modify_kernel_layer(old_layer,
+							config,
+							&ti->error);
 		if (result != VDO_SUCCESS) {
-			result = mapToSystemError(result);
+			result = map_to_system_error(result);
 			free_device_config(&config);
 		} else {
-			acquireKernelLayerReference(old_layer, config);
+			acquire_kernel_layer_reference(old_layer, config);
 			ti->private = config;
 			configure_target_capabilities(ti, old_layer);
 		}
@@ -691,7 +692,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	result = vdo_initialize(ti, instance, config);
 	if (result != VDO_SUCCESS) {
 		// vdo_initialize calls into various VDO routines, so map error
-		result = mapToSystemError(result);
+		result = map_to_system_error(result);
 		free_device_config(&config);
 	}
 
@@ -706,7 +707,7 @@ static void vdo_dtr(struct dm_target *ti)
 	struct device_config *config = ti->private;
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 
-	releaseKernelLayerReference(layer, config);
+	release_kernel_layer_reference(layer, config);
 
 	if (layer->configReferences == 0) {
 		// This was the last config referencing the layer. Free it.
@@ -715,14 +716,14 @@ static void vdo_dtr(struct dm_target *ti)
 		register_thread_device_id(&instance_thread, &instance);
 		registerAllocatingThread(&allocating_thread, NULL);
 
-		waitForNoRequestsActive(layer);
+		wait_for_no_requests_active(layer);
 		logInfo("stopping device '%s'", config->pool_name);
 
 		if (layer->dumpOnShutdown) {
 			vdo_dump_all(layer, "device shutdown");
 		}
 
-		freeKernelLayer(layer);
+		free_kernel_layer(layer);
 		logInfo("device '%s' stopped", config->pool_name);
 		unregister_thread_device_id();
 		unregisterAllocatingThread();
@@ -752,7 +753,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	register_thread_device(&instance_thread, layer);
 	const char *pool_name = layer->deviceConfig->pool_name;
 	logInfo("suspending device '%s'", pool_name);
-	int result = suspendKernelLayer(layer);
+	int result = suspend_kernel_layer(layer);
 	if (result == VDO_SUCCESS) {
 		logInfo("device '%s' suspended", pool_name);
 	} else {
@@ -775,23 +776,23 @@ static int vdo_preresume(struct dm_target *ti)
 
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
-	int result = modifyKernelLayer(layer, config);
+	int result = modify_kernel_layer(layer, config);
 	if (result != VDO_SUCCESS) {
 		logErrorWithStringError(result,
 					"Commit of modifications to device '%s' failed",
 					config->pool_name);
-		setKernelLayerActiveConfig(layer, config);
+		set_kernel_layer_active_config(layer, config);
 		set_kvdo_read_only(&layer->kvdo, result);
 	} else {
-		setKernelLayerActiveConfig(layer, config);
-		result = resumeKernelLayer(layer);
+		set_kernel_layer_active_config(layer, config);
+		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			logError("resume of device '%s' failed with error: %d",
 				 layer->deviceConfig->pool_name, result);
 		}
 	}
 	unregister_thread_device_id();
-	return mapToSystemError(result);
+	return map_to_system_error(result);
 }
 
 /**********************************************************************/

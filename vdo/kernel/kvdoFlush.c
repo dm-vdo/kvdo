@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#14 $
  */
 
 #include "kvdoFlush.h"
@@ -212,7 +212,7 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 		// Make sure the bio is an empty flush bio.
 		prepare_flush_bio(bio,
 				  bio->bi_private,
-				  getKernelLayerBdev(layer),
+				  get_kernel_layer_bdev(layer),
 				  bio->bi_end_io);
 		atomic64_inc(&layer->flushOut);
 		generic_make_request(bio);
@@ -251,7 +251,7 @@ int synchronous_flush(struct kernel_layer *layer)
 #else
 	bio_init(&bio);
 #endif
-	prepare_flush_bio(&bio, layer, getKernelLayerBdev(layer), NULL);
+	prepare_flush_bio(&bio, layer, get_kernel_layer_bdev(layer), NULL);
 	int result = submit_bio_and_wait(&bio);
 	atomic64_inc(&layer->flushOut);
 	if (result != 0) {
