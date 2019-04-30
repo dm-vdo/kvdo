@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/statusProcfs.c#12 $
  *
  * Proc filesystem interface to the old GET_DEDUPE_STATS and
  * GET_KERNEL_STATS ioctls, which can no longer be supported in 4.4
@@ -117,17 +117,17 @@ void get_kernel_stats(struct kernel_layer *layer, KernelStatistics *stats)
 	stats->version = STATISTICS_VERSION;
 	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = layer->instance;
-	get_limiter_values_atomically(&layer->requestLimiter,
+	get_limiter_values_atomically(&layer->request_limiter,
 				      &stats->currentVIOsInProgress,
 				      &stats->maxVIOs);
 	// albireoTimeoutReport gives the number of timeouts, and
 	// dedupeContextBusy gives the number of queries not made because of
 	// earlier timeouts.
 	stats->dedupeAdviceTimeouts =
-		(get_dedupe_timeout_count(layer->dedupeIndex) +
+		(get_dedupe_timeout_count(layer->dedupe_index) +
 		 atomic64_read(&layer->dedupeContextBusy));
 	stats->flushOut = atomic64_read(&layer->flushOut);
-	stats->logicalBlockSize = layer->deviceConfig->logical_block_size;
+	stats->logicalBlockSize = layer->device_config->logical_block_size;
 	copy_bio_stat(&stats->biosIn, &layer->biosIn);
 	copy_bio_stat(&stats->biosInPartial, &layer->biosInPartial);
 	copy_bio_stat(&stats->biosOut, &layer->biosOut);
@@ -146,7 +146,7 @@ void get_kernel_stats(struct kernel_layer *layer, KernelStatistics *stats)
 	stats->biosInProgress =
 		subtract_bio_stats(stats->biosIn, stats->biosAcknowledged);
 	stats->memoryUsage = get_memory_usage();
-	get_index_statistics(layer->dedupeIndex, &stats->index);
+	get_index_statistics(layer->dedupe_index, &stats->index);
 }
 
 /**********************************************************************/

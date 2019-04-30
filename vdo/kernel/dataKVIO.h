@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#21 $
  */
 
 #ifndef DATA_KVIO_H
@@ -273,7 +273,7 @@ static inline void launch_data_kvio_on_cpu_queue(struct data_kvio *data_kvio,
 						 unsigned int action)
 {
 	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-	launch_kvio(kvio, work, stats_function, action, kvio->layer->cpuQueue);
+	launch_kvio(kvio, work, stats_function, action, kvio->layer->cpu_queue);
 }
 
 /**
@@ -292,7 +292,7 @@ launch_data_kvio_on_bio_ack_queue(struct data_kvio *data_kvio,
 {
 	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 	launch_kvio(kvio, work, stats_function, action,
-		    kvio->layer->bioAckQueue);
+		    kvio->layer->bio_ack_queue);
 }
 
 /**

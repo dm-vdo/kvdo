@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#13 $
  */
 
 #include "dump.h"
@@ -89,33 +89,33 @@ static void do_dump(struct kernel_layer *layer,
 	logInfo("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
 	uint32_t active, maximum;
-	get_limiter_values_atomically(&layer->requestLimiter,
+	get_limiter_values_atomically(&layer->request_limiter,
 				      &active,
 				      &maximum);
-	int64_t outstanding = atomic64_read(&layer->biosSubmitted) -
-			      atomic64_read(&layer->biosCompleted);
+	int64_t outstanding = atomic64_read(&layer->bios_submitted) -
+			      atomic64_read(&layer->bios_completed);
 	logInfo("%" PRIu32 " device requests outstanding (max %" PRIu32 "), %" PRId64 " bio requests outstanding, poolName '%s'",
 		active,
 		maximum,
 		outstanding,
-		layer->deviceConfig->pool_name);
+		layer->device_config->pool_name);
 	if ((dump_options_requested & FLAG_SHOW_REQUEST_QUEUE) != 0) {
 		dump_kvdo_work_queue(&layer->kvdo);
 	}
 	if ((dump_options_requested & FLAG_SHOW_BIO_QUEUE) != 0) {
-		dump_bio_work_queue(layer->ioSubmitter);
+		dump_bio_work_queue(layer->io_submitter);
 	}
 	if (use_bio_ack_queue(layer) &&
 	    ((dump_options_requested & FLAG_SHOW_BIO_ACK_QUEUE) != 0)) {
-		dump_work_queue(layer->bioAckQueue);
+		dump_work_queue(layer->bio_ack_queue);
 	}
 	if ((dump_options_requested & FLAG_SHOW_CPU_QUEUES) != 0) {
-		dump_work_queue(layer->cpuQueue);
+		dump_work_queue(layer->cpu_queue);
 	}
-	dump_dedupe_index(layer->dedupeIndex,
+	dump_dedupe_index(layer->dedupe_index,
 			  (dump_options_requested & FLAG_SHOW_ALBIREO_QUEUE) !=
 				  0);
-	dump_buffer_pool(layer->dataKVIOPool,
+	dump_buffer_pool(layer->data_kvio_pool,
 			 (dump_options_requested & FLAG_SHOW_VIO_POOL) != 0);
 	if ((dump_options_requested & FLAG_SHOW_VDO_STATUS) != 0) {
 		// Options should become more fine-grained when we have more to

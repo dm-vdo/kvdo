@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#36 $
  */
 
 #include "dataKVIO.h"
@@ -71,7 +71,7 @@ static __always_inline void set_write_protect(void *address,
 /**********************************************************************/
 static void maybe_log_data_kvio_trace(struct data_kvio *data_kvio)
 {
-	if (data_kvio->kvio.layer->traceLogging) {
+	if (data_kvio->kvio.layer->trace_logging) {
 		log_kvio_trace(&data_kvio->kvio);
 	}
 }
@@ -185,7 +185,7 @@ void return_data_kvio_batch_to_pool(struct batch_processor *batch,
 	ASSERT_LOG_ONLY(layer != NULL, "layer not null");
 
 	struct free_buffer_pointers fbp;
-	init_free_buffer_pointers(&fbp, layer->dataKVIOPool);
+	init_free_buffer_pointers(&fbp, layer->data_kvio_pool);
 
 	struct kvdo_work_item *item;
 	while ((item = next_batch_item(batch)) != NULL) {
@@ -207,7 +207,7 @@ kvdo_acknowledge_then_complete_data_kvio(struct kvdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
 	kvdoAcknowledgeDataKVIO(data_kvio);
-	add_to_batch_processor(data_kvio->kvio.layer->dataKVIOReleaser, item);
+	add_to_batch_processor(data_kvio->kvio.layer->data_kvio_releaser, item);
 }
 
 /**********************************************************************/
@@ -226,7 +226,7 @@ void kvdoCompleteDataKVIO(VDOCompletion *completion)
 			NULL,
 			BIO_ACK_Q_ACTION_ACK);
 	} else {
-		add_to_batch_processor(layer->dataKVIOReleaser,
+		add_to_batch_processor(layer->data_kvio_releaser,
 				       work_item_from_data_kvio(data_kvio));
 	}
 }
@@ -687,7 +687,7 @@ makeDataKVIO(struct kernel_layer *layer,
 	     struct data_kvio **data_kvio_ptr)
 {
 	struct data_kvio *data_kvio;
-	int result = alloc_buffer_from_pool(layer->dataKVIOPool,
+	int result = alloc_buffer_from_pool(layer->data_kvio_pool,
 					    (void **)&data_kvio);
 	if (result != VDO_SUCCESS) {
 		return logErrorWithStringError(result,
@@ -845,7 +845,7 @@ static void kvdo_continue_discard_kvio(VDOCompletion *completion)
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_kvio->remainingDiscard == 0)) {
 		if (data_kvio->hasDiscardPermit) {
-			limiter_release(&layer->discardLimiter);
+			limiter_release(&layer->discard_limiter);
 			data_kvio->hasDiscardPermit = false;
 		}
 		kvdoCompleteDataKVIO(completion);
@@ -904,9 +904,9 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	if (unlikely(result != VDO_SUCCESS)) {
 		logInfo("%s: kvio allocation failure", __func__);
 		if (hasDiscardPermit) {
-			limiter_release(&layer->discardLimiter);
+			limiter_release(&layer->discard_limiter);
 		}
-		limiter_release(&layer->requestLimiter);
+		limiter_release(&layer->request_limiter);
 		return map_to_system_error(result);
 	}
 
@@ -944,7 +944,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	}
 
 	LogicalBlockNumber lbn = sector_to_block(layer,
-		get_bio_sector(bio) - layer->startingSectorOffset);
+		get_bio_sector(bio) - layer->starting_sector_offset);
 	prepareDataVIO(&data_kvio->dataVIO, lbn, operation, isTrim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,
 		     vioAsCompletion(kvio->vio)->callback,

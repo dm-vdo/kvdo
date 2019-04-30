@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#29 $
  */
 
 #include "dmvdo.h"
@@ -116,7 +116,7 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 
-	limits->logical_block_size = layer->deviceConfig->logical_block_size;
+	limits->logical_block_size = layer->device_config->logical_block_size;
 	limits->physical_block_size = VDO_BLOCK_SIZE;
 
 	// The minimum io size for random io
@@ -144,7 +144,8 @@ static void vdo_io_hints(struct dm_target *ti, struct queue_limits *limits)
 	 * determine whether to pass down discards.
 	 */
 	limits->max_discard_sectors =
-		layer->deviceConfig->max_discard_blocks * VDO_SECTORS_PER_BLOCK;
+		layer->device_config->max_discard_blocks *
+		VDO_SECTORS_PER_BLOCK;
 
 	limits->discard_granularity = VDO_BLOCK_SIZE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
@@ -159,9 +160,9 @@ static int vdo_iterate_devices(struct dm_target *ti,
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	sector_t len =
-		block_to_sector(layer, layer->deviceConfig->physical_blocks);
+		block_to_sector(layer, layer->device_config->physical_blocks);
 
-	return fn(ti, layer->deviceConfig->owned_device, 0, len, data);
+	return fn(ti, layer->device_config->owned_device, 0, len, data);
 }
 
 /*
@@ -193,7 +194,7 @@ static void vdo_status(struct dm_target *ti,
 		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
 		       stats->mode,
 		       stats->inRecoveryMode ? "recovering" : "-",
-		       get_dedupe_state_name(layer->dedupeIndex),
+		       get_dedupe_state_name(layer->dedupe_index),
 		       get_kvdo_compressing(&layer->kvdo) ? "online" :
 							    "offline",
 		       stats->dataBlocksUsed + stats->overheadBlocksUsed,
@@ -285,13 +286,13 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 
 		if (strcasecmp(argv[0], "trace-on") == 0) {
 			logInfo("Tracing on");
-			layer->traceLogging = true;
+			layer->trace_logging = true;
 			return 0;
 		}
 
 		if (strcasecmp(argv[0], "trace-off") == 0) {
 			logInfo("Tracing off");
-			layer->traceLogging = false;
+			layer->trace_logging = false;
 			return 0;
 		}
 
@@ -307,7 +308,7 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 			 * is resumed.
 			 */
 
-			if (layer->deviceConfig->version != 0) {
+			if (layer->device_config->version != 0) {
 				/*
 				 * XXX Uncomment this branch when new VDO
 				 * manager is updated to not send this
@@ -320,7 +321,7 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 				// logInfo("Mismatch between growPhysical method
 				// and table version."); return -EINVAL;
 			} else {
-				layer->deviceConfig->physical_blocks =
+				layer->device_config->physical_blocks =
 					get_underlying_device_block_count(layer);
 			}
 			return 0;
@@ -390,7 +391,7 @@ static int process_vdo_message(struct kernel_layer *layer,
 
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dump-on-shutdown") == 0) {
-			layer->dumpOnShutdown = true;
+			layer->dump_on_shutdown = true;
 			return 0;
 		}
 
@@ -399,7 +400,7 @@ static int process_vdo_message(struct kernel_layer *layer,
 		    (strcasecmp(argv[0], "index-create") == 0) ||
 		    (strcasecmp(argv[0], "index-disable") == 0) ||
 		    (strcasecmp(argv[0], "index-enable") == 0)) {
-			return message_dedupe_index(layer->dedupeIndex,
+			return message_dedupe_index(layer->dedupe_index,
 						    argv[0]);
 		}
 
@@ -409,27 +410,27 @@ static int process_vdo_message(struct kernel_layer *layer,
 		 * been fixed to use "index-enable" or "index-disable".
 		 */
 		if (strcasecmp(argv[0], "reconnect") == 0) {
-			return message_dedupe_index(layer->dedupeIndex,
+			return message_dedupe_index(layer->dedupe_index,
 						    "index-enable");
 		}
 
 		if (strcasecmp(argv[0], "connect") == 0) {
-			return message_dedupe_index(layer->dedupeIndex,
+			return message_dedupe_index(layer->dedupe_index,
 						    "index-enable");
 		}
 
 		if (strcasecmp(argv[0], "disconnect") == 0) {
-			return message_dedupe_index(layer->dedupeIndex,
+			return message_dedupe_index(layer->dedupe_index,
 						    "index-disable");
 		}
 	}
 
-	if (!compareAndSwapBool(&layer->processingMessage, false, true)) {
+	if (!compareAndSwapBool(&layer->processing_message, false, true)) {
 		return -EBUSY;
 	}
 
 	int result = process_vdo_message_locked(layer, argc, argv);
-	atomicStoreBool(&layer->processingMessage, false);
+	atomicStoreBool(&layer->processing_message, false);
 	return result;
 }
 
@@ -709,7 +710,7 @@ static void vdo_dtr(struct dm_target *ti)
 
 	release_kernel_layer_reference(layer, config);
 
-	if (layer->configReferences == 0) {
+	if (layer->config_references == 0) {
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		RegisteredThread allocating_thread, instance_thread;
@@ -719,7 +720,7 @@ static void vdo_dtr(struct dm_target *ti)
 		wait_for_no_requests_active(layer);
 		logInfo("stopping device '%s'", config->pool_name);
 
-		if (layer->dumpOnShutdown) {
+		if (layer->dump_on_shutdown) {
 			vdo_dump_all(layer, "device shutdown");
 		}
 
@@ -740,7 +741,7 @@ static void vdo_presuspend(struct dm_target *ti)
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
 	if (dm_noflush_suspending(ti)) {
-		layer->noFlushSuspend = true;
+		layer->no_flush_suspend = true;
 	}
 	unregister_thread_device_id();
 }
@@ -751,7 +752,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
-	const char *pool_name = layer->deviceConfig->pool_name;
+	const char *pool_name = layer->device_config->pool_name;
 	logInfo("suspending device '%s'", pool_name);
 	int result = suspend_kernel_layer(layer);
 	if (result == VDO_SUCCESS) {
@@ -761,7 +762,7 @@ static void vdo_postsuspend(struct dm_target *ti)
 			 pool_name,
 			 result);
 	}
-	layer->noFlushSuspend = false;
+	layer->no_flush_suspend = false;
 	unregister_thread_device_id();
 }
 
@@ -788,7 +789,7 @@ static int vdo_preresume(struct dm_target *ti)
 		result = resume_kernel_layer(layer);
 		if (result != VDO_SUCCESS) {
 			logError("resume of device '%s' failed with error: %d",
-				 layer->deviceConfig->pool_name, result);
+				 layer->device_config->pool_name, result);
 		}
 	}
 	unregister_thread_device_id();
@@ -801,7 +802,7 @@ static void vdo_resume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
-	logInfo("device '%s' resumed", layer->deviceConfig->pool_name);
+	logInfo("device '%s' resumed", layer->device_config->pool_name);
 	unregister_thread_device_id();
 }
 

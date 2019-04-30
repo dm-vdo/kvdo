@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#22 $
  */
 
 #ifndef KERNELLAYER_H
@@ -77,11 +77,11 @@ struct atomic_bio_stats {
 struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
-	struct device_config *deviceConfig;
-	unsigned int configReferences;
-	char threadNamePrefix[MAX_QUEUE_NAME_LEN];
+	struct device_config *device_config;
+	unsigned int config_references;
+	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
-	struct kobject wqDirectory;
+	struct kobject wq_directory;
 	struct kobject statsDirectory;
 	/**
 	 * A counter value to attach to thread names and log messages to
@@ -90,46 +90,46 @@ struct kernel_layer {
 	unsigned int instance;
 	/** Contains the current kernel_layer_state, which rarely changes */
 	Atomic32 state;
-	bool noFlushSuspend;
-	bool allocationsAllowed;
-	AtomicBool processingMessage;
+	bool no_flush_suspend;
+	bool allocations_allowed;
+	AtomicBool processing_message;
 	struct dm_target_callbacks callbacks;
 
 	/** Limit the number of requests that are being processed. */
-	struct limiter requestLimiter;
-	struct limiter discardLimiter;
+	struct limiter request_limiter;
+	struct limiter discard_limiter;
 	struct kvdo kvdo;
 	/** Incoming bios we've had to buffer to avoid deadlock. */
-	struct deadlock_queue deadlockQueue;
+	struct deadlock_queue deadlock_queue;
 	// for REQ_FLUSH processing
-	struct bio_list waitingFlushes;
-	struct kvdo_flush *spareKVDOFlush;
-	spinlock_t flushLock;
-	Jiffies flushArrivalTime;
+	struct bio_list waiting_flushes;
+	struct kvdo_flush *spare_kvdo_flush;
+	spinlock_t flush_lock;
+	Jiffies flush_arrival_time;
 	/**
 	 * Bio submission manager used for sending bios to the storage
 	 * device.
 	 **/
-	struct io_submitter *ioSubmitter;
+	struct io_submitter *io_submitter;
 	/**
 	 * Work queue (possibly with multiple threads) for miscellaneous
 	 * CPU-intensive, non-blocking work.
 	 **/
-	struct kvdo_work_queue *cpuQueue;
+	struct kvdo_work_queue *cpu_queue;
 	/** N blobs of context data for LZ4 code, one per CPU thread. */
 	char **compressionContext;
 	/** Optional work queue for calling bio_endio. */
-	struct kvdo_work_queue *bioAckQueue;
+	struct kvdo_work_queue *bio_ack_queue;
 	/** Underlying block device info. */
-	uint64_t startingSectorOffset;
+	uint64_t starting_sector_offset;
 	VolumeGeometry geometry;
 	// Memory allocation
-	struct buffer_pool *dataKVIOPool;
+	struct buffer_pool *data_kvio_pool;
 	// Albireo specific info
-	struct dedupe_index *dedupeIndex;
+	struct dedupe_index *dedupe_index;
 	// Statistics
-	atomic64_t biosSubmitted;
-	atomic64_t biosCompleted;
+	atomic64_t bios_submitted;
+	atomic64_t bios_completed;
 	atomic64_t dedupeContextBusy;
 	atomic64_t flushOut;
 	struct atomic_bio_stats biosIn;
@@ -146,21 +146,21 @@ struct kernel_layer {
 	struct atomic_bio_stats biosPageCacheCompleted;
 	// Debugging
 	/* Whether to dump VDO state on shutdown */
-	bool dumpOnShutdown;
+	bool dump_on_shutdown;
 	/**
 	 * Whether we should collect tracing info. (Actually, this controls
 	 * allocations; non-null record pointers cause recording.)
 	 **/
 	bool vioTraceRecording;
-	struct sample_counter traceSampleCounter;
+	struct sample_counter trace_sample_counter;
 	/* Should we log tracing info? */
-	bool traceLogging;
+	bool trace_logging;
 	/* Storage for trace data. */
-	struct buffer_pool *traceBufferPool;
+	struct buffer_pool *trace_buffer_pool;
 	/* Private storage for procfs. */
-	void *procfsPrivate;
+	void *procfs_private;
 	/* For returning batches of DataKVIOs to their pool */
-	struct batch_processor *dataKVIOReleaser;
+	struct batch_processor *data_kvio_releaser;
 
 	// Administrative operations
 	/* The object used to wait for administrative operations to complete */
@@ -170,10 +170,10 @@ struct kernel_layer {
 	/* Protects the *statsStorage structs */
 	struct mutex statsMutex;
 	/* Used when shutting down the sysfs statistics */
-	struct completion statsShutdown;
+	struct completion stats_shutdown;
 
 	/* true if sysfs statistics directory is set up */
-	bool statsAdded;
+	bool stats_added;
 	/* Used to gather statistics without allocating memory */
 	VDOStatistics vdoStatsStorage;
 	KernelStatistics kernelStatsStorage;
@@ -417,7 +417,7 @@ struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 static inline void acquire_kernel_layer_reference(struct kernel_layer *layer,
 						  struct device_config *config)
 {
-	layer->configReferences++;
+	layer->config_references++;
 	config->layer = layer;
 }
 
@@ -431,7 +431,7 @@ static inline void release_kernel_layer_reference(struct kernel_layer *layer,
 						  struct device_config *config)
 {
 	config->layer = NULL;
-	layer->configReferences--;
+	layer->config_references--;
 }
 
 /**
@@ -443,7 +443,7 @@ static inline void release_kernel_layer_reference(struct kernel_layer *layer,
 static inline void set_kernel_layer_active_config(struct kernel_layer *layer,
 						  struct device_config *config)
 {
-	layer->deviceConfig = config;
+	layer->device_config = config;
 }
 
 /**
@@ -476,7 +476,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer);
 static inline void enqueue_cpu_work_queue(struct kernel_layer *layer,
 					  struct kvdo_work_item *item)
 {
-	enqueue_work_queue(layer->cpuQueue, item);
+	enqueue_work_queue(layer->cpu_queue, item);
 }
 
 /**
@@ -539,7 +539,7 @@ int resize_logical(struct kernel_layer *layer, BlockCount logical_count);
  **/
 static inline bool use_bio_ack_queue(struct kernel_layer *layer)
 {
-	return layer->deviceConfig->thread_counts.bio_ack_threads > 0;
+	return layer->device_config->thread_counts.bio_ack_threads > 0;
 }
 
 /**

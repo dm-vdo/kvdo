@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#52 $
  */
 
 #include "kernelLayer.h"
@@ -101,7 +101,7 @@ CRC32Checksum update_crc32(CRC32Checksum crc, const byte *buffer, size_t length)
 /**********************************************************************/
 static BlockCount kvdo_get_block_count(PhysicalLayer *header)
 {
-	return as_kernel_layer(header)->deviceConfig->physical_blocks;
+	return as_kernel_layer(header)->device_config->physical_blocks;
 }
 
 /**********************************************************************/
@@ -148,7 +148,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
 {
 	// Do nothing if there are no requests active.  This check is not
 	// necessary for correctness but does reduce log message traffic.
-	if (limiter_is_idle(&layer->requestLimiter)) {
+	if (limiter_is_idle(&layer->request_limiter)) {
 		return;
 	}
 
@@ -157,7 +157,7 @@ void wait_for_no_requests_active(struct kernel_layer *layer)
 	// in while waiting will end up in the packer.
 	bool was_compressing = set_kvdo_compressing(&layer->kvdo, false);
 	// Now wait for there to be no active requests
-	limiter_wait_for_idle(&layer->requestLimiter);
+	limiter_wait_for_idle(&layer->request_limiter);
 	// Reset the compression state after all requests are done
 	if (was_compressing) {
 		set_kvdo_compressing(&layer->kvdo, true);
@@ -215,15 +215,17 @@ static int launch_data_kvio_from_vdo_thread(struct kernel_layer *layer,
 	 * amounts of buffering on top of VDO, they're welcome to access it
 	 * through the kernel page cache or roll their own.
 	 */
-	if (!limiter_poll(&layer->requestLimiter)) {
-		add_to_deadlock_queue(&layer->deadlockQueue, bio, arrival_time);
+	if (!limiter_poll(&layer->request_limiter)) {
+	  add_to_deadlock_queue(&layer->deadlock_queue,
+				bio,
+				arrival_time);
 		logWarning("queued an I/O request to avoid deadlock!");
 
 		return DM_MAPIO_SUBMITTED;
 	}
 
 	bool has_discard_permit =
-		(is_discard_bio(bio) && limiter_poll(&layer->discardLimiter));
+		(is_discard_bio(bio) && limiter_poll(&layer->discard_limiter));
 	int result = kvdo_launch_data_kvio_from_bio(layer,
 						    bio,
 						    arrival_time,
@@ -296,10 +298,10 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 	bool has_discard_permit = false;
 	if (is_discard_bio(bio)) {
-		limiter_wait_for_one_free(&layer->discardLimiter);
+		limiter_wait_for_one_free(&layer->discard_limiter);
 		has_discard_permit = true;
 	}
-	limiter_wait_for_one_free(&layer->requestLimiter);
+	limiter_wait_for_one_free(&layer->request_limiter);
 
 	int result = kvdo_launch_data_kvio_from_bio(layer, bio, arrival_time,
 						    has_discard_permit);
@@ -315,7 +317,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 /**********************************************************************/
 struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 {
-	return layer->deviceConfig->owned_device->bdev;
+	return layer->device_config->owned_device->bdev;
 }
 
 /**********************************************************************/
@@ -325,7 +327,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	// now.
 	while (count > 0) {
 		Jiffies arrival_time = 0;
-		struct bio *bio = poll_deadlock_queue(&layer->deadlockQueue,
+		struct bio *bio = poll_deadlock_queue(&layer->deadlock_queue,
 						      &arrival_time);
 		if (likely(bio == NULL)) {
 			break;
@@ -333,7 +335,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 
 		bool has_discard_permit =
 			(is_discard_bio(bio) &&
-			 limiter_poll(&layer->discardLimiter));
+			 limiter_poll(&layer->discard_limiter));
 		int result = kvdo_launch_data_kvio_from_bio(
 			layer, bio, arrival_time, has_discard_permit);
 		if (result != VDO_SUCCESS) {
@@ -345,7 +347,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 	}
 	// Notify the limiter, so it can wake any blocked processes.
 	if (count > 0) {
-		limiter_release_many(&layer->requestLimiter, count);
+		limiter_release_many(&layer->request_limiter, count);
 	}
 }
 
@@ -502,7 +504,7 @@ static int kvdo_is_congested(struct dm_target_callbacks *callbacks,
 {
 	struct kernel_layer *layer =
 		container_of(callbacks, struct kernel_layer, callbacks);
-	if (!limiter_has_one_free(&layer->requestLimiter)) {
+	if (!limiter_has_one_free(&layer->request_limiter)) {
 		return 1;
 	}
 
@@ -565,11 +567,11 @@ int make_kernel_layer(uint64_t starting_sector,
 		kobject_put(&layer->kobj);
 		return result;
 	}
-	kobject_init(&layer->wqDirectory, &work_queue_directory_kobj_type);
-	result = kobject_add(&layer->wqDirectory, &layer->kobj, "work_queues");
+	kobject_init(&layer->wq_directory, &work_queue_directory_kobj_type);
+	result = kobject_add(&layer->wq_directory, &layer->kobj, "work_queues");
 	if (result != 0) {
 		*reason = "Cannot add sysfs node";
-		kobject_put(&layer->wqDirectory);
+		kobject_put(&layer->wq_directory);
 		kobject_put(&layer->kobj);
 		return result;
 	}
@@ -587,16 +589,16 @@ int make_kernel_layer(uint64_t starting_sector,
 	 */
 	set_kernel_layer_state(layer, LAYER_SIMPLE_THINGS_INITIALIZED);
 
-	initialize_deadlock_queue(&layer->deadlockQueue);
+	initialize_deadlock_queue(&layer->deadlock_queue);
 
 	int request_limit = default_max_requests_active;
-	initialize_limiter(&layer->requestLimiter, request_limit);
-	initialize_limiter(&layer->discardLimiter, request_limit * 3 / 4);
+	initialize_limiter(&layer->request_limiter, request_limit);
+	initialize_limiter(&layer->discard_limiter, request_limit * 3 / 4);
 
-	layer->allocationsAllowed = true;
+	layer->allocations_allowed = true;
 	layer->instance = instance;
-	layer->deviceConfig = config;
-	layer->startingSectorOffset = starting_sector;
+	layer->device_config = config;
+	layer->starting_sector_offset = starting_sector;
 
 	layer->common.getBlockCount = kvdo_get_block_count;
 	layer->common.isFlushRequired = is_flush_required;
@@ -608,9 +610,9 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->common.waitForAdminOperation = wait_for_sync_operation;
 	layer->common.completeAdminOperation = kvdo_complete_sync_operation;
 	layer->common.flush = kvdo_flush_vio;
-	spin_lock_init(&layer->flushLock);
+	spin_lock_init(&layer->flush_lock);
 	mutex_init(&layer->statsMutex);
-	bio_list_init(&layer->waitingFlushes);
+	bio_list_init(&layer->waiting_flushes);
 
 	// This can go anywhere, as long as it is not registered until the
 	// layer is fully allocated.
@@ -623,8 +625,8 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	snprintf(layer->threadNamePrefix,
-		 sizeof(layer->threadNamePrefix),
+	snprintf(layer->thread_name_prefix,
+		 sizeof(layer->thread_name_prefix),
 		 "%s%u",
 		 THIS_MODULE->name,
 		 instance);
@@ -648,7 +650,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	result = make_batch_processor(layer,
 				      return_data_kvio_batch_to_pool,
 				      layer,
-				      &layer->dataKVIOReleaser);
+				      &layer->data_kvio_releaser);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate KVIO-freeing batch processor";
 		free_kernel_layer(layer);
@@ -656,7 +658,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// Spare KVDOFlush, so that we will always have at least one available
-	result = make_kvdo_flush(&layer->spareKVDOFlush);
+	result = make_kvdo_flush(&layer->spare_kvdo_flush);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot allocate KVDOFlush record";
 		free_kernel_layer(layer);
@@ -675,8 +677,8 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// Dedupe Index
-	BUG_ON(layer->threadNamePrefix[0] == '\0');
-	result = make_dedupe_index(&layer->dedupeIndex, layer);
+	BUG_ON(layer->thread_name_prefix[0] == '\0');
+	result = make_dedupe_index(&layer->dedupe_index, layer);
 	if (result != UDS_SUCCESS) {
 		*reason = "Cannot initialize dedupe index";
 		free_kernel_layer(layer);
@@ -714,7 +716,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	set_kernel_layer_state(layer, LAYER_BUFFER_POOLS_INITIALIZED);
 
 	// Trace pool
-	BUG_ON(layer->requestLimiter.limit <= 0);
+	BUG_ON(layer->request_limiter.limit <= 0);
 	result = trace_kernel_layer_init(layer);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot initialize trace data";
@@ -723,12 +725,12 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	// KVIO and VIO pool
-	BUG_ON(layer->deviceConfig->logical_block_size <= 0);
-	BUG_ON(layer->requestLimiter.limit <= 0);
-	BUG_ON(layer->deviceConfig->owned_device == NULL);
+	BUG_ON(layer->device_config->logical_block_size <= 0);
+	BUG_ON(layer->request_limiter.limit <= 0);
+	BUG_ON(layer->device_config->owned_device == NULL);
 	result = make_data_kvio_buffer_pool(layer,
-					    layer->requestLimiter.limit,
-					    &layer->dataKVIOPool);
+					    layer->request_limiter.limit,
+					    &layer->data_kvio_pool);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate vio data";
 		free_kernel_layer(layer);
@@ -751,12 +753,12 @@ int make_kernel_layer(uint64_t starting_sector,
 	set_kernel_layer_state(layer, LAYER_REQUEST_QUEUE_INITIALIZED);
 
 	// Bio queue
-	result = make_io_submitter(layer->threadNamePrefix,
+	result = make_io_submitter(layer->thread_name_prefix,
 				   config->thread_counts.bio_threads,
 				   config->thread_counts.bio_rotation_interval,
-				   layer->requestLimiter.limit,
+				   layer->request_limiter.limit,
 				   layer,
-				   &layer->ioSubmitter);
+				   &layer->io_submitter);
 	if (result != VDO_SUCCESS) {
 		// If initialization of the bio-queues failed, they are cleaned
 		// up already, so just free the rest of the kernel layer.
@@ -768,15 +770,15 @@ int make_kernel_layer(uint64_t starting_sector,
 
 	// Bio ack queue
 	if (use_bio_ack_queue(layer)) {
-		result = make_work_queue(layer->threadNamePrefix,
+		result = make_work_queue(layer->thread_name_prefix,
 					 "ackQ",
-					 &layer->wqDirectory,
+					 &layer->wq_directory,
 					 layer,
 					 layer,
 					 &bio_ack_q_type,
 					 config->thread_counts.bio_ack_threads,
 					 NULL,
-					 &layer->bioAckQueue);
+					 &layer->bio_ack_queue);
 		if (result != VDO_SUCCESS) {
 			*reason = "bio ack queue initialization failed";
 			free_kernel_layer(layer);
@@ -787,15 +789,15 @@ int make_kernel_layer(uint64_t starting_sector,
 	set_kernel_layer_state(layer, LAYER_BIO_ACK_QUEUE_INITIALIZED);
 
 	// CPU Queues
-	result = make_work_queue(layer->threadNamePrefix,
+	result = make_work_queue(layer->thread_name_prefix,
 				 "cpuQ",
-				 &layer->wqDirectory,
+				 &layer->wq_directory,
 				 layer,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
 				 (void **)layer->compressionContext,
-				 &layer->cpuQueue);
+				 &layer->cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
 		free_kernel_layer(layer);
@@ -813,7 +815,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 				   struct device_config *config,
 				   char **error_ptr)
 {
-	struct device_config *extant_config = layer->deviceConfig;
+	struct device_config *extant_config = layer->device_config;
 	if (config->owning_target->begin !=
 	    extant_config->owning_target->begin) {
 		*error_ptr = "Starting sector cannot change";
@@ -892,7 +894,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
 {
-	struct device_config *extant_config = layer->deviceConfig;
+	struct device_config *extant_config = layer->device_config;
 
 	// A failure here is unrecoverable. So there is no problem if it
 	// happens.
@@ -963,20 +965,20 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_STOPPED:
 	case LAYER_CPU_QUEUE_INITIALIZED:
-		finish_work_queue(layer->cpuQueue);
+		finish_work_queue(layer->cpu_queue);
 		used_cpu_queue = true;
 		release_instance = true;
 		// fall through
 
 	case LAYER_BIO_ACK_QUEUE_INITIALIZED:
 		if (use_bio_ack_queue(layer)) {
-			finish_work_queue(layer->bioAckQueue);
+			finish_work_queue(layer->bio_ack_queue);
 			used_bio_ack_queue = true;
 		}
 		// fall through
 
 	case LAYER_BIO_DATA_INITIALIZED:
-		cleanup_io_submitter(layer->ioSubmitter);
+		cleanup_io_submitter(layer->io_submitter);
 		// fall through
 
 	case LAYER_REQUEST_QUEUE_INITIALIZED:
@@ -985,27 +987,27 @@ void free_kernel_layer(struct kernel_layer *layer)
 		// fall through
 
 	case LAYER_BUFFER_POOLS_INITIALIZED:
-		free_buffer_pool(&layer->dataKVIOPool);
-		free_buffer_pool(&layer->traceBufferPool);
+		free_buffer_pool(&layer->data_kvio_pool);
+		free_buffer_pool(&layer->trace_buffer_pool);
 		// fall through
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		if (layer->compressionContext != NULL) {
 			for (int i = 0;
-			     i < layer->deviceConfig->thread_counts.cpu_threads;
+			     i < layer->device_config->thread_counts.cpu_threads;
 			     i++) {
 				FREE(layer->compressionContext[i]);
 			}
 			FREE(layer->compressionContext);
 		}
-		if (layer->dedupeIndex != NULL) {
-			finish_dedupe_index(layer->dedupeIndex);
+		if (layer->dedupe_index != NULL) {
+			finish_dedupe_index(layer->dedupe_index);
 		}
-		FREE(layer->spareKVDOFlush);
-		layer->spareKVDOFlush = NULL;
-		free_batch_processor(&layer->dataKVIOReleaser);
+		FREE(layer->spare_kvdo_flush);
+		layer->spare_kvdo_flush = NULL;
+		free_batch_processor(&layer->data_kvio_releaser);
 		remove_layer_from_device_registry(
-			layer->deviceConfig->pool_name);
+			layer->device_config->pool_name);
 		break;
 
 	default:
@@ -1014,19 +1016,19 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	// Late deallocation of resources in work queues.
 	if (used_cpu_queue) {
-		free_work_queue(&layer->cpuQueue);
+		free_work_queue(&layer->cpu_queue);
 	}
 	if (used_bio_ack_queue) {
-		free_work_queue(&layer->bioAckQueue);
+		free_work_queue(&layer->bio_ack_queue);
 	}
-	if (layer->ioSubmitter) {
-		free_io_submitter(layer->ioSubmitter);
+	if (layer->io_submitter) {
+		free_io_submitter(layer->io_submitter);
 	}
 	if (used_kvdo) {
 		destroy_kvdo(&layer->kvdo);
 	}
 
-	free_dedupe_index(&layer->dedupeIndex);
+	free_dedupe_index(&layer->dedupe_index);
 
 	if (release_instance) {
 		release_kvdo_instance(layer->instance);
@@ -1035,7 +1037,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	// The call to kobject_put on the kobj sysfs node will decrement its
 	// reference count; when the count goes to zero the VDO object and
 	// the kernel layer object will be freed as a side effect.
-	kobject_put(&layer->wqDirectory);
+	kobject_put(&layer->wq_directory);
 	kobject_put(&layer->kobj);
 }
 
@@ -1045,7 +1047,7 @@ static void pool_stats_release(struct kobject *kobj)
 	struct kernel_layer *layer = container_of(kobj,
 						  struct kernel_layer,
 						  statsDirectory);
-	complete(&layer->statsShutdown);
+	complete(&layer->stats_shutdown);
 }
 
 /**********************************************************************/
@@ -1082,22 +1084,22 @@ int start_kernel_layer(struct kernel_layer *layer,
 		stop_kernel_layer(layer);
 		return result;
 	}
-	layer->statsAdded = true;
+	layer->stats_added = true;
 
 	// Don't try to load or rebuild the index first (and log scary error
 	// messages) if this is known to be a newly-formatted volume.
-	start_dedupe_index(layer->dedupeIndex, wasNew(layer->kvdo.vdo));
+	start_dedupe_index(layer->dedupe_index, wasNew(layer->kvdo.vdo));
 
 	result = vdo_create_procfs_entry(layer,
-					 layer->deviceConfig->pool_name,
-					 &layer->procfsPrivate);
+					 layer->device_config->pool_name,
+					 &layer->procfs_private);
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not create proc filesystem entry";
 		stop_kernel_layer(layer);
 		return result;
 	}
 
-	layer->allocationsAllowed = false;
+	layer->allocations_allowed = false;
 
 	return VDO_SUCCESS;
 }
@@ -1108,18 +1110,18 @@ int stop_kernel_layer(struct kernel_layer *layer)
 	char error_name[80] = "";
 	char error_message[ERRBUF_SIZE] = "";
 
-	layer->allocationsAllowed = true;
+	layer->allocations_allowed = true;
 
 	// Stop services that need to gather VDO statistics from the worker
 	// threads.
-	if (layer->statsAdded) {
-		layer->statsAdded = false;
-		init_completion(&layer->statsShutdown);
+	if (layer->stats_added) {
+		layer->stats_added = false;
+		init_completion(&layer->stats_shutdown);
 		kobject_put(&layer->statsDirectory);
-		wait_for_completion(&layer->statsShutdown);
+		wait_for_completion(&layer->stats_shutdown);
 	}
-	vdo_destroy_procfs_entry(layer->deviceConfig->pool_name,
-				 layer->procfsPrivate);
+	vdo_destroy_procfs_entry(layer->device_config->pool_name,
+				 layer->procfs_private);
 
 	int result = stop_kvdo(&layer->kvdo);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
@@ -1138,7 +1140,7 @@ int stop_kernel_layer(struct kernel_layer *layer)
 	case LAYER_SUSPENDED:
 	case LAYER_RUNNING:
 		set_kernel_layer_state(layer, LAYER_STOPPING);
-		stop_dedupe_index(layer->dedupeIndex);
+		stop_dedupe_index(layer->dedupe_index);
 		// fall through
 
 	case LAYER_STOPPING:
@@ -1182,7 +1184,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	if (result != VDO_SUCCESS) {
 		set_kvdo_read_only(&layer->kvdo, result);
 	}
-	suspend_dedupe_index(layer->dedupeIndex, !layer->noFlushSuspend);
+	suspend_dedupe_index(layer->dedupe_index, !layer->no_flush_suspend);
 	return result;
 }
 

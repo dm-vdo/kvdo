@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#25 $
  */
 
 #include "dedupeIndex.h"
@@ -279,7 +279,7 @@ static void finish_index_operation(UdsRequest *uds_request)
 	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
 	if (compareAndSwap32(&dedupe_context->requestState, UR_BUSY, UR_IDLE)) {
 		struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-		struct dedupe_index *index = kvio->layer->dedupeIndex;
+		struct dedupe_index *index = kvio->layer->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
 		if (dedupe_context->isPending) {
@@ -364,7 +364,7 @@ static void start_index_operation(struct kvdo_work_item *item)
 {
 	struct kvio *kvio = work_item_as_kvio(item);
 	struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
-	struct dedupe_index *index = kvio->layer->dedupeIndex;
+	struct dedupe_index *index = kvio->layer->dedupe_index;
 	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
 
 	spin_lock_bh(&index->pending_lock);
@@ -437,7 +437,7 @@ static void report_dedupe_timeout(struct periodic_event_reporter *reporter)
 	atomic64_inc(&reporter->value);
 	int oldWorkItemQueued = atomic_xchg(&reporter->work_item_queued, 1);
 	if (oldWorkItemQueued == 0) {
-		enqueue_work_queue_delayed(reporter->layer->cpuQueue,
+		enqueue_work_queue_delayed(reporter->layer->cpu_queue,
 					   &reporter->work_item,
 					   jiffies +
 					   reporter->reporting_interval);
@@ -510,7 +510,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 {
 	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
-	struct dedupe_index *index = kvio->layer->dedupeIndex;
+	struct dedupe_index *index = kvio->layer->dedupe_index;
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submissionTime = jiffies;
 	if (compareAndSwap32(&dedupe_context->requestState, UR_IDLE, UR_BUSY)) {
@@ -971,7 +971,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	result = allocSprintf("index name", &index->index_name,
 			      "dev=%s offset=4096 size=%llu",
-			      layer->deviceConfig->parent_device_name,
+			      layer->device_config->parent_device_name,
 			      getIndexRegionSize(layer->geometry) *
 				      VDO_BLOCK_SIZE);
 	if (result != UDS_SUCCESS) {
@@ -999,9 +999,9 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 			  .priority = 0 },
 		},
 	};
-	result = make_work_queue(layer->threadNamePrefix,
+	result = make_work_queue(layer->thread_name_prefix,
 				 "dedupeQ",
-				 &layer->wqDirectory,
+				 &layer->wq_directory,
 				 layer,
 				 index,
 				 &uds_queue_type,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#24 $
  */
 
 #include "ioSubmitter.h"
@@ -232,7 +232,7 @@ void count_completed_bios(struct bio *bio)
 {
 	struct kvio *kvio = (struct kvio *)bio->bi_private;
 	struct kernel_layer *layer = kvio->layer;
-	atomic64_inc(&layer->biosCompleted);
+	atomic64_inc(&layer->bios_completed);
 	count_all_bios_completed(kvio, bio);
 }
 
@@ -296,7 +296,7 @@ static void send_bio_to_device(struct kvio  *kvio,
 {
 	assert_running_in_bio_queue_for_pbn(kvio->vio->physical);
 
-	atomic64_inc(&kvio->layer->biosSubmitted);
+	atomic64_inc(&kvio->layer->bios_submitted);
 	count_all_bios(kvio, bio);
 	kvio_add_trace_record(kvio, location);
 	bio->bi_next = NULL;
@@ -531,7 +531,8 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 
 	struct kernel_layer *layer = kvio->layer;
 	struct bio_queue_data *bio_queue_data =
-		bio_queue_data_for_pbn(layer->ioSubmitter, kvio->vio->physical);
+		bio_queue_data_for_pbn(layer->io_submitter,
+				       kvio->vio->physical);
 
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io)"));
 
@@ -555,7 +556,7 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 	 * Setting the sync-flag on journal-related bios is expected to reduce
 	 * latency on journal updates submitted to an MD RAID5 device.
 	 */
-	if (layer->deviceConfig->md_raid5_mode_enabled) {
+	if (layer->device_config->md_raid5_mode_enabled) {
 		if (is_data(kvio)) {
 			// Clear the bits for sync I/O RW flags on data block
 			// bios.
@@ -597,7 +598,7 @@ static int initialize_bio_queue(struct bio_queue_data *bio_queue_data,
 	bio_queue_data->queue_number = queue_number;
 
 	return make_work_queue(thread_name_prefix, queue_name,
-			       &layer->wqDirectory, layer, bio_queue_data,
+			       &layer->wq_directory, layer, bio_queue_data,
 			       &bio_queue_type, 1, NULL,
 			       &bio_queue_data->queue);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#18 $
  */
 
 #include "kvio.h"
@@ -67,7 +67,7 @@ void kvdo_continue_kvio(struct kvio *kvio, int error)
 // noinline ensures systemtap can hook in here
 static noinline void maybe_log_kvio_trace(struct kvio *kvio)
 {
-	if (kvio->layer->traceLogging) {
+	if (kvio->layer->trace_logging) {
 		log_kvio_trace(kvio);
 	}
 }
@@ -246,7 +246,7 @@ void initialize_kvio(struct kvio *kvio,
 		     struct bio *bio)
 {
 	if (layer->vioTraceRecording && sample_this_vio(kvio, layer, bio) &&
-	    sample_this_one(&layer->traceSampleCounter)) {
+	    sample_this_one(&layer->trace_sample_counter)) {
 		int result =
 			(isDataVIOType(vio_type) ?
 				 alloc_trace_from_pool(layer, &kvio->vio->trace) :

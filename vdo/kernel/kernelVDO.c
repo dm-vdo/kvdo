@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#21 $
  */
 
 #include "kernelVDOInternals.h"
@@ -50,7 +50,7 @@ static void start_kvdo_request_queue(void *ptr)
 						  struct kernel_layer,
 						  kvdo);
 	registerAllocatingThread(&thread->allocating_thread,
-				 &layer->allocationsAllowed);
+				 &layer->allocations_allowed);
 }
 
 /**********************************************************************/
@@ -112,9 +112,9 @@ int initialize_kvdo(struct kvdo *kvdo, const ThreadConfig *thread_config,
 		// Copy only LEN - 1 bytes and ensure NULL termination.
 		getVDOThreadName(thread_config, kvdo->initialized_thread_count,
 				 queue_name, sizeof(queue_name));
-		int result = make_work_queue(layer->threadNamePrefix,
+		int result = make_work_queue(layer->thread_name_prefix,
 					     queue_name,
-					     &layer->wqDirectory,
+					     &layer->wq_directory,
 					     layer,
 					     thread,
 					     &request_queue_type,

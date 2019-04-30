@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#8 $
  */
 
 #include "ktrace.h"
@@ -98,7 +98,7 @@ static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
 /*************************************************************************/
 int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer)
 {
-	int result = alloc_buffer_from_pool(layer->traceBufferPool,
+	int result = alloc_buffer_from_pool(layer->trace_buffer_pool,
 					    (void **)trace_pointer);
 	if (result == VDO_SUCCESS) {
 		(*trace_pointer)->used = 0;
@@ -109,18 +109,18 @@ int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer)
 /*************************************************************************/
 void free_trace_to_pool(struct kernel_layer *layer, Trace *trace)
 {
-	free_buffer_to_pool(layer->traceBufferPool, trace);
+	free_buffer_to_pool(layer->trace_buffer_pool, trace);
 }
 
 /*************************************************************************/
 int trace_kernel_layer_init(struct kernel_layer *layer)
 {
 	layer->vioTraceRecording = trace_recording;
-	initialize_sample_counter(&layer->traceSampleCounter,
+	initialize_sample_counter(&layer->trace_sample_counter,
 				  TRACE_SAMPLE_INTERVAL);
 	unsigned int trace_records_needed = 0;
 	if (layer->vioTraceRecording) {
-		trace_records_needed += layer->requestLimiter.limit;
+		trace_records_needed += layer->request_limiter.limit;
 	}
 	if (trace_records_needed > 0) {
 		return make_buffer_pool("KVDO Trace Data Pool",
@@ -129,7 +129,7 @@ int trace_kernel_layer_init(struct kernel_layer *layer)
 					free_trace_data_buffer,
 					NULL,
 					layer,
-					&layer->traceBufferPool);
+					&layer->trace_buffer_pool);
 	}
 	return VDO_SUCCESS;
 }
@@ -151,7 +151,7 @@ void log_kvio_trace(struct kvio *kvio)
 	// (on certain of Permabit's test machines).
 	// Yes, the 37 is arbitrary and meaningless.
 
-	if (layer->traceLogging &&
+	if (layer->trace_logging &&
 	    ((trace_logging_state.counter % 1024) == 37)) {
 		kvio_add_trace_record(kvio, THIS_LOCATION(NULL));
 		size_t trace_len = 0;
