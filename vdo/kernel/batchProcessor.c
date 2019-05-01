@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#10 $
  */
 
 #include "batchProcessor.h"
@@ -71,11 +71,11 @@ enum batch_processor_state {
 };
 
 struct batch_processor {
-	spinlock_t consumerLock;
+	spinlock_t consumer_lock;
 	FunnelQueue *queue;
-	struct kvdo_work_item workItem;
+	struct kvdo_work_item work_item;
 	atomic_t state;
-	BatchProcessorCallback callback;
+	batch_processor_callback callback;
 	void *closure;
 	struct kernel_layer *layer;
 };
@@ -90,19 +90,19 @@ static void schedule_batch_processing(struct batch_processor *batch);
  *
  * @param [in]  item  The work item embedded in the batch_processor
  **/
-static void batchProcessorWork(struct kvdo_work_item *item)
+static void batch_processor_work(struct kvdo_work_item *item)
 {
 	struct batch_processor *batch =
-		container_of(item, struct batch_processor, workItem);
+		container_of(item, struct batch_processor, work_item);
 
-	spin_lock(&batch->consumerLock);
+	spin_lock(&batch->consumer_lock);
 	while (!isFunnelQueueEmpty(batch->queue)) {
 		batch->callback(batch, batch->closure);
 	}
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	memoryFence();
 	bool need_reschedule = !isFunnelQueueEmpty(batch->queue);
-	spin_unlock(&batch->consumerLock);
+	spin_unlock(&batch->consumer_lock);
 	if (need_reschedule) {
 		schedule_batch_processing(batch);
 	}
@@ -149,20 +149,20 @@ static void schedule_batch_processing(struct batch_processor *batch)
 		&batch->state, BATCH_PROCESSOR_IDLE, BATCH_PROCESSOR_ENQUEUED);
 	bool do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
 	if (do_schedule) {
-		enqueue_cpu_work_queue(batch->layer, &batch->workItem);
+		enqueue_cpu_work_queue(batch->layer, &batch->work_item);
 	}
 }
 
 /**********************************************************************/
 int make_batch_processor(struct kernel_layer *layer,
-			 BatchProcessorCallback callback,
+			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr)
 {
 	struct batch_processor *batch;
 
 	int result =
-		ALLOCATE(1, struct batch_processor, "batchProcessor", &batch);
+		ALLOCATE(1, struct batch_processor, "batch_processor", &batch);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -172,10 +172,10 @@ int make_batch_processor(struct kernel_layer *layer,
 		return result;
 	}
 
-	spin_lock_init(&batch->consumerLock);
-	setup_work_item(&batch->workItem,
-			batchProcessorWork,
-			(KvdoWorkFunction)callback,
+	spin_lock_init(&batch->consumer_lock);
+	setup_work_item(&batch->work_item,
+			batch_processor_work,
+			(KvdoWorkFunction) callback,
 			CPU_Q_ACTION_COMPLETE_KVIO);
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	batch->callback = callback;
@@ -210,7 +210,7 @@ struct kvdo_work_item *next_batch_item(struct batch_processor *batch)
 /**********************************************************************/
 void cond_resched_batch_processor(struct batch_processor *batch)
 {
-	cond_resched_lock(&batch->consumerLock);
+	cond_resched_lock(&batch->consumer_lock);
 }
 
 /**********************************************************************/

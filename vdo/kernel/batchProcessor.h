@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.h#7 $
  */
 
 #ifndef BATCHPROCESSOR_H
@@ -44,8 +44,8 @@
  **/
 struct batch_processor;
 
-typedef void (*BatchProcessorCallback)(struct batch_processor *batch,
-				       void *closure);
+typedef void (*batch_processor_callback)(struct batch_processor *batch,
+					 void *closure);
 
 /**
  * Creates a batch-processor control structure.
@@ -58,7 +58,7 @@ typedef void (*BatchProcessorCallback)(struct batch_processor *batch,
  * @return   UDS_SUCCESS or an error code
  **/
 int make_batch_processor(struct kernel_layer *layer,
-			 BatchProcessorCallback callback,
+			 batch_processor_callback callback,
 			 void *closure,
 			 struct batch_processor **batch_ptr);
 

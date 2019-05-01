@@ -1,4 +1,4 @@
-/*
+65;5403;1c/*
  * Copyright (c) 2018 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#22 $
  */
 
 #ifndef DATA_KVIO_H
@@ -343,7 +343,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 /**
  * Return a batch of data_kvio objects to the pool.
  *
- * <p>Implements BatchProcessorCallback.
+ * <p>Implements batch_processor_callback.
  *
  * @param batch    The batch processor
  * @param closure  The kernal layer
