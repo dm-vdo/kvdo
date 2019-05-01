@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#23 $
  */
 
 #ifndef KERNELLAYER_H
@@ -175,8 +175,8 @@ struct kernel_layer {
 	/* true if sysfs statistics directory is set up */
 	bool stats_added;
 	/* Used to gather statistics without allocating memory */
-	VDOStatistics vdoStatsStorage;
-	KernelStatistics kernelStatsStorage;
+	VDOStatistics vdo_stats_storage;
+	KernelStatistics kernel_stats_storage;
 };
 
 typedef enum {
