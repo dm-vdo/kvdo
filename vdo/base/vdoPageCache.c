@@ -16,10 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#5 $
  */
 
 #include "vdoPageCacheInternals.h"
+
+#if __KERNEL__
+#include <linux/ratelimit.h>
+#endif
 
 #include "errors.h"
 #include "logger.h"
@@ -82,8 +86,8 @@ static int allocateCacheComponents(VDOPageCache *cache)
 static int initializeInfo(VDOPageCache *cache)
 {
   initializeRing(&cache->freeList);
-  for (PageInfo *info = cache->infos; info < cache->infos + cache->pageCount;
-       ++info) {
+  PageInfo *info;
+  for (info = cache->infos; info < cache->infos + cache->pageCount; ++info) {
     info->cache = cache;
     info->state = PS_FREE;
     info->pbn   = NO_PAGE;
@@ -177,8 +181,8 @@ void freeVDOPageCache(VDOPageCache **cachePtr)
   }
 
   if (cache->infos != NULL) {
-    for (PageInfo *info = cache->infos; info < cache->infos + cache->pageCount;
-         ++info) {
+    PageInfo *info;
+    for (info = cache->infos; info < cache->infos + cache->pageCount; ++info) {
       freeVIO(&info->vio);
     }
   }
@@ -459,7 +463,8 @@ PageInfo *vpcFindPage(VDOPageCache *cache, PhysicalBlockNumber pbn)
 __attribute__((warn_unused_result))
 static PageInfo *selectLRUPage(VDOPageCache *cache)
 {
-  for (PageInfoNode *lru = cache->lruList.next;
+  PageInfoNode *lru;
+  for (lru = cache->lruList.next;
        lru != &cache->lruList;
        lru = lru->next) {
     PageInfo *info = pageInfoFromLRUNode(lru);
@@ -585,11 +590,11 @@ static void setPersistentError(VDOPageCache *cache,
                                int           result)
 {
   // If we're already read-only, there's no need to log.
-  if (result != VDO_READ_ONLY) {
-    logErrorWithStringError(result,
-                            "VDO Page Cache persistent error: %s",
+  ReadOnlyNotifier *notifier = cache->zone->readOnlyNotifier;
+  if ((result != VDO_READ_ONLY) && !isReadOnly(notifier)) {
+    logErrorWithStringError(result, "VDO Page Cache persistent error: %s",
                             context);
-    enterReadOnlyMode(cache->zone->readOnlyNotifier, result);
+    enterReadOnlyMode(notifier, result);
   }
 
   assertOnCacheThread(cache, __func__);
@@ -597,9 +602,8 @@ static void setPersistentError(VDOPageCache *cache,
   distributeErrorOverQueue(result, &cache->freeWaiters);
   cache->waiterCount = 0;
 
-  for (PageInfo *info = cache->infos;
-       info < cache->infos + cache->pageCount;
-       ++info) {
+  PageInfo *info;
+  for (info = cache->infos; info < cache->infos + cache->pageCount; ++info) {
     distributeErrorOverQueue(result, &info->waiting);
   }
 }
@@ -1041,7 +1045,16 @@ static void handlePageWriteError(VDOCompletion *completion)
 
   // If we're already read-only, write failures are to be expected.
   if (result != VDO_READ_ONLY) {
+#if __KERNEL__
+    static DEFINE_RATELIMIT_STATE(errorLimiter, DEFAULT_RATELIMIT_INTERVAL,
+                                  DEFAULT_RATELIMIT_BURST);
+
+    if (__ratelimit(&errorLimiter)) {
+      logError("failed to write block map page %llu", info->pbn);
+    }
+#else
     logError("failed to write block map page %llu", info->pbn);
+#endif
   }
 
   setInfoState(info, PS_DIRTY);
@@ -1320,9 +1333,8 @@ int invalidateVDOPageCache(VDOPageCache *cache)
   assertOnCacheThread(cache, __func__);
 
   // Make sure we don't throw away any dirty pages.
-  for (PageInfo *info = cache->infos;
-       info < cache->infos + cache->pageCount;
-       info++) {
+  PageInfo *info;
+  for (info = cache->infos; info < cache->infos + cache->pageCount; info++) {
     int result = ASSERT(!isDirty(info), "cache must have no dirty pages");
     if (result != VDO_SUCCESS) {
       return result;

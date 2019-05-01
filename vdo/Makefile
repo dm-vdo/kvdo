@@ -20,8 +20,11 @@ EXTRA_CFLAGS =	-std=gnu99					\
 		-DCURRENT_VERSION=\"$(VDO_VERSION)\"		\
 		$(INCLUDES)
 
-CFLAGS_vio.o= -std=gnu89
+CFLAGS_REMOVE_vdoPageCache.o= -std=gnu99
 CFLAGS_REMOVE_vio.o= -std=gnu99
+
+CFLAGS_vdoPageCache.o= -std=gnu89
+CFLAGS_vio.o= -std=gnu89
 
 obj-m += kvdo.o
 
