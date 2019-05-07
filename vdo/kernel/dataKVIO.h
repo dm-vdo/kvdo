@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#24 $
  */
 
 #ifndef DATA_KVIO_H
@@ -36,7 +36,7 @@ struct external_io_request {
 	// Cached copies of fields from the bio which will need to be reset
 	// after we're done.
 	void *private;
-	void *endIO;
+	void *end_io;
 	// This is a copy of the bi_rw field of the bio which sadly is not just
 	// a boolean read-write flag, but also includes other flag bits.
 	unsigned long rw;
@@ -44,14 +44,14 @@ struct external_io_request {
 
 /* Dedupe support */
 struct dedupe_context {
-	UdsRequest udsRequest;
-	struct list_head pendingList;
-	Jiffies submissionTime;
-	Atomic32 requestState;
+	UdsRequest uds_request;
+	struct list_head pending_list;
+	Jiffies submission_time;
+	Atomic32 request_state;
 	int status;
-	bool isPending;
+	bool is_pending;
 	/** Hash of the associated VIO (NULL if not calculated) */
-	const UdsChunkName *chunkName;
+	const UdsChunkName *chunk_name;
 };
 
 struct read_block {
@@ -76,7 +76,7 @@ struct read_block {
 	 * Mapping state passed to kvdo_read_block(), used to determine whether
 	 * the data must be uncompressed.
 	 **/
-	BlockMappingState mappingState;
+	BlockMappingState mapping_state;
 	/**
 	 * The result code of the read attempt.
 	 **/
@@ -85,21 +85,21 @@ struct read_block {
 
 struct data_kvio {
 	/* The embedded base code's DataVIO */
-	DataVIO dataVIO;
+	DataVIO data_vio;
 	/* The embedded kvio */
 	struct kvio kvio;
 	/* The bio from the request which is being serviced by this kvio. */
-	struct external_io_request externalIORequest;
+	struct external_io_request external_io_request;
 	/* Dedupe */
-	struct dedupe_context dedupeContext;
+	struct dedupe_context dedupe_context;
 	/* Read cache */
-	struct read_block readBlock;
+	struct read_block read_block;
 	/* partial block support */
 	BlockSize offset;
 	bool isPartial;
 	/* discard support */
 	bool hasDiscardPermit;
-	DiscardSize remainingDiscard;
+	DiscardSize remaining_discard;
 	/**
 	 * A copy of user data written, so we can do additional processing
 	 * (dedupe, compression) after acknowledging the I/O operation and
@@ -108,11 +108,11 @@ struct data_kvio {
 	 * Also used as buffer space for read-modify-write cycles when
 	 * emulating smaller-than-blockSize I/O operations.
 	 **/
-	char *dataBlock;
-	/** A bio structure describing the #dataBlock buffer. */
-	struct bio *dataBlockBio;
+	char *data_block;
+	/** A bio structure describing the #data_block buffer. */
+	struct bio *data_block_bio;
 	/** A block used as output during compression or uncompression. */
-	char *scratchBlock;
+	char *scratch_block;
 };
 
 /**
@@ -149,7 +149,7 @@ static inline struct kvio *data_kvio_as_kvio(struct data_kvio *data_kvio)
  **/
 static inline struct data_kvio *data_vio_as_data_kvio(DataVIO *data_vio)
 {
-	return container_of(data_vio, struct data_kvio, dataVIO);
+	return container_of(data_vio, struct data_kvio, data_vio);
 }
 
 /**
@@ -256,7 +256,7 @@ static inline void enqueue_data_kvio_work(struct kvdo_work_queue *queue,
 static inline void data_kvio_add_trace_record(struct data_kvio *data_kvio,
 					      TraceLocation location)
 {
-	dataVIOAddTraceRecord(&data_kvio->dataVIO, location);
+	dataVIOAddTraceRecord(&data_kvio->data_vio, location);
 }
 
 /**
@@ -314,7 +314,7 @@ static inline void kvdo_enqueue_data_vio_callback(struct data_kvio *data_kvio)
  **/
 static inline bool requestor_set_fua(struct data_kvio *data_kvio)
 {
-	return ((data_kvio->externalIORequest.rw & REQ_FUA) == REQ_FUA);
+	return ((data_kvio->external_io_request.rw & REQ_FUA) == REQ_FUA);
 }
 
 /**

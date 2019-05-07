@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#9 $
  */
 
 #include "physicalLayer.h"
@@ -95,12 +95,12 @@ static void verify_duplication_work(struct kvdo_work_item *item)
 	data_kvio_add_trace_record(data_kvio,
 				   THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
-	if (likely(memory_equal(data_kvio->dataBlock,
-				data_kvio->readBlock.data,
-			       VDO_BLOCK_SIZE))) {
-		// Leave data_kvio->dataVIO.isDuplicate set to true.
+	if (likely(memory_equal(data_kvio->data_block,
+				data_kvio->read_block.data,
+				VDO_BLOCK_SIZE))) {
+		// Leave data_kvio->data_vio.isDuplicate set to true.
 	} else {
-		data_kvio->dataVIO.isDuplicate = false;
+		data_kvio->data_vio.isDuplicate = false;
 	}
 
 	kvdo_enqueue_data_vio_callback(data_kvio);
@@ -115,10 +115,10 @@ static void verify_duplication_work(struct kvdo_work_item *item)
 static void verify_read_block_callback(struct data_kvio *data_kvio)
 {
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
-	int err = data_kvio->readBlock.status;
+	int err = data_kvio->read_block.status;
 	if (unlikely(err != 0)) {
 		logDebug("%s: err %d", __func__, err);
-		data_kvio->dataVIO.isDuplicate = false;
+		data_kvio->data_vio.isDuplicate = false;
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
 	}
@@ -157,5 +157,5 @@ bool compareDataVIOs(DataVIO *first, DataVIO *second)
 	dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
 	struct data_kvio *a = data_vio_as_data_kvio(first);
 	struct data_kvio *b = data_vio_as_data_kvio(second);
-	return memory_equal(a->dataBlock, b->dataBlock, VDO_BLOCK_SIZE);
+	return memory_equal(a->data_block, b->data_block, VDO_BLOCK_SIZE);
 }

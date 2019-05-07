@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#25 $
  */
 
 #include "ioSubmitter.h"
@@ -251,9 +251,9 @@ void complete_async_bio(struct bio *bio, int error)
 	count_completed_bios(bio);
 	if ((error == 0) && is_data(kvio) && isReadVIO(kvio->vio)) {
 		struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
-		if (!isCompressed(data_kvio->dataVIO.mapped.state) &&
+		if (!isCompressed(data_kvio->data_vio.mapped.state) &&
 		    !data_kvio->isPartial) {
-			acknowledgeDataVIO(&data_kvio->dataVIO);
+			acknowledgeDataVIO(&data_kvio->data_vio);
 			return;
 		}
 	}

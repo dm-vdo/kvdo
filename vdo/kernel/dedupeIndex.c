@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#26 $
  */
 
 #include "dedupeIndex.h"
@@ -49,7 +49,7 @@ enum { UDS_Q_ACTION };
 
 /*****************************************************************************/
 
-// These are the values in the atomic dedupeContext.requestState field
+// These are the values in the atomic dedupe_context.request_state field
 enum {
 	// The UdsRequest object is not in use.
 	UR_IDLE = 0,
@@ -275,16 +275,16 @@ static void finish_index_operation(UdsRequest *uds_request)
 {
 	struct data_kvio *data_kvio = container_of(uds_request,
 						   struct data_kvio,
-						   dedupeContext.udsRequest);
-	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
-	if (compareAndSwap32(&dedupe_context->requestState, UR_BUSY, UR_IDLE)) {
+						   dedupe_context.uds_request);
+	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
+	if (compareAndSwap32(&dedupe_context->request_state, UR_BUSY, UR_IDLE)) {
 		struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 		struct dedupe_index *index = kvio->layer->dedupe_index;
 
 		spin_lock_bh(&index->pending_lock);
-		if (dedupe_context->isPending) {
-			list_del(&dedupe_context->pendingList);
-			dedupe_context->isPending = false;
+		if (dedupe_context->is_pending) {
+			list_del(&dedupe_context->pending_list);
+			dedupe_context->is_pending = false;
 		}
 		spin_unlock_bh(&index->pending_lock);
 
@@ -301,7 +301,7 @@ static void finish_index_operation(UdsRequest *uds_request)
 		invoke_dedupe_callback(data_kvio);
 		atomic_dec(&index->active);
 	} else {
-		compareAndSwap32(&dedupe_context->requestState,
+		compareAndSwap32(&dedupe_context->request_state,
 				 UR_TIMED_OUT,
 				 UR_IDLE);
 	}
@@ -355,7 +355,7 @@ static void start_expiration_timer(struct dedupe_index *index,
 		index->started_timer = true;
 		mod_timer(&index->pending_timer,
 			  get_albireo_timeout(
-				  data_kvio->dedupeContext.submissionTime));
+				  data_kvio->dedupe_context.submission_time));
 	}
 }
 
@@ -365,15 +365,15 @@ static void start_index_operation(struct kvdo_work_item *item)
 	struct kvio *kvio = work_item_as_kvio(item);
 	struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
 	struct dedupe_index *index = kvio->layer->dedupe_index;
-	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
+	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
 
 	spin_lock_bh(&index->pending_lock);
-	list_add_tail(&dedupe_context->pendingList, &index->pending_head);
-	dedupe_context->isPending = true;
+	list_add_tail(&dedupe_context->pending_list, &index->pending_head);
+	dedupe_context->is_pending = true;
 	start_expiration_timer(index, data_kvio);
 	spin_unlock_bh(&index->pending_lock);
 
-	UdsRequest *uds_request = &dedupe_context->udsRequest;
+	UdsRequest *uds_request = &dedupe_context->uds_request;
 	int status = udsStartChunkOperation(uds_request);
 	if (status != UDS_SUCCESS) {
 		uds_request->status = status;
@@ -472,28 +472,28 @@ static void timeout_index_operations(unsigned long arg)
 		struct data_kvio *data_kvio =
 			list_first_entry(&index->pending_head,
 					 struct data_kvio,
-					 dedupeContext.pendingList);
+					 dedupe_context.pending_list);
 		struct dedupe_context *dedupe_context =
-			&data_kvio->dedupeContext;
+			&data_kvio->dedupe_context;
 		if (earliest_submission_allowed <=
-		    dedupe_context->submissionTime) {
+		    dedupe_context->submission_time) {
 			start_expiration_timer(index, data_kvio);
 			break;
 		}
-		list_del(&dedupe_context->pendingList);
-		dedupe_context->isPending = false;
-		list_add_tail(&dedupe_context->pendingList, &expiredHead);
+		list_del(&dedupe_context->pending_list);
+		dedupe_context->is_pending = false;
+		list_add_tail(&dedupe_context->pending_list, &expiredHead);
 	}
 	spin_unlock_bh(&index->pending_lock);
 	while (!list_empty(&expiredHead)) {
 		struct data_kvio *data_kvio =
 			list_first_entry(&expiredHead,
 					 struct data_kvio,
-					 dedupeContext.pendingList);
+					 dedupe_context.pending_list);
 		struct dedupe_context *dedupe_context =
-			&data_kvio->dedupeContext;
-		list_del(&dedupe_context->pendingList);
-		if (compareAndSwap32(&dedupe_context->requestState,
+			&data_kvio->dedupe_context;
+		list_del(&dedupe_context->pending_list);
+		if (compareAndSwap32(&dedupe_context->request_state,
 				     UR_BUSY,
 				     UR_TIMED_OUT)) {
 			dedupe_context->status = ETIMEDOUT;
@@ -509,13 +509,13 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 				    UdsCallbackType operation)
 {
 	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
-	struct dedupe_context *dedupe_context = &data_kvio->dedupeContext;
+	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
 	struct dedupe_index *index = kvio->layer->dedupe_index;
 	dedupe_context->status = UDS_SUCCESS;
-	dedupe_context->submissionTime = jiffies;
-	if (compareAndSwap32(&dedupe_context->requestState, UR_IDLE, UR_BUSY)) {
-		UdsRequest *uds_request = &data_kvio->dedupeContext.udsRequest;
-		uds_request->chunkName = *dedupe_context->chunkName;
+	dedupe_context->submission_time = jiffies;
+	if (compareAndSwap32(&dedupe_context->request_state, UR_IDLE, UR_BUSY)) {
+		UdsRequest *uds_request = &data_kvio->dedupe_context.uds_request;
+		uds_request->chunkName = *dedupe_context->chunk_name;
 		uds_request->callback = finish_index_operation;
 		uds_request->session = index->index_session;
 		uds_request->type = operation;
@@ -540,7 +540,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 			}
 			kvio = NULL;
 		} else {
-			atomicStore32(&dedupe_context->requestState, UR_IDLE);
+			atomicStore32(&dedupe_context->request_state, UR_IDLE);
 		}
 		spin_unlock(&index->state_lock);
 	} else {

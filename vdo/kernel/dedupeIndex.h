@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#11 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -105,11 +105,11 @@ int message_dedupe_index(struct dedupe_index *index, const char *name);
  * Look up the chunkname of the data_kvio and identify duplicated chunks.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupeContext.chunkName is the chunk name.
+ *                   dedupe_context.chunkName is the chunk name.
  *                   The advice to offer to the index will be obtained
  *                   via get_dedupe_advice(). The advice found in the index
  *                   (or NULL if none) will be returned via
- *                   set_dedupe_advice(). dedupeContext.status is set to the
+ *                   set_dedupe_advice(). dedupe_context.status is set to the
  *                   return status code of any asynchronous index processing.
  **/
 void post_dedupe_advice(struct data_kvio *data_kvio);
@@ -118,10 +118,10 @@ void post_dedupe_advice(struct data_kvio *data_kvio);
  * Look up the chunkname of the data_kvio and identify duplicated chunks.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupeContext.chunkName is the chunk name.
+ *                   dedupe_context.chunkName is the chunk name.
  *                   The advice found in the index (or NULL if none) will
  *                   be returned via set_dedupe_advice().
- *                   dedupeContext.status is set to the return status code of
+ *                   dedupe_context.status is set to the return status code of
  *                   any asynchronous index processing.
  **/
 void query_dedupe_advice(struct data_kvio *data_kvio);
@@ -163,9 +163,9 @@ void finish_dedupe_index(struct dedupe_index *index);
  * name.
  *
  * @param data_kvio  The data_kvio. These fields are used:
- *                   dedupeContext.chunkName is the chunk name.
+ *                   dedupe_context.chunkName is the chunk name.
  *                   The advice to offer to the index will be obtained via
- *                   get_dedupe_advice(). dedupeContext.status is set to the
+ *                   get_dedupe_advice(). dedupe_context.status is set to the
  *                   return status code of any asynchronous index processing.
  **/
 void update_dedupe_advice(struct data_kvio *data_kvio);
