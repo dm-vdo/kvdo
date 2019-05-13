@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadRegistry.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadRegistry.h#2 $
  */
 
 #ifndef THREAD_REGISTRY_H
@@ -31,14 +31,14 @@
  */
 
 typedef struct threadRegistry {
-  struct list_head links;
-  rwlock_t         lock;
+	struct list_head links;
+	rwlock_t lock;
 } ThreadRegistry;
 
 typedef struct registeredThread {
-  struct list_head    links;
-  const void         *pointer;
-  struct task_struct *task;
+	struct list_head links;
+	const void *pointer;
+	struct task_struct *task;
 } RegisteredThread;
 
 /*****************************************************************************/
@@ -55,13 +55,13 @@ void initializeThreadRegistry(ThreadRegistry *registry);
  *
  * This call will log messages if the thread is already registered.
  *
- * @param registry   The thread registry
- * @param newThread  RegisteredThread structure to use for the current thread
- * @param pointer    The value to associated with the current thread
+ * @param registry    The thread registry
+ * @param new_thread  RegisteredThread structure to use for the current thread
+ * @param pointer     The value to associated with the current thread
  **/
-void registerThread(ThreadRegistry   *registry,
-                    RegisteredThread *newThread,
-                    const void       *pointer);
+void registerThread(ThreadRegistry *registry,
+		    RegisteredThread *new_thread,
+		    const void *pointer);
 
 /**
  * Remove the registration for the current thread.
