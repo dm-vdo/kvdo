@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.h#2 $
  */
 
 #ifndef LOGGER_H
@@ -27,14 +27,14 @@
 #include <linux/types.h>
 #include <linux/version.h>
 
-#define LOG_EMERG       0       /* system is unusable */
-#define LOG_ALERT       1       /* action must be taken immediately */
-#define LOG_CRIT        2       /* critical conditions */
-#define LOG_ERR         3       /* error conditions */
-#define LOG_WARNING     4       /* warning conditions */
-#define LOG_NOTICE      5       /* normal but significant condition */
-#define LOG_INFO        6       /* informational */
-#define LOG_DEBUG       7       /* debug-level messages */
+#define LOG_EMERG 0 /* system is unusable */
+#define LOG_ALERT 1 /* action must be taken immediately */
+#define LOG_CRIT 2 /* critical conditions */
+#define LOG_ERR 3 /* error conditions */
+#define LOG_WARNING 4 /* warning conditions */
+#define LOG_NOTICE 5 /* normal but significant condition */
+#define LOG_INFO 6 /* informational */
+#define LOG_DEBUG 7 /* debug-level messages */
 
 // Make it easy to log real pointer values using %px when in development.
 #define PRIptr "pK"
@@ -62,9 +62,9 @@ int getLogLevel(void);
 /**
  * Set the current logging level.
  *
- * @param newLogLevel  the new value for the logging priority level.
+ * @param new_log_level  the new value for the logging priority level.
  **/
-void setLogLevel(int newLogLevel);
+void setLogLevel(int new_log_level);
 
 /**
  * Return the integer logging priority represented by a name.
@@ -115,7 +115,7 @@ void logWarning(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * Log an error.
  *
  * @param  format The format of the message (a printf style format)
-  **/
+ **/
 void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 /**
@@ -126,7 +126,7 @@ void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
  **/
 
 void vLogError(const char *format, va_list args)
-  __attribute__((format(printf, 1, 0)));
+	__attribute__((format(printf, 1, 0)));
 
 /**
  * Log a message embedded within another message.
@@ -137,13 +137,13 @@ void vLogError(const char *format, va_list args)
  * @param args1         arguments for message first part
  * @param fmt2          format of message second part
  **/
-void logEmbeddedMessage(int         priority,
-                        const char *prefix,
-                        const char *fmt1,
-                        va_list     args1,
-                        const char *fmt2,
-                        ...)
-  __attribute__((format(printf, 3, 0), format(printf, 5, 6)));
+void logEmbeddedMessage(int priority,
+			const char *prefix,
+			const char *fmt1,
+			va_list args1,
+			const char *fmt2,
+			...)
+	__attribute__((format(printf, 3, 0), format(printf, 5, 6)));
 
 /**
  * Log a message pack consisting of multiple variable sections.
@@ -155,13 +155,13 @@ void logEmbeddedMessage(int         priority,
  * @param fmt2          format of message second part, may be NULL
  * @param args2         arguments for message second part
  **/
-void logMessagePack(int         priority,
-                    const char *prefix,
-                    const char *fmt1,
-                    va_list     args1,
-                    const char *fmt2,
-                    va_list     args2)
-  __attribute__((format(printf, 3, 0)));
+void logMessagePack(int priority,
+		    const char *prefix,
+		    const char *fmt1,
+		    va_list args1,
+		    const char *fmt2,
+		    va_list args2)
+	__attribute__((format(printf, 3, 0)));
 
 /**
  * Log a stack backtrace.
@@ -180,7 +180,7 @@ void logBacktrace(int priority);
  * @return errnum
  **/
 int logWithStringError(int priority, int errnum, const char *format, ...)
-  __attribute__((format(printf, 3, 4)));
+	__attribute__((format(printf, 3, 4)));
 
 /**
  * Log a message with an error from an error code.
@@ -192,11 +192,11 @@ int logWithStringError(int priority, int errnum, const char *format, ...)
  *
  * @return errnum
  **/
-int vLogWithStringError(int         priority,
-                        int         errnum,
-                        const char *format,
-                        va_list     args)
-  __attribute__((format(printf, 3, 0)));
+int vLogWithStringError(int priority,
+			int errnum,
+			const char *format,
+			va_list args)
+	__attribute__((format(printf, 3, 0)));
 
 /**
  * Log an error prefixed with the string associated with the errnum.
@@ -207,27 +207,27 @@ int vLogWithStringError(int         priority,
  * @return errnum
  **/
 int logErrorWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
 int logDebugWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
 int logInfoWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
 int logNoticeWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
 int logWarningWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**********************************************************************/
 int logFatalWithStringError(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**
  * Log an error prefixed with the string associated with the errnum.
@@ -238,7 +238,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
  * @return errnum
  **/
 int vLogErrorWithStringError(int errnum, const char *format, va_list args)
-  __attribute__((format(printf, 2, 0)));
+	__attribute__((format(printf, 2, 0)));
 
 /**
  * Log an ERROR level message and return makeUnrecoverable(errnum)
@@ -249,7 +249,7 @@ int vLogErrorWithStringError(int errnum, const char *format, va_list args)
  * @return makeUnrecoverable(errnum) or UDS_SUCCESS.
  **/
 int logUnrecoverable(int errnum, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**
  * Log a fatal error.
@@ -266,7 +266,7 @@ void logFatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * @param  args     The variadic argument list of format parameters.
  **/
 void vLogMessage(int priority, const char *format, va_list args)
-  __attribute__((format(printf, 2, 0)));
+	__attribute__((format(printf, 2, 0)));
 
 /**
  * Log a message.
@@ -275,7 +275,7 @@ void vLogMessage(int priority, const char *format, va_list args)
  * @param  format   The format of the message (a printf style format)
  **/
 void logMessage(int priority, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**
  * Sleep or delay a short time (likely a few milliseconds) in an attempt allow
