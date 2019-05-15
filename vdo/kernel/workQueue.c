@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#17 $
  */
 
 #include "workQueue.h"
@@ -281,7 +281,7 @@ static bool enqueue_work_queue_item(struct simple_work_queue *queue,
  **/
 static unsigned int get_pending_count(struct simple_work_queue *queue)
 {
-	struct kvdo_work_item_stats *stats = &queue->stats.workItemStats;
+	struct kvdo_work_item_stats *stats = &queue->stats.work_item_stats;
 	long long pending = 0;
 	for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 		pending += atomic64_read(&stats->enqueued[i]);
@@ -547,7 +547,7 @@ static void process_work_item(struct simple_work_queue *queue,
 	item->work(item);
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
-	update_work_item_stats_for_work_time(&queue->stats.workItemStats,
+	update_work_item_stats_for_work_time(&queue->stats.work_item_stats,
 					     index,
 					     work_start_time);
 
@@ -1119,7 +1119,7 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 		thread_status,
 		task_state_report);
 
-	log_work_item_stats(&queue_data.stats.workItemStats);
+	log_work_item_stats(&queue_data.stats.work_item_stats);
 	log_work_queue_stats(queue);
 
 	mutex_unlock(&queue_data_lock);

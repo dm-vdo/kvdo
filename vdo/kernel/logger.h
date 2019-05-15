@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.h#3 $
  */
 
 #ifndef LOGGER_H
@@ -125,7 +125,7 @@ void logError(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * @param  args args for format.
  **/
 
-void vLogError(const char *format, va_list args)
+void v_log_error(const char *format, va_list args)
 	__attribute__((format(printf, 1, 0)));
 
 /**
@@ -237,7 +237,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
  * @param  args   a va_list of args for the format.
  * @return errnum
  **/
-int vLogErrorWithStringError(int errnum, const char *format, va_list args)
+int v_log_error_with_string_error(int errnum, const char *format, va_list args)
 	__attribute__((format(printf, 2, 0)));
 
 /**
@@ -265,7 +265,7 @@ void logFatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
  * @param  format   The format of the message (a printf style format)
  * @param  args     The variadic argument list of format parameters.
  **/
-void vLogMessage(int priority, const char *format, va_list args)
+void v_log_message(int priority, const char *format, va_list args)
 	__attribute__((format(printf, 2, 0)));
 
 /**

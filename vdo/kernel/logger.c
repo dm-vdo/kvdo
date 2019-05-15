@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#6 $
  */
 
 #include "logger.h"
@@ -292,17 +292,17 @@ void logEmbeddedMessage(int priority,
  * Log a message.
  *
  * This helper function exists solely to create a valid va_list with
- * no useful info. It does the real work of vLogMessage, which wants a
+ * no useful info. It does the real work of v_log_message, which wants a
  * second va_list object to pass down.
  *
  * @param  priority The syslog priority value for the message.
  * @param  format   The format of the message (a printf style format)
  * @param  args     The variadic argument list of format parameters.
  **/
-static void vLogMessageHelper(int priority,
-			      const char *format,
-			      va_list args,
-			      ...)
+static void v_log_message_helper(int priority,
+				 const char *format,
+				 va_list args,
+				 ...)
 {
 	va_list dummy;
 	va_start(dummy, args);
@@ -312,9 +312,9 @@ static void vLogMessageHelper(int priority,
 #pragma GCC diagnostic pop
 
 /*****************************************************************************/
-void vLogMessage(int priority, const char *format, va_list args)
+void v_log_message(int priority, const char *format, va_list args)
 {
-	vLogMessageHelper(priority, format, args);
+	v_log_message_helper(priority, format, args);
 }
 
 /**********************************************************************/
@@ -323,7 +323,7 @@ void logMessage(int priority, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(priority, format, args);
+	v_log_message(priority, format, args);
 	va_end(args);
 }
 
@@ -334,7 +334,7 @@ logAtLevel(int priority, const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(priority, format, args);
+	v_log_message(priority, format, args);
 	va_end(args);
 }
 
@@ -344,7 +344,7 @@ void logDebug(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_DEBUG, format, args);
+	v_log_message(LOG_DEBUG, format, args);
 	va_end(args);
 }
 
@@ -354,7 +354,7 @@ void logInfo(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_INFO, format, args);
+	v_log_message(LOG_INFO, format, args);
 	va_end(args);
 }
 
@@ -364,7 +364,7 @@ void logNotice(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_NOTICE, format, args);
+	v_log_message(LOG_NOTICE, format, args);
 	va_end(args);
 }
 
@@ -374,7 +374,7 @@ void logWarning(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_WARNING, format, args);
+	v_log_message(LOG_WARNING, format, args);
 	va_end(args);
 }
 
@@ -384,14 +384,14 @@ void logError(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_ERR, format, args);
+	v_log_message(LOG_ERR, format, args);
 	va_end(args);
 }
 
 /**********************************************************************/
-void vLogError(const char *format, va_list args)
+void v_log_error(const char *format, va_list args)
 {
-	vLogMessage(LOG_ERR, format, args);
+	v_log_message(LOG_ERR, format, args);
 }
 
 /**********************************************************************/
@@ -442,7 +442,7 @@ int logErrorWithStringError(int errnum, const char *format, ...)
 }
 
 /**********************************************************************/
-int vLogErrorWithStringError(int errnum, const char *format, va_list args)
+int v_log_error_with_string_error(int errnum, const char *format, va_list args)
 {
 	vLogWithStringError(LOG_ERR, errnum, format, args);
 	return errnum;
@@ -523,7 +523,7 @@ void logFatal(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	vLogMessage(LOG_CRIT, format, args);
+	v_log_message(LOG_CRIT, format, args);
 	va_end(args);
 }
 

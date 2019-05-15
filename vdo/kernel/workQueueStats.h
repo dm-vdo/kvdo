@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.h#11 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -37,7 +37,7 @@ struct simple_work_queue;
  *
  * Cache line contention issues:
  *
- * In workItemStats, there are read-only fields accessed mostly by
+ * In work_item_stats, there are read-only fields accessed mostly by
  * work submitters, then fields updated by the work submitters (for
  * which there will be contention), then fields rarely if ever updated
  * (more than two cache lines' worth), then fields updated only by the
@@ -46,7 +46,7 @@ struct simple_work_queue;
  */
 struct kvdo_work_queue_stats {
 	// Per-work-function counters and optional nanosecond timing data
-	struct kvdo_work_item_stats workItemStats;
+	struct kvdo_work_item_stats work_item_stats;
 	// How often we go to sleep waiting for work
 	uint64_t waits;
 
@@ -118,7 +118,7 @@ static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
 					    struct kvdo_work_item *item,
 					    int priority)
 {
-	update_work_item_stats_for_enqueue(&stats->workItemStats, item,
+	update_work_item_stats_for_enqueue(&stats->work_item_stats, item,
 					   priority);
 	item->enqueue_time = currentTime(CT_MONOTONIC);
 }
@@ -133,7 +133,7 @@ static inline void update_stats_for_enqueue(struct kvdo_work_queue_stats *stats,
 static inline void update_stats_for_dequeue(struct kvdo_work_queue_stats *stats,
 					    struct kvdo_work_item *item)
 {
-	update_work_item_stats_for_dequeue(&stats->workItemStats, item);
+	update_work_item_stats_for_dequeue(&stats->work_item_stats, item);
 	enter_histogram_sample(stats->queue_time_histogram,
 			       (currentTime(CT_MONOTONIC) - item->enqueue_time) /
 				       1000);
