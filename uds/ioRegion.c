@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioRegion.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioRegion.c#2 $
  */
 
 #include "ioRegion.h"
@@ -31,7 +31,7 @@ int syncAndCloseRegion(IORegion **regionPtr, const char *failureMsg)
   }
   int result = syncRegionContents(*regionPtr);
   int result2 = closeIORegion(regionPtr);
-  if ((result != UDS_SUCCESS) && (result != UDS_UNSUPPORTED)) {
+  if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "%s%scannot sync IORegion",
                                    failureMsg == NULL ? "" : failureMsg,
                                    failureMsg == NULL ? "" : ": ");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.h#2 $
  */
 
 #ifndef VOLUME_INTERNALS_H
@@ -24,25 +24,7 @@
 
 #include "volume.h"
 
-/* Magic number and versioning */
-extern const byte VOLUME_MAGIC_NUMBER[];
-extern const byte VOLUME_VERSION[];
-
-extern const unsigned int VOLUME_MAGIC_LENGTH;
-enum { VOLUME_VERSION_LENGTH = 5 };
-
 extern const bool READ_ONLY_VOLUME;
-
-/**
- * Encode the volume format into a buffer.
- *
- * @param volumeFormat The buffer in which to encode the volume format
- * @param geometry     The geometry to encode into the volume format.
- *
- * @return The encoded size of the volume format
- **/
-size_t encodeVolumeFormat(byte *volumeFormat, const Geometry *geometry)
-  __attribute__((warn_unused_result));
 
 /**
  * Allocate a volume.

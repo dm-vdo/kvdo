@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#3 $
  */
 
 #include <linux/delay.h>
@@ -24,8 +24,8 @@
 #include <linux/module.h>
 #include <linux/sched/mm.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 
 #include "compilerDefs.h"
 #include "logger.h"
@@ -345,24 +345,6 @@ void freeMemory(void *ptr)
       kfree(ptr);
     }
   }
-}
-
-/*****************************************************************************/
-int doPlatformVasprintf(const char  *what,
-                        char       **strp,
-                        const char  *fmt,
-                        va_list      ap)
-{
-  va_list args;
-  va_copy(args, ap);
-  int count = vsnprintf(NULL, 0, fmt, args) + 1;
-  va_end(args);
-  int result = ALLOCATE(count, char, what, strp);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  vsnprintf(*strp, count, fmt, ap);
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/

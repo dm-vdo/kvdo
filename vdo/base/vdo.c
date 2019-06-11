@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#7 $
  */
 
 /*
@@ -438,27 +438,44 @@ int validateVDOVersion(VDO *vdo)
 __attribute__((warn_unused_result))
 static int decodeVDOConfig(Buffer *buffer, VDOConfig *config)
 {
-  int result = getUInt64LEFromBuffer(buffer, &config->logicalBlocks);
+  BlockCount logicalBlocks;
+  int result = getUInt64LEFromBuffer(buffer, &logicalBlocks);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &config->physicalBlocks);
+  BlockCount physicalBlocks;
+  result = getUInt64LEFromBuffer(buffer, &physicalBlocks);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &config->slabSize);
+  BlockCount slabSize;
+  result = getUInt64LEFromBuffer(buffer, &slabSize);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &config->recoveryJournalSize);
+  BlockCount recoveryJournalSize;
+  result = getUInt64LEFromBuffer(buffer, &recoveryJournalSize);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return getUInt64LEFromBuffer(buffer, &config->slabJournalBlocks);
+  BlockCount slabJournalBlocks;
+  result = getUInt64LEFromBuffer(buffer, &slabJournalBlocks);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  *config = (VDOConfig) {
+    .logicalBlocks       = logicalBlocks,
+    .physicalBlocks      = physicalBlocks,
+    .slabSize            = slabSize,
+    .recoveryJournalSize = recoveryJournalSize,
+    .slabJournalBlocks   = slabJournalBlocks,
+  };
+  return VDO_SUCCESS;
 }
 
 /**
@@ -474,30 +491,43 @@ __attribute__((warn_unused_result))
 {
   size_t initialLength = contentLength(buffer);
 
-  int result = getUInt32LEFromBuffer(buffer, &state->state);
+  VDOState vdoState;
+  int result = getUInt32LEFromBuffer(buffer, &vdoState);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->completeRecoveries);
+  uint64_t completeRecoveries;
+  result = getUInt64LEFromBuffer(buffer, &completeRecoveries);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->readOnlyRecoveries);
+  uint64_t readOnlyRecoveries;
+  result = getUInt64LEFromBuffer(buffer, &readOnlyRecoveries);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = decodeVDOConfig(buffer, &state->config);
+  VDOConfig config;
+  result = decodeVDOConfig(buffer, &config);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->nonce);
+  Nonce nonce;
+  result = getUInt64LEFromBuffer(buffer, &nonce);
   if (result != VDO_SUCCESS) {
     return result;
   }
+
+  *state = (VDOComponent41_0) {
+    .state              = vdoState,
+    .completeRecoveries = completeRecoveries,
+    .readOnlyRecoveries = readOnlyRecoveries,
+    .config             = config,
+    .nonce              = nonce,
+  };
 
   size_t decodedSize = initialLength - contentLength(buffer);
   return ASSERT(decodedSize == sizeof(VDOComponent41_0),

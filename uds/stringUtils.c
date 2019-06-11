@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/stringUtils.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/stringUtils.c#2 $
  */
 
 #include "stringUtils.h"
@@ -34,9 +34,22 @@ int allocSprintf(const char *what, char **strp, const char *fmt, ...)
     return UDS_INVALID_ARGUMENT;
   }
   va_list args;
+#ifdef __KERNEL__
+  // We want the memory allocation to use our own ALLOCATE/FREE wrappers.
   va_start(args, fmt);
-  int result = doPlatformVasprintf(what, strp, fmt, args);
+  int count = vsnprintf(NULL, 0, fmt, args) + 1;
   va_end(args);
+  int result = ALLOCATE(count, char, what, strp);
+  if (result == UDS_SUCCESS) {
+    va_start(args, fmt);
+    vsnprintf(*strp, count, fmt, args);
+    va_end(args);
+  }
+#else
+  va_start(args, fmt);
+  int result = vasprintf(strp, fmt, args) == -1 ? ENOMEM : UDS_SUCCESS;
+  va_end(args);
+#endif
   if ((result != UDS_SUCCESS) && (what != NULL)) {
     logError("cannot allocate %s", what);
   }

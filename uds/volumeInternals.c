@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#3 $
  */
 
 #include "volumeInternals.h"
@@ -32,31 +32,7 @@
 #include "stringUtils.h"
 #include "volume.h"
 
-/* Magic number and versioning */
-const byte VOLUME_MAGIC_NUMBER[]         = "ALBV";
-const byte VOLUME_VERSION[]              = "04.20";
-const unsigned int VOLUME_MAGIC_LENGTH   = sizeof(VOLUME_MAGIC_NUMBER) - 1;
-
 const bool READ_ONLY_VOLUME = true;
-
-/**********************************************************************/
-size_t encodeVolumeFormat(byte *volumeFormat, const Geometry *geometry)
-{
-  int size = 0;
-  memcpy(volumeFormat, VOLUME_MAGIC_NUMBER, VOLUME_MAGIC_LENGTH);
-  size += VOLUME_MAGIC_LENGTH;
-
-  STATIC_ASSERT(VOLUME_VERSION_LENGTH == (sizeof(VOLUME_VERSION) - 1));
-  memcpy(volumeFormat + size, VOLUME_VERSION, VOLUME_VERSION_LENGTH);
-  size += VOLUME_VERSION_LENGTH;
-
-  if (geometry) {
-    memcpy(volumeFormat + size, geometry, sizeof(Geometry));
-    size += sizeof(Geometry);
-  }
-
-  return size;
-}
 
 /**********************************************************************/
 int allocateVolume(const Configuration  *config,

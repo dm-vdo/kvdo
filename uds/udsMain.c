@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#2 $
  */
 
 #include "uds.h"
@@ -228,7 +228,6 @@ static int initializeIndexSessionWithLayout(IndexSession     *indexSession,
   }
 
   logUdsConfiguration(&indexSession->userConfig);
-  result = removeSafetySeal(layout);
   setIndexSessionState(indexSession, IS_READY);
   return UDS_SUCCESS;
 }

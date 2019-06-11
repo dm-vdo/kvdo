@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#9 $
  */
 
 #include "slabDepot.h"
@@ -465,39 +465,50 @@ size_t getSlabDepotEncodedSize(void)
  **/
 static int decodeSlabConfig(Buffer *buffer, SlabConfig *config)
 {
-  int result = getUInt64LEFromBuffer(buffer, &config->slabBlocks);
+  BlockCount count;
+  int result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->slabBlocks = count;
 
-  result = getUInt64LEFromBuffer(buffer, &config->dataBlocks);
+  result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->dataBlocks = count;
 
-  result = getUInt64LEFromBuffer(buffer, &config->referenceCountBlocks);
+  result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->referenceCountBlocks = count;
 
-  result = getUInt64LEFromBuffer(buffer, &config->slabJournalBlocks);
+  result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->slabJournalBlocks = count;
 
-  result
-    = getUInt64LEFromBuffer(buffer, &config->slabJournalFlushingThreshold);
+  result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->slabJournalFlushingThreshold = count;
 
-  result
-    = getUInt64LEFromBuffer(buffer, &config->slabJournalBlockingThreshold);
+  result = getUInt64LEFromBuffer(buffer, &count);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  config->slabJournalBlockingThreshold = count;
 
-  return getUInt64LEFromBuffer(buffer, &config->slabJournalScrubbingThreshold);
+  result = getUInt64LEFromBuffer(buffer, &count);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  config->slabJournalScrubbingThreshold = count;
+
+  return UDS_SUCCESS;
 }
 
 /**
@@ -606,15 +617,19 @@ static int decodeSlabDepotState_2_0(Buffer *buffer, SlabDepotState2_0 *state)
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->firstBlock);
+  PhysicalBlockNumber firstBlock;
+  result = getUInt64LEFromBuffer(buffer, &firstBlock);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  state->firstBlock = firstBlock;
 
-  result = getUInt64LEFromBuffer(buffer, &state->lastBlock);
+  PhysicalBlockNumber lastBlock;
+  result = getUInt64LEFromBuffer(buffer, &lastBlock);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  state->lastBlock = lastBlock;
 
   result = getByte(buffer, &state->zoneCount);
   if (result != UDS_SUCCESS) {

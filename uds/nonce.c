@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#2 $
  */
 
 #include "nonce.h"
@@ -24,6 +24,7 @@
 #include "murmur/MurmurHash3.h"
 #include "numeric.h"
 #include "random.h"
+#include "stringUtils.h"
 #include "timeUtils.h"
 
 /*****************************************************************************/

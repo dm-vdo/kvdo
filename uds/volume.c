@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#3 $
  */
 
 #include "volume.h"
@@ -79,35 +79,6 @@ int defineVolumeReadThreads(ParameterDefinition *pd)
   pd->currentValue   = getDefaultReadThreads();
   pd->update         = NULL;
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int formatVolume(IORegion *region, const Geometry *geometry)
-{
-  // Create the header page with the magic number and version.
-  byte *headerPage;
-  int result = ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte,
-                                   "volume header page", &headerPage);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  unsigned int volumeFormatLength = encodeVolumeFormat(headerPage, geometry);
-  if (volumeFormatLength > geometry->bytesPerPage) {
-    FREE(headerPage);
-    logWarning("Volume format header is too large");
-    return EINVAL;
-  }
-
-  // Write the full page to the start of the volume file.
-  result = writeToRegion(region, 0, headerPage, geometry->bytesPerPage,
-                         geometry->bytesPerPage);
-  FREE(headerPage);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return syncRegionContents(region);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#2 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -198,15 +198,6 @@ int openVolumeRegion(IndexLayout   *layout,
  **/
 int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
   __attribute__((warn_unused_result));
-
-/**
- * Unconditionally remove the safety seal of the index layout.
- *
- * @param layout  the generic index layout
- *
- * @return UDS_SUCCESS or an error code
- **/
-int removeSafetySeal(IndexLayout *layout) __attribute__((warn_unused_result));
 
 /**
  * Determine which index save slot to use for a new index save.

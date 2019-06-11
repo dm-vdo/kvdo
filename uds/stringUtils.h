@@ -16,16 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/stringUtils.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/stringUtils.h#2 $
  */
 
 #ifndef STRING_UTILS_H
 #define STRING_UTILS_H
 
 #include <stdarg.h>
+#ifdef __KERNEL__
+#include <linux/kernel.h>
+#include <linux/string.h>
+#else
+#include <stdio.h>   // for vsnprintf
+#include <stdlib.h>  // for strtol
+#include <string.h>
+#include <strings.h>
+#endif
 
 #include "compiler.h"
-#include "stringDefs.h"
 #include "typeDefs.h"
 
 /**
@@ -82,8 +90,8 @@ int fixedSprintf(const char *what, char *buf, size_t bufSize,
  *                      space, UDS_SUCCESS if no logging required.
  * @param [in]  fmt     The sprintf format specification.
  * @param [in]  ap      The variable argument pointer (see <stdarg.h>).
- * @param [out] needed  If non-NULL, the actual amount of string space required,
- *                      which may be smaller or larger than bufSize.
+ * @param [out] needed  If non-NULL, the actual amount of string space
+ *                      required, which may be smaller or larger than bufSize.
  *
  * @return UDS_SUCCESS if the string fits, the value of the error parameter if
  *         the string does not fit and a buffer was supplied, or
@@ -111,16 +119,19 @@ char *appendToBuffer(char *buffer, char *bufEnd, const char *fmt, ...)
 /**
  * Variable-arglist helper to append a string to a buffer.
  *
- * @param buffer        the place at which to append the string
- * @param bufEnd        pointer to the end of the buffer
- * @param fmt           a printf format string
- * @param args          printf arguments
+ * @param buffer  the place at which to append the string
+ * @param bufEnd  pointer to the end of the buffer
+ * @param fmt     a printf format string
+ * @param args    printf arguments
  *
- * @return      the updated buffer position after the append
+ * @return the updated buffer position after the append
  *
  * if insufficient space is available, the contents are silently truncated
  **/
-char *vAppendToBuffer(char *buffer, char *bufEnd, const char *fmt, va_list args)
+char *vAppendToBuffer(char       *buffer,
+                      char       *bufEnd,
+                      const char *fmt,
+                      va_list     args)
   __attribute__((format(printf, 3, 0)));
 
 /**

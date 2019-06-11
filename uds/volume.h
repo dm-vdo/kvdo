@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#2 $
  */
 
 #ifndef VOLUME_H
@@ -139,17 +139,6 @@ void freeVolume(Volume *volume);
  * @return UDS_QUEUED if successful, or an error code
  **/
 int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
-  __attribute__((warn_unused_result));
-
-/**
- * Format a new, empty volume on stable storage.
- *
- * @param region   The region to write to.
- * @param geometry The geometry of the volume being formatted
- *
- * @return UDS_SUCCESS on success
- **/
-int formatVolume(IORegion *region, const Geometry *geometry)
   __attribute__((warn_unused_result));
 
 /**

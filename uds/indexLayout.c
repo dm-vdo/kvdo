@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#4 $
  */
 
 #include "indexLayout.h"
@@ -87,10 +87,10 @@
  */
 
 typedef struct indexSaveData_v1 {
-  uint64_t      timestamp;              // ms since epoch...
-  uint64_t      nonce;
-  uint32_t      version;                // 1
-  uint32_t      unused__;
+  uint64_t timestamp;           // ms since epoch...
+  uint64_t nonce;
+  uint32_t version;             // 1
+  uint32_t unused__; 
 } IndexSaveData;
 
 typedef struct indexSaveLayout {
@@ -116,15 +116,15 @@ typedef struct subIndexLayout {
 } SubIndexLayout;
 
 typedef struct superBlockData_v1 {
-  byte       magicLabel[32];
-  byte       nonceInfo[32];
-  uint64_t   nonce;
-  uint32_t   version;                   // 1
-  uint32_t   blockSize;                 // for verification
-  uint16_t   numIndexes;                // 1
-  uint16_t   maxSaves;
-  uint64_t   openChapterBlocks;
-  uint64_t   pageMapBlocks;
+  byte     magicLabel[32];
+  byte     nonceInfo[32];
+  uint64_t nonce;
+  uint32_t version;             // 2
+  uint32_t blockSize;           // for verification
+  uint16_t numIndexes;          // 1
+  uint16_t maxSaves;
+  uint64_t openChapterBlocks;
+  uint64_t pageMapBlocks;
 } SuperBlockData;
 
 struct indexLayout {
@@ -614,7 +614,23 @@ static int readSuperBlockData(BufferedReader *reader,
                                    "unknown superblock magic label");
   }
 
-  if (super->version != 1) {
+  switch (super->version) {
+  case 1:
+    // Version 1 was used in the first single file layout.
+    break;
+  case 2:
+    /*
+     * Version 2 uses the same SuperBlockData struct as version 1.  It will
+     * never have multiple subindices. An index using version 2 will never
+     * write the volume header page.
+     */
+    if (super->numIndexes != 1) {
+      return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
+                                     "invalid subindex count %" PRIu32,
+                                     super->numIndexes);
+    }
+    break;
+  default:
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
                                    "unknown superblock version number %"
                                    PRIu32,
@@ -1178,7 +1194,7 @@ static void generateSuperBlockData(size_t          blockSize,
 
   super->nonce             = generateMasterNonce(super->nonceInfo,
                                                  sizeof(super->nonceInfo));
-  super->version           = 1;
+  super->version           = 2;
   super->blockSize         = blockSize;
   super->numIndexes        = 1;
   super->maxSaves          = maxSaves;
@@ -1792,50 +1808,6 @@ void getIndexLayout(IndexLayout *layout, IndexLayout **layoutPtr)
 {
   ++layout->useCount;
   *layoutPtr = layout;
-}
-
-/*****************************************************************************/
-
-static const byte INDEX_SEAL_MAGIC[]          = "ALBIREO_INDEX_SEAL_01";
-
-enum {
-  INDEX_SEAL_MAGIC_LENGTH = sizeof(INDEX_SEAL_MAGIC) - 1,
-  INDEX_SEAL_PADDING = (8 - (INDEX_SEAL_MAGIC_LENGTH % 8)) & 7,
-};
-
-typedef struct indexSealData {
-  byte     header[INDEX_SEAL_MAGIC_LENGTH];
-  byte     unused__[INDEX_SEAL_PADDING];
-  uint64_t timestamp;
-  uint64_t hash;
-} IndexSealData;
-
-/*****************************************************************************/
-int removeSafetySeal(IndexLayout *layout)
-{
-  BufferedWriter *writer = NULL;
-  int result = getSingleFileLayoutWriter(layout, &layout->seal, &writer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  IndexSealData data;
-  memset(&data, '*', sizeof(data));
-
-  result = writeToBufferedWriter(writer, &data, sizeof(data));
-  if (result != UDS_SUCCESS) {
-    freeBufferedWriter(writer);
-    return logErrorWithStringError(result, "failed to overwrite safety seal");
-  }
-
-  result = flushBufferedWriter(writer);
-  if (result != UDS_SUCCESS) {
-    freeBufferedWriter(writer);
-    return logErrorWithStringError(result, "failed to flush safety seal");
-  }
-
-  freeBufferedWriter(writer);
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/

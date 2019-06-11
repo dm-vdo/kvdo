@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#4 $
  */
 
 #include "index.h"
@@ -294,16 +294,11 @@ int saveIndex(Index *index)
   // Ensure that the volume is securely on storage
   waitForIdleChapterWriter(index->chapterWriter);
   int result = syncRegionContents(index->volume->region);
-  switch (result) {
-  case UDS_SUCCESS:
-  case UDS_UNSUPPORTED:
-    break;
-  default:
+  if (result != UDS_SUCCESS) {
     // If we couldn't save the volume, the index state is useless
     discardIndexStateData(index->state);
     return logErrorWithStringError(result, "cannot sync volume IORegion");
   }
-
   return saveIndexComponents(index);
 }
 
