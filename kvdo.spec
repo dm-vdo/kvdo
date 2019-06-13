@@ -1,6 +1,6 @@
 %define spec_release 1
 %define kmod_name		kvdo
-%define kmod_driver_version	6.2.1.48
+%define kmod_driver_version	6.2.1.102
 %define kmod_rpm_release	%{spec_release}
 %define kmod_kernel_version	3.10.0-693.el7
 
@@ -85,5 +85,5 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
 
 %changelog
-* Thu Apr 18 2019 - J. corwin Coburn <corwin@redhat.com> - 6.2.1.48-1
-HASH(0x15daa10)
+* Thu Jun 13 2019 - J. corwin Coburn <corwin@redhat.com> - 6.2.1.102-1
+HASH(0x222cad8)

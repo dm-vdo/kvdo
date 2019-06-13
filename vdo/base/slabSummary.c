@@ -16,17 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#4 $
  */
 
 #include "slabSummary.h"
 
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "constants.h"
 #include "extent.h"
 #include "readOnlyNotifier.h"
-#include "slabDepot.h"
 #include "slabSummaryInternals.h"
 #include "threadConfig.h"
 #include "types.h"
@@ -229,8 +229,6 @@ int makeSlabSummary(PhysicalLayer       *layer,
   summary->hintShift       = (slabSizeShift > 6) ? (slabSizeShift - 6) : 0;
   summary->blocksPerZone   = blocksPerZone;
   summary->entriesPerBlock = entriesPerBlock;
-  initializeCompletion(&summary->completion, SLAB_SUMMARY_COMPLETION,
-                       layer);
 
   size_t totalEntries = MAX_SLABS * MAX_PHYSICAL_ZONES;
   size_t entryBytes = totalEntries * sizeof(SlabSummaryEntry);
@@ -627,7 +625,7 @@ static void finishCombiningZones(VDOCompletion *completion)
   int          result  = completion->result;
   VDOExtent   *extent  = asVDOExtent(completion);
   freeExtent(&extent);
-  finishCompletion(&summary->completion, result);
+  releaseCompletionWithResult(&summary->loadParent, result);
 }
 
 /**********************************************************************/
@@ -672,7 +670,7 @@ static void finishLoadingSummary(VDOCompletion *completion)
   VDOExtent   *extent  = asVDOExtent(completion);
   if (result != VDO_SUCCESS) {
     freeExtent(&extent);
-    finishCompletion(&summary->completion, result);
+    releaseCompletionWithResult(&summary->loadParent, result);
     return;
   }
 
@@ -686,35 +684,32 @@ static void finishLoadingSummary(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void loadSlabSummary(SlabSummary *summary,
-                     ZoneCount    zonesToCombine,
-                     void        *parent,
-                     VDOAction   *callback)
+void loadSlabSummary(SlabSummary    *summary,
+                     AdminStateCode  operation,
+                     ZoneCount       zonesToCombine,
+                     VDOCompletion  *parent)
 {
-  resetCompletion(&summary->completion);
-  summary->completion.parent   = parent;
-  summary->completion.callback = callback;
-  summary->zonesToCombine      = zonesToCombine;
-
   VDOExtent *extent;
   BlockCount blocks = summary->blocksPerZone * MAX_PHYSICAL_ZONES;
-  int        result = createExtent(summary->completion.layer,
-                                   VIO_TYPE_SLAB_SUMMARY,
+  int        result = createExtent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
                                    VIO_PRIORITY_METADATA, blocks,
                                    (char *) summary->entries, &extent);
   if (result != VDO_SUCCESS) {
-    finishCompletion(&summary->completion, result);
+    finishCompletion(parent, result);
     return;
   }
 
+  summary->loadParent     = parent;
   PhysicalBlockNumber pbn = summary->zones[0]->summaryBlocks[0].pbn;
-  if (zonesToCombine == 0) {
+  if ((operation == ADMIN_STATE_FORMATTING)
+      || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
     prepareCompletion(&extent->completion, finishCombiningZones,
                       finishCombiningZones, 0, summary);
     writeMetadataExtent(extent, pbn);
     return;
   }
 
+  summary->zonesToCombine = zonesToCombine;
   prepareCompletion(&extent->completion, finishLoadingSummary,
                     finishLoadingSummary, 0, summary);
   readMetadataExtent(extent, pbn);

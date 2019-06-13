@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#8 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -24,6 +24,7 @@
 
 #include "buffer.h"
 
+#include "adminState.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
@@ -47,8 +48,8 @@
 
 typedef enum {
   NORMAL_LOAD,
-  DEFER_LOAD,
-  NO_LOAD
+  RECOVERY_LOAD,
+  REBUILD_LOAD
 } SlabDepotLoadType;
 
 /**
@@ -348,31 +349,12 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
  * operation from the load thread.
  *
  * @param depot        The depot to load
- * @param formatDepot  <code>True</code> if the depot should be formatted for
- *                     the first time
+ * @param operation    The type of load to perform
  * @param parent       The completion to finish when the load is complete
  **/
-void loadSlabDepot(SlabDepot *depot, bool formatDepot, VDOCompletion *parent);
-
-/**
- * Asynchronously load the portions of the slab depot which are needed to
- * recover a VDO. This method may be called only immediately before recovery
- * from the load thread.
- *
- * @param depot   The depot to load
- * @param parent  The completion to finish when the load is complete
- **/
-void loadSlabDepotForRecovery(SlabDepot *depot, VDOCompletion *parent);
-
-/**
- * Asynchronously load the portions of the slab depot which are needed to
- * rebuild a VDO. This method may be called only before a full rebuild
- * from the load thread.
- *
- * @param depot   The depot to load
- * @param parent  The completion to finish when the load is complete
- **/
-void loadSlabDepotForRebuild(SlabDepot *depot, VDOCompletion *parent);
+void loadSlabDepot(SlabDepot         *depot,
+                   AdminStateCode     operation,
+                   VDOCompletion     *parent);
 
 /**
  * Prepare the slab depot to come online and start allocating blocks. This
@@ -386,15 +368,6 @@ void loadSlabDepotForRebuild(SlabDepot *depot, VDOCompletion *parent);
 void prepareToAllocate(SlabDepot         *depot,
                        SlabDepotLoadType  loadType,
                        VDOCompletion     *parent);
-
-/**
- * Asynchronously flush all slab journals in the depot. This method may be
- * called only before entering normal operation from the load thread.
- *
- * @param depot   The depot whose slab journals need flushing
- * @param parent  The completion to notify when the operation is complete
- **/
-void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Update the slab depot to reflect its new size in memory. This size is
@@ -420,22 +393,6 @@ int prepareToGrowSlabDepot(SlabDepot     *depot,
   __attribute__((warn_unused_result));
 
 /**
- * Suspend all slab summary zones.
- *
- * @param depot   The depot whose slab summary should be suspended
- * @param parent  The object to notify when the suspend is complete
- **/
-void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent);
-
-/**
- * Resume all slab summary zones.
- *
- * @param depot   The depot whose slab summary should be resumed
- * @param parent  The object to notify when the resume is complete
- **/
-void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent);
-
-/**
  * Use the new slabs allocated for resize.
  *
  * @param depot   The depot
@@ -451,16 +408,25 @@ void useNewSlabs(SlabDepot *depot, VDOCompletion *parent);
 void abandonNewSlabs(SlabDepot *depot);
 
 /**
- * Asynchronously save any slab depot state that isn't included in the
- * SuperBlock component. This method may be called only from the save
- * thread. The depot may not be used for normal operations once this method has
- * been called.
+ * Drain all slab depot I/O. If saving, or flushing, all dirty depot metadata
+ * will be written out. If saving or suspending, the depot will be left in a
+ * suspended state.
  *
- * @param depot   The depot to save
- * @param close   Whether to close the depot after saving
- * @param parent  The completion to finish when the save is complete
+ * @param depot      The depot to drain
+ * @param operation  The drain operation (flush, rebuild, suspend, or save)
+ * @param parent     The completion to finish when the drain is complete
  **/
-void saveSlabDepot(SlabDepot *depot, bool close, VDOCompletion *parent);
+void drainSlabDepot(SlabDepot      *depot,
+                    AdminStateCode  operation,
+                    VDOCompletion  *parent);
+
+/**
+ * Resume a suspended slab depot.
+ *
+ * @param depot   The depot to resume
+ * @param parent  The completion to finish when the depot has resumed
+ **/
+void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Commit all dirty tail blocks which are locking a given recovery journal

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepotInternals.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepotInternals.h#12 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -43,19 +43,12 @@ struct slabDepot {
   /** slabSize == (1 << slabSizeShift) */
   unsigned int          slabSizeShift;
 
-  /** The completion for loading slabs */
-  VDOCompletion        *slabCompletion;
-
   /** Determines how slabs should be queued during load */
   SlabDepotLoadType     loadType;
 
   /** The state for notifying slab journals to release recovery journal */
   SequenceNumber        activeReleaseRequest;
   SequenceNumber        newReleaseRequest;
-  bool                  lockReleaseActive;
-
-  /** Whether a save has been requested */
-  bool                  saveRequested;
 
   /** The completion for scrubbing */
   VDOCompletion         scrubbingCompletion;

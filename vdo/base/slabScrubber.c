@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#4 $
  */
 
 #include "slabScrubberInternals.h"
@@ -26,8 +26,39 @@
 
 #include "adminState.h"
 #include "blockAllocator.h"
+#include "constants.h"
 #include "readOnlyNotifier.h"
-#include "slabRebuild.h"
+#include "recoveryJournal.h"
+#include "refCounts.h"
+#include "refCountsInternals.h"
+#include "slab.h"
+#include "slabJournalInternals.h"
+
+/**
+ * Allocate the buffer and extent used for reading the slab journal when
+ * scrubbing a slab.
+ *
+ * @param scrubber         The slab scrubber for which to allocate
+ * @param layer            The physical layer on which the scrubber resides
+ * @param slabJournalSize  The size of a slab journal
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+__attribute__((warn_unused_result))
+static int allocateExtentAndBuffer(SlabScrubber  *scrubber,
+                                   PhysicalLayer *layer,
+                                   BlockCount     slabJournalSize)
+{
+  size_t bufferSize = VDO_BLOCK_SIZE * slabJournalSize;
+  int result = ALLOCATE(bufferSize, char, __func__, &scrubber->journalData);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  return createExtent(layer, VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA,
+                      slabJournalSize, scrubber->journalData,
+                      &scrubber->extent);
+}
 
 /**********************************************************************/
 int makeSlabScrubber(PhysicalLayer     *layer,
@@ -41,8 +72,7 @@ int makeSlabScrubber(PhysicalLayer     *layer,
     return result;
   }
 
-  result = makeSlabRebuildCompletion(layer, slabJournalSize,
-                                     &scrubber->slabRebuildCompletion);
+  result = allocateExtentAndBuffer(scrubber, layer, slabJournalSize);
   if (result != VDO_SUCCESS) {
     freeSlabScrubber(&scrubber);
     return result;
@@ -57,6 +87,20 @@ int makeSlabScrubber(PhysicalLayer     *layer,
   return VDO_SUCCESS;
 }
 
+/**
+ * Free the extent and buffer used for reading slab journals.
+ *
+ * @param scrubber  The scrubber
+ **/
+static void freeExtentAndBuffer(SlabScrubber *scrubber)
+{
+  freeExtent(&scrubber->extent);
+  if (scrubber->journalData != NULL) {
+    FREE(scrubber->journalData);
+    scrubber->journalData = NULL;
+  }
+}
+
 /**********************************************************************/
 void freeSlabScrubber(SlabScrubber **scrubberPtr)
 {
@@ -65,7 +109,7 @@ void freeSlabScrubber(SlabScrubber **scrubberPtr)
   }
 
   SlabScrubber *scrubber = *scrubberPtr;
-  freeSlabRebuildCompletion(&scrubber->slabRebuildCompletion);
+  freeExtentAndBuffer(scrubber);
   FREE(scrubber);
   *scrubberPtr = NULL;
 }
@@ -138,7 +182,7 @@ void registerSlabForScrubbing(SlabScrubber *scrubber,
 static void finishScrubbing(SlabScrubber *scrubber)
 {
   if (!hasSlabsToScrub(scrubber)) {
-    freeSlabRebuildCompletion(&scrubber->slabRebuildCompletion);
+    freeExtentAndBuffer(scrubber);
   }
 
   // Inform whoever is waiting that scrubbing has completed.
@@ -160,6 +204,190 @@ static void finishScrubbing(SlabScrubber *scrubber)
   if (notify) {
     notifyAllWaiters(&scrubber->waiters, NULL, NULL);
   }
+}
+
+/**********************************************************************/
+static void scrubNextSlab(SlabScrubber *scrubber);
+
+/**
+ * Notify the scrubber that a slab has been scrubbed. This callback is
+ * registered in applyJournalEntries().
+ *
+ * @param completion  The slab rebuild completion
+ **/
+static void slabScrubbed(VDOCompletion *completion)
+{
+  SlabScrubber *scrubber = completion->parent;
+  finishScrubbingSlab(scrubber->slab);
+  relaxedAdd64(&scrubber->slabCount, -1);
+  scrubNextSlab(scrubber);
+}
+
+/**
+ * Abort scrubbing due to an error.
+ *
+ * @param scrubber  The slab scrubber
+ * @param result    The error
+ **/
+static void abortScrubbing(SlabScrubber *scrubber, int result)
+{
+  enterReadOnlyMode(scrubber->readOnlyNotifier, result);
+  setCompletionResult(&scrubber->completion, result);
+  scrubNextSlab(scrubber);
+}
+
+/**
+ * Handle errors while rebuilding a slab.
+ *
+ * @param completion  The slab rebuild completion
+ **/
+static void handleScrubberError(VDOCompletion *completion)
+{
+  abortScrubbing(completion->parent, completion->result);
+}
+
+/**
+ * Apply all the entries in a block to the reference counts.
+ *
+ * @param block        A block with entries to apply
+ * @param entryCount   The number of entries to apply
+ * @param blockNumber  The sequence number of the block
+ * @param slab         The slab to apply the entries to
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+static int applyBlockEntries(PackedSlabJournalBlock *block,
+                             JournalEntryCount       entryCount,
+                             SequenceNumber          blockNumber,
+                             Slab                   *slab)
+{
+  JournalPoint entryPoint = {
+    .sequenceNumber = blockNumber,
+    .entryCount     = 0,
+  };
+
+  SlabBlockNumber maxSBN = slab->end - slab->start;
+  while (entryPoint.entryCount < entryCount) {
+    SlabJournalEntry entry = decodeSlabJournalEntry(block,
+                                                    entryPoint.entryCount);
+    if (entry.sbn > maxSBN) {
+      // This entry is out of bounds.
+      return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Slab journal entry"
+                                     " (%" PRIu64 ", %u) had invalid offset"
+                                     " %u in slab (size %u blocks)",
+                                     blockNumber, entryPoint.entryCount,
+                                     entry.sbn, maxSBN);
+    }
+
+    int result = replayReferenceCountChange(slab->referenceCounts, &entryPoint,
+                                            entry);
+    if (result != VDO_SUCCESS) {
+      logErrorWithStringError(result, "Slab journal entry (%" PRIu64 ", %u)"
+                              " (%s of offset %" PRIu32 ") could not be"
+                              " applied in slab %u",
+                              blockNumber, entryPoint.entryCount,
+                              getJournalOperationName(entry.operation),
+                              entry.sbn, slab->slabNumber);
+      return result;
+    }
+    entryPoint.entryCount++;
+  }
+
+  return VDO_SUCCESS;
+}
+
+/**
+ * Find the relevant extent of the slab journal and apply all valid entries.
+ * This is a callback registered in startScrubbing().
+ *
+ * @param completion  The metadata read extent completion
+ **/
+static void applyJournalEntries(VDOCompletion *completion)
+{
+  SlabScrubber *scrubber        = completion->parent;
+  Slab         *slab            = scrubber->slab;
+  SlabJournal  *journal         = slab->journal;
+  RefCounts    *referenceCounts = slab->referenceCounts;
+
+  // Find the boundaries of the useful part of the journal.
+  SequenceNumber  tail     = journal->tail;
+  TailBlockOffset endIndex = getSlabJournalBlockOffset(journal, tail - 1);
+  char *endData = scrubber->journalData + (endIndex * VDO_BLOCK_SIZE);
+  PackedSlabJournalBlock *endBlock = (PackedSlabJournalBlock *) endData;
+
+  SequenceNumber  head      = getUInt64LE(endBlock->header.fields.head);
+  TailBlockOffset headIndex = getSlabJournalBlockOffset(journal, head);
+  BlockCount      index     = headIndex;
+
+  JournalPoint refCountsPoint   = referenceCounts->slabJournalPoint;
+  JournalPoint lastEntryApplied = refCountsPoint;
+  for (SequenceNumber sequence = head; sequence < tail; sequence++) {
+    char *blockData = scrubber->journalData + (index * VDO_BLOCK_SIZE);
+    PackedSlabJournalBlock *block  = (PackedSlabJournalBlock *) blockData;
+    SlabJournalBlockHeader header;
+    unpackSlabJournalBlockHeader(&block->header, &header);
+
+    if ((header.nonce != slab->allocator->nonce)
+        || (header.metadataType != VDO_METADATA_SLAB_JOURNAL)
+        || (header.sequenceNumber != sequence)
+        || (header.entryCount > journal->entriesPerBlock)
+        || (header.hasBlockMapIncrements
+            && (header.entryCount > journal->fullEntriesPerBlock))) {
+      // The block is not what we expect it to be.
+      logError("Slab journal block for slab %u was invalid",
+               slab->slabNumber);
+      abortScrubbing(scrubber, VDO_CORRUPT_JOURNAL);
+      return;
+    }
+
+    int result = applyBlockEntries(block, header.entryCount, sequence, slab);
+    if (result != VDO_SUCCESS) {
+      abortScrubbing(scrubber, result);
+      return;
+    }
+
+    lastEntryApplied.sequenceNumber = sequence;
+    lastEntryApplied.entryCount     = header.entryCount - 1;
+    index++;
+    if (index == journal->size) {
+      index = 0;
+    }
+  }
+
+  // At the end of rebuild, the refCounts should be accurate to the end
+  // of the journal we just applied.
+  int result = ASSERT(!beforeJournalPoint(&lastEntryApplied, &refCountsPoint),
+                      "Refcounts are not more accurate than the slab journal");
+  if (result != VDO_SUCCESS) {
+    abortScrubbing(scrubber, result);
+    return;
+  }
+
+  // Save out the rebuilt reference blocks.
+  prepareCompletion(completion, slabScrubbed, handleScrubberError,
+                    completion->callbackThreadID, scrubber);
+  drainSlab(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
+}
+
+/**
+ * Read the current slab's journal from disk now that it has been flushed.
+ * This callback is registered in scrubNextSlab().
+ *
+ * @param completion  The scrubber's extent completion
+ **/
+static void startScrubbing(VDOCompletion *completion)
+{
+  SlabScrubber *scrubber = completion->parent;
+  Slab         *slab     = scrubber->slab;
+  if (getSummarizedCleanliness(slab->allocator->summary, slab->slabNumber)) {
+    slabScrubbed(completion);
+    return;
+  }
+
+  prepareCompletion(&scrubber->extent->completion, applyJournalEntries,
+                    handleScrubberError, completion->callbackThreadID,
+                    completion->parent);
+  readMetadataExtent(scrubber->extent, slab->journalOrigin);
 }
 
 /**
@@ -192,34 +420,12 @@ static void scrubNextSlab(SlabScrubber *scrubber)
   }
 
   unspliceRingNode(&slab->ringNode);
-  resetCompletion(scrubber->slabRebuildCompletion);
-  scrubSlab(slab, scrubber->slabRebuildCompletion);
-}
-
-/**
- * Notify the scrubber that a slab has been scrubbed. This callback is
- * registered in scrubSlabs().
- *
- * @param completion  The slab rebuild completion
- **/
-static void slabScrubbed(VDOCompletion *completion)
-{
-  SlabScrubber *scrubber = completion->parent;
-  relaxedAdd64(&scrubber->slabCount, -1);
-  scrubNextSlab(scrubber);
-}
-
-/**
- * Handle errors while rebuilding a slab.
- *
- * @param completion  The slab rebuild completion
- **/
-static void handleScrubberError(VDOCompletion *completion)
-{
-  SlabScrubber *scrubber = completion->parent;
-  enterReadOnlyMode(scrubber->readOnlyNotifier, completion->result);
-  setCompletionResult(&scrubber->completion, completion->result);
-  scrubNextSlab(scrubber);
+  scrubber->slab = slab;
+  VDOCompletion *completion = extentAsCompletion(scrubber->extent);
+  prepareCompletion(completion, startScrubbing,
+                    handleScrubberError, scrubber->completion.callbackThreadID,
+                    scrubber);
+  drainSlab(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
 /**********************************************************************/
@@ -237,8 +443,6 @@ void scrubSlabs(SlabScrubber *scrubber,
     return;
   }
 
-  prepareCompletion(scrubber->slabRebuildCompletion, slabScrubbed,
-                    handleScrubberError, threadID, scrubber);
   scrubNextSlab(scrubber);
 }
 

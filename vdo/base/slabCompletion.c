@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabCompletion.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabCompletion.c#6 $
  */
 
 #include "slabCompletion.h"
@@ -168,6 +168,12 @@ static void doRefCountIO(SlabCompletion *slabCompletion, Slab *slab)
     return;
   }
 
+  /*
+   * XXX: this is a temporary hack to continue supporting operations which use
+   *      the Slab's AdminState, but still come through here instead of using
+   *      drainSlab().
+   */
+  resumeIfQuiescent(&slab->state);
   slabCompletion->doRefCountIO(slab->referenceCounts,
                                &slabCompletion->completion, finishRefCountsIO,
                                handleRefCountsIOError,
@@ -277,96 +283,10 @@ static void slabFinished(Slab           *slab __attribute__((unused)),
   }
 }
 
-/**
- * Check whether the reference counts for a given slab should be saved.<p>
- *
- * Implements SlabStatusChecker.
- *
- * @param slab  The slab to check
- **/
-static bool shouldSaveReferenceCounts(const Slab *slab)
-{
-  // If the slab has no dirty reference blocks, saving it immediately returns.
-  return !isUnrecoveredSlab(slab);
-}
-
-/**
- * Note the closing of a slab, the callback for closeSlabJournal().
- *
- * @param completion  The RefCounts completion
- **/
-static void noteSlabIsClosed(VDOCompletion *completion)
-{
-  setCompletionResult(completion->parent, completion->result);
-  slabFinished(NULL, asSlabCompletion(completion->parent));
-}
-
-/**
- * Now that the slab journal has been closed, close the reference counts.
- * This is necessary in the case where, due to an error in some other slab,
- * we didn't try to save the reference counts, but we still need to wait in
- * case there was already outstanding reference count I/O.
- *
- * @param completion  The slab journal close completion
- **/
-static void waitForReferenceCountsClosed(VDOCompletion *completion)
-{
-  VDOCompletion *parent = completion->parent;
-  setCompletionResult(parent, completion->result);
-
-  Slab *slab = asSlabJournal(completion)->slab;
-  if (slab->referenceCounts == NULL) {
-    // This can happen when shutting down a VDO that was in read-only mode when
-    // loaded.
-    noteSlabIsClosed(completion);
-    return;
-  }
-
-  closeReferenceCounts(slab->referenceCounts, parent, noteSlabIsClosed,
-                       noteSlabIsClosed, completion->callbackThreadID);
-}
-
-/**
- * Note that the reference counts for a slab have been or won't be written.<p>
- *
- * Implements SlabIOFinisher.
- *
- * @param slab            The slab
- * @param slabCompletion  The completion
- **/
-static void referenceCountsWritten(Slab *slab, SlabCompletion *slabCompletion)
-{
-  closeSlabJournal(slab->journal, &slabCompletion->completion,
-                   waitForReferenceCountsClosed, waitForReferenceCountsClosed,
-                   slabCompletion->threadID);
-}
-
-/**********************************************************************/
-void saveSlabs(VDOCompletion *completion, SlabIterator iterator)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterator;
-  slabCompletion->needsRefCountIO     = shouldSaveReferenceCounts;
-  slabCompletion->doRefCountIO        = saveReferenceBlocks;
-  slabCompletion->refCountsIOFinished = referenceCountsWritten;
-  launchSlabIO(slabCompletion, flushSlabJournal);
-}
-
 /**********************************************************************/
 static bool no(const Slab *slab __attribute__((unused)))
 {
   return false;
-}
-
-/**********************************************************************/
-void loadSlabJournals(VDOCompletion  *completion, SlabIterator iterator)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterator;
-  slabCompletion->needsRefCountIO     = no;
-  slabCompletion->doRefCountIO        = NULL;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  launchSlabIO(slabCompletion, decodeSlabJournal);
 }
 
 /**********************************************************************/
@@ -378,38 +298,6 @@ void flushSlabJournals(VDOCompletion *completion, SlabIterator iterator)
   slabCompletion->doRefCountIO        = NULL;
   slabCompletion->refCountsIOFinished = slabFinished;
   launchSlabIO(slabCompletion, flushSlabJournal);
-}
-
-/**
- * Implements SlabStatusChecker.
- **/
-static bool yes(const Slab *slab __attribute__((unused)))
-{
-  return true;
-}
-
-/**********************************************************************/
-void saveSlab(VDOCompletion *completion, Slab *slab)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterateSlabs(NULL, 0, 0, 0);
-  slabCompletion->slabsRemaining      = 1;
-  slabCompletion->needsRefCountIO     = yes;
-  slabCompletion->doRefCountIO        = saveReferenceBlocks;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  doRefCountIO(slabCompletion, slab);
-}
-
-/**********************************************************************/
-void loadSlabFromLayer(VDOCompletion *completion, Slab *slab)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterateSlabs(NULL, 0, 0, 0);
-  slabCompletion->slabsRemaining      = 1;
-  slabCompletion->needsRefCountIO     = yes;
-  slabCompletion->doRefCountIO        = loadReferenceBlocks;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  doRefCountIO(slabCompletion, slab);
 }
 
 /**********************************************************************/

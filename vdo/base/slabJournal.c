@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#11 $
  */
 
 #include "slabJournalInternals.h"
@@ -182,7 +182,7 @@ static inline bool isReaping(SlabJournal *journal)
  **/
 static inline void checkForDrainComplete(SlabJournal *journal)
 {
-  if (!isDraining(&journal->adminState)
+  if (!isSlabDraining(journal->slab)
       || mustMakeEntriesToFlush(journal)
       || isReaping(journal)
       || journal->waitingToCommit
@@ -191,9 +191,9 @@ static inline void checkForDrainComplete(SlabJournal *journal)
     return;
   }
 
-  finishDrainingWithResult(&journal->adminState,
-                           ((isVDOReadOnly(journal)
-                             ? VDO_READ_ONLY : VDO_SUCCESS)));
+  notifySlabJournalIsDrained(journal->slab,
+                             (isVDOReadOnly(journal)
+                              ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -469,15 +469,15 @@ static void flushForReaping(Waiter *waiter, void *vioContext)
  **/
 static void reapSlabJournal(SlabJournal *journal)
 {
-  if (isUnrecoveredSlab(journal->slab) || isQuiescing(&journal->adminState)
-      || isQuiescent(&journal->adminState) || isVDOReadOnly(journal)) {
-    // We must not reap in the first three cases, and there's no point in
-    // read-only mode.
+  if (isReaping(journal)) {
+    // We already have a reap in progress so wait for it to finish.
     return;
   }
 
-  if (isReaping(journal)) {
-    // We already have a reap in progress so wait for it to finish.
+  if (isUnrecoveredSlab(journal->slab) || !isNormal(&journal->slab->state)
+      || isVDOReadOnly(journal)) {
+    // We must not reap in the first two cases, and there's no point in
+    // read-only mode.
     return;
   }
 
@@ -1101,12 +1101,7 @@ static void addEntries(SlabJournal *journal)
          * be done by the RefCounts since here we don't know how many
          * reference blocks the RefCounts has.
          */
-        Slab *slab = journal->slab;
-        int result = acquireDirtyBlockLocks(slab->referenceCounts);
-        if (result != VDO_SUCCESS) {
-          enterJournalReadOnlyMode(journal, result);
-          break;
-        }
+        acquireDirtyBlockLocks(journal->slab->referenceCounts);
       }
     }
 
@@ -1117,7 +1112,7 @@ static void addEntries(SlabJournal *journal)
 
   // If there are no waiters, and we are flushing or saving, commit the
   // tail block.
-  if (isDraining(&journal->adminState) && !isSuspending(&journal->adminState)
+  if (isSlabDraining(journal->slab) && !isSuspending(&journal->slab->state)
       && !hasWaiters(&journal->entryWaiters)) {
     commitSlabJournalTail(journal);
   }
@@ -1126,7 +1121,7 @@ static void addEntries(SlabJournal *journal)
 /**********************************************************************/
 void addSlabJournalEntry(SlabJournal *journal, DataVIO *dataVIO)
 {
-  if (isQuiescing(&journal->adminState) || isQuiescent(&journal->adminState)) {
+  if (!isSlabOpen(journal->slab)) {
     continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
     return;
   }
@@ -1199,43 +1194,54 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 }
 
 /**********************************************************************/
-static void drainSlabJournal(SlabJournal    *journal,
-                             AdminStateCode  operation,
-                             VDOCompletion  *parent,
-                             VDOAction      *callback,
-                             VDOAction      *errorHandler,
-                             ThreadID        threadID)
+void drainSlabJournal(SlabJournal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "drainSlabJournal() called on correct thread");
-  if (!isOperatingNormally(&journal->adminState)) {
-    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
-    return;
+  if (isQuiescing(&journal->slab->state)) {
+    // XXX: we should revisit this assertion since it is no longer clear what
+    //      it is for.
+    ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
+                       && hasWaiters(&journal->entryWaiters))),
+                    "slab is recovered or has no waiters");
   }
 
-  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
-                    parent);
-  startDraining(&journal->adminState, operation, &journal->completion);
-  if (!isSuspending(&journal->adminState)) {
+  switch (journal->slab->state.state) {
+  case ADMIN_STATE_SUSPENDING:
+  case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+    break;
+
+  default:
     commitSlabJournalTail(journal);
   }
 
   checkForDrainComplete(journal);
 }
 
-/**********************************************************************/
-void closeSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID)
+/**
+ * XXX: This is a temporary preservation of what used to be drainSlabJournal()
+ *      in order to allow the introduction of the new drainSlabJournal()
+ *      without requiring the conversion of closeSlabJournal() and
+ *      flushSlabJournal() until later.
+ **/
+static void oldDrainSlabJournal(SlabJournal    *journal,
+                                AdminStateCode  operation,
+                                VDOCompletion  *parent,
+                                VDOAction      *callback,
+                                VDOAction      *errorHandler,
+                                ThreadID        threadID)
 {
-  ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
-                     && hasWaiters(&journal->entryWaiters))),
-                  "slab is recovered or has no waiters");
-  drainSlabJournal(journal, ADMIN_STATE_SAVING, parent, callback, errorHandler,
-                   threadID);
+  int result = startOperation(&journal->slab->state, operation);
+  if (result != VDO_SUCCESS) {
+    finishCompletion(parent, result);
+    return;
+  }
+
+  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
+                    parent);
+  setOperationWaiter(&journal->slab->state, &journal->completion);
+  drainSlabJournal(journal);
 }
 
 /**********************************************************************/
@@ -1245,29 +1251,23 @@ void flushSlabJournal(SlabJournal   *journal,
                       VDOAction     *errorHandler,
                       ThreadID       threadID)
 {
-  drainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
-                   errorHandler, threadID);
-}
-
-/**********************************************************************/
-void resumeSlabJournal(SlabJournal *journal)
-{
-  resumeIfQuiescent(&journal->adminState);
+  oldDrainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
+                      errorHandler, threadID);
 }
 
 /**
- * Finish doing manual IO on the slab journal by returning the VIO and
- * finishing the slab journal completion.
+ * Finish the decode process by returning the VIO and notifying the slab that
+ * we're done.
  *
  * @param completion  The VIO as a completion
  **/
-static void finishManualIO(VDOCompletion *completion)
+static void finishDecodingJournal(VDOCompletion *completion)
 {
   int           result  = completion->result;
   VIOPoolEntry *entry   = completion->parent;
   SlabJournal  *journal = entry->parent;
   returnVIO(journal->slab->allocator, entry);
-  finishCompletion(&journal->completion, result);
+  notifySlabJournalIsLoaded(journal->slab, result);
 }
 
 /**
@@ -1287,7 +1287,7 @@ static void setDecodedState(VDOCompletion *completion)
 
   if ((header.metadataType != VDO_METADATA_SLAB_JOURNAL)
       || (header.nonce != journal->slab->allocator->nonce)) {
-    finishManualIO(completion);
+    finishDecodingJournal(completion);
     return;
   }
 
@@ -1303,7 +1303,7 @@ static void setDecodedState(VDOCompletion *completion)
 
   journal->tailHeader = header;
   initializeJournalState(journal);
-  finishManualIO(completion);
+  finishDecodingJournal(completion);
 }
 
 /**
@@ -1317,14 +1317,34 @@ static void setDecodedState(VDOCompletion *completion)
 static void readSlabJournalTail(Waiter *waiter, void *vioContext)
 {
   SlabJournal  *journal = slabJournalFromResourceWaiter(waiter);
+  Slab         *slab    = journal->slab;
   VIOPoolEntry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary,
-                                   journal->slab->slabNumber);
+    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   entry->parent = journal;
 
+
+  // Slab summary keeps the commit point offset, so the tail block is the
+  // block before that. Calculation supports small journals in unit tests.
+  TailBlockOffset tailBlock = ((lastCommitPoint == 0)
+                               ? (TailBlockOffset) (journal->size - 1)
+                               : (lastCommitPoint - 1));
+  entry->vio->completion.callbackThreadID = slab->allocator->threadID;
+  launchReadMetadataVIO(entry->vio, slab->journalOrigin + tailBlock,
+                        setDecodedState, finishDecodingJournal);
+}
+
+/**********************************************************************/
+void decodeSlabJournal(SlabJournal *journal)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID()
+                   == journal->slab->allocator->threadID),
+                  "decodeSlabJournal() called on correct thread");
+  Slab *slab = journal->slab;
+  TailBlockOffset lastCommitPoint
+    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   if ((lastCommitPoint == 0)
-      && !mustLoadRefCounts(journal->summary, journal->slab->slabNumber)) {
+      && !mustLoadRefCounts(journal->summary, slab->slabNumber)) {
     /*
      * This slab claims that it has a tail block at (journal->size - 1), but
      * a head of 1. This is impossible, due to the scrubbing threshold, on
@@ -1334,36 +1354,14 @@ static void readSlabJournalTail(Waiter *waiter, void *vioContext)
                      || (journal->scrubbingThreshold < (journal->size - 1))),
                     "Scrubbing threshold protects against reads of unwritten"
                     "slab journal blocks");
-    VDOCompletion *completion = vioAsCompletion(entry->vio);
-    resetCompletion(completion);
-    finishManualIO(completion);
+    notifySlabJournalIsLoaded(slab, VDO_SUCCESS);
     return;
   }
 
-  // Slab summary keeps the commit point offset, so the tail block is the
-  // block before that. Calculation supports small journals in unit tests.
-  entry->vio->completion.callbackThreadID
-    = journal->completion.callbackThreadID;
-  TailBlockOffset tailBlock = ((lastCommitPoint == 0)
-                               ? (TailBlockOffset) (journal->size - 1)
-                               : (lastCommitPoint - 1));
-  launchReadMetadataVIO(entry->vio, journal->slab->journalOrigin + tailBlock,
-                        setDecodedState, finishManualIO);
-}
-
-/**********************************************************************/
-void decodeSlabJournal(SlabJournal   *journal,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler,
-                       ThreadID       threadID)
-{
-  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
-                    parent);
   journal->resourceWaiter.callback = readSlabJournalTail;
-  int result = acquireVIO(journal->slab->allocator, &journal->resourceWaiter);
+  int result = acquireVIO(slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
-    finishCompletion(&journal->completion, result);
+    notifySlabJournalIsLoaded(slab, result);
   }
 }
 

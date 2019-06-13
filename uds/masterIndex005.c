@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/masterIndex005.c#2 $
+ * $Id: //eng/uds-releases/homer/src/uds/masterIndex005.c#3 $
  */
 #include "masterIndex005.h"
 
@@ -585,7 +585,8 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
 
   uint64_t virtualChapterLow = 0;
   uint64_t virtualChapterHigh = 0;
-  for (int i = 0; i < numReaders; i++) {
+  int i;
+  for (i = 0; i < numReaders; i++) {
     Buffer *buffer;
     int result = makeBuffer(sizeof(struct mi005_data), &buffer);
     if (result != UDS_SUCCESS)  {
@@ -663,7 +664,8 @@ static int startRestoringMasterIndex_005(MasterIndex *masterIndex,
     }
   }
 
-  for (unsigned int z = 0; z < mi5->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < mi5->numZones; z++) {
     memset(&mi5->masterZones[z], 0, sizeof(MasterIndexZone));
     mi5->masterZones[z].virtualChapterLow  = virtualChapterLow;
     mi5->masterZones[z].virtualChapterHigh = virtualChapterHigh;
@@ -741,7 +743,8 @@ static void removeNewestChapters(MasterIndex5 *mi5,
     virtualChapter -= mi5->chapterMask + 1;
     // Eliminate the newest chapters by renumbering them to become the
     // oldest chapters
-    for (unsigned int i = firstList; i <= lastList; i++) {
+    unsigned int i;
+    for (i = firstList; i <= lastList; i++) {
       if (virtualChapter < mi5->flushChapters[i]) {
         mi5->flushChapters[i] = virtualChapter;
       }
@@ -761,7 +764,8 @@ static void removeNewestChapters(MasterIndex5 *mi5,
       .name        = &name,
       .zoneNumber  = zoneNumber,
     };
-    for (unsigned int i = firstList; i <= lastList; i++) {
+    unsigned int i;
+    for (i = firstList; i <= lastList; i++) {
       ChapterRange tempRange = range;
       getMasterIndexEntry(&record, i, 0, &tempRange);
     }
@@ -827,9 +831,11 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
       uint64_t expireCount
         = 1 + (usedBits - mi5->maxZoneBits) / mi5->chapterZoneBits;
       if (expireCount == 1) {
-        logInfo("masterZone %u:  At chapter %" PRIu64 ", expiring chapter %"
-                PRIu64 " early",
-                zoneNumber, virtualChapter, masterZone->virtualChapterLow);
+        logRatelimit(logInfo,
+                     "masterZone %u:  At chapter %" PRIu64
+                     ", expiring chapter %" PRIu64 " early",
+                     zoneNumber, virtualChapter,
+                     masterZone->virtualChapterLow);
         masterZone->numEarlyFlushes++;
         masterZone->virtualChapterLow++;
       } else {
@@ -842,9 +848,11 @@ static void setMasterIndexZoneOpenChapter_005(MasterIndex *masterIndex,
             += masterZone->virtualChapterHigh - masterZone->virtualChapterLow;
           masterZone->virtualChapterLow = masterZone->virtualChapterHigh;
         }
-        logInfo("masterZone %u:  At chapter %" PRIu64 ", expiring chapters %"
-                PRIu64 " to %" PRIu64 " early", zoneNumber, virtualChapter,
-                firstExpired, masterZone->virtualChapterLow - 1);
+        logRatelimit(logInfo,
+                     "masterZone %u:  At chapter %" PRIu64
+                     ", expiring chapters %" PRIu64 " to %" PRIu64 " early",
+                     zoneNumber, virtualChapter, firstExpired,
+                     masterZone->virtualChapterLow - 1);
       }
     }
   }
@@ -862,7 +870,8 @@ static void setMasterIndexOpenChapter_005(MasterIndex *masterIndex,
                                           uint64_t virtualChapter)
 {
   MasterIndex5 *mi5 = container_of(masterIndex, MasterIndex5, common);
-  for (unsigned int z = 0; z < mi5->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < mi5->numZones; z++) {
     // In normal operation, we advance forward one chapter at a time.
     // Log all abnormal changes.
     MasterIndexZone *masterZone = &mi5->masterZones[z];
@@ -1085,9 +1094,8 @@ int putMasterIndexRecord(MasterIndexRecord *record, uint64_t virtualChapter)
     record->isFound        = true;
     break;
   case UDS_OVERFLOW:
-    logWarningWithStringError(UDS_OVERFLOW,
-                              "Master index entry dropped due to overflow "
-                              "condition");
+    logRatelimit(logWarningWithStringError, UDS_OVERFLOW,
+                 "Master index entry dropped due to overflow condition");
     logDeltaIndexEntry(&record->deltaEntry);
     break;
   default:
@@ -1225,7 +1233,8 @@ static void getMasterIndexStats_005(const MasterIndex *masterIndex,
   dense->overflowCount   = dis.overflowCount;
   dense->numLists        = dis.numLists;
   dense->earlyFlushes    = 0;
-  for (unsigned int z = 0; z < mi5->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < mi5->numZones; z++) {
     dense->earlyFlushes += mi5->masterZones[z].numEarlyFlushes;
   }
   memset(sparse, 0, sizeof(MasterIndexStats));

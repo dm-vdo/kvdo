@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/header.c#5 $
  */
 
 #include "header.h"
@@ -106,12 +106,14 @@ int encodeVersionNumber(VersionNumber version, Buffer *buffer)
 /**********************************************************************/
 int decodeHeader(Buffer *buffer, Header *header)
 {
-  int result = getUInt32LEFromBuffer(buffer, &header->id);
+  ComponentID id;
+  int result = getUInt32LEFromBuffer(buffer, &id);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = decodeVersionNumber(buffer, &header->version);
+  VersionNumber version;
+  result = decodeVersionNumber(buffer, &version);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -122,17 +124,23 @@ int decodeHeader(Buffer *buffer, Header *header)
     return result;
   }
 
-  header->size = size;
+  *header = (Header) {
+    .id      = id,
+    .version = version,
+    .size    = size,
+  };
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
 {
-  int result = getUInt32LEFromBuffer(buffer, &version->majorVersion);
+  PackedVersionNumber packed;
+  int result = getBytesFromBuffer(buffer, sizeof(packed), &packed);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  return getUInt32LEFromBuffer(buffer, &version->minorVersion);
+  *version = unpackVersionNumber(packed);
+  return UDS_SUCCESS;
 }

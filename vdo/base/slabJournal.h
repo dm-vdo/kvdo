@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#5 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -188,20 +188,12 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 void commitSlabJournalTail(SlabJournal *journal);
 
 /**
- * Close the slab journal.
+ * Drain slab journal I/O. Depending upon the type of drain (as recorded in
+ * the journal's slab), any dirty journal blocks may be written out.
  *
- * @param journal       The journal to close
- * @param parent        The completion which should be notified when the
- *                      journal is closed
- * @param callback      The callback to call when the journal is closed
- * @param errorHandler  The handler for close errors
- * @param threadID      The thread on which the callback should run
+ * @param journal  The journal to drain
  **/
-void closeSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID);
+void drainSlabJournal(SlabJournal *journal);
 
 /**
  * Flush all uncommitted entries in the slab journal.
@@ -222,29 +214,11 @@ void flushSlabJournal(SlabJournal   *journal,
                       ThreadID       threadID);
 
 /**
- * Resume a quiescent slab journal.
- *
- * @param journal  The journal to resume
- **/
-void resumeSlabJournal(SlabJournal *journal);
-
-/**
  * Decode the slab journal by reading its tail.
  *
- * <p>Implements slabJournal.c:SlabJournalPreparer.
- *
- * @param journal       The journal to decode
- * @param parent        The completion which should be notified when the
- *                      journal is decoded
- * @param callback      The callback to call once the tail is decoded
- * @param errorHandler  The handler for decode errors
- * @param threadID      The thread on which the callback should run
+ * @param journal  The journal to decode
  **/
-void decodeSlabJournal(SlabJournal   *journal,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler,
-                       ThreadID       threadID);
+void decodeSlabJournal(SlabJournal *journal);
 
 /**
  * Check to see if the journal should be scrubbed.

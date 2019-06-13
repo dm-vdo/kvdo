@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.c#4 $
  */
 
 #include "slab.h"
@@ -24,7 +24,9 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
+#include "completion.h"
 #include "constants.h"
 #include "numUtils.h"
 #include "pbnLock.h"
@@ -301,6 +303,88 @@ bool shouldSaveFullyBuiltSlab(const Slab *slab)
   return (mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)
           || (getSlabFreeBlockCount(slab) != dataBlocks)
           || !isSlabJournalBlank(slab->journal));
+}
+
+/**********************************************************************/
+void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+{
+  if (!startLoading(&slab->state, operation, parent)) {
+    return;
+  }
+
+  decodeSlabJournal(slab->journal);
+}
+
+/**********************************************************************/
+void notifySlabJournalIsLoaded(Slab *slab, int result)
+{
+  if ((result == VDO_SUCCESS) && isCleanLoad(&slab->state)) {
+    // Since this is a normal or new load, we don't need the memory to read and
+    // process the recovery journal, so we can allocate reference counts now.
+    result = allocateRefCountsForSlab(slab->state.waiter->layer, slab);
+  }
+
+  finishLoadingWithResult(&slab->state, result);
+}
+
+/**********************************************************************/
+bool isSlabOpen(Slab *slab)
+{
+  return (!isQuiescing(&slab->state) && !isQuiescent(&slab->state));
+}
+
+/**********************************************************************/
+bool isSlabDraining(Slab *slab)
+{
+  return isDraining(&slab->state);
+}
+
+/**********************************************************************/
+void drainSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+{
+  if (!startDraining(&slab->state, operation, parent)) {
+    return;
+  }
+
+  if (operation == ADMIN_STATE_SCRUBBING) {
+    slab->status = SLAB_REBUILDING;
+  }
+
+  drainSlabJournal(slab->journal);
+}
+
+/**********************************************************************/
+void notifySlabJournalIsDrained(Slab *slab, int result)
+{
+  if (slab->referenceCounts == NULL) {
+    // This can happen when shutting down a VDO that was in read-only mode when
+    // loaded.
+    notifyRefCountsAreDrained(slab, result);
+    return;
+  }
+
+  setOperationResult(&slab->state, result);
+  drainRefCounts(slab->referenceCounts);
+}
+
+/**********************************************************************/
+void notifyRefCountsAreDrained(Slab *slab, int result)
+{
+  finishDrainingWithResult(&slab->state, result);
+}
+
+/**********************************************************************/
+bool resumeSlab(Slab *slab)
+{
+  return resumeIfQuiescent(&slab->state);
+}
+
+/**********************************************************************/
+void finishScrubbingSlab(Slab *slab)
+{
+  slab->status = SLAB_REBUILT;
+  queueSlab(slab);
+  reopenSlabJournal(slab->journal);
 }
 
 /**********************************************************************/

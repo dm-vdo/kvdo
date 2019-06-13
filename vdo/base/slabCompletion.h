@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabCompletion.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabCompletion.h#5 $
  */
 #ifndef SLAB_COMPLETION_H
 #define SLAB_COMPLETION_H
@@ -44,45 +44,12 @@ int makeSlabCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
 void freeSlabCompletion(VDOCompletion **completionPtr);
 
 /**
- * Save slabs.
- *
- * @param completion    The completion for the save operation
- * @param slabIterator  An iterator over the slabs to load
- **/
-void saveSlabs(VDOCompletion *completion, SlabIterator slabIterator);
-
-/**
- * Load slab journal tails.
- *
- * @param completion    The completion for the slab journal load operation
- * @param slabIterator  An iterator over the slabs having journals to load
- **/
-void loadSlabJournals(VDOCompletion  *completion, SlabIterator slabIterator);
-
-/**
  * Flush slab journals.
  *
  * @param completion    The completion for the flush operation
  * @param slabIterator  An iterator over the slabs having journals to flush
  **/
 void flushSlabJournals(VDOCompletion *completion, SlabIterator slabIterator);
-
-/**
- * Save a single slab (used after the slab has been scrubbed).
- *
- * @param completion  The completion for the save operation
- * @param slab        The slab to save
- **/
-void saveSlab(VDOCompletion *completion, Slab *slab);
-
-/**
- * Load the reference counts for a single slab from disk (used only in
- * testing).
- *
- * @param completion  The completion for the load operation
- * @param slab        The slab to load
- **/
-void loadSlabFromLayer(VDOCompletion *completion, Slab *slab);
 
 /**
  * Save fully rebuilt slabs.

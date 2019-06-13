@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCountsInternals.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCountsInternals.h#3 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -93,8 +93,6 @@ struct refCounts {
   bool                      updatingSlabSummary;
   /** Whether something is waiting for I/O to complete */
   bool                      hasIOWaiter;
-  /** Whether a close has been requested */
-  bool                      closeRequested;
 
   /** The notifier for read-only mode */
   ReadOnlyNotifier         *readOnlyNotifier;

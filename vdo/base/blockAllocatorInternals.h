@@ -16,17 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#9 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
 #define BLOCK_ALLOCATOR_INTERNALS_H
 
+#include "adminState.h"
 #include "atomic.h"
 #include "blockAllocator.h"
 #include "priorityTable.h"
 #include "ringNode.h"
 #include "slabScrubber.h"
+#include "vioPool.h"
 
 enum {
   /*
@@ -37,17 +39,25 @@ enum {
 };
 
 typedef enum {
-  CLOSE_ALLOCATOR_START = 0,
-  CLOSE_ALLOCATOR_STEP_STOP_SCRUBBING,
-  CLOSE_ALLOCATOR_STEP_SAVE_SLABS,
-  CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY,
-  CLOSE_ALLOCATOR_VIO_POOL,
-} BlockAllocatorCloseStep;
+  DRAIN_ALLOCATOR_START = 0,
+  DRAIN_ALLOCATOR_STEP_SCRUBBER,
+  DRAIN_ALLOCATOR_STEP_SLABS,
+  DRAIN_ALLOCATOR_STEP_SUMMARY,
+  DRAIN_ALLOCATOR_STEP_FINISHED,
+} BlockAllocatorDrainStep;
 
+/**
+ * A sub-structure for applying actions in parallel to all an allocator's
+ * slabs.
+ **/
 typedef struct {
-  VDOCompletion  completion;
-  RingNode      *ringToScrub;
-} SlabRingRebuildCompletion;
+  /** Whether the allocator is currently launching a slab action */
+  bool       launchingSlabAction;
+  /** The number of slabs performing a slab action */
+  SlabCount  slabActionCount;
+  /** The method to call when a slab action has been completed by all slabs */
+  VDOAction *callback;
+} SlabActor;
 
 /**
  * These fields are only modified by the physical zone thread, but are queried
@@ -112,8 +122,10 @@ struct blockAllocator {
   SlabCount                    lastSlab;
   /** The reduced priority level used to preserve unopened slabs */
   unsigned int                 unopenedSlabPriority;
-  /** Whether a save has been requested */
-  bool                         saveRequested;
+  /** The state of this allocator */
+  AdminState                   state;
+  /** The actor for applying an action to all slabs */
+  SlabActor                    slabActor;
 
   /** The slab from which blocks are currently being allocated */
   Slab                        *openSlab;
@@ -124,8 +136,7 @@ struct blockAllocator {
   /** The completion for saving slabs */
   VDOCompletion               *slabCompletion;
   /** What phase of the close operation the allocator is to perform */
-  BlockAllocatorCloseStep      closeStep;
-
+  BlockAllocatorDrainStep      drainStep;
   /** Statistics for this block allocator */
   AtomicAllocatorStatistics    statistics;
   /** Cumulative statistics for the slab journals in this zone */
@@ -144,7 +155,7 @@ struct blockAllocator {
   RingNode                     dirtySlabJournals;
 
   /** The VIO pool for reading and writing block allocator metadata */
-  ObjectPool                  *vioPool;
+  VIOPool                     *vioPool;
 };
 
 /**

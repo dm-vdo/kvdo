@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/fixedLayout.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/fixedLayout.c#3 $
  */
 
 #include "fixedLayout.h"
@@ -458,20 +458,29 @@ static int decodeLayout_3_0(Buffer *buffer, Layout3_0 *layout)
 {
   size_t initialLength = contentLength(buffer);
 
-  int result = getUInt64LEFromBuffer(buffer, &layout->firstFree);
+  PhysicalBlockNumber firstFree;
+  int result = getUInt64LEFromBuffer(buffer, &firstFree);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &layout->lastFree);
+  PhysicalBlockNumber lastFree;
+  result = getUInt64LEFromBuffer(buffer, &lastFree);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = getByte(buffer, &layout->partitionCount);
+  byte partitionCount;
+  result = getByte(buffer, &partitionCount);
   if (result != UDS_SUCCESS) {
     return result;
   }
+
+  *layout = (Layout3_0) {
+    .firstFree      = firstFree,
+    .lastFree       = lastFree,
+    .partitionCount = partitionCount,
+  };
 
   size_t decodedSize = initialLength - contentLength(buffer);
   return ASSERT(decodedSize == sizeof(Layout3_0),

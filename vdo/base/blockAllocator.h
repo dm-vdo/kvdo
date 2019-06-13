@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#8 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -128,6 +128,15 @@ BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
+ * Load the state of an allocator from disk.
+ *
+ * <p>Implements ZoneAction.
+ **/
+void loadBlockAllocator(void          *context,
+                        ZoneCount      zoneNumber,
+                        VDOCompletion *parent);
+
+/**
  * Prepare the block allocator to come online and start allocating blocks.
  *
  * <p>Implements ZoneAction.
@@ -184,12 +193,13 @@ void resumeSummaryZone(void          *context,
                        VDOCompletion *parent);
 
 /**
- * Asynchronously save any block allocator state that isn't included in the
- * SuperBlock component to the allocator partition.
+ * Drain all allocator I/O. Depending upon the type of drain, some or all
+ * dirty metadata may be written to disk. The type of drain will be determined
+ * from the state of the allocator's depot.
  *
  * <p>Implements ZoneAction.
  **/
-void closeBlockAllocator(void          *context,
+void drainBlockAllocator(void          *context,
                          ZoneCount      zoneNumber,
                          VDOCompletion *parent);
 
@@ -201,19 +211,6 @@ void closeBlockAllocator(void          *context,
 void saveBlockAllocatorForFullRebuild(void          *context,
                                       ZoneCount      zoneNumber,
                                       VDOCompletion *parent);
-
-/**
- * Save a slab which has been rebuilt.
- *
- * @param slab          The slab which has been rebuilt
- * @param parent        The parent to notify when the slab has been saved
- * @param callback      The function to call when the slab has been saved
- * @param errorHandler  The handler for save errors
- **/
-void saveRebuiltSlab(Slab          *slab,
-                     VDOCompletion *parent,
-                     VDOAction     *callback,
-                     VDOAction     *errorHandler);
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery

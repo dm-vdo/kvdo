@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dataKVIO.c#15 $
  */
 
 #include "dataKVIO.h"
@@ -1047,7 +1047,8 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
           dataVIO->logical.lbn, dataVIO->duplicate.pbn,
           getOperationName(dataVIO));
 
-  for (Waiter *waiter = first->nextWaiter;
+  Waiter *waiter;
+  for (waiter = first->nextWaiter;
        waiter != first;
        waiter = waiter->nextWaiter) {
     dataVIO = waiterAsDataVIO(waiter);

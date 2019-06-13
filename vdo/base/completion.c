@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#8 $
  */
 
 #include "completion.h"
@@ -50,9 +50,7 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "REFERENCE_COUNT_REBUILD_COMPLETION",
   "SLAB_COMPLETION",
   "SLAB_JOURNAL_COMPLETION",
-  "SLAB_REBUILD_COMPLETION",
   "SLAB_SCRUBBER_COMPLETION",
-  "SLAB_SUMMARY_COMPLETION",
   "SUB_TASK_COMPLETION",
   "TEST_COMPLETION",
   "VDO_COMMAND_COMPLETION",
@@ -192,6 +190,17 @@ void releaseCompletionWithResult(VDOCompletion **completionPtr, int result)
 void finishParentCallback(VDOCompletion *completion)
 {
   finishCompletion((VDOCompletion *) completion->parent, completion->result);
+}
+
+/**********************************************************************/
+void preserveErrorAndContinue(VDOCompletion *completion)
+{
+  if (completion->parent != NULL) {
+    setCompletionResult(completion->parent, completion->result);
+  }
+
+  resetCompletion(completion);
+  invokeCallback(completion);
 }
 
 /**********************************************************************/

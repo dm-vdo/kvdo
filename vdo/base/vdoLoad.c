@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoLoad.c#10 $
  */
 
 #include "vdoLoad.h"
@@ -216,9 +216,9 @@ static void prepareToComeOnline(VDOCompletion *completion)
   VDO               *vdo      = vdoFromLoadSubTask(completion);
   SlabDepotLoadType  loadType = NORMAL_LOAD;
   if (requiresReadOnlyRebuild(vdo)) {
-    loadType = NO_LOAD;
+    loadType = REBUILD_LOAD;
   } else if (requiresRecovery(vdo)) {
-    loadType = DEFER_LOAD;
+    loadType = RECOVERY_LOAD;
   }
 
   initializeBlockMapFromJournal(vdo->blockMap, vdo->recoveryJournal);
@@ -452,19 +452,22 @@ static void loadVDOComponents(VDOCompletion *completion)
     return;
   }
 
+  if (requiresReadOnlyRebuild(vdo)) {
+    prepareAdminSubTask(vdo, makeDirty, abortLoad);
+    launchRebuild(vdo, completion);
+    return;
+  }
+
   if (requiresRebuild(vdo)) {
-    if (requiresReadOnlyRebuild(vdo)) {
-      prepareAdminSubTask(vdo, makeDirty, abortLoad);
-      launchRebuild(vdo, completion);
-    } else {
-      prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
-      launchRecovery(vdo, completion);
-    }
+    prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
+    launchRecovery(vdo, completion);
     return;
   }
 
   prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
-  loadSlabDepot(vdo->depot, wasNew(vdo), completion);
+  loadSlabDepot(vdo->depot,
+                (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
+                completion);
 }
 
 /**

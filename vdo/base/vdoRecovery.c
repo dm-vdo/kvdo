@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#12 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -508,7 +508,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
 
   prepareCompletion(completion, startSuperBlockSave, finishParentCallback,
                     completion->callbackThreadID, completion->parent);
-  flushDepotSlabJournals(vdo->depot, completion);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_FLUSHING, completion);
 }
 
 /**
@@ -1038,5 +1038,6 @@ void launchRecovery(VDO *vdo, VDOCompletion *parent)
   prepareCompletion(subTaskCompletion, loadJournal, finishParentCallback,
                     getLogicalZoneThread(getThreadConfig(vdo), 0),
                     completion);
-  loadSlabDepotForRecovery(vdo->depot, subTaskCompletion);
+  loadSlabDepot(vdo->depot, ADMIN_STATE_LOADING_FOR_RECOVERY,
+                subTaskCompletion);
 }

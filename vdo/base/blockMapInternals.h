@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#10 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -29,10 +29,10 @@
 #include "dirtyLists.h"
 #include "header.h"
 #include "intMap.h"
-#include "objectPool.h"
 #include "ringNode.h"
 #include "types.h"
 #include "vdoPageCache.h"
+#include "vioPool.h"
 
 /**
  * The per-zone fields used by the block map tree.
@@ -47,7 +47,7 @@ struct blockMapTreeZone {
   /** The map of pages currently being loaded */
   IntMap              *loadingPages;
   /** The pool of VIOs for tree I/O */
-  ObjectPool          *vioPool;
+  VIOPool             *vioPool;
   /** The tree page which has issued or will be issuing a flush */
   TreePage            *flusher;
   /** The queue of pages waiting for a flush so they can be written out */
@@ -83,8 +83,6 @@ struct blockMapZone {
 struct blockMap {
   /** The manager for block map actions */
   ActionManager       *actionManager;
-  /** The administrative state of the block map */
-  AdminState           state;
   /** The count of pages in the linear part of the block map */
   BlockCount           flatPageCount;
   /** The absolute PBN of the first root of the tree part of the block map */
@@ -92,10 +90,6 @@ struct blockMap {
   /** The count of root pages of the tree part of the block map */
   BlockCount           rootCount;
 
-  /** Whether aging is current scheduled or active */
-  bool                 aging;
-  /** The last era point that has been distributed to each zone */
-  SequenceNumber       previousEraPoint;
   /** The era point we are currently distributing to the zones */
   SequenceNumber       currentEraPoint;
   /** The next era point, not yet distributed to any zone */

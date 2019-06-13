@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoClose.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoClose.c#4 $
  */
 
 #include "vdoClose.h"
@@ -139,7 +139,7 @@ static void saveDepot(VDOCompletion *completion)
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, waitForReadOnlyMode,
                  getAdminThread(getThreadConfig(vdo)));
-  saveSlabDepot(vdo->depot, true, completion);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_SAVING, completion);
 }
 
 /**

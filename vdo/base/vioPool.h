@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#3 $
  */
 
 #ifndef VIO_POOL_H
@@ -25,13 +25,12 @@
 #include "permassert.h"
 
 #include "completion.h"
-#include "objectPool.h"
 #include "types.h"
 #include "waitQueue.h"
 
 /**
- * An VIOPool is a collection of preallocated VIOs used to write
- * arbitrary metadata blocks.
+ * A VIOPool is a collection of preallocated VIOs used to write arbitrary
+ * metadata blocks.
  **/
 
 /**
@@ -73,7 +72,7 @@ int makeVIOPool(PhysicalLayer   *layer,
                 size_t           poolSize,
                 VIOConstructor  *vioConstructor,
                 void            *context,
-                ObjectPool     **poolPtr)
+                VIOPool     **poolPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -81,7 +80,15 @@ int makeVIOPool(PhysicalLayer   *layer,
  *
  * @param poolPtr  the pointer holding the pool, which will be nulled out
  **/
-void freeVIOPool(ObjectPool **poolPtr);
+void freeVIOPool(VIOPool **poolPtr);
+
+/**
+ * Check whether an VIO pool has outstanding entries.
+ *
+ * @return <code>true</code> if the pool is busy
+ **/
+bool isVIOPoolBusy(VIOPool *pool)
+  __attribute__((warn_unused_result));
 
 /**
  * Acquire a VIO and buffer from the pool (asynchronous).
@@ -91,10 +98,7 @@ void freeVIOPool(ObjectPool **poolPtr);
  *
  * @return VDO_SUCCESS or an error
  **/
-static inline int acquireVIOFromPool(ObjectPool *pool, Waiter *waiter)
-{
-  return acquireEntryFromObjectPool(pool, waiter);
-}
+int acquireVIOFromPool(VIOPool *pool, Waiter *waiter);
 
 /**
  * Return a VIO and its buffer to the pool.
@@ -102,10 +106,10 @@ static inline int acquireVIOFromPool(ObjectPool *pool, Waiter *waiter)
  * @param pool   the VIO pool
  * @param entry  a VIO pool entry
  **/
-void returnVIOToPool(ObjectPool *pool, VIOPoolEntry *entry);
+void returnVIOToPool(VIOPool *pool, VIOPoolEntry *entry);
 
 /**
- * Convert a RingNode to the VIO pool entry that contains it.
+ * Convert a RingNode to the VIOPoolEntry that contains it.
  *
  * @param node  The RingNode to convert
  *
@@ -116,5 +120,15 @@ static inline VIOPoolEntry *asVIOPoolEntry(RingNode *node)
   STATIC_ASSERT(offsetof(VIOPoolEntry, node) == 0);
   return (VIOPoolEntry *) node;
 }
+
+/**
+ * Return the outage count of an VIO pool.
+ *
+ * @param pool  The pool
+ *
+ * @return the number of times an acquisition request had to wait
+ **/
+uint64_t getVIOPoolOutageCount(VIOPool *pool)
+  __attribute__((warn_unused_result));
 
 #endif // VIO_POOL_H

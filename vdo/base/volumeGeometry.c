@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#8 $
  */
 
 #include "volumeGeometry.h"
@@ -96,17 +96,30 @@ static inline bool isLoadableReleaseVersion(ReleaseVersionNumber version)
  **/
 static int decodeIndexConfig(Buffer *buffer, IndexConfig *config)
 {
-  int result = getUInt32LEFromBuffer(buffer, &config->mem);
+  uint32_t mem;
+  int result = getUInt32LEFromBuffer(buffer, &mem);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt32LEFromBuffer(buffer, &config->checkpointFrequency);
+  uint32_t checkpointFrequency;
+  result = getUInt32LEFromBuffer(buffer, &checkpointFrequency);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return getBoolean(buffer, &config->sparse);
+  bool sparse;
+  result = getBoolean(buffer, &sparse);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  *config = (IndexConfig) {
+    .mem                 = mem,
+    .checkpointFrequency = checkpointFrequency,
+    .sparse              = sparse,
+  };
+  return VDO_SUCCESS;
 }
 
 /**
@@ -142,12 +155,23 @@ static int encodeIndexConfig(const IndexConfig *config, Buffer *buffer)
  **/
 static int decodeVolumeRegion(Buffer *buffer, VolumeRegion *region)
 {
-  int result = getUInt32LEFromBuffer(buffer, &region->id);
+  VolumeRegionID id;
+  int result = getUInt32LEFromBuffer(buffer, &id);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return getUInt64LEFromBuffer(buffer, &region->startBlock);
+  PhysicalBlockNumber startBlock;
+  result = getUInt64LEFromBuffer(buffer, &startBlock);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  *region = (VolumeRegion) {
+    .id         = id,
+    .startBlock = startBlock,
+  };
+  return VDO_SUCCESS;
 }
 
 /**
@@ -178,15 +202,20 @@ static int encodeVolumeRegion(const VolumeRegion *region, Buffer *buffer)
  **/
 static int decodeVolumeGeometry(Buffer *buffer, VolumeGeometry *geometry)
 {
-  int result = getUInt32LEFromBuffer(buffer, &geometry->releaseVersion);
+  ReleaseVersionNumber releaseVersion;
+  int result = getUInt32LEFromBuffer(buffer, &releaseVersion);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &geometry->nonce);
+  Nonce nonce;
+  result = getUInt64LEFromBuffer(buffer, &nonce);
   if (result != VDO_SUCCESS) {
     return result;
   }
+
+  geometry->releaseVersion = releaseVersion;
+  geometry->nonce          = nonce;
 
   result = getBytesFromBuffer(buffer, sizeof(UUID), geometry->uuid);
   if (result != VDO_SUCCESS) {
@@ -411,8 +440,8 @@ int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 
   BlockCount indexBlocks = indexBytes / VDO_BLOCK_SIZE;
   if ((((uint64_t) indexBlocks) * VDO_BLOCK_SIZE) != indexBytes) {
-    return logErrorWithStringError(VDO_PARAMETER_MISMATCH, "index size must be a"
-                                   " multiple of block size %d",
+    return logErrorWithStringError(VDO_PARAMETER_MISMATCH, "index size must be"
+                                   " a multiple of block size %d",
                                    VDO_BLOCK_SIZE);
   }
 

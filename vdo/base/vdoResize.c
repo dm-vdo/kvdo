@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#11 $
  */
 
 #include "vdoResize.h"
@@ -68,7 +68,7 @@ static void resumeSummaryForRevert(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, finishParentCallback, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion);
+  resumeSlabDepot(vdo->depot, completion);
 }
 
 /**
@@ -120,7 +120,7 @@ static void resumeSummary(VDOCompletion *completion)
   setSlabSummaryOrigin(getSlabSummary(vdo->depot),
                        getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
   prepareAdminSubTask(vdo, finishVDOResize, handleUnrecoverableError);
-  resumeSlabSummary(vdo->depot, completion);
+  resumeSlabDepot(vdo->depot, completion);
 }
 
 /**
@@ -178,7 +178,7 @@ static void suspendSummary(VDOCompletion *completion)
   // need to be undone.
   VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
   prepareAdminSubTask(vdo, copySuspendedSummary, abortResize);
-  suspendSlabSummary(vdo->depot, completion);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_SUSPENDING, completion);
 }
 
 /**

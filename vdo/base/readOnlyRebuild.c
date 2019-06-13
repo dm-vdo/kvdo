@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyRebuild.c#7 $
  */
 
 #include "readOnlyRebuild.h"
@@ -209,7 +209,7 @@ static void finishReferenceCountRebuild(VDOCompletion *completion)
 
   logInfo("Saving rebuilt state");
   prepareToFinishParent(completion, &rebuild->completion);
-  saveSlabDepot(vdo->depot, false, completion);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
 }
 
 /**
@@ -416,5 +416,6 @@ void launchRebuild(VDO *vdo, VDOCompletion *parent)
   prepareCompletion(subTaskCompletion, loadJournal, finishParentCallback,
                     getLogicalZoneThread(getThreadConfig(vdo), 0),
                     completion);
-  loadSlabDepotForRebuild(vdo->depot, subTaskCompletion);
+  loadSlabDepot(vdo->depot, ADMIN_STATE_LOADING_FOR_REBUILD,
+                subTaskCompletion);
 }

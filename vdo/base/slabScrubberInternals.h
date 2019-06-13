@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubberInternals.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubberInternals.h#5 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -26,6 +26,7 @@
 
 #include "adminState.h"
 #include "atomic.h"
+#include "extent.h"
 #include "ringNode.h"
 
 struct slabScrubber {
@@ -45,10 +46,14 @@ struct slabScrubber {
   AdminState        adminState;
   /** Whether to only scrub high-priority slabs */
   bool              highPriorityOnly;
-  /** The completion for rebuilding a slab */
-  VDOCompletion    *slabRebuildCompletion;
   /** The context for entering read-only mode */
   ReadOnlyNotifier *readOnlyNotifier;
+  /** The slab currently being scrubbed */
+  Slab             *slab;
+  /** The extent for loading slab journal blocks */
+  VDOExtent        *extent;
+  /** A buffer to store the slab journal blocks */
+  char             *journalData;
 };
 
 #endif // SLAB_SCRUBBER_INTERNALS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#8 $
  */
 
 #ifndef TYPES_H
@@ -381,7 +381,6 @@ typedef struct inputBin            InputBin;
 typedef struct lbnLock             LBNLock;
 typedef struct lockCounter         LockCounter;
 typedef struct logicalZone         LogicalZone;
-typedef struct objectPool          ObjectPool;
 typedef struct pbnLock             PBNLock;
 typedef struct physicalLayer       PhysicalLayer;
 typedef struct physicalZone        PhysicalZone;
@@ -402,6 +401,7 @@ typedef struct vdoFlush            VDOFlush;
 typedef struct vdoLayout           VDOLayout;
 typedef struct vdoStatistics       VDOStatistics;
 typedef struct vio                 VIO;
+typedef struct vioPool             VIOPool;
 
 typedef struct {
   PhysicalBlockNumber pbn;

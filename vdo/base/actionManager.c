@@ -16,20 +16,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#5 $
  */
 
 #include "actionManager.h"
 
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "completion.h"
 #include "types.h"
 
 /** An action to be performed in each of a set of zones */
-typedef struct {
+typedef struct action Action;
+struct action {
+  /** Whether this structure is in use */
+  bool              inUse;
+  /** The admin operation associated with this action */
+  AdminStateCode    operation;
+  /**
+   * The method to run on the initiator thread before the action is applied to
+   * each zone.
+   **/
+  ActionPreamble   *preamble;
   /** The action to be performed in each zone */
-  ZoneAction       *action;
+  ZoneAction       *zoneAction;
   /**
    * The method to run on the initiator thread after the action has been
    * applied to each zone
@@ -37,17 +48,23 @@ typedef struct {
   ActionConclusion *conclusion;
   /** The object to notify when the action is complete */
   VDOCompletion    *parent;
-} Action;
+  /** The action to perform after this one */
+  Action           *next;
+};
 
 struct actionManager {
   /** The completion for performing actions */
   VDOCompletion     completion;
-  /** The currently running action */
-  Action            currentAction;
-  /** The next action to run */
-  Action            nextAction;
+  /** The state of this action manager */
+  AdminState        state;
+  /** The two action slots*/
+  Action            actions[2];
+  /** The current action slot */
+  Action           *currentAction;
   /** The number of zones in which an action is to be applied */
   ZoneCount         zones;
+  /** A function to schedule a default next action */
+  ActionScheduler  *scheduler;
   /**
    * A function to get the id of the thread on which to apply an action to a
    * zone
@@ -59,8 +76,6 @@ struct actionManager {
   void             *context;
   /** The zone currently being acted upon */
   ZoneCount         actingZone;
-  /** Whether the action manager is currently acting */
-  bool              acting;
 };
 
 /**
@@ -77,11 +92,42 @@ static inline ActionManager *asActionManager(VDOCompletion *completion)
   return (ActionManager *) completion;
 }
 
+/**
+ * An action scheduler which does not schedule an action.
+ *
+ * <p>Implements ActionScheduler.
+ **/
+static bool noDefaultAction(void *context __attribute__((unused)))
+{
+  return false;
+}
+
+/**
+ * A default preamble which does nothing.
+ *
+ * <p>Implements ActionPreamble
+ **/
+static void noPreamble(void          *context __attribute__((unused)),
+                       VDOCompletion *completion)
+{
+  completeCompletion(completion);
+}
+
+/**
+ * A default conclusion which does nothing.
+ *
+ * <p>Implements ActionConclusion.
+ **/
+static int noConclusion(void *context __attribute__((unused))) {
+  return VDO_SUCCESS;
+}
+
 /**********************************************************************/
 int makeActionManager(ZoneCount          zones,
                       ZoneThreadGetter  *getZoneThreadID,
                       ThreadID           initiatorThreadID,
                       void              *context,
+                      ActionScheduler   *scheduler,
                       PhysicalLayer     *layer,
                       ActionManager    **managerPtr)
 {
@@ -93,10 +139,14 @@ int makeActionManager(ZoneCount          zones,
 
   *manager = (ActionManager) {
     .zones             = zones,
+    .scheduler         = ((scheduler == NULL) ? noDefaultAction : scheduler),
     .getZoneThreadID   = getZoneThreadID,
     .initiatorThreadID = initiatorThreadID,
     .context           = context,
   };
+
+  manager->actions[0].next = &manager->actions[1];
+  manager->currentAction = manager->actions[1].next = &manager->actions[0];
 
   result = initializeEnqueueableCompletion(&manager->completion,
                                            ACTION_COMPLETION, layer);
@@ -122,34 +172,8 @@ void freeActionManager(ActionManager **managerPtr)
 }
 
 /**********************************************************************/
-bool hasNextAction(ActionManager *manager)
-{
-  return ((manager->nextAction.action != NULL)
-          || (manager->nextAction.conclusion != NULL));
-}
-
-/**********************************************************************/
-int getCurrentActionStatus(ActionManager *manager)
-{
-  return ((manager->acting && (manager->currentAction.parent != NULL))
-          ? manager->currentAction.parent->result : VDO_SUCCESS);
-}
-
-/**
- * Handle an error when applying an action to a zone.
- *
- * @param completion  The manager completion
- **/
-static void handleZoneError(VDOCompletion *completion)
-{
-  // Preserve the error.
-  if (completion->parent != NULL) {
-    setCompletionResult(completion->parent, completion->result);
-  }
-
-  // Carry on.
-  resetCompletion(completion);
-  invokeCallback(completion);
+AdminStateCode getCurrentManagerOperation(ActionManager *manager) {
+  return manager->state.state;
 }
 
 /**********************************************************************/
@@ -175,9 +199,9 @@ static ThreadID getActingZoneThreadID(ActionManager *manager)
  **/
 static void prepareForNextZone(ActionManager *manager)
 {
-  prepareForRequeue(&manager->completion, applyToZone, handleZoneError,
-                    getActingZoneThreadID(manager),
-                    manager->currentAction.parent);
+  prepareForRequeue(&manager->completion, applyToZone,
+                    preserveErrorAndContinue, getActingZoneThreadID(manager),
+                    manager->currentAction->parent);
 }
 
 /**
@@ -189,8 +213,8 @@ static void prepareForNextZone(ActionManager *manager)
 static void prepareForConclusion(ActionManager *manager)
 {
   prepareForRequeue(&manager->completion, finishActionCallback,
-                    handleZoneError, manager->initiatorThreadID,
-                    manager->currentAction.parent);
+                    preserveErrorAndContinue, manager->initiatorThreadID,
+                    manager->currentAction->parent);
 }
 
 /**
@@ -214,7 +238,19 @@ static void applyToZone(VDOCompletion *completion)
     prepareForNextZone(manager);
   }
 
-  manager->currentAction.action(manager->context, zone, completion);
+  manager->currentAction->zoneAction(manager->context, zone, completion);
+}
+
+/**
+ * The error handler for preamble errors.
+ *
+ * @param completion  The manager completion
+ **/
+static void handlePreambleError(VDOCompletion *completion)
+{
+  // Skip the zone actions since the preamble failed.
+  completion->callback = finishActionCallback;
+  preserveErrorAndContinue(completion);
 }
 
 /**
@@ -224,36 +260,29 @@ static void applyToZone(VDOCompletion *completion)
  **/
 static void launchCurrentAction(ActionManager *manager)
 {
-  manager->acting     = true;
-  manager->actingZone = 0;
-  if (manager->currentAction.action == NULL) {
-    prepareForConclusion(manager);
-  } else {
-    prepareForNextZone(manager);
-  }
+  Action *action = manager->currentAction;
+  int     result = startOperation(&manager->state, action->operation);
+  if (result != VDO_SUCCESS) {
+    if (action->parent != NULL) {
+      setCompletionResult(action->parent, result);
+    }
 
-  invokeCallback(&manager->completion);
-}
-
-/**
- * Launch the next action if there isn't one currently in progress.
- *
- * @param manager  The action manager
- **/
-static void launchNextAction(ActionManager *manager)
-{
-  if (manager->acting || !hasNextAction(manager)) {
+    // We aren't going to run the preamble, so don't run the conclusion
+    action->conclusion = noConclusion;
+    finishActionCallback(&manager->completion);
     return;
   }
 
-  manager->currentAction = manager->nextAction;
-  manager->nextAction = (Action) {
-    .action     = NULL,
-    .conclusion = NULL,
-    .parent     = NULL,
-  };
+  if (action->zoneAction == NULL) {
+    prepareForConclusion(manager);
+  } else {
+    manager->actingZone = 0;
+    prepareForRequeue(&manager->completion, applyToZone, handlePreambleError,
+                      getActingZoneThreadID(manager),
+                      manager->currentAction->parent);
+  }
 
-  launchCurrentAction(manager);
+  action->preamble(manager->context, &manager->completion);
 }
 
 /**
@@ -264,64 +293,73 @@ static void launchNextAction(ActionManager *manager)
  **/
 static void finishActionCallback(VDOCompletion *completion)
 {
-  ActionManager *manager            = asActionManager(completion);
-  Action         action             = manager->currentAction;
-  manager->currentAction.action     = NULL;
-  manager->currentAction.conclusion = NULL;
+  ActionManager *manager        = asActionManager(completion);
+  Action         action         = *(manager->currentAction);
+  manager->currentAction->inUse = false;
+  manager->currentAction        = manager->currentAction->next;
 
-  if (action.conclusion != NULL) {
-    action.conclusion(manager->context);
-  }
-
-  if ((manager->currentAction.action != NULL)
-      || (manager->currentAction.conclusion != NULL)) {
-    // If currentAction's action or conclusion are no longer NULL,
-    // the conclusion must have continued the action, so keep going.
-    launchCurrentAction(manager);
-    return;
-  }
-
-  manager->acting = false;
-
-  // This will requeue so we'll be back momentarily.
-  launchNextAction(manager);
-
+  // We need to check this now to avoid use-after-free issues if running the
+  // conclusion or notifying the parent results in the manager being freed.
+  bool hasNextAction = (manager->currentAction->inUse
+                        || manager->scheduler(manager->context));
+  int result = action.conclusion(manager->context);
+  finishOperation(&manager->state);
   if (action.parent != NULL) {
-    completeCompletion(action.parent);
+    finishCompletion(action.parent, result);
+  }
+
+  if (hasNextAction) {
+    launchCurrentAction(manager);
   }
 }
 
 /**********************************************************************/
-void scheduleAction(ActionManager    *manager,
-                    ZoneAction       *action,
+bool scheduleAction(ActionManager    *manager,
+                    ActionPreamble   *preamble,
+                    ZoneAction       *zoneAction,
                     ActionConclusion *conclusion,
                     VDOCompletion    *parent)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
-                  "action initiated from correct thread");
-  if (hasNextAction(manager)) {
-    if (parent != NULL) {
-      finishCompletion(parent, VDO_COMPONENT_BUSY);
-    }
-    return;
-  }
-
-  manager->nextAction = (Action) {
-    .action     = action,
-    .conclusion = conclusion,
-    .parent     = parent,
-  };
-  launchNextAction(manager);
+  return scheduleOperation(manager, ADMIN_STATE_OPERATING, preamble,
+                           zoneAction, conclusion, parent);
 }
 
 /**********************************************************************/
-void continueAction(ActionManager    *manager,
-                    ZoneAction       *action,
-                    ActionConclusion *conclusion)
+bool scheduleOperation(ActionManager    *manager,
+                       AdminStateCode    operation,
+                       ActionPreamble   *preamble,
+                       ZoneAction       *zoneAction,
+                       ActionConclusion *conclusion,
+                       VDOCompletion    *parent)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");
+  Action *action;
+  if (!manager->currentAction->inUse) {
+    action = manager->currentAction;
+  } else if (!manager->currentAction->next->inUse) {
+    action = manager->currentAction->next;
+  } else {
+    if (parent != NULL) {
+      finishCompletion(parent, VDO_COMPONENT_BUSY);
+    }
 
-  manager->currentAction.action     = action;
-  manager->currentAction.conclusion = conclusion;
+    return false;
+  }
+
+  *action = (Action) {
+    .inUse      = true,
+    .operation  = operation,
+    .preamble   = (preamble == NULL) ? noPreamble : preamble,
+    .zoneAction = zoneAction,
+    .conclusion = (conclusion == NULL) ? noConclusion : conclusion,
+    .parent     = parent,
+    .next       = action->next,
+  };
+
+  if (action == manager->currentAction) {
+    launchCurrentAction(manager);
+  }
+
+  return true;
 }

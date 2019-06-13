@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#16 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#17 $
  */
 
 #include "recoveryJournal.h"
@@ -619,20 +619,29 @@ static int decodeRecoveryJournalState_7_0(Buffer                  *buffer,
 {
   size_t initialLength = contentLength(buffer);
 
-  int result = getUInt64LEFromBuffer(buffer, &state->journalStart);
+  SequenceNumber journalStart;
+  int result = getUInt64LEFromBuffer(buffer, &journalStart);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->logicalBlocksUsed);
+  BlockCount logicalBlocksUsed;
+  result = getUInt64LEFromBuffer(buffer, &logicalBlocksUsed);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = getUInt64LEFromBuffer(buffer, &state->blockMapDataBlocks);
+  BlockCount blockMapDataBlocks;
+  result = getUInt64LEFromBuffer(buffer, &blockMapDataBlocks);
   if (result != UDS_SUCCESS) {
     return result;
   }
+
+  *state = (RecoveryJournalState7_0) {
+    .journalStart       = journalStart,
+    .logicalBlocksUsed  = logicalBlocksUsed,
+    .blockMapDataBlocks = blockMapDataBlocks,
+  };
 
   size_t decodedSize = initialLength - contentLength(buffer);
   return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decodedSize,

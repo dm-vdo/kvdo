@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.h#9 $
  */
 
 #ifndef COMPLETION_H
@@ -54,9 +54,7 @@ typedef enum __attribute__((packed)) {
   REFERENCE_COUNT_REBUILD_COMPLETION,
   SLAB_COMPLETION,
   SLAB_JOURNAL_COMPLETION,
-  SLAB_REBUILD_COMPLETION,
   SLAB_SCRUBBER_COMPLETION,
-  SLAB_SUMMARY_COMPLETION,
   SUB_TASK_COMPLETION,
   TEST_COMPLETION,                      // each unit test may define its own
   VDO_COMMAND_COMPLETION,
@@ -230,6 +228,14 @@ void releaseCompletionWithResult(VDOCompletion **completionPtr, int result);
  *                    be finished
  **/
 void finishParentCallback(VDOCompletion *completion);
+
+/**
+ * Error handler which preserves an error in the parent (if there is one),
+ * and then resets the failing completion and calls its non-error callback.
+ *
+ * @param completion  The completion which failed
+ **/
+void preserveErrorAndContinue(VDOCompletion *completion);
 
 /**
  * A callback which does nothing. This callback is intended to be set as an

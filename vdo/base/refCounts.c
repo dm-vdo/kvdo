@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#6 $
  */
 
 #include "refCounts.h"
@@ -27,6 +27,7 @@
 #include "numeric.h"
 #include "permassert.h"
 
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
 #include "completion.h"
 #include "extent.h"
@@ -242,27 +243,82 @@ RefCounts *asRefCounts(VDOCompletion *completion)
 }
 
 /**
+ * Check whether a RefCounts has active I/O.
+ *
+ * @param refCounts  The RefCounts to check
+ *
+ * @return <code>true</code> if there is reference block I/O or a summary
+ *         update in progress
+ **/
+__attribute__((warn_unused_result))
+static bool isRefCountsActive(RefCounts *refCounts)
+{
+  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary);
+}
+
+/**
+ * Check whether a drain is in progress and all I/O has completed.
+ *
+ * @param refCounts  The refCounts to check
+ **/
+static void checkForDrainComplete(RefCounts *refCounts)
+{
+  if (isRefCountsActive(refCounts) || !isSlabDraining(refCounts->slab)) {
+    return;
+  }
+
+  if (!isSuspending(&refCounts->slab->state)
+      && hasWaiters(&refCounts->dirtyBlocks)) {
+    // If the drain is not a suspend, the refCounts must be clean.
+    return;
+  }
+
+  refCounts->hasIOWaiter = false;
+  notifyRefCountsAreDrained(refCounts->slab,
+                            (isReadOnly(refCounts->readOnlyNotifier)
+                             ? VDO_READ_ONLY : VDO_SUCCESS));
+}
+
+/**********************************************************************/
+static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
+{
+  enterReadOnlyMode(refCounts->readOnlyNotifier, result);
+  checkForDrainComplete(refCounts);
+}
+
+/**
+ * Enqueue a block on the dirty queue.
+ *
+ * @param block  The block to enqueue
+ **/
+static void enqueueDirtyBlock(ReferenceBlock *block)
+{
+  int result = enqueueWaiter(&block->refCounts->dirtyBlocks, &block->waiter);
+  if (result != VDO_SUCCESS) {
+    // This should never happen.
+    enterRefCountsReadOnlyMode(block->refCounts, result);
+  }
+}
+
+/**
  * Mark a reference count block as dirty, potentially adding it to the dirty
  * queue if it wasn't already dirty.
  *
  * @param block  The reference block to mark as dirty
- *
- * @return  VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int dirtyBlock(ReferenceBlock *block)
+static void dirtyBlock(ReferenceBlock *block)
 {
   if (block->isDirty) {
-    return VDO_SUCCESS;
+    return;
   }
 
   block->isDirty = true;
   if (block->isWriting) {
     // The conclusion of the current write will enqueue the block again.
-    return VDO_SUCCESS;
+    return;
   }
 
-  return enqueueWaiter(&block->refCounts->dirtyBlocks, &block->waiter);
+  enqueueDirtyBlock(block);
 }
 
 /**********************************************************************/
@@ -510,9 +566,6 @@ static int incrementForBlockMap(RefCounts       *refCounts,
   }
 }
 
-/**********************************************************************/
-static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result);
-
 /**
  * Update the reference count of a block.
  *
@@ -595,8 +648,8 @@ int adjustReferenceCount(RefCounts          *refCounts,
                          const JournalPoint *slabJournalPoint,
                          bool               *freeStatusChanged)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber slabBlockNumber;
@@ -645,7 +698,9 @@ int adjustReferenceCount(RefCounts          *refCounts,
   } else {
     block->slabJournalLock = 0;
   }
-  return dirtyBlock(block);
+
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -671,7 +726,8 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
     return result;
   }
 
-  return dirtyBlock(block);
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -699,7 +755,8 @@ int replayReferenceCountChange(RefCounts          *refCounts,
     return result;
   }
 
-  return dirtyBlock(block);
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -884,8 +941,8 @@ static void makeProvisionalReference(RefCounts       *refCounts,
 int allocateUnreferencedBlock(RefCounts           *refCounts,
                               PhysicalBlockNumber *allocatedPtr)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber freeIndex;
@@ -910,8 +967,8 @@ int provisionallyReferenceBlock(RefCounts           *refCounts,
                                 PhysicalBlockNumber  pbn,
                                 PBNLock             *lock)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber slabBlockNumber;
@@ -1000,33 +1057,6 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
 }
 
 /**
- * Return whether a RefCounts has blocks requiring writing.
- *
- * @param refCounts  The RefCounts in question
- *
- * @return <code>true</code> if there are blocks which need writing
- **/
-__attribute__((warn_unused_result))
-static bool isRefCountsDirty(RefCounts *refCounts)
-{
-  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary
-          || hasWaiters(&refCounts->dirtyBlocks));
-}
-
-/**********************************************************************/
-static void checkForIOComplete(RefCounts *refCounts)
-{
-  if (!refCounts->hasIOWaiter || isRefCountsDirty(refCounts)) {
-    return;
-  }
-
-  refCounts->hasIOWaiter = false;
-  finishCompletion(&refCounts->completion,
-                   isReadOnly(refCounts->readOnlyNotifier)
-                   ? VDO_READ_ONLY : VDO_SUCCESS);
-}
-
-/**
  * A waiter callback that resets the writing state of refCounts.
  **/
 static void finishSummaryUpdate(Waiter *waiter,
@@ -1034,7 +1064,7 @@ static void finishSummaryUpdate(Waiter *waiter,
 {
   RefCounts *refCounts           = refCountsFromWaiter(waiter);
   refCounts->updatingSlabSummary = false;
-  checkForIOComplete(refCounts);
+  checkForDrainComplete(refCounts);
 }
 
 /**
@@ -1057,13 +1087,6 @@ static void updateSlabSummaryAsClean(RefCounts *refCounts)
   updateSlabSummaryEntry(summary, &refCounts->slabSummaryWaiter,
                          refCounts->slab->slabNumber, offset, true, true,
                          getSlabFreeBlockCount(refCounts->slab));
-}
-
-/**********************************************************************/
-static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
-{
-  enterReadOnlyMode(refCounts->readOnlyNotifier, result);
-  checkForIOComplete(refCounts);
 }
 
 /**
@@ -1106,15 +1129,15 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
    */
   block->isWriting = false;
 
-  // Re-queue the block if it was re-dirtied while it was writing.
-  if (block->isDirty && !isReadOnly(refCounts->readOnlyNotifier)) {
-    int result = enqueueWaiter(&refCounts->dirtyBlocks, &block->waiter);
-    if (result != VDO_SUCCESS) {
-      // The enqueue should never fail.
-      enterRefCountsReadOnlyMode(refCounts, result);
-    }
+  if (isReadOnly(refCounts->readOnlyNotifier)) {
+    checkForDrainComplete(refCounts);
+    return;
+  }
 
-    if (refCounts->hasIOWaiter) {
+  // Re-queue the block if it was re-dirtied while it was writing.
+  if (block->isDirty) {
+    enqueueDirtyBlock(block);
+    if (isSlabDraining(refCounts->slab)) {
       // We must be saving, and this block will otherwise not be relaunched.
       saveDirtyReferenceBlocks(refCounts);
     }
@@ -1122,14 +1145,9 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
     return;
   }
 
-  if (isReadOnly(refCounts->readOnlyNotifier)) {
-    checkForIOComplete(refCounts);
-    return;
-  }
-
   // Mark the RefCounts as clean in the slab summary if there are no dirty
-  // or writing blocks and we aren't in read-only mode.
-  if (!isRefCountsDirty(refCounts)) {
+  // or writing blocks and no summary update in progress.
+  if (!isRefCountsActive(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
     updateSlabSummaryAsClean(refCounts);
   }
 }
@@ -1248,7 +1266,7 @@ void saveDirtyReferenceBlocks(RefCounts *refCounts)
 {
   notifyAllWaiters(&refCounts->dirtyBlocks, launchReferenceBlockWrite,
                    refCounts);
-  checkForIOComplete(refCounts);
+  checkForDrainComplete(refCounts);
 }
 
 /**********************************************************************/
@@ -1260,23 +1278,24 @@ void saveReferenceBlocks(RefCounts     *refCounts,
 {
   ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
                   "load or save not in progress on launching refCounts save");
-  refCounts->hasIOWaiter = true;
   VDOCompletion *completion = &refCounts->completion;
   prepareCompletion(completion, callback, errorHandler, threadID, parent);
+  // XXX: this is a temporary hack until the rest of slab completion goes away
+  if (!startDraining(&refCounts->slab->state, ADMIN_STATE_FLUSHING,
+                     completion)) {
+    return;
+  }
+
+  refCounts->hasIOWaiter = true;
   saveDirtyReferenceBlocks(refCounts);
 }
 
 /**********************************************************************/
-int dirtyAllReferenceBlocks(RefCounts *refCounts)
+void dirtyAllReferenceBlocks(RefCounts *refCounts)
 {
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
-    int result = dirtyBlock(&refCounts->blocks[i]);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
+    dirtyBlock(&refCounts->blocks[i]);
   }
-
-  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -1288,29 +1307,7 @@ void saveAllReferenceBlocks(RefCounts     *refCounts,
 {
   ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
                   "load or save not in progress on launching refCounts save");
-  refCounts->hasIOWaiter = true;
-  prepareCompletion(&refCounts->completion, callback, errorHandler, threadID,
-                    parent);
-
-  int result = dirtyAllReferenceBlocks(refCounts);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(&refCounts->completion, result);
-    return;
-  }
-
-  saveDirtyReferenceBlocks(refCounts);
-}
-
-/**********************************************************************/
-void closeReferenceCounts(RefCounts     *refCounts,
-                          VDOCompletion *parent,
-                          VDOAction     *callback,
-                          VDOAction     *errorHandler,
-                          ThreadID       threadID)
-{
-  ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
-                  "load or save not in progress on closing refCounts");
-  refCounts->closeRequested = true;
+  dirtyAllReferenceBlocks(refCounts);
   saveReferenceBlocks(refCounts, parent, callback, errorHandler, threadID);
 }
 
@@ -1386,7 +1383,7 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
   clearProvisionalReferences(block);
 
   refCounts->freeBlocks -= block->allocatedCount;
-  checkForIOComplete(block->refCounts);
+  checkForDrainComplete(block->refCounts);
 }
 
 /**
@@ -1403,28 +1400,21 @@ static void loadReferenceBlock(Waiter *blockWaiter, void *vioContext)
   PhysicalBlockNumber  pbn         = (block->refCounts->origin + blockOffset);
   entry->parent                    = block;
 
-  // This must run on the same thread as the load thread since the slab journal
-  // which shares our VIO pool is currently running on that thread too.
   entry->vio->completion.callbackThreadID
-    = block->refCounts->completion.callbackThreadID;
+    = block->refCounts->slab->allocator->threadID;
   launchReadMetadataVIO(entry->vio, pbn, finishReferenceBlockLoad,
                         handleIOError);
 }
 
-/**********************************************************************/
-void loadReferenceBlocks(RefCounts     *refCounts,
-                         VDOCompletion *parent,
-                         VDOAction     *callback,
-                         VDOAction     *errorHandler,
-                         ThreadID       threadID)
+/**
+ * Load reference blocks from the underlying storage into a pre-allocated
+ * reference counter.
+ *
+ * @param refCounts  The reference counter to be loaded
+ **/
+static void loadReferenceBlocks(RefCounts *refCounts)
 {
-  ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
-                  "load or save not in progress on launching refCounts load");
-
-  refCounts->hasIOWaiter = true;
-  refCounts->freeBlocks = refCounts->blockCount;
-  prepareCompletion(&refCounts->completion, callback, errorHandler, threadID,
-                    parent);
+  refCounts->freeBlocks  = refCounts->blockCount;
   refCounts->activeCount = refCounts->referenceBlockCount;
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     Waiter *blockWaiter = &refCounts->blocks[i].waiter;
@@ -1440,20 +1430,56 @@ void loadReferenceBlocks(RefCounts     *refCounts,
 }
 
 /**********************************************************************/
-int acquireDirtyBlockLocks(RefCounts *refCounts)
+void drainRefCounts(RefCounts *refCounts)
 {
-  int result = dirtyAllReferenceBlocks(refCounts);
-  if (result != VDO_SUCCESS) {
-    return result;
+  Slab *slab = refCounts->slab;
+  bool  save = false;
+  switch (slab->state.state) {
+  case ADMIN_STATE_SCRUBBING:
+    if (mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)) {
+      loadReferenceBlocks(refCounts);
+      return;
+    }
+
+    break;
+
+  case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+    if (!mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)) {
+      // These reference counts were never written, so mark them all dirty.
+      dirtyAllReferenceBlocks(refCounts);
+    }
+    save = true;
+    break;
+
+  case ADMIN_STATE_SAVING:
+    save = !isUnrecoveredSlab(slab);
+    break;
+
+  case ADMIN_STATE_SUSPENDING:
+    break;
+
+  default:
+    notifyRefCountsAreDrained(slab, VDO_SUCCESS);
+    return;
   }
 
+  if (save) {
+    saveDirtyReferenceBlocks(refCounts);
+  }
+
+  checkForDrainComplete(refCounts);
+}
+
+/**********************************************************************/
+void acquireDirtyBlockLocks(RefCounts *refCounts)
+{
+  dirtyAllReferenceBlocks(refCounts);
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     refCounts->blocks[i].slabJournalLock = 1;
   }
 
   adjustSlabJournalBlockReference(refCounts->slab->journal, 1,
                                   refCounts->referenceBlockCount);
-  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
