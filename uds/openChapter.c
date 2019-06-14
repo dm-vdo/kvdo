@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#3 $
  */
 
 #include "openChapter.h"
@@ -35,7 +35,6 @@ static int writeOpenChapters(IndexComponent *component,
 const IndexComponentInfo OPEN_CHAPTER_INFO = {
   .kind        = RL_KIND_OPEN_CHAPTER,
   .name        = "open chapter",
-  .fileName    = "open_chapter",
   .saveOnly    = true,
   .chapterSync = false,
   .multiZone   = false,

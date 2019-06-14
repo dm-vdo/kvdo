@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/session.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/session.h#3 $
  */
 
 /**
@@ -35,7 +35,12 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "queueDefs.h"
+#ifdef __KERNEL__
+#include <linux/list.h>
+#else
+#include "hlist.h"
+#endif 
+
 #include "threads.h"
 #include "typeDefs.h"
 

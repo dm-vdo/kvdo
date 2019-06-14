@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexStateData.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexStateData.c#2 $
  */
 
 #include "indexStateData.h"
@@ -57,7 +57,6 @@ static int writeIndexStateData(IndexComponent *component,
 const IndexComponentInfo INDEX_STATE_INFO = {
   .kind        = RL_KIND_INDEX_STATE,
   .name        = "index state",
-  .fileName    = "index_state",
   .saveOnly    = false,
   .chapterSync = true,
   .multiZone   = false,

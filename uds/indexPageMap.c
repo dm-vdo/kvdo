@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#2 $
  */
 
 #include "indexPageMap.h"
@@ -47,7 +47,6 @@ enum {
 const IndexComponentInfo INDEX_PAGE_MAP_INFO = {
   .kind        = RL_KIND_INDEX_PAGE_MAP,
   .name        = "index page map",
-  .fileName    = "page_map",
   .saveOnly    = false,
   .chapterSync = true,
   .multiZone   = false,

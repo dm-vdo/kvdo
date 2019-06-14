@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#3 $
  */
 
 #include "indexState.h"
@@ -131,8 +131,7 @@ IndexComponent *findIndexComponent(const IndexState         *state,
   unsigned int i;
   for (i = 0; i < state->count; ++i) {
     IndexComponent *component = state->entries[i];
-    if ((info == component->info)
-        || (strcmp(info->fileName, component->info->fileName) == 0)) {
+    if (info == component->info) {
       return component;
     }
   }

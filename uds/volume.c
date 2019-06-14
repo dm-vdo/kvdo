@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#4 $
  */
 
 #include "volume.h"
@@ -163,17 +163,16 @@ int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
 }
 
 /**********************************************************************/
-static INLINE void waitToReserveReadQueueEntry(Volume       *volume,
-                                               unsigned int *queuePos,
-                                               UdsQueueHead *queuedRequests,
-                                               unsigned int *physicalPage,
-                                               bool         *invalid)
+static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
+                                               unsigned int  *queuePos,
+                                               Request      **requestList,
+                                               unsigned int  *physicalPage,
+                                               bool          *invalid)
 {
   while (((volume->readerState & READER_STATE_EXIT) == 0)
          && (((volume->readerState & READER_STATE_STOP) != 0)
              || !reserveReadQueueEntry(volume->pageCache, queuePos,
-                                       queuedRequests, physicalPage,
-                                       invalid))) {
+                                       requestList, physicalPage, invalid))) {
     waitCond(&volume->readThreadsCond, &volume->readThreadsMutex);
   }
 }
@@ -248,15 +247,15 @@ static void readThreadFunction(void *arg)
 {
   Volume       *volume  = arg;
   unsigned int  queuePos;
-  UdsQueueHead  queuedRequests;
+  Request      *requestList;
   unsigned int  physicalPage;
   bool          invalid = false;
 
   logDebug("reader starting");
   lockMutex(&volume->readThreadsMutex);
   while (true) {
-    waitToReserveReadQueueEntry(volume, &queuePos, &queuedRequests,
-                                &physicalPage, &invalid);
+    waitToReserveReadQueueEntry(volume, &queuePos, &requestList, &physicalPage,
+                                &invalid);
     if ((volume->readerState & READER_STATE_EXIT) != 0) {
       break;
     }
@@ -314,9 +313,9 @@ static void readThreadFunction(void *arg)
       page = NULL;
     }
 
-    while (!STAILQ_EMPTY(&queuedRequests)) {
-      Request *request = STAILQ_FIRST(&queuedRequests);
-      STAILQ_REMOVE_HEAD(&queuedRequests, link);
+    while (requestList != NULL) {
+      Request *request = requestList;
+      requestList = request->nextRequest;
 
       /*
        * If we've read in a record page, we're going to do an immediate search,

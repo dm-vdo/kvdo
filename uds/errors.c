@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#6 $
  */
 
 #include "errors.h"
@@ -89,9 +89,9 @@ static const struct errorInfo errorList[] = {
 };
 
 static const struct errorInfo internalErrorList[] = {
-  { "UDS_PROTOCOL_ERROR", "Client/server protocol error" },
+  { "UDS_INTERNAL_UNUSED_0", "Unused internal error 0" },
   { "UDS_OVERFLOW", "Index overflow" },
-  { "UDS_FILLDONE", "Fill phase done" },
+  { "UDS_INTERNAL_UNUSED_2", "Unused internal error 2" },
   { "UDS_INVALID_ARGUMENT", "Invalid argument passed to internal routine" },
   { "UDS_BAD_STATE", "UDS data structures are in an invalid state" },
   { "UDS_DUPLICATE_NAME",
@@ -99,17 +99,17 @@ static const struct errorInfo internalErrorList[] = {
   { "UDS_UNEXPECTED_RESULT", "Unexpected result from internal routine" },
   { "UDS_INJECTED_ERROR", "Injected error" },
   { "UDS_ASSERTION_FAILED", "Assertion failed" },
-  { "UDS_UNSCANNABLE", "Unscannable" },
+  { "UDS_INTERNAL_UNUSED_9", "Unused internal error 9" },
   { "UDS_QUEUED", "Request queued" },
-  { "UDS_QUEUE_ALREADY_CONNECTED", "Queue already connected" },
-  { "UDS_BAD_FILL_PHASE", "Fill phase not supported" },
+  { "UDS_INTERNAL_UNUSED_11", "Unused internal error 11" },
+  { "UDS_INTERNAL_UNUSED_12", "Unused internal error 12" },
   { "UDS_BUFFER_ERROR", "Buffer error" },
-  { "UDS_CONNECTION_LOST", "Lost connection to peer" },
-  { "UDS_TIMEOUT", "A time out has occured" },
+  { "UDS_INTERNAL_UNUSED_14", "Unused internal error 14" },
+  { "UDS_INTERNAL_UNUSED_15", "Unused internal error 15" },
   { "UDS_NO_DIRECTORY", "Expected directory is missing" },
   { "UDS_CHECKPOINT_INCOMPLETE", "Checkpoint not completed" },
-  { "UDS_INVALID_RUN_ID", "Invalid albGenTest server run ID" },
-  { "UDS_RUN_CANCELED", "AlbGenTest server run canceled" },
+  { "UDS_INTERNAL_UNUSED_18", "Unused internal error 18" },
+  { "UDS_INTERNAL_UNUSED_19", "Unused internal error 19" },
   { "UDS_ALREADY_REGISTERED", "Error range already registered" },
   { "UDS_BAD_IO_DIRECTION", "Bad I/O direction" },
   { "UDS_INCORRECT_ALIGNMENT", "Offset not at block alignment" },

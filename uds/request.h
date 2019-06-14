@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#2 $
  */
 
 #ifndef REQUEST_H
@@ -26,7 +26,6 @@
 #include "common.h"
 #include "compiler.h"
 #include "opaqueTypes.h"
-#include "queue.h"
 #include "threads.h"
 #include "timeUtils.h"
 #include "uds.h"
@@ -135,22 +134,22 @@ struct request {
    * The remainder of this structure is private to the UDS implementation.
    */
   FunnelQueueEntry  requestQueueLink; // link for lock-free request queue
-  STAILQ_ENTRY(request) link;
+  Request          *nextRequest;
   IndexSession     *indexSession;
-  IndexRouter      *router;       // the router handling this request
+  IndexRouter      *router;           // the router handling this request
 
   // Data for control message requests
-  ZoneMessage      zoneMessage;
-  bool             isControlMessage;
+  ZoneMessage zoneMessage;
+  bool        isControlMessage;
 
-  bool           unbatched;     // if true, must wake worker when enqueued
-  bool           requeued;
-  RequestAction  action;        // the action for the index to perform
-  unsigned int   zoneNumber;    // the zone for this request to use
-  IndexRegion    location;      // if and where the block was found
+  bool          unbatched;      // if true, must wake worker when enqueued
+  bool          requeued;
+  RequestAction action;         // the action for the index to perform
+  unsigned int  zoneNumber;     // the zone for this request to use
+  IndexRegion   location;       // if and where the block was found
 
-  bool             slLocationKnown; // slow lane has determined a location
-  IndexRegion      slLocation;      // location determined by slowlane
+  bool        slLocationKnown;  // slow lane has determined a location
+  IndexRegion slLocation;       // location determined by slowlane
 };
 
 typedef void (*RequestRestarter)(Request *);

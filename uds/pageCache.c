@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#3 $
  */
 
 #include "pageCache.h"
@@ -507,7 +507,8 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
     readQueuePos = last;
     WRITE_ONCE(cache->index[physicalPage],
                readQueuePos | VOLUME_CACHE_QUEUED_FLAG);
-    STAILQ_INIT(&cache->readQueue[readQueuePos].queueHead);
+    cache->readQueue[readQueuePos].requestList.first = NULL;
+    cache->readQueue[readQueuePos].requestList.last = NULL;
     /* bump the last pointer */
     cache->readQueueLast = next;
   } else {
@@ -521,16 +522,22 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
     return result;
   }
 
-  STAILQ_INSERT_TAIL(&cache->readQueue[readQueuePos].queueHead, request, link);
+  request->nextRequest = NULL;
+  if (cache->readQueue[readQueuePos].requestList.first == NULL) {
+    cache->readQueue[readQueuePos].requestList.first = request;
+  } else {
+    cache->readQueue[readQueuePos].requestList.last->nextRequest = request;
+  }
+  cache->readQueue[readQueuePos].requestList.last = request;
   return UDS_QUEUED;
 }
 
 /***********************************************************************/
-bool reserveReadQueueEntry(PageCache    *cache,
-                           unsigned int *queuePos,
-                           UdsQueueHead *queuedRequests,
-                           unsigned int *physicalPage,
-                           bool         *invalid)
+bool reserveReadQueueEntry(PageCache     *cache,
+                           unsigned int  *queuePos,
+                           Request      **firstRequest,
+                           unsigned int  *physicalPage,
+                           bool          *invalid)
 {
   // We hold the readThreadsMutex.
   uint16_t lastRead = cache->readQueueLastRead;
@@ -561,7 +568,7 @@ bool reserveReadQueueEntry(PageCache    *cache,
   cache->readQueue[lastRead].reserved = true;
 
   *queuePos                = lastRead;
-  *queuedRequests          = cache->readQueue[lastRead].queueHead;
+  *firstRequest            = cache->readQueue[lastRead].requestList.first;
   *physicalPage            = pageNo;
   *invalid                 = isInvalid;
   cache->readQueueLastRead = (lastRead  + 1) % cache->readQueueMaxSize;

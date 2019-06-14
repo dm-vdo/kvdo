@@ -16,14 +16,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#2 $
  */
 
 #ifndef IO_FACTORY_H
 #define IO_FACTORY_H
 
-#include "ioFactoryDefs.h"
 #include "ioRegion.h"
+#ifndef __KERNEL__
+#include "fileUtils.h"
+#endif
 
 /*
  * An IOFactory object is responsible for controlling access to index storage.
@@ -46,6 +48,35 @@ typedef struct ioFactory IOFactory;
  * XXX We must convert all the rogue 4K constants to use UDS_BLOCK_SIZE.
  */
 enum { UDS_BLOCK_SIZE = 4096 };
+
+#ifdef __KERNEL__
+/**
+ * Create an IOFactory.  The IOFactory is returned with a reference count of 1.
+ *
+ * @param path        The path to the block device or file that contains the
+ *                    block stream
+ * @param factoryPtr  The IOFactory is returned here
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+int makeIOFactory(const char *path, struct ioFactory **factoryPtr);
+#else
+/**
+ * Create an IOFactory.  The IOFactory is returned with a reference count of 1.
+ *
+ * @param path        The path to the block device or file that contains the
+ *                    block stream
+ * @param access      The requested access kind.
+ * @param factoryPtr  The IOFactory is returned here
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+int makeIOFactory(const char        *path,
+                  FileAccess         access,
+                  struct ioFactory **factoryPtr);
+#endif
 
 /**
  * Get another reference to an IOFactory, incrementing its reference count.

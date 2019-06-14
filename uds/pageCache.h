@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#2 $
  */
 
 #ifndef PAGE_CACHE_H_
@@ -32,8 +32,10 @@
 #include "permassert.h"
 #include "request.h"
 
-STAILQ_HEAD(udsQueueHead, request);
-typedef struct udsQueueHead UdsQueueHead;
+typedef struct requestList {
+  Request *first;
+  Request *last;
+} RequestList;
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
@@ -61,8 +63,8 @@ typedef struct queuedRead {
   bool         reserved;
   /* physical page to read */
   unsigned int physicalPage;
-  /* queue of requests waiting on a queued read */
-  UdsQueueHead queueHead;
+  /* list of requests waiting on a queued read */
+  RequestList  requestList;
 } QueuedRead;
 
 // Reason for invalidating a cache entry, used for gathering statistics
@@ -266,17 +268,17 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
  *
  * @param cache          the page cache
  * @param queuePos       the position in the read queue for this pending read
- * @param queuedRequests a list of requests for the pending read
+ * @param firstRequests  list of requests for the pending read
  * @param physicalPage   the physicalPage for the requests
  * @param invalid        whether or not this entry is invalid
  *
  * @return UDS_SUCCESS or an error code
  **/
-bool reserveReadQueueEntry(PageCache    *cache,
-                           unsigned int *queuePos,
-                           UdsQueueHead *queuedRequests,
-                           unsigned int *physicalPage,
-                           bool         *invalid);
+bool reserveReadQueueEntry(PageCache     *cache,
+                           unsigned int  *queuePos,
+                           Request      **firstRequests,
+                           unsigned int  *physicalPage,
+                           bool          *invalid);
 
 /**
  * Releases a read from the queue, allowing it to be reused by future

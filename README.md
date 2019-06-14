@@ -49,8 +49,12 @@ volumes, and "vdostats" for extracting statistics from those volumes.
 
 ## Documentation
 
-Project documentation is being converted from its proprietary form and will be
-added to this repository at a later date.
+- [RHEL8 VDO Documentation]
+(https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deduplicating_and_compressing_storage/index)
+- [RHEL7 VDO Integration Guide]
+(https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-integration)
+- [RHEL7 VDO Evaluation Guide]
+(https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-evaluation)
 
 ## Status
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#2 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -104,10 +104,9 @@ typedef int (*IncrementalWriter)(struct indexComponent    *component,
  * The structure describing how to load or save an index component.
  * At least one of saver or incremental must be specified.
  **/
-typedef struct {
+typedef struct indexComponentInfo {
   RegionKind         kind;        // Region kind
   const char        *name;        // The name of the component (for logging)
-  const char        *fileName;    // The name of the file for the component
   bool               saveOnly;    // Used for saves but not checkpoints
   bool               chapterSync; // Saved by the chapter writer
   bool               multiZone;   // Does this component have multiple zones?
