@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsState.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsState.c#2 $
  */
 
 #include "udsState.h"
@@ -24,10 +24,25 @@
 #include "atomicDefs.h"
 #include "errors.h"
 #include "featureDefs.h"
-#include "indexSession.h"
-#include "indexRouter.h"
 #include "logger.h"
-#include "memoryAlloc.h"
+#include "stringUtils.h"
+#include "threads.h"
+#include "uds.h"
+
+/*
+ * XXX This module is mostly needed for user mode, and it needs a major
+ *     overhaul.
+ *
+ * XXX The destructor code was used to ensure that any open index was saved
+ *     when the process exits.  This code path kicked in when an albserver was
+ *     killed.  Today we do not have an albserver, so it is not absolutely
+ *     necessary.  Nor do we have any other user mode usage that needs to save
+ *     the open index automatically.  The kernel does not have such a
+ *     destructor.  Eliminating the session mechanism deleted our list of open
+ *     index sessions.  Rather than create new code to maintain this list, we
+ *     leave that work until (and if) we ever have a real user mode need for
+ *     it.
+ */
 
 /**
  * The current library state.
@@ -42,7 +57,6 @@ typedef struct {
   char              cookie[16]; // for locating udsState in core file
   char              version[16]; // for double-checking library version
   Mutex             mutex;
-  SessionGroup     *indexSessions;
   UdsGState         currentState;
 #if DESTRUCTOR
   UdsShutdownHook  *shutdownHook;
@@ -62,18 +76,6 @@ enum {
 static atomic_t initState = ATOMIC_INIT(STATE_UNINITIALIZED);
 
 /**********************************************************************/
-void lockGlobalStateMutex(void)
-{
-  lockMutex(&udsState.mutex);
-}
-
-/**********************************************************************/
-void unlockGlobalStateMutex(void)
-{
-  unlockMutex(&udsState.mutex);
-}
-
-/**********************************************************************/
 int checkLibraryRunning(void)
 {
   switch (udsState.currentState) {
@@ -89,38 +91,11 @@ int checkLibraryRunning(void)
   }
 }
 
-/**********************************************************************/
-SessionGroup *getIndexSessionGroup(void)
-{
-  udsInitialize();
-  return udsState.indexSessions;
-}
-
 /*
  * ===========================================================================
  * UDS system initialization and shutdown
  * ===========================================================================
  */
-
-/**********************************************************************/
-static void forceFreeIndexSession(SessionContents contents)
-{
-  saveAndFreeIndexSession((IndexSession *) contents);
-}
-
-/**********************************************************************/
-static int udsInitializeLocked(void)
-{
-  // Create the session container.
-  int result = makeSessionGroup(UDS_NO_INDEXSESSION, forceFreeIndexSession,
-                                &udsState.indexSessions);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  udsState.currentState = UDS_GS_RUNNING;
-  return UDS_SUCCESS;
-}
 
 /**********************************************************************/
 static int udsInitializeOnce(void)
@@ -141,9 +116,9 @@ static int udsInitializeOnce(void)
   initializeMutex(&udsState.mutex, true);
 
   lockMutex(&udsState.mutex);
-  int result = udsInitializeLocked();
+  udsState.currentState = UDS_GS_RUNNING;
   unlockMutex(&udsState.mutex);
-  return result;
+  return UDS_SUCCESS;
 }
 
 #if DESTRUCTOR
@@ -173,12 +148,6 @@ static void udsShutdownOnce(void)
   // Prevent the creation of new sessions.
   udsState.currentState = UDS_GS_SHUTTING_DOWN;
 
-  // Shut down all index sessions, waiting for outstanding operations to
-  // complete.
-  if (udsState.indexSessions != NULL) {
-    shutdownSessionGroup(udsState.indexSessions);
-    udsState.indexSessions = NULL;
-  }
   unlockMutex(&udsState.mutex);
 
   destroyMutex(&udsState.mutex);

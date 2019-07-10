@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#2 $
  */
 
 #include "request.h"
@@ -48,13 +48,14 @@ int udsStartChunkOperation(UdsRequest *udsRequest)
   memset(udsRequest->private, 0, sizeof(udsRequest->private));
   Request *request = (Request *)udsRequest;
 
-  int result = getIndexSession(request->session.id, &request->indexSession);
+  int result = getIndexSession(request->session);
   if (result != UDS_SUCCESS) {
     return sansUnrecoverable(result);
   }
 
   request->found            = false;
   request->action           = (RequestAction) request->type;
+  request->indexSession     = request->session;
   request->isControlMessage = false;
   request->unbatched        = false;
   request->router           = request->indexSession->router;

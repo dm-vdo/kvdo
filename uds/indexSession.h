@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#2 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -26,7 +26,7 @@
 #include "config.h"
 #include "cpu.h"
 #include "opaqueTypes.h"
-#include "session.h"
+#include "threads.h"
 #include "uds.h"
 
 typedef enum {
@@ -54,12 +54,15 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
  * Structure corresponding to a UdsIndexSession
  **/
 struct indexSession {
-  Session                  session;
   // atomically updated IndexSessionState
-  atomic_t                 state;
+  atomic_t                 state; 
   IndexRouter             *router;
   RequestQueue            *callbackQueue;
   struct udsConfiguration  userConfig;
+  // Asynchronous Request synchronization
+  Mutex                    requestMutex;
+  CondVar                  requestCond;
+  int                      requestCount;
   // Request statistics, all owned by the callback thread
   SessionStats             stats;
 };
@@ -91,18 +94,16 @@ void setIndexSessionState(IndexSession      *indexSession,
                           IndexSessionState  state);
 
 /**
- * Acquire pointer to the index session with the specified numeric ID.
+ * Acquire the index session for an asynchronous index request.
  *
  * The pointer must eventually be released with a corresponding call to
  * releaseIndexSession().
  *
- * @param indexSessionID   The numeric ID of the desired session
- * @param indexSessionPtr  A pointer to receive the index session
+ * @param indexSession  The index session
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getIndexSession(unsigned int   indexSessionID,
-                    IndexSession **indexSessionPtr)
+int getIndexSession(IndexSession *indexSession)
   __attribute__((warn_unused_result));
 
 /**

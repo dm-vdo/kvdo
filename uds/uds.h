@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#2 $
  */
 
 /**
@@ -105,11 +105,23 @@ typedef struct udsChunkName {
 
 /**
  * An active index session.
+ *
+ * XXX This is not the way we normally do things, but is a temporary measure
+ *     that allows breaking up a large change into multiple changesets.
+ *     Historically we had an internal struct named indexSession, and "struct
+ *     indexSession" was typedefed to be IndexSession, and a UdsIndexSession
+ *     was an opaque number that needed to be mapped to an "IndexSession *".
+ *     The name UdsIndexSession is probably a better choice for the public
+ *     interface of UDS when we are upstream.  We want to move to using "struct
+ *     udsIndexSession *" in the public interface, where the current "struct
+ *     indexSession" gets renamed to "struct udsIndexSession".  And we want to
+ *     rename "IndexSession" to "UdsIndexSession" to match.
+ *
+ * XXX Of course, before arriving upstream we will probably want to rename the
+ *     struct to uds_index_session.  Maybe we should dispense with IndexSession
+ *     and go directly to "struct uds_index_session".
  **/
-typedef struct udsIndexSession {
-  /** The session ID. */
-  unsigned int id;
-} UdsIndexSession;
+typedef struct indexSession *UdsIndexSession;
 
 /**
  * The data used to configure a new index.

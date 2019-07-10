@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#2 $
  */
 
 #include "indexSession.h"
@@ -104,30 +104,28 @@ void setIndexSessionState(IndexSession      *indexSession,
 }
 
 /**********************************************************************/
-int getIndexSession(unsigned int   indexSessionID,
-                    IndexSession **indexSessionPtr)
+int getIndexSession(IndexSession *indexSession)
 {
-  Session *session;
-  int result = getSession(getIndexSessionGroup(), indexSessionID, &session);
+  lockMutex(&indexSession->requestMutex);
+  indexSession->requestCount++;
+  unlockMutex(&indexSession->requestMutex);
+
+  int result = checkIndexSession(indexSession);
   if (result != UDS_SUCCESS) {
+    releaseIndexSession(indexSession);
     return result;
   }
-
-  IndexSession *indexSession = (IndexSession *) getSessionContents(session);
-  result = checkIndexSession(indexSession);
-  if (result != UDS_SUCCESS) {
-    releaseSession(session);
-    return result;
-  }
-
-  *indexSessionPtr = indexSession;
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 void releaseIndexSession(IndexSession *indexSession)
 {
-  releaseSession(&indexSession->session);
+  lockMutex(&indexSession->requestMutex);
+  if (--indexSession->requestCount == 0) {
+    broadcastCond(&indexSession->requestCond);
+  }
+  unlockMutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
@@ -139,9 +137,22 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
     return result;
   }
 
+  result = initMutex(&session->requestMutex);
+  if (result != UDS_SUCCESS) {
+    FREE(session);
+    return result;
+  }
+  result = initCond(&session->requestCond);
+  if (result != UDS_SUCCESS) {
+    destroyMutex(&session->requestMutex);
+    FREE(session);
+    return result;
+  }
   result = makeRequestQueue("callbackW", &handleCallbacks,
                             &session->callbackQueue);
   if (result != UDS_SUCCESS) {
+    destroyCond(&session->requestCond);
+    destroyMutex(&session->requestMutex);
     FREE(session);
     return result;
   }
@@ -149,6 +160,16 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
   setIndexSessionState(session, IS_INIT);
   *indexSessionPtr = session;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static void waitForNoRequestsInProgress(IndexSession *indexSession)
+{
+  lockMutex(&indexSession->requestMutex);
+  while (indexSession->requestCount > 0) {
+    waitCond(&indexSession->requestCond, &indexSession->requestMutex);
+  }
+  unlockMutex(&indexSession->requestMutex);
 }
 
 /**********************************************************************/
@@ -166,133 +187,80 @@ int saveAndFreeIndexSession(IndexSession *indexSession)
 
   requestQueueFinish(indexSession->callbackQueue);
   indexSession->callbackQueue = NULL;
-  logDebug("Closed index session %u", indexSession->session.id);
+  destroyCond(&indexSession->requestCond);
+  destroyMutex(&indexSession->requestMutex);
+  logDebug("Closed index session");
   FREE(indexSession);
   return result;
 }
 
 /**********************************************************************/
-int udsCloseIndexSession(UdsIndexSession session)
+int udsCloseIndexSession(IndexSession *indexSession)
 {
-  SessionGroup *indexSessionGroup = getIndexSessionGroup();
-  int result = acquireSessionGroup(indexSessionGroup);
-
-  Session *baseSession;
-  result = getSession(indexSessionGroup, session.id, &baseSession);
-  if (result != UDS_SUCCESS) {
-    releaseSessionGroup(indexSessionGroup);
-    return result;
-  }
-  IndexSession *indexSession
-    = (IndexSession *) getSessionContents(baseSession);
-
-  logDebug("Closing index session %u", session.id);
-  finishSession(indexSessionGroup, &indexSession->session);
-  result = saveAndFreeIndexSession(indexSession);
-  releaseSessionGroup(indexSessionGroup);
-  return result;
+  logDebug("Closing index session");
+  waitForNoRequestsInProgress(indexSession);
+  return saveAndFreeIndexSession(indexSession);
 }
 
 /**********************************************************************/
-int udsFlushIndexSession(UdsIndexSession session)
+int udsFlushIndexSession(IndexSession *indexSession)
 {
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  // Wait until there are no index requests in progress
-  waitForIdleSession(&indexSession->session);
+  waitForNoRequestsInProgress(indexSession);
   // Wait until any open chapter writes are complete
   waitForIdleIndexRouter(indexSession->router);
-
-  releaseIndexSession(indexSession);
-  return result;
-}
-
-/**********************************************************************/
-int udsSaveIndex(UdsIndexSession session)
-{
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  // Wait until there are no index requests in progress
-  waitForIdleSession(&indexSession->session);
-  // saveIndexRouter waits for open chapter writes to complete
-  result = saveIndexRouter(indexSession->router);
-  releaseIndexSession(indexSession);
-  return result;
-}
-
-/**********************************************************************/
-int udsSetCheckpointFrequency(UdsIndexSession session, unsigned int frequency)
-{
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  setIndexCheckpointFrequency(indexSession->router->index->checkpoint,
-                              frequency);
-  releaseIndexSession(indexSession);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf)
+int udsSaveIndex(IndexSession *indexSession)
+{
+  waitForNoRequestsInProgress(indexSession);
+  // saveIndexRouter waits for open chapter writes to complete
+  return saveIndexRouter(indexSession->router);
+}
+
+/**********************************************************************/
+int udsSetCheckpointFrequency(IndexSession *indexSession,
+                              unsigned int  frequency)
+{
+  setIndexCheckpointFrequency(indexSession->router->index->checkpoint,
+                              frequency);
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int udsGetIndexConfiguration(IndexSession     *indexSession,
+                             UdsConfiguration *conf)
 {
   if (conf == NULL) {
     return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
                                    "received a NULL config pointer");
   }
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = ALLOCATE(1, struct udsConfiguration, __func__, conf);
+  int result = ALLOCATE(1, struct udsConfiguration, __func__, conf);
   if (result == UDS_SUCCESS) {
     **conf = indexSession->userConfig;
   }
-  releaseIndexSession(indexSession);
   return result;
 }
 
 /**********************************************************************/
-int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats)
+int udsGetIndexStats(IndexSession *indexSession, UdsIndexStats *stats)
 {
   if (stats == NULL) {
     return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
                                    "received a NULL index stats pointer");
   }
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   getIndexStats(indexSession->router->index, stats);
-  releaseIndexSession(indexSession);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int udsGetIndexSessionStats(UdsIndexSession session, UdsContextStats *stats)
+int udsGetIndexSessionStats(IndexSession *indexSession, UdsContextStats *stats)
 {
   if (stats == NULL) {
     return logWarningWithStringError(UDS_CONTEXT_STATS_PTR_REQUIRED,
                                      "received a NULL context stats pointer");
   }
-  IndexSession *indexSession;
-  int result = getIndexSession(session.id, &indexSession);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   collectStats(indexSession, stats);
-  releaseIndexSession(indexSession);
   return UDS_SUCCESS;
-
-
 }

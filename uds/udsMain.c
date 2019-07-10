@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#3 $
  */
 
 #include "uds.h"
@@ -265,63 +265,22 @@ static int makeIndexSession(const char       *name,
   }
   udsInitialize();
 
-  lockGlobalStateMutex();
-  int result = checkLibraryRunning();
-  if (result != UDS_SUCCESS) {
-    unlockGlobalStateMutex();
-    return result;
-  }
-
-  // Hold a session group reference until the index seession is
-  // completely initialized or cleaned up.
-  SessionGroup *indexSessionGroup = getIndexSessionGroup();
-  result = acquireSessionGroup(indexSessionGroup);
-  if (result != UDS_SUCCESS) {
-    unlockGlobalStateMutex();
-    return result;
-  }
-
   IndexSession *indexSession = NULL;
-  result = makeEmptyIndexSession(&indexSession);
+  int result = makeEmptyIndexSession(&indexSession);
   if (result != UDS_SUCCESS) {
-    releaseSessionGroup(indexSessionGroup);
-    unlockGlobalStateMutex();
     return result;
   }
-
-  SessionID id;
-  result = initializeSession(indexSessionGroup, &indexSession->session,
-                             (SessionContents) indexSession, &id);
-  if (result != UDS_SUCCESS) {
-    saveAndFreeIndexSession(indexSession);
-    releaseSessionGroup(indexSessionGroup);
-    unlockGlobalStateMutex();
-    return result;
-  }
-  // Release state mutex because loading index/network connection can
-  // take a long time. Shutdown still cannot proceed until reference
-  // to base context is released below
-  unlockGlobalStateMutex();
 
   logNotice("%s: %s", getLoadType(loadType), name);
   result = initializeIndexSession(indexSession, name, loadType, userConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
-  }
-
-  lockGlobalStateMutex();
-  if (result != UDS_SUCCESS) {
-    finishSession(indexSessionGroup, &indexSession->session);
     saveAndFreeIndexSession(indexSession);
-    releaseSessionGroup(indexSessionGroup);
-    unlockGlobalStateMutex();
     return sansUnrecoverable(result);
   }
-  session->id = id;
-  logDebug("Created index session (%u)", id);
-  releaseIndexSession(indexSession);
-  releaseSessionGroup(indexSessionGroup);
-  unlockGlobalStateMutex();
+
+  logDebug("Created index session");
+  *session = indexSession;
   return UDS_SUCCESS;
 }
 

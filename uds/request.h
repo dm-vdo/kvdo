@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#3 $
  */
 
 #ifndef REQUEST_H
@@ -114,6 +114,10 @@ typedef struct zoneMessage {
 
 /**
  * Request context for queuing throughout the uds pipeline
+ *
+ * XXX Note that "session" and "indexSession" are both pointers to the same
+ *     "struct indexSession".  This duplication of values should be removed in
+ *     a future change.
  **/
 struct request {
   /*

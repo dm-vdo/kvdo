@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsState.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsState.h#2 $
  */
 
 #ifndef UDS_STATE_H
 #define UDS_STATE_H
-
-#include "session.h"
 
 /**
  * Initialize the library if has not already been done.
@@ -30,27 +28,10 @@
 void udsInitialize(void);
 
 /**
- * Lock the global state mutex
- **/
-void lockGlobalStateMutex(void);
-
-/**
- * Unlock the global state mutex
- **/
-void unlockGlobalStateMutex(void);
-
-/**
  * Ensure that the library is ready to create sessions.
  *
  * @return              UDS_SUCCESS or error code
  **/
 int checkLibraryRunning(void);
-
-/**
- * Return the SessionGroup that dispenses IndexSessions.
- *
- * @return udsState.indexSessions
- **/
-SessionGroup *getIndexSessionGroup(void);
 
 #endif /* UDS_State_H */
