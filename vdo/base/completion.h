@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.h#7 $
  */
 
 #ifndef COMPLETION_H
@@ -230,6 +230,14 @@ void releaseCompletionWithResult(VDOCompletion **completionPtr, int result);
  *                    be finished
  **/
 void finishParentCallback(VDOCompletion *completion);
+
+/**
+ * Error handler which preserves an error in the parent (if there is one),
+ * and then resets the failing completion and calls its non-error callback.
+ *
+ * @param completion  The completion which failed
+ **/
+void preserveErrorAndContinue(VDOCompletion *completion);
 
 /**
  * A callback which does nothing. This callback is intended to be set as an

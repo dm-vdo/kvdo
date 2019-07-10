@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#8 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -52,7 +52,6 @@ struct slabDepot {
   /** The state for notifying slab journals to release recovery journal */
   SequenceNumber        activeReleaseRequest;
   SequenceNumber        newReleaseRequest;
-  bool                  lockReleaseActive;
 
   /** Whether a save has been requested */
   bool                  saveRequested;

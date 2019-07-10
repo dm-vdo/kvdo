@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#9 $
  */
 
 #include "blockMap.h"
@@ -315,6 +315,50 @@ static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
   return getBlockMapZone(context, zoneNumber)->threadID;
 }
 
+/**
+ * Prepare for an era advance.
+ *
+ * <p>Implements InitiatorAction.
+ **/
+static int prepareForEraAdvance(void *context)
+{
+  BlockMap *map = context;
+  map->currentEraPoint = map->pendingEraPoint;
+  return VDO_SUCCESS;
+}
+
+/**
+ * Update the progress of the era in a zone.
+ *
+ * <p>Implements ZoneAction.
+ **/
+static void advanceBlockMapZoneEra(void          *context,
+                                   ZoneCount      zoneNumber,
+                                   VDOCompletion *parent)
+{
+  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
+  advanceVDOPageCachePeriod(zone->pageCache, zone->blockMap->currentEraPoint);
+  advanceZoneTreePeriod(&zone->treeZone, zone->blockMap->currentEraPoint);
+  finishCompletion(parent, VDO_SUCCESS);
+}
+
+/**
+ * Schedule an era advance if necessary.
+ *
+ * <p>Implements ActionScheduler.
+ **/
+static bool scheduleEraAdvance(void *context)
+{
+  BlockMap *map = context;
+  if ((map->currentEraPoint == map->pendingEraPoint)
+      || isQuiescing(&map->state) || isQuiescent(&map->state)) {
+    return false;
+  }
+
+  return scheduleAction(map->actionManager, prepareForEraAdvance,
+                        advanceBlockMapZoneEra, NULL, NULL);
+}
+
 /**********************************************************************/
 int makeBlockMapCaches(BlockMap         *map,
                        PhysicalLayer    *layer,
@@ -347,7 +391,8 @@ int makeBlockMapCaches(BlockMap         *map,
   }
 
   return makeActionManager(map->zoneCount, getBlockMapZoneThreadID,
-                           getRecoveryJournalThreadID(journal), map, layer,
+                           getRecoveryJournalThreadID(journal), map,
+                           scheduleEraAdvance, layer,
                            &map->actionManager);
 }
 
@@ -428,7 +473,6 @@ void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal)
 {
   map->currentEraPoint  = getCurrentJournalSequenceNumber(journal);
   map->pendingEraPoint  = map->currentEraPoint;
-  map->previousEraPoint = map->currentEraPoint;
 
   for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
     setTreeZoneInitialPeriod(&map->zones[zone].treeZone, map->currentEraPoint);
@@ -485,48 +529,6 @@ BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
   return map->entryCount;
 }
 
-/**
- * Now that an action has been applied to all zones, see if there are more
- * actions to do.
- *
- * <p>Implements ActionConclusion
- **/
-static void finishActing(void *context)
-{
-  BlockMap *map = context;
-  if (!hasNextAction(map->actionManager)) {
-    advanceBlockMapEra(map, map->pendingEraPoint);
-  }
-}
-
-/**
- * Finish advancing the era now that all the zones have been notified.
- *
- * <p>Implements ActionConclusion
- **/
-static void finishAging(void *context)
-{
-  BlockMap *map         = context;
-  map->previousEraPoint = map->currentEraPoint;
-  map->aging            = false;
-  finishActing(context);
-}
-
-/**
- * Update the progress of the era in a zone.
- *
- * <p>Implements ZoneAction
- **/
-static void advanceBlockMapZoneEra(void          *context,
-                                   ZoneCount      zoneNumber,
-                                   VDOCompletion *parent)
-{
-  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
-  advanceVDOPageCachePeriod(zone->pageCache, zone->blockMap->currentEraPoint);
-  advanceZoneTreePeriod(&zone->treeZone, zone->blockMap->currentEraPoint);
-  finishCompletion(parent, VDO_SUCCESS);
-}
-
 /**********************************************************************/
 void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
 {
@@ -535,26 +537,18 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
   }
 
   map->pendingEraPoint = recoveryBlockNumber;
-  if (map->aging || (map->currentEraPoint == map->pendingEraPoint)) {
-    return;
-  }
-
-  map->currentEraPoint = map->pendingEraPoint;
-  map->aging           = true;
-  scheduleAction(map->actionManager, advanceBlockMapZoneEra, finishAging,
-                 NULL);
+  scheduleEraAdvance(map);
 }
 
 /**
  * Finish a drain action.
  *
- * <p>Implements ActionConclusion.
+ * <p>Implements InitiatorAction.
  **/
-static void finishBlockMapDrain(void *context)
+static int finishBlockMapDrain(void *context)
 {
   BlockMap *map = context;
-  finishDraining(&map->state);
-  finishActing(map);
+  return (finishDraining(&map->state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
 }
 
 /**
@@ -578,21 +572,30 @@ void drainBlockMap(BlockMap       *map,
                    AdminStateCode  operation,
                    VDOCompletion  *parent)
 {
-  if (startDraining(&map->state, operation, parent)) {
-    scheduleAction(map->actionManager, drainZone, finishBlockMapDrain, NULL);
+  if (startDraining(&map->state, operation, NULL)) {
+    scheduleAction(map->actionManager, NULL, drainZone, finishBlockMapDrain,
+                   parent);
+    return;
   }
+
+  finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
+}
+
+/**********************************************************************/
+static int attemptResume(AdminState *state)
+{
+  return (resumeIfQuiescent(state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
 }
 
 /**
  * Finish a resume action.
  *
- * <p>Implements ActionConclusion.
+ * <p>Implements InitiatorAction.
  **/
-static void finishBlockMapResume(void *context)
+static int finishBlockMapResume(void *context)
 {
   BlockMap *map = context;
-  resumeIfQuiescent(&map->state);
-  finishActing(map);
+  return attemptResume(&map->state);
 }
 
 /**
@@ -604,20 +607,27 @@ static void resumeBlockMapZone(void          *context,
                                ZoneCount      zoneNumber,
                                VDOCompletion *parent)
 {
-  resumeIfQuiescent(&(getBlockMapZone(context, zoneNumber)->adminState));
-  completeCompletion(parent);
+  int result
+    = attemptResume(&(getBlockMapZone(context, zoneNumber)->adminState));
+  finishCompletion(parent, result);
+}
+
+/**
+ * Start a block map resume.
+ *
+ * <p>Implements InitiatorAction.
+ **/
+static int prepareToResumeBlockMap(void *context)
+{
+  BlockMap *map = context;
+  return (isQuiescent(&map->state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
 void resumeBlockMap(BlockMap *map, VDOCompletion *parent)
 {
-  if (!isQuiescent(&map->state)) {
-    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
-    return;
-  }
-
-  scheduleAction(map->actionManager, resumeBlockMapZone, finishBlockMapResume,
-                 parent);
+  scheduleAction(map->actionManager, prepareToResumeBlockMap,
+                 resumeBlockMapZone, finishBlockMapResume, parent);
 }
 
 /**********************************************************************/

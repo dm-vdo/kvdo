@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#7 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -92,10 +92,6 @@ struct blockMap {
   /** The count of root pages of the tree part of the block map */
   BlockCount           rootCount;
 
-  /** Whether aging is current scheduled or active */
-  bool                 aging;
-  /** The last era point that has been distributed to each zone */
-  SequenceNumber       previousEraPoint;
   /** The era point we are currently distributing to the zones */
   SequenceNumber       currentEraPoint;
   /** The next era point, not yet distributed to any zone */
