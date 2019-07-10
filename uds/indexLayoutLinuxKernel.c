@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#2 $
  */
 
 #include "indexLayout.h"
@@ -55,42 +55,23 @@ int makeIndexLayout(const char              *name,
     return result;
   }
 
-  if (size == 0) {
-    if (config == NULL) {
-      size = 1L << 40;
-    } else {
-      result = udsComputeIndexSize(config, 0, &size);
-      if (result != UDS_SUCCESS) {
-        FREE(params);
-        return result;
-      }
-    }
-  }
-
   IOFactory *factory = NULL;
   result = makeIOFactory(dev, &factory);
   FREE(params);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  IORegion *region = NULL;
-  result = makeIORegion(factory, offset, size, &region);
+  IndexLayout *layout;
+  result = makeIndexLayoutFromFactory(factory, offset, size, newLayout, config,
+                                      &layout);
   int freeResult = putIOFactory(factory);
   if (result != UDS_SUCCESS) {
     return result;
   }
   if (freeResult != UDS_SUCCESS) {
-    closeIORegion(&region);
+    freeIndexLayout(&layout);
     return freeResult;
   }
-
-  if (newLayout) {
-    result = makeIndexLayoutForCreate(region, offset, size, config, layoutPtr);
-  } else {
-    result = makeIndexLayoutForLoad(region, offset, layoutPtr);
-  }
-  if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
-  }
-  return result;
+  *layoutPtr = layout;
+  return UDS_SUCCESS;
 }

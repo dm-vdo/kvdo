@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#3 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -24,6 +24,7 @@
 
 #include "accessMode.h"
 #include "indexState.h"
+#include "ioFactory.h"
 #include "ioRegion.h"
 #include "uds.h"
 
@@ -32,7 +33,8 @@ typedef struct indexLayout IndexLayout;
 /**
  * Construct an index layout.  This is a platform specific function that uses
  * the name string, a flag that indicates old vs. new indices, and a
- * UDSConfiguration (for new indices) to invoke the proper constructor.
+ * UDSConfiguration (for new indices) to make an IOFactory and invoke
+ * makeIndexLayoutFromFactory.
  *
  * @param name       String naming the index.  Each platform will use its own
  *                   conventions to interpret the string, but in general it is
@@ -52,52 +54,27 @@ int makeIndexLayout(const char              *name,
   __attribute__((warn_unused_result));
 
 /**
- * Create a new single file layout for a new index.
+ * Construct an index layout using an IOFactory.  This method is common to all
+ * platforms.
  *
- * @param region     The access to the underlying stable storage system;
- *                     the new layout will own the region and close it.
- * @param offset     The offset of the start of the index within the device or
- *                     file's address space.
- * @param size       The size in bytes of the space within the file or device's
- *                     address space, must be at least as large as that
- *                     returned by udsComputeIndexSize() or an error will
- *                     result.
- * @param config     A properly-initialized index configuration.
- * @param layoutPtr  Where to store the new layout object.
- *
- * @return UDS_SUCCESS or an error code, specifically
- *         UDS_CONF_REQUIRED if the configuration is not provided,
- *         UDS_INDEX_NAME_REQUIRED if the name parameter is required by the
- *              platform and not specified or invalid,
- *         UDS_INDEX_EXISTS on platforms where index is a file if the file
- *              already exists,
- *         UDS_INSUFFICIENT_INDEX_SPACE if the size given will not hold the
- *              index,
- *         UDS_BAD_INDEX_ALIGNMENT if the offset is not zero and the alignment
- *              of the offset is not at an even enough I/O boundary.
- **/
-int makeIndexLayoutForCreate(IORegion                *region,
-                             uint64_t                 offset,
-                             uint64_t                 size,
-                             const UdsConfiguration   config,
-                             IndexLayout            **layoutPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Load a single file layout for an existing index.
- *
- * @param region        The access to the underlying stable storage system;
- *                        the new layout will own the region and close it.
- * @param offset        The offset of the start of the index in bytes as
- *                        specified to makeIndexLayoutForCreate().
- * @param layoutPtr     Where to store the layout object for the existing
- *                        index.
+ * @param factory    The IOFactory for the block storage containing the index.
+ * @param offset     The offset of the start of the index within the block
+ *                   storage address space.
+ * @param size       The size in bytes of the space within the block storage
+ *                   address space, must be at least as large as that returned
+ *                   by udsComputeIndexSize() or an error will result.
+ * @param newLayout  Whether this is a new layout.
+ * @param config     The UdsConfiguration required for a new layout.
+ * @param layoutPtr  Where to store the new index layout
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexLayoutForLoad(IORegion       *region,
-                           uint64_t        offset,
-                           IndexLayout   **layoutPtr)
+int makeIndexLayoutFromFactory(IOFactory               *factory,
+                               off_t                    offset,
+                               uint64_t                 size,
+                               bool                     newLayout,
+                               const UdsConfiguration   config,
+                               IndexLayout            **layoutPtr)
   __attribute__((warn_unused_result));
 
 /**

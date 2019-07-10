@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexZone.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexZone.h#2 $
  */
 
 #ifndef INDEX_ZONE_H
@@ -40,11 +40,10 @@ typedef struct {
  *
  * @param index      The index receiving the zone
  * @param zoneNumber The number of the zone to allocate
- * @param readOnly   <code>true</code> if the index is read only
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexZone(struct index *index, unsigned int zoneNumber, bool readOnly)
+int makeIndexZone(struct index *index, unsigned int zoneNumber)
   __attribute__((warn_unused_result));
 
 /**

@@ -16,9 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#3 $
  */
 
+#include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/sched.h>
 

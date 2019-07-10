@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#4 $
  */
 
 #include "indexInternals.h"
@@ -28,15 +28,12 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "openChapter.h"
-#include "readOnlyVolume.h"
 #include "request.h"
 #include "stringUtils.h"
 #include "threads.h"
 #include "typeDefs.h"
 #include "volume.h"
 #include "zone.h"
-
-const bool READ_ONLY_INDEX = true;
 
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 
@@ -45,14 +42,8 @@ int allocateIndex(IndexLayout          *layout,
                   const Configuration  *config,
                   unsigned int          zoneCount,
                   LoadType              loadType,
-                  bool                  readOnly,
                   Index               **newIndex)
 {
-  if (readOnly && (loadType == LOAD_CREATE)) {
-    logError("Can't create a read only index");
-    return EINVAL;
-  }
-
   Index *index;
   int result = ALLOCATE(1, Index, "index", &index);
   if (result != UDS_SUCCESS) {
@@ -71,7 +62,7 @@ int allocateIndex(IndexLayout          *layout,
   setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
 
   getIndexLayout(layout, &index->layout);
-  index->zoneCount = (readOnly ? 1 : zoneCount);
+  index->zoneCount = zoneCount;
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
                     &index->zones);
@@ -94,14 +85,9 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  if (readOnly) {
-    result = makeReadOnlyVolume(config, index->layout, &index->volume);
-  } else {
-    result = makeVolume(config, index->layout,
-                        VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
-                        index->zoneCount, &index->volume);
-  }
-
+  result = makeVolume(config, index->layout,
+                      VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS, index->zoneCount,
+                      &index->volume);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;
@@ -110,7 +96,7 @@ int allocateIndex(IndexLayout          *layout,
 
   unsigned int i;
   for (i = 0; i < index->zoneCount; i++) {
-    result = makeIndexZone(index, i, readOnly);
+    result = makeIndexZone(index, i);
     if (result != UDS_SUCCESS) {
       freeIndex(index);
       return logErrorWithStringError(result, "Could not create index zone");

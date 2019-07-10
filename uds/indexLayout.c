@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#5 $
  */
 
 #include "indexLayout.h"
@@ -1127,9 +1127,9 @@ static int loadSubIndexRegions(IndexLayout *layout)
 }
 
 /*****************************************************************************/
-int makeIndexLayoutForLoad(IORegion     *region,
-                           uint64_t      offset,
-                           IndexLayout **layoutPtr)
+static int makeIndexLayoutForLoad(IORegion     *region,
+                                  uint64_t      offset,
+                                  IndexLayout **layoutPtr)
 {
   size_t blockSize = 0;
   int result = validateOffsetAndBlockSize(region, offset, &blockSize);
@@ -2387,11 +2387,11 @@ int discardIndexSaves(IndexLayout *layout, bool all)
 }
 
 /*****************************************************************************/
-int makeIndexLayoutForCreate(IORegion                *region,
-                             uint64_t                 offset,
-                             uint64_t                 size,
-                             const UdsConfiguration   config,
-                             IndexLayout            **layoutPtr)
+static int makeIndexLayoutForCreate(IORegion                *region,
+                                    uint64_t                 offset,
+                                    uint64_t                 size,
+                                    const UdsConfiguration   config,
+                                    IndexLayout            **layoutPtr)
 {
   if (config == NULL) {
     return UDS_CONF_PTR_REQUIRED;
@@ -2531,4 +2531,39 @@ int getIndexRegion(IndexLayout   *layout,
   }
 
   return getSingleFileLayoutRegion(layout, lr, mode, regionPtr);
+}
+
+/*****************************************************************************/
+int makeIndexLayoutFromFactory(IOFactory               *factory,
+                               off_t                    offset,
+                               uint64_t                 size,
+                               bool                     newLayout,
+                               const UdsConfiguration   config,
+                               IndexLayout            **layoutPtr)
+{
+  if (size == 0) {
+    if (config == NULL) {
+      size = 1L << 40;
+    } else {
+      int result = udsComputeIndexSize(config, 0, &size);
+      if (result != UDS_SUCCESS) {
+        return result;
+      }
+    }
+  }
+
+  IORegion *region = NULL;
+  int result = makeIORegion(factory, offset, size, &region);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  if (newLayout) {
+    result = makeIndexLayoutForCreate(region, offset, size, config, layoutPtr);
+  } else {
+    result = makeIndexLayoutForLoad(region, offset, layoutPtr);
+  }
+  if (result != UDS_SUCCESS) {
+    closeIORegion(&region);
+  }
+  return result;
 }

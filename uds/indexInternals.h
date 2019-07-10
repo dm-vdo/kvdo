@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.h#2 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -25,8 +25,6 @@
 #include "index.h"
 #include "loadType.h"
 #include "request.h"
-
-extern const bool READ_ONLY_INDEX;
 
 /**
  * Construct a new index from the given configuration.
@@ -37,8 +35,6 @@ extern const bool READ_ONLY_INDEX;
  * @param loadType       How to create the index:  it can be create
  *                       only, allow loading from files, and allow
  *                       rebuilding from the volume
- * @param readOnly       <code>true</code> if the index should be
- *                       created read-only
  * @param newIndex       A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
@@ -47,7 +43,6 @@ int allocateIndex(IndexLayout          *layout,
                   const Configuration  *config,
                   unsigned int          zoneCount,
                   LoadType              loadType,
-                  bool                  readOnly,
                   Index               **newIndex)
   __attribute__((warn_unused_result));
 

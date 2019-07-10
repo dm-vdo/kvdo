@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#5 $
  */
 
 #include "index.h"
@@ -190,8 +190,7 @@ int makeIndex(IndexLayout          *layout,
               Index               **newIndex)
 {
   Index *index;
-  int result = allocateIndex(layout, config, zoneCount, loadType,
-                             !READ_ONLY_INDEX, &index);
+  int result = allocateIndex(layout, config, zoneCount, loadType, &index);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "could not allocate index");
   }

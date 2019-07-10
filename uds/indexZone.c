@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#3 $
  */
 
 #include "indexZone.h"
@@ -33,7 +33,7 @@
 #include "uds.h"
 
 /**********************************************************************/
-int makeIndexZone(struct index *index, unsigned int zoneNumber, bool readOnly)
+int makeIndexZone(struct index *index, unsigned int zoneNumber)
 {
   IndexZone *zone;
   int result = ALLOCATE(1, IndexZone, "index zone", &zone);
@@ -48,13 +48,11 @@ int makeIndexZone(struct index *index, unsigned int zoneNumber, bool readOnly)
     return result;
   }
 
-  if (!readOnly) {
-    result = makeOpenChapter(index->volume->geometry, index->zoneCount,
-                             &zone->writingChapter);
-    if (result != UDS_SUCCESS) {
-      freeIndexZone(zone);
-      return result;
-    }
+  result = makeOpenChapter(index->volume->geometry, index->zoneCount,
+                           &zone->writingChapter);
+  if (result != UDS_SUCCESS) {
+    freeIndexZone(zone);
+    return result;
   }
 
   zone->index              = index;
