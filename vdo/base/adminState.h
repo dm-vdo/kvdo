@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#8 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -25,25 +25,97 @@
 #include "completion.h"
 #include "types.h"
 
+/**
+ * The list of state types.
+ **/
 typedef enum {
+  /** Normal operation, DataVIOs may be active */
   ADMIN_TYPE_NORMAL = 0,
+  /** Flush: drain outstanding I/O and then return to normal */
   ADMIN_TYPE_FLUSH,
+  /**
+   * Rebuild: write data necessary for a full rebuild, drain outstanding I/O,
+   *          and return to normal operation.
+   **/
+  ADMIN_TYPE_REBUILD,
+  /**
+   * Save: write all dirty metadata thereby restoring the VDO to a clean state,
+   *       drain outstanding I/O, and become quiescent.
+   **/
   ADMIN_TYPE_SAVE,
+  /**
+   * Suspend: write enough dirty metadata to perform resize transactions,
+   *          drain outstanding I/O, and become quiescent.
+   **/
   ADMIN_TYPE_SUSPEND,
-  ADMIN_TYPE_MASK      = 0xff,
+  /**
+   * Resume: return to normal from a quiescent state
+   **/
+  ADMIN_TYPE_RESUME,
+  /** The mask for extracting the AdminType from and AdminStateCode */
+  ADMIN_TYPE_MASK = 0xff,
+} AdminType;
 
-  ADMIN_FLAG_DRAINING  = 0x100,
-  ADMIN_FLAG_QUIESCING = 0x200,
-  ADMIN_FLAG_QUIESCENT = 0x400,
 
-  ADMIN_STATE_NORMAL_OPERATION = ADMIN_TYPE_NORMAL,
-  ADMIN_STATE_FLUSHING         = ADMIN_FLAG_DRAINING | ADMIN_TYPE_FLUSH,
-  ADMIN_STATE_SAVING           = (ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING
-                                  | ADMIN_TYPE_SAVE),
-  ADMIN_STATE_SAVED            = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SAVE,
-  ADMIN_STATE_SUSPENDING       = (ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING
-                                  | ADMIN_TYPE_SUSPEND),
-  ADMIN_STATE_SUSPENDED        = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SUSPEND,
+/**
+ * The bit position of flags used to categorize states.
+ **/
+typedef enum {
+  ADMIN_FLAG_BIT_START    = 8,
+  /** Flag indicating that I/O is draining */
+  ADMIN_FLAG_BIT_DRAINING = ADMIN_FLAG_BIT_START,
+  /** Flag indicating that the next state will be a quiescent state */
+  ADMIN_FLAG_BIT_QUIESCING,
+  /** Flag indicating that the state is quiescent */
+  ADMIN_FLAG_BIT_QUIESCENT,
+  /**
+   * Flag indicating that an operation is in progress and so no other
+   * operation may be started.
+   **/
+  ADMIN_FLAG_BIT_OPERATING,
+} AdminFlagBit;
+
+/**
+ * The flags themselves.
+ **/
+typedef enum {
+  ADMIN_FLAG_DRAINING  = (uint32_t) (1 << ADMIN_FLAG_BIT_DRAINING),
+  ADMIN_FLAG_QUIESCING = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCING),
+  ADMIN_FLAG_QUIESCENT = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCENT),
+  ADMIN_FLAG_OPERATING = (uint32_t) (1 << ADMIN_FLAG_BIT_OPERATING),
+} AdminFlag;
+
+/**
+ * The state codes.
+ **/
+typedef enum {
+  ADMIN_STATE_NORMAL_OPERATION    = ADMIN_TYPE_NORMAL,
+  ADMIN_STATE_OPERATING           = (ADMIN_TYPE_NORMAL
+                                     | ADMIN_FLAG_OPERATING),
+  ADMIN_STATE_FLUSHING            = (ADMIN_TYPE_FLUSH
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_DRAINING),
+  ADMIN_STATE_REBUILDING          = (ADMIN_TYPE_REBUILD
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_DRAINING),
+  ADMIN_STATE_SAVING              = (ADMIN_TYPE_SAVE
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_DRAINING
+                                     | ADMIN_FLAG_QUIESCING),
+  ADMIN_STATE_SAVED               = (ADMIN_TYPE_SAVE
+                                     | ADMIN_FLAG_QUIESCENT),
+  ADMIN_STATE_SUSPENDING          = (ADMIN_TYPE_SUSPEND
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_DRAINING
+                                     | ADMIN_FLAG_QUIESCING),
+  ADMIN_STATE_SUSPENDED           = (ADMIN_TYPE_SUSPEND
+                                     | ADMIN_FLAG_QUIESCENT),
+  ADMIN_STATE_SUSPENDED_OPERATION = (ADMIN_TYPE_SUSPEND
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_QUIESCENT),
+  ADMIN_STATE_RESUMING            = (ADMIN_TYPE_RESUME
+                                     | ADMIN_FLAG_OPERATING
+                                     | ADMIN_FLAG_QUIESCENT),
 } AdminStateCode;
 
 typedef struct {
@@ -68,12 +140,38 @@ const char *getAdminStateName(const AdminState *state)
  *
  * @param state  The AdminState to query
  *
- * @return <code>true</code> if the state is in normal operation
+ * @return <code>true</code> if the state is normal
  **/
 __attribute__((warn_unused_result))
-static inline bool isOperatingNormally(AdminState *state)
+static inline bool isNormal(AdminState *state)
 {
-  return (state->state == ADMIN_STATE_NORMAL_OPERATION);
+  return ((state->state & ADMIN_TYPE_NORMAL) == ADMIN_TYPE_NORMAL);
+}
+
+/**
+ * Check whether an AdminStateCode is an operation.
+ *
+ * @param code  The code to check
+ *
+ * @return <code>true</code> if the code is an operation
+ **/
+__attribute__((warn_unused_result))
+static inline bool isOperation(AdminStateCode code)
+{
+  return ((code & ADMIN_FLAG_OPERATING) == ADMIN_FLAG_OPERATING);
+}
+
+/**
+ * Check whether an AdminState is operating.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is operating
+ **/
+__attribute__((warn_unused_result))
+static inline bool isOperating(AdminState *state)
+{
+  return isOperation(state->state);
 }
 
 /**
@@ -90,6 +188,19 @@ static inline bool isSuspending(AdminState *state)
 }
 
 /**
+ * Check whether an AdminStateCode is a drain operation.
+ *
+ * @param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> if the code is for a drain operation
+ **/
+__attribute__((warn_unused_result))
+static inline bool isDrainOperation(AdminStateCode code)
+{
+  return ((code & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
+}
+
+/**
  * Check whether an AdminState is draining.
  *
  * @param state  The AdminState to query
@@ -99,17 +210,33 @@ static inline bool isSuspending(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isDraining(AdminState *state)
 {
-  return ((state->state & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
+  return isDrainOperation(state->state);
 }
 
 /**
  * Check whether an AdminState is quiescing.
+ *
+ * @param state  The AdminState to check
+ *
  * @return <code>true</code> if the state is quiescing
  **/
 __attribute__((warn_unused_result))
 static inline bool isQuiescing(AdminState *state)
 {
   return ((state->state & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+}
+
+/**
+ * Check where an AdminStateCode is quiescent.
+ *
+ * param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> is the state is quiescent
+ **/
+__attribute__((warn_unused_result))
+static inline bool isQuiescentCode(AdminStateCode code)
+{
+  return ((code & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
 }
 
 /**
@@ -122,8 +249,22 @@ static inline bool isQuiescing(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isQuiescent(AdminState *state)
 {
-  return ((state->state & ADMIN_FLAG_QUIESCENT) == ADMIN_FLAG_QUIESCENT);
+  return isQuiescentCode(state->state);
 }
+
+/**
+ * Check where an AdminStateCode is a quiescent operation.
+ *
+ * @param code  The code to check
+ *
+ * @return <code>true</code> if the code is a quiescent operation
+ **/
+__attribute__((warn_unused_result))
+static inline bool isQuiescentOperation(AdminStateCode code)
+{
+  return (isQuiescentCode(code) && isOperation(code));
+}
+
 
 /**
  * Initiate a drain operation if the current state permits it.
@@ -169,5 +310,37 @@ bool finishDrainingWithResult(AdminState *state, int result);
  * @return <code>true</code> if the state was resumed
  **/
 bool resumeIfQuiescent(AdminState *state);
+
+/**
+ * Attempt to start an operation.
+ *
+ * @param state      the AdminState
+ * @param operation  the operation to start
+ *
+ * @return VDO_SUCCESS             if the operation was started
+ *         VDO_INVALID_ADMIN_STATE if not
+ **/
+int startOperation(AdminState *state, AdminStateCode operation);
+
+/**
+ * Finish the current operation. This method should be used for operations
+ * started with startOperation(). For operations which were started with
+ * startDraining(), use finishDraining() instead.
+ *
+ * @param state  The state whose operation is to be finished
+ *
+ * @return <code>true</code> if there was an operation to finish
+ **/
+bool finishOperation(AdminState *state);
+
+/**
+ * Set a waiter for the current operation.
+ *
+ * @param state   the AdminState
+ * @param waiter  the completion to notify when the operation completes; will
+ *                be notified immediately with an error if there is no current
+ *                operation or if there is already a waiter
+ **/
+void setOperationWaiter(AdminState *state, VDOCompletion *waiter);
 
 #endif // ADMIN_STATE_H

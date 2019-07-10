@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#11 $
  */
 
 #include "slabDepot.h"
@@ -25,6 +25,7 @@
 #include "memoryAlloc.h"
 
 #include "actionManager.h"
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
 #include "constants.h"
 #include "header.h"
@@ -199,8 +200,7 @@ static int prepareForTailBlockCommit(void *context)
 static bool scheduleTailBlockCommit(void *context)
 {
   SlabDepot *depot = context;
-  if (depot->saveRequested
-      || (depot->newReleaseRequest == depot->activeReleaseRequest)) {
+  if (depot->newReleaseRequest == depot->activeReleaseRequest) {
     return false;
   }
 
@@ -971,13 +971,6 @@ void prepareToAllocate(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void flushDepotSlabJournals(SlabDepot *depot, VDOCompletion *parent)
-{
-  scheduleAction(depot->actionManager, NULL, flushAllocatorSlabJournals,
-                 NULL, parent);
-}
-
-/**********************************************************************/
 void updateSlabDepotSize(SlabDepot *depot, bool reverting)
 {
   depot->lastBlock = (reverting ? depot->oldLastBlock : depot->newLastBlock);
@@ -1047,30 +1040,48 @@ static int finishRegistration(void *context)
 void useNewSlabs(SlabDepot *depot, VDOCompletion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
-  scheduleAction(depot->actionManager, NULL, registerNewSlabsForAllocator,
-                 finishRegistration, parent);
+  scheduleOperation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
+                    NULL, registerNewSlabsForAllocator, finishRegistration,
+                    parent);
 }
 
 /**********************************************************************/
-void suspendSlabSummary(SlabDepot *depot, VDOCompletion *parent)
+void drainSlabDepot(SlabDepot      *depot,
+                    AdminStateCode  operation,
+                    VDOCompletion  *parent)
 {
-  scheduleAction(depot->actionManager, NULL, suspendSummaryZone, NULL, parent);
+  ZoneAction *action;
+  switch (operation) {
+  case ADMIN_STATE_FLUSHING:
+    action = flushAllocatorSlabJournals;
+    break;
+
+  case ADMIN_STATE_REBUILDING:
+    action = saveBlockAllocatorForFullRebuild;
+    break;
+
+  case ADMIN_STATE_SUSPENDING:
+    action = suspendSummaryZone;
+    break;
+
+  case ADMIN_STATE_SAVING:
+    action = closeBlockAllocator;
+    break;
+
+  default:
+    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
+    return;
+  }
+
+  scheduleOperation(depot->actionManager, operation, NULL, action, NULL,
+                    parent);
 }
 
 /**********************************************************************/
-void resumeSlabSummary(SlabDepot *depot, VDOCompletion *parent)
+void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
 {
-  scheduleAction(depot->actionManager, NULL, resumeSummaryZone, NULL, parent);
-}
-
-/**********************************************************************/
-void saveSlabDepot(SlabDepot *depot, bool close, VDOCompletion *parent)
-{
-  depot->saveRequested = close;
-  scheduleAction(depot->actionManager, NULL,
-                 (close
-                  ? closeBlockAllocator : saveBlockAllocatorForFullRebuild),
-                 NULL, parent);
+  scheduleOperation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
+                    resumeSummaryZone, NULL, parent);
 }
 
 /**********************************************************************/

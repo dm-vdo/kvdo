@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#6 $
  */
 
 #include "adminState.h"
@@ -40,8 +40,14 @@ static const char *getAdminStateCodeName(AdminStateCode code)
   case ADMIN_STATE_NORMAL_OPERATION:
     return "ADMIN_STATE_NORMAL_OPERATION";
 
+  case ADMIN_STATE_OPERATING:
+    return "ADMIN_STATE_OPERATING";
+
   case ADMIN_STATE_FLUSHING:
     return "ADMIN_STATE_FLUSHING";
+
+  case ADMIN_STATE_REBUILDING:
+    return "ADMIN_STATE_REBUILDING";
 
   case ADMIN_STATE_SAVING:
     return "ADMIN_STATE_SAVING";
@@ -54,6 +60,12 @@ static const char *getAdminStateCodeName(AdminStateCode code)
 
   case ADMIN_STATE_SUSPENDED:
     return "ADMIN_STATE_SUSPENDED";
+
+  case ADMIN_STATE_SUSPENDED_OPERATION:
+    return "ADMIN_STATE_SUSPENDED_OPERATION";
+
+  case ADMIN_STATE_RESUMING:
+    return "ADMIN_STATE_RESUMING";
 
   default:
     return "INVALID ADMIN_STATE";
@@ -72,19 +84,13 @@ bool startDraining(AdminState     *state,
                    VDOCompletion  *waiter)
 {
   int result;
-  if (!isOperatingNormally(state)) {
-    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                     "Can't start draining from state %s",
-                                     getAdminStateCodeName(operation));
-  } else if ((operation & ADMIN_FLAG_DRAINING) != ADMIN_FLAG_DRAINING) {
-    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                     "Can't start draining with a non-drain "
-                                     "operation %s",
-                                     getAdminStateCodeName(operation));
-  } else if (state->waiter != NULL) {
+  if (state->waiter != NULL) {
     result = VDO_COMPONENT_BUSY;
   } else {
-    state->state  = operation;
+    result = startOperation(state, operation);
+  }
+
+  if (result == VDO_SUCCESS) {
     state->waiter = waiter;
     return true;
   }
@@ -105,14 +111,40 @@ bool finishDraining(AdminState *state)
 /**********************************************************************/
 bool finishDrainingWithResult(AdminState *state, int result)
 {
-  if (!isDraining(state)) {
+  if (!isDraining(state) || !finishOperation(state)) {
+    return false;
+  }
+
+  releaseCompletionWithResult(&state->waiter, result);
+  return true;
+}
+
+/**********************************************************************/
+int startOperation(AdminState *state, AdminStateCode operation)
+{
+  if (isOperating(state)
+      || (isQuiescent(state) && !isQuiescentOperation(operation))) {
+    return logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                   "Can't start %s from %s",
+                                   getAdminStateCodeName(operation),
+                                   getAdminStateName(state));
+  }
+
+  ASSERT_LOG_ONLY((state->waiter == NULL), "no waiter at start of operation");
+  state->state = operation;
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+bool finishOperation(AdminState *state)
+{
+  if (!isOperating(state)) {
     return false;
   }
 
   state->state = (isQuiescing(state)
                   ? (state->state & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT
                   : ADMIN_STATE_NORMAL_OPERATION);
-  releaseCompletionWithResult(&state->waiter, result);
   return true;
 }
 
@@ -125,4 +157,22 @@ bool resumeIfQuiescent(AdminState *state)
 
   state->state = ADMIN_STATE_NORMAL_OPERATION;
   return true;
+}
+
+/**********************************************************************/
+void setOperationWaiter(AdminState *state, VDOCompletion *waiter)
+{
+  int result;
+  if (!isOperating(state)) {
+    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                     "No operation to wait on");
+  } else if (state->waiter != NULL) {
+    result = logErrorWithStringError(VDO_COMPONENT_BUSY,
+                                     "Operation already has a waiter");
+  } else {
+    state->waiter = waiter;
+    return;
+  }
+
+  finishCompletion(waiter, result);
 }

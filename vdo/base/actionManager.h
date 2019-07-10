@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#3 $
  */
 
 #ifndef ACTION_MANAGER_H
 #define ACTION_MANAGER_H
 
+#include "adminState.h"
 #include "completion.h"
 #include "types.h"
 
@@ -121,11 +122,21 @@ int makeActionManager(ZoneCount          zones,
 void freeActionManager(ActionManager **managerPtr);
 
 /**
+ * Get the current operation an action manager is performing.
+ *
+ * @param manager  The manager to query
+ *
+ * @return The manager's current operation
+ **/
+AdminStateCode getCurrentManagerOperation(ActionManager *manager)
+  __attribute__((warn_unused_result));
+
+/**
  * Schedule an action to be applied to all zones. The action will be launched
  * immediately if there is no current action, or as soon as the current action
- * completes. At least one of the preamble, zoneAction, or conclusion must not
- * be NULL. If there is already a pending action, this action will not be
- * scheduled, and, if it has a parent, that parent will be notified.
+ * completes. If there is already a pending action, this action will not be
+ * scheduled, and, if it has a parent, that parent will be notified. At least
+ * one of the preamble, zoneAction, or conclusion must not be NULL.
  *
  * @param manager     The action manager to schedule the action on
  * @param preamble    A method to be invoked on the initiator thread once this
@@ -144,5 +155,33 @@ bool scheduleAction(ActionManager   *manager,
                     ZoneAction      *zoneAction,
                     InitiatorAction *conclusion,
                     VDOCompletion   *parent);
+
+/**
+ * Schedule an operation to be applied to all zones. The operation's action
+ * will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this
+ * operation will not be scheduled, and, if it has a parent, that parent will
+ * be notified. At least one of the preamble, zoneAction, or conclusion must
+ * not be NULL.
+ *
+ * @param manager     The action manager to schedule the action on
+ * @param operation   The operation this action will perform
+ * @param preamble    A method to be invoked on the initiator thread once this
+ *                    action is started but before applying to each zone; may
+ *                    be NULL
+ * @param zoneAction  The action to apply to each zone; may be NULL
+ * @param conclusion  A method to be invoked back on the initiator thread once
+ *                    the action has been applied to all zones; may be NULL
+ * @param parent      The object to notify once the action is complete or if
+ *                    the action can not be scheduled; may be NULL
+ *
+ * @return <code>true</code> if the action was scheduled
+ **/
+bool scheduleOperation(ActionManager   *manager,
+                       AdminStateCode   operation,
+                       InitiatorAction *preamble,
+                       ZoneAction      *zoneAction,
+                       InitiatorAction *conclusion,
+                       VDOCompletion   *parent);
 
 #endif // ACTION_MANAGER_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#10 $
  */
 
 #include "blockMap.h"
@@ -350,8 +350,7 @@ static void advanceBlockMapZoneEra(void          *context,
 static bool scheduleEraAdvance(void *context)
 {
   BlockMap *map = context;
-  if ((map->currentEraPoint == map->pendingEraPoint)
-      || isQuiescing(&map->state) || isQuiescent(&map->state)) {
+  if (map->currentEraPoint == map->pendingEraPoint) {
     return false;
   }
 
@@ -541,17 +540,6 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
 }
 
 /**
- * Finish a drain action.
- *
- * <p>Implements InitiatorAction.
- **/
-static int finishBlockMapDrain(void *context)
-{
-  BlockMap *map = context;
-  return (finishDraining(&map->state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
-}
-
-/**
  * Drain a zone of the block map.
  *
  * <p>Implements ZoneAction.
@@ -562,7 +550,9 @@ static void drainZone(void          *context,
 {
   BlockMap     *map  = (BlockMap *) context;
   BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
-  if (startDraining(&zone->adminState, map->state.state, parent)) {
+  if (startDraining(&zone->adminState,
+                    getCurrentManagerOperation(map->actionManager),
+                    parent)) {
     drainZoneTrees(&zone->treeZone);
   }
 }
@@ -572,30 +562,8 @@ void drainBlockMap(BlockMap       *map,
                    AdminStateCode  operation,
                    VDOCompletion  *parent)
 {
-  if (startDraining(&map->state, operation, NULL)) {
-    scheduleAction(map->actionManager, NULL, drainZone, finishBlockMapDrain,
-                   parent);
-    return;
-  }
-
-  finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
-}
-
-/**********************************************************************/
-static int attemptResume(AdminState *state)
-{
-  return (resumeIfQuiescent(state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
-}
-
-/**
- * Finish a resume action.
- *
- * <p>Implements InitiatorAction.
- **/
-static int finishBlockMapResume(void *context)
-{
-  BlockMap *map = context;
-  return attemptResume(&map->state);
+  scheduleOperation(map->actionManager, operation, NULL, drainZone, NULL,
+                    parent);
 }
 
 /**
@@ -607,27 +575,17 @@ static void resumeBlockMapZone(void          *context,
                                ZoneCount      zoneNumber,
                                VDOCompletion *parent)
 {
-  int result
-    = attemptResume(&(getBlockMapZone(context, zoneNumber)->adminState));
-  finishCompletion(parent, result);
-}
-
-/**
- * Start a block map resume.
- *
- * <p>Implements InitiatorAction.
- **/
-static int prepareToResumeBlockMap(void *context)
-{
-  BlockMap *map = context;
-  return (isQuiescent(&map->state) ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
+  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
+  finishCompletion(parent,
+                   (resumeIfQuiescent(&zone->adminState)
+                    ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE));
 }
 
 /**********************************************************************/
 void resumeBlockMap(BlockMap *map, VDOCompletion *parent)
 {
-  scheduleAction(map->actionManager, prepareToResumeBlockMap,
-                 resumeBlockMapZone, finishBlockMapResume, parent);
+  scheduleOperation(map->actionManager, ADMIN_STATE_RESUMING, NULL,
+                    resumeBlockMapZone, NULL, parent);
 }
 
 /**********************************************************************/
@@ -658,7 +616,8 @@ BlockCount getNewEntryCount(BlockMap *map)
 /**********************************************************************/
 void growBlockMap(BlockMap *map)
 {
-  ASSERT_LOG_ONLY(isQuiescent(&map->state),
+  AdminStateCode code = getCurrentManagerOperation(map->actionManager);
+  ASSERT_LOG_ONLY(isQuiescentCode(code),
                   "growBlockMap() called on quiescent block map");
 
   replaceForest(map);

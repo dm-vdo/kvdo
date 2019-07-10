@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#4 $
  */
 
 #include "slabJournalInternals.h"
@@ -1209,14 +1209,15 @@ static void drainSlabJournal(SlabJournal    *journal,
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "drainSlabJournal() called on correct thread");
-  if (!isOperatingNormally(&journal->adminState)) {
-    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
+  int result = startOperation(&journal->adminState, operation);
+  if (result != VDO_SUCCESS) {
+    finishCompletion(parent, result);
     return;
   }
 
   prepareCompletion(&journal->completion, callback, errorHandler, threadID,
                     parent);
-  startDraining(&journal->adminState, operation, &journal->completion);
+  setOperationWaiter(&journal->adminState, &journal->completion);
   if (!isSuspending(&journal->adminState)) {
     commitSlabJournalTail(journal);
   }
