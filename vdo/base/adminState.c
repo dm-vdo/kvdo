@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#5 $
  */
 
 #include "adminState.h"
@@ -105,23 +105,13 @@ bool finishDraining(AdminState *state)
 /**********************************************************************/
 bool finishDrainingWithResult(AdminState *state, int result)
 {
-  switch (state->state) {
-  case ADMIN_STATE_FLUSHING:
-    state->state = ADMIN_STATE_NORMAL_OPERATION;
-    break;
-
-  case ADMIN_STATE_SAVING:
-    state->state = ADMIN_STATE_SAVED;
-    break;
-
-  case ADMIN_STATE_SUSPENDING:
-    state->state = ADMIN_STATE_SUSPENDED;
-    break;
-
-  default:
+  if (!isDraining(state)) {
     return false;
   }
 
+  state->state = (isQuiescing(state)
+                  ? (state->state & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT
+                  : ADMIN_STATE_NORMAL_OPERATION);
   releaseCompletionWithResult(&state->waiter, result);
   return true;
 }

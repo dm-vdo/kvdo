@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#7 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -30,13 +30,19 @@ typedef enum {
   ADMIN_TYPE_FLUSH,
   ADMIN_TYPE_SAVE,
   ADMIN_TYPE_SUSPEND,
+  ADMIN_TYPE_MASK      = 0xff,
+
   ADMIN_FLAG_DRAINING  = 0x100,
-  ADMIN_FLAG_QUIESCENT = 0x200,
+  ADMIN_FLAG_QUIESCING = 0x200,
+  ADMIN_FLAG_QUIESCENT = 0x400,
+
   ADMIN_STATE_NORMAL_OPERATION = ADMIN_TYPE_NORMAL,
   ADMIN_STATE_FLUSHING         = ADMIN_FLAG_DRAINING | ADMIN_TYPE_FLUSH,
-  ADMIN_STATE_SAVING           = ADMIN_FLAG_DRAINING | ADMIN_TYPE_SAVE,
+  ADMIN_STATE_SAVING           = (ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING
+                                  | ADMIN_TYPE_SAVE),
   ADMIN_STATE_SAVED            = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SAVE,
-  ADMIN_STATE_SUSPENDING       = ADMIN_FLAG_DRAINING | ADMIN_TYPE_SUSPEND,
+  ADMIN_STATE_SUSPENDING       = (ADMIN_FLAG_DRAINING | ADMIN_FLAG_QUIESCING
+                                  | ADMIN_TYPE_SUSPEND),
   ADMIN_STATE_SUSPENDED        = ADMIN_FLAG_QUIESCENT | ADMIN_TYPE_SUSPEND,
 } AdminStateCode;
 
@@ -94,6 +100,16 @@ __attribute__((warn_unused_result))
 static inline bool isDraining(AdminState *state)
 {
   return ((state->state & ADMIN_FLAG_DRAINING) == ADMIN_FLAG_DRAINING);
+}
+
+/**
+ * Check whether an AdminState is quiescing.
+ * @return <code>true</code> if the state is quiescing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isQuiescing(AdminState *state)
+{
+  return ((state->state & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
 }
 
 /**
