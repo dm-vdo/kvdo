@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#4 $
  */
 
 #include "slabCompletion.h"
@@ -305,17 +305,6 @@ void saveSlabs(VDOCompletion *completion, SlabIterator iterator)
 static bool no(const Slab *slab __attribute__((unused)))
 {
   return false;
-}
-
-/**********************************************************************/
-void loadSlabJournals(VDOCompletion  *completion, SlabIterator iterator)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterator;
-  slabCompletion->needsRefCountIO     = no;
-  slabCompletion->doRefCountIO        = NULL;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  launchSlabIO(slabCompletion, decodeSlabJournal);
 }
 
 /**********************************************************************/

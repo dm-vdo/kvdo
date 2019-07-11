@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#3 $
  */
 #ifndef SLAB_COMPLETION_H
 #define SLAB_COMPLETION_H
@@ -50,14 +50,6 @@ void freeSlabCompletion(VDOCompletion **completionPtr);
  * @param slabIterator  An iterator over the slabs to load
  **/
 void saveSlabs(VDOCompletion *completion, SlabIterator slabIterator);
-
-/**
- * Load slab journal tails.
- *
- * @param completion    The completion for the slab journal load operation
- * @param slabIterator  An iterator over the slabs having journals to load
- **/
-void loadSlabJournals(VDOCompletion  *completion, SlabIterator slabIterator);
 
 /**
  * Flush slab journals.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#4 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -114,6 +114,8 @@ struct blockAllocator {
   unsigned int                 unopenedSlabPriority;
   /** Whether a save has been requested */
   bool                         saveRequested;
+  /** The state of this allocator */
+  AdminState                   state;
 
   /** The slab from which blocks are currently being allocated */
   Slab                        *openSlab;
@@ -125,6 +127,10 @@ struct blockAllocator {
   VDOCompletion               *slabCompletion;
   /** What phase of the close operation the allocator is to perform */
   BlockAllocatorCloseStep      closeStep;
+  /** Whether the allocator is currently launching slab I/O */
+  bool                         launchingSlabIO;
+  /** The number of slabs doing I/O */
+  SlabCount                    slabIOCount;
 
   /** Statistics for this block allocator */
   AtomicAllocatorStatistics    statistics;

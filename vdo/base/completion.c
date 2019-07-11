@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#8 $
  */
 
 #include "completion.h"
@@ -52,7 +52,6 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "SLAB_JOURNAL_COMPLETION",
   "SLAB_REBUILD_COMPLETION",
   "SLAB_SCRUBBER_COMPLETION",
-  "SLAB_SUMMARY_COMPLETION",
   "SUB_TASK_COMPLETION",
   "TEST_COMPLETION",
   "VDO_COMMAND_COMPLETION",

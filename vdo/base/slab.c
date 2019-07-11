@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#3 $
  */
 
 #include "slab.h"
@@ -24,7 +24,9 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "blockAllocatorInternals.h"
+#include "completion.h"
 #include "constants.h"
 #include "numUtils.h"
 #include "pbnLock.h"
@@ -301,6 +303,28 @@ bool shouldSaveFullyBuiltSlab(const Slab *slab)
   return (mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)
           || (getSlabFreeBlockCount(slab) != dataBlocks)
           || !isSlabJournalBlank(slab->journal));
+}
+
+/**********************************************************************/
+void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+{
+  if (!startLoading(&slab->state, operation, parent)) {
+    return;
+  }
+
+  decodeSlabJournal(slab->journal);
+}
+
+/**********************************************************************/
+void notifySlabJournalIsLoaded(Slab *slab, int result)
+{
+  if ((result == VDO_SUCCESS) && isCleanLoad(&slab->state)) {
+    // Since this is a normal or new load, we don't need the memory to read and
+    // process the recovery journal, so we can allocate reference counts now.
+    result = allocateRefCountsForSlab(slab->state.waiter->layer, slab);
+  }
+
+  finishLoadingWithResult(&slab->state, result);
 }
 
 /**********************************************************************/

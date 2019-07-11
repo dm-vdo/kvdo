@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#4 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -259,17 +259,15 @@ void setSlabSummaryOrigin(SlabSummary *summary, Partition *partition);
  * region.
  *
  * @param summary         The summary to load
+ * @param operation       The type of load to perform
  * @param zonesToCombine  The number of zones to be combined; if set to 0,
  *                        all of the summary will be initialized as new.
  * @param parent          The parent of this operation
- * @param callback        The function to call when the load is complete
- * @param errorHandler    The handler for load errors
  **/
-void loadSlabSummary(SlabSummary *summary,
-                     ZoneCount    zonesToCombine,
-                     void        *parent,
-                     VDOAction   *callback,
-                     VDOAction   *errorHandler);
+void loadSlabSummary(SlabSummary    *summary,
+                     AdminStateCode  operation,
+                     ZoneCount       zonesToCombine,
+                     VDOCompletion  *parent);
 
 /**
  * Fetch the cumulative statistics for all slab summary zones in a summary.

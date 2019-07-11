@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#6 $
  */
 
 #include "slabJournalInternals.h"
@@ -1252,18 +1252,18 @@ void resumeSlabJournal(SlabJournal *journal)
 }
 
 /**
- * Finish doing manual IO on the slab journal by returning the VIO and
- * finishing the slab journal completion.
+ * Finish the decode process by returning the VIO and notifying the slab that
+ * we're done.
  *
  * @param completion  The VIO as a completion
  **/
-static void finishManualIO(VDOCompletion *completion)
+static void finishDecodingJournal(VDOCompletion *completion)
 {
   int           result  = completion->result;
   VIOPoolEntry *entry   = completion->parent;
   SlabJournal  *journal = entry->parent;
   returnVIO(journal->slab->allocator, entry);
-  finishCompletion(&journal->completion, result);
+  notifySlabJournalIsLoaded(journal->slab, result);
 }
 
 /**
@@ -1283,7 +1283,7 @@ static void setDecodedState(VDOCompletion *completion)
 
   if ((header.metadataType != VDO_METADATA_SLAB_JOURNAL)
       || (header.nonce != journal->slab->allocator->nonce)) {
-    finishManualIO(completion);
+    finishDecodingJournal(completion);
     return;
   }
 
@@ -1299,7 +1299,7 @@ static void setDecodedState(VDOCompletion *completion)
 
   journal->tailHeader = header;
   initializeJournalState(journal);
-  finishManualIO(completion);
+  finishDecodingJournal(completion);
 }
 
 /**
@@ -1313,14 +1313,34 @@ static void setDecodedState(VDOCompletion *completion)
 static void readSlabJournalTail(Waiter *waiter, void *vioContext)
 {
   SlabJournal  *journal = slabJournalFromResourceWaiter(waiter);
+  Slab         *slab    = journal->slab;
   VIOPoolEntry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary,
-                                   journal->slab->slabNumber);
+    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   entry->parent = journal;
 
+
+  // Slab summary keeps the commit point offset, so the tail block is the
+  // block before that. Calculation supports small journals in unit tests.
+  TailBlockOffset tailBlock = ((lastCommitPoint == 0)
+                               ? (TailBlockOffset) (journal->size - 1)
+                               : (lastCommitPoint - 1));
+  entry->vio->completion.callbackThreadID = slab->allocator->threadID;
+  launchReadMetadataVIO(entry->vio, slab->journalOrigin + tailBlock,
+                        setDecodedState, finishDecodingJournal);
+}
+
+/**********************************************************************/
+void decodeSlabJournal(SlabJournal *journal)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID()
+                   == journal->slab->allocator->threadID),
+                  "decodeSlabJournal() called on correct thread");
+  Slab *slab = journal->slab;
+  TailBlockOffset lastCommitPoint
+    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   if ((lastCommitPoint == 0)
-      && !mustLoadRefCounts(journal->summary, journal->slab->slabNumber)) {
+      && !mustLoadRefCounts(journal->summary, slab->slabNumber)) {
     /*
      * This slab claims that it has a tail block at (journal->size - 1), but
      * a head of 1. This is impossible, due to the scrubbing threshold, on
@@ -1330,36 +1350,14 @@ static void readSlabJournalTail(Waiter *waiter, void *vioContext)
                      || (journal->scrubbingThreshold < (journal->size - 1))),
                     "Scrubbing threshold protects against reads of unwritten"
                     "slab journal blocks");
-    VDOCompletion *completion = vioAsCompletion(entry->vio);
-    resetCompletion(completion);
-    finishManualIO(completion);
+    notifySlabJournalIsLoaded(slab, VDO_SUCCESS);
     return;
   }
 
-  // Slab summary keeps the commit point offset, so the tail block is the
-  // block before that. Calculation supports small journals in unit tests.
-  entry->vio->completion.callbackThreadID
-    = journal->completion.callbackThreadID;
-  TailBlockOffset tailBlock = ((lastCommitPoint == 0)
-                               ? (TailBlockOffset) (journal->size - 1)
-                               : (lastCommitPoint - 1));
-  launchReadMetadataVIO(entry->vio, journal->slab->journalOrigin + tailBlock,
-                        setDecodedState, finishManualIO);
-}
-
-/**********************************************************************/
-void decodeSlabJournal(SlabJournal   *journal,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler,
-                       ThreadID       threadID)
-{
-  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
-                    parent);
   journal->resourceWaiter.callback = readSlabJournalTail;
-  int result = acquireVIO(journal->slab->allocator, &journal->resourceWaiter);
+  int result = acquireVIO(slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
-    finishCompletion(&journal->completion, result);
+    notifySlabJournalIsLoaded(slab, result);
   }
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#7 $
  */
 
 #include "adminState.h"
@@ -42,6 +42,18 @@ static const char *getAdminStateCodeName(AdminStateCode code)
 
   case ADMIN_STATE_OPERATING:
     return "ADMIN_STATE_OPERATING";
+
+  case ADMIN_STATE_FORMATTING:
+    return "ADMIN_STATE_FORMATTING";
+
+  case ADMIN_STATE_LOADING:
+    return "ADMIN_STATE_LOADING";
+
+  case ADMIN_STATE_LOADING_FOR_RECOVERY:
+    return "ADMIN_STATE_LOADING_FOR_RECOVERY";
+
+  case ADMIN_STATE_LOADING_FOR_REBUILD:
+    return "ADMIN_STATE_LOADING_FOR_REBUILD";
 
   case ADMIN_STATE_FLUSHING:
     return "ADMIN_STATE_FLUSHING";
@@ -78,28 +90,92 @@ const char *getAdminStateName(const AdminState *state)
   return getAdminStateCodeName(state->state);
 }
 
-/**********************************************************************/
-bool startDraining(AdminState     *state,
-                   AdminStateCode  operation,
-                   VDOCompletion  *waiter)
+/**
+ * Begin an operation if it may be started given the current state.
+ *
+ * @param state      The AdminState
+ * @param operation  The operation to begin
+ * @param waiter     A completion to notify when the operation is complete; may
+ *                   be NULL
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+__attribute__((warn_unused_result))
+static int beginOperation(AdminState     *state,
+                          AdminStateCode  operation,
+                          VDOCompletion  *waiter)
 {
   int result;
-  if (state->waiter != NULL) {
-    result = VDO_COMPONENT_BUSY;
+  if (isOperating(state)
+      || (isQuiescent(state) && !isQuiescentOperation(operation))) {
+    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                     "Can't start %s from %s",
+                                     getAdminStateCodeName(operation),
+                                     getAdminStateName(state));
+  } else if (state->waiter != NULL) {
+    result = logErrorWithStringError(VDO_COMPONENT_BUSY,
+                                     "Can't start %s with extant waiter",
+                                     getAdminStateCodeName(operation));
   } else {
-    result = startOperation(state, operation);
-  }
-
-  if (result == VDO_SUCCESS) {
+    state->state = operation;
     state->waiter = waiter;
-    return true;
+    return VDO_SUCCESS;
   }
 
   if (waiter != NULL) {
     finishCompletion(waiter, result);
   }
 
+  return result;
+}
+
+/**
+ * Finish an operation if one is in progress. If there is a waiter, it will be
+ * notified.
+ *
+ * @param state   The AdminState
+ * @param result  The result of the operation
+ *
+ * @return <code>true</code> if an operation was in progress and has been
+ *         finished.
+ **/
+static bool endOperation(AdminState *state, int result)
+{
+  if (!isOperating(state)) {
+    return false;
+  }
+
+  state->state = (isQuiescing(state)
+                  ? (state->state & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT
+                  : ADMIN_STATE_NORMAL_OPERATION);
+  releaseCompletionWithResult(&state->waiter, result);
+  return true;
+}
+
+/**********************************************************************/
+bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
+{
+  if (isDrainOperation(operation)) {
+    return true;
+  }
+
+  int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                       "%s is not a drain operation",
+                                       getAdminStateCodeName(operation));
+  if (waiter != NULL) {
+    finishCompletion(waiter, result);
+  }
+
   return false;
+}
+
+/**********************************************************************/
+bool startDraining(AdminState     *state,
+                   AdminStateCode  operation,
+                   VDOCompletion  *waiter)
+{
+  return (assertDrainOperation(operation, waiter)
+          && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/
@@ -111,41 +187,63 @@ bool finishDraining(AdminState *state)
 /**********************************************************************/
 bool finishDrainingWithResult(AdminState *state, int result)
 {
-  if (!isDraining(state) || !finishOperation(state)) {
-    return false;
+  return (isDraining(state) && endOperation(state, result));
+}
+
+/**********************************************************************/
+bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
+{
+  if (isLoadOperation(operation)) {
+    return true;
   }
 
-  releaseCompletionWithResult(&state->waiter, result);
-  return true;
+  int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                       "%s is not a load operation",
+                                       getAdminStateCodeName(operation));
+  if (waiter != NULL) {
+    finishCompletion(waiter, result);
+  }
+
+  return false;
+}
+
+/**********************************************************************/
+bool startLoading(AdminState     *state,
+                  AdminStateCode  operation,
+                  VDOCompletion  *waiter)
+{
+  return (assertLoadOperation(operation, waiter)
+          && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
+}
+
+/**********************************************************************/
+bool finishLoading(AdminState *state)
+{
+  return finishLoadingWithResult(state, VDO_SUCCESS);
+}
+
+/**********************************************************************/
+bool finishLoadingWithResult(AdminState *state, int result)
+{
+  return (isLoading(state) && endOperation(state, result));
 }
 
 /**********************************************************************/
 int startOperation(AdminState *state, AdminStateCode operation)
 {
-  if (isOperating(state)
-      || (isQuiescent(state) && !isQuiescentOperation(operation))) {
-    return logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                   "Can't start %s from %s",
-                                   getAdminStateCodeName(operation),
-                                   getAdminStateName(state));
+  if (isOperation(operation)) {
+    return beginOperation(state, operation, NULL);
   }
 
-  ASSERT_LOG_ONLY((state->waiter == NULL), "no waiter at start of operation");
-  state->state = operation;
-  return VDO_SUCCESS;
+  return logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                 "%s is not an operation",
+                                 getAdminStateCodeName(operation));
 }
 
 /**********************************************************************/
 bool finishOperation(AdminState *state)
 {
-  if (!isOperating(state)) {
-    return false;
-  }
-
-  state->state = (isQuiescing(state)
-                  ? (state->state & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT
-                  : ADMIN_STATE_NORMAL_OPERATION);
-  return true;
+  return endOperation(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/

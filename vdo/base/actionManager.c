@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#6 $
  */
 
 #include "actionManager.h"
@@ -31,25 +31,25 @@
 typedef struct action Action;
 struct action {
   /** Whether this structure is in use */
-  bool             inUse;
+  bool              inUse;
   /** The admin operation associated with this action */
-  AdminStateCode   operation;
+  AdminStateCode    operation;
   /**
    * The method to run on the initiator thread before the action is applied to
    * each zone.
    **/
-  InitiatorAction *preamble;
+  ActionPreamble   *preamble;
   /** The action to be performed in each zone */
-  ZoneAction      *zoneAction;
+  ZoneAction       *zoneAction;
   /**
    * The method to run on the initiator thread after the action has been
    * applied to each zone
    **/
-  InitiatorAction *conclusion;
+  ActionConclusion *conclusion;
   /** The object to notify when the action is complete */
-  VDOCompletion   *parent;
+  VDOCompletion    *parent;
   /** The action to perform after this one */
-  Action *next;
+  Action           *next;
 };
 
 struct actionManager {
@@ -103,11 +103,22 @@ static bool noDefaultAction(void *context __attribute__((unused)))
 }
 
 /**
- * A default preamble or conclusion which does nothing.
+ * A default preamble which does nothing.
  *
- * <p>Implements InitiatorAction.
+ * <p>Implements ActionPreamble
  **/
-static int noInitiatorAction(void *context __attribute__((unused))) {
+static void noPreamble(void          *context __attribute__((unused)),
+                       VDOCompletion *completion)
+{
+  completeCompletion(completion);
+}
+
+/**
+ * A default conclusion which does nothing.
+ *
+ * <p>Implements ActionConclusion.
+ **/
+static int noConclusion(void *context __attribute__((unused))) {
   return VDO_SUCCESS;
 }
 
@@ -232,6 +243,18 @@ static void applyToZone(VDOCompletion *completion)
 }
 
 /**
+ * The error handler for preamble errors.
+ *
+ * @param completion  The manager completion
+ **/
+static void handlePreambleError(VDOCompletion *completion)
+{
+  // Skip the zone actions since the preamble failed.
+  completion->callback = finishActionCallback;
+  preserveErrorAndContinue(completion);
+}
+
+/**
  * Launch the current action.
  *
  * @param manager  The action manager
@@ -241,24 +264,26 @@ static void launchCurrentAction(ActionManager *manager)
   Action *action = manager->currentAction;
   int     result = startOperation(&manager->state, action->operation);
   if (result != VDO_SUCCESS) {
+    if (action->parent != NULL) {
+      setCompletionResult(action->parent, result);
+    }
+
     // We aren't going to run the preamble, so don't run the conclusion
-    action->conclusion = noInitiatorAction;
-  } else {
-    result = action->preamble(manager->context);
+    action->conclusion = noConclusion;
+    finishActionCallback(&manager->completion);
+    return;
   }
 
-  if (action->parent != NULL) {
-    setCompletionResult(action->parent, result);
-  }
-
-  if ((action->zoneAction == NULL) || (result != VDO_SUCCESS)) {
+  if (action->zoneAction == NULL) {
     prepareForConclusion(manager);
   } else {
     manager->actingZone = 0;
-    prepareForNextZone(manager);
+    prepareForRequeue(&manager->completion, applyToZone, handlePreambleError,
+                      getActingZoneThreadID(manager),
+                      manager->currentAction->parent);
   }
 
-  invokeCallback(&manager->completion);
+  action->preamble(manager->context, &manager->completion);
 }
 
 /**
@@ -290,23 +315,23 @@ static void finishActionCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-bool scheduleAction(ActionManager   *manager,
-                    InitiatorAction *preamble,
-                    ZoneAction      *zoneAction,
-                    InitiatorAction *conclusion,
-                    VDOCompletion   *parent)
+bool scheduleAction(ActionManager    *manager,
+                    ActionPreamble   *preamble,
+                    ZoneAction       *zoneAction,
+                    ActionConclusion *conclusion,
+                    VDOCompletion    *parent)
 {
   return scheduleOperation(manager, ADMIN_STATE_OPERATING, preamble,
                            zoneAction, conclusion, parent);
 }
 
 /**********************************************************************/
-bool scheduleOperation(ActionManager   *manager,
-                       AdminStateCode   operation,
-                       InitiatorAction *preamble,
-                       ZoneAction      *zoneAction,
-                       InitiatorAction *conclusion,
-                       VDOCompletion   *parent)
+bool scheduleOperation(ActionManager    *manager,
+                       AdminStateCode    operation,
+                       ActionPreamble   *preamble,
+                       ZoneAction       *zoneAction,
+                       ActionConclusion *conclusion,
+                       VDOCompletion    *parent)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");
@@ -326,9 +351,9 @@ bool scheduleOperation(ActionManager   *manager,
   *action = (Action) {
     .inUse      = true,
     .operation  = operation,
-    .preamble   = (preamble == NULL) ? noInitiatorAction : preamble,
+    .preamble   = (preamble == NULL) ? noPreamble : preamble,
     .zoneAction = zoneAction,
-    .conclusion = (conclusion == NULL) ? noInitiatorAction : conclusion,
+    .conclusion = (conclusion == NULL) ? noConclusion : conclusion,
     .parent     = parent,
     .next       = action->next,
   };

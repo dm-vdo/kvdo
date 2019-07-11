@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#2 $
  */
 
 #ifndef VDO_SLAB_H
@@ -24,6 +24,7 @@
 
 #include "permassert.h"
 
+#include "adminState.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
 #include "referenceOperation.h"
@@ -70,6 +71,8 @@ struct vdoSlab {
   /** The starting translated PBN of the reference counts */
   PhysicalBlockNumber  refCountsOrigin;
 
+  /** The administrative state of the slab */
+  AdminState           state;
   /** The status of the slab */
   SlabRebuildStatus    status;
   /** Whether the slab was ever queued for scrubbing */
@@ -285,6 +288,23 @@ int slabBlockNumberFromPBN(Slab                *slab,
  **/
 bool shouldSaveFullyBuiltSlab(const Slab *slab)
   __attribute__((warn_unused_result));
+
+/**
+ * Load the state of a slab from disk.
+ *
+ * @param slab       The slab to load
+ * @param operation  The type of load to perform
+ * @param parent     The completion to notify when the load is complete
+ **/
+void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
+
+/**
+ * Inform a slab that its journal has been loaded.
+ *
+ * @param slab    The slab whose journal has been loaded
+ * @param result  The result of the load operation
+ **/
+void notifySlabJournalIsLoaded(Slab *slab, int result);
 
 /**
  * Dump information about a slab to the log for debugging.

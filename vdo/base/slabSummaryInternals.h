@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#3 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -106,8 +106,8 @@ struct slabSummaryZone {
 };
 
 struct slabSummary {
-  /** The completion used when combining old zones (load) */
-  VDOCompletion                completion;
+  /** The completion waiting for a load to complete */
+  VDOCompletion               *loadParent;
   /** The context for entering read-only mode */
   ReadOnlyNotifier            *readOnlyNotifier;
   /** The statistics for this slab summary */

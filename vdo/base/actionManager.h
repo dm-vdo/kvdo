@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#4 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -61,14 +61,23 @@ typedef void ZoneAction(void          *context,
                         VDOCompletion *parent);
 
 /**
- * A function which will run on the action manager's initiator thread, either
- * as a preamble or conclusion of an action.
+ * A function which is to be applied asynchronously on an action manager's
+ * initiator thread as the preamble of an action.
+ *
+ * @param context  The object which holds the per-zone context for the action
+ * @param parent   The object to notify when the action is complete
+ **/
+typedef void ActionPreamble(void *context, VDOCompletion *parent);
+
+/**
+ * A function which will run on the action manager's initiator thread as the
+ * conclusion of an action.
  *
  * @param context  The object which holds the per-zone context for the action
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int InitiatorAction(void *context);
+typedef int ActionConclusion(void *context);
 
 /**
  * A function to schedule an action.
@@ -150,11 +159,11 @@ AdminStateCode getCurrentManagerOperation(ActionManager *manager)
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool scheduleAction(ActionManager   *manager,
-                    InitiatorAction *preamble,
-                    ZoneAction      *zoneAction,
-                    InitiatorAction *conclusion,
-                    VDOCompletion   *parent);
+bool scheduleAction(ActionManager    *manager,
+                    ActionPreamble   *preamble,
+                    ZoneAction       *zoneAction,
+                    ActionConclusion *conclusion,
+                    VDOCompletion    *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -177,11 +186,11 @@ bool scheduleAction(ActionManager   *manager,
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool scheduleOperation(ActionManager   *manager,
-                       AdminStateCode   operation,
-                       InitiatorAction *preamble,
-                       ZoneAction      *zoneAction,
-                       InitiatorAction *conclusion,
-                       VDOCompletion   *parent);
+bool scheduleOperation(ActionManager    *manager,
+                       AdminStateCode    operation,
+                       ActionPreamble   *preamble,
+                       ZoneAction       *zoneAction,
+                       ActionConclusion *conclusion,
+                       VDOCompletion    *parent);
 
 #endif // ACTION_MANAGER_H

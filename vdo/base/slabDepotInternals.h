@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#11 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -42,12 +42,6 @@ struct slabDepot {
 
   /** slabSize == (1 << slabSizeShift) */
   unsigned int          slabSizeShift;
-
-  /** The completion waiting for a load to complete */
-  VDOCompletion        *loadWaiter;
-
-  /** The completion for loading slabs */
-  VDOCompletion        *slabCompletion;
 
   /** Determines how slabs should be queued during load */
   SlabDepotLoadType     loadType;

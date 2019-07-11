@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#3 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -231,20 +231,9 @@ void resumeSlabJournal(SlabJournal *journal);
 /**
  * Decode the slab journal by reading its tail.
  *
- * <p>Implements slabJournal.c:SlabJournalPreparer.
- *
- * @param journal       The journal to decode
- * @param parent        The completion which should be notified when the
- *                      journal is decoded
- * @param callback      The callback to call once the tail is decoded
- * @param errorHandler  The handler for decode errors
- * @param threadID      The thread on which the callback should run
+ * @param journal  The journal to decode
  **/
-void decodeSlabJournal(SlabJournal   *journal,
-                       VDOCompletion *parent,
-                       VDOAction     *callback,
-                       VDOAction     *errorHandler,
-                       ThreadID       threadID);
+void decodeSlabJournal(SlabJournal *journal);
 
 /**
  * Check to see if the journal should be scrubbed.

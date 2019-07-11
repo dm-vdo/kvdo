@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#11 $
  */
 
 #include "blockMap.h"
@@ -318,13 +318,13 @@ static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
 /**
  * Prepare for an era advance.
  *
- * <p>Implements InitiatorAction.
+ * <p>Implements ActionPreamble.
  **/
-static int prepareForEraAdvance(void *context)
+static void prepareForEraAdvance(void *context, VDOCompletion *parent)
 {
   BlockMap *map = context;
   map->currentEraPoint = map->pendingEraPoint;
-  return VDO_SUCCESS;
+  completeCompletion(parent);
 }
 
 /**

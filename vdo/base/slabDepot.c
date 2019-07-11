@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#13 $
  */
 
 #include "slabDepot.h"
@@ -33,10 +33,8 @@
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
-#include "slabCompletion.h"
 #include "slabDepotInternals.h"
 #include "slabJournal.h"
-#include "slabJournalEraser.h"
 #include "slabIterator.h"
 #include "slabSummary.h"
 #include "threadConfig.h"
@@ -183,13 +181,13 @@ static ThreadID getAllocatorThreadID(void *context, ZoneCount zoneNumber)
 /**
  * Prepare to commit oldest tail blocks.
  *
- * <p>Implements InitiatorAction.
+ * <p>Implements ActionPreamble.
  **/
-static int prepareForTailBlockCommit(void *context)
+static void prepareForTailBlockCommit(void *context, VDOCompletion *parent)
 {
   SlabDepot *depot = context;
   depot->activeReleaseRequest = depot->newReleaseRequest;
-  return VDO_SUCCESS;
+  completeCompletion(parent);
 }
 
 /**
@@ -256,11 +254,6 @@ static int allocateComponents(SlabDepot          *depot,
   result = makeSlabSummary(layer, summaryPartition, threadConfig,
                            depot->slabSizeShift, depot->slabConfig.dataBlocks,
                            depot->readOnlyNotifier, &depot->slabSummary);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = makeSlabCompletion(layer, &depot->slabCompletion);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -472,7 +465,6 @@ void freeSlabDepot(SlabDepot **depotPtr)
 
   FREE(depot->slabs);
   freeActionManager(&depot->actionManager);
-  freeSlabCompletion(&depot->slabCompletion);
   freeSlabSummary(&depot->slabSummary);
   destroyEnqueueable(&depot->scrubbingCompletion);
   FREE(depot);
@@ -863,67 +855,27 @@ SlabCount getDepotUnrecoveredSlabCount(const SlabDepot *depot)
 }
 
 /**
- * Notify the load waiter now that the depot load is complete.
+ * The preamble of a load operation which loads the slab summary.
  *
- * @param completion  The completion which did the current load step
+ * <p>Implements ActionPreamble.
  **/
-static void finishDepotLoad(VDOCompletion *completion)
+static void startDepotLoad(void *context, VDOCompletion *parent)
 {
-  SlabDepot *depot = completion->parent;
-  releaseCompletionWithResult(&depot->loadWaiter, completion->result);
-}
-
-/**
- * Load slabs if necessary now that the summary is loaded. This is the
- * callback for the slab summary load registered in loadSlabDepot().
- *
- * @param completion  The SlabSummary load completion
- **/
-static void loadSlabs(VDOCompletion *completion)
-{
-  SlabDepot *depot = completion->parent;
-  prepareCompletion(depot->slabCompletion, finishDepotLoad, finishDepotLoad,
-                    depot->loadWaiter->callbackThreadID, depot);
-
-  switch (depot->loadType) {
-  case NORMAL_LOAD:
-  case RECOVERY_LOAD:
-    loadSlabJournals(depot->slabCompletion, getSlabIterator(depot));
-    return;
-
-  case REBUILD_LOAD:
-    eraseSlabJournals(depot, getSlabIterator(depot), depot->slabCompletion);
-    return;
-
-  case NEW_LOAD:
-    break;
-
-  default:
-    setCompletionResult(depot->loadWaiter, UDS_BAD_STATE);
-  }
-
-  finishDepotLoad(depot->slabCompletion);
+  SlabDepot *depot = context;
+  loadSlabSummary(depot->slabSummary,
+                  getCurrentManagerOperation(depot->actionManager),
+                  depot->oldZoneCount, parent);
 }
 
 /**********************************************************************/
-void loadSlabDepot(SlabDepot         *depot,
-                   SlabDepotLoadType  loadType,
-                   VDOCompletion     *parent)
+void loadSlabDepot(SlabDepot      *depot,
+                   AdminStateCode  operation,
+                   VDOCompletion  *parent)
 {
-  if ((loadType == NORMAL_LOAD) || (loadType == NEW_LOAD)) {
-    int result = allocateSlabRefCounts(depot, parent->layer);
-    if (result != VDO_SUCCESS) {
-      finishCompletion(parent, result);
-      return;
-    }
+  if (assertLoadOperation(operation, parent)) {
+    scheduleOperation(depot->actionManager, operation, startDepotLoad,
+                      loadBlockAllocator, NULL, parent);
   }
-
-  depot->loadType   = loadType;
-  depot->loadWaiter = parent;
-  ZoneCount oldZoneCount
-    = ((loadType == REBUILD_LOAD) ? 0 : depot->oldZoneCount);
-  loadSlabSummary(depot->slabSummary, oldZoneCount, depot, loadSlabs,
-                  finishDepotLoad);
 }
 
 /**********************************************************************/
@@ -990,7 +942,7 @@ int prepareToGrowSlabDepot(SlabDepot     *depot,
  * Finish registering new slabs now that all of the allocators have received
  * their new slabs.
  *
- * <p>Implements InitiatorAction.
+ * <p>Implements ActionConclusion.
  **/
 static int finishRegistration(void *context)
 {

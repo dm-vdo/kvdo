@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#10 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -35,6 +35,7 @@
 #include "slabCompletion.h"
 #include "slabDepotInternals.h"
 #include "slabIterator.h"
+#include "slabJournalEraser.h"
 #include "slabJournalInternals.h"
 #include "slabScrubber.h"
 #include "slabSummary.h"
@@ -518,6 +519,67 @@ static void swapSlabStatuses(void *item1, void *item2)
   SlabStatus temp = *info1;
   *info1 = *info2;
   *info2 = temp;
+}
+
+/**
+ * Inform the allocator that all load I/O has finished.
+ *
+ * @param completion  The allocator completion
+ **/
+static void finishLoadingAllocator(VDOCompletion *completion)
+{
+  BlockAllocator *allocator = (BlockAllocator *) completion;
+  finishLoading(&allocator->state);
+}
+
+/**
+ * Inform the allocator that a slab has been loaded.
+ *
+ * @param completion  The allocator completion
+ **/
+static void notifySlabIsLoaded(VDOCompletion *completion)
+{
+  BlockAllocator *allocator = (BlockAllocator *) completion;
+  if ((--allocator->slabIOCount == 0) && !allocator->launchingSlabIO) {
+    finishLoadingAllocator(completion);
+    return;
+  }
+
+  resetCompletion(completion);
+}
+
+/**********************************************************************/
+void loadBlockAllocator(void          *context,
+                        ZoneCount      zoneNumber,
+                        VDOCompletion *parent)
+{
+  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  AdminStateCode operation
+    = getCurrentManagerOperation(allocator->depot->actionManager);
+  if (!startLoading(&allocator->state, operation, parent)) {
+    return;
+  }
+
+  if (operation == ADMIN_STATE_LOADING_FOR_REBUILD) {
+    prepareCompletion(&allocator->completion, finishLoadingAllocator,
+                      preserveErrorAndContinue, allocator->threadID, parent);
+    eraseSlabJournals(allocator->depot, getSlabIterator(allocator),
+                      &allocator->completion);
+    return;
+  }
+
+  prepareCompletion(&allocator->completion, notifySlabIsLoaded,
+                    preserveErrorAndContinue, allocator->threadID, parent);
+  allocator->launchingSlabIO = true;
+  for (SlabIterator iterator = getSlabIterator(allocator);
+       hasNextSlab(&iterator); allocator->slabIOCount++) {
+    loadSlab(nextSlab(&iterator), operation, &allocator->completion);
+  }
+  allocator->launchingSlabIO = false;
+
+  if (allocator->slabIOCount == 0) {
+    finishLoading(&allocator->state);
+  }
 }
 
 /**********************************************************************/

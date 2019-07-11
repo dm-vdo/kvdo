@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#5 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -126,6 +126,15 @@ BlockCount getAllocatedBlocks(const BlockAllocator *allocator)
  **/
 BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
   __attribute__((warn_unused_result));
+
+/**
+ * Load the state of an allocator from disk.
+ *
+ * <p>Implements ZoneAction.
+ **/
+void loadBlockAllocator(void          *context,
+                        ZoneCount      zoneNumber,
+                        VDOCompletion *parent);
 
 /**
  * Prepare the block allocator to come online and start allocating blocks.

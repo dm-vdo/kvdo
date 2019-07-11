@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#7 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -48,7 +48,6 @@
 
 typedef enum {
   NORMAL_LOAD,
-  NEW_LOAD,
   RECOVERY_LOAD,
   REBUILD_LOAD
 } SlabDepotLoadType;
@@ -350,11 +349,11 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
  * operation from the load thread.
  *
  * @param depot        The depot to load
- * @param loadType     The load type
+ * @param operation    The type of load to perform
  * @param parent       The completion to finish when the load is complete
  **/
 void loadSlabDepot(SlabDepot         *depot,
-                   SlabDepotLoadType  loadType,
+                   AdminStateCode     operation,
                    VDOCompletion     *parent);
 
 /**
