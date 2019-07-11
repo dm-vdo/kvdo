@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#7 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -193,12 +193,13 @@ void resumeSummaryZone(void          *context,
                        VDOCompletion *parent);
 
 /**
- * Asynchronously save any block allocator state that isn't included in the
- * SuperBlock component to the allocator partition.
+ * Drain all allocator I/O. Depending upon the type of drain, some or all
+ * dirty metadata may be written to disk. The type of drain will be determined
+ * from the state of the allocator's depot.
  *
  * <p>Implements ZoneAction.
  **/
-void closeBlockAllocator(void          *context,
+void drainBlockAllocator(void          *context,
                          ZoneCount      zoneNumber,
                          VDOCompletion *parent);
 

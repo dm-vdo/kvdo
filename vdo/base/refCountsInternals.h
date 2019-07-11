@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#3 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -93,8 +93,6 @@ struct refCounts {
   bool                      updatingSlabSummary;
   /** Whether something is waiting for I/O to complete */
   bool                      hasIOWaiter;
-  /** Whether a close has been requested */
-  bool                      closeRequested;
 
   /** The notifier for read-only mode */
   ReadOnlyNotifier         *readOnlyNotifier;

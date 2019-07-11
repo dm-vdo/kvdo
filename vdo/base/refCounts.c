@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#5 $
  */
 
 #include "refCounts.h"
@@ -243,17 +243,17 @@ RefCounts *asRefCounts(VDOCompletion *completion)
 }
 
 /**
- * Return whether a RefCounts has blocks requiring writing.
+ * Check whether a RefCounts has active I/O.
  *
- * @param refCounts  The RefCounts in question
+ * @param refCounts  The RefCounts to check
  *
- * @return <code>true</code> if there are blocks which need writing
+ * @return <code>true</code> if there is reference block I/O or a summary
+ *         update in progress
  **/
 __attribute__((warn_unused_result))
-static bool isRefCountsDirty(RefCounts *refCounts)
+static bool isRefCountsActive(RefCounts *refCounts)
 {
-  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary
-          || hasWaiters(&refCounts->dirtyBlocks));
+  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary);
 }
 
 /**
@@ -263,7 +263,13 @@ static bool isRefCountsDirty(RefCounts *refCounts)
  **/
 static void checkForDrainComplete(RefCounts *refCounts)
 {
-  if (!isSlabDraining(refCounts->slab) || isRefCountsDirty(refCounts)) {
+  if (isRefCountsActive(refCounts) || !isSlabDraining(refCounts->slab)) {
+    return;
+  }
+
+  if (!isSuspending(&refCounts->slab->state)
+      && hasWaiters(&refCounts->dirtyBlocks)) {
+    // If the drain is not a suspend, the refCounts must be clean.
     return;
   }
 
@@ -642,8 +648,8 @@ int adjustReferenceCount(RefCounts          *refCounts,
                          const JournalPoint *slabJournalPoint,
                          bool               *freeStatusChanged)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber slabBlockNumber;
@@ -935,8 +941,8 @@ static void makeProvisionalReference(RefCounts       *refCounts,
 int allocateUnreferencedBlock(RefCounts           *refCounts,
                               PhysicalBlockNumber *allocatedPtr)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber freeIndex;
@@ -961,8 +967,8 @@ int provisionallyReferenceBlock(RefCounts           *refCounts,
                                 PhysicalBlockNumber  pbn,
                                 PBNLock             *lock)
 {
-  if (refCounts->closeRequested) {
-    return VDO_COMPONENT_BUSY;
+  if (!isSlabOpen(refCounts->slab)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   SlabBlockNumber slabBlockNumber;
@@ -1140,8 +1146,8 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
   }
 
   // Mark the RefCounts as clean in the slab summary if there are no dirty
-  // or writing blocks and we aren't in read-only mode.
-  if (!isRefCountsDirty(refCounts)) {
+  // or writing blocks and no summary update in progress.
+  if (!isRefCountsActive(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
     updateSlabSummaryAsClean(refCounts);
   }
 }
@@ -1305,19 +1311,6 @@ void saveAllReferenceBlocks(RefCounts     *refCounts,
   saveReferenceBlocks(refCounts, parent, callback, errorHandler, threadID);
 }
 
-/**********************************************************************/
-void closeReferenceCounts(RefCounts     *refCounts,
-                          VDOCompletion *parent,
-                          VDOAction     *callback,
-                          VDOAction     *errorHandler,
-                          ThreadID       threadID)
-{
-  ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
-                  "load or save not in progress on closing refCounts");
-  refCounts->closeRequested = true;
-  saveReferenceBlocks(refCounts, parent, callback, errorHandler, threadID);
-}
-
 /**
  * Clear the provisional reference counts from a reference block.
  *
@@ -1439,7 +1432,8 @@ static void loadReferenceBlocks(RefCounts *refCounts)
 /**********************************************************************/
 void drainRefCounts(RefCounts *refCounts)
 {
-  Slab *slab   = refCounts->slab;
+  Slab *slab = refCounts->slab;
+  bool  save = false;
   switch (slab->state.state) {
   case ADMIN_STATE_SCRUBBING:
     if (mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)) {
@@ -1454,14 +1448,26 @@ void drainRefCounts(RefCounts *refCounts)
       // These reference counts were never written, so mark them all dirty.
       dirtyAllReferenceBlocks(refCounts);
     }
-    saveDirtyReferenceBlocks(refCounts);
-    return;
+    save = true;
+    break;
+
+  case ADMIN_STATE_SAVING:
+    save = !isUnrecoveredSlab(slab);
+    break;
+
+  case ADMIN_STATE_SUSPENDING:
+    break;
 
   default:
-    break;
+    notifyRefCountsAreDrained(slab, VDO_SUCCESS);
+    return;
   }
 
-  notifyRefCountsAreDrained(slab, VDO_SUCCESS);
+  if (save) {
+    saveDirtyReferenceBlocks(refCounts);
+  }
+
+  checkForDrainComplete(refCounts);
 }
 
 /**********************************************************************/

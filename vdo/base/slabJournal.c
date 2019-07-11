@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#8 $
  */
 
 #include "slabJournalInternals.h"
@@ -1199,6 +1199,14 @@ void drainSlabJournal(SlabJournal *journal)
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "drainSlabJournal() called on correct thread");
+  if (isQuiescing(&journal->slab->state)) {
+    // XXX: we should revisit this assertion since it is no longer clear what
+    //      it is for.
+    ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
+                       && hasWaiters(&journal->entryWaiters))),
+                    "slab is recovered or has no waiters");
+  }
+
   switch (journal->slab->state.state) {
   case ADMIN_STATE_SUSPENDING:
   case ADMIN_STATE_SAVE_FOR_SCRUBBING:
@@ -1234,20 +1242,6 @@ static void oldDrainSlabJournal(SlabJournal    *journal,
                     parent);
   setOperationWaiter(&journal->slab->state, &journal->completion);
   drainSlabJournal(journal);
-}
-
-/**********************************************************************/
-void closeSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID)
-{
-  ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
-                     && hasWaiters(&journal->entryWaiters))),
-                  "slab is recovered or has no waiters");
-  oldDrainSlabJournal(journal, ADMIN_STATE_SAVING, parent, callback,
-                      errorHandler, threadID);
 }
 
 /**********************************************************************/

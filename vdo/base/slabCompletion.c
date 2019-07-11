@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#6 $
  */
 
 #include "slabCompletion.h"
@@ -281,30 +281,6 @@ static void slabFinished(Slab           *slab __attribute__((unused)),
       && (slabCompletion->slabsRemaining == 0)) {
     finishCompletion(&slabCompletion->completion, VDO_SUCCESS);
   }
-}
-
-/**
- * Check whether the reference counts for a given slab should be saved.<p>
- *
- * Implements SlabStatusChecker.
- *
- * @param slab  The slab to check
- **/
-static bool shouldSaveReferenceCounts(const Slab *slab)
-{
-  // If the slab has no dirty reference blocks, saving it immediately returns.
-  return !isUnrecoveredSlab(slab);
-}
-
-/**********************************************************************/
-void saveSlabs(VDOCompletion *completion, SlabIterator iterator)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterator;
-  slabCompletion->needsRefCountIO     = shouldSaveReferenceCounts;
-  slabCompletion->doRefCountIO        = closeReferenceCounts;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  launchSlabIO(slabCompletion, closeSlabJournal);
 }
 
 /**********************************************************************/

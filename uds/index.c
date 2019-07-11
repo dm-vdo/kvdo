@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#6 $
  */
 
 #include "index.h"
@@ -325,8 +325,8 @@ static IndexZone *getRequestZone(Index *index, Request *request)
 static int searchIndexZone(IndexZone *zone, Request *request)
 {
   MasterIndexRecord record;
-  int result = getMasterIndexRecord(zone->index->masterIndex, &request->hash,
-                                    &record);
+  int result = getMasterIndexRecord(zone->index->masterIndex,
+                                    &request->chunkName, &record);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -371,7 +371,7 @@ static int searchIndexZone(IndexZone *zone, Request *request)
   } else {
     // The record wasn't in the master index, so check whether the name
     // is in a cached sparse chapter.
-    if (!isMasterIndexSample(zone->index->masterIndex, &request->hash)
+    if (!isMasterIndexSample(zone->index->masterIndex, &request->chunkName)
         && isSparse(zone->index->volume->geometry)) {
       // Passing UINT64_MAX triggers a search of the entire sparse cache.
       result = searchSparseCacheInZone(zone, request, UINT64_MAX, &found);
@@ -427,8 +427,8 @@ static int searchIndexZone(IndexZone *zone, Request *request)
 static int removeFromIndexZone(IndexZone *zone, Request *request)
 {
   MasterIndexRecord record;
-  int result = getMasterIndexRecord(zone->index->masterIndex, &request->hash,
-                                    &record);
+  int result = getMasterIndexRecord(zone->index->masterIndex,
+                                    &request->chunkName, &record);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -469,7 +469,7 @@ static int removeFromIndexZone(IndexZone *zone, Request *request)
   // deleted to avoid trouble if the record is added again later.
   if (request->location == LOC_IN_OPEN_CHAPTER) {
     bool hashExists = false;
-    removeFromOpenChapter(zone->openChapter, &request->hash, &hashExists);
+    removeFromOpenChapter(zone->openChapter, &request->chunkName, &hashExists);
     result = ASSERT(hashExists, "removing record not found in open chapter");
     if (result != UDS_SUCCESS) {
       return result;
@@ -830,7 +830,7 @@ void advanceActiveChapters(Index *index)
 uint64_t triageIndexRequest(Index *index, Request *request)
 {
   MasterIndexTriage triage;
-  lookupMasterIndexName(index->masterIndex, &request->hash, &triage);
+  lookupMasterIndexName(index->masterIndex, &request->chunkName, &triage);
   if (!triage.inSampledChapter) {
     // Not indexed or not a hook.
     return UINT64_MAX;

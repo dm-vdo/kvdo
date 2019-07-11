@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#5 $
  */
 #ifndef SLAB_COMPLETION_H
 #define SLAB_COMPLETION_H
@@ -42,14 +42,6 @@ int makeSlabCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
  * @param completionPtr  The reference to the completion to free
  **/
 void freeSlabCompletion(VDOCompletion **completionPtr);
-
-/**
- * Save slabs.
- *
- * @param completion    The completion for the save operation
- * @param slabIterator  An iterator over the slabs to load
- **/
-void saveSlabs(VDOCompletion *completion, SlabIterator slabIterator);
 
 /**
  * Flush slab journals.

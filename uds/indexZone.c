@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexZone.c#4 $
  */
 
 #include "indexZone.h"
@@ -323,7 +323,7 @@ int getRecordFromZone(IndexZone *zone,
                       uint64_t   virtualChapter)
 {
   if (virtualChapter == zone->newestVirtualChapter) {
-    searchOpenChapter(zone->openChapter, &request->hash,
+    searchOpenChapter(zone->openChapter, &request->chunkName,
                       &request->oldMetadata, found);
     return UDS_SUCCESS;
   }
@@ -332,7 +332,7 @@ int getRecordFromZone(IndexZone *zone,
       && (virtualChapter == (zone->newestVirtualChapter - 1))
       && (zone->writingChapter->size > 0)) {
     // Only search the writing chapter if it is full, else look on disk.
-    searchOpenChapter(zone->writingChapter, &request->hash,
+    searchOpenChapter(zone->writingChapter, &request->chunkName,
                       &request->oldMetadata, found);
     return UDS_SUCCESS;
   }
@@ -353,8 +353,8 @@ int getRecordFromZone(IndexZone *zone,
     return searchSparseCacheInZone(zone, request, virtualChapter, found);
   }
 
-  return searchVolumePageCache(volume, request, &request->hash, virtualChapter,
-                               &request->oldMetadata, found);
+  return searchVolumePageCache(volume, request, &request->chunkName,
+                               virtualChapter, &request->oldMetadata, found);
 }
 
 /**********************************************************************/
@@ -363,7 +363,7 @@ int putRecordInZone(IndexZone          *zone,
                     const UdsChunkData *metadata)
 {
   unsigned int remaining;
-  int result = putOpenChapter(zone->openChapter, &request->hash, metadata,
+  int result = putOpenChapter(zone->openChapter, &request->chunkName, metadata,
                               &remaining);
   if (result != UDS_SUCCESS) {
     return result;
@@ -383,7 +383,7 @@ int searchSparseCacheInZone(IndexZone *zone,
                             bool      *found)
 {
   int recordPageNumber;
-  int result = searchSparseCache(zone, &request->hash, &virtualChapter,
+  int result = searchSparseCache(zone, &request->chunkName, &virtualChapter,
                                  &recordPageNumber);
   if ((result != UDS_SUCCESS) || (virtualChapter == UINT64_MAX)) {
     return result;
@@ -395,7 +395,7 @@ int searchSparseCacheInZone(IndexZone *zone,
   unsigned int chapter
     = mapToPhysicalChapter(volume->geometry, virtualChapter);
 
-  return searchCachedRecordPage(volume, request, &request->hash, chapter,
+  return searchCachedRecordPage(volume, request, &request->chunkName, chapter,
                                 recordPageNumber, &request->oldMetadata,
                                 found);
 }

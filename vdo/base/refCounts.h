@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#5 $
  */
 
 #ifndef REF_COUNTS_H
@@ -279,22 +279,6 @@ void saveAllReferenceBlocks(RefCounts     *refCounts,
                             VDOAction     *callback,
                             VDOAction     *errorHandler,
                             ThreadID       threadID);
-
-/**
- * Prevent any future reference count adjustments or allocations and then
- * wait for any dirty or currently writing blocks to finish their I/O.
- *
- * @param refCounts     The reference counts to close
- * @param parent        The completion to notify when the close is complete
- * @param callback      The function to call when the close is complete
- * @param errorHandler  The handler for close errors (may be NULL)
- * @param threadID      The thread on which the callbacks should run
- **/
-void closeReferenceCounts(RefCounts     *refCounts,
-                          VDOCompletion *parent,
-                          VDOAction     *callback,
-                          VDOAction     *errorHandler,
-                          ThreadID       threadID);
 
 /**
  * Mark all reference count blocks as dirty.

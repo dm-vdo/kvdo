@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#4 $
  */
 
 #include "indexRouter.h"
@@ -214,7 +214,8 @@ RequestQueue *selectIndexRouterQueue(IndexRouter  *router,
   }
 
   Index *index = router->index;
-  request->zoneNumber = getMasterIndexZone(index->masterIndex, &request->hash);
+  request->zoneNumber = getMasterIndexZone(index->masterIndex,
+                                           &request->chunkName);
   return getZoneQueue(router, request->zoneNumber);
 }
 

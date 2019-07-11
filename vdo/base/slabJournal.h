@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#5 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -194,22 +194,6 @@ void commitSlabJournalTail(SlabJournal *journal);
  * @param journal  The journal to drain
  **/
 void drainSlabJournal(SlabJournal *journal);
-
-/**
- * Close the slab journal.
- *
- * @param journal       The journal to close
- * @param parent        The completion which should be notified when the
- *                      journal is closed
- * @param callback      The callback to call when the journal is closed
- * @param errorHandler  The handler for close errors
- * @param threadID      The thread on which the callback should run
- **/
-void closeSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID);
 
 /**
  * Flush all uncommitted entries in the slab journal.

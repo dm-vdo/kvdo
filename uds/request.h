@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#4 $
  */
 
 #ifndef REQUEST_H
@@ -124,7 +124,7 @@ struct request {
    * The first part of this structure must be exactly parallel to the
    * UdsRequest structure, which is part of the public UDS API.
    */
-  UdsChunkName      hash;         // hash value
+  UdsChunkName      chunkName;    // hash value
   UdsChunkData      oldMetadata;  // metadata from index
   UdsChunkData      newMetadata;  // metadata from request
   UdsChunkCallback *callback;     // callback method when complete

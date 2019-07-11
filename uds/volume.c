@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2019 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#6 $
  */
 
 #include "volume.h"
@@ -328,7 +328,7 @@ static void readThreadFunction(void *arg)
        * again.
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
-        if (searchRecordPage(page->data, &request->hash, volume->geometry,
+        if (searchRecordPage(page->data, &request->chunkName, volume->geometry,
                              &request->oldMetadata)) {
           request->slLocation = LOC_IN_DENSE;
         } else {
