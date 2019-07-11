@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#5 $
  */
 
 #include "slabJournalInternals.h"
@@ -1101,12 +1101,7 @@ static void addEntries(SlabJournal *journal)
          * be done by the RefCounts since here we don't know how many
          * reference blocks the RefCounts has.
          */
-        Slab *slab = journal->slab;
-        int result = acquireDirtyBlockLocks(slab->referenceCounts);
-        if (result != VDO_SUCCESS) {
-          enterJournalReadOnlyMode(journal, result);
-          break;
-        }
+        acquireDirtyBlockLocks(journal->slab->referenceCounts);
       }
     }
 

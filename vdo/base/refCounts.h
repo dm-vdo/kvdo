@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#3 $
  */
 
 #ifndef REF_COUNTS_H
@@ -318,22 +318,16 @@ void loadReferenceBlocks(RefCounts     *refCounts,
  * Mark all reference count blocks as dirty.
  *
  * @param refCounts  The RefCounts of the reference blocks
- *
- * @return  VDO_SUCCESS or an error code
  **/
-int dirtyAllReferenceBlocks(RefCounts *refCounts)
-  __attribute__((warn_unused_result));
+void dirtyAllReferenceBlocks(RefCounts *refCounts);
 
 /**
  * Mark all reference count blocks dirty and cause them to hold locks on slab
  * journal block 1.
  *
  * @param refCounts  The RefCounts of the reference blocks
- *
- * @return  VDO_SUCCESS or an error code
  **/
-int acquireDirtyBlockLocks(RefCounts *refCounts)
-  __attribute__((warn_unused_result));
+void acquireDirtyBlockLocks(RefCounts *refCounts);
 
 /**
  * Dump information about this RefCounts structure.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#3 $
  */
 
 #include "refCounts.h"
@@ -242,27 +242,72 @@ RefCounts *asRefCounts(VDOCompletion *completion)
 }
 
 /**
+ * Return whether a RefCounts has blocks requiring writing.
+ *
+ * @param refCounts  The RefCounts in question
+ *
+ * @return <code>true</code> if there are blocks which need writing
+ **/
+__attribute__((warn_unused_result))
+static bool isRefCountsDirty(RefCounts *refCounts)
+{
+  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary
+          || hasWaiters(&refCounts->dirtyBlocks));
+}
+
+/**********************************************************************/
+static void checkForIOComplete(RefCounts *refCounts)
+{
+  if (!refCounts->hasIOWaiter || isRefCountsDirty(refCounts)) {
+    return;
+  }
+
+  refCounts->hasIOWaiter = false;
+  finishCompletion(&refCounts->completion,
+                   isReadOnly(refCounts->readOnlyNotifier)
+                   ? VDO_READ_ONLY : VDO_SUCCESS);
+}
+
+/**********************************************************************/
+static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
+{
+  enterReadOnlyMode(refCounts->readOnlyNotifier, result);
+  checkForIOComplete(refCounts);
+}
+
+/**
+ * Enqueue a block on the dirty queue.
+ *
+ * @param block  The block to enqueue
+ **/
+static void enqueueDirtyBlock(ReferenceBlock *block)
+{
+  int result = enqueueWaiter(&block->refCounts->dirtyBlocks, &block->waiter);
+  if (result != VDO_SUCCESS) {
+    // This should never happen.
+    enterRefCountsReadOnlyMode(block->refCounts, result);
+  }
+}
+
+/**
  * Mark a reference count block as dirty, potentially adding it to the dirty
  * queue if it wasn't already dirty.
  *
  * @param block  The reference block to mark as dirty
- *
- * @return  VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static int dirtyBlock(ReferenceBlock *block)
+static void dirtyBlock(ReferenceBlock *block)
 {
   if (block->isDirty) {
-    return VDO_SUCCESS;
+    return;
   }
 
   block->isDirty = true;
   if (block->isWriting) {
     // The conclusion of the current write will enqueue the block again.
-    return VDO_SUCCESS;
+    return;
   }
 
-  return enqueueWaiter(&block->refCounts->dirtyBlocks, &block->waiter);
+  enqueueDirtyBlock(block);
 }
 
 /**********************************************************************/
@@ -510,9 +555,6 @@ static int incrementForBlockMap(RefCounts       *refCounts,
   }
 }
 
-/**********************************************************************/
-static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result);
-
 /**
  * Update the reference count of a block.
  *
@@ -645,7 +687,9 @@ int adjustReferenceCount(RefCounts          *refCounts,
   } else {
     block->slabJournalLock = 0;
   }
-  return dirtyBlock(block);
+
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -671,7 +715,8 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
     return result;
   }
 
-  return dirtyBlock(block);
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -699,7 +744,8 @@ int replayReferenceCountChange(RefCounts          *refCounts,
     return result;
   }
 
-  return dirtyBlock(block);
+  dirtyBlock(block);
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -1000,33 +1046,6 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
 }
 
 /**
- * Return whether a RefCounts has blocks requiring writing.
- *
- * @param refCounts  The RefCounts in question
- *
- * @return <code>true</code> if there are blocks which need writing
- **/
-__attribute__((warn_unused_result))
-static bool isRefCountsDirty(RefCounts *refCounts)
-{
-  return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary
-          || hasWaiters(&refCounts->dirtyBlocks));
-}
-
-/**********************************************************************/
-static void checkForIOComplete(RefCounts *refCounts)
-{
-  if (!refCounts->hasIOWaiter || isRefCountsDirty(refCounts)) {
-    return;
-  }
-
-  refCounts->hasIOWaiter = false;
-  finishCompletion(&refCounts->completion,
-                   isReadOnly(refCounts->readOnlyNotifier)
-                   ? VDO_READ_ONLY : VDO_SUCCESS);
-}
-
-/**
  * A waiter callback that resets the writing state of refCounts.
  **/
 static void finishSummaryUpdate(Waiter *waiter,
@@ -1057,13 +1076,6 @@ static void updateSlabSummaryAsClean(RefCounts *refCounts)
   updateSlabSummaryEntry(summary, &refCounts->slabSummaryWaiter,
                          refCounts->slab->slabNumber, offset, true, true,
                          getSlabFreeBlockCount(refCounts->slab));
-}
-
-/**********************************************************************/
-static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
-{
-  enterReadOnlyMode(refCounts->readOnlyNotifier, result);
-  checkForIOComplete(refCounts);
 }
 
 /**
@@ -1106,24 +1118,19 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
    */
   block->isWriting = false;
 
-  // Re-queue the block if it was re-dirtied while it was writing.
-  if (block->isDirty && !isReadOnly(refCounts->readOnlyNotifier)) {
-    int result = enqueueWaiter(&refCounts->dirtyBlocks, &block->waiter);
-    if (result != VDO_SUCCESS) {
-      // The enqueue should never fail.
-      enterRefCountsReadOnlyMode(refCounts, result);
-    }
+  if (isReadOnly(refCounts->readOnlyNotifier)) {
+    checkForIOComplete(refCounts);
+    return;
+  }
 
+  // Re-queue the block if it was re-dirtied while it was writing.
+  if (block->isDirty) {
+    enqueueDirtyBlock(block);
     if (refCounts->hasIOWaiter) {
       // We must be saving, and this block will otherwise not be relaunched.
       saveDirtyReferenceBlocks(refCounts);
     }
 
-    return;
-  }
-
-  if (isReadOnly(refCounts->readOnlyNotifier)) {
-    checkForIOComplete(refCounts);
     return;
   }
 
@@ -1267,16 +1274,11 @@ void saveReferenceBlocks(RefCounts     *refCounts,
 }
 
 /**********************************************************************/
-int dirtyAllReferenceBlocks(RefCounts *refCounts)
+void dirtyAllReferenceBlocks(RefCounts *refCounts)
 {
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
-    int result = dirtyBlock(&refCounts->blocks[i]);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
+    dirtyBlock(&refCounts->blocks[i]);
   }
-
-  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -1292,12 +1294,7 @@ void saveAllReferenceBlocks(RefCounts     *refCounts,
   prepareCompletion(&refCounts->completion, callback, errorHandler, threadID,
                     parent);
 
-  int result = dirtyAllReferenceBlocks(refCounts);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(&refCounts->completion, result);
-    return;
-  }
-
+  dirtyAllReferenceBlocks(refCounts);
   saveDirtyReferenceBlocks(refCounts);
 }
 
@@ -1440,20 +1437,15 @@ void loadReferenceBlocks(RefCounts     *refCounts,
 }
 
 /**********************************************************************/
-int acquireDirtyBlockLocks(RefCounts *refCounts)
+void acquireDirtyBlockLocks(RefCounts *refCounts)
 {
-  int result = dirtyAllReferenceBlocks(refCounts);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
+  dirtyAllReferenceBlocks(refCounts);
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     refCounts->blocks[i].slabJournalLock = 1;
   }
 
   adjustSlabJournalBlockReference(refCounts->slab->journal, 1,
                                   refCounts->referenceBlockCount);
-  return VDO_SUCCESS;
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabRebuild.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabRebuild.c#2 $
  */
 
 #include "slabRebuild.h"
@@ -257,11 +257,7 @@ static void applyJournalEntries(VDOCompletion *completion)
 
   // The refCounts were not written out before, so mark them all dirty.
   if (!mustLoadRefCounts(journal->summary, slab->slabNumber)) {
-    result = dirtyAllReferenceBlocks(referenceCounts);
-    if (result != VDO_SUCCESS) {
-      finishCompletion(&rebuild->completion, result);
-      return;
-    }
+    dirtyAllReferenceBlocks(referenceCounts);
   }
 
   // Save all the reference count blocks to the layer.
