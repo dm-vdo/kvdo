@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#8 $
  */
 
 #include "blockMapTree.h"
@@ -209,7 +209,7 @@ bool copyValidPage(char                *buffer,
 static void checkForIOComplete(BlockMapTreeZone *zone)
 {
   if (isDraining(&zone->mapZone->adminState) && (zone->activeLookups == 0)
-      && !hasWaiters(&zone->flushWaiters) && !isPoolBusy(zone->vioPool)) {
+      && !hasWaiters(&zone->flushWaiters) && !isVIOPoolBusy(zone->vioPool)) {
     drainVDOPageCache(zone->mapZone->pageCache);
   }
 }

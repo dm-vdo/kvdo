@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#13 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -27,7 +27,6 @@
 #include "adminState.h"
 #include "heap.h"
 #include "numUtils.h"
-#include "objectPool.h"
 #include "priorityTable.h"
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
@@ -750,7 +749,7 @@ static void doDrainStep(VDOCompletion *completion)
     return;
 
   case DRAIN_ALLOCATOR_STEP_FINISHED:
-    ASSERT_LOG_ONLY(!isPoolBusy(allocator->vioPool), "VIO Pool not busy");
+    ASSERT_LOG_ONLY(!isVIOPoolBusy(allocator->vioPool), "VIO Pool not busy");
     finishDrainingWithResult(&allocator->state, completion->result);
     return;
 

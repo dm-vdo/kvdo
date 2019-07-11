@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#9 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -29,10 +29,10 @@
 #include "dirtyLists.h"
 #include "header.h"
 #include "intMap.h"
-#include "objectPool.h"
 #include "ringNode.h"
 #include "types.h"
 #include "vdoPageCache.h"
+#include "vioPool.h"
 
 /**
  * The per-zone fields used by the block map tree.
@@ -47,7 +47,7 @@ struct blockMapTreeZone {
   /** The map of pages currently being loaded */
   IntMap              *loadingPages;
   /** The pool of VIOs for tree I/O */
-  ObjectPool          *vioPool;
+  VIOPool             *vioPool;
   /** The tree page which has issued or will be issuing a flush */
   TreePage            *flusher;
   /** The queue of pages waiting for a flush so they can be written out */

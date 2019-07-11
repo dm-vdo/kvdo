@@ -16,17 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#6 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
 #define BLOCK_ALLOCATOR_INTERNALS_H
 
+#include "adminState.h"
 #include "atomic.h"
 #include "blockAllocator.h"
 #include "priorityTable.h"
 #include "ringNode.h"
 #include "slabScrubber.h"
+#include "vioPool.h"
 
 enum {
   /*
@@ -153,7 +155,7 @@ struct blockAllocator {
   RingNode                     dirtySlabJournals;
 
   /** The VIO pool for reading and writing block allocator metadata */
-  ObjectPool                  *vioPool;
+  VIOPool                     *vioPool;
 };
 
 /**

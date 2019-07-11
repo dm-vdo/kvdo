@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#2 $
  */
 
 #include "vioPool.h"
@@ -29,44 +29,55 @@
 #include "vio.h"
 #include "types.h"
 
-typedef struct {
-  size_t        poolSize;
-  char         *buffer;
-  VIOPoolEntry  entries[];
-} VIOPoolEntries;
+/**
+ * An VIOPool is a collection of preallocated VIOs.
+ **/
+struct vioPool {
+  /** The number of objects managed by the pool */
+  size_t         size;
+  /** The list of objects which are available */
+  RingNode       available;
+  /** The queue of requestors waiting for objects from the pool */
+  WaitQueue      waiting;
+  /** The number of objects currently in use */
+  size_t         busyCount;
+  /** The list of objects which are in use */
+  RingNode       busy;
+  /** The number of requests when no object was available */
+  uint64_t       outageCount;
+  /** The buffer backing the pool's VIOs */
+  char          *buffer;
+  /** The pool entries */
+  VIOPoolEntry   entries[];
+};
 
 /**********************************************************************/
 int makeVIOPool(PhysicalLayer   *layer,
-                size_t           poolSize,
+                size_t           size,
                 VIOConstructor  *vioConstructor,
                 void            *context,
-                ObjectPool     **poolPtr)
+                VIOPool        **poolPtr)
 {
-  VIOPoolEntries *vioPoolEntries;
-  int result = ALLOCATE_EXTENDED(VIOPoolEntries, poolSize, VIOPoolEntry,
-                                 __func__, &vioPoolEntries);
+  VIOPool *pool;
+  int result = ALLOCATE_EXTENDED(VIOPool, size, VIOPoolEntry, __func__,
+                                 &pool);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = ALLOCATE(poolSize * VDO_BLOCK_SIZE, char, "VIO pool buffer",
-                    &vioPoolEntries->buffer);
+  result = ALLOCATE(size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
+                    &pool->buffer);
   if (result != VDO_SUCCESS) {
-    FREE(vioPoolEntries);
+    freeVIOPool(&pool);
     return result;
   }
 
-  ObjectPool *pool;
-  result = makeObjectPool(vioPoolEntries, &pool);
-  if (result != VDO_SUCCESS) {
-    FREE(vioPoolEntries->buffer);
-    FREE(vioPoolEntries);
-    return result;
-  }
+  initializeRing(&pool->available);
+  initializeRing(&pool->busy);
 
-  char *ptr = vioPoolEntries->buffer;
-  for (size_t i = 0; i < poolSize; i++) {
-    VIOPoolEntry *entry = &vioPoolEntries->entries[i];
+  char *ptr = pool->buffer;
+  for (size_t i = 0; i < size; i++) {
+    VIOPoolEntry *entry = &pool->entries[i];
     entry->buffer       = ptr;
     entry->context      = context;
     result = vioConstructor(layer, entry, ptr, &entry->vio);
@@ -74,34 +85,42 @@ int makeVIOPool(PhysicalLayer   *layer,
       freeVIOPool(&pool);
       return result;
     }
-    ptr += VDO_BLOCK_SIZE;
-    addEntryToObjectPool(pool, &entry->node);
-  }
 
-  vioPoolEntries->poolSize = poolSize;
+    ptr += VDO_BLOCK_SIZE;
+    initializeRing(&entry->node);
+    pushRingNode(&pool->available, &entry->node);
+    pool->size++;
+  }
 
   *poolPtr = pool;
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeVIOPool(ObjectPool **poolPtr)
+void freeVIOPool(VIOPool **poolPtr)
 {
   if (*poolPtr == NULL) {
     return;
   }
 
   // Remove all available entries from the object pool.
-  ObjectPool *pool = *poolPtr;
+  VIOPool *pool = *poolPtr;
+  ASSERT_LOG_ONLY(!hasWaiters(&pool->waiting),
+                  "VIO pool must not have any waiters when being freed");
+  ASSERT_LOG_ONLY((pool->busyCount == 0),
+                  "VIO pool must not have %zu busy entries when being freed",
+                  pool->busyCount);
+  ASSERT_LOG_ONLY(isRingEmpty(&pool->busy),
+                  "VIO pool must not have busy entries when being freed");
+
   VIOPoolEntry *entry;
-  while ((entry = asVIOPoolEntry(removeEntryFromObjectPool(pool))) != NULL) {
+  while ((entry = asVIOPoolEntry(chopRingNode(&pool->available))) != NULL) {
     freeVIO(&entry->vio);
   }
 
-  VIOPoolEntries *vioPoolEntries = getObjectPoolEntryData(pool);
   // Make sure every VIOPoolEntry has been removed.
-  for (size_t i = 0; i < vioPoolEntries->poolSize; i++) {
-    VIOPoolEntry *entry = &vioPoolEntries->entries[i];
+  for (size_t i = 0; i < pool->size; i++) {
+    VIOPoolEntry *entry = &pool->entries[i];
     ASSERT_LOG_ONLY(isRingEmpty(&entry->node), "VIO Pool entry still in use:"
                     " VIO is in use for physical block %" PRIu64
                     " for operation %u",
@@ -109,15 +128,47 @@ void freeVIOPool(ObjectPool **poolPtr)
                     entry->vio->operation);
   }
 
-  freeObjectPool(&pool);
-  FREE(vioPoolEntries->buffer);
-  FREE(vioPoolEntries);
+  FREE(pool->buffer);
+  FREE(pool);
   *poolPtr = NULL;
 }
 
 /**********************************************************************/
-void returnVIOToPool(ObjectPool *pool, VIOPoolEntry *entry)
+bool isVIOPoolBusy(VIOPool *pool)
+{
+  return (pool->busyCount != 0);
+}
+
+/**********************************************************************/
+int acquireVIOFromPool(VIOPool *pool, Waiter *waiter)
+{
+  if (isRingEmpty(&pool->available)) {
+    pool->outageCount++;
+    return enqueueWaiter(&pool->waiting, waiter);
+  }
+
+  pool->busyCount++;
+  RingNode *entry = chopRingNode(&pool->available);
+  pushRingNode(&pool->busy, entry);
+  (*waiter->callback)(waiter, entry);
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+void returnVIOToPool(VIOPool *pool, VIOPoolEntry *entry)
 {
   entry->vio->completion.errorHandler = NULL;
-  returnEntryToObjectPool(pool, &entry->node);
+  if (hasWaiters(&pool->waiting)) {
+    notifyNextWaiter(&pool->waiting, NULL, entry);
+    return;
+  }
+
+  pushRingNode(&pool->available, &entry->node);
+  --pool->busyCount;
+}
+
+/**********************************************************************/
+uint64_t getVIOPoolOutageCount(VIOPool *pool)
+{
+  return pool->outageCount;
 }

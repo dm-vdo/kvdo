@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#12 $
  */
 
 #include "blockMap.h"
@@ -34,13 +34,11 @@
 #include "dataVIO.h"
 #include "forest.h"
 #include "numUtils.h"
-#include "objectPool.h"
 #include "recoveryJournal.h"
 #include "statusCodes.h"
 #include "types.h"
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
-#include "vioPool.h"
 
 typedef struct {
   PhysicalBlockNumber flatPageOrigin;
