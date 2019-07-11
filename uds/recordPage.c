@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/recordPage.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/recordPage.c#3 $
  */
 
 #include "recordPage.h"
@@ -49,7 +49,9 @@ static unsigned int encodeTree(byte                  recordPage[],
 }
 
 /**********************************************************************/
-int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[])
+int encodeRecordPage(const Volume         *volume,
+                     const UdsChunkRecord  records[],
+                     byte                  recordPage[])
 {
   unsigned int recordsPerPage = volume->geometry->recordsPerPage;
   const UdsChunkRecord **recordPointers = volume->recordPointers;
@@ -70,7 +72,7 @@ int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[])
 
   // Use the sorted pointers to copy the records from the chapter to the
   // record page in tree order.
-  encodeTree(volume->scratchPage, recordPointers, 0, 0, recordsPerPage);
+  encodeTree(recordPage, recordPointers, 0, 0, recordsPerPage);
   return UDS_SUCCESS;
 }
 

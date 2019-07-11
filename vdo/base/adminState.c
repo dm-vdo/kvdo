@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#8 $
  */
 
 #include "adminState.h"
@@ -66,6 +66,12 @@ static const char *getAdminStateCodeName(AdminStateCode code)
 
   case ADMIN_STATE_SAVED:
     return "ADMIN_STATE_SAVED";
+
+  case ADMIN_STATE_SCRUBBING:
+    return "ADMIN_STATE_SCRUBBING";
+
+  case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+    return "ADMIN_STATE_SAVE_FOR_SCRUBBING";
 
   case ADMIN_STATE_SUSPENDING:
     return "ADMIN_STATE_SUSPENDING";

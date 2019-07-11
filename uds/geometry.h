@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.h#3 $
  */
 
 #ifndef GEOMETRY_H
@@ -82,8 +82,6 @@ typedef struct geometry {
   unsigned int recordsPerChapter;
   /** Number of records that fit in a volume */
   uint64_t recordsPerVolume;
-  /** Offset of the first record page in a chapter */
-  unsigned int recordPageOffset;
   /** Number of deltaLists per chapter index */
   unsigned int deltaListsPerChapter;
   /** Mean delta in chapter indexes */

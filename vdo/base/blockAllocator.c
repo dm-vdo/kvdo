@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#11 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -792,18 +792,6 @@ void flushAllocatorSlabJournals(void          *context,
   prepareCompletion(allocator->slabCompletion, finishFlushingSlabJournals,
                     handleFlushError, allocator->threadID, allocator);
   flushSlabJournals(allocator->slabCompletion, getSlabIterator(allocator));
-}
-
-/**********************************************************************/
-void saveRebuiltSlab(Slab          *slab,
-                     VDOCompletion *parent,
-                     VDOAction     *callback,
-                     VDOAction     *errorHandler)
-{
-  BlockAllocator *allocator = slab->allocator;
-  prepareCompletion(allocator->slabCompletion, callback, errorHandler,
-                    parent->callbackThreadID, parent);
-  saveSlab(allocator->slabCompletion, slab);
 }
 
 /**********************************************************************/

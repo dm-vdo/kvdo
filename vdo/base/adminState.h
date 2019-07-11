@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#10 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -51,6 +51,10 @@ typedef enum {
    *       drain outstanding I/O, and become quiescent.
    **/
   ADMIN_TYPE_SAVE,
+  /**
+   * Scrub: load and/or save state necessary to scrub a slab.
+   **/
+  ADMIN_TYPE_SCRUB,
   /**
    * Suspend: write enough dirty metadata to perform resize transactions,
    *          drain outstanding I/O, and become quiescent.
@@ -127,6 +131,13 @@ typedef enum {
                                       | ADMIN_FLAG_QUIESCING),
   ADMIN_STATE_SAVED                = (ADMIN_TYPE_SAVE
                                       | ADMIN_FLAG_QUIESCENT),
+  ADMIN_STATE_SCRUBBING            = (ADMIN_TYPE_SCRUB
+                                      | ADMIN_FLAG_OPERATING
+                                      | ADMIN_FLAG_DRAINING
+                                      | ADMIN_FLAG_LOADING),
+  ADMIN_STATE_SAVE_FOR_SCRUBBING   = (ADMIN_TYPE_SCRUB
+                                      | ADMIN_FLAG_OPERATING
+                                      | ADMIN_FLAG_DRAINING),
   ADMIN_STATE_SUSPENDING           = (ADMIN_TYPE_SUSPEND
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_DRAINING
@@ -168,7 +179,7 @@ const char *getAdminStateName(const AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isNormal(AdminState *state)
 {
-  return ((state->state & ADMIN_TYPE_NORMAL) == ADMIN_TYPE_NORMAL);
+  return ((state->state & ADMIN_TYPE_MASK) == ADMIN_TYPE_NORMAL);
 }
 
 /**
@@ -464,5 +475,18 @@ bool finishOperation(AdminState *state);
  *                operation or if there is already a waiter
  **/
 void setOperationWaiter(AdminState *state, VDOCompletion *waiter);
+
+/**
+ * Set a result for the current operation.
+ *
+ * @param state  the AdminState
+ * @param result the result to set; if there is no waiter, this is a no-op
+ **/
+static inline void setOperationResult(AdminState *state, int result)
+{
+  if (state->waiter != NULL) {
+    setCompletionResult(state->waiter, result);
+  }
+}
 
 #endif // ADMIN_STATE_H

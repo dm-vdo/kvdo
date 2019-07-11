@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#4 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -188,6 +188,14 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 void commitSlabJournalTail(SlabJournal *journal);
 
 /**
+ * Drain slab journal I/O. Depending upon the type of drain (as recorded in
+ * the journal's slab), any dirty journal blocks may be written out.
+ *
+ * @param journal  The journal to drain
+ **/
+void drainSlabJournal(SlabJournal *journal);
+
+/**
  * Close the slab journal.
  *
  * @param journal       The journal to close
@@ -220,13 +228,6 @@ void flushSlabJournal(SlabJournal   *journal,
                       VDOAction     *callback,
                       VDOAction     *errorHandler,
                       ThreadID       threadID);
-
-/**
- * Resume a quiescent slab journal.
- *
- * @param journal  The journal to resume
- **/
-void resumeSlabJournal(SlabJournal *journal);
 
 /**
  * Decode the slab journal by reading its tail.

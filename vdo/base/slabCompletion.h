@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#4 $
  */
 #ifndef SLAB_COMPLETION_H
 #define SLAB_COMPLETION_H
@@ -58,14 +58,6 @@ void saveSlabs(VDOCompletion *completion, SlabIterator slabIterator);
  * @param slabIterator  An iterator over the slabs having journals to flush
  **/
 void flushSlabJournals(VDOCompletion *completion, SlabIterator slabIterator);
-
-/**
- * Save a single slab (used after the slab has been scrubbed).
- *
- * @param completion  The completion for the save operation
- * @param slab        The slab to save
- **/
-void saveSlab(VDOCompletion *completion, Slab *slab);
 
 /**
  * Save fully rebuilt slabs.

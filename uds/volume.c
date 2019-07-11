@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#5 $
  */
 
 #include "volume.h"
@@ -742,12 +742,12 @@ int forgetChapter(Volume             *volume,
 }
 
 /**********************************************************************/
-static int writeScratchPage(Volume *volume, off_t *offset)
+static int writeScratchPage(Volume *volume, int physicalPage)
 {
-  int result = writeToRegion(volume->region, *offset, volume->scratchPage,
+  off_t offset = (off_t) physicalPage * (off_t) volume->geometry->bytesPerPage;
+  int result = writeToRegion(volume->region, offset, volume->scratchPage,
                              volume->geometry->bytesPerPage,
                              volume->geometry->bytesPerPage);
-  *offset += volume->geometry->bytesPerPage;
   return result;
 }
 
@@ -798,7 +798,7 @@ static int donateIndexPageLocked(Volume       *volume,
 
 /**********************************************************************/
 int writeIndexPages(Volume            *volume,
-                    off_t             chapterOffset,
+                    int                physicalPage,
                     OpenChapterIndex  *chapterIndex,
                     byte             **pages)
 {
@@ -806,8 +806,6 @@ int writeIndexPages(Volume            *volume,
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
   unsigned int deltaListNumber = 0;
-  // The first chapter index page is written at the start of the chapter.
-  off_t pageOffset = chapterOffset;
 
   unsigned int indexPageNumber;
   for (indexPageNumber = 0;
@@ -825,7 +823,7 @@ int writeIndexPages(Volume            *volume,
     }
 
     // Write the scratch page to the volume as the next chapter index page.
-    result = writeScratchPage(volume, &pageOffset);
+    result = writeScratchPage(volume, physicalPage++);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "failed to write chapter index page");
@@ -862,20 +860,18 @@ int writeIndexPages(Volume            *volume,
       return result;
     }
   }
-
-  return ASSERT((pageOffset == (chapterOffset + geometry->recordPageOffset)),
-                "unexpected page offset");
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int writeRecordPages(Volume                *volume,
-                     off_t                  chapterOffset,
+                     int                    physicalPage,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 {
   Geometry *geometry = volume->geometry;
-  off_t pageOffset = chapterOffset + geometry->recordPageOffset;
+  // Skip over the index pages, which come before the record pages
+  physicalPage += geometry->indexPagesPerChapter;
   // The record array from the open chapter is 1-based.
   const UdsChunkRecord *nextRecord = &records[1];
 
@@ -885,7 +881,7 @@ int writeRecordPages(Volume                *volume,
        recordPageNumber++) {
     // Sort the next page of records and copy them to the scratch page
     // as a binary tree stored in heap order.
-    int result = encodeRecordPage(volume, nextRecord);
+    int result = encodeRecordPage(volume, nextRecord, volume->scratchPage);
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to encode record page %u",
@@ -894,9 +890,10 @@ int writeRecordPages(Volume                *volume,
     nextRecord += geometry->recordsPerPage;
 
     // Write the scratch page to the volume as the next record page.
-    result = writeScratchPage(volume, &pageOffset);
+    result = writeScratchPage(volume, physicalPage++);
     if (result != UDS_SUCCESS) {
-      return logWarningWithStringError(result, "failed to write record page %u",
+      return logWarningWithStringError(result,
+                                       "failed to write record page %u",
                                        recordPageNumber);
     }
 
@@ -905,10 +902,7 @@ int writeRecordPages(Volume                *volume,
              geometry->bytesPerPage);
     }
   }
-
-  return ASSERT((pageOffset
-                 == (chapterOffset + (off_t) geometry->bytesPerChapter)),
-                "unexpected page offset");
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -921,15 +915,14 @@ int writeChapter(Volume                 *volume,
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
   int physicalPage = mapToPhysicalPage(geometry, physicalChapterNumber, 0);
-  off_t chapterOffset = (off_t) physicalPage * (off_t) geometry->bytesPerPage;
 
   // Pack and write the delta chapter index pages to the volume.
-  int result = writeIndexPages(volume, chapterOffset, chapterIndex, NULL);
+  int result = writeIndexPages(volume, physicalPage, chapterIndex, NULL);
   if (result != UDS_SUCCESS) {
     return result;
   }
   // Sort and write the record pages to the volume.
-  result = writeRecordPages(volume, chapterOffset, records, NULL);
+  result = writeRecordPages(volume, physicalPage, records, NULL);
   if (result != UDS_SUCCESS) {
     return result;
   }

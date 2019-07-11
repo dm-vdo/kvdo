@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#3 $
  */
 
 #ifndef VOLUME_H
@@ -243,17 +243,16 @@ int forgetChapter(Volume             *volume,
 /**
  * Write a chapter's worth of index pages to a volume
  *
- * @param volume                the volume containing the chapter
- * @param chapterOffset         the offset into the volume for the chapter
- * @param chapterIndex          the populated delta chapter index
- * @param pages                 pointer to array of page pointers. Used only
- *                              in testing to return what data has been
- *                              written to disk.
+ * @param volume        the volume containing the chapter
+ * @param physicalPage  the page number in the volume for the chapter
+ * @param chapterIndex  the populated delta chapter index
+ * @param pages         pointer to array of page pointers. Used only in testing
+ *                      to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int writeIndexPages(Volume            *volume,
-                    off_t              chapterOffset,
+                    int                physicalPage,
                     OpenChapterIndex  *chapterIndex,
                     byte             **pages)
 __attribute__((warn_unused_result));
@@ -261,17 +260,16 @@ __attribute__((warn_unused_result));
 /**
  * Write a chapter's worth of record pages to a volume
  *
- * @param volume                the volume containing the chapter
- * @param chapterOffset         the offset into the volume for the chapter
- * @param records               a 1-based array of chunk records in the chapter
- * @param pages                 pointer to array of page pointers. Used only
- *                              in testing to return what data has been
- *                              written to disk.
+ * @param volume        the volume containing the chapter
+ * @param physicalPage  the page number in the volume for the chapter
+ * @param records       a 1-based array of chunk records in the chapter
+ * @param pages         pointer to array of page pointers. Used only in testing
+ *                      to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int writeRecordPages(Volume                *volume,
-                     off_t                  chapterOffset,
+                     int                    physicalPage,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 __attribute__((warn_unused_result));

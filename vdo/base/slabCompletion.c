@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#5 $
  */
 
 #include "slabCompletion.h"
@@ -168,6 +168,12 @@ static void doRefCountIO(SlabCompletion *slabCompletion, Slab *slab)
     return;
   }
 
+  /*
+   * XXX: this is a temporary hack to continue supporting operations which use
+   *      the Slab's AdminState, but still come through here instead of using
+   *      drainSlab().
+   */
+  resumeIfQuiescent(&slab->state);
   slabCompletion->doRefCountIO(slab->referenceCounts,
                                &slabCompletion->completion, finishRefCountsIO,
                                handleRefCountsIOError,
@@ -316,26 +322,6 @@ void flushSlabJournals(VDOCompletion *completion, SlabIterator iterator)
   slabCompletion->doRefCountIO        = NULL;
   slabCompletion->refCountsIOFinished = slabFinished;
   launchSlabIO(slabCompletion, flushSlabJournal);
-}
-
-/**
- * Implements SlabStatusChecker.
- **/
-static bool yes(const Slab *slab __attribute__((unused)))
-{
-  return true;
-}
-
-/**********************************************************************/
-void saveSlab(VDOCompletion *completion, Slab *slab)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterateSlabs(NULL, 0, 0, 0);
-  slabCompletion->slabsRemaining      = 1;
-  slabCompletion->needsRefCountIO     = yes;
-  slabCompletion->doRefCountIO        = saveReferenceBlocks;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  doRefCountIO(slabCompletion, slab);
 }
 
 /**********************************************************************/

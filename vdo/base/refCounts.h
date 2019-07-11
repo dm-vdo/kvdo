@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#4 $
  */
 
 #ifndef REF_COUNTS_H
@@ -297,29 +297,20 @@ void closeReferenceCounts(RefCounts     *refCounts,
                           ThreadID       threadID);
 
 /**
- * Load reference blocks asynchronously from the underlying storage into a
- * pre-allocated reference counter.<p>
- *
- * Implements slabCompletion.c:ReferenceCountIO.
- *
- * @param refCounts     The reference counts to load
- * @param parent        The completion to notify when the load is complete
- * @param callback      The function to call when the load is complete
- * @param errorHandler  The handler for load errors (may be NULL)
- * @param threadID      The thread on which the callbacks should run
- **/
-void loadReferenceBlocks(RefCounts     *refCounts,
-                         VDOCompletion *parent,
-                         VDOAction     *callback,
-                         VDOAction     *errorHandler,
-                         ThreadID       threadID);
-
-/**
  * Mark all reference count blocks as dirty.
  *
  * @param refCounts  The RefCounts of the reference blocks
  **/
 void dirtyAllReferenceBlocks(RefCounts *refCounts);
+
+/**
+ * Drain all reference count I/O. Depending upon the type of drain being
+ * performed (as recorded in the RefCount's Slab), the reference blocks may
+ * be loaded from disk or dirty reference blocks may be written out.
+ *
+ * @param refCounts  The reference counts to drain
+ **/
+void drainRefCounts(RefCounts *refCounts);
 
 /**
  * Mark all reference count blocks dirty and cause them to hold locks on slab

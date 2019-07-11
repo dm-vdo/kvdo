@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#3 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -26,7 +26,6 @@
 
 #include "numeric.h"
 
-#include "adminState.h"
 #include "blockAllocatorInternals.h"
 #include "blockMapEntry.h"
 #include "journalPoint.h"
@@ -187,8 +186,6 @@ struct slabJournal {
   /** The parent slab reference of this journal */
   Slab                        *slab;
 
-  /** The administrative state of the journal */
-  AdminState                   adminState;
   /** Whether a tail block commit is pending */
   bool                         waitingToCommit;
   /** Whether a completion is waiting for slab journal space */

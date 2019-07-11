@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#3 $
  */
 
 #ifndef VDO_SLAB_H
@@ -305,6 +305,69 @@ void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
  * @param result  The result of the load operation
  **/
 void notifySlabJournalIsLoaded(Slab *slab, int result);
+
+/**
+ * Check whether a slab is open, i.e. is neither quiescent nor quiescing.
+ *
+ * @param slab  The slab to check
+ *
+ * @return <code>true</code> if the slab is open
+ **/
+bool isSlabOpen(Slab *slab)
+  __attribute__((warn_unused_result));
+
+/**
+ * Check whether a slab is currently draining.
+ *
+ * @param slab  The slab to check
+ *
+ * @return <code>true</code> if the slab is performing a drain operation
+ **/
+bool isSlabDraining(Slab *slab)
+  __attribute__((warn_unused_result));
+
+/**
+ * Drain a slab.
+ *
+ * @param slab       The slab to drain
+ * @param operation  The type of drain to perform
+ * @param parent     The object to notify when the drain is complete
+ **/
+void drainSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
+
+/**
+ * Inform a slab that its journal has finished draining.
+ *
+ * @param slab    The slab whose journal has been drained
+ * @param result  The result of the drain operation
+ **/
+void notifySlabJournalIsDrained(Slab *slab, int result);
+
+/**
+ * Inform a slab that its RefCounts have finished draining.
+ *
+ * @param slab    The slab whose RefCounts has been drained
+ * @param result  The result of the drain operation
+ **/
+void notifyRefCountsAreDrained(Slab *slab, int result);
+
+/**
+ * Resume a quiescent slab.
+ *
+ * @param slab  The slab to resume
+ *
+ * @return <code>true</code> if the slab was resumed
+ **/
+bool resumeSlab(Slab *slab);
+
+/**
+ * Finish scrubbing a slab now that it has been rebuilt by updating its status,
+ * queueing it for allocation, and reopening its journal.
+ *
+ * @param slab  The slab whose reference counts have been rebuilt from its
+ *              journal
+ **/
+void finishScrubbingSlab(Slab *slab);
 
 /**
  * Dump information about a slab to the log for debugging.

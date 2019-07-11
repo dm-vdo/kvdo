@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#6 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -210,19 +210,6 @@ void closeBlockAllocator(void          *context,
 void saveBlockAllocatorForFullRebuild(void          *context,
                                       ZoneCount      zoneNumber,
                                       VDOCompletion *parent);
-
-/**
- * Save a slab which has been rebuilt.
- *
- * @param slab          The slab which has been rebuilt
- * @param parent        The parent to notify when the slab has been saved
- * @param callback      The function to call when the slab has been saved
- * @param errorHandler  The handler for save errors
- **/
-void saveRebuiltSlab(Slab          *slab,
-                     VDOCompletion *parent,
-                     VDOAction     *callback,
-                     VDOAction     *errorHandler);
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery

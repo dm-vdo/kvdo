@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#7 $
  */
 
 #include "slabJournalInternals.h"
@@ -182,7 +182,7 @@ static inline bool isReaping(SlabJournal *journal)
  **/
 static inline void checkForDrainComplete(SlabJournal *journal)
 {
-  if (!isDraining(&journal->adminState)
+  if (!isSlabDraining(journal->slab)
       || mustMakeEntriesToFlush(journal)
       || isReaping(journal)
       || journal->waitingToCommit
@@ -191,9 +191,9 @@ static inline void checkForDrainComplete(SlabJournal *journal)
     return;
   }
 
-  finishDrainingWithResult(&journal->adminState,
-                           ((isVDOReadOnly(journal)
-                             ? VDO_READ_ONLY : VDO_SUCCESS)));
+  notifySlabJournalIsDrained(journal->slab,
+                             (isVDOReadOnly(journal)
+                              ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -469,15 +469,15 @@ static void flushForReaping(Waiter *waiter, void *vioContext)
  **/
 static void reapSlabJournal(SlabJournal *journal)
 {
-  if (isUnrecoveredSlab(journal->slab) || isQuiescing(&journal->adminState)
-      || isQuiescent(&journal->adminState) || isVDOReadOnly(journal)) {
-    // We must not reap in the first three cases, and there's no point in
-    // read-only mode.
+  if (isReaping(journal)) {
+    // We already have a reap in progress so wait for it to finish.
     return;
   }
 
-  if (isReaping(journal)) {
-    // We already have a reap in progress so wait for it to finish.
+  if (isUnrecoveredSlab(journal->slab) || !isNormal(&journal->slab->state)
+      || isVDOReadOnly(journal)) {
+    // We must not reap in the first two cases, and there's no point in
+    // read-only mode.
     return;
   }
 
@@ -1112,7 +1112,7 @@ static void addEntries(SlabJournal *journal)
 
   // If there are no waiters, and we are flushing or saving, commit the
   // tail block.
-  if (isDraining(&journal->adminState) && !isSuspending(&journal->adminState)
+  if (isSlabDraining(journal->slab) && !isSuspending(&journal->slab->state)
       && !hasWaiters(&journal->entryWaiters)) {
     commitSlabJournalTail(journal);
   }
@@ -1121,7 +1121,7 @@ static void addEntries(SlabJournal *journal)
 /**********************************************************************/
 void addSlabJournalEntry(SlabJournal *journal, DataVIO *dataVIO)
 {
-  if (isQuiescing(&journal->adminState) || isQuiescent(&journal->adminState)) {
+  if (!isSlabOpen(journal->slab)) {
     continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
     return;
   }
@@ -1194,17 +1194,37 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
 }
 
 /**********************************************************************/
-static void drainSlabJournal(SlabJournal    *journal,
-                             AdminStateCode  operation,
-                             VDOCompletion  *parent,
-                             VDOAction      *callback,
-                             VDOAction      *errorHandler,
-                             ThreadID        threadID)
+void drainSlabJournal(SlabJournal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "drainSlabJournal() called on correct thread");
-  int result = startOperation(&journal->adminState, operation);
+  switch (journal->slab->state.state) {
+  case ADMIN_STATE_SUSPENDING:
+  case ADMIN_STATE_SAVE_FOR_SCRUBBING:
+    break;
+
+  default:
+    commitSlabJournalTail(journal);
+  }
+
+  checkForDrainComplete(journal);
+}
+
+/**
+ * XXX: This is a temporary preservation of what used to be drainSlabJournal()
+ *      in order to allow the introduction of the new drainSlabJournal()
+ *      without requiring the conversion of closeSlabJournal() and
+ *      flushSlabJournal() until later.
+ **/
+static void oldDrainSlabJournal(SlabJournal    *journal,
+                                AdminStateCode  operation,
+                                VDOCompletion  *parent,
+                                VDOAction      *callback,
+                                VDOAction      *errorHandler,
+                                ThreadID        threadID)
+{
+  int result = startOperation(&journal->slab->state, operation);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;
@@ -1212,12 +1232,8 @@ static void drainSlabJournal(SlabJournal    *journal,
 
   prepareCompletion(&journal->completion, callback, errorHandler, threadID,
                     parent);
-  setOperationWaiter(&journal->adminState, &journal->completion);
-  if (!isSuspending(&journal->adminState)) {
-    commitSlabJournalTail(journal);
-  }
-
-  checkForDrainComplete(journal);
+  setOperationWaiter(&journal->slab->state, &journal->completion);
+  drainSlabJournal(journal);
 }
 
 /**********************************************************************/
@@ -1230,8 +1246,8 @@ void closeSlabJournal(SlabJournal   *journal,
   ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
                      && hasWaiters(&journal->entryWaiters))),
                   "slab is recovered or has no waiters");
-  drainSlabJournal(journal, ADMIN_STATE_SAVING, parent, callback, errorHandler,
-                   threadID);
+  oldDrainSlabJournal(journal, ADMIN_STATE_SAVING, parent, callback,
+                      errorHandler, threadID);
 }
 
 /**********************************************************************/
@@ -1241,14 +1257,8 @@ void flushSlabJournal(SlabJournal   *journal,
                       VDOAction     *errorHandler,
                       ThreadID       threadID)
 {
-  drainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
-                   errorHandler, threadID);
-}
-
-/**********************************************************************/
-void resumeSlabJournal(SlabJournal *journal)
-{
-  resumeIfQuiescent(&journal->adminState);
+  oldDrainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
+                      errorHandler, threadID);
 }
 
 /**
