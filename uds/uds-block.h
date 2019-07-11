@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds-block.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds-block.h#2 $
  */
 
 /**
@@ -105,7 +105,7 @@ struct udsRequest {
    * Set before starting an operation.
    * Unchanged at time of callback.
    */
-  UdsIndexSession session;
+  struct uds_index_session *session;
   /*
    * The operation type, which is one of #UDS_DELETE, #UDS_POST, #UDS_QUERY or
    * #UDS_UPDATE.

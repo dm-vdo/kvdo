@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#4 $
  */
 
 #include "uds.h"
@@ -198,10 +198,11 @@ void udsFreeConfiguration(UdsConfiguration userConfig)
 }
 
 /**********************************************************************/
-static int initializeIndexSessionWithLayout(IndexSession     *indexSession,
-                                            IndexLayout      *layout,
-                                            LoadType          loadType,
-                                            UdsConfiguration  userConfig)
+static
+int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
+                                     IndexLayout              *layout,
+                                     LoadType                  loadType,
+                                     UdsConfiguration          userConfig)
 {
   if (userConfig != NULL) {
     indexSession->userConfig = *userConfig;
@@ -233,10 +234,10 @@ static int initializeIndexSessionWithLayout(IndexSession     *indexSession,
 }
 
 /**********************************************************************/
-static int initializeIndexSession(IndexSession     *indexSession,
-                                  const char       *name,
-                                  LoadType          loadType,
-                                  UdsConfiguration  userConfig)
+static int initializeIndexSession(struct uds_index_session *indexSession,
+                                  const char               *name,
+                                  LoadType                  loadType,
+                                  UdsConfiguration          userConfig)
 {
   IndexLayout *layout;
   int result = makeIndexLayout(name, loadType == LOAD_CREATE, userConfig,
@@ -252,10 +253,10 @@ static int initializeIndexSession(IndexSession     *indexSession,
 }
 
 /**********************************************************************/
-static int makeIndexSession(const char       *name,
-                            LoadType          loadType,
-                            UdsConfiguration  userConfig,
-                            UdsIndexSession  *session)
+static int makeIndexSession(const char                *name,
+                            LoadType                   loadType,
+                            UdsConfiguration           userConfig,
+                            struct uds_index_session **session)
 {
   if (name == NULL) {
     return UDS_INDEX_NAME_REQUIRED;
@@ -265,7 +266,7 @@ static int makeIndexSession(const char       *name,
   }
   udsInitialize();
 
-  IndexSession *indexSession = NULL;
+  struct uds_index_session *indexSession = NULL;
   int result = makeEmptyIndexSession(&indexSession);
   if (result != UDS_SUCCESS) {
     return result;
@@ -285,9 +286,9 @@ static int makeIndexSession(const char       *name,
 }
 
 /**********************************************************************/
-int udsCreateLocalIndex(const char       *name,
-                        UdsConfiguration  userConfig,
-                        UdsIndexSession  *session)
+int udsCreateLocalIndex(const char                *name,
+                        UdsConfiguration           userConfig,
+                        struct uds_index_session **session)
 {
   if (userConfig == NULL) {
     return logErrorWithStringError(UDS_CONF_REQUIRED,
@@ -297,15 +298,15 @@ int udsCreateLocalIndex(const char       *name,
 }
 
 /**********************************************************************/
-int udsLoadLocalIndex(const char               *name,
-                      UdsIndexSession          *session)
+int udsLoadLocalIndex(const char                *name,
+                      struct uds_index_session **session)
 {
   return makeIndexSession(name, LOAD_LOAD, NULL, session);
 }
 
 /**********************************************************************/
-int udsRebuildLocalIndex(const char            *name,
-                         UdsIndexSession       *session)
+int udsRebuildLocalIndex(const char                *name,
+                         struct uds_index_session **session)
 {
   return makeIndexSession(name, LOAD_REBUILD, NULL, session);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#5 $
  */
 
 #ifndef REQUEST_H
@@ -116,8 +116,8 @@ typedef struct zoneMessage {
  * Request context for queuing throughout the uds pipeline
  *
  * XXX Note that "session" and "indexSession" are both pointers to the same
- *     "struct indexSession".  This duplication of values should be removed in
- *     a future change.
+ *     "struct uds_index_session".  This duplication of values should be
+ *     removed in a future change.
  **/
 struct request {
   /*
@@ -128,19 +128,19 @@ struct request {
   UdsChunkData      oldMetadata;  // metadata from index
   UdsChunkData      newMetadata;  // metadata from request
   UdsChunkCallback *callback;     // callback method when complete
-  UdsIndexSession   session;      // The public index session
-  UdsCallbackType   type;         // the type of request
-  int               status;       // the success or error code for this request
-  bool              found;        // True if the block was found in the index
-  bool              update;       // move record to newest chapter if found
+  struct uds_index_session *session; // The public index session
+  UdsCallbackType   type;            // the type of request
+  int               status;          // success or error code for this request
+  bool              found;           // True if the block was found in index
+  bool              update;          // move record to newest chapter if found
 
   /*
    * The remainder of this structure is private to the UDS implementation.
    */
-  FunnelQueueEntry  requestQueueLink; // link for lock-free request queue
-  Request          *nextRequest;
-  IndexSession     *indexSession;
-  IndexRouter      *router;           // the router handling this request
+  FunnelQueueEntry          requestQueueLink; // for lock-free request queue
+  Request                  *nextRequest;
+  struct uds_index_session *indexSession;
+  IndexRouter              *router;
 
   // Data for control message requests
   ZoneMessage zoneMessage;

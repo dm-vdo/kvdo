@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#3 $
  */
 
 #include "indexSession.h"
@@ -29,8 +29,8 @@
 #include "udsState.h"
 
 /**********************************************************************/
-static void collectStats(const IndexSession *indexSession,
-                         UdsContextStats    *stats)
+static void collectStats(const struct uds_index_session *indexSession,
+                         UdsContextStats                *stats)
 {
   const SessionStats *sessionStats = &indexSession->stats;
 
@@ -62,7 +62,7 @@ static void handleCallbacks(Request *request)
   if (request->callback != NULL) {
     // The request has specified its own callback and does not expect to be
     // freed.
-    IndexSession *indexSession = request->indexSession;
+    struct uds_index_session *indexSession = request->indexSession;
     request->found = (request->location != LOC_UNAVAILABLE);
     request->callback((UdsRequest *) request);
     // We do this release after the callback because of the contract of the
@@ -77,7 +77,7 @@ static void handleCallbacks(Request *request)
 }
 
 /**********************************************************************/
-int checkIndexSession(IndexSession *indexSession)
+int checkIndexSession(struct uds_index_session *indexSession)
 {
   switch (getIndexSessionState(indexSession)) {
     case IS_READY:
@@ -91,20 +91,20 @@ int checkIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-IndexSessionState getIndexSessionState(IndexSession *indexSession)
+IndexSessionState getIndexSessionState(struct uds_index_session *indexSession)
 {
   return atomic_read_acquire(&indexSession->state);
 }
 
 /**********************************************************************/
-void setIndexSessionState(IndexSession      *indexSession,
-                          IndexSessionState  state)
+void setIndexSessionState(struct uds_index_session *indexSession,
+                          IndexSessionState         state)
 {
   atomic_set_release(&indexSession->state, state);
 }
 
 /**********************************************************************/
-int getIndexSession(IndexSession *indexSession)
+int getIndexSession(struct uds_index_session *indexSession)
 {
   lockMutex(&indexSession->requestMutex);
   indexSession->requestCount++;
@@ -119,7 +119,7 @@ int getIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-void releaseIndexSession(IndexSession *indexSession)
+void releaseIndexSession(struct uds_index_session *indexSession)
 {
   lockMutex(&indexSession->requestMutex);
   if (--indexSession->requestCount == 0) {
@@ -129,10 +129,10 @@ void releaseIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int makeEmptyIndexSession(IndexSession **indexSessionPtr)
+int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
 {
-  IndexSession *session;
-  int result = ALLOCATE(1, IndexSession, "empty index session", &session);
+  struct uds_index_session *session;
+  int result = ALLOCATE(1, struct uds_index_session, __func__, &session);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -163,7 +163,7 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
 }
 
 /**********************************************************************/
-static void waitForNoRequestsInProgress(IndexSession *indexSession)
+static void waitForNoRequestsInProgress(struct uds_index_session *indexSession)
 {
   lockMutex(&indexSession->requestMutex);
   while (indexSession->requestCount > 0) {
@@ -173,7 +173,7 @@ static void waitForNoRequestsInProgress(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int saveAndFreeIndexSession(IndexSession *indexSession)
+int saveAndFreeIndexSession(struct uds_index_session *indexSession)
 {
   int result = UDS_SUCCESS;
   IndexRouter *router = indexSession->router;
@@ -195,7 +195,7 @@ int saveAndFreeIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int udsCloseIndexSession(IndexSession *indexSession)
+int udsCloseIndexSession(struct uds_index_session *indexSession)
 {
   logDebug("Closing index session");
   waitForNoRequestsInProgress(indexSession);
@@ -203,7 +203,7 @@ int udsCloseIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int udsFlushIndexSession(IndexSession *indexSession)
+int udsFlushIndexSession(struct uds_index_session *indexSession)
 {
   waitForNoRequestsInProgress(indexSession);
   // Wait until any open chapter writes are complete
@@ -212,7 +212,7 @@ int udsFlushIndexSession(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int udsSaveIndex(IndexSession *indexSession)
+int udsSaveIndex(struct uds_index_session *indexSession)
 {
   waitForNoRequestsInProgress(indexSession);
   // saveIndexRouter waits for open chapter writes to complete
@@ -220,8 +220,8 @@ int udsSaveIndex(IndexSession *indexSession)
 }
 
 /**********************************************************************/
-int udsSetCheckpointFrequency(IndexSession *indexSession,
-                              unsigned int  frequency)
+int udsSetCheckpointFrequency(struct uds_index_session *indexSession,
+                              unsigned int              frequency)
 {
   setIndexCheckpointFrequency(indexSession->router->index->checkpoint,
                               frequency);
@@ -229,8 +229,8 @@ int udsSetCheckpointFrequency(IndexSession *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexConfiguration(IndexSession     *indexSession,
-                             UdsConfiguration *conf)
+int udsGetIndexConfiguration(struct uds_index_session *indexSession,
+                             UdsConfiguration         *conf)
 {
   if (conf == NULL) {
     return logErrorWithStringError(UDS_CONF_PTR_REQUIRED,
@@ -244,7 +244,8 @@ int udsGetIndexConfiguration(IndexSession     *indexSession,
 }
 
 /**********************************************************************/
-int udsGetIndexStats(IndexSession *indexSession, UdsIndexStats *stats)
+int udsGetIndexStats(struct uds_index_session *indexSession,
+                     UdsIndexStats            *stats)
 {
   if (stats == NULL) {
     return logErrorWithStringError(UDS_INDEX_STATS_PTR_REQUIRED,
@@ -255,7 +256,8 @@ int udsGetIndexStats(IndexSession *indexSession, UdsIndexStats *stats)
 }
 
 /**********************************************************************/
-int udsGetIndexSessionStats(IndexSession *indexSession, UdsContextStats *stats)
+int udsGetIndexSessionStats(struct uds_index_session *indexSession,
+                            UdsContextStats          *stats)
 {
   if (stats == NULL) {
     return logWarningWithStringError(UDS_CONTEXT_STATS_PTR_REQUIRED,

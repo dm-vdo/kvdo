@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#3 $
  */
 
 /**
@@ -106,22 +106,11 @@ typedef struct udsChunkName {
 /**
  * An active index session.
  *
- * XXX This is not the way we normally do things, but is a temporary measure
- *     that allows breaking up a large change into multiple changesets.
- *     Historically we had an internal struct named indexSession, and "struct
- *     indexSession" was typedefed to be IndexSession, and a UdsIndexSession
- *     was an opaque number that needed to be mapped to an "IndexSession *".
- *     The name UdsIndexSession is probably a better choice for the public
- *     interface of UDS when we are upstream.  We want to move to using "struct
- *     udsIndexSession *" in the public interface, where the current "struct
- *     indexSession" gets renamed to "struct udsIndexSession".  And we want to
- *     rename "IndexSession" to "UdsIndexSession" to match.
- *
- * XXX Of course, before arriving upstream we will probably want to rename the
- *     struct to uds_index_session.  Maybe we should dispense with IndexSession
- *     and go directly to "struct uds_index_session".
+ * XXX This is a temporary typedef.  It will go away after we have merged the
+ *     struct uds_index_session change to Jasper and have converted VDO to stop
+ *     using UdsIndexSession.
  **/
-typedef struct indexSession *UdsIndexSession;
+typedef struct uds_index_session *UdsIndexSession;
 
 /**
  * The data used to configure a new index.
@@ -380,9 +369,6 @@ const char *udsGetVersion(void);
 /**
  * Initializes a new local index and creates a session for it.
  *
- * The Application Software can use #UdsIndexSession to open any number of
- * block contexts.
- *
  * Close the local index with #udsCloseIndexSession after all of its contexts
  * have been closed.
  *
@@ -393,18 +379,15 @@ const char *udsGetVersion(void);
  * @return               Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsCreateLocalIndex(const char       *name,
-                        UdsConfiguration  conf,
-                        UdsIndexSession  *session);
+int udsCreateLocalIndex(const char                *name,
+                        UdsConfiguration           conf,
+                        struct uds_index_session **session);
 
 /**
  * Loads a saved index and creates a session for it.
  *
  * This function can only load a cleanly closed local index.  If the index was
  * not cleanly closed, use #udsRebuildLocalIndex.
- *
- * The Application Software can use #UdsIndexSession to open any number of
- * block contexts.
  *
  * Close the local index with #udsCloseIndexSession after all of its contexts
  * have been closed.
@@ -415,16 +398,13 @@ int udsCreateLocalIndex(const char       *name,
  * @return               Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsLoadLocalIndex(const char *name, UdsIndexSession *session);
+int udsLoadLocalIndex(const char *name, struct uds_index_session **session);
 
 /**
  * Loads a saved index, rebuilds it if necessary, and creates a session for it.
  *
  * This function can only load a local index.  If the index was not cleanly
  * closed, then it is rebuilt from the most recent consistent checkpoint.
- *
- * The application can use #UdsIndexSession to open any number of block
- * contexts.
  *
  * Close the local index with #udsCloseIndexSession after all contexts for it
  * have been closed.
@@ -435,7 +415,7 @@ int udsLoadLocalIndex(const char *name, UdsIndexSession *session);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsRebuildLocalIndex(const char *name, UdsIndexSession *session);
+int udsRebuildLocalIndex(const char *name, struct uds_index_session **session);
 
 /**
  * Waits until all callbacks for index operations are complete.
@@ -445,7 +425,7 @@ int udsRebuildLocalIndex(const char *name, UdsIndexSession *session);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsFlushIndexSession(UdsIndexSession session);
+int udsFlushIndexSession(struct uds_index_session *session);
 
 /**
  * Save an index, without closing the index session.
@@ -460,7 +440,7 @@ int udsFlushIndexSession(UdsIndexSession session);
  * @return Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsSaveIndex(UdsIndexSession session);
+int udsSaveIndex(struct uds_index_session *session);
 
 /**
  * Closes an index session.
@@ -480,7 +460,7 @@ int udsSaveIndex(UdsIndexSession session);
  * @return Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsCloseIndexSession(UdsIndexSession session);
+int udsCloseIndexSession(struct uds_index_session *session);
 
 /**
  * Returns the configuration for the given index session.
@@ -491,7 +471,8 @@ int udsCloseIndexSession(UdsIndexSession session);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
+int udsGetIndexConfiguration(struct uds_index_session *session,
+                             UdsConfiguration         *conf);
 
 /**
  * Fetches index statistics for the given index session.
@@ -502,7 +483,7 @@ int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
+int udsGetIndexStats(struct uds_index_session *session, UdsIndexStats *stats);
 
 /**
  * Fetches index session statistics for the given index session.
@@ -513,7 +494,8 @@ int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexSessionStats(UdsIndexSession session, UdsContextStats *stats);
+int udsGetIndexSessionStats(struct uds_index_session *session,
+                            UdsContextStats          *stats);
 
 /**
  * Convert an error code to a string.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#14 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -581,9 +581,10 @@ static void applyToSlabs(BlockAllocator *allocator,
   actor->launchingSlabAction    = true;
   SlabIterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
+    Slab *slab = nextSlab(&iterator);
+    unspliceRingNode(&slab->ringNode);
     actor->slabActionCount++;
-    slabAction(nextSlab(&iterator), allocator->state.state,
-               &allocator->completion);
+    slabAction(slab, allocator->state.state, &allocator->completion);
   }
   actor->launchingSlabAction = false;
 

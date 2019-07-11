@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.h#3 $
  */
 
 #ifndef INDEX_SESSION_H
@@ -50,10 +50,7 @@ typedef struct __attribute__((aligned(CACHE_LINE_BYTES))) sessionStats {
   uint64_t requests;              /* Total number of requests */
 } SessionStats;
 
-/**
- * Structure corresponding to a UdsIndexSession
- **/
-struct indexSession {
+struct uds_index_session {
   // atomically updated IndexSessionState
   atomic_t                 state; 
   IndexRouter             *router;
@@ -68,13 +65,13 @@ struct indexSession {
 };
 
 /**
- * Check that the indexSession is usable.
+ * Check that the index session is usable.
  *
  * @param indexSession  the session to query
  *
  * @return UDS_SUCCESS or an error code
  **/
-int checkIndexSession(IndexSession *indexSession)
+int checkIndexSession(struct uds_index_session *indexSession)
   __attribute__((warn_unused_result));
 
 /**
@@ -82,16 +79,16 @@ int checkIndexSession(IndexSession *indexSession)
  *
  * @param indexSession  the session to query
  **/
-IndexSessionState getIndexSessionState(IndexSession *indexSession);
+IndexSessionState getIndexSessionState(struct uds_index_session *indexSession);
 
 /**
- * Set the IndexSessionState of the IndexSession.
+ * Set the IndexSessionState of the index session.
  *
  * @param indexSession  the session to be modified
  * @param state         the new session state
  **/
-void setIndexSessionState(IndexSession      *indexSession,
-                          IndexSessionState  state);
+void setIndexSessionState(struct uds_index_session *indexSession,
+                          IndexSessionState         state);
 
 /**
  * Acquire the index session for an asynchronous index request.
@@ -103,7 +100,7 @@ void setIndexSessionState(IndexSession      *indexSession,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getIndexSession(IndexSession *indexSession)
+int getIndexSession(struct uds_index_session *indexSession)
   __attribute__((warn_unused_result));
 
 /**
@@ -111,7 +108,7 @@ int getIndexSession(IndexSession *indexSession)
  *
  * @param indexSession  The session to release
  **/
-void releaseIndexSession(IndexSession *indexSession);
+void releaseIndexSession(struct uds_index_session *indexSession);
 
 /**
  * Construct a new index session, initializing the state to IS_INIT.
@@ -120,7 +117,7 @@ void releaseIndexSession(IndexSession *indexSession);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeEmptyIndexSession(IndexSession **indexSessionPtr)
+int makeEmptyIndexSession(struct uds_index_session **indexSessionPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -130,7 +127,7 @@ int makeEmptyIndexSession(IndexSession **indexSessionPtr)
  *
  * @param indexSession  The index session to be shut down and freed
  **/
-int saveAndFreeIndexSession(IndexSession *indexSession);
+int saveAndFreeIndexSession(struct uds_index_session *indexSession);
 
 /**
  * Set the checkpoint frequency of the grid.
@@ -141,7 +138,8 @@ int saveAndFreeIndexSession(IndexSession *indexSession);
  * @return          Either UDS_SUCCESS or an error code.
  *
  **/
-int udsSetCheckpointFrequency(UdsIndexSession session, unsigned int frequency)
+int udsSetCheckpointFrequency(struct uds_index_session *session,
+                              unsigned int              frequency)
   __attribute__((warn_unused_result));
 
 #endif /* INDEX_SESSION_H */
