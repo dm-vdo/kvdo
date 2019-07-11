@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#3 $
  */
 
 #include "slabSummary.h"
@@ -689,11 +689,11 @@ static void finishLoadingSummary(VDOCompletion *completion)
 void loadSlabSummary(SlabSummary *summary,
                      ZoneCount    zonesToCombine,
                      void        *parent,
-                     VDOAction   *callback)
+                     VDOAction   *callback,
+                     VDOAction   *errorHandler)
 {
-  resetCompletion(&summary->completion);
-  summary->completion.parent   = parent;
-  summary->completion.callback = callback;
+  prepareCompletion(&summary->completion, callback, errorHandler,
+                    getCallbackThreadID(), parent);
   summary->zonesToCombine      = zonesToCombine;
 
   VDOExtent *extent;

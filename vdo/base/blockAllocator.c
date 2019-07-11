@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#9 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -550,7 +550,7 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
       continue;
     }
 
-    if ((depot->loadType == NO_LOAD)
+    if ((depot->loadType == REBUILD_LOAD)
         || (!mustLoadRefCounts(allocator->summary, slab->slabNumber)
             && currentSlabStatus.isClean)) {
       queueSlab(slab);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#3 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -30,26 +30,25 @@
 #include "waitQueue.h"
 
 /**
- * The SlabSummary serves to provide hints during recovery about
- * slabs, giving information such as the rough number of free blocks (useful
- * to prioritize scrubbing of slabs), the cleanliness of a slab (so that
- * clean slabs containing free space will be used on restart), and the
- * location of the slab journals' tail block. It obviates the need to read all
- * the entire slab journals to determine the entries that need not be replayed.
+ * The SlabSummary provides hints during load and recovery about the state
+ * of the slabs in order to avoid the need to read the slab journals in their
+ * entirety before a VDO can come online.
  *
- * The SlabSummary lives in their own partition, immediately before the
- * recovery journal at the end of the block map.
+ * The information in the summary for each slab includes the rough number of
+ * free blocks (which is used to prioritize scrubbing), the cleanliness of a
+ * slab (so that clean slabs containing free space will be used on restart),
+ * and the location of the tail block of the slab's journal.
  *
- * In the future, a copy of this object may exist for every thread,
- * necessitating more storage. It is stored, thence, at the end of the volume,
- * so that upgrades can change its size.
+ * The SlabSummary has its own partition at the end of the volume which is
+ * sized to allow for a complete copy of the summary for each of up to 16
+ * physical zones.
  *
  * During resize, the SlabSummary moves its backing partition and is saved once
- * moved; the SlabSummary is not permitted to overwrite the previous journal
- * space.
+ * moved; the SlabSummary is not permitted to overwrite the previous recovery
+ * journal space.
  *
- * Note that SlabSummary does not have its own version information, but
- * relies on the master version number.
+ * The SlabSummary does not have its own version information, but relies on the
+ * master version number.
  **/
 
 /**
@@ -264,11 +263,13 @@ void setSlabSummaryOrigin(SlabSummary *summary, Partition *partition);
  *                        all of the summary will be initialized as new.
  * @param parent          The parent of this operation
  * @param callback        The function to call when the load is complete
+ * @param errorHandler    The handler for load errors
  **/
 void loadSlabSummary(SlabSummary *summary,
                      ZoneCount    zonesToCombine,
                      void        *parent,
-                     VDOAction   *callback);
+                     VDOAction   *callback,
+                     VDOAction   *errorHandler);
 
 /**
  * Fetch the cumulative statistics for all slab summary zones in a summary.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#12 $
  */
 
 #include "slabDepot.h"
@@ -862,101 +862,68 @@ SlabCount getDepotUnrecoveredSlabCount(const SlabDepot *depot)
   return total;
 }
 
-/**********************************************************************/
-static bool abortLoadOnError(VDOCompletion *completion)
+/**
+ * Notify the load waiter now that the depot load is complete.
+ *
+ * @param completion  The completion which did the current load step
+ **/
+static void finishDepotLoad(VDOCompletion *completion)
 {
-  if (completion->result == VDO_SUCCESS) {
-    return false;
-  }
-
   SlabDepot *depot = completion->parent;
-  finishCompletion(depot->slabCompletion, completion->result);
-  return true;
+  releaseCompletionWithResult(&depot->loadWaiter, completion->result);
 }
 
 /**
- * Finish loading the slab summary and begin loading slabs. This is the
+ * Load slabs if necessary now that the summary is loaded. This is the
  * callback for the slab summary load registered in loadSlabDepot().
  *
- * @param summaryCompletion  The SlabSummary load completion
+ * @param completion  The SlabSummary load completion
  **/
-static void finishLoadingSummary(VDOCompletion *summaryCompletion)
+static void loadSlabs(VDOCompletion *completion)
 {
-  if (abortLoadOnError(summaryCompletion)) {
+  SlabDepot *depot = completion->parent;
+  prepareCompletion(depot->slabCompletion, finishDepotLoad, finishDepotLoad,
+                    depot->loadWaiter->callbackThreadID, depot);
+
+  switch (depot->loadType) {
+  case NORMAL_LOAD:
+  case RECOVERY_LOAD:
+    loadSlabJournals(depot->slabCompletion, getSlabIterator(depot));
     return;
+
+  case REBUILD_LOAD:
+    eraseSlabJournals(depot, getSlabIterator(depot), depot->slabCompletion);
+    return;
+
+  case NEW_LOAD:
+    break;
+
+  default:
+    setCompletionResult(depot->loadWaiter, UDS_BAD_STATE);
   }
 
-  SlabDepot *depot = summaryCompletion->parent;
-  loadSlabJournals(depot->slabCompletion, getSlabIterator(depot));
+  finishDepotLoad(depot->slabCompletion);
 }
 
 /**********************************************************************/
-void loadSlabDepot(SlabDepot *depot, bool formatDepot, VDOCompletion *parent)
+void loadSlabDepot(SlabDepot         *depot,
+                   SlabDepotLoadType  loadType,
+                   VDOCompletion     *parent)
 {
-  int result = allocateSlabRefCounts(depot, parent->layer);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
-    return;
+  if ((loadType == NORMAL_LOAD) || (loadType == NEW_LOAD)) {
+    int result = allocateSlabRefCounts(depot, parent->layer);
+    if (result != VDO_SUCCESS) {
+      finishCompletion(parent, result);
+      return;
+    }
   }
 
-  if (formatDepot) {
-    loadSlabSummary(depot->slabSummary, depot->oldZoneCount, parent,
-                    finishParentCallback);
-    return;
-  }
-
-  prepareToFinishParent(depot->slabCompletion, parent);
-  loadSlabSummary(depot->slabSummary, depot->oldZoneCount,
-                  depot, finishLoadingSummary);
-}
-
-/**
- * Finish loading the slab summary and begin loading slab journals.
- * This is the callback for the slab summary load registered in
- * loadSlabDepotForRecovery().
- *
- * @param summaryCompletion  The SlabSummary load completion
- **/
-static void loadSlabJournalsForRecovery(VDOCompletion *summaryCompletion)
-{
-  if (abortLoadOnError(summaryCompletion)) {
-    return;
-  }
-
-  SlabDepot *depot = summaryCompletion->parent;
-  loadSlabJournals(depot->slabCompletion, getSlabIterator(depot));
-}
-
-/**********************************************************************/
-void loadSlabDepotForRecovery(SlabDepot *depot, VDOCompletion *parent)
-{
-  prepareToFinishParent(depot->slabCompletion, parent);
-  loadSlabSummary(depot->slabSummary, depot->oldZoneCount, depot,
-                  loadSlabJournalsForRecovery);
-}
-
-/**
- * Finish erasing the slab summary and begin erasing slab journals.
- * This is the callback for the slab summary 'load' registered in
- * loadSlabDepotForRebuild().
- *
- * @param summaryCompletion  The SlabSummary load completion
- **/
-static void eraseSlabJournalsForRebuild(VDOCompletion *summaryCompletion)
-{
-  if (abortLoadOnError(summaryCompletion)) {
-    return;
-  }
-
-  SlabDepot *depot = summaryCompletion->parent;
-  eraseSlabJournals(depot, getSlabIterator(depot), depot->slabCompletion);
-}
-
-/**********************************************************************/
-void loadSlabDepotForRebuild(SlabDepot *depot, VDOCompletion *parent)
-{
-  prepareToFinishParent(depot->slabCompletion, parent);
-  loadSlabSummary(depot->slabSummary, 0, depot, eraseSlabJournalsForRebuild);
+  depot->loadType   = loadType;
+  depot->loadWaiter = parent;
+  ZoneCount oldZoneCount
+    = ((loadType == REBUILD_LOAD) ? 0 : depot->oldZoneCount);
+  loadSlabSummary(depot->slabSummary, oldZoneCount, depot, loadSlabs,
+                  finishDepotLoad);
 }
 
 /**********************************************************************/

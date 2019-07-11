@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#6 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -48,8 +48,9 @@
 
 typedef enum {
   NORMAL_LOAD,
-  DEFER_LOAD,
-  NO_LOAD
+  NEW_LOAD,
+  RECOVERY_LOAD,
+  REBUILD_LOAD
 } SlabDepotLoadType;
 
 /**
@@ -349,31 +350,12 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
  * operation from the load thread.
  *
  * @param depot        The depot to load
- * @param formatDepot  <code>True</code> if the depot should be formatted for
- *                     the first time
+ * @param loadType     The load type
  * @param parent       The completion to finish when the load is complete
  **/
-void loadSlabDepot(SlabDepot *depot, bool formatDepot, VDOCompletion *parent);
-
-/**
- * Asynchronously load the portions of the slab depot which are needed to
- * recover a VDO. This method may be called only immediately before recovery
- * from the load thread.
- *
- * @param depot   The depot to load
- * @param parent  The completion to finish when the load is complete
- **/
-void loadSlabDepotForRecovery(SlabDepot *depot, VDOCompletion *parent);
-
-/**
- * Asynchronously load the portions of the slab depot which are needed to
- * rebuild a VDO. This method may be called only before a full rebuild
- * from the load thread.
- *
- * @param depot   The depot to load
- * @param parent  The completion to finish when the load is complete
- **/
-void loadSlabDepotForRebuild(SlabDepot *depot, VDOCompletion *parent);
+void loadSlabDepot(SlabDepot         *depot,
+                   SlabDepotLoadType  loadType,
+                   VDOCompletion     *parent);
 
 /**
  * Prepare the slab depot to come online and start allocating blocks. This

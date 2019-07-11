@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#5 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -1038,5 +1038,5 @@ void launchRecovery(VDO *vdo, VDOCompletion *parent)
   prepareCompletion(subTaskCompletion, loadJournal, finishParentCallback,
                     getLogicalZoneThread(getThreadConfig(vdo), 0),
                     completion);
-  loadSlabDepotForRecovery(vdo->depot, subTaskCompletion);
+  loadSlabDepot(vdo->depot, RECOVERY_LOAD, subTaskCompletion);
 }
