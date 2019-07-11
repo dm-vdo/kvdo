@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.c#2 $
  */
 
 #include "slabCompletion.h"
@@ -396,18 +396,6 @@ void saveSlab(VDOCompletion *completion, Slab *slab)
   slabCompletion->slabsRemaining      = 1;
   slabCompletion->needsRefCountIO     = yes;
   slabCompletion->doRefCountIO        = saveReferenceBlocks;
-  slabCompletion->refCountsIOFinished = slabFinished;
-  doRefCountIO(slabCompletion, slab);
-}
-
-/**********************************************************************/
-void loadSlabFromLayer(VDOCompletion *completion, Slab *slab)
-{
-  SlabCompletion *slabCompletion      = asSlabCompletion(completion);
-  slabCompletion->iterator            = iterateSlabs(NULL, 0, 0, 0);
-  slabCompletion->slabsRemaining      = 1;
-  slabCompletion->needsRefCountIO     = yes;
-  slabCompletion->doRefCountIO        = loadReferenceBlocks;
   slabCompletion->refCountsIOFinished = slabFinished;
   doRefCountIO(slabCompletion, slab);
 }

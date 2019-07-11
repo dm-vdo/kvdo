@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabCompletion.h#2 $
  */
 #ifndef SLAB_COMPLETION_H
 #define SLAB_COMPLETION_H
@@ -74,15 +74,6 @@ void flushSlabJournals(VDOCompletion *completion, SlabIterator slabIterator);
  * @param slab        The slab to save
  **/
 void saveSlab(VDOCompletion *completion, Slab *slab);
-
-/**
- * Load the reference counts for a single slab from disk (used only in
- * testing).
- *
- * @param completion  The completion for the load operation
- * @param slab        The slab to load
- **/
-void loadSlabFromLayer(VDOCompletion *completion, Slab *slab);
 
 /**
  * Save fully rebuilt slabs.
