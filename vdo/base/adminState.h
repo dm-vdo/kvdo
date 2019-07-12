@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#11 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -158,6 +158,16 @@ typedef struct {
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
 } AdminState;
+
+/**
+ * Get the name of an AdminStateCode for logging purposes.
+ *
+ * @param code  The AdminStateCode
+ *
+ * @return The name of the state's code
+ **/
+const char *getAdminStateCodeName(AdminStateCode code)
+  __attribute__((warn_unused_result));
 
 /**
  * Get the name of an AdminState's code for logging purposes.

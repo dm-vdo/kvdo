@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#9 $
  */
 
 #include "adminState.h"
@@ -27,14 +27,8 @@
 #include "completion.h"
 #include "types.h"
 
-/**
- * Get the name of an AdminStateCode for logging purposes.
- *
- * @param code  The AdminStateCode
- *
- * @return The name of the state's code
- **/
-static const char *getAdminStateCodeName(AdminStateCode code)
+/**********************************************************************/
+const char *getAdminStateCodeName(AdminStateCode code)
 {
   switch (code) {
   case ADMIN_STATE_NORMAL_OPERATION:
