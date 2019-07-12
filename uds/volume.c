@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#7 $
  */
 
 #include "volume.h"
@@ -1062,43 +1062,9 @@ int findVolumeChapterBoundaries(Volume   *volume,
                                 uint64_t *highestVCN,
                                 bool     *isEmpty)
 {
-  const Geometry *geometry = volume->geometry;
+  unsigned int chapterLimit = volume->geometry->chaptersPerVolume;
 
-  off_t volSize = 0;
-
-  int result = getRegionDataSize(volume->region, &volSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  if (volSize < (off_t) (geometry->bytesPerPage + geometry->bytesPerChapter)) {
-    if (volSize == (off_t) (geometry->bytesPerPage)) {
-      *lowestVCN = 0;
-      *highestVCN = 0;
-      *isEmpty = true;
-      return UDS_SUCCESS;
-    }
-
-    return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "invalid volume size (%llu bytes)",
-                                   (uint64_t) volSize);
-  }
-
-  // determine highest present physical chapter number
-
-  unsigned int chapterLimit = (unsigned int)
-    ((volSize - geometry->bytesPerPage) / geometry->bytesPerChapter);
-
-  logDebug("volume size %llu bytes, %u chapters",
-           (uint64_t) volSize, chapterLimit);
-
-  if (chapterLimit > geometry->chaptersPerVolume) {
-    logWarning("excess chapters detected, expected no more than %u",
-               geometry->chaptersPerVolume);
-    chapterLimit = geometry->chaptersPerVolume;
-  }
-
-  result = findRealEndOfVolume(volume, chapterLimit, &chapterLimit);
+  int result = findRealEndOfVolume(volume, chapterLimit, &chapterLimit);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot find end of volume");
   }

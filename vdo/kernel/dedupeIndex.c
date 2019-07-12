@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#27 $
  */
 
 #include "dedupeIndex.h"
@@ -64,7 +64,7 @@ enum {
 typedef enum {
 	// The UDS index is closed
 	IS_CLOSED = 0,
-	// The UdsIndexSession is opening or closing
+	// The UDS index session is opening or closing
 	IS_CHANGING = 1,
 	// The UDS index is open.
 	IS_OPENED = 2,
@@ -101,7 +101,7 @@ struct dedupe_index {
 	RegisteredThread allocating_thread;
 	char *index_name;
 	UdsConfiguration configuration;
-	UdsIndexSession index_session;
+	struct uds_index_session *index_session;
 	atomic_t active;
 	// for reporting UDS timeouts
 	struct periodic_event_reporter timeout_reporter;
