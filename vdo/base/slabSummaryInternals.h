@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#4 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -24,6 +24,7 @@
 
 #include "slabSummary.h"
 
+#include "adminState.h"
 #include "atomic.h"
 
 typedef struct slabSummaryEntry {
@@ -78,27 +79,13 @@ typedef struct atomicSlabSummaryStatistics {
   Atomic64 blocksWritten;
 } AtomicSlabSummaryStatistics;
 
-/**
- * Only the actions which need something performed upon completion need to be
- * enumerated here.
- **/
-typedef enum {
-  NONE_REQUESTED = 0,
-  CLOSE_REQUESTED,
-  SUSPEND_REQUESTED,
-} RequestedAction;
-
 struct slabSummaryZone {
   /** The summary of which this is a zone */
   SlabSummary      *summary;
   /** The number of this zone */
   ZoneCount         zoneNumber;
-  /** The completion waiting on the zone to be saved */
-  VDOCompletion    *saveWaiter;
-  /** The pending action, if any */
-  RequestedAction   pendingAction;
-  /** Whether this zone is paused */
-  bool              suspended;
+  /** The state of this zone */
+  AdminState        state;
   /** The array (owned by the blocks) of all entries */
   SlabSummaryEntry *entries;
   /** The array of SlabSummaryEntryBlocks */
@@ -106,8 +93,6 @@ struct slabSummaryZone {
 };
 
 struct slabSummary {
-  /** The completion waiting for a load to complete */
-  VDOCompletion               *loadParent;
   /** The context for entering read-only mode */
   ReadOnlyNotifier            *readOnlyNotifier;
   /** The statistics for this slab summary */

@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/featureDefs.h#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/featureDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_FEATURE_DEFS_H
 #define LINUX_KERNEL_FEATURE_DEFS_H 1
 
-#define DESTRUCTOR     0 // No program destructors
 #define ENVIRONMENT    0 // No environment variables
 
 #endif /* LINUX_KERNEL_FEATURE_DEFS_H */

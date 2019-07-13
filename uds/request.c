@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#3 $
  */
 
 #include "request.h"
@@ -55,10 +55,9 @@ int udsStartChunkOperation(UdsRequest *udsRequest)
 
   request->found            = false;
   request->action           = (RequestAction) request->type;
-  request->indexSession     = request->session;
   request->isControlMessage = false;
   request->unbatched        = false;
-  request->router           = request->indexSession->router;
+  request->router           = request->session->router;
 
   enqueueRequest(request, STAGE_TRIAGE);
   return UDS_SUCCESS;
@@ -100,7 +99,7 @@ static RequestQueue *getNextStageQueue(Request      *request,
                                        RequestStage  nextStage)
 {
   if (nextStage == STAGE_CALLBACK) {
-    return request->indexSession->callbackQueue;
+    return request->session->callbackQueue;
   }
 
   // Local and remote index routers handle the rest of the pipeline
@@ -185,7 +184,7 @@ void updateRequestContextStats(Request *request)
    *          sparsePostsFound
    */
 
-  SessionStats *sessionStats = &request->indexSession->stats;
+  SessionStats *sessionStats = &request->session->stats;
 
   increment_once(&sessionStats->requests);
   bool found = (request->location != LOC_UNAVAILABLE);
@@ -243,7 +242,7 @@ void enterCallbackStage(Request *request)
   if (!request->isControlMessage) {
     if (isUnrecoverable(request->status)) {
       // Unrecoverable errors must disable the index session
-      setIndexSessionState(request->indexSession, IS_DISABLED);
+      setIndexSessionState(request->session, IS_DISABLED);
       // The unrecoverable state is internal and must not sent to the client.
       request->status = sansUnrecoverable(request->status);
     }

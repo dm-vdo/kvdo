@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#7 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#8 $
  */
 
 #include "volume.h"
@@ -360,7 +360,7 @@ static int readPageLocked(Volume        *volume,
 {
   syncRead |= ((volume->lookupMode == LOOKUP_FOR_REBUILD)
                || (request == NULL)
-               || (request->indexSession == NULL));
+               || (request->session == NULL));
 
   int result = UDS_SUCCESS;
 

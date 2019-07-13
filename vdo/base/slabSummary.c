@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#5 $
  */
 
 #include "slabSummary.h"
@@ -301,13 +301,13 @@ SlabSummaryZone *getSummaryForZone(SlabSummary *summary, ZoneCount zone)
 // WRITING FUNCTIONALITY
 
 /**
- * Process a completed save/wait on a block.
+ * Check whether a summary zone has finished a drain or resume operation
  *
- * @param summaryZone  The zone to which this block belongs
+ * @param summaryZone  The zone to check
  **/
-static void checkForSaveComplete(SlabSummaryZone *summaryZone)
+static void checkForOperationComplete(SlabSummaryZone *summaryZone)
 {
-  if (summaryZone->saveWaiter == NULL) {
+  if (!isOperating(&summaryZone->state)) {
     return;
   }
 
@@ -318,17 +318,9 @@ static void checkForSaveComplete(SlabSummaryZone *summaryZone)
     }
   }
 
-  if (summaryZone->pendingAction == SUSPEND_REQUESTED) {
-    // The save is done, suspend now.
-    summaryZone->pendingAction = NONE_REQUESTED;
-    summaryZone->suspended     = true;
-  }
-
-  VDOCompletion *saveWaiter = summaryZone->saveWaiter;
-  summaryZone->saveWaiter   = NULL;
-  finishCompletion(saveWaiter,
-                   (isReadOnly(summaryZone->summary->readOnlyNotifier)
-                    ? VDO_READ_ONLY : VDO_SUCCESS));
+  finishOperationWithResult(&summaryZone->state,
+                            (isReadOnly(summaryZone->summary->readOnlyNotifier)
+                             ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
 /**
@@ -362,7 +354,7 @@ static void finishUpdatingSlabSummaryBlock(VDOCompletion *completion)
     return;
   }
 
-  checkForSaveComplete(block->zone);
+  checkForOperationComplete(block->zone);
 }
 
 /**
@@ -377,7 +369,7 @@ static void finishUnwritableBlock(SlabSummaryBlock *block)
   notifyWaiters(block->zone, &block->nextUpdateWaiters);
   block->currentlyWriting = false;
   block->needsWriting     = false;
-  checkForSaveComplete(block->zone);
+  checkForOperationComplete(block->zone);
 }
 
 /**
@@ -401,8 +393,7 @@ static void handleWriteError(VDOCompletion *completion)
  **/
 static void launchWrite(SlabSummaryBlock *block)
 {
-  if (block->zone->suspended || block->currentlyWriting
-      || !block->needsWriting) {
+  if (block->currentlyWriting || !block->needsWriting) {
     return;
   }
 
@@ -432,10 +423,8 @@ static void launchWrite(SlabSummaryBlock *block)
  * Launch writes for all blocks that need writing.
  *
  * @param summaryZone  The zone in question
- * @param forceWrite   Whether to force the write of all blocks
  **/
-static void launchWriteOfAllBlocks(SlabSummaryZone *summaryZone,
-                                   bool             forceWrite)
+static void launchWriteOfAllBlocks(SlabSummaryZone *summaryZone)
 {
   SlabSummary *summary       = summaryZone->summary;
   BlockCount   blocksPerZone = summary->blocksPerZone;
@@ -444,12 +433,16 @@ static void launchWriteOfAllBlocks(SlabSummaryZone *summaryZone,
 
   // Prepare all the blocks. Do this before launching any to ensure that we
   // don't prematurely decide that the save is complete.
-  for (BlockCount i = 0; i < blocksPerZone; i++) {
+  bool forceWrite = isQuiescing(&summaryZone->state);
+  for (BlockCount i = 0; i < blocksPerZone; i++, pbn++) {
     SlabSummaryBlock *block = &summaryZone->summaryBlocks[i];
     // Make sure the PBNs of the blocks are accurate.
-    block->pbn = pbn++;
-    if (forceWrite) {
+    if (block->pbn != pbn) {
+      // If the summary has moved, we must write it
+      block->pbn = pbn;
       block->needsWriting = true;
+    } else {
+      block->needsWriting |= forceWrite;
     }
   }
 
@@ -459,36 +452,23 @@ static void launchWriteOfAllBlocks(SlabSummaryZone *summaryZone,
 }
 
 /**********************************************************************/
-void saveSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
+void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
+                          AdminStateCode   operation,
+                          VDOCompletion   *parent)
 {
-  summaryZone->saveWaiter = parent;
-
-  launchWriteOfAllBlocks(summaryZone, true);
+  if (startDraining(&summaryZone->state, operation, parent)) {
+    launchWriteOfAllBlocks(summaryZone);
+    checkForOperationComplete(summaryZone);
+  }
 }
 
 /**********************************************************************/
-void suspendSlabSummaryZone(SlabSummaryZone *summaryZone,
-                            VDOCompletion   *parent)
+void resumeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
 {
-  summaryZone->pendingAction = SUSPEND_REQUESTED;
-  saveSlabSummaryZone(summaryZone, parent);
-}
-
-/**********************************************************************/
-void resumeSlabSummaryZone(SlabSummaryZone *summaryZone,
-                           VDOCompletion   *parent)
-{
-  summaryZone->suspended = false;
-  launchWriteOfAllBlocks(summaryZone, false);
-  finishCompletion(parent, VDO_SUCCESS);
-}
-
-/**********************************************************************/
-void closeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
-{
-  summaryZone->saveWaiter    = parent;
-  summaryZone->pendingAction = CLOSE_REQUESTED;
-  checkForSaveComplete(summaryZone);
+  if (startResuming(&summaryZone->state, ADMIN_STATE_RESUMING, parent)) {
+    launchWriteOfAllBlocks(summaryZone);
+    checkForOperationComplete(summaryZone);
+  }
 }
 
 // READ/UPDATE FUNCTIONS
@@ -519,29 +499,27 @@ void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
                             bool             isClean,
                             BlockCount       freeBlocks)
 {
-  int result;
+  SlabSummaryBlock *block = getSummaryBlockForSlab(summaryZone, slabNumber);
+  int               result;
   if (isReadOnly(summaryZone->summary->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
-    waiter->callback(waiter, &result);
-    return;
+  } else if (isDraining(&summaryZone->state)
+             || isQuiescent(&summaryZone->state)) {
+    result = VDO_INVALID_ADMIN_STATE;
+  } else {
+    uint8_t hint = computeFullnessHint(summaryZone->summary, freeBlocks);
+    SlabSummaryEntry *entry = &summaryZone->entries[slabNumber];
+    *entry = (SlabSummaryEntry) {
+      .tailBlockOffset = tailBlockOffset,
+      .loadRefCounts   = (entry->loadRefCounts || loadRefCounts),
+      .isDirty         = !isClean,
+      .fullnessHint    = hint,
+    };
+    block->needsWriting = true;
+
+    result = enqueueWaiter(&block->nextUpdateWaiters, waiter);
   }
 
-  if (summaryZone->pendingAction == CLOSE_REQUESTED) {
-    result = VDO_COMPONENT_BUSY;
-    waiter->callback(waiter, &result);
-    return;
-  }
-
-  SlabSummaryBlock *block = getSummaryBlockForSlab(summaryZone, slabNumber);
-  block->needsWriting     = true;
-  SlabSummaryEntry *entry = &summaryZone->entries[slabNumber];
-  entry->tailBlockOffset  = tailBlockOffset;
-  entry->loadRefCounts    = (entry->loadRefCounts || loadRefCounts);
-  entry->isDirty          = !isClean;
-  entry->fullnessHint
-    = computeFullnessHint(summaryZone->summary, freeBlocks);
-
-  result = enqueueWaiter(&block->nextUpdateWaiters, waiter);
   if (result != VDO_SUCCESS) {
     waiter->callback(waiter, &result);
     return;
@@ -625,7 +603,7 @@ static void finishCombiningZones(VDOCompletion *completion)
   int          result  = completion->result;
   VDOExtent   *extent  = asVDOExtent(completion);
   freeExtent(&extent);
-  releaseCompletionWithResult(&summary->loadParent, result);
+  finishLoadingWithResult(&summary->zones[0]->state, result);
 }
 
 /**********************************************************************/
@@ -666,21 +644,14 @@ void combineZones(SlabSummary *summary)
 static void finishLoadingSummary(VDOCompletion *completion)
 {
   SlabSummary *summary = completion->parent;
-  int          result  = completion->result;
   VDOExtent   *extent  = asVDOExtent(completion);
-  if (result != VDO_SUCCESS) {
-    freeExtent(&extent);
-    releaseCompletionWithResult(&summary->loadParent, result);
-    return;
-  }
 
   // Combine the zones so each zone is correct for all slabs.
   combineZones(summary);
 
   // Write the combined summary back out.
-  PhysicalBlockNumber pbn = summary->zones[0]->summaryBlocks[0].pbn;
   extent->completion.callback = finishCombiningZones;
-  writeMetadataExtent(extent, pbn);
+  writeMetadataExtent(extent, summary->zones[0]->summaryBlocks[0].pbn);
 }
 
 /**********************************************************************/
@@ -689,18 +660,22 @@ void loadSlabSummary(SlabSummary    *summary,
                      ZoneCount       zonesToCombine,
                      VDOCompletion  *parent)
 {
+  SlabSummaryZone *zone = summary->zones[0];
+  if (!startLoading(&zone->state, operation, parent)) {
+    return;
+  }
+
   VDOExtent *extent;
   BlockCount blocks = summary->blocksPerZone * MAX_PHYSICAL_ZONES;
   int        result = createExtent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
                                    VIO_PRIORITY_METADATA, blocks,
                                    (char *) summary->entries, &extent);
   if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
+    finishLoadingWithResult(&zone->state, result);
     return;
   }
 
-  summary->loadParent     = parent;
-  PhysicalBlockNumber pbn = summary->zones[0]->summaryBlocks[0].pbn;
+  PhysicalBlockNumber pbn = zone->summaryBlocks[0].pbn;
   if ((operation == ADMIN_STATE_FORMATTING)
       || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
     prepareCompletion(&extent->completion, finishCombiningZones,
@@ -711,7 +686,7 @@ void loadSlabSummary(SlabSummary    *summary,
 
   summary->zonesToCombine = zonesToCombine;
   prepareCompletion(&extent->completion, finishLoadingSummary,
-                    finishLoadingSummary, 0, summary);
+                    finishCombiningZones, 0, summary);
   readMetadataExtent(extent, pbn);
 }
 

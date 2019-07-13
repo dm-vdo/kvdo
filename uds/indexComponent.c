@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#3 $
  */
 
 #include "indexComponent.h"
@@ -160,24 +160,6 @@ static int initReadPortal(ReadPortal     *portal,
   portal->component = component;
   portal->zones = readZones;
   return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-int getComponentSizeForPortal(ReadPortal   *portal,
-                              unsigned int  part,
-                              off_t        *size)
-{
-  if (part >= portal->zones) {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: cannot access zone %u of %u",
-                                   __func__, part, portal->zones);
-  }
-  if (portal->regions[part] == NULL) {
-    return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                   "%s: ioregion for zone %u not available",
-                                   __func__, part);
-  }
-  return getRegionDataSize(portal->regions[part], size);
 }
 
 /*****************************************************************************/

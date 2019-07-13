@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#5 $
  */
 
 #include "slab.h"
@@ -374,9 +374,18 @@ void notifyRefCountsAreDrained(Slab *slab, int result)
 }
 
 /**********************************************************************/
-bool resumeSlab(Slab *slab)
+bool isSlabResuming(Slab *slab)
 {
-  return resumeIfQuiescent(&slab->state);
+  return isResuming(&slab->state);
+}
+
+/**********************************************************************/
+void resumeSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+{
+  if (startResuming(&slab->state, operation, parent)) {
+    queueSlab(slab);
+    finishResuming(&slab->state);
+  }
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#7 $
  */
 
 #include "errors.h"
@@ -25,7 +25,6 @@
 #include "errorDefs.h"
 #include "permassert.h"
 #include "stringUtils.h"
-#include "threads.h"
 
 static const struct errorInfo successful = { "UDS_SUCCESS", "Success" };
 
@@ -132,39 +131,26 @@ static struct errorInformation {
   int        allocated;
   int        count;
   ErrorBlock blocks[MAX_ERROR_BLOCKS];
-} registeredErrors;
-
-static OnceState errorBlocksInitialized = ONCE_STATE_INITIALIZER;
-
-/**********************************************************************/
-static void initializeStandardErrorBlocks(void)
-{
-  registeredErrors.allocated = MAX_ERROR_BLOCKS;
-  registeredErrors.count   = 0;
-
-
-  registeredErrors.blocks[registeredErrors.count++] = (ErrorBlock) {
-    .name  = "UDS Error",
-    .base  = UDS_ERROR_CODE_BASE,
-    .last  = UDS_ERROR_CODE_LAST,
-    .max   = UDS_ERROR_CODE_BLOCK_END,
-    .infos = errorList,
-  };
-
-  registeredErrors.blocks[registeredErrors.count++] = (ErrorBlock) {
-    .name  = "UDS Internal Error",
-    .base  = UDS_INTERNAL_ERROR_CODE_BASE,
-    .last  = UDS_INTERNAL_ERROR_CODE_LAST,
-    .max   = UDS_INTERNAL_ERROR_CODE_BLOCK_END,
-    .infos = internalErrorList,
-  };
-}
-
-/**********************************************************************/
-void ensureStandardErrorBlocks(void)
-{
-  performOnce(&errorBlocksInitialized, initializeStandardErrorBlocks);
-}
+} registeredErrors = {
+  .allocated = MAX_ERROR_BLOCKS,
+  .count     = 2,
+  .blocks    = {
+    {
+      .name  = "UDS Error",
+      .base  = UDS_ERROR_CODE_BASE,
+      .last  = UDS_ERROR_CODE_LAST,
+      .max   = UDS_ERROR_CODE_BLOCK_END,
+      .infos = errorList,
+    },
+    {
+      .name  = "UDS Internal Error",
+      .base  = UDS_INTERNAL_ERROR_CODE_BASE,
+      .last  = UDS_INTERNAL_ERROR_CODE_LAST,
+      .max   = UDS_INTERNAL_ERROR_CODE_BLOCK_END,
+      .infos = internalErrorList,
+    }
+  }
+};
 
 /**
  * Fetch the error info (if any) for the error number.
@@ -177,7 +163,6 @@ void ensureStandardErrorBlocks(void)
  **/
 static const char *getErrorInfo(int errnum, const ErrorInfo **infoPtr)
 {
-  ensureStandardErrorBlocks();
 
   if (errnum == UDS_SUCCESS) {
     if (infoPtr != NULL) {
@@ -289,8 +274,6 @@ int registerErrorBlock(const char      *blockName,
   if (result != UDS_SUCCESS) {
     return result;
   }
-
-  ensureStandardErrorBlocks();
 
   if (registeredErrors.count == registeredErrors.allocated) {
     // could reallocate and grow, but should never happen

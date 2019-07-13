@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#12 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -155,6 +155,8 @@ typedef enum {
 typedef struct {
   /** The current administrative state */
   AdminStateCode  state;
+  /** The next administrative state (when the current operation finishes */
+  AdminStateCode  nextState;
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
 } AdminState;
@@ -284,6 +286,32 @@ static inline bool isLoading(AdminState *state)
 }
 
 /**
+ * Check whether an AdminStateCode is a resume operation.
+ *
+ * @param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> if the code is for a resume operation
+ **/
+__attribute__((warn_unused_result))
+static inline bool isResumeOperation(AdminStateCode code)
+{
+  return ((code & ADMIN_TYPE_MASK) == ADMIN_TYPE_RESUME);
+}
+
+/**
+ * Check whether an AdminState is resumeing.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is resumeing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isResuming(AdminState *state)
+{
+  return isResumeOperation(state->state);
+}
+
+/**
  * Check whether an AdminState is doing a clean load.
  *
  * @param state  The AdminState to query
@@ -298,6 +326,19 @@ static inline bool isCleanLoad(AdminState *state)
 }
 
 /**
+ * Check whether an AdminStateCode is quiescing.
+ *
+ * param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> is the state is quiescing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isQuiescingCode(AdminStateCode code)
+{
+  return ((code & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+}
+
+/**
  * Check whether an AdminState is quiescing.
  *
  * @param state  The AdminState to check
@@ -307,7 +348,7 @@ static inline bool isCleanLoad(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isQuiescing(AdminState *state)
 {
-  return ((state->state & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+  return isQuiescingCode(state->state);
 }
 
 /**
@@ -446,6 +487,42 @@ bool finishLoading(AdminState *state);
 bool finishLoadingWithResult(AdminState *state, int result);
 
 /**
+ * Initiate a resume operation if the current state permits it.
+ *
+ * @param state      The AdminState
+ * @param operation  The type of resume to start
+ * @param waiter     The completion to notify when the resume is complete (may
+ *                   be NULL)
+ *
+ * @return <code>true</code> if the resume was initiated, if not the waiter
+ *         will be notified
+ **/
+bool startResuming(AdminState     *state,
+                   AdminStateCode  operation,
+                   VDOCompletion  *waiter);
+
+/**
+ * Finish a resume operation if one was in progress.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state was resuming; will notify the waiter
+ *         if so
+ **/
+bool finishResuming(AdminState *state);
+
+/**
+ * Finish a resume operation with a status code.
+ *
+ * @param state   The AdminState to query
+ * @param result  The result of the resume operation
+ *
+ * @return <code>true</code> if the state was resuming; will notify the
+ *         waiter if so
+ **/
+bool finishResumingWithResult(AdminState *state, int result);
+
+/**
  * Change the state to normal operation if the current state is quiescent.
  *
  * @param state  The AdminState to resume
@@ -466,15 +543,25 @@ bool resumeIfQuiescent(AdminState *state);
 int startOperation(AdminState *state, AdminStateCode operation);
 
 /**
- * Finish the current operation. This method should be used for operations
- * started with startOperation(). For operations which were started with
- * startDraining(), use finishDraining() instead.
+ * Finish the current operation. Will notify the operation waiter if there is
+ * one. This method should be used for operations started with
+ * startOperation(). For operations which were started with startDraining(),
+ * use finishDraining() instead.
  *
  * @param state  The state whose operation is to be finished
  *
  * @return <code>true</code> if there was an operation to finish
  **/
 bool finishOperation(AdminState *state);
+
+/**
+ * Finish the current operation with a status code. Will notify the operation
+ * waiter if there is one.
+ *
+ * @param state   The state whose operation is to be finished
+ * @param result  The result of the operation
+ **/
+bool finishOperationWithResult(AdminState *state, int result);
 
 /**
  * Set a waiter for the current operation.

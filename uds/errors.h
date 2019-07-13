@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.h#4 $
  */
 
 #ifndef ERRORS_H
@@ -149,13 +149,6 @@ typedef struct errorInfo {
   const char *name;
   const char *message;
 } ErrorInfo;
-
-/**
- * Ensure that UDS error code blocks are initialized.
- *
- * @note This function is called as needed, but only the first call matters.
- **/
-void ensureStandardErrorBlocks(void);
 
 /**
  * Register an error code block for stringError and stringErrorName.

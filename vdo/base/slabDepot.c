@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#15 $
  */
 
 #include "slabDepot.h"
@@ -980,9 +980,6 @@ void drainSlabDepot(SlabDepot      *depot,
     break;
 
   case ADMIN_STATE_SUSPENDING:
-    action = suspendSummaryZone;
-    break;
-
   case ADMIN_STATE_SAVING:
     action = drainBlockAllocator;
     break;
@@ -1000,7 +997,7 @@ void drainSlabDepot(SlabDepot      *depot,
 void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
 {
   scheduleOperation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
-                    resumeSummaryZone, NULL, parent);
+                    resumeBlockAllocator, NULL, parent);
 }
 
 /**********************************************************************/

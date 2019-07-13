@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#10 $
  */
 
 #include "adminState.h"
@@ -90,6 +90,21 @@ const char *getAdminStateName(const AdminState *state)
   return getAdminStateCodeName(state->state);
 }
 
+/**********************************************************************/
+static AdminStateCode getNextState(AdminStateCode previousState,
+                                   AdminStateCode operation)
+{
+  if (isQuiescingCode(operation)) {
+    return ((operation & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT);
+  }
+
+  if (operation == ADMIN_STATE_SUSPENDED_OPERATION) {
+    return previousState;
+  }
+
+  return ADMIN_STATE_NORMAL_OPERATION;
+}
+
 /**
  * Begin an operation if it may be started given the current state.
  *
@@ -117,8 +132,9 @@ static int beginOperation(AdminState     *state,
                                      "Can't start %s with extant waiter",
                                      getAdminStateCodeName(operation));
   } else {
-    state->state = operation;
-    state->waiter = waiter;
+    state->waiter    = waiter;
+    state->nextState = getNextState(state->state, operation);
+    state->state     = operation;
     return VDO_SUCCESS;
   }
 
@@ -145,9 +161,7 @@ static bool endOperation(AdminState *state, int result)
     return false;
   }
 
-  state->state = (isQuiescing(state)
-                  ? (state->state & ADMIN_TYPE_MASK) | ADMIN_FLAG_QUIESCENT
-                  : ADMIN_STATE_NORMAL_OPERATION);
+  state->state = state->nextState;
   releaseCompletionWithResult(&state->waiter, result);
   return true;
 }
@@ -229,6 +243,56 @@ bool finishLoadingWithResult(AdminState *state, int result)
 }
 
 /**********************************************************************/
+static bool assertResumeOperation(AdminStateCode operation,
+                                  VDOCompletion *waiter)
+{
+  if (isResumeOperation(operation)) {
+    return true;
+  }
+
+  int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
+                                       "%s is not a resume operation",
+                                       getAdminStateCodeName(operation));
+  if (waiter != NULL) {
+    finishCompletion(waiter, result);
+  }
+
+  return false;
+}
+
+/**********************************************************************/
+bool startResuming(AdminState     *state,
+                   AdminStateCode  operation,
+                   VDOCompletion  *waiter)
+{
+  return (assertResumeOperation(operation, waiter)
+          && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
+}
+
+/**********************************************************************/
+bool finishResuming(AdminState *state)
+{
+  return finishResumingWithResult(state, VDO_SUCCESS);
+}
+
+/**********************************************************************/
+bool finishResumingWithResult(AdminState *state, int result)
+{
+  return (isResuming(state) && endOperation(state, result));
+}
+
+/**********************************************************************/
+bool resumeIfQuiescent(AdminState *state)
+{
+  if (!isQuiescent(state)) {
+    return false;
+  }
+
+  state->state = ADMIN_STATE_NORMAL_OPERATION;
+  return true;
+}
+
+/**********************************************************************/
 int startOperation(AdminState *state, AdminStateCode operation)
 {
   if (isOperation(operation)) {
@@ -243,18 +307,13 @@ int startOperation(AdminState *state, AdminStateCode operation)
 /**********************************************************************/
 bool finishOperation(AdminState *state)
 {
-  return endOperation(state, VDO_SUCCESS);
+  return finishOperationWithResult(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool resumeIfQuiescent(AdminState *state)
+bool finishOperationWithResult(AdminState *state, int result)
 {
-  if (!isQuiescent(state)) {
-    return false;
-  }
-
-  state->state = ADMIN_STATE_NORMAL_OPERATION;
-  return true;
+  return endOperation(state, result);
 }
 
 /**********************************************************************/

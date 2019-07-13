@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#4 $
  */
 
 /**
@@ -508,7 +508,6 @@ int udsGetIndexSessionStats(struct uds_index_session *session,
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 const char *udsStringError(int errnum, char *buf, size_t buflen);
-
 
 /**
  * Shutdown the UDS library. This is normally called implicitly

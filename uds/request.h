@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#6 $
  */
 
 #ifndef REQUEST_H
@@ -114,10 +114,6 @@ typedef struct zoneMessage {
 
 /**
  * Request context for queuing throughout the uds pipeline
- *
- * XXX Note that "session" and "indexSession" are both pointers to the same
- *     "struct uds_index_session".  This duplication of values should be
- *     removed in a future change.
  **/
 struct request {
   /*
@@ -137,10 +133,9 @@ struct request {
   /*
    * The remainder of this structure is private to the UDS implementation.
    */
-  FunnelQueueEntry          requestQueueLink; // for lock-free request queue
-  Request                  *nextRequest;
-  struct uds_index_session *indexSession;
-  IndexRouter              *router;
+  FunnelQueueEntry  requestQueueLink; // for lock-free request queue
+  Request          *nextRequest;
+  IndexRouter      *router;
 
   // Data for control message requests
   ZoneMessage zoneMessage;

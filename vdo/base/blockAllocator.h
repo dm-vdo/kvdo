@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#8 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -175,24 +175,6 @@ void flushAllocatorSlabJournals(void          *context,
                                 VDOCompletion *parent);
 
 /**
- * Suspend the summary zone belonging to a block allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void suspendSummaryZone(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent);
-
-/**
- * Resume the summary zone belonging to a block allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void resumeSummaryZone(void          *context,
-                       ZoneCount      zoneNumber,
-                       VDOCompletion *parent);
-
-/**
  * Drain all allocator I/O. Depending upon the type of drain, some or all
  * dirty metadata may be written to disk. The type of drain will be determined
  * from the state of the allocator's depot.
@@ -202,6 +184,15 @@ void resumeSummaryZone(void          *context,
 void drainBlockAllocator(void          *context,
                          ZoneCount      zoneNumber,
                          VDOCompletion *parent);
+
+/**
+ * Resume a quiescent allocator.
+ *
+ * <p>Implements ZoneAction.
+ **/
+void resumeBlockAllocator(void          *context,
+                          ZoneCount      zoneNumber,
+                          VDOCompletion *parent);
 
 /**
  * Asynchronously save any block allocator state for a full rebuild.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#3 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -344,23 +344,6 @@ int abortIndexComponentIncrementalSave(IndexComponent *component)
  **/
 __attribute__((warn_unused_result))
 int discardIndexComponent(IndexComponent *component);
-
-/**
- * Get the size of the saved component part image.
- *
- * @param [in]  portal          The component portal.
- * @param [in]  part            The component ordinal number.
- * @param [out] size            The size of the component image.
- *
- * @return UDS_SUCCESS or an error code.
- *
- * @note This is only supported by some types of portals and only if the
- *       component was previously saved.
- **/
-__attribute__((warn_unused_result))
-int getComponentSizeForPortal(ReadPortal   *portal,
-                              unsigned int  part,
-                              off_t        *size);
 
 /**
  * Get a buffered reader for the specified component part.

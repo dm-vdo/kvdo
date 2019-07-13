@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsState.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsState.c#4 $
  */
 
 #include "udsState.h"
@@ -58,9 +58,6 @@ typedef struct {
   char              version[16]; // for double-checking library version
   Mutex             mutex;
   UdsGState         currentState;
-#if DESTRUCTOR
-  UdsShutdownHook  *shutdownHook;
-#endif /* DESTRUCTOR */
 } UdsGlobalState;
 
 static UdsGlobalState udsState;
@@ -100,7 +97,6 @@ int checkLibraryRunning(void)
 /**********************************************************************/
 static int udsInitializeOnce(void)
 {
-  ensureStandardErrorBlocks();
   openLogger();
   memset(&udsState, 0, sizeof(udsState));
   strncpy(udsState.cookie, "udsStateCookie", sizeof(udsState.cookie));
@@ -110,9 +106,6 @@ static int udsInitializeOnce(void)
   strncpy(udsState.version, "internal", sizeof(udsState.version));
 #endif
   udsState.currentState = UDS_GS_UNINIT;
-#if DESTRUCTOR
-  udsState.shutdownHook = udsShutdown;
-#endif /* DESTRUCTOR */
   initializeMutex(&udsState.mutex, true);
 
   lockMutex(&udsState.mutex);
@@ -120,26 +113,6 @@ static int udsInitializeOnce(void)
   unlockMutex(&udsState.mutex);
   return UDS_SUCCESS;
 }
-
-#if DESTRUCTOR
-/**********************************************************************/
-UdsShutdownHook *udsSetShutdownHook(UdsShutdownHook *shutdownHook)
-{
-  udsInitialize();
-  UdsShutdownHook *oldUdsShutdownHook = udsState.shutdownHook;
-  udsState.shutdownHook = shutdownHook;
-  return oldUdsShutdownHook;
-}
-
-/**********************************************************************/
-__attribute__((destructor))
-static void udsShutdownDestructor(void)
-{
-  if (udsState.shutdownHook != NULL) {
-    (*udsState.shutdownHook)();
-  }
-}
-#endif /* DESTRUCTOR */
 
 /**********************************************************************/
 static void udsShutdownOnce(void)

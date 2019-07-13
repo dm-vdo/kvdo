@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#5 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -119,13 +119,15 @@ SlabSummaryZone *getSummaryForZone(SlabSummary *summary, ZoneCount zone)
   __attribute__((warn_unused_result));
 
 /**
- * Suspend a zone of the slab summary.
+ * Drain a zone of the slab summary.
  *
- * @param summaryZone  The zone to suspend
+ * @param summaryZone  The zone to drain
+ * @param operation    The type of drain to perform
  * @param parent       The object to notify when the suspend is complete
  **/
-void suspendSlabSummaryZone(SlabSummaryZone *summaryZone,
-                            VDOCompletion   *parent);
+void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
+                          AdminStateCode   operation,
+                          VDOCompletion   *parent);
 
 /**
  * Resume a zone of the slab summary.
@@ -135,22 +137,6 @@ void suspendSlabSummaryZone(SlabSummaryZone *summaryZone,
  **/
 void resumeSlabSummaryZone(SlabSummaryZone *summaryZone,
                            VDOCompletion   *parent);
-
-/**
- * Save a zone of the slab summary.
- *
- * @param summaryZone  The zone to save
- * @param parent       The object to notify when the save is complete
- **/
-void saveSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent);
-
-/**
- * Wait for the slab summary to be completely saved.
- *
- * @param summaryZone  The zone to save
- * @param parent       The object to notify when the close is complete
- **/
-void closeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent);
 
 /**
  * Update the entry for a slab.
