@@ -22,9 +22,6 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#ifndef __KERNEL__
-#include "cpu.h"
-#endif
 
 #include "threads.h"
 

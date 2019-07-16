@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#11 $
  */
 
 #include "adminState.h"
@@ -48,6 +48,9 @@ const char *getAdminStateCodeName(AdminStateCode code)
 
   case ADMIN_STATE_LOADING_FOR_REBUILD:
     return "ADMIN_STATE_LOADING_FOR_REBUILD";
+
+  case ADMIN_STATE_WAITING_FOR_RECOVERY:
+    return "ADMIN_STATE_WAITING_FOR_RECOVERY";
 
   case ADMIN_STATE_FLUSHING:
     return "ADMIN_STATE_FLUSHING";
@@ -166,21 +169,41 @@ static bool endOperation(AdminState *state, int result)
   return true;
 }
 
-/**********************************************************************/
-bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
+/**
+ * Check the result of a state validation. If the result failed, log an invalid
+ * state error and, if there is a waiter, notify it.
+ *
+ * @param valid   <code>true</code> if the code is of an appropriate type
+ * @param code    The code which failed to be of the correct type
+ * @param what    What the code failed to be, for logging
+ * @param waiter  The completion to notify of the error; may be NULL
+ *
+ * @return The result of the check
+ **/
+static bool checkCode(bool            valid,
+                      AdminStateCode  code,
+                      const char     *what,
+                      VDOCompletion  *waiter)
 {
-  if (isDrainOperation(operation)) {
+  if (valid) {
     return true;
   }
 
   int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                       "%s is not a drain operation",
-                                       getAdminStateCodeName(operation));
+                                       "%s is not a %s",
+                                       getAdminStateCodeName(code), what);
   if (waiter != NULL) {
     finishCompletion(waiter, result);
   }
 
   return false;
+}
+
+/**********************************************************************/
+bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
+{
+  return checkCode(isDrainOperation(operation), operation, "drain operation",
+                   waiter);
 }
 
 /**********************************************************************/
@@ -207,18 +230,8 @@ bool finishDrainingWithResult(AdminState *state, int result)
 /**********************************************************************/
 bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
 {
-  if (isLoadOperation(operation)) {
-    return true;
-  }
-
-  int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                       "%s is not a load operation",
-                                       getAdminStateCodeName(operation));
-  if (waiter != NULL) {
-    finishCompletion(waiter, result);
-  }
-
-  return false;
+  return checkCode(isLoadOperation(operation), operation, "load operation",
+                   waiter);
 }
 
 /**********************************************************************/
@@ -242,22 +255,20 @@ bool finishLoadingWithResult(AdminState *state, int result)
   return (isLoading(state) && endOperation(state, result));
 }
 
-/**********************************************************************/
+/**
+ * Check whether an AdminStateCode is a resume operation.
+ *
+ * @param operation  The operation to check
+ * @param waiter     The completion to notify if the operation is not a resume
+ *                   operation; may be NULL
+ *
+ * @return <code>true</code> if the code is a resume operation
+ **/
 static bool assertResumeOperation(AdminStateCode operation,
                                   VDOCompletion *waiter)
 {
-  if (isResumeOperation(operation)) {
-    return true;
-  }
-
-  int result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                       "%s is not a resume operation",
-                                       getAdminStateCodeName(operation));
-  if (waiter != NULL) {
-    finishCompletion(waiter, result);
-  }
-
-  return false;
+  return checkCode(isResumeOperation(operation), operation, "resume operation",
+                   waiter);
 }
 
 /**********************************************************************/
@@ -292,16 +303,34 @@ bool resumeIfQuiescent(AdminState *state)
   return true;
 }
 
+/**
+ * Check whether an AdminStateCode is an operation.
+ *
+ * @param code    The operation to check
+ * @param waiter  The completion to notify if the code is not an operation; may
+ *                be NULL
+ *
+ * @return <code>true</code> if the code is an operation
+ **/
+static bool assertOperation(AdminStateCode code, VDOCompletion *waiter)
+{
+  return checkCode(isOperation(code), code, "operation", waiter);
+}
+
 /**********************************************************************/
 int startOperation(AdminState *state, AdminStateCode operation)
 {
-  if (isOperation(operation)) {
-    return beginOperation(state, operation, NULL);
-  }
+  return (assertOperation(operation, NULL)
+          ? beginOperation(state, operation, NULL) : VDO_INVALID_ADMIN_STATE);
+}
 
-  return logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                 "%s is not an operation",
-                                 getAdminStateCodeName(operation));
+/**********************************************************************/
+bool startOperationWithWaiter(AdminState     *state,
+                              AdminStateCode  operation,
+                              VDOCompletion  *waiter)
+{
+  return (assertOperation(operation, waiter)
+          && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/

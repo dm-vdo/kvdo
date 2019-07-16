@@ -21,9 +21,7 @@
 
 #include "vdoPageCacheInternals.h"
 
-#if __KERNEL__
 #include <linux/ratelimit.h>
-#endif
 
 #include "errors.h"
 #include "logger.h"
@@ -1045,16 +1043,12 @@ static void handlePageWriteError(VDOCompletion *completion)
 
   // If we're already read-only, write failures are to be expected.
   if (result != VDO_READ_ONLY) {
-#if __KERNEL__
     static DEFINE_RATELIMIT_STATE(errorLimiter, DEFAULT_RATELIMIT_INTERVAL,
                                   DEFAULT_RATELIMIT_BURST);
 
     if (__ratelimit(&errorLimiter)) {
       logError("failed to write block map page %llu", info->pbn);
     }
-#else
-    logError("failed to write block map page %llu", info->pbn);
-#endif
   }
 
   setInfoState(info, PS_DIRTY);

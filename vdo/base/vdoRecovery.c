@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#8 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -582,14 +582,13 @@ static void addSynthesizedEntries(VDOCompletion *completion)
     = &recovery->missingDecrefs[recovery->allocator->zoneNumber];
   while (hasWaiters(missingDecrefs)) {
     MissingDecref *decref = asMissingDecref(getFirstWaiter(missingDecrefs));
-    if (!mayAddSlabJournalEntry(decref->slabJournal, DATA_DECREMENT,
-                                completion)) {
+    if (!attemptReplayIntoSlabJournal(decref->slabJournal,
+                                      decref->penultimateMapping.pbn,
+                                      DATA_DECREMENT, &decref->journalPoint,
+                                      completion)) {
       return;
     }
 
-    addSlabJournalEntryForRebuild(decref->slabJournal,
-                                  decref->penultimateMapping.pbn,
-                                  DATA_DECREMENT, &decref->journalPoint);
     dequeueNextWaiter(missingDecrefs);
     FREE(decref);
   }
@@ -708,13 +707,13 @@ static void addSlabJournalEntries(VDOCompletion *completion)
       continue;
     }
 
-    if (!mayAddSlabJournalEntry(slab->journal, entry.operation, completion)) {
+    if (!attemptReplayIntoSlabJournal(slab->journal, entry.mapping.pbn,
+                                      entry.operation,
+                                      &recovery->nextJournalPoint,
+                                      completion)) {
       return;
     }
 
-    addSlabJournalEntryForRebuild(slab->journal,
-                                  entry.mapping.pbn, entry.operation,
-                                  &recovery->nextJournalPoint);
     recovery->entriesAddedToSlabJournals++;
   }
 

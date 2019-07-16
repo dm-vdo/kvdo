@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#4 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -188,8 +188,6 @@ struct slabJournal {
 
   /** Whether a tail block commit is pending */
   bool                         waitingToCommit;
-  /** Whether a completion is waiting for slab journal space */
-  bool                         waitingForSpace;
   /** Whether the journal is updating the slab summary */
   bool                         updatingSlabSummary;
   /** Whether the journal is adding entries from the entryWaiters queue */

@@ -24,9 +24,6 @@
 
 #include "vdoPageCache.h"
 
-#ifndef __KERNEL__
-# include <stdint.h>
-#endif
 
 #include "blockMapInternals.h"
 #include "completion.h"

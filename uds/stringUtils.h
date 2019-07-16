@@ -23,15 +23,8 @@
 #define STRING_UTILS_H
 
 #include <stdarg.h>
-#ifdef __KERNEL__
 #include <linux/kernel.h>
 #include <linux/string.h>
-#else
-#include <stdio.h>   // for vsnprintf
-#include <stdlib.h>  // for strtol
-#include <string.h>
-#include <strings.h>
-#endif
 
 #include "compiler.h"
 #include "typeDefs.h"

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#6 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -118,32 +118,23 @@ void abortSlabJournalWaiters(SlabJournal *journal);
 void reopenSlabJournal(SlabJournal *journal);
 
 /**
- * Check whether the slab journal can accept an entry of the specified type.
- *
- * @param journal    The journal to query
- * @param operation  The type of entry to make
- * @param completion The completion to notify when space is available if it
- *                   wasn't when this method was called
- *
- * @return <code>true</code> if the journal can make an entry of the
- *         specified type without blocking
- **/
-bool mayAddSlabJournalEntry(SlabJournal      *journal,
-                            JournalOperation  operation,
-                            VDOCompletion    *completion);
-
-/**
- * Add an entry to a slab journal during rebuild.
+ * Attempt to replay a recovery journal entry into a slab journal.
  *
  * @param journal        The slab journal to use
  * @param pbn            The PBN for the entry
  * @param operation      The type of entry to add
  * @param recoveryPoint  The recovery journal point corresponding to this entry
+ * @param parent         The completion to notify when there is space to add
+ *                       the entry if the entry could not be added immediately
+ *
+ * @return <code>true</code> if the entry was added immediately
  **/
-void addSlabJournalEntryForRebuild(SlabJournal         *journal,
-                                   PhysicalBlockNumber  pbn,
-                                   JournalOperation     operation,
-                                   JournalPoint        *recoveryPoint);
+bool attemptReplayIntoSlabJournal(SlabJournal         *journal,
+                                  PhysicalBlockNumber  pbn,
+                                  JournalOperation     operation,
+                                  JournalPoint        *recoveryPoint,
+                                  VDOCompletion       *parent)
+  __attribute__((warn_unused_result));
 
 /**
  * Add an entry to a slab journal.

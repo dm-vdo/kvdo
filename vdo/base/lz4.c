@@ -159,12 +159,7 @@
 //**************************************
 // Includes
 //**************************************
-#ifdef __KERNEL__
 #  include <linux/string.h>   // for memset
-#else /* __KERNEL__ */
-#  include <stdlib.h>   // for malloc
-#  include <string.h>   // for memset
-#endif /* __KERNEL__ */
 #include "lz4.h"
 
 
@@ -178,11 +173,7 @@
 #  define S32		__int32
 #  define U64		unsigned __int64
 #else
-#  ifdef __KERNEL__
 #    include <linux/types.h>
-#  else /* __KERNEL__ */
-#    include <stdint.h>
-#  endif /* __KERNEL__ */
 #  define BYTE	uint8_t
 #  define U16		uint16_t
 #  define U32		uint32_t

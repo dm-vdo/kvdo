@@ -67,44 +67,9 @@ const struct errorInfo vdoStatusList[] = {
   { "VDO_INVALID_ADMIN_STATE",   "Invalid operation for current state"       },
 };
 
-#ifndef __KERNEL__
-static OnceState vdoStatusCodesRegistered = ONCE_STATE_INITIALIZER;
-static int       statusCodeRegistrationResult;
-
-/**********************************************************************/
-static void doStatusCodeRegistration(void)
-{
-  STATIC_ASSERT((VDO_STATUS_CODE_LAST - VDO_STATUS_CODE_BASE)
-                == COUNT_OF(vdoStatusList));
-
-  int result = registerErrorBlock("VDO Status",
-                                  VDO_STATUS_CODE_BASE,
-                                  VDO_STATUS_CODE_BLOCK_END,
-                                  vdoStatusList,
-                                  sizeof(vdoStatusList));
-  /*
-   *  The following test handles cases where libvdo is statically linked
-   *  against both the test modules and the test driver (because multiple
-   *  instances of this module call their own copy of this function
-   *  once each, resulting in multiple calls to registerErrorBlock which
-   *  is shared in libuds).
-   */
-  if (result == UDS_DUPLICATE_NAME) {
-    result = UDS_SUCCESS;
-  }
-
-  statusCodeRegistrationResult
-    = (result == UDS_SUCCESS) ? VDO_SUCCESS : result;
-}
-#endif
 
 /**********************************************************************/
 int registerStatusCodes(void)
 {
-#ifdef __KERNEL__
   return VDO_SUCCESS;
-#else
-  performOnce(&vdoStatusCodesRegistered, doStatusCodeRegistration);
-  return statusCodeRegistrationResult;
-#endif
 }

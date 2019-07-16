@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#13 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -119,6 +119,8 @@ typedef enum {
   ADMIN_STATE_LOADING_FOR_REBUILD  = (ADMIN_TYPE_REBUILD
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_LOADING),
+  ADMIN_STATE_WAITING_FOR_RECOVERY = (ADMIN_TYPE_RECOVER
+                                      | ADMIN_FLAG_OPERATING),
   ADMIN_STATE_FLUSHING             = (ADMIN_TYPE_FLUSH
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_DRAINING),
@@ -541,6 +543,20 @@ bool resumeIfQuiescent(AdminState *state);
  *         VDO_INVALID_ADMIN_STATE if not
  **/
 int startOperation(AdminState *state, AdminStateCode operation);
+
+/**
+ * Attempt to start an operation.
+ *
+ * @param state      the AdminState
+ * @param operation  the operation to start
+ * @param waiter     the completion to notify when the operation completes or
+ *                   fails to start; may be NULL
+ *
+ * @return <code>true</code> if the operation was started
+ **/
+bool startOperationWithWaiter(AdminState     *state,
+                              AdminStateCode  operation,
+                              VDOCompletion  *waiter);
 
 /**
  * Finish the current operation. Will notify the operation waiter if there is

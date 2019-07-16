@@ -22,11 +22,7 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#ifdef __KERNEL__
 #include <linux/random.h>
-#else
-#include <stdlib.h>
-#endif
 
 #include "compiler.h"
 #include "typeDefs.h"
@@ -53,16 +49,11 @@ void randomCompileTimeAssertions(void);
  * @param ptr   where to store bytes
  * @param len   number of bytes to write
  **/
-#ifdef __KERNEL__
 static INLINE void fillRandomly(void *ptr, size_t len)
 {
   prandom_bytes(ptr, len);
 }
-#else
-void fillRandomly(void *ptr, size_t len);
-#endif
 
-#ifdef __KERNEL__
 #define RAND_MAX 2147483647
 
 /**
@@ -76,6 +67,5 @@ static INLINE long random(void)
   fillRandomly(&value, sizeof(value));
   return value & RAND_MAX;
 }
-#endif
 
 #endif /* RANDOM_H */

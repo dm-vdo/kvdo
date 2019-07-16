@@ -26,9 +26,7 @@
 #include "dataVIO.h"
 #include "vdoInternal.h"
 
-#ifdef __KERNEL__
 #include <linux/ratelimit.h>
-#endif
 
 /**********************************************************************/
 void freeVIO(VIO **vioPtr)
@@ -95,14 +93,12 @@ void updateVIOErrorStats(VIO *vio, const char *format, ...)
     priority = LOG_ERR;
   }
 
-#ifdef __KERNEL__
   static DEFINE_RATELIMIT_STATE(errorLimiter, DEFAULT_RATELIMIT_INTERVAL,
                                 DEFAULT_RATELIMIT_BURST);
 
   if (!__ratelimit(&errorLimiter)) {
     return;
   }
-#endif
 
   va_list args;
   va_start(args, format);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#9 $
  */
 
 #include "slabJournalInternals.h"
@@ -729,9 +729,11 @@ static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
   journal->tail++;
   initializeTailBlock(journal);
   journal->waitingToCommit = false;
-  if (journal->waitingForSpace) {
-    journal->waitingForSpace = false;
-    completeCompletion(&journal->completion);
+  if (journal->slab->state.state == ADMIN_STATE_WAITING_FOR_RECOVERY) {
+    finishOperationWithResult(&journal->slab->state,
+                              (isVDOReadOnly(journal)
+                               ? VDO_READ_ONLY : VDO_SUCCESS));
+    return;
   }
 
   addEntries(journal);
@@ -856,43 +858,30 @@ static void addEntry(SlabJournal         *journal,
 }
 
 /**********************************************************************/
-bool mayAddSlabJournalEntry(SlabJournal      *journal,
-                            JournalOperation  operation,
-                            VDOCompletion    *parent)
-{
-  if (!journal->waitingToCommit) {
-    SlabJournalBlockHeader *header = &journal->tailHeader;
-    if (header->entryCount < journal->fullEntriesPerBlock) {
-      return true;
-    }
-
-    if (!header->hasBlockMapIncrements && (operation != BLOCK_MAP_INCREMENT)) {
-      return true;
-    }
-
-    // The tail block does not have room for a block map increment, so commit
-    // it now.
-    commitSlabJournalTail(journal);
-    if (!journal->waitingToCommit) {
-      return true;
-    }
-  }
-
-  journal->waitingForSpace = true;
-  prepareCompletion(&journal->completion, finishParentCallback,
-                    finishParentCallback, parent->callbackThreadID, parent);
-  return false;
-}
-
-/**********************************************************************/
-void addSlabJournalEntryForRebuild(SlabJournal         *journal,
-                                   PhysicalBlockNumber  pbn,
-                                   JournalOperation     operation,
-                                   JournalPoint        *recoveryPoint)
+bool attemptReplayIntoSlabJournal(SlabJournal         *journal,
+                                  PhysicalBlockNumber  pbn,
+                                  JournalOperation     operation,
+                                  JournalPoint        *recoveryPoint,
+                                  VDOCompletion       *parent)
 {
   // Only accept entries after the current recovery point.
   if (!beforeJournalPoint(&journal->tailHeader.recoveryPoint, recoveryPoint)) {
-    return;
+    return true;
+  }
+
+  SlabJournalBlockHeader *header = &journal->tailHeader;
+  if ((header->entryCount >= journal->fullEntriesPerBlock)
+      && (header->hasBlockMapIncrements ||
+          (operation == BLOCK_MAP_INCREMENT))) {
+    // The tail block does not have room for the entry we are attempting
+    // to add so commit the tail block now.
+    commitSlabJournalTail(journal);
+  }
+
+  if (journal->waitingToCommit) {
+    startOperationWithWaiter(&journal->slab->state,
+                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent);
+    return false;
   }
 
   if ((journal->tail - journal->head) >= journal->size) {
@@ -908,6 +897,7 @@ void addSlabJournalEntryForRebuild(SlabJournal         *journal,
 
   markSlabReplaying(journal->slab);
   addEntry(journal, pbn, operation, recoveryPoint);
+  return true;
 }
 
 /**
