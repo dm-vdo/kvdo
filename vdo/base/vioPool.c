@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#3 $
  */
 
 #include "vioPool.h"
@@ -65,15 +65,15 @@ int makeVIOPool(PhysicalLayer   *layer,
     return result;
   }
 
+  initializeRing(&pool->available);
+  initializeRing(&pool->busy);
+
   result = ALLOCATE(size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
                     &pool->buffer);
   if (result != VDO_SUCCESS) {
     freeVIOPool(&pool);
     return result;
   }
-
-  initializeRing(&pool->available);
-  initializeRing(&pool->busy);
 
   char *ptr = pool->buffer;
   for (size_t i = 0; i < size; i++) {
