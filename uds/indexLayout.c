@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#6 $
  */
 
 #include "indexLayout.h"
@@ -128,6 +128,7 @@ typedef struct superBlockData_v1 {
 } SuperBlockData;
 
 struct indexLayout {
+  IOFactory      *factory;
   IORegion       *region;
   SuperBlockData  super;
   LayoutRegion    header;
@@ -135,10 +136,7 @@ struct indexLayout {
   SubIndexLayout  index;
   LayoutRegion    seal;
   uint64_t        totalBlocks;
-  int             useCount;
-  bool            loaded;
-  bool            saved;
-  bool            close;
+  int             refCount;
 };
 
 /**
@@ -166,7 +164,6 @@ typedef struct saveLayoutSizes {
 } SaveLayoutSizes;
 
 enum {
-  DEFAULT_BLOCK_SIZE      = 4096,
   INDEX_STATE_BUFFER_SIZE =  512,
   MAX_SAVES               =    5,
 };
@@ -176,7 +173,6 @@ enum {
   SINGLE_FILE_MAGIC_1_LENGTH = sizeof(SINGLE_FILE_MAGIC_1),
 };
 
-static void destroySingleFileLayout(IndexLayout *layout);
 static int getSingleFileLayoutReader(IndexLayout     *layout,
                                      LayoutRegion    *lr,
                                      BufferedReader **readerPtr)
@@ -187,7 +183,6 @@ static int getSingleFileLayoutRegion(IndexLayout   *layout,
                                      IORegion     **regionPtr)
   __attribute__((warn_unused_result));
 static int reconstituteSingleFileLayout(IndexLayout    *layout,
-                                        IORegion       *region,
                                         SuperBlockData *super,
                                         RegionTable    *table,
                                         uint64_t        firstBlock)
@@ -282,8 +277,7 @@ int udsComputeIndexSize(const UdsConfiguration  config,
                         uint64_t               *indexSize)
 {
   SaveLayoutSizes sizes;
-  int result = computeSizes(&sizes, config, DEFAULT_BLOCK_SIZE,
-                            numCheckpoints);
+  int result = computeSizes(&sizes, config, UDS_BLOCK_SIZE, numCheckpoints);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -291,47 +285,6 @@ int udsComputeIndexSize(const UdsConfiguration  config,
   if (indexSize != NULL) {
     *indexSize = sizes.totalBlocks * sizes.blockSize;
   }
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-__attribute__((warn_unused_result))
-static int validateOffsetAndBlockSize(IORegion *region,
-                                      uint64_t  offset,
-                                      size_t   *blockSizePtr)
-{
-  size_t blockSize = 0;
-  int result = getRegionBlockSize(region, &blockSize);
-  if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "cannot determine underlying block size");
-  }
-
-  if (blockSize < DEFAULT_BLOCK_SIZE) {
-    if (DEFAULT_BLOCK_SIZE % blockSize != 0) {
-      return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
-                                     "block size %zu does not evenly divide"
-                                     " %u",
-                                     blockSize, DEFAULT_BLOCK_SIZE);
-    }
-    blockSize = DEFAULT_BLOCK_SIZE;
-  } else if (blockSize > DEFAULT_BLOCK_SIZE) {
-    if (blockSize % DEFAULT_BLOCK_SIZE != 0) {
-      return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
-                                     "block size %zu "
-                                     "is not evenly divisible by %u",
-                                     blockSize, DEFAULT_BLOCK_SIZE);
-    }
-  }
-
-  if (offset % blockSize != 0) {
-    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
-                                   "offset %" PRIu64
-                                   " not a multiple of blockSize %zu",
-                                   offset, blockSize);
-  }
-
-  *blockSizePtr = blockSize;
   return UDS_SUCCESS;
 }
 
@@ -666,7 +619,6 @@ __attribute__((warn_unused_result))
 static int loadSuperBlock(IndexLayout    *layout,
                           size_t          blockSize,
                           uint64_t        firstBlock,
-                          IORegion       *region,
                           BufferedReader *reader)
 {
   RegionTable *table = NULL;
@@ -702,7 +654,7 @@ static int loadSuperBlock(IndexLayout    *layout,
     return result;
   }
 
-  result = reconstituteSingleFileLayout(layout, region, &superBlockData, table,
+  result = reconstituteSingleFileLayout(layout, &superBlockData, table,
                                         firstBlock);
   FREE(table);
   return result;
@@ -1127,19 +1079,11 @@ static int loadSubIndexRegions(IndexLayout *layout)
 }
 
 /*****************************************************************************/
-static int makeIndexLayoutForLoad(IORegion     *region,
-                                  uint64_t      offset,
-                                  IndexLayout **layoutPtr)
+static int makeIndexLayoutForLoad(IndexLayout *layout, uint64_t offset)
 {
-  size_t blockSize = 0;
-  int result = validateOffsetAndBlockSize(region, offset, &blockSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   IORegion *superBlockRegion;
-  result = openBlockRegion(region, IO_READ, offset, offset + blockSize,
-                           &superBlockRegion);
+  int result = openBlockRegion(layout->region, IO_READ, offset,
+                               offset + UDS_BLOCK_SIZE, &superBlockRegion);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "unable to read superblock");
   }
@@ -1151,34 +1095,23 @@ static int makeIndexLayoutForLoad(IORegion     *region,
     return result;
   }
 
-  IndexLayout *layout = NULL;
-  result = ALLOCATE(1, IndexLayout, __func__, &layout);
-  if (result != UDS_SUCCESS) {
-    freeBufferedReader(reader);
-    closeIORegion(&superBlockRegion);
-    return result;
-  }
-
-  result = loadSuperBlock(layout, blockSize, offset / blockSize, region,
+  result = loadSuperBlock(layout, UDS_BLOCK_SIZE, offset / UDS_BLOCK_SIZE,
                           reader);
   freeBufferedReader(reader);
   closeIORegion(&superBlockRegion);
   if (result != UDS_SUCCESS) {
     FREE(layout->index.saves);
-    FREE(layout);
+    layout->index.saves = NULL;
     return result;
   }
 
   result = loadSubIndexRegions(layout);
   if (result != UDS_SUCCESS) {
     FREE(layout->index.saves);
-    FREE(layout);
+    layout->index.saves = NULL;
     return result;
   }
-
-  layout->loaded = true;
-  *layoutPtr = layout;
-  return result;
+  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -1294,7 +1227,6 @@ static int setupSubIndex(SubIndexLayout  *sil,
  * Initialize a single file layout using the save layout sizes specified.
  *
  * @param layout  the layout to initialize
- * @param region  the IO region for this layout
  * @param offset  the offset in bytes from the start of the backing storage
  * @param size    the size in bytes of the backing storage
  * @param sls     a populated SaveLayoutSizes object
@@ -1308,15 +1240,11 @@ static int setupSubIndex(SubIndexLayout  *sil,
  **/
 __attribute__((warn_unused_result))
 static int initSingleFileLayout(IndexLayout     *layout,
-                                IORegion        *region,
                                 uint64_t         offset,
                                 uint64_t         size,
                                 SaveLayoutSizes *sls)
 {
-  layout->region      = region;
   layout->totalBlocks = sls->totalBlocks;
-  layout->useCount    = 1;
-  layout->close       = true;
 
   if (size < sls->totalBlocks * sls->blockSize) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
@@ -1350,7 +1278,6 @@ static int initSingleFileLayout(IndexLayout     *layout,
   result = setupSubIndex(&layout->index, &nextBlock, sls, 0,
                          layout->super.nonce);
   if (result != UDS_SUCCESS) {
-    destroySingleFileLayout(layout);
     return result;
   }
   setupLayout(&layout->seal, &nextBlock, 1, RL_KIND_SEAL, RL_SOLE_INSTANCE);
@@ -1409,16 +1336,12 @@ static void expectSubIndex(SubIndexLayout *sil,
  **/
 __attribute__((warn_unused_result))
 static int reconstituteSingleFileLayout(IndexLayout    *layout,
-                                        IORegion       *region,
                                         SuperBlockData *super,
                                         RegionTable    *table,
                                         uint64_t        firstBlock)
 {
-  layout->region      = region;
   layout->super       = *super;
   layout->totalBlocks = table->header.regionBlocks;
-  layout->useCount    = 1;
-  layout->close       = true;
 
   RegionIterator iter = {
     .nextRegion = table->regions,
@@ -1443,27 +1366,6 @@ static int reconstituteSingleFileLayout(IndexLayout    *layout,
                                    "layout table does not span total blocks");
   }
   return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static void destroySingleFileLayout(IndexLayout *layout)
-{
-  if (layout == NULL) {
-    return;
-  }
-  SubIndexLayout *sil = &layout->index;
-  unsigned int j;
-  for (j = 0; j < layout->super.maxSaves; ++j) {
-    IndexSaveLayout *isl = &sil->saves[j];
-    FREE(isl->masterIndexZones);
-    FREE(isl->openChapter);
-    freeBuffer(&isl->indexStateBuffer);
-  }
-  FREE(sil->saves);
-  if (layout->close) {
-    closeIORegion(&layout->region);
-    layout->close = false;
-  }
 }
 
 /*****************************************************************************/
@@ -1782,7 +1684,6 @@ static int saveSingleFileConfiguration(IndexLayout *layout)
   FREE(table);
   freeBufferedWriter(writer);
 
-  layout->saved = true;
   return result;
 }
 
@@ -1792,21 +1693,37 @@ void freeIndexLayout(IndexLayout **layoutPtr)
   if (layoutPtr == NULL) {
     return;
   }
-
   IndexLayout *layout = *layoutPtr;
   *layoutPtr = NULL;
-
-  if ((layout != NULL) && (--layout->useCount == 0)) {
-    destroySingleFileLayout(layout);
-    FREE(layout);
+  if ((layout == NULL) || (--layout->refCount > 0)) {
+    return;
   }
+
+  SubIndexLayout *sil = &layout->index;
+  if (sil->saves != NULL) {
+    unsigned int j;
+    for (j = 0; j < layout->super.maxSaves; ++j) {
+      IndexSaveLayout *isl = &sil->saves[j];
+      FREE(isl->masterIndexZones);
+      FREE(isl->openChapter);
+      freeBuffer(&isl->indexStateBuffer);
+    }
+  }
+  FREE(sil->saves);
+  closeIORegion(&layout->region);
+  if (layout->factory != NULL) {
+    int result = putIOFactory(layout->factory);
+    if (result != UDS_SUCCESS) {
+      logDebugWithStringError(result, "failed to close I/O factory");
+    }
+  }
+  FREE(layout);
 }
 
 /*****************************************************************************/
-
 void getIndexLayout(IndexLayout *layout, IndexLayout **layoutPtr)
 {
-  ++layout->useCount;
+  ++layout->refCount;
   *layoutPtr = layout;
 }
 
@@ -2387,31 +2304,25 @@ int discardIndexSaves(IndexLayout *layout, bool all)
 }
 
 /*****************************************************************************/
-static int makeIndexLayoutForCreate(IORegion                *region,
-                                    uint64_t                 offset,
-                                    uint64_t                 size,
-                                    const UdsConfiguration   config,
-                                    IndexLayout            **layoutPtr)
+static int makeIndexLayoutForCreate(IndexLayout            *layout,
+                                    uint64_t                offset,
+                                    uint64_t                size,
+                                    const UdsConfiguration  config)
 {
   if (config == NULL) {
     return UDS_CONF_PTR_REQUIRED;
   }
 
-  size_t blockSize = 0;
-  int result = validateOffsetAndBlockSize(region, offset, &blockSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   SaveLayoutSizes sizes;
-  result = computeSizes(&sizes, config, blockSize, 0);
+  int result = computeSizes(&sizes, config, UDS_BLOCK_SIZE, 0);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   if (size < sizes.totalBlocks * sizes.blockSize) {
     return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
-                                   "layout requires at least %llu bytes",
+                                   "layout requires at least %" PRIu64 
+                                   " bytes",
                                    sizes.totalBlocks * sizes.blockSize);
   }
 
@@ -2426,27 +2337,15 @@ static int makeIndexLayoutForCreate(IORegion                *region,
     recomputeSizes(&sizes, size / sizes.blockSize);
   }
 
-  IndexLayout *layout = NULL;
-  result = ALLOCATE(1, IndexLayout, __func__, &layout);
+  result = initSingleFileLayout(layout, offset, size, &sizes);
   if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = initSingleFileLayout(layout, region, offset, size, &sizes);
-  if (result != UDS_SUCCESS) {
-    FREE(layout);
     return result;
   }
 
   result = saveSingleFileConfiguration(layout);
   if (result != UDS_SUCCESS) {
-    layout->close = false;
-    destroySingleFileLayout(layout);
-    FREE(layout);
     return result;
   }
-
-  *layoutPtr = layout;
   return UDS_SUCCESS;
 }
 
@@ -2552,18 +2451,31 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
     }
   }
 
-  IORegion *region = NULL;
-  int result = makeIORegion(factory, offset, size, &region);
+  IndexLayout *layout = NULL;
+  int result = ALLOCATE(1, IndexLayout, __func__, &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
+  layout->refCount = 1;
+
+  getIOFactory(factory);
+  layout->factory = factory;
+
+  result = makeIORegion(factory, offset, size, &layout->region);
+  if (result != UDS_SUCCESS) {
+    freeIndexLayout(&layout);
+    return result;
+  }
+
   if (newLayout) {
-    result = makeIndexLayoutForCreate(region, offset, size, config, layoutPtr);
+    result = makeIndexLayoutForCreate(layout, offset, size, config);
   } else {
-    result = makeIndexLayoutForLoad(region, offset, layoutPtr);
+    result = makeIndexLayoutForLoad(layout, offset);
   }
   if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
+    freeIndexLayout(&layout);
+    return result;
   }
-  return result;
+  *layoutPtr = layout;
+  return UDS_SUCCESS;
 }

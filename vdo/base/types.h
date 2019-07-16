@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#8 $
  */
 
 #ifndef TYPES_H
@@ -267,6 +267,7 @@ typedef enum {
 } WritePolicy;
 
 typedef enum {
+  ZONE_TYPE_ADMIN,
   ZONE_TYPE_JOURNAL,
   ZONE_TYPE_LOGICAL,
   ZONE_TYPE_PHYSICAL,

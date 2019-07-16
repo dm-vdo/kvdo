@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#16 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -38,6 +38,7 @@
 #include "slabJournalInternals.h"
 #include "slabScrubber.h"
 #include "slabSummary.h"
+#include "vdoRecovery.h"
 #include "vio.h"
 #include "vioPool.h"
 
@@ -223,8 +224,8 @@ static int allocateComponents(BlockAllocator  *allocator,
 
   allocator->summary = getSlabSummaryForZone(depot, allocator->zoneNumber);
 
-  result = makeVIOPool(layer, vioPoolSize, makeAllocatorPoolVIOs, NULL,
-                       &allocator->vioPool);
+  result = makeVIOPool(layer, vioPoolSize, allocator->threadID,
+                       makeAllocatorPoolVIOs, NULL, &allocator->vioPool);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -329,8 +330,8 @@ int replaceVIOPool(BlockAllocator *allocator,
                    PhysicalLayer  *layer)
 {
   freeVIOPool(&allocator->vioPool);
-  return makeVIOPool(layer, size, makeAllocatorPoolVIOs, NULL,
-                     &allocator->vioPool);
+  return makeVIOPool(layer, size, allocator->threadID, makeAllocatorPoolVIOs,
+                     NULL, &allocator->vioPool);
 }
 
 /**
@@ -615,6 +616,12 @@ static void applyToSlabs(BlockAllocator *allocator,
 static void finishLoadingAllocator(VDOCompletion *completion)
 {
   BlockAllocator *allocator = (BlockAllocator *) completion;
+  if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
+    void *context = getCurrentActionContext(allocator->depot->actionManager);
+    replayIntoSlabJournals(allocator, completion, context);
+    return;
+  }
+
   finishLoading(&allocator->state);
 }
 
@@ -639,6 +646,12 @@ void loadBlockAllocator(void          *context,
   }
 
   applyToSlabs(allocator, loadSlab, finishLoadingAllocator);
+}
+
+/**********************************************************************/
+void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result)
+{
+  finishLoadingWithResult(&allocator->state, result);
 }
 
 /**********************************************************************/

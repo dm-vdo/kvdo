@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#9 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -135,6 +135,15 @@ BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
 void loadBlockAllocator(void          *context,
                         ZoneCount      zoneNumber,
                         VDOCompletion *parent);
+
+/**
+ * Inform a block allocator that its slab journals have been recovered from the
+ * recovery journal.
+ *
+ * @param allocator  The allocator to inform
+ * @param result     The result of the recovery operation
+ **/
+void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result);
 
 /**
  * Prepare the block allocator to come online and start allocating blocks.

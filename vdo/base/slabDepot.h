@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#8 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -351,10 +351,12 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
  * @param depot        The depot to load
  * @param operation    The type of load to perform
  * @param parent       The completion to finish when the load is complete
+ * @param context      Additional context for the load operation; may be NULL
  **/
 void loadSlabDepot(SlabDepot         *depot,
                    AdminStateCode     operation,
-                   VDOCompletion     *parent);
+                   VDOCompletion     *parent,
+                   void              *context);
 
 /**
  * Prepare the slab depot to come online and start allocating blocks. This

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#6 $
  */
 
 #include "vdoLoad.h"
@@ -467,7 +467,7 @@ static void loadVDOComponents(VDOCompletion *completion)
   prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
   loadSlabDepot(vdo->depot,
                 (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
-                completion);
+                completion, NULL);
 }
 
 /**

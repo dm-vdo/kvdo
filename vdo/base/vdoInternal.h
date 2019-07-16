@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#5 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -336,6 +336,17 @@ void assertOnAdminThread(VDO *vdo, const char *name);
 void assertOnLogicalZoneThread(const VDO  *vdo,
                                ZoneCount   logicalZone,
                                const char *name);
+
+/**
+ * Assert that this function was called on the specified physical zone thread.
+ *
+ * @param vdo           The VDO
+ * @param physicalZone  The number of the physical zone
+ * @param name          The name of the calling function
+ **/
+void assertOnPhysicalZoneThread(const VDO  *vdo,
+                                ZoneCount   physicalZone,
+                                const char *name);
 
 /**
  * Select the hash zone responsible for locking a given chunk name.

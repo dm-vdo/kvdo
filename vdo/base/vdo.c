@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#8 $
  */
 
 /*
@@ -1033,6 +1033,17 @@ void assertOnLogicalZoneThread(const VDO  *vdo,
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == getLogicalZoneThread(getThreadConfig(vdo), logicalZone)),
                   "%s called on logical thread", name);
+}
+
+/**********************************************************************/
+void assertOnPhysicalZoneThread(const VDO  *vdo,
+                                ZoneCount   physicalZone,
+                                const char *name)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID()
+                   == getPhysicalZoneThread(getThreadConfig(vdo),
+                                            physicalZone)),
+                  "%s called on physical thread", name);
 }
 
 /**********************************************************************/
