@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#8 $
  */
 
 #include "deviceConfig.h"
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
+#include "kernelLayer.h"
 #include "vdoStringUtils.h"
 
 #include "constants.h"
@@ -558,6 +559,7 @@ int parse_device_config(int argc,
 	}
 
 	config->owning_target = ti;
+	initializeRing(&config->config_node);
 
 	// Save the original string.
 	result = join_strings(argv, argc, ' ', &config->original_string);
@@ -700,7 +702,7 @@ int parse_device_config(int argc,
 	// Get the address where the albserver is running. Check for validation
 	// is done in dedupe.c code during startKernelLayer call
 	result = duplicateString(dm_shift_arg(&arg_set),
-                                 "pool name",
+				 "pool name",
 				 &config->pool_name);
 	if (result != VDO_SUCCESS) {
 		handle_parse_error(&config,
@@ -774,6 +776,9 @@ void free_device_config(struct device_config **config_ptr)
 	FREE(config->parent_device_name);
 	FREE(config->original_string);
 
+	// Reduce the chance a use-after-free (as in BZ 1669960) happens to work.
+	memset(config, 0, sizeof(*config));
+
 	FREE(config);
 	*config_ptr = NULL;
 }
@@ -786,4 +791,15 @@ const char *get_config_write_policy_string(struct device_config *config)
 	}
 	return ((config->write_policy == WRITE_POLICY_ASYNC) ? "async" :
 							       "sync");
+}
+
+/**********************************************************************/
+void set_device_config_layer(struct device_config *config,
+			     struct kernel_layer *layer)
+{
+	unspliceRingNode(&config->config_node);
+	if (layer != NULL) {
+		pushRingNode(&layer->device_config_ring, &config->config_node);
+	}
+	config->layer = layer;
 }

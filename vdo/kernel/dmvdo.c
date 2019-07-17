@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#32 $
  */
 
 #include "dmvdo.h"
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 
 #include "constants.h"
+#include "ringNode.h"
 #include "threadConfig.h"
 #include "vdo.h"
 
@@ -612,7 +613,7 @@ static int vdo_initialize(struct dm_target *ti,
 		return result;
 	}
 
-	acquire_kernel_layer_reference(layer, config);
+	set_device_config_layer(config, layer);
 	set_kernel_layer_active_config(layer, config);
 	ti->private = config;
 	configure_target_capabilities(ti, layer);
@@ -681,7 +682,7 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 			result = map_to_system_error(result);
 			free_device_config(&config);
 		} else {
-			acquire_kernel_layer_reference(old_layer, config);
+			set_device_config_layer(config, old_layer);
 			ti->private = config;
 			configure_target_capabilities(ti, old_layer);
 		}
@@ -706,11 +707,11 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdo_dtr(struct dm_target *ti)
 {
 	struct device_config *config = ti->private;
-	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+	struct kernel_layer *layer = config->layer;
 
-	release_kernel_layer_reference(layer, config);
+	set_device_config_layer(config, NULL);
 
-	if (layer->config_references == 0) {
+	if (isRingEmpty(&layer->device_config_ring)) {
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		RegisteredThread allocating_thread, instance_thread;
@@ -728,6 +729,11 @@ static void vdo_dtr(struct dm_target *ti)
 		logInfo("device '%s' stopped", config->pool_name);
 		unregister_thread_device_id();
 		unregisterAllocatingThread();
+	} else if (config == layer->device_config) {
+		// The layer still references this config. Give it a reference
+		// to a config that isn't being destroyed.
+		layer->device_config
+			= as_device_config(layer->device_config_ring.next);
 	}
 
 	free_device_config(&config);

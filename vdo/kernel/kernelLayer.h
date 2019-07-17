@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#24 $
  */
 
 #ifndef KERNELLAYER_H
@@ -29,6 +29,7 @@
 #include "flush.h"
 #include "intMap.h"
 #include "physicalLayer.h"
+#include "ringNode.h"
 #include "volumeGeometry.h"
 #include "waitQueue.h"
 
@@ -78,7 +79,8 @@ struct kernel_layer {
 	PhysicalLayer common;
 	// Layer specific info
 	struct device_config *device_config;
-	unsigned int config_references;
+	/** A ring of all DeviceConfigs referencing this layer */
+	RingNode device_config_ring;
 	char thread_name_prefix[MAX_QUEUE_NAME_LEN];
 	struct kobject kobj;
 	struct kobject wq_directory;
@@ -407,32 +409,6 @@ static inline BlockSize sector_to_block_offset(struct kernel_layer *layer,
  **/
 struct block_device *get_kernel_layer_bdev(const struct kernel_layer *layer)
 	__attribute__((warn_unused_result));
-
-/**
- * Acquire a reference from the config to the kernel layer.
- *
- * @param layer   The kernel layer in question
- * @param config  The config in question
- **/
-static inline void acquire_kernel_layer_reference(struct kernel_layer *layer,
-						  struct device_config *config)
-{
-	layer->config_references++;
-	config->layer = layer;
-}
-
-/**
- * Release a reference from the config to its kernel layer.
- *
- * @param layer   The kernel layer in question
- * @param config  The config in question
- **/
-static inline void release_kernel_layer_reference(struct kernel_layer *layer,
-						  struct device_config *config)
-{
-	config->layer = NULL;
-	layer->config_references--;
-}
 
 /**
  * Set the layer's active config.

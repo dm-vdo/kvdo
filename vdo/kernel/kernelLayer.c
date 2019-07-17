@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#54 $
  */
 
 #include "kernelLayer.h"
@@ -51,7 +51,7 @@
 
 static const struct kvdo_work_queue_type bio_ack_q_type = {
 	.action_table = {
-		{ 
+		{
 			.name = "bio_ack",
 			.code = BIO_ACK_Q_ACTION_ACK,
 			.priority = 0
@@ -599,6 +599,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	layer->instance = instance;
 	layer->device_config = config;
 	layer->starting_sector_offset = starting_sector;
+	initializeRing(&layer->device_config_ring);
 
 	layer->common.getBlockCount = kvdo_get_block_count;
 	layer->common.isFlushRequired = is_flush_required;
