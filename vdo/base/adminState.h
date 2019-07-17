@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#14 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -31,8 +31,6 @@
 typedef enum {
   /** Normal operation, DataVIOs may be active */
   ADMIN_TYPE_NORMAL = 0,
-  /** Flush: drain outstanding I/O and then return to normal */
-  ADMIN_TYPE_FLUSH,
   /**
    * Format: an operation for formatting a new VDO.
    */
@@ -121,7 +119,7 @@ typedef enum {
                                       | ADMIN_FLAG_LOADING),
   ADMIN_STATE_WAITING_FOR_RECOVERY = (ADMIN_TYPE_RECOVER
                                       | ADMIN_FLAG_OPERATING),
-  ADMIN_STATE_FLUSHING             = (ADMIN_TYPE_FLUSH
+  ADMIN_STATE_RECOVERING           = (ADMIN_TYPE_RECOVER
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_DRAINING),
   ADMIN_STATE_REBUILDING           = (ADMIN_TYPE_REBUILD
@@ -578,16 +576,6 @@ bool finishOperation(AdminState *state);
  * @param result  The result of the operation
  **/
 bool finishOperationWithResult(AdminState *state, int result);
-
-/**
- * Set a waiter for the current operation.
- *
- * @param state   the AdminState
- * @param waiter  the completion to notify when the operation completes; will
- *                be notified immediately with an error if there is no current
- *                operation or if there is already a waiter
- **/
-void setOperationWaiter(AdminState *state, VDOCompletion *waiter);
 
 /**
  * Set a result for the current operation.

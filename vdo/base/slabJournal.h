@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#7 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -61,17 +61,15 @@ SlabJournal *slabJournalFromDirtyNode(RingNode *node)
  *
  * @param [in]  allocator        The block allocator which owns this journal
  * @param [in]  slab             The parent slab of the journal
- * @param [in]  layer            The layer to which the journal will write
  * @param [in]  recoveryJournal  The recovery journal of the VDO
  * @param [out] journalPtr       The pointer to hold the new slab journal
  *
  * @return VDO_SUCCESS or error code
  **/
-int makeSlabJournal(BlockAllocator  *allocator,
-                    Slab            *slab,
-                    PhysicalLayer   *layer,
-                    RecoveryJournal *recoveryJournal,
-                    SlabJournal    **journalPtr)
+int makeSlabJournal(BlockAllocator   *allocator,
+                    Slab             *slab,
+                    RecoveryJournal  *recoveryJournal,
+                    SlabJournal     **journalPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -185,24 +183,6 @@ void commitSlabJournalTail(SlabJournal *journal);
  * @param journal  The journal to drain
  **/
 void drainSlabJournal(SlabJournal *journal);
-
-/**
- * Flush all uncommitted entries in the slab journal.
- *
- * <p>Implements slabJournal.c:SlabJournalPreparer.
- *
- * @param journal       The journal to flush
- * @param parent        The completion which should be notified when the
- *                      journal has been flushed
- * @param callback      The callback to use
- * @param errorHandler  The handler for flush errors
- * @param threadID      The thread on which the callback should run
- **/
-void flushSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID);
 
 /**
  * Decode the slab journal by reading its tail.

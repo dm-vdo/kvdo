@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#5 $
  */
 
 #ifndef VDO_SLAB_H
@@ -130,8 +130,6 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
  * @param [in]  translation      The translation from the depot's partition
  *                               to the physical storage
  * @param [in]  recoveryJournal  The recovery journal of the VDO
- * @param [in]  layer            The layer to which the slab will write
- *                               its metadata
  * @param [in]  slabNumber       The slab number of the slab
  * @param [out] slabPtr          A pointer to receive the new slab
  *
@@ -141,7 +139,6 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
              BlockAllocator       *allocator,
              PhysicalBlockNumber   translation,
              RecoveryJournal      *recoveryJournal,
-             PhysicalLayer        *layer,
              SlabCount             slabNumber,
              Slab                **slabPtr)
   __attribute__((warn_unused_result));
@@ -149,12 +146,11 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
 /**
  * Allocate the reference counts for a slab.
  *
- * @param layer     The layer (for completions)
- * @param slab      The slab whose reference counts need allocation.
+ * @param slab  The slab whose reference counts need allocation.
  *
  * @return VDO_SUCCESS or an error code
  **/
-int allocateRefCountsForSlab(PhysicalLayer *layer, Slab *slab)
+int allocateRefCountsForSlab(Slab *slab)
   __attribute__((warn_unused_result));
 
 /**

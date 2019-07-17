@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#17 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -31,7 +31,6 @@
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
-#include "slabCompletion.h"
 #include "slabDepotInternals.h"
 #include "slabIterator.h"
 #include "slabJournalEraser.h"
@@ -230,11 +229,6 @@ static int allocateComponents(BlockAllocator  *allocator,
     return result;
   }
 
-  result = makeSlabCompletion(layer, &allocator->slabCompletion);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
   BlockCount slabJournalSize = depot->slabConfig.slabJournalBlocks;
   result = makeSlabScrubber(layer, slabJournalSize,
                             allocator->readOnlyNotifier,
@@ -316,7 +310,6 @@ void freeBlockAllocator(BlockAllocator **blockAllocatorPtr)
   }
 
   freeSlabScrubber(&allocator->slabScrubber);
-  freeSlabCompletion(&allocator->slabCompletion);
   freeVIOPool(&allocator->vioPool);
   freePriorityTable(&allocator->prioritizedSlabs);
   destroyEnqueueable(&allocator->completion);
@@ -783,58 +776,6 @@ void drainBlockAllocator(void          *context,
 
   allocator->drainStep = DRAIN_ALLOCATOR_START;
   doDrainStep(&allocator->completion);
-}
-
-/**********************************************************************/
-void saveBlockAllocatorForFullRebuild(void          *context,
-                                      ZoneCount      zoneNumber,
-                                      VDOCompletion *parent)
-{
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  prepareCompletion(allocator->slabCompletion, finishParentCallback,
-                    finishParentCallback, parent->callbackThreadID, parent);
-  saveFullyRebuiltSlabs(allocator->slabCompletion, getSlabIterator(allocator));
-}
-
-/**
- * Save the slab summary zone for this allocator now that the slab journals
- * have all been flushed. This callback is registered in
- * flushAllocatorSlabJournals().
- *
- * @param completion  The slab completion
- **/
-static void finishFlushingSlabJournals(VDOCompletion *completion)
-{
-  BlockAllocator *allocator = completion->parent;
-  drainSlabSummaryZone(allocator->summary, ADMIN_STATE_FLUSHING,
-                       &allocator->completion);
-}
-
-/**
- * Handle an error flushing slab journals.
- *
- * @param completion  The slab completion
- **/
-static void handleFlushError(VDOCompletion *completion)
-{
-  // Preserve the error.
-  BlockAllocator *allocator = completion->parent;
-  setCompletionResult(&allocator->completion, completion->result);
-  finishFlushingSlabJournals(completion);
-}
-
-/**********************************************************************/
-void flushAllocatorSlabJournals(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent)
-{
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  prepareCompletion(&allocator->completion, finishParentCallback,
-                    finishParentCallback,
-                    parent->callbackThreadID, parent);
-  prepareCompletion(allocator->slabCompletion, finishFlushingSlabJournals,
-                    handleFlushError, allocator->threadID, allocator);
-  flushSlabJournals(allocator->slabCompletion, getSlabIterator(allocator));
 }
 
 /**

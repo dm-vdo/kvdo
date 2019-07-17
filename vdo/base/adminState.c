@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#12 $
  */
 
 #include "adminState.h"
@@ -52,8 +52,8 @@ const char *getAdminStateCodeName(AdminStateCode code)
   case ADMIN_STATE_WAITING_FOR_RECOVERY:
     return "ADMIN_STATE_WAITING_FOR_RECOVERY";
 
-  case ADMIN_STATE_FLUSHING:
-    return "ADMIN_STATE_FLUSHING";
+  case ADMIN_STATE_RECOVERING:
+    return "ADMIN_STATE_RECOVERING";
 
   case ADMIN_STATE_REBUILDING:
     return "ADMIN_STATE_REBUILDING";
@@ -343,22 +343,4 @@ bool finishOperation(AdminState *state)
 bool finishOperationWithResult(AdminState *state, int result)
 {
   return endOperation(state, result);
-}
-
-/**********************************************************************/
-void setOperationWaiter(AdminState *state, VDOCompletion *waiter)
-{
-  int result;
-  if (!isOperating(state)) {
-    result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
-                                     "No operation to wait on");
-  } else if (state->waiter != NULL) {
-    result = logErrorWithStringError(VDO_COMPONENT_BUSY,
-                                     "Operation already has a waiter");
-  } else {
-    state->waiter = waiter;
-    return;
-  }
-
-  finishCompletion(waiter, result);
 }

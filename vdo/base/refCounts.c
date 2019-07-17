@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#6 $
  */
 
 #include "refCounts.h"
@@ -167,8 +167,7 @@ static bool advanceSearchCursor(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-int makeRefCounts(PhysicalLayer        *layer,
-                  BlockCount            blockCount,
+int makeRefCounts(BlockCount            blockCount,
                   Slab                 *slab,
                   PhysicalBlockNumber   origin,
                   ReadOnlyNotifier     *readOnlyNotifier,
@@ -188,13 +187,6 @@ int makeRefCounts(PhysicalLayer        *layer,
   result = ALLOCATE(bytes, ReferenceCount, "ref counts array",
                     &refCounts->counters);
   if (result != UDS_SUCCESS) {
-    freeRefCounts(&refCounts);
-    return result;
-  }
-
-  result = initializeEnqueueableCompletion(&refCounts->completion,
-                                           REFERENCE_COUNTS_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
     freeRefCounts(&refCounts);
     return result;
   }
@@ -228,18 +220,9 @@ void freeRefCounts(RefCounts **refCountsPtr)
     return;
   }
 
-  destroyEnqueueable(&refCounts->completion);
   FREE(refCounts->counters);
   FREE(refCounts);
   *refCountsPtr = NULL;
-}
-
-/**********************************************************************/
-RefCounts *asRefCounts(VDOCompletion *completion)
-{
-  STATIC_ASSERT(offsetof(RefCounts, completion) == 0);
-  assertCompletionType(completion->type, REFERENCE_COUNTS_COMPLETION);
-  return (RefCounts *) completion;
 }
 
 /**
@@ -263,17 +246,21 @@ static bool isRefCountsActive(RefCounts *refCounts)
  **/
 static void checkForDrainComplete(RefCounts *refCounts)
 {
-  if (isRefCountsActive(refCounts) || !isSlabDraining(refCounts->slab)) {
+  if (isRefCountsActive(refCounts)) {
     return;
   }
 
-  if (!isSuspending(&refCounts->slab->state)
+  AdminStateCode code = refCounts->slab->state.state;
+  if (!isDrainOperation(code)) {
+    return;
+  }
+
+  if (((code != ADMIN_STATE_SUSPENDING) && (code != ADMIN_STATE_RECOVERING))
       && hasWaiters(&refCounts->dirtyBlocks)) {
-    // If the drain is not a suspend, the refCounts must be clean.
+    // When not suspending or recovering, the refCounts must be clean.
     return;
   }
 
-  refCounts->hasIOWaiter = false;
   notifyRefCountsAreDrained(refCounts->slab,
                             (isReadOnly(refCounts->readOnlyNotifier)
                              ? VDO_READ_ONLY : VDO_SUCCESS));
@@ -1270,45 +1257,11 @@ void saveDirtyReferenceBlocks(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-void saveReferenceBlocks(RefCounts     *refCounts,
-                         VDOCompletion *parent,
-                         VDOAction     *callback,
-                         VDOAction     *errorHandler,
-                         ThreadID       threadID)
-{
-  ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
-                  "load or save not in progress on launching refCounts save");
-  VDOCompletion *completion = &refCounts->completion;
-  prepareCompletion(completion, callback, errorHandler, threadID, parent);
-  // XXX: this is a temporary hack until the rest of slab completion goes away
-  if (!startDraining(&refCounts->slab->state, ADMIN_STATE_FLUSHING,
-                     completion)) {
-    return;
-  }
-
-  refCounts->hasIOWaiter = true;
-  saveDirtyReferenceBlocks(refCounts);
-}
-
-/**********************************************************************/
 void dirtyAllReferenceBlocks(RefCounts *refCounts)
 {
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     dirtyBlock(&refCounts->blocks[i]);
   }
-}
-
-/**********************************************************************/
-void saveAllReferenceBlocks(RefCounts     *refCounts,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler,
-                            ThreadID       threadID)
-{
-  ASSERT_LOG_ONLY(!refCounts->hasIOWaiter,
-                  "load or save not in progress on launching refCounts save");
-  dirtyAllReferenceBlocks(refCounts);
-  saveReferenceBlocks(refCounts, parent, callback, errorHandler, threadID);
 }
 
 /**
@@ -1451,10 +1404,18 @@ void drainRefCounts(RefCounts *refCounts)
     save = true;
     break;
 
+  case ADMIN_STATE_REBUILDING:
+    if (shouldSaveFullyBuiltSlab(slab)) {
+      dirtyAllReferenceBlocks(refCounts);
+      save = true;
+    }
+    break;
+
   case ADMIN_STATE_SAVING:
     save = !isUnrecoveredSlab(slab);
     break;
 
+  case ADMIN_STATE_RECOVERING:
   case ADMIN_STATE_SUSPENDING:
     break;
 

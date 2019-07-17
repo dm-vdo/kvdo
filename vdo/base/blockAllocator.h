@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#10 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -175,15 +175,6 @@ void registerNewSlabsForAllocator(void          *context,
                                   VDOCompletion *parent);
 
 /**
- * Asynchronously flush all slab journals in the allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void flushAllocatorSlabJournals(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent);
-
-/**
  * Drain all allocator I/O. Depending upon the type of drain, some or all
  * dirty metadata may be written to disk. The type of drain will be determined
  * from the state of the allocator's depot.
@@ -202,15 +193,6 @@ void drainBlockAllocator(void          *context,
 void resumeBlockAllocator(void          *context,
                           ZoneCount      zoneNumber,
                           VDOCompletion *parent);
-
-/**
- * Asynchronously save any block allocator state for a full rebuild.
- *
- * <p>Implements ZoneAction.
- **/
-void saveBlockAllocatorForFullRebuild(void          *context,
-                                      ZoneCount      zoneNumber,
-                                      VDOCompletion *parent);
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery

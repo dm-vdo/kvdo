@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#6 $
  */
 
 #include "slab.h"
@@ -127,7 +127,6 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
              BlockAllocator       *allocator,
              PhysicalBlockNumber   translation,
              RecoveryJournal      *recoveryJournal,
-             PhysicalLayer        *layer,
              SlabCount             slabNumber,
              Slab                **slabPtr)
 {
@@ -149,8 +148,7 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
   slab->journalOrigin   = (getSlabJournalStartBlock(slabConfig, slabOrigin)
                            + translation);
 
-  result = makeSlabJournal(allocator, slab, layer, recoveryJournal,
-                           &slab->journal);
+  result = makeSlabJournal(allocator, slab, recoveryJournal, &slab->journal);
   if (result != VDO_SUCCESS) {
     freeSlab(&slab);
     return result;
@@ -161,7 +159,7 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
 }
 
 /**********************************************************************/
-int allocateRefCountsForSlab(PhysicalLayer *layer, Slab *slab)
+int allocateRefCountsForSlab(Slab *slab)
 {
   BlockAllocator   *allocator  = slab->allocator;
   const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
@@ -173,11 +171,8 @@ int allocateRefCountsForSlab(PhysicalLayer *layer, Slab *slab)
     return result;
   }
 
-  result = makeRefCounts(layer, slabConfig->dataBlocks, slab,
-                         slab->refCountsOrigin,
-                         allocator->readOnlyNotifier,
-                         &slab->referenceCounts);
-  return result;
+  return makeRefCounts(slabConfig->dataBlocks, slab, slab->refCountsOrigin,
+                       allocator->readOnlyNotifier, &slab->referenceCounts);
 }
 
 /**********************************************************************/
@@ -321,7 +316,7 @@ void notifySlabJournalIsLoaded(Slab *slab, int result)
   if ((result == VDO_SUCCESS) && isCleanLoad(&slab->state)) {
     // Since this is a normal or new load, we don't need the memory to read and
     // process the recovery journal, so we can allocate reference counts now.
-    result = allocateRefCountsForSlab(slab->state.waiter->layer, slab);
+    result = allocateRefCountsForSlab(slab);
   }
 
   finishLoadingWithResult(&slab->state, result);

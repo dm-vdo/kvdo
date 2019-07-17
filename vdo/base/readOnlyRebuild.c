@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#6 $
  */
 
 #include "readOnlyRebuild.h"
@@ -225,7 +225,7 @@ static void launchReferenceCountRebuild(VDOCompletion *completion)
   VDO                       *vdo     = rebuild->vdo;
 
   // We must allocate RefCounts before we can rebuild them.
-  int result = allocateSlabRefCounts(vdo->depot, vdo->layer);
+  int result = allocateSlabRefCounts(vdo->depot);
   if (abortRebuildOnError(result, rebuild)) {
     return;
   }

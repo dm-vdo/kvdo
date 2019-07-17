@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#9 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -371,7 +371,7 @@ static void finishRecovery(VDOCompletion *completion)
 
   // Now that we've freed the recovery completion and its vast array of
   // journal entries, we can allocate refcounts.
-  int result = allocateSlabRefCounts(vdo->depot, vdo->layer);
+  int result = allocateSlabRefCounts(vdo->depot);
   finishCompletion(parent, result);
 }
 
@@ -549,7 +549,7 @@ static void finishRecoveringDepot(VDOCompletion *completion)
 
   prepareSubTask(recovery, startSuperBlockSave, finishParentCallback,
                  ZONE_TYPE_ADMIN);
-  drainSlabDepot(vdo->depot, ADMIN_STATE_FLUSHING, completion);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
 }
 
 /**

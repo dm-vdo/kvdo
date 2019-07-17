@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#10 $
  */
 
 #include "slabJournalInternals.h"
@@ -33,14 +33,6 @@
 #include "slabDepot.h"
 #include "slabSummary.h"
 
-/**********************************************************************/
-SlabJournal *asSlabJournal(VDOCompletion *completion)
-{
-  STATIC_ASSERT(offsetof(SlabJournal, completion) == 0);
-  assertCompletionType(completion->type, SLAB_JOURNAL_COMPLETION);
-  return (SlabJournal *) completion;
-}
-
 /**
  * Return the slab journal from the resource waiter.
  *
@@ -51,11 +43,8 @@ SlabJournal *asSlabJournal(VDOCompletion *completion)
 __attribute__((warn_unused_result))
 static inline SlabJournal *slabJournalFromResourceWaiter(Waiter *waiter)
 {
-  if (waiter == NULL) {
-    return NULL;
-  }
-  return (SlabJournal *)
-    ((uintptr_t) waiter - offsetof(SlabJournal, resourceWaiter));
+  STATIC_ASSERT(offsetof(SlabJournal, resourceWaiter) == 0);
+  return (SlabJournal *) waiter;
 }
 
 /**
@@ -245,11 +234,10 @@ static void updateTailBlockLocation(SlabJournal *journal);
 static void releaseJournalLocks(Waiter *waiter, void *context);
 
 /**********************************************************************/
-int makeSlabJournal(BlockAllocator  *allocator,
-                    Slab            *slab,
-                    PhysicalLayer   *layer,
-                    RecoveryJournal *recoveryJournal,
-                    SlabJournal    **journalPtr)
+int makeSlabJournal(BlockAllocator   *allocator,
+                    Slab             *slab,
+                    RecoveryJournal  *recoveryJournal,
+                    SlabJournal     **journalPtr)
 {
   SlabJournal *journal;
   const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
@@ -288,13 +276,6 @@ int makeSlabJournal(BlockAllocator  *allocator,
     return result;
   }
 
-  result = initializeEnqueueableCompletion(&journal->completion,
-                                           SLAB_JOURNAL_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    freeSlabJournal(&journal);
-    return result;
-  }
-
   initializeRing(&journal->dirtyNode);
   initializeRing(&journal->uncommittedBlocks);
 
@@ -314,7 +295,6 @@ void freeSlabJournal(SlabJournal **journalPtr)
     return;
   }
 
-  destroyEnqueueable(&journal->completion);
   FREE(journal->block);
   FREE(journal);
   *journalPtr = NULL;
@@ -502,7 +482,7 @@ static void reapSlabJournal(SlabJournal *journal)
     return;
   }
 
-  PhysicalLayer *layer = journal->completion.layer;
+  PhysicalLayer *layer = journal->slab->allocator->completion.layer;
   if (!layer->isFlushRequired(layer)) {
     finishReaping(journal);
     return;
@@ -1198,6 +1178,7 @@ void drainSlabJournal(SlabJournal *journal)
   }
 
   switch (journal->slab->state.state) {
+  case ADMIN_STATE_REBUILDING:
   case ADMIN_STATE_SUSPENDING:
   case ADMIN_STATE_SAVE_FOR_SCRUBBING:
     break;
@@ -1207,42 +1188,6 @@ void drainSlabJournal(SlabJournal *journal)
   }
 
   checkForDrainComplete(journal);
-}
-
-/**
- * XXX: This is a temporary preservation of what used to be drainSlabJournal()
- *      in order to allow the introduction of the new drainSlabJournal()
- *      without requiring the conversion of closeSlabJournal() and
- *      flushSlabJournal() until later.
- **/
-static void oldDrainSlabJournal(SlabJournal    *journal,
-                                AdminStateCode  operation,
-                                VDOCompletion  *parent,
-                                VDOAction      *callback,
-                                VDOAction      *errorHandler,
-                                ThreadID        threadID)
-{
-  int result = startOperation(&journal->slab->state, operation);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
-    return;
-  }
-
-  prepareCompletion(&journal->completion, callback, errorHandler, threadID,
-                    parent);
-  setOperationWaiter(&journal->slab->state, &journal->completion);
-  drainSlabJournal(journal);
-}
-
-/**********************************************************************/
-void flushSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID)
-{
-  oldDrainSlabJournal(journal, ADMIN_STATE_FLUSHING, parent, callback,
-                      errorHandler, threadID);
 }
 
 /**
