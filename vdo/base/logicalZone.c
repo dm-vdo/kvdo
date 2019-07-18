@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#5 $
  */
 
 #include "logicalZone.h"
@@ -115,10 +115,11 @@ static ThreadID getThreadIDForZone(void *context, ZoneCount zoneNumber)
  * Initialize a logical zone.
  *
  * @param zones       The LogicalZones to which this zone belongs
+ * @param zoneNumber  The LogicalZone's index
  **/
-static int initializeZone(LogicalZones *zones)
+static int initializeZone(LogicalZones *zones, ZoneCount zoneNumber)
 {
-  LogicalZone *zone   = &zones->zones[zones->zoneCount];
+  LogicalZone *zone   = &zones->zones[zoneNumber];
   zone->zones         = zones;
   int          result = makeIntMap(LOCK_MAP_CAPACITY, 0, &zone->lbnOperations);
   if (result != VDO_SUCCESS) {
@@ -133,10 +134,10 @@ static int initializeZone(LogicalZones *zones)
     return result;
   }
 
-  zone->zoneNumber   = zones->zoneCount;
+  zone->zoneNumber   = zoneNumber;
   zone->threadID     = getLogicalZoneThread(getThreadConfig(vdo),
-                                            zones->zoneCount);
-  zone->blockMapZone = getBlockMapZone(vdo->blockMap, zones->zoneCount);
+                                            zoneNumber);
+  zone->blockMapZone = getBlockMapZone(vdo->blockMap, zoneNumber);
   initializeRing(&zone->writeVIOs);
   atomicStore64(&zone->oldestLockedGeneration, 0);
 
@@ -160,9 +161,9 @@ int makeLogicalZones(VDO *vdo, LogicalZones **zonesPtr)
   }
 
   zones->vdo = vdo;
-  for (; zones->zoneCount < threadConfig->logicalZoneCount;
-       zones->zoneCount++) {
-    result = initializeZone(zones);
+  zones->zoneCount = threadConfig->logicalZoneCount;
+  for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
+    result = initializeZone(zones, zone);
     if (result != VDO_SUCCESS) {
       freeLogicalZones(&zones);
       return result;
