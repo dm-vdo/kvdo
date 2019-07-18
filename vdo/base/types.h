@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#9 $
  */
 
 #ifndef TYPES_H
@@ -367,6 +367,7 @@ typedef struct inputBin            InputBin;
 typedef struct lbnLock             LBNLock;
 typedef struct lockCounter         LockCounter;
 typedef struct logicalZone         LogicalZone;
+typedef struct logicalZones        LogicalZones;
 typedef struct pbnLock             PBNLock;
 typedef struct physicalLayer       PhysicalLayer;
 typedef struct physicalZone        PhysicalZone;

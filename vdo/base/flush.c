@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#3 $
  */
 
 #include "flush.h"
@@ -191,7 +191,7 @@ static void notifyFlush(Flusher *flusher)
 {
   VDOFlush *flush = waiterAsFlush(getFirstWaiter(&flusher->notifiers));
   flusher->notifyGeneration    = flush->flushGeneration;
-  flusher->logicalZoneToNotify = flusher->vdo->logicalZones[0];
+  flusher->logicalZoneToNotify = getLogicalZone(flusher->vdo->logicalZones, 0);
   flusher->completion.requeue  = true;
   launchCallback(&flusher->completion, incrementGeneration,
                  getLogicalZoneThreadID(flusher->logicalZoneToNotify));
@@ -226,7 +226,7 @@ void completeFlushes(Flusher *flusher)
                   "completeFlushes() called from flusher thread");
 
   SequenceNumber oldestActiveGeneration = UINT64_MAX;
-  for (LogicalZone *zone = flusher->vdo->logicalZones[0];
+  for (LogicalZone *zone = getLogicalZone(flusher->vdo->logicalZones, 0);
        zone != NULL;
        zone = getNextLogicalZone(zone)) {
     SequenceNumber oldestInZone = getOldestLockedGeneration(zone);

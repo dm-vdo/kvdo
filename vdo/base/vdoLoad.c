@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#7 $
  */
 
 #include "vdoLoad.h"
@@ -394,21 +394,9 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
     }
   }
 
-  result = ALLOCATE(threadConfig->logicalZoneCount, LogicalZone *, __func__,
-                    &vdo->logicalZones);
+  result = makeLogicalZones(vdo, &vdo->logicalZones);
   if (result != VDO_SUCCESS) {
     return result;
-  }
-
-  // Allocate in reverse zone number order so we can pass each logical zone's
-  // successor to the zone's constructor.
-  LogicalZone *logicalZone = NULL;
-  for (int index = threadConfig->logicalZoneCount - 1; index >= 0; index--) {
-    int result = makeLogicalZone(vdo, index, logicalZone, &logicalZone);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
-    vdo->logicalZones[index] = logicalZone;
   }
 
   result = ALLOCATE(threadConfig->physicalZoneCount, PhysicalZone *, __func__,

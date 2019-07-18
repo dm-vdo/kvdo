@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#5 $
  */
 
 #include "vdoClose.h"
@@ -179,7 +179,7 @@ static void closeLogicalZones(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, closeMap, getAdminThread(getThreadConfig(vdo)));
-  closeLogicalZone(vdo->logicalZones[0], completion);
+  drainLogicalZones(vdo->logicalZones, ADMIN_STATE_SAVING, completion);
 }
 
 /**
@@ -190,8 +190,7 @@ static void closeLogicalZones(VDOCompletion *completion)
 static void closeCompressionPacker(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromCloseSubTask(completion);
-  prepareSubTask(vdo, closeLogicalZones,
-                 getLogicalZoneThread(getThreadConfig(vdo), 0));
+  prepareSubTask(vdo, closeLogicalZones, getAdminThread(getThreadConfig(vdo)));
   closePacker(vdo->packer, completion);
 }
 

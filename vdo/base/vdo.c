@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#9 $
  */
 
 /*
@@ -152,13 +152,7 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->hashZones);
   vdo->hashZones = NULL;
 
-  if (vdo->logicalZones != NULL) {
-    for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-      freeLogicalZone(&vdo->logicalZones[zone]);
-    }
-  }
-  FREE(vdo->logicalZones);
-  vdo->logicalZones = NULL;
+  freeLogicalZones(&vdo->logicalZones);
 
   if (vdo->physicalZones != NULL) {
     for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
@@ -993,7 +987,7 @@ void dumpVDOStatus(const VDO *vdo)
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-    dumpLogicalZone(vdo->logicalZones[zone]);
+    dumpLogicalZone(getLogicalZone(vdo->logicalZones, zone));
   }
 
   for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
