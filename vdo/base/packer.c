@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#6 $
  */
 
 #include "packerInternals.h"
@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "adminState.h"
 #include "allocatingVIO.h"
 #include "allocationSelector.h"
 #include "compressionState.h"
@@ -366,23 +367,16 @@ static void continueVIOWithoutPacking(Waiter *waiter,
 }
 
 /**
- * This checks if all VIOs are out of the packer before finishing the
- * completion.
+ * Check whether the packer has drained.
  *
  * @param packer  The packer
  **/
-static void checkFlushProgress(Packer *packer)
+static void checkForDrainComplete(Packer *packer)
 {
-  if (!packer->flushing
-      || (packer->canceledBin->slotsUsed > 0)
-      || (packer->idleOutputBinCount != packer->outputBinCount)) {
-    return;
-  }
-
-  packer->flushing = false;
-  if (packer->closeRequest != NULL) {
-    packer->closed = true;
-    finishCompletion(packer->closeRequest, VDO_SUCCESS);
+  if (isDraining(&packer->state)
+      && (packer->canceledBin->slotsUsed == 0)
+      && (packer->idleOutputBinCount == packer->outputBinCount)) {
+    finishDraining(&packer->state);
   }
 }
 
@@ -455,7 +449,7 @@ static void completeOutputBin(VDOCompletion *completion)
   Packer *packer = vio->vdo->packer;
   finishOutputBin(packer, completion->parent);
   writePendingBatches(packer);
-  checkFlushProgress(packer);
+  checkForDrainComplete(packer);
 }
 
 /**
@@ -830,7 +824,7 @@ void attemptPacking(DataVIO *dataVIO)
 
   // If packing of this DataVIO is disallowed for administrative reasons, give
   // up before making any state changes.
-  if (packer->closed || packer->flushing
+  if (!isNormal(&packer->state)
       || (dataVIO->flushGeneration < packer->flushGeneration)) {
     abortPacking(dataVIO);
     return;
@@ -858,17 +852,14 @@ void attemptPacking(DataVIO *dataVIO)
   writePendingBatches(packer);
 }
 
-/**********************************************************************/
-void flushPacker(Packer *packer)
+/**
+ * Force a pending write for all non-empty bins on behalf of a flush or
+ * suspend.
+ *
+ * @param packer  The packer being flushed
+ **/
+static void writeAllNonEmptyBins(Packer *packer)
 {
-  assertOnPackerThread(packer, __func__);
-  if (packer->flushing) {
-    return;
-  }
-
-  packer->flushing = true;
-
-  // Force a pending write for all non-empty bins.
   for (InputBin *bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {
@@ -878,7 +869,15 @@ void flushPacker(Packer *packer)
   }
 
   writePendingBatches(packer);
-  checkFlushProgress(packer);
+}
+
+/**********************************************************************/
+void flushPacker(Packer *packer)
+{
+  assertOnPackerThread(packer, __func__);
+  if (isNormal(&packer->state)) {
+    writeAllNonEmptyBins(packer);
+  }
 }
 
 /*
@@ -907,7 +906,7 @@ void removeFromPacker(DataVIO *dataVIO)
   }
 
   abortPacking(dataVIO);
-  checkFlushProgress(packer);
+  checkForDrainComplete(packer);
 }
 
 /**********************************************************************/
@@ -930,13 +929,21 @@ void incrementPackerFlushGeneration(Packer *packer)
 }
 
 /**********************************************************************/
-void closePacker(Packer *packer, VDOCompletion *completion)
+void drainPacker(Packer *packer, VDOCompletion *completion)
 {
   assertOnPackerThread(packer, __func__);
-  ASSERT_LOG_ONLY((packer->closeRequest == NULL),
-                  "no simultaneous closePacker() calls");
-  packer->closeRequest = completion;
-  flushPacker(packer);
+  if (startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion)) {
+    writeAllNonEmptyBins(packer);
+    checkForDrainComplete(packer);
+  }
+}
+
+/**********************************************************************/
+int resumePacker(Packer *packer)
+{
+  assertOnPackerThread(packer, __func__);
+  return (resumeIfQuiescent(&packer->state)
+          ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
@@ -985,10 +992,9 @@ static void dumpOutputBin(const OutputBin *bin)
 void dumpPacker(const Packer *packer)
 {
   logInfo("Packer");
-  logInfo("  flushGeneration=%" PRIu64
-          " flushing=%s closed=%s writingBatches=%s",
-          packer->flushGeneration, boolToString(packer->flushing),
-          boolToString(packer->closed), boolToString(packer->writingBatches));
+  logInfo("  flushGeneration=%llu state %s writingBatches=%s",
+          packer->flushGeneration, getAdminStateName(&packer->state),
+          boolToString(packer->writingBatches));
 
   logInfo("  inputBinCount=%llu", packer->size);
   for (InputBin *bin = getFullestBin(packer);

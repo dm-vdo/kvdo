@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#6 $
  */
 
 #include "vdoClose.h"
@@ -191,7 +191,7 @@ static void closeCompressionPacker(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, closeLogicalZones, getAdminThread(getThreadConfig(vdo)));
-  closePacker(vdo->packer, completion);
+  drainPacker(vdo->packer, completion);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#2 $
  */
 
 #ifndef PACKER_H
@@ -128,13 +128,22 @@ void removeLockHolderFromPacker(VDOCompletion *completion);
 void incrementPackerFlushGeneration(Packer *packer);
 
 /**
- * Close the packer. Prevent any more VIOs from entering the packer and then
- * flush.
+ * Drain the packer by preventing any more VIOs from entering the packer and
+ * then flushing.
  *
- * @param packer            The packer to flush
- * @param completion        The completion to finish when the packer is closed
+ * @param packer      The packer to drain
+ * @param completion  The completion to finish when the packer has drained
  **/
-void closePacker(Packer *packer, VDOCompletion *completion);
+void drainPacker(Packer *packer, VDOCompletion *completion);
+
+/**
+ * Resume a packer which has been suspended.
+ *
+ * @param packer  The packer to resume
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int resumePacker(Packer *packer);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.

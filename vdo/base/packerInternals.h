@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#3 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -25,6 +25,8 @@
 #include "packer.h"
 
 #include "atomic.h"
+
+#include "adminState.h"
 #include "compressedBlock.h"
 #include "header.h"
 #include "types.h"
@@ -87,8 +89,6 @@ struct packer {
   ThreadID            threadID;
   /** The selector for determining which physical zone to allocate from */
   AllocationSelector *selector;
-  /** A request to close the packer */
-  VDOCompletion      *closeRequest;
   /** The number of input bins */
   BlockCount          size;
   /** The block size minus header size */
@@ -108,10 +108,8 @@ struct packer {
   /** The current flush generation */
   SequenceNumber      flushGeneration;
 
-  /** Writing all bins and purging bins' queues */
-  bool                flushing;
-  /** Whether the packer is closed */
-  bool                closed;
+  /** The administrative state of the packer */
+  AdminState          state;
   /** True when writing batched DataVIOs */
   bool                writingBatches;
 
