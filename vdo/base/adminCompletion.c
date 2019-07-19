@@ -16,24 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#2 $
  */
 
 #include "adminCompletion.h"
 
+#include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"
 
+#include "atomic.h"
 #include "completion.h"
 #include "types.h"
 #include "vdoInternal.h"
 
 struct adminCompletion {
-  // The completion
+  /** The completion */
   VDOCompletion       completion;
-  // The sub-task completion
+  /** The sub-task completion */
   VDOCompletion       subTaskCompletion;
-  // The operation type
+  /** Whether this completion is in use */
+  AtomicBool          busy;
+  /** The operation type */
   AdminOperationType  type;
 };
 
@@ -101,6 +105,8 @@ int makeAdminCompletion(PhysicalLayer    *layer,
     return result;
   }
 
+  atomicStoreBool(&adminCompletion->busy, false);
+
   *adminCompletionPtr = adminCompletion;
   return VDO_SUCCESS;
 }
@@ -154,6 +160,13 @@ static void adminOperationCallback(VDOCompletion *completion)
 int performAdminOperation(VDO *vdo, AdminOperationType type, VDOAction *action)
 {
   AdminCompletion *adminCompletion = vdo->adminCompletion;
+  if (!compareAndSwapBool(&adminCompletion->busy, false, true)) {
+    return logErrorWithStringError(VDO_COMPONENT_BUSY,
+                                   "Can't start admin operation of type %u, "
+                                   "another operation is already in progress",
+                                   type);
+  }
+
   prepareCompletion(&adminCompletion->completion, adminOperationCallback,
                     adminOperationCallback,
                     getAdminThread(getThreadConfig(vdo)), vdo);
@@ -163,5 +176,7 @@ int performAdminOperation(VDO *vdo, AdminOperationType type, VDOAction *action)
   PhysicalLayer *layer = vdo->layer;
   layer->enqueue(adminCompletion->subTaskCompletion.enqueueable);
   layer->waitForAdminOperation(layer);
-  return adminCompletion->completion.result;
+  int result = adminCompletion->completion.result;
+  atomicStoreBool(&adminCompletion->busy, false);
+  return result;
 }
