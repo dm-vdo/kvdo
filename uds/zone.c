@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/zone.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/zone.c#3 $
  */
 
 #include "zone.h"
 
-#include "featureDefs.h"
 #include "logger.h"
 #include "parameter.h"
 #include "permassert.h"
@@ -51,18 +50,6 @@ static UdsParameterValue getZoneCountInitialValue(void)
 {
   UdsParameterValue value;
 
-#if ENVIRONMENT
-  char *env = getenv(UDS_PARALLEL_FACTOR);
-  if (env != NULL) {
-    UdsParameterValue tmp = {
-      .type = UDS_PARAM_TYPE_STRING,
-      .value.u_string = *env ? env : "true",
-    };
-    if (validateNumericRange(&tmp, &validRange, &value) == UDS_SUCCESS) {
-      return value;
-    }
-  }
-#endif // ENVIRONMENT
 
   value.type = UDS_PARAM_TYPE_UNSIGNED_INT;
   value.value.u_uint = getDefaultZoneCount();

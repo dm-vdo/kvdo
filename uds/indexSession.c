@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#5 $
  */
 
 #include "indexSession.h"
@@ -26,7 +26,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "requestQueue.h"
-#include "udsState.h"
 
 /**********************************************************************/
 static void collectStats(const struct uds_index_session *indexSession,

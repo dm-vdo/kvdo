@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#5 $
  */
 
 #include "uds.h"
@@ -29,7 +29,6 @@
 #include "loadType.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "udsState.h"
 
 const UdsMemoryConfigSize UDS_MEMORY_CONFIG_MAX   = 1024;
 const UdsMemoryConfigSize UDS_MEMORY_CONFIG_256MB = (UdsMemoryConfigSize) -256;
@@ -264,7 +263,6 @@ static int makeIndexSession(const char                *name,
   if (session == NULL) {
     return UDS_NO_INDEXSESSION;
   }
-  udsInitialize();
 
   struct uds_index_session *indexSession = NULL;
   int result = makeEmptyIndexSession(&indexSession);

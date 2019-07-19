@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/loggerLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/loggerLinuxKernel.c#2 $
  */
 
 #include <linux/delay.h>
@@ -25,16 +25,6 @@
 #include <linux/sched.h>
 
 #include "logger.h"
-
-/**********************************************************************/
-void openLogger(void)
-{
-}
-
-/**********************************************************************/
-void closeLogger(void)
-{
-}
 
 /**********************************************************************/
 static const char *priorityToLogLevel(int priority)

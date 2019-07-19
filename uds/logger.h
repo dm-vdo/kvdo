@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.h#3 $
  */
 
 #ifndef LOGGER_H
@@ -29,25 +29,9 @@
 /**
  * @file
  *
- * The functions in this file are not thread safe in the sense that nothing
- * prevents multiple threads from opening or closing loggers out from under
- * other threads. In reality this isn't a problem since the only calls in
- * production code to openLogger() and closeLogger() are made in uds.c while
- * uds mutex is held, and uds does not make any logging calls before it calls
- * openLogger or after it calls closeLogger().
- *
  * All of the log<Level>() functions will preserve the callers value of errno.
  **/
 
-/**
- * Start the logger.
- **/
-void openLogger(void);
-
-/**
- * Stop the logger.
- **/
-void closeLogger(void);
 
 /**
  * Get the current logging level.

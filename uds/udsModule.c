@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#6 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#7 $
  */
 
 #include <linux/module.h>
@@ -44,7 +44,6 @@ static int __init dedupeInit(void)
 /**********************************************************************/
 static void __exit dedupeExit(void)
 {
-  udsShutdown();
   putSysfs();
   memoryExit();
   logInfo("unloaded version %s", UDS_VERSION);

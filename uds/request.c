@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#4 $
  */
 
 #include "request.h"
@@ -28,7 +28,6 @@
 #include "parameter.h"
 #include "permassert.h"
 #include "requestQueue.h"
-#include "udsState.h"
 
 /**********************************************************************/
 int udsStartChunkOperation(UdsRequest *udsRequest)
