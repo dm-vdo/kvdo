@@ -16,13 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#4 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
 #define RECOVERY_JOURNAL_H
 
 #include "buffer.h"
+
+#include "adminState.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "flush.h"
@@ -362,13 +364,25 @@ void releasePerEntryLockFromOtherZone(RecoveryJournal *journal,
                                       SequenceNumber   sequenceNumber);
 
 /**
- * Close the journal in preparation for shutdown. All uncommitted entries will
- * be committed.
+ * Drain recovery journal I/O. All uncommitted entries will be written out.
  *
- * @param journal  The journal to close
- * @param parent   The completion to finish once the journal is closed
+ * @param journal    The journal to drain
+ * @param operation  The drain operation (suspend or save)
+ * @param parent     The completion to finish once the journal is drained
  **/
-void closeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent);
+void drainRecoveryJournal(RecoveryJournal *journal,
+                          AdminStateCode   operation,
+                          VDOCompletion   *parent);
+
+/**
+ * Resume a recovery journal which has been drained.
+ *
+ * @param journal  The journal to resume
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int resumeRecoveryJournal(RecoveryJournal *journal)
+  __attribute__((warn_unused_result));
 
 /**
  * Get the number of logical blocks in use by the VDO

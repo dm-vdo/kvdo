@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#15 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -231,6 +231,45 @@ __attribute__((warn_unused_result))
 static inline bool isSuspending(AdminState *state)
 {
   return (state->state == ADMIN_STATE_SUSPENDING);
+}
+
+/**
+ * Check whether an AdminState is suspended.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is suspended
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSuspended(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SUSPENDED);
+}
+
+/**
+ * Check whether an AdminState is saving.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is saving
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSaving(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SAVING);
+}
+
+/**
+ * Check whether an AdminState is saved.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is saved
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSaved(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SAVED);
 }
 
 /**

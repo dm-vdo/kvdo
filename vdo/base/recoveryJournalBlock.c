@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#3 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -34,7 +34,8 @@
 #include "waitQueue.h"
 
 /**********************************************************************/
-int makeRecoveryBlock(RecoveryJournal       *journal,
+int makeRecoveryBlock(PhysicalLayer         *layer,
+                      RecoveryJournal       *journal,
                       RecoveryJournalBlock **blockPtr)
 {
   // Ensure that a block is large enough to store
@@ -57,8 +58,8 @@ int makeRecoveryBlock(RecoveryJournal       *journal,
     return result;
   }
 
-  result = createVIO(journal->completion.layer, VIO_TYPE_RECOVERY_JOURNAL,
-                     VIO_PRIORITY_HIGH, block, block->block, &block->vio);
+  result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
+                     block, block->block, &block->vio);
   if (result != VDO_SUCCESS) {
     freeRecoveryBlock(&block);
     return result;
@@ -332,7 +333,7 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
    * In sync mode, and for FUA, we also need to make sure that the write we
    * are doing is stable, so we issue the write with FUA.
    */
-  PhysicalLayer *layer        = journal->completion.layer;
+  PhysicalLayer *layer        = vioAsCompletion(block->vio)->layer;
   bool           sync         = !layer->isFlushRequired(layer);
   bool           fua          = sync || block->hasFUAEntry;
   bool           flushBefore  = fua || block->hasPartialWriteEntry;

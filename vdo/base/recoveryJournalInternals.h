@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -24,6 +24,7 @@
 
 #include "numeric.h"
 
+#include "adminState.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
 #include "lockCounter.h"
@@ -36,8 +37,6 @@
 typedef struct recoveryJournalBlock RecoveryJournalBlock;
 
 struct recoveryJournal {
-  /** The completion for shutdown */
-  VDOCompletion              completion;
   /** The thread ID of the journal zone */
   ThreadID                   threadID;
   /** The slab depot which can hold locks on this journal */
@@ -59,8 +58,8 @@ struct recoveryJournal {
   bool                       addingEntries;
   /** The notifier for read-only mode */
   ReadOnlyNotifier          *readOnlyNotifier;
-  /** Whether a request has been made to close the journal */
-  bool                       closeRequested;
+  /** The administrative state of the journal */
+  AdminState                 state;
   /** Whether a reap is in progress */
   bool                       reaping;
   /** The partition which holds the journal on disk */

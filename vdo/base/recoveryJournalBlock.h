@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#2 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -120,12 +120,14 @@ static inline bool isRecoveryBlockFull(const RecoveryJournalBlock *block)
 /**
  * Construct a journal block.
  *
+ * @param [in]  layer     The layer from which to construct VIOs
  * @param [in]  journal   The journal to which the block will belong
  * @param [out] blockPtr  A pointer to receive the new block
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeRecoveryBlock(RecoveryJournal       *journal,
+int makeRecoveryBlock(PhysicalLayer         *layer,
+                      RecoveryJournal       *journal,
                       RecoveryJournalBlock **blockPtr)
   __attribute__((warn_unused_result));
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.c#7 $
  */
 
 #include "vdoClose.h"
@@ -152,7 +152,7 @@ static void closeJournal(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromCloseSubTask(completion);
   prepareSubTask(vdo, saveDepot, getAdminThread(getThreadConfig(vdo)));
-  closeRecoveryJournal(vdo->recoveryJournal, completion);
+  drainRecoveryJournal(vdo->recoveryJournal, ADMIN_STATE_SAVING, completion);
 }
 
 /**
