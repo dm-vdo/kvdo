@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#4 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -83,7 +83,7 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
  *
  * @param layoutPtr  Where the layout is being stored.  Always reset to NULL.
  **/
-void freeIndexLayout(IndexLayout **layoutPtr);
+void putIndexLayout(IndexLayout **layoutPtr);
 
 /*****************************************************************************/
 int cancelIndexSave(IndexLayout *layout, unsigned int saveSlot)

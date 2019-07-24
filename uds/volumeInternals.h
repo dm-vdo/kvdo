@@ -16,15 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.h#3 $
  */
 
 #ifndef VOLUME_INTERNALS_H
 #define VOLUME_INTERNALS_H
 
 #include "volume.h"
-
-extern const bool READ_ONLY_VOLUME;
 
 /**
  * Allocate a volume.
@@ -33,8 +31,6 @@ extern const bool READ_ONLY_VOLUME;
  * @param layout                The index layout
  * @param readQueueMaxSize      The maximum size of the read queue
  * @param zoneCount             The number of zones to use
- * @param readOnly              <code>true</code> if this volume will be
- *                              read-only
  * @param newVolume             A pointer to hold the new volume
  *
  * @return UDS_SUCCESS or an error code
@@ -43,7 +39,6 @@ int allocateVolume(const Configuration  *config,
                    IndexLayout          *layout,
                    unsigned int          readQueueMaxSize,
                    unsigned int          zoneCount,
-                   bool                  readOnly,
                    Volume              **newVolume)
   __attribute__((warn_unused_result));
 

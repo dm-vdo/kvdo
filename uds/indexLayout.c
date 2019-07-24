@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#7 $
  */
 
 #include "indexLayout.h"
@@ -1688,7 +1688,7 @@ static int saveSingleFileConfiguration(IndexLayout *layout)
 }
 
 /*****************************************************************************/
-void freeIndexLayout(IndexLayout **layoutPtr)
+void putIndexLayout(IndexLayout **layoutPtr)
 {
   if (layoutPtr == NULL) {
     return;
@@ -2463,7 +2463,7 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
 
   result = makeIORegion(factory, offset, size, &layout->region);
   if (result != UDS_SUCCESS) {
-    freeIndexLayout(&layout);
+    putIndexLayout(&layout);
     return result;
   }
 
@@ -2473,7 +2473,7 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
     result = makeIndexLayoutForLoad(layout, offset);
   }
   if (result != UDS_SUCCESS) {
-    freeIndexLayout(&layout);
+    putIndexLayout(&layout);
     return result;
   }
   *layoutPtr = layout;

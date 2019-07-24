@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#2 $
  */
 
 #include <linux/blkdev.h>
@@ -91,13 +91,5 @@ int makeIORegion(IOFactory  *factory,
                  size_t      size,
                  IORegion  **regionPtr)
 {
-  IORegion *region;
-  int result = makeLinuxRegion(factory, factory->bdev, offset, size, &region);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-
-  *regionPtr = region;
-  return result;
+  return makeLinuxRegion(factory, factory->bdev, offset, size, regionPtr);
 }

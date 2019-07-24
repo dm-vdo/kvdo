@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#9 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#11 $
  */
 
 #include "volume.h"
@@ -893,6 +893,16 @@ int writeRecordPages(Volume                *volume,
 }
 
 /**********************************************************************/
+int syncVolume(Volume *volume)
+{
+  int result = syncRegionContents(volume->region);
+  if (result != UDS_SUCCESS) {
+    return logErrorWithStringError(result, "cannot sync chapter to volume");
+  }
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 int writeChapter(Volume                 *volume,
                  OpenChapterIndex       *chapterIndex,
                  const UdsChunkRecord    records[])
@@ -913,7 +923,8 @@ int writeChapter(Volume                 *volume,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  return UDS_SUCCESS;
+  // Flush the data to permanent storage.
+  return syncVolume(volume);
 }
 
 /**********************************************************************/
@@ -1202,7 +1213,7 @@ int makeVolume(const Configuration  *config,
   Volume *volume;
 
   int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
-                              !READ_ONLY_VOLUME, &volume);
+                              &volume);
   if (result != UDS_SUCCESS) {
     return result;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#7 $
  */
 
 #include "index.h"
@@ -267,8 +267,9 @@ void freeIndex(Index *index)
 }
 
 /**********************************************************************/
-static int saveIndexComponents(Index *index)
+int saveIndex(Index *index)
 {
+  waitForIdleChapterWriter(index->chapterWriter);
   int result = finishCheckpointing(index);
   if (result != UDS_SUCCESS) {
     logInfo("save index failed");
@@ -285,20 +286,6 @@ static int saveIndexComponents(Index *index)
     logInfo("finished save (vcn %llu)", index->lastCheckpoint);
   }
   return result;
-}
-
-/**********************************************************************/
-int saveIndex(Index *index)
-{
-  // Ensure that the volume is securely on storage
-  waitForIdleChapterWriter(index->chapterWriter);
-  int result = syncRegionContents(index->volume->region);
-  if (result != UDS_SUCCESS) {
-    // If we couldn't save the volume, the index state is useless
-    discardIndexStateData(index->state);
-    return logErrorWithStringError(result, "cannot sync volume IORegion");
-  }
-  return saveIndexComponents(index);
 }
 
 /**

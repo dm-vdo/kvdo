@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#3 $
  */
 
 #include "indexLayout.h"
@@ -69,7 +69,7 @@ int makeIndexLayout(const char              *name,
     return result;
   }
   if (freeResult != UDS_SUCCESS) {
-    freeIndexLayout(&layout);
+    putIndexLayout(&layout);
     return freeResult;
   }
   *layoutPtr = layout;

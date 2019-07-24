@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#4 $
  */
 
 #include "volumeInternals.h"
@@ -32,19 +32,15 @@
 #include "stringUtils.h"
 #include "volume.h"
 
-const bool READ_ONLY_VOLUME = true;
-
 /**********************************************************************/
 int allocateVolume(const Configuration  *config,
                    IndexLayout          *layout,
                    unsigned int          readQueueMaxSize,
                    unsigned int          zoneCount,
-                   bool                  readOnly,
                    Volume              **newVolume)
 {
-  IOAccessMode access = readOnly ? IO_READ : IO_READ_WRITE;
   IORegion *region;
-  int result = openVolumeRegion(layout, access, &region);
+  int result = openVolumeRegion(layout, IO_READ_WRITE, &region);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -57,7 +53,6 @@ int allocateVolume(const Configuration  *config,
   }
   // Fill these fields in now so that freeVolume will close the volume region
   volume->region = region;
-  volume->readOnly = readOnly;
   volume->nonce = getVolumeNonce(layout);
 
   result = copyGeometry(config->geometry, &volume->geometry);
@@ -86,26 +81,24 @@ int allocateVolume(const Configuration  *config,
     return result;
   }
 
-  if (!readOnly) {
-    if (isSparse(volume->geometry)) {
-      result = makeSparseCache(volume->geometry, config->cacheChapters,
-                               zoneCount, &volume->sparseCache);
-      if (result != UDS_SUCCESS) {
-        freeVolume(volume);
-        return result;
-      }
-    }
-    result = makePageCache(volume->geometry, config->cacheChapters,
-                           readQueueMaxSize, zoneCount, &volume->pageCache);
+  if (isSparse(volume->geometry)) {
+    result = makeSparseCache(volume->geometry, config->cacheChapters,
+                             zoneCount, &volume->sparseCache);
     if (result != UDS_SUCCESS) {
       freeVolume(volume);
       return result;
     }
-    result = makeIndexPageMap(volume->geometry, &volume->indexPageMap);
-    if (result != UDS_SUCCESS) {
-      freeVolume(volume);
-      return result;
-    }
+  }
+  result = makePageCache(volume->geometry, config->cacheChapters,
+                         readQueueMaxSize, zoneCount, &volume->pageCache);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = makeIndexPageMap(volume->geometry, &volume->indexPageMap);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
   }
 
   *newVolume = volume;

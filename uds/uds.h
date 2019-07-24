@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#6 $
  */
 
 /**
@@ -105,12 +105,8 @@ typedef struct udsChunkName {
 
 /**
  * An active index session.
- *
- * XXX This is a temporary typedef.  It will go away after we have merged the
- *     struct uds_index_session change to Jasper and have converted VDO to stop
- *     using UdsIndexSession.
  **/
-typedef struct uds_index_session *UdsIndexSession;
+struct uds_index_session;
 
 /**
  * The data used to configure a new index.

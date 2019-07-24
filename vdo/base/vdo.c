@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#10 $
  */
 
 /*
@@ -623,11 +623,11 @@ int validateVDOConfig(const VDOConfig *config,
 
   // This can't check equality because FileLayer et al can only known about
   // the storage size, which may not match the super block size.
-  result = ASSERT(config->physicalBlocks <= blockCount,
-                  "Physical size %llu in super block smaller than"
-                  " expected size %llu", config->physicalBlocks,
-                  blockCount);
-  if (result != UDS_SUCCESS) {
+  if (blockCount < config->physicalBlocks) {
+    logError("A physical size of %llu blocks was specified,"
+             " but that is smaller than the %llu blocks"
+             " configured in the VDO super block",
+             blockCount, config->physicalBlocks);
     return VDO_PARAMETER_MISMATCH;
   }
 

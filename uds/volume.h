@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#5 $
  */
 
 #ifndef VOLUME_H
@@ -70,8 +70,6 @@ typedef struct volume {
   Configuration         *config;
   /* The access to the volume's backing store */
   IORegion              *region;
-  /* Whether the volume is read-only or not */
-  bool                   readOnly;
   /* The nonce used to save the volume */
   uint64_t               nonce;
   /* A single page sized scratch buffer */
@@ -273,6 +271,15 @@ int writeRecordPages(Volume                *volume,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 __attribute__((warn_unused_result));
+
+/**
+ * Sync the volume to storage.
+ *
+ * @param volume  the volume containing the chapter
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int syncVolume(Volume *volume) __attribute__((warn_unused_result));
 
 /**
  * Write the index and records from the most recently filled chapter to the
