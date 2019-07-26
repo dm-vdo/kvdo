@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#28 $
  */
 
 #include "dedupeIndex.h"
@@ -761,7 +761,6 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 void finish_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
-	udsFreeConfiguration(index->configuration);
 	finish_work_queue(index->uds_queue);
 }
 
@@ -884,6 +883,7 @@ static void dedupe_kobj_release(struct kobject *kobj)
 	struct dedupe_index *index = container_of(kobj,
 						  struct dedupe_index,
 						  dedupe_object);
+	udsFreeConfiguration(index->configuration);
 	FREE(index->index_name);
 	FREE(index);
 }
