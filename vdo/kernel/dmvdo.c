@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#33 $
  */
 
 #include "dmvdo.h"
@@ -819,6 +819,7 @@ static void vdo_resume(struct dm_target *ti)
  * properly update their management code.
  */
 static struct target_type vdo_target_bio = {
+	.features = DM_TARGET_SINGLETON,
 	.name = "vdo",
 	.version = { 6, 2, 1 },
 	.module = THIS_MODULE,
