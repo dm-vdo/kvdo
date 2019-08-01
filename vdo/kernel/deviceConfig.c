@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#11 $
  */
 
 #include "deviceConfig.h"
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 
+#include "kernelLayer.h"
 #include "vdoStringUtils.h"
 
 #include "constants.h"
@@ -37,7 +38,7 @@ enum {
   // Limits used when parsing thread-count config spec strings
   BIO_ROTATION_INTERVAL_LIMIT = 1024,
   LOGICAL_THREAD_COUNT_LIMIT  = 60,
-  PHYSICAL_THREAD_COUNT_LIMIT = 16,  
+  PHYSICAL_THREAD_COUNT_LIMIT = 16,
   THREAD_COUNT_LIMIT          = 100,
   // XXX The bio-submission queue configuration defaults are temporarily
   // still being defined here until the new runtime-based thread
@@ -85,7 +86,7 @@ static int getVersionNumber(int            argc,
   if (*versionPtr <= 1) {
     if (argc != REQUIRED_ARGC[*versionPtr]) {
       *errorPtr = "Incorrect number of arguments for version";
-      return VDO_BAD_CONFIGURATION;      
+      return VDO_BAD_CONFIGURATION;
     }
   } else if (argc < REQUIRED_ARGC[*versionPtr]) {
     *errorPtr = "Incorrect number of arguments for version";
@@ -97,7 +98,7 @@ static int getVersionNumber(int            argc,
 	       " kernel: %d, tool: %d", TABLE_VERSION, *versionPtr);
     logWarning("Please consider upgrading management tools to match kernel.");
   }
-  return VDO_SUCCESS; 
+  return VDO_SUCCESS;
 }
 
 /**********************************************************************/
@@ -330,7 +331,7 @@ static int parseOneThreadConfigSpec(const char        *spec,
  * "bio", "bioRotationInterval", "logical", "physical", and "hash".
  *
  * If an error occurs during parsing of a single key/value pair, we deem
- * it serious enough to stop further parsing. 
+ * it serious enough to stop further parsing.
  *
  * This function can't set the "reason" value the caller wants to pass
  * back, because we'd want to format it to say which field was
@@ -397,13 +398,13 @@ static int processOneKeyValuePair(const char   *key,
     }
     config->maxDiscardBlocks = value;
     return VDO_SUCCESS;
-  } 
+  }
   // Handles unknown key names
   return processOneThreadConfigSpec(key, value, &config->threadCounts);
 }
 
 /**
- * Parse one key/value pair and update the configuration 
+ * Parse one key/value pair and update the configuration
  * data structure.
  *
  * @param key     The optional key name
@@ -430,21 +431,21 @@ static int parseOneKeyValuePair(const char   *key,
  * Parse all key/value pairs from a list of arguments.
  *
  * If an error occurs during parsing of a single key/value pair, we deem
- * it serious enough to stop further parsing. 
+ * it serious enough to stop further parsing.
  *
  * This function can't set the "reason" value the caller wants to pass
  * back, because we'd want to format it to say which field was
  * invalid, and we can't allocate the "reason" strings dynamically. So
  * if an error occurs, we'll log the details and return the error.
- * 
+ *
  * @param argc     The total number of arguments in list
  * @param argv     The list of key/value pairs
  * @param config   The device configuration data to update
  *
  * @return   VDO_SUCCESS or error
  **/
-static int parseKeyValuePairs(int            argc, 
-			      char         **argv, 
+static int parseKeyValuePairs(int            argc,
+			      char         **argv,
 			      DeviceConfig  *config)
 {
   int result = VDO_SUCCESS;
@@ -463,11 +464,11 @@ static int parseKeyValuePairs(int            argc,
 
 /**
  * Parse the configuration string passed in for optional arguments.
- * 
- * For V0/V1 configurations, there will only be one optional parameter; 
+ *
+ * For V0/V1 configurations, there will only be one optional parameter;
  * the thread configuration. The configuration string should contain
- * one or more comma-separated specs of the form "typename=number"; the 
- * supported type names are "cpu", "ack", "bio", "bioRotationInterval", 
+ * one or more comma-separated specs of the form "typename=number"; the
+ * supported type names are "cpu", "ack", "bio", "bioRotationInterval",
  * "logical", "physical", and "hash".
  *
  * For V2 configurations and beyond, there could be any number of
@@ -496,7 +497,7 @@ int parseOptionalArguments(struct dm_arg_set  *argSet,
   } else {
     if ((argSet->argc % 2) != 0) {
       *errorPtr = "Odd number of optional arguments given but they"
-	          " should be <key> <value> pairs";  
+	          " should be <key> <value> pairs";
       return VDO_BAD_CONFIGURATION;
     }
     result = parseKeyValuePairs(argSet->argc, argSet->argv, config);
@@ -539,6 +540,7 @@ int parseDeviceConfig(int                argc,
   }
 
   config->owningTarget = ti;
+  initializeRing(&config->configNode);
 
   // Save the original string.
   result = joinStrings(argv, argc, ' ', &config->originalString);
@@ -657,7 +659,7 @@ int parseDeviceConfig(int                argc,
 
   // Get the address where the albserver is running. Check for validation
   // is done in dedupe.c code during startKernelLayer call
-  result = duplicateString(dm_shift_arg(&argSet), "pool name", 
+  result = duplicateString(dm_shift_arg(&argSet), "pool name",
 			   &config->poolName);
   if (result != VDO_SUCCESS) {
     handleParseError(&config, errorPtr, "Could not copy pool name");
@@ -724,6 +726,9 @@ void freeDeviceConfig(DeviceConfig **configPtr)
   FREE(config->parentDeviceName);
   FREE(config->originalString);
 
+  // Reduce the chance a use-after-free (as in BZ 1669960) happens to work.
+  memset(config, 0, sizeof(*config));
+
   FREE(config);
   *configPtr = NULL;
 }
@@ -737,4 +742,12 @@ const char *getConfigWritePolicyString(DeviceConfig *config)
   return ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync");
 }
 
-
+/**********************************************************************/
+void setDeviceConfigLayer(DeviceConfig *config, KernelLayer *layer)
+{
+  unspliceRingNode(&config->configNode);
+  if (layer != NULL) {
+    pushRingNode(&layer->deviceConfigRing, &config->configNode);
+  }
+  config->layer = layer;
+}

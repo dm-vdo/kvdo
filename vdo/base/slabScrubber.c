@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#5 $
  */
 
 #include "slabScrubberInternals.h"
@@ -474,11 +474,20 @@ void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void resumeScrubbing(SlabScrubber *scrubber)
+void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
 {
+  if (!hasSlabsToScrub(scrubber)) {
+    completeCompletion(parent);
+    return;
+  }
+
   if (resumeIfQuiescent(&scrubber->adminState)) {
     scrubNextSlab(scrubber);
+    completeCompletion(parent);
+    return;
   }
+
+  finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/

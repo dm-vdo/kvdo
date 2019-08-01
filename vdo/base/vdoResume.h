@@ -16,22 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoClose.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResume.h#1 $
  */
 
-#ifndef VDO_CLOSE_H
-#define VDO_CLOSE_H
+#ifndef VDO_RESUME_H
+#define VDO_RESUME_H
 
 #include "types.h"
 
 /**
- * Free a VDO's resources, cleanly shutting it down if possible. This method
- * must not be called from a base thread.
+ * Resume a suspended VDO.
  *
- * @param vdo  The VDO to close
+ * @param vdo   The VDO to resume
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOClose(VDO *vdo);
+int performVDOResume(VDO *vdo);
 
-#endif /* VDO_CLOSE_H */
+#endif /* VDO_RESUME_H */

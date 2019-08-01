@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.h#6 $
  */
 
 #ifndef VDO_SLAB_H
@@ -124,15 +124,15 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
  * Construct a new, empty slab.
  *
  * @param [in]  slabOrigin       The physical block number within the block
- *                               allocator partition of the first block in
- *                               the slab
+ *                               allocator partition of the first block in the
+ *                               slab
  * @param [in]  allocator        The block allocator to which the slab belongs
- * @param [in]  translation      The translation from the depot's partition
- *                               to the physical storage
+ * @param [in]  translation      The translation from the depot's partition to
+ *                               the physical storage
  * @param [in]  recoveryJournal  The recovery journal of the VDO
- * @param [in]  layer            The layer to which the slab will write
- *                               its metadata
  * @param [in]  slabNumber       The slab number of the slab
+ * @param [in]  isNew            <code>true</code> if this slab is being
+ *                               allocated as part of a resize
  * @param [out] slabPtr          A pointer to receive the new slab
  *
  * @return VDO_SUCCESS or an error code
@@ -141,20 +141,19 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
              BlockAllocator       *allocator,
              PhysicalBlockNumber   translation,
              RecoveryJournal      *recoveryJournal,
-             PhysicalLayer        *layer,
              SlabCount             slabNumber,
+             bool                  isNew,
              Slab                **slabPtr)
   __attribute__((warn_unused_result));
 
 /**
  * Allocate the reference counts for a slab.
  *
- * @param layer     The layer (for completions)
- * @param slab      The slab whose reference counts need allocation.
+ * @param slab  The slab whose reference counts need allocation.
  *
  * @return VDO_SUCCESS or an error code
  **/
-int allocateRefCountsForSlab(PhysicalLayer *layer, Slab *slab)
+int allocateRefCountsForSlab(Slab *slab)
   __attribute__((warn_unused_result));
 
 /**
@@ -352,13 +351,23 @@ void notifySlabJournalIsDrained(Slab *slab, int result);
 void notifyRefCountsAreDrained(Slab *slab, int result);
 
 /**
+ * Check whether a slab is currently resuming.
+ *
+ * @param slab  The slab to check
+ *
+ * @return <code>true</code> if the slab is performing a resume operation
+ **/
+bool isSlabResuming(Slab *slab)
+  __attribute__((warn_unused_result));
+
+/**
  * Resume a quiescent slab.
  *
- * @param slab  The slab to resume
- *
- * @return <code>true</code> if the slab was resumed
+ * @param slab       The slab to resume
+ * @param operation  The type of resume to perform
+ * @param parent     The completion to notify when the resume is complete
  **/
-bool resumeSlab(Slab *slab);
+void resumeSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
 
 /**
  * Finish scrubbing a slab now that it has been rebuilt by updating its status,

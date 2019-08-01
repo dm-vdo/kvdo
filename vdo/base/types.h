@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#11 $
  */
 
 #ifndef TYPES_H
@@ -267,6 +267,7 @@ typedef enum {
 } WritePolicy;
 
 typedef enum {
+  ZONE_TYPE_ADMIN,
   ZONE_TYPE_JOURNAL,
   ZONE_TYPE_LOGICAL,
   ZONE_TYPE_PHYSICAL,
@@ -363,7 +364,6 @@ typedef struct vdoLoadConfig {
  * Forward declarations of abstract types
  **/
 typedef struct actionManager       ActionManager;
-typedef struct adminCompletion     AdminCompletion;
 typedef struct allocatingVIO       AllocatingVIO;
 typedef struct allocationSelector  AllocationSelector;
 typedef struct blockAllocator      BlockAllocator;
@@ -381,6 +381,7 @@ typedef struct inputBin            InputBin;
 typedef struct lbnLock             LBNLock;
 typedef struct lockCounter         LockCounter;
 typedef struct logicalZone         LogicalZone;
+typedef struct logicalZones        LogicalZones;
 typedef struct pbnLock             PBNLock;
 typedef struct physicalLayer       PhysicalLayer;
 typedef struct physicalZone        PhysicalZone;

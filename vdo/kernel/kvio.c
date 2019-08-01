@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kvio.c#5 $
  */
 
 #include "kvio.h"
@@ -144,13 +144,20 @@ void kvdoSubmitMetadataVIO(VIO *vio)
                     "read VIO does not require flush before");
     vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
     setBioOperationRead(bio);
-  } else if (vioRequiresFlushBefore(vio)) {
-    setBioOperationWrite(bio);
-    setBioOperationFlagPreflush(bio);
-    vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
   } else {
-    setBioOperationWrite(bio);
-    vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
+    KernelLayerState state = getKernelLayerState(kvio->layer);
+    ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
+                     || (state == LAYER_RESUMING)
+                     || (state = LAYER_STARTING)),
+                    "write metadata in allowed state %d", state);
+    if (vioRequiresFlushBefore(vio)) {
+      setBioOperationWrite(bio);
+      setBioOperationFlagPreflush(bio);
+      vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
+    } else {
+      setBioOperationWrite(bio);
+      vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
+    }
   }
 
   if (vioRequiresFlushAfter(vio)) {

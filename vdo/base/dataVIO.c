@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/dataVIO.c#7 $
  */
 
 #include "dataVIO.h"
@@ -27,6 +27,7 @@
 #include "blockMap.h"
 #include "compressionState.h"
 #include "extent.h"
+#include "logicalZone.h"
 #include "threadConfig.h"
 #include "vdoInternal.h"
 #include "vioRead.h"
@@ -81,8 +82,8 @@ static void initializeLBNLock(DataVIO *dataVIO, LogicalBlockNumber lbn)
   lock->locked  = false;
   initializeWaitQueue(&lock->waiters);
 
-  VDO *vdo = getVDOFromDataVIO(dataVIO);
-  lock->zone = vdo->logicalZones[computeLogicalZone(dataVIO)];
+  VDO *vdo   = getVDOFromDataVIO(dataVIO);
+  lock->zone = getLogicalZone(vdo->logicalZones, computeLogicalZone(dataVIO));
 }
 
 /**********************************************************************/

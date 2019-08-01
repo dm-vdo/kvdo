@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#14 $
  */
 
 #ifndef KERNELLAYER_H
@@ -29,6 +29,7 @@
 #include "flush.h"
 #include "intMap.h"
 #include "physicalLayer.h"
+#include "ringNode.h"
 #include "volumeGeometry.h"
 #include "waitQueue.h"
 
@@ -56,10 +57,12 @@ typedef enum {
   LAYER_CPU_QUEUE_INITIALIZED,
   LAYER_BIO_ACK_QUEUE_INITIALIZED,
   LAYER_BIO_DATA_INITIALIZED,
+  LAYER_STARTING,
   LAYER_RUNNING,
   LAYER_SUSPENDED,
   LAYER_STOPPING,
   LAYER_STOPPED,
+  LAYER_RESUMING,
 } KernelLayerState;
 
 /* Keep BIO statistics atomically */
@@ -104,7 +107,8 @@ struct kernelLayer {
   PhysicalLayer           common;
   // Layer specific info
   DeviceConfig           *deviceConfig;
-  unsigned int            configReferences;
+  /** A ring of all DeviceConfigs referencing this layer */
+  RingNode                deviceConfigRing;
   char                    threadNamePrefix[MAX_QUEUE_NAME_LEN];
   struct kobject          kobj;
   struct kobject          wqDirectory;
@@ -301,7 +305,9 @@ int modifyKernelLayer(KernelLayer       *layer,
 void freeKernelLayer(KernelLayer *layer);
 
 /**
- * Start the kernel layer.
+ * Make and configure a kernel layer. This method does not alter the VDO state
+ * on disk. It should be run from the VDO constructor for devices which have
+ * not been started.
  *
  * @param layer       The kernel layer
  * @param loadConfig  Load-time parameters for the VDO
@@ -311,18 +317,27 @@ void freeKernelLayer(KernelLayer *layer);
  *
  * @note redundant starts are silently ignored
  **/
-int startKernelLayer(KernelLayer          *layer,
-                     const VDOLoadConfig  *loadConfig,
-                     char                **reason);
+int preloadKernelLayer(KernelLayer          *layer,
+                       const VDOLoadConfig  *loadConfig,
+                       char                **reason);
+
+/**
+ * Start the kernel layer. This method finishes bringing a VDO online now that
+ * a table is being resumed for the first time.
+ *
+ * @param layer   The kernel layer
+ * @param reason  The reason for any failure during this call
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int startKernelLayer(KernelLayer *layer, char **reason);
 
 /**
  * Stop the kernel layer.
  *
  * @param layer  The kernel layer
- *
- * @return VDO_SUCCESS or an error
  **/
-int stopKernelLayer(KernelLayer *layer);
+void stopKernelLayer(KernelLayer *layer);
 
 /**
  * Suspend the kernel layer.
@@ -351,7 +366,7 @@ int resumeKernelLayer(KernelLayer *layer);
  **/
 static inline KernelLayerState getKernelLayerState(const KernelLayer *layer)
 {
-  return relaxedLoad32(&layer->state);
+  return atomicLoad32(&layer->state);
 }
 
 /**
@@ -436,32 +451,6 @@ static inline BlockSize sectorToBlockOffset(KernelLayer *layer,
  **/
 struct block_device *getKernelLayerBdev(const KernelLayer *layer)
   __attribute__((warn_unused_result));
-
-/**
- * Acquire a reference from the config to the kernel layer.
- *
- * @param layer   The kernel layer in question
- * @param config  The config in question
- **/
-static inline void acquireKernelLayerReference(KernelLayer  *layer,
-                                               DeviceConfig *config)
-{
-  layer->configReferences++;
-  config->layer = layer;
-}
-
-/**
- * Release a reference from the config to its kernel layer.
- *
- * @param layer   The kernel layer in question
- * @param config  The config in question
- **/
-static inline void releaseKernelLayerReference(KernelLayer  *layer,
-                                               DeviceConfig *config)
-{
-  config->layer = NULL;
-  layer->configReferences--;
-}
 
 /**
  * Set the layer's active config.

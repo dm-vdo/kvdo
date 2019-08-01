@@ -16,12 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.h#10 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
 
 #include <linux/device-mapper.h>
+
+#include "ringNode.h"
 
 #include "kernelTypes.h"
 
@@ -44,6 +46,8 @@ typedef struct {
   struct dm_target  *owningTarget;
   struct dm_dev     *ownedDevice;
   KernelLayer       *layer;
+  /** All configs referencing a layer are kept on a ring in the layer */
+  RingNode           configNode;
   char              *originalString;
   TableVersion       version;
   char              *parentDeviceName;
@@ -57,6 +61,21 @@ typedef struct {
   ThreadCountConfig  threadCounts;
   BlockCount         maxDiscardBlocks;
 } DeviceConfig;
+
+/**
+ * Convert a RingNode to the DeviceConfig that contains it.
+ *
+ * @param node  The RingNode to convert
+ *
+ * @return The DeviceConfig wrapping the RingNode
+ **/
+static inline DeviceConfig *asDeviceConfig(RingNode *node)
+{
+  if (node == NULL) {
+    return NULL;
+  }
+  return (DeviceConfig *) ((byte *) node - offsetof(DeviceConfig, configNode));
+}
 
 /**
  * Grab a pointer to the pool name out of argv.
@@ -108,5 +127,13 @@ void freeDeviceConfig(DeviceConfig **configPtr);
  **/
 const char *getConfigWritePolicyString(DeviceConfig *config)
   __attribute__((warn_unused_result));
+
+/**
+ * Acquire or release a reference from the config to a kernel layer.
+ *
+ * @param config  The config in question
+ * @param layer   The kernel layer in question
+ **/
+void setDeviceConfigLayer(DeviceConfig *config, KernelLayer *layer);
 
 #endif // DEVICE_CONFIG_H

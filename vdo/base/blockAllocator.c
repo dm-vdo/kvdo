@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#16 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.c#20 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -31,13 +31,13 @@
 #include "readOnlyNotifier.h"
 #include "refCounts.h"
 #include "slab.h"
-#include "slabCompletion.h"
 #include "slabDepotInternals.h"
 #include "slabIterator.h"
 #include "slabJournalEraser.h"
 #include "slabJournalInternals.h"
 #include "slabScrubber.h"
 #include "slabSummary.h"
+#include "vdoRecovery.h"
 #include "vio.h"
 #include "vioPool.h"
 
@@ -126,15 +126,10 @@ static void prioritizeSlab(Slab *slab)
 }
 
 /**********************************************************************/
-void registerSlabWithAllocator(BlockAllocator *allocator,
-                               Slab           *slab,
-			       bool            resizing)
+void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab)
 {
   allocator->slabCount++;
   allocator->lastSlab = slab->slabNumber;
-  if (resizing) {
-    prioritizeSlab(slab);
-  }
 }
 
 /**
@@ -223,13 +218,8 @@ static int allocateComponents(BlockAllocator  *allocator,
 
   allocator->summary = getSlabSummaryForZone(depot, allocator->zoneNumber);
 
-  result = makeVIOPool(layer, vioPoolSize, makeAllocatorPoolVIOs, NULL,
-                       &allocator->vioPool);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = makeSlabCompletion(layer, &allocator->slabCompletion);
+  result = makeVIOPool(layer, vioPoolSize, allocator->threadID,
+                       makeAllocatorPoolVIOs, NULL, &allocator->vioPool);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -315,7 +305,6 @@ void freeBlockAllocator(BlockAllocator **blockAllocatorPtr)
   }
 
   freeSlabScrubber(&allocator->slabScrubber);
-  freeSlabCompletion(&allocator->slabCompletion);
   freeVIOPool(&allocator->vioPool);
   freePriorityTable(&allocator->prioritizedSlabs);
   destroyEnqueueable(&allocator->completion);
@@ -329,8 +318,8 @@ int replaceVIOPool(BlockAllocator *allocator,
                    PhysicalLayer  *layer)
 {
   freeVIOPool(&allocator->vioPool);
-  return makeVIOPool(layer, size, makeAllocatorPoolVIOs, NULL,
-                     &allocator->vioPool);
+  return makeVIOPool(layer, size, allocator->threadID, makeAllocatorPoolVIOs,
+                     NULL, &allocator->vioPool);
 }
 
 /**
@@ -375,12 +364,21 @@ void queueSlab(Slab *slab)
     return;
   }
 
-  relaxedAdd64(&allocator->statistics.allocatedBlocks, -freeBlocks);
-  if (!isSlabJournalBlank(slab->journal)) {
-    relaxedAdd64(&allocator->statistics.slabsOpened, 1);
+  if (isUnrecoveredSlab(slab)) {
+    registerSlabForScrubbing(allocator->slabScrubber, slab, false);
+    return;
   }
 
-  // All other slabs are kept in a priority queue for allocation.
+  if (!isSlabResuming(slab)) {
+    // If the slab is resuming, we've already accounted for it here, so don't
+    // do it again.
+    relaxedAdd64(&allocator->statistics.allocatedBlocks, -freeBlocks);
+    if (!isSlabJournalBlank(slab->journal)) {
+      relaxedAdd64(&allocator->statistics.slabsOpened, 1);
+    }
+  }
+
+  // All slabs are kept in a priority queue for allocation.
   prioritizeSlab(slab);
 }
 
@@ -567,6 +565,11 @@ static void applyToSlabs(BlockAllocator *allocator,
                     handleOperationError, allocator->threadID, NULL);
   allocator->completion.requeue = false;
   actor->launchingSlabAction    = true;
+
+  // Since we are going to dequeue all of the slabs, the open slab will become
+  // invalid, so clear it.
+  allocator->openSlab = NULL;
+
   SlabIterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
     Slab *slab = nextSlab(&iterator);
@@ -589,6 +592,12 @@ static void applyToSlabs(BlockAllocator *allocator,
 static void finishLoadingAllocator(VDOCompletion *completion)
 {
   BlockAllocator *allocator = (BlockAllocator *) completion;
+  if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
+    void *context = getCurrentActionContext(allocator->depot->actionManager);
+    replayIntoSlabJournals(allocator, completion, context);
+    return;
+  }
+
   finishLoading(&allocator->state);
 }
 
@@ -613,6 +622,12 @@ void loadBlockAllocator(void          *context,
   }
 
   applyToSlabs(allocator, loadSlab, finishLoadingAllocator);
+}
+
+/**********************************************************************/
+void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result)
+{
+  finishLoadingWithResult(&allocator->state, result);
 }
 
 /**********************************************************************/
@@ -690,28 +705,10 @@ void registerNewSlabsForAllocator(void          *context,
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
     if (slab->allocator == allocator) {
-      registerSlabWithAllocator(allocator, slab, true);
+      registerSlabWithAllocator(allocator, slab);
     }
   }
   completeCompletion(parent);
-}
-
-/**********************************************************************/
-void suspendSummaryZone(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent)
-{
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  suspendSlabSummaryZone(allocator->summary, parent);
-}
-
-/**********************************************************************/
-void resumeSummaryZone(void          *context,
-                       ZoneCount      zoneNumber,
-                       VDOCompletion *parent)
-{
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  resumeSlabSummaryZone(allocator->summary, parent);
 }
 
 /**
@@ -734,7 +731,8 @@ static void doDrainStep(VDOCompletion *completion)
     return;
 
   case DRAIN_ALLOCATOR_STEP_SUMMARY:
-    closeSlabSummaryZone(allocator->summary, completion);
+    drainSlabSummaryZone(allocator->summary, allocator->state.state,
+                         completion);
     return;
 
   case DRAIN_ALLOCATOR_STEP_FINISHED:
@@ -763,55 +761,53 @@ void drainBlockAllocator(void          *context,
   doDrainStep(&allocator->completion);
 }
 
-/**********************************************************************/
-void saveBlockAllocatorForFullRebuild(void          *context,
-                                      ZoneCount      zoneNumber,
-                                      VDOCompletion *parent)
-{
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  prepareCompletion(allocator->slabCompletion, finishParentCallback,
-                    finishParentCallback, parent->callbackThreadID, parent);
-  saveFullyRebuiltSlabs(allocator->slabCompletion, getSlabIterator(allocator));
-}
-
 /**
- * Save the slab summary zone for this allocator now that the slab journals
- * have all been flushed. This callback is registered in
- * flushAllocatorSlabJournals().
+ * Perform a step in resuming a quiescent allocator. This method is its own
+ * callback.
  *
- * @param completion  The slab completion
+ * @param completion  The allocator's completion
  **/
-static void finishFlushingSlabJournals(VDOCompletion *completion)
+static void doResumeStep(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = completion->parent;
-  saveSlabSummaryZone(allocator->summary, &allocator->completion);
-}
+  BlockAllocator *allocator = (BlockAllocator *) completion;
+  prepareForRequeue(&allocator->completion, doResumeStep, handleOperationError,
+                    allocator->threadID, NULL);
+  switch (--allocator->drainStep) {
+  case DRAIN_ALLOCATOR_STEP_SUMMARY:
+    resumeSlabSummaryZone(allocator->summary, completion);
+    return;
 
-/**
- * Handle an error flushing slab journals.
- *
- * @param completion  The slab completion
- **/
-static void handleFlushError(VDOCompletion *completion)
-{
-  // Preserve the error.
-  BlockAllocator *allocator = completion->parent;
-  setCompletionResult(&allocator->completion, completion->result);
-  finishFlushingSlabJournals(completion);
+  case DRAIN_ALLOCATOR_STEP_SLABS:
+    applyToSlabs(allocator, resumeSlab, doResumeStep);
+    return;
+
+  case DRAIN_ALLOCATOR_STEP_SCRUBBER:
+    resumeScrubbing(allocator->slabScrubber, completion);
+    return;
+
+  case DRAIN_ALLOCATOR_START:
+    finishResumingWithResult(&allocator->state, completion->result);
+    return;
+
+  default:
+    finishResumingWithResult(&allocator->state, UDS_BAD_STATE);
+  }
 }
 
 /**********************************************************************/
-void flushAllocatorSlabJournals(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent)
+void resumeBlockAllocator(void          *context,
+                          ZoneCount      zoneNumber,
+                          VDOCompletion *parent)
 {
   BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
-  prepareCompletion(&allocator->completion, finishParentCallback,
-                    finishParentCallback,
-                    parent->callbackThreadID, parent);
-  prepareCompletion(allocator->slabCompletion, finishFlushingSlabJournals,
-                    handleFlushError, allocator->threadID, allocator);
-  flushSlabJournals(allocator->slabCompletion, getSlabIterator(allocator));
+  AdminStateCode operation
+    = getCurrentManagerOperation(allocator->depot->actionManager);
+  if (!startResuming(&allocator->state, operation, parent)) {
+    return;
+  }
+
+  allocator->drainStep = DRAIN_ALLOCATOR_STEP_FINISHED;
+  doResumeStep(&allocator->completion);
 }
 
 /**********************************************************************/

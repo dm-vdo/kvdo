@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#28 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#31 $
  */
 
 #include "dmvdo.h"
@@ -27,6 +27,7 @@
 #include "memoryAlloc.h"
 
 #include "constants.h"
+#include "ringNode.h"
 #include "threadConfig.h"
 #include "vdo.h"
 
@@ -72,10 +73,10 @@ struct kvdoDevice kvdoDevice;   // global driver state (poorly named)
  * ones. 4.3 to 4.18 kernels have removed the code in blkdev_issue_discard
  * and so in place of that, we use the code in device mapper itself to
  * split the discards. Unfortunately, it uses the same value to split large
- * discards as it does to split large data bios. 
+ * discards as it does to split large data bios.
  *
  * In kernel version 4.18, support for splitting discards was added
- * back into blkdev_issue_discard. Since this mode of splitting 
+ * back into blkdev_issue_discard. Since this mode of splitting
  * (based on max_discard_sectors) is preferable to splitting always
  * on 4k, we are turning off the device mapper splitting from 4.18
  * on.
@@ -174,12 +175,12 @@ static void vdoIoHints(struct dm_target *ti, struct queue_limits *limits)
    * /var/log/kern.log.  In order to avoid these warnings, we choose to use the
    * smallest reasonable value.  See VDO-3062 and VDO-3087.
    *
-   * We allow setting of the value for max_discard_sectors even in situations 
+   * We allow setting of the value for max_discard_sectors even in situations
    * where we only split on 4k (see comments for HAS_NO_BLKDEV_SPLIT) as the
-   * value is still used in other code, like sysfs display of queue limits and 
+   * value is still used in other code, like sysfs display of queue limits and
    * most especially in dm-thin to determine whether to pass down discards.
    */
-  limits->max_discard_sectors 
+  limits->max_discard_sectors
     = layer->deviceConfig->maxDiscardBlocks * VDO_SECTORS_PER_BLOCK;
 
   limits->discard_granularity = VDO_BLOCK_SIZE;
@@ -581,7 +582,7 @@ static int vdoInitialize(struct dm_target *ti,
                          unsigned int      instance,
                          DeviceConfig     *config)
 {
-  logInfo("starting device '%s'", config->poolName);
+  logInfo("loading device '%s'", config->poolName);
 
   uint64_t   blockSize      = VDO_BLOCK_SIZE;
   uint64_t   logicalSize    = to_bytes(ti->len);
@@ -634,7 +635,7 @@ static int vdoInitialize(struct dm_target *ti,
 
   // Henceforth it is the kernel layer's responsibility to clean up the
   // ThreadConfig.
-  result = startKernelLayer(layer, &loadConfig, &failureReason);
+  result = preloadKernelLayer(layer, &loadConfig, &failureReason);
   if (result != VDO_SUCCESS) {
     logError("Could not start kernel physical layer. (VDO error %d,"
              " message %s)", result, failureReason);
@@ -642,12 +643,10 @@ static int vdoInitialize(struct dm_target *ti,
     return result;
   }
 
-  acquireKernelLayerReference(layer, config);
+  setDeviceConfigLayer(config, layer);
   setKernelLayerActiveConfig(layer, config);
   ti->private = config;
   configureTargetCapabilities(ti, layer);
-
-  logInfo("device '%s' started", config->poolName);
   return VDO_SUCCESS;
 }
 
@@ -706,7 +705,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
       result = mapToSystemError(result);
       freeDeviceConfig(&config);
     } else {
-      acquireKernelLayerReference(oldLayer, config);
+      setDeviceConfigLayer(config, oldLayer);
       ti->private = config;
       configureTargetCapabilities(ti, oldLayer);
     }
@@ -731,11 +730,11 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
 static void vdoDtr(struct dm_target *ti)
 {
   DeviceConfig *config = ti->private;
-  KernelLayer  *layer  = getKernelLayerForTarget(ti);
+  KernelLayer  *layer  = config->layer;
 
-  releaseKernelLayerReference(layer, config);
+  setDeviceConfigLayer(config, NULL);
 
-  if (layer->configReferences == 0) {
+  if (isRingEmpty(&layer->deviceConfigRing)) {
     // This was the last config referencing the layer. Free it.
     unsigned int instance = layer->instance;
     RegisteredThread allocatingThread, instanceThread;
@@ -753,6 +752,10 @@ static void vdoDtr(struct dm_target *ti)
     logInfo("device '%s' stopped", config->poolName);
     unregisterThreadDeviceID();
     unregisterAllocatingThread();
+  } else if (config == layer->deviceConfig) {
+    // The layer still references this config. Give it a reference to a
+    // config that isn't being destroyed.
+    layer->deviceConfig = asDeviceConfig(layer->deviceConfigRing.next);
   }
 
   freeDeviceConfig(&config);
@@ -764,7 +767,7 @@ static void vdoPresuspend(struct dm_target *ti)
 {
   KernelLayer *layer = getKernelLayerForTarget(ti);
   RegisteredThread instanceThread;
-  registerThreadDevice(&instanceThread, layer);  
+  registerThreadDevice(&instanceThread, layer);
   if (dm_noflush_suspending(ti)) {
     layer->noFlushSuspend = true;
   }
@@ -796,6 +799,23 @@ static int vdoPreresume(struct dm_target *ti)
   DeviceConfig *config = ti->private;
   RegisteredThread instanceThread;
   registerThreadDevice(&instanceThread, layer);
+
+  if (getKernelLayerState(layer) == LAYER_STARTING) {
+    // This is the first time this device has been resumed, so run it.
+    logInfo("starting device '%s'", config->poolName);
+    char *failureReason;
+    int result = startKernelLayer(layer, &failureReason);
+    if (result != VDO_SUCCESS) {
+      logError("Could not run kernel physical layer. (VDO error %d,"
+               " message %s)", result, failureReason);
+      setKVDOReadOnly(&layer->kvdo, result);
+      unregisterThreadDeviceID();
+      return mapToSystemError(result);
+    }
+
+    logInfo("device '%s' started", config->poolName);
+  }
+
   logInfo("resuming device '%s'", config->poolName);
 
   // This is a noop if nothing has changed, and by calling it every time
@@ -828,13 +848,14 @@ static void vdoResume(struct dm_target *ti)
   unregisterThreadDeviceID();
 }
 
-/* 
+/*
  * If anything changes that affects how user tools will interact
- * with vdo, update the version number and make sure 
+ * with vdo, update the version number and make sure
  * documentation about the change is complete so tools can
  * properly update their management code.
  */
 static struct target_type vdoTargetBio = {
+  .features        = DM_TARGET_SINGLETON,
   .name            = "vdo",
   .version         = {6, 2, 1},
   .module          = THIS_MODULE,

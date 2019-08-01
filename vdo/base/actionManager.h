@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.h#5 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -141,6 +141,18 @@ AdminStateCode getCurrentManagerOperation(ActionManager *manager)
   __attribute__((warn_unused_result));
 
 /**
+ * Get the action-specific context for the operation an action manager is
+ * currently performing.
+ *
+ * @param manager  The manager to query
+ *
+ * @return The action-specific context for the manager's current action or
+ *         NULL if there is no context or no current action
+ **/
+void *getCurrentActionContext(ActionManager *manager)
+  __attribute__((warn_unused_result));
+
+/**
  * Schedule an action to be applied to all zones. The action will be launched
  * immediately if there is no current action, or as soon as the current action
  * completes. If there is already a pending action, this action will not be
@@ -192,5 +204,36 @@ bool scheduleOperation(ActionManager    *manager,
                        ZoneAction       *zoneAction,
                        ActionConclusion *conclusion,
                        VDOCompletion    *parent);
+
+/**
+ * Schedule an operation to be applied to all zones. The operation's action
+ * will be launched immediately if there is no current action, or as soon as
+ * the current action completes. If there is already a pending action, this
+ * operation will not be scheduled, and, if it has a parent, that parent will
+ * be notified. At least one of the preamble, zoneAction, or conclusion must
+ * not be NULL.
+ *
+ * @param manager     The action manager to schedule the action on
+ * @param operation   The operation this action will perform
+ * @param preamble    A method to be invoked on the initiator thread once this
+ *                    action is started but before applying to each zone; may
+ *                    be NULL
+ * @param zoneAction  The action to apply to each zone; may be NULL
+ * @param conclusion  A method to be invoked back on the initiator thread once
+ *                    the action has been applied to all zones; may be NULL
+ * @param context     An action-specific context which may be retrieved via
+ *                    getCurrentActionContext(); may be NULL
+ * @param parent      The object to notify once the action is complete or if
+ *                    the action can not be scheduled; may be NULL
+ *
+ * @return <code>true</code> if the action was scheduled
+ **/
+bool scheduleOperationWithContext(ActionManager    *manager,
+                                  AdminStateCode    operation,
+                                  ActionPreamble   *preamble,
+                                  ZoneAction       *zoneAction,
+                                  ActionConclusion *conclusion,
+                                  void             *context,
+                                  VDOCompletion    *parent);
 
 #endif // ACTION_MANAGER_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocator.h#12 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -61,7 +61,7 @@ int makeBlockAllocator(SlabDepot         *depot,
 void freeBlockAllocator(BlockAllocator **blockAllocatorPtr);
 
 /**
- * Queue a slab for allocation. Can be called only once per slab.
+ * Queue a slab for allocation or scrubbing.
  *
  * @param slab  The slab to queue
  **/
@@ -137,6 +137,15 @@ void loadBlockAllocator(void          *context,
                         VDOCompletion *parent);
 
 /**
+ * Inform a block allocator that its slab journals have been recovered from the
+ * recovery journal.
+ *
+ * @param allocator  The allocator to inform
+ * @param result     The result of the recovery operation
+ **/
+void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result);
+
+/**
  * Prepare the block allocator to come online and start allocating blocks.
  *
  * <p>Implements ZoneAction.
@@ -150,11 +159,8 @@ void prepareAllocatorToAllocate(void          *context,
  *
  * @param allocator  The allocator to use
  * @param slab       The slab in question
- * @param resizing   Whether the registration is part of a resize
  **/
-void registerSlabWithAllocator(BlockAllocator *allocator,
-                               Slab           *slab,
-                               bool            resizing);
+void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab);
 
 /**
  * Register the new slabs belonging to this allocator.
@@ -164,33 +170,6 @@ void registerSlabWithAllocator(BlockAllocator *allocator,
 void registerNewSlabsForAllocator(void          *context,
                                   ZoneCount      zoneNumber,
                                   VDOCompletion *parent);
-
-/**
- * Asynchronously flush all slab journals in the allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void flushAllocatorSlabJournals(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent);
-
-/**
- * Suspend the summary zone belonging to a block allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void suspendSummaryZone(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent);
-
-/**
- * Resume the summary zone belonging to a block allocator.
- *
- * <p>Implements ZoneAction.
- **/
-void resumeSummaryZone(void          *context,
-                       ZoneCount      zoneNumber,
-                       VDOCompletion *parent);
 
 /**
  * Drain all allocator I/O. Depending upon the type of drain, some or all
@@ -204,13 +183,13 @@ void drainBlockAllocator(void          *context,
                          VDOCompletion *parent);
 
 /**
- * Asynchronously save any block allocator state for a full rebuild.
+ * Resume a quiescent allocator.
  *
  * <p>Implements ZoneAction.
  **/
-void saveBlockAllocatorForFullRebuild(void          *context,
-                                      ZoneCount      zoneNumber,
-                                      VDOCompletion *parent);
+void resumeBlockAllocator(void          *context,
+                          ZoneCount      zoneNumber,
+                          VDOCompletion *parent);
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery

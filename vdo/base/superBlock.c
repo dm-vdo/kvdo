@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/superBlock.c#5 $
  */
 
 #include "superBlock.h"
@@ -36,20 +36,22 @@
 
 struct superBlock {
   /** The parent for asynchronous load and save operations */
-  VDOCompletion           *parent;
+  VDOCompletion        *parent;
   /** The VIO for reading and writing the super block to disk */
-  VIO                     *vio;
+  VIO                  *vio;
   /** The buffer for encoding and decoding component data */
-  Buffer                  *componentBuffer;
+  Buffer               *componentBuffer;
   /**
    * A sector-sized buffer wrapping the first sector of encodedSuperBlock, for
    * encoding and decoding the entire super block.
    **/
-  Buffer                  *blockBuffer;
+  Buffer               *blockBuffer;
   /** A 1-block buffer holding the encoded on-disk super block */
-  byte                    *encodedSuperBlock;
+  byte                 *encodedSuperBlock;
   /** The release version number loaded from the volume */
-  ReleaseVersionNumber     loadedReleaseVersion;
+  ReleaseVersionNumber  loadedReleaseVersion;
+  /** Whether this super block may not be written */
+  bool                  unwriteable;
 };
 
 enum {
@@ -237,6 +239,16 @@ static void finishSuperBlockParent(VDOCompletion *completion)
 static void handleSaveError(VDOCompletion *completion)
 {
   logErrorWithStringError(completion->result, "super block save failed");
+  /*
+   * Mark the super block as unwritable so that we won't attempt to write it
+   * again. This avoids the case where a growth attempt fails writing the
+   * super block with the new size, but the subsequent attempt to write out
+   * the read-only state succeeds. In this case, writes which happened just
+   * before the suspend would not be visible if the VDO is restarted without
+   * rebuilding, but, after a read-only rebuild, the effects of those writes
+   * would reappear.
+   */
+  ((SuperBlock *) completion->parent)->unwriteable = true;
   completion->callback(completion);
 }
 
@@ -245,6 +257,11 @@ void saveSuperBlockAsync(SuperBlock          *superBlock,
                          PhysicalBlockNumber  superBlockOffset,
                          VDOCompletion       *parent)
 {
+  if (superBlock->unwriteable) {
+    finishCompletion(parent, VDO_READ_ONLY);
+    return;
+  }
+
   if (superBlock->parent != NULL) {
     finishCompletion(parent, VDO_COMPONENT_BUSY);
     return;

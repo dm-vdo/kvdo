@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#6 $
  */
 
 #include "actionManager.h"
@@ -48,6 +48,8 @@ struct action {
   ActionConclusion *conclusion;
   /** The object to notify when the action is complete */
   VDOCompletion    *parent;
+  /** The action specific context */
+  void             *context;
   /** The action to perform after this one */
   Action           *next;
 };
@@ -172,8 +174,16 @@ void freeActionManager(ActionManager **managerPtr)
 }
 
 /**********************************************************************/
-AdminStateCode getCurrentManagerOperation(ActionManager *manager) {
+AdminStateCode getCurrentManagerOperation(ActionManager *manager)
+{
   return manager->state.state;
+}
+
+/**********************************************************************/
+void *getCurrentActionContext(ActionManager *manager)
+{
+  return (manager->currentAction->inUse
+          ? manager->currentAction->context : NULL);
 }
 
 /**********************************************************************/
@@ -332,6 +342,19 @@ bool scheduleOperation(ActionManager    *manager,
                        ActionConclusion *conclusion,
                        VDOCompletion    *parent)
 {
+  return scheduleOperationWithContext(manager, operation, preamble, zoneAction,
+                                      conclusion, NULL, parent);
+}
+
+/**********************************************************************/
+bool scheduleOperationWithContext(ActionManager    *manager,
+                                  AdminStateCode    operation,
+                                  ActionPreamble   *preamble,
+                                  ZoneAction       *zoneAction,
+                                  ActionConclusion *conclusion,
+                                  void             *context,
+                                  VDOCompletion    *parent)
+{
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");
   Action *action;
@@ -353,6 +376,7 @@ bool scheduleOperation(ActionManager    *manager,
     .preamble   = (preamble == NULL) ? noPreamble : preamble,
     .zoneAction = zoneAction,
     .conclusion = (conclusion == NULL) ? noConclusion : conclusion,
+    .context    = context,
     .parent     = parent,
     .next       = action->next,
   };

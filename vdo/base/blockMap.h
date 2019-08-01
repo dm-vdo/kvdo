@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.h#4 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -93,9 +93,10 @@ BlockCount getNewEntryCount(BlockMap *map)
 /**
  * Grow a block map on which prepareToGrowBlockMap() has already been called.
  *
- * @param map  The block map to grow
+ * @param map     The block map to grow
+ * @param parent  The object to notify when the growth is complete
  **/
-void growBlockMap(BlockMap *map);
+void growBlockMap(BlockMap *map, VDOCompletion *parent);
 
 /**
  * Abandon any preparations which were made to grow this block map.

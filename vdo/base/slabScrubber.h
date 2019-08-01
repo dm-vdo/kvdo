@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.h#4 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -115,8 +115,9 @@ void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
  * Tell the scrubber to resume scrubbing if it has been stopped.
  *
  * @param scrubber  The scrubber to resume
+ * @param parent    The object to notify once scrubbing has resumed
  **/
-void resumeScrubbing(SlabScrubber *scrubber);
+void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
 
 /**
  * Wait for a clean slab.

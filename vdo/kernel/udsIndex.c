@@ -31,7 +31,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/udsIndex.c#12 $
  */
 
 #include "udsIndex.h"
@@ -583,7 +583,6 @@ static void finishUDSIndex(DedupeIndex *dedupeIndex)
 {
   UDSIndex *index = container_of(dedupeIndex, UDSIndex, common);
   setTargetState(index, IS_CLOSED, false, false, false);
-  udsFreeConfiguration(index->configuration);
   finishWorkQueue(index->udsQueue);
 }
 
@@ -736,6 +735,7 @@ static void udsUpdate(DataKVIO *dataKVIO)
 static void dedupeKobjRelease(struct kobject *kobj)
 {
   UDSIndex *index = container_of(kobj, UDSIndex, dedupeObject);
+  udsFreeConfiguration(index->configuration);
   FREE(index->indexName);
   FREE(index);
 }

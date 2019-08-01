@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#9 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,12 +24,15 @@
 
 #include "vdo.h"
 
+#include "adminCompletion.h"
+#include "adminState.h"
 #include "atomic.h"
 #include "header.h"
 #include "packer.h"
 #include "statistics.h"
 #include "superBlock.h"
 #include "readOnlyNotifier.h"
+#include "types.h"
 #include "uds.h"
 #include "vdoLayout.h"
 
@@ -94,7 +97,7 @@ struct vdo {
   bool                  vioTraceRecording;
 
   /* The logical zones of this VDO */
-  LogicalZone          **logicalZones;
+  LogicalZones          *logicalZones;
 
   /* The physical zones of this VDO */
   PhysicalZone         **physicalZones;
@@ -103,13 +106,13 @@ struct vdo {
   HashZone             **hashZones;
 
   /* The completion for administrative operations */
-  AdminCompletion       *adminCompletion;
+  AdminCompletion        adminCompletion;
+
+  /* The administrative state of the VDO */
+  AdminState             adminState;
 
   /* Whether a close is required */
   bool                   closeRequired;
-
-  /* Whether a close has been requested */
-  bool                   closeRequested;
 
   /* Atomic global counts of error events */
   AtomicErrorStatistics  errorStats;
@@ -355,6 +358,17 @@ void assertOnAdminThread(VDO *vdo, const char *name);
 void assertOnLogicalZoneThread(const VDO  *vdo,
                                ZoneCount   logicalZone,
                                const char *name);
+
+/**
+ * Assert that this function was called on the specified physical zone thread.
+ *
+ * @param vdo           The VDO
+ * @param physicalZone  The number of the physical zone
+ * @param name          The name of the calling function
+ **/
+void assertOnPhysicalZoneThread(const VDO  *vdo,
+                                ZoneCount   physicalZone,
+                                const char *name);
 
 /**
  * Select the hash zone responsible for locking a given chunk name.

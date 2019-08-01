@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.h#11 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -172,11 +172,10 @@ int decodeSlabDepot(Buffer              *buffer,
  * only before entering normal operation from the load thread.
  *
  * @param depot  The depot whose RefCounts need allocation
- * @param layer  The layer for the RefCounts
  *
  * @return VDO_SUCCESS or an error
  **/
-int allocateSlabRefCounts(SlabDepot *depot, PhysicalLayer *layer)
+int allocateSlabRefCounts(SlabDepot *depot)
   __attribute__((warn_unused_result));
 
 /**
@@ -351,10 +350,12 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
  * @param depot        The depot to load
  * @param operation    The type of load to perform
  * @param parent       The completion to finish when the load is complete
+ * @param context      Additional context for the load operation; may be NULL
  **/
 void loadSlabDepot(SlabDepot         *depot,
                    AdminStateCode     operation,
-                   VDOCompletion     *parent);
+                   VDOCompletion     *parent,
+                   void              *context);
 
 /**
  * Prepare the slab depot to come online and start allocating blocks. This
@@ -370,26 +371,22 @@ void prepareToAllocate(SlabDepot         *depot,
                        VDOCompletion     *parent);
 
 /**
- * Update the slab depot to reflect its new size in memory. This size is
- * saved to disk as part of the super block.
+ * Update the slab depot to reflect its new size in memory. This size is saved
+ * to disk as part of the super block.
  *
- * @param depot      The depot to update
- * @param reverting  Whether to revert to the pre-resize size
+ * @param depot  The depot to update
  **/
-void updateSlabDepotSize(SlabDepot *depot, bool reverting);
+void updateSlabDepotSize(SlabDepot *depot);
 
 /**
  * Allocate new memory needed for a resize of a slab depot to the given size.
  *
  * @param depot    The depot to prepare to resize
- * @param layer    The layer for making completions
  * @param newSize  The number of blocks in the new depot
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToGrowSlabDepot(SlabDepot     *depot,
-                           PhysicalLayer *layer,
-                           BlockCount     newSize)
+int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
   __attribute__((warn_unused_result));
 
 /**

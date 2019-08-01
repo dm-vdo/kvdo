@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.c#5 $
  */
 
 #include "logicalZone.h"
@@ -24,6 +24,8 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "actionManager.h"
+#include "adminState.h"
 #include "allocationSelector.h"
 #include "atomic.h"
 #include "blockMap.h"
@@ -37,11 +39,11 @@
 struct logicalZone {
   /** The completion for flush notifications */
   VDOCompletion       completion;
+  /** The owner of this zone */
+  LogicalZones       *zones;
   /** Which logical zone this is */
   ZoneCount           zoneNumber;
-  /** The next zone in the iteration list */
-  LogicalZone        *nextZone;
-  /** The thread ID for this zone */
+  /** The thread id for this zone */
   ThreadID            threadID;
   /** In progress operations keyed by LBN */
   IntMap             *lbnOperations;
@@ -64,14 +66,21 @@ struct logicalZone {
   bool                notifying;
   /** The queue of active data write VIOs */
   RingNode            writeVIOs;
-  /** The VDO */
-  VDO                *vdo;
-  /** The completion waiting for the zone to close */
-  VDOCompletion      *closeCompletion;
-  /** Whether a close has been requested */
-  bool                closeRequested;
+  /** The administrative state of the zone */
+  AdminState          state;
   /** The selector for determining which physical zone to allocate from */
   AllocationSelector *selector;
+};
+
+struct logicalZones {
+  /** The VDO whose zones these are */
+  VDO           *vdo;
+  /** The manager for administrative actions */
+  ActionManager *manager;
+  /** The number of zones */
+  ZoneCount      zoneCount;
+  /** The logical zones themselves */
+  LogicalZone    zones[];
 };
 
 /**
@@ -89,63 +98,109 @@ static LogicalZone *asLogicalZone(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int makeLogicalZone(VDO          *vdo,
-                    ZoneCount     zoneNumber,
-                    LogicalZone  *nextZone,
-                    LogicalZone **zonePtr)
+LogicalZone *getLogicalZone(LogicalZones *zones, ZoneCount zoneNumber)
 {
-  LogicalZone *zone;
-  int result = ALLOCATE(1, LogicalZone, __func__, &zone);
+  return (zoneNumber < zones->zoneCount) ? &zones->zones[zoneNumber] : NULL;
+}
+
+/**
+ * Implements ZoneThreadGetter
+ **/
+static ThreadID getThreadIDForZone(void *context, ZoneCount zoneNumber)
+{
+  return getLogicalZoneThreadID(getLogicalZone(context, zoneNumber));
+}
+
+/**
+ * Initialize a logical zone.
+ *
+ * @param zones       The LogicalZones to which this zone belongs
+ * @param zoneNumber  The LogicalZone's index
+ **/
+static int initializeZone(LogicalZones *zones, ZoneCount zoneNumber)
+{
+  LogicalZone *zone   = &zones->zones[zoneNumber];
+  zone->zones         = zones;
+  int          result = makeIntMap(LOCK_MAP_CAPACITY, 0, &zone->lbnOperations);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = makeIntMap(LOCK_MAP_CAPACITY, 0, &zone->lbnOperations);
-  if (result != VDO_SUCCESS) {
-    freeLogicalZone(&zone);
-    return result;
-  }
-
+  VDO *vdo = zones->vdo;
   result = initializeEnqueueableCompletion(&zone->completion,
                                            GENERATION_FLUSHED_COMPLETION,
                                            vdo->layer);
   if (result != VDO_SUCCESS) {
-    freeLogicalZone(&zone);
     return result;
   }
 
   zone->zoneNumber   = zoneNumber;
-  zone->nextZone     = nextZone;
-  zone->threadID     = getLogicalZoneThread(getThreadConfig(vdo), zoneNumber);
+  zone->threadID     = getLogicalZoneThread(getThreadConfig(vdo),
+                                            zoneNumber);
   zone->blockMapZone = getBlockMapZone(vdo->blockMap, zoneNumber);
-  zone->vdo          = vdo;
   initializeRing(&zone->writeVIOs);
   atomicStore64(&zone->oldestLockedGeneration, 0);
 
-  result = makeAllocationSelector(getThreadConfig(vdo)->physicalZoneCount,
-                                  zone->threadID, &zone->selector);
+  return makeAllocationSelector(getThreadConfig(vdo)->physicalZoneCount,
+                                zone->threadID, &zone->selector);
+}
+
+/**********************************************************************/
+int makeLogicalZones(VDO *vdo, LogicalZones **zonesPtr)
+{
+  const ThreadConfig *threadConfig = getThreadConfig(vdo);
+  if (threadConfig->logicalZoneCount == 0) {
+    return VDO_SUCCESS;
+  }
+
+  LogicalZones *zones;
+  int result = ALLOCATE_EXTENDED(LogicalZones, threadConfig->logicalZoneCount,
+                                 LogicalZone, __func__, &zones);
   if (result != VDO_SUCCESS) {
-    freeLogicalZone(&zone);
     return result;
   }
 
-  *zonePtr = zone;
+  zones->vdo = vdo;
+  zones->zoneCount = threadConfig->logicalZoneCount;
+  for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
+    result = initializeZone(zones, zone);
+    if (result != VDO_SUCCESS) {
+      freeLogicalZones(&zones);
+      return result;
+    }
+  }
+
+  result = makeActionManager(zones->zoneCount, getThreadIDForZone,
+                             getAdminThread(threadConfig), zones, NULL,
+                             vdo->layer, &zones->manager);
+  if (result != VDO_SUCCESS) {
+    freeLogicalZones(&zones);
+    return result;
+  }
+
+  *zonesPtr = zones;
   return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeLogicalZone(LogicalZone **logicalZonePtr)
+void freeLogicalZones(LogicalZones **zonesPtr)
 {
-  if (*logicalZonePtr == NULL) {
+  LogicalZones *zones = *zonesPtr;
+  if (zones == NULL) {
     return;
   }
 
-  LogicalZone *zone = *logicalZonePtr;
-  freeAllocationSelector(&zone->selector);
-  destroyEnqueueable(&zone->completion);
-  freeIntMap(&zone->lbnOperations);
-  FREE(zone);
-  *logicalZonePtr = NULL;
+  freeActionManager(&zones->manager);
+
+  for (ZoneCount index = 0; index < zones->zoneCount; index++) {
+    LogicalZone *zone = &zones->zones[index];
+    freeAllocationSelector(&zone->selector);
+    destroyEnqueueable(&zone->completion);
+    freeIntMap(&zone->lbnOperations);
+  }
+
+  FREE(zones);
+  *zonesPtr = NULL;
 }
 
 /**********************************************************************/
@@ -156,56 +211,65 @@ static inline void assertOnZoneThread(LogicalZone *zone, const char *what)
 }
 
 /**
- * Close the next zone. This callback is registered in checkForClosure().
- *
- * @param completion  The zone which has just closed as a completion
- **/
-static void closeLogicalZoneCallback(VDOCompletion *completion)
-{
-  LogicalZone *zone = asLogicalZone(completion);
-  closeLogicalZone(getNextLogicalZone(zone), completion->parent);
-}
-
-/**
- * Check whether this zone is closed.
+ * Check whether this zone has drained.
  *
  * @param zone  The zone to check
  **/
-static void checkForClosure(LogicalZone *zone)
+static void checkForDrainComplete(LogicalZone *zone)
 {
-  if ((zone->closeCompletion == NULL) || zone->notifying
+  if (!isDraining(&zone->state) || zone->notifying
       || !isRingEmpty(&zone->writeVIOs)) {
     return;
   }
 
-  VDOCompletion *closeCompletion = zone->closeCompletion;
-  zone->closeCompletion          = NULL;
+  finishDraining(&zone->state);
+}
 
-  if (zone->nextZone == NULL) {
-    // This is the last zone, so finish the close completion.
-    finishCompletion(closeCompletion, VDO_SUCCESS);
-    return;
+/**
+ * Drain a logical zone.
+ *
+ * <p>Implements ZoneAction.
+ **/
+static void drainLogicalZone(void          *context,
+                             ZoneCount      zoneNumber,
+                             VDOCompletion *parent)
+{
+  LogicalZone    *zone      = getLogicalZone(context, zoneNumber);
+  AdminStateCode  operation = getCurrentManagerOperation(zone->zones->manager);
+  if (startDraining(&zone->state, operation, parent)) {
+    checkForDrainComplete(zone);
   }
-
-  // This is not the last zone, so pass the close completion on to the next.
-  zone->notifying = true;
-  launchCallbackWithParent(&zone->completion, closeLogicalZoneCallback,
-                           getLogicalZoneThreadID(zone->nextZone),
-                           closeCompletion);
 }
 
 /**********************************************************************/
-void closeLogicalZone(LogicalZone *zone, VDOCompletion *completion)
+void drainLogicalZones(LogicalZones   *zones,
+                       AdminStateCode  operation,
+                       VDOCompletion  *parent)
 {
-  assertOnZoneThread(zone, __func__);
-  if (zone->closeCompletion != NULL) {
-    finishCompletion(completion, VDO_COMPONENT_BUSY);
-    return;
-  }
+  scheduleOperation(zones->manager, operation, NULL, drainLogicalZone, NULL,
+                    parent);
+}
 
-  zone->closeRequested  = true;
-  zone->closeCompletion = completion;
-  checkForClosure(zone);
+/**
+ * Resume a logical zone.
+ *
+ * <p>Implements ZoneAction.
+ **/
+static void resumeLogicalZone(void          *context,
+                              ZoneCount      zoneNumber,
+                              VDOCompletion *parent)
+{
+  LogicalZone *zone = getLogicalZone(context, zoneNumber);
+  if (startResuming(&zone->state, ADMIN_STATE_RESUMING, parent)) {
+    finishResuming(&zone->state);
+  }
+}
+
+/**********************************************************************/
+void resumeLogicalZones(LogicalZones *zones, VDOCompletion *parent)
+{
+  scheduleOperation(zones->manager, ADMIN_STATE_RESUMING, NULL,
+                    resumeLogicalZone, NULL, parent);
 }
 
 /**********************************************************************/
@@ -229,7 +293,7 @@ IntMap *getLBNLockMap(const LogicalZone *zone)
 /**********************************************************************/
 LogicalZone *getNextLogicalZone(const LogicalZone *zone)
 {
-  return zone->nextZone;
+  return getLogicalZone(zone->zones, zone->zoneNumber + 1);
 }
 
 /**
@@ -297,8 +361,8 @@ int acquireFlushGenerationLock(DataVIO *dataVIO)
 {
   LogicalZone *zone = dataVIO->logical.zone;
   assertOnZoneThread(zone, __func__);
-  if (zone->closeRequested && (zone->closeCompletion == NULL)) {
-    return VDO_SHUTTING_DOWN;
+  if (!isNormal(&zone->state)) {
+    return VDO_INVALID_ADMIN_STATE;
   }
 
   dataVIO->flushGeneration = zone->flushGeneration;
@@ -320,7 +384,7 @@ static void attemptGenerationCompleteNotification(VDOCompletion *completion);
 static void notifyFlusher(VDOCompletion *completion)
 {
   LogicalZone *zone = asLogicalZone(completion);
-  completeFlushes(zone->vdo->flusher);
+  completeFlushes(zone->zones->vdo->flusher);
   launchCallback(completion, attemptGenerationCompleteNotification,
                  zone->threadID);
 }
@@ -336,14 +400,14 @@ static void attemptGenerationCompleteNotification(VDOCompletion *completion)
   assertOnZoneThread(zone, __func__);
   if (zone->oldestActiveGeneration <= zone->notificationGeneration) {
     zone->notifying = false;
-    checkForClosure(zone);
+    checkForDrainComplete(zone);
     return;
   }
 
   zone->notifying              = true;
   zone->notificationGeneration = zone->oldestActiveGeneration;
   launchCallback(&zone->completion, notifyFlusher,
-                 getFlusherThreadID(zone->vdo->flusher));
+                 getFlusherThreadID(zone->zones->vdo->flusher));
 }
 
 /**********************************************************************/

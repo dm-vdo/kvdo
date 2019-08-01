@@ -16,45 +16,63 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.h#3 $
  */
 
 #ifndef LOGICAL_ZONE_H
 #define LOGICAL_ZONE_H
 
+#include "adminState.h"
 #include "intMap.h"
 #include "types.h"
 
 /**
- * Create a logical zone.
+ * Get a logical zone by number.
  *
- * @param [in]  vdo         The VDO to which the zone will belong
- * @param [in]  zoneNumber  The number of the zone to create
- * @param [in]  nextZone    The next zone in the iteration list
- * @param [out] zonePtr     A pointer to hold the new LogicalZone
+ * @param zones       A set of logical zones
+ * @param zoneNumber  The number of the zone to get
  *
- * @return VDO_SUCCESS or an error code
+ * @return The requested zone
  **/
-int makeLogicalZone(VDO          *vdo,
-                    ZoneCount     zoneNumber,
-                    LogicalZone  *nextZone,
-                    LogicalZone **zonePtr)
+LogicalZone *getLogicalZone(LogicalZones *zones, ZoneCount zoneNumber)
   __attribute__((warn_unused_result));
 
 /**
- * Free a logical zone and null out the reference to it.
+ * Create a set of logical zones.
+ *
+ * @param [in]  vdo       The VDO to which the zones will belong
+ * @param [out] zonesPtr  A pointer to hold the new zones
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+int makeLogicalZones(VDO *vdo, LogicalZones **zonesPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Free a set of logical zones and null out the reference to it.
  *
  * @param zonePtr  A pointer to the zone to free
  **/
-void freeLogicalZone(LogicalZone **zonePtr);
+void freeLogicalZones(LogicalZones **zonePtr);
 
 /**
- * Request that a logical zone close.
+ * Drain a set of logical zones.
  *
- * @param zone        The zone to close
- * @param completion  The object to notify when the zone is closed
+ * @param zones       The logical zones to suspend
+ * @param operation   The type of drain to perform
+ * @param completion  The object to notify when the zones are suspended
  **/
-void closeLogicalZone(LogicalZone *zone, VDOCompletion *completion);
+void drainLogicalZones(LogicalZones   *zones,
+                       AdminStateCode  operation,
+                       VDOCompletion  *completion);
+
+/**
+ * Resume a set of logical zones.
+ *
+ * @param zones   The logical zones to resume
+ * @param parent  The object to notify when the zones have resumed
+ **/
+void resumeLogicalZones(LogicalZones *zones, VDOCompletion *parent);
 
 /**
  * Get the ID of a logical zone's thread.

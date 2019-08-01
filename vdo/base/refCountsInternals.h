@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCountsInternals.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCountsInternals.h#4 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -67,8 +67,6 @@ typedef struct searchCursor {
  *
  */
 struct refCounts {
-  VDOCompletion             completion;
-
   /** The slab of this reference block */
   Slab                     *slab;
 
@@ -91,8 +89,6 @@ struct refCounts {
   Waiter                    slabSummaryWaiter;
   /** Whether slab summary update is in progress */
   bool                      updatingSlabSummary;
-  /** Whether something is waiting for I/O to complete */
-  bool                      hasIOWaiter;
 
   /** The notifier for read-only mode */
   ReadOnlyNotifier         *readOnlyNotifier;

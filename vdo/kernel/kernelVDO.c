@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.c#7 $
  */
 
 #include "kernelVDOInternals.h"
@@ -28,11 +28,12 @@
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
-#include "vdoClose.h"
 #include "vdoDebug.h"
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "vdoResume.h"
+#include "vdoSuspend.h"
 
 #include "kernelLayer.h"
 #include "kvio.h"
@@ -127,15 +128,15 @@ int initializeKVDO(KVDO                *kvdo,
 }
 
 /**********************************************************************/
-int startKVDO(KVDO                 *kvdo,
-              PhysicalLayer        *common,
-              const VDOLoadConfig  *loadConfig,
-              bool                  vioTraceRecording,
-              char                **reason)
+int preloadKVDO(KVDO                 *kvdo,
+                PhysicalLayer        *common,
+                const VDOLoadConfig  *loadConfig,
+                bool                  vioTraceRecording,
+                char                **reason)
 {
   KernelLayer *layer = asKernelLayer(common);
   init_completion(&layer->callbackSync);
-  int result = performVDOLoad(kvdo->vdo, loadConfig);
+  int result = prepareToLoadVDO(kvdo->vdo, loadConfig);
   if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
     *reason = "Cannot load metadata from device";
     return result;
@@ -146,7 +147,21 @@ int startKVDO(KVDO                 *kvdo,
 }
 
 /**********************************************************************/
-int stopKVDO(KVDO *kvdo)
+int startKVDO(KVDO *kvdo, PhysicalLayer *common, char **reason)
+{
+  KernelLayer *layer = asKernelLayer(common);
+  init_completion(&layer->callbackSync);
+  int result = performVDOLoad(kvdo->vdo);
+  if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+    *reason = "Cannot load metadata from device";
+    return result;
+  }
+
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int suspendKVDO(KVDO *kvdo)
 {
   if (kvdo->vdo == NULL) {
     return VDO_SUCCESS;
@@ -154,7 +169,32 @@ int stopKVDO(KVDO *kvdo)
 
   KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
   init_completion(&layer->callbackSync);
-  return performVDOClose(kvdo->vdo);
+  int result = performVDOSuspend(kvdo->vdo, !layer->noFlushSuspend);
+  if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+    char errorName[80] = "";
+    char errorMessage[ERRBUF_SIZE] = "";
+    logError("%s: Suspend device failed %d (%s: %s)",
+             __func__, result,
+             stringErrorName(result, errorName, sizeof(errorName)),
+             stringError(result, errorMessage, sizeof(errorMessage)));
+    return result;
+  }
+
+  // Convert VDO_READ_ONLY to VDO_SUCCESS since a read-only suspension still
+  // leaves the VDO suspended.
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int resumeKVDO(KVDO *kvdo)
+{
+  if (kvdo->vdo == NULL) {
+    return VDO_SUCCESS;
+  }
+
+  KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+  init_completion(&layer->callbackSync);
+  return performVDOResume(kvdo->vdo);
 }
 
 /**********************************************************************/

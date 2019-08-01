@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#16 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#17 $
  */
 
 #include "blockMapTree.h"
@@ -118,8 +118,8 @@ int initializeTreeZone(BlockMapZone  *zone,
     return result;
   }
 
-  return makeVIOPool(layer, BLOCK_MAP_VIO_POOL_SIZE, makeBlockMapVIOs,
-                     treeZone, &treeZone->vioPool);
+  return makeVIOPool(layer, BLOCK_MAP_VIO_POOL_SIZE, zone->threadID,
+                     makeBlockMapVIOs, treeZone, &treeZone->vioPool);
 }
 
 /**********************************************************************/
@@ -128,7 +128,8 @@ int replaceTreeZoneVIOPool(BlockMapTreeZone *zone,
                            size_t            poolSize)
 {
   freeVIOPool(&zone->vioPool);
-  return makeVIOPool(layer, poolSize, makeBlockMapVIOs, zone, &zone->vioPool);
+  return makeVIOPool(layer, poolSize, zone->mapZone->threadID,
+                     makeBlockMapVIOs, zone, &zone->vioPool);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelVDO.h#4 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -66,30 +66,51 @@ int initializeKVDO(KVDO                *kvdo,
                    char               **reason);
 
 /**
- * Starts the base VDO instance associated with the kernel layer
+ * Load the VDO state from disk but don't alter the on-disk state. This method
+ * is ultimately called from the constructor for devices which have not been
+ * resumed.
  *
  * @param [in]  kvdo                  The KVDO to be started
  * @param [in]  common                The physical layer pointer
  * @param [in]  loadConfig            Load-time parameters for the VDO
  * @param [in]  vioTraceRecording     Debug flag to store
  * @param [out] reason                The reason for failure
+ **/
+int preloadKVDO(KVDO                 *kvdo,
+                PhysicalLayer        *common,
+                const VDOLoadConfig  *loadConfig,
+                bool                  vioTraceRecording,
+                char                **reason);
+
+/**
+ * Starts the base VDO instance associated with the kernel layer. This method
+ * is ultimately called from preresume the first time an instance is resumed.
+ *
+ * @param [in]  kvdo                  The KVDO to be started
+ * @param [in]  common                The physical layer pointer
+ * @param [out] reason                The reason for failure
  *
  * @return VDO_SUCCESS if started, otherwise error
  */
-int startKVDO(KVDO                 *kvdo,
-              PhysicalLayer        *common,
-              const VDOLoadConfig  *loadConfig,
-              bool                  vioTraceRecording,
-              char                **reason);
+int startKVDO(KVDO *kvdo, PhysicalLayer *common, char **reason);
 
 /**
- * Stops the base VDO instance associated with the kernel layer
+ * Suspend the base VDO instance associated with the kernel layer.
  *
- * @param kvdo          The KVDO to be stopped
+ * @param kvdo  The KVDO to be suspended
  *
  * @return VDO_SUCCESS if stopped, otherwise error
- */
-int stopKVDO(KVDO *kvdo);
+ **/
+int suspendKVDO(KVDO *kvdo);
+
+/**
+ * Resume the base VDO instance associated with the kernel layer.
+ *
+ * @param kvdo  The KVDO to be resumed
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int resumeKVDO(KVDO *kvdo);
 
 /**
  * Shut down the base code interface. The kvdo object must first be

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/adminState.h#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/adminState.h#16 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -31,11 +31,9 @@
 typedef enum {
   /** Normal operation, DataVIOs may be active */
   ADMIN_TYPE_NORMAL = 0,
-  /** Flush: drain outstanding I/O and then return to normal */
-  ADMIN_TYPE_FLUSH,
   /**
    * Format: an operation for formatting a new VDO.
-   */
+   **/
   ADMIN_TYPE_FORMAT,
   /**
    * Recover: a recovery operation.
@@ -119,7 +117,11 @@ typedef enum {
   ADMIN_STATE_LOADING_FOR_REBUILD  = (ADMIN_TYPE_REBUILD
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_LOADING),
-  ADMIN_STATE_FLUSHING             = (ADMIN_TYPE_FLUSH
+  ADMIN_STATE_WAITING_FOR_RECOVERY = (ADMIN_TYPE_RECOVER
+                                      | ADMIN_FLAG_OPERATING),
+  ADMIN_STATE_NEW                  = (ADMIN_TYPE_NORMAL
+                                      | ADMIN_FLAG_QUIESCENT),
+  ADMIN_STATE_RECOVERING           = (ADMIN_TYPE_RECOVER
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_DRAINING),
   ADMIN_STATE_REBUILDING           = (ADMIN_TYPE_REBUILD
@@ -155,9 +157,21 @@ typedef enum {
 typedef struct {
   /** The current administrative state */
   AdminStateCode  state;
+  /** The next administrative state (when the current operation finishes */
+  AdminStateCode  nextState;
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
 } AdminState;
+
+/**
+ * Get the name of an AdminStateCode for logging purposes.
+ *
+ * @param code  The AdminStateCode
+ *
+ * @return The name of the state's code
+ **/
+const char *getAdminStateCodeName(AdminStateCode code)
+  __attribute__((warn_unused_result));
 
 /**
  * Get the name of an AdminState's code for logging purposes.
@@ -222,6 +236,45 @@ static inline bool isSuspending(AdminState *state)
 }
 
 /**
+ * Check whether an AdminState is suspended.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is suspended
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSuspended(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SUSPENDED);
+}
+
+/**
+ * Check whether an AdminState is saving.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is saving
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSaving(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SAVING);
+}
+
+/**
+ * Check whether an AdminState is saved.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is saved
+ **/
+__attribute__((warn_unused_result))
+static inline bool isSaved(AdminState *state)
+{
+  return (state->state == ADMIN_STATE_SAVED);
+}
+
+/**
  * Check whether an AdminStateCode is a drain operation.
  *
  * @param code  The AdminStateCode to check
@@ -274,6 +327,32 @@ static inline bool isLoading(AdminState *state)
 }
 
 /**
+ * Check whether an AdminStateCode is a resume operation.
+ *
+ * @param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> if the code is for a resume operation
+ **/
+__attribute__((warn_unused_result))
+static inline bool isResumeOperation(AdminStateCode code)
+{
+  return ((code & ADMIN_TYPE_MASK) == ADMIN_TYPE_RESUME);
+}
+
+/**
+ * Check whether an AdminState is resumeing.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state is resumeing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isResuming(AdminState *state)
+{
+  return isResumeOperation(state->state);
+}
+
+/**
  * Check whether an AdminState is doing a clean load.
  *
  * @param state  The AdminState to query
@@ -288,6 +367,19 @@ static inline bool isCleanLoad(AdminState *state)
 }
 
 /**
+ * Check whether an AdminStateCode is quiescing.
+ *
+ * param code  The AdminStateCode to check
+ *
+ * @return <code>true</code> is the state is quiescing
+ **/
+__attribute__((warn_unused_result))
+static inline bool isQuiescingCode(AdminStateCode code)
+{
+  return ((code & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+}
+
+/**
  * Check whether an AdminState is quiescing.
  *
  * @param state  The AdminState to check
@@ -297,7 +389,7 @@ static inline bool isCleanLoad(AdminState *state)
 __attribute__((warn_unused_result))
 static inline bool isQuiescing(AdminState *state)
 {
-  return ((state->state & ADMIN_FLAG_QUIESCING) == ADMIN_FLAG_QUIESCING);
+  return isQuiescingCode(state->state);
 }
 
 /**
@@ -436,6 +528,42 @@ bool finishLoading(AdminState *state);
 bool finishLoadingWithResult(AdminState *state, int result);
 
 /**
+ * Initiate a resume operation if the current state permits it.
+ *
+ * @param state      The AdminState
+ * @param operation  The type of resume to start
+ * @param waiter     The completion to notify when the resume is complete (may
+ *                   be NULL)
+ *
+ * @return <code>true</code> if the resume was initiated, if not the waiter
+ *         will be notified
+ **/
+bool startResuming(AdminState     *state,
+                   AdminStateCode  operation,
+                   VDOCompletion  *waiter);
+
+/**
+ * Finish a resume operation if one was in progress.
+ *
+ * @param state  The AdminState to query
+ *
+ * @return <code>true</code> if the state was resuming; will notify the waiter
+ *         if so
+ **/
+bool finishResuming(AdminState *state);
+
+/**
+ * Finish a resume operation with a status code.
+ *
+ * @param state   The AdminState to query
+ * @param result  The result of the resume operation
+ *
+ * @return <code>true</code> if the state was resuming; will notify the
+ *         waiter if so
+ **/
+bool finishResumingWithResult(AdminState *state, int result);
+
+/**
  * Change the state to normal operation if the current state is quiescent.
  *
  * @param state  The AdminState to resume
@@ -456,9 +584,24 @@ bool resumeIfQuiescent(AdminState *state);
 int startOperation(AdminState *state, AdminStateCode operation);
 
 /**
- * Finish the current operation. This method should be used for operations
- * started with startOperation(). For operations which were started with
- * startDraining(), use finishDraining() instead.
+ * Attempt to start an operation.
+ *
+ * @param state      the AdminState
+ * @param operation  the operation to start
+ * @param waiter     the completion to notify when the operation completes or
+ *                   fails to start; may be NULL
+ *
+ * @return <code>true</code> if the operation was started
+ **/
+bool startOperationWithWaiter(AdminState     *state,
+                              AdminStateCode  operation,
+                              VDOCompletion  *waiter);
+
+/**
+ * Finish the current operation. Will notify the operation waiter if there is
+ * one. This method should be used for operations started with
+ * startOperation(). For operations which were started with startDraining(),
+ * use finishDraining() instead.
  *
  * @param state  The state whose operation is to be finished
  *
@@ -467,14 +610,13 @@ int startOperation(AdminState *state, AdminStateCode operation);
 bool finishOperation(AdminState *state);
 
 /**
- * Set a waiter for the current operation.
+ * Finish the current operation with a status code. Will notify the operation
+ * waiter if there is one.
  *
- * @param state   the AdminState
- * @param waiter  the completion to notify when the operation completes; will
- *                be notified immediately with an error if there is no current
- *                operation or if there is already a waiter
+ * @param state   The state whose operation is to be finished
+ * @param result  The result of the operation
  **/
-void setOperationWaiter(AdminState *state, VDOCompletion *waiter);
+bool finishOperationWithResult(AdminState *state, int result);
 
 /**
  * Set a result for the current operation.

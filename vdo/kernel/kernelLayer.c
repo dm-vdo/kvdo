@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#23 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#26 $
  */
 
 #include "kernelLayer.h"
@@ -130,7 +130,7 @@ int mapToSystemError(int error)
 /**********************************************************************/
 static void setKernelLayerState(KernelLayer *layer, KernelLayerState newState)
 {
-  relaxedStore32(&layer->state, newState);
+  atomicStore32(&layer->state, newState);
 }
 
 /**********************************************************************/
@@ -563,7 +563,6 @@ static void waitForSyncOperation(PhysicalLayer *common)
 /**
  * Make the bio set for allocating new bios.
  *
- *
  * @param layer  The kernel layer
  *
  * @returns VDO_SUCCESS if bio set created, error code otherwise
@@ -673,6 +672,7 @@ int makeKernelLayer(uint64_t        startingSector,
   layer->instance             = instance;
   layer->deviceConfig         = config;
   layer->startingSectorOffset = startingSector;
+  initializeRing(&layer->deviceConfigRing);
 
   layer->common.updateCRC32              = kvdoUpdateCRC32;
   layer->common.getBlockCount            = kvdoGetBlockCount;
@@ -968,6 +968,17 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
 int modifyKernelLayer(KernelLayer  *layer,
                       DeviceConfig *config)
 {
+  KernelLayerState state = getKernelLayerState(layer);
+  if (state == LAYER_RUNNING) {
+    return VDO_SUCCESS;
+  } else if (state != LAYER_SUSPENDED) {
+    logError("pre-resume invoked while in unexpected kernel layer state %d",
+             state);
+    return -EINVAL;
+  }
+
+  setKernelLayerState(layer, LAYER_RESUMING);
+
   DeviceConfig *extantConfig = layer->deviceConfig;
 
   // A failure here is unrecoverable. So there is no problem if it happens.
@@ -1027,6 +1038,11 @@ void freeKernelLayer(KernelLayer *layer)
     break;
 
   case LAYER_RUNNING:
+    suspendKernelLayer(layer);
+    // fall through
+
+  case LAYER_STARTING:
+  case LAYER_RESUMING:
   case LAYER_SUSPENDED:
     stopKernelLayer(layer);
     // fall through
@@ -1124,21 +1140,42 @@ static void poolStatsRelease(struct kobject *kobj)
 }
 
 /**********************************************************************/
-int startKernelLayer(KernelLayer          *layer,
-                     const VDOLoadConfig  *loadConfig,
-                     char                **reason)
+int preloadKernelLayer(KernelLayer          *layer,
+                       const VDOLoadConfig  *loadConfig,
+                       char                **reason)
 {
-  ASSERT_LOG_ONLY(getKernelLayerState(layer) == LAYER_CPU_QUEUE_INITIALIZED,
-                  "startKernelLayer may only be invoked after initialization");
-  setKernelLayerState(layer, LAYER_RUNNING);
+  if (getKernelLayerState(layer) != LAYER_CPU_QUEUE_INITIALIZED) {
+    *reason = "preloadKernelLayer() may only be invoked after initialization";
+    return UDS_BAD_STATE;
+  }
 
-  int result = startKVDO(&layer->kvdo, &layer->common, loadConfig,
+  setKernelLayerState(layer, LAYER_STARTING);
+  int result = preloadKVDO(&layer->kvdo, &layer->common, loadConfig,
                          layer->vioTraceRecording, reason);
   if (result != VDO_SUCCESS) {
     stopKernelLayer(layer);
     return result;
   }
 
+  return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int startKernelLayer(KernelLayer *layer, char **reason)
+{
+  if (getKernelLayerState(layer) != LAYER_STARTING) {
+    *reason = "Cannot start kernel from non-starting state";
+    stopKernelLayer(layer);
+    return UDS_BAD_STATE;
+  }
+
+  int result = startKVDO(&layer->kvdo, &layer->common, reason);
+  if (result != VDO_SUCCESS) {
+    stopKernelLayer(layer);
+    return result;
+  }
+
+  setKernelLayerState(layer, LAYER_RUNNING);
   static struct kobj_type statsDirectoryKobjType = {
     .release       = poolStatsRelease,
     .sysfs_ops     = &poolStatsSysfsOps,
@@ -1171,11 +1208,8 @@ int startKernelLayer(KernelLayer          *layer,
 }
 
 /**********************************************************************/
-int stopKernelLayer(KernelLayer *layer)
+void stopKernelLayer(KernelLayer *layer)
 {
-  char errorName[80] = "";
-  char errorMessage[ERRBUF_SIZE] = "";
-
   layer->allocationsAllowed = true;
 
   // Stop services that need to gather VDO statistics from the worker threads.
@@ -1187,17 +1221,12 @@ int stopKernelLayer(KernelLayer *layer)
   }
   vdoDestroyProcfsEntry(layer->deviceConfig->poolName, layer->procfsPrivate);
 
-  int result = stopKVDO(&layer->kvdo);
-  if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-    logError("%s: Close device failed %d (%s: %s)",
-             __func__, result,
-             stringErrorName(result, errorName, sizeof(errorName)),
-             stringError(result, errorMessage, sizeof(errorMessage)));
-  }
-
   switch (getKernelLayerState(layer)) {
-  case LAYER_SUSPENDED:
   case LAYER_RUNNING:
+    suspendKernelLayer(layer);
+    // fall through
+
+  case LAYER_SUSPENDED:
     setKernelLayerState(layer, LAYER_STOPPING);
     stopDedupeIndex(layer->dedupeIndex);
     // fall through
@@ -1207,8 +1236,6 @@ int stopKernelLayer(KernelLayer *layer)
   default:
     setKernelLayerState(layer, LAYER_STOPPED);
   }
-
-  return result;
 }
 
 /**********************************************************************/
@@ -1216,7 +1243,7 @@ int suspendKernelLayer(KernelLayer *layer)
 {
   // It's important to note any error here does not actually stop device-mapper
   // from suspending the device. All this work is done post suspend.
-  KernelLayerState  state = getKernelLayerState(layer);
+  KernelLayerState state = getKernelLayerState(layer);
   if (state == LAYER_SUSPENDED) {
     return VDO_SUCCESS;
   }
@@ -1225,8 +1252,6 @@ int suspendKernelLayer(KernelLayer *layer)
              state);
     return -EINVAL;
   }
-
-  setKernelLayerState(layer, LAYER_SUSPENDED);
 
   /*
    * Attempt to flush all I/O before completing post suspend work. This is
@@ -1239,16 +1264,35 @@ int suspendKernelLayer(KernelLayer *layer)
   if (result != VDO_SUCCESS) {
     setKVDOReadOnly(&layer->kvdo, result);
   }
+
+  /*
+   * Suspend the VDO, writing out all dirty metadata if the no-flush flag
+   * was not set on the dmsetup suspend call. This will ensure that we don't
+   * have cause to write while suspended [VDO-4402].
+   */
+  int suspendResult = suspendKVDO(&layer->kvdo);
+  if (result == VDO_SUCCESS) {
+    result = suspendResult;
+  }
+
   suspendDedupeIndex(layer->dedupeIndex, !layer->noFlushSuspend);
+  setKernelLayerState(layer, LAYER_SUSPENDED);
   return result;
 }
 
 /**********************************************************************/
 int resumeKernelLayer(KernelLayer *layer)
 {
-  if (getKernelLayerState(layer) == LAYER_SUSPENDED) {
-    setKernelLayerState(layer, LAYER_RUNNING);
+  if (getKernelLayerState(layer) == LAYER_RUNNING) {
+    return VDO_SUCCESS;
   }
+
+  int result = resumeKVDO(&layer->kvdo);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  setKernelLayerState(layer, LAYER_RUNNING);
   return VDO_SUCCESS;
 }
 

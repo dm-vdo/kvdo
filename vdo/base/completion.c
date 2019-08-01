@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/completion.c#10 $
  */
 
 #include "completion.h"
@@ -45,11 +45,7 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
   "READ_ONLY_MODE_COMPLETION",
   "READ_ONLY_REBUILD_COMPLETION",
   "RECOVERY_COMPLETION",
-  "RECOVERY_JOURNAL_COMPLETION",
-  "REFERENCE_COUNTS_COMPLETION",
   "REFERENCE_COUNT_REBUILD_COMPLETION",
-  "SLAB_COMPLETION",
-  "SLAB_JOURNAL_COMPLETION",
   "SLAB_SCRUBBER_COMPLETION",
   "SUB_TASK_COMPLETION",
   "TEST_COMPLETION",

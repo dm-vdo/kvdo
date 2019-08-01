@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournalInternals.h#8 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -172,9 +172,6 @@ typedef struct {
 } JournalLock;
 
 struct slabJournal {
-  /** The completion for load, flush, and close */
-  VDOCompletion                completion;
-
   /** A waiter object for getting a VIO pool entry */
   Waiter                       resourceWaiter;
   /** A waiter object for updating the slab summary */
@@ -188,8 +185,6 @@ struct slabJournal {
 
   /** Whether a tail block commit is pending */
   bool                         waitingToCommit;
-  /** Whether a completion is waiting for slab journal space */
-  bool                         waitingForSpace;
   /** Whether the journal is updating the slab summary */
   bool                         updatingSlabSummary;
   /** Whether the journal is adding entries from the entryWaiters queue */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.c#5 $
  */
 
 #include "vioPool.h"
@@ -45,6 +45,8 @@ struct vioPool {
   RingNode       busy;
   /** The number of requests when no object was available */
   uint64_t       outageCount;
+  /** The ID of the thread on which this pool may be used */
+  ThreadID       threadID;
   /** The buffer backing the pool's VIOs */
   char          *buffer;
   /** The pool entries */
@@ -53,30 +55,32 @@ struct vioPool {
 
 /**********************************************************************/
 int makeVIOPool(PhysicalLayer   *layer,
-                size_t           size,
+                size_t           poolSize,
+                ThreadID         threadID,
                 VIOConstructor  *vioConstructor,
                 void            *context,
                 VIOPool        **poolPtr)
 {
   VIOPool *pool;
-  int result = ALLOCATE_EXTENDED(VIOPool, size, VIOPoolEntry, __func__,
+  int result = ALLOCATE_EXTENDED(VIOPool, poolSize, VIOPoolEntry, __func__,
                                  &pool);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = ALLOCATE(size * VDO_BLOCK_SIZE, char, "VIO pool buffer",
+  pool->threadID = threadID;
+  initializeRing(&pool->available);
+  initializeRing(&pool->busy);
+
+  result = ALLOCATE(poolSize * VDO_BLOCK_SIZE, char, "VIO pool buffer",
                     &pool->buffer);
   if (result != VDO_SUCCESS) {
     freeVIOPool(&pool);
     return result;
   }
 
-  initializeRing(&pool->available);
-  initializeRing(&pool->busy);
-
   char *ptr = pool->buffer;
-  for (size_t i = 0; i < size; i++) {
+  for (size_t i = 0; i < poolSize; i++) {
     VIOPoolEntry *entry = &pool->entries[i];
     entry->buffer       = ptr;
     entry->context      = context;
@@ -142,6 +146,9 @@ bool isVIOPoolBusy(VIOPool *pool)
 /**********************************************************************/
 int acquireVIOFromPool(VIOPool *pool, Waiter *waiter)
 {
+  ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
+                  "acquire from active VIOPool called from correct thread");
+
   if (isRingEmpty(&pool->available)) {
     pool->outageCount++;
     return enqueueWaiter(&pool->waiting, waiter);
@@ -157,6 +164,8 @@ int acquireVIOFromPool(VIOPool *pool, Waiter *waiter)
 /**********************************************************************/
 void returnVIOToPool(VIOPool *pool, VIOPoolEntry *entry)
 {
+  ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
+                  "vio pool entry returned on same thread as it was acquired");
   entry->vio->completion.errorHandler = NULL;
   if (hasWaiters(&pool->waiting)) {
     notifyNextWaiter(&pool->waiting, NULL, entry);

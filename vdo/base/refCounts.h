@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#6 $
  */
 
 #ifndef REF_COUNTS_H
@@ -35,7 +35,6 @@
  * blocks to have 0 or 1 reference counts, the structure is optimized for that
  * situation.
  *
- * @param [in]  layer             The layer which holds the reference counts
  * @param [in]  blockCount        The number of physical blocks that can be
  *                                referenced
  * @param [in]  slab              The slab of the ref counts object
@@ -45,8 +44,7 @@
  *
  * @return a success or error code
  **/
-int makeRefCounts(PhysicalLayer        *layer,
-                  BlockCount            blockCount,
+int makeRefCounts(BlockCount            blockCount,
                   Slab                 *slab,
                   PhysicalBlockNumber   origin,
                   ReadOnlyNotifier     *readOnlyNotifier,
@@ -208,28 +206,6 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
   __attribute__((warn_unused_result));
 
 /**
- * Allocate a VDOCompletion for a reference counter load or save operation.
- *
- * @param [in]  referenceCountBlocks  The number of reference count blocks
- * @param [in]  layer                 The layer for the completion
- * @param [out] completionPtr         A pointer to hold the new completion
- *
- * @return VDO_SUCCESS or an error
- **/
-int makeReferenceCountsCompletion(BlockCount      referenceCountBlocks,
-                                  PhysicalLayer  *layer,
-                                  VDOCompletion **completionPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Free a VDOCompletion for a reference counter load or save operation and
- * null out the reference to it.
- *
- * @param completionPtr  The reference to the completion to free
- **/
-void freeReferenceCountsCompletion(VDOCompletion **completionPtr);
-
-/**
  * Request a RefCounts save several dirty blocks asynchronously. This function
  * currently writes 1 / flushDivisor of the dirty blocks.
  *
@@ -244,41 +220,6 @@ void saveSeveralReferenceBlocks(RefCounts *refCounts, size_t flushDivisor);
  * @param refCounts     The RefCounts object to notify
  **/
 void saveDirtyReferenceBlocks(RefCounts *refCounts);
-
-/**
- * Save all reference blocks asynchronously to the underlying layer.<p>
- *
- * Implements slabCompletion.c:ReferenceCountIO.
- *
- * @param refCounts     The reference counts to save
- * @param parent        The completion to notify when the save is complete
- * @param callback      The function to call when the save is complete
- * @param errorHandler  The handler for save errors (may be NULL)
- * @param threadID      The thread on which the callbacks should run
- **/
-void saveReferenceBlocks(RefCounts     *refCounts,
-                         VDOCompletion *parent,
-                         VDOAction     *callback,
-                         VDOAction     *errorHandler,
-                         ThreadID       threadID);
-
-/**
- * Mark all reference blocks as dirty and then write them out asynchronously to
- * the underlying layer.<p>
- *
- * Implements slabCompletion.c:ReferenceCountIO.
- *
- * @param refCounts     The reference counts to mark and save
- * @param parent        The completion to notify when the save is complete
- * @param callback      The function to call when the save is complete
- * @param errorHandler  The handler for save errors (may be NULL)
- * @param threadID      The thread on which the callbacks should run
- **/
-void saveAllReferenceBlocks(RefCounts     *refCounts,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler,
-                            ThreadID       threadID);
 
 /**
  * Mark all reference count blocks as dirty.

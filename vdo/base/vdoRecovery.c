@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#12 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoRecovery.c#15 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -24,6 +24,8 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 
+#include "blockAllocator.h"
+#include "blockAllocatorInternals.h"
 #include "blockMapInternals.h"
 #include "blockMapPage.h"
 #include "blockMapRecovery.h"
@@ -32,10 +34,12 @@
 #include "packedRecoveryJournalBlock.h"
 #include "recoveryJournal.h"
 #include "recoveryUtils.h"
-#include "ringNode.h"
+#include "slab.h"
 #include "slabDepot.h"
 #include "slabJournal.h"
+#include "slabJournalInternals.h"
 #include "vdoInternal.h"
+#include "waitQueue.h"
 
 enum {
   // The int map needs capacity of twice the number of VIOs in the system.
@@ -45,68 +49,56 @@ enum {
 };
 
 typedef struct missingDecref {
-  /** A ring node, for use in tracking used and unused objects */
-  RingNode            ringNode;
+  /** A waiter for queueing this object */
+  Waiter              waiter;
   /** The parent of this object */
   RecoveryCompletion *recovery;
+  /** Whether this decref is complete */
+  bool                complete;
   /** The slot for which the last decref was lost */
   BlockMapSlot        slot;
   /** The penultimate block map entry for this LBN */
   DataLocation        penultimateMapping;
   /** The page completion used to fetch the block map page for this LBN */
   VDOPageCompletion   pageCompletion;
+  /** The journal point which will be used for this entry */
+  JournalPoint        journalPoint;
+  /** The slab journal to which this entry will be applied */
+  SlabJournal        *slabJournal;
 } MissingDecref;
 
 /**
- * Convert a RingNode to the missing decref of which it is a part.
+ * Convert a Waiter to the missing decref of which it is a part.
  *
- * @param ringNode  The RingNode to convert
+ * @param waiter  The Waiter to convert
  *
- * @return The MissingDecref wrapping the RingNode
+ * @return The MissingDecref wrapping the Waiter
  **/
 __attribute__((warn_unused_result))
-static inline MissingDecref *asMissingDecref(RingNode *ringNode)
+static inline MissingDecref *asMissingDecref(Waiter *waiter)
 {
-  STATIC_ASSERT(offsetof(MissingDecref, ringNode) == 0);
-  return (MissingDecref *) ringNode;
+  STATIC_ASSERT(offsetof(MissingDecref, waiter) == 0);
+  return (MissingDecref *) waiter;
 }
 
 /**
- * Create a MissingDecref.
+ * Enqueue a MissingDecref. If the enqueue fails, enter read-only mode.
  *
- * @param recovery   The parent recovery completion
- * @param decrefPtr  A pointer to return the allocated decref object
+ * @param queue  The queue on which to enqueue the decref
+ * @param decref  The MissingDecref to enqueue
  *
- * @return VDO_SUCCESS or an error code
+ * @return VDO_SUCCESS or an error
  **/
-static int makeMissingDecref(RecoveryCompletion  *recovery,
-                             MissingDecref      **decrefPtr)
+static int enqueueMissingDecref(WaitQueue *queue, MissingDecref *decref)
 {
-  MissingDecref *decref;
-  int result = ALLOCATE(1, MissingDecref, __func__, &decref);
+  int result = enqueueWaiter(queue, &decref->waiter);
   if (result != VDO_SUCCESS) {
-    return result;
-  }
-  decref->recovery = recovery;
-  initializeRing(&decref->ringNode);
-  *decrefPtr = decref;
-  return VDO_SUCCESS;
-}
-
-/**
- * Free a MissingDecref object.
- *
- * @param decrefPtr  A pointer to the decref to free
- **/
-static void freeMissingDecref(MissingDecref **decrefPtr)
-{
-  MissingDecref *decref = *decrefPtr;
-  if (decref == NULL) {
-    return;
+    enterReadOnlyMode(decref->recovery->vdo->readOnlyNotifier, result);
+    setCompletionResult(&decref->recovery->completion, result);
+    FREE(decref);
   }
 
-  FREE(decref);
-  *decrefPtr = NULL;
+  return result;
 }
 
 /**
@@ -119,6 +111,61 @@ static void freeMissingDecref(MissingDecref **decrefPtr)
 static uint64_t slotAsNumber(BlockMapSlot slot)
 {
   return (((uint64_t) slot.pbn << 10) + slot.slot);
+}
+
+/**
+ * Create a MissingDecref and enqueue it to wait for a determination of its
+ * penultimate mapping.
+ *
+ * @param [in]  recovery   The parent recovery completion
+ * @param [in]  entry      The recovery journal entry for the increment which is
+ *                         missing a decref
+ * @param [out] decrefPtr  A pointer to hold the new MissingDecref
+ *
+ * @return VDO_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+static int makeMissingDecref(RecoveryCompletion    *recovery,
+                             RecoveryJournalEntry   entry,
+                             MissingDecref        **decrefPtr)
+{
+  MissingDecref *decref;
+  int result = ALLOCATE(1, MissingDecref, __func__, &decref);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  decref->recovery = recovery;
+  result = enqueueMissingDecref(&recovery->missingDecrefs[0], decref);
+  if (result != VDO_SUCCESS) {
+    return result;
+  }
+
+  /*
+   * Each synthsized decref needs a unique journal point. Otherwise, in the
+   * event of a crash, we would be unable to tell which synthesized decrefs had
+   * already been committed in the slab journals. Instead of using real
+   * recovery journal space for this, we can use fake journal points between
+   * the last currently valid entry in the tail block and the first journal
+   * entry in the next block. We can't overflow the entry count since the
+   * number of synthesized decrefs is bounded by the DataVIO limit.
+   *
+   * It is vital that any given missing decref always have the same fake
+   * journal point since a failed recovery may be retried with a different
+   * number of zones after having written out some slab journal blocks. Since
+   * the missing decrefs are always read out of the journal in the same order,
+   * we can assign them a journal point when they are read. Their subsequent
+   * use will ensure that, for any given slab journal, they are applied in
+   * the order dictated by these assigned journal points.
+   */
+  decref->slot         = entry.slot;
+  decref->journalPoint = recovery->nextSynthesizedJournalPoint;
+  recovery->nextSynthesizedJournalPoint.entryCount++;
+  recovery->missingDecrefCount++;
+  recovery->incompleteDecrefCount++;
+
+  *decrefPtr = decref;
+  return VDO_SUCCESS;
 }
 
 /**
@@ -196,13 +243,57 @@ static bool beforeRecoveryPoint(const RecoveryPoint *first,
           && (first->entryCount < second->entryCount));
 }
 
+/**
+ * Prepare the sub-task completion.
+ *
+ * @param recovery      The RecoveryCompletion whose sub-task completion is to
+ *                      be prepared
+ * @param callback      The callback to register for the next sub-task
+ * @param errorHandler  The error handler for the next sub-task
+ * @param zoneType      The type of zone on which the callback or errorHandler
+ *                      should run
+ **/
+static void prepareSubTask(RecoveryCompletion *recovery,
+                           VDOAction           callback,
+                           VDOAction           errorHandler,
+                           ZoneType            zoneType)
+{
+  const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
+  ThreadID threadID;
+  switch (zoneType) {
+  case ZONE_TYPE_LOGICAL:
+    // All blockmap access is done on single thread, so use logical zone 0.
+    threadID = getLogicalZoneThread(threadConfig, 0);
+    break;
+
+  case ZONE_TYPE_PHYSICAL:
+    threadID = recovery->allocator->threadID;
+    break;
+
+  case ZONE_TYPE_ADMIN:
+  default:
+    threadID = getAdminThread(threadConfig);
+  }
+
+  prepareCompletion(&recovery->subTaskCompletion, callback, errorHandler,
+                    threadID, recovery);
+}
+
 /**********************************************************************/
 int makeRecoveryCompletion(VDO *vdo, RecoveryCompletion **recoveryPtr)
 {
+  const ThreadConfig *threadConfig = getThreadConfig(vdo);
   RecoveryCompletion *recovery;
-  int result = ALLOCATE(1, RecoveryCompletion, __func__, &recovery);
+  int result = ALLOCATE_EXTENDED(RecoveryCompletion,
+                                 threadConfig->physicalZoneCount, RingNode,
+                                 __func__, &recovery);
  if (result != VDO_SUCCESS) {
     return result;
+  }
+
+  recovery->vdo = vdo;
+  for (ZoneCount z = 0; z < threadConfig->physicalZoneCount; z++) {
+    initializeWaitQueue(&recovery->missingDecrefs[z]);
   }
 
   result = initializeEnqueueableCompletion(&recovery->completion,
@@ -225,11 +316,19 @@ int makeRecoveryCompletion(VDO *vdo, RecoveryCompletion **recoveryPtr)
     return result;
   }
 
-  initializeRing(&recovery->incompleteDecrefs);
-  initializeRing(&recovery->completeDecrefs);
-  recovery->vdo = vdo;
   *recoveryPtr  = recovery;
   return VDO_SUCCESS;
+}
+
+/**
+ * A waiter callback to free MissingDecrefs.
+ *
+ * Implements WaiterCallback.
+ **/
+static void freeMissingDecref(Waiter *waiter,
+                              void   *context __attribute__((unused)))
+{
+  FREE(asMissingDecref(waiter));
 }
 
 /**********************************************************************/
@@ -240,18 +339,12 @@ void freeRecoveryCompletion(RecoveryCompletion **recoveryPtr)
     return;
   }
 
-  MissingDecref *currentDecref;
-  while (!isRingEmpty(&recovery->incompleteDecrefs)) {
-    currentDecref = asMissingDecref(popRingNode(&recovery->incompleteDecrefs));
-    freeMissingDecref(&currentDecref);
-  }
-
-  while (!isRingEmpty(&recovery->completeDecrefs)) {
-    currentDecref = asMissingDecref(popRingNode(&recovery->completeDecrefs));
-    freeMissingDecref(&currentDecref);
-  }
-
   freeIntMap(&recovery->slotEntryMap);
+  const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
+  for (ZoneCount z = 0; z < threadConfig->physicalZoneCount; z++) {
+    notifyAllWaiters(&recovery->missingDecrefs[z], freeMissingDecref, NULL);
+  }
+
   FREE(recovery->journalData);
   FREE(recovery->entries);
   destroyEnqueueable(&recovery->subTaskCompletion);
@@ -278,7 +371,7 @@ static void finishRecovery(VDOCompletion *completion)
 
   // Now that we've freed the recovery completion and its vast array of
   // journal entries, we can allocate refcounts.
-  int result = allocateSlabRefCounts(vdo->depot, vdo->layer);
+  int result = allocateSlabRefCounts(vdo->depot);
   finishCompletion(parent, result);
 }
 
@@ -427,88 +520,80 @@ static void startSuperBlockSave(VDOCompletion *completion)
   vdo->state = VDO_REPLAYING;
 
   // The block map access which follows the super block save must be done
-  // in logical zone 0
-  prepareCompletion(completion, launchBlockMapRecovery, finishParentCallback,
-                    getLogicalZoneThread(getThreadConfig(vdo), 0),
-                    completion->parent);
+  // on a logical thread.
+  prepareSubTask(recovery, launchBlockMapRecovery, finishParentCallback,
+                 ZONE_TYPE_LOGICAL);
   saveVDOComponentsAsync(vdo, completion);
 }
 
 /**
- * Add synthesized entries into slab journals, waiting when necessary.
+ * The callback from loading the slab depot. It will update the logical blocks
+ * and block map data blocks counts in the recovery journal and then drain the
+ * slab depot in order to commit the recovered slab journals. It is registered
+ * in applyToDepot().
  *
  * @param completion  The sub-task completion
  **/
-static void addSynthesizedEntries(VDOCompletion *completion)
+static void finishRecoveringDepot(VDOCompletion *completion)
 {
   RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO *vdo = recovery->vdo;
-  // We need to call flushDepotSlabJournals() from the admin thread later.
+  VDO                *vdo      = recovery->vdo;
   assertOnAdminThread(vdo, __func__);
 
-  // Get ready in case we need to enqueue again
-  prepareCompletion(completion, addSynthesizedEntries, addSynthesizedEntries,
-                    completion->callbackThreadID, &recovery->completion);
-
-  MissingDecref *currentDecref;
-  while (!isRingEmpty(&recovery->completeDecrefs)) {
-    currentDecref = asMissingDecref(recovery->completeDecrefs.prev);
-    DataLocation mapping = currentDecref->penultimateMapping;
-    if (!isValidLocation(&mapping)
-        || !isPhysicalDataBlock(vdo->depot, mapping.pbn)) {
-      // The block map contained a bad mapping, so the block map is corrupt.
-      int result = logErrorWithStringError(VDO_BAD_MAPPING,
-                                           "Read invalid mapping for pbn %"
-                                           PRIu64 " with state %u",
-                                           mapping.pbn, mapping.state);
-      enterReadOnlyMode(vdo->readOnlyNotifier, result);
-      finishCompletion(&recovery->completion, result);
-      return;
-    }
-
-    if (mapping.pbn == ZERO_BLOCK) {
-      if (isMappedLocation(&mapping)) {
-        recovery->logicalBlocksUsed--;
-      }
-
-      popRingNode(&recovery->completeDecrefs);
-      freeMissingDecref(&currentDecref);
-      continue;
-    }
-
-    SlabJournal *slabJournal = getSlabJournal(vdo->depot, mapping.pbn);
-    if (!mayAddSlabJournalEntry(slabJournal, DATA_DECREMENT, completion)) {
-      return;
-    }
-
-    popRingNode(&recovery->completeDecrefs);
-    if (isMappedLocation(&mapping)) {
-      recovery->logicalBlocksUsed--;
-    }
-
-    addSlabJournalEntryForRebuild(slabJournal, mapping.pbn, DATA_DECREMENT,
-                                  &recovery->nextJournalPoint);
-
-    /*
-     * These journal points may be invalid. Each synthesized decref needs a
-     * unique journal point. Otherwise, in the event of a crash, we would be
-     * unable to distinguish synthesized decrefs that were actually committed
-     * already. Instead of using real recovery journal space for this, we can
-     * use fake journal points between the last currently valid entry in the
-     * tail block and the first journal entry in the next block.
-     */
-    recovery->nextJournalPoint.entryCount++;
-    freeMissingDecref(&currentDecref);
-  }
-
+  logInfo("Replayed %zu journal entries into slab journals",
+          recovery->entriesAddedToSlabJournals);
   logInfo("Synthesized %zu missing journal entries",
           recovery->missingDecrefCount);
   vdo->recoveryJournal->logicalBlocksUsed  = recovery->logicalBlocksUsed;
   vdo->recoveryJournal->blockMapDataBlocks = recovery->blockMapDataBlocks;
 
-  prepareCompletion(completion, startSuperBlockSave, finishParentCallback,
-                    completion->callbackThreadID, completion->parent);
-  drainSlabDepot(vdo->depot, ADMIN_STATE_FLUSHING, completion);
+  prepareSubTask(recovery, startSuperBlockSave, finishParentCallback,
+                 ZONE_TYPE_ADMIN);
+  drainSlabDepot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
+}
+
+/**
+ * The error handler for recovering slab journals. It will skip any remaining
+ * recovery on the current zone and propagate the error. It is registered in
+ * addSlabJournalEntries() and addSynthesizedEntries().
+ *
+ * @param completion  The completion of the block allocator being recovered
+ **/
+static void handleAddSlabJournalEntryError(VDOCompletion *completion)
+{
+  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  notifySlabJournalsAreRecovered(recovery->allocator, completion->result);
+}
+
+/**
+ * Add synthesized entries into slab journals, waiting when necessary.
+ *
+ * @param completion  The allocator completion
+ **/
+static void addSynthesizedEntries(VDOCompletion *completion)
+{
+  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+
+  // Get ready in case we need to enqueue again
+  prepareCompletion(completion, addSynthesizedEntries,
+                    handleAddSlabJournalEntryError,
+                    completion->callbackThreadID, recovery);
+  WaitQueue *missingDecrefs
+    = &recovery->missingDecrefs[recovery->allocator->zoneNumber];
+  while (hasWaiters(missingDecrefs)) {
+    MissingDecref *decref = asMissingDecref(getFirstWaiter(missingDecrefs));
+    if (!attemptReplayIntoSlabJournal(decref->slabJournal,
+                                      decref->penultimateMapping.pbn,
+                                      DATA_DECREMENT, &decref->journalPoint,
+                                      completion)) {
+      return;
+    }
+
+    dequeueNextWaiter(missingDecrefs);
+    FREE(decref);
+  }
+
+  notifySlabJournalsAreRecovered(recovery->allocator, VDO_SUCCESS);
 }
 
 /**
@@ -572,93 +657,179 @@ static int computeUsages(RecoveryCompletion *recovery)
 }
 
 /**
- * Apply any synthesized decrefs entries to the appropriate slab journal.
+ * Advance the current recovery and journal points.
  *
- * @param recovery  The recovery completion
+ * @param recovery         The RecoveryCompletion whose points are to be
+ *                         advanced
+ * @param entriesPerBlock  The number of entries in a recovery journal block
  **/
-static void applySynthesizedDecrefs(RecoveryCompletion *recovery)
+static void advancePoints(RecoveryCompletion *recovery,
+                          JournalEntryCount   entriesPerBlock)
 {
+  incrementRecoveryPoint(&recovery->nextRecoveryPoint);
+  advanceJournalPoint(&recovery->nextJournalPoint, entriesPerBlock);
+}
+
+/**
+ * Replay recovery journal entries into the slab journals of the allocator
+ * currently being recovered, waiting for slab journal tailblock space when
+ * necessary. This method is its own callback.
+ *
+ * @param completion  The allocator completion
+ **/
+static void addSlabJournalEntries(VDOCompletion *completion)
+{
+  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  VDO                *vdo      = recovery->vdo;
+  RecoveryJournal    *journal  = vdo->recoveryJournal;
+
+  // Get ready in case we need to enqueue again.
+  prepareCompletion(completion, addSlabJournalEntries,
+                    handleAddSlabJournalEntryError,
+                    completion->callbackThreadID, recovery);
+  for (RecoveryPoint *recoveryPoint = &recovery->nextRecoveryPoint;
+       beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
+       advancePoints(recovery, journal->entriesPerBlock)) {
+    RecoveryJournalEntry entry = getEntry(recovery, recoveryPoint);
+    int result = validateRecoveryJournalEntry(vdo, &entry);
+    if (result != VDO_SUCCESS) {
+      enterReadOnlyMode(journal->readOnlyNotifier, result);
+      finishCompletion(completion, result);
+      return;
+    }
+
+    if (entry.mapping.pbn == ZERO_BLOCK) {
+      continue;
+    }
+
+    Slab *slab = getSlab(vdo->depot, entry.mapping.pbn);
+    if (slab->allocator != recovery->allocator) {
+      continue;
+    }
+
+    if (!attemptReplayIntoSlabJournal(slab->journal, entry.mapping.pbn,
+                                      entry.operation,
+                                      &recovery->nextJournalPoint,
+                                      completion)) {
+      return;
+    }
+
+    recovery->entriesAddedToSlabJournals++;
+  }
+
+  logInfo("Recreating missing journal entries for zone %u",
+          recovery->allocator->zoneNumber);
+  addSynthesizedEntries(completion);
+}
+
+/**********************************************************************/
+void replayIntoSlabJournals(BlockAllocator *allocator,
+                            VDOCompletion  *completion,
+                            void           *context)
+{
+  RecoveryCompletion *recovery = context;
+  assertOnPhysicalZoneThread(recovery->vdo, allocator->zoneNumber, __func__);
+  if ((recovery->journalData == NULL) || isReplaying(recovery->vdo)) {
+    // there's nothing to replay
+    notifySlabJournalsAreRecovered(allocator, VDO_SUCCESS);
+    return;
+  }
+
+  recovery->allocator = allocator;
+  recovery->nextRecoveryPoint = (RecoveryPoint) {
+    .sequenceNumber = recovery->slabJournalHead,
+    .sectorCount    = 1,
+    .entryCount     = 0,
+  };
+
+  recovery->nextJournalPoint = (JournalPoint) {
+    .sequenceNumber = recovery->slabJournalHead,
+    .entryCount     = 0,
+  };
+
+  logInfo("Replaying entries into slab journals for zone %u",
+          allocator->zoneNumber);
+  completion->parent = recovery;
+  addSlabJournalEntries(completion);
+}
+
+/**
+ * A waiter callback to enqueue a MissingDecref on the queue for the physical
+ * zone in which it will be applied.
+ *
+ * Implements WaiterCallback.
+ **/
+static void queueOnPhysicalZone(Waiter *waiter, void *context)
+{
+  MissingDecref *decref  = asMissingDecref(waiter);
+  DataLocation   mapping = decref->penultimateMapping;
+  if (isMappedLocation(&mapping)) {
+    decref->recovery->logicalBlocksUsed--;
+  }
+
+  if (mapping.pbn == ZERO_BLOCK) {
+    // Decrefs of zero are not applied to slab journals.
+    FREE(decref);
+    return;
+  }
+
+  decref->slabJournal = getSlabJournal((SlabDepot *) context, mapping.pbn);
+  ZoneCount zoneNumber = decref->slabJournal->slab->allocator->zoneNumber;
+  enqueueMissingDecref(&decref->recovery->missingDecrefs[zoneNumber], decref);
+}
+
+/**
+ * Queue each missing decref on the slab journal to which it is to be applied
+ * then load the slab depot. This callback is registered in
+ * findSlabJournalEntries().
+ *
+ * @param completion  The sub-task completion
+ **/
+static void applyToDepot(VDOCompletion *completion)
+{
+  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  assertOnAdminThread(recovery->vdo, __func__);
+  prepareSubTask(recovery, finishRecoveringDepot, finishParentCallback,
+                 ZONE_TYPE_ADMIN);
+
+  SlabDepot *depot = getSlabDepot(recovery->vdo);
+  notifyAllWaiters(&recovery->missingDecrefs[0], queueOnPhysicalZone, depot);
   if (abortRecoveryOnError(recovery->completion.result, recovery)) {
     return;
   }
 
-  logInfo("Recreating missing journal entries");
-  int result = computeUsages(recovery);
-  if (abortRecoveryOnError(result, recovery)) {
-    return;
-  }
-
-  recovery->nextJournalPoint  = (JournalPoint) {
-    .sequenceNumber = recovery->tail,
-    .entryCount     = recovery->vdo->recoveryJournal->entriesPerBlock,
-  };
-  launchCallbackWithParent(&recovery->subTaskCompletion, addSynthesizedEntries,
-                           getAdminThread(getThreadConfig(recovery->vdo)),
-                           &recovery->completion);
+  loadSlabDepot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion, recovery);
 }
 
 /**
- * Process a fetched block map page for a missing decref.
+ * Validate the location of the penultimate mapping for a MissingDecref. If it
+ * is valid, enqueue it for the appropriate physical zone or account for it.
+ * Otherwise, dispose of it and signal an error.
  *
- * @param completion  The page completion which has just finished loading
+ * @param decref     The decref whose penultimate mapping has just been found
+ * @param location   The penultimate mapping
+ * @param errorCode  The error code to use if the location is invalid
  **/
-static void processFetchedPage(VDOCompletion *completion)
+static int recordMissingDecref(MissingDecref *decref,
+                               DataLocation   location,
+                               int            errorCode)
 {
-  MissingDecref      *currentDecref = completion->parent;
-  RecoveryCompletion *recovery      = currentDecref->recovery;
-  assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
-
-  if (completion->result != VDO_SUCCESS) {
-    setCompletionResult(&recovery->completion, completion->result);
-  } else {
-    const BlockMapPage *page = dereferenceReadableVDOPage(completion);
-    currentDecref->penultimateMapping
-      = unpackBlockMapEntry(&page->entries[currentDecref->slot.slot]);
+  RecoveryCompletion *recovery = decref->recovery;
+  recovery->incompleteDecrefCount--;
+  if (isValidLocation(&location)
+      && isPhysicalDataBlock(recovery->vdo->depot, location.pbn)) {
+    decref->penultimateMapping = location;
+    decref->complete           = true;
+    return VDO_SUCCESS;
   }
 
-  releaseVDOPageCompletion(completion);
-  recovery->outstanding--;
-  if (recovery->outstanding == 0) {
-    applySynthesizedDecrefs(recovery);
-  }
-}
-
-/**
- * Fetch the mapping for missing decrefs whose previous mapping is unknown.
- *
- * @param recovery  The recovery completion
- **/
-static void findPBNsFromBlockMap(RecoveryCompletion *recovery)
-{
-  assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
-
-  // Initialize page completions for MissingDecref objects that need fetches.
-  BlockMap      *blockMap        = getBlockMap(recovery->vdo);
-  BlockMapZone  *zone            = getBlockMapZone(blockMap, 0);
-  RingNode      *currentRingNode = recovery->incompleteDecrefs.next;
-  MissingDecref *currentDecref;
-
-  while (currentRingNode != &recovery->incompleteDecrefs) {
-    currentDecref = asMissingDecref(currentRingNode);
-    initVDOPageCompletion(&currentDecref->pageCompletion, zone->pageCache,
-                          currentDecref->slot.pbn, false, currentDecref,
-                          processFetchedPage, processFetchedPage);
-    recovery->outstanding++;
-    currentRingNode = currentRingNode->next;
-  }
-
-  // If there are no pages that need fetches, proceed directly to finishing.
-  if (recovery->outstanding == 0) {
-    applySynthesizedDecrefs(recovery);
-    return;
-  }
-
-  // Fetch the pages needed.
-  while (!isRingEmpty(&recovery->incompleteDecrefs)) {
-    currentDecref = asMissingDecref(popRingNode(&recovery->incompleteDecrefs));
-    pushRingNode(&recovery->completeDecrefs, &currentDecref->ringNode);
-    getVDOPageAsync(&currentDecref->pageCompletion.completion);
-  }
+  // The location was invalid
+  enterReadOnlyMode(recovery->vdo->readOnlyNotifier, errorCode);
+  setCompletionResult(&recovery->completion, errorCode);
+  logErrorWithStringError(errorCode,
+                          "Invalid mapping for pbn %" PRIu64 " with state %u",
+                          location.pbn, location.state);
+  return errorCode;
 }
 
 /**
@@ -678,6 +849,7 @@ static void findPBNsFromBlockMap(RecoveryCompletion *recovery)
  *
  * @return VDO_SUCCESS or an error code
  **/
+__attribute__((warn_unused_result))
 static int findMissingDecrefs(RecoveryCompletion *recovery)
 {
   IntMap *slotEntryMap = recovery->slotEntryMap;
@@ -695,6 +867,13 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
     .entryCount     = 0,
   };
 
+  // Set up for the first fake journal point that will be used for a
+  // synthesized entry.
+  recovery->nextSynthesizedJournalPoint = (JournalPoint) {
+    .sequenceNumber = recovery->tail,
+    .entryCount     = recovery->vdo->recoveryJournal->entriesPerBlock,
+  };
+
   RecoveryPoint recoveryPoint = recovery->tailRecoveryPoint;
   while (beforeRecoveryPoint(&headPoint, &recoveryPoint)) {
     decrementRecoveryPoint(&recoveryPoint);
@@ -708,6 +887,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
       if (result != VDO_SUCCESS) {
         return result;
       }
+
       continue;
     }
 
@@ -722,6 +902,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
                                        PRIu64 " with state %u",
                                        entry.mapping.pbn, entry.mapping.state);
       }
+
       // There are no decrefs for block map pages, so they can't be missing.
       continue;
     }
@@ -734,18 +915,17 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
 
     if (decref == NULL) {
       // This incref is missing a decref. Add a missing decref object.
-      int result = makeMissingDecref(recovery, &decref);
+      int result = makeMissingDecref(recovery, entry, &decref);
       if (result != VDO_SUCCESS) {
         return result;
       }
-      recovery->missingDecrefCount++;
-      pushRingNode(&recovery->incompleteDecrefs, &decref->ringNode);
-      decref->slot = entry.slot;
-      result = intMapPut(slotEntryMap, slotAsNumber(entry.slot),
-                         decref, false, NULL);
+
+      result = intMapPut(slotEntryMap, slotAsNumber(entry.slot), decref,
+                         false, NULL);
       if (result != VDO_SUCCESS) {
         return result;
       }
+
       continue;
     }
 
@@ -755,66 +935,122 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
      * before here in the journal are paired, decref before incref, so
      * we needn't remember it in the intmap any longer.
      */
-    decref->penultimateMapping = entry.mapping;
-    pushRingNode(&recovery->completeDecrefs, &decref->ringNode);
+    int result = recordMissingDecref(decref, entry.mapping,
+                                     VDO_CORRUPT_JOURNAL);
+    if (result != VDO_SUCCESS) {
+      return result;
+    }
   }
 
   return VDO_SUCCESS;
 }
 
-/**********************************************************************/
-void addSlabJournalEntries(VDOCompletion *completion)
+/**
+ * Process a fetched block map page for a missing decref. This callback is
+ * registered in findSlabJournalEntries().
+ *
+ * @param completion  The page completion which has just finished loading
+ **/
+static void processFetchedPage(VDOCompletion *completion)
+{
+  MissingDecref      *currentDecref = completion->parent;
+  RecoveryCompletion *recovery      = currentDecref->recovery;
+  assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
+
+  const BlockMapPage *page = dereferenceReadableVDOPage(completion);
+  DataLocation location
+    = unpackBlockMapEntry(&page->entries[currentDecref->slot.slot]);
+  releaseVDOPageCompletion(completion);
+  recordMissingDecref(currentDecref, location, VDO_BAD_MAPPING);
+  if (recovery->incompleteDecrefCount == 0) {
+    completeCompletion(&recovery->subTaskCompletion);
+  }
+}
+
+/**
+ * Handle an error fetching a block map page for a missing decref.
+ * This error handler is registered in findSlabJournalEntries().
+ *
+ * @param completion  The page completion which has just finished loading
+ **/
+static void handleFetchError(VDOCompletion *completion)
+{
+  MissingDecref      *decref   = completion->parent;
+  RecoveryCompletion *recovery = decref->recovery;
+  assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
+
+  // If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read from
+  // the journal was bad, so convert the error code
+  setCompletionResult(&recovery->subTaskCompletion,
+                      ((completion->result == VDO_OUT_OF_RANGE)
+                       ? VDO_CORRUPT_JOURNAL : completion->result));
+  releaseVDOPageCompletion(completion);
+  if (--recovery->incompleteDecrefCount == 0) {
+    completeCompletion(&recovery->subTaskCompletion);
+  }
+}
+
+/**
+ * The waiter callback to requeue a missing decref and launch its page fetch.
+ *
+ * Implements WaiterCallback.
+ **/
+static void launchFetch(Waiter *waiter, void *context)
+{
+  MissingDecref      *decref   = asMissingDecref(waiter);
+  RecoveryCompletion *recovery = decref->recovery;
+  if (enqueueMissingDecref(&recovery->missingDecrefs[0], decref)
+      != VDO_SUCCESS) {
+    return;
+  }
+
+  if (decref->complete) {
+    // We've already found the mapping for this decref, no fetch needed.
+    return;
+  }
+
+  BlockMapZone *zone = context;
+  initVDOPageCompletion(&decref->pageCompletion, zone->pageCache,
+                        decref->slot.pbn, false, decref, processFetchedPage,
+                        handleFetchError);
+  getVDOPageAsync(&decref->pageCompletion.completion);
+}
+
+/**
+ * Find all entries which need to be replayed into the slab journals.
+ *
+ * @param completion  The sub-task completion
+ **/
+static void findSlabJournalEntries(VDOCompletion *completion)
 {
   RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
   VDO                *vdo      = recovery->vdo;
-  RecoveryJournal    *journal  = vdo->recoveryJournal;
-  // We want to be on the logical thread so that findPBNsFromBlockMap() later
-  // is on the right thread.
+
+  // We need to be on logical zone 0's thread since we are going to use its
+  // page cache.
   assertOnLogicalZoneThread(vdo, 0, __func__);
-
-  // Get ready in case we need to enqueue again.
-  prepareCompletion(completion, addSlabJournalEntries, addSlabJournalEntries,
-                    completion->callbackThreadID, &recovery->completion);
-
-  while (beforeRecoveryPoint(&recovery->nextRecoveryPoint,
-                             &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry entry
-      = getEntry(recovery, &recovery->nextRecoveryPoint);
-    int result = validateRecoveryJournalEntry(vdo, &entry);
-    if (result != VDO_SUCCESS) {
-      enterReadOnlyMode(journal->readOnlyNotifier, result);
-      finishCompletion(&recovery->completion, result);
-      return;
-    }
-
-    if (entry.mapping.pbn == ZERO_BLOCK) {
-      incrementRecoveryPoint(&recovery->nextRecoveryPoint);
-      advanceJournalPoint(&recovery->nextJournalPoint,
-                          journal->entriesPerBlock);
-      continue;
-    }
-
-    SlabJournal *slabJournal = getSlabJournal(vdo->depot, entry.mapping.pbn);
-    if (!mayAddSlabJournalEntry(slabJournal, entry.operation, completion)) {
-      return;
-    }
-
-    addSlabJournalEntryForRebuild(slabJournal,
-                                  entry.mapping.pbn, entry.operation,
-                                  &recovery->nextJournalPoint);
-    incrementRecoveryPoint(&recovery->nextRecoveryPoint);
-    advanceJournalPoint(&recovery->nextJournalPoint, journal->entriesPerBlock);
-    recovery->entriesAddedToSlabJournals++;
-  }
-
-  logInfo("Replayed %zu journal entries into slab journals",
-          recovery->entriesAddedToSlabJournals);
   int result = findMissingDecrefs(recovery);
   if (abortRecoveryOnError(result, recovery)) {
     return;
   }
 
-  findPBNsFromBlockMap(recovery);
+  prepareSubTask(recovery, applyToDepot, finishParentCallback,
+                 ZONE_TYPE_ADMIN);
+
+  /*
+   * Increment the incompleteDecrefCount so that the fetch callback can't
+   * complete the sub-task while we are still processing the queue of missing
+   * decrefs.
+   */
+  if (recovery->incompleteDecrefCount++ > 0) {
+    // Fetch block map pages to fill in the incomplete missing decrefs.
+    notifyAllWaiters(&recovery->missingDecrefs[0], launchFetch,
+                     getBlockMapZone(getBlockMap(vdo), 0));
+  }
+
+  if (--recovery->incompleteDecrefCount == 0) {
+    completeCompletion(completion);
+  }
 }
 
 /**
@@ -920,13 +1156,12 @@ static int countIncrementEntries(RecoveryCompletion *recovery)
 }
 
 /**
- * Determine the limits of the valid recovery journal and apply all
- * valid entries to the block map. This callback is registered in
- * recoverJournalAsync().
+ * Determine the limits of the valid recovery journal and prepare to replay
+ * into the slab journals and block map.
  *
- * @param completion  The journal load completion
+ * @param completion  The sub-task completion
  **/
-static void applyJournalEntries(VDOCompletion *completion)
+static void prepareToApplyJournalEntries(VDOCompletion *completion)
 {
   RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
   VDO                *vdo      = recovery->vdo;
@@ -958,7 +1193,13 @@ static void applyJournalEntries(VDOCompletion *completion)
   if (!foundEntries) {
     // This message must be recognizable by VDOTest::RebuildBase.
     logInfo("Replaying 0 recovery entries into block map");
-    finishCompletion(&recovery->completion, VDO_SUCCESS);
+    // We still need to load the SlabDepot.
+    FREE(recovery->journalData);
+    recovery->journalData = NULL;
+    prepareSubTask(recovery, finishParentCallback, finishParentCallback,
+                   ZONE_TYPE_ADMIN);
+    loadSlabDepot(getSlabDepot(vdo), ADMIN_STATE_LOADING_FOR_RECOVERY,
+                  completion, recovery);
     return;
   }
 
@@ -976,45 +1217,21 @@ static void applyJournalEntries(VDOCompletion *completion)
     }
 
     // We need to access the block map from a logical zone.
-    launchCallbackWithParent(&recovery->subTaskCompletion,
-                             launchBlockMapRecovery,
-                             getLogicalZoneThread(getThreadConfig(vdo), 0),
-                             &recovery->completion);
+    prepareSubTask(recovery, launchBlockMapRecovery, finishParentCallback,
+                   ZONE_TYPE_LOGICAL);
+    loadSlabDepot(vdo->depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion,
+                  recovery);
     return;
   }
 
-  logInfo("Replaying entries into slab journals");
-  recovery->nextRecoveryPoint = (RecoveryPoint) {
-    .sequenceNumber = recovery->slabJournalHead,
-    .sectorCount    = 1,
-    .entryCount     = 0,
-  };
+  int result = computeUsages(recovery);
+  if (abortRecoveryOnError(result, recovery)) {
+    return;
+  }
 
-  recovery->nextJournalPoint = (JournalPoint) {
-    .sequenceNumber = recovery->slabJournalHead,
-    .entryCount     = 0,
-  };
-
-  // This doesn't care what thread it's on.
-  launchCallbackWithParent(&recovery->subTaskCompletion, addSlabJournalEntries,
-                           getCallbackThreadID(), &recovery->completion);
-}
-
-/**
- * Begin loading the journal.
- *
- * @param completion    The sub task completion
- **/
-static void loadJournal(VDOCompletion *completion)
-{
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
-  assertOnLogicalZoneThread(vdo, 0, __func__);
-
-  prepareCompletion(completion, applyJournalEntries, finishParentCallback,
-                    getLogicalZoneThread(getThreadConfig(vdo), 0),
-                    completion->parent);
-  loadJournalAsync(vdo->recoveryJournal, completion, &recovery->journalData);
+  prepareSubTask(recovery, findSlabJournalEntries, finishParentCallback,
+                 ZONE_TYPE_LOGICAL);
+  invokeCallback(completion);
 }
 
 /**********************************************************************/
@@ -1033,11 +1250,8 @@ void launchRecovery(VDO *vdo, VDOCompletion *parent)
   VDOCompletion *completion = &recovery->completion;
   prepareCompletion(completion, finishRecovery, abortRecovery,
                     parent->callbackThreadID, parent);
-
-  VDOCompletion *subTaskCompletion = &recovery->subTaskCompletion;
-  prepareCompletion(subTaskCompletion, loadJournal, finishParentCallback,
-                    getLogicalZoneThread(getThreadConfig(vdo), 0),
-                    completion);
-  loadSlabDepot(vdo->depot, ADMIN_STATE_LOADING_FOR_RECOVERY,
-                subTaskCompletion);
+  prepareSubTask(recovery, prepareToApplyJournalEntries, finishParentCallback,
+                 ZONE_TYPE_ADMIN);
+  loadJournalAsync(vdo->recoveryJournal, &recovery->subTaskCompletion,
+                   &recovery->journalData);
 }

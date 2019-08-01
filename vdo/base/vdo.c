@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#18 $
  */
 
 /*
@@ -102,7 +102,7 @@ int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
 
   vdo->layer = layer;
   if (layer->createEnqueueable != NULL) {
-    result = makeAdminCompletion(layer, &vdo->adminCompletion);
+    result = initializeAdminCompletion(vdo, &vdo->adminCompletion);
     if (result != VDO_SUCCESS) {
       freeVDO(&vdo);
       return result;
@@ -152,13 +152,7 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->hashZones);
   vdo->hashZones = NULL;
 
-  if (vdo->logicalZones != NULL) {
-    for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-      freeLogicalZone(&vdo->logicalZones[zone]);
-    }
-  }
-  FREE(vdo->logicalZones);
-  vdo->logicalZones = NULL;
+  freeLogicalZones(&vdo->logicalZones);
 
   if (vdo->physicalZones != NULL) {
     for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
@@ -168,7 +162,7 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  freeAdminCompletion(&vdo->adminCompletion);
+  uninitializeAdminCompletion(&vdo->adminCompletion);
   freeReadOnlyNotifier(&vdo->readOnlyNotifier);
   freeThreadConfig(&vdo->loadConfig.threadConfig);
 }
@@ -629,11 +623,11 @@ int validateVDOConfig(const VDOConfig *config,
 
   // This can't check equality because FileLayer et al can only known about
   // the storage size, which may not match the super block size.
-  result = ASSERT(config->physicalBlocks <= blockCount,
-                  "Physical size %" PRIu64 " in super block smaller than"
-                  " expected size %" PRIu64, config->physicalBlocks,
-                  blockCount);
-  if (result != UDS_SUCCESS) {
+  if (blockCount < config->physicalBlocks) {
+    logError("A physical size of %" PRIu64 " blocks was specified,"
+             " but that is smaller than the %" PRIu64 " blocks"
+             " configured in the VDO super block",
+             blockCount, config->physicalBlocks);
     return VDO_PARAMETER_MISMATCH;
   }
 
@@ -774,7 +768,7 @@ void leaveRecoveryMode(VDO *vdo)
    * Since scrubbing can be stopped by vdoClose during recovery mode,
    * do not change the VDO state if there are outstanding unrecovered slabs.
    */
-  if (vdo->closeRequested || inReadOnlyMode(vdo)) {
+  if (inReadOnlyMode(vdo)) {
     return;
   }
 
@@ -1027,7 +1021,7 @@ void dumpVDOStatus(const VDO *vdo)
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-    dumpLogicalZone(vdo->logicalZones[zone]);
+    dumpLogicalZone(getLogicalZone(vdo->logicalZones, zone));
   }
 
   for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
@@ -1067,6 +1061,17 @@ void assertOnLogicalZoneThread(const VDO  *vdo,
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == getLogicalZoneThread(getThreadConfig(vdo), logicalZone)),
                   "%s called on logical thread", name);
+}
+
+/**********************************************************************/
+void assertOnPhysicalZoneThread(const VDO  *vdo,
+                                ZoneCount   physicalZone,
+                                const char *name)
+{
+  ASSERT_LOG_ONLY((getCallbackThreadID()
+                   == getPhysicalZoneThread(getThreadConfig(vdo),
+                                            physicalZone)),
+                  "%s called on physical thread", name);
 }
 
 /**********************************************************************/

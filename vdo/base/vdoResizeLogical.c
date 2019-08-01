@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResizeLogical.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResizeLogical.c#5 $
  */
 
 #include "vdoResizeLogical.h"
@@ -28,79 +28,27 @@
 #include "completion.h"
 #include "vdoInternal.h"
 
-/**
- * Extract the VDO from an AdminCompletion, checking that the current operation
- * is a grow logical.
- *
- * @param completion  The AdminCompletion's sub-task completion
- *
- * @return The VDO
- **/
-static inline VDO *vdoFromGrowLogicalSubTask(VDOCompletion *completion)
-{
-  return vdoFromAdminSubTask(completion, ADMIN_OPERATION_GROW_LOGICAL);
-}
+typedef enum {
+  GROW_LOGICAL_PHASE_START = 0,
+  GROW_LOGICAL_PHASE_GROW_BLOCK_MAP,
+  GROW_LOGICAL_PHASE_END,
+  GROW_LOGICAL_PHASE_ERROR,
+} GrowLogicalPhase;
+
+static const char *GROW_LOGICAL_PHASE_NAMES[] = {
+  "GROW_LOGICAL_PHASE_START",
+  "GROW_LOGICAL_PHASE_GROW_BLOCK_MAP",
+  "GROW_LOGICAL_PHASE_END",
+  "GROW_LOGICAL_PHASE_ERROR",
+};
 
 /**
- * Expand the block map now that the VDOConfig has been updated on disk.
- * We are relying on the fact that expanding the block map at this point can
- * not have any errors. If it could, we'd need to find a way to back out the
- * config update. This callback is registered in suspendBlockMap().
- *
- * @param completion  The sub-task completion
+ * Implements ThreadIDGetterForPhase.
  **/
-static void resizeBlockMap(VDOCompletion *completion)
+__attribute__((warn_unused_result))
+static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
 {
-  BlockMap *blockMap = getBlockMap(vdoFromGrowLogicalSubTask(completion));
-  growBlockMap(blockMap);
-
-  // XXX: Once the VDO has a real suspend transaction, this resume must go away.
-  prepareToFinishParent(completion, completion->parent);
-  resumeBlockMap(blockMap, completion);
-}
-
-/**
- * Handle an error attempting to suspend and grow the block map. This
- * error handler is registered in suspendBlockMap().
- *
- * @param completion  The sub-task completion
- **/
-static void handleBlockMapError(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowLogicalSubTask(completion);
-  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
-  finishParentCallback(completion);
-}
-
-/**
- * Suspend the block map so that we can expand it.
- *
- * XXX: This method is a stop-gap until there is a whole VDO suspend
- * transaction.
- *
- * @param completion  The sub-task completion
- **/
-static void suspendBlockMap(VDOCompletion *completion)
-{
-  prepareCompletion(completion, resizeBlockMap, handleBlockMapError,
-                    completion->callbackThreadID, completion->parent);
-  drainBlockMap(getBlockMap(vdoFromGrowLogicalSubTask(completion)),
-                ADMIN_STATE_SUSPENDING, completion);
-}
-
-/**
- * Handle an error attempting to save the updated VDOConfig. This error handler
- * is registered in growLogicalCallback().
- *
- * @param completion  The sub-task completion
- **/
-static void handleSaveError(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowLogicalSubTask(completion);
-  BlockMap *blockMap = getBlockMap(vdo);
-  abandonBlockMapGrowth(blockMap);
-  vdo->config.logicalBlocks = getNumberOfBlockMapEntries(blockMap);
-  finishParentCallback(completion);
+  return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
 }
 
 /**
@@ -110,21 +58,67 @@ static void handleSaveError(VDOCompletion *completion)
  **/
 static void growLogicalCallback(VDOCompletion *completion)
 {
-  VDO *vdo = vdoFromGrowLogicalSubTask(completion);
-  assertOnAdminThread(vdo, __func__);
+  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
+  assertAdminPhaseThread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
 
-  // This check can only be done from a base thread.
-  if (isReadOnly(vdo->readOnlyNotifier)) {
-    abandonBlockMapGrowth(getBlockMap(vdo));
-    logErrorWithStringError(VDO_READ_ONLY,
-                            "Can't grow logical size of a read-only VDO");
-    finishCompletion(completion->parent, VDO_READ_ONLY);
+  VDO *vdo = adminCompletion->completion.parent;
+  switch (adminCompletion->phase++) {
+  case GROW_LOGICAL_PHASE_START:
+    if (isReadOnly(vdo->readOnlyNotifier)) {
+      logErrorWithStringError(VDO_READ_ONLY,
+                              "Can't grow logical size of a read-only VDO");
+      finishCompletion(resetAdminSubTask(completion), VDO_READ_ONLY);
+      return;
+    }
+
+    if (startOperationWithWaiter(&vdo->adminState,
+                                 ADMIN_STATE_SUSPENDED_OPERATION,
+                                 &adminCompletion->completion)) {
+
+      vdo->config.logicalBlocks = getNewEntryCount(getBlockMap(vdo));
+      saveVDOComponentsAsync(vdo, resetAdminSubTask(completion));
+    }
+
     return;
+
+  case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
+    growBlockMap(getBlockMap(vdo), resetAdminSubTask(completion));
+    return;
+
+  case GROW_LOGICAL_PHASE_END:
+    break;
+
+  case GROW_LOGICAL_PHASE_ERROR:
+    enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
+    break;
+
+  default:
+    setCompletionResult(resetAdminSubTask(completion), UDS_BAD_STATE);
   }
 
-  vdo->config.logicalBlocks = getNewEntryCount(getBlockMap(vdo));
-  prepareAdminSubTask(vdo, suspendBlockMap, handleSaveError);
-  saveVDOComponentsAsync(vdo, completion);
+  finishOperationWithResult(&vdo->adminState, completion->result);
+}
+
+/**
+ * Handle an error during the grow physical process.
+ *
+ * @param completion  The sub-task completion
+ **/
+static void handleGrowthError(VDOCompletion *completion)
+{
+  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
+    // We've failed to write the new size in the super block, so set our
+    // in memory config back to the old size.
+    VDO      *vdo = adminCompletion->completion.parent;
+    BlockMap *map = getBlockMap(vdo);
+    vdo->config.logicalBlocks = getNumberOfBlockMapEntries(map);
+    abandonBlockMapGrowth(map);
+  }
+
+  adminCompletion->phase = GROW_LOGICAL_PHASE_ERROR;
+  growLogicalCallback(completion);
 }
 
 /**********************************************************************/
@@ -135,7 +129,8 @@ int performGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
   }
 
   return performAdminOperation(vdo, ADMIN_OPERATION_GROW_LOGICAL,
-                               growLogicalCallback);
+                               getThreadIDForPhase, growLogicalCallback,
+                               handleGrowthError);
 }
 
 /**********************************************************************/

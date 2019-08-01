@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#7 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -61,17 +61,15 @@ SlabJournal *slabJournalFromDirtyNode(RingNode *node)
  *
  * @param [in]  allocator        The block allocator which owns this journal
  * @param [in]  slab             The parent slab of the journal
- * @param [in]  layer            The layer to which the journal will write
  * @param [in]  recoveryJournal  The recovery journal of the VDO
  * @param [out] journalPtr       The pointer to hold the new slab journal
  *
  * @return VDO_SUCCESS or error code
  **/
-int makeSlabJournal(BlockAllocator  *allocator,
-                    Slab            *slab,
-                    PhysicalLayer   *layer,
-                    RecoveryJournal *recoveryJournal,
-                    SlabJournal    **journalPtr)
+int makeSlabJournal(BlockAllocator   *allocator,
+                    Slab             *slab,
+                    RecoveryJournal  *recoveryJournal,
+                    SlabJournal     **journalPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -118,32 +116,23 @@ void abortSlabJournalWaiters(SlabJournal *journal);
 void reopenSlabJournal(SlabJournal *journal);
 
 /**
- * Check whether the slab journal can accept an entry of the specified type.
- *
- * @param journal    The journal to query
- * @param operation  The type of entry to make
- * @param completion The completion to notify when space is available if it
- *                   wasn't when this method was called
- *
- * @return <code>true</code> if the journal can make an entry of the
- *         specified type without blocking
- **/
-bool mayAddSlabJournalEntry(SlabJournal      *journal,
-                            JournalOperation  operation,
-                            VDOCompletion    *completion);
-
-/**
- * Add an entry to a slab journal during rebuild.
+ * Attempt to replay a recovery journal entry into a slab journal.
  *
  * @param journal        The slab journal to use
  * @param pbn            The PBN for the entry
  * @param operation      The type of entry to add
  * @param recoveryPoint  The recovery journal point corresponding to this entry
+ * @param parent         The completion to notify when there is space to add
+ *                       the entry if the entry could not be added immediately
+ *
+ * @return <code>true</code> if the entry was added immediately
  **/
-void addSlabJournalEntryForRebuild(SlabJournal         *journal,
-                                   PhysicalBlockNumber  pbn,
-                                   JournalOperation     operation,
-                                   JournalPoint        *recoveryPoint);
+bool attemptReplayIntoSlabJournal(SlabJournal         *journal,
+                                  PhysicalBlockNumber  pbn,
+                                  JournalOperation     operation,
+                                  JournalPoint        *recoveryPoint,
+                                  VDOCompletion       *parent)
+  __attribute__((warn_unused_result));
 
 /**
  * Add an entry to a slab journal.
@@ -194,24 +183,6 @@ void commitSlabJournalTail(SlabJournal *journal);
  * @param journal  The journal to drain
  **/
 void drainSlabJournal(SlabJournal *journal);
-
-/**
- * Flush all uncommitted entries in the slab journal.
- *
- * <p>Implements slabJournal.c:SlabJournalPreparer.
- *
- * @param journal       The journal to flush
- * @param parent        The completion which should be notified when the
- *                      journal has been flushed
- * @param callback      The callback to use
- * @param errorHandler  The handler for flush errors
- * @param threadID      The thread on which the callback should run
- **/
-void flushSlabJournal(SlabJournal   *journal,
-                      VDOCompletion *parent,
-                      VDOAction     *callback,
-                      VDOAction     *errorHandler,
-                      ThreadID       threadID);
 
 /**
  * Decode the slab journal by reading its tail.

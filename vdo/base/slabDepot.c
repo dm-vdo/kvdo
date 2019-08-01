@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#17 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabDepot.c#21 $
  */
 
 #include "slabDepot.h"
@@ -100,15 +100,12 @@ static SlabIterator getSlabIterator(SlabDepot *depot)
  * allocators.
  *
  * @param depot      The depot
- * @param layer      The layer to use
  * @param slabCount  The number of slabs the depot should have in the new
  *                   array
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int allocateSlabs(SlabDepot     *depot,
-                         PhysicalLayer *layer,
-                         SlabCount      slabCount)
+static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
 {
   int result = ALLOCATE(slabCount, Slab *, "slab pointer array",
                         &depot->newSlabs);
@@ -134,7 +131,7 @@ static int allocateSlabs(SlabDepot     *depot,
       = depot->allocators[depot->newSlabCount % depot->zoneCount];
     Slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
     result = makeSlab(slabOrigin, allocator, translation, depot->journal,
-                      layer, depot->newSlabCount, slabPtr);
+                      depot->newSlabCount, resizing, slabPtr);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -142,14 +139,8 @@ static int allocateSlabs(SlabDepot     *depot,
     depot->newSlabCount++;
 
     slabOrigin += slabSize;
-
-    if (resizing) {
-      result = allocateRefCountsForSlab(layer, *slabPtr);
-      if (result != VDO_SUCCESS) {
-        return result;
-      }
-    }
   }
+
   return VDO_SUCCESS;
 }
 
@@ -277,7 +268,7 @@ static int allocateComponents(SlabDepot          *depot,
   }
 
   // Allocate slabs.
-  result = allocateSlabs(depot, layer, slabCount);
+  result = allocateSlabs(depot, slabCount);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -285,7 +276,7 @@ static int allocateComponents(SlabDepot          *depot,
   // Use the new slabs.
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
-    registerSlabWithAllocator(slab->allocator, slab, false);
+    registerSlabWithAllocator(slab->allocator, slab);
     depot->slabCount++;
   }
 
@@ -711,11 +702,11 @@ int decodeSodiumSlabDepot(Buffer              *buffer,
 }
 
 /**********************************************************************/
-int allocateSlabRefCounts(SlabDepot *depot, PhysicalLayer *layer)
+int allocateSlabRefCounts(SlabDepot *depot)
 {
   SlabIterator iterator = getSlabIterator(depot);
   while (hasNextSlab(&iterator)) {
-    int result = allocateRefCountsForSlab(layer, nextSlab(&iterator));
+    int result = allocateRefCountsForSlab(nextSlab(&iterator));
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -870,11 +861,13 @@ static void startDepotLoad(void *context, VDOCompletion *parent)
 /**********************************************************************/
 void loadSlabDepot(SlabDepot      *depot,
                    AdminStateCode  operation,
-                   VDOCompletion  *parent)
+                   VDOCompletion  *parent,
+                   void           *context)
 {
   if (assertLoadOperation(operation, parent)) {
-    scheduleOperation(depot->actionManager, operation, startDepotLoad,
-                      loadBlockAllocator, NULL, parent);
+    scheduleOperationWithContext(depot->actionManager, operation,
+                                 startDepotLoad, loadBlockAllocator, NULL,
+                                 context, parent);
   }
 }
 
@@ -890,15 +883,13 @@ void prepareToAllocate(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void updateSlabDepotSize(SlabDepot *depot, bool reverting)
+void updateSlabDepotSize(SlabDepot *depot)
 {
-  depot->lastBlock = (reverting ? depot->oldLastBlock : depot->newLastBlock);
+  depot->lastBlock = depot->newLastBlock;
 }
 
 /**********************************************************************/
-int prepareToGrowSlabDepot(SlabDepot     *depot,
-                           PhysicalLayer *layer,
-                           BlockCount     newSize)
+int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
 {
   if ((newSize >> depot->slabSizeShift) <= depot->slabCount) {
     return VDO_INCREMENT_TOO_SMALL;
@@ -925,7 +916,7 @@ int prepareToGrowSlabDepot(SlabDepot     *depot,
   }
 
   abandonNewSlabs(depot);
-  result = allocateSlabs(depot, layer, newSlabCount);
+  result = allocateSlabs(depot, newSlabCount);
   if (result != VDO_SUCCESS) {
     abandonNewSlabs(depot);
     return result;
@@ -969,38 +960,20 @@ void drainSlabDepot(SlabDepot      *depot,
                     AdminStateCode  operation,
                     VDOCompletion  *parent)
 {
-  ZoneAction *action;
-  switch (operation) {
-  case ADMIN_STATE_FLUSHING:
-    action = flushAllocatorSlabJournals;
-    break;
-
-  case ADMIN_STATE_REBUILDING:
-    action = saveBlockAllocatorForFullRebuild;
-    break;
-
-  case ADMIN_STATE_SUSPENDING:
-    action = suspendSummaryZone;
-    break;
-
-  case ADMIN_STATE_SAVING:
-    action = drainBlockAllocator;
-    break;
-
-  default:
-    finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
-    return;
-  }
-
-  scheduleOperation(depot->actionManager, operation, NULL, action, NULL,
-                    parent);
+  scheduleOperation(depot->actionManager, operation, NULL, drainBlockAllocator,
+                    NULL, parent);
 }
 
 /**********************************************************************/
 void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
 {
+  if (isReadOnly(depot->readOnlyNotifier)) {
+    finishCompletion(parent, VDO_READ_ONLY);
+    return;
+  }
+
   scheduleOperation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
-                    resumeSummaryZone, NULL, parent);
+                    resumeBlockAllocator, NULL, parent);
 }
 
 /**********************************************************************/

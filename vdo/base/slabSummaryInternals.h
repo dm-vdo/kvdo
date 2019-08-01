@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummaryInternals.h#7 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -24,6 +24,7 @@
 
 #include "slabSummary.h"
 
+#include "adminState.h"
 #include "atomic.h"
 
 typedef struct slabSummaryEntry {
@@ -49,23 +50,21 @@ typedef struct slabSummaryEntry {
 
 typedef struct slabSummaryBlock {
   /** The zone to which this block belongs */
-  SlabSummaryZone     *zone;
+  SlabSummaryZone  *zone;
+  /** The index of this block in its zone's summary */
+  BlockCount        index;
   /** Whether this block has a write outstanding */
-  bool                 currentlyWriting;
-  /** Whether this block has had modifications since it issued a write */
-  bool                 needsWriting;
+  bool              writing;
   /** Ring of updates waiting on the outstanding write */
-  WaitQueue            currentUpdateWaiters;
+  WaitQueue         currentUpdateWaiters;
   /** Ring of updates waiting on the next write */
-  WaitQueue            nextUpdateWaiters;
-  /** The block number of this SummaryBlock on the partition */
-  PhysicalBlockNumber  pbn;
+  WaitQueue         nextUpdateWaiters;
   /** The active SlabSummaryEntry array for this block */
-  SlabSummaryEntry    *entries;
+  SlabSummaryEntry *entries;
   /** The VIO used to write this block */
-  VIO                 *vio;
+  VIO              *vio;
   /** The packed entries, one block long, backing the VIO */
-  char                *outgoingEntries;
+  char             *outgoingEntries;
 } SlabSummaryBlock;
 
 /**
@@ -78,27 +77,15 @@ typedef struct atomicSlabSummaryStatistics {
   Atomic64 blocksWritten;
 } AtomicSlabSummaryStatistics;
 
-/**
- * Only the actions which need something performed upon completion need to be
- * enumerated here.
- **/
-typedef enum {
-  NONE_REQUESTED = 0,
-  CLOSE_REQUESTED,
-  SUSPEND_REQUESTED,
-} RequestedAction;
-
 struct slabSummaryZone {
   /** The summary of which this is a zone */
   SlabSummary      *summary;
   /** The number of this zone */
   ZoneCount         zoneNumber;
-  /** The completion waiting on the zone to be saved */
-  VDOCompletion    *saveWaiter;
-  /** The pending action, if any */
-  RequestedAction   pendingAction;
-  /** Whether this zone is paused */
-  bool              suspended;
+  /** Count of the number of blocks currently out for writing */
+  BlockCount        writeCount;
+  /** The state of this zone */
+  AdminState        state;
   /** The array (owned by the blocks) of all entries */
   SlabSummaryEntry *entries;
   /** The array of SlabSummaryEntryBlocks */
@@ -106,8 +93,6 @@ struct slabSummaryZone {
 };
 
 struct slabSummary {
-  /** The completion waiting for a load to complete */
-  VDOCompletion               *loadParent;
   /** The context for entering read-only mode */
   ReadOnlyNotifier            *readOnlyNotifier;
   /** The statistics for this slab summary */

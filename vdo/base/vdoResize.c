@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#14 $
  */
 
 #include "vdoResize.h"
@@ -31,154 +31,31 @@
 #include "vdoInternal.h"
 #include "vdoLayout.h"
 
-/**
- * Extract the VDO from an AdminCompletion, checking that the current operation
- * is a grow physical.
- *
- * @param completion  The AdminCompletion's sub-task completion
- *
- * @return The VDO
- **/
-static inline VDO *vdoFromGrowPhysicalSubTask(VDOCompletion *completion)
-{
-  return vdoFromAdminSubTask(completion, ADMIN_OPERATION_GROW_PHYSICAL);
-}
+typedef enum {
+  GROW_PHYSICAL_PHASE_START = 0,
+  GROW_PHYSICAL_PHASE_COPY_SUMMARY,
+  GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS,
+  GROW_PHYSICAL_PHASE_USE_NEW_SLABS,
+  GROW_PHYSICAL_PHASE_END,
+  GROW_PHYSICAL_PHASE_ERROR,
+} GrowPhysicalPhase;
+
+static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
+  "GROW_PHYSICAL_PHASE_START",
+  "GROW_PHYSICAL_PHASE_COPY_SUMMARY",
+  "GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS",
+  "GROW_PHYSICAL_PHASE_USE_NEW_SLABS",
+  "GROW_PHYSICAL_PHASE_END",
+  "GROW_PHYSICAL_PHASE_ERROR",
+};
 
 /**
- * Handle an error while reverting a failed resize or any other unrecoverable
- * state.
- *
- * @param completion  The sub-task completion
+ * Implements ThreadIDGetterForPhase.
  **/
-static void handleUnrecoverableError(VDOCompletion *completion)
+__attribute__((warn_unused_result))
+static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
 {
-  // We failed to revert a failed resize, give up.
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
-  finishParentCallback(completion);
-}
-
-/**
- * Request the slab depot resume all the slab summary zones now that the super
- * block is written.
- *
- * @param completion  The sub-task completion
- **/
-static void resumeSummaryForRevert(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  prepareAdminSubTask(vdo, finishParentCallback, handleUnrecoverableError);
-  resumeSlabDepot(vdo->depot, completion);
-}
-
-/**
- * Abort a resize by reverting in-memory changes to VDO components and moving
- * the slab summary back to its old location.
- *
- * @param completion  The sub-task completion
- **/
-static void abortResize(VDOCompletion *completion)
-{
-  VDO       *vdo   = vdoFromGrowPhysicalSubTask(completion);
-  SlabDepot *depot = vdo->depot;
-
-  // Preserve the error.
-  setCompletionResult(completion->parent, completion->result);
-
-  // Revert to the old state in memory.
-  vdo->config.physicalBlocks = revertVDOLayout(vdo->layout);
-  updateSlabDepotSize(depot, true);
-  abandonNewSlabs(depot);
-  prepareAdminSubTask(vdo, resumeSummaryForRevert, handleUnrecoverableError);
-  saveVDOComponentsAsync(vdo, completion);
-}
-
-/**
- * Finish the resize now that the VDO is wholly ready for using the new slabs
- * by replacing the recovery journal partition and freeing the old layout.
- *
- * @param completion  The sub-task completion
- **/
-static void finishVDOResize(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  setRecoveryJournalPartition(vdo->recoveryJournal,
-                              getVDOPartition(vdo->layout,
-                                              RECOVERY_JOURNAL_PARTITION));
-  completeCompletion(completion->parent);
-}
-
-/**
- * Request the slab depot resume all slab summary zones now that they can be
- * used.
- *
- * @param completion  The sub-task completion
- **/
-static void resumeSummary(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  setSlabSummaryOrigin(getSlabSummary(vdo->depot),
-                       getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
-  prepareAdminSubTask(vdo, finishVDOResize, handleUnrecoverableError);
-  resumeSlabDepot(vdo->depot, completion);
-}
-
-/**
- * Request the slab depot distribute the new slabs to all the allocators
- * now that the super block is written and they can be used.
- *
- * @param completion  The sub-task completion
- **/
-static void addNewSlabs(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  prepareAdminSubTask(vdo, resumeSummary, handleUnrecoverableError);
-  useNewSlabs(vdo->depot, completion);
-}
-
-/**
- * Update VDO components in memory that are dependent on data partition size.
- * This is the callback registered in copySuspendedSummary().
- *
- * @param completion  The sub-task completion
- **/
-static void updateVDOComponentsForResize(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-
-  // Update the layout and config.
-  vdo->config.physicalBlocks = growVDOLayout(vdo->layout);
-  updateSlabDepotSize(vdo->depot, false);
-  prepareAdminSubTask(vdo, addNewSlabs, abortResize);
-  saveVDOComponentsAsync(vdo, completion);
-}
-
-/**
- * Copy the slab summary now that it's suspended. This is the callback
- * registered in suspendSummary().
- *
- * @param completion  The sub-task completion
- **/
-static void copySuspendedSummary(VDOCompletion *completion)
-{
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  prepareAdminSubTask(vdo, updateVDOComponentsForResize, abortResize);
-  copyPartition(vdo->layout, SLAB_SUMMARY_PARTITION, completion);
-}
-
-/**
- * Suspend the slab summary. This callback is registered in
- * growPhysicalCallback().
- *
- * @param completion  The sub-task completion
- **/
-static void suspendSummary(VDOCompletion *completion)
-{
-  // Set the error handler before we make the first async change that would
-  // need to be undone.
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  prepareAdminSubTask(vdo, copySuspendedSummary, abortResize);
-  drainSlabDepot(vdo->depot, ADMIN_STATE_SUSPENDING, completion);
+  return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
 }
 
 /**
@@ -188,12 +65,73 @@ static void suspendSummary(VDOCompletion *completion)
  **/
 static void growPhysicalCallback(VDOCompletion *completion)
 {
-  VDO *vdo = vdoFromGrowPhysicalSubTask(completion);
-  assertOnAdminThread(vdo, __func__);
+  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_PHYSICAL);
+  assertAdminPhaseThread(adminCompletion, __func__, GROW_PHYSICAL_PHASE_NAMES);
 
-  // Copy the journal into the new layout.
-  prepareAdminSubTask(vdo, suspendSummary, finishParentCallback);
-  copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION, completion);
+  VDO *vdo = adminCompletion->completion.parent;
+  switch (adminCompletion->phase++) {
+  case GROW_PHYSICAL_PHASE_START:
+    if (isReadOnly(vdo->readOnlyNotifier)) {
+      logErrorWithStringError(VDO_READ_ONLY,
+                              "Can't grow physical size of a read-only VDO");
+      setCompletionResult(resetAdminSubTask(completion), VDO_READ_ONLY);
+      break;
+    }
+
+    if (startOperationWithWaiter(&vdo->adminState,
+                                 ADMIN_STATE_SUSPENDED_OPERATION,
+                                 &adminCompletion->completion)) {
+      // Copy the journal into the new layout.
+      copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
+                    resetAdminSubTask(completion));
+    }
+    return;
+
+  case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
+    copyPartition(vdo->layout, SLAB_SUMMARY_PARTITION,
+                  resetAdminSubTask(completion));
+    return;
+
+  case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
+    vdo->config.physicalBlocks = growVDOLayout(vdo->layout);
+    updateSlabDepotSize(vdo->depot);
+    saveVDOComponentsAsync(vdo, resetAdminSubTask(completion));
+    return;
+
+  case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
+    useNewSlabs(vdo->depot, resetAdminSubTask(completion));
+    return;
+
+  case GROW_PHYSICAL_PHASE_END:
+    setSlabSummaryOrigin(getSlabSummary(vdo->depot),
+                         getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
+    setRecoveryJournalPartition(vdo->recoveryJournal,
+                                getVDOPartition(vdo->layout,
+                                                RECOVERY_JOURNAL_PARTITION));
+    break;
+
+  case GROW_PHYSICAL_PHASE_ERROR:
+    enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
+    break;
+
+  default:
+    setCompletionResult(resetAdminSubTask(completion), UDS_BAD_STATE);
+  }
+
+  finishVDOLayoutGrowth(vdo->layout);
+  finishOperationWithResult(&vdo->adminState, completion->result);
+}
+
+/**
+ * Handle an error during the grow physical process.
+ *
+ * @param completion  The sub-task completion
+ **/
+static void handleGrowthError(VDOCompletion *completion)
+{
+  adminCompletionFromSubTask(completion)->phase = GROW_PHYSICAL_PHASE_ERROR;
+  growPhysicalCallback(completion);
 }
 
 /**********************************************************************/
@@ -225,8 +163,8 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   }
 
   int result = performAdminOperation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
-                                     growPhysicalCallback);
-  finishVDOLayoutGrowth(vdo->layout);
+                                     getThreadIDForPhase, growPhysicalCallback,
+                                     handleGrowthError);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -244,9 +182,14 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
  **/
 static void checkMayGrowPhysical(VDOCompletion *completion)
 {
-  VDO *vdo
-    = vdoFromAdminSubTask(completion, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  assertAdminOperationType(adminCompletion,
+                           ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+
+  VDO *vdo = adminCompletion->completion.parent;
   assertOnAdminThread(vdo, __func__);
+
+  resetAdminSubTask(completion);
 
   // This check can only be done from a base code thread.
   if (isReadOnly(vdo->readOnlyNotifier)) {
@@ -260,7 +203,7 @@ static void checkMayGrowPhysical(VDOCompletion *completion)
     return;
   }
 
-  finishCompletion(completion->parent, VDO_SUCCESS);
+  completeCompletion(completion->parent);
 }
 
 /**********************************************************************/
@@ -282,9 +225,10 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
     return VDO_PARAMETER_MISMATCH;
   }
 
-  int result
-    = performAdminOperation(vdo, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-                            checkMayGrowPhysical);
+  int result = performAdminOperation(vdo,
+                                     ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+                                     getThreadIDForPhase, checkMayGrowPhysical,
+                                     finishParentCallback);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -296,7 +240,7 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   }
 
   BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
-  result = prepareToGrowSlabDepot(vdo->depot, vdo->layer, newDepotSize);
+  result = prepareToGrowSlabDepot(vdo->depot, newDepotSize);
   if (result != VDO_SUCCESS) {
     finishVDOLayoutGrowth(vdo->layout);
     return result;

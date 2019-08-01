@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vioPool.h#4 $
  */
 
 #ifndef VIO_POOL_H
@@ -62,6 +62,7 @@ typedef int VIOConstructor(PhysicalLayer  *layer,
  *
  * @param [in]  layer           the physical layer to write to and read from
  * @param [in]  poolSize        the number of VIOs in the pool
+ * @param [in]  threadID        the ID of the thread using this pool
  * @param [in]  vioConstructor  the constructor for VIOs in the pool
  * @param [in]  context         the context that each entry will have
  * @param [out] poolPtr         the resulting pool
@@ -70,9 +71,10 @@ typedef int VIOConstructor(PhysicalLayer  *layer,
  **/
 int makeVIOPool(PhysicalLayer   *layer,
                 size_t           poolSize,
+                ThreadID         threadID,
                 VIOConstructor  *vioConstructor,
                 void            *context,
-                VIOPool     **poolPtr)
+                VIOPool        **poolPtr)
   __attribute__((warn_unused_result));
 
 /**
