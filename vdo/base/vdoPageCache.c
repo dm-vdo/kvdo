@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#8 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -706,9 +706,15 @@ static void pageIsLoaded(VDOCompletion *completion)
   VDOPageCache *cache  = info->cache;
   assertOnCacheThread(cache, __func__);
 
-  cache->outstandingReads--;
   setInfoState(info, PS_RESIDENT);
   distributePageOverQueue(info, &info->waiting);
+
+  /*
+   * Don't decrement until right before calling checkForIOComplete() to ensure
+   * that the above work can't cause the page cache to be freed out from under
+   * us.
+   */
+  cache->outstandingReads--;
   checkForIOComplete(cache);
 }
 
@@ -724,12 +730,18 @@ static void handleLoadError(VDOCompletion *completion)
   VDOPageCache *cache  = info->cache;
   assertOnCacheThread(cache, __func__);
 
-  cache->outstandingReads--;
   enterReadOnlyMode(cache->zone->readOnlyNotifier, result);
   relaxedAdd64(&cache->stats.failedReads, 1);
   setInfoState(info, PS_FAILED);
   distributeErrorOverQueue(result, &info->waiting);
   resetPageInfo(info);
+
+  /*
+   * Don't decrement until right before calling checkForIOComplete() to ensure
+   * that the above work can't cause the page cache to be freed out from under
+   * us.
+   */
+  cache->outstandingReads--;
   checkForIOComplete(cache);
 }
 
@@ -1120,8 +1132,17 @@ static void pageIsWrittenOut(VDOCompletion *completion)
 static void writePages(VDOCompletion *flushCompletion)
 {
   VDOPageCache *cache = ((PageInfo *) flushCompletion->parent)->cache;
-  while (cache->pagesInFlush > 0) {
-    cache->pagesInFlush--;
+
+  /*
+   * We need to cache these two values on the stack since in the error case
+   * below, it is possible for the last page info to cause the page cache to
+   * get freed. Hence once we launch the last page, it may be unsafe to
+   * dereference the cache [VDO-4724].
+   */
+  bool      hasUnflushedPages = (cache->pagesToFlush > 0);
+  PageCount pagesInFlush      = cache->pagesInFlush;
+  cache->pagesInFlush         = 0;
+  while (pagesInFlush-- > 0) {
     PageInfo *info = pageInfoFromListNode(chopRingNode(&cache->outgoingList));
     if (isReadOnly(info->cache->zone->readOnlyNotifier)) {
       VDOCompletion *completion = &info->vio->completion;
@@ -1136,7 +1157,11 @@ static void writePages(VDOCompletion *flushCompletion)
                            handlePageWriteError);
   }
 
-  savePages(cache);
+  if (hasUnflushedPages) {
+    // If there are unflushed pages, the cache can't have been freed, so this
+    // call is safe.
+    savePages(cache);
+  }
 }
 
 /**********************************************************************/
