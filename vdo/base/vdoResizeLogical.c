@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#4 $
  */
 
 #include "vdoResizeLogical.h"
@@ -135,7 +135,7 @@ int performGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
   }
 
   return performAdminOperation(vdo, ADMIN_OPERATION_GROW_LOGICAL,
-                               growLogicalCallback);
+                               growLogicalCallback, growLogicalCallback);
 }
 
 /**********************************************************************/

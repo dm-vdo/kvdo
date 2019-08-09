@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#22 $
  */
 
 #include "kernelVDOInternals.h"
@@ -29,11 +29,11 @@
 #include "statistics.h"
 #include "threadConfig.h"
 #include "vdo.h"
-#include "vdoClose.h"
 #include "vdoDebug.h"
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "vdoSuspend.h"
 
 #include "kernelLayer.h"
 #include "kvio.h"
@@ -168,7 +168,7 @@ int stop_kvdo(struct kvdo *kvdo)
 						  struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	return performVDOClose(kvdo->vdo);
+	return performVDOSuspend(kvdo->vdo, !layer->no_flush_suspend);
 }
 
 /**********************************************************************/

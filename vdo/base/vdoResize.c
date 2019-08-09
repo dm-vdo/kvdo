@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#8 $
  */
 
 #include "vdoResize.h"
@@ -225,6 +225,7 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
   }
 
   int result = performAdminOperation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
+                                     growPhysicalCallback,
                                      growPhysicalCallback);
   finishVDOLayoutGrowth(vdo->layout);
   if (result != VDO_SUCCESS) {
@@ -284,7 +285,7 @@ int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
 
   int result
     = performAdminOperation(vdo, ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-                            checkMayGrowPhysical);
+                            checkMayGrowPhysical, checkMayGrowPhysical);
   if (result != VDO_SUCCESS) {
     return result;
   }

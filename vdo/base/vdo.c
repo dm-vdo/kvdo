@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#11 $
  */
 
 /*
@@ -102,7 +102,7 @@ int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
 
   vdo->layer = layer;
   if (layer->createEnqueueable != NULL) {
-    result = makeAdminCompletion(layer, &vdo->adminCompletion);
+    result = initializeAdminCompletion(vdo, &vdo->adminCompletion);
     if (result != VDO_SUCCESS) {
       freeVDO(&vdo);
       return result;
@@ -162,7 +162,7 @@ void destroyVDO(VDO *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  freeAdminCompletion(&vdo->adminCompletion);
+  uninitializeAdminCompletion(&vdo->adminCompletion);
   freeReadOnlyNotifier(&vdo->readOnlyNotifier);
   freeThreadConfig(&vdo->loadConfig.threadConfig);
 }
@@ -756,7 +756,7 @@ void leaveRecoveryMode(VDO *vdo)
    * Since scrubbing can be stopped by vdoClose during recovery mode,
    * do not change the VDO state if there are outstanding unrecovered slabs.
    */
-  if (vdo->closeRequested || inReadOnlyMode(vdo)) {
+  if (inReadOnlyMode(vdo)) {
     return;
   }
 

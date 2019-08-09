@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#7 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -24,6 +24,8 @@
 
 #include "vdo.h"
 
+#include "adminCompletion.h"
+#include "adminState.h"
 #include "atomic.h"
 #include "header.h"
 #include "packer.h"
@@ -105,13 +107,13 @@ struct vdo {
   HashZone             **hashZones;
 
   /* The completion for administrative operations */
-  AdminCompletion       *adminCompletion;
+  AdminCompletion        adminCompletion;
+
+  /* The administrative state of the VDO */
+  AdminState             adminState;
 
   /* Whether a close is required */
   bool                   closeRequired;
-
-  /* Whether a close has been requested */
-  bool                   closeRequested;
 
   /* Atomic global counts of error events */
   AtomicErrorStatistics  errorStats;

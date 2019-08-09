@@ -16,22 +16,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoClose.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.h#1 $
  */
 
-#ifndef VDO_CLOSE_H
-#define VDO_CLOSE_H
+#ifndef VDO_SUSPEND_H
+#define VDO_SUSPEND_H
 
 #include "types.h"
 
 /**
- * Free a VDO's resources, cleanly shutting it down if possible. This method
- * must not be called from a base thread.
+ * Ensure that the VDO has no outstanding I/O and will issue none until it is
+ * resumed.
  *
- * @param vdo  The VDO to close
+ * @param vdo   The VDO to suspend
+ * @param save  If <code>true</code>, all dirty metadata will be flushed as
+ *              well
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOClose(VDO *vdo);
+int performVDOSuspend(VDO *vdo, bool save);
 
-#endif /* VDO_CLOSE_H */
+#endif /* VDO_SUSPEND_H */
