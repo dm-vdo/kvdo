@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#26 $
  */
 
 #ifndef KERNELLAYER_H
@@ -57,10 +57,12 @@ typedef enum {
 	LAYER_CPU_QUEUE_INITIALIZED,
 	LAYER_BIO_ACK_QUEUE_INITIALIZED,
 	LAYER_BIO_DATA_INITIALIZED,
+	LAYER_STARTING,
 	LAYER_RUNNING,
 	LAYER_SUSPENDED,
 	LAYER_STOPPING,
 	LAYER_STOPPED,
+	LAYER_RESUMING,
 } kernel_layer_state;
 
 /* Keep struct bio statistics atomically */

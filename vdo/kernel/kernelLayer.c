@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#56 $
  */
 
 #include "kernelLayer.h"
@@ -896,6 +896,15 @@ int modify_kernel_layer(struct kernel_layer *layer,
 			struct device_config *config)
 {
 	struct device_config *extant_config = layer->device_config;
+	kernel_layer_state state = get_kernel_layer_state(layer);
+	if (state == LAYER_RUNNING) {
+		return VDO_SUCCESS;
+	} else if (state != LAYER_SUSPENDED) {
+		logError("pre-resume invoked while in unexpected kernel layer state %d",
+			 state);
+		return -EINVAL;
+	}
+	set_kernel_layer_state(layer, LAYER_RESUMING);
 
 	// A failure here is unrecoverable. So there is no problem if it
 	// happens.
@@ -963,6 +972,8 @@ void free_kernel_layer(struct kernel_layer *layer)
 		suspend_kernel_layer(layer);
 		// fall through
 
+	case LAYER_STARTING:
+	case LAYER_RESUMING:
 	case LAYER_SUSPENDED:
 		stop_kernel_layer(layer);
 		// fall through
@@ -1062,8 +1073,7 @@ int start_kernel_layer(struct kernel_layer *layer,
 	ASSERT_LOG_ONLY(
 		get_kernel_layer_state(layer) == LAYER_CPU_QUEUE_INITIALIZED,
 		"start_kernel_layer may only be invoked after initialization");
-	set_kernel_layer_state(layer, LAYER_RUNNING);
-
+	set_kernel_layer_state(layer, LAYER_STARTING);
 	int result = start_kvdo(&layer->kvdo,
 				&layer->common,
 				load_config,
@@ -1074,6 +1084,7 @@ int start_kernel_layer(struct kernel_layer *layer,
 		return result;
 	}
 
+	set_kernel_layer_state(layer, LAYER_RUNNING);
 	static struct kobj_type stats_directory_kobj_type = {
 		.release = pool_stats_release,
 		.sysfs_ops = &pool_stats_sysfs_ops,

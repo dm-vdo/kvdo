@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#20 $
  */
 
 #include "kvio.h"
@@ -148,9 +148,11 @@ void submitMetadataVIO(VIO *vio)
 		vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
 		set_bio_operation_read(bio);
 	} else {
-		ASSERT_LOG_ONLY((atomicLoad32(&kvio->layer->state) ==
-				 LAYER_RUNNING),
-				"write metadata when running");
+		kernel_layer_state state = get_kernel_layer_state(kvio->layer);
+		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
+				 || (state == LAYER_RESUMING)
+				 || (state = LAYER_STARTING)),
+				"write metadata in allowed state %d", state);
 		if (vioRequiresFlushBefore(vio)) {
 			set_bio_operation_write(bio);
 			set_bio_operation_flag_preflush(bio);
