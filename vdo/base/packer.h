@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#3 $
  */
 
 #ifndef PACKER_H
@@ -140,10 +140,11 @@ void drainPacker(Packer *packer, VDOCompletion *completion);
  * Resume a packer which has been suspended.
  *
  * @param packer  The packer to resume
+ * @param parent  The completion to finish when the packer has resumed
  *
  * @return VDO_SUCCESS or an error
  **/
-int resumePacker(Packer *packer);
+void resumePacker(Packer *packer, VDOCompletion *parent);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.

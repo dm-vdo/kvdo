@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#7 $
  */
 
 #include "packerInternals.h"
@@ -939,11 +939,12 @@ void drainPacker(Packer *packer, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int resumePacker(Packer *packer)
+void resumePacker(Packer *packer, VDOCompletion *parent)
 {
   assertOnPackerThread(packer, __func__);
-  return (resumeIfQuiescent(&packer->state)
-          ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
+  if (startResuming(&packer->state, ADMIN_STATE_RESUMING, parent)) {
+    finishResuming(&packer->state);
+  }
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#13 $
  */
 
 #include "adminState.h"
@@ -48,6 +48,9 @@ const char *getAdminStateCodeName(AdminStateCode code)
 
   case ADMIN_STATE_LOADING_FOR_REBUILD:
     return "ADMIN_STATE_LOADING_FOR_REBUILD";
+
+  case ADMIN_STATE_NEW:
+    return "ADMIN_STATE_NEW";
 
   case ADMIN_STATE_WAITING_FOR_RECOVERY:
     return "ADMIN_STATE_WAITING_FOR_RECOVERY";
@@ -125,7 +128,7 @@ static int beginOperation(AdminState     *state,
 {
   int result;
   if (isOperating(state)
-      || (isQuiescent(state) && !isQuiescentOperation(operation))) {
+      || (isQuiescent(state) != isQuiescentOperation(operation))) {
     result = logErrorWithStringError(VDO_INVALID_ADMIN_STATE,
                                      "Can't start %s from %s",
                                      getAdminStateCodeName(operation),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#2 $
  */
 
 #include "vdoSuspend.h"
@@ -56,14 +56,11 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 };
 
 /**
- * Get the ID of the thread where a given phase should be performed.
- *
- * @param completion  The AdminCompletion's sub-task completion
+ * Implements ThreadIDGetterForPhase.
  **/
 __attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(VDOCompletion *completion)
+static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
   const ThreadConfig *threadConfig
     = getThreadConfig(adminCompletion->completion.parent);
   switch (adminCompletion->phase) {
@@ -79,20 +76,6 @@ static ThreadID getThreadIDForPhase(VDOCompletion *completion)
 }
 
 /**
- * Reset the sub-task completion.
- *
- * @param completion  The AdminCompletion's sub-task completion
- *
- * @return The sub-task completion for the convenience of callers
- **/
-static VDOCompletion *resetSubTask(VDOCompletion *completion)
-{
-  resetCompletion(completion);
-  completion->callbackThreadID = getThreadIDForPhase(completion);
-  return completion;
-}
-
-/**
  * Update the VDO state and save the super block.
  *
  * @param vdo         The VDO being suspended
@@ -103,10 +86,10 @@ static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
   switch (vdo->state) {
   case VDO_DIRTY:
   case VDO_NEW:
-  case VDO_CLEAN:
     vdo->state = VDO_CLEAN;
     break;
 
+  case VDO_CLEAN:
   case VDO_READ_ONLY_MODE:
   case VDO_FORCE_REBUILD:
   case VDO_RECOVERING:
@@ -134,9 +117,7 @@ static void suspendCallback(VDOCompletion *completion)
                    || (adminCompletion->type == ADMIN_OPERATION_SAVE)),
                   "unexpected admin operation type %u is neither "
                   "suspend nor save", adminCompletion->type);
-  ASSERT_LOG_ONLY(getCallbackThreadID() == getThreadIDForPhase(completion),
-                  "suspendCallback() on correct thread for %s",
-                  SUSPEND_PHASE_NAMES[adminCompletion->phase]);
+  assertAdminPhaseThread(adminCompletion, __func__, SUSPEND_PHASE_NAMES);
 
   VDO *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
@@ -154,31 +135,41 @@ static void suspendCallback(VDOCompletion *completion)
     }
 
     waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier,
-                                     resetSubTask(completion));
+                                     resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_PACKER:
-    drainPacker(vdo->packer, resetSubTask(completion));
+    /*
+     * If the VDO was already resumed from a prior suspend while read-only,
+     * some of the components may not have been resumed. By setting a read-only
+     * error here, we guarantee that the result of this suspend will be
+     * VDO_READ_ONLY and not VDO_INVALID_ADMIN_STATE in that case.
+     */
+    if (inReadOnlyMode(vdo)) {
+      setCompletionResult(&adminCompletion->completion, VDO_READ_ONLY);
+    }
+
+    drainPacker(vdo->packer, resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_LOGICAL_ZONES:
     drainLogicalZones(vdo->logicalZones, vdo->adminState.state,
-                      resetSubTask(completion));
+                      resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_BLOCK_MAP:
     drainBlockMap(vdo->blockMap, vdo->adminState.state,
-                  resetSubTask(completion));
+                  resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_JOURNAL:
     drainRecoveryJournal(vdo->recoveryJournal, vdo->adminState.state,
-                         resetSubTask(completion));
+                         resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_DEPOT:
     drainSlabDepot(vdo->depot, vdo->adminState.state,
-                   resetSubTask(completion));
+                   resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
@@ -188,7 +179,7 @@ static void suspendCallback(VDOCompletion *completion)
       break;
     }
 
-    writeSuperBlock(vdo, resetSubTask(completion));
+    writeSuperBlock(vdo, resetAdminSubTask(completion));
     return;
 
   case SUSPEND_PHASE_END:
@@ -207,5 +198,6 @@ int performVDOSuspend(VDO *vdo, bool save)
   return performAdminOperation(vdo, (save
                                      ? ADMIN_OPERATION_SAVE
                                      : ADMIN_OPERATION_SUSPEND),
-                               suspendCallback, preserveErrorAndContinue);
+                               getThreadIDForPhase, suspendCallback,
+                               preserveErrorAndContinue);
 }

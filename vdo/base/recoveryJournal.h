@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#5 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -378,11 +378,11 @@ void drainRecoveryJournal(RecoveryJournal *journal,
  * Resume a recovery journal which has been drained.
  *
  * @param journal  The journal to resume
+ * @param parent   The completion to finish once the journal is resumed
  *
  * @return VDO_SUCCESS or an error
  **/
-int resumeRecoveryJournal(RecoveryJournal *journal)
-  __attribute__((warn_unused_result));
+void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent);
 
 /**
  * Get the number of logical blocks in use by the VDO

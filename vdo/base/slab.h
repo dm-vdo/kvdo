@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#6 $
  */
 
 #ifndef VDO_SLAB_H
@@ -124,13 +124,15 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
  * Construct a new, empty slab.
  *
  * @param [in]  slabOrigin       The physical block number within the block
- *                               allocator partition of the first block in
- *                               the slab
+ *                               allocator partition of the first block in the
+ *                               slab
  * @param [in]  allocator        The block allocator to which the slab belongs
- * @param [in]  translation      The translation from the depot's partition
- *                               to the physical storage
+ * @param [in]  translation      The translation from the depot's partition to
+ *                               the physical storage
  * @param [in]  recoveryJournal  The recovery journal of the VDO
  * @param [in]  slabNumber       The slab number of the slab
+ * @param [in]  isNew            <code>true</code> if this slab is being
+ *                               allocated as part of a resize
  * @param [out] slabPtr          A pointer to receive the new slab
  *
  * @return VDO_SUCCESS or an error code
@@ -140,6 +142,7 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
              PhysicalBlockNumber   translation,
              RecoveryJournal      *recoveryJournal,
              SlabCount             slabNumber,
+             bool                  isNew,
              Slab                **slabPtr)
   __attribute__((warn_unused_result));
 

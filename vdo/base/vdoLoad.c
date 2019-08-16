@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#10 $
  */
 
 #include "vdoLoad.h"
@@ -475,7 +475,7 @@ static void loadCallback(VDOCompletion *completion)
 int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
 {
   vdo->loadConfig = *loadConfig;
-  return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, loadCallback,
+  return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL, loadCallback,
                                loadCallback);
 }
 

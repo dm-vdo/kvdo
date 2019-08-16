@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#18 $
  */
 
 #include "slabDepot.h"
@@ -131,7 +131,7 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
       = depot->allocators[depot->newSlabCount % depot->zoneCount];
     Slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
     result = makeSlab(slabOrigin, allocator, translation, depot->journal,
-                      depot->newSlabCount, slabPtr);
+                      depot->newSlabCount, resizing, slabPtr);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -139,14 +139,8 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
     depot->newSlabCount++;
 
     slabOrigin += slabSize;
-
-    if (resizing) {
-      result = allocateRefCountsForSlab(*slabPtr);
-      if (result != VDO_SUCCESS) {
-        return result;
-      }
-    }
   }
+
   return VDO_SUCCESS;
 }
 
@@ -282,7 +276,7 @@ static int allocateComponents(SlabDepot          *depot,
   // Use the new slabs.
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
-    registerSlabWithAllocator(slab->allocator, slab, false);
+    registerSlabWithAllocator(slab->allocator, slab);
     depot->slabCount++;
   }
 
@@ -889,9 +883,9 @@ void prepareToAllocate(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void updateSlabDepotSize(SlabDepot *depot, bool reverting)
+void updateSlabDepotSize(SlabDepot *depot)
 {
-  depot->lastBlock = (reverting ? depot->oldLastBlock : depot->newLastBlock);
+  depot->lastBlock = depot->newLastBlock;
 }
 
 /**********************************************************************/
@@ -973,6 +967,11 @@ void drainSlabDepot(SlabDepot      *depot,
 /**********************************************************************/
 void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
 {
+  if (isReadOnly(depot->readOnlyNotifier)) {
+    finishCompletion(parent, VDO_READ_ONLY);
+    return;
+  }
+
   scheduleOperation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
                     resumeBlockAllocator, NULL, parent);
 }

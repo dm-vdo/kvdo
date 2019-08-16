@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#19 $
  */
 
 #include "kvio.h"
@@ -147,13 +147,20 @@ void submitMetadataVIO(VIO *vio)
 				"read VIO does not require flush before");
 		vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
 		set_bio_operation_read(bio);
-	} else if (vioRequiresFlushBefore(vio)) {
-		set_bio_operation_write(bio);
-		set_bio_operation_flag_preflush(bio);
-		vioAddTraceRecord(vio, THIS_LOCATION("$F;io=flushWriteMeta"));
 	} else {
-		set_bio_operation_write(bio);
-		vioAddTraceRecord(vio, THIS_LOCATION("$F;io=writeMeta"));
+		ASSERT_LOG_ONLY((atomicLoad32(&kvio->layer->state) ==
+				 LAYER_RUNNING),
+				"write metadata when running");
+		if (vioRequiresFlushBefore(vio)) {
+			set_bio_operation_write(bio);
+			set_bio_operation_flag_preflush(bio);
+			vioAddTraceRecord(vio,
+					  THIS_LOCATION("$F;io=flushWriteMeta"));
+		} else {
+			set_bio_operation_write(bio);
+			vioAddTraceRecord(vio,
+					  THIS_LOCATION("$F;io=writeMeta"));
+		}
 	}
 
 	if (vioRequiresFlushAfter(vio)) {

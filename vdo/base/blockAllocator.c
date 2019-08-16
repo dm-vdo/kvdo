@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#18 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -126,15 +126,10 @@ static void prioritizeSlab(Slab *slab)
 }
 
 /**********************************************************************/
-void registerSlabWithAllocator(BlockAllocator *allocator,
-                               Slab           *slab,
-                               bool            resizing)
+void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab)
 {
   allocator->slabCount++;
   allocator->lastSlab = slab->slabNumber;
-  if (resizing) {
-    prioritizeSlab(slab);
-  }
 }
 
 /**
@@ -722,7 +717,7 @@ void registerNewSlabsForAllocator(void          *context,
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
     if (slab->allocator == allocator) {
-      registerSlabWithAllocator(allocator, slab, true);
+      registerSlabWithAllocator(allocator, slab);
     }
   }
   completeCompletion(parent);

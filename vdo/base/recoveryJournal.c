@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#7 $
  */
 
 #include "recoveryJournal.h"
@@ -481,9 +481,21 @@ void freeRecoveryJournal(RecoveryJournal **journalPtr)
   freeVIO(&journal->flushVIO);
   FREE(journal->unusedFlushVIOData);
 
-  ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
-                  "journal being freed has no active tail blocks");
+  // XXX: eventually, the journal should be constructed in a quiescent state
+  //      which requires opening before use.
+  if (!isQuiescent(&journal->state)) {
+    ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
+                    "journal being freed has no active tail blocks");
+  } else if (!isSaved(&journal->state)
+             && !isRingEmpty(&journal->activeTailBlocks)) {
+    logWarning("journal being freed has uncommited entries");
+  }
+
   RecoveryJournalBlock *block;
+  while ((block = popActiveList(journal)) != NULL) {
+    freeRecoveryBlock(&block);
+  }
+
   while ((block = popFreeList(journal)) != NULL) {
     freeRecoveryBlock(&block);
   }
@@ -1188,15 +1200,22 @@ void drainRecoveryJournal(RecoveryJournal *journal,
 }
 
 /**********************************************************************/
-int resumeRecoveryJournal(RecoveryJournal *journal)
+void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
 {
   assertOnJournalThread(journal, __func__);
-  if (isSaved(&journal->state)) {
+  bool saved = isSaved(&journal->state);
+  if (!startResuming(&journal->state, ADMIN_STATE_RESUMING, parent)) {
+    return;
+  }
+
+  int result = VDO_SUCCESS;
+  if (isReadOnly(journal->readOnlyNotifier)) {
+    result = VDO_READ_ONLY;
+  } else if (saved) {
     initializeJournalState(journal);
   }
 
-  return (resumeIfQuiescent(&journal->state)
-          ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE);
+  finishResumingWithResult(&journal->state, result);
 }
 
 /**********************************************************************/

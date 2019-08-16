@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#10 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -83,13 +83,22 @@ int start_kvdo(struct kvdo *kvdo,
 	       char **reason);
 
 /**
- * Stops the base VDO instance associated with the kernel layer
+ * Suspend the base VDO instance associated with the kernel layer.
  *
- * @param kvdo          The kvdo to be stopped
+ * @param kvdo  The kvdo to be suspended
  *
  * @return VDO_SUCCESS if stopped, otherwise error
- */
-int stop_kvdo(struct kvdo *kvdo);
+ **/
+int suspend_kvdo(struct kvdo *kvdo);
+
+/**
+ * Resume the base VDO instance associated with the kernel layer.
+ *
+ * @param kvdo  The kvdo to be resumed
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int resume_kvdo(struct kvdo *kvdo);
 
 /**
  * Shut down the base code interface. The kvdo object must first be

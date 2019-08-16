@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#16 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -33,7 +33,7 @@ typedef enum {
   ADMIN_TYPE_NORMAL = 0,
   /**
    * Format: an operation for formatting a new VDO.
-   */
+   **/
   ADMIN_TYPE_FORMAT,
   /**
    * Recover: a recovery operation.
@@ -119,6 +119,8 @@ typedef enum {
                                       | ADMIN_FLAG_LOADING),
   ADMIN_STATE_WAITING_FOR_RECOVERY = (ADMIN_TYPE_RECOVER
                                       | ADMIN_FLAG_OPERATING),
+  ADMIN_STATE_NEW                  = (ADMIN_TYPE_NORMAL
+                                      | ADMIN_FLAG_QUIESCENT),
   ADMIN_STATE_RECOVERING           = (ADMIN_TYPE_RECOVER
                                       | ADMIN_FLAG_OPERATING
                                       | ADMIN_FLAG_DRAINING),

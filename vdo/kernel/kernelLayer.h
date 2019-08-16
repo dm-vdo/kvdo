@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#25 $
  */
 
 #ifndef KERNELLAYER_H
@@ -289,10 +289,8 @@ int start_kernel_layer(struct kernel_layer *layer,
  * Stop the kernel layer.
  *
  * @param layer  The kernel layer
- *
- * @return VDO_SUCCESS or an error
  **/
-int stop_kernel_layer(struct kernel_layer *layer);
+void stop_kernel_layer(struct kernel_layer *layer);
 
 /**
  * Suspend the kernel layer.
@@ -322,7 +320,7 @@ int resume_kernel_layer(struct kernel_layer *layer);
 static inline kernel_layer_state
 get_kernel_layer_state(const struct kernel_layer *layer)
 {
-	return relaxedLoad32(&layer->state);
+	return atomicLoad32(&layer->state);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#13 $
  */
 
 #include "blockMap.h"
@@ -611,14 +611,22 @@ BlockCount getNewEntryCount(BlockMap *map)
   return map->nextEntryCount;
 }
 
-/**********************************************************************/
-void growBlockMap(BlockMap *map)
+/**
+ * Grow the block map by replacing the forest with the one which was prepared.
+ *
+ * Implements ActionPreamble
+ **/
+static void growForest(void *context, VDOCompletion *completion)
 {
-  AdminStateCode code = getCurrentManagerOperation(map->actionManager);
-  ASSERT_LOG_ONLY(isQuiescentCode(code),
-                  "growBlockMap() called on quiescent block map");
+  replaceForest(context);
+  completeCompletion(completion);
+}
 
-  replaceForest(map);
+/**********************************************************************/
+void growBlockMap(BlockMap *map, VDOCompletion *parent)
+{
+  scheduleOperation(map->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
+                    growForest, NULL, NULL, parent);
 }
 
 /**********************************************************************/

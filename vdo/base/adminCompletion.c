@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#4 $
  */
 
 #include "adminCompletion.h"
@@ -30,14 +30,9 @@
 #include "types.h"
 #include "vdoInternal.h"
 
-/**
- * Check that an AdminCompletion's type is as expected.
- *
- * @param completion  The AdminCompletion to check
- * @param expected    The expected type
- **/
-static void assertAdminOperationType(AdminCompletion    *completion,
-                                     AdminOperationType  expected)
+/**********************************************************************/
+void assertAdminOperationType(AdminCompletion    *completion,
+                              AdminOperationType  expected)
 {
   ASSERT_LOG_ONLY(completion->type == expected,
                   "admin operation type is %u instead of %u",
@@ -52,6 +47,17 @@ AdminCompletion *adminCompletionFromSubTask(VDOCompletion *completion)
   VDOCompletion *parent = completion->parent;
   assertCompletionType(parent->type, ADMIN_COMPLETION);
   return (AdminCompletion *) parent;
+}
+
+/**********************************************************************/
+void assertAdminPhaseThread(AdminCompletion *adminCompletion,
+                            const char      *what,
+                            const char      *phaseNames[])
+{
+  ThreadID expected = adminCompletion->getThreadID(adminCompletion);
+  ASSERT_LOG_ONLY((getCallbackThreadID() == expected),
+                  "%s on correct thread for %s",
+                  what, phaseNames[adminCompletion->phase]);
 }
 
 /**********************************************************************/
@@ -92,6 +98,15 @@ void uninitializeAdminCompletion(AdminCompletion *adminCompletion)
 }
 
 /**********************************************************************/
+VDOCompletion *resetAdminSubTask(VDOCompletion *completion)
+{
+  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  resetCompletion(completion);
+  completion->callbackThreadID = adminCompletion->getThreadID(adminCompletion);
+  return completion;
+}
+
+/**********************************************************************/
 void prepareAdminSubTaskOnThread(VDO       *vdo,
                                  VDOAction *callback,
                                  VDOAction *errorHandler,
@@ -123,10 +138,11 @@ static void adminOperationCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int performAdminOperation(VDO                *vdo,
-                          AdminOperationType  type,
-                          VDOAction          *action,
-                          VDOAction          *errorHandler)
+int performAdminOperation(VDO                    *vdo,
+                          AdminOperationType      type,
+                          ThreadIDGetterForPhase *threadIDGetter,
+                          VDOAction              *action,
+                          VDOAction              *errorHandler)
 {
   AdminCompletion *adminCompletion = &vdo->adminCompletion;
   if (!compareAndSwapBool(&adminCompletion->busy, false, true)) {
@@ -139,8 +155,9 @@ int performAdminOperation(VDO                *vdo,
   prepareCompletion(&adminCompletion->completion, adminOperationCallback,
                     adminOperationCallback,
                     getAdminThread(getThreadConfig(vdo)), vdo);
-  adminCompletion->type  = type;
-  adminCompletion->phase = 0;
+  adminCompletion->type        = type;
+  adminCompletion->getThreadID = threadIDGetter;
+  adminCompletion->phase       = 0;
   prepareAdminSubTask(vdo, action, errorHandler);
 
   PhysicalLayer *layer = vdo->layer;

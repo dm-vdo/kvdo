@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#55 $
  */
 
 #include "kernelLayer.h"
@@ -140,7 +140,7 @@ int map_to_system_error(int error)
 static void set_kernel_layer_state(struct kernel_layer *layer,
 				   kernel_layer_state new_state)
 {
-	relaxedStore32(&layer->state, new_state);
+	atomicStore32(&layer->state, new_state);
 }
 
 /**********************************************************************/
@@ -960,6 +960,9 @@ void free_kernel_layer(struct kernel_layer *layer)
 		break;
 
 	case LAYER_RUNNING:
+		suspend_kernel_layer(layer);
+		// fall through
+
 	case LAYER_SUSPENDED:
 		stop_kernel_layer(layer);
 		// fall through
@@ -1106,11 +1109,8 @@ int start_kernel_layer(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
-int stop_kernel_layer(struct kernel_layer *layer)
+void stop_kernel_layer(struct kernel_layer *layer)
 {
-	char error_name[80] = "";
-	char error_message[ERRBUF_SIZE] = "";
-
 	layer->allocations_allowed = true;
 
 	// Stop services that need to gather VDO statistics from the worker
@@ -1124,22 +1124,12 @@ int stop_kernel_layer(struct kernel_layer *layer)
 	vdo_destroy_procfs_entry(layer->device_config->pool_name,
 				 layer->procfs_private);
 
-	int result = stop_kvdo(&layer->kvdo);
-	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
-		logError("%s: Close device failed %d (%s: %s)",
-			 __func__,
-			 result,
-			 string_error_name(result,
-					   error_name,
-					   sizeof(error_name)),
-			 string_error(result,
-				      error_message,
-				      sizeof(error_message)));
-	}
-
 	switch (get_kernel_layer_state(layer)) {
-	case LAYER_SUSPENDED:
 	case LAYER_RUNNING:
+		suspend_kernel_layer(layer);
+		// fall through
+
+	case LAYER_SUSPENDED:
 		set_kernel_layer_state(layer, LAYER_STOPPING);
 		stop_dedupe_index(layer->dedupe_index);
 		// fall through
@@ -1149,8 +1139,6 @@ int stop_kernel_layer(struct kernel_layer *layer)
 	default:
 		set_kernel_layer_state(layer, LAYER_STOPPED);
 	}
-
-	return result;
 }
 
 /**********************************************************************/
@@ -1172,8 +1160,6 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 		return -EINVAL;
 	}
 
-	set_kernel_layer_state(layer, LAYER_SUSPENDED);
-
 	/*
 	 * Attempt to flush all I/O before completing post suspend work. This
 	 * is needed so that changing write policy upon resume is safe. Also,
@@ -1185,16 +1171,35 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	if (result != VDO_SUCCESS) {
 		set_kvdo_read_only(&layer->kvdo, result);
 	}
+
+	/*
+	 * Suspend the VDO, writing out all dirty metadata if the no-flush flag
+	 * was not set on the dmsetup suspend call. This will ensure that we
+	 * don't have cause to write while suspended [VDO-4402].
+	 */
+	int suspend_result = suspend_kvdo(&layer->kvdo);
+	if (result == VDO_SUCCESS) {
+		result = suspend_result;
+	}
+
 	suspend_dedupe_index(layer->dedupe_index, !layer->no_flush_suspend);
+	set_kernel_layer_state(layer, LAYER_SUSPENDED);
 	return result;
 }
 
 /**********************************************************************/
 int resume_kernel_layer(struct kernel_layer *layer)
 {
-	if (get_kernel_layer_state(layer) == LAYER_SUSPENDED) {
-		set_kernel_layer_state(layer, LAYER_RUNNING);
+	if (get_kernel_layer_state(layer) == LAYER_RUNNING) {
+		return VDO_SUCCESS;
 	}
+
+	int result = resume_kvdo(&layer->kvdo);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
+
+	set_kernel_layer_state(layer, LAYER_RUNNING);
 	return VDO_SUCCESS;
 }
 

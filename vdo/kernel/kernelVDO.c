@@ -16,9 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#23 $
  */
 
+/*
+ * Sadly, this include must precede the include of kernelVDOInternals.h because
+ * that file ends up including the uds version of errors.h which is wrong for
+ * this file.
+ */
+#include "errors.h"
 #include "kernelVDOInternals.h"
 
 #include <linux/delay.h>
@@ -33,6 +39,7 @@
 #include "vdoLoad.h"
 #include "vdoResize.h"
 #include "vdoResizeLogical.h"
+#include "vdoResume.h"
 #include "vdoSuspend.h"
 
 #include "kernelLayer.h"
@@ -158,17 +165,44 @@ int start_kvdo(struct kvdo *kvdo,
 }
 
 /**********************************************************************/
-int stop_kvdo(struct kvdo *kvdo)
+int suspend_kvdo(struct kvdo *kvdo)
 {
 	if (kvdo->vdo == NULL) {
 		return VDO_SUCCESS;
 	}
 
-	struct kernel_layer *layer = container_of(kvdo,
-						  struct kernel_layer,
+	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	return performVDOSuspend(kvdo->vdo, !layer->no_flush_suspend);
+	int result = performVDOSuspend(kvdo->vdo, !layer->no_flush_suspend);
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		char error_name[80] = "";
+		char error_message[ERRBUF_SIZE] = "";
+		logError("%s: Suspend device failed %d (%s: %s)",
+			 __func__, result,
+			 string_error_name(result, error_name,
+					   sizeof(error_name)),
+			 string_error(result, error_message,
+				      sizeof(error_message)));
+		return result;
+	}
+
+	// Convert VDO_READ_ONLY to VDO_SUCCESS since a read-only suspension
+	// still leaves the VDO suspended.
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int resume_kvdo(struct kvdo *kvdo)
+{
+	if (kvdo->vdo == NULL) {
+		return VDO_SUCCESS;
+	}
+
+	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
+						  kvdo);
+	init_completion(&layer->callbackSync);
+	return performVDOResume(kvdo->vdo);
 }
 
 /**********************************************************************/

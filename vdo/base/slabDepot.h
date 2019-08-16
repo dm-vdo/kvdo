@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#10 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -371,13 +371,12 @@ void prepareToAllocate(SlabDepot         *depot,
                        VDOCompletion     *parent);
 
 /**
- * Update the slab depot to reflect its new size in memory. This size is
- * saved to disk as part of the super block.
+ * Update the slab depot to reflect its new size in memory. This size is saved
+ * to disk as part of the super block.
  *
- * @param depot      The depot to update
- * @param reverting  Whether to revert to the pre-resize size
+ * @param depot  The depot to update
  **/
-void updateSlabDepotSize(SlabDepot *depot, bool reverting);
+void updateSlabDepotSize(SlabDepot *depot);
 
 /**
  * Allocate new memory needed for a resize of a slab depot to the given size.

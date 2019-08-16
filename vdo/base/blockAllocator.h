@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#11 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -61,7 +61,7 @@ int makeBlockAllocator(SlabDepot         *depot,
 void freeBlockAllocator(BlockAllocator **blockAllocatorPtr);
 
 /**
- * Queue a slab for allocation. Can be called only once per slab.
+ * Queue a slab for allocation or scrubbing.
  *
  * @param slab  The slab to queue
  **/
@@ -159,11 +159,8 @@ void prepareAllocatorToAllocate(void          *context,
  *
  * @param allocator  The allocator to use
  * @param slab       The slab in question
- * @param resizing   Whether the registration is part of a resize
  **/
-void registerSlabWithAllocator(BlockAllocator *allocator,
-                               Slab           *slab,
-                               bool            resizing);
+void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab);
 
 /**
  * Register the new slabs belonging to this allocator.
