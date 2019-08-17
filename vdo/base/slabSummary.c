@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#6 $
  */
 
 #include "slabSummary.h"
@@ -101,8 +101,6 @@ static BlockCount getApproximateFreeBlocks(SlabSummary *summary,
 // MAKE/FREE FUNCTIONS
 
 /**********************************************************************/
-static void finishUpdatingSlabSummaryBlock(VDOCompletion *completion);
-static void handleWriteError(VDOCompletion *completion);
 static void launchWrite(SlabSummaryBlock *summaryBlock);
 
 /**
@@ -112,17 +110,17 @@ static void launchWrite(SlabSummaryBlock *summaryBlock);
  * @param summaryZone       The parent SlabSummaryZone
  * @param threadID          The ID of the thread of physical zone of this block
  * @param entries           The entries this block manages
- * @param pbn               The physical location of this block on disk
+ * @param index             The index of this block in its zone's summary
  * @param slabSummaryBlock  The block to intialize
  *
  * @return VDO_SUCCESS or an error
  **/
-static int initializeSlabSummaryBlock(PhysicalLayer       *layer,
-                                      SlabSummaryZone     *summaryZone,
-                                      ThreadID             threadID,
-                                      SlabSummaryEntry    *entries,
-                                      PhysicalBlockNumber  pbn,
-                                      SlabSummaryBlock    *slabSummaryBlock)
+static int initializeSlabSummaryBlock(PhysicalLayer    *layer,
+                                      SlabSummaryZone  *summaryZone,
+                                      ThreadID          threadID,
+                                      SlabSummaryEntry *entries,
+                                      BlockCount        index,
+                                      SlabSummaryBlock *slabSummaryBlock)
 {
   int result = ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
                         &slabSummaryBlock->outgoingEntries);
@@ -140,29 +138,26 @@ static int initializeSlabSummaryBlock(PhysicalLayer       *layer,
   slabSummaryBlock->vio->completion.callbackThreadID = threadID;
   slabSummaryBlock->zone                             = summaryZone;
   slabSummaryBlock->entries                          = entries;
-  slabSummaryBlock->pbn                              = pbn;
+  slabSummaryBlock->index                            = index;
   return VDO_SUCCESS;
 }
 
 /**
  * Create a new, empty SlabSummaryZone object.
  *
- * @param [in]  summary           The summary to which the new zone will belong
- * @param [in]  layer             The layer
- * @param [in]  zoneNumber        The zone this is
- * @param [in]  threadID          The ID of the thread for this zone
- * @param [in]  pbn               The translated pbn at which this zone's on
- *                                disk data begins
- * @param [in]  entries           The buffer to hold the entries in this zone
+ * @param summary     The summary to which the new zone will belong
+ * @param layer       The layer
+ * @param zoneNumber  The zone this is
+ * @param threadID    The ID of the thread for this zone
+ * @param entries     The buffer to hold the entries in this zone
  *
  * @return VDO_SUCCESS or an error
  **/
-static int makeSlabSummaryZone(SlabSummary         *summary,
-                               PhysicalLayer       *layer,
-                               ZoneCount            zoneNumber,
-                               ThreadID             threadID,
-                               PhysicalBlockNumber  pbn,
-                               SlabSummaryEntry    *entries)
+static int makeSlabSummaryZone(SlabSummary      *summary,
+                               PhysicalLayer    *layer,
+                               ZoneCount         zoneNumber,
+                               ThreadID          threadID,
+                               SlabSummaryEntry *entries)
 {
   int result = ALLOCATE_EXTENDED(SlabSummaryZone, summary->blocksPerZone,
                                  SlabSummaryBlock, __func__,
@@ -183,9 +178,9 @@ static int makeSlabSummaryZone(SlabSummary         *summary,
   }
 
   // Initialize each block.
-  for (BlockCount i = 0; i < summary->blocksPerZone; i++, pbn++) {
+  for (BlockCount i = 0; i < summary->blocksPerZone; i++) {
     result = initializeSlabSummaryBlock(layer, summaryZone, threadID, entries,
-                                        pbn, &summaryZone->summaryBlocks[i]);
+                                        i, &summaryZone->summaryBlocks[i]);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -253,16 +248,14 @@ int makeSlabSummary(PhysicalLayer       *layer,
   }
 
   setSlabSummaryOrigin(summary, partition);
-  PhysicalBlockNumber pbn = summary->origin;
   for (ZoneCount zone = 0; zone < summary->zoneCount; zone++) {
     result = makeSlabSummaryZone(summary, layer, zone,
                                  getPhysicalZoneThread(threadConfig, zone),
-                                 pbn, summary->entries + (MAX_SLABS * zone));
+                                 summary->entries + (MAX_SLABS * zone));
     if (result != VDO_SUCCESS) {
       freeSlabSummary(&summary);
       return result;
     }
-    pbn += blocksPerZone;
   }
 
   *slabSummaryPtr = summary;
@@ -301,21 +294,14 @@ SlabSummaryZone *getSummaryForZone(SlabSummary *summary, ZoneCount zone)
 // WRITING FUNCTIONALITY
 
 /**
- * Check whether a summary zone has finished a drain or resume operation
+ * Check whether a summary zone has finished draining.
  *
  * @param summaryZone  The zone to check
  **/
-static void checkForOperationComplete(SlabSummaryZone *summaryZone)
+static void checkForDrainComplete(SlabSummaryZone *summaryZone)
 {
-  if (!isOperating(&summaryZone->state)) {
+  if (!isDraining(&summaryZone->state) || (summaryZone->writeCount > 0)) {
     return;
-  }
-
-  for (BlockCount i = 0; i < summaryZone->summary->blocksPerZone; i++) {
-    SlabSummaryBlock *block = &summaryZone->summaryBlocks[i];
-    if (block->currentlyWriting || block->needsWriting) {
-      return;
-    }
   }
 
   finishOperationWithResult(&summaryZone->state,
@@ -339,37 +325,33 @@ static void notifyWaiters(SlabSummaryZone *summaryZone, WaitQueue *queue)
 }
 
 /**
- * Finish an update-generated block write.
+ * Finish processing a block which attempted to write, whether or not the
+ * attempt succeeded.
  *
- * @param completion  The write VIO
+ * @param block  The block
  **/
-static void finishUpdatingSlabSummaryBlock(VDOCompletion *completion)
+static void finishUpdatingSlabSummaryBlock(SlabSummaryBlock *block)
 {
-  SlabSummaryBlock *block = completion->parent;
   notifyWaiters(block->zone, &block->currentUpdateWaiters);
-  atomicAdd64(&block->zone->summary->statistics.blocksWritten, 1);
-  block->currentlyWriting = false;
-  if (block->needsWriting) {
+  block->writing = false;
+  block->zone->writeCount--;
+  if (hasWaiters(&block->nextUpdateWaiters)) {
     launchWrite(block);
-    return;
+  } else {
+    checkForDrainComplete(block->zone);
   }
-
-  checkForOperationComplete(block->zone);
 }
 
 /**
- * Finish processing a block which cannot be written due to the VDO going into
- * read-only mode.
+ * This is the callback for a successful block write.
  *
- * @param block The block which cannot be written
+ * @param completion  The write VIO
  **/
-static void finishUnwritableBlock(SlabSummaryBlock *block)
+static void finishUpdate(VDOCompletion *completion)
 {
-  notifyWaiters(block->zone, &block->currentUpdateWaiters);
-  notifyWaiters(block->zone, &block->nextUpdateWaiters);
-  block->currentlyWriting = false;
-  block->needsWriting     = false;
-  checkForOperationComplete(block->zone);
+  SlabSummaryBlock *block = completion->parent;
+  atomicAdd64(&block->zone->summary->statistics.blocksWritten, 1);
+  finishUpdatingSlabSummaryBlock(block);
 }
 
 /**
@@ -382,73 +364,41 @@ static void handleWriteError(VDOCompletion *completion)
   SlabSummaryBlock *block = completion->parent;
   enterReadOnlyMode(block->zone->summary->readOnlyNotifier,
                     completion->result);
-  finishUnwritableBlock(block);
+  finishUpdatingSlabSummaryBlock(block);
 }
 
 /**
- * Given a SlabSummaryBlock, determine if it needs to be written, and if so,
- * set up and launch a write of this block.
+ * Write a slab summary block unless it is currently out for writing.
  *
  * @param [in] block  The block that needs to be committed
  **/
 static void launchWrite(SlabSummaryBlock *block)
 {
-  if (block->currentlyWriting || !block->needsWriting) {
+  if (block->writing) {
     return;
   }
 
-  block->needsWriting = false;
-
-  if (isReadOnly(block->zone->summary->readOnlyNotifier)) {
-    finishUnwritableBlock(block);
-    return;
-  }
-
+  SlabSummaryZone *zone = block->zone;
+  zone->writeCount++;
   transferAllWaiters(&block->nextUpdateWaiters, &block->currentUpdateWaiters);
+  block->writing = true;
 
-  block->currentlyWriting = true;
+  SlabSummary *summary = zone->summary;
+  if (isReadOnly(summary->readOnlyNotifier)) {
+    finishUpdatingSlabSummaryBlock(block);
+    return;
+  }
 
-  SlabCount entriesPerBlock = block->zone->summary->entriesPerBlock;
   memcpy(block->outgoingEntries, block->entries,
-         sizeof(SlabSummaryEntry) * entriesPerBlock);
+         sizeof(SlabSummaryEntry) * summary->entriesPerBlock);
 
   // Flush before writing to ensure that the slab journal tail blocks and
   // reference updates covered by this summary update are stable (VDO-2332).
-  launchWriteMetadataVIOWithFlush(block->vio, block->pbn,
-                                  finishUpdatingSlabSummaryBlock,
+  PhysicalBlockNumber pbn = (summary->origin
+                             + (summary->blocksPerZone * zone->zoneNumber)
+                             + block->index);
+  launchWriteMetadataVIOWithFlush(block->vio, pbn, finishUpdate,
                                   handleWriteError, true, false);
-}
-
-/**
- * Launch writes for all blocks that need writing.
- *
- * @param summaryZone  The zone in question
- **/
-static void launchWriteOfAllBlocks(SlabSummaryZone *summaryZone)
-{
-  SlabSummary *summary       = summaryZone->summary;
-  BlockCount   blocksPerZone = summary->blocksPerZone;
-  PhysicalBlockNumber pbn
-    = (summary->origin + (summaryZone->zoneNumber * blocksPerZone));
-
-  // Prepare all the blocks. Do this before launching any to ensure that we
-  // don't prematurely decide that the save is complete.
-  bool forceWrite = isQuiescing(&summaryZone->state);
-  for (BlockCount i = 0; i < blocksPerZone; i++, pbn++) {
-    SlabSummaryBlock *block = &summaryZone->summaryBlocks[i];
-    // Make sure the PBNs of the blocks are accurate.
-    if (block->pbn != pbn) {
-      // If the summary has moved, we must write it
-      block->pbn = pbn;
-      block->needsWriting = true;
-    } else {
-      block->needsWriting |= forceWrite;
-    }
-  }
-
-  for (BlockCount i = 0; i < blocksPerZone; i++) {
-    launchWrite(&summaryZone->summaryBlocks[i]);
-  }
 }
 
 /**********************************************************************/
@@ -457,8 +407,7 @@ void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
                           VDOCompletion   *parent)
 {
   if (startDraining(&summaryZone->state, operation, parent)) {
-    launchWriteOfAllBlocks(summaryZone);
-    checkForOperationComplete(summaryZone);
+    checkForDrainComplete(summaryZone);
   }
 }
 
@@ -466,8 +415,7 @@ void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
 void resumeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
 {
   if (startResuming(&summaryZone->state, ADMIN_STATE_RESUMING, parent)) {
-    launchWriteOfAllBlocks(summaryZone);
-    checkForOperationComplete(summaryZone);
+    finishResuming(&summaryZone->state);
   }
 }
 
@@ -515,8 +463,6 @@ void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
       .isDirty         = !isClean,
       .fullnessHint    = hint,
     };
-    block->needsWriting = true;
-
     result = enqueueWaiter(&block->nextUpdateWaiters, waiter);
   }
 
@@ -651,7 +597,7 @@ static void finishLoadingSummary(VDOCompletion *completion)
 
   // Write the combined summary back out.
   extent->completion.callback = finishCombiningZones;
-  writeMetadataExtent(extent, summary->zones[0]->summaryBlocks[0].pbn);
+  writeMetadataExtent(extent, summary->origin);
 }
 
 /**********************************************************************/
@@ -675,19 +621,18 @@ void loadSlabSummary(SlabSummary    *summary,
     return;
   }
 
-  PhysicalBlockNumber pbn = zone->summaryBlocks[0].pbn;
   if ((operation == ADMIN_STATE_FORMATTING)
       || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
     prepareCompletion(&extent->completion, finishCombiningZones,
                       finishCombiningZones, 0, summary);
-    writeMetadataExtent(extent, pbn);
+    writeMetadataExtent(extent, summary->origin);
     return;
   }
 
   summary->zonesToCombine = zonesToCombine;
   prepareCompletion(&extent->completion, finishLoadingSummary,
                     finishCombiningZones, 0, summary);
-  readMetadataExtent(extent, pbn);
+  readMetadataExtent(extent, summary->origin);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#11 $
  */
 
 #include "slabJournalInternals.h"
@@ -522,9 +522,14 @@ static void releaseJournalLocks(Waiter *waiter, void *context)
   SlabJournal *journal = slabJournalFromSlabSummaryWaiter(waiter);
   int          result  = *((int *) context);
   if (result != VDO_SUCCESS) {
+    if (result != VDO_READ_ONLY) {
+      // Don't bother logging what might be lots of errors if we are already
+      // in read-only mode.
+      logErrorWithStringError(result, "failed slab summary update %llu",
+                              journal->summarized);
+    }
+
     journal->updatingSlabSummary = false;
-    logErrorWithStringError(result, "failed slab summary updater %llu",
-                            journal->summarized);
     enterJournalReadOnlyMode(journal, result);
     return;
   }

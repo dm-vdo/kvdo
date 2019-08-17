@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#5 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -50,23 +50,21 @@ typedef struct slabSummaryEntry {
 
 typedef struct slabSummaryBlock {
   /** The zone to which this block belongs */
-  SlabSummaryZone     *zone;
+  SlabSummaryZone  *zone;
+  /** The index of this block in its zone's summary */
+  BlockCount        index;
   /** Whether this block has a write outstanding */
-  bool                 currentlyWriting;
-  /** Whether this block has had modifications since it issued a write */
-  bool                 needsWriting;
+  bool              writing;
   /** Ring of updates waiting on the outstanding write */
-  WaitQueue            currentUpdateWaiters;
+  WaitQueue         currentUpdateWaiters;
   /** Ring of updates waiting on the next write */
-  WaitQueue            nextUpdateWaiters;
-  /** The block number of this SummaryBlock on the partition */
-  PhysicalBlockNumber  pbn;
+  WaitQueue         nextUpdateWaiters;
   /** The active SlabSummaryEntry array for this block */
-  SlabSummaryEntry    *entries;
+  SlabSummaryEntry *entries;
   /** The VIO used to write this block */
-  VIO                 *vio;
+  VIO              *vio;
   /** The packed entries, one block long, backing the VIO */
-  char                *outgoingEntries;
+  char             *outgoingEntries;
 } SlabSummaryBlock;
 
 /**
@@ -84,6 +82,8 @@ struct slabSummaryZone {
   SlabSummary      *summary;
   /** The number of this zone */
   ZoneCount         zoneNumber;
+  /** Count of the number of blocks currently out for writing */
+  BlockCount        writeCount;
   /** The state of this zone */
   AdminState        state;
   /** The array (owned by the blocks) of all entries */

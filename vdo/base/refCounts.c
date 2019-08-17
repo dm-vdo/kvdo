@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#7 $
  */
 
 #include "refCounts.h"
@@ -1046,12 +1046,19 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
 /**
  * A waiter callback that resets the writing state of refCounts.
  **/
-static void finishSummaryUpdate(Waiter *waiter,
-                                void   *context __attribute__((unused)))
+static void finishSummaryUpdate(Waiter *waiter, void *context)
 {
   RefCounts *refCounts           = refCountsFromWaiter(waiter);
   refCounts->updatingSlabSummary = false;
-  checkForDrainComplete(refCounts);
+
+  int result = *((int *) context);
+  if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
+    checkForDrainComplete(refCounts);
+    return;
+  }
+
+  logErrorWithStringError(result, "failed to update slab summary");
+  enterRefCountsReadOnlyMode(refCounts, result);
 }
 
 /**
