@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#2 $
  */
 
 #include "vdoResume.h"
@@ -83,10 +83,10 @@ static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
  **/
 static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
 {
-  switch (vdo->state) {
+  switch (getVDOState(vdo)) {
   case VDO_CLEAN:
   case VDO_NEW:
-    vdo->state = VDO_DIRTY;
+    setVDOState(vdo, VDO_DIRTY);
     saveVDOComponentsAsync(vdo, completion);
     return;
 

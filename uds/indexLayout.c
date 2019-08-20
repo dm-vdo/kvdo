@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#7 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#9 $
  */
 
 #include "indexLayout.h"
@@ -1712,10 +1712,7 @@ void putIndexLayout(IndexLayout **layoutPtr)
   FREE(sil->saves);
   closeIORegion(&layout->region);
   if (layout->factory != NULL) {
-    int result = putIOFactory(layout->factory);
-    if (result != UDS_SUCCESS) {
-      logDebugWithStringError(result, "failed to close I/O factory");
-    }
+    putIOFactory(layout->factory);
   }
   FREE(layout);
 }
@@ -1769,17 +1766,14 @@ int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
 }
 
 /*****************************************************************************/
-int openVolumeRegion(IndexLayout   *layout,
-                     IOAccessMode   access,
-                     IORegion     **regionPtr)
+int openVolumeBufio(IndexLayout             *layout,
+                    size_t                   blockSize,
+                    unsigned int             reservedBuffers,
+                    struct dm_bufio_client **clientPtr)
 {
-  int result = getSingleFileLayoutRegion(layout, &layout->index.volume, access,
-                                         regionPtr);
-  if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "cannot access index volume region");
-  }
-  return UDS_SUCCESS;
+  off_t offset = layout->index.volume.startBlock * layout->super.blockSize;
+  return makeBufio(layout->factory, offset, blockSize, reservedBuffers,
+                   clientPtr);
 }
 
 /*****************************************************************************/

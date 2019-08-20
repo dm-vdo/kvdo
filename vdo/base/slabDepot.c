@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#19 $
  */
 
 #include "slabDepot.h"
@@ -39,6 +39,7 @@
 #include "slabSummary.h"
 #include "threadConfig.h"
 #include "types.h"
+#include "vdoState.h"
 
 typedef struct {
   SlabConfig           slabConfig;
@@ -226,16 +227,10 @@ static int allocateComponents(SlabDepot          *depot,
     return VDO_SUCCESS;
   }
 
-  int result = initializeEnqueueableCompletion(&depot->scrubbingCompletion,
-                                               SUB_TASK_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
-
-  result = makeActionManager(depot->zoneCount, getAllocatorThreadID,
-                             getJournalZoneThread(threadConfig), depot,
-                             scheduleTailBlockCommit, layer,
-                             &depot->actionManager);
+  int result = makeActionManager(depot->zoneCount, getAllocatorThreadID,
+                                 getJournalZoneThread(threadConfig), depot,
+                                 scheduleTailBlockCommit, layer,
+                                 &depot->actionManager);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -299,6 +294,7 @@ static int allocateComponents(SlabDepot          *depot,
  *                                 (if NULL, the depot is format-only)
  * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [in]  vdoState          A pointer to the VDO's atomic state
  * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
@@ -312,6 +308,7 @@ static int allocateDepot(const SlabDepotState2_0  *state,
                          Partition                *summaryPartition,
                          ReadOnlyNotifier         *readOnlyNotifier,
                          RecoveryJournal          *recoveryJournal,
+                         Atomic32                 *vdoState,
                          SlabDepot               **depotPtr)
 {
   // Calculate the bit shift for efficiently mapping block numbers to slabs.
@@ -338,6 +335,7 @@ static int allocateDepot(const SlabDepotState2_0  *state,
   depot->lastBlock        = state->lastBlock;
   depot->slabSizeShift    = slabSizeShift;
   depot->journal          = recoveryJournal;
+  depot->vdoState         = vdoState;
 
   result = allocateComponents(depot, nonce, threadConfig, vioPoolSize,
                               layer, summaryPartition);
@@ -414,6 +412,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   Partition            *summaryPartition,
                   ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
+                  Atomic32             *vdoState,
                   SlabDepot           **depotPtr)
 {
   SlabDepotState2_0 state;
@@ -425,7 +424,7 @@ int makeSlabDepot(BlockCount            blockCount,
   SlabDepot *depot = NULL;
   result = allocateDepot(&state, threadConfig, nonce, vioPoolSize, layer,
                          summaryPartition, readOnlyNotifier, recoveryJournal,
-                         &depot);
+                         vdoState, &depot);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -457,7 +456,6 @@ void freeSlabDepot(SlabDepot **depotPtr)
   FREE(depot->slabs);
   freeActionManager(&depot->actionManager);
   freeSlabSummary(&depot->slabSummary);
-  destroyEnqueueable(&depot->scrubbingCompletion);
   FREE(depot);
   *depotPtr = NULL;
 }
@@ -662,6 +660,7 @@ int decodeSlabDepot(Buffer              *buffer,
                     Partition           *summaryPartition,
                     ReadOnlyNotifier    *readOnlyNotifier,
                     RecoveryJournal     *recoveryJournal,
+                    Atomic32            *vdoState,
                     SlabDepot          **depotPtr)
 {
   Header header;
@@ -683,7 +682,7 @@ int decodeSlabDepot(Buffer              *buffer,
 
   return allocateDepot(&state, threadConfig, nonce, VIO_POOL_SIZE, layer,
                        summaryPartition, readOnlyNotifier, recoveryJournal,
-                       depotPtr);
+                       vdoState, depotPtr);
 }
 
 /**********************************************************************/
@@ -698,7 +697,7 @@ int decodeSodiumSlabDepot(Buffer              *buffer,
 {
   // Sodium uses version 2.0 of the slab depot state.
   return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
-                         readOnlyNotifier, recoveryJournal, depotPtr);
+                         readOnlyNotifier, recoveryJournal, NULL, depotPtr);
 }
 
 /**********************************************************************/
@@ -1006,21 +1005,15 @@ SlabSummaryZone *getSlabSummaryForZone(const SlabDepot *depot, ZoneCount zone)
   if (depot->slabSummary == NULL) {
     return NULL;
   }
+
   return getSummaryForZone(depot->slabSummary, zone);
 }
 
 /**********************************************************************/
-void scrubAllUnrecoveredSlabs(SlabDepot     *depot,
-                              void          *parent,
-                              VDOAction     *callback,
-                              VDOAction     *errorHandler,
-                              ThreadID       threadID,
-                              VDOCompletion *launchParent)
+void scrubAllUnrecoveredSlabs(SlabDepot *depot, VDOCompletion *parent)
 {
-  prepareCompletion(&depot->scrubbingCompletion, callback, errorHandler,
-                    threadID, parent);
   scheduleAction(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
-                 NULL, launchParent);
+                 NULL, parent);
 }
 
 /**********************************************************************/
@@ -1029,7 +1022,19 @@ void notifyZoneFinishedScrubbing(VDOCompletion *completion)
   SlabDepot *depot = completion->parent;
   if (atomicAdd32(&depot->zonesToScrub, -1) == 0) {
     // We're the last!
-    completeCompletion(&depot->scrubbingCompletion);
+    if (compareAndSwap32(depot->vdoState, VDO_RECOVERING, VDO_DIRTY)) {
+      logInfo("Exiting recovery mode");
+      return;
+    }
+
+    /*
+     * We must check the VDO state here and not the depot's ReadOnlyNotifier
+     * since the compare-swap-above could have failed due to a read-only entry
+     * which our own thread does not yet know about.
+     */
+    if (atomicLoad32(depot->vdoState) == VDO_DIRTY) {
+      logInfo("VDO commencing normal operation");
+    }
   }
 }
 

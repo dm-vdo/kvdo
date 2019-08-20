@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#4 $
  */
 
 #include <linux/blkdev.h>
@@ -75,13 +75,42 @@ int makeIOFactory(const char *path, IOFactory **factoryPtr)
 }
 
 /*****************************************************************************/
-int putIOFactory(IOFactory *factory)
+void putIOFactory(IOFactory *factory)
 {
-  if (atomic_add_return(-1, &factory->refCount) > 0) {
-    return UDS_SUCCESS;
+  if (atomic_add_return(-1, &factory->refCount) <= 0) {
+    blkdev_put(factory->bdev, BLK_FMODE);
+    FREE(factory);
   }
-  blkdev_put(factory->bdev, BLK_FMODE);
-  FREE(factory);
+}
+
+/*****************************************************************************/
+int makeBufio(IOFactory               *factory,
+              off_t                    offset,
+              size_t                   blockSize,
+              unsigned int             reservedBuffers,
+              struct dm_bufio_client **clientPtr)
+{
+  if (offset % SECTOR_SIZE != 0) {
+    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
+                                   "offset %zd not multiple of %d",
+                                   offset, SECTOR_SIZE);
+  }
+  if (blockSize % UDS_BLOCK_SIZE != 0) {
+    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
+                                   "blockSize %zd not multiple of %d",
+                                   blockSize, UDS_BLOCK_SIZE);
+  }
+
+  struct dm_bufio_client *client = dm_bufio_client_create(factory->bdev,
+                                                          blockSize,
+                                                          reservedBuffers, 0,
+                                                          NULL, NULL);
+  if (IS_ERR(client)) {
+    return -PTR_ERR(client);
+  }
+
+  dm_bufio_set_sector_offset(client, offset >> SECTOR_SHIFT);
+  *clientPtr = client;
   return UDS_SUCCESS;
 }
 

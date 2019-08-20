@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#8 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -50,7 +50,7 @@ typedef struct atomicErrorStatistics {
 
 struct vdo {
   /* The state of this VDO */
-  VDOState              state;
+  Atomic32              state;
   /* The read-only notifier */
   ReadOnlyNotifier     *readOnlyNotifier;
   /* The number of times this VDO has recovered from a dirty state */
@@ -118,6 +118,24 @@ struct vdo {
   /* Atomic global counts of error events */
   AtomicErrorStatistics  errorStats;
 };
+
+/**
+ * Get the current state of the VDO. This method may be called from any thread.
+ *
+ * @param vdo  The VDO
+ *
+ * @return the current state of the VDO
+ **/
+VDOState getVDOState(const VDO *vdo)
+  __attribute__((warn_unused_result));
+
+/**
+ * Set the current state of the VDO. This method may be called from any thread.
+ *
+ * @param vdo    The VDO whose state is to be set
+ * @param state  The new state of the VDO
+ **/
+void setVDOState(VDO *vdo, VDOState state);
 
 /**
  * Get the component data size of a VDO.
@@ -312,13 +330,6 @@ bool inRecoveryMode(const VDO *vdo)
  * @param vdo  The VDO
  **/
 void enterRecoveryMode(VDO *vdo);
-
-/**
- * Leave recovery mode if slab scrubbing has actually finished.
- *
- * @param vdo  The VDO
- **/
-void leaveRecoveryMode(VDO *vdo);
 
 /**
  * Assert that we are running on the admin thread.

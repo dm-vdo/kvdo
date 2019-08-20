@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#5 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -152,17 +152,19 @@ uint64_t getVolumeNonce(IndexLayout *layout)
   __attribute__((warn_unused_result));
 
 /**
- * Obtain an IORegion for the specified index volume.
+ * Obtain a dm_bufio_client for the specified index volume.
  *
- * @param [in]  layout     The index layout.
- * @param [in]  access     The type of access requested.
- * @param [out] regionPtr  Where to put the new region.
+ * @param [in]  layout           The index layout.
+ * @param [in]  blockSize        The size of a volume page
+ * @param [in]  reservedBuffers  The count of reserved buffers
+ * @param [out] clientPtr        Where to put the new dm_bufio_client
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openVolumeRegion(IndexLayout   *layout,
-                     IOAccessMode   access,
-                     IORegion     **regionPtr)
+int openVolumeBufio(IndexLayout             *layout,
+                    size_t                   blockSize,
+                    unsigned int             reservedBuffers,
+                    struct dm_bufio_client **clientPtr)
   __attribute__((warn_unused_result));
 
 /**

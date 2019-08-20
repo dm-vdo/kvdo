@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#3 $
  */
 
 #include "vdoSuspend.h"
@@ -83,10 +83,10 @@ static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
  **/
 static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
 {
-  switch (vdo->state) {
+  switch (getVDOState(vdo)) {
   case VDO_DIRTY:
   case VDO_NEW:
-    vdo->state = VDO_CLEAN;
+    setVDOState(vdo, VDO_CLEAN);
     break;
 
   case VDO_CLEAN:

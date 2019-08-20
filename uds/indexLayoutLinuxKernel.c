@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#4 $
  */
 
 #include "indexLayout.h"
@@ -64,13 +64,9 @@ int makeIndexLayout(const char              *name,
   IndexLayout *layout;
   result = makeIndexLayoutFromFactory(factory, offset, size, newLayout, config,
                                       &layout);
-  int freeResult = putIOFactory(factory);
+  putIOFactory(factory);
   if (result != UDS_SUCCESS) {
     return result;
-  }
-  if (freeResult != UDS_SUCCESS) {
-    putIndexLayout(&layout);
-    return freeResult;
   }
   *layoutPtr = layout;
   return UDS_SUCCESS;

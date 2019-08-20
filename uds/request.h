@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.h#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#7 $
  */
 
 #ifndef REQUEST_H
@@ -114,8 +114,15 @@ typedef struct zoneMessage {
 
 /**
  * Request context for queuing throughout the uds pipeline
+ *
+ * XXX Note that the typedef for this struct defines "Request", and that this
+ *     should therefore be "struct request".  However, this conflicts with the
+ *     Linux kernel which also has a "struct request".  This is a workaround so
+ *     that we can make upstreaming progress.  The real solution is to expose
+ *     this structure as the true "struct uds_request" and do a lot of
+ *     renaming.
  **/
-struct request {
+struct internalRequest {
   /*
    * The first part of this structure must be exactly parallel to the
    * UdsRequest structure, which is part of the public UDS API.

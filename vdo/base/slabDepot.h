@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#11 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -25,6 +25,7 @@
 #include "buffer.h"
 
 #include "adminState.h"
+#include "atomic.h"
 #include "completion.h"
 #include "fixedLayout.h"
 #include "journalPoint.h"
@@ -76,6 +77,7 @@ SlabCount calculateSlabCount(SlabDepot *depot)
  * @param [in]  summaryPartition  The partition which holds the slab summary
  * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [in]  vdoState          A pointer to the VDO's atomic state
  * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
@@ -90,6 +92,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   Partition            *summaryPartition,
                   ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
+                  Atomic32             *vdoState,
                   SlabDepot           **depotPtr)
   __attribute__((warn_unused_result));
 
@@ -153,6 +156,7 @@ int decodeSodiumSlabDepot(Buffer              *buffer,
  * @param [in]  summaryPartition  The partition which holds the slab summary
  * @param [in]  readOnlyNotifier  The context for entering read-only mode
  * @param [in]  recoveryJournal   The recovery journal of the VDO
+ * @param [in]  vdoState          A pointer to the VDO's atomic state
  * @param [out] depotPtr          A pointer to hold the depot
  *
  * @return A success or error code
@@ -164,6 +168,7 @@ int decodeSlabDepot(Buffer              *buffer,
                     Partition           *summaryPartition,
                     ReadOnlyNotifier    *readOnlyNotifier,
                     RecoveryJournal     *recoveryJournal,
+                    Atomic32            *vdoState,
                     SlabDepot          **depotPtr)
   __attribute__((warn_unused_result));
 
@@ -471,19 +476,10 @@ SlabSummaryZone *getSlabSummaryForZone(const SlabDepot *depot, ZoneCount zone)
  * Scrub all unrecovered slabs.
  *
  * @param depot         The depot to scrub
- * @param parent        The object to notify when scrubbing is complete
- * @param callback      The function to call when scrubbing is complete
- * @param errorHandler  The handler for scrubbing errors
- * @param threadID      The thread on which to run the callback
- * @param launchParent  The object to notify when scrubbing has been launched
+ * @param parent        The object to notify when scrubbing has been launched
  *                      for all zones
  **/
-void scrubAllUnrecoveredSlabs(SlabDepot     *depot,
-                              void          *parent,
-                              VDOAction     *callback,
-                              VDOAction     *errorHandler,
-                              ThreadID       threadID,
-                              VDOCompletion *launchParent);
+void scrubAllUnrecoveredSlabs(SlabDepot *depot, VDOCompletion *parent);
 
 /**
  * Check whether there are outstanding unrecovered slabs.

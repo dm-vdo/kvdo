@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#12 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -50,8 +50,8 @@ struct slabDepot {
   SequenceNumber        activeReleaseRequest;
   SequenceNumber        newReleaseRequest;
 
-  /** The completion for scrubbing */
-  VDOCompletion         scrubbingCompletion;
+  /** State variables for scrubbing complete handling */
+  Atomic32             *vdoState;
   Atomic32              zonesToScrub;
 
   /** Cached journal pointer for slab creation */

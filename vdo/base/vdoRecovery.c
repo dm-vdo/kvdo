@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#10 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -517,7 +517,7 @@ static void startSuperBlockSave(VDOCompletion *completion)
   assertOnAdminThread(vdo, __func__);
 
   logInfo("Saving recovery progress");
-  vdo->state = VDO_REPLAYING;
+  setVDOState(vdo, VDO_REPLAYING);
 
   // The block map access which follows the super block save must be done
   // on a logical thread.

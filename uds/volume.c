@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#11 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#12 $
  */
 
 #include "volume.h"
@@ -38,6 +38,7 @@
 #include "stringUtils.h"
 #include "threads.h"
 #include "volumeInternals.h"
+
 
 enum {
   MAX_BAD_CHAPTERS    = 100,   // max number of contiguous bad chapters
@@ -728,28 +729,20 @@ int forgetChapter(Volume             *volume,
   return result;
 }
 
-/**********************************************************************/
-static int writeScratchPage(Volume *volume, int physicalPage)
-{
-  off_t offset = (off_t) physicalPage * (off_t) volume->geometry->bytesPerPage;
-  int result = writeToRegion(volume->region, offset, volume->scratchPage,
-                             volume->geometry->bytesPerPage,
-                             volume->geometry->bytesPerPage);
-  return result;
-}
 
 /**
  * Donate index page data to the page cache for an index page that was just
- * written to the volume. The index page data is expected to be in the
- * volume's scratch page. The caller must already hold the reader thread
+ * written to the volume.  The caller must already hold the reader thread
  * mutex.
  *
  * @param volume           the volume
  * @param physicalChapter  the physical chapter number of the index page
+ * @param scratchPage      the index page data
  * @param indexPageNumber  the chapter page number of the index page
  **/
 static int donateIndexPageLocked(Volume       *volume,
                                  unsigned int  physicalChapter,
+                                 byte         *scratchPage,
                                  unsigned int  indexPageNumber)
 {
   unsigned int physicalPage
@@ -763,7 +756,7 @@ static int donateIndexPageLocked(Volume       *volume,
   }
 
   // Copy the scratch page containing the index page bytes to the cache page.
-  memcpy(page->data, volume->scratchPage, volume->geometry->bytesPerPage);
+  memcpy(page->data, scratchPage, volume->geometry->bytesPerPage);
 
   result = initChapterIndexPage(volume, page->data, physicalChapter,
                                 indexPageNumber, &page->indexPage);
@@ -798,34 +791,47 @@ int writeIndexPages(Volume            *volume,
   for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    // Pack as many delta lists into the scratch page as will fit.
+    struct dm_buffer *buffer = NULL;
+    byte *data = dm_bufio_new(volume->bufioClient,
+                              physicalPage + indexPageNumber, &buffer);
+    if (IS_ERR(data)) {
+      return logErrorWithStringError(-PTR_ERR(data),
+                                     "failed to get buffer for index page");
+    }
+    // buffer now contains the buffer control block, data is the block of
+    // memory that will be written, and buffer+data is associated with the
+    // target sectors in storage.
+
+    // Pack as many delta lists into the index page as will fit.
     unsigned int listsPacked;
     bool lastPage = ((indexPageNumber + 1) == geometry->indexPagesPerChapter);
-    int result = packOpenChapterIndexPage(chapterIndex, volume->nonce,
-                                          volume->scratchPage,
+    int result = packOpenChapterIndexPage(chapterIndex, volume->nonce, data,
                                           deltaListNumber, lastPage,
                                           &listsPacked);
+
+    // Write buffer+data to the volume as the next index page.
+
+    if (result == UDS_SUCCESS) {
+      // on success we will write data+buffer
+      dm_bufio_mark_buffer_dirty(buffer);
+    }
+    // buffer+data must be released, regardless of success or failure
+    dm_bufio_release(buffer);
+
     if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result, "failed to pack index page");
+      return logWarningWithStringError(result, "failed to pack index page");
     }
 
-    // Write the scratch page to the volume as the next chapter index page.
-    result = writeScratchPage(volume, physicalPage++);
-    if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "failed to write chapter index page");
-    }
 
     if (pages != NULL) {
-      memcpy(pages[indexPageNumber], volume->scratchPage,
-             geometry->bytesPerPage);
+      memcpy(pages[indexPageNumber], data, geometry->bytesPerPage);
     }
 
     // Tell the index page map the list number of the last delta list that was
     // packed into the index page.
     if (listsPacked == 0) {
-      logInfo("no delta lists packed on chapter %u page %u",
-              physicalChapterNumber, indexPageNumber);
+      logDebug("no delta lists packed on chapter %u page %u",
+               physicalChapterNumber, indexPageNumber);
     } else {
       deltaListNumber += listsPacked;
     }
@@ -840,7 +846,7 @@ int writeIndexPages(Volume            *volume,
 
     // Donate the page data for the index page to the page cache.
     lockMutex(&volume->readThreadsMutex);
-    result = donateIndexPageLocked(volume, physicalChapterNumber,
+    result = donateIndexPageLocked(volume, physicalChapterNumber, data,
                                    indexPageNumber);
     unlockMutex(&volume->readThreadsMutex);
     if (result != UDS_SUCCESS) {
@@ -866,27 +872,39 @@ int writeRecordPages(Volume                *volume,
   for (recordPageNumber = 0;
        recordPageNumber < geometry->recordPagesPerChapter;
        recordPageNumber++) {
-    // Sort the next page of records and copy them to the scratch page
-    // as a binary tree stored in heap order.
-    int result = encodeRecordPage(volume, nextRecord, volume->scratchPage);
+    struct dm_buffer *buffer = NULL;
+    byte *data = dm_bufio_new(volume->bufioClient,
+                              physicalPage + recordPageNumber, &buffer);
+    if (IS_ERR(data)) {
+      return logErrorWithStringError(-PTR_ERR(data),
+                                     "failed to get buffer for record page");
+    }
+    // buffer now contains the buffer control block, data is the block of
+    // memory that will be written, and buffer+data is associated with the
+    // target sectors in storage.
+
+    // Sort the next page of records and copy them to the record page as a
+    // binary tree stored in heap order.
+    int result = encodeRecordPage(volume, nextRecord, data);
+    nextRecord += geometry->recordsPerPage;
+
+    // Write buffer+data to the volume as the next record page.
+    if (result == UDS_SUCCESS) {
+      // on success we will write data+buffer
+      dm_bufio_mark_buffer_dirty(buffer);
+    }
+    // buffer+data must be released, regardless of success or failure
+    dm_bufio_release(buffer);
+    
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to encode record page %u",
                                        recordPageNumber);
     }
-    nextRecord += geometry->recordsPerPage;
 
-    // Write the scratch page to the volume as the next record page.
-    result = writeScratchPage(volume, physicalPage++);
-    if (result != UDS_SUCCESS) {
-      return logWarningWithStringError(result,
-                                       "failed to write record page %u",
-                                       recordPageNumber);
-    }
 
     if (pages != NULL) {
-      memcpy(pages[recordPageNumber], volume->scratchPage,
-             geometry->bytesPerPage);
+      memcpy(pages[recordPageNumber], data, geometry->bytesPerPage);
     }
   }
   return UDS_SUCCESS;
@@ -895,9 +913,10 @@ int writeRecordPages(Volume                *volume,
 /**********************************************************************/
 int syncVolume(Volume *volume)
 {
-  int result = syncRegionContents(volume->region);
-  if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result, "cannot sync chapter to volume");
+  int result;
+  result = dm_bufio_write_dirty_buffers(volume->bufioClient);
+  if (result != 0) {
+    return logErrorWithStringError(-result, "cannot write chapter to volume");
   }
   return UDS_SUCCESS;
 }
@@ -1279,12 +1298,8 @@ void freeVolume(Volume *volume)
     volume->readerThreads = NULL;
   }
 
-  if (volume->region != NULL) {
-    int result = syncAndCloseRegion(&volume->region, "index volume");
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing volume, releasing anyway");
-    }
+  if (volume->bufioClient != NULL) {
+    dm_bufio_client_destroy(volume->bufioClient);
   }
 
   destroyCond(&volume->readThreadsCond);
@@ -1296,6 +1311,5 @@ void freeVolume(Volume *volume)
   freeSparseCache(volume->sparseCache);
   FREE(volume->geometry);
   FREE(volume->recordPointers);
-  FREE(volume->scratchPage);
   FREE(volume);
 }

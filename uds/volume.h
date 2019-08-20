@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#6 $
  */
 
 #ifndef VOLUME_H
@@ -69,11 +69,9 @@ typedef struct volume {
   /* The configuration of the volume */
   Configuration         *config;
   /* The access to the volume's backing store */
-  IORegion              *region;
+  struct dm_bufio_client *bufioClient;
   /* The nonce used to save the volume */
   uint64_t               nonce;
-  /* A single page sized scratch buffer */
-  byte                  *scratchPage;
   /* A single page's records, for sorting */
   const UdsChunkRecord **recordPointers;
   /* For sorting record pages */
@@ -291,9 +289,9 @@ int syncVolume(Volume *volume) __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeChapter(Volume                 *volume,
-                 OpenChapterIndex       *chapterIndex,
-                 const UdsChunkRecord    records[])
+int writeChapter(Volume               *volume,
+                 OpenChapterIndex     *chapterIndex,
+                 const UdsChunkRecord  records[])
   __attribute__((warn_unused_result));
 
 /**

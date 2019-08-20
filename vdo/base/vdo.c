@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#12 $
  */
 
 /*
@@ -180,6 +180,18 @@ void freeVDO(VDO **vdoPtr)
 }
 
 /**********************************************************************/
+VDOState getVDOState(const VDO *vdo)
+{
+  return atomicLoad32(&vdo->state);
+}
+
+/**********************************************************************/
+void setVDOState(VDO *vdo, VDOState state)
+{
+  atomicStore32(&vdo->state, state);
+}
+
+/**********************************************************************/
 size_t getComponentDataSize(VDO *vdo)
 {
   return (sizeof(VersionNumber)
@@ -256,7 +268,7 @@ static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
 
   size_t initialLength = contentLength(buffer);
 
-  result = putUInt32LEIntoBuffer(buffer, vdo->state);
+  result = putUInt32LEIntoBuffer(buffer, getVDOState(vdo));
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -552,7 +564,7 @@ int decodeVDOComponent(VDO *vdo)
   }
 
   // Copy the decoded component into the VDO structure.
-  vdo->state              = component.state;
+  setVDOState(vdo, component.state);
   vdo->loadState          = component.state;
   vdo->completeRecoveries = component.completeRecoveries;
   vdo->readOnlyRecoveries = component.readOnlyRecoveries;
@@ -675,7 +687,7 @@ static void notifyVDOOfReadOnlyMode(void *listener, VDOCompletion *parent)
     completeCompletion(parent);
   }
 
-  vdo->state = VDO_READ_ONLY_MODE;
+  setVDOState(vdo, VDO_READ_ONLY_MODE);
   saveVDOComponentsAsync(vdo, parent);
 }
 
@@ -690,7 +702,7 @@ int enableReadOnlyEntry(VDO *vdo)
 /**********************************************************************/
 bool inReadOnlyMode(const VDO *vdo)
 {
-  return (vdo->state == VDO_READ_ONLY_MODE);
+  return (getVDOState(vdo) == VDO_READ_ONLY_MODE);
 }
 
 /**********************************************************************/
@@ -709,10 +721,16 @@ bool requiresReadOnlyRebuild(const VDO *vdo)
 /**********************************************************************/
 bool requiresRebuild(const VDO *vdo)
 {
-  return ((vdo->state == VDO_DIRTY)
-          || (vdo->state == VDO_FORCE_REBUILD)
-          || (vdo->state == VDO_REPLAYING)
-          || (vdo->state == VDO_REBUILD_FOR_UPGRADE));
+  switch (getVDOState(vdo)) {
+  case VDO_DIRTY:
+  case VDO_FORCE_REBUILD:
+  case VDO_REPLAYING:
+  case VDO_REBUILD_FOR_UPGRADE:
+    return true;
+
+  default:
+    return false;
+  }
 }
 
 /**********************************************************************/
@@ -725,13 +743,13 @@ bool requiresRecovery(const VDO *vdo)
 /**********************************************************************/
 bool isReplaying(const VDO *vdo)
 {
-  return (vdo->state == VDO_REPLAYING);
+  return (getVDOState(vdo) == VDO_REPLAYING);
 }
 
 /**********************************************************************/
 bool inRecoveryMode(const VDO *vdo)
 {
-  return (vdo->state == VDO_RECOVERING);
+  return (getVDOState(vdo) == VDO_RECOVERING);
 }
 
 /**********************************************************************/
@@ -744,25 +762,7 @@ void enterRecoveryMode(VDO *vdo)
   }
 
   logInfo("Entering recovery mode");
-  vdo->state = VDO_RECOVERING;
-}
-
-/**********************************************************************/
-void leaveRecoveryMode(VDO *vdo)
-{
-  assertOnAdminThread(vdo, __func__);
-
-  /*
-   * Since scrubbing can be stopped by vdoClose during recovery mode,
-   * do not change the VDO state if there are outstanding unrecovered slabs.
-   */
-  if (inReadOnlyMode(vdo)) {
-    return;
-  }
-
-  ASSERT_LOG_ONLY(inRecoveryMode(vdo), "VDO is in recovery mode");
-  logInfo("Exiting recovery mode");
-  vdo->state = VDO_DIRTY;
+  setVDOState(vdo, VDO_RECOVERING);
 }
 
 /**********************************************************************/
@@ -881,8 +881,7 @@ void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
   stats->recoveryPercentage
     = (slabTotal - getDepotUnrecoveredSlabCount(depot)) * 100 / slabTotal;
 
-  // The "state" field is mutable, but we just need a unfenced atomic read.
-  VDOState state        = *((const volatile VDOState *) &vdo->state);
+  VDOState state        = getVDOState(vdo);
   stats->inRecoveryMode = (state == VDO_RECOVERING);
   snprintf(stats->mode, sizeof(stats->mode), "%s", describeVDOState(state));
 }

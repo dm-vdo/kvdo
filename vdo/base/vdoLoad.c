@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#11 $
  */
 
 #include "vdoLoad.h"
@@ -140,35 +140,6 @@ static void continueLoadReadOnly(VDOCompletion *completion)
 }
 
 /**
- * Exit recovery mode if necessary now that online slab scrubbing or loading
- * is complete. This callback is registrered in scrubSlabs().
- *
- * @param completion  The slab scrubber completion
- **/
-static void finishScrubbingSlabs(VDOCompletion *completion)
-{
-  VDO *vdo = completion->parent;
-  assertOnAdminThread(vdo, __func__);
-  if (inRecoveryMode(vdo)) {
-    leaveRecoveryMode(vdo);
-  } else {
-    logInfo("VDO commencing normal operation");
-  }
-}
-
-/**
- * Handle an error scrubbing or loading all slabs after the VDO has come
- * online. This error handler is registered in scrubSlabs().
- *
- * @param completion  The slab scrubber completion
- **/
-static void handleScrubAllError(VDOCompletion *completion)
-{
-  VDO *vdo = completion->parent;
-  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
-}
-
-/**
  * Initiate slab scrubbing if necessary. This callback is registered in
  * prepareToComeOnline().
  *
@@ -187,8 +158,7 @@ static void scrubSlabs(VDOCompletion *completion)
   }
 
   prepareAdminSubTask(vdo, finishParentCallback, continueLoadReadOnly);
-  scrubAllUnrecoveredSlabs(vdo->depot, vdo, finishScrubbingSlabs,
-                           handleScrubAllError, 0, completion);
+  scrubAllUnrecoveredSlabs(vdo->depot, completion);
 }
 
 /**
@@ -241,7 +211,7 @@ static void makeDirty(VDOCompletion *completion)
     return;
   }
 
-  vdo->state = VDO_DIRTY;
+  setVDOState(vdo, VDO_DIRTY);
   prepareAdminSubTask(vdo, prepareToComeOnline, continueLoadReadOnly);
   saveVDOComponentsAsync(vdo, completion);
 }
@@ -301,7 +271,7 @@ static int finishVDODecode(VDO *vdo)
                            getVDOPartition(vdo->layout,
                                            SLAB_SUMMARY_PARTITION),
                            vdo->readOnlyNotifier, vdo->recoveryJournal,
-                           &vdo->depot);
+                           &vdo->state, &vdo->depot);
   if (result != VDO_SUCCESS) {
     return result;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/linuxIORegion.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/linuxIORegion.c#3 $
  */
 
 #include "linuxIORegion.h"
@@ -71,10 +71,10 @@ static INLINE LinuxIORegion *asLinuxIORegion(IORegion *region)
 static int lior_close(IORegion *region)
 {
   LinuxIORegion *lior = asLinuxIORegion(region);
-  int result = putIOFactory(lior->factory);
+  putIOFactory(lior->factory);
   FREE(lior->zeroBlock);
   FREE(lior);
-  return result;
+  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/

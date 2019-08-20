@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#3 $
  */
 
 #include "upgrade.h"
@@ -151,7 +151,7 @@ static int decodeSodiumComponent(VDO *vdo)
   }
 
   // Copy the decoded component into the VDO structure.
-  vdo->state              = component.state;
+  setVDOState(vdo, component.state);
   vdo->loadState          = component.state;
   vdo->completeRecoveries = component.completeRecoveries;
   vdo->readOnlyRecoveries = component.readOnlyRecoveries;
