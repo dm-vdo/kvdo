@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/index.c#9 $
+ * $Id: //eng/uds-releases/gloria/src/uds/index.c#10 $
  */
 
 #include "index.h"
@@ -542,13 +542,11 @@ static int dispatchIndexZoneRequest(IndexZone *zone, Request *request)
   case REQUEST_INDEX:
   case REQUEST_UPDATE:
   case REQUEST_QUERY:
-    result = searchIndexZone(zone, request);
-    result = logUnrecoverable(result, "searchIndexZone() failed");
+    result = makeUnrecoverable(searchIndexZone(zone, request));
     break;
 
   case REQUEST_DELETE:
-    result = removeFromIndexZone(zone, request);
-    result = logUnrecoverable(result, "removeFromIndexZone() failed");
+    result = makeUnrecoverable(removeFromIndexZone(zone, request));
     break;
 
   default:
@@ -556,6 +554,7 @@ static int dispatchIndexZoneRequest(IndexZone *zone, Request *request)
                                        "attempted to execute invalid action:"
                                        " %d",
                                        request->action);
+    break;
   }
 
   return result;

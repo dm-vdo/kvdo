@@ -1,4 +1,4 @@
-UDS_VERSION = 6.2.0.77
+UDS_VERSION = 6.2.0.86
 
 SOURCES =  $(notdir $(wildcard $(src)/*.c)) murmur/MurmurHash3.c
 SOURCES += $(addprefix util/,$(notdir $(wildcard $(src)/util/*.c)))
@@ -12,6 +12,9 @@ EXTRA_CFLAGS =	-std=gnu99				\
 		-Wno-declaration-after-statement	\
 		-DUDS_VERSION=\"$(UDS_VERSION)\"	\
 		$(INCLUDES)
+
+CFLAGS_REMOVE_deltaIndex.o = -std=gnu99
+CFLAGS_REMOVE_masterIndex005.o = -std=gnu99
 
 obj-m += uds.o
 

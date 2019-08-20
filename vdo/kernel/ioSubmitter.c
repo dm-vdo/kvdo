@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#5 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/ioSubmitter.c#6 $
  */
 
 #include "ioSubmitterInternals.h"
@@ -46,6 +46,18 @@ enum {
    */
   USE_BIOMAP           = 1,
 };
+
+#ifndef USE_BI_ITER
+/*
+ * Magic value for KVIO.savedBvec.bv_page to indicate that we didn't save a
+ * value, because we're tight on space in MetadataKVIO and don't want to
+ * allocate an additional flag field.
+ *
+ * The content is irrelevant; its address is distinct from any valid bv_page
+ * field value.
+ */
+static struct page NO_PAGE;
+#endif
 
 /**
  * Increments appropriate counters for bio completions
@@ -91,6 +103,15 @@ void completeAsyncBio(BIO *bio, int error)
   KVIO *kvio = (KVIO *) bio->bi_private;
   kvioAddTraceRecord(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
   countCompletedBios(bio);
+#ifndef USE_BI_ITER
+  /* Ugly hack alert! See [VDO-4439] commentary below in sendBioToDevice. */
+  BUG_ON(kvio->submittedBio != bio);
+  if (kvio->savedBvec.bv_page != &NO_PAGE) {
+    bio->bi_io_vec[0] = kvio->savedBvec;
+  }
+  kvio->submittedBio = NULL;
+  /* End of ugly hack. */
+#endif
   if ((error == 0) && isData(kvio) && isReadVIO(kvio->vio)) {
     DataKVIO *dataKVIO = kvioAsDataKVIO(kvio);
     if (!isCompressed(dataKVIO->dataVIO.mapped.state)
@@ -191,6 +212,65 @@ void sendBioToDevice(KVIO *kvio, BIO *bio, TraceLocation location)
   countAllBios(kvio, bio);
   kvioAddTraceRecord(kvio, location);
   bio->bi_next = NULL;
+#ifndef USE_BI_ITER
+  /*
+   * Ugly hack alert! See [VDO-4439].
+   *
+   * We don't own the bi_io_vec array after calling generic_make_request. But
+   * some of this driver code is written on the assumption that we do -- we
+   * reuse the bio to issue more I/O requests while assuming that the bio_vec
+   * fields are unchanged and still valid. But if the device driver below us
+   * has changed them (see for example the SCSI driver's handling of the last 4
+   * kB of a USB mass storage device, which gets handled one sector at a time,
+   * by modifying the bio_vec fields), we may then issue, for example, a 4 kB
+   * I/O operation with a bi_io_vec array that only describes 512 bytes of data
+   * and starts at the wrong place, or something like that. It could result in
+   * a panic or I/O error. Corruption of data or metadata might be possible if
+   * some path or some kernel version doesn't detect the mismatch.
+   *
+   * The right fix may be to have bio.c:resetBio reconstruct or restore the
+   * bio_vec arrays, but it doesn't currently have access to the orignial data
+   * pointer, and not all of the call sites know what the correct data pointer
+   * is either. In the case of externally-provided bio structures, we don't
+   * know how many array elements would need saving, nor whether it's even
+   * possible to reconstruct the array from some original pointer value or if
+   * it was created as scatter/gather in the first place.
+   *
+   * The only case we've seen in practice thus far is the aforementioned USB
+   * mass storage situation, and it hits us specifically when dealing with slab
+   * metadata, which has exactly one bi_io_vec array entry.
+   *
+   * So the immediate workaround is to save and restore the metadata bio_vec
+   * values around the generic_make_request calls. If we get some additional
+   * cases, that's okay too, so long as we don't break anything, but we aren't
+   * going to fix all cases right off the bat.
+   *
+   * Metadata bios will use completeAsyncBio; resetUserBio calls
+   * completeAsyncBio, so we'll handle those cases too, but we'll be careful to
+   * only save and restore the first vector entry (because our memory overhead
+   * jumps considerably if sizeof(MetadataKVIO) exceeds 256 bytes) and not
+   * alter the count.
+   *
+   * The 3.14+ kernels make the biovec fields immutable, eliminating the
+   * problem.
+   */
+  if ((bio->bi_end_io == completeAsyncBio)
+      || (bio->bi_end_io == resetUserBio)) {
+    /*
+     * We could find bi_vcnt>1 in the resetUserBio case. That's not a case
+     * we're trying to fix right now, so don't worry about failing to preserve
+     * all its data. The top priority is metadata, which will use
+     * completeAsyncBio, and where we've already got an assertion in bio.c that
+     * bi_vcnt==1.
+     */
+    if (bio->bi_vcnt >= 1) {
+      kvio->savedBvec = bio->bi_io_vec[0];
+    } else {
+      kvio->savedBvec.bv_page = &NO_PAGE;
+    }
+    kvio->submittedBio = bio;
+  }
+#endif
   generic_make_request(bio);
 }
 

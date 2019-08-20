@@ -49,8 +49,25 @@ volumes, and "vdostats" for extracting statistics from those volumes.
 
 ## Documentation
 
-Project documentation is being converted from its proprietary form and will be
-added to this repository at a later date.
+- [RHEL8 VDO Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/deduplicating_and_compressing_storage/index)
+- [RHEL7 VDO Integration Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-integration)
+- [RHEL7 VDO Evaluation Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/vdo-evaluation)
+
+## Releases
+
+Each branch on this project is intended to work with a specific release of
+Enterprise Linux (Red Hat Enterprise Linux, CentOS, etc.). We try to maintain
+compatibility with active Fedora releases, but some modifications may be
+required.
+
+Version | Intended Enterprise Linux Release | Supported With Modifications
+------- | --------------------------------- | -------------------------------
+6.1.x.x | EL7 (3.10.0-*.el7) |
+6.2.x.x | EL8 (4.18.0-*.el8) | Fedora 28, Fedora 29, Fedora 30, Rawhide
+* Pre-built versions with the required modifications for the referenced Fedora
+  releases can be found
+  [here](https://copr.fedorainfracloud.org/coprs/rhawalsh/dm-vdo) and can be
+  used by running `dnf copr enable rhawalsh/dm-vdo`.
 
 ## Status
 

@@ -1,4 +1,4 @@
-VDO_VERSION = 6.1.2.41
+VDO_VERSION = 6.1.3.4
 
 VDO_VERSION_MAJOR = $(word 1,$(subst ., ,$(VDO_VERSION)))
 VDO_VERSION_MINOR = $(word 2,$(subst ., ,$(VDO_VERSION)))
@@ -21,8 +21,11 @@ EXTRA_CFLAGS =	-std=gnu99					\
 		-DCURRENT_VERSION=\"$(VDO_VERSION)\"		\
 		$(INCLUDES)
 
-CFLAGS_vio.o= -std=gnu89
+CFLAGS_REMOVE_vdoPageCache.o= -std=gnu99
 CFLAGS_REMOVE_vio.o= -std=gnu99
+
+CFLAGS_vdoPageCache.o= -std=gnu89
+CFLAGS_vio.o= -std=gnu89
 
 obj-m += kvdo.o
 

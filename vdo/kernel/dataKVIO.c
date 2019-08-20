@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#11 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#13 $
  */
 
 #include "dataKVIO.h"
@@ -262,23 +262,11 @@ static void readDataKVIOReadBlockCallback(DataKVIO *dataKVIO)
                            CPU_Q_ACTION_COMPRESS_BLOCK);
 }
 
+/**********************************************************************/
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
-/**
- * Complete and reset a bio that was supplied by the user and then used for a
- * read (so that we can complete it with the user's callback).
- *
- * @param bio   The bio to complete
- **/
-static void resetUserBio(BIO *bio)
+void resetUserBio(BIO *bio)
 #else
-/**
- * Complete and reset a bio that was supplied by the user and then used for a
- * read (so that we can complete it with the user's callback).
- *
- * @param bio   The bio to complete
- * @param error Possible error from underlying block device
- **/
-static void resetUserBio(BIO *bio, int error)
+void resetUserBio(BIO *bio, int error)
 #endif
 {
 #if ((LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0)) \
@@ -926,7 +914,8 @@ static void dumpVIOWaiters(WaitQueue *queue, char *waitOn)
           dataVIO->logical.lbn, dataVIO->duplicate.pbn,
           getOperationName(dataVIO));
 
-  for (Waiter *waiter = first->nextWaiter;
+  Waiter *waiter;
+  for (waiter = first->nextWaiter;
        waiter != first;
        waiter = waiter->nextWaiter) {
     dataVIO = waiterAsDataVIO(waiter);

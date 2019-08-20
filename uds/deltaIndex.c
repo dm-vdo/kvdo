@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#3 $
+ * $Id: //eng/uds-releases/gloria/src/uds/deltaIndex.c#4 $
  */
 #include "deltaIndex.h"
 
@@ -565,7 +565,8 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
   deltaIndex->isMutable    = true;
   deltaIndex->tag          = 'm';
 
-  for (unsigned int z = 0; z < numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < numZones; z++) {
     unsigned int firstListInZone = z * deltaIndex->listsPerZone;
     unsigned int numListsInZone = deltaIndex->listsPerZone;
     if (z == numZones - 1) {
@@ -627,7 +628,8 @@ int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
       getImmutableHeaderOffset(numLists + 1));
   }
 
-  for (unsigned int i = 0; i < numLists; i++) {
+  unsigned int i;
+  for (i = 0; i < numLists; i++) {
     if (getImmutableStart(memory, i) > getImmutableStart(memory, i + 1)) {
       return logWarningWithStringError(
         UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
@@ -653,7 +655,7 @@ int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
       getImmutableStart(memory, numLists),
       POST_FIELD_GUARD_BYTES * CHAR_BIT, memSize);
   }
-  for (int i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
+  for (i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
     byte guardByte = memory[memSize - POST_FIELD_GUARD_BYTES + i];
     if (guardByte != (byte) ~0) {
       return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
@@ -682,7 +684,8 @@ int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
 void uninitializeDeltaIndex(DeltaIndex *deltaIndex)
 {
   if (deltaIndex != NULL) {
-    for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+    unsigned int z;
+    for (z = 0; z < deltaIndex->numZones; z++) {
       uninitializeDeltaMemory(&deltaIndex->deltaZones[z]);
     }
     FREE(deltaIndex->deltaZones);
@@ -693,7 +696,8 @@ void uninitializeDeltaIndex(DeltaIndex *deltaIndex)
 /**********************************************************************/
 void emptyDeltaIndex(const DeltaIndex *deltaIndex)
 {
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     emptyDeltaLists(&deltaIndex->deltaZones[z]);
   }
 }
@@ -770,13 +774,14 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
   // page is large enough.
   unsigned int offset = getImmutableHeaderOffset(nLists + 1);
   setImmutableStart(memory, 0, offset);
-  for (unsigned int i = 0; i < nLists; i++) {
+  unsigned int i;
+  for (i = 0; i < nLists; i++) {
     offset += getDeltaListSize(&deltaLists[i]);
     setImmutableStart(memory, i + 1, offset);
   }
 
   // Copy the delta list data onto the memory page
-  for (unsigned int i = 0; i < nLists; i++) {
+  for (i = 0; i < nLists; i++) {
     DeltaList *deltaList = &deltaLists[i];
     moveBits(deltaZone->memory, getDeltaListStart(deltaList), memory,
              getImmutableStart(memory, i), getDeltaListSize(deltaList));
@@ -793,7 +798,8 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
 void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
 {
   deltaIndex->tag = tag;
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     deltaIndex->deltaZones[z].tag = tag;
   }
 }
@@ -887,7 +893,8 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
   memset(zoneFlags, false, numZones);
 
   // Read the header from each file, and make sure we have a matching set
-  for (unsigned int z = 0; z < numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < numZones; z++) {
     struct di_header header;
     int result = readDeltaIndexHeader(bufferedReaders[z], &header);
     if (result != UDS_SUCCESS) {
@@ -925,7 +932,7 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
     collisionCount += header.collisionCount;
   }
   unsigned int listNext = 0;
-  for (unsigned int z = 0; z < numZones; z++) {
+  for (z = 0; z < numZones; z++) {
     if (firstList[z] != listNext) {
       return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
                                        "delta index file for zone %u starts"
@@ -953,8 +960,9 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
 
   // Read the delta list sizes from the files, and distribute each of them
   // to proper zone
-  for (unsigned int z = 0; z < numZones; z++) {
-    for (unsigned int i = 0; i < numLists[z]; i++) {
+  for (z = 0; z < numZones; z++) {
+    unsigned int i;
+    for (i = 0; i < numLists[z]; i++) {
       byte deltaListSizeData[sizeof(uint16_t)];
       int result = readFromBufferedReader(reader[z], deltaListSizeData,
                                           sizeof(deltaListSizeData));
@@ -972,7 +980,7 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
   }
 
   // Prepare each zone to start receiving the delta list data
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  for (z = 0; z < deltaIndex->numZones; z++) {
     int result = startRestoringDeltaMemory(&deltaIndex->deltaZones[z]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -984,7 +992,8 @@ int startRestoringDeltaIndex(const DeltaIndex *deltaIndex,
 /**********************************************************************/
 bool isRestoringDeltaIndexDone(const DeltaIndex *deltaIndex)
 {
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     if (!areDeltaMemoryTransfersDone(&deltaIndex->deltaZones[z])) {
       return false;
     }
@@ -1016,7 +1025,8 @@ int restoreDeltaListToDeltaIndex(const DeltaIndex *deltaIndex,
 /**********************************************************************/
 void abortRestoringDeltaIndex(const DeltaIndex *deltaIndex)
 {
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     abortRestoringDeltaMemory(&deltaIndex->deltaZones[z]);
   }
 }
@@ -1093,7 +1103,8 @@ int startSavingDeltaIndex(const DeltaIndex *deltaIndex,
                                      "failed to write delta index header");
   }
 
-  for (unsigned int i = 0; i < deltaZone->numLists; i++) {
+  unsigned int i;
+  for (i = 0; i < deltaZone->numLists; i++) {
     uint16_t deltaListSize = getDeltaListSize(&deltaZone->deltaLists[i + 1]);
     byte data[2];
     storeUInt16LE(data, deltaListSize);
@@ -1136,7 +1147,8 @@ size_t computeDeltaIndexSaveBytes(unsigned int numLists, size_t memorySize)
   // The exact amount of memory used depends upon the number of zones.
   // Compute the maximum potential memory size.
   size_t maxMemSize = memorySize;
-  for (unsigned int numZones = 1; numZones <= MAX_ZONES; numZones++) {
+  unsigned int numZones;
+  for (numZones = 1; numZones <= MAX_ZONES; numZones++) {
     size_t memSize = getZoneMemorySize(numZones, memorySize);
     if (memSize > maxMemSize) {
       maxMemSize = memSize;
@@ -1154,7 +1166,8 @@ size_t computeDeltaIndexSaveBytes(unsigned int numLists, size_t memorySize)
 /**********************************************************************/
 int validateDeltaIndex(const DeltaIndex *deltaIndex)
 {
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     int result = validateDeltaLists(&deltaIndex->deltaZones[z]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -1569,7 +1582,8 @@ uint64_t getDeltaIndexZoneDlistBitsUsed(const DeltaIndex *deltaIndex,
 {
   uint64_t bitCount = 0;
   const DeltaMemory *deltaZone = &deltaIndex->deltaZones[zoneNumber];
-  for (unsigned int i = 0; i < deltaZone->numLists; i++) {
+  unsigned int i;
+  for (i = 0; i < deltaZone->numLists; i++) {
     bitCount += getDeltaListSize(&deltaZone->deltaLists[i + 1]);
   }
   return bitCount;
@@ -1579,7 +1593,8 @@ uint64_t getDeltaIndexZoneDlistBitsUsed(const DeltaIndex *deltaIndex,
 uint64_t getDeltaIndexDlistBitsUsed(const DeltaIndex *deltaIndex)
 {
   uint64_t bitCount = 0;
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     bitCount += getDeltaIndexZoneDlistBitsUsed(deltaIndex, z);
   }
   return bitCount;
@@ -1589,7 +1604,8 @@ uint64_t getDeltaIndexDlistBitsUsed(const DeltaIndex *deltaIndex)
 uint64_t getDeltaIndexDlistBitsAllocated(const DeltaIndex *deltaIndex)
 {
   uint64_t byteCount = 0;
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     const DeltaMemory *deltaZone = &deltaIndex->deltaZones[z];
     byteCount += deltaZone->size;
   }
@@ -1601,7 +1617,8 @@ void getDeltaIndexStats(const DeltaIndex *deltaIndex, DeltaIndexStats *stats)
 {
   memset(stats, 0, sizeof(DeltaIndexStats));
   stats->memoryAllocated = deltaIndex->numZones * sizeof(DeltaMemory);
-  for (unsigned int z = 0; z < deltaIndex->numZones; z++) {
+  unsigned int z;
+  for (z = 0; z < deltaIndex->numZones; z++) {
     const DeltaMemory *deltaZone = &deltaIndex->deltaZones[z];
     stats->memoryAllocated += getDeltaMemoryAllocated(deltaZone);
     stats->rebalanceTime   += deltaZone->rebalanceTime;
@@ -1664,11 +1681,11 @@ unsigned int getDeltaIndexPageCount(unsigned int numEntries,
 /**********************************************************************/
 void logDeltaIndexEntry(DeltaIndexEntry *deltaEntry)
 {
-  logInfo("List 0x%X Key 0x%X Offset 0x%X%s%s ListSize 0x%X%s",
-          deltaEntry->listNumber, deltaEntry->key, deltaEntry->offset,
-          deltaEntry->atEnd ? " end" : "",
-          deltaEntry->isCollision ? " collision" : "",
-          getDeltaListSize(deltaEntry->deltaList),
-          deltaEntry->listOverflow ? " overflow" : "");
+  logRatelimit(logInfo, "List 0x%X Key 0x%X Offset 0x%X%s%s ListSize 0x%X%s",
+               deltaEntry->listNumber, deltaEntry->key, deltaEntry->offset,
+               deltaEntry->atEnd ? " end" : "",
+               deltaEntry->isCollision ? " collision" : "",
+               getDeltaListSize(deltaEntry->deltaList),
+               deltaEntry->listOverflow ? " overflow" : "");
   deltaEntry->listOverflow = false;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.h#4 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.h#5 $
  */
 
 #ifndef DATA_KVIO_H
@@ -468,5 +468,24 @@ DataLocation getDedupeAdvice(const DedupeContext *context)
  *                 might be stored (will be NULL if no advice was found)
  **/
 void setDedupeAdvice(DedupeContext *context, const DataLocation *advice);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0)
+/**
+ * Complete and reset a bio that was supplied by the user and then used for a
+ * read (so that we can complete it with the user's callback).
+ *
+ * @param bio   The bio to complete
+ **/
+void resetUserBio(BIO *bio);
+#else
+/**
+ * Complete and reset a bio that was supplied by the user and then used for a
+ * read (so that we can complete it with the user's callback).
+ *
+ * @param bio   The bio to complete
+ * @param error Possible error from underlying block device
+ **/
+void resetUserBio(BIO *bio, int error);
+#endif
 
 #endif /* DATA_KVIO_H */

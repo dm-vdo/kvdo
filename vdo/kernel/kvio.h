@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.h#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.h#2 $
  */
 
 #ifndef KVIO_H
@@ -25,6 +25,7 @@
 #include "allocatingVIO.h"
 #include "vio.h"
 
+#include "bio.h"
 #include "kernelLayer.h"
 
 /**
@@ -59,8 +60,23 @@ struct kvio {
    * locate the containing KVIO like any other work function.
    **/
   KvdoWorkFunction   bioSubmissionCallback;
+#ifndef USE_BI_ITER
+  /**
+   * A place to save the bio_vec contents for possible later restoration so
+   * that we can reuse the bio structure for later I/O operations. The contents
+   * are saved before calling generic_make_request, after which point the
+   * lower-level drivers may clobber them.
+   **/
+  struct bio_vec     savedBvec;
+  /**
+   * The bio that was submitted to generic_make_request, used as a sanity check
+   * in completeAsyncBio.
+   **/
+  BIO               *submittedBio;
+#else
   /** A slot for an arbitrary bit of data, for use by systemtap. */
   long               debugSlot;
+#endif
 };
 
 typedef struct {
