@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#2 $
  */
 
 #ifndef VDO_LOAD_H
@@ -42,11 +42,19 @@ typedef int VDODecoder(VDO *vdo, bool validateConfig);
  * thread.
  *
  * @param vdo         The VDO to load
- * @param loadConfig  A pointer to the load-time configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
+int performVDOLoad(VDO *vdo)
+  __attribute__((warn_unused_result));
+
+/**
+ * Perpare a VDO for loading by reading structures off disk. This method does
+ * not alter the on-disk state. It should be called from the VDO constructor,
+ * whereas performVDOLoad() will be called during pre-resume if the VDO has
+ * not been resumed before.
+ **/
+int prepareToLoadVDO(VDO *vdo, const VDOLoadConfig *loadConfig)
   __attribute__((warn_unused_result));
 
 /**

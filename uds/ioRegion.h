@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioRegion.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioRegion.h#4 $
  */
 
 #ifndef IO_REGION_H
 #define IO_REGION_H
 
+#include "atomicDefs.h"
 #include "compiler.h"
 #include "typeDefs.h"
 #include "uds-error.h"
@@ -34,47 +35,24 @@
  * constrained to the implementation's alignment restrictions.
  **/
 typedef struct ioRegion {
-  int (*clear)       (struct ioRegion *);
-  int (*close)       (struct ioRegion *);
-  int (*getBestSize) (struct ioRegion *, size_t *);
-  int (*getBlockSize)(struct ioRegion *, size_t *);
-  int (*getDataSize) (struct ioRegion *, off_t *);
-  int (*getLimit)    (struct ioRegion *, off_t *);
-  int (*read)        (struct ioRegion *, off_t, void *, size_t, size_t *);
-  int (*syncContents)(struct ioRegion *);
-  int (*write)       (struct ioRegion *, off_t, const void *, size_t, size_t);
+  void (*free)        (struct ioRegion *);
+  int  (*getBestSize) (struct ioRegion *, size_t *);
+  int  (*getDataSize) (struct ioRegion *, off_t *);
+  int  (*getLimit)    (struct ioRegion *, off_t *);
+  int  (*read)        (struct ioRegion *, off_t, void *, size_t, size_t *);
+  int  (*syncContents)(struct ioRegion *);
+  int  (*write)       (struct ioRegion *, off_t, const void *, size_t, size_t);
+  atomic_t refCount;
 } IORegion;
 
 /**
- * Clear the region.
+ * Get another reference to an IORegion, incrementing its reference count.
  *
- * @param region  The IORegion.
- *
- * @return UDS_SUCCESS or an error code
+ * @param [in] region  The IORegion.
  **/
-__attribute__((warn_unused_result))
-static INLINE int clearRegion(IORegion *region)
+static INLINE void getIORegion(IORegion *region)
 {
-  return region->clear(region);
-}
-
-/**
- * Close an IO region and set the region pointer to NULL.
- *
- * @param [in, out] regionPtr  An IORegion.
- *
- * @return UDS_SUCCESS or an error code.
- **/
-static INLINE int closeIORegion(IORegion **regionPtr)
-{
-  int result = UDS_SUCCESS;
-  if ((regionPtr != NULL) && (*regionPtr != NULL)) {
-    result = (*regionPtr)->close(*regionPtr);
-    if (result == UDS_SUCCESS) {
-      *regionPtr = NULL;
-    }
-  }
-  return result;
+  atomic_inc(&region->refCount);
 }
 
 /**
@@ -90,22 +68,6 @@ __attribute__((warn_unused_result))
 static INLINE int getRegionBestBufferSize(IORegion *region, size_t *bufferSize)
 {
   return region->getBestSize(region, bufferSize);
-}
-
-/**
- * Obtain the block size for the region. The block size constrains the
- * alignment of the offsets as well as the the size of the buffers used in
- * reading and writing, which must be a multiple of the block size.
- *
- * @param [in]  region     The IORegion.
- * @param [out] blockSize  The block size for this region.
- *
- * @return UDS_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result))
-static INLINE int getRegionBlockSize(IORegion *region, size_t *blockSize)
-{
-  return region->getBlockSize(region, blockSize);
 }
 
 /**
@@ -138,6 +100,19 @@ __attribute__((warn_unused_result))
 static INLINE int getRegionLimit(IORegion *region, off_t *limit)
 {
   return region->getLimit(region, limit);
+}
+
+/**
+ * Free a reference to an IORegion.  If the reference count drops to zero, free
+ * the IORegion and release all its resources.
+ *
+ * @param [in] region  The IORegion.
+ **/
+static INLINE void putIORegion(IORegion *region)
+{
+  if (atomic_add_return(-1, &region->refCount) <= 0) {
+    region->free(region);
+  }
 }
 
 /**
@@ -211,17 +186,5 @@ static INLINE int writeToRegion(IORegion   *region,
 {
   return region->write(region, offset, data, size, length);
 }
-
-/**
- * Sync the region contents and then close the region. This is a utility
- * wrapper.
- *
- * @param regionPtr   A pointer to the region.
- * @param failureMsg  A message to be logged on failure.
- *
- * @return UDS_SUCCESS or an error code. Note the UDS_UNSUPPORTED error from
- *         syncRegionContents() is silently swallowed.
- **/
-int syncAndCloseRegion(IORegion **regionPtr, const char *failureMsg);
 
 #endif // IO_REGION_H

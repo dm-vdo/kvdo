@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#27 $
  */
 
 #ifndef KERNELLAYER_H
@@ -273,7 +273,9 @@ int modify_kernel_layer(struct kernel_layer *layer,
 void free_kernel_layer(struct kernel_layer *layer);
 
 /**
- * Start the kernel layer.
+ * Make and configure a kernel layer. This method does not alter the VDO state
+ * on disk. It should be run from the VDO constructor for devices which have
+ * not been started.
  *
  * @param layer        The kernel layer
  * @param load_config  Load-time parameters for the VDO
@@ -283,9 +285,20 @@ void free_kernel_layer(struct kernel_layer *layer);
  *
  * @note redundant starts are silently ignored
  **/
-int start_kernel_layer(struct kernel_layer *layer,
-		       const VDOLoadConfig *load_config,
-		       char **reason);
+int preload_kernel_layer(struct kernel_layer *layer,
+			 const VDOLoadConfig *load_config,
+			 char **reason);
+
+/**
+ * Start the kernel layer. This method finishes bringing a VDO online now that
+ * a table is being resumed for the first time.
+ *
+ * @param layer   The kernel layer
+ * @param reason  The reason for any failure during this call
+ *
+ * @return VDO_SUCCESS or an error
+ **/
+int start_kernel_layer(struct kernel_layer *layer, char **reason);
 
 /**
  * Stop the kernel layer.

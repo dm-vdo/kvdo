@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#34 $
  */
 
 #include "dmvdo.h"
@@ -539,7 +539,7 @@ static int vdo_initialize(struct dm_target *ti,
 			  unsigned int instance,
 			  struct device_config *config)
 {
-	logInfo("starting device '%s'", config->pool_name);
+	logInfo("loading device '%s'", config->pool_name);
 
 	uint64_t block_size = VDO_BLOCK_SIZE;
 	uint64_t logical_size = to_bytes(ti->len);
@@ -605,7 +605,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	// Henceforth it is the kernel layer's responsibility to clean up the
 	// ThreadConfig.
-	result = start_kernel_layer(layer, &load_config, &failure_reason);
+	result = preload_kernel_layer(layer, &load_config, &failure_reason);
 	if (result != VDO_SUCCESS) {
 		logError("Could not start kernel physical layer. (VDO error %d, message %s)",
 			 result, failure_reason);
@@ -617,8 +617,6 @@ static int vdo_initialize(struct dm_target *ti,
 	set_kernel_layer_active_config(layer, config);
 	ti->private = config;
 	configure_target_capabilities(ti, layer);
-
-	logInfo("device '%s' started", config->pool_name);
 	return VDO_SUCCESS;
 }
 
@@ -779,6 +777,25 @@ static int vdo_preresume(struct dm_target *ti)
 	struct device_config *config = ti->private;
 	RegisteredThread instance_thread;
 	register_thread_device(&instance_thread, layer);
+
+	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
+		// This is the first time this device has been resumed, so run
+		// it.
+		logInfo("starting device '%s'", config->pool_name);
+		char *failure_reason;
+		int result = start_kernel_layer(layer, &failure_reason);
+		if (result != VDO_SUCCESS) {
+			logError("Could not run kernel physical layer. (VDO error %d, message %s)",
+				 result,
+				 failure_reason);
+			set_kvdo_read_only(&layer->kvdo, result);
+			unregister_thread_device_id();
+			return map_to_system_error(result);
+		}
+
+		logInfo("device '%s' started", config->pool_name);
+	}
+
 	logInfo("resuming device '%s'", config->pool_name);
 
 	// This is a noop if nothing has changed, and by calling it every time

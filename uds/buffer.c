@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/buffer.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/buffer.c#3 $
  */
 
 #include "buffer.h"
@@ -497,6 +497,17 @@ int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
   for (i = 0; i < count; i++) {
     encodeUInt16LE(buffer->data, &buffer->end, ui[i]);
   }
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int getInt32LEFromBuffer(Buffer *buffer, int32_t *i)
+{
+  if (contentLength(buffer) < sizeof(int32_t)) {
+    return UDS_BUFFER_ERROR;
+  }
+
+  decodeInt32LE(buffer->data, &buffer->start, i);
   return UDS_SUCCESS;
 }
 

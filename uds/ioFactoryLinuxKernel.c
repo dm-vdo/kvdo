@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#5 $
  */
 
 #include <linux/blkdev.h>
@@ -121,4 +121,36 @@ int makeIORegion(IOFactory  *factory,
                  IORegion  **regionPtr)
 {
   return makeLinuxRegion(factory, factory->bdev, offset, size, regionPtr);
+}
+
+/*****************************************************************************/
+int openBufferedReader(IOFactory       *factory,
+                       off_t            offset,
+                       size_t           size,
+                       BufferedReader **readerPtr)
+{
+  IORegion *region;
+  int result = makeLinuxRegion(factory, factory->bdev, offset, size, &region);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = makeBufferedReader(region, readerPtr);
+  putIORegion(region);
+  return result;
+}
+
+/*****************************************************************************/
+int openBufferedWriter(IOFactory       *factory,
+                       off_t            offset,
+                       size_t           size,
+                       BufferedWriter **writerPtr)
+{
+  IORegion *region;
+  int result = makeLinuxRegion(factory, factory->bdev, offset, size, &region);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = makeBufferedWriter(region, writerPtr);
+  putIORegion(region);
+  return result;
 }

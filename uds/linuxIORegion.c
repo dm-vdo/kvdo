@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/linuxIORegion.c#3 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/linuxIORegion.c#8 $
  */
 
 #include "linuxIORegion.h"
@@ -57,8 +57,8 @@ typedef struct {
   IORegion             common;
   IOFactory           *factory;
   struct block_device *bdev;
-  uint64_t             size;
-  void                *zeroBlock;
+  sector_t             offset;
+  size_t               size;
 } LinuxIORegion;
 
 /*****************************************************************************/
@@ -68,13 +68,11 @@ static INLINE LinuxIORegion *asLinuxIORegion(IORegion *region)
 }
 
 /*****************************************************************************/
-static int lior_close(IORegion *region)
+static void lior_free(IORegion *region)
 {
   LinuxIORegion *lior = asLinuxIORegion(region);
   putIOFactory(lior->factory);
-  FREE(lior->zeroBlock);
   FREE(lior);
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -110,10 +108,15 @@ static int validateIO(LinuxIORegion *lior,
                                    *length, size);
   }
 
-  if (offset > (off_t) lior->size) {
+  if (offset < 0) {
     return logErrorWithStringError(UDS_OUT_OF_RANGE,
-                                   "offset %zd exceeds limit of %" PRId64,
-                                   offset, lior->size);
+                                   "offset %zd is out of range", offset);
+  }
+
+  if (offset + size > (off_t) lior->size) {
+    return logErrorWithStringError(UDS_OUT_OF_RANGE,
+                                   "range %zd-%zd exceeds range of 0-%zd",
+                                   offset, offset + size, lior->size);
   }
 
   if ((offset == (off_t) lior->size) && (*length > 0)) {
@@ -122,11 +125,6 @@ static int validateIO(LinuxIORegion *lior,
 
   if (!writing) {
     *length = minSizeT(lior->size, offset + size) - offset;
-  }
-  if ((offset < 0) || ((offset + *length) > lior->size)) {
-    return logErrorWithStringError(UDS_OUT_OF_RANGE,
-                                   "range %zd-%zd not in range 0 to %llu",
-                                   offset, offset + *length, lior->size);
   }
 
   return UDS_SUCCESS;
@@ -171,11 +169,11 @@ static void lior_bio_init(struct bio *bio, LinuxIORegion *lior, off_t offset)
 {
 #if LINUX_VERSION_CODE > KERNEL_VERSION(3,13,0)
   bio_reset(bio);
-  bio->bi_iter.bi_sector = offset >> SECTOR_SHIFT;
+  bio->bi_iter.bi_sector = lior->offset + (offset >> SECTOR_SHIFT);
 #else
   bio->bi_idx    = 0;
   bio->bi_next   = NULL;
-  bio->bi_sector = offset >> SECTOR_SHIFT;
+  bio->bi_sector = lior->offset + (offset >> SECTOR_SHIFT);
   bio->bi_size   = 0;
   bio->bi_vcnt   = 0;
 #endif
@@ -267,16 +265,6 @@ static int lior_write(IORegion   *region,
 }
 
 /*****************************************************************************/
-static int lior_clear(IORegion *region)
-{
-  // unlike other implementations we only clear the first block of the region,
-  // because otherwise this could get very expensive
-
-  LinuxIORegion *lior = asLinuxIORegion(region);
-  return lior_write(region, 0, lior->zeroBlock, SECTOR_SIZE, SECTOR_SIZE);
-}
-
-/*****************************************************************************/
 static int lior_read(IORegion *region,
                      off_t     offset,
                      void     *buffer,
@@ -296,13 +284,6 @@ static int lior_read(IORegion *region,
     *length = size;
   }
   return result;
-}
-
-/*****************************************************************************/
-static int lior_getBlockSize(IORegion *region, size_t *blockSize)
-{
-  *blockSize = SECTOR_SIZE;
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -326,10 +307,14 @@ int makeLinuxRegion(IOFactory            *factory,
                     size_t                size,
                     IORegion            **regionPtr)
 {
-  size += offset;
+  if (offset % SECTOR_SIZE != 0) {
+    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
+                                   "offset not a multiple of sector size");
+  }
+
   if (size % SECTOR_SIZE != 0) {
     return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "size not a multiple of blockSize");
+                                   "size not a multiple of sector size");
   }
 
   LinuxIORegion *lior = NULL;
@@ -338,20 +323,10 @@ int makeLinuxRegion(IOFactory            *factory,
     return result;
   }
 
-  byte *buf;
-  result = ALLOCATE_IO_ALIGNED(PAGE_SIZE, byte, "Linux zero block", &buf);
-  if (result != UDS_SUCCESS) {
-    FREE(lior);
-    return result;
-  }
-  memset(buf, 0, PAGE_SIZE);
-
   getIOFactory(factory);
 
-  lior->common.clear        = lior_clear;
-  lior->common.close        = lior_close;
+  lior->common.free         = lior_free;
   lior->common.getBestSize  = lior_getBestSize;
-  lior->common.getBlockSize = lior_getBlockSize;
   lior->common.getDataSize  = lior_getDataSize;
   lior->common.getLimit     = lior_getLimit;
   lior->common.read         = lior_read;
@@ -359,8 +334,10 @@ int makeLinuxRegion(IOFactory            *factory,
   lior->common.write        = lior_write;
   lior->factory   = factory;
   lior->bdev      = bdev;
+  lior->offset    = offset >> SECTOR_SHIFT;
   lior->size      = size;
-  lior->zeroBlock = buf;
+
+  atomic_set_release(&lior->common.refCount, 1);
   *regionPtr = &lior->common;
   return UDS_SUCCESS;
 }

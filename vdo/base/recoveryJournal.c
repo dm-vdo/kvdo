@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#8 $
  */
 
 #include "recoveryJournal.h"
@@ -560,6 +560,7 @@ void openRecoveryJournal(RecoveryJournal *journal,
 {
   journal->depot    = depot;
   journal->blockMap = blockMap;
+  journal->state.state = ADMIN_STATE_NORMAL_OPERATION;
 }
 
 /**********************************************************************/
@@ -685,6 +686,8 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
     initializeRecoveryBlock(journal->activeBlock);
   }
 
+  // XXX: this is a hack until we make initial resume of a VDO a real resume
+  journal->state.state = ADMIN_STATE_SUSPENDED;
   return VDO_SUCCESS;
 }
 

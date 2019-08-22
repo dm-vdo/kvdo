@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#3 $
  */
 
 #ifndef INDEX_STATE_H
 #define INDEX_STATE_H 1
 
 #include "accessMode.h"
+#include "buffer.h"
 #include "indexComponent.h"
 
 /**
@@ -255,22 +256,48 @@ IndexComponent *findIndexComponent(const IndexState         *state,
   __attribute__((warn_unused_result));
 
 /**
- * Open an IORegion for a specified state, mode, kind, and zone.
- * This helper function is used by RegionIndexComponent.
+ * Get the indexStateBuffer for a specified mode.
  *
  * @param state      The index state.
  * @param mode       One of IO_READ or IO_WRITE.
+ *
+ * @return the index state buffer
+ **/
+Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
+  __attribute__((warn_unused_result));
+
+/**
+ * Open a BufferedReader for a specified state, kind, and zone.
+ * This helper function is used by IndexComponent.
+ *
+ * @param state      The index state.
  * @param kind       The kind if index save region to open.
  * @param zone       The zone number for the region.
- * @param regionPtr  Where to store the region.
+ * @param readerPtr  Where to store the BufferedReader.
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openStateRegion(IndexState    *state,
-                    IOAccessMode   mode,
-                    RegionKind     kind,
-                    unsigned int   zone,
-                    IORegion     **regionPtr)
+int openStateBufferedReader(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedReader **readerPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Open a BufferedWriter for a specified state, kind, and zone.
+ * This helper function is used by IndexComponent.
+ *
+ * @param state      The index state.
+ * @param kind       The kind if index save region to open.
+ * @param zone       The zone number for the region.
+ * @param writerPtr  Where to store the BufferedWriter.
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+int openStateBufferedWriter(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedWriter **writerPtr)
   __attribute__((warn_unused_result));
 
 #endif // INDEX_STATE_H

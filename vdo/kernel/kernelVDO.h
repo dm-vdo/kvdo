@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#11 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -66,21 +66,33 @@ int initialize_kvdo(struct kvdo *kvdo,
 		    char **reason);
 
 /**
- * Starts the base VDO instance associated with the kernel layer
+ * Load the VDO state from disk but don't alter the on-disk state. This method
+ * is ultimately called from the constructor for devices which have not been
+ * resumed.
  *
- * @param [in]  kvdo                    The kvdo to be started
- * @param [in]  common                  The physical layer pointer
- * @param [in]  load_config             Load-time parameters for the VDO
- * @param [in]  vio_trace_recording     Debug flag to store
- * @param [out] reason                  The reason for failure
+ * @param [in]  kvdo                 The kvdo to be started
+ * @param [in]  common               The physical layer pointer
+ * @param [in]  load_config          Load-time parameters for the VDO
+ * @param [in]  vio_trace_recording  Debug flag to store
+ * @param [out] reason               The reason for failure
+ **/
+int preload_kvdo(struct kvdo *kvdo,
+		 PhysicalLayer *common,
+		 const VDOLoadConfig *load_config,
+		 bool vio_trace_recording,
+		 char **reason);
+
+/**
+ * Starts the base VDO instance associated with the kernel layer. This method
+ * is ultimately called from preresume the first time an instance is resumed.
+ *
+ * @param [in]  kvdo                  The kvdo to be started
+ * @param [in]  common                The physical layer pointer
+ * @param [out] reason                The reason for failure
  *
  * @return VDO_SUCCESS if started, otherwise error
  */
-int start_kvdo(struct kvdo *kvdo,
-	       PhysicalLayer *common,
-	       const VDOLoadConfig *load_config,
-	       bool vio_trace_recording,
-	       char **reason);
+int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason);
 
 /**
  * Suspend the base VDO instance associated with the kernel layer.

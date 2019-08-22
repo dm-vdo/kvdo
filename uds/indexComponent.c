@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.c#8 $
  */
 
 #include "indexComponent.h"
@@ -82,7 +82,6 @@ static void freeWriteZones(IndexComponent *component)
         continue;
       }
       freeBufferedWriter(wz->writer);
-      closeIORegion(&wz->region);
       FREE(wz);
     }
     FREE(component->writeZones);
@@ -121,45 +120,9 @@ static void freeReadPortal(ReadPortal *readPortal)
     if (readPortal->readers[z] != NULL) {
       freeBufferedReader(readPortal->readers[z]);
     }
-    if (readPortal->regions[z] != NULL) {
-      closeIORegion(&readPortal->regions[z]);
-    }
   }
   FREE(readPortal->readers);
-  FREE(readPortal->regions);
   FREE(readPortal);
-}
-
-
-/**
- * Construct an array of ReadPortal instances, one for each
- * zone which exists in the directory.
- *
- * @param [in]  portal          a read portal instance
- * @param [in]  component       the index compoennt
- * @param [in]  readZones       actual number of read zones
- *
- * @return UDS_SUCCESS or an error code
- **/
-__attribute__((warn_unused_result))
-static int initReadPortal(ReadPortal     *portal,
-                          IndexComponent *component,
-                          unsigned int    readZones)
-{
-  int result = ALLOCATE(readZones, IORegion *, "read zone IO regions",
-                        &portal->regions);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = ALLOCATE(readZones, BufferedReader *, "read zone buffered readers",
-                    &portal->readers);
-  if (result != UDS_SUCCESS) {
-    FREE(portal->regions);
-    return result;
-  }
-  portal->component = component;
-  portal->zones = readZones;
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -172,14 +135,11 @@ int getBufferedReaderForPortal(ReadPortal      *portal,
                                    "%s: cannot access zone %u of %u",
                                    __func__, part, portal->zones);
   }
-  if (portal->readers[part] == NULL) {
-    if (portal->regions[part] == NULL) {
-      return logErrorWithStringError(UDS_UNEXPECTED_RESULT,
-                                     "%s: ioregion for zone %u not available",
-                                     __func__, part);
-    }
-    int result = makeBufferedReader(portal->regions[part],
-                                    &portal->readers[part]);
+  IndexComponent *component = portal->component;
+  if (component->info->ioStorage && (portal->readers[part] == NULL)) {
+    int result = openStateBufferedReader(component->state,
+                                         component->info->kind, part,
+                                         &portal->readers[part]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "%s: cannot make buffered reader "
@@ -198,26 +158,16 @@ int readIndexComponent(IndexComponent *component)
   if (result != UDS_SUCCESS) {
     return result;
   }
-
-  result = initReadPortal(portal, component, component->state->loadZones);
+  int readZones = component->state->loadZones;
+  result = ALLOCATE(readZones, BufferedReader *, "read zone buffered readers",
+                    &portal->readers);
   if (result != UDS_SUCCESS) {
     FREE(portal);
     return result;
   }
 
-  unsigned int z;
-  for (z = 0; z < portal->zones; ++z) {
-    result = openStateRegion(component->state, IO_READ, component->info->kind,
-                             z, &portal->regions[z]);
-    if (result != UDS_SUCCESS) {
-      while (z > 0) {
-        closeIORegion(&portal->regions[--z]);
-      }
-      freeReadPortal(portal);
-      return result;
-    }
-  }
-
+  portal->component = component;
+  portal->zones = readZones;
   result = (*component->info->loader)(portal);
   freeReadPortal(portal);
   return result;
@@ -309,10 +259,8 @@ static int indexComponentSaverIncrementalWrapper(IndexComponent *component,
 static int doneWithZone(WriteZone *writeZone)
 {
   const IndexComponent *component = writeZone->component;
-  int                   result    = UDS_SUCCESS;
-
   if (writeZone->writer != NULL) {
-    result = flushBufferedWriter(writeZone->writer);
+    int result = flushBufferedWriter(writeZone->writer);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
                                      "cannot flush buffered writer for "
@@ -320,11 +268,7 @@ static int doneWithZone(WriteZone *writeZone)
                                      component->info->name, writeZone->zone);
     }
   }
-  if (writeZone->region == NULL) {
-    return UDS_SUCCESS;
-  }
-  return syncAndCloseRegion(&writeZone->region,
-                            "done with index component write zone");
+  return UDS_SUCCESS;
 }
 
 /**
@@ -365,7 +309,6 @@ static int makeWriteZones(IndexComponent *component)
     *component->writeZones[z] = (WriteZone) {
       .component = component,
       .phase     = IWC_IDLE,
-      .region    = NULL,
       .zone      = z,
     };
   }
@@ -379,35 +322,25 @@ static int openBufferedWriters(IndexComponent *component)
   WriteZone **wzp;
   for (wzp = component->writeZones;
        wzp < component->writeZones + component->numZones;
-       ++wzp)
-  {
+       ++wzp) {
     WriteZone *wz = *wzp;
     wz->phase = IWC_START;
-
-    result = ASSERT(wz->region == NULL, "write zone region already exists");
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
 
     result = ASSERT(wz->writer == NULL, "write zone writer already exists");
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    result = openStateRegion(component->state, IO_WRITE, component->info->kind,
-                             wz->zone, &wz->region);
-    if (result != UDS_SUCCESS) {
-      break;
-    }
-
-    result = makeBufferedWriter(wz->region, 0, &wz->writer);
-    if (result != UDS_SUCCESS) {
-      closeIORegion(&wz->region);
-      return result;
+    if (component->info->ioStorage) {
+      int result = openStateBufferedWriter(component->state,
+                                           component->info->kind, wz->zone,
+                                           &wz->writer);
+      if (result != UDS_SUCCESS) {
+        return result;
+      }
     }
   }
-
-  return result;
+  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -520,7 +453,7 @@ static int wrapSaverAsIncremental(IndexComponent           *component,
 
   if ((command >= IWC_START) && (command <= IWC_FINISH)) {
     result = (*component->info->saver)(component, writer, zone);
-    if (result == UDS_SUCCESS) {
+    if ((result == UDS_SUCCESS) && (writer != NULL)) {
       noteBufferedWriterUsed(writer);
     }
   }
@@ -773,6 +706,10 @@ int abortIndexComponentIncrementalSave(IndexComponent *component)
 /*****************************************************************************/
 int discardIndexComponent(IndexComponent *component)
 {
+  if (!component->info->ioStorage) {
+    return UDS_INVALID_ARGUMENT;
+  }
+
   unsigned int numZones = 0;
   unsigned int saveSlot = 0;
   int result = findLatestIndexSaveSlot(component->state->layout, &numZones,
@@ -786,17 +723,21 @@ int discardIndexComponent(IndexComponent *component)
 
   unsigned int z;
   for (z = 0; z < numZones; ++z) {
-    IORegion *region;
-    result = openStateRegion(component->state, IO_WRITE, component->info->kind,
-                             z, &region);
+    BufferedWriter *writer;
+    int result = openStateBufferedWriter(component->state,
+                                         component->info->kind, z, &writer);
     if (result != UDS_SUCCESS) {
       break;
     }
-    result = clearRegion(region);
-    closeIORegion(&region);
+    result = writeZerosToBufferedWriter(writer, UDS_BLOCK_SIZE);
     if (result != UDS_SUCCESS) {
       break;
     }
+    result = flushBufferedWriter(writer);
+    if (result != UDS_SUCCESS) {
+      break;
+    }
+    freeBufferedWriter(writer);
   }
 
   component->state->saveSlot = oldSaveSlot;

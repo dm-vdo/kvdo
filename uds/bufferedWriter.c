@@ -16,11 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#4 $
  */
 
 #include "bufferedWriter.h"
-#include "bufferedWriterInternals.h"
 
 #include "compiler.h"
 #include "errors.h"
@@ -28,29 +27,23 @@
 #include "memoryAlloc.h"
 #include "numeric.h"
 
-/******************************************************************************/
-int makeBufferedWriter(IORegion        *region,
-                       size_t           bufSize,
-                       BufferedWriter **writerPtr)
-{
-  int result = UDS_SUCCESS;
+struct bufferedWriter {
+  IORegion *bw_region;             // region to write to
+  off_t     bw_pos;                // offset of start of buffer
+  size_t    bw_size;               // size of buffer
+  char     *bw_buf;                // start of buffer
+  char     *bw_ptr;                // end of written data
+  int       bw_err;                // error code
+  bool      bw_used;               // have writes been done?
+};
 
-  if (bufSize == 0) {
-    result = getRegionBestBufferSize(region, &bufSize);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-  } else {
-    size_t blockSize;
-    result = getRegionBlockSize(region, &blockSize);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    if (bufSize % blockSize != 0) {
-      return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                     "buffer size must be a multiple of %zu",
-                                     blockSize);
-    }
+/*****************************************************************************/
+int makeBufferedWriter(IORegion *region, BufferedWriter **writerPtr)
+{
+  size_t bufSize;
+  int result = getRegionBestBufferSize(region, &bufSize);
+  if (result != UDS_SUCCESS) {
+    return result;
   }
 
   BufferedWriter *writer;
@@ -65,7 +58,6 @@ int makeBufferedWriter(IORegion        *region,
     .bw_pos    = 0,
     .bw_err    = UDS_SUCCESS,
     .bw_used   = false,
-    .bw_close  = false,
   };
 
   result = ALLOCATE_IO_ALIGNED(bufSize, char, "buffer writer buffer",
@@ -75,6 +67,7 @@ int makeBufferedWriter(IORegion        *region,
     return result;
   }
 
+  getIORegion(region);
   writer->bw_ptr = writer->bw_buf;
   *writerPtr = writer;
   return UDS_SUCCESS;
@@ -84,9 +77,11 @@ int makeBufferedWriter(IORegion        *region,
 void freeBufferedWriter(BufferedWriter *bw)
 {
   if (bw) {
-    if (bw->bw_close) {
-      syncAndCloseRegion(&bw->bw_region, NULL);
+    int result = syncRegionContents(bw->bw_region);
+    if (result != UDS_SUCCESS) {
+      logWarningWithStringError(result, "%s cannot sync region", __func__);
     }
+    putIORegion(bw->bw_region);
     FREE(bw->bw_buf);
     FREE(bw);
   }
@@ -138,9 +133,33 @@ int writeToBufferedWriter(BufferedWriter *bw, const void *data, size_t len)
     size_t avail = spaceRemainingInWriteBuffer(bw);
     size_t chunk = minSizeT(len, avail);
     memcpy(bw->bw_ptr, dp, chunk);
-    len          -= chunk;
-    dp           += chunk;
-    bw->bw_ptr   += chunk;
+    len        -= chunk;
+    dp         += chunk;
+    bw->bw_ptr += chunk;
+
+    if (spaceRemainingInWriteBuffer(bw) == 0) {
+      result = flushBufferedWriter(bw);
+    }
+  }
+
+  bw->bw_used = true;
+  return result;
+}
+
+/*****************************************************************************/
+int writeZerosToBufferedWriter(BufferedWriter *bw, size_t len)
+{
+  if (bw->bw_err != UDS_SUCCESS) {
+    return bw->bw_err;
+  }
+
+  int result = UDS_SUCCESS;
+  while ((len > 0) && (result == UDS_SUCCESS)) {
+    size_t avail = spaceRemainingInWriteBuffer(bw);
+    size_t chunk = minSizeT(len, avail);
+    memset(bw->bw_ptr, 0, chunk);
+    len        -= chunk;
+    bw->bw_ptr += chunk;
 
     if (spaceRemainingInWriteBuffer(bw) == 0) {
       result = flushBufferedWriter(bw);

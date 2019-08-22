@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#12 $
  */
 
 #include "vdoLoad.h"
@@ -216,6 +216,52 @@ static void makeDirty(VDOCompletion *completion)
   saveVDOComponentsAsync(vdo, completion);
 }
 
+/**
+ * Callback to do the destructive parts of a load now that the new VDO device
+ * is being resumed.
+ *
+ * @param completion  The sub-task completion
+ **/
+static void loadCallback(VDOCompletion *completion)
+{
+  VDO *vdo = vdoFromLoadSubTask(completion);
+  assertOnAdminThread(vdo, __func__);
+
+  // Prepare the recovery journal for new entries.
+  openRecoveryJournal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
+  vdo->closeRequired = true;
+  if (isReadOnly(vdo->readOnlyNotifier)) {
+    // In read-only mode we don't use the allocator and it may not
+    // even be readable, so use the default structure.
+    finishCompletion(completion->parent, VDO_READ_ONLY);
+    return;
+  }
+
+  if (requiresReadOnlyRebuild(vdo)) {
+    prepareAdminSubTask(vdo, makeDirty, abortLoad);
+    launchRebuild(vdo, completion);
+    return;
+  }
+
+  if (requiresRebuild(vdo)) {
+    prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
+    launchRecovery(vdo, completion);
+    return;
+  }
+
+  prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
+  loadSlabDepot(vdo->depot,
+                (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
+                completion, NULL);
+}
+
+/**********************************************************************/
+int performVDOLoad(VDO *vdo)
+{
+  return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL, loadCallback,
+                               loadCallback);
+}
+
 /**********************************************************************/
 __attribute__((warn_unused_result))
 static int startVDODecode(VDO *vdo, bool validateConfig)
@@ -348,9 +394,6 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
     return result;
   }
 
-  // Prepare the recovery journal for new entries.
-  openRecoveryJournal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
-
   result = ALLOCATE(threadConfig->hashZoneCount, HashZone *, __func__,
                     &vdo->hashZones);
   if (result != VDO_SUCCESS) {
@@ -394,46 +437,19 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
  **/
 static void loadVDOComponents(VDOCompletion *completion)
 {
-  VDO *vdo    = vdoFromLoadSubTask(completion);
-  int  result = decodeVDO(vdo, true);
-  if (result != VDO_SUCCESS) {
-    resetCompletion(completion);
-    finishCompletion(completion, result);
-    return;
-  }
+  VDO *vdo = vdoFromLoadSubTask(completion);
 
-  vdo->closeRequired = true;
-  if (isReadOnly(vdo->readOnlyNotifier)) {
-    // In read-only mode we don't use the allocator and it may not
-    // even be readable, so use the default structure.
-    finishCompletion(completion->parent, VDO_READ_ONLY);
-    return;
-  }
-
-  if (requiresReadOnlyRebuild(vdo)) {
-    prepareAdminSubTask(vdo, makeDirty, abortLoad);
-    launchRebuild(vdo, completion);
-    return;
-  }
-
-  if (requiresRebuild(vdo)) {
-    prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
-    launchRecovery(vdo, completion);
-    return;
-  }
-
-  prepareAdminSubTask(vdo, makeDirty, continueLoadReadOnly);
-  loadSlabDepot(vdo->depot,
-                (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
-                completion, NULL);
+  prepareCompletion(completion, finishParentCallback, abortLoad,
+                    completion->callbackThreadID, completion->parent);
+  finishCompletion(completion, decodeVDO(vdo, true));
 }
 
 /**
- * Callback to initiate a load, registered in performVDOLoad().
+ * Callback to initiate a pre-load, registered in prepareToLoadVDO().
  *
  * @param completion  The sub-task completion
  **/
-static void loadCallback(VDOCompletion *completion)
+static void preLoadCallback(VDOCompletion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
@@ -442,11 +458,11 @@ static void loadCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int performVDOLoad(VDO *vdo, const VDOLoadConfig *loadConfig)
+int prepareToLoadVDO(VDO *vdo, const VDOLoadConfig *loadConfig)
 {
   vdo->loadConfig = *loadConfig;
-  return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL, loadCallback,
-                               loadCallback);
+  return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL,
+                               preLoadCallback, preLoadCallback);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.c#5 $
  */
 
 #include "indexState.h"
@@ -482,22 +482,28 @@ int discardLastIndexStateSave(IndexState *state)
 }
 
 /*****************************************************************************/
-int openStateRegion(IndexState    *state,
-                    IOAccessMode   mode,
-                    RegionKind     kind,
-                    unsigned int   zone,
-                    IORegion     **regionPtr)
+Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
 {
-  unsigned int  slot;
+  unsigned int slot = mode == IO_READ ? state->loadSlot : state->saveSlot;
+  return getIndexStateBuffer(state->layout, slot);
+}
 
-  if (mode == IO_READ) {
-    slot = state->loadSlot;
-  } else if (mode == IO_WRITE) {
-    slot = state->saveSlot;
-  } else {
-    return logErrorWithStringError(UDS_INVALID_ARGUMENT,
-                                   "%s: only IO_READ and IO_WRITE valid",
-                                   __func__);
-  }
-  return getIndexRegion(state->layout, slot, mode, kind, zone, regionPtr);
+/*****************************************************************************/
+int openStateBufferedReader(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedReader **readerPtr)
+{
+  return openIndexBufferedReader(state->layout, state->loadSlot, kind, zone,
+                                 readerPtr);
+}
+
+/*****************************************************************************/
+int openStateBufferedWriter(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedWriter **writerPtr)
+{
+  return openIndexBufferedWriter(state->layout, state->saveSlot, kind, zone,
+                                 writerPtr);
 }

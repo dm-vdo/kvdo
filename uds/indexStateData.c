@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexStateData.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexStateData.c#3 $
  */
 
 #include "indexStateData.h"
@@ -25,7 +25,6 @@
 #include "errors.h"
 #include "index.h"
 #include "logger.h"
-#include "permassert.h"
 #include "uds.h"
 
 /* The index state version header */
@@ -48,63 +47,6 @@ static const IndexStateVersion INDEX_STATE_VERSION_301 = {
   .versionID = 301,
 };
 
-static int readIndexStateData(ReadPortal *portal);
-static int writeIndexStateData(IndexComponent *component,
-                               BufferedWriter *writer,
-                               unsigned int    zone);
-
-/* The state file component */
-const IndexComponentInfo INDEX_STATE_INFO = {
-  .kind        = RL_KIND_INDEX_STATE,
-  .name        = "index state",
-  .saveOnly    = false,
-  .chapterSync = true,
-  .multiZone   = false,
-  .loader      = readIndexStateData,
-  .saver       = writeIndexStateData,
-  .incremental = NULL,
-};
-
-/**********************************************************************/
-__attribute__((warn_unused_result))
-static int decodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
-{
-  int result = getUInt64LEFromBuffer(buffer, &state->newestChapter);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getUInt64LEFromBuffer(buffer, &state->oldestChapter);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getUInt64LEFromBuffer(buffer, &state->lastCheckpoint);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = getUInt32LEFromBuffer(buffer, &state->unused);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if (state->unused != 0) {
-    return UDS_CORRUPT_COMPONENT;
-  }
-  result = getUInt32LEFromBuffer(buffer, &state->padding);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  if (state->padding != 0) {
-    return UDS_CORRUPT_COMPONENT;
-  }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == 0,
-                           "%zu bytes decoded of %zu expected",
-                           bufferLength(buffer) - contentLength(buffer),
-                           bufferLength(buffer));
-  if (result != UDS_SUCCESS) {
-    return UDS_CORRUPT_COMPONENT;
-  }
-  return result;
-}
-
 /**
  * The index state index component reader.
  *
@@ -114,22 +56,22 @@ static int decodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
  **/
 static int readIndexStateData(ReadPortal *portal)
 {
-  BufferedReader *reader = NULL;
-  int result = getBufferedReaderForPortal(portal, 0, &reader);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  byte versionBuffer[sizeof(IndexStateVersion)];
-  result = readFromBufferedReader(reader, versionBuffer, sizeof(versionBuffer));
+  Buffer *buffer = getStateIndexStateBuffer(portal->component->state, IO_READ);
+  int result = rewindBuffer(buffer, uncompactedAmount(buffer));
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   IndexStateVersion fileVersion;
-  size_t offset = 0;
-  decodeInt32LE(versionBuffer, &offset, &fileVersion.signature);
-  decodeInt32LE(versionBuffer, &offset, &fileVersion.versionID);
+  result = getInt32LEFromBuffer(buffer, &fileVersion.signature);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getInt32LEFromBuffer(buffer, &fileVersion.versionID);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
   if (fileVersion.signature != -1 || fileVersion.versionID != 301) {
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
                                    "Index state version %d,%d is unsupported",
@@ -137,28 +79,30 @@ static int readIndexStateData(ReadPortal *portal)
                                    fileVersion.versionID);
   }
 
-  Buffer *buffer;
   IndexStateData301 state;
-  result = makeBuffer(sizeof(state), &buffer);
+  result = getUInt64LEFromBuffer(buffer, &state.newestChapter);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &state.oldestChapter);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt64LEFromBuffer(buffer, &state.lastCheckpoint);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &state.unused);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = getUInt32LEFromBuffer(buffer, &state.padding);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = readFromBufferedReader(reader, getBufferContents(buffer),
-                                  bufferLength(buffer));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = resetBufferEnd(buffer, bufferLength(buffer));
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = decodeIndexStateData(buffer, &state);
-  freeBuffer(&buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
+  if ((state.unused != 0) || (state.padding != 0)) {
+    return UDS_CORRUPT_COMPONENT;
   }
 
   Index *index = indexComponentData(portal->component);
@@ -166,36 +110,6 @@ static int readIndexStateData(ReadPortal *portal)
   index->oldestVirtualChapter = state.oldestChapter;
   index->lastCheckpoint       = state.lastCheckpoint;
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-__attribute__((warn_unused_result))
-static int encodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
-{
-  int result = putUInt64LEIntoBuffer(buffer, state->newestChapter);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = putUInt64LEIntoBuffer(buffer, state->oldestChapter);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = putUInt64LEIntoBuffer(buffer, state->lastCheckpoint);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = putUInt32LEIntoBuffer(buffer, state->unused);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = putUInt32LEIntoBuffer(buffer, state->padding);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == sizeof(*state),
-                           "%zu bytes encoded, of %zu expected",
-                           contentLength(buffer), sizeof(state));
-  return result;
 }
 
 /**
@@ -208,42 +122,19 @@ static int encodeIndexStateData(Buffer *buffer, IndexStateData301 *state)
  * @return UDS_SUCCESS or an error code
  **/
 static int writeIndexStateData(IndexComponent *component,
-                               BufferedWriter *writer,
-                               unsigned int zone)
+                               BufferedWriter *writer __attribute__((unused)),
+                               unsigned int zone __attribute__((unused)))
 {
-  int result = ASSERT((zone == 0), "unimplemented zone %d", zone);
+  Buffer *buffer = getStateIndexStateBuffer(component->state, IO_WRITE);
+  int result = resetBufferEnd(buffer, 0);
   if (result != UDS_SUCCESS) {
     return result;
   }
-
-  size_t versionSize = sizeof(IndexStateVersion);
-  Buffer *buffer;
-  result = makeBuffer(versionSize, &buffer);
+  result = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.signature);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result
-    = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.signature);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result
-    = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.versionID);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = ASSERT_LOG_ONLY(contentLength(buffer) == versionSize,
-                           "%zu bytes encoded, of %zu expected",
-                           contentLength(buffer), versionSize);
-  if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
-    return result;
-  }
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
+  result = putUInt32LEIntoBuffer(buffer, INDEX_STATE_VERSION_301.versionID);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -254,17 +145,40 @@ static int writeIndexStateData(IndexComponent *component,
     .oldestChapter  = index->oldestVirtualChapter,
     .lastCheckpoint = index->lastCheckpoint,
   };
-  result = makeBuffer(sizeof(IndexStateData301), &buffer);
+
+  result = putUInt64LEIntoBuffer(buffer, state.newestChapter);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = encodeIndexStateData(buffer, &state);
+  result = putUInt64LEIntoBuffer(buffer, state.oldestChapter);
   if (result != UDS_SUCCESS) {
-    freeBuffer(&buffer);
     return result;
   }
-  result = writeToBufferedWriter(writer, getBufferContents(buffer),
-                                 contentLength(buffer));
-  freeBuffer(&buffer);
-  return result;
+  result = putUInt64LEIntoBuffer(buffer, state.lastCheckpoint);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, state.unused);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  result = putUInt32LEIntoBuffer(buffer, state.padding);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  return UDS_SUCCESS;
 }
+
+/*****************************************************************************/
+
+const IndexComponentInfo INDEX_STATE_INFO = {
+  .kind        = RL_KIND_INDEX_STATE,
+  .name        = "index state",
+  .saveOnly    = false,
+  .chapterSync = true,
+  .multiZone   = false,
+  .ioStorage   = false,
+  .loader      = readIndexStateData,
+  .saver       = writeIndexStateData,
+  .incremental = NULL,
+};

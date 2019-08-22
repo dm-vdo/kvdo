@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#24 $
  */
 
 /*
@@ -146,21 +146,35 @@ int initialize_kvdo(struct kvdo *kvdo, const ThreadConfig *thread_config,
 }
 
 /**********************************************************************/
-int start_kvdo(struct kvdo *kvdo,
-	       PhysicalLayer *common,
-	       const VDOLoadConfig *load_config,
-	       bool vio_trace_recording,
-	       char **reason)
+int preload_kvdo(struct kvdo *kvdo,
+		 PhysicalLayer *common,
+		 const VDOLoadConfig *load_config,
+		 bool vio_trace_recording,
+		 char **reason)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 	init_completion(&layer->callbackSync);
-	int result = performVDOLoad(kvdo->vdo, load_config);
+	int result = prepareToLoadVDO(kvdo->vdo, load_config);
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
 		return result;
 	}
 
 	setVDOTracingFlags(kvdo->vdo, vio_trace_recording);
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason)
+{
+	struct kernel_layer *layer = as_kernel_layer(common);
+	init_completion(&layer->callbackSync);
+	int result = performVDOLoad(kvdo->vdo);
+	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
+		*reason = "Cannot load metadata from device";
+		return result;
+	}
+
 	return VDO_SUCCESS;
 }
 

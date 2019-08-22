@@ -16,12 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#5 $
  */
 
 #ifndef IO_FACTORY_H
 #define IO_FACTORY_H
 
+#include "bufferedReader.h"
+#include "bufferedWriter.h"
 #include "ioRegion.h"
 #include <linux/dm-bufio.h>
 
@@ -106,6 +108,38 @@ int makeIORegion(IOFactory  *factory,
                  off_t       offset,
                  size_t      size,
                  IORegion  **regionPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Create a BufferedReader for a region of the index.
+ *
+ * @param factory    The IOFactory
+ * @param offset     The byte offset to the region within the index
+ * @param size       The size in bytes of the region
+ * @param regionPtr  The IORegion is returned here
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int openBufferedReader(IOFactory       *factory,
+                       off_t            offset,
+                       size_t           size,
+                       BufferedReader **readerPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Create a BufferedWriter for a region of the index.
+ *
+ * @param factory    The IOFactory
+ * @param offset     The byte offset to the region within the index
+ * @param size       The size in bytes of the region
+ * @param regionPtr  The IORegion is returned here
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int openBufferedWriter(IOFactory       *factory,
+                       off_t            offset,
+                       size_t           size,
+                       BufferedWriter **writerPtr)
   __attribute__((warn_unused_result));
 
 #endif // IO_FACTORY_H

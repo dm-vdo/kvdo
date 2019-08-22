@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexComponent.h#5 $
  */
 
 #ifndef INDEX_COMPONENT_H
@@ -37,7 +37,6 @@ typedef enum completionStatus {
 
 typedef struct readPortal {
   struct indexComponent  *component;
-  IORegion              **regions;
   BufferedReader        **readers;
   unsigned int            zones;
 } ReadPortal;
@@ -80,7 +79,6 @@ typedef enum incrementalWriterCommand {
 typedef struct writeZone {
   struct indexComponent    *component;
   IncrementalWriterCommand  phase;
-  IORegion                 *region;
   BufferedWriter           *writer;
   unsigned int              zone;
 } WriteZone;
@@ -110,6 +108,7 @@ typedef struct indexComponentInfo {
   bool               saveOnly;    // Used for saves but not checkpoints
   bool               chapterSync; // Saved by the chapter writer
   bool               multiZone;   // Does this component have multiple zones?
+  bool               ioStorage;   // Do we do I/O directly to storage?
   Loader             loader;      // The function load this component
   Saver              saver;       // The function to store this component
   IncrementalWriter  incremental; // The function for incremental writing

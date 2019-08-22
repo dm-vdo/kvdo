@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#56 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#57 $
  */
 
 #include "kernelLayer.h"
@@ -1066,19 +1066,39 @@ static void pool_stats_release(struct kobject *kobj)
 }
 
 /**********************************************************************/
-int start_kernel_layer(struct kernel_layer *layer,
-		       const VDOLoadConfig *load_config,
-		       char **reason)
+int preload_kernel_layer(struct kernel_layer *layer,
+			 const VDOLoadConfig *load_config,
+			 char **reason)
 {
-	ASSERT_LOG_ONLY(
-		get_kernel_layer_state(layer) == LAYER_CPU_QUEUE_INITIALIZED,
-		"start_kernel_layer may only be invoked after initialization");
+	if (get_kernel_layer_state(layer) != LAYER_CPU_QUEUE_INITIALIZED) {
+		*reason = "preload_kernel_layer() may only be invoked after initialization";
+		return UDS_BAD_STATE;
+	}
+
 	set_kernel_layer_state(layer, LAYER_STARTING);
-	int result = start_kvdo(&layer->kvdo,
-				&layer->common,
-				load_config,
-				layer->vioTraceRecording,
-				reason);
+	int result = preload_kvdo(&layer->kvdo,
+				  &layer->common,
+				  load_config,
+				  layer->vioTraceRecording,
+				  reason);
+	if (result != VDO_SUCCESS) {
+		stop_kernel_layer(layer);
+		return result;
+	}
+
+	return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int start_kernel_layer(struct kernel_layer *layer, char **reason)
+{
+	if (get_kernel_layer_state(layer) != LAYER_STARTING) {
+		*reason = "Cannot start kernel from non-starting state";
+		stop_kernel_layer(layer);
+		return UDS_BAD_STATE;
+	}
+
+	int result = start_kvdo(&layer->kvdo, &layer->common, reason);
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;

@@ -16,16 +16,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bufferedReader.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/bufferedReader.c#3 $
  */
 
 #include "bufferedReader.h"
-#include "bufferedReaderInternals.h"
 
 #include "compiler.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
+
+struct bufferedReader {
+  IORegion *region;     // the region to read from
+  size_t    bufsize;    // size of buffer
+  off_t     offset;     // offset of last byte in the buffer
+  byte     *buffer;     // buffer
+  byte     *extent;     // extent of the data in the buffer
+  byte     *bufpos;     // the next unread byte in the buffer
+  bool      eof;        // short read or eof encountered
+};
+
+// Invariants:
+//   eof || offset % bufsize == 0
+//   buffer <= bufpos <= extent
+//   extent - buffer <= bufsize
 
 /*****************************************************************************/
 int makeBufferedReader(IORegion *region, BufferedReader **readerPtr)
@@ -49,11 +63,11 @@ int makeBufferedReader(IORegion *region, BufferedReader **readerPtr)
     return result;
   }
 
+  getIORegion(region);
   reader->region = region;
   reader->offset = 0;
   reader->extent = reader->bufpos = reader->buffer;
   reader->eof    = false;
-  reader->close  = false;
   *readerPtr = reader;
   return UDS_SUCCESS;
 }
@@ -62,9 +76,7 @@ int makeBufferedReader(IORegion *region, BufferedReader **readerPtr)
 void freeBufferedReader(BufferedReader *reader)
 {
   if (reader != NULL) {
-    if (reader->close) {
-      closeIORegion(&reader->region);
-    }
+    putIORegion(reader->region);
     FREE(reader->buffer);
     FREE(reader);
   }
@@ -156,7 +168,8 @@ int readBufferedData(BufferedReader *reader,
     reader->bufpos += n;
   }
 
-  if ((result == UDS_END_OF_FILE) && (dp - (byte *) data > 0)) {
+  if (((result == UDS_OUT_OF_RANGE) || (result == UDS_END_OF_FILE))
+      && (dp - (byte *) data > 0)) {
     result = UDS_SHORT_READ;
   }
   if ((result == UDS_SHORT_READ) && (length == 0)) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#4 $
  */
 #include "masterIndexOps.h"
 
@@ -154,6 +154,7 @@ static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
   .saveOnly    = false,
   .chapterSync = false,
   .multiZone   = true,
+  .ioStorage   = true,
   .loader      = readMasterIndex,
   .saver       = NULL,
   .incremental = writeMasterIndex,
