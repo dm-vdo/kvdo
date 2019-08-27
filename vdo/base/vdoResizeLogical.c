@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#6 $
  */
 
 #include "vdoResizeLogical.h"
@@ -46,7 +46,7 @@ static const char *GROW_LOGICAL_PHASE_NAMES[] = {
  * Implements ThreadIDGetterForPhase.
  **/
 __attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
+static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
   return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
 }
@@ -58,7 +58,8 @@ static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
  **/
 static void growLogicalCallback(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
   assertAdminPhaseThread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
 
@@ -107,7 +108,8 @@ static void growLogicalCallback(VDOCompletion *completion)
  **/
 static void handleGrowthError(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
     // We've failed to write the new size in the super block, so set our
     // in memory config back to the old size.

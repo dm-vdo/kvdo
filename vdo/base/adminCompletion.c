@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#5 $
  */
 
 #include "adminCompletion.h"
@@ -31,8 +31,8 @@
 #include "vdoInternal.h"
 
 /**********************************************************************/
-void assertAdminOperationType(AdminCompletion    *completion,
-                              AdminOperationType  expected)
+void assertAdminOperationType(struct admin_completion    *completion,
+                              AdminOperationType          expected)
 {
   ASSERT_LOG_ONLY(completion->type == expected,
                   "admin operation type is %u instead of %u",
@@ -40,19 +40,19 @@ void assertAdminOperationType(AdminCompletion    *completion,
 }
 
 /**********************************************************************/
-AdminCompletion *adminCompletionFromSubTask(VDOCompletion *completion)
+struct admin_completion *adminCompletionFromSubTask(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(AdminCompletion, completion) == 0);
+  STATIC_ASSERT(offsetof(struct admin_completion, completion) == 0);
   assertCompletionType(completion->type, SUB_TASK_COMPLETION);
   VDOCompletion *parent = completion->parent;
   assertCompletionType(parent->type, ADMIN_COMPLETION);
-  return (AdminCompletion *) parent;
+  return (struct admin_completion *) parent;
 }
 
 /**********************************************************************/
-void assertAdminPhaseThread(AdminCompletion *adminCompletion,
-                            const char      *what,
-                            const char      *phaseNames[])
+void assertAdminPhaseThread(struct admin_completion *adminCompletion,
+                            const char              *what,
+                            const char              *phaseNames[])
 {
   ThreadID expected = adminCompletion->getThreadID(adminCompletion);
   ASSERT_LOG_ONLY((getCallbackThreadID() == expected),
@@ -64,13 +64,15 @@ void assertAdminPhaseThread(AdminCompletion *adminCompletion,
 VDO *vdoFromAdminSubTask(VDOCompletion      *completion,
                          AdminOperationType  expected)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   assertAdminOperationType(adminCompletion, expected);
   return adminCompletion->completion.parent;
 }
 
 /**********************************************************************/
-int initializeAdminCompletion(VDO *vdo, AdminCompletion *adminCompletion)
+int initializeAdminCompletion(VDO                     *vdo,
+			      struct admin_completion *adminCompletion)
 {
   int result = initializeEnqueueableCompletion(&adminCompletion->completion,
                                                ADMIN_COMPLETION, vdo->layer);
@@ -91,7 +93,7 @@ int initializeAdminCompletion(VDO *vdo, AdminCompletion *adminCompletion)
 }
 
 /**********************************************************************/
-void uninitializeAdminCompletion(AdminCompletion *adminCompletion)
+void uninitializeAdminCompletion(struct admin_completion *adminCompletion)
 {
   destroyEnqueueable(&adminCompletion->subTaskCompletion);
   destroyEnqueueable(&adminCompletion->completion);
@@ -100,7 +102,8 @@ void uninitializeAdminCompletion(AdminCompletion *adminCompletion)
 /**********************************************************************/
 VDOCompletion *resetAdminSubTask(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   resetCompletion(completion);
   completion->callbackThreadID = adminCompletion->getThreadID(adminCompletion);
   return completion;
@@ -121,7 +124,7 @@ void prepareAdminSubTask(VDO       *vdo,
                          VDOAction *callback,
                          VDOAction *errorHandler)
 {
-  AdminCompletion *adminCompletion = &vdo->adminCompletion;
+  struct admin_completion *adminCompletion = &vdo->adminCompletion;
   prepareAdminSubTaskOnThread(vdo, callback, errorHandler,
                               adminCompletion->completion.callbackThreadID);
 }
@@ -144,7 +147,7 @@ int performAdminOperation(VDO                    *vdo,
                           VDOAction              *action,
                           VDOAction              *errorHandler)
 {
-  AdminCompletion *adminCompletion = &vdo->adminCompletion;
+  struct admin_completion *adminCompletion = &vdo->adminCompletion;
   if (!compareAndSwapBool(&adminCompletion->busy, false, true)) {
     return logErrorWithStringError(VDO_COMPONENT_BUSY,
                                    "Can't start admin operation of type %u, "

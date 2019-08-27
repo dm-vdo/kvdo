@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#5 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -37,19 +37,20 @@ typedef enum adminOperationType {
   ADMIN_OPERATION_SUSPEND,
 } AdminOperationType;
 
-typedef struct adminCompletion AdminCompletion;
+struct admin_completion;
 
 /**
  * A function which gets the ID of the thread on which the current phase of an
  * admin operation should be run.
  *
- * @param adminCompletion The AdminCompletion
+ * @param adminCompletion The struct admin_completion
  *
  * @return The ID of the thread on which the current phase should be performed
  **/
-typedef ThreadID ThreadIDGetterForPhase(AdminCompletion *adminCompletion);
+typedef ThreadID
+ThreadIDGetterForPhase(struct admin_completion *adminCompletion);
 
-struct adminCompletion {
+struct admin_completion {
   /** The completion */
   VDOCompletion           completion;
   /** The sub-task completion */
@@ -65,40 +66,41 @@ struct adminCompletion {
 };
 
 /**
- * Check that an AdminCompletion's type is as expected.
+ * Check that an admin_completion's type is as expected.
  *
- * @param completion  The AdminCompletion to check
+ * @param completion  The admin_completion to check
  * @param expected    The expected type
  **/
-void assertAdminOperationType(AdminCompletion    *completion,
-                              AdminOperationType  expected);
+void assertAdminOperationType(struct admin_completion    *completion,
+                              AdminOperationType          expected);
 
 /**
- * Convert the sub-task completion of an AdminCompletion to an AdminCompletion.
+ * Convert the sub-task completion of an admin_completion to an
+ * admin_completion.
  *
- * @param completion  the AdminCompletion's sub-task completion
+ * @param completion  the admin_completion's sub-task completion
  *
- * @return The sub-task completion as its enclosing AdminCompletion
+ * @return The sub-task completion as its enclosing admin_completion
  **/
-AdminCompletion *adminCompletionFromSubTask(VDOCompletion *completion)
+struct admin_completion *adminCompletionFromSubTask(VDOCompletion *completion)
   __attribute__((warn_unused_result));
 
 /**
  * Assert that we are operating on the correct thread for the current phase.
  *
- * @param adminCompletion  The AdminCompletion to check
+ * @param adminCompletion  The admin_completion to check
  * @param what             The method doing the phase check
  * @param phaseNames       The names of the phases of the current operation
  **/
-void assertAdminPhaseThread(AdminCompletion *adminCompletion,
-                            const char      *what,
-                            const char      *phaseNames[]);
+void assertAdminPhaseThread(struct admin_completion *adminCompletion,
+                            const char              *what,
+                            const char              *phaseNames[]);
 
 /**
- * Get the VDO from the sub-task completion of its AdminCompletion.
+ * Get the VDO from the sub-task completion of its admin_completion.
  *
  * @param completion  the sub-task completion
- * @param expected    the expected operation type of the AdminCompletion
+ * @param expected    the expected operation type of the admin_completion
  *
  * @return The VDO
  **/
@@ -110,31 +112,32 @@ VDO *vdoFromAdminSubTask(VDOCompletion      *completion,
  * Initialize an admin completion.
  *
  * @param vdo               The VDO which owns the completion
- * @param adminCompletion   The AdminCompletion to initialize
+ * @param adminCompletion   The admin_completion to initialize
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeAdminCompletion(VDO *vdo, AdminCompletion *adminCompletion)
+int initializeAdminCompletion(VDO *vdo,
+                              struct admin_completion *adminCompletion)
   __attribute__((warn_unused_result));
 
 /**
  * Clean up an admin completion's resources.
  *
- * @param adminCompletion  The AdminCompletion to uninitialize
+ * @param adminCompletion  The admin_completion to uninitialize
  **/
-void uninitializeAdminCompletion(AdminCompletion *adminCompletion);
+void uninitializeAdminCompletion(struct admin_completion *adminCompletion);
 
 /**
- * Reset an AdminCompletion's sub-task completion.
+ * Reset an admin_completion's sub-task completion.
  *
- * @param completion  The AdminCompletion's sub-task completion
+ * @param completion  The admin_completion's sub-task completion
  *
  * @return The sub-task completion for the convenience of callers
  **/
 VDOCompletion *resetAdminSubTask(VDOCompletion *completion);
 
 /**
- * Prepare the sub-task completion of a VDO's AdminCompletion
+ * Prepare the sub-task completion of a VDO's admin_completion
  *
  * @param vdo           The VDO
  * @param callback      The callback for the sub-task
@@ -147,8 +150,8 @@ void prepareAdminSubTaskOnThread(VDO       *vdo,
                                  ThreadID   threadID);
 
 /**
- * Prepare the sub-task completion of a VDO's AdminCompletion to run on the
- * same thread as the AdminCompletion's main completion.
+ * Prepare the sub-task completion of a VDO's admin_completion to run on the
+ * same thread as the admin_completion's main completion.
  *
  * @param vdo           The VDO
  * @param callback      The callback for the sub-task

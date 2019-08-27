@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#3 $
  */
 
 #include "vdoResume.h"
@@ -59,7 +59,7 @@ static const char *RESUME_PHASE_NAMES[] = {
  * Implements ThreadIDGetterForPhase.
  **/
 __attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
+static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
   const ThreadConfig *threadConfig
     = getThreadConfig(adminCompletion->completion.parent);
@@ -79,7 +79,7 @@ static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
  * Update the VDO state and save the super block.
  *
  * @param vdo         The VDO being resumed
- * @param completion  The AdminCompletion's sub-task completion
+ * @param completion  The admin_completion's sub-task completion
  **/
 static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
 {
@@ -112,7 +112,8 @@ static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
  **/
 static void resumeCallback(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   assertAdminOperationType(adminCompletion, ADMIN_OPERATION_RESUME);
   assertAdminPhaseThread(adminCompletion, __func__, RESUME_PHASE_NAMES);
 

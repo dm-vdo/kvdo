@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#10 $
  */
 
 #include "vdoResize.h"
@@ -53,7 +53,7 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
  * Implements ThreadIDGetterForPhase.
  **/
 __attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
+static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
   return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
 }
@@ -65,7 +65,8 @@ static ThreadID getThreadIDForPhase(AdminCompletion *adminCompletion)
  **/
 static void growPhysicalCallback(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_PHYSICAL);
   assertAdminPhaseThread(adminCompletion, __func__, GROW_PHYSICAL_PHASE_NAMES);
 
@@ -182,7 +183,8 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
  **/
 static void checkMayGrowPhysical(VDOCompletion *completion)
 {
-  AdminCompletion *adminCompletion = adminCompletionFromSubTask(completion);
+  struct admin_completion *adminCompletion
+    = adminCompletionFromSubTask(completion);
   assertAdminOperationType(adminCompletion,
                            ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 

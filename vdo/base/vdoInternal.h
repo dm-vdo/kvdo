@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#9 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -50,73 +50,73 @@ typedef struct atomicErrorStatistics {
 
 struct vdo {
   /* The state of this VDO */
-  Atomic32              state;
+  Atomic32                state;
   /* The read-only notifier */
-  ReadOnlyNotifier     *readOnlyNotifier;
+  ReadOnlyNotifier       *readOnlyNotifier;
   /* The number of times this VDO has recovered from a dirty state */
-  uint64_t              completeRecoveries;
+  uint64_t                completeRecoveries;
   /* The number of times this VDO has recovered from a read-only state */
-  uint64_t              readOnlyRecoveries;
+  uint64_t                readOnlyRecoveries;
   /* The format-time configuration of this VDO */
-  VDOConfig             config;
+  VDOConfig               config;
   /* The load-time configuration of this VDO */
-  VDOLoadConfig         loadConfig;
+  VDOLoadConfig           loadConfig;
   /* The nonce for this VDO */
-  Nonce                 nonce;
+  Nonce                   nonce;
 
   /* The super block */
-  SuperBlock           *superBlock;
+  SuperBlock             *superBlock;
 
   /* The physical storage below us */
-  PhysicalLayer        *layer;
+  PhysicalLayer          *layer;
 
   /* Our partitioning of the physical layer's storage */
-  VDOLayout            *layout;
+  VDOLayout              *layout;
 
   /* The block map */
   BlockMap             *blockMap;
 
   /* The journal for block map recovery */
-  RecoveryJournal      *recoveryJournal;
+  RecoveryJournal        *recoveryJournal;
 
   /* The slab depot */
-  SlabDepot            *depot;
+  SlabDepot              *depot;
 
   /* The compressed-block packer */
-  Packer               *packer;
+  Packer                 *packer;
   /* Whether incoming data should be compressed */
-  AtomicBool            compressing;
+  AtomicBool              compressing;
 
   /* The handler for flush requests */
-  Flusher              *flusher;
+  Flusher                *flusher;
 
   /* The master version of the VDO when loaded (for upgrading) */
-  VersionNumber         loadVersion;
+  VersionNumber           loadVersion;
   /* The state the VDO was in when loaded (primarily for unit tests) */
-  VDOState              loadState;
+  VDOState                loadState;
   /* Whether VIO tracing is enabled */
-  bool                  vioTraceRecording;
+  bool                    vioTraceRecording;
 
   /* The logical zones of this VDO */
-  LogicalZones          *logicalZones;
+  LogicalZones           *logicalZones;
 
   /* The physical zones of this VDO */
-  PhysicalZone         **physicalZones;
+  PhysicalZone          **physicalZones;
 
   /* The hash lock zones of this VDO */
-  HashZone             **hashZones;
+  HashZone              **hashZones;
 
   /* The completion for administrative operations */
-  AdminCompletion        adminCompletion;
+  struct admin_completion adminCompletion;
 
   /* The administrative state of the VDO */
-  AdminState             adminState;
+  AdminState              adminState;
 
   /* Whether a close is required */
-  bool                   closeRequired;
+  bool                    closeRequired;
 
   /* Atomic global counts of error events */
-  AtomicErrorStatistics  errorStats;
+  AtomicErrorStatistics   errorStats;
 };
 
 /**
