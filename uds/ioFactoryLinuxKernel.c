@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#7 $
  */
 
 #include <linux/blkdev.h>
@@ -24,7 +24,6 @@
 
 #include "atomicDefs.h"
 #include "ioFactory.h"
-#include "linuxIORegion.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 
@@ -115,27 +114,28 @@ int makeBufio(IOFactory               *factory,
 }
 
 /*****************************************************************************/
-int makeIORegion(IOFactory  *factory,
-                 off_t       offset,
-                 size_t      size,
-                 IORegion  **regionPtr)
-{
-  return makeLinuxRegion(factory, factory->bdev, offset, size, regionPtr);
-}
-
-/*****************************************************************************/
 int openBufferedReader(IOFactory       *factory,
                        off_t            offset,
                        size_t           size,
                        BufferedReader **readerPtr)
 {
-  IORegion *region;
-  int result = makeLinuxRegion(factory, factory->bdev, offset, size, &region);
+  if (size % UDS_BLOCK_SIZE != 0) {
+    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
+                                   "region size %zd is not multiple of %d",
+                                   size, UDS_BLOCK_SIZE);
+  }
+
+  struct dm_bufio_client *client;
+  int result = makeBufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = makeBufferedReader(region, readerPtr);
-  putIORegion(region);
+
+  result = makeBufferedReader(factory, client, size / UDS_BLOCK_SIZE,
+                              readerPtr);
+  if (result != UDS_SUCCESS) {
+    dm_bufio_client_destroy(client);
+  }
   return result;
 }
 
@@ -145,12 +145,22 @@ int openBufferedWriter(IOFactory       *factory,
                        size_t           size,
                        BufferedWriter **writerPtr)
 {
-  IORegion *region;
-  int result = makeLinuxRegion(factory, factory->bdev, offset, size, &region);
+  if (size % UDS_BLOCK_SIZE != 0) {
+    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
+                                   "region size %zd is not multiple of %d",
+                                   size, UDS_BLOCK_SIZE);
+  }
+
+  struct dm_bufio_client *client;
+  int result = makeBufio(factory, offset, UDS_BLOCK_SIZE, 1, &client);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  result = makeBufferedWriter(region, writerPtr);
-  putIORegion(region);
+
+  result = makeBufferedWriter(factory, client, size / UDS_BLOCK_SIZE,
+                              writerPtr);
+  if (result != UDS_SUCCESS) {
+    dm_bufio_client_destroy(client);
+  }
   return result;
 }

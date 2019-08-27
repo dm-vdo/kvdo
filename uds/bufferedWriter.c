@@ -16,59 +16,106 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#5 $
  */
 
 #include "bufferedWriter.h"
 
 #include "compiler.h"
 #include "errors.h"
+#include "ioFactory.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "numeric.h"
 
+
 struct bufferedWriter {
-  IORegion *bw_region;             // region to write to
-  off_t     bw_pos;                // offset of start of buffer
-  size_t    bw_size;               // size of buffer
-  char     *bw_buf;                // start of buffer
-  char     *bw_ptr;                // end of written data
-  int       bw_err;                // error code
-  bool      bw_used;               // have writes been done?
+  // IOFactory owning the block device
+  IOFactory              *bw_factory;
+  // The dm_bufio_client to write to
+  struct dm_bufio_client *bw_client;
+  // The current dm_buffer
+  struct dm_buffer       *bw_buffer;
+  // The number of blocks that can be written to
+  sector_t                bw_limit;
+  // Number of the current block
+  sector_t                bw_blockNumber;
+  // Start of the buffer
+  byte                   *bw_start;
+  // End of the data written to the buffer
+  byte                   *bw_pointer;
+  // Error code
+  int                     bw_error;
+  // Have writes been done?
+  bool                    bw_used;
 };
 
 /*****************************************************************************/
-int makeBufferedWriter(IORegion *region, BufferedWriter **writerPtr)
+__attribute__((warn_unused_result))
+int prepareNextBuffer(BufferedWriter *bw)
 {
-  size_t bufSize;
-  int result = getRegionBestBufferSize(region, &bufSize);
-  if (result != UDS_SUCCESS) {
-    return result;
+  if (bw->bw_blockNumber >= bw->bw_limit) {
+    bw->bw_error = UDS_OUT_OF_RANGE;
+    return UDS_OUT_OF_RANGE;
   }
 
+  struct dm_buffer *buffer = NULL;
+  void *data = dm_bufio_new(bw->bw_client, bw->bw_blockNumber, &buffer);
+  if (IS_ERR(data)) {
+    bw->bw_error = -PTR_ERR(data);
+    return bw->bw_error;
+  }
+  bw->bw_buffer  = buffer;
+  bw->bw_start   = data;
+  bw->bw_pointer = data;
+  return UDS_SUCCESS;
+}
+
+/*****************************************************************************/
+int flushPreviousBuffer(BufferedWriter *bw)
+{
+  if (bw->bw_buffer != NULL) {
+    if (bw->bw_error == UDS_SUCCESS) {
+      size_t avail = spaceRemainingInWriteBuffer(bw);
+      if (avail > 0) {
+        memset(bw->bw_pointer, 0, avail);
+      }
+      dm_bufio_mark_buffer_dirty(bw->bw_buffer);
+    }
+    dm_bufio_release(bw->bw_buffer);
+    bw->bw_buffer  = NULL;
+    bw->bw_start   = NULL;
+    bw->bw_pointer = NULL;
+    bw->bw_blockNumber++;
+  }
+  return bw->bw_error;
+}
+
+/*****************************************************************************/
+int makeBufferedWriter(IOFactory               *factory,
+                       struct dm_bufio_client  *client,
+                       sector_t                 blockLimit,
+                       BufferedWriter         **writerPtr)
+{
   BufferedWriter *writer;
-  result = ALLOCATE(1, BufferedWriter, "buffered writer", &writer);
+  int result = ALLOCATE(1, BufferedWriter, "buffered writer", &writer);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   *writer = (BufferedWriter) {
-    .bw_region = region,
-    .bw_size   = bufSize,
-    .bw_pos    = 0,
-    .bw_err    = UDS_SUCCESS,
-    .bw_used   = false,
+    .bw_factory     = factory,
+    .bw_client      = client,
+    .bw_buffer      = NULL,
+    .bw_limit       = blockLimit,
+    .bw_start       = NULL,
+    .bw_pointer     = NULL,
+    .bw_blockNumber = 0,
+    .bw_error       = UDS_SUCCESS,
+    .bw_used        = false,
   };
 
-  result = ALLOCATE_IO_ALIGNED(bufSize, char, "buffer writer buffer",
-                               &writer->bw_buf);
-  if (result != UDS_SUCCESS) {
-    FREE(writer);
-    return result;
-  }
-
-  getIORegion(region);
-  writer->bw_ptr = writer->bw_buf;
+  getIOFactory(factory);
   *writerPtr = writer;
   return UDS_SUCCESS;
 }
@@ -76,66 +123,48 @@ int makeBufferedWriter(IORegion *region, BufferedWriter **writerPtr)
 /*****************************************************************************/
 void freeBufferedWriter(BufferedWriter *bw)
 {
-  if (bw) {
-    int result = syncRegionContents(bw->bw_region);
-    if (result != UDS_SUCCESS) {
-      logWarningWithStringError(result, "%s cannot sync region", __func__);
-    }
-    putIORegion(bw->bw_region);
-    FREE(bw->bw_buf);
-    FREE(bw);
+  if (bw == NULL) {
+    return;
   }
+  flushPreviousBuffer(bw);
+  dm_bufio_client_destroy(bw->bw_client);
+  putIOFactory(bw->bw_factory);
+  FREE(bw);
 }
 
 /*****************************************************************************/
 static INLINE size_t spaceUsedInBuffer(BufferedWriter *bw)
 {
-  return bw->bw_ptr - bw->bw_buf;
+  return bw->bw_pointer - bw->bw_start;
 }
 
 /*****************************************************************************/
 size_t spaceRemainingInWriteBuffer(BufferedWriter *bw)
 {
-  return bw->bw_size - spaceUsedInBuffer(bw);
+  return UDS_BLOCK_SIZE - spaceUsedInBuffer(bw);
 }
 
 /*****************************************************************************/
 int writeToBufferedWriter(BufferedWriter *bw, const void *data, size_t len)
 {
-  bool alwaysCopy = false;
-  if (bw->bw_err != UDS_SUCCESS) {
-    return bw->bw_err;
+  if (bw->bw_error != UDS_SUCCESS) {
+    return bw->bw_error;
   }
 
   const byte *dp = data;
   int result = UDS_SUCCESS;
   while ((len > 0) && (result == UDS_SUCCESS)) {
-    if ((len >= bw->bw_size) && !alwaysCopy && (spaceUsedInBuffer(bw) == 0)) {
-      size_t n = len / bw->bw_size * bw->bw_size;
-      int result = writeToRegion(bw->bw_region, bw->bw_pos, dp, n, n);
-      if (result == UDS_INCORRECT_ALIGNMENT) {
-        // Usually the buffer is not correctly aligned, so switch to
-        // copying from the buffer
-        result = UDS_SUCCESS;
-        alwaysCopy = true;
-        continue;
-      } else if (result != UDS_SUCCESS) {
-        logWarningWithStringError(result, "failed in writeToBufferedWriter");
-        bw->bw_err = result;
-        break;
-      }
-      bw->bw_pos += n;
-      dp         += n;
-      len        -= n;
+    if (bw->bw_buffer == NULL) {
+      result = prepareNextBuffer(bw);
       continue;
     }
 
     size_t avail = spaceRemainingInWriteBuffer(bw);
     size_t chunk = minSizeT(len, avail);
-    memcpy(bw->bw_ptr, dp, chunk);
-    len        -= chunk;
-    dp         += chunk;
-    bw->bw_ptr += chunk;
+    memcpy(bw->bw_pointer, dp, chunk);
+    len            -= chunk;
+    dp             += chunk;
+    bw->bw_pointer += chunk;
 
     if (spaceRemainingInWriteBuffer(bw) == 0) {
       result = flushBufferedWriter(bw);
@@ -149,17 +178,22 @@ int writeToBufferedWriter(BufferedWriter *bw, const void *data, size_t len)
 /*****************************************************************************/
 int writeZerosToBufferedWriter(BufferedWriter *bw, size_t len)
 {
-  if (bw->bw_err != UDS_SUCCESS) {
-    return bw->bw_err;
+  if (bw->bw_error != UDS_SUCCESS) {
+    return bw->bw_error;
   }
 
   int result = UDS_SUCCESS;
   while ((len > 0) && (result == UDS_SUCCESS)) {
+    if (bw->bw_buffer == NULL) {
+      result = prepareNextBuffer(bw);
+      continue;
+    }
+
     size_t avail = spaceRemainingInWriteBuffer(bw);
     size_t chunk = minSizeT(len, avail);
-    memset(bw->bw_ptr, 0, chunk);
-    len        -= chunk;
-    bw->bw_ptr += chunk;
+    memset(bw->bw_pointer, 0, chunk);
+    len            -= chunk;
+    bw->bw_pointer += chunk;
 
     if (spaceRemainingInWriteBuffer(bw) == 0) {
       result = flushBufferedWriter(bw);
@@ -173,22 +207,11 @@ int writeZerosToBufferedWriter(BufferedWriter *bw, size_t len)
 /*****************************************************************************/
 int flushBufferedWriter(BufferedWriter *bw)
 {
-  if (bw->bw_err != UDS_SUCCESS) {
-    return bw->bw_err;
+  if (bw->bw_error != UDS_SUCCESS) {
+    return bw->bw_error;
   }
 
-  size_t n = spaceUsedInBuffer(bw);
-  if (n > 0) {
-    int result = writeToRegion(bw->bw_region, bw->bw_pos, bw->bw_buf,
-                               bw->bw_size, n);
-    if (result != UDS_SUCCESS) {
-      return bw->bw_err = result;
-    } else {
-      bw->bw_ptr =  bw->bw_buf;
-      bw->bw_pos += bw->bw_size;
-    }
-  }
-  return UDS_SUCCESS;
+  return flushPreviousBuffer(bw);
 }
 
 /*****************************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#8 $
  */
 
 #include "actionManager.h"
@@ -28,7 +28,6 @@
 #include "types.h"
 
 /** An action to be performed in each of a set of zones */
-typedef struct action Action;
 struct action {
   /** Whether this structure is in use */
   bool              inUse;
@@ -51,7 +50,7 @@ struct action {
   /** The action specific context */
   void             *context;
   /** The action to perform after this one */
-  Action           *next;
+  struct action    *next;
 };
 
 struct actionManager {
@@ -60,9 +59,9 @@ struct actionManager {
   /** The state of this action manager */
   AdminState        state;
   /** The two action slots*/
-  Action            actions[2];
+  struct action     actions[2];
   /** The current action slot */
-  Action           *currentAction;
+  struct action    *currentAction;
   /** The number of zones in which an action is to be applied */
   ZoneCount         zones;
   /** A function to schedule a default next action */
@@ -271,7 +270,7 @@ static void handlePreambleError(VDOCompletion *completion)
  **/
 static void launchCurrentAction(ActionManager *manager)
 {
-  Action *action = manager->currentAction;
+  struct action *action = manager->currentAction;
   int     result = startOperation(&manager->state, action->operation);
   if (result != VDO_SUCCESS) {
     if (action->parent != NULL) {
@@ -305,7 +304,7 @@ static void launchCurrentAction(ActionManager *manager)
 static void finishActionCallback(VDOCompletion *completion)
 {
   ActionManager *manager        = asActionManager(completion);
-  Action         action         = *(manager->currentAction);
+  struct action  action         = *(manager->currentAction);
   manager->currentAction->inUse = false;
   manager->currentAction        = manager->currentAction->next;
 
@@ -358,7 +357,7 @@ bool scheduleOperationWithContext(ActionManager    *manager,
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");
-  Action *action;
+  struct action *action;
   if (!manager->currentAction->inUse) {
     action = manager->currentAction;
   } else if (!manager->currentAction->next->inUse) {
@@ -371,7 +370,7 @@ bool scheduleOperationWithContext(ActionManager    *manager,
     return false;
   }
 
-  *action = (Action) {
+  *action = (struct action) {
     .inUse      = true,
     .operation  = operation,
     .preamble   = (preamble == NULL) ? noPreamble : preamble,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#4 $
  */
 
 #include <linux/delay.h>
@@ -314,7 +314,7 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
 
   if (p == NULL) {
     unsigned int duration = jiffies_to_msecs(jiffies - startTime);
-    logError("Could not allocate %lu bytes for %s in %u msecs",
+    logError("Could not allocate %zu bytes for %s in %u msecs",
              size, what, duration);
     return ENOMEM;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/numeric.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/numeric.h#2 $
  */
 
 #ifndef NUMERIC_H
@@ -168,26 +168,6 @@ static INLINE uint64_t minUInt64(uint64_t a, uint64_t b)
 {
   return ((a < b) ? a : b);
 }
-
-/**
- * Determine the greatest common divisor of two numbers.
- *
- * @param a             a number
- * @param b             another number
- *
- * @return              the gcd of a and b
- **/
-uint64_t greatestCommonDivisor(uint64_t a, uint64_t b);
-
-/**
- * Determine the least common multiple of two numbers.
- *
- * @param a             a number
- * @param b             another number
- *
- * @return              the lcm of a and b
- **/
-uint64_t leastCommonMultiple(uint64_t a, uint64_t b);
 
 /**
  * Multiply two uint64_t and check for overflow. Does division.

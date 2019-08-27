@@ -16,13 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#5 $
  */
 
 #include "indexLayout.h"
 #include "indexLayoutParser.h"
-#include "linuxIORegion.h"
-#include "logger.h"
 #include "memoryAlloc.h"
 
 /*****************************************************************************/

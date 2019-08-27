@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/numeric.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/numeric.c#2 $
  */
 
 #include "numeric.h"
@@ -24,36 +24,6 @@
 
 #define STATIC_ASSERT_ALIGNOF(type, expectedAlignment) \
   STATIC_ASSERT(__alignof__(type) == (expectedAlignment))
-
-/**********************************************************************/
-uint64_t greatestCommonDivisor(uint64_t a, uint64_t b)
-{
-  const uint64_t threshold = (1 << 13);
-  if ((a < threshold) && (b < threshold)) {
-    // use Euclid's subtractive algorithm
-    while (a != b) {
-      if (a > b) {
-        a = a - b;
-      } else {
-        b = b - a;
-      }
-    }
-  } else {
-    // use Euclid's remainder algorithm
-    while (b != 0) {
-      uint64_t t = b;
-      b = a % t;
-      a = t;
-    }
-  }
-  return a;
-}
-
-/**********************************************************************/
-uint64_t leastCommonMultiple(uint64_t a, uint64_t b)
-{
-  return a / greatestCommonDivisor(a, b) * b;
-}
 
 /**********************************************************************/
 bool multiplyWouldOverflow(uint64_t a, uint64_t b)

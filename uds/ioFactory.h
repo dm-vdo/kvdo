@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#6 $
  */
 
 #ifndef IO_FACTORY_H
@@ -24,7 +24,6 @@
 
 #include "bufferedReader.h"
 #include "bufferedWriter.h"
-#include "ioRegion.h"
 #include <linux/dm-bufio.h>
 
 /*
@@ -92,22 +91,6 @@ int makeBufio(IOFactory               *factory,
               size_t                   blockSize,
               unsigned int             reservedBuffers,
               struct dm_bufio_client **clientPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Create an IORegion for a region of the index.
- *
- * @param factory    The IOFactory
- * @param offset     The byte offset to the region within the index
- * @param size       The size in bytes of the region
- * @param regionPtr  The IORegion is returned here
- *
- * @return UDS_SUCCESS or an error code
- **/
-int makeIORegion(IOFactory  *factory,
-                 off_t       offset,
-                 size_t      size,
-                 IORegion  **regionPtr)
   __attribute__((warn_unused_result));
 
 /**
