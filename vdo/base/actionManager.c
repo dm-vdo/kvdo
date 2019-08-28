@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#9 $
  */
 
 #include "actionManager.h"
@@ -55,28 +55,28 @@ struct action {
 
 struct actionManager {
   /** The completion for performing actions */
-  VDOCompletion     completion;
+  VDOCompletion      completion;
   /** The state of this action manager */
-  AdminState        state;
+  struct admin_state state;
   /** The two action slots*/
-  struct action     actions[2];
+  struct action      actions[2];
   /** The current action slot */
-  struct action    *currentAction;
+  struct action     *currentAction;
   /** The number of zones in which an action is to be applied */
-  ZoneCount         zones;
+  ZoneCount          zones;
   /** A function to schedule a default next action */
-  ActionScheduler  *scheduler;
+  ActionScheduler   *scheduler;
   /**
    * A function to get the id of the thread on which to apply an action to a
    * zone
    **/
-  ZoneThreadGetter *getZoneThreadID;
+  ZoneThreadGetter  *getZoneThreadID;
   /** The ID of the thread on which actions may be initiated */
-  ThreadID          initiatorThreadID;
+  ThreadID           initiatorThreadID;
   /** Opaque data associated with this action manager */
-  void             *context;
+  void              *context;
   /** The zone currently being acted upon */
-  ZoneCount         actingZone;
+  ZoneCount          actingZone;
 };
 
 /**

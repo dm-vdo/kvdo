@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#7 $
  */
 
 #ifndef VDO_SLAB_H
@@ -72,7 +72,7 @@ struct vdoSlab {
   PhysicalBlockNumber  refCountsOrigin;
 
   /** The administrative state of the slab */
-  AdminState           state;
+  struct admin_state   state;
   /** The status of the slab */
   SlabRebuildStatus    status;
   /** Whether the slab was ever queued for scrubbing */

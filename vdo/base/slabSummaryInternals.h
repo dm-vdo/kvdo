@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#6 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -79,17 +79,17 @@ typedef struct atomicSlabSummaryStatistics {
 
 struct slabSummaryZone {
   /** The summary of which this is a zone */
-  SlabSummary      *summary;
+  SlabSummary       *summary;
   /** The number of this zone */
-  ZoneCount         zoneNumber;
+  ZoneCount          zoneNumber;
   /** Count of the number of blocks currently out for writing */
-  BlockCount        writeCount;
+  BlockCount         writeCount;
   /** The state of this zone */
-  AdminState        state;
+  struct admin_state state;
   /** The array (owned by the blocks) of all entries */
-  SlabSummaryEntry *entries;
+  SlabSummaryEntry  *entries;
   /** The array of SlabSummaryEntryBlocks */
-  SlabSummaryBlock  summaryBlocks[];
+  SlabSummaryBlock   summaryBlocks[];
 };
 
 struct slabSummary {

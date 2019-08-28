@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#14 $
  */
 
 #include "adminState.h"
@@ -91,7 +91,7 @@ const char *getAdminStateCodeName(AdminStateCode code)
 }
 
 /**********************************************************************/
-const char *getAdminStateName(const AdminState *state)
+const char *getAdminStateName(const struct admin_state *state)
 {
   return getAdminStateCodeName(state->state);
 }
@@ -114,7 +114,7 @@ static AdminStateCode getNextState(AdminStateCode previousState,
 /**
  * Begin an operation if it may be started given the current state.
  *
- * @param state      The AdminState
+ * @param state      The admin_state
  * @param operation  The operation to begin
  * @param waiter     A completion to notify when the operation is complete; may
  *                   be NULL
@@ -122,9 +122,9 @@ static AdminStateCode getNextState(AdminStateCode previousState,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int beginOperation(AdminState     *state,
-                          AdminStateCode  operation,
-                          VDOCompletion  *waiter)
+static int beginOperation(struct admin_state     *state,
+                          AdminStateCode          operation,
+                          VDOCompletion          *waiter)
 {
   int result;
   if (isOperating(state)
@@ -155,13 +155,13 @@ static int beginOperation(AdminState     *state,
  * Finish an operation if one is in progress. If there is a waiter, it will be
  * notified.
  *
- * @param state   The AdminState
+ * @param state   The admin_state
  * @param result  The result of the operation
  *
  * @return <code>true</code> if an operation was in progress and has been
  *         finished.
  **/
-static bool endOperation(AdminState *state, int result)
+static bool endOperation(struct admin_state *state, int result)
 {
   if (!isOperating(state)) {
     return false;
@@ -210,22 +210,22 @@ bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
 }
 
 /**********************************************************************/
-bool startDraining(AdminState     *state,
-                   AdminStateCode  operation,
-                   VDOCompletion  *waiter)
+bool startDraining(struct admin_state     *state,
+                   AdminStateCode          operation,
+                   VDOCompletion          *waiter)
 {
   return (assertDrainOperation(operation, waiter)
           && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finishDraining(AdminState *state)
+bool finishDraining(struct admin_state *state)
 {
   return finishDrainingWithResult(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finishDrainingWithResult(AdminState *state, int result)
+bool finishDrainingWithResult(struct admin_state *state, int result)
 {
   return (isDraining(state) && endOperation(state, result));
 }
@@ -238,22 +238,22 @@ bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
 }
 
 /**********************************************************************/
-bool startLoading(AdminState     *state,
-                  AdminStateCode  operation,
-                  VDOCompletion  *waiter)
+bool startLoading(struct admin_state     *state,
+                  AdminStateCode          operation,
+                  VDOCompletion          *waiter)
 {
   return (assertLoadOperation(operation, waiter)
           && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finishLoading(AdminState *state)
+bool finishLoading(struct admin_state *state)
 {
   return finishLoadingWithResult(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finishLoadingWithResult(AdminState *state, int result)
+bool finishLoadingWithResult(struct admin_state *state, int result)
 {
   return (isLoading(state) && endOperation(state, result));
 }
@@ -275,28 +275,28 @@ static bool assertResumeOperation(AdminStateCode operation,
 }
 
 /**********************************************************************/
-bool startResuming(AdminState     *state,
-                   AdminStateCode  operation,
-                   VDOCompletion  *waiter)
+bool startResuming(struct admin_state     *state,
+                   AdminStateCode          operation,
+                   VDOCompletion          *waiter)
 {
   return (assertResumeOperation(operation, waiter)
           && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finishResuming(AdminState *state)
+bool finishResuming(struct admin_state *state)
 {
   return finishResumingWithResult(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finishResumingWithResult(AdminState *state, int result)
+bool finishResumingWithResult(struct admin_state *state, int result)
 {
   return (isResuming(state) && endOperation(state, result));
 }
 
 /**********************************************************************/
-bool resumeIfQuiescent(AdminState *state)
+bool resumeIfQuiescent(struct admin_state *state)
 {
   if (!isQuiescent(state)) {
     return false;
@@ -321,29 +321,29 @@ static bool assertOperation(AdminStateCode code, VDOCompletion *waiter)
 }
 
 /**********************************************************************/
-int startOperation(AdminState *state, AdminStateCode operation)
+int startOperation(struct admin_state *state, AdminStateCode operation)
 {
   return (assertOperation(operation, NULL)
           ? beginOperation(state, operation, NULL) : VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
-bool startOperationWithWaiter(AdminState     *state,
-                              AdminStateCode  operation,
-                              VDOCompletion  *waiter)
+bool startOperationWithWaiter(struct admin_state     *state,
+                              AdminStateCode          operation,
+                              VDOCompletion          *waiter)
 {
   return (assertOperation(operation, waiter)
           && (beginOperation(state, operation, waiter) == VDO_SUCCESS));
 }
 
 /**********************************************************************/
-bool finishOperation(AdminState *state)
+bool finishOperation(struct admin_state *state)
 {
   return finishOperationWithResult(state, VDO_SUCCESS);
 }
 
 /**********************************************************************/
-bool finishOperationWithResult(AdminState *state, int result)
+bool finishOperationWithResult(struct admin_state *state, int result)
 {
   return endOperation(state, result);
 }

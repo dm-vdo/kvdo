@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#6 $
  */
 
 #include "logicalZone.h"
@@ -67,7 +67,7 @@ struct logicalZone {
   /** The queue of active data write VIOs */
   RingNode            writeVIOs;
   /** The administrative state of the zone */
-  AdminState          state;
+  struct admin_state  state;
   /** The selector for determining which physical zone to allocate from */
   AllocationSelector *selector;
 };

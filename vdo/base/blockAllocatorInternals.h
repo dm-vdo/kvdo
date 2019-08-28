@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#8 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -123,7 +123,7 @@ struct blockAllocator {
   /** The reduced priority level used to preserve unopened slabs */
   unsigned int                 unopenedSlabPriority;
   /** The state of this allocator */
-  AdminState                   state;
+  struct admin_state           state;
   /** The actor for applying an action to all slabs */
   SlabActor                    slabActor;
 

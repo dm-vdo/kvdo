@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#17 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -154,14 +154,14 @@ typedef enum {
                                       | ADMIN_FLAG_QUIESCENT),
 } AdminStateCode;
 
-typedef struct {
+struct admin_state {
   /** The current administrative state */
   AdminStateCode  state;
   /** The next administrative state (when the current operation finishes */
   AdminStateCode  nextState;
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
-} AdminState;
+};
 
 /**
  * Get the name of an AdminStateCode for logging purposes.
@@ -174,24 +174,24 @@ const char *getAdminStateCodeName(AdminStateCode code)
   __attribute__((warn_unused_result));
 
 /**
- * Get the name of an AdminState's code for logging purposes.
+ * Get the name of an admin_state's code for logging purposes.
  *
- * @param state  The AdminState
+ * @param state  The admin_state
  *
  * @return The name of the state's code
  **/
-const char *getAdminStateName(const AdminState *state)
+const char *getAdminStateName(const struct admin_state *state)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether an AdminState is in normal operation.
+ * Check whether an admin_state is in normal operation.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is normal
  **/
 __attribute__((warn_unused_result))
-static inline bool isNormal(AdminState *state)
+static inline bool isNormal(struct admin_state *state)
 {
   return ((state->state & ADMIN_TYPE_MASK) == ADMIN_TYPE_NORMAL);
 }
@@ -210,66 +210,66 @@ static inline bool isOperation(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is operating.
+ * Check whether an admin_state is operating.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is operating
  **/
 __attribute__((warn_unused_result))
-static inline bool isOperating(AdminState *state)
+static inline bool isOperating(struct admin_state *state)
 {
   return isOperation(state->state);
 }
 
 /**
- * Check whether an AdminState is suspending.
+ * Check whether an admin_state is suspending.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is suspending
  **/
 __attribute__((warn_unused_result))
-static inline bool isSuspending(AdminState *state)
+static inline bool isSuspending(struct admin_state *state)
 {
   return (state->state == ADMIN_STATE_SUSPENDING);
 }
 
 /**
- * Check whether an AdminState is suspended.
+ * Check whether an admin_state is suspended.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is suspended
  **/
 __attribute__((warn_unused_result))
-static inline bool isSuspended(AdminState *state)
+static inline bool isSuspended(struct admin_state *state)
 {
   return (state->state == ADMIN_STATE_SUSPENDED);
 }
 
 /**
- * Check whether an AdminState is saving.
+ * Check whether an admin_state is saving.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is saving
  **/
 __attribute__((warn_unused_result))
-static inline bool isSaving(AdminState *state)
+static inline bool isSaving(struct admin_state *state)
 {
   return (state->state == ADMIN_STATE_SAVING);
 }
 
 /**
- * Check whether an AdminState is saved.
+ * Check whether an admin_state is saved.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is saved
  **/
 __attribute__((warn_unused_result))
-static inline bool isSaved(AdminState *state)
+static inline bool isSaved(struct admin_state *state)
 {
   return (state->state == ADMIN_STATE_SAVED);
 }
@@ -288,14 +288,14 @@ static inline bool isDrainOperation(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is draining.
+ * Check whether an admin_state is draining.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is draining
  **/
 __attribute__((warn_unused_result))
-static inline bool isDraining(AdminState *state)
+static inline bool isDraining(struct admin_state *state)
 {
   return isDrainOperation(state->state);
 }
@@ -314,14 +314,14 @@ static inline bool isLoadOperation(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is loading.
+ * Check whether an admin_state is loading.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is loading
  **/
 __attribute__((warn_unused_result))
-static inline bool isLoading(AdminState *state)
+static inline bool isLoading(struct admin_state *state)
 {
   return isLoadOperation(state->state);
 }
@@ -340,27 +340,27 @@ static inline bool isResumeOperation(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is resumeing.
+ * Check whether an admin_state is resumeing.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is resumeing
  **/
 __attribute__((warn_unused_result))
-static inline bool isResuming(AdminState *state)
+static inline bool isResuming(struct admin_state *state)
 {
   return isResumeOperation(state->state);
 }
 
 /**
- * Check whether an AdminState is doing a clean load.
+ * Check whether an admin_state is doing a clean load.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state is a clean load
  **/
 __attribute__((warn_unused_result))
-static inline bool isCleanLoad(AdminState *state)
+static inline bool isCleanLoad(struct admin_state *state)
 {
   return ((state->state == ADMIN_STATE_FORMATTING)
           || (state->state == ADMIN_STATE_LOADING));
@@ -380,14 +380,14 @@ static inline bool isQuiescingCode(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is quiescing.
+ * Check whether an admin_state is quiescing.
  *
- * @param state  The AdminState to check
+ * @param state  The admin_state to check
  *
  * @return <code>true</code> if the state is quiescing
  **/
 __attribute__((warn_unused_result))
-static inline bool isQuiescing(AdminState *state)
+static inline bool isQuiescing(struct admin_state *state)
 {
   return isQuiescingCode(state->state);
 }
@@ -406,14 +406,14 @@ static inline bool isQuiescentCode(AdminStateCode code)
 }
 
 /**
- * Check whether an AdminState is quiescent.
+ * Check whether an admin_state is quiescent.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> is the state is quiescent
  **/
 __attribute__((warn_unused_result))
-static inline bool isQuiescent(AdminState *state)
+static inline bool isQuiescent(struct admin_state *state)
 {
   return isQuiescentCode(state->state);
 }
@@ -446,7 +446,7 @@ bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
 /**
  * Initiate a drain operation if the current state permits it.
  *
- * @param state      The AdminState
+ * @param state      The admin_state
  * @param operation  The type of drain to initiate
  * @param waiter     The completion to notify when the drain is complete (may be
  *                   NULL)
@@ -454,30 +454,30 @@ bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
  * @return <code>true</code> if the drain was initiated, if not the waiter
  *         will be notified
  **/
-bool startDraining(AdminState     *state,
-                   AdminStateCode  operation,
-                   VDOCompletion  *waiter);
+bool startDraining(struct admin_state     *state,
+                   AdminStateCode          operation,
+                   VDOCompletion          *waiter);
 
 /**
  * Finish a drain operation if one was in progress.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state was draining; will notify the waiter
  *         if so
  **/
-bool finishDraining(AdminState *state);
+bool finishDraining(struct admin_state *state);
 
 /**
  * Finish a drain operation with a status code.
  *
- * @param state   The AdminState to query
+ * @param state   The admin_state to query
  * @param result  The result of the drain operation
  *
  * @return <code>true</code> if the state was draining; will notify the
  *         waiter if so
  **/
-bool finishDrainingWithResult(AdminState *state, int result);
+bool finishDrainingWithResult(struct admin_state *state, int result);
 
 /**
  * Check that an operation is a load.
@@ -494,7 +494,7 @@ bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
 /**
  * Initiate a load operation if the current state permits it.
  *
- * @param state      The AdminState
+ * @param state      The admin_state
  * @param operation  The type of load to initiate
  * @param waiter     The completion to notify when the load is complete (may be
  *                   NULL)
@@ -502,35 +502,35 @@ bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
  * @return <code>true</code> if the load was initiated, if not the waiter
  *         will be notified
  **/
-bool startLoading(AdminState     *state,
-                  AdminStateCode  operation,
-                  VDOCompletion  *waiter);
+bool startLoading(struct admin_state     *state,
+                  AdminStateCode          operation,
+                  VDOCompletion          *waiter);
 
 /**
  * Finish a load operation if one was in progress.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state was loading; will notify the waiter
  *         if so
  **/
-bool finishLoading(AdminState *state);
+bool finishLoading(struct admin_state *state);
 
 /**
  * Finish a load operation with a status code.
  *
- * @param state   The AdminState to query
+ * @param state   The admin_state to query
  * @param result  The result of the load operation
  *
  * @return <code>true</code> if the state was loading; will notify the
  *         waiter if so
  **/
-bool finishLoadingWithResult(AdminState *state, int result);
+bool finishLoadingWithResult(struct admin_state *state, int result);
 
 /**
  * Initiate a resume operation if the current state permits it.
  *
- * @param state      The AdminState
+ * @param state      The admin_state
  * @param operation  The type of resume to start
  * @param waiter     The completion to notify when the resume is complete (may
  *                   be NULL)
@@ -538,64 +538,64 @@ bool finishLoadingWithResult(AdminState *state, int result);
  * @return <code>true</code> if the resume was initiated, if not the waiter
  *         will be notified
  **/
-bool startResuming(AdminState     *state,
-                   AdminStateCode  operation,
-                   VDOCompletion  *waiter);
+bool startResuming(struct admin_state     *state,
+                   AdminStateCode          operation,
+                   VDOCompletion          *waiter);
 
 /**
  * Finish a resume operation if one was in progress.
  *
- * @param state  The AdminState to query
+ * @param state  The admin_state to query
  *
  * @return <code>true</code> if the state was resuming; will notify the waiter
  *         if so
  **/
-bool finishResuming(AdminState *state);
+bool finishResuming(struct admin_state *state);
 
 /**
  * Finish a resume operation with a status code.
  *
- * @param state   The AdminState to query
+ * @param state   The admin_state to query
  * @param result  The result of the resume operation
  *
  * @return <code>true</code> if the state was resuming; will notify the
  *         waiter if so
  **/
-bool finishResumingWithResult(AdminState *state, int result);
+bool finishResumingWithResult(struct admin_state *state, int result);
 
 /**
  * Change the state to normal operation if the current state is quiescent.
  *
- * @param state  The AdminState to resume
+ * @param state  The admin_state to resume
  *
  * @return <code>true</code> if the state was resumed
  **/
-bool resumeIfQuiescent(AdminState *state);
+bool resumeIfQuiescent(struct admin_state *state);
 
 /**
  * Attempt to start an operation.
  *
- * @param state      the AdminState
+ * @param state      the admin_state
  * @param operation  the operation to start
  *
  * @return VDO_SUCCESS             if the operation was started
  *         VDO_INVALID_ADMIN_STATE if not
  **/
-int startOperation(AdminState *state, AdminStateCode operation);
+int startOperation(struct admin_state *state, AdminStateCode operation);
 
 /**
  * Attempt to start an operation.
  *
- * @param state      the AdminState
+ * @param state      the admin_state
  * @param operation  the operation to start
  * @param waiter     the completion to notify when the operation completes or
  *                   fails to start; may be NULL
  *
  * @return <code>true</code> if the operation was started
  **/
-bool startOperationWithWaiter(AdminState     *state,
-                              AdminStateCode  operation,
-                              VDOCompletion  *waiter);
+bool startOperationWithWaiter(struct admin_state     *state,
+                              AdminStateCode          operation,
+                              VDOCompletion          *waiter);
 
 /**
  * Finish the current operation. Will notify the operation waiter if there is
@@ -607,7 +607,7 @@ bool startOperationWithWaiter(AdminState     *state,
  *
  * @return <code>true</code> if there was an operation to finish
  **/
-bool finishOperation(AdminState *state);
+bool finishOperation(struct admin_state *state);
 
 /**
  * Finish the current operation with a status code. Will notify the operation
@@ -616,15 +616,15 @@ bool finishOperation(AdminState *state);
  * @param state   The state whose operation is to be finished
  * @param result  The result of the operation
  **/
-bool finishOperationWithResult(AdminState *state, int result);
+bool finishOperationWithResult(struct admin_state *state, int result);
 
 /**
  * Set a result for the current operation.
  *
- * @param state  the AdminState
+ * @param state  the admin_state
  * @param result the result to set; if there is no waiter, this is a no-op
  **/
-static inline void setOperationResult(AdminState *state, int result)
+static inline void setOperationResult(struct admin_state *state, int result)
 {
   if (state->waiter != NULL) {
     setCompletionResult(state->waiter, result);
