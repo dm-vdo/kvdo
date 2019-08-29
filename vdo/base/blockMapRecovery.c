@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#4 $
  */
 
 #include "blockMapRecovery.h"
@@ -40,7 +40,7 @@
  * freed, so the corresponding pages will be locked down in the page cache
  * until the recovery frees them.
  **/
-typedef struct {
+struct block_map_recovery_completion {
   /** completion header */
   VDOCompletion         completion;
   /** the completion for flushing the block map */
@@ -81,7 +81,7 @@ typedef struct {
   PageCount             pageCount;
   /** array of requested, potentially ready page completions */
   VDOPageCompletion     pageCompletions[];
-} BlockMapRecoveryCompletion;
+};
 
 /**
  * This is a HeapComparator function that orders NumberedBlockMappings using
@@ -130,23 +130,23 @@ static void swapMappings(void *item1, void *item2)
 }
 
 /**
- * Convert a VDOCompletion to a BlockMapRecoveryCompletion.
+ * Convert a VDOCompletion to a block_map_recovery_completion.
  *
  * @param completion  The completion to convert
  *
- * @return The completion as a BlockMapRecoveryCompletion
+ * @return The completion as a block_map_recovery_completion
  **/
 __attribute__((warn_unused_result))
-static inline BlockMapRecoveryCompletion *
+static inline struct block_map_recovery_completion *
 asBlockMapRecoveryCompletion(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(BlockMapRecoveryCompletion, completion) == 0);
+  STATIC_ASSERT(offsetof(struct block_map_recovery_completion, completion) == 0);
   assertCompletionType(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
-  return (BlockMapRecoveryCompletion *) completion;
+  return (struct block_map_recovery_completion *) completion;
 }
 
 /**
- * Free a BlockMapRecoveryCompletion and null out the reference to it.
+ * Free a block_map_recovery_completion and null out the reference to it.
  *
  * @param completionPtr  a pointer to the completion to free
  **/
@@ -157,7 +157,7 @@ static void freeRecoveryCompletion(VDOCompletion **completionPtr)
     return;
   }
 
-  BlockMapRecoveryCompletion *recovery
+  struct block_map_recovery_completion *recovery
     = asBlockMapRecoveryCompletion(*completionPtr);
   destroyEnqueueable(completion);
   destroyEnqueueable(&recovery->subTaskCompletion);
@@ -166,10 +166,11 @@ static void freeRecoveryCompletion(VDOCompletion **completionPtr)
 }
 
 /**
- * Free the BlockMapRecoveryCompletion and notify the parent that the block map
- * recovery is done. This callback is registered in makeRecoveryCompletion().
+ * Free the block_map_recovery_completion and notify the parent that the
+ * block map recovery is done. This callback is registered in
+ * makeRecoveryCompletion().
  *
- * @param completion  The BlockMapRecoveryCompletion
+ * @param completion  The block_map_recovery_completion
  **/
 static void finishBlockMapRecovery(VDOCompletion *completion)
 {
@@ -190,20 +191,22 @@ static void finishBlockMapRecovery(VDOCompletion *completion)
  *
  * @return a success or error code
  **/
-static int makeRecoveryCompletion(VDO                         *vdo,
-                                  BlockCount                   entryCount,
-                                  NumberedBlockMapping        *journalEntries,
-                                  VDOCompletion               *parent,
-                                  BlockMapRecoveryCompletion **recoveryPtr)
+static int
+makeRecoveryCompletion(VDO                                   *vdo,
+                       BlockCount                             entryCount,
+                       NumberedBlockMapping                  *journalEntries,
+                       VDOCompletion                         *parent,
+                       struct block_map_recovery_completion **recoveryPtr)
 {
   BlockMap *blockMap = getBlockMap(vdo);
   PageCount pageCount
     = minPageCount(getConfiguredCacheSize(vdo) >> 1,
                    MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
-  BlockMapRecoveryCompletion *recovery;
-  int result = ALLOCATE_EXTENDED(BlockMapRecoveryCompletion, pageCount,
-                                 VDOPageCompletion, __func__, &recovery);
+  struct block_map_recovery_completion *recovery;
+  int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
+				 pageCount, VDOPageCompletion, __func__,
+				 &recovery);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -258,7 +261,7 @@ static int makeRecoveryCompletion(VDO                         *vdo,
 static void flushBlockMap(VDOCompletion *completion)
 {
   logInfo("Flushing block map changes");
-  BlockMapRecoveryCompletion *recovery
+  struct block_map_recovery_completion *recovery
     = asBlockMapRecoveryCompletion(completion->parent);
   ASSERT_LOG_ONLY((completion->callbackThreadID == recovery->adminThread),
                   "flushBlockMap() called on admin thread");
@@ -276,7 +279,7 @@ static void flushBlockMap(VDOCompletion *completion)
  *
  * @return <code>true</code> if the recovery or recovery is complete
  **/
-static bool finishIfDone(BlockMapRecoveryCompletion *recovery)
+static bool finishIfDone(struct block_map_recovery_completion *recovery)
 {
   // Pages are still being launched or there is still work to do
   if (recovery->launching || (recovery->outstanding > 0)
@@ -309,10 +312,11 @@ static bool finishIfDone(BlockMapRecoveryCompletion *recovery)
  * Note that there has been an error during the recovery and finish it if there
  * is nothing else outstanding.
  *
- * @param recovery  The BlockMapRecoveryCompletion
+ * @param recovery  The block_map_recovery_completion
  * @param result    The error result to use, if one is not already saved
  **/
-static void abortRecovery(BlockMapRecoveryCompletion *recovery, int result)
+static void abortRecovery(struct block_map_recovery_completion *recovery,
+                          int result)
 {
   recovery->aborted = true;
   setCompletionResult(&recovery->completion, result);
@@ -323,7 +327,7 @@ static void abortRecovery(BlockMapRecoveryCompletion *recovery, int result)
  * Find the first journal entry after a given entry which is not on the same
  * block map page.
  *
- * @param recovery      the BlockMapRecoveryCompletion
+ * @param recovery      the block_map_recovery_completion
  * @param currentEntry  the entry to search from
  * @param needsSort     Whether sorting is needed to proceed
  *
@@ -332,9 +336,9 @@ static void abortRecovery(BlockMapRecoveryCompletion *recovery, int result)
  *         subsequent entry is on a different block map page.
  **/
 static NumberedBlockMapping *
-findEntryStartingNextPage(BlockMapRecoveryCompletion *recovery,
-                          NumberedBlockMapping       *currentEntry,
-                          bool                        needsSort)
+findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
+                          NumberedBlockMapping                 *currentEntry,
+                          bool                                  needsSort)
 {
   // If currentEntry is invalid, return immediately.
   if (currentEntry < recovery->journalEntries) {
@@ -376,8 +380,8 @@ static void applyJournalEntriesToPage(BlockMapPage         *page,
 }
 
 /**********************************************************************/
-static void recoverReadyPages(BlockMapRecoveryCompletion *recovery,
-                              VDOCompletion              *completion);
+static void recoverReadyPages(struct block_map_recovery_completion *recovery,
+                              VDOCompletion                        *completion);
 
 /**
  * Note that a page is now ready and attempt to process pages. This callback is
@@ -387,7 +391,7 @@ static void recoverReadyPages(BlockMapRecoveryCompletion *recovery,
  **/
 static void pageLoaded(VDOCompletion *completion)
 {
-  BlockMapRecoveryCompletion *recovery
+  struct block_map_recovery_completion *recovery
     = asBlockMapRecoveryCompletion(completion->parent);
   recovery->outstanding--;
   if (!recovery->launching) {
@@ -402,7 +406,7 @@ static void pageLoaded(VDOCompletion *completion)
  **/
 static void handlePageLoadError(VDOCompletion *completion)
 {
-  BlockMapRecoveryCompletion *recovery
+  struct block_map_recovery_completion *recovery
     = asBlockMapRecoveryCompletion(completion->parent);
   recovery->outstanding--;
   abortRecovery(recovery, completion->result);
@@ -411,11 +415,11 @@ static void handlePageLoadError(VDOCompletion *completion)
 /**
  * Fetch a page from the block map.
  *
- * @param recovery    the BlockMapRecoveryCompletion
+ * @param recovery    the block_map_recovery_completion
  * @param completion  the page completion to use
  **/
-static void fetchPage(BlockMapRecoveryCompletion *recovery,
-                      VDOCompletion              *completion)
+static void fetchPage(struct block_map_recovery_completion *recovery,
+                      VDOCompletion                        *completion)
 {
   if (recovery->currentUnfetchedEntry < recovery->journalEntries) {
     // Nothing left to fetch.
@@ -446,8 +450,8 @@ static void fetchPage(BlockMapRecoveryCompletion *recovery,
  * @return The next page completion to process
  **/
 static VDOPageCompletion *
-getNextPageCompletion(BlockMapRecoveryCompletion *recovery,
-                      VDOPageCompletion          *completion)
+getNextPageCompletion(struct block_map_recovery_completion *recovery,
+                      VDOPageCompletion                    *completion)
 {
   completion++;
   if (completion == (&recovery->pageCompletions[recovery->pageCount])) {
@@ -462,8 +466,8 @@ getNextPageCompletion(BlockMapRecoveryCompletion *recovery,
  * @param recovery    The recovery completion
  * @param completion  The first page completion to process
  **/
-static void recoverReadyPages(BlockMapRecoveryCompletion *recovery,
-                              VDOCompletion              *completion)
+static void recoverReadyPages(struct block_map_recovery_completion *recovery,
+                              VDOCompletion                        *completion)
 {
   if (finishIfDone(recovery)) {
     return;
@@ -506,7 +510,7 @@ void recoverBlockMap(VDO                  *vdo,
                      NumberedBlockMapping *journalEntries,
                      VDOCompletion        *parent)
 {
-  BlockMapRecoveryCompletion *recovery;
+  struct block_map_recovery_completion *recovery;
   int result = makeRecoveryCompletion(vdo, entryCount, journalEntries, parent,
                                       &recovery);
   if (result != VDO_SUCCESS) {

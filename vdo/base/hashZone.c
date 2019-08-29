@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#3 $
  */
 
 #include "hashZone.h"
@@ -45,7 +45,7 @@ enum {
  * These fields are only modified by the locks sharing the hash zone thread,
  * but are queried by other threads.
  **/
-typedef struct atomicHashLockStatistics {
+struct atomic_hash_lock_statistics {
   /** Number of times the UDS advice proved correct */
   Atomic64 dedupeAdviceValid;
 
@@ -57,26 +57,26 @@ typedef struct atomicHashLockStatistics {
 
   /** Number of writes whose hash collided with an in-flight write */
   Atomic64 concurrentHashCollisions;
-} AtomicHashLockStatistics;
+};
 
 struct hashZone {
   /** Which hash zone this is */
-  ZoneCount zoneNumber;
+  ZoneCount	                     zoneNumber;
 
   /** The thread ID for this zone */
-  ThreadID threadID;
+  ThreadID                           threadID;
 
   /** Mapping from chunkName fields to HashLocks */
-  PointerMap *hashLockMap;
+  PointerMap                        *hashLockMap;
 
   /** Ring containing all unused HashLocks */
-  RingNode lockPool;
+  RingNode                           lockPool;
 
   /** Statistics shared by all hash locks in this zone */
-  AtomicHashLockStatistics statistics;
+  struct atomic_hash_lock_statistics statistics;
 
   /** Array of all HashLocks */
-  HashLock *lockArray;
+  HashLock                          *lockArray;
 };
 
 /**
@@ -175,7 +175,7 @@ ThreadID getHashZoneThreadID(const HashZone *zone)
 /**********************************************************************/
 HashLockStatistics getHashZoneStatistics(const HashZone *zone)
 {
-  const AtomicHashLockStatistics *atoms = &zone->statistics;
+  const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
   return (HashLockStatistics) {
     .dedupeAdviceValid     = relaxedLoad64(&atoms->dedupeAdviceValid),
     .dedupeAdviceStale     = relaxedLoad64(&atoms->dedupeAdviceStale),

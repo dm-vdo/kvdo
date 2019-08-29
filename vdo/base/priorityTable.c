@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#2 $
  */
 
 #include "priorityTable.h"
@@ -34,12 +34,12 @@ enum { MAX_PRIORITY = 63 };
  * All the entries with the same priority are queued in a circular list in a
  * bucket for that priority. The table is essentially an array of buckets.
  **/
-typedef struct bucket {
+struct bucket {
   /** The head of a queue of table entries, all having the same priority */
   RingNode     queue;
   /** The priority of all the entries in this bucket */
   unsigned int priority;
-} Bucket;
+};
 
 /**
  * A priority table is an array of buckets, indexed by priority. New entries
@@ -50,11 +50,11 @@ typedef struct bucket {
  **/
 struct priorityTable {
   /** The maximum priority of entries that may be stored in this table */
-  unsigned int maxPriority;
+  unsigned int        maxPriority;
   /** A bit vector flagging all buckets that are currently non-empty */
-  uint64_t     searchVector;
+  uint64_t            searchVector;
   /** The array of all buckets, indexed by priority */
-  Bucket       buckets[];
+  struct bucket       buckets[];
 };
 
 /**
@@ -64,10 +64,10 @@ struct priorityTable {
  *
  * @return the enclosing bucket
  **/
-static inline Bucket *asBucket(RingNode *head)
+static inline struct bucket *asBucket(RingNode *head)
 {
-  STATIC_ASSERT(offsetof(Bucket, queue) == 0);
-  return (Bucket *) head;
+  STATIC_ASSERT(offsetof(struct bucket, queue) == 0);
+  return (struct bucket *) head;
 }
 
 /**********************************************************************/
@@ -78,14 +78,14 @@ int makePriorityTable(unsigned int maxPriority, PriorityTable **tablePtr)
   }
 
   PriorityTable *table;
-  int result = ALLOCATE_EXTENDED(PriorityTable, maxPriority + 1, Bucket,
+  int result = ALLOCATE_EXTENDED(PriorityTable, maxPriority + 1, struct bucket,
                                  __func__, &table);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   for (unsigned int priority = 0; priority <= maxPriority; priority++) {
-    Bucket *bucket   = &table->buckets[priority];
+    struct bucket *bucket   = &table->buckets[priority];
     bucket->priority = priority;
     initializeRing(&bucket->queue);
   }
@@ -138,7 +138,7 @@ void priorityTableEnqueue(PriorityTable *table,
 }
 
 /**********************************************************************/
-static inline void markBucketEmpty(PriorityTable *table, Bucket *bucket)
+static inline void markBucketEmpty(PriorityTable *table, struct bucket *bucket)
 {
   table->searchVector &= ~(1ULL << bucket->priority);
 }
@@ -156,8 +156,8 @@ RingNode *priorityTableDequeue(PriorityTable *table)
   }
 
   // Dequeue the first entry in the bucket.
-  Bucket   *bucket = &table->buckets[topPriority];
-  RingNode *entry  = unspliceRingNode(bucket->queue.next);
+  struct bucket   *bucket = &table->buckets[topPriority];
+  RingNode *entry         = unspliceRingNode(bucket->queue.next);
 
   // Clear the bit in the search vector if the bucket has been emptied.
   if (isRingEmpty(&bucket->queue)) {

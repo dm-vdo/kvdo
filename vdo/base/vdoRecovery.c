@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#11 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -48,7 +48,7 @@ enum {
   MAXIMUM_SYNTHESIZED_DECREFS = MAXIMUM_USER_VIOS,
 };
 
-typedef struct missingDecref {
+struct missing_decref {
   /** A waiter for queueing this object */
   Waiter              waiter;
   /** The parent of this object */
@@ -65,31 +65,31 @@ typedef struct missingDecref {
   JournalPoint        journalPoint;
   /** The slab journal to which this entry will be applied */
   SlabJournal        *slabJournal;
-} MissingDecref;
+};
 
 /**
  * Convert a Waiter to the missing decref of which it is a part.
  *
  * @param waiter  The Waiter to convert
  *
- * @return The MissingDecref wrapping the Waiter
+ * @return The missing_decref wrapping the Waiter
  **/
 __attribute__((warn_unused_result))
-static inline MissingDecref *asMissingDecref(Waiter *waiter)
+static inline struct missing_decref *asMissingDecref(Waiter *waiter)
 {
-  STATIC_ASSERT(offsetof(MissingDecref, waiter) == 0);
-  return (MissingDecref *) waiter;
+  STATIC_ASSERT(offsetof(struct missing_decref, waiter) == 0);
+  return (struct missing_decref *) waiter;
 }
 
 /**
- * Enqueue a MissingDecref. If the enqueue fails, enter read-only mode.
+ * Enqueue a missing_decref. If the enqueue fails, enter read-only mode.
  *
- * @param queue  The queue on which to enqueue the decref
- * @param decref  The MissingDecref to enqueue
+ * @param queue   The queue on which to enqueue the decref
+ * @param decref  The missing_decref to enqueue
  *
  * @return VDO_SUCCESS or an error
  **/
-static int enqueueMissingDecref(WaitQueue *queue, MissingDecref *decref)
+static int enqueueMissingDecref(WaitQueue *queue, struct missing_decref *decref)
 {
   int result = enqueueWaiter(queue, &decref->waiter);
   if (result != VDO_SUCCESS) {
@@ -114,23 +114,23 @@ static uint64_t slotAsNumber(BlockMapSlot slot)
 }
 
 /**
- * Create a MissingDecref and enqueue it to wait for a determination of its
+ * Create a missing_decref and enqueue it to wait for a determination of its
  * penultimate mapping.
  *
  * @param [in]  recovery   The parent recovery completion
  * @param [in]  entry      The recovery journal entry for the increment which is
  *                         missing a decref
- * @param [out] decrefPtr  A pointer to hold the new MissingDecref
+ * @param [out] decrefPtr  A pointer to hold the new missing_decref
  *
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int makeMissingDecref(RecoveryCompletion    *recovery,
-                             RecoveryJournalEntry   entry,
-                             MissingDecref        **decrefPtr)
+static int makeMissingDecref(RecoveryCompletion            *recovery,
+                             RecoveryJournalEntry           entry,
+                             struct missing_decref        **decrefPtr)
 {
-  MissingDecref *decref;
-  int result = ALLOCATE(1, MissingDecref, __func__, &decref);
+  struct missing_decref *decref;
+  int result = ALLOCATE(1, struct missing_decref, __func__, &decref);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -321,7 +321,7 @@ int makeRecoveryCompletion(VDO *vdo, RecoveryCompletion **recoveryPtr)
 }
 
 /**
- * A waiter callback to free MissingDecrefs.
+ * A waiter callback to free missing_decrefs.
  *
  * Implements WaiterCallback.
  **/
@@ -581,7 +581,8 @@ static void addSynthesizedEntries(VDOCompletion *completion)
   WaitQueue *missingDecrefs
     = &recovery->missingDecrefs[recovery->allocator->zoneNumber];
   while (hasWaiters(missingDecrefs)) {
-    MissingDecref *decref = asMissingDecref(getFirstWaiter(missingDecrefs));
+    struct missing_decref *decref
+      = asMissingDecref(getFirstWaiter(missingDecrefs));
     if (!attemptReplayIntoSlabJournal(decref->slabJournal,
                                       decref->penultimateMapping.pbn,
                                       DATA_DECREMENT, &decref->journalPoint,
@@ -754,15 +755,15 @@ void replayIntoSlabJournals(BlockAllocator *allocator,
 }
 
 /**
- * A waiter callback to enqueue a MissingDecref on the queue for the physical
+ * A waiter callback to enqueue a missing_decref on the queue for the physical
  * zone in which it will be applied.
  *
  * Implements WaiterCallback.
  **/
 static void queueOnPhysicalZone(Waiter *waiter, void *context)
 {
-  MissingDecref *decref  = asMissingDecref(waiter);
-  DataLocation   mapping = decref->penultimateMapping;
+  struct missing_decref *decref  = asMissingDecref(waiter);
+  DataLocation           mapping = decref->penultimateMapping;
   if (isMappedLocation(&mapping)) {
     decref->recovery->logicalBlocksUsed--;
   }
@@ -802,7 +803,7 @@ static void applyToDepot(VDOCompletion *completion)
 }
 
 /**
- * Validate the location of the penultimate mapping for a MissingDecref. If it
+ * Validate the location of the penultimate mapping for a missing_decref. If it
  * is valid, enqueue it for the appropriate physical zone or account for it.
  * Otherwise, dispose of it and signal an error.
  *
@@ -810,9 +811,9 @@ static void applyToDepot(VDOCompletion *completion)
  * @param location   The penultimate mapping
  * @param errorCode  The error code to use if the location is invalid
  **/
-static int recordMissingDecref(MissingDecref *decref,
-                               DataLocation   location,
-                               int            errorCode)
+static int recordMissingDecref(struct missing_decref *decref,
+                               DataLocation           location,
+                               int                    errorCode)
 {
   RecoveryCompletion *recovery = decref->recovery;
   recovery->incompleteDecrefCount--;
@@ -855,7 +856,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
   IntMap *slotEntryMap = recovery->slotEntryMap;
   // This placeholder decref is used to mark lbns for which we have observed a
   // decref but not the paired incref (going backwards through the journal).
-  MissingDecref foundDecref;
+  struct missing_decref foundDecref;
 
   // A buffer is allocated based on the number of incRef entries found, so use
   // the earliest head.
@@ -893,7 +894,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
 
     recovery->increfCount++;
 
-    MissingDecref *decref
+    struct missing_decref *decref
       = intMapRemove(slotEntryMap, slotAsNumber(entry.slot));
     if (entry.operation == BLOCK_MAP_INCREMENT) {
       if (decref != NULL) {
@@ -953,8 +954,8 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
  **/
 static void processFetchedPage(VDOCompletion *completion)
 {
-  MissingDecref      *currentDecref = completion->parent;
-  RecoveryCompletion *recovery      = currentDecref->recovery;
+  struct missing_decref *currentDecref = completion->parent;
+  RecoveryCompletion    *recovery      = currentDecref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
   const BlockMapPage *page = dereferenceReadableVDOPage(completion);
@@ -975,8 +976,8 @@ static void processFetchedPage(VDOCompletion *completion)
  **/
 static void handleFetchError(VDOCompletion *completion)
 {
-  MissingDecref      *decref   = completion->parent;
-  RecoveryCompletion *recovery = decref->recovery;
+  struct missing_decref *decref   = completion->parent;
+  RecoveryCompletion    *recovery = decref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
   // If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read from
@@ -997,8 +998,8 @@ static void handleFetchError(VDOCompletion *completion)
  **/
 static void launchFetch(Waiter *waiter, void *context)
 {
-  MissingDecref      *decref   = asMissingDecref(waiter);
-  RecoveryCompletion *recovery = decref->recovery;
+  struct missing_decref *decref   = asMissingDecref(waiter);
+  RecoveryCompletion    *recovery = decref->recovery;
   if (enqueueMissingDecref(&recovery->missingDecrefs[0], decref)
       != VDO_SUCCESS) {
     return;

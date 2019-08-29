@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#14 $
  */
 
 #include "blockMap.h"
@@ -40,12 +40,12 @@
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
 
-typedef struct {
+struct block_map_state_2_0 {
   PhysicalBlockNumber flatPageOrigin;
   BlockCount          flatPageCount;
   PhysicalBlockNumber rootOrigin;
   BlockCount          rootCount;
-} __attribute__((packed)) BlockMapState2_0;
+} __attribute__((packed));
 
 static const Header BLOCK_MAP_HEADER_2_0 = {
   .id             = BLOCK_MAP,
@@ -53,14 +53,14 @@ static const Header BLOCK_MAP_HEADER_2_0 = {
     .majorVersion = 2,
     .minorVersion = 0,
   },
-  .size           = sizeof(BlockMapState2_0),
+  .size           = sizeof(struct block_map_state_2_0),
 };
 
 /**
  * State associated which each block map page while it is in the VDO page
  * cache.
  **/
-typedef struct {
+struct block_map_page_context {
   /**
    * The earliest recovery journal block containing uncommitted updates to the
    * block map page associated with this context. A reference (lock) is held
@@ -69,7 +69,7 @@ typedef struct {
    * new value must be acquired.
    **/
   SequenceNumber recoveryLock;
-} BlockMapPageContext;
+};
 
 /**
  * Implements VDOPageReadFunction.
@@ -79,9 +79,9 @@ static int validatePageOnRead(void                *buffer,
                               BlockMapZone        *zone,
                               void                *pageContext)
 {
-  BlockMapPage        *page    = buffer;
-  BlockMapPageContext *context = pageContext;
-  Nonce                nonce   = zone->blockMap->nonce;
+  BlockMapPage                  *page    = buffer;
+  struct block_map_page_context *context = pageContext;
+  Nonce                          nonce   = zone->blockMap->nonce;
 
   BlockMapPageValidity validity = validateBlockMapPage(page, nonce, pbn);
   if (validity == BLOCK_MAP_PAGE_BAD) {
@@ -108,8 +108,8 @@ static bool handlePageWrite(void         *rawPage,
                             BlockMapZone *zone,
                             void         *pageContext)
 {
-  BlockMapPage        *page    = rawPage;
-  BlockMapPageContext *context = pageContext;
+  BlockMapPage                  *page    = rawPage;
+  struct block_map_page_context *context = pageContext;
 
   if (markBlockMapPageInitialized(page, true)) {
     // Cause the page to be re-written.
@@ -175,7 +175,8 @@ int makeBlockMap(BlockCount            logicalBlocks,
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodeBlockMapState_2_0(Buffer *buffer, BlockMapState2_0 *state)
+static int decodeBlockMapState_2_0(Buffer                     *buffer,
+                                   struct block_map_state_2_0 *state)
 {
   size_t initialLength = contentLength(buffer);
 
@@ -203,7 +204,7 @@ static int decodeBlockMapState_2_0(Buffer *buffer, BlockMapState2_0 *state)
     return result;
   }
 
-  *state = (BlockMapState2_0) {
+  *state = (struct block_map_state_2_0) {
     .flatPageOrigin = flatPageOrigin,
     .flatPageCount  = flatPageCount,
     .rootOrigin     = rootOrigin,
@@ -232,7 +233,7 @@ int decodeBlockMap(Buffer              *buffer,
     return result;
   }
 
-  BlockMapState2_0 state;
+  struct block_map_state_2_0 state;
   result = decodeBlockMapState_2_0(buffer, &state);
   if (result != UDS_SUCCESS) {
     return result;
@@ -293,7 +294,8 @@ static int initializeBlockMapZone(BlockMapZone     *zone,
   }
 
   return makeVDOPageCache(layer, cacheSize, validatePageOnRead,
-                          handlePageWrite, sizeof(BlockMapPageContext),
+                          handlePageWrite,
+                          sizeof(struct block_map_page_context),
                           maximumAge, zone, &zone->pageCache);
 }
 
@@ -427,7 +429,7 @@ void freeBlockMap(BlockMap **mapPtr)
 /**********************************************************************/
 size_t getBlockMapEncodedSize(void)
 {
-  return ENCODED_HEADER_SIZE + sizeof(BlockMapState2_0);
+  return ENCODED_HEADER_SIZE + sizeof(struct block_map_state_2_0);
 }
 
 /**********************************************************************/
@@ -775,7 +777,8 @@ static void putMappingInFetchedPage(VDOCompletion *completion)
   }
 
   DataVIO *dataVIO = asDataVIO(completion->parent);
-  BlockMapPageContext *context = getVDOPageCompletionContext(completion);
+  struct block_map_page_context *context
+    = getVDOPageCompletionContext(completion);
   SequenceNumber oldLock = context->recoveryLock;
   updateBlockMapPage(page, dataVIO, dataVIO->newMapped.pbn,
                      dataVIO->newMapped.state, &context->recoveryLock);

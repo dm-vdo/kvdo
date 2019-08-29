@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#4 $
  */
 
 #include "forest.h"
@@ -45,38 +45,38 @@ enum {
   BLOCK_MAP_VIO_POOL_SIZE = 64,
 };
 
-typedef struct {
+struct block_map_tree_segment {
   TreePage *levels[BLOCK_MAP_TREE_HEIGHT];
-} BlockMapTreeSegment;
-
-typedef struct blockMapTree {
-  BlockMapTreeSegment *segments;
-} BlockMapTree;
-
-struct forest {
-  BlockMap      *map;
-  size_t         segments;
-  Boundary      *boundaries;
-  TreePage     **pages;
-  BlockMapTree   trees[];
 };
 
-typedef struct {
+struct block_map_tree {
+  struct block_map_tree_segment *segments;
+} block_map_tree;
+
+struct forest {
+  BlockMap               *map;
+  size_t                  segments;
+  Boundary               *boundaries;
+  TreePage              **pages;
+  struct block_map_tree   trees[];
+};
+
+struct cursor_level {
   PageNumber pageIndex;
   SlotNumber slot;
-} CursorLevel;
+};
 
-typedef struct cursors Cursors;
+struct cursors;
 
-typedef struct {
-  Waiter        waiter;
-  BlockMapTree *tree;
-  Height        height;
-  Cursors      *parent;
-  Boundary      boundary;
-  CursorLevel   levels[BLOCK_MAP_TREE_HEIGHT];
-  VIOPoolEntry *vioPoolEntry;
-} Cursor;
+struct cursor {
+  Waiter                 waiter;
+  struct block_map_tree *tree;
+  Height                 height;
+  struct cursors        *parent;
+  Boundary               boundary;
+  struct cursor_level    levels[BLOCK_MAP_TREE_HEIGHT];
+  VIOPoolEntry          *vioPoolEntry;
+};
 
 struct cursors {
   BlockMap         *map;
@@ -85,7 +85,7 @@ struct cursors {
   EntryCallback    *entryCallback;
   VDOCompletion    *parent;
   RootCount         activeRoots;
-  Cursor            cursors[];
+  struct cursor     cursors[];
 };
 
 /**********************************************************************/
@@ -98,7 +98,7 @@ TreePage *getTreePageByIndex(Forest       *forest,
   for (size_t segment = 0; segment < forest->segments; segment++) {
     PageNumber border = forest->boundaries[segment].levels[height - 1];
     if (pageIndex < border) {
-      BlockMapTree *tree = &forest->trees[rootIndex];
+      struct block_map_tree *tree = &forest->trees[rootIndex];
       return &(tree->segments[segment].levels[height - 1][pageIndex - offset]);
     }
     offset = border;
@@ -188,8 +188,8 @@ static int makeSegment(Forest      *oldForest,
 
   TreePage *pagePtr = forest->pages[index];
   for (RootCount root = 0; root < forest->map->rootCount; root++) {
-    BlockMapTree *tree = &(forest->trees[root]);
-    int result = ALLOCATE(forest->segments, BlockMapTreeSegment,
+    struct block_map_tree *tree = &(forest->trees[root]);
+    int result = ALLOCATE(forest->segments, struct block_map_tree_segment,
                           "tree root segments", &tree->segments);
     if (result != VDO_SUCCESS) {
       return result;
@@ -197,10 +197,10 @@ static int makeSegment(Forest      *oldForest,
 
     if (index > 0) {
       memcpy(tree->segments, oldForest->trees[root].segments,
-             index * sizeof(BlockMapTreeSegment));
+             index * sizeof(struct block_map_tree_segment));
     }
 
-    BlockMapTreeSegment *segment = &(tree->segments[index]);
+    struct block_map_tree_segment *segment = &(tree->segments[index]);
     for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
       if (segmentSizes[height] == 0) {
         continue;
@@ -234,7 +234,7 @@ static void deforest(Forest *forest, size_t firstPageSegment)
   }
 
   for (RootCount root = 0; root < forest->map->rootCount; root++) {
-    BlockMapTree *tree = &(forest->trees[root]);
+    struct block_map_tree *tree = &(forest->trees[root]);
     FREE(tree->segments);
   }
 
@@ -262,7 +262,7 @@ int makeForest(BlockMap *map, BlockCount entries)
   }
 
   Forest *forest;
-  int result = ALLOCATE_EXTENDED(Forest, map->rootCount, BlockMapTree,
+  int result = ALLOCATE_EXTENDED(Forest, map->rootCount, struct block_map_tree,
                                  __func__, &forest);
   if (result != VDO_SUCCESS) {
     return result;
@@ -325,9 +325,9 @@ void replaceForest(BlockMap *map)
  *
  * @param cursor  The cursor doing the traversal
  **/
-static void finishCursor(Cursor *cursor)
+static void finishCursor(struct cursor *cursor)
 {
-  Cursors *cursors = cursor->parent;
+  struct cursors *cursors = cursor->parent;
   returnVIOToPool(cursors->pool, cursor->vioPoolEntry);
   if (--cursors->activeRoots > 0) {
     return;
@@ -340,7 +340,7 @@ static void finishCursor(Cursor *cursor)
 }
 
 /**********************************************************************/
-static void traverse(Cursor *cursor);
+static void traverse(struct cursor *cursor);
 
 /**
  * Continue traversing a block map tree.
@@ -349,8 +349,8 @@ static void traverse(Cursor *cursor);
  **/
 static void continueTraversal(VDOCompletion *completion)
 {
-  VIOPoolEntry *poolEntry = completion->parent;
-  Cursor       *cursor    = poolEntry->parent;
+  VIOPoolEntry  *poolEntry = completion->parent;
+  struct cursor *cursor    = poolEntry->parent;
   traverse(cursor);
 }
 
@@ -361,10 +361,10 @@ static void continueTraversal(VDOCompletion *completion)
  **/
 static void finishTraversalLoad(VDOCompletion *completion)
 {
-  VIOPoolEntry *entry  = completion->parent;
-  Cursor       *cursor = entry->parent;
-  Height        height = cursor->height;
-  CursorLevel  *level  = &cursor->levels[height];
+  VIOPoolEntry         *entry  = completion->parent;
+  struct cursor        *cursor = entry->parent;
+  Height                height = cursor->height;
+  struct cursor_level  *level  = &cursor->levels[height];
 
   TreePage     *treePage
     = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
@@ -380,11 +380,11 @@ static void finishTraversalLoad(VDOCompletion *completion)
  *
  * @param cursor  The cursor doing the traversal
  **/
-static void traverse(Cursor *cursor)
+static void traverse(struct cursor *cursor)
 {
   for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
-    Height       height = cursor->height;
-    CursorLevel *level  = &cursor->levels[height];
+    Height               height = cursor->height;
+    struct cursor_level *level  = &cursor->levels[height];
     TreePage *treePage
       = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
     BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
@@ -433,9 +433,9 @@ static void traverse(Cursor *cursor)
       }
 
       cursor->height--;
-      CursorLevel *nextLevel = &cursor->levels[cursor->height];
-      nextLevel->pageIndex   = entryIndex;
-      nextLevel->slot        = 0;
+      struct cursor_level *nextLevel = &cursor->levels[cursor->height];
+      nextLevel->pageIndex           = entryIndex;
+      nextLevel->slot                = 0;
       level->slot++;
       launchReadMetadataVIO(cursor->vioPoolEntry->vio, location.pbn,
                             finishTraversalLoad, continueTraversal);
@@ -447,20 +447,20 @@ static void traverse(Cursor *cursor)
 }
 
 /**
- * Start traversing a single block map tree now that the Cursor has a VIO with
+ * Start traversing a single block map tree now that the cursor has a VIO with
  * which to load pages.
  *
  * <p>Implements WaiterCallback.
  *
- * @param waiter   The Cursor
+ * @param waiter   The cursor
  * @param context  The VIOPoolEntry just acquired
  **/
 static void launchCursor(Waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(Cursor, waiter) == 0);
-  Cursor *cursor               = (Cursor *) waiter;
-  cursor->vioPoolEntry         = (VIOPoolEntry *) context;
-  cursor->vioPoolEntry->parent = cursor;
+  STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
+  struct cursor *cursor               = (struct cursor *) waiter;
+  cursor->vioPoolEntry                = (VIOPoolEntry *) context;
+  cursor->vioPoolEntry->parent        = cursor;
   vioAsCompletion(cursor->vioPoolEntry->vio)->callbackThreadID
     = cursor->parent->zone->mapZone->threadID;
   traverse(cursor);
@@ -515,9 +515,9 @@ void traverseForest(BlockMap      *map,
     return;
   }
 
-  Cursors *cursors;
-  int result = ALLOCATE_EXTENDED(Cursors, map->rootCount, Cursor, __func__,
-                                 &cursors);
+  struct cursors *cursors;
+  int result = ALLOCATE_EXTENDED(struct cursors, map->rootCount,
+				 struct cursor, __func__, &cursors);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;
@@ -530,8 +530,8 @@ void traverseForest(BlockMap      *map,
   cursors->parent        = parent;
   cursors->activeRoots   = map->rootCount;
   for (RootCount root = 0; root < map->rootCount; root++) {
-    Cursor *cursor = &cursors->cursors[root];
-    *cursor = (Cursor) {
+    struct cursor *cursor = &cursors->cursors[root];
+    *cursor = (struct cursor) {
       .tree     = &map->forest->trees[root],
       .height   = BLOCK_MAP_TREE_HEIGHT - 1,
       .parent   = cursors,

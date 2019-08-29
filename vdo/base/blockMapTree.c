@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#10 $
  */
 
 #include "blockMapTree.h"
@@ -45,22 +45,22 @@ enum {
   BLOCK_MAP_VIO_POOL_SIZE = 64,
 };
 
-typedef struct __attribute__((packed)) {
+struct page_descriptor {
   RootCount  rootIndex;
   Height     height;
   PageNumber pageIndex;
   SlotNumber slot;
-} PageDescriptor;
+} __attribute__((packed));
 
 typedef union {
-  PageDescriptor descriptor;
-  uint64_t       key;
+  struct page_descriptor descriptor;
+  uint64_t               key;
 } PageKey;
 
-typedef struct {
+struct write_if_not_dirtied_context {
   BlockMapTreeZone *zone;
   uint8_t           generation;
-} WriteIfNotDirtiedContext;
+};
 
 /**
  * An invalid PBN used to indicate that the page holding the location of a
@@ -103,7 +103,7 @@ int initializeTreeZone(BlockMapZone  *zone,
                        PhysicalLayer *layer,
                        BlockCount     eraLength)
 {
-  STATIC_ASSERT_SIZEOF(PageDescriptor, sizeof(uint64_t));
+  STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
   BlockMapTreeZone *treeZone = &zone->treeZone;
   treeZone->mapZone          = zone;
 
@@ -406,7 +406,7 @@ static void writePageIfNotDirtied(Waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
   TreePage *page = (TreePage *) waiter;
-  WriteIfNotDirtiedContext *writeContext = context;
+  struct write_if_not_dirtied_context *writeContext = context;
   if (page->generation == writeContext->generation) {
     acquireVIO(waiter, writeContext->zone);
     return;
@@ -448,7 +448,7 @@ static void finishPageWrite(VDOCompletion *completion)
   page->writing = false;
 
   if (zone->flusher == page) {
-    WriteIfNotDirtiedContext context = {
+    struct write_if_not_dirtied_context context = {
       .zone       = zone,
       .generation = page->writingGeneration,
     };
@@ -864,7 +864,7 @@ static int attemptPageLock(BlockMapTreeZone *zone, DataVIO *dataVIO)
   Height            height   = lock->height;
   BlockMapTreeSlot  treeSlot = lock->treeSlots[height];
   PageKey           key;
-  key.descriptor = (PageDescriptor) {
+  key.descriptor = (struct page_descriptor) {
     .rootIndex = lock->rootIndex,
     .height    = height,
     .pageIndex = treeSlot.pageIndex,

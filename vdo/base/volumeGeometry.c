@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#5 $
  */
 
 #include "volumeGeometry.h"
@@ -39,12 +39,12 @@ enum {
   MAGIC_NUMBER_SIZE       = 8,
 };
 
-typedef struct {
+struct geometry_block {
   char            magicNumber[MAGIC_NUMBER_SIZE];
   Header          header;
   VolumeGeometry  geometry;
   CRC32Checksum   checksum;
-} __attribute__((packed)) GeometryBlock;
+} __attribute__((packed));
 
 static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
   .id = GEOMETRY_BLOCK,
@@ -54,7 +54,7 @@ static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
   },
   // Note: this size isn't just the payload size following the header, like it
   // is everywhere else in VDO.
-  .size = sizeof(GeometryBlock),
+  .size = sizeof(struct geometry_block),
 };
 
 static const byte MAGIC_NUMBER[MAGIC_NUMBER_SIZE + 1] = "dmvdo001";
