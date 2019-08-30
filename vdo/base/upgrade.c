@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#4 $
  */
 
 #include "upgrade.h"
@@ -52,13 +52,13 @@ static const VersionNumber SODIUM_COMPONENT_DATA_41_0 = {
 /**
  * Current Sodium's configuration of the VDO component.
  **/
-typedef struct {
+struct sodium_component_41_0 {
   VDOState  state;
   uint64_t  completeRecoveries;
   uint64_t  readOnlyRecoveries;
   VDOConfig config;
   Nonce     nonce;
-} __attribute__((packed)) SodiumComponent41_0;
+} __attribute__((packed));
 
 /**
  * Checks whether the release version loaded in the superblock is the
@@ -105,15 +105,15 @@ static int validateSodiumVersion(VDO *vdo)
 }
 
 /**
- * Decode a SodiumComponent41_0.
+ * Decode a sodium_component_41_0 structure.
  *
  * @param buffer        The component data buffer
  * @param component     The component structure to decode into
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int decodeSodium41_0Component(Buffer              *buffer,
-                                     SodiumComponent41_0 *component)
+static int decodeSodium41_0Component(Buffer                       *buffer,
+                                     struct sodium_component_41_0 *component)
 {
   return getBytesFromBuffer(buffer, sizeof(*component), component);
 }
@@ -136,7 +136,7 @@ static int decodeSodiumComponent(VDO *vdo)
     return result;
   }
 
-  SodiumComponent41_0 component;
+  struct sodium_component_41_0 component;
   if (areSameVersion(SODIUM_COMPONENT_DATA_41_0, version)) {
     result = decodeSodium41_0Component(buffer, &component);
   } else {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#2 $
  */
 
 #include "partitionCopy.h"
@@ -35,7 +35,7 @@ enum {
 /**
  * A partition copy completion.
  **/
-typedef struct {
+struct copy_completion {
   /** completion header */
   VDOCompletion        completion;
   /** the source partition to copy from */
@@ -50,29 +50,29 @@ typedef struct {
   char                *data;
   /** the extent being used to copy */
   VDOExtent           *extent;
-} CopyCompletion;
+};
 
 /**
- * Convert a VDOCompletion to a CopyCompletion.
+ * Convert a VDOCompletion to a copy_completion.
  *
  * @param completion The completion to convert
  *
- * @return the completion as a CopyCompletion
+ * @return the completion as a copy_completion
  **/
 __attribute__((warn_unused_result))
 static inline
-CopyCompletion *asCopyCompletion(VDOCompletion *completion)
+struct copy_completion *asCopyCompletion(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(CopyCompletion, completion) == 0);
+  STATIC_ASSERT(offsetof(struct copy_completion, completion) == 0);
   assertCompletionType(completion->type, PARTITION_COPY_COMPLETION);
-  return (CopyCompletion *) completion;
+  return (struct copy_completion *) completion;
 }
 
 /**********************************************************************/
 int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
 {
-  CopyCompletion *copy;
-  int result = ALLOCATE(1, CopyCompletion, __func__, &copy);
+  struct copy_completion *copy;
+  int result = ALLOCATE(1, struct copy_completion, __func__, &copy);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -105,7 +105,7 @@ void freeCopyCompletion(VDOCompletion **completionPtr)
     return;
   }
 
-  CopyCompletion *copy = asCopyCompletion(*completionPtr);
+  struct copy_completion *copy = asCopyCompletion(*completionPtr);
   freeExtent(&copy->extent);
   FREE(copy->data);
   FREE(copy);
@@ -113,7 +113,7 @@ void freeCopyCompletion(VDOCompletion **completionPtr)
 }
 
 /**********************************************************************/
-static void copyPartitionStride(CopyCompletion *copy);
+static void copyPartitionStride(struct copy_completion *copy);
 
 /**
  * Determine the number of blocks to copy in the current stride.
@@ -122,7 +122,7 @@ static void copyPartitionStride(CopyCompletion *copy);
  *
  * @return The number of blocks to copy in the current stride
  **/
-static inline BlockCount getStrideSize(CopyCompletion *copy)
+static inline BlockCount getStrideSize(struct copy_completion *copy)
 {
   return minBlockCount(STRIDE_LENGTH, copy->endingIndex - copy->currentIndex);
 }
@@ -134,7 +134,7 @@ static inline BlockCount getStrideSize(CopyCompletion *copy)
  **/
 static void completeWriteForCopy(VDOCompletion *completion)
 {
-  CopyCompletion *copy = asCopyCompletion(completion->parent);
+  struct copy_completion *copy = asCopyCompletion(completion->parent);
   copy->currentIndex += getStrideSize(copy);
   if (copy->currentIndex >= copy->endingIndex) {
     // We're done.
@@ -152,7 +152,7 @@ static void completeWriteForCopy(VDOCompletion *completion)
  **/
 static void completeReadForCopy(VDOCompletion *completion)
 {
-  CopyCompletion *copy = asCopyCompletion(completion->parent);
+  struct copy_completion *copy = asCopyCompletion(completion->parent);
   PhysicalBlockNumber layerStartBlock;
   int result = translateToPBN(copy->target, copy->currentIndex,
                               &layerStartBlock);
@@ -169,9 +169,9 @@ static void completeReadForCopy(VDOCompletion *completion)
 /**
  * Copy a stride from one partition to the new partition.
  *
- * @param copy  The CopyCompletion
+ * @param copy  The copy_completion
  **/
-static void copyPartitionStride(CopyCompletion *copy)
+static void copyPartitionStride(struct copy_completion *copy)
 {
   PhysicalBlockNumber layerStartBlock;
   int result = translateToPBN(copy->source, copy->currentIndex,
@@ -229,7 +229,7 @@ void copyPartitionAsync(VDOCompletion *completion,
     return;
   }
 
-  CopyCompletion *copy = asCopyCompletion(completion);
+  struct copy_completion *copy = asCopyCompletion(completion);
   prepareToFinishParent(&copy->completion, parent);
   copy->source       = source;
   copy->target       = target;

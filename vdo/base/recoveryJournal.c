@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#9 $
  */
 
 #include "recoveryJournal.h"
@@ -38,11 +38,11 @@
 #include "slabJournal.h"
 #include "waitQueue.h"
 
-typedef struct {
+struct recovery_journal_state_7_0 {
   SequenceNumber journalStart;       // Sequence number to start the journal
   BlockCount     logicalBlocksUsed;  // Number of logical blocks used by VDO
   BlockCount     blockMapDataBlocks; // Number of block map pages allocated
-} __attribute__((packed)) RecoveryJournalState7_0;
+} __attribute__((packed));
 
 static const Header RECOVERY_JOURNAL_HEADER_7_0 = {
   .id = RECOVERY_JOURNAL,
@@ -50,7 +50,7 @@ static const Header RECOVERY_JOURNAL_HEADER_7_0 = {
     .majorVersion = 7,
     .minorVersion = 0,
   },
-  .size = sizeof(RecoveryJournalState7_0),
+  .size = sizeof(struct recovery_journal_state_7_0),
 };
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
@@ -566,7 +566,7 @@ void openRecoveryJournal(RecoveryJournal *journal,
 /**********************************************************************/
 size_t getRecoveryJournalEncodedSize(void)
 {
-  return ENCODED_HEADER_SIZE + sizeof(RecoveryJournalState7_0);
+  return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
 
 /**********************************************************************/
@@ -619,8 +619,9 @@ int encodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodeRecoveryJournalState_7_0(Buffer                  *buffer,
-                                          RecoveryJournalState7_0 *state)
+static int
+decodeRecoveryJournalState_7_0(Buffer                            *buffer,
+                               struct recovery_journal_state_7_0 *state)
 {
   size_t initialLength = contentLength(buffer);
 
@@ -642,7 +643,7 @@ static int decodeRecoveryJournalState_7_0(Buffer                  *buffer,
     return result;
   }
 
-  *state = (RecoveryJournalState7_0) {
+  *state = (struct recovery_journal_state_7_0) {
     .journalStart       = journalStart,
     .logicalBlocksUsed  = logicalBlocksUsed,
     .blockMapDataBlocks = blockMapDataBlocks,
@@ -668,7 +669,7 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
     return result;
   }
 
-  RecoveryJournalState7_0 state;
+  struct recovery_journal_state_7_0 state;
   result = decodeRecoveryJournalState_7_0(buffer, &state);
   if (result != VDO_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#20 $
  */
 
 #include "slabDepot.h"
@@ -41,12 +41,12 @@
 #include "types.h"
 #include "vdoState.h"
 
-typedef struct {
+struct slab_depot_state_2_0 {
   SlabConfig           slabConfig;
   PhysicalBlockNumber  firstBlock;
   PhysicalBlockNumber  lastBlock;
   ZoneCount            zoneCount;
-} __attribute__((packed)) SlabDepotState2_0;
+} __attribute__((packed));
 
 static const Header SLAB_DEPOT_HEADER_2_0 = {
   .id = SLAB_DEPOT,
@@ -54,7 +54,7 @@ static const Header SLAB_DEPOT_HEADER_2_0 = {
     .majorVersion = 2,
     .minorVersion = 0,
   },
-  .size = sizeof(SlabDepotState2_0),
+  .size = sizeof(struct slab_depot_state_2_0),
 };
 
 /**
@@ -300,16 +300,16 @@ static int allocateComponents(SlabDepot          *depot,
  * @return A success or error code
  **/
 __attribute__((warn_unused_result))
-static int allocateDepot(const SlabDepotState2_0  *state,
-                         const ThreadConfig       *threadConfig,
-                         Nonce                     nonce,
-                         BlockCount                vioPoolSize,
-                         PhysicalLayer            *layer,
-                         Partition                *summaryPartition,
-                         ReadOnlyNotifier         *readOnlyNotifier,
-                         RecoveryJournal          *recoveryJournal,
-                         Atomic32                 *vdoState,
-                         SlabDepot               **depotPtr)
+static int allocateDepot(const struct slab_depot_state_2_0  *state,
+                         const ThreadConfig                 *threadConfig,
+                         Nonce                               nonce,
+                         BlockCount                          vioPoolSize,
+                         PhysicalLayer                      *layer,
+                         Partition                          *summaryPartition,
+                         ReadOnlyNotifier                   *readOnlyNotifier,
+                         RecoveryJournal                    *recoveryJournal,
+                         Atomic32                           *vdoState,
+                         SlabDepot                         **depotPtr)
 {
   // Calculate the bit shift for efficiently mapping block numbers to slabs.
   // Using a shift requires that the slab size be a power of two.
@@ -361,11 +361,11 @@ static int allocateDepot(const SlabDepotState2_0  *state,
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int configureState(BlockCount           blockCount,
-                          PhysicalBlockNumber  firstBlock,
-                          SlabConfig           slabConfig,
-                          ZoneCount            zoneCount,
-                          SlabDepotState2_0   *state)
+static int configureState(BlockCount                     blockCount,
+                          PhysicalBlockNumber            firstBlock,
+                          SlabConfig                     slabConfig,
+                          ZoneCount                      zoneCount,
+                          struct slab_depot_state_2_0   *state)
 {
   BlockCount slabSize = slabConfig.slabBlocks;
   logDebug("slabDepot configureState(blockCount=%" PRIu64
@@ -386,7 +386,7 @@ static int configureState(BlockCount           blockCount,
   BlockCount          totalDataBlocks = slabCount * slabConfig.dataBlocks;
   PhysicalBlockNumber lastBlock       = firstBlock + totalSlabBlocks;
 
-  *state = (SlabDepotState2_0) {
+  *state = (struct slab_depot_state_2_0) {
     .slabConfig = slabConfig,
     .firstBlock = firstBlock,
     .lastBlock  = lastBlock,
@@ -415,7 +415,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   Atomic32             *vdoState,
                   SlabDepot           **depotPtr)
 {
-  SlabDepotState2_0 state;
+  struct slab_depot_state_2_0 state;
   int result = configureState(blockCount, firstBlock, slabConfig, 0, &state);
   if (result != VDO_SUCCESS) {
     return result;
@@ -463,7 +463,7 @@ void freeSlabDepot(SlabDepot **depotPtr)
 /**********************************************************************/
 size_t getSlabDepotEncodedSize(void)
 {
-  return ENCODED_HEADER_SIZE + sizeof(SlabDepotState2_0);
+  return ENCODED_HEADER_SIZE + sizeof(struct slab_depot_state_2_0);
 }
 
 /**
@@ -619,7 +619,8 @@ int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodeSlabDepotState_2_0(Buffer *buffer, SlabDepotState2_0 *state)
+static int decodeSlabDepotState_2_0(Buffer                      *buffer,
+                                    struct slab_depot_state_2_0 *state)
 {
   size_t initialLength = contentLength(buffer);
 
@@ -674,7 +675,7 @@ int decodeSlabDepot(Buffer              *buffer,
     return result;
   }
 
-  SlabDepotState2_0 state;
+  struct slab_depot_state_2_0 state;
   result = decodeSlabDepotState_2_0(buffer, &state);
   if (result != UDS_SUCCESS) {
     return result;
@@ -895,7 +896,7 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
   }
 
   // Generate the depot configuration for the new block count.
-  SlabDepotState2_0 newState;
+  struct slab_depot_state_2_0 newState;
   int result = configureState(newSize, depot->firstBlock, depot->slabConfig,
                               depot->zoneCount, &newState);
   if (result != VDO_SUCCESS) {

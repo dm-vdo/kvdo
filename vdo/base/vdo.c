@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#13 $
  */
 
 /*
@@ -78,13 +78,13 @@ static const VersionNumber VDO_COMPONENT_DATA_41_0 = {
  * This is the structure that captures the VDO fields saved as a SuperBlock
  * component.
  **/
-typedef struct {
+struct vdo_component_41_0 {
   VDOState  state;
   uint64_t  completeRecoveries;
   uint64_t  readOnlyRecoveries;
   VDOConfig config;
   Nonce     nonce;
-} __attribute__((packed)) VDOComponent41_0;
+} __attribute__((packed));
 
 /**********************************************************************/
 int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
@@ -196,7 +196,7 @@ size_t getComponentDataSize(VDO *vdo)
 {
   return (sizeof(VersionNumber)
           + sizeof(VersionNumber)
-          + sizeof(VDOComponent41_0)
+          + sizeof(struct vdo_component_41_0)
           + getVDOLayoutEncodedSize(vdo->layout)
           + getRecoveryJournalEncodedSize()
           + getSlabDepotEncodedSize()
@@ -294,7 +294,7 @@ static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
   }
 
   size_t encodedSize = contentLength(buffer) - initialLength;
-  return ASSERT(encodedSize == sizeof(VDOComponent41_0),
+  return ASSERT(encodedSize == sizeof(struct vdo_component_41_0),
                 "encoded VDO component size must match structure size");
 }
 
@@ -493,7 +493,8 @@ static int decodeVDOConfig(Buffer *buffer, VDOConfig *config)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-  static int decodeVDOComponent_41_0(Buffer *buffer, VDOComponent41_0 *state)
+static int decodeVDOComponent_41_0(Buffer                    *buffer,
+                                   struct vdo_component_41_0 *state)
 {
   size_t initialLength = contentLength(buffer);
 
@@ -527,7 +528,7 @@ __attribute__((warn_unused_result))
     return result;
   }
 
-  *state = (VDOComponent41_0) {
+  *state = (struct vdo_component_41_0) {
     .state              = vdoState,
     .completeRecoveries = completeRecoveries,
     .readOnlyRecoveries = readOnlyRecoveries,
@@ -536,7 +537,7 @@ __attribute__((warn_unused_result))
   };
 
   size_t decodedSize = initialLength - contentLength(buffer);
-  return ASSERT(decodedSize == sizeof(VDOComponent41_0),
+  return ASSERT(decodedSize == sizeof(struct vdo_component_41_0),
                 "decoded VDO component size must match structure size");
 }
 
@@ -557,7 +558,7 @@ int decodeVDOComponent(VDO *vdo)
     return result;
   }
 
-  VDOComponent41_0 component;
+  struct vdo_component_41_0 component;
   result = decodeVDOComponent_41_0(buffer, &component);
   if (result != VDO_SUCCESS) {
     return result;

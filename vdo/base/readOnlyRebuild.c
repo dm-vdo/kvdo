@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#7 $
  */
 
 #include "readOnlyRebuild.h"
@@ -36,7 +36,7 @@
 #include "vdoInternal.h"
 #include "vdoPageCache.h"
 
-typedef struct {
+struct read_only_rebuild_completion {
   /** The completion header */
   VDOCompletion         completion;
   /** A sub task completion */
@@ -57,22 +57,22 @@ typedef struct {
   BlockCount            logicalBlocksUsed;
   /** The number of allocated block map pages */
   BlockCount            blockMapDataBlocks;
-} ReadOnlyRebuildCompletion;
+};
 
 /**
- * Convert a generic completion to a ReadOnlyRebuildCompletion.
+ * Convert a generic completion to a read_only_rebuild_completion.
  *
  * @param completion    The completion to convert
  *
  * @return the journal rebuild completion
  **/
 __attribute__((warn_unused_result))
-static inline ReadOnlyRebuildCompletion *
+static inline struct read_only_rebuild_completion *
 asReadOnlyRebuildCompletion(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(ReadOnlyRebuildCompletion, completion) == 0);
+  STATIC_ASSERT(offsetof(struct read_only_rebuild_completion, completion) == 0);
   assertCompletionType(completion->type, READ_ONLY_REBUILD_COMPLETION);
-  return (ReadOnlyRebuildCompletion *) completion;
+  return (struct read_only_rebuild_completion *) completion;
 }
 
 /**
@@ -80,9 +80,10 @@ asReadOnlyRebuildCompletion(VDOCompletion *completion)
  *
  * @param rebuildPtr  A pointer to the rebuild completion to free
  */
-static void freeRebuildCompletion(ReadOnlyRebuildCompletion **rebuildPtr)
+static void
+freeRebuildCompletion(struct read_only_rebuild_completion **rebuildPtr)
 {
-  ReadOnlyRebuildCompletion *rebuild = *rebuildPtr;
+  struct read_only_rebuild_completion *rebuild = *rebuildPtr;
   if (rebuild == NULL) {
     return;
   }
@@ -102,11 +103,13 @@ static void freeRebuildCompletion(ReadOnlyRebuildCompletion **rebuildPtr)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int makeRebuildCompletion(VDO                        *vdo,
-                                 ReadOnlyRebuildCompletion **rebuildPtr)
+static int
+makeRebuildCompletion(VDO                                  *vdo,
+		      struct read_only_rebuild_completion **rebuildPtr)
 {
-  ReadOnlyRebuildCompletion *rebuild;
-  int result = ALLOCATE(1, ReadOnlyRebuildCompletion, __func__, &rebuild);
+  struct read_only_rebuild_completion *rebuild;
+  int result = ALLOCATE(1, struct read_only_rebuild_completion,
+                        __func__, &rebuild);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -136,7 +139,8 @@ static void completeRebuild(VDOCompletion *completion)
 {
   VDOCompletion             *parent  = completion->parent;
   int                        result  = completion->result;
-  ReadOnlyRebuildCompletion *rebuild = asReadOnlyRebuildCompletion(completion);
+  struct read_only_rebuild_completion *rebuild
+                                     = asReadOnlyRebuildCompletion(completion);
   VDO                       *vdo     = rebuild->vdo;
   setVDOPageCacheRebuildMode(getBlockMap(vdo)->zones[0].pageCache, false);
   freeRebuildCompletion(&rebuild);
@@ -150,7 +154,8 @@ static void completeRebuild(VDOCompletion *completion)
  **/
 static void finishRebuild(VDOCompletion *completion)
 {
-  ReadOnlyRebuildCompletion *rebuild = asReadOnlyRebuildCompletion(completion);
+  struct read_only_rebuild_completion *rebuild
+    = asReadOnlyRebuildCompletion(completion);
   initializeRecoveryJournalPostRebuild(rebuild->vdo->recoveryJournal,
                                        rebuild->vdo->completeRecoveries,
                                        rebuild->tail,
@@ -180,8 +185,8 @@ static void abortRebuild(VDOCompletion *completion)
  * @return <code>true</code> if the result was an error
  **/
 __attribute__((warn_unused_result))
-static bool abortRebuildOnError(int                        result,
-                                ReadOnlyRebuildCompletion *rebuild)
+static bool abortRebuildOnError(int                                  result,
+                                struct read_only_rebuild_completion *rebuild)
 {
   if (result == VDO_SUCCESS) {
     return false;
@@ -199,8 +204,8 @@ static bool abortRebuildOnError(int                        result,
  **/
 static void finishReferenceCountRebuild(VDOCompletion *completion)
 {
-  ReadOnlyRebuildCompletion *rebuild = completion->parent;
-  VDO                       *vdo     = rebuild->vdo;
+  struct read_only_rebuild_completion *rebuild = completion->parent;
+  VDO                                 *vdo     = rebuild->vdo;
   assertOnAdminThread(vdo, __func__);
   if (vdo->loadState != VDO_REBUILD_FOR_UPGRADE) {
     // A "rebuild" for upgrade should not increment this count.
@@ -221,8 +226,8 @@ static void finishReferenceCountRebuild(VDOCompletion *completion)
  **/
 static void launchReferenceCountRebuild(VDOCompletion *completion)
 {
-  ReadOnlyRebuildCompletion *rebuild = completion->parent;
-  VDO                       *vdo     = rebuild->vdo;
+  struct read_only_rebuild_completion *rebuild = completion->parent;
+  VDO                                 *vdo     = rebuild->vdo;
 
   // We must allocate RefCounts before we can rebuild them.
   int result = allocateSlabRefCounts(vdo->depot);
@@ -246,9 +251,10 @@ static void launchReferenceCountRebuild(VDOCompletion *completion)
  * @param sector      The recovery journal sector with entries
  * @param entryCount  The number of entries to append
  **/
-static void appendSectorEntries(ReadOnlyRebuildCompletion *rebuild,
-                                PackedJournalSector       *sector,
-                                JournalEntryCount          entryCount)
+static void
+appendSectorEntries(struct read_only_rebuild_completion *rebuild,
+                    PackedJournalSector                 *sector,
+                    JournalEntryCount                    entryCount)
 {
   for (JournalEntryCount i = 0; i < entryCount; i++) {
     RecoveryJournalEntry entry
@@ -278,7 +284,7 @@ static void appendSectorEntries(ReadOnlyRebuildCompletion *rebuild,
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int extractJournalEntries(ReadOnlyRebuildCompletion *rebuild)
+static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
 {
   VDO             *vdo      = rebuild->vdo;
   RecoveryJournal *journal  = vdo->recoveryJournal;
@@ -346,7 +352,7 @@ static int extractJournalEntries(ReadOnlyRebuildCompletion *rebuild)
  **/
 static void applyJournalEntries(VDOCompletion *completion)
 {
-  ReadOnlyRebuildCompletion *rebuild
+  struct read_only_rebuild_completion *rebuild
     = asReadOnlyRebuildCompletion(completion->parent);
   VDO *vdo = rebuild->vdo;
 
@@ -380,7 +386,7 @@ static void applyJournalEntries(VDOCompletion *completion)
  **/
 static void loadJournal(VDOCompletion *completion)
 {
-  ReadOnlyRebuildCompletion *rebuild
+  struct read_only_rebuild_completion *rebuild
     = asReadOnlyRebuildCompletion(completion->parent);
   VDO *vdo = rebuild->vdo;
   assertOnLogicalZoneThread(vdo, 0, __func__);
@@ -401,7 +407,7 @@ void launchRebuild(VDO *vdo, VDOCompletion *parent)
     vdo->readOnlyRecoveries++;
   }
 
-  ReadOnlyRebuildCompletion *rebuild;
+  struct read_only_rebuild_completion *rebuild;
   int result = makeRebuildCompletion(vdo, &rebuild);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);

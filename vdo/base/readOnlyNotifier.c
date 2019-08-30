@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#5 $
  */
 
 #include "readOnlyNotifier.h"
@@ -62,21 +62,19 @@ enum {
 /**
  * An object to be notified when the VDO enters read-only mode
  **/
-typedef struct readOnlyListener ReadOnlyListener;
-
-struct readOnlyListener {
+struct read_only_listener {
   /** The listener */
-  void                 *listener;
-  /** The method to call to notifiy the listener */
-  ReadOnlyNotification *notify;
+  void                          *listener;
+  /** The method to call to notify the listener */
+  ReadOnlyNotification          *notify;
   /** A pointer to the next listener */
-  ReadOnlyListener     *next;
+  struct read_only_listener     *next;
 };
 
 /**
  * Data associated with each base code thread.
  **/
-typedef struct threadData {
+struct thread_data {
   /**
    * Each thread maintains its own notion of whether the VDO is read-only so
    * that the read-only state can be checked from any base thread without
@@ -89,8 +87,8 @@ typedef struct threadData {
    * A list of objects waiting to be notified on this thread that the VDO has
    * entered read-only mode.
    **/
-  ReadOnlyListener *listeners;
-} ThreadData;
+  struct read_only_listener *listeners;
+};
 
 struct readOnlyNotifier {
   /** The completion for entering read-only mode */
@@ -104,7 +102,7 @@ struct readOnlyNotifier {
   /** The thread config of the VDO */
   const ThreadConfig *threadConfig;
   /** The array of per-thread data */
-  ThreadData          threadData[];
+  struct thread_data  threadData[];
 };
 
 /**
@@ -129,7 +127,8 @@ int makeReadOnlyNotifier(bool                 isReadOnly,
 {
   ReadOnlyNotifier *notifier;
   int result = ALLOCATE_EXTENDED(ReadOnlyNotifier,
-                                 threadConfig->baseThreadCount, ThreadData,
+                                 threadConfig->baseThreadCount,
+                                 struct thread_data,
                                  __func__, &notifier);
   if (result != VDO_SUCCESS) {
     return result;
@@ -167,10 +166,10 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr)
 
   for (ThreadCount id = 0; id < notifier->threadConfig->baseThreadCount;
        id++) {
-    ThreadData       *threadData = &notifier->threadData[id];
-    ReadOnlyListener *listener   = threadData->listeners;
+    struct thread_data        *threadData = &notifier->threadData[id];
+    struct read_only_listener *listener   = threadData->listeners;
     while (listener != NULL) {
-      ReadOnlyListener *toFree = listener;
+      struct read_only_listener *toFree = listener;
       listener = listener->next;
       FREE(toFree);
     }
@@ -256,14 +255,14 @@ static void finishEnteringReadOnlyMode(VDOCompletion *completion)
  **/
 static void makeThreadReadOnly(VDOCompletion *completion)
 {
-  ThreadID          threadID   = completion->callbackThreadID;
-  ReadOnlyNotifier *notifier   = asNotifier(completion);
-  ReadOnlyListener *listener   = completion->parent;
+  ThreadID                   threadID   = completion->callbackThreadID;
+  ReadOnlyNotifier          *notifier   = asNotifier(completion);
+  struct read_only_listener *listener   = completion->parent;
   if (listener == NULL) {
     // This is the first call on this thread
-    ThreadData *threadData = &notifier->threadData[threadID];
-    threadData->isReadOnly = true;
-    listener               = threadData->listeners;
+    struct thread_data *threadData = &notifier->threadData[threadID];
+    threadData->isReadOnly         = true;
+    listener                       = threadData->listeners;
     if (threadID == 0) {
       // Note: This message must be recognizable by Permabit::UserMachine.
       logErrorWithStringError((int) atomicLoad32(&notifier->readOnlyError),
@@ -336,7 +335,7 @@ void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier, VDOCompletion *parent)
 /**********************************************************************/
 void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode)
 {
-  ThreadData *threadData = &notifier->threadData[getCallbackThreadID()];
+  struct thread_data *threadData = &notifier->threadData[getCallbackThreadID()];
   if (threadData->isReadOnly) {
     // This thread has already gone read-only.
     return;
@@ -369,14 +368,15 @@ int registerReadOnlyListener(ReadOnlyNotifier     *notifier,
                              ReadOnlyNotification *notification,
                              ThreadID              threadID)
 {
-  ReadOnlyListener *readOnlyListener;
-  int result = ALLOCATE(1, ReadOnlyListener, __func__, &readOnlyListener);
+  struct read_only_listener *readOnlyListener;
+  int result = ALLOCATE(1, struct read_only_listener,
+                        __func__, &readOnlyListener);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  ThreadData *threadData = &notifier->threadData[threadID];
-  *readOnlyListener = (ReadOnlyListener) {
+  struct thread_data *threadData = &notifier->threadData[threadID];
+  *readOnlyListener = (struct read_only_listener) {
     .listener = listener,
     .notify   = notification,
     .next     = threadData->listeners,

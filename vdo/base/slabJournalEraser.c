@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#2 $
  */
 
 #include "slabJournalEraser.h"
@@ -29,12 +29,12 @@
 #include "slab.h"
 #include "slabDepot.h"
 
-typedef struct {
+struct slab_journal_eraser {
   VDOCompletion *parent;
   VDOExtent     *extent;
   char          *zeroBuffer;
   SlabIterator   slabs;
-} SlabJournalEraser;
+};
 
 /**
  * Free the eraser and finish the parent.
@@ -42,7 +42,7 @@ typedef struct {
  * @param eraser    The eraser that is done
  * @param result    The result to return to the parent
  **/
-static void finishErasing(SlabJournalEraser *eraser, int result)
+static void finishErasing(struct slab_journal_eraser *eraser, int result)
 {
   VDOCompletion *parent = eraser->parent;
   freeExtent(&eraser->extent);
@@ -58,7 +58,7 @@ static void finishErasing(SlabJournalEraser *eraser, int result)
  **/
 static void handleErasingError(VDOCompletion *completion)
 {
-  SlabJournalEraser *eraser = completion->parent;
+  struct slab_journal_eraser *eraser = completion->parent;
   finishErasing(eraser, eraser->extent->completion.result);
 }
 
@@ -69,7 +69,7 @@ static void handleErasingError(VDOCompletion *completion)
  **/
 static void eraseNextSlabJournal(VDOCompletion *extentCompletion)
 {
-  SlabJournalEraser *eraser = extentCompletion->parent;
+  struct slab_journal_eraser *eraser = extentCompletion->parent;
 
   if (!hasNextSlab(&eraser->slabs)) {
     finishErasing(eraser, VDO_SUCCESS);
@@ -85,8 +85,8 @@ void eraseSlabJournals(SlabDepot     *depot,
                        SlabIterator   slabs,
                        VDOCompletion *parent)
 {
-  SlabJournalEraser *eraser;
-  int result = ALLOCATE(1, SlabJournalEraser, __func__, &eraser);
+  struct slab_journal_eraser *eraser;
+  int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;

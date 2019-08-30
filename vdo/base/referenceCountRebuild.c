@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#4 $
  */
 
 #include "referenceCountRebuild.h"
@@ -41,7 +41,7 @@
  * freed, so the corresponding pages will be locked down in the page cache
  * until the rebuild frees them.
  **/
-typedef struct {
+struct rebuild_completion {
   /** completion header */
   VDOCompletion      completion;
   /** the completion for flushing the block map */
@@ -74,25 +74,26 @@ typedef struct {
   PageCount          pageCount;
   /** array of requested, potentially ready page completions */
   VDOPageCompletion  pageCompletions[];
-} RebuildCompletion;
+};
 
 /**
- * Convert a VDOCompletion to a RebuildCompletion.
+ * Convert a VDOCompletion to a rebuild_completion.
  *
  * @param completion  The completion to convert
  *
- * @return The completion as a RebuildCompletion
+ * @return The completion as a rebuild_completion
  **/
 __attribute__((warn_unused_result))
-static inline RebuildCompletion *asRebuildCompletion(VDOCompletion *completion)
+static inline struct rebuild_completion *
+asRebuildCompletion(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(RebuildCompletion, completion) == 0);
+  STATIC_ASSERT(offsetof(struct rebuild_completion, completion) == 0);
   assertCompletionType(completion->type, REFERENCE_COUNT_REBUILD_COMPLETION);
-  return (RebuildCompletion *) completion;
+  return (struct rebuild_completion *) completion;
 }
 
 /**
- * Free a RebuildCompletion and null out the reference to it.
+ * Free a rebuild_completion and null out the reference to it.
  *
  * @param completionPtr  a pointer to the completion to free
  **/
@@ -103,7 +104,7 @@ static void freeRebuildCompletion(VDOCompletion **completionPtr)
     return;
   }
 
-  RebuildCompletion *rebuild = asRebuildCompletion(completion);
+  struct rebuild_completion *rebuild = asRebuildCompletion(completion);
   destroyEnqueueable(&rebuild->subTaskCompletion);
   destroyEnqueueable(completion);
   FREE(rebuild);
@@ -111,10 +112,10 @@ static void freeRebuildCompletion(VDOCompletion **completionPtr)
 }
 
 /**
- * Free the RebuildCompletion and notify the parent that the block map
+ * Free the rebuild_completion and notify the parent that the block map
  * rebuild is done. This callback is registered in rebuildBlockMap().
  *
- * @param completion  The RebuildCompletion
+ * @param completion  The rebuild_completion
  **/
 static void finishRebuild(VDOCompletion *completion)
 {
@@ -136,19 +137,19 @@ static void finishRebuild(VDOCompletion *completion)
  *
  * @return a success or error code
  **/
-static int makeRebuildCompletion(VDO                *vdo,
-                                 BlockCount         *logicalBlocksUsed,
-                                 BlockCount         *blockMapDataBlocks,
-                                 VDOCompletion      *parent,
-                                 RebuildCompletion **rebuildPtr)
+static int makeRebuildCompletion(VDO                        *vdo,
+                                 BlockCount                 *logicalBlocksUsed,
+                                 BlockCount                 *blockMapDataBlocks,
+                                 VDOCompletion              *parent,
+                                 struct rebuild_completion **rebuildPtr)
 {
   BlockMap *blockMap = getBlockMap(vdo);
   PageCount pageCount
     = minPageCount(getConfiguredCacheSize(vdo) >> 1,
                    MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
-  RebuildCompletion *rebuild;
-  int result = ALLOCATE_EXTENDED(RebuildCompletion, pageCount,
+  struct rebuild_completion *rebuild;
+  int result = ALLOCATE_EXTENDED(struct rebuild_completion, pageCount,
                                  VDOPageCompletion, __func__, &rebuild);
   if (result != UDS_SUCCESS) {
     return result;
@@ -214,7 +215,7 @@ static void flushBlockMapUpdates(VDOCompletion *completion)
  *
  * @return <code>true</code> if the rebuild is complete
  **/
-static bool finishIfDone(RebuildCompletion *rebuild)
+static bool finishIfDone(struct rebuild_completion *rebuild)
 {
   if (rebuild->launching || (rebuild->outstanding > 0)) {
     return false;
@@ -241,7 +242,7 @@ static bool finishIfDone(RebuildCompletion *rebuild)
  * @param rebuild  The rebuild completion
  * @param result   The error result to use, if one is not already saved
  **/
-static void abortRebuild(RebuildCompletion *rebuild, int result)
+static void abortRebuild(struct rebuild_completion *rebuild, int result)
 {
   rebuild->aborted = true;
   setCompletionResult(&rebuild->completion, result);
@@ -254,7 +255,7 @@ static void abortRebuild(RebuildCompletion *rebuild, int result)
  **/
 static void handlePageLoadError(VDOCompletion *completion)
 {
-  RebuildCompletion *rebuild = asRebuildCompletion(completion->parent);
+  struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   rebuild->outstanding--;
   abortRebuild(rebuild, completion->result);
   releaseVDOPageCompletion(completion);
@@ -269,8 +270,8 @@ static void handlePageLoadError(VDOCompletion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
-                                          VDOCompletion     *completion)
+static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
+                                          VDOCompletion             *completion)
 {
   BlockMapPage *page = dereferenceWritableVDOPage(completion);
   int result = ASSERT(page != NULL, "page available");
@@ -337,7 +338,8 @@ static int rebuildReferenceCountsFromPage(RebuildCompletion *rebuild,
 }
 
 /**********************************************************************/
-static void fetchPage(RebuildCompletion *rebuild, VDOCompletion *completion);
+static void fetchPage(struct rebuild_completion *rebuild,
+                      VDOCompletion             *completion);
 
 /**
  * Process a page which has just been loaded. This callback is registered by
@@ -347,7 +349,7 @@ static void fetchPage(RebuildCompletion *rebuild, VDOCompletion *completion);
  **/
 static void pageLoaded(VDOCompletion *completion)
 {
-  RebuildCompletion *rebuild = asRebuildCompletion(completion->parent);
+  struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   rebuild->outstanding--;
 
   int result = rebuildReferenceCountsFromPage(rebuild, completion);
@@ -368,10 +370,11 @@ static void pageLoaded(VDOCompletion *completion)
 /**
  * Fetch a page from the block map.
  *
- * @param rebuild     the RebuildCompletion
+ * @param rebuild     the rebuild_completion
  * @param completion  the page completion to use
  **/
-static void fetchPage(RebuildCompletion *rebuild, VDOCompletion *completion)
+static void fetchPage(struct rebuild_completion *rebuild,
+                      VDOCompletion             *completion)
 {
   while (rebuild->pageToFetch < rebuild->leafPages) {
     PhysicalBlockNumber pbn = findBlockMapPagePBN(rebuild->blockMap,
@@ -408,7 +411,7 @@ static void fetchPage(RebuildCompletion *rebuild, VDOCompletion *completion)
  **/
 static void rebuildFromLeaves(VDOCompletion *completion)
 {
-  RebuildCompletion *rebuild = asRebuildCompletion(completion->parent);
+  struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   *rebuild->logicalBlocksUsed = 0;
 
   // The PBN calculation doesn't work until the tree pages have been loaded,
@@ -439,7 +442,7 @@ static void rebuildFromLeaves(VDOCompletion *completion)
  **/
 static int processEntry(PhysicalBlockNumber pbn, VDOCompletion *completion)
 {
-  RebuildCompletion *rebuild = asRebuildCompletion(completion->parent);
+  struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   if ((pbn == ZERO_BLOCK) || !isPhysicalDataBlock(rebuild->depot, pbn)) {
     return logErrorWithStringError(VDO_BAD_CONFIGURATION,
                                    "PBN %llu out of range",
@@ -466,7 +469,7 @@ void rebuildReferenceCounts(VDO           *vdo,
                             BlockCount    *logicalBlocksUsed,
                             BlockCount    *blockMapDataBlocks)
 {
-  RebuildCompletion *rebuild;
+  struct rebuild_completion *rebuild;
   int result = makeRebuildCompletion(vdo, logicalBlocksUsed,
                                      blockMapDataBlocks, parent, &rebuild);
   if (result != VDO_SUCCESS) {
