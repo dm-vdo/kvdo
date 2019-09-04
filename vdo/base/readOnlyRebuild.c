@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#8 $
  */
 
 #include "readOnlyRebuild.h"
@@ -38,25 +38,25 @@
 
 struct read_only_rebuild_completion {
   /** The completion header */
-  VDOCompletion         completion;
+  VDOCompletion                  completion;
   /** A sub task completion */
-  VDOCompletion         subTaskCompletion;
+  VDOCompletion                  subTaskCompletion;
   /** The VDO in question */
-  VDO                  *vdo;
+  VDO                           *vdo;
   /** A buffer to hold the data read off disk */
-  char                 *journalData;
+  char                          *journalData;
   /** The entry data for the block map rebuild */
-  NumberedBlockMapping *entries;
+  struct numbered_block_mapping *entries;
   /** The number of entries in the entry array */
-  size_t                entryCount;
+  size_t                         entryCount;
   /** The sequence number of the first valid block of the journal (if known) */
-  SequenceNumber        head;
+  SequenceNumber                 head;
   /** The sequence number of the last valid block of the journal (if known) */
-  SequenceNumber        tail;
+  SequenceNumber                 tail;
   /** The number of logical blocks in use */
-  BlockCount            logicalBlocksUsed;
+  BlockCount                     logicalBlocksUsed;
   /** The number of allocated block map pages */
-  BlockCount            blockMapDataBlocks;
+  BlockCount                     blockMapDataBlocks;
 };
 
 /**
@@ -266,7 +266,7 @@ appendSectorEntries(struct read_only_rebuild_completion *rebuild,
     }
 
     if (isIncrementOperation(entry.operation)) {
-      rebuild->entries[rebuild->entryCount] = (NumberedBlockMapping) {
+      rebuild->entries[rebuild->entryCount] = (struct numbered_block_mapping) {
         .blockMapSlot  = entry.slot,
         .blockMapEntry = packPBN(entry.mapping.pbn, entry.mapping.state),
         .number        = rebuild->entryCount,
@@ -292,9 +292,12 @@ static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
   SequenceNumber   last     = rebuild->tail;
   BlockCount       maxCount = ((last - first + 1) * journal->entriesPerBlock);
 
-  // Allocate a NumberedBlockMapping array large enough to transcribe every
-  // PackedRecoveryJournalEntry from every valid journal block.
-  int result = ALLOCATE(maxCount, NumberedBlockMapping, __func__,
+  /*
+   * Allocate an array of numbered_block_mapping structures large
+   * enough to transcribe every PackedRecoveryJournalEntry from every
+   * valid journal block.
+   */
+  int result = ALLOCATE(maxCount, struct numbered_block_mapping, __func__,
                         &rebuild->entries);
   if (result != VDO_SUCCESS) {
     return result;

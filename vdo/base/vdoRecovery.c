@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#13 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -440,10 +440,13 @@ static RecoveryJournalEntry getEntry(const RecoveryCompletion *recovery,
  **/
 static int extractJournalEntries(RecoveryCompletion *recovery)
 {
-  // Allocate a NumberedBlockMapping array just large enough to transcribe
-  // every increment PackedRecoveryJournalEntry from every valid journal block.
-  int result = ALLOCATE(recovery->increfCount, NumberedBlockMapping, __func__,
-                        &recovery->entries);
+  /*
+   * Allocate an array of numbered_block_mapping structs just large
+   * enough to transcribe every increment PackedRecoveryJournalEntry
+   * from every valid journal block.
+   */
+  int result = ALLOCATE(recovery->increfCount, struct numbered_block_mapping,
+                        __func__, &recovery->entries);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -462,7 +465,7 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
     }
 
     if (isIncrementOperation(entry.operation)) {
-      recovery->entries[recovery->entryCount] = (NumberedBlockMapping) {
+      recovery->entries[recovery->entryCount] = (struct numbered_block_mapping) {
         .blockMapSlot  = entry.slot,
         .blockMapEntry = packPBN(entry.mapping.pbn, entry.mapping.state),
         .number        = recovery->entryCount,

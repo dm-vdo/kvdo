@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#6 $
  */
 
 #include "blockMapRecovery.h"
@@ -42,45 +42,45 @@
  **/
 struct block_map_recovery_completion {
   /** completion header */
-  VDOCompletion         completion;
+  VDOCompletion                  completion;
   /** the completion for flushing the block map */
-  VDOCompletion         subTaskCompletion;
+  VDOCompletion                  subTaskCompletion;
   /** the thread from which the block map may be flushed */
-  ThreadID              adminThread;
+  ThreadID                       adminThread;
   /** the thread on which all block map operations must be done */
-  ThreadID              logicalThreadID;
+  ThreadID                       logicalThreadID;
   /** the block map */
-  BlockMap             *blockMap;
+  BlockMap                      *blockMap;
   /** whether this recovery has been aborted */
-  bool                  aborted;
+  bool                           aborted;
   /** whether we are currently launching the initial round of requests */
-  bool                  launching;
+  bool                           launching;
 
   // Fields for the journal entries.
   /** the journal entries to apply */
-  NumberedBlockMapping *journalEntries;
+  struct numbered_block_mapping *journalEntries;
   /**
    * a heap wrapping journalEntries. It re-orders and sorts journal entries in
    * ascending LBN order, then original journal order. This permits efficient
    * iteration over the journal entries in order.
    **/
-  Heap                  replayHeap;
+  Heap                           replayHeap;
 
   // Fields tracking progress through the journal entries.
   /** a pointer to the next journal entry to apply */
-  NumberedBlockMapping *currentEntry;
+  struct numbered_block_mapping *currentEntry;
   /** the next entry for which the block map page has not been requested */
-  NumberedBlockMapping *currentUnfetchedEntry;
+  struct numbered_block_mapping *currentUnfetchedEntry;
 
   // Fields tracking requested pages.
   /** the absolute PBN of the current page being processed */
-  PhysicalBlockNumber   pbn;
+  PhysicalBlockNumber            pbn;
   /** number of pending (non-ready) requests */
-  PageCount             outstanding;
+  PageCount                      outstanding;
   /** number of page completions */
-  PageCount             pageCount;
+  PageCount                      pageCount;
   /** array of requested, potentially ready page completions */
-  VDOPageCompletion     pageCompletions[];
+  VDOPageCompletion              pageCompletions[];
 };
 
 /**
@@ -97,8 +97,10 @@ struct block_map_recovery_completion {
  **/
 static int compareMappings(const void *item1, const void *item2)
 {
-  const NumberedBlockMapping *mapping1 = (const NumberedBlockMapping *) item1;
-  const NumberedBlockMapping *mapping2 = (const NumberedBlockMapping *) item2;
+  const struct numbered_block_mapping *mapping1
+    = (const struct numbered_block_mapping *) item1;
+  const struct numbered_block_mapping *mapping2
+    = (const struct numbered_block_mapping *) item2;
 
   if (mapping1->blockMapSlot.pbn != mapping2->blockMapSlot.pbn) {
     return
@@ -118,13 +120,13 @@ static int compareMappings(const void *item1, const void *item2)
 }
 
 /**
- * Swap two NumberedBlockMapping structures. Implements HeapSwapper.
+ * Swap two numbered_block_mapping structures. Implements HeapSwapper.
  **/
 static void swapMappings(void *item1, void *item2)
 {
-  NumberedBlockMapping *mapping1 = item1;
-  NumberedBlockMapping *mapping2 = item2;
-  NumberedBlockMapping temp = *mapping1;
+  struct numbered_block_mapping *mapping1 = item1;
+  struct numbered_block_mapping *mapping2 = item2;
+  struct numbered_block_mapping temp = *mapping1;
   *mapping1 = *mapping2;
   *mapping2 = temp;
 }
@@ -194,7 +196,7 @@ static void finishBlockMapRecovery(VDOCompletion *completion)
 static int
 makeRecoveryCompletion(VDO                                   *vdo,
                        BlockCount                             entryCount,
-                       NumberedBlockMapping                  *journalEntries,
+                       struct numbered_block_mapping         *journalEntries,
                        VDOCompletion                         *parent,
                        struct block_map_recovery_completion **recoveryPtr)
 {
@@ -240,7 +242,8 @@ makeRecoveryCompletion(VDO                                   *vdo,
   // Organize the journal entries into a binary heap so we can iterate over
   // them in sorted order incrementally, avoiding an expensive sort call.
   initializeHeap(&recovery->replayHeap, compareMappings, swapMappings,
-                 journalEntries, entryCount, sizeof(NumberedBlockMapping));
+                 journalEntries, entryCount,
+                 sizeof(struct numbered_block_mapping));
   buildHeap(&recovery->replayHeap, entryCount);
 
   ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logicalThreadID),
@@ -335,9 +338,9 @@ static void abortRecovery(struct block_map_recovery_completion *recovery,
  *         page, or a pointer to just before the journal entries if no
  *         subsequent entry is on a different block map page.
  **/
-static NumberedBlockMapping *
+static struct numbered_block_mapping *
 findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
-                          NumberedBlockMapping                 *currentEntry,
+                          struct numbered_block_mapping        *currentEntry,
                           bool                                  needsSort)
 {
   // If currentEntry is invalid, return immediately.
@@ -350,7 +353,7 @@ findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
   while ((currentEntry >= recovery->journalEntries)
          && (currentEntry->blockMapSlot.pbn == currentPage)) {
     if (needsSort) {
-      NumberedBlockMapping *justSortedEntry
+      struct numbered_block_mapping *justSortedEntry
         = sortNextHeapElement(&recovery->replayHeap);
       ASSERT_LOG_ONLY(justSortedEntry < currentEntry,
                       "heap is returning elements in an unexpected order");
@@ -368,11 +371,11 @@ findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
  * @param endingEntry    The entry just past the last journal entry to apply
  **/
 static void
-applyJournalEntriesToPage(struct block_map_page    *page,
-                          NumberedBlockMapping     *startingEntry,
-                          NumberedBlockMapping     *endingEntry)
+applyJournalEntriesToPage(struct block_map_page             *page,
+                          struct numbered_block_mapping     *startingEntry,
+                          struct numbered_block_mapping     *endingEntry)
 {
-  NumberedBlockMapping *currentEntry  = startingEntry;
+  struct numbered_block_mapping *currentEntry  = startingEntry;
   while (currentEntry != endingEntry) {
     page->entries[currentEntry->blockMapSlot.slot]
       = currentEntry->blockMapEntry;
@@ -487,7 +490,7 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
       return;
     }
 
-    NumberedBlockMapping *startOfNextPage
+    struct numbered_block_mapping *startOfNextPage
       = findEntryStartingNextPage(recovery, recovery->currentEntry, false);
     applyJournalEntriesToPage(page, recovery->currentEntry, startOfNextPage);
     recovery->currentEntry = startOfNextPage;
@@ -506,10 +509,10 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
 }
 
 /**********************************************************************/
-void recoverBlockMap(VDO                  *vdo,
-                     BlockCount            entryCount,
-                     NumberedBlockMapping *journalEntries,
-                     VDOCompletion        *parent)
+void recoverBlockMap(VDO                           *vdo,
+                     BlockCount                     entryCount,
+                     struct numbered_block_mapping *journalEntries,
+                     VDOCompletion                 *parent)
 {
   struct block_map_recovery_completion *recovery;
   int result = makeRecoveryCompletion(vdo, entryCount, journalEntries, parent,
@@ -524,7 +527,7 @@ void recoverBlockMap(VDO                  *vdo,
     return;
   }
 
-  NumberedBlockMapping *firstSortedEntry
+  struct numbered_block_mapping *firstSortedEntry
     = sortNextHeapElement(&recovery->replayHeap);
   ASSERT_LOG_ONLY(firstSortedEntry == recovery->currentEntry,
                   "heap is returning elements in an unexpected order");

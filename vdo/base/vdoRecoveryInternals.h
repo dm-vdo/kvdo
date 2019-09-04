@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#3 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -43,59 +43,59 @@ typedef struct {
 
 typedef struct {
   /** The completion header */
-  VDOCompletion                completion;
+  VDOCompletion                     completion;
   /** The sub-task completion */
-  VDOCompletion                subTaskCompletion;
+  VDOCompletion                     subTaskCompletion;
   /** The VDO in question */
-  VDO                         *vdo;
+  VDO                              *vdo;
   /** The BlockAllocator whose journals are being recovered */
-  BlockAllocator              *allocator;
+  BlockAllocator                   *allocator;
   /** A buffer to hold the data read off disk */
-  char                        *journalData;
+  char                             *journalData;
   /** The number of increfs */
-  size_t                       increfCount;
+  size_t                            increfCount;
 
   /** The entry data for the block map recovery */
-  NumberedBlockMapping        *entries;
+  struct numbered_block_mapping    *entries;
   /** The number of entries in the entry array */
-  size_t                       entryCount;
+  size_t                            entryCount;
   /** The sequence number of the first valid block for block map recovery */
-  SequenceNumber               blockMapHead;
+  SequenceNumber                    blockMapHead;
   /** The sequence number of the first valid block for slab journal replay */
-  SequenceNumber               slabJournalHead;
+  SequenceNumber                    slabJournalHead;
   /** The sequence number of the last valid block of the journal (if known) */
-  SequenceNumber               tail;
+  SequenceNumber                    tail;
   /**
    * The highest sequence number of the journal, not the same as the tail,
    * since the tail ignores blocks after the first hole.
    */
-  SequenceNumber               highestTail;
+  SequenceNumber                    highestTail;
 
   /** A location just beyond the last valid entry of the journal */
-  RecoveryPoint                tailRecoveryPoint;
+  RecoveryPoint                     tailRecoveryPoint;
   /** The location of the next recovery journal entry to apply */
-  RecoveryPoint                nextRecoveryPoint;
+  RecoveryPoint                     nextRecoveryPoint;
   /** The number of logical blocks currently known to be in use */
-  BlockCount                   logicalBlocksUsed;
+  BlockCount                        logicalBlocksUsed;
   /** The number of block map data blocks known to be allocated */
-  BlockCount                   blockMapDataBlocks;
+  BlockCount                        blockMapDataBlocks;
   /** The journal point to give to the next synthesized decref */
-  JournalPoint                 nextJournalPoint;
+  JournalPoint                      nextJournalPoint;
   /** The number of entries played into slab journals */
-  size_t                       entriesAddedToSlabJournals;
+  size_t                            entriesAddedToSlabJournals;
 
   // Decref synthesis fields
 
   /** An intMap for use in finding which slots are missing decrefs */
-  IntMap                      *slotEntryMap;
+  IntMap                           *slotEntryMap;
   /** The number of synthesized decrefs */
-  size_t                       missingDecrefCount;
+  size_t                            missingDecrefCount;
   /** The number of incomplete decrefs */
-  size_t                       incompleteDecrefCount;
+  size_t                            incompleteDecrefCount;
   /** The fake journal point of the next missing decref */
-  JournalPoint                 nextSynthesizedJournalPoint;
+  JournalPoint                      nextSynthesizedJournalPoint;
   /** The queue of missing decrefs */
-  WaitQueue                    missingDecrefs[];
+  WaitQueue                         missingDecrefs[];
 } RecoveryCompletion;
 
 /**
