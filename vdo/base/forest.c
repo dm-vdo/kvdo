@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#6 $
  */
 
 #include "forest.h"
@@ -56,7 +56,7 @@ struct block_map_tree {
 struct forest {
   BlockMap               *map;
   size_t                  segments;
-  Boundary               *boundaries;
+  struct boundary        *boundaries;
   TreePage              **pages;
   struct block_map_tree   trees[];
 };
@@ -73,7 +73,7 @@ struct cursor {
   struct block_map_tree *tree;
   Height                 height;
   struct cursors        *parent;
-  Boundary               boundary;
+  struct boundary        boundary;
   struct cursor_level    levels[BLOCK_MAP_TREE_HEIGHT];
   VIOPoolEntry          *vioPoolEntry;
 };
@@ -120,11 +120,11 @@ TreePage *getTreePageByIndex(Forest       *forest,
  *
  * @return The total number of non-leaf pages required
  **/
-static BlockCount computeNewPages(RootCount   rootCount,
-                                  BlockCount  flatPageCount,
-                                  Boundary   *oldSizes,
-                                  BlockCount  entries,
-                                  Boundary   *newSizes)
+static BlockCount computeNewPages(RootCount          rootCount,
+                                  BlockCount         flatPageCount,
+                                  struct boundary   *oldSizes,
+                                  BlockCount         entries,
+                                  struct boundary   *newSizes)
 {
   PageCount leafPages
     = maxPageCount(computeBlockMapPageCount(entries) - flatPageCount, 1);
@@ -144,16 +144,16 @@ static BlockCount computeNewPages(RootCount   rootCount,
 }
 
 /**********************************************************************/
-static int makeSegment(Forest      *oldForest,
-                       BlockCount   newPages,
-                       Boundary    *newBoundary,
-                       Forest      *forest)
+static int makeSegment(Forest             *oldForest,
+                       BlockCount          newPages,
+                       struct boundary    *newBoundary,
+                       Forest             *forest)
 {
   size_t index     = (oldForest == NULL) ? 0 : oldForest->segments;
   forest->segments = index + 1;
 
-  int result = ALLOCATE(forest->segments, Boundary, "forest boundary array",
-                        &forest->boundaries);
+  int result = ALLOCATE(forest->segments, struct boundary,
+                        "forest boundary array", &forest->boundaries);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -172,11 +172,11 @@ static int makeSegment(Forest      *oldForest,
 
   if (index > 0) {
     memcpy(forest->boundaries, oldForest->boundaries,
-           index * sizeof(Boundary));
+           index * sizeof(struct boundary));
     memcpy(forest->pages, oldForest->pages, index * sizeof(TreePage *));
   }
 
-  memcpy(&(forest->boundaries[index]), newBoundary, sizeof(Boundary));
+  memcpy(&(forest->boundaries[index]), newBoundary, sizeof(struct boundary));
 
   PageCount segmentSizes[BLOCK_MAP_TREE_HEIGHT];
   for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
@@ -248,12 +248,12 @@ int makeForest(BlockMap *map, BlockCount entries)
   STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
 
   Forest   *oldForest   = map->forest;
-  Boundary *oldBoundary = NULL;
+  struct boundary *oldBoundary = NULL;
   if (oldForest != NULL) {
     oldBoundary = &(oldForest->boundaries[oldForest->segments - 1]);
   }
 
-  Boundary newBoundary;
+  struct boundary newBoundary;
   BlockCount newPages = computeNewPages(map->rootCount, map->flatPageCount,
                                         oldBoundary, entries, &newBoundary);
   if (newPages == 0) {
@@ -472,9 +472,9 @@ static void launchCursor(Waiter *waiter, void *context)
  * @param map        The block map
  * @param rootIndex  The index of the root to measure
  *
- * @return The list of page counts as a Boundary
+ * @return The list of page counts as a boundary structure
  **/
-static Boundary computeBoundary(BlockMap *map, RootCount rootIndex)
+static struct boundary computeBoundary(BlockMap *map, RootCount rootIndex)
 {
   PageCount leafPages     = computeBlockMapPageCount(map->entryCount);
   PageCount treeLeafPages = leafPages - map->flatPageCount;
@@ -492,7 +492,7 @@ static Boundary computeBoundary(BlockMap *map, RootCount rootIndex)
     levelPages++;
   }
 
-  Boundary boundary;
+  struct boundary boundary;
   for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
     boundary.levels[height] = levelPages;
     levelPages = computeBucketCount(levelPages, BLOCK_MAP_ENTRIES_PER_PAGE);
@@ -546,7 +546,7 @@ void traverseForest(BlockMap      *map,
 /**********************************************************************/
 BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
 {
-  Boundary newSizes;
+  struct boundary newSizes;
   BlockCount approximateNonLeaves
     = computeNewPages(rootCount, 0, NULL, logicalBlocks, &newSizes);
 
