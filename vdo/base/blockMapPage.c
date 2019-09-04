@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#2 $
  */
 
 #include "blockMapPage.h"
@@ -42,19 +42,19 @@ static const VersionNumber BLOCK_MAP_4_1 = {
 };
 
 /**********************************************************************/
-bool isCurrentBlockMapPage(const BlockMapPage *page)
+bool isCurrentBlockMapPage(const struct block_map_page *page)
 {
   return areSameVersion(BLOCK_MAP_4_1, unpackVersionNumber(page->version));
 }
 
 /**********************************************************************/
-BlockMapPage *formatBlockMapPage(void                *buffer,
-                                 Nonce                nonce,
-                                 PhysicalBlockNumber  pbn,
-                                 bool                 initialized)
+struct block_map_page *formatBlockMapPage(void                *buffer,
+                                          Nonce                nonce,
+                                          PhysicalBlockNumber  pbn,
+                                          bool                 initialized)
 {
   memset(buffer, 0, VDO_BLOCK_SIZE);
-  BlockMapPage *page = (BlockMapPage *) buffer;
+  struct block_map_page *page = (struct block_map_page *) buffer;
   page->version = packVersionNumber(BLOCK_MAP_4_1);
   storeUInt64LE(page->header.fields.nonce, nonce);
   storeUInt64LE(page->header.fields.pbn, pbn);
@@ -63,9 +63,9 @@ BlockMapPage *formatBlockMapPage(void                *buffer,
 }
 
 /**********************************************************************/
-BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
-                                          Nonce                nonce,
-                                          PhysicalBlockNumber  pbn)
+BlockMapPageValidity validateBlockMapPage(struct block_map_page *page,
+                                          Nonce                  nonce,
+                                          PhysicalBlockNumber    pbn)
 {
   // Make sure the page layout isn't accidentally changed by changing the
   // length of the page header.
@@ -85,7 +85,7 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
 }
 
 /**********************************************************************/
-void updateBlockMapPage(BlockMapPage        *page,
+void updateBlockMapPage(struct block_map_page        *page,
                         DataVIO             *dataVIO,
                         PhysicalBlockNumber  pbn,
                         BlockMappingState    mappingState,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#5 $
  */
 
 #include "blockMapRecovery.h"
@@ -205,8 +205,8 @@ makeRecoveryCompletion(VDO                                   *vdo,
 
   struct block_map_recovery_completion *recovery;
   int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
-				 pageCount, VDOPageCompletion, __func__,
-				 &recovery);
+                                 pageCount, VDOPageCompletion, __func__,
+                                &recovery);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -367,9 +367,10 @@ findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
  * @param startingEntry  The first journal entry to apply
  * @param endingEntry    The entry just past the last journal entry to apply
  **/
-static void applyJournalEntriesToPage(BlockMapPage         *page,
-                                      NumberedBlockMapping *startingEntry,
-                                      NumberedBlockMapping *endingEntry)
+static void
+applyJournalEntriesToPage(struct block_map_page    *page,
+                          NumberedBlockMapping     *startingEntry,
+                          NumberedBlockMapping     *endingEntry)
 {
   NumberedBlockMapping *currentEntry  = startingEntry;
   while (currentEntry != endingEntry) {
@@ -479,7 +480,7 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
   }
 
   while (pageCompletion->ready) {
-    BlockMapPage *page   = dereferenceWritableVDOPage(completion);
+    struct block_map_page *page   = dereferenceWritableVDOPage(completion);
     int           result = ASSERT(page != NULL, "page available");
     if (result != VDO_SUCCESS) {
       abortRecovery(recovery, result);

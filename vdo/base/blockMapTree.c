@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#11 $
  */
 
 #include "blockMapTree.h"
@@ -179,13 +179,13 @@ static inline TreePage *getTreePage(const BlockMapTreeZone *zone,
 }
 
 /**********************************************************************/
-bool copyValidPage(char                *buffer,
-                   Nonce                nonce,
-                   PhysicalBlockNumber  pbn,
-                   BlockMapPage        *page)
+bool copyValidPage(char                     *buffer,
+                   Nonce                     nonce,
+                   PhysicalBlockNumber       pbn,
+                   struct block_map_page    *page)
 {
-  BlockMapPage         *loaded   = (BlockMapPage *) buffer;
-  BlockMapPageValidity  validity = validateBlockMapPage(loaded, nonce, pbn);
+  struct block_map_page *loaded   = (struct block_map_page *) buffer;
+  BlockMapPageValidity   validity = validateBlockMapPage(loaded, nonce, pbn);
   if (validity == BLOCK_MAP_PAGE_VALID) {
     memcpy(page, loaded, VDO_BLOCK_SIZE);
     return true;
@@ -506,7 +506,7 @@ static void writeInitializedPage(VDOCompletion *completion)
    * We don't want to set it true on the real page in memory until after this
    * write succeeds.
    */
-  BlockMapPage *page = (BlockMapPage *) entry->buffer;
+  struct block_map_page *page = (struct block_map_page *) entry->buffer;
   markBlockMapPageInitialized(page, true);
   launchWriteMetadataVIOWithFlush(entry->vio, getBlockMapPagePBN(page),
                                   finishPageWrite, handleWriteError,
@@ -544,7 +544,7 @@ static void writePage(TreePage *treePage, VIOPoolEntry *entry)
   // Clear this now so that we know this page is not on any dirty list.
   treePage->recoveryLock = 0;
 
-  BlockMapPage *page = asBlockMapPage(treePage);
+  struct block_map_page *page = asBlockMapPage(treePage);
   if (!markBlockMapPageInitialized(page, true)) {
     writeInitializedPage(completion);
     return;
@@ -734,7 +734,7 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO);
  * @param dataVIO  The DataVIO doing the lookup
  * @param page     The page which was just loaded
  **/
-static void continueWithLoadedPage(DataVIO *dataVIO, BlockMapPage *page)
+static void continueWithLoadedPage(DataVIO *dataVIO, struct block_map_page *page)
 {
   TreeLock         *lock = &dataVIO->treeLock;
   BlockMapTreeSlot  slot = lock->treeSlots[lock->height];
@@ -778,7 +778,7 @@ static void continueLoadForWaiter(Waiter *waiter, void *context)
 {
   DataVIO *dataVIO = waiterAsDataVIO(waiter);
   dataVIO->treeLock.height--;
-  continueWithLoadedPage(dataVIO, (BlockMapPage *) context);
+  continueWithLoadedPage(dataVIO, (struct block_map_page *) context);
 }
 
 /**
@@ -797,8 +797,9 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
   treeLock->height--;
   PhysicalBlockNumber pbn
     = treeLock->treeSlots[treeLock->height].blockMapSlot.pbn;
-  TreePage     *treePage = getTreePage(zone, treeLock);
-  BlockMapPage *page     = (BlockMapPage *) treePage->pageBuffer;
+  TreePage *treePage = getTreePage(zone, treeLock);
+  struct block_map_page *page
+    = (struct block_map_page *) treePage->pageBuffer;
   Nonce         nonce    = zone->mapZone->blockMap->nonce;
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
     formatBlockMapPage(page, nonce, pbn, false);
@@ -999,8 +1000,9 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
   PhysicalBlockNumber pbn = treeLock->treeSlots[height - 1].blockMapSlot.pbn;
 
   // Record the allocation.
-  BlockMapPage   *page    = (BlockMapPage *) treePage->pageBuffer;
-  SequenceNumber  oldLock = treePage->recoveryLock;
+  struct block_map_page *page
+    = (struct block_map_page *) treePage->pageBuffer;
+  SequenceNumber oldLock = treePage->recoveryLock;
   updateBlockMapPage(page, dataVIO, pbn, MAPPING_STATE_UNCOMPRESSED,
                      &treePage->recoveryLock);
 
@@ -1187,11 +1189,11 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     },
   };
 
-  BlockMapPage *page = NULL;
+  struct block_map_page *page = NULL;
   for (lock->height = 1; lock->height <= BLOCK_MAP_TREE_HEIGHT;
        lock->height++) {
     lock->treeSlots[lock->height] = treeSlot;
-    page = (BlockMapPage *) (getTreePage(zone, lock)->pageBuffer);
+    page = (struct block_map_page *) (getTreePage(zone, lock)->pageBuffer);
     PhysicalBlockNumber pbn = getBlockMapPagePBN(page);
     if (pbn != ZERO_BLOCK) {
       lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
@@ -1250,7 +1252,7 @@ PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
 
   TreePage *treePage
     = getTreePageByIndex(map->forest, rootIndex, 1, pageIndex);
-  BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
+  struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
   if (!isBlockMapPageInitialized(page)) {
     return ZERO_BLOCK;
   }

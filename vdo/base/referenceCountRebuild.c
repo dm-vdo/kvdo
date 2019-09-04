@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#5 $
  */
 
 #include "referenceCountRebuild.h"
@@ -273,7 +273,7 @@ static void handlePageLoadError(VDOCompletion *completion)
 static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
                                           VDOCompletion             *completion)
 {
-  BlockMapPage *page = dereferenceWritableVDOPage(completion);
+  struct block_map_page *page = dereferenceWritableVDOPage(completion);
   int result = ASSERT(page != NULL, "page available");
   if (result != VDO_SUCCESS) {
     return result;

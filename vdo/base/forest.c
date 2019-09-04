@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#5 $
  */
 
 #include "forest.h"
@@ -209,9 +209,9 @@ static int makeSegment(Forest      *oldForest,
       segment->levels[height] = pagePtr;
       if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
         // Record the root.
-        BlockMapPage *page = formatBlockMapPage(pagePtr->pageBuffer,
-                                                forest->map->nonce,
-                                                INVALID_PBN, true);
+        struct block_map_page *page = formatBlockMapPage(pagePtr->pageBuffer,
+                                                         forest->map->nonce,
+                                                         INVALID_PBN, true);
         page->entries[0] = packPBN(forest->map->rootOrigin + root,
                                    MAPPING_STATE_UNCOMPRESSED);
       }
@@ -368,7 +368,7 @@ static void finishTraversalLoad(VDOCompletion *completion)
 
   TreePage     *treePage
     = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
-  BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
+  struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
   copyValidPage(entry->buffer, cursor->parent->map->nonce,
                 entry->vio->physical, page);
   traverse(cursor);
@@ -387,7 +387,7 @@ static void traverse(struct cursor *cursor)
     struct cursor_level *level  = &cursor->levels[height];
     TreePage *treePage
       = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
-    BlockMapPage *page = (BlockMapPage *) treePage->pageBuffer;
+    struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
     if (!isBlockMapPageInitialized(page)) {
       continue;
     }
@@ -517,7 +517,7 @@ void traverseForest(BlockMap      *map,
 
   struct cursors *cursors;
   int result = ALLOCATE_EXTENDED(struct cursors, map->rootCount,
-				 struct cursor, __func__, &cursors);
+                                 struct cursor, __func__, &cursors);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;

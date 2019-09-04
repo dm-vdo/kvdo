@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#2 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -79,11 +79,11 @@ typedef union __attribute__((packed)) {
 /**
  * The format of a block map page.
  **/
-typedef struct __attribute__((packed)) {
+struct block_map_page {
   PackedVersionNumber version;
   PageHeader          header;
   BlockMapEntry       entries[];
-} BlockMapPage;
+} __attribute__((packed));
 
 typedef enum {
   // A block map page is correctly initialized
@@ -102,7 +102,7 @@ typedef enum {
  * @return <code>true</code> if the page has been initialized
  **/
 __attribute__((warn_unused_result))
-static inline bool isBlockMapPageInitialized(const BlockMapPage *page)
+static inline bool isBlockMapPageInitialized(const struct block_map_page *page)
 {
   return page->header.fields.initialized;
 }
@@ -115,8 +115,9 @@ static inline bool isBlockMapPageInitialized(const BlockMapPage *page)
  *
  * @return <code>true</code> if the initialized flag was modified
  **/
-static inline bool markBlockMapPageInitialized(BlockMapPage *page,
-                                               bool          initialized)
+static inline bool
+markBlockMapPageInitialized(struct block_map_page *page,
+                            bool                   initialized)
 {
   if (initialized == page->header.fields.initialized) {
     return false;
@@ -134,7 +135,8 @@ static inline bool markBlockMapPageInitialized(BlockMapPage *page,
  * @return the page's physical block number
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getBlockMapPagePBN(const BlockMapPage *page)
+static inline PhysicalBlockNumber
+getBlockMapPagePBN(const struct block_map_page *page)
 {
   return getUInt64LE(page->header.fields.pbn);
 }
@@ -146,7 +148,7 @@ static inline PhysicalBlockNumber getBlockMapPagePBN(const BlockMapPage *page)
  *
  * @return <code>true</code> if the page has the current version
  **/
-bool isCurrentBlockMapPage(const BlockMapPage *page)
+bool isCurrentBlockMapPage(const struct block_map_page *page)
   __attribute__((warn_unused_result));
 
 /**
@@ -159,10 +161,10 @@ bool isCurrentBlockMapPage(const BlockMapPage *page)
  *
  * @return the buffer pointer, as a block map page (for convenience)
  **/
-BlockMapPage *formatBlockMapPage(void                *buffer,
-                                 Nonce                nonce,
-                                 PhysicalBlockNumber  pbn,
-                                 bool                 initialized);
+struct block_map_page *formatBlockMapPage(void                *buffer,
+                                          Nonce                nonce,
+                                          PhysicalBlockNumber  pbn,
+                                          bool                 initialized);
 
 /**
  * Check whether a newly read page is valid, upgrading its in-memory format if
@@ -175,9 +177,9 @@ BlockMapPage *formatBlockMapPage(void                *buffer,
  *
  * @return The validity of the page
  **/
-BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
-                                          Nonce                nonce,
-                                          PhysicalBlockNumber  pbn)
+BlockMapPageValidity validateBlockMapPage(struct block_map_page    *page,
+                                          Nonce                     nonce,
+                                          PhysicalBlockNumber       pbn)
   __attribute__((warn_unused_result));
 
 /**
@@ -191,10 +193,10 @@ BlockMapPageValidity validateBlockMapPage(BlockMapPage        *page,
  *                               number lock held by the page. Will be updated
  *                               if the lock changes to protect the new entry
  **/
-void updateBlockMapPage(BlockMapPage        *page,
-                        DataVIO             *dataVIO,
-                        PhysicalBlockNumber  pbn,
-                        BlockMappingState    mappingState,
-                        SequenceNumber      *recoveryLock);
+void updateBlockMapPage(struct block_map_page     *page,
+                        DataVIO                   *dataVIO,
+                        PhysicalBlockNumber        pbn,
+                        BlockMappingState          mappingState,
+                        SequenceNumber            *recoveryLock);
 
 #endif // BLOCK_MAP_PAGE_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#12 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -958,7 +958,7 @@ static void processFetchedPage(VDOCompletion *completion)
   RecoveryCompletion    *recovery      = currentDecref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
-  const BlockMapPage *page = dereferenceReadableVDOPage(completion);
+  const struct block_map_page *page = dereferenceReadableVDOPage(completion);
   DataLocation location
     = unpackBlockMapEntry(&page->entries[currentDecref->slot.slot]);
   releaseVDOPageCompletion(completion);

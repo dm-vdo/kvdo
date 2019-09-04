@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#15 $
  */
 
 #include "blockMap.h"
@@ -79,7 +79,7 @@ static int validatePageOnRead(void                *buffer,
                               BlockMapZone        *zone,
                               void                *pageContext)
 {
-  BlockMapPage                  *page    = buffer;
+  struct block_map_page         *page    = buffer;
   struct block_map_page_context *context = pageContext;
   Nonce                          nonce   = zone->blockMap->nonce;
 
@@ -108,7 +108,7 @@ static bool handlePageWrite(void         *rawPage,
                             BlockMapZone *zone,
                             void         *pageContext)
 {
-  BlockMapPage                  *page    = rawPage;
+  struct block_map_page         *page    = rawPage;
   struct block_map_page_context *context = pageContext;
 
   if (markBlockMapPageInitialized(page, true)) {
@@ -139,7 +139,7 @@ int makeBlockMap(BlockCount            logicalBlocks,
                  BlockMap            **mapPtr)
 {
   STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE
-                == ((VDO_BLOCK_SIZE - sizeof(BlockMapPage))
+                == ((VDO_BLOCK_SIZE - sizeof(struct block_map_page))
                     / sizeof(BlockMapEntry)));
 
   BlockMap *map;
@@ -744,8 +744,8 @@ static void getMappingFromFetchedPage(VDOCompletion *completion)
     return;
   }
 
-  const BlockMapPage *page   = dereferenceReadableVDOPage(completion);
-  int                 result = ASSERT(page != NULL, "page available");
+  const struct block_map_page *page   = dereferenceReadableVDOPage(completion);
+  int                          result = ASSERT(page != NULL, "page available");
   if (result != VDO_SUCCESS) {
     finishProcessingPage(completion, result);
     return;
@@ -769,8 +769,8 @@ static void putMappingInFetchedPage(VDOCompletion *completion)
     return;
   }
 
-  BlockMapPage *page   = dereferenceWritableVDOPage(completion);
-  int           result = ASSERT(page != NULL, "page available");
+  struct block_map_page *page   = dereferenceWritableVDOPage(completion);
+  int                    result = ASSERT(page != NULL, "page available");
   if (result != VDO_SUCCESS) {
     finishProcessingPage(completion, result);
     return;

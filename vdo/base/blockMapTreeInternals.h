@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#2 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -71,16 +71,16 @@ typedef struct {
 extern const PhysicalBlockNumber INVALID_PBN;
 
 /**
- * Extract the BlockMapPage from a TreePage.
+ * Extract the block_map_page from a TreePage.
  *
  * @param treePage  The TreePage
  *
- * @return The BlockMapPage of the TreePage
+ * @return The block_map_page of the TreePage
  **/
 __attribute__((warn_unused_result))
-static inline BlockMapPage *asBlockMapPage(TreePage *treePage)
+static inline struct block_map_page *asBlockMapPage(TreePage *treePage)
 {
-  return (BlockMapPage *) treePage->pageBuffer;
+  return (struct block_map_page *) treePage->pageBuffer;
 }
 
 /**
@@ -108,9 +108,9 @@ int replaceTreeZoneVIOPool(BlockMapTreeZone *zone,
  *
  * @return <code>true</code> if the page was copied (valid)
  **/
-bool copyValidPage(char                *buffer,
-                   Nonce                nonce,
-                   PhysicalBlockNumber  pbn,
-                   BlockMapPage        *page);
+bool copyValidPage(char                         *buffer,
+                   Nonce                         nonce,
+                   PhysicalBlockNumber           pbn,
+                   struct block_map_page        *page);
 
 #endif // BLOCK_MAP_TREE_INTERNALS_H
