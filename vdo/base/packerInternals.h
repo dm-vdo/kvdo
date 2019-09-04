@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#5 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -64,15 +64,15 @@ struct inputBin {
  **/
 typedef struct {
   /** List links for Packer.outputBins */
-  RingNode         ring;
+  RingNode                 ring;
   /** The storage for encoding the compressed block representation */
-  CompressedBlock *block;
+  struct compressed_block *block;
   /** The AllocatingVIO wrapping the compressed block for writing */
-  AllocatingVIO   *writer;
+  AllocatingVIO           *writer;
   /** The number of compression slots used in the compressed block */
-  SlotNumber       slotsUsed;
+  SlotNumber               slotsUsed;
   /** The DataVIOs packed into the block, waiting for the write to complete */
-  WaitQueue        outgoing;
+  WaitQueue                outgoing;
 } OutputBin;
 
 /**

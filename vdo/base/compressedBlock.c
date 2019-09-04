@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#2 $
  */
 
 #include "compressedBlock.h"
@@ -86,11 +86,11 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
 }
 
 /**********************************************************************/
-void putCompressedBlockFragment(CompressedBlock *block,
-                                unsigned int     fragment,
-                                uint16_t         offset,
-                                const char      *data,
-                                uint16_t         size)
+void putCompressedBlockFragment(struct compressed_block *block,
+                                unsigned int             fragment,
+                                uint16_t                 offset,
+                                const char              *data,
+                                uint16_t                 size)
 {
   storeUInt16LE(block->header.fields.sizes[fragment], size);
   memcpy(&block->data[offset], data, size);

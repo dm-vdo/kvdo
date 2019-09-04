@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#8 $
  */
 
 #include "packerInternals.h"
@@ -182,7 +182,7 @@ static int makeOutputBin(Packer *packer, PhysicalLayer *layer)
   pushRingNode(&packer->outputBins, &output->ring);
   pushOutputBin(packer, output);
 
-  result = ALLOCATE_EXTENDED(CompressedBlock, packer->binDataSize, char,
+  result = ALLOCATE_EXTENDED(struct compressed_block, packer->binDataSize, char,
                              "compressed block", &output->block);
   if (result != VDO_SUCCESS) {
     return result;

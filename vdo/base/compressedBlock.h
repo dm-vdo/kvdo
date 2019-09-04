@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#2 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -53,10 +53,10 @@ typedef union __attribute__((packed)) {
 /**
  * The compressed block overlay.
  **/
-typedef struct {
+struct compressed_block {
   CompressedBlockHeader header;
   char                  data[];
-} __attribute__((packed)) CompressedBlock;
+} __attribute__((packed));
 
 /**
  * Initializes/resets a compressed block header.
@@ -98,10 +98,10 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
  *
  * @note no bounds checking -- the data better fit without smashing other stuff
  **/
-void putCompressedBlockFragment(CompressedBlock *block,
-                                unsigned int     fragment,
-                                uint16_t         offset,
-                                const char      *data,
-                                uint16_t         size);
+void putCompressedBlockFragment(struct compressed_block *block,
+                                unsigned int             fragment,
+                                uint16_t                 offset,
+                                const char              *data,
+                                uint16_t                 size);
 
 #endif // COMPRESSED_BLOCK_H
