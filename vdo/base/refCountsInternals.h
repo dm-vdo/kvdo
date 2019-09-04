@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#5 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -68,41 +68,41 @@ typedef struct searchCursor {
  */
 struct refCounts {
   /** The slab of this reference block */
-  Slab                     *slab;
+  Slab                               *slab;
 
   /** The size of the counters array */
-  uint32_t                  blockCount;
+  uint32_t                            blockCount;
   /** The number of free blocks */
-  uint32_t                  freeBlocks;
+  uint32_t                            freeBlocks;
   /** The array of reference counts */
-  ReferenceCount           *counters; // use ALLOCATE to align data ptr
+  ReferenceCount                     *counters; // use ALLOCATE to align data ptr
 
   /** The saved block pointer and array indexes for the free block search */
-  SearchCursor              searchCursor;
+  SearchCursor                        searchCursor;
 
   /** A list of the dirty blocks waiting to be written out */
-  WaitQueue                 dirtyBlocks;
+  WaitQueue                           dirtyBlocks;
   /** The number of blocks which are currently writing */
-  size_t                    activeCount;
+  size_t                              activeCount;
 
   /** A waiter object for updating the slab summary */
-  Waiter                    slabSummaryWaiter;
+  Waiter                              slabSummaryWaiter;
   /** Whether slab summary update is in progress */
-  bool                      updatingSlabSummary;
+  bool                                updatingSlabSummary;
 
   /** The notifier for read-only mode */
-  ReadOnlyNotifier         *readOnlyNotifier;
+  ReadOnlyNotifier                   *readOnlyNotifier;
   /** The refcount statistics, shared by all refcounts in our physical zone */
-  AtomicRefCountStatistics *statistics;
+  struct atomic_ref_count_statistics *statistics;
   /** The layer PBN for the first ReferenceBlock */
-  PhysicalBlockNumber       origin;
+  PhysicalBlockNumber                 origin;
   /** The latest slab journal entry this RefCounts has been updated with */
-  JournalPoint              slabJournalPoint;
+  JournalPoint                        slabJournalPoint;
 
   /** The number of reference count blocks */
-  uint32_t                  referenceBlockCount;
+  uint32_t                            referenceBlockCount;
   /** reference count block array */
-  ReferenceBlock            blocks[];
+  ReferenceBlock                      blocks[];
 };
 
 /**

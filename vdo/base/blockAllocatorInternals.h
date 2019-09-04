@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#9 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -50,27 +50,27 @@ typedef enum {
  * A sub-structure for applying actions in parallel to all an allocator's
  * slabs.
  **/
-typedef struct {
+struct slab_actor {
   /** Whether the allocator is currently launching a slab action */
   bool       launchingSlabAction;
   /** The number of slabs performing a slab action */
   SlabCount  slabActionCount;
   /** The method to call when a slab action has been completed by all slabs */
   VDOAction *callback;
-} SlabActor;
+};
 
 /**
  * These fields are only modified by the physical zone thread, but are queried
  * by other threads.
  **/
-typedef struct atomicAllocatorStatistics {
+struct atomic_allocator_statistics {
   /** The count of allocated blocks in this zone */
   Atomic64 allocatedBlocks;
   /** The number of slabs from which blocks have ever been allocated */
   Atomic64 slabsOpened;
   /** The number of times since loading that a slab been re-opened */
   Atomic64 slabsReopened;
-} AtomicAllocatorStatistics;
+};
 
 /**
  * The statistics for all the slab journals in the slabs owned by this
@@ -78,7 +78,7 @@ typedef struct atomicAllocatorStatistics {
  * but are read by other threads when gathering statistics for the entire
  * depot.
  **/
-typedef struct atomicSlabJournalStatistics {
+struct atomic_slab_journal_statistics {
   /** Number of times the on-disk journal was full */
   Atomic64 diskFullCount;
   /** Number of times an entry was added over the flush threshold */
@@ -89,7 +89,7 @@ typedef struct atomicSlabJournalStatistics {
   Atomic64 blocksWritten;
   /** Number of times we had to wait for the tail block commit */
   Atomic64 tailBusyCount;
-} AtomicSlabJournalStatistics;
+};
 
 /**
  * The statistics for all the RefCounts in the slabs owned by this
@@ -97,50 +97,50 @@ typedef struct atomicSlabJournalStatistics {
  * but are read by other threads when gathering statistics for the entire
  * depot.
  **/
-typedef struct atomicRefCountStatistics {
+struct atomic_ref_count_statistics {
   /** Number of blocks written */
   Atomic64 blocksWritten;
-} AtomicRefCountStatistics;
+};
 
 struct blockAllocator {
-  VDOCompletion                completion;
+  VDOCompletion                          completion;
   /** The slab depot for this allocator */
-  SlabDepot                   *depot;
+  SlabDepot                             *depot;
   /** The slab summary zone for this allocator */
-  SlabSummaryZone             *summary;
+  SlabSummaryZone                       *summary;
   /** The notifier for entering read-only mode */
-  ReadOnlyNotifier            *readOnlyNotifier;
+  ReadOnlyNotifier                      *readOnlyNotifier;
   /** The nonce of the VDO */
-  Nonce                        nonce;
+  Nonce                                  nonce;
   /** The physical zone number of this allocator */
-  ZoneCount                    zoneNumber;
+  ZoneCount                              zoneNumber;
   /** The thread ID for this allocator's physical zone */
-  ThreadID                     threadID;
+  ThreadID                               threadID;
   /** The number of slabs in this allocator */
-  SlabCount                    slabCount;
+  SlabCount                              slabCount;
   /** The number of the last slab owned by this allocator */
-  SlabCount                    lastSlab;
+  SlabCount                              lastSlab;
   /** The reduced priority level used to preserve unopened slabs */
-  unsigned int                 unopenedSlabPriority;
+  unsigned int                           unopenedSlabPriority;
   /** The state of this allocator */
-  struct admin_state           state;
+  struct admin_state                     state;
   /** The actor for applying an action to all slabs */
-  SlabActor                    slabActor;
+  struct slab_actor                      slabActor;
 
   /** The slab from which blocks are currently being allocated */
-  Slab                        *openSlab;
+  Slab                                  *openSlab;
   /** A priority queue containing all slabs available for allocation */
-  PriorityTable               *prioritizedSlabs;
+  PriorityTable                         *prioritizedSlabs;
   /** The slab scrubber */
-  SlabScrubber                *slabScrubber;
+  SlabScrubber                          *slabScrubber;
   /** What phase of the close operation the allocator is to perform */
-  BlockAllocatorDrainStep      drainStep;
+  BlockAllocatorDrainStep                drainStep;
   /** Statistics for this block allocator */
-  AtomicAllocatorStatistics    statistics;
+  struct atomic_allocator_statistics     statistics;
   /** Cumulative statistics for the slab journals in this zone */
-  AtomicSlabJournalStatistics  slabJournalStatistics;
+  struct atomic_slab_journal_statistics  slabJournalStatistics;
   /** Cumulative statistics for the RefCounts in this zone */
-  AtomicRefCountStatistics     refCountStatistics;
+  struct atomic_ref_count_statistics     refCountStatistics;
 
   /**
    * This is the head of a queue of slab journals which have entries in their
@@ -150,10 +150,10 @@ struct blockAllocator {
    * their blocks early. This list is kept in order, with the tail containing
    * the slab journal holding the most recent recovery journal lock.
    **/
-  RingNode                     dirtySlabJournals;
+  RingNode                               dirtySlabJournals;
 
   /** The VIO pool for reading and writing block allocator metadata */
-  VIOPool                     *vioPool;
+  VIOPool                               *vioPool;
 };
 
 /**

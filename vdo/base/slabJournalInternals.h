@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#6 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -173,88 +173,88 @@ typedef struct {
 
 struct slabJournal {
   /** A waiter object for getting a VIO pool entry */
-  Waiter                       resourceWaiter;
+  Waiter                                 resourceWaiter;
   /** A waiter object for updating the slab summary */
-  Waiter                       slabSummaryWaiter;
+  Waiter                                 slabSummaryWaiter;
   /** A waiter object for getting an extent with which to flush */
-  Waiter                       flushWaiter;
+  Waiter                                 flushWaiter;
   /** The queue of VIOs waiting to make an entry */
-  WaitQueue                    entryWaiters;
+  WaitQueue                              entryWaiters;
   /** The parent slab reference of this journal */
-  Slab                        *slab;
+  Slab                                  *slab;
 
   /** Whether a tail block commit is pending */
-  bool                         waitingToCommit;
+  bool                                   waitingToCommit;
   /** Whether the journal is updating the slab summary */
-  bool                         updatingSlabSummary;
+  bool                                   updatingSlabSummary;
   /** Whether the journal is adding entries from the entryWaiters queue */
-  bool                         addingEntries;
+  bool                                   addingEntries;
   /** Whether a partial write is in progress */
-  bool                         partialWriteInProgress;
+  bool                                   partialWriteInProgress;
 
   /** The oldest block in the journal on disk */
-  SequenceNumber               head;
+  SequenceNumber                         head;
   /** The oldest block in the journal which may not be reaped */
-  SequenceNumber               unreapable;
+  SequenceNumber                         unreapable;
   /** The end of the half-open interval of the active journal */
-  SequenceNumber               tail;
+  SequenceNumber                         tail;
   /** The next journal block to be committed */
-  SequenceNumber               nextCommit;
+  SequenceNumber                         nextCommit;
   /** The tail sequence number that is written in the slab summary */
-  SequenceNumber               summarized;
+  SequenceNumber                         summarized;
   /** The tail sequence number that was last summarized in slab summary */
-  SequenceNumber               lastSummarized;
+  SequenceNumber                         lastSummarized;
 
   /** The sequence number of the recovery journal lock */
-  SequenceNumber               recoveryLock;
+  SequenceNumber                         recoveryLock;
 
   /**
    * The number of entries which fit in a single block. Can't use the constant
    * because unit tests change this number.
    **/
-  JournalEntryCount            entriesPerBlock;
+  JournalEntryCount                      entriesPerBlock;
   /**
    * The number of full entries which fit in a single block. Can't use the
    * constant because unit tests change this number.
    **/
-  JournalEntryCount            fullEntriesPerBlock;
+  JournalEntryCount                      fullEntriesPerBlock;
 
   /** The recovery journal of the VDO (slab journal holds locks on it) */
-  RecoveryJournal             *recoveryJournal;
+  RecoveryJournal                       *recoveryJournal;
 
   /** The slab summary to update tail block location */
-  SlabSummaryZone             *summary;
+  SlabSummaryZone                       *summary;
   /** The statistics shared by all slab journals in our physical zone */
-  AtomicSlabJournalStatistics *events;
+  struct atomic_slab_journal_statistics *events;
   /** A ring of the VIO pool entries for outstanding journal block writes */
-  RingNode                     uncommittedBlocks;
+  RingNode                               uncommittedBlocks;
 
   /**
    * The current tail block header state. This will be packed into
    * the block just before it is written.
    **/
-  SlabJournalBlockHeader       tailHeader;
+  SlabJournalBlockHeader                 tailHeader;
   /** A pointer to a block-sized buffer holding the packed block data */
-  PackedSlabJournalBlock      *block;
+  PackedSlabJournalBlock                *block;
 
   /** The number of blocks in the on-disk journal */
-  BlockCount                   size;
+  BlockCount                             size;
   /** The number of blocks at which to start pushing reference blocks */
-  BlockCount                   flushingThreshold;
+  BlockCount                             flushingThreshold;
   /** The number of blocks at which all reference blocks should be writing */
-  BlockCount                   flushingDeadline;
+  BlockCount                             flushingDeadline;
   /** The number of blocks at which to wait for reference blocks to write */
-  BlockCount                   blockingThreshold;
+  BlockCount                             blockingThreshold;
   /** The number of blocks at which to scrub the slab before coming online */
-  BlockCount                   scrubbingThreshold;
+  BlockCount                             scrubbingThreshold;
 
   /** This node is for BlockAllocator to keep a queue of dirty journals */
-  RingNode                     dirtyNode;
+  RingNode                               dirtyNode;
 
   /** The lock for the oldest unreaped block of the journal */
-  JournalLock                 *reapLock;
+  JournalLock                           *reapLock;
   /** The locks for each on disk block */
-  JournalLock                  locks[];
+  JournalLock                            locks[];
 };
 
 /**

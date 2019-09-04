@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#19 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -538,7 +538,7 @@ static void swapSlabStatuses(void *item1, void *item2)
  **/
 static void notifySlabActionComplete(VDOCompletion *completion)
 {
-  SlabActor *actor = &(((BlockAllocator *) completion)->slabActor);
+  struct slab_actor *actor = &(((BlockAllocator *) completion)->slabActor);
   if ((--actor->slabActionCount == 0) && !actor->launchingSlabAction) {
     actor->callback(completion);
     return;
@@ -571,7 +571,7 @@ static void applyToSlabs(BlockAllocator *allocator,
                          SlabAction     *slabAction,
                          VDOAction      *callback)
 {
-  SlabActor *actor = &allocator->slabActor;
+  struct slab_actor *actor = &allocator->slabActor;
   actor->callback  = callback;
   prepareCompletion(&allocator->completion, notifySlabActionComplete,
                     handleOperationError, allocator->threadID, NULL);
@@ -892,7 +892,7 @@ void allocateFromAllocatorLastSlab(BlockAllocator *allocator)
 BlockAllocatorStatistics
 getBlockAllocatorStatistics(const BlockAllocator *allocator)
 {
-  const AtomicAllocatorStatistics *atoms = &allocator->statistics;
+  const struct atomic_allocator_statistics *atoms = &allocator->statistics;
   return (BlockAllocatorStatistics) {
     .slabCount     = allocator->slabCount,
     .slabsOpened   = relaxedLoad64(&atoms->slabsOpened),
@@ -903,7 +903,8 @@ getBlockAllocatorStatistics(const BlockAllocator *allocator)
 /**********************************************************************/
 SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
 {
-  const AtomicSlabJournalStatistics *atoms = &allocator->slabJournalStatistics;
+  const struct atomic_slab_journal_statistics *atoms
+    = &allocator->slabJournalStatistics;
   return (SlabJournalStatistics) {
     .diskFullCount = atomicLoad64(&atoms->diskFullCount),
     .flushCount    = atomicLoad64(&atoms->flushCount),
@@ -916,7 +917,8 @@ SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
 /**********************************************************************/
 RefCountsStatistics getRefCountsStatistics(const BlockAllocator *allocator)
 {
-  const AtomicRefCountStatistics *atoms = &allocator->refCountStatistics;
+  const struct atomic_ref_count_statistics *atoms
+    = &allocator->refCountStatistics;
   return (RefCountsStatistics) {
     .blocksWritten = atomicLoad64(&atoms->blocksWritten),
   };
