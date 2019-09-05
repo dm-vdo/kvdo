@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#16 $
  */
 
 #include "blockMap.h"
@@ -484,7 +484,7 @@ void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal)
 ZoneCount computeLogicalZone(DataVIO *dataVIO)
 {
   BlockMap   *map                  = getBlockMap(getVDOFromDataVIO(dataVIO));
-  TreeLock   *treeLock             = &dataVIO->treeLock;
+  struct tree_lock   *treeLock     = &dataVIO->treeLock;
   PageNumber  pageNumber           = computePageNumber(dataVIO->logical.lbn);
   treeLock->treeSlots[0].pageIndex = pageNumber;
   treeLock->rootIndex              = pageNumber % map->rootCount;
@@ -502,7 +502,7 @@ void findBlockMapSlotAsync(DataVIO   *dataVIO,
     return;
   }
 
-  TreeLock         *treeLock = &dataVIO->treeLock;
+  struct tree_lock *treeLock = &dataVIO->treeLock;
   BlockMapTreeSlot *slot     = &treeLock->treeSlots[0];
   slot->blockMapSlot.slot    = computeSlot(dataVIO->logical.lbn);
   if (slot->pageIndex < map->flatPageCount) {

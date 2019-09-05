@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#4 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -210,7 +210,7 @@ static int addQueuedRecoveryEntries(RecoveryJournalBlock *block)
     // Compose and encode the entry.
     PackedRecoveryJournalEntry *packedEntry
       = &block->sector->entries[block->sector->entryCount++];
-    TreeLock *lock = &dataVIO->treeLock;
+    struct tree_lock *lock = &dataVIO->treeLock;
     RecoveryJournalEntry newEntry = {
       .mapping   = {
         .pbn     = dataVIO->operation.pbn,

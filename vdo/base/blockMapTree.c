@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#12 $
  */
 
 #include "blockMapTree.h"
@@ -170,7 +170,7 @@ static inline BlockMapTreeZone *getBlockMapTreeZone(DataVIO *dataVIO)
  * @return The requested page
  **/
 static inline TreePage *getTreePage(const BlockMapTreeZone *zone,
-                                    const TreeLock         *lock)
+                                    const struct tree_lock *lock)
 {
   return getTreePageByIndex(zone->mapZone->blockMap->forest,
                             lock->rootIndex,
@@ -609,13 +609,13 @@ void drainZoneTrees(BlockMapTreeZone *zone)
  **/
 static void releasePageLock(DataVIO *dataVIO, char *what)
 {
-  TreeLock *lock = &dataVIO->treeLock;
+  struct tree_lock *lock = &dataVIO->treeLock;
   ASSERT_LOG_ONLY(lock->locked,
                   "release of unlocked block map page %s for key %" PRIu64
                   " in tree %u",
                   what, lock->key, lock->rootIndex);
   BlockMapTreeZone *zone       = getBlockMapTreeZone(dataVIO);
-  TreeLock         *lockHolder = intMapRemove(zone->loadingPages, lock->key);
+  struct tree_lock *lockHolder = intMapRemove(zone->loadingPages, lock->key);
   ASSERT_LOG_ONLY((lockHolder == lock),
                   "block map page %s mismatch for key %llu in tree %u",
                   what, lock->key, lock->rootIndex);
@@ -736,7 +736,7 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO);
  **/
 static void continueWithLoadedPage(DataVIO *dataVIO, struct block_map_page *page)
 {
-  TreeLock         *lock = &dataVIO->treeLock;
+  struct tree_lock *lock = &dataVIO->treeLock;
   BlockMapTreeSlot  slot = lock->treeSlots[lock->height];
   DataLocation mapping
     = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
@@ -792,7 +792,7 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
   VIOPoolEntry     *entry    = completion->parent;
   DataVIO          *dataVIO  = entry->parent;
   BlockMapTreeZone *zone     = (BlockMapTreeZone *) entry->context;
-  TreeLock         *treeLock = &dataVIO->treeLock;
+  struct tree_lock *treeLock = &dataVIO->treeLock;
 
   treeLock->height--;
   PhysicalBlockNumber pbn
@@ -843,7 +843,7 @@ static void loadPage(Waiter *waiter, void *context)
   entry->vio->completion.callbackThreadID
     = getBlockMapForZone(dataVIO->logical.zone)->threadID;
 
-  TreeLock *lock = &dataVIO->treeLock;
+  struct tree_lock *lock = &dataVIO->treeLock;
   launchReadMetadataVIO(entry->vio,
                         lock->treeSlots[lock->height - 1].blockMapSlot.pbn,
                         finishBlockMapPageLoad, handleIOError);
@@ -861,7 +861,7 @@ static void loadPage(Waiter *waiter, void *context)
  **/
 static int attemptPageLock(BlockMapTreeZone *zone, DataVIO *dataVIO)
 {
-  TreeLock         *lock     = &dataVIO->treeLock;
+  struct tree_lock *lock     = &dataVIO->treeLock;
   Height            height   = lock->height;
   BlockMapTreeSlot  treeSlot = lock->treeSlots[height];
   PageKey           key;
@@ -873,7 +873,7 @@ static int attemptPageLock(BlockMapTreeZone *zone, DataVIO *dataVIO)
   };
   lock->key = key.key;
 
-  TreeLock *lockHolder;
+  struct tree_lock *lockHolder;
   int result = intMapPut(zone->loadingPages, lock->key, lock, false,
                          (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
@@ -962,7 +962,7 @@ static void allocationFailure(VDOCompletion *completion)
 static void continueAllocationForWaiter(Waiter *waiter, void *context)
 {
   DataVIO             *dataVIO  = waiterAsDataVIO(waiter);
-  TreeLock            *treeLock = &dataVIO->treeLock;
+  struct tree_lock    *treeLock = &dataVIO->treeLock;
   PhysicalBlockNumber  pbn      = *((PhysicalBlockNumber *) context);
 
   treeLock->height--;
@@ -993,7 +993,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
   }
 
   BlockMapTreeZone *zone     = getBlockMapTreeZone(dataVIO);
-  TreeLock         *treeLock = &dataVIO->treeLock;
+  struct tree_lock *treeLock = &dataVIO->treeLock;
   TreePage         *treePage = getTreePage(zone, treeLock);
   Height            height   = treeLock->height;
 
@@ -1081,7 +1081,7 @@ static void setBlockMapPageReferenceCount(VDOCompletion *completion)
     return;
   }
 
-  TreeLock *lock = &dataVIO->treeLock;
+  struct tree_lock *lock = &dataVIO->treeLock;
   PhysicalBlockNumber pbn = lock->treeSlots[lock->height - 1].blockMapSlot.pbn;
   completion->callback = releaseBlockMapWriteLock;
   addSlabJournalEntry(getSlabJournal(getVDOFromDataVIO(dataVIO)->depot, pbn),
@@ -1126,7 +1126,7 @@ static void continueBlockMapPageAllocation(AllocatingVIO *allocatingVIO)
   }
 
   PhysicalBlockNumber  pbn  = allocatingVIO->allocation;
-  TreeLock            *lock = &dataVIO->treeLock;
+  struct tree_lock    *lock = &dataVIO->treeLock;
   lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
   setUpReferenceOperationWithLock(BLOCK_MAP_INCREMENT, pbn,
                                   MAPPING_STATE_UNCOMPRESSED,
@@ -1177,7 +1177,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
     return;
   }
 
-  TreeLock *lock = &dataVIO->treeLock;
+  struct tree_lock *lock = &dataVIO->treeLock;
   PageNumber pageIndex
     = ((lock->treeSlots[0].pageIndex - zone->mapZone->blockMap->flatPageCount)
        / zone->mapZone->blockMap->rootCount);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#3 $
  */
 
 #include "blockMapPage.h"
@@ -92,7 +92,7 @@ void updateBlockMapPage(struct block_map_page        *page,
                         SequenceNumber      *recoveryLock)
 {
   // Encode the new mapping.
-  TreeLock *treeLock = &dataVIO->treeLock;
+  struct tree_lock *treeLock = &dataVIO->treeLock;
   SlotNumber slot = treeLock->treeSlots[treeLock->height].blockMapSlot.slot;
   page->entries[slot] = packPBN(pbn, mappingState);
 
