@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.h#2 $
  */
 
 #ifndef COMPRESSION_STATE_H
@@ -40,10 +40,10 @@ typedef enum {
   VIO_POST_PACKER,
 } VIOCompressionStatus;
 
-typedef struct {
+struct vio_compression_state {
   VIOCompressionStatus status;
   bool                 mayNotCompress;
-} VIOCompressionState;
+};
 
 /**
  * Get the compression state of a DataVIO.
@@ -53,7 +53,7 @@ typedef struct {
  * @return The compression state
  **/
 __attribute__((warn_unused_result))
-VIOCompressionState getCompressionState(DataVIO *dataVIO);
+struct vio_compression_state getCompressionState(DataVIO *dataVIO);
 
 /**
  * Check whether a DataVIO may go to the compressor.

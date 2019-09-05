@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionStateInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionStateInternals.h#2 $
  */
 
 #ifndef COMPRESSION_STATE_INTERNALS_H
@@ -35,8 +35,8 @@
  *         compression state did not match the expected state, and so was
  *         left unchanged
  **/
-bool setCompressionState(DataVIO             *dataVIO,
-                         VIOCompressionState  state,
-                         VIOCompressionState  newState);
+bool setCompressionState(DataVIO                      *dataVIO,
+                         struct vio_compression_state  state,
+                         struct vio_compression_state  newState);
 
 #endif /* COMPRESSION_STATE_H */

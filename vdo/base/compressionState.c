@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#2 $
  */
 
 #include "compressionStateInternals.h"
@@ -28,17 +28,17 @@ static const uint32_t STATUS_MASK           = 0xff;
 static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 /**********************************************************************/
-VIOCompressionState getCompressionState(DataVIO *dataVIO)
+struct vio_compression_state getCompressionState(DataVIO *dataVIO)
 {
   uint32_t packedValue = atomicLoad32(&dataVIO->compression.state);
-  return (VIOCompressionState) {
+  return (struct vio_compression_state) {
     .status         = packedValue & STATUS_MASK,
     .mayNotCompress = ((packedValue & MAY_NOT_COMPRESS_MASK) != 0),
   };
 }
 
 /**
- * Convert a VIOCompressionState into a uint32_t which may be stored
+ * Convert a vio_compression_state into a uint32_t which may be stored
  * atomically.
  *
  * @param state  The state to convert
@@ -46,15 +46,15 @@ VIOCompressionState getCompressionState(DataVIO *dataVIO)
  * @return The compression state packed into a uint32_t
  **/
 __attribute__((warn_unused_result))
-static uint32_t packState(VIOCompressionState state)
+static uint32_t packState(struct vio_compression_state state)
 {
   return state.status | (state.mayNotCompress ? MAY_NOT_COMPRESS_MASK : 0);
 }
 
 /**********************************************************************/
-bool setCompressionState(DataVIO             *dataVIO,
-                         VIOCompressionState  state,
-                         VIOCompressionState  newState)
+bool setCompressionState(DataVIO                      *dataVIO,
+                         struct vio_compression_state  state,
+                         struct vio_compression_state  newState)
 {
   return compareAndSwap32(&dataVIO->compression.state, packState(state),
                           packState(newState));
@@ -70,13 +70,13 @@ bool setCompressionState(DataVIO             *dataVIO,
 static VIOCompressionStatus advanceStatus(DataVIO *dataVIO)
 {
   for (;;) {
-    VIOCompressionState state = getCompressionState(dataVIO);
+    struct vio_compression_state state = getCompressionState(dataVIO);
     if (state.status == VIO_POST_PACKER) {
       // We're already in the last state.
       return state.status;
     }
 
-    VIOCompressionState newState = state;
+    struct vio_compression_state newState = state;
     if (state.mayNotCompress) {
       // Compression has been dis-allowed for this VIO, so skip the rest of the
       // path and go to the end.
@@ -151,14 +151,14 @@ bool mayWriteCompressedDataVIO(DataVIO *dataVIO)
 void setCompressionDone(DataVIO *dataVIO)
 {
   for (;;) {
-    VIOCompressionState state = getCompressionState(dataVIO);
+    struct vio_compression_state state = getCompressionState(dataVIO);
     if (state.status == VIO_POST_PACKER) {
       // The VIO is already done.
       return;
     }
 
     // If compression was cancelled on this VIO, preserve that fact.
-    VIOCompressionState newState = {
+    struct vio_compression_state newState = {
       .status         = VIO_POST_PACKER,
       .mayNotCompress = true,
     };
@@ -171,7 +171,7 @@ void setCompressionDone(DataVIO *dataVIO)
 /**********************************************************************/
 bool cancelCompression(DataVIO *dataVIO)
 {
-  VIOCompressionState state;
+  struct vio_compression_state state;
   for (;;) {
     state = getCompressionState(dataVIO);
     if (state.mayNotCompress || (state.status == VIO_POST_PACKER)) {
@@ -179,7 +179,7 @@ bool cancelCompression(DataVIO *dataVIO)
       break;
     }
 
-    VIOCompressionState newState = {
+    struct vio_compression_state newState = {
       .status         = state.status,
       .mayNotCompress = true,
     };

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#9 $
  */
 
 #include "packerInternals.h"
@@ -807,7 +807,7 @@ void attemptPacking(DataVIO *dataVIO)
   Packer *packer = getPackerFromDataVIO(dataVIO);
   assertOnPackerThread(packer, __func__);
 
-  VIOCompressionState state = getCompressionState(dataVIO);
+  struct vio_compression_state state = getCompressionState(dataVIO);
   int result = ASSERT((state.status == VIO_COMPRESSING),
                       "attempt to pack DataVIO not ready for packing, state: "
                       "%u",
