@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockAllocatorInternals.h#2 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockAllocatorInternals.h#3 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -36,6 +36,14 @@ enum {
   BLOCK_DESCRIPTOR_POOL_SIZE = 256,
   VIO_POOL_SIZE              = 128,
 };
+
+typedef enum {
+  CLOSE_ALLOCATOR_START = 0,
+  CLOSE_ALLOCATOR_STEP_SAVE_SLABS,
+  CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY,
+  CLOSE_ALLOCATOR_VIO_POOL,
+  CLOSE_ALLOCATOR_DESCRIPTOR_POOL,
+} BlockAllocatorCloseStep;
 
 typedef struct {
   VDOCompletion  completion;
@@ -116,6 +124,8 @@ struct blockAllocator {
   SlabScrubber                *slabScrubber;
   /** The completion for saving slabs */
   VDOCompletion               *slabCompletion;
+  /** What phase of the close operation the allocator is to perform */
+  BlockAllocatorCloseStep      closeStep;
 
   /** Statistics for this block allocator */
   AtomicAllocatorStatistics    statistics;

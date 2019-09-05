@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockAllocator.c#1 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/base/blockAllocator.c#2 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -662,40 +662,63 @@ void resumeSummaryZone(BlockAllocator *allocator,
 }
 
 /**
- * Close the slab summary zone for this allocator now that the slabs have
- * all been saved. This callback is registered in closeBlockAllocator().
+ * Handle an error while closing an allocator.
  *
  * @param completion  The slab completion
  **/
-static void finishSavingSlabs(VDOCompletion *completion)
-{
-  BlockAllocator *allocator = completion->parent;
-  closeSlabSummaryZone(allocator->summary, &allocator->completion);
-}
-
-/**
- * Handle an error saving slabs.
- *
- * @param completion  The slab completion
- **/
-static void handleSlabSaveError(VDOCompletion *completion)
+static void handleCloseError(VDOCompletion *completion)
 {
   // Preserve the error.
   BlockAllocator *allocator = completion->parent;
   setCompletionResult(&allocator->completion, completion->result);
-  finishSavingSlabs(completion);
+
+  // Continue along the close path
+  completion->callback(completion);
 }
 
 /**
- * Initiate the save of the allocator now that scrubbing is complete.
+ * Perform a step in closing the allocator. This method is its own callback.
  *
- * @param allocator  The allocater to save
+ * @param completion  The slab completion
  **/
-static void launchSave(BlockAllocator *allocator)
+static void doCloseAllocatorStep(VDOCompletion *completion)
 {
-  prepareCompletion(allocator->slabCompletion, finishSavingSlabs,
-                    handleSlabSaveError, allocator->threadID, allocator);
-  saveSlabs(allocator->slabCompletion, getSlabIterator(allocator));
+  BlockAllocator *allocator = completion->parent;
+  resetCompletion(completion);
+  completion->requeue = true;
+  switch (++allocator->closeStep) {
+  case CLOSE_ALLOCATOR_STEP_SAVE_SLABS:
+    saveSlabs(completion, getSlabIterator(allocator));
+    return;
+
+  case CLOSE_ALLOCATOR_STEP_CLOSE_SLAB_SUMMARY:
+    closeSlabSummaryZone(allocator->summary, completion);
+    return;
+
+  case CLOSE_ALLOCATOR_VIO_POOL:
+    closeObjectPool(allocator->vioPool, completion);
+    return;
+
+  case CLOSE_ALLOCATOR_DESCRIPTOR_POOL:
+    closeObjectPool(allocator->blockDescriptorPool, completion);
+    return;
+
+  default:
+    finishCompletion(&allocator->completion, VDO_SUCCESS);
+  }
+}
+
+/**
+ * Initiate the close of the allocator now that scrubbing is complete.
+ *
+ * @param allocator  The allocater to close
+ **/
+static void launchClose(BlockAllocator *allocator)
+{
+  allocator->closeStep = CLOSE_ALLOCATOR_START;
+  prepareForRequeue(allocator->slabCompletion, doCloseAllocatorStep,
+                    handleCloseError, allocator->threadID, allocator);
+  doCloseAllocatorStep(allocator->slabCompletion);
 }
 
 /**********************************************************************/
@@ -710,7 +733,7 @@ void closeBlockAllocator(BlockAllocator *allocator,
   if (isScrubbing(allocator->slabScrubber)) {
     stopScrubbing(allocator->slabScrubber);
   } else {
-    launchSave(allocator);
+    launchClose(allocator);
   }
 }
 
@@ -837,7 +860,7 @@ static void scrubberFinished(VDOCompletion *completion)
   BlockAllocator *allocator = completion->parent;
   notifyZoneStoppedScrubbing(allocator->depot);
   if (allocator->saveRequested) {
-    launchSave(allocator);
+    launchClose(allocator);
   }
 }
 
