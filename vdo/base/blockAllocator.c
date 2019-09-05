@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#20 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -492,10 +492,11 @@ void releaseBlockReference(BlockAllocator      *allocator,
  * 'isClean' field as the primary key and the 'emptiness' field as the
  * secondary key.
  *
- * Slabs need to be pushed onto the rings in the same order they are to be
- * popped off. Popping should always get the most empty first, so pushing
- * should be from most empty to least empty. Thus, the comparator order is
- * the usual sense since Heap returns larger elements before smaller ones.
+ * Slabs need to be pushed onto the rings in the same order they are
+ * to be popped off. Popping should always get the most empty first,
+ * so pushing should be from most empty to least empty. Thus, the
+ * comparator order is the usual sense since the heap structure
+ * returns larger elements before smaller ones.
  *
  * @param item1  The first item to compare
  * @param item2  The second item to compare
@@ -660,7 +661,7 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
   getSummarizedSlabStatuses(allocator->summary, slabCount, slabStatuses);
 
   // Sort the slabs by cleanliness, then by emptiness hint.
-  Heap heap;
+  struct heap heap;
   initializeHeap(&heap, compareSlabStatuses, swapSlabStatuses,
                  slabStatuses, slabCount, sizeof(SlabStatus));
   buildHeap(&heap, slabCount);

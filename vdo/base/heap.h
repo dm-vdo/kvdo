@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#2 $
  */
 
 #ifndef HEAP_H
@@ -53,7 +53,7 @@ typedef void HeapSwapper(void *item1, void *item2);
  * array by calling buildHeap(), all the other heap operations may be used on
  * that array.
  **/
-typedef struct heap {
+struct heap {
   /** the 1-based array of heap elements (nodes) */
   byte           *array;
   /** the function to use to compare two elements */
@@ -66,7 +66,7 @@ typedef struct heap {
   size_t          elementSize;
   /** the current number of elements in the heap */
   size_t          count;
-} Heap;
+};
 
 /**
  * Initialize an binary heap by wrapping it around an array of elements.
@@ -81,7 +81,7 @@ typedef struct heap {
  * @param capacity      The maximum number of elements which fit in the array
  * @param elementSize   The size of every array element, in bytes
  **/
-void initializeHeap(Heap           *heap,
+void initializeHeap(struct heap    *heap,
                     HeapComparator *comparator,
                     HeapSwapper    *swapper,
                     void           *array,
@@ -98,7 +98,7 @@ void initializeHeap(Heap           *heap,
  * @param heap   The heap to build
  * @param count  The number of elements in the array to build into a heap
  **/
-void buildHeap(Heap *heap, size_t count);
+void buildHeap(struct heap *heap, size_t count);
 
 /**
  * Check whether the heap is currently empty.
@@ -107,7 +107,7 @@ void buildHeap(Heap *heap, size_t count);
  *
  * @return <code>true</code> if there are no elements in the heap
  **/
-static inline bool isHeapEmpty(const Heap *heap)
+static inline bool isHeapEmpty(const struct heap *heap)
 {
   return (heap->count == 0);
 }
@@ -123,7 +123,7 @@ static inline bool isHeapEmpty(const Heap *heap)
  *
  * @return <code>false</code> if the heap was empty, so no element was removed
  **/
-bool popMaxHeapElement(Heap *heap, void *elementPtr);
+bool popMaxHeapElement(struct heap *heap, void *elementPtr);
 
 /**
  * Sort the elements contained in a heap.
@@ -140,7 +140,7 @@ bool popMaxHeapElement(Heap *heap, void *elementPtr);
  *
  * @return the number of elements that were sorted
  **/
-size_t sortHeap(Heap *heap);
+size_t sortHeap(struct heap *heap);
 
 /**
  * Gets the next sorted heap element and returns a pointer to it, in O(log2(N))
@@ -150,6 +150,6 @@ size_t sortHeap(Heap *heap);
  *
  * @return a pointer to the element sorted, or NULL if already fully sorted.
  **/
-void *sortNextHeapElement(Heap *heap);
+void *sortNextHeapElement(struct heap *heap);
 
 #endif /* HEAP_H */

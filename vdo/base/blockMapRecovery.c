@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#7 $
  */
 
 #include "blockMapRecovery.h"
@@ -64,7 +64,7 @@ struct block_map_recovery_completion {
    * ascending LBN order, then original journal order. This permits efficient
    * iteration over the journal entries in order.
    **/
-  Heap                           replayHeap;
+  struct heap                    replayHeap;
 
   // Fields tracking progress through the journal entries.
   /** a pointer to the next journal entry to apply */
@@ -91,9 +91,10 @@ struct block_map_recovery_completion {
  * ensuring we replay all entries with the same slot in the exact order as they
  * appeared in the journal.
  *
- * <p>The comparator order is reversed from the usual sense since Heap is a
- * max-heap, returning larger elements before smaller ones, but we want to pop
- * entries off the heap in ascending LBN order.
+ * <p>The comparator order is reversed from the usual sense since the
+ * heap structure is a max-heap, returning larger elements before
+ * smaller ones, but we want to pop entries off the heap in ascending
+ * LBN order.
  **/
 static int compareMappings(const void *item1, const void *item2)
 {

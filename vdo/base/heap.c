@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#2 $
  */
 
 #include "heap.h"
@@ -28,14 +28,14 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-void initializeHeap(Heap           *heap,
+void initializeHeap(struct heap    *heap,
                     HeapComparator *comparator,
                     HeapSwapper    *swapper,
                     void           *array,
                     size_t          capacity,
                     size_t          elementSize)
 {
-  *heap = (Heap) {
+  *heap = (struct heap) {
     .comparator  = comparator,
     .swapper     = swapper,
     .capacity    = capacity,
@@ -49,7 +49,7 @@ void initializeHeap(Heap           *heap,
 }
 
 /**********************************************************************/
-static void siftHeapDown(Heap *heap, size_t topNode, size_t lastNode)
+static void siftHeapDown(struct heap *heap, size_t topNode, size_t lastNode)
 {
   // Keep sifting until the sub-heap rooted at topNode has no children.
   size_t leftChild;
@@ -83,7 +83,7 @@ static void siftHeapDown(Heap *heap, size_t topNode, size_t lastNode)
 }
 
 /**********************************************************************/
-void buildHeap(Heap *heap, size_t count)
+void buildHeap(struct heap *heap, size_t count)
 {
   heap->count = minSizeT(count, heap->capacity);
 
@@ -116,7 +116,7 @@ void buildHeap(Heap *heap, size_t count)
 }
 
 /**********************************************************************/
-bool popMaxHeapElement(Heap *heap, void *elementPtr)
+bool popMaxHeapElement(struct heap *heap, void *elementPtr)
 {
   if (heap->count == 0) {
     return false;
@@ -144,7 +144,9 @@ bool popMaxHeapElement(Heap *heap, void *elementPtr)
 }
 
 /**********************************************************************/
-static inline size_t siftAndSort(Heap *heap, size_t rootNode, size_t lastNode)
+static inline size_t siftAndSort(struct heap *heap,
+                                 size_t       rootNode,
+                                 size_t       lastNode)
 {
   /*
    * We have a valid heap, so the largest unsorted element is now at the top
@@ -165,7 +167,7 @@ static inline size_t siftAndSort(Heap *heap, size_t rootNode, size_t lastNode)
 }
 
 /**********************************************************************/
-size_t sortHeap(Heap *heap)
+size_t sortHeap(struct heap *heap)
 {
   // All zero-length records are identical and therefore already sorted, as
   // are empty or singleton arrays.
@@ -188,7 +190,7 @@ size_t sortHeap(Heap *heap)
 }
 
 /**********************************************************************/
-void *sortNextHeapElement(Heap *heap)
+void *sortNextHeapElement(struct heap *heap)
 {
   if ((heap->count == 0) || (heap->elementSize == 0)) {
     return NULL;
