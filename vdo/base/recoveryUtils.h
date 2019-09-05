@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#2 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -60,8 +60,8 @@ PackedJournalHeader *getJournalBlockHeader(RecoveryJournal *journal,
  **/
 __attribute__((warn_unused_result))
 static inline
-bool isValidRecoveryJournalBlock(const RecoveryJournal     *journal,
-                                 const RecoveryBlockHeader *header)
+bool isValidRecoveryJournalBlock(const RecoveryJournal              *journal,
+                                 const struct recovery_block_header *header)
 {
   return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
           && (header->nonce == journal->nonce)
@@ -79,9 +79,9 @@ bool isValidRecoveryJournalBlock(const RecoveryJournal     *journal,
  **/
 __attribute__((warn_unused_result))
 static inline
-bool isExactRecoveryJournalBlock(const RecoveryJournal     *journal,
-                                 const RecoveryBlockHeader *header,
-                                 SequenceNumber             sequence)
+bool isExactRecoveryJournalBlock(const RecoveryJournal              *journal,
+                                 const struct recovery_block_header *header,
+                                 SequenceNumber                      sequence)
 {
   return ((header->sequenceNumber == sequence)
           && isValidRecoveryJournalBlock(journal, header));
@@ -98,8 +98,8 @@ bool isExactRecoveryJournalBlock(const RecoveryJournal     *journal,
  **/
 __attribute__((warn_unused_result))
 static inline
-bool isValidRecoveryJournalSector(const RecoveryBlockHeader *header,
-                                  const PackedJournalSector *sector)
+bool isValidRecoveryJournalSector(const struct recovery_block_header *header,
+                                  const struct packed_journal_sector *sector)
 {
   return ((header->checkByte == sector->checkByte)
           && (header->recoveryCount == sector->recoveryCount));

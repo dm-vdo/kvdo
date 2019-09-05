@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#5 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -108,7 +108,7 @@ PackedJournalHeader *getBlockHeader(const RecoveryJournalBlock *block)
  **/
 static void setActiveSector(RecoveryJournalBlock *block, void *sector)
 {
-  block->sector                = (PackedJournalSector *) sector;
+  block->sector                = (struct packed_journal_sector *) sector;
   block->sector->checkByte     = getBlockHeader(block)->fields.checkByte;
   block->sector->recoveryCount = block->journal->recoveryCount;
   block->sector->entryCount    = 0;
@@ -126,7 +126,7 @@ void initializeRecoveryBlock(RecoveryJournalBlock *block)
 
   block->blockNumber = getRecoveryJournalBlockNumber(journal, journal->tail);
 
-  RecoveryBlockHeader unpacked = {
+  struct recovery_block_header unpacked = {
     .metadataType       = VDO_METADATA_RECOVERY_JOURNAL,
     .blockMapDataBlocks = journal->blockMapDataBlocks,
     .logicalBlocksUsed  = journal->logicalBlocksUsed,

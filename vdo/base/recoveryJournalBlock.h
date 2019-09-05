@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -32,35 +32,35 @@
 
 struct recoveryJournalBlock {
   /** The doubly linked pointers for the free or active lists */
-  RingNode             ringNode;
+  RingNode                      ringNode;
   /** The journal to which this block belongs */
-  RecoveryJournal     *journal;
+  RecoveryJournal              *journal;
   /** A pointer to a block-sized buffer holding the packed block data */
-  char                *block;
+  char                         *block;
   /** A pointer to the current sector in the packed block buffer */
-  PackedJournalSector *sector;
+  struct packed_journal_sector *sector;
   /** The VIO for writing this block */
-  VIO                 *vio;
+  VIO                          *vio;
   /** The sequence number for this block */
-  SequenceNumber       sequenceNumber;
+  SequenceNumber                sequenceNumber;
   /** The location of this block in the on-disk journal */
-  PhysicalBlockNumber  blockNumber;
+  PhysicalBlockNumber           blockNumber;
   /** Whether this block is being committed */
-  bool                 committing;
+  bool                          committing;
   /** Whether this block has an uncommitted increment for a partial write */
-  bool                 hasPartialWriteEntry;
+  bool                          hasPartialWriteEntry;
   /** Whether this block has an uncommitted increment for a write with FUA */
-  bool                 hasFUAEntry;
+  bool                          hasFUAEntry;
   /** The total number of entries in this block */
-  JournalEntryCount    entryCount;
+  JournalEntryCount             entryCount;
   /** The total number of uncommitted entries (queued or committing) */
-  JournalEntryCount    uncommittedEntryCount;
+  JournalEntryCount             uncommittedEntryCount;
   /** The number of new entries in the current commit */
-  JournalEntryCount    entriesInCommit;
+  JournalEntryCount             entriesInCommit;
   /** The queue of VIOs which will make entries for the next commit */
-  WaitQueue            entryWaiters;
+  WaitQueue                     entryWaiters;
   /** The queue of VIOs waiting for the current commit */
-  WaitQueue            commitWaiters;
+  WaitQueue                     commitWaiters;
 };
 
 /**

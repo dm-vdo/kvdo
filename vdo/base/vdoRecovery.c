@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#15 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -425,8 +425,8 @@ static RecoveryJournalEntry getEntry(const RecoveryCompletion *recovery,
     = getRecoveryJournalBlockNumber(journal, point->sequenceNumber);
   off_t sectorOffset
     = (blockNumber * VDO_BLOCK_SIZE) + (point->sectorCount * VDO_SECTOR_SIZE);
-  PackedJournalSector *sector
-    = (PackedJournalSector *) &recovery->journalData[sectorOffset];
+  struct packed_journal_sector *sector
+    = (struct packed_journal_sector *) &recovery->journalData[sectorOffset];
   return unpackRecoveryJournalEntry(&sector->entries[point->entryCount]);
 }
 
@@ -615,7 +615,7 @@ static int computeUsages(RecoveryCompletion *recovery)
   PackedJournalHeader *tailHeader
     = getJournalBlockHeader(journal, recovery->journalData, recovery->tail);
 
-  RecoveryBlockHeader unpacked;
+  struct recovery_block_header unpacked;
   unpackRecoveryBlockHeader(tailHeader, &unpacked);
   recovery->logicalBlocksUsed  = unpacked.logicalBlocksUsed;
   recovery->blockMapDataBlocks = unpacked.blockMapDataBlocks;
@@ -1081,7 +1081,7 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
 
     PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, recovery->journalData, i);
-    RecoveryBlockHeader header;
+    struct recovery_block_header header;
     unpackRecoveryBlockHeader(packedHeader, &header);
 
     if (!isExactRecoveryJournalBlock(journal, &header, i)
@@ -1093,7 +1093,8 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
     JournalEntryCount blockEntries = header.entryCount;
     // Examine each sector in turn to determine the last valid sector.
     for (uint8_t j = 1; j < SECTORS_PER_BLOCK; j++) {
-      PackedJournalSector *sector = getJournalBlockSector(packedHeader, j);
+      struct packed_journal_sector *sector
+        = getJournalBlockSector(packedHeader, j);
 
       // A bad sector means that this block was torn.
       if (!isValidRecoveryJournalSector(&header, sector)) {

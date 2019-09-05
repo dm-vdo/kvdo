@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#2 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -28,7 +28,7 @@
 #include "recoveryJournalEntry.h"
 #include "types.h"
 
-typedef struct {
+struct recovery_block_header {
   SequenceNumber    blockMapHead;       // Block map head sequence number
   SequenceNumber    slabJournalHead;    // Slab journal head sequence number
   SequenceNumber    sequenceNumber;     // Sequence number for this block
@@ -39,7 +39,7 @@ typedef struct {
   uint8_t           checkByte;          // The protection check byte
   uint8_t           recoveryCount;      // The number of recoveries completed
   VDOMetadataType   metadataType;       // Metadata type
-} RecoveryBlockHeader;
+};
 
 /**
  * The packed, on-disk representation of a recovery journal block header.
@@ -99,7 +99,7 @@ typedef union __attribute__((packed)) {
 #endif
 } PackedJournalHeader;
 
-typedef struct {
+struct packed_journal_sector {
   /** The protection check byte */
   uint8_t checkByte;
 
@@ -111,7 +111,7 @@ typedef struct {
 
   /** Journal entries for this sector */
   PackedRecoveryJournalEntry entries[];
-} __attribute__((packed)) PackedJournalSector;
+} __attribute__((packed));
 
 enum {
   // Allowing more than 311 entries in each block changes the math
@@ -119,7 +119,7 @@ enum {
   RECOVERY_JOURNAL_ENTRIES_PER_BLOCK = 311,
   /** The number of entries in each sector (except the last) when filled */
   RECOVERY_JOURNAL_ENTRIES_PER_SECTOR
-    = ((VDO_SECTOR_SIZE - sizeof(PackedJournalSector))
+    = ((VDO_SECTOR_SIZE - sizeof(struct packed_journal_sector))
        / sizeof(PackedRecoveryJournalEntry)),
   /** The number of entries in the last sector when a block is full */
   RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR
@@ -137,11 +137,11 @@ enum {
  **/
 __attribute__((warn_unused_result))
 static inline
-PackedJournalSector *getJournalBlockSector(PackedJournalHeader *header,
-                                           int                  sectorNumber)
+struct packed_journal_sector *getJournalBlockSector(PackedJournalHeader *header,
+                                                    int sectorNumber)
 {
   char *sectorData = ((char *) header) + (VDO_SECTOR_SIZE * sectorNumber);
-  return (PackedJournalSector *) sectorData;
+  return (struct packed_journal_sector *) sectorData;
 }
 
 /**
@@ -150,8 +150,9 @@ PackedJournalSector *getJournalBlockSector(PackedJournalHeader *header,
  * @param header  The header containing the values to encode
  * @param packed  The header into which to pack the values
  **/
-static inline void packRecoveryBlockHeader(const RecoveryBlockHeader *header,
-                                           PackedJournalHeader       *packed)
+static inline void
+packRecoveryBlockHeader(const struct recovery_block_header     *header,
+                                           PackedJournalHeader *packed)
 {
   storeUInt64LE(packed->fields.blockMapHead,       header->blockMapHead);
   storeUInt64LE(packed->fields.slabJournalHead,    header->slabJournalHead);
@@ -172,10 +173,11 @@ static inline void packRecoveryBlockHeader(const RecoveryBlockHeader *header,
  * @param packed  The packed header to decode
  * @param header  The header into which to unpack the values
  **/
-static inline void unpackRecoveryBlockHeader(const PackedJournalHeader *packed,
-                                             RecoveryBlockHeader       *header)
+static inline void
+unpackRecoveryBlockHeader(const PackedJournalHeader     *packed,
+                          struct recovery_block_header  *header)
 {
-  *header = (RecoveryBlockHeader) {
+  *header = (struct recovery_block_header) {
     .blockMapHead       = getUInt64LE(packed->fields.blockMapHead),
     .slabJournalHead    = getUInt64LE(packed->fields.slabJournalHead),
     .sequenceNumber     = getUInt64LE(packed->fields.sequenceNumber),

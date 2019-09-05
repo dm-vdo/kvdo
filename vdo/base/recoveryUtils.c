@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#2 $
  */
 
 #include "recoveryUtils.h"
@@ -85,9 +85,10 @@ void loadJournalAsync(RecoveryJournal  *journal,
  * @return <code>True</code> if the header matches
  **/
 __attribute__((warn_unused_result))
-static bool isCongruentRecoveryJournalBlock(RecoveryJournal           *journal,
-                                            const RecoveryBlockHeader *header,
-                                            PhysicalBlockNumber        offset)
+static bool
+isCongruentRecoveryJournalBlock(RecoveryJournal                    *journal,
+                                const struct recovery_block_header *header,
+                                PhysicalBlockNumber                 offset)
 {
   PhysicalBlockNumber expectedOffset
     = getRecoveryJournalBlockNumber(journal, header->sequenceNumber);
@@ -109,7 +110,7 @@ bool findHeadAndTail(RecoveryJournal *journal,
   for (PhysicalBlockNumber i = 0; i < journal->size; i++) {
     PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, journalData, i);
-    RecoveryBlockHeader header;
+    struct recovery_block_header header;
     unpackRecoveryBlockHeader(packedHeader, &header);
 
     if (!isCongruentRecoveryJournalBlock(journal, &header, i)) {
