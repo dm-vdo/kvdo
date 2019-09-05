@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#10 $
  */
 
 #include "packerInternals.h"
@@ -56,10 +56,10 @@ static inline InputBin *inputBinFromRingNode(RingNode *node)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static inline OutputBin *outputBinFromRingNode(RingNode *node)
+static inline struct output_bin *outputBinFromRingNode(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(OutputBin, ring) == 0);
-  return (OutputBin *) node;
+  STATIC_ASSERT(offsetof(struct output_bin, ring) == 0);
+  return (struct output_bin *) node;
 }
 
 /**********************************************************************/
@@ -131,7 +131,7 @@ static int makeInputBin(Packer *packer)
  * @param packer  The packer
  * @param bin     The output bin
  **/
-static void pushOutputBin(Packer *packer, OutputBin *bin)
+static void pushOutputBin(Packer *packer, struct output_bin *bin)
 {
   ASSERT_LOG_ONLY(!hasWaiters(&bin->outgoing),
                   "idle output bin has no waiters");
@@ -146,14 +146,14 @@ static void pushOutputBin(Packer *packer, OutputBin *bin)
  * @return an idle output bin, or <code>NULL</code> if there are no idle bins
  **/
 __attribute__((warn_unused_result))
-static OutputBin *popOutputBin(Packer *packer)
+static struct output_bin *popOutputBin(Packer *packer)
 {
   if (packer->idleOutputBinCount == 0) {
     return NULL;
   }
 
-  size_t     index = --packer->idleOutputBinCount;
-  OutputBin *bin   = packer->idleOutputBins[index];
+  size_t             index = --packer->idleOutputBinCount;
+  struct output_bin *bin   = packer->idleOutputBins[index];
   packer->idleOutputBins[index] = NULL;
   return bin;
 }
@@ -170,8 +170,8 @@ static OutputBin *popOutputBin(Packer *packer)
 __attribute__((warn_unused_result))
 static int makeOutputBin(Packer *packer, PhysicalLayer *layer)
 {
-  OutputBin *output;
-  int result = ALLOCATE(1, OutputBin, __func__, &output);
+  struct output_bin *output;
+  int result = ALLOCATE(1, struct output_bin, __func__, &output);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -197,9 +197,9 @@ static int makeOutputBin(Packer *packer, PhysicalLayer *layer)
  *
  * @param binPtr  The reference to the output bin to free
  **/
-static void freeOutputBin(OutputBin **binPtr)
+static void freeOutputBin(struct output_bin **binPtr)
 {
-  OutputBin *bin = *binPtr;
+  struct output_bin *bin = *binPtr;
   if (bin == NULL) {
     return;
   }
@@ -222,7 +222,7 @@ int makePacker(PhysicalLayer       *layer,
 {
   Packer *packer;
   int result = ALLOCATE_EXTENDED(Packer, outputBinCount,
-                                 OutputBin *, __func__, &packer);
+                                 struct output_bin *, __func__, &packer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -290,7 +290,7 @@ void freePacker(Packer **packerPtr)
 
   FREE(packer->canceledBin);
 
-  OutputBin *output;
+  struct output_bin *output;
   while ((output = popOutputBin(packer)) != NULL) {
     freeOutputBin(&output);
   }
@@ -411,7 +411,7 @@ static bool switchToPackerThread(VDOCompletion *completion)
  * @param packer  The packer which owns the bin
  * @param bin     The bin which has finished
  **/
-static void finishOutputBin(Packer *packer, OutputBin *bin)
+static void finishOutputBin(Packer *packer, struct output_bin *bin)
 {
   if (hasWaiters(&bin->outgoing)) {
     notifyAllWaiters(&bin->outgoing, continueVIOWithoutPacking, NULL);
@@ -469,8 +469,8 @@ static void continueWaiter(Waiter *waiter,
  **/
 static void shareCompressedBlock(Waiter *waiter, void *context)
 {
-  DataVIO   *dataVIO = waiterAsDataVIO(waiter);
-  OutputBin *bin     = context;
+  DataVIO           *dataVIO = waiterAsDataVIO(waiter);
+  struct output_bin *bin     = context;
 
   dataVIO->newMapped = (ZonedPBN) {
     .pbn   = bin->writer->allocation,
@@ -495,7 +495,7 @@ static void shareCompressedBlock(Waiter *waiter, void *context)
  **/
 static void finishCompressedWrite(VDOCompletion *completion)
 {
-  OutputBin *bin = completion->parent;
+  struct output_bin *bin = completion->parent;
   assertInPhysicalZone(bin->writer);
 
   if (completion->result != VDO_SUCCESS) {
@@ -550,7 +550,7 @@ static void continueAfterAllocation(AllocatingVIO *allocatingVIO)
  * @param packer  The packer which owns the bin
  * @param bin     The output bin to launch
  **/
-static void launchCompressedWrite(Packer *packer, OutputBin *bin)
+static void launchCompressedWrite(Packer *packer, struct output_bin *bin)
 {
   if (isReadOnly(getVDOFromAllocatingVIO(bin->writer)->readOnlyNotifier)) {
     finishOutputBin(packer, bin);
@@ -573,7 +573,7 @@ static void launchCompressedWrite(Packer *packer, OutputBin *bin)
  * @param packer  The packer
  * @param batch   The counted array to fill with the next batch of VIOs
  **/
-static void getNextBatch(Packer *packer, OutputBatch *batch)
+static void getNextBatch(Packer *packer, struct output_batch *batch)
 {
   BlockSize spaceRemaining = packer->binDataSize;
   batch->slotsUsed         = 0;
@@ -604,9 +604,9 @@ static void getNextBatch(Packer *packer, OutputBatch *batch)
  * @return <code>true</code> if a write was issued for the output bin
  **/
 __attribute__((warn_unused_result))
-static bool writeNextBatch(Packer *packer, OutputBin *output)
+static bool writeNextBatch(Packer *packer, struct output_bin *output)
 {
-  OutputBatch batch;
+  struct output_batch batch;
   getNextBatch(packer, &batch);
 
   if (batch.slotsUsed == 0) {
@@ -750,7 +750,7 @@ static void writePendingBatches(Packer *packer)
   // return from this function without clearing this flag.
   packer->writingBatches = true;
 
-  OutputBin *output;
+  struct output_bin *output;
   while (hasWaiters(&packer->batchedDataVIOs)
          && ((output = popOutputBin(packer)) != NULL)) {
     if (!writeNextBatch(packer, output)) {
@@ -973,7 +973,7 @@ static void dumpInputBin(const InputBin *bin, bool canceled)
 }
 
 /**********************************************************************/
-static void dumpOutputBin(const OutputBin *bin)
+static void dumpOutputBin(const struct output_bin *bin)
 {
   size_t count = countWaiters(&bin->outgoing);
   if (bin->slotsUsed == 0) {
@@ -981,7 +981,7 @@ static void dumpOutputBin(const OutputBin *bin)
     return;
   }
 
-  logInfo("    OutputBin contains %zu outgoing waiters", count);
+  logInfo("    struct output_bin contains %zu outgoing waiters", count);
 
   // XXX dump VIOs in bin->outgoing? The VIOs should have been dumped from the
   // VIO pool. Maybe just dump their addresses so it's clear they're here?

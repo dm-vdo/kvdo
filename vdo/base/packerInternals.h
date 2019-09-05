@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#6 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -38,7 +38,7 @@
  * unused space so the first bin with enough space to hold a newly-compressed
  * DataVIO can easily be found. When the bin fills up or is flushed, the
  * incoming DataVIOs are moved to the Packer's batchedDataVIOs queue, from
- * which they will eventually be routed to an idle OutputBin.
+ * which they will eventually be routed to an idle output_bin.
  *
  * There is one special input bin which is used to hold DataVIOs which have
  * been canceled and removed from their input bin by the packer. These DataVIOs
@@ -57,12 +57,12 @@ struct inputBin {
 };
 
 /**
- * Each OutputBin allows a single compressed block to be packed and written.
+ * Each output_bin allows a single compressed block to be packed and written.
  * When it is not idle, it holds a batch of DataVIOs that have been packed
  * into the compressed block, written asynchronously, and are waiting for the
  * write to complete.
  **/
-typedef struct {
+struct output_bin {
   /** List links for Packer.outputBins */
   RingNode                 ring;
   /** The storage for encoding the compressed block representation */
@@ -73,16 +73,16 @@ typedef struct {
   SlotNumber               slotsUsed;
   /** The DataVIOs packed into the block, waiting for the write to complete */
   WaitQueue                outgoing;
-} OutputBin;
+};
 
 /**
  * A counted array holding a batch of DataVIOs that should be packed into an
  * output bin.
  **/
-typedef struct {
+struct output_batch {
   size_t   slotsUsed;
   DataVIO *slots[MAX_COMPRESSION_SLOTS];
-} OutputBatch;
+};
 
 struct packer {
   /** The ID of the packer's callback thread */
@@ -130,7 +130,7 @@ struct packer {
   /** The number of idle output bins on the stack */
   size_t              idleOutputBinCount;
   /** The stack of idle output bins (0=bottom) */
-  OutputBin          *idleOutputBins[];
+  struct output_bin  *idleOutputBins[];
 };
 
 /**
