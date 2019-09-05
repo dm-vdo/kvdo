@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#7 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -41,9 +41,9 @@ typedef enum referenceStatus {
 } ReferenceStatus;
 
 /**
- * The SearchCursor represents the saved position of a free block search.
+ * The search_cursor represents the saved position of a free block search.
  **/
-typedef struct searchCursor {
+struct search_cursor {
   /** The reference block containing the current search index */
   ReferenceBlock      *block;
   /** The position at which to start searching for the next free counter */
@@ -55,7 +55,7 @@ typedef struct searchCursor {
   ReferenceBlock      *firstBlock;
   /** A pointer to the last reference block in the slab */
   ReferenceBlock      *lastBlock;
-} SearchCursor;
+};
 
 /*
  * RefCounts structure
@@ -78,7 +78,7 @@ struct refCounts {
   ReferenceCount                     *counters; // use ALLOCATE to align data ptr
 
   /** The saved block pointer and array indexes for the free block search */
-  SearchCursor                        searchCursor;
+  struct search_cursor                searchCursor;
 
   /** A list of the dirty blocks waiting to be written out */
   WaitQueue                           dirtyBlocks;

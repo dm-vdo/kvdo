@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#9 $
  */
 
 #include "refCounts.h"
@@ -125,7 +125,7 @@ ReferenceStatus referenceCountToStatus(ReferenceCount count)
  **/
 static void resetSearchCursor(RefCounts *refCounts)
 {
-  SearchCursor *cursor = &refCounts->searchCursor;
+  struct search_cursor *cursor = &refCounts->searchCursor;
 
   cursor->block    = cursor->firstBlock;
   cursor->index    = 0;
@@ -144,7 +144,7 @@ static void resetSearchCursor(RefCounts *refCounts)
  **/
 static bool advanceSearchCursor(RefCounts *refCounts)
 {
-  SearchCursor *cursor = &refCounts->searchCursor;
+  struct search_cursor *cursor = &refCounts->searchCursor;
 
   // If we just finished searching the last reference block, then wrap back
   // around to the start of the array.
