@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#3 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -148,8 +148,8 @@ bool findHeadAndTail(RecoveryJournal *journal,
  *
  * @return VDO_SUCCESS or an error
  **/
-int validateRecoveryJournalEntry(const VDO                  *vdo,
-                                 const RecoveryJournalEntry *entry)
+int validateRecoveryJournalEntry(const VDO                           *vdo,
+                                 const struct recovery_journal_entry *entry)
   __attribute__((warn_unused_result));
 
 #endif // RECOVERY_UTILS_H

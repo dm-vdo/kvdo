@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#2 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -37,11 +37,11 @@
  * increment) or released (a decrement), and whether the mapping is for a
  * logical block or for the block map tree itself.
  **/
-typedef struct {
+struct recovery_journal_entry {
   BlockMapSlot     slot;
   DataLocation     mapping;
   JournalOperation operation;
-} RecoveryJournalEntry;
+};
 
 /** The packed, on-disk representation of a recovery journal entry. */
 typedef union __attribute__((packed)) {
@@ -102,7 +102,7 @@ typedef union __attribute__((packed)) {
  * @return  The packed representation of the journal entry
  **/
 static inline PackedRecoveryJournalEntry
-packRecoveryJournalEntry(const RecoveryJournalEntry *entry)
+packRecoveryJournalEntry(const struct recovery_journal_entry *entry)
 {
   PackedRecoveryJournalEntry packed = {
     .fields = {
@@ -124,12 +124,12 @@ packRecoveryJournalEntry(const RecoveryJournalEntry *entry)
  *
  * @return  The unpacked entry
  **/
-static inline RecoveryJournalEntry
+static inline struct recovery_journal_entry
 unpackRecoveryJournalEntry(const PackedRecoveryJournalEntry *entry)
 {
   PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
   PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
-  return (RecoveryJournalEntry) {
+  return (struct recovery_journal_entry) {
     .operation = entry->fields.operation,
     .slot      = {
       .pbn  = ((high4 << 32) | low32),

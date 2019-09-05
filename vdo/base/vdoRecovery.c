@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#16 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -125,9 +125,9 @@ static uint64_t slotAsNumber(BlockMapSlot slot)
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int makeMissingDecref(RecoveryCompletion            *recovery,
-                             RecoveryJournalEntry           entry,
-                             struct missing_decref        **decrefPtr)
+static int makeMissingDecref(RecoveryCompletion             *recovery,
+                             struct recovery_journal_entry   entry,
+                             struct missing_decref         **decrefPtr)
 {
   struct missing_decref *decref;
   int result = ALLOCATE(1, struct missing_decref, __func__, &decref);
@@ -417,8 +417,9 @@ static bool abortRecoveryOnError(int result, RecoveryCompletion *recovery)
  *
  * @return The unpacked contents of the matching recovery journal entry
  **/
-static RecoveryJournalEntry getEntry(const RecoveryCompletion *recovery,
-                                     const RecoveryPoint      *point)
+static struct recovery_journal_entry
+getEntry(const RecoveryCompletion *recovery,
+         const RecoveryPoint      *point)
 {
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   PhysicalBlockNumber blockNumber
@@ -457,7 +458,7 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
     result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(recovery->vdo->readOnlyNotifier, result);
@@ -626,7 +627,7 @@ static int computeUsages(RecoveryCompletion *recovery)
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
     if (isMappedLocation(&entry.mapping)) {
       switch (entry.operation) {
       case DATA_INCREMENT:
@@ -694,7 +695,7 @@ static void addSlabJournalEntries(VDOCompletion *completion)
   for (RecoveryPoint *recoveryPoint = &recovery->nextRecoveryPoint;
        beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
        advancePoints(recovery, journal->entriesPerBlock)) {
-    RecoveryJournalEntry entry = getEntry(recovery, recoveryPoint);
+    struct recovery_journal_entry entry = getEntry(recovery, recoveryPoint);
     int result = validateRecoveryJournalEntry(vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(journal->readOnlyNotifier, result);
@@ -881,7 +882,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
   RecoveryPoint recoveryPoint = recovery->tailRecoveryPoint;
   while (beforeRecoveryPoint(&headPoint, &recoveryPoint)) {
     decrementRecoveryPoint(&recoveryPoint);
-    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
 
     if (!isIncrementOperation(entry.operation)) {
       // Observe that we've seen a decref before its incref, but only if
@@ -1145,7 +1146,7 @@ static int countIncrementEntries(RecoveryCompletion *recovery)
     .entryCount     = 0,
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
-    RecoveryJournalEntry entry = getEntry(recovery, &recoveryPoint);
+    struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
     int result = validateRecoveryJournalEntry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
       enterReadOnlyMode(recovery->vdo->readOnlyNotifier, result);
