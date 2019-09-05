@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#3 $
  */
 
 #ifndef DATA_VIO_H
@@ -207,7 +207,7 @@ struct dataVIO {
   SequenceNumber            recoverySequenceNumber;
 
   /* The point in the recovery journal where this write last made an entry */
-  JournalPoint              recoveryJournalPoint;
+  struct journal_point      recoveryJournalPoint;
 
   /* The RingNode of VIOs in user initiated write requests */
   RingNode                  writeNode;

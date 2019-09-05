@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#4 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -80,7 +80,7 @@ typedef struct {
   /** The number of block map data blocks known to be allocated */
   BlockCount                        blockMapDataBlocks;
   /** The journal point to give to the next synthesized decref */
-  JournalPoint                      nextJournalPoint;
+  struct journal_point              nextJournalPoint;
   /** The number of entries played into slab journals */
   size_t                            entriesAddedToSlabJournals;
 
@@ -93,7 +93,7 @@ typedef struct {
   /** The number of incomplete decrefs */
   size_t                            incompleteDecrefCount;
   /** The fake journal point of the next missing decref */
-  JournalPoint                      nextSynthesizedJournalPoint;
+  struct journal_point              nextSynthesizedJournalPoint;
   /** The queue of missing decrefs */
   WaitQueue                         missingDecrefs[];
 } RecoveryCompletion;

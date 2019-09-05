@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#5 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -73,9 +73,9 @@ struct recoveryJournal {
   /** The end of the half-open interval of the active journal */
   SequenceNumber             tail;
   /** The point at which the last entry will have been added */
-  JournalPoint               appendPoint;
+  struct journal_point       appendPoint;
   /** The journal point of the VIO most recently released from the journal */
-  JournalPoint               commitPoint;
+  struct journal_point       commitPoint;
   /** The nonce of the VDO */
   Nonce                      nonce;
   /** The number of recoveries completed by the VDO */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#7 $
  */
 
 #ifndef REF_COUNTS_H
@@ -96,10 +96,10 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  *                                   count greater than MAXIMUM_REFS
  *
  **/
-int adjustReferenceCount(RefCounts          *refCounts,
-                         ReferenceOperation  operation,
-                         const JournalPoint *slabJournalPoint,
-                         bool               *freeStatusChanged)
+int adjustReferenceCount(RefCounts                  *refCounts,
+                         ReferenceOperation          operation,
+                         const struct journal_point *slabJournalPoint,
+                         bool                       *freeStatusChanged)
   __attribute__((warn_unused_result));
 
 /**
@@ -127,9 +127,9 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int replayReferenceCountChange(RefCounts          *refCounts,
-                               const JournalPoint *entryPoint,
-                               SlabJournalEntry    entry)
+int replayReferenceCountChange(RefCounts                  *refCounts,
+                               const struct journal_point *entryPoint,
+                               SlabJournalEntry            entry)
   __attribute__((warn_unused_result));
 
 /**

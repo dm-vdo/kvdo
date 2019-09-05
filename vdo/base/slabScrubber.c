@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#6 $
  */
 
 #include "slabScrubberInternals.h"
@@ -261,7 +261,7 @@ static int applyBlockEntries(PackedSlabJournalBlock *block,
                              SequenceNumber          blockNumber,
                              Slab                   *slab)
 {
-  JournalPoint entryPoint = {
+  struct journal_point entryPoint = {
     .sequenceNumber = blockNumber,
     .entryCount     = 0,
   };
@@ -319,8 +319,8 @@ static void applyJournalEntries(VDOCompletion *completion)
   TailBlockOffset headIndex = getSlabJournalBlockOffset(journal, head);
   BlockCount      index     = headIndex;
 
-  JournalPoint refCountsPoint   = referenceCounts->slabJournalPoint;
-  JournalPoint lastEntryApplied = refCountsPoint;
+  struct journal_point refCountsPoint   = referenceCounts->slabJournalPoint;
+  struct journal_point lastEntryApplied = refCountsPoint;
   for (SequenceNumber sequence = head; sequence < tail; sequence++) {
     char *blockData = scrubber->journalData + (index * VDO_BLOCK_SIZE);
     PackedSlabJournalBlock *block  = (PackedSlabJournalBlock *) blockData;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#2 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -30,15 +30,15 @@ typedef uint16_t JournalEntryCount;
 /**
  * The absolute position of an entry in a recovery journal or slab journal.
  **/
-typedef struct {
+struct journal_point {
   SequenceNumber    sequenceNumber;
   JournalEntryCount entryCount;
-} JournalPoint;
+};
 
 /**
- * A packed, platform-independent encoding of a JournalPoint.
+ * A packed, platform-independent encoding of a struct journal_point.
  **/
-typedef struct {
+struct packed_journal_point {
   /**
    * The packed representation is the little-endian 64-bit representation of
    * the low-order 48 bits of the sequence number, shifted up 16 bits, or'ed
@@ -48,7 +48,7 @@ typedef struct {
    * zero, as this encoding assumes--see BZ 1523240.
    **/
   byte encodedPoint[8];
-} __attribute__((packed)) PackedJournalPoint;
+} __attribute__((packed));
 
 /**
  * Move the given journal point forward by one entry.
@@ -56,8 +56,8 @@ typedef struct {
  * @param point            the journal point to adjust
  * @param entriesPerBlock  the number of entries in one full block
  **/
-static inline void advanceJournalPoint(JournalPoint      *point,
-                                       JournalEntryCount  entriesPerBlock)
+static inline void advanceJournalPoint(struct journal_point  *point,
+                                       JournalEntryCount      entriesPerBlock)
 {
   point->entryCount++;
   if (point->entryCount == entriesPerBlock) {
@@ -73,7 +73,7 @@ static inline void advanceJournalPoint(JournalPoint      *point,
  *
  * @return <code>true</code> if the journal point is valid
  **/
-static inline bool isValidJournalPoint(const JournalPoint *point)
+static inline bool isValidJournalPoint(const struct journal_point *point)
 {
   return ((point != NULL) && (point->sequenceNumber > 0));
 }
@@ -87,8 +87,8 @@ static inline bool isValidJournalPoint(const JournalPoint *point)
  *
  * @return <code>true</code> if the first point precedes the second point.
  **/
-static inline bool beforeJournalPoint(const JournalPoint *first,
-                                      const JournalPoint *second)
+static inline bool beforeJournalPoint(const struct journal_point *first,
+                                      const struct journal_point *second)
 {
   return ((first->sequenceNumber < second->sequenceNumber)
           || ((first->sequenceNumber == second->sequenceNumber)
@@ -104,36 +104,37 @@ static inline bool beforeJournalPoint(const JournalPoint *first,
  * @return <code>true</code> if both points reference the same logical
  *         position of an entry the journal
  **/
-static inline bool areEquivalentJournalPoints(const JournalPoint *first,
-                                              const JournalPoint *second)
+static inline bool areEquivalentJournalPoints(const struct journal_point *first,
+                                              const struct journal_point *second)
 {
   return ((first->sequenceNumber == second->sequenceNumber)
           && (first->entryCount  == second->entryCount));
 }
 
 /**
- * Encode the journal location represented by a JournalPoint into a
- * PackedJournalPoint.
+ * Encode the journal location represented by a journal_point into a
+ * packed_journal_point.
  *
  * @param unpacked  The unpacked input point
  * @param packed    The packed output point
  **/
-static inline void packJournalPoint(const JournalPoint *unpacked,
-                                    PackedJournalPoint *packed)
+static inline void packJournalPoint(const struct journal_point  *unpacked,
+                                    struct packed_journal_point *packed)
 {
   uint64_t native = ((unpacked->sequenceNumber << 16) | unpacked->entryCount);
   storeUInt64LE(packed->encodedPoint, native);
 }
 
 /**
- * Decode the journal location represented by a PackedJournalPoint into a
- * JournalPoint.
+ * Decode the journal location represented by a packed_journal_point into a
+ * journal_point.
  *
  * @param packed    The packed input point
  * @param unpacked  The unpacked output point
  **/
-static inline void unpackJournalPoint(const PackedJournalPoint *packed,
-                                      JournalPoint             *unpacked)
+static inline void
+unpackJournalPoint(const struct packed_journal_point  *packed,
+                   struct journal_point               *unpacked)
 {
   uint64_t native          = getUInt64LE(packed->encodedPoint);
   unpacked->sequenceNumber = (native >> 16);

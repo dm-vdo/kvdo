@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#2 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -42,7 +42,7 @@ enum {
 };
 
 enum {
-  COUNTS_PER_SECTOR = ((VDO_SECTOR_SIZE - sizeof(PackedJournalPoint))
+  COUNTS_PER_SECTOR = ((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point))
                        / sizeof(ReferenceCount)),
   COUNTS_PER_BLOCK  = COUNTS_PER_SECTOR * SECTORS_PER_BLOCK,
 };
@@ -51,8 +51,8 @@ enum {
  * The format of a ReferenceSector on disk.
  **/
 typedef struct {
-  PackedJournalPoint commitPoint;
-  ReferenceCount     counts[COUNTS_PER_SECTOR];
+  struct packed_journal_point commitPoint;
+  ReferenceCount              counts[COUNTS_PER_SECTOR];
 } __attribute__((packed)) PackedReferenceSector;
 
 typedef struct {
@@ -66,24 +66,24 @@ typedef struct {
  **/
 typedef struct {
   /** This block waits on the refCounts to tell it to write */
-  Waiter          waiter;
+  Waiter                waiter;
   /** The parent RefCount structure */
-  RefCounts      *refCounts;
+  RefCounts            *refCounts;
   /** The number of references in this block that represent allocations */
-  BlockSize       allocatedCount;
+  BlockSize             allocatedCount;
   /** The slab journal block on which this block must hold a lock */
-  SequenceNumber  slabJournalLock;
+  SequenceNumber        slabJournalLock;
   /**
    * The slab journal block which should be released when this block
    * is committed
    **/
-  SequenceNumber  slabJournalLockToRelease;
+  SequenceNumber        slabJournalLockToRelease;
   /** The point up to which each sector is accurate on disk */
-  JournalPoint    commitPoints[SECTORS_PER_BLOCK];
+  struct journal_point  commitPoints[SECTORS_PER_BLOCK];
   /** Whether this block has been modified since it was written to disk */
-  bool            isDirty;
+  bool                  isDirty;
   /** Whether this block is currently writing */
-  bool            isWriting;
+  bool                  isWriting;
 } ReferenceBlock;
 
 #endif // REFERENCE_BLOCK_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#12 $
  */
 
 #include "slabJournalInternals.h"
@@ -805,10 +805,10 @@ SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
  * @param operation      The type of entry to make
  * @param recoveryPoint  The recovery journal point for this entry
  **/
-static void addEntry(SlabJournal         *journal,
-                     PhysicalBlockNumber  pbn,
-                     JournalOperation     operation,
-                     const JournalPoint  *recoveryPoint)
+static void addEntry(SlabJournal                *journal,
+                     PhysicalBlockNumber         pbn,
+                     JournalOperation            operation,
+                     const struct journal_point *recoveryPoint)
 {
   int result = ASSERT(beforeJournalPoint(&journal->tailHeader.recoveryPoint,
                                          recoveryPoint),
@@ -843,11 +843,11 @@ static void addEntry(SlabJournal         *journal,
 }
 
 /**********************************************************************/
-bool attemptReplayIntoSlabJournal(SlabJournal         *journal,
-                                  PhysicalBlockNumber  pbn,
-                                  JournalOperation     operation,
-                                  JournalPoint        *recoveryPoint,
-                                  VDOCompletion       *parent)
+bool attemptReplayIntoSlabJournal(SlabJournal          *journal,
+                                  PhysicalBlockNumber   pbn,
+                                  JournalOperation      operation,
+                                  struct journal_point *recoveryPoint,
+                                  VDOCompletion        *parent)
 {
   // Only accept entries after the current recovery point.
   if (!beforeJournalPoint(&journal->tailHeader.recoveryPoint, recoveryPoint)) {
@@ -962,7 +962,7 @@ static void addEntryFromWaiter(Waiter *waiter, void *context)
     }
   }
 
-  JournalPoint slabJournalPoint = {
+  struct journal_point slabJournalPoint = {
     .sequenceNumber = header->sequenceNumber,
     .entryCount     = header->entryCount,
   };

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#8 $
  */
 
 #include "refCounts.h"
@@ -575,14 +575,15 @@ static int incrementForBlockMap(RefCounts       *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int updateReferenceCount(RefCounts          *refCounts,
-                                ReferenceBlock     *block,
-                                SlabBlockNumber     slabBlockNumber,
-                                const JournalPoint *slabJournalPoint,
-                                ReferenceOperation  operation,
-                                bool                normalOperation,
-                                bool               *freeStatusChanged,
-                                bool               *provisionalDecrementPtr)
+static int
+updateReferenceCount(RefCounts                  *refCounts,
+                     ReferenceBlock             *block,
+                     SlabBlockNumber             slabBlockNumber,
+                     const struct journal_point *slabJournalPoint,
+                     ReferenceOperation          operation,
+                     bool                        normalOperation,
+                     bool                       *freeStatusChanged,
+                     bool                       *provisionalDecrementPtr)
 {
   ReferenceCount  *counterPtr = &refCounts->counters[slabBlockNumber];
   ReferenceStatus  oldStatus  = referenceCountToStatus(*counterPtr);
@@ -630,10 +631,10 @@ static int updateReferenceCount(RefCounts          *refCounts,
 }
 
 /**********************************************************************/
-int adjustReferenceCount(RefCounts          *refCounts,
-                         ReferenceOperation  operation,
-                         const JournalPoint *slabJournalPoint,
-                         bool               *freeStatusChanged)
+int adjustReferenceCount(RefCounts                  *refCounts,
+                         ReferenceOperation          operation,
+                         const struct journal_point *slabJournalPoint,
+                         bool                       *freeStatusChanged)
 {
   if (!isSlabOpen(refCounts->slab)) {
     return VDO_INVALID_ADMIN_STATE;
@@ -718,9 +719,9 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
 }
 
 /**********************************************************************/
-int replayReferenceCountChange(RefCounts          *refCounts,
-                               const JournalPoint *entryPoint,
-                               SlabJournalEntry    entry)
+int replayReferenceCountChange(RefCounts                  *refCounts,
+                               const struct journal_point *entryPoint,
+                               SlabJournalEntry            entry)
 {
   ReferenceBlock *block = getReferenceBlock(refCounts, entry.sbn);
   SectorCount sector
@@ -1025,7 +1026,7 @@ void resetReferenceCounts(RefCounts *refCounts)
   STATIC_ASSERT(sizeof(ReferenceCount) == 1);
   memset(refCounts->counters, 0, refCounts->blockCount);
   refCounts->freeBlocks       = refCounts->blockCount;
-  refCounts->slabJournalPoint = (JournalPoint) {
+  refCounts->slabJournalPoint = (struct journal_point) {
     .sequenceNumber = 0,
     .entryCount     = 0,
   };
@@ -1156,7 +1157,7 @@ ReferenceCount *getReferenceCountersForBlock(ReferenceBlock *block)
 /**********************************************************************/
 void packReferenceBlock(ReferenceBlock *block, void *buffer)
 {
-  PackedJournalPoint commitPoint;
+  struct packed_journal_point commitPoint;
   packJournalPoint(&block->refCounts->slabJournalPoint, &commitPoint);
 
   PackedReferenceBlock *packed   = buffer;

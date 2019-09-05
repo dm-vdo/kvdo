@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#8 $
  */
 
 #ifndef VDO_SLAB_H
@@ -243,9 +243,9 @@ BlockCount getSlabFreeBlockCount(const Slab *slab)
  *
  * @return VDO_SUCCESS or an error
  **/
-int modifySlabReferenceCount(Slab               *slab,
-                             const JournalPoint *journalPoint,
-                             ReferenceOperation  operation)
+int modifySlabReferenceCount(Slab                       *slab,
+                             const struct journal_point *journalPoint,
+                             ReferenceOperation          operation)
   __attribute__((warn_unused_result));
 
 /**

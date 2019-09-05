@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#6 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -97,7 +97,7 @@ struct refCounts {
   /** The layer PBN for the first ReferenceBlock */
   PhysicalBlockNumber                 origin;
   /** The latest slab journal entry this RefCounts has been updated with */
-  JournalPoint                        slabJournalPoint;
+  struct journal_point                slabJournalPoint;
 
   /** The number of reference count blocks */
   uint32_t                            referenceBlockCount;

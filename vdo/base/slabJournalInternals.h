@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#7 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -79,19 +79,19 @@ typedef union {
 /** The unpacked representation of the header of a slab journal block */
 typedef struct {
   /** Sequence number for head of journal */
-  SequenceNumber     head;
+  SequenceNumber       head;
   /** Sequence number for this block */
-  SequenceNumber     sequenceNumber;
+  SequenceNumber       sequenceNumber;
   /** The nonce for a given VDO instance */
-  Nonce              nonce;
+  Nonce                nonce;
   /** Recovery journal point for last entry */
-  JournalPoint       recoveryPoint;
+  struct journal_point recoveryPoint;
   /** Metadata type */
-  VDOMetadataType    metadataType;
+  VDOMetadataType      metadataType;
   /** Whether this block contains block map increments */
-  bool               hasBlockMapIncrements;
+  bool                 hasBlockMapIncrements;
   /** The number of entries in the block */
-  JournalEntryCount  entryCount;
+  JournalEntryCount    entryCount;
 } SlabJournalBlockHeader;
 
 /**
@@ -101,19 +101,19 @@ typedef struct {
 typedef union __attribute__((packed)) {
   struct __attribute__((packed)) {
     /** 64-bit sequence number for head of journal */
-    byte               head[8];
+    byte                        head[8];
     /** 64-bit sequence number for this block */
-    byte               sequenceNumber[8];
+    byte                        sequenceNumber[8];
     /** Recovery journal point for last entry, packed into 64 bits */
-    PackedJournalPoint recoveryPoint;
+    struct packed_journal_point recoveryPoint;
     /** The 64-bit nonce for a given VDO instance */
-    byte               nonce[8];
+    byte                        nonce[8];
     /** 8-bit metadata type (should always be two, for the slab journal) */
-    uint8_t            metadataType;
+    uint8_t                     metadataType;
     /** Whether this block contains block map increments */
-    bool               hasBlockMapIncrements;
+    bool                        hasBlockMapIncrements;
     /** 16-bit count of the entries encoded in the block */
-    byte               entryCount[2];
+    byte                        entryCount[2];
   } fields;
 
   // A raw view of the packed encoding.
@@ -123,13 +123,13 @@ typedef union __attribute__((packed)) {
   // This view is only valid on little-endian machines and is only present for
   // ease of directly examining packed entries in GDB.
   struct __attribute__((packed)) {
-    SequenceNumber     head;
-    SequenceNumber     sequenceNumber;
-    PackedJournalPoint recoveryPoint;
-    Nonce              nonce;
-    VDOMetadataType    metadataType;
-    bool               hasBlockMapIncrements;
-    JournalEntryCount  entryCount;
+    SequenceNumber              head;
+    SequenceNumber              sequenceNumber;
+    struct packed_journal_point recoveryPoint;
+    Nonce                       nonce;
+    VDOMetadataType             metadataType;
+    bool                        hasBlockMapIncrements;
+    JournalEntryCount           entryCount;
   } littleEndian;
 #endif
 } PackedSlabJournalBlockHeader;
