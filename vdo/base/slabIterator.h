@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#2 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -26,17 +26,17 @@
 #include "types.h"
 
 /**
- * SlabIterator is a structure for iterating over a set of slabs.
+ * A slab_iterator is a structure for iterating over a set of slabs.
  **/
-typedef struct {
+struct slab_iterator {
   Slab      **slabs;
   Slab       *next;
   SlabCount   end;
   SlabCount   stride;
-} SlabIterator;
+};
 
 /**
- * Return a SlabIterator initialized to iterate over an array of slabs
+ * Return a slab_iterator initialized to iterate over an array of slabs
  * with a given stride. Iteration always occurs from higher to lower numbered
  * slabs.
  *
@@ -47,12 +47,12 @@ typedef struct {
  *
  * @return an initialized iterator structure
  **/
-static inline SlabIterator iterateSlabs(Slab      **slabs,
-                                        SlabCount   start,
-                                        SlabCount   end,
-                                        SlabCount   stride)
+static inline struct slab_iterator iterateSlabs(Slab         **slabs,
+                                                SlabCount      start,
+                                                SlabCount      end,
+                                                SlabCount      stride)
 {
-  return (SlabIterator) {
+  return (struct slab_iterator) {
     .slabs  = slabs,
     .next   = (((slabs == NULL) || (start < end)) ? NULL : slabs[start]),
     .end    = end,
@@ -68,7 +68,7 @@ static inline SlabIterator iterateSlabs(Slab      **slabs,
  * @return <code>true</code> if the next call to <code>nextSlab</code>
  *         will return a Slab
  **/
-static inline bool hasNextSlab(const SlabIterator *iterator)
+static inline bool hasNextSlab(const struct slab_iterator *iterator)
 {
   return (iterator->next != NULL);
 }
@@ -81,7 +81,7 @@ static inline bool hasNextSlab(const SlabIterator *iterator)
  * @return the next Slab or <code>NULL</code> if the array of slabs is empty
  *         or if all the appropriate Slabs have been returned
  **/
-static inline Slab *nextSlab(SlabIterator *iterator)
+static inline Slab *nextSlab(struct slab_iterator *iterator)
 {
   Slab *slab = iterator->next;
   if ((slab == NULL)

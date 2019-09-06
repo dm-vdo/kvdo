@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#21 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -139,7 +139,7 @@ void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab)
  *
  * @return An iterator over the allocator's slabs
  **/
-static SlabIterator getSlabIterator(const BlockAllocator *allocator)
+static struct slab_iterator getSlabIterator(const BlockAllocator *allocator)
 {
   return iterateSlabs(allocator->depot->slabs, allocator->lastSlab,
                       allocator->zoneNumber, allocator->depot->zoneCount);
@@ -159,7 +159,7 @@ static void notifyBlockAllocatorOfReadOnlyMode(void          *listener,
 {
   BlockAllocator *allocator = listener;
   assertOnAllocatorThread(allocator->threadID, __func__);
-  SlabIterator iterator = getSlabIterator(allocator);
+  struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
     Slab *slab = nextSlab(&iterator);
     abortSlabJournalWaiters(slab->journal);
@@ -583,7 +583,7 @@ static void applyToSlabs(BlockAllocator *allocator,
   // invalid, so clear it.
   allocator->openSlab = NULL;
 
-  SlabIterator iterator = getSlabIterator(allocator);
+  struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
     Slab *slab = nextSlab(&iterator);
     unspliceRingNode(&slab->ringNode);
@@ -930,7 +930,7 @@ void dumpBlockAllocator(const BlockAllocator *allocator)
 {
   unsigned int pauseCounter = 0;
   logInfo("BlockAllocator zone %u", allocator->zoneNumber);
-  SlabIterator iterator = getSlabIterator(allocator);
+  struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
     dumpSlab(nextSlab(&iterator));
 

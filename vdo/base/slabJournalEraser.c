@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#3 $
  */
 
 #include "slabJournalEraser.h"
@@ -30,10 +30,10 @@
 #include "slabDepot.h"
 
 struct slab_journal_eraser {
-  VDOCompletion *parent;
-  VDOExtent     *extent;
-  char          *zeroBuffer;
-  SlabIterator   slabs;
+  VDOCompletion        *parent;
+  VDOExtent            *extent;
+  char                 *zeroBuffer;
+  struct slab_iterator  slabs;
 };
 
 /**
@@ -81,9 +81,9 @@ static void eraseNextSlabJournal(VDOCompletion *extentCompletion)
 }
 
 /**********************************************************************/
-void eraseSlabJournals(SlabDepot     *depot,
-                       SlabIterator   slabs,
-                       VDOCompletion *parent)
+void eraseSlabJournals(SlabDepot            *depot,
+                       struct slab_iterator  slabs,
+                       VDOCompletion        *parent)
 {
   struct slab_journal_eraser *eraser;
   int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
