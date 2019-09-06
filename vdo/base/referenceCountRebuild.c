@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#6 $
  */
 
 #include "referenceCountRebuild.h"
@@ -43,37 +43,37 @@
  **/
 struct rebuild_completion {
   /** completion header */
-  VDOCompletion      completion;
+  VDOCompletion               completion;
   /** the completion for flushing the block map */
-  VDOCompletion      subTaskCompletion;
+  VDOCompletion               subTaskCompletion;
   /** the thread on which all block map operations must be done */
-  ThreadID           logicalThreadID;
+  ThreadID                    logicalThreadID;
   /** the admin thread */
-  ThreadID           adminThreadID;
+  ThreadID                    adminThreadID;
   /** the block map */
-  BlockMap          *blockMap;
+  BlockMap                   *blockMap;
   /** the slab depot */
-  SlabDepot         *depot;
+  SlabDepot                  *depot;
   /** whether this recovery has been aborted */
-  bool               aborted;
+  bool                        aborted;
   /** whether we are currently launching the initial round of requests */
-  bool               launching;
+  bool                        launching;
   /** The number of logical blocks observed used */
-  BlockCount        *logicalBlocksUsed;
+  BlockCount                 *logicalBlocksUsed;
   /** The number of block map data blocks */
-  BlockCount        *blockMapDataBlocks;
+  BlockCount                 *blockMapDataBlocks;
   /** the next page to fetch */
-  PageCount          pageToFetch;
+  PageCount                   pageToFetch;
   /** the number of leaf pages in the block map */
-  PageCount          leafPages;
+  PageCount                   leafPages;
   /** the last slot of the block map */
-  BlockMapSlot       lastSlot;
+  BlockMapSlot                lastSlot;
   /** number of pending (non-ready) requests*/
-  PageCount          outstanding;
+  PageCount                   outstanding;
   /** number of page completions */
-  PageCount          pageCount;
+  PageCount                   pageCount;
   /** array of requested, potentially ready page completions */
-  VDOPageCompletion  pageCompletions[];
+  struct vdo_page_completion  pageCompletions[];
 };
 
 /**
@@ -150,7 +150,7 @@ static int makeRebuildCompletion(VDO                        *vdo,
 
   struct rebuild_completion *rebuild;
   int result = ALLOCATE_EXTENDED(struct rebuild_completion, pageCount,
-                                 VDOPageCompletion, __func__, &rebuild);
+                                 struct vdo_page_completion, __func__, &rebuild);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -251,7 +251,7 @@ static void abortRebuild(struct rebuild_completion *rebuild, int result)
 /**
  * Handle an error loading a page.
  *
- * @param completion  The VDOPageCompletion
+ * @param completion  The vdo_page_completion
  **/
 static void handlePageLoadError(VDOCompletion *completion)
 {
@@ -345,7 +345,7 @@ static void fetchPage(struct rebuild_completion *rebuild,
  * Process a page which has just been loaded. This callback is registered by
  * fetchPage().
  *
- * @param completion  The VDOPageCompletion for the fetched page
+ * @param completion  The vdo_page_completion for the fetched page
  **/
 static void pageLoaded(VDOCompletion *completion)
 {
@@ -391,7 +391,7 @@ static void fetchPage(struct rebuild_completion *rebuild,
       continue;
     }
 
-    initVDOPageCompletion(((VDOPageCompletion *) completion),
+    initVDOPageCompletion(((struct vdo_page_completion *) completion),
                           rebuild->blockMap->zones[0].pageCache,
                           pbn, true, &rebuild->completion,
                           pageLoaded, handlePageLoadError);

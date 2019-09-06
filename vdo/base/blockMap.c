@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#17 $
  */
 
 #include "blockMap.h"
@@ -813,7 +813,7 @@ BlockMapStatistics getBlockMapStatistics(BlockMap *map)
   memset(&stats, 0, sizeof(BlockMapStatistics));
 
   for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
-    const AtomicPageCacheStatistics *atoms
+    const struct atomic_page_cache_statistics *atoms
       = getVDOPageCacheStatistics(map->zones[zone].pageCache);
     stats.dirtyPages      += atomicLoad64(&atoms->counts.dirtyPages);
     stats.cleanPages      += atomicLoad64(&atoms->counts.cleanPages);

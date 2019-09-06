@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#5 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -47,7 +47,7 @@ typedef uint32_t VDOPageGeneration;
 /**
  * Page-state count statistics sub-structure.
  **/
-typedef struct {
+struct atomic_page_state_counts {
   /* free pages */
   Atomic64 freePages;
   /* clean (resident) pages */
@@ -60,43 +60,43 @@ typedef struct {
   Atomic64 outgoingPages;
   /* pages in failed state */
   Atomic64 failedPages;
-} AtomicPageStateCounts;
+};
 
 /**
  * Statistics and debugging fields for the page cache.
  */
-typedef struct {
+struct atomic_page_cache_statistics {
   /* counts of how many pages are in each state */
-  AtomicPageStateCounts counts;
+  struct atomic_page_state_counts counts;
   /* how many times free page not available */
-  Atomic64              cachePressure;
+  Atomic64                        cachePressure;
   /* number of getVDOPageAsync() for read */
-  Atomic64              readCount;
+  Atomic64                        readCount;
   /* number or getVDOPageAsync() for write */
-  Atomic64              writeCount;
+  Atomic64                        writeCount;
   /* number of times pages failed to read */
-  Atomic64              failedReads;
+  Atomic64                        failedReads;
   /* number of times pages failed to write */
-  Atomic64              failedWrites;
+  Atomic64                        failedWrites;
   /* number of gets that are reclaimed */
-  Atomic64              reclaimed;
+  Atomic64                        reclaimed;
   /* number of gets for outgoing pages */
-  Atomic64              readOutgoing;
+  Atomic64                        readOutgoing;
   /* number of gets that were already there */
-  Atomic64              foundInCache;
+  Atomic64                        foundInCache;
   /* number of gets requiring discard */
-  Atomic64              discardRequired;
+  Atomic64                        discardRequired;
   /* number of gets enqueued for their page */
-  Atomic64              waitForPage;
+  Atomic64                        waitForPage;
   /* number of gets that have to fetch */
-  Atomic64              fetchRequired;
+  Atomic64                        fetchRequired;
   /* number of page fetches */
-  Atomic64              pagesLoaded;
+  Atomic64                        pagesLoaded;
   /* number of page saves */
-  Atomic64              pagesSaved;
+  Atomic64                        pagesSaved;
   /* number of flushes initiated */
-  Atomic64              flushCount;
-} AtomicPageCacheStatistics;
+  Atomic64                        flushCount;
+};
 
 /**
  * Signature for a function to call when a page is read into the cache.
@@ -223,7 +223,7 @@ void rotateVDOPageCacheEras(VDOPageCache *cache);
  * A completion awaiting a specific page.  Also a live reference into the
  * page once completed, until freed.
  **/
-typedef struct {
+struct vdo_page_completion {
   /** The generic completion */
   VDOCompletion        completion;
   /** The cache involved */
@@ -238,13 +238,13 @@ typedef struct {
   bool                 ready;
   /** The info structure for the page, only valid when ready */
   PageInfo            *info;
-} VDOPageCompletion;
+};
 
 /**
  * Initialize a VDO Page Completion, requesting a particular page from the
  * cache.
  *
- * @param pageCompletion  The VDOPageCompletion to initialize
+ * @param pageCompletion  The vdo_page_completion to initialize
  * @param cache           The VDO page cache
  * @param pbn             The absolute physical block of the desired page
  * @param writable        Whether the page can be modified
@@ -256,13 +256,13 @@ typedef struct {
  *       the underlying page shall be busy (stuck in memory) until the
  *       VDOCompletion returned by this operation has been released.
  **/
-void initVDOPageCompletion(VDOPageCompletion   *pageCompletion,
-                           VDOPageCache        *cache,
-                           PhysicalBlockNumber  pbn,
-                           bool                 writable,
-                           void                *parent,
-                           VDOAction           *callback,
-                           VDOAction           *errorHandler);
+void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
+                           VDOPageCache               *cache,
+                           PhysicalBlockNumber         pbn,
+                           bool                        writable,
+                           void                       *parent,
+                           VDOAction                  *callback,
+                           VDOAction                  *errorHandler);
 
 /**
  * Release a VDO Page Completion.
@@ -291,7 +291,7 @@ void releaseVDOPageCompletion(VDOCompletion *completion);
 void getVDOPageAsync(VDOCompletion *completion);
 
 /**
- * Mark a VDO page referenced by a completed VDOPageCompletion as dirty.
+ * Mark a VDO page referenced by a completed vdo_page_completion as dirty.
  *
  * @param completion      a VDO Page Completion whose callback has been called
  * @param oldDirtyPeriod  the period in which the page was already dirty (0 if
@@ -305,12 +305,13 @@ void markCompletedVDOPageDirty(VDOCompletion  *completion,
 /**
  * Request that a VDO page be written out as soon as it is not busy.
  *
- * @param completion  the VDOPageCompletion containing the page
+ * @param completion  the vdo_page_completion containing the page
  **/
 void requestVDOPageWrite(VDOCompletion *completion);
 
 /**
- * Access the raw memory for a read-only page of a completed VDOPageCompletion.
+ * Access the raw memory for a read-only page of a completed
+ * vdo_page_completion.
  *
  * @param completion    a vdo page completion whose callback has been called
  *
@@ -320,7 +321,8 @@ void requestVDOPageWrite(VDOCompletion *completion);
 const void *dereferenceReadableVDOPage(VDOCompletion *completion);
 
 /**
- * Access the raw memory for a writable page of a completed VDOPageCompletion.
+ * Access the raw memory for a writable page of a completed
+ * vdo_page_completion.
  *
  * @param completion    a vdo page completion whose callback has been called
  *
@@ -368,7 +370,8 @@ int invalidateVDOPageCache(VDOPageCache *cache)
  *
  * @return the statistics
  **/
-AtomicPageCacheStatistics *getVDOPageCacheStatistics(VDOPageCache *cache)
+struct atomic_page_cache_statistics *
+getVDOPageCacheStatistics(VDOPageCache *cache)
   __attribute__((warn_unused_result));
 
 #endif // VDO_PAGE_CACHE_H

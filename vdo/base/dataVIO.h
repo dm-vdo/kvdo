@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#4 $
  */
 
 #ifndef DATA_VIO_H
@@ -150,79 +150,79 @@ struct compression_state {
  **/
 struct dataVIO {
   /* The underlying AllocatingVIO */
-  AllocatingVIO             allocatingVIO;
+  AllocatingVIO               allocatingVIO;
 
   /* The logical block of this request */
-  LBNLock                   logical;
+  LBNLock                     logical;
 
   /* The state for traversing the block map tree */
-  struct tree_lock          treeLock;
+  struct tree_lock            treeLock;
 
   /* The current partition address of this block */
-  ZonedPBN                  mapped;
+  ZonedPBN                    mapped;
 
   /** The hash of this VIO (if not zero) */
-  UdsChunkName              chunkName;
+  UdsChunkName                chunkName;
 
   /* Used for logging and debugging */
-  AsyncOperationNumber      lastAsyncOperation;
+  AsyncOperationNumber        lastAsyncOperation;
 
   /* The operation to record in the recovery and slab journals */
-  ReferenceOperation        operation;
+  ReferenceOperation          operation;
 
   /* Whether this VIO is a read-and-write VIO */
-  bool                      isPartialWrite;
+  bool                        isPartialWrite;
 
   /* Whether this VIO contains all zeros */
-  bool                      isZeroBlock;
+  bool                        isZeroBlock;
 
   /* Whether this VIO write is a duplicate */
-  bool                      isDuplicate;
+  bool                        isDuplicate;
 
   /*
    * Whether this VIO has received an allocation (needs to be atomic so it can
    * be examined from threads not in the allocation zone).
    */
-  AtomicBool                hasAllocation;
+  AtomicBool                  hasAllocation;
 
   /* The new partition address of this block after the VIO write completes */
-  ZonedPBN                  newMapped;
+  ZonedPBN                    newMapped;
 
   /* The hash zone responsible for the chunk name (NULL if isZeroBlock) */
-  HashZone                 *hashZone;
+  HashZone                   *hashZone;
 
   /* The lock this VIO holds or shares with other VIOs with the same data */
-  HashLock                 *hashLock;
+  HashLock                   *hashLock;
 
   /* All DataVIOs sharing a hash lock are kept in a ring linking these nodes */
-  RingNode                  hashLockNode;
+  RingNode                    hashLockNode;
 
   /* The block number in the partition of the albireo deduplication advice */
-  ZonedPBN                  duplicate;
+  ZonedPBN                    duplicate;
 
   /*
    * The sequence number of the recovery journal block containing the increment
    * entry for this VIO.
    */
-  SequenceNumber            recoverySequenceNumber;
+  SequenceNumber              recoverySequenceNumber;
 
   /* The point in the recovery journal where this write last made an entry */
-  struct journal_point      recoveryJournalPoint;
+  struct journal_point        recoveryJournalPoint;
 
   /* The RingNode of VIOs in user initiated write requests */
-  RingNode                  writeNode;
+  RingNode                    writeNode;
 
   /* A flag indicating that a data write VIO has a flush generation lock */
-  bool                      hasFlushGenerationLock;
+  bool                        hasFlushGenerationLock;
 
   /* The generation number of the VDO that this VIO belongs to */
-  SequenceNumber            flushGeneration;
+  SequenceNumber              flushGeneration;
 
   /* The completion to use for fetching block map pages for this vio */
-  VDOPageCompletion         pageCompletion;
+  struct vdo_page_completion  pageCompletion;
 
   /* All of the fields necessary for the compression path */
-  struct compression_state  compression;
+  struct compression_state    compression;
 };
 
 /**

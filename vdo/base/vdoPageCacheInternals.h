@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#5 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -48,54 +48,54 @@ typedef RingNode PageInfoNode;
  **/
 struct vdoPageCache {
   /** the physical layer to page to */
-  PhysicalLayer             *layer;
+  PhysicalLayer                       *layer;
   /** number of pages in cache */
-  PageCount                  pageCount;
+  PageCount                            pageCount;
   /** function to call on page read */
-  VDOPageReadFunction       *readHook;
+  VDOPageReadFunction                 *readHook;
   /** function to call on page write */
-  VDOPageWriteFunction      *writeHook;
+  VDOPageWriteFunction                *writeHook;
   /** number of pages to write in the current batch */
-  PageCount                  pagesInBatch;
+  PageCount                            pagesInBatch;
   /** Whether the VDO is doing a read-only rebuild */
-  bool                       rebuilding;
+  bool                                 rebuilding;
 
   /** array of page information entries */
-  PageInfo                  *infos;
+  PageInfo                            *infos;
   /** raw memory for pages */
-  char                      *pages;
+  char                                *pages;
   /** cache last found page info */
-  PageInfo                  *lastFound;
+  PageInfo                            *lastFound;
   /** map of page number to info */
-  IntMap                    *pageMap;
+  IntMap                              *pageMap;
   /** master LRU list (all infos) */
-  PageInfoNode               lruList;
+  PageInfoNode                         lruList;
   /** dirty pages by period */
-  DirtyLists                *dirtyLists;
+  DirtyLists                          *dirtyLists;
   /** free page list (oldest first) */
-  PageInfoNode               freeList;
+  PageInfoNode                         freeList;
   /** outgoing page list */
-  PageInfoNode               outgoingList;
+  PageInfoNode                         outgoingList;
   /** number of read I/O operations pending */
-  PageCount                  outstandingReads;
+  PageCount                            outstandingReads;
   /** number of write I/O operations pending */
-  PageCount                  outstandingWrites;
+  PageCount                            outstandingWrites;
   /** number of pages covered by the current flush */
-  PageCount                  pagesInFlush;
+  PageCount                            pagesInFlush;
   /** number of pages waiting to be included in the next flush */
-  PageCount                  pagesToFlush;
+  PageCount                            pagesToFlush;
   /** number of discards in progress */
-  unsigned int               discardCount;
+  unsigned int                         discardCount;
   /** how many VPCs waiting for free page */
-  unsigned int               waiterCount;
+  unsigned int                         waiterCount;
   /** queue of waiters who want a free page */
-  WaitQueue                  freeWaiters;
+  WaitQueue                            freeWaiters;
   /** statistics */
-  AtomicPageCacheStatistics  stats;
+  struct atomic_page_cache_statistics  stats;
   /** counter for pressure reports */
-  uint32_t                   pressureReport;
+  uint32_t                             pressureReport;
   /** the block map zone to which this cache belongs */
-  BlockMapZone              *zone;
+  BlockMapZone                        *zone;
 };
 
 /**
@@ -239,23 +239,25 @@ static inline bool isValid(const PageInfo *info)
 // COMPLETION CONVERSIONS
 
 /**********************************************************************/
-static inline VDOPageCompletion *asVDOPageCompletion(VDOCompletion *completion)
+static inline struct vdo_page_completion *
+asVDOPageCompletion(VDOCompletion *completion)
 {
   assertCompletionType(completion->type, VDO_PAGE_COMPLETION);
-  return (VDOPageCompletion *) ((uintptr_t) completion
-                                - offsetof(VDOPageCompletion, completion));
+  return (struct vdo_page_completion *) ((uintptr_t) completion
+                                - offsetof(struct vdo_page_completion,
+                                           completion));
 }
 
 /**********************************************************************/
 static inline
-VDOPageCompletion *pageCompletionFromWaiter(Waiter *waiter)
+struct vdo_page_completion *pageCompletionFromWaiter(Waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;
   }
 
-  VDOPageCompletion *completion = (VDOPageCompletion *)
-    ((uintptr_t) waiter - offsetof(VDOPageCompletion, waiter));
+  struct vdo_page_completion *completion = (struct vdo_page_completion *)
+    ((uintptr_t) waiter - offsetof(struct vdo_page_completion, waiter));
   assertCompletionType(completion->completion.type, VDO_PAGE_COMPLETION);
   return completion;
 }

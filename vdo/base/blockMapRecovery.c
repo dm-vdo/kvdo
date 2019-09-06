@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#8 $
  */
 
 #include "blockMapRecovery.h"
@@ -61,7 +61,7 @@ struct block_map_recovery_completion {
   struct numbered_block_mapping *journalEntries;
   /**
    * a heap wrapping journalEntries. It re-orders and sorts journal entries in
-   * ascending LBN order, then original journal order. This permits efficient
+   * ascending LBN               order, then original journal order. This permits efficient
    * iteration over the journal entries in order.
    **/
   struct heap                    replayHeap;
@@ -80,7 +80,7 @@ struct block_map_recovery_completion {
   /** number of page completions */
   PageCount                      pageCount;
   /** array of requested, potentially ready page completions */
-  VDOPageCompletion              pageCompletions[];
+  struct vdo_page_completion     pageCompletions[];
 };
 
 /**
@@ -208,8 +208,8 @@ makeRecoveryCompletion(VDO                                   *vdo,
 
   struct block_map_recovery_completion *recovery;
   int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
-                                 pageCount, VDOPageCompletion, __func__,
-                                &recovery);
+                                 pageCount, struct vdo_page_completion,
+                                 __func__, &recovery);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -298,7 +298,7 @@ static bool finishIfDone(struct block_map_recovery_completion *recovery)
      * since we know none are outstanding, we just go through the ready ones.
      */
     for (size_t i = 0; i < recovery->pageCount; i++) {
-      VDOPageCompletion *pageCompletion = &recovery->pageCompletions[i];
+      struct vdo_page_completion *pageCompletion = &recovery->pageCompletions[i];
       if (recovery->pageCompletions[i].ready) {
         releaseVDOPageCompletion(&pageCompletion->completion);
       }
@@ -392,7 +392,7 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
  * Note that a page is now ready and attempt to process pages. This callback is
  * registered in fetchPage().
  *
- * @param completion  The VDOPageCompletion for the fetched page
+ * @param completion  The vdo_page_completion for the fetched page
  **/
 static void pageLoaded(VDOCompletion *completion)
 {
@@ -407,7 +407,7 @@ static void pageLoaded(VDOCompletion *completion)
 /**
  * Handle an error loading a page.
  *
- * @param completion  The VDOPageCompletion
+ * @param completion  The vdo_page_completion
  **/
 static void handlePageLoadError(VDOCompletion *completion)
 {
@@ -437,7 +437,7 @@ static void fetchPage(struct block_map_recovery_completion *recovery,
   recovery->currentUnfetchedEntry
     = findEntryStartingNextPage(recovery, recovery->currentUnfetchedEntry,
                                 true);
-  initVDOPageCompletion(((VDOPageCompletion *) completion),
+  initVDOPageCompletion(((struct vdo_page_completion *) completion),
                         recovery->blockMap->zones[0].pageCache,
                         newPBN, true, &recovery->completion,
                         pageLoaded, handlePageLoadError);
@@ -454,9 +454,9 @@ static void fetchPage(struct block_map_recovery_completion *recovery,
  *
  * @return The next page completion to process
  **/
-static VDOPageCompletion *
+static struct vdo_page_completion *
 getNextPageCompletion(struct block_map_recovery_completion *recovery,
-                      VDOPageCompletion                    *completion)
+                      struct vdo_page_completion           *completion)
 {
   completion++;
   if (completion == (&recovery->pageCompletions[recovery->pageCount])) {
@@ -478,7 +478,8 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
     return;
   }
 
-  VDOPageCompletion *pageCompletion = (VDOPageCompletion *) completion;
+  struct vdo_page_completion *pageCompletion
+    = (struct vdo_page_completion *) completion;
   if (recovery->pbn != pageCompletion->pbn) {
     return;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#17 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -50,21 +50,21 @@ enum {
 
 struct missing_decref {
   /** A waiter for queueing this object */
-  Waiter                waiter;
+  Waiter                      waiter;
   /** The parent of this object */
-  RecoveryCompletion   *recovery;
+  RecoveryCompletion         *recovery;
   /** Whether this decref is complete */
-  bool                  complete;
+  bool                        complete;
   /** The slot for which the last decref was lost */
-  BlockMapSlot          slot;
+  BlockMapSlot                slot;
   /** The penultimate block map entry for this LBN */
-  DataLocation          penultimateMapping;
+  DataLocation                penultimateMapping;
   /** The page completion used to fetch the block map page for this LBN */
-  VDOPageCompletion     pageCompletion;
+  struct vdo_page_completion  pageCompletion;
   /** The journal point which will be used for this entry */
-  struct journal_point  journalPoint;
+  struct journal_point        journalPoint;
   /** The slab journal to which this entry will be applied */
-  SlabJournal          *slabJournal;
+  SlabJournal                *slabJournal;
 };
 
 /**
