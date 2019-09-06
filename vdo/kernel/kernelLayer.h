@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#28 $
  */
 
 #ifndef KERNELLAYER_H
@@ -126,7 +126,7 @@ struct kernel_layer {
 	struct kvdo_work_queue *bio_ack_queue;
 	/** Underlying block device info. */
 	uint64_t starting_sector_offset;
-	VolumeGeometry geometry;
+	struct volume_geometry geometry;
 	// Memory allocation
 	struct buffer_pool *data_kvio_pool;
 	// Albireo specific info

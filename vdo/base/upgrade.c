@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#5 $
  */
 
 #include "upgrade.h"
@@ -209,7 +209,7 @@ static int finishSodiumDecode(VDO *vdo)
 /**********************************************************************/
 int upgradePriorVDO(PhysicalLayer *layer)
 {
-  VolumeGeometry geometry;
+  struct volume_geometry geometry;
   int result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;

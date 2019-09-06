@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#3 $
  */
 
 #ifndef VDO_LOAD_H
@@ -70,11 +70,11 @@ int prepareToLoadVDO(VDO *vdo, const VDOLoadConfig *loadConfig)
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadVDOSuperblock(PhysicalLayer   *layer,
-                      VolumeGeometry  *geometry,
-                      bool             validateConfig,
-                      VDODecoder      *decoder,
-                      VDO            **vdoPtr)
+int loadVDOSuperblock(PhysicalLayer           *layer,
+                      struct volume_geometry  *geometry,
+                      bool                     validateConfig,
+                      VDODecoder              *decoder,
+                      VDO                    **vdoPtr)
   __attribute__((warn_unused_result));
 
 /**

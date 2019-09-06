@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#6 $
  */
 
 #include "volumeGeometry.h"
@@ -40,10 +40,10 @@ enum {
 };
 
 struct geometry_block {
-  char            magicNumber[MAGIC_NUMBER_SIZE];
-  Header          header;
-  VolumeGeometry  geometry;
-  CRC32Checksum   checksum;
+  char                   magicNumber[MAGIC_NUMBER_SIZE];
+  Header                 header;
+  struct volume_geometry geometry;
+  CRC32Checksum          checksum;
 } __attribute__((packed));
 
 static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
@@ -154,7 +154,7 @@ static int encodeIndexConfig(const IndexConfig *config, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decodeVolumeRegion(Buffer *buffer, VolumeRegion *region)
+static int decodeVolumeRegion(Buffer *buffer, struct volume_region *region)
 {
   VolumeRegionID id;
   int result = getUInt32LEFromBuffer(buffer, &id);
@@ -168,7 +168,7 @@ static int decodeVolumeRegion(Buffer *buffer, VolumeRegion *region)
     return result;
   }
 
-  *region = (VolumeRegion) {
+  *region = (struct volume_region) {
     .id         = id,
     .startBlock = startBlock,
   };
@@ -183,7 +183,7 @@ static int decodeVolumeRegion(Buffer *buffer, VolumeRegion *region)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int encodeVolumeRegion(const VolumeRegion *region, Buffer *buffer)
+static int encodeVolumeRegion(const struct volume_region *region, Buffer *buffer)
 {
   int result = putUInt32LEIntoBuffer(buffer, region->id);
   if (result != VDO_SUCCESS) {
@@ -201,7 +201,7 @@ static int encodeVolumeRegion(const VolumeRegion *region, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decodeVolumeGeometry(Buffer *buffer, VolumeGeometry *geometry)
+static int decodeVolumeGeometry(Buffer *buffer, struct volume_geometry *geometry)
 {
   ReleaseVersionNumber releaseVersion;
   int result = getUInt32LEFromBuffer(buffer, &releaseVersion);
@@ -241,7 +241,8 @@ static int decodeVolumeGeometry(Buffer *buffer, VolumeGeometry *geometry)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int encodeVolumeGeometry(const VolumeGeometry *geometry, Buffer *buffer)
+static int encodeVolumeGeometry(const struct volume_geometry *geometry,
+                                Buffer                       *buffer)
 {
   int result = putUInt32LEIntoBuffer(buffer, geometry->releaseVersion);
   if (result != VDO_SUCCESS) {
@@ -277,7 +278,7 @@ static int encodeVolumeGeometry(const VolumeGeometry *geometry, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int decodeGeometryBlock(Buffer *buffer, VolumeGeometry *geometry)
+static int decodeGeometryBlock(Buffer *buffer, struct volume_geometry *geometry)
 {
   if (!hasSameBytes(buffer, MAGIC_NUMBER, MAGIC_NUMBER_SIZE)) {
     return VDO_BAD_MAGIC;
@@ -319,7 +320,8 @@ static int decodeGeometryBlock(Buffer *buffer, VolumeGeometry *geometry)
  *
  * @return UDS_SUCCESS or an error
  **/
-static int encodeGeometryBlock(const VolumeGeometry *geometry, Buffer *buffer)
+static int encodeGeometryBlock(const struct volume_geometry *geometry,
+                               Buffer                       *buffer)
 {
   int result = putBytes(buffer, MAGIC_NUMBER_SIZE, MAGIC_NUMBER);
   if (result != VDO_SUCCESS) {
@@ -376,7 +378,7 @@ static int readGeometryBlock(PhysicalLayer *layer, byte **blockPtr)
 }
 
 /**********************************************************************/
-int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+int loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 {
   byte *block;
   int result = readGeometryBlock(layer, &block);
@@ -451,10 +453,10 @@ int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 }
 
 /**********************************************************************/
-int initializeVolumeGeometry(Nonce           nonce,
-                             UUID            uuid,
-                             IndexConfig    *indexConfig,
-                             VolumeGeometry *geometry)
+int initializeVolumeGeometry(Nonce                   nonce,
+                             UUID                    uuid,
+                             IndexConfig            *indexConfig,
+                             struct volume_geometry *geometry)
 {
   BlockCount indexSize = 0;
   if (indexConfig != NULL) {
@@ -464,7 +466,7 @@ int initializeVolumeGeometry(Nonce           nonce,
     }
   }
 
-  *geometry = (VolumeGeometry) {
+  *geometry = (struct volume_geometry) {
     .releaseVersion = CURRENT_RELEASE_VERSION_NUMBER,
     .nonce = nonce,
     .regions = {
@@ -502,7 +504,7 @@ int clearVolumeGeometry(PhysicalLayer *layer)
 }
 
 /**********************************************************************/
-int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+int writeVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 {
   char *block;
   int result = layer->allocateIOBuffer(layer, VDO_BLOCK_SIZE, "geometry block",

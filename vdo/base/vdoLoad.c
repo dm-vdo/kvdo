@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#13 $
  */
 
 #include "vdoLoad.h"
@@ -483,11 +483,11 @@ static int decodeSynchronousVDO(VDO *vdo, bool validateConfig)
 }
 
 /**********************************************************************/
-int loadVDOSuperblock(PhysicalLayer   *layer,
-                      VolumeGeometry  *geometry,
-                      bool             validateConfig,
-                      VDODecoder      *decoder,
-                      VDO            **vdoPtr)
+int loadVDOSuperblock(PhysicalLayer           *layer,
+                      struct volume_geometry  *geometry,
+                      bool                     validateConfig,
+                      VDODecoder              *decoder,
+                      VDO                    **vdoPtr)
 {
   VDO *vdo;
   int result = makeVDO(layer, &vdo);
@@ -520,7 +520,7 @@ int loadVDO(PhysicalLayer  *layer,
             VDODecoder     *decoder,
             VDO           **vdoPtr)
 {
-  VolumeGeometry geometry;
+  struct volume_geometry geometry;
   int result = loadVolumeGeometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;

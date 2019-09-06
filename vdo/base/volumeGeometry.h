@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#2 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -38,7 +38,7 @@ typedef enum {
   VOLUME_REGION_COUNT,
 } VolumeRegionID;
 
-typedef struct {
+struct volume_region {
   /** The ID of the region */
   VolumeRegionID      id;
   /**
@@ -46,12 +46,12 @@ typedef struct {
    * the next region begins.
    */
   PhysicalBlockNumber startBlock;
-} __attribute__((packed)) VolumeRegion;
+} __attribute__((packed));
 
 /** A binary UUID is 16 bytes. */
 typedef unsigned char UUID[16];
 
-typedef struct {
+struct volume_geometry {
   /** The release version number of this volume */
   ReleaseVersionNumber releaseVersion;
   /** The nonce of this volume */
@@ -59,10 +59,10 @@ typedef struct {
   /** The UUID of this volume */
   UUID                 uuid;
   /** The regions in ID order */
-  VolumeRegion         regions[VOLUME_REGION_COUNT];
+  struct volume_region regions[VOLUME_REGION_COUNT];
   /** The index config */
   IndexConfig          indexConfig;
-} __attribute__((packed)) VolumeGeometry;
+} __attribute__((packed));
 
 /**
  * Get the start of the index region from a geometry.
@@ -72,7 +72,8 @@ typedef struct {
  * @return The start of the index region
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
+static inline PhysicalBlockNumber
+getIndexRegionOffset(struct volume_geometry geometry)
 {
   return geometry.regions[INDEX_REGION].startBlock;
 }
@@ -85,7 +86,8 @@ static inline PhysicalBlockNumber getIndexRegionOffset(VolumeGeometry geometry)
  * @return The start of the data region
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
+static inline PhysicalBlockNumber
+getDataRegionOffset(struct volume_geometry geometry)
 {
   return geometry.regions[DATA_REGION].startBlock;
 }
@@ -98,7 +100,8 @@ static inline PhysicalBlockNumber getDataRegionOffset(VolumeGeometry geometry)
  * @return the size of the index region
  **/
 __attribute__((warn_unused_result))
-static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
+static inline PhysicalBlockNumber
+getIndexRegionSize(struct volume_geometry geometry)
 {
   return getDataRegionOffset(geometry) - getIndexRegionOffset(geometry);
 }
@@ -109,11 +112,11 @@ static inline PhysicalBlockNumber getIndexRegionSize(VolumeGeometry geometry)
  * @param layer     The layer to read and parse the geometry from
  * @param geometry  The geometry to be loaded
  **/
-int loadVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+int loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 __attribute__((warn_unused_result));
 
 /**
- * Initialize a VolumeGeometry for a VDO.
+ * Initialize a volume_geometry for a VDO.
  *
  * @param nonce        The nonce for the VDO
  * @param uuid         The uuid for the VDO
@@ -122,10 +125,10 @@ __attribute__((warn_unused_result));
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeVolumeGeometry(Nonce           nonce,
-                             UUID            uuid,
-                             IndexConfig    *indexConfig,
-                             VolumeGeometry *geometry)
+int initializeVolumeGeometry(Nonce                   nonce,
+                             UUID                    uuid,
+                             IndexConfig            *indexConfig,
+                             struct volume_geometry *geometry)
   __attribute__((warn_unused_result));
 
 /**
@@ -142,11 +145,11 @@ int clearVolumeGeometry(PhysicalLayer *layer)
  * Write a geometry block for a VDO.
  *
  * @param layer     The layer on which to write.
- * @param geometry  The VolumeGeometry to be written
+ * @param geometry  The volume_geometry to be written
  *
  * @return VDO_SUCCESS or an error
  **/
-int writeVolumeGeometry(PhysicalLayer *layer, VolumeGeometry *geometry)
+int writeVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
 __attribute__((warn_unused_result));
 
 /**
@@ -178,8 +181,8 @@ __attribute__((warn_unused_result));
  * @param [in]  geometry    The geometry to use
  * @param [out] loadConfig  The load config to set
  **/
-static inline void setLoadConfigFromGeometry(VolumeGeometry *geometry,
-                                             VDOLoadConfig  *loadConfig)
+static inline void setLoadConfigFromGeometry(struct volume_geometry *geometry,
+                                             VDOLoadConfig          *loadConfig)
 {
   loadConfig->firstBlockOffset = getDataRegionOffset(*geometry);
   loadConfig->releaseVersion   = geometry->releaseVersion;
