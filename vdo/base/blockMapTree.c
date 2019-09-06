@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#13 $
  */
 
 #include "blockMapTree.h"
@@ -321,7 +321,7 @@ static void setGeneration(BlockMapTreeZone *zone,
 }
 
 /**********************************************************************/
-static void writePage(TreePage *treePage, VIOPoolEntry *entry);
+static void writePage(TreePage *treePage, struct vio_pool_entry *entry);
 
 /**
  * Write out a dirty page if it is still covered by the most recent flush
@@ -330,12 +330,12 @@ static void writePage(TreePage *treePage, VIOPoolEntry *entry);
  * <p>Implements WaiterCallback
  *
  * @param waiter   The page to write
- * @param context  The VIOPoolEntry with which to do the write
+ * @param context  The vio_pool_entry with which to do the write
  **/
 static void writePageCallback(Waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
-  writePage((TreePage *) waiter, (VIOPoolEntry *) context);
+  writePage((TreePage *) waiter, (struct vio_pool_entry *) context);
 }
 
 /**
@@ -421,7 +421,7 @@ static void writePageIfNotDirtied(Waiter *waiter, void *context)
  * @param zone   The zone which owns the pool
  * @param entry  The pool entry to return
  **/
-static void returnToPool(BlockMapTreeZone *zone, VIOPoolEntry *entry)
+static void returnToPool(BlockMapTreeZone *zone, struct vio_pool_entry *entry)
 {
   returnVIOToPool(zone->vioPool, entry);
   checkForIOComplete(zone);
@@ -435,9 +435,9 @@ static void returnToPool(BlockMapTreeZone *zone, VIOPoolEntry *entry)
  **/
 static void finishPageWrite(VDOCompletion *completion)
 {
-  VIOPoolEntry     *entry = completion->parent;
-  TreePage         *page  = entry->parent;
-  BlockMapTreeZone *zone  = entry->context;
+  struct vio_pool_entry     *entry = completion->parent;
+  TreePage                  *page  = entry->parent;
+  BlockMapTreeZone          *zone  = entry->context;
   releaseRecoveryJournalBlockReference(zone->mapZone->blockMap->journal,
                                        page->writingRecoveryLock,
                                        ZONE_TYPE_LOGICAL,
@@ -482,9 +482,9 @@ static void finishPageWrite(VDOCompletion *completion)
  **/
 static void handleWriteError(VDOCompletion *completion)
 {
-  int               result = completion->result;
-  VIOPoolEntry     *entry  = completion->parent;
-  BlockMapTreeZone *zone   = entry->context;
+  int                        result = completion->result;
+  struct vio_pool_entry     *entry  = completion->parent;
+  BlockMapTreeZone          *zone   = entry->context;
   enterZoneReadOnlyMode(zone, result);
   returnToPool(zone, entry);
 }
@@ -497,9 +497,9 @@ static void handleWriteError(VDOCompletion *completion)
  **/
 static void writeInitializedPage(VDOCompletion *completion)
 {
-  VIOPoolEntry     *entry    = completion->parent;
-  BlockMapTreeZone *zone     = (BlockMapTreeZone *) entry->context;
-  TreePage         *treePage = (TreePage *) entry->parent;
+  struct vio_pool_entry     *entry    = completion->parent;
+  BlockMapTreeZone          *zone     = (BlockMapTreeZone *) entry->context;
+  TreePage                  *treePage = (TreePage *) entry->parent;
 
   /*
    * Set the initialized field of the copy of the page we are writing to true.
@@ -517,9 +517,9 @@ static void writeInitializedPage(VDOCompletion *completion)
  * Write a dirty tree page now that we have a VIO with which to write it.
  *
  * @param treePage  The page to write
- * @param entry     The VIOPoolEntry with which to write
+ * @param entry     The vio_pool_entry with which to write
  **/
-static void writePage(TreePage *treePage, VIOPoolEntry *entry)
+static void writePage(TreePage *treePage, struct vio_pool_entry *entry)
 {
   BlockMapTreeZone *zone = (BlockMapTreeZone *) entry->context;
   if ((zone->flusher != treePage)
@@ -789,10 +789,10 @@ static void continueLoadForWaiter(Waiter *waiter, void *context)
  **/
 static void finishBlockMapPageLoad(VDOCompletion *completion)
 {
-  VIOPoolEntry     *entry    = completion->parent;
-  DataVIO          *dataVIO  = entry->parent;
-  BlockMapTreeZone *zone     = (BlockMapTreeZone *) entry->context;
-  struct tree_lock *treeLock = &dataVIO->treeLock;
+  struct vio_pool_entry     *entry    = completion->parent;
+  DataVIO                   *dataVIO  = entry->parent;
+  BlockMapTreeZone          *zone     = (BlockMapTreeZone *) entry->context;
+  struct tree_lock          *treeLock = &dataVIO->treeLock;
 
   treeLock->height--;
   PhysicalBlockNumber pbn
@@ -819,10 +819,10 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
  **/
 static void handleIOError(VDOCompletion *completion)
 {
-  int               result  = completion->result;
-  VIOPoolEntry     *entry   = completion->parent;
-  DataVIO          *dataVIO = entry->parent;
-  BlockMapTreeZone *zone    = (BlockMapTreeZone *) entry->context;
+  int                        result  = completion->result;
+  struct vio_pool_entry     *entry   = completion->parent;
+  DataVIO                   *dataVIO = entry->parent;
+  BlockMapTreeZone          *zone    = (BlockMapTreeZone *) entry->context;
   returnVIOToPool(zone->vioPool, entry);
   abortLoad(dataVIO, result);
 }
@@ -836,8 +836,8 @@ static void handleIOError(VDOCompletion *completion)
  **/
 static void loadPage(Waiter *waiter, void *context)
 {
-  VIOPoolEntry *entry   = context;
-  DataVIO      *dataVIO = waiterAsDataVIO(waiter);
+  struct vio_pool_entry *entry   = context;
+  DataVIO               *dataVIO = waiterAsDataVIO(waiter);
 
   entry->parent = dataVIO;
   entry->vio->completion.callbackThreadID

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#4 $
  */
 
 #ifndef VIO_POOL_H
@@ -34,15 +34,15 @@
  **/
 
 /**
- * An VIOPoolEntry is the pair of VIO and buffer whether in use or not.
+ * A vio_pool_entry is the pair of VIO and buffer whether in use or not.
  **/
-typedef struct {
+struct vio_pool_entry {
   RingNode  node;
   VIO      *vio;
   void     *buffer;
   void     *parent;
   void     *context;
-} VIOPoolEntry;
+};
 
 /**
  * A function which constructs a VIO for a pool.
@@ -108,19 +108,19 @@ int acquireVIOFromPool(VIOPool *pool, Waiter *waiter);
  * @param pool   the VIO pool
  * @param entry  a VIO pool entry
  **/
-void returnVIOToPool(VIOPool *pool, VIOPoolEntry *entry);
+void returnVIOToPool(VIOPool *pool, struct vio_pool_entry *entry);
 
 /**
- * Convert a RingNode to the VIOPoolEntry that contains it.
+ * Convert a RingNode to the vio_pool_entry that contains it.
  *
  * @param node  The RingNode to convert
  *
- * @return The VIOPoolEntry wrapping the RingNode
+ * @return The vio_pool_entry wrapping the RingNode
  **/
-static inline VIOPoolEntry *asVIOPoolEntry(RingNode *node)
+static inline struct vio_pool_entry *asVIOPoolEntry(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(VIOPoolEntry, node) == 0);
-  return (VIOPoolEntry *) node;
+  STATIC_ASSERT(offsetof(struct vio_pool_entry, node) == 0);
+  return (struct vio_pool_entry *) node;
 }
 
 /**

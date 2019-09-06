@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#12 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -228,7 +228,7 @@ int acquireVIO(BlockAllocator *allocator, Waiter *waiter)
  * @param allocator  The block allocator which owns the VIO
  * @param entry      The VIO being returned
  **/
-void returnVIO(BlockAllocator *allocator, VIOPoolEntry *entry);
+void returnVIO(BlockAllocator *allocator, struct vio_pool_entry *entry);
 
 /**
  * Initiate scrubbing all unrecovered slabs.

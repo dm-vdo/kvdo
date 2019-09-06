@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#13 $
  */
 
 #include "slabJournalInternals.h"
@@ -405,8 +405,8 @@ static void reapSlabJournal(SlabJournal *journal);
  **/
 static void completeReaping(VDOCompletion *completion)
 {
-  VIOPoolEntry *entry   = completion->parent;
-  SlabJournal  *journal = entry->parent;
+  struct vio_pool_entry *entry   = completion->parent;
+  SlabJournal           *journal = entry->parent;
   returnVIO(journal->slab->allocator, entry);
   finishReaping(journal);
   reapSlabJournal(journal);
@@ -419,7 +419,7 @@ static void completeReaping(VDOCompletion *completion)
  **/
 static void handleFlushError(VDOCompletion *completion)
 {
-  SlabJournal *journal = ((VIOPoolEntry *) completion->parent)->parent;
+  SlabJournal *journal = ((struct vio_pool_entry *) completion->parent)->parent;
   enterJournalReadOnlyMode(journal, completion->result);
   completeReaping(completion);
 }
@@ -433,9 +433,9 @@ static void handleFlushError(VDOCompletion *completion)
  **/
 static void flushForReaping(Waiter *waiter, void *vioContext)
 {
-  SlabJournal  *journal = slabJournalFromFlushWaiter(waiter);
-  VIOPoolEntry *entry   = vioContext;
-  VIO          *vio     = entry->vio;
+  SlabJournal           *journal = slabJournalFromFlushWaiter(waiter);
+  struct vio_pool_entry *entry   = vioContext;
+  VIO                   *vio     = entry->vio;
 
   entry->parent                    = journal;
   vio->completion.callbackThreadID = journal->slab->allocator->threadID;
@@ -624,7 +624,8 @@ void reopenSlabJournal(SlabJournal *journal)
 }
 
 /**********************************************************************/
-static SequenceNumber getCommittingSequenceNumber(const VIOPoolEntry *entry)
+static SequenceNumber
+getCommittingSequenceNumber(const struct vio_pool_entry *entry)
 {
   const PackedSlabJournalBlock *block = entry->buffer;
   return getUInt64LE(block->header.fields.sequenceNumber);
@@ -638,9 +639,9 @@ static SequenceNumber getCommittingSequenceNumber(const VIOPoolEntry *entry)
  **/
 static void completeWrite(VDOCompletion *completion)
 {
-  int           writeResult = completion->result;
-  VIOPoolEntry *entry       = completion->parent;
-  SlabJournal  *journal     = entry->parent;
+  int                    writeResult = completion->result;
+  struct vio_pool_entry *entry       = completion->parent;
+  SlabJournal           *journal     = entry->parent;
 
   SequenceNumber committed = getCommittingSequenceNumber(entry);
   unspliceRingNode(&entry->node);
@@ -661,7 +662,8 @@ static void completeWrite(VDOCompletion *completion)
     journal->nextCommit = journal->tail;
   } else {
     // The commit point is always the beginning of the oldest incomplete block.
-    VIOPoolEntry *oldest = asVIOPoolEntry(journal->uncommittedBlocks.next);
+    struct vio_pool_entry *oldest
+      = asVIOPoolEntry(journal->uncommittedBlocks.next);
     journal->nextCommit = getCommittingSequenceNumber(oldest);
   }
 
@@ -677,7 +679,7 @@ static void completeWrite(VDOCompletion *completion)
 static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
 {
   SlabJournal            *journal = slabJournalFromResourceWaiter(waiter);
-  VIOPoolEntry           *entry   = vioContext;
+  struct vio_pool_entry  *entry   = vioContext;
   SlabJournalBlockHeader *header  = &journal->tailHeader;
 
   header->head = journal->head;
@@ -1203,9 +1205,9 @@ void drainSlabJournal(SlabJournal *journal)
  **/
 static void finishDecodingJournal(VDOCompletion *completion)
 {
-  int           result  = completion->result;
-  VIOPoolEntry *entry   = completion->parent;
-  SlabJournal  *journal = entry->parent;
+  int                    result  = completion->result;
+  struct vio_pool_entry *entry   = completion->parent;
+  SlabJournal           *journal = entry->parent;
   returnVIO(journal->slab->allocator, entry);
   notifySlabJournalIsLoaded(journal->slab, result);
 }
@@ -1218,7 +1220,7 @@ static void finishDecodingJournal(VDOCompletion *completion)
  **/
 static void setDecodedState(VDOCompletion *completion)
 {
-  VIOPoolEntry           *entry   = completion->parent;
+  struct vio_pool_entry  *entry   = completion->parent;
   SlabJournal            *journal = entry->parent;
   PackedSlabJournalBlock *block   = entry->buffer;
 
@@ -1256,9 +1258,9 @@ static void setDecodedState(VDOCompletion *completion)
  **/
 static void readSlabJournalTail(Waiter *waiter, void *vioContext)
 {
-  SlabJournal  *journal = slabJournalFromResourceWaiter(waiter);
-  Slab         *slab    = journal->slab;
-  VIOPoolEntry *entry   = vioContext;
+  SlabJournal           *journal = slabJournalFromResourceWaiter(waiter);
+  Slab                  *slab    = journal->slab;
+  struct vio_pool_entry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
     = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   entry->parent = journal;

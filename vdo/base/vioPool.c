@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#5 $
  */
 
 #include "vioPool.h"
@@ -34,23 +34,23 @@
  **/
 struct vioPool {
   /** The number of objects managed by the pool */
-  size_t         size;
+  size_t                 size;
   /** The list of objects which are available */
-  RingNode       available;
+  RingNode               available;
   /** The queue of requestors waiting for objects from the pool */
-  WaitQueue      waiting;
+  WaitQueue              waiting;
   /** The number of objects currently in use */
-  size_t         busyCount;
+  size_t                 busyCount;
   /** The list of objects which are in use */
-  RingNode       busy;
+  RingNode               busy;
   /** The number of requests when no object was available */
-  uint64_t       outageCount;
+  uint64_t               outageCount;
   /** The ID of the thread on which this pool may be used */
-  ThreadID       threadID;
+  ThreadID               threadID;
   /** The buffer backing the pool's VIOs */
-  char          *buffer;
+  char                  *buffer;
   /** The pool entries */
-  VIOPoolEntry   entries[];
+  struct vio_pool_entry  entries[];
 };
 
 /**********************************************************************/
@@ -62,8 +62,8 @@ int makeVIOPool(PhysicalLayer   *layer,
                 VIOPool        **poolPtr)
 {
   VIOPool *pool;
-  int result = ALLOCATE_EXTENDED(VIOPool, poolSize, VIOPoolEntry, __func__,
-                                 &pool);
+  int result = ALLOCATE_EXTENDED(VIOPool, poolSize, struct vio_pool_entry,
+                                 __func__, &pool);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -81,9 +81,9 @@ int makeVIOPool(PhysicalLayer   *layer,
 
   char *ptr = pool->buffer;
   for (size_t i = 0; i < poolSize; i++) {
-    VIOPoolEntry *entry = &pool->entries[i];
-    entry->buffer       = ptr;
-    entry->context      = context;
+    struct vio_pool_entry *entry = &pool->entries[i];
+    entry->buffer                = ptr;
+    entry->context               = context;
     result = vioConstructor(layer, entry, ptr, &entry->vio);
     if (result != VDO_SUCCESS) {
       freeVIOPool(&pool);
@@ -117,14 +117,14 @@ void freeVIOPool(VIOPool **poolPtr)
   ASSERT_LOG_ONLY(isRingEmpty(&pool->busy),
                   "VIO pool must not have busy entries when being freed");
 
-  VIOPoolEntry *entry;
+  struct vio_pool_entry *entry;
   while ((entry = asVIOPoolEntry(chopRingNode(&pool->available))) != NULL) {
     freeVIO(&entry->vio);
   }
 
-  // Make sure every VIOPoolEntry has been removed.
+  // Make sure every vio_pool_entry has been removed.
   for (size_t i = 0; i < pool->size; i++) {
-    VIOPoolEntry *entry = &pool->entries[i];
+    struct vio_pool_entry *entry = &pool->entries[i];
     ASSERT_LOG_ONLY(isRingEmpty(&entry->node), "VIO Pool entry still in use:"
                     " VIO is in use for physical block %" PRIu64
                     " for operation %u",
@@ -162,7 +162,7 @@ int acquireVIOFromPool(VIOPool *pool, Waiter *waiter)
 }
 
 /**********************************************************************/
-void returnVIOToPool(VIOPool *pool, VIOPoolEntry *entry)
+void returnVIOToPool(VIOPool *pool, struct vio_pool_entry *entry)
 {
   ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
                   "vio pool entry returned on same thread as it was acquired");

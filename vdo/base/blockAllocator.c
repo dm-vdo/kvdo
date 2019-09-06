@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#22 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -852,7 +852,7 @@ int acquireVIO(BlockAllocator *allocator, Waiter *waiter)
 }
 
 /**********************************************************************/
-void returnVIO(BlockAllocator *allocator, VIOPoolEntry *entry)
+void returnVIO(BlockAllocator *allocator, struct vio_pool_entry *entry)
 {
   returnVIOToPool(allocator->vioPool, entry);
 }

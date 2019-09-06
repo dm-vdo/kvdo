@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#11 $
  */
 
 #include "refCounts.h"
@@ -1093,9 +1093,9 @@ static void updateSlabSummaryAsClean(RefCounts *refCounts)
  **/
 static void handleIOError(VDOCompletion *completion)
 {
-  int           result    = completion->result;
-  VIOPoolEntry *entry     = completion->parent;
-  RefCounts    *refCounts
+  int                    result    = completion->result;
+  struct vio_pool_entry *entry     = completion->parent;
+  RefCounts             *refCounts
     = ((struct reference_block *) entry->parent)->refCounts;
   returnVIO(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
@@ -1110,9 +1110,9 @@ static void handleIOError(VDOCompletion *completion)
  **/
 static void finishReferenceBlockWrite(VDOCompletion *completion)
 {
-  VIOPoolEntry           *entry     = completion->parent;
-  struct reference_block *block     = entry->parent;
-  RefCounts              *refCounts = block->refCounts;
+  struct vio_pool_entry           *entry     = completion->parent;
+  struct reference_block          *block     = entry->parent;
+  RefCounts                       *refCounts = block->refCounts;
   refCounts->activeCount--;
 
   // Release the slab journal lock.
@@ -1181,8 +1181,8 @@ void packReferenceBlock(struct reference_block *block, void *buffer)
  **/
 static void writeReferenceBlock(Waiter *blockWaiter, void *vioContext)
 {
-  VIOPoolEntry           *entry = vioContext;
-  struct reference_block *block = waiterAsReferenceBlock(blockWaiter);
+  struct vio_pool_entry           *entry = vioContext;
+  struct reference_block          *block = waiterAsReferenceBlock(blockWaiter);
   packReferenceBlock(block, entry->buffer);
 
   size_t              blockOffset = (block - block->refCounts->blocks);
@@ -1337,7 +1337,7 @@ static void unpackReferenceBlock(struct packed_reference_block *packed,
  **/
 static void finishReferenceBlockLoad(VDOCompletion *completion)
 {
-  VIOPoolEntry   *entry = completion->parent;
+  struct vio_pool_entry  *entry = completion->parent;
   struct reference_block *block = entry->parent;
   unpackReferenceBlock((struct packed_reference_block *) entry->buffer, block);
 
@@ -1358,7 +1358,7 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
  **/
 static void loadReferenceBlock(Waiter *blockWaiter, void *vioContext)
 {
-  VIOPoolEntry           *entry       = vioContext;
+  struct vio_pool_entry  *entry       = vioContext;
   struct reference_block *block       = waiterAsReferenceBlock(blockWaiter);
   size_t                  blockOffset = (block - block->refCounts->blocks);
   PhysicalBlockNumber     pbn         = (block->refCounts->origin + blockOffset);

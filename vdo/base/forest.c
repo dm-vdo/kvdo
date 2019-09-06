@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#7 $
  */
 
 #include "forest.h"
@@ -75,7 +75,7 @@ struct cursor {
   struct cursors        *parent;
   struct boundary        boundary;
   struct cursor_level    levels[BLOCK_MAP_TREE_HEIGHT];
-  VIOPoolEntry          *vioPoolEntry;
+  struct vio_pool_entry *vioPoolEntry;
 };
 
 struct cursors {
@@ -349,8 +349,8 @@ static void traverse(struct cursor *cursor);
  **/
 static void continueTraversal(VDOCompletion *completion)
 {
-  VIOPoolEntry  *poolEntry = completion->parent;
-  struct cursor *cursor    = poolEntry->parent;
+  struct vio_pool_entry  *poolEntry = completion->parent;
+  struct cursor          *cursor    = poolEntry->parent;
   traverse(cursor);
 }
 
@@ -361,10 +361,10 @@ static void continueTraversal(VDOCompletion *completion)
  **/
 static void finishTraversalLoad(VDOCompletion *completion)
 {
-  VIOPoolEntry         *entry  = completion->parent;
-  struct cursor        *cursor = entry->parent;
-  Height                height = cursor->height;
-  struct cursor_level  *level  = &cursor->levels[height];
+  struct vio_pool_entry         *entry  = completion->parent;
+  struct cursor                 *cursor = entry->parent;
+  Height                         height = cursor->height;
+  struct cursor_level           *level  = &cursor->levels[height];
 
   TreePage     *treePage
     = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
@@ -453,13 +453,13 @@ static void traverse(struct cursor *cursor)
  * <p>Implements WaiterCallback.
  *
  * @param waiter   The cursor
- * @param context  The VIOPoolEntry just acquired
+ * @param context  The vio_pool_entry just acquired
  **/
 static void launchCursor(Waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
   struct cursor *cursor               = (struct cursor *) waiter;
-  cursor->vioPoolEntry                = (VIOPoolEntry *) context;
+  cursor->vioPoolEntry                = (struct vio_pool_entry *) context;
   cursor->vioPoolEntry->parent        = cursor;
   vioAsCompletion(cursor->vioPoolEntry->vio)->callbackThreadID
     = cursor->parent->zone->mapZone->threadID;
