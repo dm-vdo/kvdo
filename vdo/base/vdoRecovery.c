@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#18 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -52,7 +52,7 @@ struct missing_decref {
   /** A waiter for queueing this object */
   Waiter                      waiter;
   /** The parent of this object */
-  RecoveryCompletion         *recovery;
+  struct recovery_completion *recovery;
   /** Whether this decref is complete */
   bool                        complete;
   /** The slot for which the last decref was lost */
@@ -125,7 +125,7 @@ static uint64_t slotAsNumber(BlockMapSlot slot)
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int makeMissingDecref(RecoveryCompletion             *recovery,
+static int makeMissingDecref(struct recovery_completion     *recovery,
                              struct recovery_journal_entry   entry,
                              struct missing_decref         **decrefPtr)
 {
@@ -173,7 +173,7 @@ static int makeMissingDecref(RecoveryCompletion             *recovery,
  *
  * @param point  The recovery point to alter
  **/
-static void incrementRecoveryPoint(RecoveryPoint *point)
+static void incrementRecoveryPoint(struct recovery_point *point)
 {
   point->entryCount++;
   if ((point->sectorCount == (SECTORS_PER_BLOCK - 1))
@@ -195,7 +195,7 @@ static void incrementRecoveryPoint(RecoveryPoint *point)
  *
  * @param point  The recovery point to alter
  **/
-static void decrementRecoveryPoint(RecoveryPoint *point)
+static void decrementRecoveryPoint(struct recovery_point *point)
 {
   STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_LAST_SECTOR > 0);
 
@@ -224,8 +224,8 @@ static void decrementRecoveryPoint(RecoveryPoint *point)
  * @return <code>true</code> if the first point precedes the second point
  **/
 __attribute__((warn_unused_result))
-static bool beforeRecoveryPoint(const RecoveryPoint *first,
-                                const RecoveryPoint *second)
+static bool beforeRecoveryPoint(const struct recovery_point *first,
+                                const struct recovery_point *second)
 {
   if (first->sequenceNumber < second->sequenceNumber) {
     return true;
@@ -246,17 +246,17 @@ static bool beforeRecoveryPoint(const RecoveryPoint *first,
 /**
  * Prepare the sub-task completion.
  *
- * @param recovery      The RecoveryCompletion whose sub-task completion is to
+ * @param recovery      The recovery_completion whose sub-task completion is to
  *                      be prepared
  * @param callback      The callback to register for the next sub-task
  * @param errorHandler  The error handler for the next sub-task
  * @param zoneType      The type of zone on which the callback or errorHandler
  *                      should run
  **/
-static void prepareSubTask(RecoveryCompletion *recovery,
-                           VDOAction           callback,
-                           VDOAction           errorHandler,
-                           ZoneType            zoneType)
+static void prepareSubTask(struct recovery_completion *recovery,
+                           VDOAction                   callback,
+                           VDOAction                   errorHandler,
+                           ZoneType                    zoneType)
 {
   const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
   ThreadID threadID;
@@ -280,11 +280,11 @@ static void prepareSubTask(RecoveryCompletion *recovery,
 }
 
 /**********************************************************************/
-int makeRecoveryCompletion(VDO *vdo, RecoveryCompletion **recoveryPtr)
+int makeRecoveryCompletion(VDO *vdo, struct recovery_completion **recoveryPtr)
 {
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  RecoveryCompletion *recovery;
-  int result = ALLOCATE_EXTENDED(RecoveryCompletion,
+  struct recovery_completion *recovery;
+  int result = ALLOCATE_EXTENDED(struct recovery_completion,
                                  threadConfig->physicalZoneCount, RingNode,
                                  __func__, &recovery);
  if (result != VDO_SUCCESS) {
@@ -332,9 +332,9 @@ static void freeMissingDecref(Waiter *waiter,
 }
 
 /**********************************************************************/
-void freeRecoveryCompletion(RecoveryCompletion **recoveryPtr)
+void freeRecoveryCompletion(struct recovery_completion **recoveryPtr)
 {
-  RecoveryCompletion *recovery = *recoveryPtr;
+  struct recovery_completion *recovery = *recoveryPtr;
   if (recovery == NULL) {
     return;
   }
@@ -360,10 +360,10 @@ void freeRecoveryCompletion(RecoveryCompletion **recoveryPtr)
  **/
 static void finishRecovery(VDOCompletion *completion)
 {
-  VDOCompletion      *parent        = completion->parent;
-  RecoveryCompletion *recovery      = asRecoveryCompletion(completion);
-  VDO                *vdo           = recovery->vdo;
-  uint64_t            recoveryCount = ++vdo->completeRecoveries;
+  VDOCompletion              *parent        = completion->parent;
+  struct recovery_completion *recovery      = asRecoveryCompletion(completion);
+  VDO                        *vdo           = recovery->vdo;
+  uint64_t                    recoveryCount = ++vdo->completeRecoveries;
   initializeRecoveryJournalPostRecovery(vdo->recoveryJournal,
                                         recoveryCount, recovery->highestTail);
   freeRecoveryCompletion(&recovery);
@@ -382,9 +382,9 @@ static void finishRecovery(VDOCompletion *completion)
  **/
 static void abortRecovery(VDOCompletion *completion)
 {
-  VDOCompletion      *parent   = completion->parent;
-  int                 result   = completion->result;
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion);
+  VDOCompletion              *parent   = completion->parent;
+  int                         result   = completion->result;
+  struct recovery_completion *recovery = asRecoveryCompletion(completion);
   freeRecoveryCompletion(&recovery);
   logWarning("Recovery aborted");
   finishCompletion(parent, result);
@@ -399,7 +399,8 @@ static void abortRecovery(VDOCompletion *completion)
  * @return <code>true</code> if the result was an error
  **/
 __attribute__((warn_unused_result))
-static bool abortRecoveryOnError(int result, RecoveryCompletion *recovery)
+static bool abortRecoveryOnError(int                         result,
+                                 struct recovery_completion *recovery)
 {
   if (result == VDO_SUCCESS) {
     return false;
@@ -418,8 +419,8 @@ static bool abortRecoveryOnError(int result, RecoveryCompletion *recovery)
  * @return The unpacked contents of the matching recovery journal entry
  **/
 static struct recovery_journal_entry
-getEntry(const RecoveryCompletion *recovery,
-         const RecoveryPoint      *point)
+getEntry(const struct recovery_completion *recovery,
+         const struct recovery_point      *point)
 {
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   PhysicalBlockNumber blockNumber
@@ -439,7 +440,7 @@ getEntry(const RecoveryCompletion *recovery,
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int extractJournalEntries(RecoveryCompletion *recovery)
+static int extractJournalEntries(struct recovery_completion *recovery)
 {
   /*
    * Allocate an array of numbered_block_mapping structs just large
@@ -452,7 +453,7 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
     return result;
   }
 
-  RecoveryPoint recoveryPoint = {
+  struct recovery_point recoveryPoint = {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -494,8 +495,9 @@ static int extractJournalEntries(RecoveryCompletion *recovery)
  **/
 static void launchBlockMapRecovery(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
+  VDO *vdo = recovery->vdo;
   assertOnLogicalZoneThread(vdo, 0, __func__);
 
   // Extract the journal entries for the block map recovery.
@@ -516,8 +518,9 @@ static void launchBlockMapRecovery(VDOCompletion *completion)
  **/
 static void startSuperBlockSave(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
+  VDO *vdo = recovery->vdo;
   assertOnAdminThread(vdo, __func__);
 
   logInfo("Saving recovery progress");
@@ -540,8 +543,9 @@ static void startSuperBlockSave(VDOCompletion *completion)
  **/
 static void finishRecoveringDepot(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
+  VDO *vdo = recovery->vdo;
   assertOnAdminThread(vdo, __func__);
 
   logInfo("Replayed %zu journal entries into slab journals",
@@ -565,7 +569,8 @@ static void finishRecoveringDepot(VDOCompletion *completion)
  **/
 static void handleAddSlabJournalEntryError(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
   notifySlabJournalsAreRecovered(recovery->allocator, completion->result);
 }
 
@@ -576,7 +581,8 @@ static void handleAddSlabJournalEntryError(VDOCompletion *completion)
  **/
 static void addSynthesizedEntries(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
 
   // Get ready in case we need to enqueue again
   prepareCompletion(completion, addSynthesizedEntries,
@@ -610,7 +616,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int computeUsages(RecoveryCompletion *recovery)
+static int computeUsages(struct recovery_completion *recovery)
 {
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   PackedJournalHeader *tailHeader
@@ -621,7 +627,7 @@ static int computeUsages(RecoveryCompletion *recovery)
   recovery->logicalBlocksUsed  = unpacked.logicalBlocksUsed;
   recovery->blockMapDataBlocks = unpacked.blockMapDataBlocks;
 
-  RecoveryPoint recoveryPoint = {
+  struct recovery_point recoveryPoint = {
     .sequenceNumber = recovery->tail,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -664,12 +670,12 @@ static int computeUsages(RecoveryCompletion *recovery)
 /**
  * Advance the current recovery and journal points.
  *
- * @param recovery         The RecoveryCompletion whose points are to be
+ * @param recovery         The recovery_completion whose points are to be
  *                         advanced
  * @param entriesPerBlock  The number of entries in a recovery journal block
  **/
-static void advancePoints(RecoveryCompletion *recovery,
-                          JournalEntryCount   entriesPerBlock)
+static void advancePoints(struct recovery_completion *recovery,
+                          JournalEntryCount           entriesPerBlock)
 {
   incrementRecoveryPoint(&recovery->nextRecoveryPoint);
   advanceJournalPoint(&recovery->nextJournalPoint, entriesPerBlock);
@@ -684,7 +690,8 @@ static void advancePoints(RecoveryCompletion *recovery,
  **/
 static void addSlabJournalEntries(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
   VDO                *vdo      = recovery->vdo;
   RecoveryJournal    *journal  = vdo->recoveryJournal;
 
@@ -692,7 +699,7 @@ static void addSlabJournalEntries(VDOCompletion *completion)
   prepareCompletion(completion, addSlabJournalEntries,
                     handleAddSlabJournalEntryError,
                     completion->callbackThreadID, recovery);
-  for (RecoveryPoint *recoveryPoint = &recovery->nextRecoveryPoint;
+  for (struct recovery_point *recoveryPoint = &recovery->nextRecoveryPoint;
        beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
        advancePoints(recovery, journal->entriesPerBlock)) {
     struct recovery_journal_entry entry = getEntry(recovery, recoveryPoint);
@@ -732,7 +739,7 @@ void replayIntoSlabJournals(BlockAllocator *allocator,
                             VDOCompletion  *completion,
                             void           *context)
 {
-  RecoveryCompletion *recovery = context;
+  struct recovery_completion *recovery = context;
   assertOnPhysicalZoneThread(recovery->vdo, allocator->zoneNumber, __func__);
   if ((recovery->journalData == NULL) || isReplaying(recovery->vdo)) {
     // there's nothing to replay
@@ -741,7 +748,7 @@ void replayIntoSlabJournals(BlockAllocator *allocator,
   }
 
   recovery->allocator = allocator;
-  recovery->nextRecoveryPoint = (RecoveryPoint) {
+  recovery->nextRecoveryPoint = (struct recovery_point) {
     .sequenceNumber = recovery->slabJournalHead,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -792,7 +799,8 @@ static void queueOnPhysicalZone(Waiter *waiter, void *context)
  **/
 static void applyToDepot(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
   assertOnAdminThread(recovery->vdo, __func__);
   prepareSubTask(recovery, finishRecoveringDepot, finishParentCallback,
                  ZONE_TYPE_ADMIN);
@@ -819,7 +827,7 @@ static int recordMissingDecref(struct missing_decref *decref,
                                DataLocation           location,
                                int                    errorCode)
 {
-  RecoveryCompletion *recovery = decref->recovery;
+  struct recovery_completion *recovery = decref->recovery;
   recovery->incompleteDecrefCount--;
   if (isValidLocation(&location)
       && isPhysicalDataBlock(recovery->vdo->depot, location.pbn)) {
@@ -855,7 +863,7 @@ static int recordMissingDecref(struct missing_decref *decref,
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int findMissingDecrefs(RecoveryCompletion *recovery)
+static int findMissingDecrefs(struct recovery_completion *recovery)
 {
   IntMap *slotEntryMap = recovery->slotEntryMap;
   // This placeholder decref is used to mark lbns for which we have observed a
@@ -866,7 +874,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
   // the earliest head.
   SequenceNumber head = minSequenceNumber(recovery->blockMapHead,
                                           recovery->slabJournalHead);
-  RecoveryPoint headPoint = {
+  struct recovery_point headPoint = {
     .sequenceNumber = head,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -879,7 +887,7 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
     .entryCount     = recovery->vdo->recoveryJournal->entriesPerBlock,
   };
 
-  RecoveryPoint recoveryPoint = recovery->tailRecoveryPoint;
+  struct recovery_point recoveryPoint = recovery->tailRecoveryPoint;
   while (beforeRecoveryPoint(&headPoint, &recoveryPoint)) {
     decrementRecoveryPoint(&recoveryPoint);
     struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
@@ -958,8 +966,8 @@ static int findMissingDecrefs(RecoveryCompletion *recovery)
  **/
 static void processFetchedPage(VDOCompletion *completion)
 {
-  struct missing_decref *currentDecref = completion->parent;
-  RecoveryCompletion    *recovery      = currentDecref->recovery;
+  struct missing_decref         *currentDecref = completion->parent;
+  struct recovery_completion    *recovery      = currentDecref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
   const struct block_map_page *page = dereferenceReadableVDOPage(completion);
@@ -980,8 +988,8 @@ static void processFetchedPage(VDOCompletion *completion)
  **/
 static void handleFetchError(VDOCompletion *completion)
 {
-  struct missing_decref *decref   = completion->parent;
-  RecoveryCompletion    *recovery = decref->recovery;
+  struct missing_decref         *decref   = completion->parent;
+  struct recovery_completion    *recovery = decref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
   // If we got a VDO_OUT_OF_RANGE error, it is because the pbn we read from
@@ -1002,8 +1010,8 @@ static void handleFetchError(VDOCompletion *completion)
  **/
 static void launchFetch(Waiter *waiter, void *context)
 {
-  struct missing_decref *decref   = asMissingDecref(waiter);
-  RecoveryCompletion    *recovery = decref->recovery;
+  struct missing_decref         *decref   = asMissingDecref(waiter);
+  struct recovery_completion    *recovery = decref->recovery;
   if (enqueueMissingDecref(&recovery->missingDecrefs[0], decref)
       != VDO_SUCCESS) {
     return;
@@ -1028,8 +1036,9 @@ static void launchFetch(Waiter *waiter, void *context)
  **/
 static void findSlabJournalEntries(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
+  VDO *vdo = recovery->vdo;
 
   // We need to be on logical zone 0's thread since we are going to use its
   // page cache.
@@ -1065,7 +1074,7 @@ static void findSlabJournalEntries(VDOCompletion *completion)
  *
  * @return <code>true</code> if there were valid journal blocks
  **/
-static bool findContiguousRange(RecoveryCompletion *recovery)
+static bool findContiguousRange(struct recovery_completion *recovery)
 {
   RecoveryJournal *journal = recovery->vdo->recoveryJournal;
   SequenceNumber head
@@ -1074,7 +1083,7 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
   bool foundEntries = false;
   for (SequenceNumber i = head; i <= recovery->highestTail; i++) {
     recovery->tail = i;
-    recovery->tailRecoveryPoint = (RecoveryPoint) {
+    recovery->tailRecoveryPoint = (struct recovery_point) {
       .sequenceNumber = i,
       .sectorCount    = 0,
       .entryCount     = 0,
@@ -1138,9 +1147,9 @@ static bool findContiguousRange(RecoveryCompletion *recovery)
  *
  * @param recovery  The recovery completion
  **/
-static int countIncrementEntries(RecoveryCompletion *recovery)
+static int countIncrementEntries(struct recovery_completion *recovery)
 {
-  RecoveryPoint recoveryPoint = {
+  struct recovery_point recoveryPoint = {
     .sequenceNumber = recovery->blockMapHead,
     .sectorCount    = 1,
     .entryCount     = 0,
@@ -1169,7 +1178,8 @@ static int countIncrementEntries(RecoveryCompletion *recovery)
  **/
 static void prepareToApplyJournalEntries(VDOCompletion *completion)
 {
-  RecoveryCompletion *recovery = asRecoveryCompletion(completion->parent);
+  struct recovery_completion *recovery
+    = asRecoveryCompletion(completion->parent);
   VDO                *vdo      = recovery->vdo;
   RecoveryJournal    *journal  = vdo->recoveryJournal;
   logInfo("Finished reading recovery journal");
@@ -1246,7 +1256,7 @@ void launchRecovery(VDO *vdo, VDOCompletion *parent)
   // Note: This message must be recognizable by Permabit::VDODeviceBase.
   logWarning("Device was dirty, rebuilding reference counts");
 
-  RecoveryCompletion *recovery;
+  struct recovery_completion *recovery;
   int result = makeRecoveryCompletion(vdo, &recovery);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
