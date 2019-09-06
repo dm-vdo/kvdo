@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#8 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -45,16 +45,16 @@ typedef enum referenceStatus {
  **/
 struct search_cursor {
   /** The reference block containing the current search index */
-  ReferenceBlock      *block;
+  struct reference_block *block;
   /** The position at which to start searching for the next free counter */
-  SlabBlockNumber      index;
+  SlabBlockNumber         index;
   /** The position just past the last valid counter in the current block */
-  SlabBlockNumber      endIndex;
+  SlabBlockNumber         endIndex;
 
   /** A pointer to the first reference block in the slab */
-  ReferenceBlock      *firstBlock;
+  struct reference_block *firstBlock;
   /** A pointer to the last reference block in the slab */
-  ReferenceBlock      *lastBlock;
+  struct reference_block *lastBlock;
 };
 
 /*
@@ -94,7 +94,7 @@ struct refCounts {
   ReadOnlyNotifier                   *readOnlyNotifier;
   /** The refcount statistics, shared by all refcounts in our physical zone */
   struct atomic_ref_count_statistics *statistics;
-  /** The layer PBN for the first ReferenceBlock */
+  /** The layer PBN for the first struct reference_block */
   PhysicalBlockNumber                 origin;
   /** The latest slab journal entry this RefCounts has been updated with */
   struct journal_point                slabJournalPoint;
@@ -102,7 +102,7 @@ struct refCounts {
   /** The number of reference count blocks */
   uint32_t                            referenceBlockCount;
   /** reference count block array */
-  ReferenceBlock                      blocks[];
+  struct reference_block              blocks[];
 };
 
 /**
@@ -132,17 +132,18 @@ RefCounts *asRefCounts(VDOCompletion *completion)
  * @param refCounts  The refcounts object
  * @param index      The block index
  **/
-ReferenceBlock *getReferenceBlock(RefCounts *refCounts, SlabBlockNumber index)
+struct reference_block *getReferenceBlock(RefCounts       *refCounts,
+                                          SlabBlockNumber  index)
   __attribute__((warn_unused_result));
 
 /**
  * Find the reference counters for a given block (exposed for testing).
  *
- * @param block  The ReferenceBlock in question
+ * @param block  The reference_block in question
  *
  * @return A pointer to the reference counters for this block
  **/
-ReferenceCount *getReferenceCountersForBlock(ReferenceBlock *block)
+ReferenceCount *getReferenceCountersForBlock(struct reference_block *block)
   __attribute__((warn_unused_result));
 
 /**
@@ -152,7 +153,7 @@ ReferenceCount *getReferenceCountersForBlock(ReferenceBlock *block)
  * @param block   The block to copy
  * @param buffer  The char buffer to fill with the packed block
  **/
-void packReferenceBlock(ReferenceBlock *block, void *buffer);
+void packReferenceBlock(struct reference_block *block, void *buffer);
 
 /**
  * Get the reference status of a block. Exposed only for unit testing.

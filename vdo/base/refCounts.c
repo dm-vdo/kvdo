@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#10 $
  */
 
 #include "refCounts.h"
@@ -175,7 +175,8 @@ int makeRefCounts(BlockCount            blockCount,
 {
   BlockCount  refBlockCount = getSavedReferenceCountSize(blockCount);
   RefCounts  *refCounts;
-  int result = ALLOCATE_EXTENDED(RefCounts, refBlockCount, ReferenceBlock,
+  int result = ALLOCATE_EXTENDED(RefCounts, refBlockCount,
+                                 struct reference_block,
                                  "ref counts structure", &refCounts);
   if (result != UDS_SUCCESS) {
     return result;
@@ -203,7 +204,7 @@ int makeRefCounts(BlockCount            blockCount,
   resetSearchCursor(refCounts);
 
   for (size_t index = 0; index < refBlockCount; index++) {
-    refCounts->blocks[index] = (ReferenceBlock) {
+    refCounts->blocks[index] = (struct reference_block) {
       .refCounts = refCounts,
     };
   }
@@ -278,7 +279,7 @@ static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
  *
  * @param block  The block to enqueue
  **/
-static void enqueueDirtyBlock(ReferenceBlock *block)
+static void enqueueDirtyBlock(struct reference_block *block)
 {
   int result = enqueueWaiter(&block->refCounts->dirtyBlocks, &block->waiter);
   if (result != VDO_SUCCESS) {
@@ -293,7 +294,7 @@ static void enqueueDirtyBlock(ReferenceBlock *block)
  *
  * @param block  The reference block to mark as dirty
  **/
-static void dirtyBlock(ReferenceBlock *block)
+static void dirtyBlock(struct reference_block *block)
 {
   if (block->isDirty) {
     return;
@@ -315,7 +316,8 @@ BlockCount getUnreferencedBlockCount(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-ReferenceBlock *getReferenceBlock(RefCounts *refCounts, SlabBlockNumber index)
+struct reference_block *getReferenceBlock(RefCounts       *refCounts,
+                                          SlabBlockNumber  index)
 {
   return &refCounts->blocks[index / COUNTS_PER_BLOCK];
 }
@@ -377,13 +379,13 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int incrementForData(RefCounts       *refCounts,
-                            ReferenceBlock  *block,
-                            SlabBlockNumber  slabBlockNumber,
-                            ReferenceStatus  oldStatus,
-                            PBNLock         *lock,
-                            ReferenceCount  *counterPtr,
-                            bool            *freeStatusChanged)
+static int incrementForData(RefCounts              *refCounts,
+                            struct reference_block *block,
+                            SlabBlockNumber         slabBlockNumber,
+                            ReferenceStatus         oldStatus,
+                            PBNLock                *lock,
+                            ReferenceCount         *counterPtr,
+                            bool                   *freeStatusChanged)
 {
   switch (oldStatus) {
   case RS_FREE:
@@ -436,13 +438,13 @@ static int incrementForData(RefCounts       *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int decrementForData(RefCounts       *refCounts,
-                            ReferenceBlock  *block,
-                            SlabBlockNumber  slabBlockNumber,
-                            ReferenceStatus  oldStatus,
-                            PBNLock         *lock,
-                            ReferenceCount  *counterPtr,
-                            bool            *freeStatusChanged)
+static int decrementForData(RefCounts              *refCounts,
+                            struct reference_block *block,
+                            SlabBlockNumber         slabBlockNumber,
+                            ReferenceStatus         oldStatus,
+                            PBNLock                *lock,
+                            ReferenceCount         *counterPtr,
+                            bool                   *freeStatusChanged)
 {
   switch (oldStatus) {
   case RS_FREE:
@@ -500,14 +502,14 @@ static int decrementForData(RefCounts       *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int incrementForBlockMap(RefCounts       *refCounts,
-                                ReferenceBlock  *block,
-                                SlabBlockNumber  slabBlockNumber,
-                                ReferenceStatus  oldStatus,
-                                PBNLock         *lock,
-                                bool             normalOperation,
-                                ReferenceCount  *counterPtr,
-                                bool            *freeStatusChanged)
+static int incrementForBlockMap(RefCounts              *refCounts,
+                                struct reference_block *block,
+                                SlabBlockNumber         slabBlockNumber,
+                                ReferenceStatus         oldStatus,
+                                PBNLock                *lock,
+                                bool                    normalOperation,
+                                ReferenceCount         *counterPtr,
+                                bool                   *freeStatusChanged)
 {
   switch (oldStatus) {
   case RS_FREE:
@@ -577,7 +579,7 @@ static int incrementForBlockMap(RefCounts       *refCounts,
  **/
 static int
 updateReferenceCount(RefCounts                  *refCounts,
-                     ReferenceBlock             *block,
+                     struct reference_block     *block,
                      SlabBlockNumber             slabBlockNumber,
                      const struct journal_point *slabJournalPoint,
                      ReferenceOperation          operation,
@@ -647,7 +649,7 @@ int adjustReferenceCount(RefCounts                  *refCounts,
     return result;
   }
 
-  ReferenceBlock *block = getReferenceBlock(refCounts, slabBlockNumber);
+  struct reference_block *block = getReferenceBlock(refCounts, slabBlockNumber);
   bool provisionalDecrement = false;
   result = updateReferenceCount(refCounts, block, slabBlockNumber,
                                 slabJournalPoint, operation,
@@ -702,7 +704,7 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
     return result;
   }
 
-  ReferenceBlock *block = getReferenceBlock(refCounts, slabBlockNumber);
+  struct reference_block *block = getReferenceBlock(refCounts, slabBlockNumber);
   bool unusedFreeStatus;
   ReferenceOperation physicalOperation = {
     .type = operation,
@@ -723,7 +725,7 @@ int replayReferenceCountChange(RefCounts                  *refCounts,
                                const struct journal_point *entryPoint,
                                SlabJournalEntry            entry)
 {
-  ReferenceBlock *block = getReferenceBlock(refCounts, entry.sbn);
+  struct reference_block *block = getReferenceBlock(refCounts, entry.sbn);
   SectorCount sector
     = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
   if (!beforeJournalPoint(&block->commitPoints[sector], entryPoint)) {
@@ -772,8 +774,8 @@ bool areEquivalentReferenceCounters(RefCounts *counterA, RefCounts *counterB)
   }
 
   for (size_t i = 0; i < counterA->referenceBlockCount; i++) {
-    ReferenceBlock *blockA = &counterA->blocks[i];
-    ReferenceBlock *blockB = &counterB->blocks[i];
+    struct reference_block *blockA = &counterA->blocks[i];
+    struct reference_block *blockB = &counterB->blocks[i];
     if (blockA->allocatedCount != blockB->allocatedCount) {
       return false;
     }
@@ -920,7 +922,7 @@ static void makeProvisionalReference(RefCounts       *refCounts,
   refCounts->counters[slabBlockNumber] = PROVISIONAL_REFERENCE_COUNT;
 
   // Account for the allocation.
-  ReferenceBlock *block = getReferenceBlock(refCounts, slabBlockNumber);
+  struct reference_block *block = getReferenceBlock(refCounts, slabBlockNumber);
   block->allocatedCount++;
   refCounts->freeBlocks--;
 }
@@ -993,17 +995,17 @@ BlockCount countUnreferencedBlocks(RefCounts           *refCounts,
 }
 
 /**
- * Convert a ReferenceBlock's generic wait queue entry back into the
- * ReferenceBlock.
+ * Convert a reference_block's generic wait queue entry back into the
+ * reference_block.
  *
  * @param waiter        The wait queue entry to convert
  *
- * @return  The wrapping ReferenceBlock
+ * @return  The wrapping reference_block
  **/
-static inline ReferenceBlock *waiterAsReferenceBlock(Waiter *waiter)
+static inline struct reference_block *waiterAsReferenceBlock(Waiter *waiter)
 {
-  STATIC_ASSERT(offsetof(ReferenceBlock, waiter) == 0);
-  return (ReferenceBlock *) waiter;
+  STATIC_ASSERT(offsetof(struct reference_block, waiter) == 0);
+  return (struct reference_block *) waiter;
 }
 
 /**
@@ -1093,7 +1095,8 @@ static void handleIOError(VDOCompletion *completion)
 {
   int           result    = completion->result;
   VIOPoolEntry *entry     = completion->parent;
-  RefCounts    *refCounts = ((ReferenceBlock *) entry->parent)->refCounts;
+  RefCounts    *refCounts
+    = ((struct reference_block *) entry->parent)->refCounts;
   returnVIO(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
   enterRefCountsReadOnlyMode(refCounts, result);
@@ -1107,9 +1110,9 @@ static void handleIOError(VDOCompletion *completion)
  **/
 static void finishReferenceBlockWrite(VDOCompletion *completion)
 {
-  VIOPoolEntry   *entry     = completion->parent;
-  ReferenceBlock *block     = entry->parent;
-  RefCounts      *refCounts = block->refCounts;
+  VIOPoolEntry           *entry     = completion->parent;
+  struct reference_block *block     = entry->parent;
+  RefCounts              *refCounts = block->refCounts;
   refCounts->activeCount--;
 
   // Release the slab journal lock.
@@ -1148,20 +1151,20 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-ReferenceCount *getReferenceCountersForBlock(ReferenceBlock *block)
+ReferenceCount *getReferenceCountersForBlock(struct reference_block *block)
 {
   size_t blockIndex = block - block->refCounts->blocks;
   return &block->refCounts->counters[blockIndex * COUNTS_PER_BLOCK];
 }
 
 /**********************************************************************/
-void packReferenceBlock(ReferenceBlock *block, void *buffer)
+void packReferenceBlock(struct reference_block *block, void *buffer)
 {
   struct packed_journal_point commitPoint;
   packJournalPoint(&block->refCounts->slabJournalPoint, &commitPoint);
 
-  PackedReferenceBlock *packed   = buffer;
-  ReferenceCount       *counters = getReferenceCountersForBlock(block);
+  struct packed_reference_block *packed = buffer;
+  ReferenceCount *counters = getReferenceCountersForBlock(block);
   for (SectorCount i = 0; i < SECTORS_PER_BLOCK; i++) {
     packed->sectors[i].commitPoint = commitPoint;
     memcpy(packed->sectors[i].counts, counters + (i * COUNTS_PER_SECTOR),
@@ -1178,8 +1181,8 @@ void packReferenceBlock(ReferenceBlock *block, void *buffer)
  **/
 static void writeReferenceBlock(Waiter *blockWaiter, void *vioContext)
 {
-  VIOPoolEntry   *entry = vioContext;
-  ReferenceBlock *block = waiterAsReferenceBlock(blockWaiter);
+  VIOPoolEntry           *entry = vioContext;
+  struct reference_block *block = waiterAsReferenceBlock(blockWaiter);
   packReferenceBlock(block, entry->buffer);
 
   size_t              blockOffset = (block - block->refCounts->blocks);
@@ -1219,9 +1222,9 @@ static void launchReferenceBlockWrite(Waiter *blockWaiter, void *context)
   }
 
   refCounts->activeCount++;
-  ReferenceBlock *block = waiterAsReferenceBlock(blockWaiter);
-  block->isWriting      = true;
-  blockWaiter->callback = writeReferenceBlock;
+  struct reference_block *block = waiterAsReferenceBlock(blockWaiter);
+  block->isWriting              = true;
+  blockWaiter->callback         = writeReferenceBlock;
   int result = acquireVIO(refCounts->slab->allocator, blockWaiter);
   if (result != VDO_SUCCESS) {
     // This should never happen.
@@ -1277,7 +1280,7 @@ void dirtyAllReferenceBlocks(RefCounts *refCounts)
  *
  * @param block  The block to clear
  **/
-static void clearProvisionalReferences(ReferenceBlock *block)
+static void clearProvisionalReferences(struct reference_block *block)
 {
   ReferenceCount *counters = getReferenceCountersForBlock(block);
   for (BlockCount j = 0; j < COUNTS_PER_BLOCK; j++) {
@@ -1294,13 +1297,13 @@ static void clearProvisionalReferences(ReferenceBlock *block)
  * @param packed  The written reference block to be unpacked
  * @param block   The internal reference block to be loaded
  **/
-static void unpackReferenceBlock(PackedReferenceBlock *packed,
-                                 ReferenceBlock       *block)
+static void unpackReferenceBlock(struct packed_reference_block *packed,
+                                 struct reference_block        *block)
 {
   RefCounts      *refCounts    = block->refCounts;
   ReferenceCount *counters     = getReferenceCountersForBlock(block);
   for (SectorCount i = 0; i < SECTORS_PER_BLOCK; i++) {
-    PackedReferenceSector *sector = &packed->sectors[i];
+    struct packed_reference_sector *sector = &packed->sectors[i];
     unpackJournalPoint(&sector->commitPoint, &block->commitPoints[i]);
     memcpy(counters + (i * COUNTS_PER_SECTOR), sector->counts,
            (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
@@ -1335,8 +1338,8 @@ static void unpackReferenceBlock(PackedReferenceBlock *packed,
 static void finishReferenceBlockLoad(VDOCompletion *completion)
 {
   VIOPoolEntry   *entry = completion->parent;
-  ReferenceBlock *block = entry->parent;
-  unpackReferenceBlock((PackedReferenceBlock *) entry->buffer, block);
+  struct reference_block *block = entry->parent;
+  unpackReferenceBlock((struct packed_reference_block *) entry->buffer, block);
 
   RefCounts *refCounts = block->refCounts;
   returnVIO(refCounts->slab->allocator, entry);
@@ -1355,11 +1358,11 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
  **/
 static void loadReferenceBlock(Waiter *blockWaiter, void *vioContext)
 {
-  VIOPoolEntry        *entry       = vioContext;
-  ReferenceBlock      *block       = waiterAsReferenceBlock(blockWaiter);
-  size_t               blockOffset = (block - block->refCounts->blocks);
-  PhysicalBlockNumber  pbn         = (block->refCounts->origin + blockOffset);
-  entry->parent                    = block;
+  VIOPoolEntry           *entry       = vioContext;
+  struct reference_block *block       = waiterAsReferenceBlock(blockWaiter);
+  size_t                  blockOffset = (block - block->refCounts->blocks);
+  PhysicalBlockNumber     pbn         = (block->refCounts->origin + blockOffset);
+  entry->parent                       = block;
 
   entry->vio->completion.callbackThreadID
     = block->refCounts->slab->allocator->threadID;

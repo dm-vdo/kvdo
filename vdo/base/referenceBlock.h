@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#3 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -50,21 +50,21 @@ enum {
 /**
  * The format of a ReferenceSector on disk.
  **/
-typedef struct {
+struct packed_reference_sector {
   struct packed_journal_point commitPoint;
   ReferenceCount              counts[COUNTS_PER_SECTOR];
-} __attribute__((packed)) PackedReferenceSector;
+} __attribute__((packed));
 
-typedef struct {
-  PackedReferenceSector sectors[SECTORS_PER_BLOCK];
-} PackedReferenceBlock;
+struct packed_reference_block {
+  struct packed_reference_sector sectors[SECTORS_PER_BLOCK];
+};
 
 /*
- * ReferenceBlock structure
+ * Reference_block structure
  *
  * Blocks are used as a proxy, permitting saves of partial refcounts.
  **/
-typedef struct {
+struct reference_block {
   /** This block waits on the refCounts to tell it to write */
   Waiter                waiter;
   /** The parent RefCount structure */
@@ -84,6 +84,6 @@ typedef struct {
   bool                  isDirty;
   /** Whether this block is currently writing */
   bool                  isWriting;
-} ReferenceBlock;
+};
 
 #endif // REFERENCE_BLOCK_H
