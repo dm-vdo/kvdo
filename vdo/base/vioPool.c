@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#6 $
  */
 
 #include "vioPool.h"
@@ -38,7 +38,7 @@ struct vioPool {
   /** The list of objects which are available */
   RingNode               available;
   /** The queue of requestors waiting for objects from the pool */
-  WaitQueue              waiting;
+  struct wait_queue      waiting;
   /** The number of objects currently in use */
   size_t                 busyCount;
   /** The list of objects which are in use */

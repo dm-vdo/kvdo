@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#11 $
  */
 
 #include "recoveryJournal.h"
@@ -863,9 +863,9 @@ static void assignEntry(Waiter *waiter, void *context)
 }
 
 /**********************************************************************/
-static bool assignEntriesFromQueue(RecoveryJournal *journal,
-                                   WaitQueue       *queue,
-                                   bool             increment)
+static bool assignEntriesFromQueue(RecoveryJournal   *journal,
+                                   struct wait_queue *queue,
+                                   bool               increment)
 {
   while (hasWaiters(queue)) {
     // There must always be room to make a decrement entry.

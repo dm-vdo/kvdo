@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#7 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -50,21 +50,21 @@ typedef struct slabSummaryEntry {
 
 typedef struct slabSummaryBlock {
   /** The zone to which this block belongs */
-  SlabSummaryZone  *zone;
+  SlabSummaryZone   *zone;
   /** The index of this block in its zone's summary */
-  BlockCount        index;
+  BlockCount         index;
   /** Whether this block has a write outstanding */
-  bool              writing;
+  bool               writing;
   /** Ring of updates waiting on the outstanding write */
-  WaitQueue         currentUpdateWaiters;
+  struct wait_queue  currentUpdateWaiters;
   /** Ring of updates waiting on the next write */
-  WaitQueue         nextUpdateWaiters;
+  struct wait_queue  nextUpdateWaiters;
   /** The active SlabSummaryEntry array for this block */
-  SlabSummaryEntry *entries;
+  SlabSummaryEntry  *entries;
   /** The VIO used to write this block */
-  VIO              *vio;
+  VIO               *vio;
   /** The packed entries, one block long, backing the VIO */
-  char             *outgoingEntries;
+  char              *outgoingEntries;
 } SlabSummaryBlock;
 
 /**

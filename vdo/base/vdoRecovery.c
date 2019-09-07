@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#19 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -89,7 +89,8 @@ static inline struct missing_decref *asMissingDecref(Waiter *waiter)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int enqueueMissingDecref(WaitQueue *queue, struct missing_decref *decref)
+static int enqueueMissingDecref(struct wait_queue *queue,
+                                struct missing_decref *decref)
 {
   int result = enqueueWaiter(queue, &decref->waiter);
   if (result != VDO_SUCCESS) {
@@ -588,7 +589,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
   prepareCompletion(completion, addSynthesizedEntries,
                     handleAddSlabJournalEntryError,
                     completion->callbackThreadID, recovery);
-  WaitQueue *missingDecrefs
+  struct wait_queue *missingDecrefs
     = &recovery->missingDecrefs[recovery->allocator->zoneNumber];
   while (hasWaiters(missingDecrefs)) {
     struct missing_decref *decref

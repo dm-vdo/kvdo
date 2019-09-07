@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#2 $
  */
 
 #include "waitQueue.h"
@@ -26,7 +26,7 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-int enqueueWaiter(WaitQueue *queue, Waiter *waiter)
+int enqueueWaiter(struct wait_queue *queue, Waiter *waiter)
 {
   int result = ASSERT((waiter->nextWaiter == NULL),
                       "new waiter must not already be in a waiter queue");
@@ -50,7 +50,7 @@ int enqueueWaiter(WaitQueue *queue, Waiter *waiter)
 }
 
 /**********************************************************************/
-void transferAllWaiters(WaitQueue *fromQueue, WaitQueue *toQueue)
+void transferAllWaiters(struct wait_queue *fromQueue, struct wait_queue *toQueue)
 {
   // If the source queue is empty, there's nothing to do.
   if (!hasWaiters(fromQueue)) {
@@ -72,13 +72,13 @@ void transferAllWaiters(WaitQueue *fromQueue, WaitQueue *toQueue)
 }
 
 /**********************************************************************/
-void notifyAllWaiters(WaitQueue      *queue,
-                      WaiterCallback *callback,
-                      void           *context)
+void notifyAllWaiters(struct wait_queue *queue,
+                      WaiterCallback    *callback,
+                      void              *context)
 {
   // Copy and empty the queue first, avoiding the possibility of an infinite
   // loop if entries are returned to the queue by the callback function.
-  WaitQueue waiters;
+  struct wait_queue waiters;
   initializeWaitQueue(&waiters);
   transferAllWaiters(queue, &waiters);
 
@@ -89,7 +89,7 @@ void notifyAllWaiters(WaitQueue      *queue,
 }
 
 /**********************************************************************/
-Waiter *getFirstWaiter(const WaitQueue *queue)
+Waiter *getFirstWaiter(const struct wait_queue *queue)
 {
   Waiter *lastWaiter = queue->lastWaiter;
   if (lastWaiter == NULL) {
@@ -102,15 +102,15 @@ Waiter *getFirstWaiter(const WaitQueue *queue)
 }
 
 /**********************************************************************/
-int dequeueMatchingWaiters(WaitQueue   *queue,
-                           WaiterMatch *matchMethod,
-                           void        *matchContext,
-                           WaitQueue   *matchedQueue)
+int dequeueMatchingWaiters(struct wait_queue *queue,
+                           WaiterMatch       *matchMethod,
+                           void              *matchContext,
+                           struct wait_queue *matchedQueue)
 {
-  WaitQueue matchedWaiters;
+  struct wait_queue matchedWaiters;
   initializeWaitQueue(&matchedWaiters);
 
-  WaitQueue iterationQueue;
+  struct wait_queue iterationQueue;
   initializeWaitQueue(&iterationQueue);
   transferAllWaiters(queue, &iterationQueue);
   while (hasWaiters(&iterationQueue)) {
@@ -133,7 +133,7 @@ int dequeueMatchingWaiters(WaitQueue   *queue,
 }
 
 /**********************************************************************/
-Waiter *dequeueNextWaiter(WaitQueue *queue)
+Waiter *dequeueNextWaiter(struct wait_queue *queue)
 {
   Waiter *firstWaiter = getFirstWaiter(queue);
   if (firstWaiter == NULL) {
@@ -157,9 +157,9 @@ Waiter *dequeueNextWaiter(WaitQueue *queue)
 }
 
 /**********************************************************************/
-bool notifyNextWaiter(WaitQueue      *queue,
-                      WaiterCallback *callback,
-                      void           *context)
+bool notifyNextWaiter(struct wait_queue *queue,
+                      WaiterCallback    *callback,
+                      void              *context)
 {
   Waiter *waiter = dequeueNextWaiter(queue);
   if (waiter == NULL) {
@@ -174,7 +174,7 @@ bool notifyNextWaiter(WaitQueue      *queue,
 }
 
 /**********************************************************************/
-const Waiter *getNextWaiter(const WaitQueue *queue, const Waiter *waiter)
+const Waiter *getNextWaiter(const struct wait_queue *queue, const Waiter *waiter)
 {
   Waiter *firstWaiter = getFirstWaiter(queue);
   if (waiter == NULL) {

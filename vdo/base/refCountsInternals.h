@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#9 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -81,7 +81,7 @@ struct refCounts {
   struct search_cursor                searchCursor;
 
   /** A list of the dirty blocks waiting to be written out */
-  WaitQueue                           dirtyBlocks;
+  struct wait_queue                   dirtyBlocks;
   /** The number of blocks which are currently writing */
   size_t                              activeCount;
 

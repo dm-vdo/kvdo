@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#8 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -529,7 +529,7 @@ static void completeWaiterWithError(Waiter *waiter, void *resultPtr)
  *
  * @note upon completion the queue will be empty
  **/
-static void distributeErrorOverQueue(int result, WaitQueue *queue)
+static void distributeErrorOverQueue(int result, struct wait_queue *queue)
 {
   notifyAllWaiters(queue, completeWaiterWithError, &result);
 }
@@ -558,7 +558,8 @@ static void completeWaiterWithPage(Waiter *waiter, void *pageInfo)
  * @note upon completion the queue will be empty
  *
  **/
-static unsigned int distributePageOverQueue(PageInfo *info, WaitQueue *queue)
+static unsigned int distributePageOverQueue(PageInfo          *info,
+                                            struct wait_queue *queue)
 {
   updateLru(info);
 

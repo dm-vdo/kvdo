@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#5 $
  */
 
 #ifndef DATA_VIO_H
@@ -87,7 +87,7 @@ struct lbnLock {
   /* Whether the lock is locked */
   bool                locked;
   /* The queue of waiters for the lock */
-  WaitQueue           waiters;
+  struct wait_queue   waiters;
   /* The logical zone of the LBN */
   LogicalZone        *zone;
 };
@@ -109,7 +109,7 @@ struct tree_lock {
   /* The key for the lock map */
   uint64_t          key;
   /* The queue of waiters for the page this VIO is allocating or loading */
-  WaitQueue         waiters;
+  struct wait_queue waiters;
   /* The block map tree slots for this LBN */
   BlockMapTreeSlot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
 };
@@ -518,9 +518,9 @@ static inline void dataVIOAddTraceRecord(DataVIO       *dataVIO,
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static inline int enqueueDataVIO(WaitQueue     *queue,
-                                 DataVIO       *waiter,
-                                 TraceLocation  location)
+static inline int enqueueDataVIO(struct wait_queue *queue,
+                                 DataVIO           *waiter,
+                                 TraceLocation      location)
 {
   dataVIOAddTraceRecord(waiter, location);
   return enqueueWaiter(queue, dataVIOAsWaiter(waiter));

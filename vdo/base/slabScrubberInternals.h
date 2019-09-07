@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#6 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -36,7 +36,7 @@ struct slabScrubber {
   /** The queue of slabs to scrub once there are no highPrioritySlabs */
   RingNode           slabs;
   /** The queue of VIOs waiting for a slab to be scrubbed */
-  WaitQueue          waiters;
+  struct wait_queue  waiters;
 
   // The number of slabs that are unrecovered or being scrubbed. This field is
   // modified by the physical zone thread, but is queried by other threads.

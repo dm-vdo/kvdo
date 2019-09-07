@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#8 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -179,7 +179,7 @@ struct slabJournal {
   /** A waiter object for getting an extent with which to flush */
   Waiter                                 flushWaiter;
   /** The queue of VIOs waiting to make an entry */
-  WaitQueue                              entryWaiters;
+  struct wait_queue                      entryWaiters;
   /** The parent slab reference of this journal */
   Slab                                  *slab;
 

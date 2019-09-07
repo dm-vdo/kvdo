@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#6 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -95,7 +95,7 @@ struct recovery_completion {
   /** The fake journal point of the next missing decref */
   struct journal_point                   nextSynthesizedJournalPoint;
   /** The queue of missing decrefs */
-  WaitQueue                              missingDecrefs[];
+  struct wait_queue                      missingDecrefs[];
 };
 
 /**

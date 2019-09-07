@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#4 $
  */
 
 #include "flush.h"
@@ -33,23 +33,23 @@
 #include "vdoInternal.h"
 
 struct flusher {
-  VDOCompletion   completion;
+  VDOCompletion      completion;
   /** The VDO to which this flusher belongs */
-  VDO            *vdo;
+  VDO               *vdo;
   /** The current flush generation of the VDO */
-  SequenceNumber  flushGeneration;
+  SequenceNumber     flushGeneration;
   /** The first unacknowledged flush generation */
-  SequenceNumber  firstUnacknowledgedGeneration;
+  SequenceNumber     firstUnacknowledgedGeneration;
   /** The queue of flush requests waiting to notify other threads */
-  WaitQueue       notifiers;
+  struct wait_queue  notifiers;
   /** The queue of flush requests waiting for VIOs to complete */
-  WaitQueue       pendingFlushes;
+  struct wait_queue  pendingFlushes;
   /** The flush generation for which notifications are being sent */
-  SequenceNumber  notifyGeneration;
+  SequenceNumber     notifyGeneration;
   /** The logical zone to notify next */
-  LogicalZone    *logicalZoneToNotify;
+  LogicalZone       *logicalZoneToNotify;
   /** The ID of the thread on which flush requests should be made */
-  ThreadID        threadID;
+  ThreadID           threadID;
 };
 
 /**

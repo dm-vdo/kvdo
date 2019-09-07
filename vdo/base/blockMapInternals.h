@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#11 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -51,7 +51,7 @@ struct blockMapTreeZone {
   /** The tree page which has issued or will be issuing a flush */
   TreePage            *flusher;
   /** The queue of pages waiting for a flush so they can be written out */
-  WaitQueue            flushWaiters;
+  struct wait_queue    flushWaiters;
   /** The generation after the most recent flush */
   uint8_t              generation;
   /** The oldest active generation */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#39 $
  */
 
 #include "dataKVIO.h"
@@ -1142,7 +1142,7 @@ static int make_pooled_data_kvio(void *pool_data, void **data_ptr)
  * @param queue    The queue to check (logical or physical)
  * @param wait_on  The label to print for queue (logical or physical)
  **/
-static void dump_vio_waiters(WaitQueue *queue, char *wait_on)
+static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 {
 	Waiter *first = getFirstWaiter(queue);
 	if (first == NULL) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#6 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -89,7 +89,7 @@ struct vdoPageCache {
   /** how many VPCs waiting for free page */
   unsigned int                         waiterCount;
   /** queue of waiters who want a free page */
-  WaitQueue                            freeWaiters;
+  struct wait_queue                    freeWaiters;
   /** statistics */
   struct atomic_page_cache_statistics  stats;
   /** counter for pressure reports */
@@ -151,7 +151,7 @@ struct pageInfo {
   /** page state */
   PageState            state;
   /** queue of completions awaiting this item */
-  WaitQueue            waiting;
+  struct wait_queue    waiting;
   /** state linked list node */
   PageInfoNode         listNode;
   /** LRU node */

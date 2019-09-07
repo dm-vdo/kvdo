@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#4 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -58,9 +58,9 @@ struct recoveryJournalBlock {
   /** The number of new entries in the current commit */
   JournalEntryCount             entriesInCommit;
   /** The queue of VIOs which will make entries for the next commit */
-  WaitQueue                     entryWaiters;
+  struct wait_queue             entryWaiters;
   /** The queue of VIOs waiting for the current commit */
-  WaitQueue                     commitWaiters;
+  struct wait_queue             commitWaiters;
 };
 
 /**

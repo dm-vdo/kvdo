@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#7 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -72,7 +72,7 @@ struct output_bin {
   /** The number of compression slots used in the compressed block */
   SlotNumber               slotsUsed;
   /** The DataVIOs packed into the block, waiting for the write to complete */
-  WaitQueue                outgoing;
+  struct wait_queue        outgoing;
 };
 
 /**
@@ -123,7 +123,7 @@ struct packer {
   Atomic64            fragmentsPending;
 
   /** Queue of batched DataVIOs waiting to be packed */
-  WaitQueue           batchedDataVIOs;
+  struct wait_queue   batchedDataVIOs;
 
   /** The total number of output bins allocated */
   size_t              outputBinCount;

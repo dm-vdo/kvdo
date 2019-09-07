@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#4 $
  */
 
 /**
@@ -1219,7 +1219,7 @@ static DataVIO *selectWritingAgent(HashLock *lock)
     return lock->agent;
   }
 
-  WaitQueue tempQueue;
+  struct wait_queue tempQueue;
   initializeWaitQueue(&tempQueue);
 
   // Move waiters to the temp queue one-by-one until we find an allocation.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#2 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -57,56 +57,56 @@ typedef enum {
 
 struct hashLock {
   /** When the lock is unused, this RingNode allows the lock to be pooled */
-  RingNode       poolNode;
+  RingNode               poolNode;
 
   /** The block hash covered by this lock */
-  UdsChunkName   hash;
+  UdsChunkName           hash;
 
   /**
    * A ring containing the DataVIOs sharing this lock, all having the same
    * chunk name and data block contents, linked by their hashLockNode fields.
    **/
-  RingNode       duplicateRing;
+  RingNode               duplicateRing;
 
   /** The number of DataVIOs sharing this lock instance */
-  VIOCount       referenceCount;
+  VIOCount               referenceCount;
 
   /** The maximum value of referenceCount in the lifetime of this lock */
-  VIOCount       maxReferences;
+  VIOCount               maxReferences;
 
   /** The current state of this lock */
-  HashLockState  state;
+  HashLockState          state;
 
   /** True if the UDS index should be updated with new advice */
-  bool           updateAdvice;
+  bool                   updateAdvice;
 
   /** True if the advice has been verified to be a true duplicate */
-  bool           verified;
+  bool                   verified;
 
   /** True if the lock has already accounted for an initial verification */
-  bool           verifyCounted;
+  bool                   verifyCounted;
 
   /** True if this lock is registered in the lock map (cleared on rollover) */
-  bool           registered;
+  bool                   registered;
 
   /**
    * If verified is false, this is the location of a possible duplicate.
    * If verified is true, is is the verified location of a true duplicate.
    **/
-  ZonedPBN       duplicate;
+  ZonedPBN               duplicate;
 
   /** The PBN lock on the block containing the duplicate data */
-  PBNLock       *duplicateLock;
+  PBNLock               *duplicateLock;
 
   /** The DataVIO designated to act on behalf of the lock */
-  DataVIO       *agent;
+  DataVIO               *agent;
 
   /**
    * Other DataVIOs with data identical to the agent who are currently waiting
    * for the agent to get the information they all need to deduplicate--either
    * against each other, or against an existing duplicate on disk.
    **/
-  WaitQueue      waiters;
+  struct wait_queue      waiters;
 };
 
 /**

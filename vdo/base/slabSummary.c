@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#7 $
  */
 
 #include "slabSummary.h"
@@ -317,7 +317,7 @@ static void checkForDrainComplete(SlabSummaryZone *summaryZone)
  * @param summaryZone  The slab summary which owns the queue
  * @param queue        The queue to notify
  **/
-static void notifyWaiters(SlabSummaryZone *summaryZone, WaitQueue *queue)
+static void notifyWaiters(SlabSummaryZone *summaryZone, struct wait_queue *queue)
 {
   int result = (isReadOnly(summaryZone->summary->readOnlyNotifier)
                 ? VDO_READ_ONLY : VDO_SUCCESS);
