@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#9 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -77,7 +77,7 @@ typedef union {
 } __attribute__((packed)) PackedSlabJournalEntry;
 
 /** The unpacked representation of the header of a slab journal block */
-typedef struct {
+struct slab_journal_block_header {
   /** Sequence number for head of journal */
   SequenceNumber       head;
   /** Sequence number for this block */
@@ -92,7 +92,7 @@ typedef struct {
   bool                 hasBlockMapIncrements;
   /** The number of entries in the block */
   JournalEntryCount    entryCount;
-} SlabJournalBlockHeader;
+};
 
 /**
  * The packed, on-disk representation of a slab journal block header.
@@ -145,31 +145,31 @@ enum {
 };
 
 /** The payload of a slab journal block which has block map increments */
-typedef struct {
+struct full_slab_journal_entries {
   /* The entries themselves */
   PackedSlabJournalEntry entries[SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK];
   /* The bit map indicating which entries are block map increments */
   byte                   entryTypes[SLAB_JOURNAL_ENTRY_TYPES_SIZE];
-} __attribute__((packed)) FullSlabJournalEntries;
+} __attribute__((packed));
 
 typedef union {
   /* Entries which include block map increments */
-  FullSlabJournalEntries fullEntries;
+  struct full_slab_journal_entries fullEntries;
   /* Entries which are only data updates */
   PackedSlabJournalEntry entries[SLAB_JOURNAL_ENTRIES_PER_BLOCK];
   /* Ensure the payload fills to the end of the block */
   byte                   space[SLAB_JOURNAL_PAYLOAD_SIZE];
 } __attribute__((packed)) SlabJournalPayload;
 
-typedef struct {
+struct packed_slab_journal_block {
   PackedSlabJournalBlockHeader header;
   SlabJournalPayload           payload;
-} __attribute__((packed)) PackedSlabJournalBlock;
+} __attribute__((packed));
 
-typedef struct {
+struct journal_lock {
   uint16_t       count;
   SequenceNumber recoveryStart;
-} JournalLock;
+};
 
 struct slabJournal {
   /** A waiter object for getting a VIO pool entry */
@@ -233,9 +233,9 @@ struct slabJournal {
    * The current tail block header state. This will be packed into
    * the block just before it is written.
    **/
-  SlabJournalBlockHeader                 tailHeader;
+  struct slab_journal_block_header         tailHeader;
   /** A pointer to a block-sized buffer holding the packed block data */
-  PackedSlabJournalBlock                *block;
+  struct packed_slab_journal_block        *block;
 
   /** The number of blocks in the on-disk journal */
   BlockCount                             size;
@@ -252,9 +252,9 @@ struct slabJournal {
   RingNode                               dirtyNode;
 
   /** The lock for the oldest unreaped block of the journal */
-  JournalLock                           *reapLock;
+  struct journal_lock                   *reapLock;
   /** The locks for each on disk block */
-  JournalLock                            locks[];
+  struct journal_lock                    locks[];
 };
 
 /**
@@ -280,10 +280,10 @@ getSlabJournalBlockOffset(SlabJournal *journal, SequenceNumber sequence)
  * @param sbn         The slab block number of the entry to encode
  * @param operation   The type of the entry
  **/
-void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
-                            SlabJournalPayload     *payload,
-                            SlabBlockNumber         sbn,
-                            JournalOperation        operation);
+void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
+                            SlabJournalPayload               *payload,
+                            SlabBlockNumber                   sbn,
+                            JournalOperation                  operation);
 
 /**
  * Decode a slab journal entry.
@@ -293,8 +293,9 @@ void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
  *
  * @return The decoded entry
  **/
-SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
-                                        JournalEntryCount       entryCount)
+SlabJournalEntry
+decodeSlabJournalEntry(struct packed_slab_journal_block *block,
+                       JournalEntryCount                 entryCount)
   __attribute__((warn_unused_result));
 
 /**
@@ -343,8 +344,8 @@ SlabJournalEntry unpackSlabJournalEntry(const PackedSlabJournalEntry *packed)
  * @param packed  The header into which to pack the values
  **/
 static inline
-void packSlabJournalBlockHeader(const SlabJournalBlockHeader *header,
-                                PackedSlabJournalBlockHeader *packed)
+void packSlabJournalBlockHeader(const struct slab_journal_block_header *header,
+                                PackedSlabJournalBlockHeader           *packed)
 {
   storeUInt64LE(packed->fields.head,           header->head);
   storeUInt64LE(packed->fields.sequenceNumber, header->sequenceNumber);
@@ -365,9 +366,9 @@ void packSlabJournalBlockHeader(const SlabJournalBlockHeader *header,
  **/
 static inline
 void unpackSlabJournalBlockHeader(const PackedSlabJournalBlockHeader *packed,
-                                  SlabJournalBlockHeader             *header)
+                                  struct slab_journal_block_header   *header)
 {
-  *header = (SlabJournalBlockHeader) {
+  *header = (struct slab_journal_block_header) {
     .head                  = getUInt64LE(packed->fields.head),
     .sequenceNumber        = getUInt64LE(packed->fields.sequenceNumber),
     .nonce                 = getUInt64LE(packed->fields.nonce),

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#7 $
  */
 
 #include "slabScrubberInternals.h"
@@ -256,10 +256,10 @@ static void handleScrubberError(VDOCompletion *completion)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int applyBlockEntries(PackedSlabJournalBlock *block,
-                             JournalEntryCount       entryCount,
-                             SequenceNumber          blockNumber,
-                             Slab                   *slab)
+static int applyBlockEntries(struct packed_slab_journal_block *block,
+                             JournalEntryCount                 entryCount,
+                             SequenceNumber                    blockNumber,
+                             Slab                             *slab)
 {
   struct journal_point entryPoint = {
     .sequenceNumber = blockNumber,
@@ -313,7 +313,8 @@ static void applyJournalEntries(VDOCompletion *completion)
   SequenceNumber  tail     = journal->tail;
   TailBlockOffset endIndex = getSlabJournalBlockOffset(journal, tail - 1);
   char *endData = scrubber->journalData + (endIndex * VDO_BLOCK_SIZE);
-  PackedSlabJournalBlock *endBlock = (PackedSlabJournalBlock *) endData;
+  struct packed_slab_journal_block *endBlock
+    = (struct packed_slab_journal_block *) endData;
 
   SequenceNumber  head      = getUInt64LE(endBlock->header.fields.head);
   TailBlockOffset headIndex = getSlabJournalBlockOffset(journal, head);
@@ -323,8 +324,9 @@ static void applyJournalEntries(VDOCompletion *completion)
   struct journal_point lastEntryApplied = refCountsPoint;
   for (SequenceNumber sequence = head; sequence < tail; sequence++) {
     char *blockData = scrubber->journalData + (index * VDO_BLOCK_SIZE);
-    PackedSlabJournalBlock *block  = (PackedSlabJournalBlock *) blockData;
-    SlabJournalBlockHeader header;
+    struct packed_slab_journal_block *block
+      = (struct packed_slab_journal_block *) blockData;
+    struct slab_journal_block_header header;
     unpackSlabJournalBlockHeader(&block->header, &header);
 
     if ((header.nonce != slab->allocator->nonce)

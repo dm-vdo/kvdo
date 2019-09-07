@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#14 $
  */
 
 #include "slabJournalInternals.h"
@@ -115,8 +115,8 @@ static inline PhysicalBlockNumber getBlockNumber(SlabJournal    *journal,
  * @return the lock object for the given sequence number
  **/
 __attribute__((warn_unused_result))
-static inline JournalLock *getLock(SlabJournal    *journal,
-                                   SequenceNumber  sequenceNumber)
+static inline struct journal_lock *getLock(SlabJournal     *journal,
+                                           SequenceNumber   sequenceNumber)
 {
   TailBlockOffset offset = getSlabJournalBlockOffset(journal, sequenceNumber);
   return &journal->locks[offset];
@@ -192,10 +192,10 @@ static inline void checkForDrainComplete(SlabJournal *journal)
  **/
 static void initializeTailBlock(SlabJournal *journal)
 {
-  SlabJournalBlockHeader *header = &journal->tailHeader;
-  header->sequenceNumber         = journal->tail;
-  header->entryCount             = 0;
-  header->hasBlockMapIncrements  = false;
+  struct slab_journal_block_header *header = &journal->tailHeader;
+  header->sequenceNumber                   = journal->tail;
+  header->entryCount                       = 0;
+  header->hasBlockMapIncrements            = false;
 }
 
 /**
@@ -242,7 +242,7 @@ int makeSlabJournal(BlockAllocator   *allocator,
   SlabJournal *journal;
   const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
   int result = ALLOCATE_EXTENDED(SlabJournal, slabConfig->slabJournalBlocks,
-                                 JournalLock, __func__, &journal);
+                                 struct journal_lock, __func__, &journal);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -269,7 +269,7 @@ int makeSlabJournal(BlockAllocator   *allocator,
 
   journal->slabSummaryWaiter.callback = releaseJournalLocks;
 
-  result = ALLOCATE(VDO_BLOCK_SIZE, char, "PackedSlabJournalBlock",
+  result = ALLOCATE(VDO_BLOCK_SIZE, char, "struct packed_slab_journal_block",
                     (char **) &journal->block);
   if (result != VDO_SUCCESS) {
     freeSlabJournal(&journal);
@@ -627,7 +627,7 @@ void reopenSlabJournal(SlabJournal *journal)
 static SequenceNumber
 getCommittingSequenceNumber(const struct vio_pool_entry *entry)
 {
-  const PackedSlabJournalBlock *block = entry->buffer;
+  const struct packed_slab_journal_block *block = entry->buffer;
   return getUInt64LE(block->header.fields.sequenceNumber);
 }
 
@@ -680,7 +680,7 @@ static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
 {
   SlabJournal            *journal = slabJournalFromResourceWaiter(waiter);
   struct vio_pool_entry  *entry   = vioContext;
-  SlabJournalBlockHeader *header  = &journal->tailHeader;
+  struct slab_journal_block_header *header = &journal->tailHeader;
 
   header->head = journal->head;
   pushRingNode(&journal->uncommittedBlocks, &entry->node);
@@ -763,10 +763,10 @@ void commitSlabJournalTail(SlabJournal *journal)
 }
 
 /**********************************************************************/
-void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
-                            SlabJournalPayload     *payload,
-                            SlabBlockNumber         sbn,
-                            JournalOperation        operation)
+void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
+                            SlabJournalPayload               *payload,
+                            SlabBlockNumber                   sbn,
+                            JournalOperation                  operation)
 {
   JournalEntryCount entryNumber = tailHeader->entryCount++;
   if (operation == BLOCK_MAP_INCREMENT) {
@@ -785,8 +785,9 @@ void encodeSlabJournalEntry(SlabJournalBlockHeader *tailHeader,
 }
 
 /**********************************************************************/
-SlabJournalEntry decodeSlabJournalEntry(PackedSlabJournalBlock *block,
-                                        JournalEntryCount       entryCount)
+SlabJournalEntry
+decodeSlabJournalEntry(struct packed_slab_journal_block   *block,
+                       JournalEntryCount                   entryCount)
 {
   SlabJournalEntry entry
     = unpackSlabJournalEntry(&block->payload.entries[entryCount]);
@@ -825,7 +826,7 @@ static void addEntry(SlabJournal                *journal,
     return;
   }
 
-  PackedSlabJournalBlock *block = journal->block;
+  struct packed_slab_journal_block *block = journal->block;
   if (operation == BLOCK_MAP_INCREMENT) {
     result = ASSERT_LOG_ONLY((journal->tailHeader.entryCount
                               < journal->fullEntriesPerBlock),
@@ -856,7 +857,7 @@ bool attemptReplayIntoSlabJournal(SlabJournal          *journal,
     return true;
   }
 
-  SlabJournalBlockHeader *header = &journal->tailHeader;
+  struct slab_journal_block_header *header = &journal->tailHeader;
   if ((header->entryCount >= journal->fullEntriesPerBlock)
       && (header->hasBlockMapIncrements ||
           (operation == BLOCK_MAP_INCREMENT))) {
@@ -932,7 +933,7 @@ static void addEntryFromWaiter(Waiter *waiter, void *context)
 {
   DataVIO     *dataVIO = waiterAsDataVIO(waiter);
   SlabJournal *journal = (SlabJournal *) context;
-  SlabJournalBlockHeader *header = &journal->tailHeader;
+  struct slab_journal_block_header *header = &journal->tailHeader;
   SequenceNumber recoveryBlock = dataVIO->recoveryJournalPoint.sequenceNumber;
 
   if (header->entryCount == 0) {
@@ -1016,7 +1017,7 @@ static void addEntries(SlabJournal *journal)
       break;
     }
 
-    SlabJournalBlockHeader *header = &journal->tailHeader;
+    struct slab_journal_block_header *header = &journal->tailHeader;
     if (journal->waitingToCommit) {
       // If we are waiting for resources to write the tail block, and the
       // tail block is full, we can't make another entry.
@@ -1041,7 +1042,7 @@ static void addEntries(SlabJournal *journal)
     }
 
     if (header->entryCount == 0) {
-      JournalLock *lock = getLock(journal, header->sequenceNumber);
+      struct journal_lock *lock = getLock(journal, header->sequenceNumber);
       // Check if the on disk slab journal is full. Because of the
       // blocking and scrubbing thresholds, this should never happen.
       if (lock->count > 0) {
@@ -1137,7 +1138,7 @@ void adjustSlabJournalBlockReference(SlabJournal    *journal,
   }
 
   ASSERT_LOG_ONLY((adjustment != 0), "adjustment must be non-zero");
-  JournalLock *lock = getLock(journal, sequenceNumber);
+  struct journal_lock *lock = getLock(journal, sequenceNumber);
   if (adjustment < 0) {
     ASSERT_LOG_ONLY((-adjustment <= lock->count),
                     "decrement of lock count for slab journal block %" PRIu64
@@ -1220,11 +1221,11 @@ static void finishDecodingJournal(VDOCompletion *completion)
  **/
 static void setDecodedState(VDOCompletion *completion)
 {
-  struct vio_pool_entry  *entry   = completion->parent;
-  SlabJournal            *journal = entry->parent;
-  PackedSlabJournalBlock *block   = entry->buffer;
+  struct vio_pool_entry            *entry   = completion->parent;
+  SlabJournal                      *journal = entry->parent;
+  struct packed_slab_journal_block *block   = entry->buffer;
 
-  SlabJournalBlockHeader header;
+  struct slab_journal_block_header header;
   unpackSlabJournalBlockHeader(&block->header, &header);
 
   if ((header.metadataType != VDO_METADATA_SLAB_JOURNAL)
