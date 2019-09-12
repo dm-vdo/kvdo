@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#4 $
  */
 
 #include "pageCache.h"
@@ -40,14 +40,14 @@
 /**********************************************************************/
 int assertPageInCache(PageCache *cache, CachedPage *page)
 {
-  int result = ASSERT((page->physicalPage < cache->numIndexEntries),
+  int result = ASSERT((page->cp_physicalPage < cache->numIndexEntries),
                       "physicalPage %u is valid (< %u)",
-                      page->physicalPage, cache->numIndexEntries);
+                      page->cp_physicalPage, cache->numIndexEntries);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  uint16_t pageIndex = cache->index[page->physicalPage];
+  uint16_t pageIndex = cache->index[page->cp_physicalPage];
   return ASSERT((pageIndex < cache->numCacheEntries)
                 && (&cache->cache[pageIndex] == page),
                 "page is at expected location in cache");
@@ -68,8 +68,8 @@ int assertPageInCache(PageCache *cache, CachedPage *page)
  **/
 static void clearPage(PageCache *cache, CachedPage *page)
 {
-  page->physicalPage = cache->numIndexEntries;
-  WRITE_ONCE(page->lastUsed, 0);
+  page->cp_physicalPage = cache->numIndexEntries;
+  WRITE_ONCE(page->cp_lastUsed, 0);
 }
 
 /**
@@ -180,7 +180,7 @@ static int invalidatePageInCache(PageCache          *cache,
     return UDS_SUCCESS;
   }
 
-  if (page->physicalPage != cache->numIndexEntries) {
+  if (page->cp_physicalPage != cache->numIndexEntries) {
     switch (reason) {
     case INVALIDATION_EVICT:
       cache->counters.evictions++;
@@ -199,8 +199,8 @@ static int invalidatePageInCache(PageCache          *cache,
       }
     }
 
-    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
-    waitForPendingSearches(cache, page->physicalPage);
+    WRITE_ONCE(cache->index[page->cp_physicalPage], cache->numCacheEntries);
+    waitForPendingSearches(cache, page->cp_physicalPage);
   }
 
   clearPage(cache, page);
@@ -250,7 +250,7 @@ int findInvalidateAndMakeLeastRecent(PageCache          *cache,
 
   // Move the cached page to the least recently used end of the list
   // so it will be replaced before any page with valid data.
-  WRITE_ONCE(page->lastUsed, 0);
+  WRITE_ONCE(page->cp_lastUsed, 0);
 
   return UDS_SUCCESS;
 }
@@ -316,7 +316,7 @@ static int initializePageCache(PageCache      *cache,
 
   for (i = 0; i < cache->numCacheEntries; i++) {
     CachedPage *page = &cache->cache[i];
-    page->data = cache->data + (i * cache->geometry->bytesPerPage);
+    page->cp_data = cache->data + (i * cache->geometry->bytesPerPage);
     clearPage(cache, page);
   }
 
@@ -406,8 +406,8 @@ void makePageMostRecent(PageCache *cache, CachedPage *page)
 {
   // ASSERTION: We are either a zone thread holding a searchPendingCounter,
   //            or we are any thread holding the readThreadsMutex.
-  if (atomic64_read(&cache->clock) != READ_ONCE(page->lastUsed)) {
-    WRITE_ONCE(page->lastUsed, atomic64_inc_return(&cache->clock));
+  if (atomic64_read(&cache->clock) != READ_ONCE(page->cp_lastUsed)) {
+    WRITE_ONCE(page->cp_lastUsed, atomic64_inc_return(&cache->clock));
   }
 }
 
@@ -433,16 +433,16 @@ static int getLeastRecentPage(PageCache *cache, CachedPage **pagePtr)
       // This should never happen.
       return ASSERT(false, "oldest page is not NULL");
     }
-    if (!cache->cache[i].readPending) {
+    if (!cache->cache[i].cp_readPending) {
       oldestIndex = i;
       break;
     }
   }
   // Now find the least recently used page that does not have a pending read.
   for (i = 0; i < cache->numCacheEntries; i++) {
-    if (!cache->cache[i].readPending
-        && (READ_ONCE(cache->cache[i].lastUsed)
-            <= READ_ONCE(cache->cache[oldestIndex].lastUsed))) {
+    if (!cache->cache[i].cp_readPending
+        && (READ_ONCE(cache->cache[i].cp_lastUsed)
+            <= READ_ONCE(cache->cache[oldestIndex].cp_lastUsed))) {
       oldestIndex = i;
     }
   }
@@ -615,13 +615,13 @@ int selectVictimInCache(PageCache   *cache,
 
   // If the page is currently being pointed to by the page map, clear
   // it from the page map, and update cache stats
-  if (page->physicalPage != cache->numIndexEntries) {
+  if (page->cp_physicalPage != cache->numIndexEntries) {
     cache->counters.evictions++;
-    WRITE_ONCE(cache->index[page->physicalPage], cache->numCacheEntries);
-    waitForPendingSearches(cache, page->physicalPage);
+    WRITE_ONCE(cache->index[page->cp_physicalPage], cache->numCacheEntries);
+    waitForPendingSearches(cache, page->cp_physicalPage);
   }
 
-  page->readPending = true;
+  page->cp_readPending = true;
 
   *pagePtr = page;
 
@@ -644,7 +644,7 @@ int putPageInCache(PageCache    *cache,
     return result;
   }
 
-  result = ASSERT((page->readPending),
+  result = ASSERT((page->cp_readPending),
                   "page to install has a pending read");
   if (result != UDS_SUCCESS) {
     return result;
@@ -652,7 +652,7 @@ int putPageInCache(PageCache    *cache,
 
   clearPage(cache, page);
 
-  page->physicalPage = physicalPage;
+  page->cp_physicalPage = physicalPage;
 
   // Figure out the index into the cache array using pointer arithmetic
   uint16_t value = page - cache->cache;
@@ -663,7 +663,7 @@ int putPageInCache(PageCache    *cache,
 
   makePageMostRecent(cache, page);
 
-  page->readPending = false;
+  page->cp_readPending = false;
 
   /*
    * We hold the readThreadsMutex, but we must have a write memory barrier
@@ -694,14 +694,14 @@ void cancelPageInCache(PageCache    *cache,
     return;
   }
 
-  result = ASSERT((page->readPending),
+  result = ASSERT((page->cp_readPending),
                   "page to install has a pending read");
   if (result != UDS_SUCCESS) {
     return;
   }
 
   clearPage(cache, page);
-  page->readPending = false;
+  page->cp_readPending = false;
 
   // Clear the page map for the new page. Will clear queued flag
   WRITE_ONCE(cache->index[physicalPage], cache->numCacheEntries);

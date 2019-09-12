@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#3 $
  */
 
-#ifndef PAGE_CACHE_H_
-#define PAGE_CACHE_H_
+#ifndef PAGE_CACHE_H
+#define PAGE_CACHE_H
 
 #include "atomicDefs.h"
 #include "cacheCounters.h"
@@ -39,15 +39,15 @@ typedef struct requestList {
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool              readPending;
+  bool              cp_readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int      physicalPage;
+  unsigned int      cp_physicalPage;
   /* the value of the volume clock when this page was last used */
-  int64_t           lastUsed;
+  int64_t           cp_lastUsed;
   /* the cache page data */
-  byte             *data;
+  byte             *cp_data;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage  indexPage;
+  ChapterIndexPage  cp_indexPage;
 } CachedPage;
 
 enum {
@@ -502,4 +502,4 @@ static INLINE void endPendingSearch(PageCache    *cache,
   setInvalidateCounter(cache, zoneNumber, invalidateCounter);
 }
 
-#endif /* PAGE_CACHE_H_ */
+#endif /* PAGE_CACHE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#13 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#14 $
  */
 
 #include "volume.h"
@@ -224,9 +224,9 @@ static int initializeIndexPage(const Volume *volume,
   unsigned int chapter = mapToChapterNumber(volume->geometry, physicalPage);
   unsigned int indexPageNumber = mapToPageNumber(volume->geometry,
                                                  physicalPage);
-  int result = initChapterIndexPage(volume, page->data,
+  int result = initChapterIndexPage(volume, page->cp_data,
                                     chapter, indexPageNumber,
-                                    &page->indexPage);
+                                    &page->cp_indexPage);
   return result;
 }
 
@@ -259,7 +259,7 @@ static void readThreadFunction(void *arg)
       result = selectVictimInCache(volume->pageCache, &page);
       if (result == UDS_SUCCESS) {
         unlockMutex(&volume->readThreadsMutex);
-        result = readPageToBuffer(volume, physicalPage, page->data);
+        result = readPageToBuffer(volume, physicalPage, page->cp_data);
         if (result != UDS_SUCCESS) {
           logWarning("Error reading page %u from volume", physicalPage);
           cancelPageInCache(volume->pageCache, physicalPage, page);
@@ -316,7 +316,7 @@ static void readThreadFunction(void *arg)
        * again.
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
-        if (searchRecordPage(page->data, &request->chunkName, volume->geometry,
+        if (searchRecordPage(page->cp_data, &request->chunkName, volume->geometry,
                              &request->oldMetadata)) {
           request->slLocation = LOC_IN_DENSE;
         } else {
@@ -360,7 +360,7 @@ static int readPageLocked(Volume        *volume,
       logWarning("Error selecting cache victim for page read");
       return result;
     }
-    result = readPageToBuffer(volume, physicalPage, page->data);
+    result = readPageToBuffer(volume, physicalPage, page->cp_data);
     if (result != UDS_SUCCESS) {
       logWarning("Error reading page %u from volume", physicalPage);
       cancelPageInCache(volume->pageCache, physicalPage, page);
@@ -537,10 +537,10 @@ int getPage(Volume            *volume,
   unlockMutex(&volume->readThreadsMutex);
 
   if (dataPtr != NULL) {
-    *dataPtr = (page != NULL) ? page->data : NULL;
+    *dataPtr = (page != NULL) ? page->cp_data : NULL;
   }
   if (indexPagePtr != NULL) {
-    *indexPagePtr = (page != NULL) ? &page->indexPage : NULL;
+    *indexPagePtr = (page != NULL) ? &page->cp_indexPage : NULL;
   }
   return result;
 }
@@ -597,7 +597,7 @@ static int searchCachedIndexPage(Volume             *volume,
     return result;
   }
 
-  result = searchChapterIndexPage(&page->indexPage, volume->geometry, name,
+  result = searchChapterIndexPage(&page->cp_indexPage, volume->geometry, name,
                                   recordPageNumber);
   endPendingSearch(volume->pageCache, zoneNumber);
   return result;
@@ -652,7 +652,7 @@ int searchCachedRecordPage(Volume             *volume,
     return result;
   }
 
-  if (searchRecordPage(recordPage->data, name, geometry, duplicate)) {
+  if (searchRecordPage(recordPage->cp_data, name, geometry, duplicate)) {
     *found = true;
   }
   endPendingSearch(volume->pageCache, zoneNumber);
@@ -756,10 +756,10 @@ static int donateIndexPageLocked(Volume       *volume,
   }
 
   // Copy the scratch page containing the index page bytes to the cache page.
-  memcpy(page->data, scratchPage, volume->geometry->bytesPerPage);
+  memcpy(page->cp_data, scratchPage, volume->geometry->bytesPerPage);
 
-  result = initChapterIndexPage(volume, page->data, physicalChapter,
-                                indexPageNumber, &page->indexPage);
+  result = initChapterIndexPage(volume, page->cp_data, physicalChapter,
+                                indexPageNumber, &page->cp_indexPage);
   if (result != UDS_SUCCESS) {
     logWarning("Error initialize chapter index page");
     cancelPageInCache(volume->pageCache, physicalPage, page);
