@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeInternals.c#7 $
  */
 
 #include "volumeInternals.h"
@@ -54,8 +54,9 @@ int allocateVolume(const Configuration  *config,
                                      "failed to allocate geometry: error");
   }
 
-  result = openVolumeBufio(layout, config->geometry->bytesPerPage, 1,
-                           &volume->bufioClient);
+  unsigned int reservedBuffers = 1;
+  result = openVolumeStore(&volume->volumeStore, layout, reservedBuffers,
+                           config->geometry->bytesPerPage);
   if (result != UDS_SUCCESS) {
     freeVolume(volume);
     return result;
@@ -113,7 +114,8 @@ int readPageToBuffer(const Volume *volume,
                      byte         *data)
 {
   struct dm_buffer *buffer = NULL;
-  byte *cacheData = dm_bufio_read(volume->bufioClient, physicalPage, &buffer);
+  byte *cacheData = dm_bufio_read(volume->volumeStore.vs_client, physicalPage,
+                                  &buffer);
   if (IS_ERR(cacheData)) {
     return logWarningWithStringError(-PTR_ERR(cacheData),
                                      "error reading physical page %u",
@@ -132,7 +134,7 @@ int readChapterIndexToBuffer(const Volume *volume,
   Geometry *geometry = volume->geometry;
   int result = UDS_SUCCESS;
   int physicalPage = mapToPhysicalPage(geometry, chapterNumber, 0);
-  dm_bufio_prefetch(volume->bufioClient, physicalPage,
+  dm_bufio_prefetch(volume->volumeStore.vs_client, physicalPage,
                     geometry->indexPagesPerChapter);
   unsigned int i;
   for (i = 0; i < geometry->indexPagesPerChapter; i++) {

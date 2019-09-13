@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#14 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#15 $
  */
 
 #include "volume.h"
@@ -792,7 +792,7 @@ int writeIndexPages(Volume            *volume,
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
     struct dm_buffer *buffer = NULL;
-    byte *data = dm_bufio_new(volume->bufioClient,
+    byte *data = dm_bufio_new(volume->volumeStore.vs_client,
                               physicalPage + indexPageNumber, &buffer);
     if (IS_ERR(data)) {
       return logErrorWithStringError(-PTR_ERR(data),
@@ -873,7 +873,7 @@ int writeRecordPages(Volume                *volume,
        recordPageNumber < geometry->recordPagesPerChapter;
        recordPageNumber++) {
     struct dm_buffer *buffer = NULL;
-    byte *data = dm_bufio_new(volume->bufioClient,
+    byte *data = dm_bufio_new(volume->volumeStore.vs_client,
                               physicalPage + recordPageNumber, &buffer);
     if (IS_ERR(data)) {
       return logErrorWithStringError(-PTR_ERR(data),
@@ -911,17 +911,6 @@ int writeRecordPages(Volume                *volume,
 }
 
 /**********************************************************************/
-int syncVolume(Volume *volume)
-{
-  int result;
-  result = dm_bufio_write_dirty_buffers(volume->bufioClient);
-  if (result != 0) {
-    return logErrorWithStringError(-result, "cannot write chapter to volume");
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
 int writeChapter(Volume                 *volume,
                  OpenChapterIndex       *chapterIndex,
                  const UdsChunkRecord    records[])
@@ -943,7 +932,7 @@ int writeChapter(Volume                 *volume,
     return result;
   }
   // Flush the data to permanent storage.
-  return syncVolume(volume);
+  return syncVolumeStore(&volume->volumeStore);
 }
 
 /**********************************************************************/
@@ -1298,17 +1287,16 @@ void freeVolume(Volume *volume)
     volume->readerThreads = NULL;
   }
 
-  if (volume->bufioClient != NULL) {
-    dm_bufio_client_destroy(volume->bufioClient);
-  }
+// Must free the volume store AFTER freeing the scratch page and the caches
+  freePageCache(volume->pageCache);
+  freeSparseCache(volume->sparseCache);
+  closeVolumeStore(&volume->volumeStore);
 
   destroyCond(&volume->readThreadsCond);
   destroyCond(&volume->readThreadsReadDoneCond);
   destroyMutex(&volume->readThreadsMutex);
   freeIndexPageMap(volume->indexPageMap);
-  freePageCache(volume->pageCache);
   freeRadixSorter(volume->radixSorter);
-  freeSparseCache(volume->sparseCache);
   FREE(volume->geometry);
   FREE(volume->recordPointers);
   FREE(volume);

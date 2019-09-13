@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#7 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#8 $
  */
 
 #ifndef VOLUME_H
@@ -33,7 +33,7 @@
 #include "sparseCache.h"
 #include "uds.h"
 #include "util/radixSort.h"
-
+#include "volumeStore.h"
 
 enum {
   MAX_VOLUME_READ_THREADS = 16
@@ -69,7 +69,7 @@ typedef struct volume {
   /* The configuration of the volume */
   Configuration         *config;
   /* The access to the volume's backing store */
-  struct dm_bufio_client *bufioClient;
+  struct volume_store    volumeStore;
   /* The nonce used to save the volume */
   uint64_t               nonce;
   /* A single page's records, for sorting */
@@ -269,15 +269,6 @@ int writeRecordPages(Volume                *volume,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 __attribute__((warn_unused_result));
-
-/**
- * Sync the volume to storage.
- *
- * @param volume  the volume containing the chapter
- *
- * @return UDS_SUCCESS or an error code
- **/
-int syncVolume(Volume *volume) __attribute__((warn_unused_result));
 
 /**
  * Write the index and records from the most recently filled chapter to the

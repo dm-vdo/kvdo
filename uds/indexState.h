@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#4 $
  */
 
 #ifndef INDEX_STATE_H
 #define INDEX_STATE_H 1
 
-#include "accessMode.h"
 #include "buffer.h"
 #include "indexComponent.h"
 
@@ -34,6 +33,15 @@ typedef enum {
   IS_CHECKPOINT,
   NO_SAVE = 9999,
 } IndexSaveType;
+
+/*
+ * Used in getStateIndexStateBuffer to identify whether the index state buffer
+ * is for the index being loaded or the index being saved.
+ */
+typedef enum {
+  IO_READ  = 0x1,
+  IO_WRITE = 0x2,
+} IOAccessMode;
 
 /**
  * The index state structure controls the loading and saving of the index
