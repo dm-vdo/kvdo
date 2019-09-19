@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#7 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/ioFactoryLinuxKernel.c#8 $
  */
 
 #include <linux/blkdev.h>
@@ -80,6 +80,12 @@ void putIOFactory(IOFactory *factory)
     blkdev_put(factory->bdev, BLK_FMODE);
     FREE(factory);
   }
+}
+
+/*****************************************************************************/
+size_t getWritableSize(IOFactory *factory)
+{
+  return i_size_read(factory->bdev->bd_inode);
 }
 
 /*****************************************************************************/

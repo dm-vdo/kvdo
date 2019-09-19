@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/ioFactory.h#7 $
  */
 
 #ifndef IO_FACTORY_H
@@ -74,6 +74,17 @@ void getIOFactory(IOFactory *factory);
  * @param factory  The IOFactory
  **/
 void putIOFactory(IOFactory *factory);
+
+/**
+ * Get the maximum potential size of the device or file.  For a device, this is
+ * the actual size of the device.  For a file, this is the largest file that we
+ * can possibly write.
+ *
+ * @param factory  The IOFactory
+ *
+ * @return the writable size (in bytes)
+ **/
+size_t getWritableSize(IOFactory *factory) __attribute__((warn_unused_result));
 
 /**
  * Create a struct dm_bufio_client for a region of the index.

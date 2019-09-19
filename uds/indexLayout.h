@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#10 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#11 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -59,9 +59,8 @@ int makeIndexLayout(const char              *name,
  * @param factory    The IOFactory for the block storage containing the index.
  * @param offset     The offset of the start of the index within the block
  *                   storage address space.
- * @param size       The size in bytes of the space within the block storage
- *                   address space, must be at least as large as that returned
- *                   by udsComputeIndexSize() or an error will result.
+ * @param namedSize  The size in bytes of the space within the block storage
+ *                   address space, as specified in the name string.
  * @param newLayout  Whether this is a new layout.
  * @param config     The UdsConfiguration required for a new layout.
  * @param layoutPtr  Where to store the new index layout
@@ -70,7 +69,7 @@ int makeIndexLayout(const char              *name,
  **/
 int makeIndexLayoutFromFactory(IOFactory               *factory,
                                off_t                    offset,
-                               uint64_t                 size,
+                               uint64_t                 namedSize,
                                bool                     newLayout,
                                const UdsConfiguration   config,
                                IndexLayout            **layoutPtr)

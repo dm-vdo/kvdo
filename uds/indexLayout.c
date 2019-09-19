@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#15 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#16 $
  */
 
 #include "indexLayout.h"
@@ -235,27 +235,6 @@ static int computeSizes(SaveLayoutSizes        *sls,
   sls->totalBlocks = 3 + sls->subIndexBlocks;
 
   return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-static void recomputeSizes(SaveLayoutSizes *sls, uint64_t newSize)
-{
-  uint64_t extraBlocks = newSize - sls->totalBlocks;
-  uint64_t extraIndexBlocks = extraBlocks;
-
-  unsigned int n = 0;
-  unsigned int i;
-  for (i = sls->numSaves; i < MAX_SAVES; ++i) {
-    if (extraIndexBlocks < sls->saveBlocks) {
-      break;
-    }
-    ++n;
-  }
-
-  sls->numSaves += n;
-  uint64_t extraPerSubIndex = n * sls->saveBlocks;
-  sls->subIndexBlocks += n;
-  sls->totalBlocks += extraPerSubIndex;
 }
 
 /*****************************************************************************/
@@ -2249,17 +2228,6 @@ static int createIndexLayout(IndexLayout            *layout,
                                    sizes.totalBlocks * sizes.blockSize);
   }
 
-  if (size % sizes.blockSize != 0) {
-    return logErrorWithStringError(UDS_INCORRECT_ALIGNMENT,
-                                   "layout size %" PRIu64
-                                   " not a multiple of blockSize %zu",
-                                   size, sizes.blockSize);
-  }
-
-  if (size > sizes.totalBlocks * sizes.blockSize) {
-    recomputeSizes(&sizes, size / sizes.blockSize);
-  }
-
   result = initSingleFileLayout(layout, layout->offset, size, &sizes);
   if (result != UDS_SUCCESS) {
     return result;
@@ -2361,20 +2329,35 @@ int openIndexBufferedWriter(IndexLayout     *layout,
 /*****************************************************************************/
 int makeIndexLayoutFromFactory(IOFactory               *factory,
                                off_t                    offset,
-                               uint64_t                 size,
+                               uint64_t                 namedSize,
                                bool                     newLayout,
                                const UdsConfiguration   config,
                                IndexLayout            **layoutPtr)
 {
-  if (size == 0) {
-    if (config == NULL) {
-      size = 1L << 40;
-    } else {
-      int result = udsComputeIndexSize(config, 0, &size);
-      if (result != UDS_SUCCESS) {
-        return result;
-      }
+  // Get the device size and round it down to a multiple of UDS_BLOCK_SIZE.
+  size_t size = getWritableSize(factory) & -UDS_BLOCK_SIZE;
+  if (namedSize > size) {
+    return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
+                                   "index storage (%zu) is smaller than the"
+                                   " requested size %llu",
+                                   size, namedSize);
+  }
+  if ((namedSize > 0) && (namedSize < size)) {
+    size = namedSize;
+  }
+  if (config != NULL) {
+    uint64_t configSize;
+    int result = udsComputeIndexSize(config, 0, &configSize);
+    if (result != UDS_SUCCESS) {
+      return result;
     }
+    if (size < configSize) {
+      return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
+                                     "index storage (%zu) is smaller than the"
+                                     " required size %llu",
+                                     size, configSize);
+    }
+    size = configSize;
   }
 
   IndexLayout *layout = NULL;

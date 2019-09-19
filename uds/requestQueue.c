@@ -16,14 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/requestQueue.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/requestQueue.c#2 $
  */
 
 #include "requestQueue.h"
 
 #include "atomicDefs.h"
+#include "compiler.h"
 #include "logger.h"
-#include "permassert.h"
 #include "request.h"
 #include "memoryAlloc.h"
 #include "threads.h"
@@ -34,19 +34,17 @@
 /*
  * Ordering:
  *
- * Multiple retry requests or multiple non-retry requests enqueued
- * from a single producer thread will be processed in the order
- * enqueued.
+ * Multiple retry requests or multiple non-retry requests enqueued from
+ * a single producer thread will be processed in the order enqueued.
  *
  * Retry requests will generally be processed before normal requests.
  *
- * HOWEVER, a producer thread can enqueue a retry request (generally
- * given higher priority) and then enqueue a normal request, and they
- * can get processed in the reverse order.  The checking of the two
- * internal queues is very simple and there's a potential race with
- * the producer regarding the "priority" handling.  If an ordering
- * guarantee is needed, it can be added without much difficulty, it
- * just makes the code a bit more complicated.
+ * HOWEVER, a producer thread can enqueue a retry request (generally given
+ * higher priority) and then enqueue a normal request, and they can get
+ * processed in the reverse order.  The checking of the two internal queues is
+ * very simple and there's a potential race with the producer regarding the
+ * "priority" handling.  If an ordering guarantee is needed, it can be added
+ * without much difficulty, it just makes the code a bit more complicated.
  *
  * If requests are enqueued while the processing of another request is
  * happening, and the enqueuing operations complete while the request
@@ -273,59 +271,55 @@ static void requestQueueWorker(void *arg)
 }
 
 /**********************************************************************/
-static int initializeQueue(RequestQueue          *queue,
-                           const char            *queueName,
-                           RequestQueueProcessor *processOne)
+int makeRequestQueue(const char             *queueName,
+                     RequestQueueProcessor  *processOne,
+                     RequestQueue          **queuePtr)
 {
+  RequestQueue *queue;
+  int result = ALLOCATE(1, RequestQueue, __func__, &queue);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
   queue->name            = queueName;
   queue->processOne      = processOne;
   queue->alive           = true;
   queue->currentBatch    = 0;
   queue->waitNanoseconds = DEFAULT_WAIT_TIME;
 
-  int result = makeFunnelQueue(&queue->mainQueue);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = makeFunnelQueue(&queue->retryQueue);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = makeEventCount(&queue->workEvent);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = createThread(requestQueueWorker, queue, queueName, &queue->thread);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  queue->started = true;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int makeRequestQueue(const char             *queueName,
-                     RequestQueueProcessor  *processOne,
-                     RequestQueue          **queuePtr)
-{
-  RequestQueue *queue;
-  int result = ALLOCATE(1, struct requestQueue, "request queue", &queue);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  result = initializeQueue(queue, queueName, processOne);
+  result = makeFunnelQueue(&queue->mainQueue);
   if (result != UDS_SUCCESS) {
     requestQueueFinish(queue);
     return result;
   }
 
+  result = makeFunnelQueue(&queue->retryQueue);
+  if (result != UDS_SUCCESS) {
+    requestQueueFinish(queue);
+    return result;
+  }
+
+  result = makeEventCount(&queue->workEvent);
+  if (result != UDS_SUCCESS) {
+    requestQueueFinish(queue);
+    return result;
+  }
+
+  result = createThread(requestQueueWorker, queue, queueName, &queue->thread);
+  if (result != UDS_SUCCESS) {
+    requestQueueFinish(queue);
+    return result;
+  }
+
+  queue->started = true;
+  smp_mb();
   *queuePtr = queue;
   return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+static INLINE void wakeUpWorker(RequestQueue *queue)
+{
+  eventCountBroadcast(queue->workEvent);
 }
 
 /**********************************************************************/
@@ -341,7 +335,7 @@ void requestQueueEnqueue(RequestQueue *queue, Request *request)
    * queue operation acts as one.
    */
   if (atomic_read(&queue->dormant) || unbatched) {
-    eventCountBroadcast(queue->workEvent);
+    wakeUpWorker(queue);
   }
 }
 
@@ -366,13 +360,13 @@ void requestQueueFinish(RequestQueue *queue)
 
   if (queue->started) {
     // Wake the worker so it notices that it should exit.
-    eventCountBroadcast(queue->workEvent);
+    wakeUpWorker(queue);
 
     // Wait for the worker thread to finish processing any additional pending
     // work and exit.
     int result = joinThreads(queue->thread);
-    if (result != 0) {
-      logErrorWithStringError(result, "Failed to join worker thread");
+    if (result != UDS_SUCCESS) {
+      logWarningWithStringError(result, "Failed to join worker thread");
     }
   }
 

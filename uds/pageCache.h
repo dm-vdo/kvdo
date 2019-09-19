@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#4 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -31,6 +31,7 @@
 #include "opaqueTypes.h"
 #include "permassert.h"
 #include "request.h"
+#include "volumeStore.h"
 
 typedef struct requestList {
   Request *first;
@@ -39,15 +40,15 @@ typedef struct requestList {
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool              cp_readPending;
+  bool               cp_readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int      cp_physicalPage;
+  unsigned int       cp_physicalPage;
   /* the value of the volume clock when this page was last used */
-  int64_t           cp_lastUsed;
+  int64_t            cp_lastUsed;
   /* the cache page data */
-  byte             *cp_data;
+  struct volume_page cp_pageData;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage  cp_indexPage;
+  ChapterIndexPage   cp_indexPage;
 } CachedPage;
 
 enum {
@@ -110,8 +111,6 @@ typedef struct pageCache {
   uint16_t       *index;
   // The cache
   CachedPage     *cache;
-  // The data buffer for the cache
-  byte           *data;
   // A counter for each zone to keep track of when a search is occurring
   // within that zone.
   SearchPendingCounter *searchPendingCounters;

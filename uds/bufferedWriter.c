@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/bufferedWriter.c#6 $
  */
 
 #include "bufferedWriter.h"
@@ -127,6 +127,10 @@ void freeBufferedWriter(BufferedWriter *bw)
     return;
   }
   flushPreviousBuffer(bw);
+  int result = -dm_bufio_write_dirty_buffers(bw->bw_client);
+  if (result != UDS_SUCCESS) {
+    logWarningWithStringError(result, "%s cannot sync storage", __func__);
+  }
   dm_bufio_client_destroy(bw->bw_client);
   putIOFactory(bw->bw_factory);
   FREE(bw);

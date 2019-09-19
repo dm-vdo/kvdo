@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.c#5 $
  */
 
 #include "pageCache.h"
@@ -307,16 +307,12 @@ static int initializePageCache(PageCache      *cache,
     return result;
   }
 
-  unsigned long dataSize = geometry->bytesPerPage * cache->numCacheEntries;
-  result = ALLOCATE_IO_ALIGNED(dataSize, byte, "cache page data",
-                               &cache->data);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
   for (i = 0; i < cache->numCacheEntries; i++) {
     CachedPage *page = &cache->cache[i];
-    page->cp_data = cache->data + (i * cache->geometry->bytesPerPage);
+    result = initializeVolumePage(geometry, &page->cp_pageData);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
     clearPage(cache, page);
   }
 
@@ -368,8 +364,13 @@ void freePageCache(PageCache *cache)
   if (cache == NULL) {
     return;
   }
+  if (cache->cache != NULL) {
+    unsigned int i;
+    for (i = 0; i < cache->numCacheEntries; i++) {
+      destroyVolumePage(&cache->cache[i].cp_pageData);
+    }
+  }
   FREE(cache->index);
-  FREE(cache->data);
   FREE(cache->cache);
   FREE(cache->searchPendingCounters);
   FREE(cache->readQueue);
@@ -713,7 +714,6 @@ size_t getPageCacheSize(PageCache *cache)
   if (cache == NULL) {
     return 0;
   }
-  return ((cache->geometry->bytesPerPage + sizeof(ChapterIndexPage))
-          * cache->numCacheEntries);
+  return sizeof(ChapterIndexPage) * cache->numCacheEntries;
 }
 

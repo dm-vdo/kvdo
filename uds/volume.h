@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#11 $
  */
 
 #ifndef VOLUME_H
@@ -70,6 +70,8 @@ typedef struct volume {
   Configuration         *config;
   /* The access to the volume's backing store */
   struct volume_store    volumeStore;
+  /* A single page used for writing to the volume */
+  struct volume_page     scratchPage;
   /* The nonce used to save the volume */
   uint64_t               nonce;
   /* A single page's records, for sorting */
@@ -400,11 +402,6 @@ int getPage(Volume            *volume,
 size_t getCacheSize(Volume *volume) __attribute__((warn_unused_result));
 
 /**********************************************************************/
-off_t offsetForChapter(const Geometry *geometry,
-                       unsigned int    chapter)
-  __attribute__((warn_unused_result));
-
-/**********************************************************************/
 int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
                                     unsigned int  maxBadChapters,
                                     uint64_t     *lowestVCN,
@@ -413,6 +410,18 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
                                                      unsigned int  chapter,
                                                      uint64_t     *vcn),
                                     void *aux)
+  __attribute__((warn_unused_result));
+
+/**
+ * Map a chapter number and page number to a phsical volume page number.
+ *
+ * @param geometry the layout of the volume
+ * @param chapter  the chapter number of the desired page
+ * @param page     the chapter page number of the desired page
+ *
+ * @return the physical page number
+ **/
+int mapToPhysicalPage(const Geometry *geometry, int chapter, int page)
   __attribute__((warn_unused_result));
 
 #endif /* VOLUME_H */

@@ -16,34 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volumeStore.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volumeStore.h#2 $
  */
 
-#ifndef VOLUME_PAGE_H
-#define VOLUME_PAGE_H
+#ifndef VOLUME_STORE_H
+#define VOLUME_STORE_H
+
+#include "common.h"
+#include "compiler.h"
+#include "memoryAlloc.h"
 
 #include <linux/dm-bufio.h>
 
+struct geometry;
 struct indexLayout;
 
-/*
- * A volume store is the actual storage behind the volume.  More precisely it
- * contains a pointer to the platform specific mechanism for accessing that
- * storage.  In kernel mode, we use a block device that is accessed by the
- * dm-bufio module.  In user mode, we use a file system file that is accessed
- * by our ioRegion module.  All of the platform specific code is framed by
- * using #ifdef __KERNEL__, and is contained in the volumeStore module.
- */
 
 struct volume_store {
   struct dm_bufio_client *vs_client;
 };
 
-/*
- * A volume page is the actual buffer for a single record or index page.  In
- * kernel mode, the actual memory is allocated by and managed by the dm-bufio
- * module.  In user mode, this module allocates and frees the actual memory.
- */
 
 struct volume_page {
   struct dm_buffer *vp_buffer;
@@ -55,6 +47,38 @@ struct volume_page {
  * @param volumeStore   The volume store
  **/
 void closeVolumeStore(struct volume_store *volumeStore);
+
+/**
+ * Uninitialize a volume page buffer.
+ *
+ * @param volumePage  The volume page buffer
+ **/
+void destroyVolumePage(struct volume_page *volumePage);
+
+/**
+ * Get a pointer to the data contained in a volume page buffer.
+ *
+ * @param volumePage  The volume page buffer
+ *
+ * @return the address of the data
+ **/
+__attribute__((warn_unused_result))
+static INLINE byte *getPageData(const struct volume_page *volumePage)
+{
+  return dm_bufio_get_block_data(volumePage->vp_buffer);
+}
+
+/**
+ * Initialize a volume page buffer.
+ *
+ * @param geometry    The volume geometry
+ * @param volumePage  The volume page buffer
+ *
+ * @return UDS_SUCCESS or an error status
+ **/
+int initializeVolumePage(const struct geometry *geometry,
+                         struct volume_page    *volumePage)
+  __attribute__((warn_unused_result));
 
 /**
  * Open a volume store.
@@ -82,6 +106,52 @@ void prefetchVolumePages(const struct volume_store *volumeStore,
                          unsigned int               pageCount);
 
 /**
+ * Prepare a buffer to write a page to the volume.
+ *
+ * @param volumeStore   The volume store
+ * @param physicalPage  The volume page number of the desired page
+ * @param volumePage    The volume page buffer
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int prepareToWriteVolumePage(const struct volume_store *volumeStore,
+                             unsigned int               physicalPage,
+                             struct volume_page        *volumePage)
+  __attribute__((warn_unused_result));
+
+/**
+ * Read a page from a volume store.
+ *
+ * @param volumeStore   The volume store
+ * @param physicalPage  The volume page number of the desired page
+ * @param volumePage    The volume page buffer
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int readVolumePage(const struct volume_store *volumeStore,
+                   unsigned int               physicalPage,
+                   struct volume_page        *volumePage)
+  __attribute__((warn_unused_result));
+
+/**
+ * Release a volume page buffer, because it will no longer be accessed before a
+ * call to readVolumePage or prepareToWriteVolumePage.
+ *
+ * @param volumePage  The volume page buffer
+ **/
+void releaseVolumePage(struct volume_page *volumePage);
+
+/**
+ * Swap volume pages.  This is used to put the contents of a newly written
+ * index page (in the scratch page) into the page cache.
+ *
+ * @param volumePage1  The volume page buffer
+ * @param volumePage2  The volume page buffer
+ **/
+void swapVolumePages(struct volume_page *volumePage1,
+                     struct volume_page *volumePage2);
+
+/**
  * Sync the volume store to storage.
  *
  * @param volumeStore  The volume store
@@ -91,4 +161,18 @@ void prefetchVolumePages(const struct volume_store *volumeStore,
 int syncVolumeStore(const struct volume_store *volumeStore)
   __attribute__((warn_unused_result));
 
-#endif /* VOLUME_PAGE_H */
+/**
+ * Write a page to a volume store.
+ *
+ * @param volumeStore   The volume store
+ * @param physicalPage  The volume page number of the desired page
+ * @param volumePage    The volume page buffer
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int writeVolumePage(const struct volume_store *volumeStore,
+                    unsigned int               physicalPage,
+                    struct volume_page        *volumePage)
+  __attribute__((warn_unused_result));
+
+#endif /* VOLUME_STORE_H */
