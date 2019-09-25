@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/sparseCache.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/sparseCache.c#3 $
  */
 
 /**
@@ -260,8 +260,8 @@ int makeSparseCache(const Geometry  *geometry,
 /**********************************************************************/
 size_t getSparseCacheMemorySize(const SparseCache *cache)
 {
-  // Count the ChapterIndexPage as cache memory, but ignore all other overhead.
-  size_t pageSize = (sizeof(ChapterIndexPage) + cache->geometry->bytesPerPage);
+  // Count the DeltaIndexPage as cache memory, but ignore all other overhead.
+  size_t pageSize = (sizeof(DeltaIndexPage) + cache->geometry->bytesPerPage);
   size_t chapterSize = (pageSize * cache->geometry->indexPagesPerChapter);
   return (cache->capacity * chapterSize);
 }

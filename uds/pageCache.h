@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#5 $
  */
 
 #ifndef PAGE_CACHE_H
@@ -48,7 +48,7 @@ typedef struct cachedPage {
   /* the cache page data */
   struct volume_page cp_pageData;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage   cp_indexPage;
+  DeltaIndexPage     cp_indexPage;
 } CachedPage;
 
 enum {

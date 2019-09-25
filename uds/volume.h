@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#11 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#13 $
  */
 
 #ifndef VOLUME_H
@@ -293,15 +293,15 @@ int writeChapter(Volume               *volume,
  *
  * @param [in]  volume          the volume containing the chapter
  * @param [in]  virtualChapter  the virtual chapter number of the index to read
- * @param [out] pageData        an array to receive the raw index page data
+ * @param [out] volumePages     an array to receive the raw index page data
  * @param [out] indexPages      an array of ChapterIndexPages to initialize
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readChapterIndexFromVolume(const Volume     *volume,
-                               uint64_t          virtualChapter,
-                               byte              pageData[],
-                               ChapterIndexPage  indexPages[])
+int readChapterIndexFromVolume(const Volume       *volume,
+                               uint64_t            virtualChapter,
+                               struct volume_page  volumePages[],
+                               DeltaIndexPage      indexPages[])
   __attribute__((warn_unused_result));
 
 /**
@@ -390,12 +390,12 @@ int getPageProtected(Volume          *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPage(Volume            *volume,
-            unsigned int       chapter,
-            unsigned int       pageNumber,
-            CacheProbeType     probeType,
-            byte             **dataPtr,
-            ChapterIndexPage **indexPagePtr)
+int getPage(Volume          *volume,
+            unsigned int     chapter,
+            unsigned int     pageNumber,
+            CacheProbeType   probeType,
+            byte           **dataPtr,
+            DeltaIndexPage **indexPagePtr)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/

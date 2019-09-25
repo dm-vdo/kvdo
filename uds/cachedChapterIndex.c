@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/cachedChapterIndex.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/cachedChapterIndex.c#3 $
  */
 
 #include "cachedChapterIndex.h"
@@ -28,22 +28,41 @@ int initializeCachedChapterIndex(CachedChapterIndex *chapter,
                                  const Geometry     *geometry)
 {
   chapter->virtualChapter  = UINT64_MAX;
+  chapter->indexPagesCount = geometry->indexPagesPerChapter;
 
-  unsigned int pages = geometry->indexPagesPerChapter;
-  int result = ALLOCATE(pages, ChapterIndexPage, "sparse ChapterIndexPages",
+  int result = ALLOCATE(chapter->indexPagesCount, DeltaIndexPage, __func__,
                         &chapter->indexPages);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  return ALLOCATE_IO_ALIGNED(pages * geometry->bytesPerPage, byte,
-                             "sparse index page data", &chapter->pageData);
+
+  result = ALLOCATE(chapter->indexPagesCount, struct volume_page,
+                    "sparse index VolumePages", &chapter->volumePages);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+  
+  unsigned int i;
+  for (i = 0; i < chapter->indexPagesCount; i++) {
+    result = initializeVolumePage(geometry, &chapter->volumePages[i]);
+    if (result != UDS_SUCCESS) {
+      return result;
+    }
+  }
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 void destroyCachedChapterIndex(CachedChapterIndex *chapter)
 {
+  if (chapter->volumePages != NULL) {
+    unsigned int i;
+    for (i = 0; i < chapter->indexPagesCount; i++) {
+      destroyVolumePage(&chapter->volumePages[i]);
+    }
+  }
   FREE(chapter->indexPages);
-  FREE(chapter->pageData);
+  FREE(chapter->volumePages);
 }
 
 /**********************************************************************/
@@ -54,10 +73,10 @@ int cacheChapterIndex(CachedChapterIndex *chapter,
   // Mark the cached chapter as unused in case the update fails midway.
   chapter->virtualChapter = UINT64_MAX;
 
-  // Read all the page data and initialize the entire ChapterIndexPage array.
+  // Read all the page data and initialize the entire DeltaIndexPage array.
   // (It's not safe for the zone threads to do it lazily--they'll race.)
   int result = readChapterIndexFromVolume(volume, virtualChapter,
-                                          chapter->pageData,
+                                          chapter->volumePages,
                                           chapter->indexPages);
   if (result != UDS_SUCCESS) {
     return result;

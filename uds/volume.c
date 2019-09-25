@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#18 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#21 $
  */
 
 #include "volume.h"
@@ -172,11 +172,11 @@ static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
 }
 
 /**********************************************************************/
-static int initChapterIndexPage(const Volume     *volume,
-                                byte             *indexPage,
-                                unsigned int      chapter,
-                                unsigned int      indexPageNumber,
-                                ChapterIndexPage *chapterIndexPage)
+static int initChapterIndexPage(const Volume   *volume,
+                                byte           *indexPage,
+                                unsigned int    chapter,
+                                unsigned int    indexPageNumber,
+                                DeltaIndexPage *chapterIndexPage)
 {
   Geometry *geometry = volume->geometry;
 
@@ -199,14 +199,11 @@ static int initChapterIndexPage(const Volume     *volume,
     return result;
   }
 
-  uint64_t     ciVirtual
-    = getChapterIndexVirtualChapterNumber(chapterIndexPage);
+  uint64_t     ciVirtual = chapterIndexPage->virtualChapterNumber;
   unsigned int ciChapter = mapToPhysicalChapter(geometry, ciVirtual);
-  unsigned int ciLowest  = getChapterIndexLowestListNumber(chapterIndexPage);
-  unsigned int ciHighest = getChapterIndexHighestListNumber(chapterIndexPage);
   if ((chapter == ciChapter)
-      && (bounds.lowestList == ciLowest)
-      && (bounds.highestList == ciHighest)) {
+      && (bounds.lowestList == chapterIndexPage->lowestListNumber)
+      && (bounds.highestList == chapterIndexPage->highestListNumber)) {
     return UDS_SUCCESS;
   }
 
@@ -216,7 +213,8 @@ static int initChapterIndexPage(const Volume     *volume,
              "but chapter index page has chapter %" PRIu64
              " with range %u to %u",
              chapter, indexPageNumber, bounds.lowestList, bounds.highestList,
-             ciVirtual, ciLowest, ciHighest);
+             ciVirtual, chapterIndexPage->lowestListNumber,
+             chapterIndexPage->highestListNumber);
   return ASSERT_WITH_ERROR_CODE(false,
                                 UDS_CORRUPT_DATA,
                                 "index page map mismatch with chapter index");
@@ -530,12 +528,12 @@ int getPageProtected(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume            *volume,
-            unsigned int       chapter,
-            unsigned int       pageNumber,
-            CacheProbeType     probeType,
-            byte             **dataPtr,
-            ChapterIndexPage **indexPagePtr)
+int getPage(Volume          *volume,
+            unsigned int     chapter,
+            unsigned int     pageNumber,
+            CacheProbeType   probeType,
+            byte           **dataPtr,
+            DeltaIndexPage **indexPagePtr)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, chapter, pageNumber);
@@ -670,10 +668,10 @@ int searchCachedRecordPage(Volume             *volume,
 }
 
 /**********************************************************************/
-int readChapterIndexFromVolume(const Volume    *volume,
-                               uint64_t         virtualChapter,
-                               byte            *pageData,
-                               ChapterIndexPage indexPages[])
+int readChapterIndexFromVolume(const Volume       *volume,
+                               uint64_t            virtualChapter,
+                               struct volume_page  volumePages[],
+                               DeltaIndexPage      indexPages[])
 {
   const Geometry *geometry = volume->geometry;
   unsigned int physicalChapter = mapToPhysicalChapter(geometry,
@@ -685,17 +683,13 @@ int readChapterIndexFromVolume(const Volume    *volume,
   unsigned int i;
   struct volume_page volumePage;
   int result = initializeVolumePage(geometry, &volumePage);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
   for (i = 0; i < geometry->indexPagesPerChapter; i++) {
     int result = readVolumePage(&volume->volumeStore, physicalPage + i,
-                                &volumePage);
+                                &volumePages[i]);
     if (result != UDS_SUCCESS) {
       break;
     }
-    byte *indexPage = &pageData[i * geometry->bytesPerPage];
-    memcpy(indexPage, getPageData(&volumePage), geometry->bytesPerPage);
+    byte *indexPage = getPageData(&volumePages[i]);
     result = initChapterIndexPage(volume, indexPage, physicalChapter, i,
                                   &indexPages[i]);
     if (result != UDS_SUCCESS) {
@@ -974,14 +968,14 @@ static int probeChapter(Volume       *volume,
 
   unsigned int i;
   for (i = 0; i < geometry->indexPagesPerChapter; ++i) {
-    ChapterIndexPage *page;
+    DeltaIndexPage *page;
     int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
                          NULL, &page);
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    uint64_t vcn = getChapterIndexVirtualChapterNumber(page);
+    uint64_t vcn = page->virtualChapterNumber;
     if (lastVCN == UINT64_MAX) {
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
@@ -991,14 +985,13 @@ static int probeChapter(Volume       *volume,
       return UDS_CORRUPT_COMPONENT;
     }
 
-    if (expectedListNumber != getChapterIndexLowestListNumber(page)) {
+    if (expectedListNumber != page->lowestListNumber) {
       logError("inconsistent chapter %u index page %u: expected list number %u"
                ", got list number %u",
-               chapterNumber, i, expectedListNumber,
-               getChapterIndexLowestListNumber(page));
+               chapterNumber, i, expectedListNumber, page->lowestListNumber);
       return UDS_CORRUPT_COMPONENT;
     }
-    expectedListNumber = getChapterIndexHighestListNumber(page) + 1;
+    expectedListNumber = page->highestListNumber + 1;
 
     result = validateChapterIndexPage(page, geometry);
     if (result != UDS_SUCCESS) {
@@ -1244,6 +1237,11 @@ static int allocateVolume(const Configuration  *config,
     = config->cacheChapters * config->geometry->recordPagesPerChapter;
   // And a buffer for the chapter writer
   reservedBuffers += 1;
+  // And a buffer for each entry in the sparse cache
+  if (isSparse(volume->geometry)) {
+    reservedBuffers
+      += config->cacheChapters * config->geometry->indexPagesPerChapter;
+  }
   result = openVolumeStore(&volume->volumeStore, layout, reservedBuffers,
                            config->geometry->bytesPerPage);
   if (result != UDS_SUCCESS) {

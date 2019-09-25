@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#4 $
  */
 #include "deltaIndex.h"
 
@@ -599,13 +599,17 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
 }
 
 /**********************************************************************/
-int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
-                             uint64_t expectedNonce, unsigned int meanDelta,
-                             unsigned int numPayloadBits, byte *memory,
-                             size_t memSize)
+int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
+                             uint64_t        expectedNonce,
+                             unsigned int    meanDelta,
+                             unsigned int    numPayloadBits,
+                             byte           *memory,
+                             size_t          memSize)
 {
   const DeltaPageHeader *header = (const DeltaPageHeader *) memory;
-  unsigned int numLists = header->numLists;
+  uint64_t     vcn       = header->virtualChapterNumber;
+  unsigned int firstList = header->firstList;
+  unsigned int numLists  = header->numLists;
 
   if ((expectedNonce != 0) && (header->nonce != expectedNonce)) {
     // Do not log this as an error.  It happens in normal operation when we
@@ -668,15 +672,18 @@ int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
     return UDS_INVALID_ARGUMENT;
   }
 
-  deltaIndex->deltaZones   = deltaMemory;
-  deltaIndex->numZones     = 1;
-  deltaIndex->numLists     = numLists;
-  deltaIndex->listsPerZone = numLists;
-  deltaIndex->isMutable    = false;
-  deltaIndex->tag          = 'p';
+  deltaIndexPage->deltaIndex.deltaZones   = &deltaIndexPage->deltaMemory;
+  deltaIndexPage->deltaIndex.numZones     = 1;
+  deltaIndexPage->deltaIndex.numLists     = numLists;
+  deltaIndexPage->deltaIndex.listsPerZone = numLists;
+  deltaIndexPage->deltaIndex.isMutable    = false;
+  deltaIndexPage->deltaIndex.tag          = 'p';
+  deltaIndexPage->virtualChapterNumber = vcn;
+  deltaIndexPage->lowestListNumber     = firstList;
+  deltaIndexPage->highestListNumber    = firstList + numLists - 1;
 
-  initializeDeltaMemoryPage(deltaMemory, (byte *) memory, memSize, numLists,
-                            meanDelta, numPayloadBits);
+  initializeDeltaMemoryPage(&deltaIndexPage->deltaMemory, (byte *) memory,
+                            memSize, numLists, meanDelta, numPayloadBits);
   return UDS_SUCCESS;
 }
 
@@ -1636,29 +1643,6 @@ void getDeltaIndexStats(const DeltaIndex *deltaIndex, DeltaIndexStats *stats)
     stats->overflowCount   += deltaZone->overflowCount;
     stats->numLists        += deltaZone->numLists;
   }
-}
-
-/**********************************************************************/
-uint64_t getDeltaIndexVirtualChapterNumber(const DeltaIndex *deltaIndex)
-{
-  const DeltaPageHeader *header
-    = (const DeltaPageHeader *) deltaIndex->deltaZones[0].memory;
-  return header->virtualChapterNumber;
-}
-
-/**********************************************************************/
-unsigned int getDeltaIndexLowestListNumber(const DeltaIndex *deltaIndex)
-{
-  const DeltaMemory *deltaZone = &deltaIndex->deltaZones[0];
-  return (deltaIndex->isMutable
-          ? deltaZone->firstList
-          : ((DeltaPageHeader *) deltaZone->memory)->firstList);
-}
-
-/**********************************************************************/
-unsigned int getDeltaIndexHighestListNumber(const DeltaIndex *deltaIndex)
-{
-  return getDeltaIndexLowestListNumber(deltaIndex) + deltaIndex->numLists - 1;
 }
 
 /**********************************************************************/

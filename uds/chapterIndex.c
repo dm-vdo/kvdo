@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#4 $
  */
 
 #include "chapterIndex.h"
@@ -223,26 +223,24 @@ size_t getOpenChapterIndexMemoryAllocated(OpenChapterIndex *openChapterIndex)
 }
 
 /**********************************************************************/
-int initializeChapterIndexPage(ChapterIndexPage *chapterIndexPage,
-                               const Geometry   *geometry,
-                               byte             *indexPage,
-                               uint64_t          volumeNonce)
+int initializeChapterIndexPage(DeltaIndexPage *chapterIndexPage,
+                               const Geometry *geometry,
+                               byte           *indexPage,
+                               uint64_t        volumeNonce)
 {
-  return initializeDeltaIndexPage(&chapterIndexPage->deltaIndex,
-                                  &chapterIndexPage->deltaMemory,
-                                  volumeNonce,
+  return initializeDeltaIndexPage(chapterIndexPage, volumeNonce,
                                   geometry->chapterMeanDelta,
                                   geometry->chapterPayloadBits,
                                   indexPage, geometry->bytesPerPage);
 }
 
 /**********************************************************************/
-int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
-                             const Geometry         *geometry)
+int validateChapterIndexPage(const DeltaIndexPage *chapterIndexPage,
+                             const Geometry       *geometry)
 {
   const DeltaIndex *deltaIndex = &chapterIndexPage->deltaIndex;
-  unsigned int first = getDeltaIndexLowestListNumber(deltaIndex);
-  unsigned int last = getDeltaIndexHighestListNumber(deltaIndex);
+  unsigned int first = chapterIndexPage->lowestListNumber;
+  unsigned int last  = chapterIndexPage->highestListNumber;
   // We walk every delta list from start to finish.
   unsigned int listNumber;
   for (listNumber = first; listNumber <= last; listNumber++) {
@@ -277,7 +275,7 @@ int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
 }
 
 /**********************************************************************/
-int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
+int searchChapterIndexPage(DeltaIndexPage     *chapterIndexPage,
                            const Geometry     *geometry,
                            const UdsChunkName *name,
                            int                *recordPagePtr)
@@ -286,7 +284,7 @@ int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
   unsigned int address = hashToChapterDeltaAddress(name, geometry);
   unsigned int deltaListNumber = hashToChapterDeltaList(name, geometry);
   unsigned int subListNumber
-    = deltaListNumber - getDeltaIndexLowestListNumber(deltaIndex);
+    = deltaListNumber - chapterIndexPage->lowestListNumber;;
   DeltaIndexEntry entry;
   int result = getDeltaIndexEntry(deltaIndex, subListNumber, address,
                                   name->name, true, &entry);
@@ -300,22 +298,4 @@ int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
     *recordPagePtr = NO_CHAPTER_INDEX_ENTRY;
   }
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-uint64_t getChapterIndexVirtualChapterNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexVirtualChapterNumber(&page->deltaIndex);
-}
-
-/**********************************************************************/
-unsigned int getChapterIndexLowestListNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexLowestListNumber(&page->deltaIndex);
-}
-
-/**********************************************************************/
-unsigned int getChapterIndexHighestListNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexHighestListNumber(&page->deltaIndex);
 }

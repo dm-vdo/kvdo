@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#7 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#11 $
  */
 
 #include "index.h"
@@ -228,7 +228,14 @@ int makeIndex(IndexLayout          *layout,
       return UDS_NO_INDEX;
     }
     result = loadIndex(index, loadType == LOAD_REBUILD);
-    if (result != UDS_SUCCESS) {
+    switch (result) {
+    case UDS_SUCCESS:
+      break;
+    case ENOMEM:
+      // We should not try a rebuild for this error.
+      logErrorWithStringError(result, "index could not be loaded");
+      break;
+    default:
       logErrorWithStringError(result, "index could not be loaded");
       if (loadType == LOAD_REBUILD) {
         result = rebuildIndex(index);
@@ -236,6 +243,7 @@ int makeIndex(IndexLayout          *layout,
           logErrorWithStringError(result, "index could not be rebuilt");
         }
       }
+      break;
     }
   } else {
     index->loadedType = LOAD_CREATE;
@@ -558,7 +566,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
   for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    ChapterIndexPage *chapterIndexPage;
+    DeltaIndexPage *chapterIndexPage;
     int result = getPage(index->volume, chapter, indexPageNumber,
                          CACHE_PROBE_INDEX_FIRST, NULL, &chapterIndexPage);
     if (result != UDS_SUCCESS) {
@@ -567,8 +575,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " in chapter %u",
                                      indexPageNumber, chapter);
     }
-    unsigned int highestDeltaList
-      = getChapterIndexHighestListNumber(chapterIndexPage);
+    unsigned int highestDeltaList = chapterIndexPage->highestListNumber;
     result = updateIndexPageMap(index->volume->indexPageMap, vcn, chapter,
                                 indexPageNumber, highestDeltaList);
     if (result != UDS_SUCCESS) {
@@ -720,9 +727,12 @@ int replayVolume(Index *index, uint64_t fromVCN)
   uint64_t oldIPMupdate = getLastUpdate(index->volume->indexPageMap);
   uint64_t vcn;
   for (vcn = fromVCN; vcn < uptoVCN; ++vcn) {
-    bool willBeSparseChapter = isChapterSparse(index->volume->geometry,
-                                               fromVCN, uptoVCN, vcn);
+    bool willBeSparseChapter = isChapterSparse(geometry, fromVCN, uptoVCN,
+                                               vcn);
     unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
+    prefetchVolumePages(&index->volume->volumeStore,
+                        mapToPhysicalPage(geometry, chapter, 0),
+                        geometry->pagesPerChapter);
     setMasterIndexOpenChapter(index->masterIndex, vcn);
     result = rebuildIndexPageMap(index, vcn);
     if (result != UDS_SUCCESS) {
