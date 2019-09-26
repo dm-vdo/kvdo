@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#4 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -28,7 +28,7 @@
 #include "types.h"
 
 /** A single page of a block map tree */
-struct treePage {
+struct tree_page {
   /** Waiter for a VIO to write out this page */
   Waiter         waiter;
 
@@ -71,14 +71,14 @@ struct boundary {
 extern const PhysicalBlockNumber INVALID_PBN;
 
 /**
- * Extract the block_map_page from a TreePage.
+ * Extract the block_map_page from a tree_page.
  *
- * @param treePage  The TreePage
+ * @param treePage  The tree_page
  *
- * @return The block_map_page of the TreePage
+ * @return The block_map_page of the tree_page
  **/
 __attribute__((warn_unused_result))
-static inline struct block_map_page *asBlockMapPage(TreePage *treePage)
+static inline struct block_map_page *asBlockMapPage(struct tree_page *treePage)
 {
   return (struct block_map_page *) treePage->pageBuffer;
 }

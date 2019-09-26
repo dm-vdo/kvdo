@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#20 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#21 $
  */
 
 #include <linux/module.h>
@@ -148,8 +148,6 @@ EXPORT_SYMBOL_GPL(putUInt64BEsIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEsIntoBuffer);
 EXPORT_SYMBOL_GPL(reallocateMemory);
-EXPORT_SYMBOL_GPL(recordBioAlloc);
-EXPORT_SYMBOL_GPL(recordBioFree);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(reportMemoryUsage);
 EXPORT_SYMBOL_GPL(resetBufferEnd);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#2 $
  */
 
 #ifndef FOREST_H
@@ -45,10 +45,10 @@ typedef int EntryCallback(PhysicalBlockNumber pbn, VDOCompletion *completion);
  *
  * @return The requested page
  **/
-TreePage *getTreePageByIndex(Forest       *forest,
-                             RootCount     rootIndex,
-                             Height        height,
-                             PageNumber    pageIndex)
+struct tree_page *getTreePageByIndex(Forest       *forest,
+                                     RootCount     rootIndex,
+                                     Height        height,
+                                     PageNumber    pageIndex)
   __attribute__((warn_unused_result));
 
 /**

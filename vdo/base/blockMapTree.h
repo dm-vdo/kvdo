@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#5 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -25,7 +25,7 @@
 #include "constants.h"
 #include "types.h"
 
-typedef struct treePage TreePage;
+struct tree_page;
 
 /**
  * Intialize a BlockMapTreeZone.
@@ -104,6 +104,6 @@ PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber);
  * @param page  The page to write
  * @param zone  The tree zone managing the page
  **/
-void writeTreePage(TreePage *page, BlockMapTreeZone *zone);
+void writeTreePage(struct tree_page *page, BlockMapTreeZone *zone);
 
 #endif // BLOCK_MAP_TREE_H

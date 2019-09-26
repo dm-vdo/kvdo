@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#5 $
  */
 #include "deltaIndex.h"
 
@@ -599,6 +599,58 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
 }
 
 /**********************************************************************/
+static bool verifyDeltaIndexPage(uint64_t  nonce,
+                                 uint16_t  numLists,
+                                 uint64_t  expectedNonce,
+                                 byte     *memory,
+                                 size_t    memSize)
+{
+  // Verify the nonce.  A mismatch here happens in normal operation when we are
+  // doing a rebuild but haven't written the entire volume once.
+  if (nonce != expectedNonce) {
+    return false;
+  }
+
+  // Verify that the number of delta lists can fit in the page.
+  if (numLists >
+      (memSize - sizeof(DeltaPageHeader)) * CHAR_BIT / IMMUTABLE_HEADER_SIZE) {
+    return false;
+  }
+
+  // Verify that the first delta list is immediately after the last delta list
+  // header.
+  if (getImmutableStart(memory, 0) != getImmutableHeaderOffset(numLists + 1)) {
+    return false;
+  }
+
+  // Verify that the lists are in the correct order.
+  unsigned int i;
+  for (i = 0; i < numLists; i++) {
+    if (getImmutableStart(memory, i) > getImmutableStart(memory, i + 1)) {
+      return false;
+    }
+  }
+
+  // Verify that the last list ends on the page, and that there is room for the
+  // post-field guard bits.
+  if (getImmutableStart(memory, numLists)
+      > (memSize - POST_FIELD_GUARD_BYTES) * CHAR_BIT) {
+    return false;
+  }
+
+  // Verify that the guard bytes are correctly set to all ones.
+  for (i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
+    byte guardByte = memory[memSize - POST_FIELD_GUARD_BYTES + i];
+    if (guardByte != (byte) ~0) {
+      return false;
+    }
+  }
+
+  // All verifications passed.
+  return true;
+}
+
+/**********************************************************************/
 int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
                              uint64_t        expectedNonce,
                              unsigned int    meanDelta,
@@ -607,69 +659,17 @@ int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
                              size_t          memSize)
 {
   const DeltaPageHeader *header = (const DeltaPageHeader *) memory;
-  uint64_t     vcn       = header->virtualChapterNumber;
-  unsigned int firstList = header->firstList;
-  unsigned int numLists  = header->numLists;
-
-  if ((expectedNonce != 0) && (header->nonce != expectedNonce)) {
-    // Do not log this as an error.  It happens in normal operation when we
-    // are doing a rebuild but haven't written the entire volume once.
-    return UDS_CORRUPT_COMPONENT;
-  }
-
-  // Verify that the memory page is valid
-  if (numLists >
-      (memSize - sizeof(DeltaPageHeader)) * CHAR_BIT / IMMUTABLE_HEADER_SIZE) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-      "%u lists will not fit on a %zu byte page", numLists, memSize);
-  }
-  if (getImmutableStart(memory, 0) != getImmutableHeaderOffset(numLists + 1)) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-      "the first list is at offset %u, but should be at %u",
-      getImmutableStart(memory, 0),
-      getImmutableHeaderOffset(numLists + 1));
-  }
-
-  unsigned int i;
-  for (i = 0; i < numLists; i++) {
-    if (getImmutableStart(memory, i) > getImmutableStart(memory, i + 1)) {
-      return logWarningWithStringError(
-        UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-        "list %u at offset %u is after list %u at %u",
-        i,     getImmutableStart(memory, i),
-        i + 1, getImmutableStart(memory, i + 1));
-    }
-  }
-  if (getImmutableStart(memory, numLists) > memSize * CHAR_BIT) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT,
-      "error initializing delta index page: The last list ends at "
-      "%u, which is after the end of the %zu byte page",
-      getImmutableStart(memory, numLists), memSize);
-  }
-  if (getImmutableStart(memory, numLists)
-      > (memSize - POST_FIELD_GUARD_BYTES) * CHAR_BIT) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT,
-      "error initializing delta index page: The last list ends at "
-      "%u, which does not allow the %u guard bits at the end of "
-      "the %zu byte page",
-      getImmutableStart(memory, numLists),
-      POST_FIELD_GUARD_BYTES * CHAR_BIT, memSize);
-  }
-  for (i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
-    byte guardByte = memory[memSize - POST_FIELD_GUARD_BYTES + i];
-    if (guardByte != (byte) ~0) {
-      return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-                                       "guard byte %d has invalid value 0x%X",
-                                       i, guardByte);
-    }
-  }
+  uint64_t nonce     = header->nonce;
+  uint64_t vcn       = header->virtualChapterNumber;
+  uint16_t firstList = header->firstList;
+  uint16_t numLists  = header->numLists;
 
   if (invalidParameters(meanDelta, numPayloadBits)) {
     return UDS_INVALID_ARGUMENT;
+  }
+
+  if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory, memSize)) {
+    return UDS_CORRUPT_COMPONENT;
   }
 
   deltaIndexPage->deltaIndex.deltaZones   = &deltaIndexPage->deltaMemory;

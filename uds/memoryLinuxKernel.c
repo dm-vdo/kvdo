@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#4 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#5 $
  */
 
 #include <linux/delay.h>
@@ -95,8 +95,6 @@ static struct {
   size_t            vmallocBlocks;
   size_t            vmallocBytes;
   size_t            peakBytes;
-  size_t            bioCount;
-  size_t            peakBioCount;
   VmallocBlockInfo *vmallocList;
 } memoryStats __cacheline_aligned;
 
@@ -399,49 +397,15 @@ void memoryExit(void)
                   memoryStats.vmallocBytes, memoryStats.vmallocBlocks);
   logDebug("%s peak usage %zd bytes", THIS_MODULE->name,
            memoryStats.peakBytes);
-
-  if (memoryStats.peakBioCount > 0) {
-    ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
-                    "bio structures used (%zd) are returned to the kernel",
-                    memoryStats.bioCount);
-    logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
-             memoryStats.peakBioCount);
-  }
 }
 
 /**********************************************************************/
-void recordBioAlloc(void)
-{
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.bioCount++;
-  if (memoryStats.bioCount > memoryStats.peakBioCount) {
-    memoryStats.peakBioCount = memoryStats.bioCount;
-  }
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-}
-
-/**********************************************************************/
-void recordBioFree(void)
-{
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.bioCount--;
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-}
-
-/**********************************************************************/
-void getMemoryStats(uint64_t *bytesUsed,
-                    uint64_t *peakBytesUsed,
-                    uint64_t *biosUsed,
-                    uint64_t *peakBioCount)
+void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
 {
   unsigned long flags;
   spin_lock_irqsave(&memoryStats.lock, flags);
   *bytesUsed     = memoryStats.kmallocBytes + memoryStats.vmallocBytes;
   *peakBytesUsed = memoryStats.peakBytes;
-  *biosUsed      = memoryStats.bioCount;
-  *peakBioCount  = memoryStats.peakBioCount;
   spin_unlock_irqrestore(&memoryStats.lock, flags);
 }
 
@@ -455,8 +419,6 @@ void reportMemoryUsage()
   uint64_t vmallocBlocks = memoryStats.vmallocBlocks;
   uint64_t vmallocBytes = memoryStats.vmallocBytes;
   uint64_t peakUsage = memoryStats.peakBytes;
-  uint64_t bioCount = memoryStats.bioCount;
-  uint64_t peakBioCount = memoryStats.peakBioCount;
   spin_unlock_irqrestore(&memoryStats.lock, flags);
   uint64_t totalBytes = kmallocBytes + vmallocBytes;
   logInfo("current module memory tracking"
@@ -467,7 +429,4 @@ void reportMemoryUsage()
           vmallocBytes, vmallocBlocks);
   logInfo("  total %llu bytes, peak usage %llu bytes",
           totalBytes, peakUsage);
-  // Someday maybe we could track the size of allocated bios too.
-  logInfo("  %llu bio structs, peak %llu",
-          bioCount, peakBioCount);
 }

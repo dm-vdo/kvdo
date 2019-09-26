@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryDefs.h#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryDefs.h#2 $
  */
 
 #ifndef LINUX_KERNEL_MEMORY_DEFS_H
@@ -101,39 +101,13 @@ void registerAllocatingThread(RegisteredThread *newThread,
 void unregisterAllocatingThread(void);
 
 /**
- * Track an allocation of a bio structure via bio_alloc_bioset.
- *
- * Allocations should be paired with frees. If the calls to
- * recordBioAlloc aren't balanced with calls to recordBioFree by the
- * time the driver is unloaded, the driver will report an assertion
- * failure.
- **/
-void recordBioAlloc(void);
-
-/**
- * Track the freeing of a bio structure via bio_free.
- *
- * Allocations should be paired with frees. If the calls to
- * recordBioAlloc aren't balanced with calls to recordBioFree by the
- * time the driver is unloaded, the driver will report an assertion
- * failure.
- **/
-void recordBioFree(void);
-
-/**
  * Get the memory statistics.
  *
  * @param bytesUsed     A pointer to hold the number of bytes in use
  * @param peakBytesUsed A pointer to hold the maximum value bytesUsed has
  *                      attained
- * @param biosUsed      A pointer to hold the number of bios in use
- * @param peakBioCount  A pointer to hold the maximum value biosUsed has
- *                      attained
  **/
-void getMemoryStats(uint64_t *bytesUsed,
-                    uint64_t *peakBytesUsed,
-                    uint64_t *biosUsed,
-                    uint64_t *peakBioCount);
+void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed);
 
 /**
  * Report stats on any allocated memory that we're tracking.

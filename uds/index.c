@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#11 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#12 $
  */
 
 #include "index.h"
@@ -562,6 +562,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
 {
   Geometry *geometry = index->volume->geometry;
   unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
+  unsigned int expectedListNumber = 0;
   unsigned int indexPageNumber;
   for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
@@ -575,7 +576,13 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " in chapter %u",
                                      indexPageNumber, chapter);
     }
+    unsigned int lowestDeltaList = chapterIndexPage->lowestListNumber;
     unsigned int highestDeltaList = chapterIndexPage->highestListNumber;
+    if (lowestDeltaList != expectedListNumber) {
+      return logErrorWithStringError(UDS_CORRUPT_DATA,
+                                     "chapter %u index page %u is corrupt",
+                                     chapter, indexPageNumber);
+    }
     result = updateIndexPageMap(index->volume->indexPageMap, vcn, chapter,
                                 indexPageNumber, highestDeltaList);
     if (result != UDS_SUCCESS) {
@@ -584,6 +591,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " %u",
                                      chapter, indexPageNumber);
     }
+    expectedListNumber = highestDeltaList + 1;
   }
   return UDS_SUCCESS;
 }

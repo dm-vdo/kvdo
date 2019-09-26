@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/memoryUsage.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/memoryUsage.c#4 $
  */
 
 #include "memoryUsage.h"
@@ -29,9 +29,8 @@
 MemoryUsage get_memory_usage()
 {
 	MemoryUsage memory_usage;
-	getMemoryStats(&memory_usage.bytesUsed,
-		       &memory_usage.peakBytesUsed,
-		       &memory_usage.biosUsed,
-		       &memory_usage.peakBioCount);
+	getMemoryStats(&memory_usage.bytesUsed, &memory_usage.peakBytesUsed);
+        memory_usage.biosUsed = 0;
+        memory_usage.peakBioCount = 0;
 	return memory_usage;
 }

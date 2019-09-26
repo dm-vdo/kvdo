@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#8 $
  */
 
 #include "forest.h"
@@ -46,7 +46,7 @@ enum {
 };
 
 struct block_map_tree_segment {
-  TreePage *levels[BLOCK_MAP_TREE_HEIGHT];
+  struct tree_page *levels[BLOCK_MAP_TREE_HEIGHT];
 };
 
 struct block_map_tree {
@@ -57,7 +57,7 @@ struct forest {
   BlockMap               *map;
   size_t                  segments;
   struct boundary        *boundaries;
-  TreePage              **pages;
+  struct tree_page      **pages;
   struct block_map_tree   trees[];
 };
 
@@ -89,10 +89,10 @@ struct cursors {
 };
 
 /**********************************************************************/
-TreePage *getTreePageByIndex(Forest       *forest,
-                             RootCount     rootIndex,
-                             Height        height,
-                             PageNumber    pageIndex)
+struct tree_page *getTreePageByIndex(Forest       *forest,
+                                     RootCount     rootIndex,
+                                     Height        height,
+                                     PageNumber    pageIndex)
 {
   PageNumber offset = 0;
   for (size_t segment = 0; segment < forest->segments; segment++) {
@@ -158,13 +158,14 @@ static int makeSegment(Forest             *oldForest,
     return result;
   }
 
-  result = ALLOCATE(forest->segments, TreePage *, "forest page pointers",
+  result = ALLOCATE(forest->segments, struct tree_page *,
+                    "forest page pointers",
                     &forest->pages);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = ALLOCATE(newPages, TreePage, "new forest pages",
+  result = ALLOCATE(newPages, struct tree_page, "new forest pages",
                     &forest->pages[index]);
   if (result != VDO_SUCCESS) {
     return result;
@@ -173,7 +174,7 @@ static int makeSegment(Forest             *oldForest,
   if (index > 0) {
     memcpy(forest->boundaries, oldForest->boundaries,
            index * sizeof(struct boundary));
-    memcpy(forest->pages, oldForest->pages, index * sizeof(TreePage *));
+    memcpy(forest->pages, oldForest->pages, index * sizeof(struct tree_page *));
   }
 
   memcpy(&(forest->boundaries[index]), newBoundary, sizeof(struct boundary));
@@ -186,7 +187,7 @@ static int makeSegment(Forest             *oldForest,
     }
   }
 
-  TreePage *pagePtr = forest->pages[index];
+  struct tree_page *pagePtr = forest->pages[index];
   for (RootCount root = 0; root < forest->map->rootCount; root++) {
     struct block_map_tree *tree = &(forest->trees[root]);
     int result = ALLOCATE(forest->segments, struct block_map_tree_segment,
@@ -245,7 +246,7 @@ static void deforest(Forest *forest, size_t firstPageSegment)
 /**********************************************************************/
 int makeForest(BlockMap *map, BlockCount entries)
 {
-  STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
+  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
 
   Forest   *oldForest   = map->forest;
   struct boundary *oldBoundary = NULL;
@@ -366,7 +367,7 @@ static void finishTraversalLoad(VDOCompletion *completion)
   Height                         height = cursor->height;
   struct cursor_level           *level  = &cursor->levels[height];
 
-  TreePage     *treePage
+  struct tree_page *treePage
     = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
   struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
   copyValidPage(entry->buffer, cursor->parent->map->nonce,
@@ -385,7 +386,7 @@ static void traverse(struct cursor *cursor)
   for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
     Height               height = cursor->height;
     struct cursor_level *level  = &cursor->levels[height];
-    TreePage *treePage
+    struct tree_page *treePage
       = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
     struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
     if (!isBlockMapPageInitialized(page)) {

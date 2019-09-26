@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#14 $
  */
 
 #include "blockMapTree.h"
@@ -69,15 +69,16 @@ struct write_if_not_dirtied_context {
 const PhysicalBlockNumber INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
 
 /**
- * Convert a RingNode to a TreePage.
+ * Convert a RingNode to a tree_page.
  *
  * @param ringNode The RingNode to convert
  *
- * @return The TreePage which owns the RingNode
+ * @return The tree_page which owns the RingNode
  **/
-static inline TreePage *treePageFromRingNode(RingNode *ringNode)
+static inline struct tree_page *treePageFromRingNode(RingNode *ringNode)
 {
-  return (TreePage *) ((byte *) ringNode - offsetof(TreePage, node));
+  return (struct tree_page *) ((byte *) ringNode
+                               - offsetof(struct tree_page, node));
 }
 
 /**********************************************************************/
@@ -161,7 +162,7 @@ static inline BlockMapTreeZone *getBlockMapTreeZone(DataVIO *dataVIO)
 }
 
 /**
- * Get the TreePage for a given lock. This will be the page referred to by the
+ * Get the tree_page for a given lock. This will be the page referred to by the
  * lock's tree slot for the lock's current height.
  *
  * @param zone  The tree zone of the tree
@@ -169,8 +170,8 @@ static inline BlockMapTreeZone *getBlockMapTreeZone(DataVIO *dataVIO)
  *
  * @return The requested page
  **/
-static inline TreePage *getTreePage(const BlockMapTreeZone *zone,
-                                    const struct tree_lock *lock)
+static inline struct tree_page *getTreePage(const BlockMapTreeZone *zone,
+                                            const struct tree_lock *lock)
 {
   return getTreePageByIndex(zone->mapZone->blockMap->forest,
                             lock->rootIndex,
@@ -296,7 +297,7 @@ static void releaseGeneration(BlockMapTreeZone *zone, uint8_t generation)
  *                       generation
  **/
 static void setGeneration(BlockMapTreeZone *zone,
-                          TreePage         *page,
+                          struct tree_page *page,
                           uint8_t           newGeneration,
                           bool              decrementOld)
 {
@@ -321,7 +322,7 @@ static void setGeneration(BlockMapTreeZone *zone,
 }
 
 /**********************************************************************/
-static void writePage(TreePage *treePage, struct vio_pool_entry *entry);
+static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry);
 
 /**
  * Write out a dirty page if it is still covered by the most recent flush
@@ -334,8 +335,8 @@ static void writePage(TreePage *treePage, struct vio_pool_entry *entry);
  **/
 static void writePageCallback(Waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
-  writePage((TreePage *) waiter, (struct vio_pool_entry *) context);
+  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
+  writePage((struct tree_page *) waiter, (struct vio_pool_entry *) context);
 }
 
 /**
@@ -379,7 +380,7 @@ static bool attemptIncrement(BlockMapTreeZone *zone)
  * @param page  The page to enqueue
  * @param zone  The zone
  **/
-static void enqueuePage(TreePage *page, BlockMapTreeZone *zone)
+static void enqueuePage(struct tree_page *page, BlockMapTreeZone *zone)
 {
   if ((zone->flusher == NULL) && attemptIncrement(zone)) {
     zone->flusher = page;
@@ -404,8 +405,8 @@ static void enqueuePage(TreePage *page, BlockMapTreeZone *zone)
  **/
 static void writePageIfNotDirtied(Waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(TreePage, waiter) == 0);
-  TreePage *page = (TreePage *) waiter;
+  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
+  struct tree_page *page = (struct tree_page *) waiter;
   struct write_if_not_dirtied_context *writeContext = context;
   if (page->generation == writeContext->generation) {
     acquireVIO(waiter, writeContext->zone);
@@ -436,7 +437,7 @@ static void returnToPool(BlockMapTreeZone *zone, struct vio_pool_entry *entry)
 static void finishPageWrite(VDOCompletion *completion)
 {
   struct vio_pool_entry     *entry = completion->parent;
-  TreePage                  *page  = entry->parent;
+  struct tree_page          *page  = entry->parent;
   BlockMapTreeZone          *zone  = entry->context;
   releaseRecoveryJournalBlockReference(zone->mapZone->blockMap->journal,
                                        page->writingRecoveryLock,
@@ -466,7 +467,7 @@ static void finishPageWrite(VDOCompletion *completion)
   } else if ((zone->flusher == NULL)
              && hasWaiters(&zone->flushWaiters)
              && attemptIncrement(zone)) {
-    zone->flusher = (TreePage *) dequeueNextWaiter(&zone->flushWaiters);
+    zone->flusher = (struct tree_page *) dequeueNextWaiter(&zone->flushWaiters);
     writePage(zone->flusher, entry);
     return;
   }
@@ -499,7 +500,7 @@ static void writeInitializedPage(VDOCompletion *completion)
 {
   struct vio_pool_entry     *entry    = completion->parent;
   BlockMapTreeZone          *zone     = (BlockMapTreeZone *) entry->context;
-  TreePage                  *treePage = (TreePage *) entry->parent;
+  struct tree_page          *treePage = (struct tree_page *) entry->parent;
 
   /*
    * Set the initialized field of the copy of the page we are writing to true.
@@ -519,7 +520,7 @@ static void writeInitializedPage(VDOCompletion *completion)
  * @param treePage  The page to write
  * @param entry     The vio_pool_entry with which to write
  **/
-static void writePage(TreePage *treePage, struct vio_pool_entry *entry)
+static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry)
 {
   BlockMapTreeZone *zone = (BlockMapTreeZone *) entry->context;
   if ((zone->flusher != treePage)
@@ -567,7 +568,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
   BlockMapTreeZone *zone       = (BlockMapTreeZone *) context;
   uint8_t           generation = zone->generation;
   while (!isRingEmpty(expired)) {
-    TreePage       *page       = treePageFromRingNode(chopRingNode(expired));
+    struct tree_page *page = treePageFromRingNode(chopRingNode(expired));
 
     int result = ASSERT(!isWaiting(&page->waiter),
                         "Newly expired page not already waiting to write");
@@ -797,7 +798,7 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
   treeLock->height--;
   PhysicalBlockNumber pbn
     = treeLock->treeSlots[treeLock->height].blockMapSlot.pbn;
-  TreePage *treePage = getTreePage(zone, treeLock);
+  struct tree_page *treePage = getTreePage(zone, treeLock);
   struct block_map_page *page
     = (struct block_map_page *) treePage->pageBuffer;
   Nonce         nonce    = zone->mapZone->blockMap->nonce;
@@ -994,7 +995,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
 
   BlockMapTreeZone *zone     = getBlockMapTreeZone(dataVIO);
   struct tree_lock *treeLock = &dataVIO->treeLock;
-  TreePage         *treePage = getTreePage(zone, treeLock);
+  struct tree_page *treePage = getTreePage(zone, treeLock);
   Height            height   = treeLock->height;
 
   PhysicalBlockNumber pbn = treeLock->treeSlots[height - 1].blockMapSlot.pbn;
@@ -1250,7 +1251,7 @@ PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
   SlotNumber slot      = pageIndex % BLOCK_MAP_ENTRIES_PER_PAGE;
   pageIndex /= BLOCK_MAP_ENTRIES_PER_PAGE;
 
-  TreePage *treePage
+  struct tree_page *treePage
     = getTreePageByIndex(map->forest, rootIndex, 1, pageIndex);
   struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
   if (!isBlockMapPageInitialized(page)) {
@@ -1265,7 +1266,7 @@ PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
 }
 
 /**********************************************************************/
-void writeTreePage(TreePage *page, BlockMapTreeZone *zone)
+void writeTreePage(struct tree_page *page, BlockMapTreeZone *zone)
 {
   bool waiting = isWaiting(&page->waiter);
   if (waiting && (zone->flusher == page)) {
