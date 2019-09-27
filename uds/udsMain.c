@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#7 $
  */
 
 #include "uds.h"
@@ -200,15 +200,11 @@ void udsFreeConfiguration(UdsConfiguration userConfig)
 static
 int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
                                      IndexLayout              *layout,
-                                     LoadType                  loadType,
-                                     UdsConfiguration          userConfig)
+                                     LoadType                  loadType)
 {
-  if (userConfig != NULL) {
-    indexSession->userConfig = *userConfig;
-  }
   int result = ((loadType == LOAD_CREATE)
                 ? writeIndexConfig(layout, &indexSession->userConfig)
-                : readIndexConfig(layout, &indexSession->userConfig));
+                : verifyIndexConfig(layout, &indexSession->userConfig));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -235,18 +231,16 @@ int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
 /**********************************************************************/
 static int initializeIndexSession(struct uds_index_session *indexSession,
                                   const char               *name,
-                                  LoadType                  loadType,
-                                  UdsConfiguration          userConfig)
+                                  LoadType                  loadType)
 {
   IndexLayout *layout;
-  int result = makeIndexLayout(name, loadType == LOAD_CREATE, userConfig,
-                               &layout);
+  int result = makeIndexLayout(name, loadType == LOAD_CREATE,
+                               &indexSession->userConfig, &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  result = initializeIndexSessionWithLayout(indexSession, layout, loadType,
-                                            userConfig);
+  result = initializeIndexSessionWithLayout(indexSession, layout, loadType);
   putIndexLayout(&layout);
   return result;
 }
@@ -260,6 +254,9 @@ static int makeIndexSession(const char                *name,
   if (name == NULL) {
     return UDS_INDEX_NAME_REQUIRED;
   }
+  if (userConfig == NULL) {
+    return UDS_CONF_REQUIRED;
+  }
   if (session == NULL) {
     return UDS_NO_INDEXSESSION;
   }
@@ -269,9 +266,10 @@ static int makeIndexSession(const char                *name,
   if (result != UDS_SUCCESS) {
     return result;
   }
+  indexSession->userConfig = *userConfig;
 
   logNotice("%s: %s", getLoadType(loadType), name);
-  result = initializeIndexSession(indexSession, name, loadType, userConfig);
+  result = initializeIndexSession(indexSession, name, loadType);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
     saveAndFreeIndexSession(indexSession);
@@ -288,25 +286,23 @@ int udsCreateLocalIndex(const char                *name,
                         UdsConfiguration           userConfig,
                         struct uds_index_session **session)
 {
-  if (userConfig == NULL) {
-    return logErrorWithStringError(UDS_CONF_REQUIRED,
-                                   "received an invalid config");
-  }
   return makeIndexSession(name, LOAD_CREATE, userConfig, session);
 }
 
 /**********************************************************************/
 int udsLoadLocalIndex(const char                *name,
+                      UdsConfiguration           userConfig,
                       struct uds_index_session **session)
 {
-  return makeIndexSession(name, LOAD_LOAD, NULL, session);
+  return makeIndexSession(name, LOAD_LOAD, userConfig, session);
 }
 
 /**********************************************************************/
 int udsRebuildLocalIndex(const char                *name,
+                         UdsConfiguration           userConfig,
                          struct uds_index_session **session)
 {
-  return makeIndexSession(name, LOAD_REBUILD, NULL, session);
+  return makeIndexSession(name, LOAD_REBUILD, userConfig, session);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#6 $
  */
 #include "deltaIndex.h"
 
@@ -659,17 +659,29 @@ int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
                              size_t          memSize)
 {
   const DeltaPageHeader *header = (const DeltaPageHeader *) memory;
-  uint64_t nonce     = header->nonce;
-  uint64_t vcn       = header->virtualChapterNumber;
-  uint16_t firstList = header->firstList;
-  uint16_t numLists  = header->numLists;
 
   if (invalidParameters(meanDelta, numPayloadBits)) {
     return UDS_INVALID_ARGUMENT;
   }
 
+  // First assume that the header is little endian
+  uint64_t nonce = getUInt64LE((const byte *) &header->nonce);
+  uint64_t vcn   = getUInt64LE((const byte *) &header->virtualChapterNumber);
+  uint16_t firstList = getUInt16LE((const byte *) &header->firstList);
+  uint16_t numLists  = getUInt16LE((const byte *) &header->numLists);
   if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory, memSize)) {
-    return UDS_CORRUPT_COMPONENT;
+    // That failed, so try big endian
+    nonce     = getUInt64BE((const byte *) &header->nonce);
+    vcn       = getUInt64BE((const byte *) &header->virtualChapterNumber);
+    firstList = getUInt16BE((const byte *) &header->firstList);
+    numLists  = getUInt16BE((const byte *) &header->numLists);
+    if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory,
+                              memSize)) {
+      // Also failed.  Do not log this as an error.  It happens in normal
+      // operation when we are doing a rebuild but haven't written the entire
+      // volume once.
+      return UDS_CORRUPT_COMPONENT;
+    }
   }
 
   deltaIndexPage->deltaIndex.deltaZones   = &deltaIndexPage->deltaMemory;
@@ -800,6 +812,7 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
          POST_FIELD_GUARD_BYTES);
   return UDS_SUCCESS;
 }
+
 
 /**********************************************************************/
 void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#16 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#17 $
  */
 
 #include "indexLayout.h"
@@ -1697,7 +1697,7 @@ int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
 }
 
 /*****************************************************************************/
-int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
+int verifyIndexConfig(IndexLayout *layout, UdsConfiguration config)
 {
   BufferedReader *reader = NULL;
   int result = openLayoutReader(layout, &layout->config, &reader);
@@ -1705,13 +1705,17 @@ int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
     return logErrorWithStringError(result, "failed to open config reader");
   }
 
-  result = readConfigContents(reader, config);
+  struct udsConfiguration storedConfig;
+  result = readConfigContents(reader, &storedConfig);
   if (result != UDS_SUCCESS) {
     freeBufferedReader(reader);
     return logErrorWithStringError(result, "failed to read config region");
   }
   freeBufferedReader(reader);
-  return UDS_SUCCESS;
+
+  return (areUdsConfigurationsEqual(&storedConfig, config)
+          ? UDS_SUCCESS
+          : UDS_NO_INDEX);
 }
 
 /*****************************************************************************/
@@ -2345,23 +2349,23 @@ int makeIndexLayoutFromFactory(IOFactory               *factory,
   if ((namedSize > 0) && (namedSize < size)) {
     size = namedSize;
   }
-  if (config != NULL) {
-    uint64_t configSize;
-    int result = udsComputeIndexSize(config, 0, &configSize);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    if (size < configSize) {
-      return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
-                                     "index storage (%zu) is smaller than the"
-                                     " required size %llu",
-                                     size, configSize);
-    }
-    size = configSize;
+
+  // Get the index size according the the config
+  uint64_t configSize;
+  int result = udsComputeIndexSize(config, 0, &configSize);
+  if (result != UDS_SUCCESS) {
+    return result;
   }
+  if (size < configSize) {
+    return logErrorWithStringError(UDS_INSUFFICIENT_INDEX_SPACE,
+                                   "index storage (%zu) is smaller than the"
+                                   " required size %llu",
+                                   size, configSize);
+  }
+  size = configSize;
 
   IndexLayout *layout = NULL;
-  int result = ALLOCATE(1, IndexLayout, __func__, &layout);
+  result = ALLOCATE(1, IndexLayout, __func__, &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }

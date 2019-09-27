@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#29 $
  */
 
 #include "dedupeIndex.h"
@@ -591,51 +591,15 @@ static void open_session(struct dedupe_index *index)
 		result = udsCreateLocalIndex(index->index_name,
 					     index->configuration,
 					     &index->index_session);
-		if (result != UDS_SUCCESS) {
-			logErrorWithStringError(result,
-						"Error creating index %s",
-						index->index_name);
-		}
 	} else {
 		result = udsRebuildLocalIndex(index->index_name,
+                                              index->configuration,
 					      &index->index_session);
-		if (result != UDS_SUCCESS) {
-			logErrorWithStringError(result,
-						"Error opening index %s",
-						index->index_name);
-		} else {
-			UdsConfiguration configuration;
-			result = udsGetIndexConfiguration(index->index_session,
-							  &configuration);
-			if (result != UDS_SUCCESS) {
-				logErrorWithStringError(
-					result,
-					"Error reading configuration for %s",
+	}
+	if (result != UDS_SUCCESS) {
+		logErrorWithStringError(result,
+					"Error opening index %s",
 					index->index_name);
-				int closeResult = udsCloseIndexSession(
-					index->index_session);
-				if (closeResult != UDS_SUCCESS) {
-					logErrorWithStringError(
-						closeResult,
-						"Error closing index %s",
-						index->index_name);
-				}
-			} else {
-				if (udsConfigurationGetNonce(
-					    index->configuration) !=
-				    udsConfigurationGetNonce(configuration)) {
-					logError("Index does not belong to this VDO device");
-					/*
-					 * We have an index, but it was made
-					 * for some other VDO device. We will
-					 * close the index and then try to
-					 * create a new index.
-					 */
-					next_create_flag = true;
-				}
-				udsFreeConfiguration(configuration);
-			}
-		}
 	}
 	spin_lock(&index->state_lock);
 	if (next_create_flag) {
@@ -646,8 +610,8 @@ static void open_session(struct dedupe_index *index)
 		case UDS_CORRUPT_COMPONENT:
 		case UDS_NO_INDEX:
 			// Either there is no index, or there is no way we can
-			// recover the index. We will be called again and try to
-			// create a new index.
+			// recover the index. We will be called again and try
+			// to create a new index.
 			index->index_state = IS_CLOSED;
 			index->create_flag = true;
 			return;

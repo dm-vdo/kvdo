@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.h#3 $
  */
 
 #ifndef DELTAINDEX_H
@@ -150,7 +150,7 @@ int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
                              unsigned int    meanDelta,
                              unsigned int    numPayloadBits,
                              byte           *memory,
-                             size_t memSize)
+                             size_t          memSize)
   __attribute__((warn_unused_result));
 
 /**
@@ -199,6 +199,7 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
                        uint64_t virtualChapterNumber, unsigned int firstList,
                        unsigned int *numLists)
   __attribute__((warn_unused_result));
+
 
 /**
  * Set the tag value used when saving and/or restoring a delta index.

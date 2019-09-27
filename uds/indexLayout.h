@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#11 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#12 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -182,14 +182,15 @@ int openVolumeBufio(IndexLayout             *layout,
   __attribute__((warn_unused_result));
 
 /**
- * Read the index configuration.
+ * Read the index configuration, and verify that it matches the given
+ * configuration.
  *
  * @param layout  the generic index layout
- * @param config  the index configuration to read
+ * @param config  the index configuration
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readIndexConfig(IndexLayout *layout, UdsConfiguration config)
+int verifyIndexConfig(IndexLayout *layout, UdsConfiguration config)
   __attribute__((warn_unused_result));
 
 /**

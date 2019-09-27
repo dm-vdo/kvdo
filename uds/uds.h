@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#6 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#7 $
  */
 
 /**
@@ -389,12 +389,15 @@ int udsCreateLocalIndex(const char                *name,
  * have been closed.
  *
  * @param [in] name      The name of the index
+ * @param [in] conf      The index configuration
  * @param [out] session  The name of the new local index session
  *
  * @return               Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsLoadLocalIndex(const char *name, struct uds_index_session **session);
+int udsLoadLocalIndex(const char                *name,
+                      UdsConfiguration           conf,
+                      struct uds_index_session **session);
 
 /**
  * Loads a saved index, rebuilds it if necessary, and creates a session for it.
@@ -406,12 +409,15 @@ int udsLoadLocalIndex(const char *name, struct uds_index_session **session);
  * have been closed.
  *
  * @param [in] name      The name of the index
+ * @param [in] conf      The index configuration
  * @param [out] session  The name of the new local index session
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsRebuildLocalIndex(const char *name, struct uds_index_session **session);
+int udsRebuildLocalIndex(const char                *name,
+                         UdsConfiguration           conf,
+                         struct uds_index_session **session);
 
 /**
  * Waits until all callbacks for index operations are complete.
