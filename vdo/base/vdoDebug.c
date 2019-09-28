@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#2 $
  */
 
 #include "vdoDebug.h"
@@ -28,12 +28,12 @@
 static const char xLogDebugMessage[]     = "x-log-debug-message";
 
 /**********************************************************************/
-int initializeVDOCommandCompletion(VDOCommandCompletion  *command,
-                                   VDO                   *vdo,
-                                   int                    argc,
-                                   char                 **argv)
+int initializeVDOCommandCompletion(struct vdo_command_completion  *command,
+                                   VDO                            *vdo,
+                                   int                             argc,
+                                   char                          **argv)
 {
-  *command = (VDOCommandCompletion) {
+  *command = (struct vdo_command_completion) {
     .vdo  = vdo,
     .argc = argc,
     .argv = argv,
@@ -46,7 +46,7 @@ int initializeVDOCommandCompletion(VDOCommandCompletion  *command,
 }
 
 /**********************************************************************/
-int destroyVDOCommandCompletion(VDOCommandCompletion *command)
+int destroyVDOCommandCompletion(struct vdo_command_completion *command)
 {
   if (command == NULL) {
     return VDO_SUCCESS;
@@ -57,15 +57,17 @@ int destroyVDOCommandCompletion(VDOCommandCompletion *command)
 }
 
 /**********************************************************************/
-static inline VDOCommandCompletion *
+static inline struct vdo_command_completion *
 asVDOCommandCompletion(VDOCompletion *completion)
 {
   if (completion->type == VDO_COMMAND_COMPLETION) {
-    return (VDOCommandCompletion *)
-      ((uintptr_t) completion - offsetof(VDOCommandCompletion, completion));
+    return (struct vdo_command_completion *)
+      ((uintptr_t) completion - offsetof(struct vdo_command_completion,
+                                         completion));
   } else if (completion->type == VDO_COMMAND_SUB_COMPLETION) {
-    return (VDOCommandCompletion *)
-      ((uintptr_t) completion - offsetof(VDOCommandCompletion, subCompletion));
+    return (struct vdo_command_completion *)
+      ((uintptr_t) completion - offsetof(struct vdo_command_completion,
+                                         subCompletion));
   } else {
     ASSERT_LOG_ONLY(((completion->type == VDO_COMMAND_COMPLETION) ||
                      (completion->type == VDO_COMMAND_SUB_COMPLETION)),
@@ -77,7 +79,7 @@ asVDOCommandCompletion(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-static void logDebugMessage(VDOCommandCompletion *cmd)
+static void logDebugMessage(struct vdo_command_completion *cmd)
 {
   static char buffer[256];
 
@@ -97,7 +99,7 @@ static void logDebugMessage(VDOCommandCompletion *cmd)
 /**********************************************************************/
 void executeVDOExtendedCommand(VDOCompletion *completion)
 {
-  VDOCommandCompletion *cmd = asVDOCommandCompletion(completion);
+  struct vdo_command_completion *cmd = asVDOCommandCompletion(completion);
 
   if ((cmd->vdo == NULL) || (cmd->argc == 0)) {
     finishCompletion(&cmd->completion, VDO_COMMAND_ERROR);
