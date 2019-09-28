@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#13 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -65,19 +65,19 @@ struct blockMapTreeZone {
  **/
 struct blockMapZone {
   /** The number of the zone this is */
-  ZoneCount          zoneNumber;
+  ZoneCount              zoneNumber;
   /** The ID of this zone's logical thread */
-  ThreadID           threadID;
+  ThreadID               threadID;
   /** The BlockMap which owns this BlockMapZone */
-  BlockMap          *blockMap;
+  BlockMap              *blockMap;
   /** The ReadOnlyNotifier of the VDO */
-  ReadOnlyNotifier  *readOnlyNotifier;
+  ReadOnlyNotifier      *readOnlyNotifier;
   /** The page cache for this zone */
-  VDOPageCache      *pageCache;
+  struct vdo_page_cache *pageCache;
   /** The per-zone portion of the tree for this zone */
-  BlockMapTreeZone   treeZone;
+  BlockMapTreeZone       treeZone;
   /** The administrative state of the zone */
-  struct admin_state adminState;
+  struct admin_state     adminState;
 };
 
 struct blockMap {

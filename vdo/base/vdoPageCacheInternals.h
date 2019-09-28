@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#7 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -46,7 +46,7 @@ typedef RingNode PageInfoNode;
 /**
  * The VDO Page Cache abstraction.
  **/
-struct vdoPageCache {
+struct vdo_page_cache {
   /** the physical layer to page to */
   PhysicalLayer                       *layer;
   /** number of pages in cache */
@@ -61,11 +61,11 @@ struct vdoPageCache {
   bool                                 rebuilding;
 
   /** array of page information entries */
-  PageInfo                            *infos;
+  struct page_info                    *infos;
   /** raw memory for pages */
   char                                *pages;
   /** cache last found page info */
-  PageInfo                            *lastFound;
+  struct page_info                    *lastFound;
   /** map of page number to info */
   IntMap                              *pageMap;
   /** master LRU list (all infos) */
@@ -137,101 +137,103 @@ typedef enum __attribute__((packed)) {
 /**
  * Per-page-slot information.
  **/
-struct pageInfo {
+struct page_info {
   /** Preallocated page VIO */
-  VIO                 *vio;
+  VIO                   *vio;
   /** back-link for references */
-  VDOPageCache        *cache;
+  struct vdo_page_cache *cache;
   /** the pbn of the page */
-  PhysicalBlockNumber  pbn;
+  PhysicalBlockNumber    pbn;
   /** page is busy (temporarily locked) */
-  uint16_t             busy;
+  uint16_t               busy;
   /** the write status the page */
-  WriteStatus          writeStatus;
+  WriteStatus            writeStatus;
   /** page state */
-  PageState            state;
+  PageState              state;
   /** queue of completions awaiting this item */
-  struct wait_queue    waiting;
+  struct wait_queue      waiting;
   /** state linked list node */
-  PageInfoNode         listNode;
+  PageInfoNode           listNode;
   /** LRU node */
-  PageInfoNode         lruNode;
+  PageInfoNode           lruNode;
   /** Space for per-page client data */
-  byte                 context[MAX_PAGE_CONTEXT_SIZE];
+  byte                   context[MAX_PAGE_CONTEXT_SIZE];
 };
 
 // PAGE INFO LIST OPERATIONS
 
 /**********************************************************************/
-static inline PageInfo *pageInfoFromListNode(PageInfoNode *node)
+static inline struct page_info *pageInfoFromListNode(PageInfoNode *node)
 {
   if (node == NULL) {
     return NULL;
   }
-  return (PageInfo *) ((uintptr_t) node - offsetof(PageInfo, listNode));
+  return (struct page_info *)
+    ((uintptr_t) node - offsetof(struct page_info, listNode));
 }
 
 /**********************************************************************/
-static inline PageInfo *pageInfoFromLRUNode(PageInfoNode *node)
+static inline struct page_info *pageInfoFromLRUNode(PageInfoNode *node)
 {
   if (node == NULL) {
     return NULL;
   }
-  return (PageInfo *) ((uintptr_t) node - offsetof(PageInfo, lruNode));
+  return (struct page_info *)
+    ((uintptr_t) node - offsetof(struct page_info, lruNode));
 }
 
 // PAGE INFO STATE ACCESSOR FUNCTIONS
 
 /**********************************************************************/
-static inline bool isFree(const PageInfo *info)
+static inline bool isFree(const struct page_info *info)
 {
   return info->state == PS_FREE;
 }
 
 /**********************************************************************/
-static inline bool isAvailable(const PageInfo *info)
+static inline bool isAvailable(const struct page_info *info)
 {
   return (info->state == PS_FREE) || (info->state == PS_FAILED);
 }
 
 /**********************************************************************/
-static inline bool isPresent(const PageInfo *info)
+static inline bool isPresent(const struct page_info *info)
 {
   return (info->state == PS_RESIDENT) || (info->state == PS_DIRTY);
 }
 
 /**********************************************************************/
-static inline bool isDirty(const PageInfo *info)
+static inline bool isDirty(const struct page_info *info)
 {
   return info->state == PS_DIRTY;
 }
 
 /**********************************************************************/
-static inline bool isResident(const PageInfo *info)
+static inline bool isResident(const struct page_info *info)
 {
   return info->state == PS_RESIDENT;
 }
 
 /**********************************************************************/
-static inline bool isInFlight(const PageInfo *info)
+static inline bool isInFlight(const struct page_info *info)
 {
   return (info->state == PS_INCOMING) || (info->state == PS_OUTGOING);
 }
 
 /**********************************************************************/
-static inline bool isIncoming(const PageInfo *info)
+static inline bool isIncoming(const struct page_info *info)
 {
   return info->state == PS_INCOMING;
 }
 
 /**********************************************************************/
-static inline bool isOutgoing(const PageInfo *info)
+static inline bool isOutgoing(const struct page_info *info)
 {
   return info->state == PS_OUTGOING;
 }
 
 /**********************************************************************/
-static inline bool isValid(const PageInfo *info)
+static inline bool isValid(const struct page_info *info)
 {
   return isPresent(info) || isOutgoing(info);
 }
@@ -244,8 +246,8 @@ asVDOPageCompletion(VDOCompletion *completion)
 {
   assertCompletionType(completion->type, VDO_PAGE_COMPLETION);
   return (struct vdo_page_completion *) ((uintptr_t) completion
-                                - offsetof(struct vdo_page_completion,
-                                           completion));
+                                         - offsetof(struct vdo_page_completion,
+                                                    completion));
 }
 
 /**********************************************************************/
@@ -275,7 +277,8 @@ struct vdo_page_completion *pageCompletionFromWaiter(Waiter *waiter)
  *
  * @return the page info for the page if available, or NULL if not
  **/
-PageInfo *vpcFindPage(VDOPageCache *cache, PhysicalBlockNumber pbn)
+struct page_info *vpcFindPage(struct vdo_page_cache *cache,
+                              PhysicalBlockNumber    pbn)
   __attribute__((warn_unused_result));
 
 /**

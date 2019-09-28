@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#6 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -31,13 +31,13 @@
 /**
  * Structure describing page meta data (defined internally).
  **/
-typedef struct pageInfo PageInfo;
+struct page_info;
 
 /**
  * Structure describing entire page cache.
  * (Unfortunately the name "PageCache" is already taken by Albireo.)
  **/
-typedef struct vdoPageCache VDOPageCache;
+struct vdo_page_cache;
 
 /**
  * Generation counter for page references.
@@ -150,14 +150,14 @@ typedef bool VDOPageWriteFunction(void         *rawPage,
  *
  * @return a success or error code
  **/
-int makeVDOPageCache(PhysicalLayer         *layer,
-                     PageCount              pageCount,
-                     VDOPageReadFunction   *readHook,
-                     VDOPageWriteFunction  *writeHook,
-                     size_t                 pageContextSize,
-                     BlockCount             maximumAge,
-                     BlockMapZone          *zone,
-                     VDOPageCache         **cachePtr)
+int makeVDOPageCache(PhysicalLayer          *layer,
+                     PageCount               pageCount,
+                     VDOPageReadFunction    *readHook,
+                     VDOPageWriteFunction   *writeHook,
+                     size_t                  pageContextSize,
+                     BlockCount              maximumAge,
+                     BlockMapZone           *zone,
+                     struct vdo_page_cache **cachePtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -165,7 +165,7 @@ int makeVDOPageCache(PhysicalLayer         *layer,
  *
  * @param cachePtr a pointer to the cache to free
  **/
-void freeVDOPageCache(VDOPageCache **cachePtr);
+void freeVDOPageCache(struct vdo_page_cache **cachePtr);
 
 /**
  * Set the initial dirty period for a page cache.
@@ -173,7 +173,8 @@ void freeVDOPageCache(VDOPageCache **cachePtr);
  * @param cache  The cache
  * @param period The initial dirty period to set
  **/
-void setVDOPageCacheInitialPeriod(VDOPageCache *cache, SequenceNumber period);
+void setVDOPageCacheInitialPeriod(struct vdo_page_cache *cache,
+                                  SequenceNumber         period);
 
 /**
  * Switch the page cache into or out of read-only rebuild mode.
@@ -182,7 +183,7 @@ void setVDOPageCacheInitialPeriod(VDOPageCache *cache, SequenceNumber period);
  * @param rebuilding  <code>true</code> if the cache should be put into
  *                    read-only rebuild mode, <code>false</code> otherwise
  **/
-void setVDOPageCacheRebuildMode(VDOPageCache *cache, bool rebuilding);
+void setVDOPageCacheRebuildMode(struct vdo_page_cache *cache, bool rebuilding);
 
 /**
  * Advance the dirty period for a page cache.
@@ -190,7 +191,8 @@ void setVDOPageCacheRebuildMode(VDOPageCache *cache, bool rebuilding);
  * @param cache   The cache to advance
  * @param period  The new dirty period
  **/
-void advanceVDOPageCachePeriod(VDOPageCache *cache, SequenceNumber period);
+void advanceVDOPageCachePeriod(struct vdo_page_cache *cache,
+                               SequenceNumber         period);
 
 /**
  * Write one or more batches of dirty pages.
@@ -203,9 +205,9 @@ void advanceVDOPageCachePeriod(VDOPageCache *cache, SequenceNumber period);
  * @param total    how many batches (including those being written now) remain
  *                   in this era
  **/
-void writeVDOPageCachePages(VDOPageCache *cache,
-                            size_t        batches,
-                            size_t        total);
+void writeVDOPageCachePages(struct vdo_page_cache *cache,
+                            size_t                 batches,
+                            size_t                 total);
 
 /**
  * Rotate the dirty page eras.
@@ -215,7 +217,7 @@ void writeVDOPageCachePages(VDOPageCache *cache,
  *
  * @param cache   the VDO page cache
  **/
-void rotateVDOPageCacheEras(VDOPageCache *cache);
+void rotateVDOPageCacheEras(struct vdo_page_cache *cache);
 
 // ASYNC
 
@@ -225,19 +227,19 @@ void rotateVDOPageCacheEras(VDOPageCache *cache);
  **/
 struct vdo_page_completion {
   /** The generic completion */
-  VDOCompletion        completion;
+  VDOCompletion          completion;
   /** The cache involved */
-  VDOPageCache        *cache;
+  struct vdo_page_cache *cache;
   /** The waiter for the pending list */
-  Waiter               waiter;
+  Waiter                 waiter;
   /** The absolute physical block number of the page on disk */
-  PhysicalBlockNumber  pbn;
+  PhysicalBlockNumber    pbn;
   /** Whether the page may be modified */
-  bool                 writable;
+  bool                   writable;
   /** Whether the page is available */
-  bool                 ready;
+  bool                   ready;
   /** The info structure for the page, only valid when ready */
-  PageInfo            *info;
+  struct page_info      *info;
 };
 
 /**
@@ -257,7 +259,7 @@ struct vdo_page_completion {
  *       VDOCompletion returned by this operation has been released.
  **/
 void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
-                           VDOPageCache               *cache,
+                           struct vdo_page_cache      *cache,
                            PhysicalBlockNumber         pbn,
                            bool                        writable,
                            void                       *parent,
@@ -348,7 +350,7 @@ void *getVDOPageCompletionContext(VDOCompletion *completion);
  *
  * @param cache  The cache to drain
  **/
-void drainVDOPageCache(VDOPageCache *cache);
+void drainVDOPageCache(struct vdo_page_cache *cache);
 
 /**
  * Invalidate all entries in the VDO page cache. There must not be any
@@ -358,7 +360,7 @@ void drainVDOPageCache(VDOPageCache *cache);
  *
  * @return a success or error code
  **/
-int invalidateVDOPageCache(VDOPageCache *cache)
+int invalidateVDOPageCache(struct vdo_page_cache *cache)
   __attribute__((warn_unused_result));
 
 // STATISTICS & TESTING
@@ -371,7 +373,7 @@ int invalidateVDOPageCache(VDOPageCache *cache)
  * @return the statistics
  **/
 struct atomic_page_cache_statistics *
-getVDOPageCacheStatistics(VDOPageCache *cache)
+getVDOPageCacheStatistics(struct vdo_page_cache *cache)
   __attribute__((warn_unused_result));
 
 #endif // VDO_PAGE_CACHE_H
