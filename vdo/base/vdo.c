@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#14 $
  */
 
 /*
@@ -837,7 +837,7 @@ static ErrorStatistics getVDOErrorStatistics(const VDO *vdo)
    * incremented atomically, but they are just statistics with no semantics
    * that could rely on memory order, so unfenced reads are sufficient.
    */
-  const AtomicErrorStatistics *atoms = &vdo->errorStats;
+  const struct atomic_error_statistics *atoms = &vdo->errorStats;
   return (ErrorStatistics) {
     .invalidAdvicePBNCount = relaxedLoad64(&atoms->invalidAdvicePBNCount),
     .noSpaceErrorCount     = relaxedLoad64(&atoms->noSpaceErrorCount),
