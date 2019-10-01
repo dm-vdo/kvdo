@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#11 $
  */
 
 #include "packerInternals.h"
@@ -40,7 +40,8 @@
  * @param packer  The packer
  * @param caller  The function which is asserting
  **/
-static inline void assertOnPackerThread(Packer *packer, const char *caller)
+static inline void assertOnPackerThread(struct packer *packer,
+                                        const char    *caller)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == packer->threadID),
                   "%s() called from packer thread", caller);
@@ -63,7 +64,7 @@ static inline struct output_bin *outputBinFromRingNode(RingNode *node)
 }
 
 /**********************************************************************/
-InputBin *nextBin(const Packer *packer, InputBin *bin)
+InputBin *nextBin(const struct packer *packer, InputBin *bin)
 {
   if (bin->ring.next == &packer->inputBins) {
     return NULL;
@@ -73,7 +74,7 @@ InputBin *nextBin(const Packer *packer, InputBin *bin)
 }
 
 /**********************************************************************/
-InputBin *getFullestBin(const Packer *packer)
+InputBin *getFullestBin(const struct packer *packer)
 {
   if (isRingEmpty(&packer->inputBins)) {
     return NULL;
@@ -90,7 +91,7 @@ InputBin *getFullestBin(const Packer *packer)
  * @param packer  The packer
  * @param bin     The input bin to move to its sorted position
  **/
-static void insertInSortedList(Packer *packer, InputBin *bin)
+static void insertInSortedList(struct packer *packer, InputBin *bin)
 {
   for (InputBin *activeBin = getFullestBin(packer);
        activeBin != NULL;
@@ -110,7 +111,7 @@ static void insertInSortedList(Packer *packer, InputBin *bin)
  * @param packer  The packer
  **/
 __attribute__((warn_unused_result))
-static int makeInputBin(Packer *packer)
+static int makeInputBin(struct packer *packer)
 {
   InputBin *bin;
   int result = ALLOCATE_EXTENDED(InputBin, MAX_COMPRESSION_SLOTS, VIO *,
@@ -131,7 +132,7 @@ static int makeInputBin(Packer *packer)
  * @param packer  The packer
  * @param bin     The output bin
  **/
-static void pushOutputBin(Packer *packer, struct output_bin *bin)
+static void pushOutputBin(struct packer *packer, struct output_bin *bin)
 {
   ASSERT_LOG_ONLY(!hasWaiters(&bin->outgoing),
                   "idle output bin has no waiters");
@@ -146,7 +147,7 @@ static void pushOutputBin(Packer *packer, struct output_bin *bin)
  * @return an idle output bin, or <code>NULL</code> if there are no idle bins
  **/
 __attribute__((warn_unused_result))
-static struct output_bin *popOutputBin(Packer *packer)
+static struct output_bin *popOutputBin(struct packer *packer)
 {
   if (packer->idleOutputBinCount == 0) {
     return NULL;
@@ -168,7 +169,7 @@ static struct output_bin *popOutputBin(Packer *packer)
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int makeOutputBin(Packer *packer, PhysicalLayer *layer)
+static int makeOutputBin(struct packer *packer, PhysicalLayer *layer)
 {
   struct output_bin *output;
   int result = ALLOCATE(1, struct output_bin, __func__, &output);
@@ -218,10 +219,10 @@ int makePacker(PhysicalLayer       *layer,
                BlockCount           inputBinCount,
                BlockCount           outputBinCount,
                const ThreadConfig  *threadConfig,
-               Packer             **packerPtr)
+               struct packer      **packerPtr)
 {
-  Packer *packer;
-  int result = ALLOCATE_EXTENDED(Packer, outputBinCount,
+  struct packer *packer;
+  int result = ALLOCATE_EXTENDED(struct packer, outputBinCount,
                                  struct output_bin *, __func__, &packer);
   if (result != VDO_SUCCESS) {
     return result;
@@ -275,9 +276,9 @@ int makePacker(PhysicalLayer       *layer,
 }
 
 /**********************************************************************/
-void freePacker(Packer **packerPtr)
+void freePacker(struct packer **packerPtr)
 {
-  Packer *packer = *packerPtr;
+  struct packer *packer = *packerPtr;
   if (packer == NULL) {
     return;
   }
@@ -301,13 +302,13 @@ void freePacker(Packer **packerPtr)
 }
 
 /**
- * Get the Packer from a DataVIO.
+ * Get the packer from a DataVIO.
  *
  * @param dataVIO  The DataVIO
  *
- * @return The Packer from the VDO to which the DataVIO belongs
+ * @return The packer from the VDO to which the DataVIO belongs
  **/
-static inline Packer *getPackerFromDataVIO(DataVIO *dataVIO)
+static inline struct packer *getPackerFromDataVIO(DataVIO *dataVIO)
 {
   return getVDOFromDataVIO(dataVIO)->packer;
 }
@@ -315,18 +316,18 @@ static inline Packer *getPackerFromDataVIO(DataVIO *dataVIO)
 /**********************************************************************/
 bool isSufficientlyCompressible(DataVIO *dataVIO)
 {
-  Packer *packer = getPackerFromDataVIO(dataVIO);
+  struct packer *packer = getPackerFromDataVIO(dataVIO);
   return (dataVIO->compression.size < packer->binDataSize);
 }
 
 /**********************************************************************/
-ThreadID getPackerThreadID(Packer *packer)
+ThreadID getPackerThreadID(struct packer *packer)
 {
   return packer->threadID;
 }
 
 /**********************************************************************/
-PackerStatistics getPackerStatistics(const Packer *packer)
+PackerStatistics getPackerStatistics(const struct packer *packer)
 {
   /*
    * This is called from getVDOStatistics(), which is called from outside the
@@ -371,7 +372,7 @@ static void continueVIOWithoutPacking(Waiter *waiter,
  *
  * @param packer  The packer
  **/
-static void checkForDrainComplete(Packer *packer)
+static void checkForDrainComplete(struct packer *packer)
 {
   if (isDraining(&packer->state)
       && (packer->canceledBin->slotsUsed == 0)
@@ -381,7 +382,7 @@ static void checkForDrainComplete(Packer *packer)
 }
 
 /**********************************************************************/
-static void writePendingBatches(Packer *packer);
+static void writePendingBatches(struct packer *packer);
 
 /**
  * Ensure that a completion is running on the packer thread.
@@ -411,7 +412,7 @@ static bool switchToPackerThread(VDOCompletion *completion)
  * @param packer  The packer which owns the bin
  * @param bin     The bin which has finished
  **/
-static void finishOutputBin(Packer *packer, struct output_bin *bin)
+static void finishOutputBin(struct packer *packer, struct output_bin *bin)
 {
   if (hasWaiters(&bin->outgoing)) {
     notifyAllWaiters(&bin->outgoing, continueVIOWithoutPacking, NULL);
@@ -446,7 +447,7 @@ static void completeOutputBin(VDOCompletion *completion)
                         vio->physical);
   }
 
-  Packer *packer = vio->vdo->packer;
+  struct packer *packer = vio->vdo->packer;
   finishOutputBin(packer, completion->parent);
   writePendingBatches(packer);
   checkForDrainComplete(packer);
@@ -550,7 +551,7 @@ static void continueAfterAllocation(AllocatingVIO *allocatingVIO)
  * @param packer  The packer which owns the bin
  * @param bin     The output bin to launch
  **/
-static void launchCompressedWrite(Packer *packer, struct output_bin *bin)
+static void launchCompressedWrite(struct packer *packer, struct output_bin *bin)
 {
   if (isReadOnly(getVDOFromAllocatingVIO(bin->writer)->readOnlyNotifier)) {
     finishOutputBin(packer, bin);
@@ -573,7 +574,7 @@ static void launchCompressedWrite(Packer *packer, struct output_bin *bin)
  * @param packer  The packer
  * @param batch   The counted array to fill with the next batch of VIOs
  **/
-static void getNextBatch(Packer *packer, struct output_batch *batch)
+static void getNextBatch(struct packer *packer, struct output_batch *batch)
 {
   BlockSize spaceRemaining = packer->binDataSize;
   batch->slotsUsed         = 0;
@@ -604,7 +605,7 @@ static void getNextBatch(Packer *packer, struct output_batch *batch)
  * @return <code>true</code> if a write was issued for the output bin
  **/
 __attribute__((warn_unused_result))
-static bool writeNextBatch(Packer *packer, struct output_bin *output)
+static bool writeNextBatch(struct packer *packer, struct output_bin *output)
 {
   struct output_batch batch;
   getNextBatch(packer, &batch);
@@ -666,7 +667,7 @@ static void addToInputBin(InputBin *bin, DataVIO *dataVIO)
  * @param packer  The packer
  * @param bin     The bin to prepare
  **/
-static void startNewBatch(Packer *packer, InputBin *bin)
+static void startNewBatch(struct packer *packer, InputBin *bin)
 {
   // Move all the DataVIOs in the current batch to the batched queue so they
   // will get packed into the next free output bin.
@@ -705,9 +706,9 @@ static void startNewBatch(Packer *packer, InputBin *bin)
  * @param bin      The bin to which to add the the DataVIO
  * @param dataVIO  The DataVIO to add to the bin's queue
  **/
-static void addDataVIOToInputBin(Packer   *packer,
-                                 InputBin *bin,
-                                 DataVIO  *dataVIO)
+static void addDataVIOToInputBin(struct packer *packer,
+                                 InputBin      *bin,
+                                 DataVIO       *dataVIO)
 {
   // If the selected bin doesn't have room, start a new batch to make room.
   if (bin->freeSpace < dataVIO->compression.size) {
@@ -734,7 +735,7 @@ static void addDataVIOToInputBin(Packer   *packer,
  *
  * @param packer  The packer
  **/
-static void writePendingBatches(Packer *packer)
+static void writePendingBatches(struct packer *packer)
 {
   if (packer->writingBatches) {
     /*
@@ -770,7 +771,7 @@ static void writePendingBatches(Packer *packer)
  * @param dataVIO  The DataVIO
  **/
 __attribute__((warn_unused_result))
-static InputBin *selectInputBin(Packer *packer, DataVIO *dataVIO)
+static InputBin *selectInputBin(struct packer *packer, DataVIO *dataVIO)
 {
   // First best fit: select the bin with the least free space that has enough
   // room for the compressed data in the DataVIO.
@@ -804,7 +805,7 @@ static InputBin *selectInputBin(Packer *packer, DataVIO *dataVIO)
 /**********************************************************************/
 void attemptPacking(DataVIO *dataVIO)
 {
-  Packer *packer = getPackerFromDataVIO(dataVIO);
+  struct packer *packer = getPackerFromDataVIO(dataVIO);
   assertOnPackerThread(packer, __func__);
 
   struct vio_compression_state state = getCompressionState(dataVIO);
@@ -858,7 +859,7 @@ void attemptPacking(DataVIO *dataVIO)
  *
  * @param packer  The packer being flushed
  **/
-static void writeAllNonEmptyBins(Packer *packer)
+static void writeAllNonEmptyBins(struct packer *packer)
 {
   for (InputBin *bin = getFullestBin(packer);
        bin != NULL;
@@ -872,7 +873,7 @@ static void writeAllNonEmptyBins(Packer *packer)
 }
 
 /**********************************************************************/
-void flushPacker(Packer *packer)
+void flushPacker(struct packer *packer)
 {
   assertOnPackerThread(packer, __func__);
   if (isNormal(&packer->state)) {
@@ -899,7 +900,7 @@ void removeFromPacker(DataVIO *dataVIO)
   dataVIO->compression.bin  = NULL;
   dataVIO->compression.slot = 0;
 
-  Packer *packer = getPackerFromDataVIO(dataVIO);
+  struct packer *packer = getPackerFromDataVIO(dataVIO);
   if (bin != packer->canceledBin) {
     bin->freeSpace += dataVIO->compression.size;
     insertInSortedList(packer, bin);
@@ -921,7 +922,7 @@ void removeLockHolderFromPacker(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void incrementPackerFlushGeneration(Packer *packer)
+void incrementPackerFlushGeneration(struct packer *packer)
 {
   assertOnPackerThread(packer, __func__);
   packer->flushGeneration++;
@@ -929,7 +930,7 @@ void incrementPackerFlushGeneration(Packer *packer)
 }
 
 /**********************************************************************/
-void drainPacker(Packer *packer, VDOCompletion *completion)
+void drainPacker(struct packer *packer, VDOCompletion *completion)
 {
   assertOnPackerThread(packer, __func__);
   if (startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion)) {
@@ -939,7 +940,7 @@ void drainPacker(Packer *packer, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void resumePacker(Packer *packer, VDOCompletion *parent)
+void resumePacker(struct packer *packer, VDOCompletion *parent)
 {
   assertOnPackerThread(packer, __func__);
   if (startResuming(&packer->state, ADMIN_STATE_RESUMING, parent)) {
@@ -948,7 +949,7 @@ void resumePacker(Packer *packer, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void resetSlotCount(Packer *packer, CompressedFragmentCount slots)
+void resetSlotCount(struct packer *packer, CompressedFragmentCount slots)
 {
   if (slots > MAX_COMPRESSION_SLOTS) {
     return;
@@ -990,9 +991,9 @@ static void dumpOutputBin(const struct output_bin *bin)
 }
 
 /**********************************************************************/
-void dumpPacker(const Packer *packer)
+void dumpPacker(const struct packer *packer)
 {
-  logInfo("Packer");
+  logInfo("packer");
   logInfo("  flushGeneration=%llu state %s writingBatches=%s",
           packer->flushGeneration, getAdminStateName(&packer->state),
           boolToString(packer->writingBatches));

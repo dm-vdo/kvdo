@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#8 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -37,7 +37,7 @@
  * a compressed block. The InputBins are kept in a ring sorted by the amount of
  * unused space so the first bin with enough space to hold a newly-compressed
  * DataVIO can easily be found. When the bin fills up or is flushed, the
- * incoming DataVIOs are moved to the Packer's batchedDataVIOs queue, from
+ * incoming DataVIOs are moved to the packer's batchedDataVIOs queue, from
  * which they will eventually be routed to an idle output_bin.
  *
  * There is one special input bin which is used to hold DataVIOs which have
@@ -46,7 +46,7 @@
  * they sit in this special bin.
  **/
 struct inputBin {
-  /** List links for Packer.sortedBins */
+  /** List links for packer.sortedBins */
   RingNode    ring;
   /** The number of items in the bin */
   SlotNumber  slotsUsed;
@@ -63,7 +63,7 @@ struct inputBin {
  * write to complete.
  **/
 struct output_bin {
-  /** List links for Packer.outputBins */
+  /** List links for packer.outputBins */
   RingNode                 ring;
   /** The storage for encoding the compressed block representation */
   struct compressed_block *block;
@@ -136,12 +136,12 @@ struct packer {
 /**
  * This returns the first bin in the freeSpace-sorted list.
  **/
-InputBin *getFullestBin(const Packer *packer);
+InputBin *getFullestBin(const struct packer *packer);
 
 /**
  * This returns the next bin in the freeSpace-sorted list.
  **/
-InputBin *nextBin(const Packer *packer, InputBin *bin);
+InputBin *nextBin(const struct packer *packer, InputBin *bin);
 
 /**
  * Change the maxiumum number of compression slots the packer will use. The new
@@ -152,7 +152,7 @@ InputBin *nextBin(const Packer *packer, InputBin *bin);
  * @param packer  The packer
  * @param slots   The new number of slots
  **/
-void resetSlotCount(Packer *packer, CompressedFragmentCount slots);
+void resetSlotCount(struct packer *packer, CompressedFragmentCount slots);
 
 /**
  * Remove a DataVIO from the packer. This method is exposed for testing.

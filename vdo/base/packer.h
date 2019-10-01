@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#4 $
  */
 
 #ifndef PACKER_H
@@ -33,7 +33,7 @@ enum {
   DEFAULT_PACKER_OUTPUT_BINS = 256,
 };
 
-typedef struct packer Packer;
+struct packer;
 
 /**
  * Make a new block packer.
@@ -52,7 +52,7 @@ int makePacker(PhysicalLayer       *layer,
                BlockCount           inputBinCount,
                BlockCount           outputBinCount,
                const ThreadConfig  *threadConfig,
-               Packer             **packerPtr)
+               struct packer      **packerPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -60,7 +60,7 @@ int makePacker(PhysicalLayer       *layer,
  *
  * @param packerPtr  A pointer to the packer to free
  **/
-void freePacker(Packer **packerPtr);
+void freePacker(struct packer **packerPtr);
 
 /**
  * Check whether the compressed data in a DataVIO will fit in a packer bin.
@@ -79,7 +79,7 @@ bool isSufficientlyCompressible(DataVIO *dataVIO)
  *
  * @return The packer's thread ID
  **/
-ThreadID getPackerThreadID(Packer *packer);
+ThreadID getPackerThreadID(struct packer *packer);
 
 /**
  * Get the current statistics from the packer.
@@ -88,7 +88,7 @@ ThreadID getPackerThreadID(Packer *packer);
  *
  * @return a copy of the current statistics for the packer
  **/
-PackerStatistics getPackerStatistics(const Packer *packer)
+PackerStatistics getPackerStatistics(const struct packer *packer)
   __attribute__((warn_unused_result));
 
 /**
@@ -107,7 +107,7 @@ void attemptPacking(DataVIO *dataVIO);
  *
  * @param packer  The packer to flush
  **/
-void flushPacker(Packer *packer);
+void flushPacker(struct packer *packer);
 
 /**
  * Remove a lock holder from the packer.
@@ -125,7 +125,7 @@ void removeLockHolderFromPacker(VDOCompletion *completion);
  *
  * @param packer  The packer
  **/
-void incrementPackerFlushGeneration(Packer *packer);
+void incrementPackerFlushGeneration(struct packer *packer);
 
 /**
  * Drain the packer by preventing any more VIOs from entering the packer and
@@ -134,7 +134,7 @@ void incrementPackerFlushGeneration(Packer *packer);
  * @param packer      The packer to drain
  * @param completion  The completion to finish when the packer has drained
  **/
-void drainPacker(Packer *packer, VDOCompletion *completion);
+void drainPacker(struct packer *packer, VDOCompletion *completion);
 
 /**
  * Resume a packer which has been suspended.
@@ -144,13 +144,13 @@ void drainPacker(Packer *packer, VDOCompletion *completion);
  *
  * @return VDO_SUCCESS or an error
  **/
-void resumePacker(Packer *packer, VDOCompletion *parent);
+void resumePacker(struct packer *packer, VDOCompletion *parent);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.
  *
  * @param packer  The packer
  **/
-void dumpPacker(const Packer *packer);
+void dumpPacker(const struct packer *packer);
 
 #endif /* PACKER_H */

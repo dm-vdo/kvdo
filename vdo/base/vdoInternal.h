@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#12 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -83,7 +83,7 @@ struct vdo {
   SlabDepot                       *depot;
 
   /* The compressed-block packer */
-  Packer                          *packer;
+  struct packer                   *packer;
   /* Whether incoming data should be compressed */
   AtomicBool                       compressing;
 
