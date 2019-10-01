@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#3 $
  */
 
 #include "physicalZone.h"
@@ -48,7 +48,7 @@ struct physicalZone {
   /** The thread ID for this zone */
   ThreadID        threadID;
   /** In progress operations keyed by PBN */
-  IntMap         *pbnOperations;
+  struct int_map *pbnOperations;
   /** Pool of unused PBNLock instances */
   PBNLockPool    *lockPool;
   /** The block allocator for this zone */
@@ -128,7 +128,7 @@ int attemptPBNLock(PhysicalZone         *zone,
                    PBNLockType           type,
                    PBNLock             **lockPtr)
 {
-  // Borrow and prepare a lock from the pool so we don't have to do two IntMap
+  // Borrow and prepare a lock from the pool so we don't have to do two int_map
   // accesses in the common case of no lock contention.
   PBNLock *newLock;
   int result = borrowPBNLockFromPool(zone->lockPool, type, &newLock);

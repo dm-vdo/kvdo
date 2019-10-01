@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#14 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -45,7 +45,7 @@ struct blockMapTreeZone {
   /** The number of tree lookups in progress */
   VIOCount             activeLookups;
   /** The map of pages currently being loaded */
-  IntMap              *loadingPages;
+  struct int_map      *loadingPages;
   /** The pool of VIOs for tree I/O */
   VIOPool             *vioPool;
   /** The tree page which has issued or will be issuing a flush */

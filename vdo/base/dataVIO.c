@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#5 $
  */
 
 #include "dataVIO.h"
@@ -295,8 +295,8 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
  **/
 static void releaseLock(DataVIO *dataVIO)
 {
-  LBNLock *lock    = &dataVIO->logical;
-  IntMap  *lockMap = getLBNLockMap(lock->zone);
+  LBNLock         *lock    = &dataVIO->logical;
+  struct int_map  *lockMap = getLBNLockMap(lock->zone);
   if (!lock->locked) {
     // The lock is not locked, so it had better not be registered in the lock
     // map.

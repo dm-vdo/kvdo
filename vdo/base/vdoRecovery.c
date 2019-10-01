@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#20 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -866,7 +866,7 @@ static int recordMissingDecref(struct missing_decref *decref,
 __attribute__((warn_unused_result))
 static int findMissingDecrefs(struct recovery_completion *recovery)
 {
-  IntMap *slotEntryMap = recovery->slotEntryMap;
+  struct int_map *slotEntryMap = recovery->slotEntryMap;
   // This placeholder decref is used to mark lbns for which we have observed a
   // decref but not the paired incref (going backwards through the journal).
   struct missing_decref foundDecref;
@@ -895,7 +895,7 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
 
     if (!isIncrementOperation(entry.operation)) {
       // Observe that we've seen a decref before its incref, but only if
-      // the IntMap does not contain an unpaired incref for this lbn.
+      // the int_map does not contain an unpaired incref for this lbn.
       int result = intMapPut(slotEntryMap, slotAsNumber(entry.slot),
                              &foundDecref, false, NULL);
       if (result != VDO_SUCCESS) {

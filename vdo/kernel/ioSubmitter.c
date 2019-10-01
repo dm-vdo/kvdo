@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#26 $
  */
 
 #include "ioSubmitter.h"
@@ -68,7 +68,7 @@ enum {
 struct bio_queue_data {
 	struct kvdo_work_queue *queue;
 	struct blk_plug plug;
-	IntMap *map;
+	struct int_map *map;
 	struct mutex lock;
 	unsigned int queue_number;
 };
@@ -380,9 +380,9 @@ static void process_bio_map(struct kvdo_work_item *item)
  *
  * @return the kvio to merge to, NULL if no merging is possible
  */
-static struct kvio *get_mergeable_locked(IntMap *map,
-				  struct kvio   *kvio,
-				  unsigned int   merge_type)
+static struct kvio *get_mergeable_locked(struct int_map *map,
+				  struct kvio           *kvio,
+				  unsigned int           merge_type)
 {
 	struct bio *bio = kvio->bio_to_submit;
 	sector_t merge_sector = get_bio_sector(bio);

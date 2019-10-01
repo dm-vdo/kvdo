@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#7 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -87,7 +87,7 @@ struct recovery_completion {
   // Decref synthesis fields
 
   /** An intMap for use in finding which slots are missing decrefs */
-  IntMap                                *slotEntryMap;
+  struct int_map                        *slotEntryMap;
   /** The number of synthesized decrefs */
   size_t                                 missingDecrefCount;
   /** The number of incomplete decrefs */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#4 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -101,7 +101,7 @@ BlockMapZone *getBlockMapForZone(const LogicalZone *zone)
  *
  * @return The logical lock map for the zone
  **/
-IntMap *getLBNLockMap(const LogicalZone *zone)
+struct int_map *getLBNLockMap(const LogicalZone *zone)
   __attribute__((warn_unused_result));
 
 /**

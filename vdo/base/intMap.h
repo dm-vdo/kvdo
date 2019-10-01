@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#2 $
  */
 
 #ifndef INT_MAP_H
@@ -25,7 +25,7 @@
 #include "common.h"
 
 /**
- * IntMap associates pointers (<code>void *</code>) with integer keys
+ * An int_map associates pointers (<code>void *</code>) with integer keys
  * (<code>uint64_t</code>). <code>NULL</code> pointer values are not
  * supported.
  *
@@ -36,10 +36,10 @@
  * entries are removed.
  **/
 
-typedef struct intMap IntMap;
+struct int_map;
 
 /**
- * Allocate and initialize an IntMap.
+ * Allocate and initialize an int_map.
  *
  * @param [in]  initialCapacity  the number of entries the map should
  *                               initially be capable of holding (zero tells
@@ -48,51 +48,51 @@ typedef struct intMap IntMap;
  *                               integer percentage (typically in the range
  *                               50 to 90, with zero telling the map to use
  *                               its own default)
- * @param [out] mapPtr           a pointer to hold the new IntMap
+ * @param [out] mapPtr           a pointer to hold the new int_map
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIntMap(size_t         initialCapacity,
-               unsigned int   initialLoad,
-               IntMap       **mapPtr)
+int makeIntMap(size_t           initialCapacity,
+               unsigned int     initialLoad,
+               struct int_map **mapPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Free an IntMap and null out the reference to it. NOTE: The map does not own
+ * Free an int_map and null out the reference to it. NOTE: The map does not own
  * the pointer values stored in the map and they are not freed by this call.
  *
- * @param [in,out] mapPtr  the reference to the IntMap to free
+ * @param [in,out] mapPtr  the reference to the int_map to free
  **/
-void freeIntMap(IntMap **mapPtr);
+void freeIntMap(struct int_map **mapPtr);
 
 /**
- * Get the number of entries stored in an IntMap.
+ * Get the number of entries stored in an int_map.
  *
- * @param map  the IntMap to query
+ * @param map  the int_map to query
  *
  * @return the number of entries in the map
  **/
-size_t intMapSize(const IntMap *map);
+size_t intMapSize(const struct int_map *map);
 
 /**
- * Retrieve the value associated with a given key from the IntMap.
+ * Retrieve the value associated with a given key from the int_map.
  *
- * @param map  the IntMap to query
+ * @param map  the int_map to query
  * @param key  the key to look up
  *
  * @return the value associated with the given key, or <code>NULL</code>
  *         if the key is not mapped to any value
  **/
-void *intMapGet(IntMap *map, uint64_t key);
+void *intMapGet(struct int_map *map, uint64_t key);
 
 /**
- * Try to associate a value (a pointer) with an integer in an IntMap. If the
+ * Try to associate a value (a pointer) with an integer in an int_map. If the
  * map already contains a mapping for the provided key, the old value is
  * only replaced with the specified value if update is true. In either case
  * the old value is returned. If the map does not already contain a value for
  * the specified key, the new value is added regardless of the value of update.
  *
- * @param [in]  map          the IntMap to attempt to modify
+ * @param [in]  map          the int_map to attempt to modify
  * @param [in]  key          the key with which to associate the new value
  * @param [in]  newValue     the value to be associated with the key
  * @param [in]  update       whether to overwrite an existing value
@@ -104,22 +104,22 @@ void *intMapGet(IntMap *map, uint64_t key);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int intMapPut(IntMap    *map,
-              uint64_t   key,
-              void      *newValue,
-              bool       update,
-              void     **oldValuePtr)
+int intMapPut(struct int_map  *map,
+              uint64_t         key,
+              void            *newValue,
+              bool             update,
+              void           **oldValuePtr)
   __attribute__((warn_unused_result));
 
 /**
- * Remove the mapping for a given key from the IntMap.
+ * Remove the mapping for a given key from the int_map.
  *
- * @param map  the IntMap from which to remove the mapping
+ * @param map  the int_map from which to remove the mapping
  * @param key  the key whose mapping is to be removed
  *
  * @return the value that was associated with the key, or
  *         <code>NULL</code> if it was not mapped
  **/
-void *intMapRemove(IntMap *map, uint64_t key);
+void *intMapRemove(struct int_map *map, uint64_t key);
 
 #endif /* INT_MAP_H */

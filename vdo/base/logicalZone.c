@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#7 $
  */
 
 #include "logicalZone.h"
@@ -46,7 +46,7 @@ struct logicalZone {
   /** The thread id for this zone */
   ThreadID            threadID;
   /** In progress operations keyed by LBN */
-  IntMap             *lbnOperations;
+  struct int_map     *lbnOperations;
   /** The logical to physical map */
   BlockMapZone       *blockMapZone;
   /** The current flush generation */
@@ -285,7 +285,7 @@ BlockMapZone *getBlockMapForZone(const LogicalZone *zone)
 }
 
 /**********************************************************************/
-IntMap *getLBNLockMap(const LogicalZone *zone)
+struct int_map *getLBNLockMap(const LogicalZone *zone)
 {
   return zone->lbnOperations;
 }
