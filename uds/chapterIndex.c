@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#5 $
  */
 
 #include "chapterIndex.h"
@@ -32,7 +32,9 @@
 
 /**********************************************************************/
 int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry)
+                         const Geometry    *geometry,
+                         bool               chapterIndexHeaderNativeEndian,
+                         uint64_t           volumeNonce)
 {
 
   int result = ALLOCATE(1, OpenChapterIndex, "open chapter index",
@@ -45,14 +47,16 @@ int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
   // give the chapter index one extra page.
   size_t memorySize
     = (geometry->indexPagesPerChapter + 1) * geometry->bytesPerPage;
-  (*openChapterIndex)->geometry = geometry;
+  (*openChapterIndex)->geometry           = geometry;
+  (*openChapterIndex)->volumeNonce        = volumeNonce;
+  (*openChapterIndex)->headerNativeEndian = chapterIndexHeaderNativeEndian,
   result = initializeDeltaIndex(&(*openChapterIndex)->deltaIndex, 1,
                                 geometry->deltaListsPerChapter,
                                 geometry->chapterMeanDelta,
                                 geometry->chapterPayloadBits, memorySize);
   if (result != UDS_SUCCESS) {
     FREE(*openChapterIndex);
-    *openChapterIndex = NULL;
+    *openChapterIndex                     = NULL;
   }
   return result;
 }
@@ -131,7 +135,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
 
 /**********************************************************************/
 int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             uint64_t          volumeNonce,
                              byte             *memory,
                              unsigned int      firstList,
                              bool              lastPage,
@@ -141,8 +144,9 @@ int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
   const Geometry *geometry = openChapterIndex->geometry;
   unsigned int removals = 0;
   for (;;) {
-    int result = packDeltaIndexPage(deltaIndex, volumeNonce, memory,
-                                    geometry->bytesPerPage,
+    int result = packDeltaIndexPage(deltaIndex, openChapterIndex->volumeNonce,
+                                    openChapterIndex->headerNativeEndian,
+                                    memory, geometry->bytesPerPage,
                                     openChapterIndex->virtualChapterNumber,
                                     firstList, numLists);
     if (result != UDS_SUCCESS) {

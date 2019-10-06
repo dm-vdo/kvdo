@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#12 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.h#13 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -24,6 +24,7 @@
 
 #include "buffer.h"
 #include "indexState.h"
+#include "indexVersion.h"
 #include "ioFactory.h"
 #include "uds.h"
 
@@ -232,6 +233,16 @@ int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
  * @return UDS_SUCCESS or an error code
  **/
 Buffer *getIndexStateBuffer(IndexLayout *layout, unsigned int slot)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get the index version parameters.
+ *
+ * @param layout  the index layout
+ *
+ * @return the index version parameters.
+ **/
+const struct index_version *getIndexVersion(IndexLayout *layout)
   __attribute__((warn_unused_result));
 
 #endif // INDEX_LAYOUT_H

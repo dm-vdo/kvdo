@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#17 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#18 $
  */
 
 #include "indexLayout.h"
@@ -124,15 +124,16 @@ typedef struct superBlockData_v1 {
 } SuperBlockData;
 
 struct indexLayout {
-  IOFactory      *factory;
-  off_t           offset;
-  SuperBlockData  super;
-  LayoutRegion    header;
-  LayoutRegion    config;
-  SubIndexLayout  index;
-  LayoutRegion    seal;
-  uint64_t        totalBlocks;
-  int             refCount;
+  IOFactory            *factory;
+  off_t                 offset;
+  struct index_version  indexVersion;
+  SuperBlockData        super;
+  LayoutRegion          header;
+  LayoutRegion          config;
+  SubIndexLayout        index;
+  LayoutRegion          seal;
+  uint64_t              totalBlocks;
+  int                   refCount;
 };
 
 /**
@@ -555,27 +556,20 @@ static int readSuperBlockData(BufferedReader *reader,
                                    "unknown superblock magic label");
   }
 
-  switch (super->version) {
-  case 1:
-    // Version 1 was used in the first single file layout.
-    break;
-  case 2:
-    /*
-     * Version 2 uses the same SuperBlockData struct as version 1.  It will
-     * never have multiple subindices. An index using version 2 will never
-     * write the volume header page.
-     */
-    if (super->numIndexes != 1) {
-      return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                     "invalid subindex count %" PRIu32,
-                                     super->numIndexes);
-    }
-    break;
-  default:
+  if ((super->version < SUPER_VERSION_MINIMUM)
+      || (super->version > SUPER_VERSION_MAXIMUM)) {
     return logErrorWithStringError(UDS_UNSUPPORTED_VERSION,
                                    "unknown superblock version number %"
                                    PRIu32,
                                    super->version);
+  }
+
+  // We dropped the usage of multiple subindices before we ever ran UDS code in
+  // the kernel.  We do not have code that will handle multiple subindices.
+  if (super->numIndexes != 1) {
+    return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
+                                   "invalid subindex count %" PRIu32,
+                                   super->numIndexes);
   }
 
   if (generateMasterNonce(super->nonceInfo, sizeof(super->nonceInfo)) !=
@@ -635,6 +629,7 @@ static int loadSuperBlock(IndexLayout    *layout,
                                    " differs from supplied blockSize %zu",
                                    superBlockData.blockSize, blockSize);
   }
+  initializeIndexVersion(&layout->indexVersion, superBlockData.version);
 
   result = allocateSingleFileParts(layout, &superBlockData);
   if (result != UDS_SUCCESS) {
@@ -1107,7 +1102,7 @@ static void generateSuperBlockData(size_t          blockSize,
 
   super->nonce             = generateMasterNonce(super->nonceInfo,
                                                  sizeof(super->nonceInfo));
-  super->version           = 2;
+  super->version           = SUPER_VERSION_CURRENT;
   super->blockSize         = blockSize;
   super->numIndexes        = 1;
   super->maxSaves          = maxSaves;
@@ -1233,6 +1228,7 @@ static int initSingleFileLayout(IndexLayout     *layout,
 
   generateSuperBlockData(sls->blockSize, sls->numSaves, sls->openChapterBlocks,
                          sls->pageMapBlocks, &layout->super);
+  initializeIndexVersion(&layout->indexVersion, SUPER_VERSION_CURRENT);
 
   int result = allocateSingleFileParts(layout, &layout->super);
   if (result != UDS_SUCCESS) {
@@ -1671,6 +1667,12 @@ void getIndexLayout(IndexLayout *layout, IndexLayout **layoutPtr)
 {
   ++layout->refCount;
   *layoutPtr = layout;
+}
+
+/*****************************************************************************/
+const struct index_version *getIndexVersion(IndexLayout *layout)
+{
+  return &layout->indexVersion;
 }
 
 /*****************************************************************************/

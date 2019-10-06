@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.h#4 $
  */
 
 #ifndef DELTAINDEX_H
@@ -177,14 +177,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex,
                          unsigned int zoneNumber);
 
 /**
- * Pack delta lists from a mutable delta index into an immutable delta
- * index page.  A range of delta lists (starting with a specified list
- * index) is copied from the mutable delta index into a memory page used
- * in the immutable index.  The number of lists copied onto the page is
- * returned to the caller.
+ * Pack delta lists from a mutable delta index into an immutable delta index
+ * page.  A range of delta lists (starting with a specified list index) is
+ * copied from the mutable delta index into a memory page used in the immutable
+ * index.  The number of lists copied onto the page is returned to the caller.
  *
  * @param deltaIndex            The delta index being converted
  * @param headerNonce           The header nonce to store
+ * @param headerNativeEndian    If true, write native endian header
  * @param memory                The memory page to use
  * @param memSize               The size of the memory page
  * @param virtualChapterNumber  The virtual chapter number
@@ -194,10 +194,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex,
  * @return error code or UDS_SUCCESS.  On UDS_SUCCESS, the numLists
  *         argument contains the number of lists copied.
  **/
-int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
-                       byte *memory, size_t memSize,
-                       uint64_t virtualChapterNumber, unsigned int firstList,
-                       unsigned int *numLists)
+int packDeltaIndexPage(const DeltaIndex *deltaIndex,
+                       uint64_t          headerNonce,
+                       bool              headerNativeEndian,
+                       byte             *memory,
+                       size_t            memSize,
+                       uint64_t          virtualChapterNumber,
+                       unsigned int      firstList,
+                       unsigned int     *numLists)
   __attribute__((warn_unused_result));
 
 

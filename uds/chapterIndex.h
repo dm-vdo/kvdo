@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.h#4 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -35,6 +35,8 @@ typedef struct openChapterIndex {
   const Geometry *geometry;
   DeltaIndex      deltaIndex;
   uint64_t        virtualChapterNumber;
+  bool            headerNativeEndian;
+  uint64_t        volumeNonce;
 } OpenChapterIndex;
 
 
@@ -42,12 +44,16 @@ typedef struct openChapterIndex {
  * Make a new open chapter index.
  *
  * @param openChapterIndex  Location to hold new open chapter index pointer
- * @param geometry          The geometry
+ * @param geometry                        The geometry
+ * @param chapterIndexHeaderNativeEndian  chapter index header format
+ * @param volumeNonce                     The volume nonce.
  *
  * @return error code or UDS_SUCCESS
  **/
 int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry)
+                         const Geometry    *geometry,
+                         bool               chapterIndexHeaderNativeEndian,
+                         uint64_t           volumeNonce)
   __attribute__((warn_unused_result));
 
 /**
@@ -89,7 +95,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  * copied onto the page is returned to the caller.
  *
  * @param openChapterIndex  The open chapter index
- * @param volumeNonce       The nonce value used to authenticate the volume
  * @param memory            The memory page to use
  * @param firstList         The first delta list number to be copied
  * @param lastPage          If true, this is the last page of the chapter
@@ -101,7 +106,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  *         argument contains the number of lists copied.
  **/
 int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             uint64_t          volumeNonce,
                              byte             *memory,
                              unsigned int      firstList,
                              bool              lastPage,

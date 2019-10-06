@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#12 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#13 $
  */
 
 #include "index.h"
@@ -216,7 +216,8 @@ int makeIndex(IndexLayout          *layout,
     return result;
   }
 
-  result = makeChapterWriter(index, &index->chapterWriter);
+  result = makeChapterWriter(index, getIndexVersion(layout),
+                             &index->chapterWriter);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;

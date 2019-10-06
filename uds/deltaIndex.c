@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#7 $
  */
 #include "deltaIndex.h"
 
@@ -728,10 +728,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex, unsigned int zoneNumber)
 }
 
 /**********************************************************************/
-int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
-                       byte *memory, size_t memSize,
-                       uint64_t virtualChapterNumber, unsigned int firstList,
-                       unsigned int *numLists)
+int packDeltaIndexPage(const DeltaIndex *deltaIndex,
+                       uint64_t          headerNonce,
+                       bool              headerNativeEndian,
+                       byte             *memory,
+                       size_t            memSize,
+                       uint64_t          virtualChapterNumber,
+                       unsigned int      firstList,
+                       unsigned int     *numLists)
 {
   if (!deltaIndex->isMutable) {
     return logErrorWithStringError(UDS_BAD_STATE,
@@ -784,10 +788,18 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
 
   // Construct the page header
   DeltaPageHeader *header = (DeltaPageHeader *) memory;
-  header->nonce                = headerNonce;
-  header->virtualChapterNumber = virtualChapterNumber;
-  header->firstList            = firstList;
-  header->numLists             = nLists;
+  if (headerNativeEndian) {
+    header->nonce                = headerNonce;
+    header->virtualChapterNumber = virtualChapterNumber;
+    header->firstList            = firstList;
+    header->numLists             = nLists;
+  } else {
+    storeUInt64LE((byte *) &header->nonce,     headerNonce);
+    storeUInt64LE((byte *) &header->virtualChapterNumber,
+                  virtualChapterNumber);
+    storeUInt16LE((byte *) &header->firstList, firstList);
+    storeUInt16LE((byte *) &header->numLists,  nLists);
+  }
 
   // Construct the delta list offset table, making sure that the memory
   // page is large enough.

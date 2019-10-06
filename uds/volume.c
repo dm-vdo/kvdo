@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#21 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#22 $
  */
 
 #include "volume.h"
@@ -817,7 +817,7 @@ int writeIndexPages(Volume            *volume,
     // Pack as many delta lists into the index page as will fit.
     unsigned int listsPacked;
     bool lastPage = ((indexPageNumber + 1) == geometry->indexPagesPerChapter);
-    result = packOpenChapterIndexPage(chapterIndex, volume->nonce,
+    result = packOpenChapterIndexPage(chapterIndex,
                                       getPageData(&volume->scratchPage),
                                       deltaListNumber, lastPage, &listsPacked);
     if (result != UDS_SUCCESS) {
