@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#12 $
  */
 
 #include "recoveryJournal.h"
@@ -159,6 +159,10 @@ static inline bool hasBlockWaiters(RecoveryJournal *journal)
           || hasWaiters(&block->commitWaiters));
 }
 
+/**********************************************************************/
+static void recycleJournalBlock(RecoveryJournalBlock *block);
+static void notifyCommitWaiters(RecoveryJournal *journal);
+
 /**
  * Check whether the journal has drained.
  *
@@ -169,6 +173,15 @@ static void checkForDrainComplete(RecoveryJournal *journal)
   int result = VDO_SUCCESS;
   if (isReadOnly(journal->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
+    /*
+     * Clean up any full active blocks which were not written due to being
+     * in read-only mode.
+     *
+     * XXX: This would probably be better as a short-circuit in writeBlock().
+     */
+    notifyCommitWaiters(journal);
+
+    // Release any DataVIOs waiting to be assigned entries.
     notifyAllWaiters(&journal->decrementWaiters, continueWaiter, &result);
     notifyAllWaiters(&journal->incrementWaiters, continueWaiter, &result);
   }
@@ -181,14 +194,15 @@ static void checkForDrainComplete(RecoveryJournal *journal)
   }
 
   if (isSaving(&journal->state)) {
-    RecoveryJournalBlock *block;
-    while ((block = popActiveList(journal)) != NULL) {
+    if (journal->activeBlock != NULL) {
       ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
-                       || !isRecoveryBlockDirty(block)),
-                      "all blocks in a journal being saved must be "
-                      "inactive");
-      pushRingNode(&journal->freeTailBlocks, &block->ringNode);
+                       || !isRecoveryBlockDirty(journal->activeBlock)),
+		      "journal being saved has clean active block");
+      recycleJournalBlock(journal->activeBlock);
     }
+
+    ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
+		    "all blocks in a journal being saved must be inactive");
   }
 
   finishDrainingWithResult(&journal->state, result);
@@ -322,19 +336,6 @@ static void handleFlushError(VDOCompletion *completion)
 }
 
 /**
- * Set a new active block. If there are no free blocks, the active block
- * will be set to <code>NULL</code>.
- *
- * @param journal  The journal which needs a new active block
- **/
-static void setActiveBlock(RecoveryJournal *journal)
-{
-  journal->activeBlock = popFreeList(journal);
-  pushRingNode(&journal->activeTailBlocks, &journal->activeBlock->ringNode);
-  initializeRecoveryBlock(journal->activeBlock);
-}
-
-/**
  * Set all journal fields appropriately to start journaling from the current
  * active block.
  *
@@ -378,6 +379,22 @@ static void reapRecoveryJournalCallback(VDOCompletion *completion)
   acknowledgeUnlock(journal->lockCounter);
   reapRecoveryJournal(journal);
   checkSlabJournalCommitThreshold(journal);
+}
+
+/**********************************************************************
+ * Set the journal's tail sequence number.
+ *
+ * @param journal The journal whose tail is to be set
+ * @param tail    The new tail value
+ **/
+static void setJournalTail(RecoveryJournal *journal, SequenceNumber tail)
+{
+  // VDO does not support sequence numbers above 1 << 48 in the slab journal.
+  if (tail >= (1ULL << 48)) {
+    enterJournalReadOnlyMode(journal, VDO_JOURNAL_OVERFLOW);
+  }
+
+  journal->tail = tail;
 }
 
 /**********************************************************************/
@@ -460,9 +477,7 @@ int makeRecoveryJournal(Nonce                nonce,
       return result;
     }
 
-    setActiveBlock(journal);
     journal->flushVIO->completion.callbackThreadID = journal->threadID;
-    // Must not fail after this point since active blocks won't be freed.
   }
 
   *journalPtr = journal;
@@ -516,9 +531,8 @@ void initializeRecoveryJournalPostRecovery(RecoveryJournal *journal,
                                            uint64_t         recoveryCount,
                                            SequenceNumber   tail)
 {
-  journal->tail          = tail + 1;
+  setJournalTail(journal, tail + 1);
   journal->recoveryCount = computeRecoveryCountByte(recoveryCount);
-  initializeRecoveryBlock(journal->activeBlock);
   initializeJournalState(journal);
 }
 
@@ -676,16 +690,10 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
   }
 
   // Update recovery journal in-memory information.
-  journal->tail               = state.journalStart;
+  setJournalTail(journal, state.journalStart);
   journal->logicalBlocksUsed  = state.logicalBlocksUsed;
   journal->blockMapDataBlocks = state.blockMapDataBlocks;
   initializeJournalState(journal);
-
-  if (journal->flushVIO != NULL) {
-    // Only restore the activeBlock pointer in normal operation since the
-    // formatter doesn't need it.
-    initializeRecoveryBlock(journal->activeBlock);
-  }
 
   // XXX: this is a hack until we make initial resume of a VDO a real resume
   journal->state.state = ADMIN_STATE_SUSPENDED;
@@ -703,16 +711,21 @@ int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
  * Advance the tail of the journal.
  *
  * @param journal  The journal whose tail should be advanced
+ *
+ * @return <code>true</code> if the tail was advanced
  **/
-static void advanceTail(RecoveryJournal *journal)
+static bool advanceTail(RecoveryJournal *journal)
 {
-  advanceBlockMapEra(journal->blockMap, journal->tail + 1);
-  setActiveBlock(journal);
-  journal->tail++;
-  // VDO does not support sequence numbers above 1 << 48 in the slab journal.
-  if (journal->tail >= (1ULL << 48)) {
-    enterJournalReadOnlyMode(journal, VDO_JOURNAL_OVERFLOW);
+  journal->activeBlock = popFreeList(journal);
+  if (journal->activeBlock == NULL) {
+    return false;
   }
+
+  pushRingNode(&journal->activeTailBlocks, &journal->activeBlock->ringNode);
+  initializeRecoveryBlock(journal->activeBlock);
+  setJournalTail(journal, journal->tail + 1);
+  advanceBlockMapEra(journal->blockMap, journal->tail);
+  return true;
 }
 
 /**
@@ -738,31 +751,35 @@ static bool checkForEntrySpace(RecoveryJournal *journal, bool increment)
  * Prepare the currently active block to receive an entry and check whether
  * an entry of the given type may be assigned at this time.
  *
- * @param block      The current active block of the journal
+ * @param journal    The journal receiving an entry
  * @param increment  Set to <code>true</code> if the desired entry is an
  *                   increment
  *
  * @return <code>true</code> if there is space in the journal to store an
  *         entry of the specified type
  **/
-static bool prepareToAssignEntry(RecoveryJournalBlock *block, bool increment)
+static bool prepareToAssignEntry(RecoveryJournal *journal, bool increment)
 {
-  if (block == NULL) {
+  if (!checkForEntrySpace(journal, increment)) {
+    if (!increment) {
+      // There must always be room to make a decrement entry.
+      logError("No space for decrement entry in recovery journal");
+      enterJournalReadOnlyMode(journal, VDO_RECOVERY_JOURNAL_FULL);
+    }
     return false;
   }
 
-  RecoveryJournal *journal = block->journal;
-  if (!isRecoveryBlockEmpty(block)) {
-    return checkForEntrySpace(journal, increment);
+  if (isRecoveryBlockFull(journal->activeBlock) && !advanceTail(journal)) {
+    return false;
+  }
+
+  if (!isRecoveryBlockEmpty(journal->activeBlock)) {
+    return true;
   }
 
   if ((journal->tail - getRecoveryJournalHead(journal)) > journal->size) {
     // Cannot use this block since the journal is full.
     journal->events.diskFull++;
-    return false;
-  }
-
-  if (!checkForEntrySpace(journal, increment)) {
     return false;
   }
 
@@ -773,7 +790,7 @@ static bool prepareToAssignEntry(RecoveryJournalBlock *block, bool increment)
    * slab journal entries have been made, the per-entry lock for the block map
    * entry serves to protect those as well.
    */
-  initializeLockCount(journal->lockCounter, block->blockNumber,
+  initializeLockCount(journal->lockCounter, journal->activeBlock->blockNumber,
                       journal->entriesPerBlock + 1);
   return true;
 }
@@ -799,11 +816,6 @@ static void assignEntry(Waiter *waiter, void *context)
   DataVIO              *dataVIO = waiterAsDataVIO(waiter);
   RecoveryJournalBlock *block   = (RecoveryJournalBlock *) context;
   RecoveryJournal      *journal = block->journal;
-
-  if (journal->tail == getRecoveryJournalHead(journal)) {
-    // We are putting the first entry into a new journal.
-    journal->tail++;
-  }
 
   // Record the point at which we will make the journal entry.
   dataVIO->recoveryJournalPoint = (struct journal_point) {
@@ -851,8 +863,6 @@ static void assignEntry(Waiter *waiter, void *context)
   }
 
   if (isRecoveryBlockFull(block)) {
-    advanceTail(journal);
-
     // Only attempt to write the block once we've filled it. Commits of
     // partially filled journal blocks are handled outside the append loop.
     writeBlock(journal, block);
@@ -868,17 +878,11 @@ static bool assignEntriesFromQueue(RecoveryJournal   *journal,
                                    bool               increment)
 {
   while (hasWaiters(queue)) {
-    // There must always be room to make a decrement entry.
-    RecoveryJournalBlock *block = journal->activeBlock;
-    if (!prepareToAssignEntry(block, increment)) {
-      if (!increment) {
-        logError("No space for decrement entry in recovery journal");
-        enterJournalReadOnlyMode(journal, VDO_RECOVERY_JOURNAL_FULL);
-      }
+    if (!prepareToAssignEntry(journal, increment)) {
       return false;
     }
 
-    notifyNextWaiter(queue, assignEntry, block);
+    notifyNextWaiter(queue, assignEntry, journal->activeBlock);
   }
 
   return true;
@@ -920,12 +924,9 @@ static void recycleJournalBlock(RecoveryJournalBlock *block)
     releaseJournalBlockReference(block);
   }
 
-  /*
-   * We may have just completed the last outstanding block write, which
-   * forces us to finally write out uncommitted entries in a partially full
-   * tail block so those VIOs don't wait forever.
-   */
-  writeBlock(journal, journal->activeBlock);
+  if (block == journal->activeBlock) {
+    journal->activeBlock = NULL;
+  }
 }
 
 /**
@@ -984,7 +985,14 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
       // Don't recycle partially-committed or partially-filled blocks.
       return;
     }
+
     recycleJournalBlock(block);
+
+    /*
+     * We may have just completed the last outstanding block write. If the
+     * active block is partial and hasn't been written, we must trigger it now.
+     */
+    writeBlock(journal, journal->activeBlock);
   }
 }
 

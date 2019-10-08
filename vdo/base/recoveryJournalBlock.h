@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#5 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -114,7 +114,8 @@ static inline bool isRecoveryBlockEmpty(const RecoveryJournalBlock *block)
 __attribute__((warn_unused_result))
 static inline bool isRecoveryBlockFull(const RecoveryJournalBlock *block)
 {
-  return (block->journal->entriesPerBlock == block->entryCount);
+  return ((block == NULL)
+	  || (block->journal->entriesPerBlock == block->entryCount));
 }
 
 /**
