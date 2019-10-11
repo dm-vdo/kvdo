@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#2 $
  */
 
 #ifndef PBN_LOCK_H
@@ -35,14 +35,14 @@ typedef enum {
   VIO_BLOCK_MAP_WRITE_LOCK,
 } PBNLockType;
 
-typedef struct pbnLockImplementation PBNLockImplementation;
+struct pbn_lock_implementation;
 
 /**
  * A PBN lock.
  **/
 struct pbnLock {
   /** The implementation of the lock */
-  const PBNLockImplementation *implementation;
+  const struct pbn_lock_implementation *implementation;
 
   /** The number of VIOs holding or sharing this lock */
   VIOCount holderCount;

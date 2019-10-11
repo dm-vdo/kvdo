@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#2 $
  */
 
 #include "pbnLock.h"
@@ -26,7 +26,7 @@
 #include "blockAllocator.h"
 #include "referenceBlock.h"
 
-struct pbnLockImplementation {
+struct pbn_lock_implementation {
   PBNLockType  type;
   const char  *name;
   const char  *releaseReason;
@@ -35,7 +35,7 @@ struct pbnLockImplementation {
 /**
  * This array must have an entry for every PBNLockType value.
  **/
-static const PBNLockImplementation LOCK_IMPLEMENTATIONS[] = {
+static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
   [VIO_READ_LOCK] = {
     .type          = VIO_READ_LOCK,
     .name          = "read",
