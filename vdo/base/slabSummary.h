@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#6 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -60,11 +60,11 @@ typedef uint8_t TailBlockOffset;
  * A slab status is a very small structure for use in determining the ordering
  * of slabs in the scrubbing process.
  **/
-typedef struct slabStatus {
+struct slab_status {
   SlabCount slabNumber;
   bool      isClean;
   uint8_t   emptiness;
-} SlabStatus;
+};
 
 /**
  * Returns the size on disk of the SlabSummary structure.
@@ -224,11 +224,11 @@ void getSummarizedRefCountsState(SlabSummaryZone *summaryZone,
  *
  * @param [in]     summaryZone   The SlabSummaryZone to use
  * @param [in]     slabCount     The number of slabs to fetch
- * @param [in,out] statuses      An array of SlabStatuses to populate
+ * @param [in,out] statuses      An array of slab_status structures to populate
  **/
-void getSummarizedSlabStatuses(SlabSummaryZone *summaryZone,
-                               SlabCount        slabCount,
-                               SlabStatus      *statuses);
+void getSummarizedSlabStatuses(SlabSummaryZone    *summaryZone,
+                               SlabCount           slabCount,
+                               struct slab_status *statuses);
 
 /**
  * Set the origin of the slab summary relative to the physical layer.

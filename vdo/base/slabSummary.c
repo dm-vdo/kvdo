@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#8 $
  */
 
 #include "slabSummary.h"
@@ -514,12 +514,12 @@ void getSummarizedRefCountsState(SlabSummaryZone *summaryZone,
 }
 
 /**********************************************************************/
-void getSummarizedSlabStatuses(SlabSummaryZone *summaryZone,
-                               SlabCount        slabCount,
-                               SlabStatus      *statuses)
+void getSummarizedSlabStatuses(SlabSummaryZone    *summaryZone,
+                               SlabCount           slabCount,
+                               struct slab_status *statuses)
 {
   for (SlabCount i = 0; i < slabCount; i++) {
-    statuses[i] = (SlabStatus) {
+    statuses[i] = (struct slab_status) {
       .slabNumber = i,
       .isClean    = !summaryZone->entries[i].isDirty,
       .emptiness  = summaryZone->entries[i].fullnessHint

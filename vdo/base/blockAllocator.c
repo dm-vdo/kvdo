@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#23 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -488,9 +488,9 @@ void releaseBlockReference(BlockAllocator      *allocator,
 }
 
 /**
- * This is a HeapComparator function that orders SlabStatuses using the
- * 'isClean' field as the primary key and the 'emptiness' field as the
- * secondary key.
+ * This is a HeapComparator function that orders slab_status
+ * atructures using the 'isClean' field as the primary key and the
+ * 'emptiness' field as the secondary key.
  *
  * Slabs need to be pushed onto the rings in the same order they are
  * to be popped off. Popping should always get the most empty first,
@@ -507,8 +507,8 @@ void releaseBlockReference(BlockAllocator      *allocator,
  **/
 static int compareSlabStatuses(const void *item1, const void *item2)
 {
-  const SlabStatus *info1 = (const SlabStatus *) item1;
-  const SlabStatus *info2 = (const SlabStatus *) item2;
+  const struct slab_status *info1 = (const struct slab_status *) item1;
+  const struct slab_status *info2 = (const struct slab_status *) item2;
 
   if (info1->isClean != info2->isClean) {
     return (info1->isClean ? 1 : -1);
@@ -520,13 +520,13 @@ static int compareSlabStatuses(const void *item1, const void *item2)
 }
 
 /**
- * Swap two SlabStatus structures. Implements HeapSwapper.
+ * Swap two slab_status structures. Implements HeapSwapper.
  **/
 static void swapSlabStatuses(void *item1, void *item2)
 {
-  SlabStatus *info1 = item1;
-  SlabStatus *info2 = item2;
-  SlabStatus temp = *info1;
+  struct slab_status *info1 = item1;
+  struct slab_status *info2 = item2;
+  struct slab_status temp = *info1;
   *info1 = *info2;
   *info2 = temp;
 }
@@ -652,8 +652,8 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
   SlabDepot *depot     = allocator->depot;
   SlabCount  slabCount = depot->slabCount;
 
-  SlabStatus *slabStatuses;
-  int result = ALLOCATE(slabCount, SlabStatus, __func__, &slabStatuses);
+  struct slab_status *slabStatuses;
+  int result = ALLOCATE(slabCount, struct slab_status, __func__, &slabStatuses);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -663,10 +663,10 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
   // Sort the slabs by cleanliness, then by emptiness hint.
   struct heap heap;
   initializeHeap(&heap, compareSlabStatuses, swapSlabStatuses,
-                 slabStatuses, slabCount, sizeof(SlabStatus));
+                 slabStatuses, slabCount, sizeof(struct slab_status));
   buildHeap(&heap, slabCount);
 
-  SlabStatus currentSlabStatus;
+  struct slab_status currentSlabStatus;
   while (popMaxHeapElement(&heap, &currentSlabStatus)) {
     Slab *slab = depot->slabs[currentSlabStatus.slabNumber];
     if (slab->allocator != allocator) {
