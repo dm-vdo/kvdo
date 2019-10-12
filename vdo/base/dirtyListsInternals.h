@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyListsInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyListsInternals.h#2 $
  */
 
 #ifndef DIRTY_LISTS_INTERNALS_H
@@ -26,11 +26,12 @@
 #include "types.h"
 
 /**
- * Get the next period from a DirtyLists. This method is used by unit tests.
+ * Get the next period from a dirty_lists structure. This method is
+ * used by unit tests.
  *
- * @param dirtyLists  The DirtyLists to examine
+ * @param dirtyLists  The dirty_lists to examine
  **/
-SequenceNumber getDirtyListsNextPeriod(DirtyLists *dirtyLists)
+SequenceNumber getDirtyListsNextPeriod(struct dirty_lists *dirtyLists)
   __attribute__((warn_unused_result));
 
 #endif // DIRTY_LISTS_INTERNALS_H

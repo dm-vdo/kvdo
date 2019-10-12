@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#9 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -71,7 +71,7 @@ struct vdo_page_cache {
   /** master LRU list (all infos) */
   PageInfoNode                         lruList;
   /** dirty pages by period */
-  DirtyLists                          *dirtyLists;
+  struct dirty_lists                  *dirtyLists;
   /** free page list (oldest first) */
   PageInfoNode                         freeList;
   /** outgoing page list */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#2 $
  */
 
 #include "dirtyLists.h"
@@ -27,7 +27,7 @@
 
 #include "types.h"
 
-struct dirtyLists {
+struct dirty_lists {
   /** The number of periods after which an element will be expired */
   BlockCount      maximumAge;
   /** The oldest period which has unexpired elements */
@@ -47,14 +47,14 @@ struct dirtyLists {
 };
 
 /**********************************************************************/
-int makeDirtyLists(BlockCount      maximumAge,
-                   DirtyCallback  *callback,
-                   void           *context,
-                   DirtyLists    **dirtyListsPtr)
+int makeDirtyLists(BlockCount           maximumAge,
+                   DirtyCallback       *callback,
+                   void                *context,
+                   struct dirty_lists **dirtyListsPtr)
 {
-  DirtyLists *dirtyLists;
-  int result = ALLOCATE_EXTENDED(DirtyLists, maximumAge, RingNode, __func__,
-                                 &dirtyLists);
+  struct dirty_lists *dirtyLists;
+  int result = ALLOCATE_EXTENDED(struct dirty_lists, maximumAge, RingNode,
+                                 __func__, &dirtyLists);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -73,9 +73,9 @@ int makeDirtyLists(BlockCount      maximumAge,
 }
 
 /**********************************************************************/
-void freeDirtyLists(DirtyLists **dirtyListsPtr)
+void freeDirtyLists(struct dirty_lists **dirtyListsPtr)
 {
-  DirtyLists *lists = *dirtyListsPtr;
+  struct dirty_lists *lists = *dirtyListsPtr;
   if (lists == NULL) {
     return;
   }
@@ -85,7 +85,7 @@ void freeDirtyLists(DirtyLists **dirtyListsPtr)
 }
 
 /**********************************************************************/
-void setCurrentPeriod(DirtyLists *dirtyLists, SequenceNumber period)
+void setCurrentPeriod(struct dirty_lists *dirtyLists, SequenceNumber period)
 {
   ASSERT_LOG_ONLY(dirtyLists->nextPeriod == 0, "current period not set");
   dirtyLists->oldestPeriod = period;
@@ -96,9 +96,9 @@ void setCurrentPeriod(DirtyLists *dirtyLists, SequenceNumber period)
 /**
  * Expire the oldest list.
  *
- * @param dirtyLists  The DirtyLists to expire
+ * @param dirtyLists  The dirty_lists to expire
  **/
-static void expireOldestList(DirtyLists *dirtyLists)
+static void expireOldestList(struct dirty_lists *dirtyLists)
 {
   dirtyLists->oldestPeriod++;
   RingNode *ring = &(dirtyLists->lists[dirtyLists->offset++]);
@@ -114,10 +114,10 @@ static void expireOldestList(DirtyLists *dirtyLists)
 /**
  * Update the period if necessary.
  *
- * @param dirtyLists  The DirtyLists
+ * @param dirtyLists  The dirty_lists structure
  * @param period      The new period
  **/
-static void updatePeriod(DirtyLists *dirtyLists, SequenceNumber period)
+static void updatePeriod(struct dirty_lists *dirtyLists, SequenceNumber period)
 {
   while (dirtyLists->nextPeriod <= period) {
     if ((dirtyLists->nextPeriod - dirtyLists->oldestPeriod)
@@ -131,9 +131,9 @@ static void updatePeriod(DirtyLists *dirtyLists, SequenceNumber period)
 /**
  * Write out the expired list.
  *
- * @param dirtyLists  The dirtyLists
+ * @param dirtyLists  The dirty_lists
  **/
-static void writeExpiredElements(DirtyLists *dirtyLists)
+static void writeExpiredElements(struct dirty_lists *dirtyLists)
 {
   if (isRingEmpty(&dirtyLists->expired)) {
     return;
@@ -145,10 +145,10 @@ static void writeExpiredElements(DirtyLists *dirtyLists)
 }
 
 /**********************************************************************/
-void addToDirtyLists(DirtyLists     *dirtyLists,
-                     RingNode       *node,
-                     SequenceNumber  oldPeriod,
-                     SequenceNumber  newPeriod)
+void addToDirtyLists(struct dirty_lists *dirtyLists,
+                     RingNode           *node,
+                     SequenceNumber      oldPeriod,
+                     SequenceNumber      newPeriod)
 {
   if ((oldPeriod == newPeriod)
       || ((oldPeriod != 0) && (oldPeriod < newPeriod))) {
@@ -166,14 +166,14 @@ void addToDirtyLists(DirtyLists     *dirtyLists,
 }
 
 /**********************************************************************/
-void advancePeriod(DirtyLists *dirtyLists, SequenceNumber period)
+void advancePeriod(struct dirty_lists *dirtyLists, SequenceNumber period)
 {
   updatePeriod(dirtyLists, period);
   writeExpiredElements(dirtyLists);
 }
 
 /**********************************************************************/
-void flushDirtyLists(DirtyLists *dirtyLists)
+void flushDirtyLists(struct dirty_lists *dirtyLists)
 {
   while (dirtyLists->oldestPeriod < dirtyLists->nextPeriod) {
     expireOldestList(dirtyLists);
@@ -182,7 +182,7 @@ void flushDirtyLists(DirtyLists *dirtyLists)
 }
 
 /**********************************************************************/
-SequenceNumber getDirtyListsNextPeriod(DirtyLists *dirtyLists)
+SequenceNumber getDirtyListsNextPeriod(struct dirty_lists *dirtyLists)
 {
   return dirtyLists->nextPeriod;
 }
