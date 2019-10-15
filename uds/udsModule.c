@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#22 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#23 $
  */
 
 #include <linux/module.h>
@@ -69,9 +69,7 @@ EXPORT_SYMBOL_GPL(udsConfigurationGetMemory);
 EXPORT_SYMBOL_GPL(udsConfigurationGetChaptersPerVolume);
 EXPORT_SYMBOL_GPL(udsFreeConfiguration);
 EXPORT_SYMBOL_GPL(udsGetVersion);
-EXPORT_SYMBOL_GPL(udsCreateLocalIndex);
-EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
-EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
+EXPORT_SYMBOL_GPL(udsOpenIndex);
 EXPORT_SYMBOL_GPL(udsSaveIndex);
 EXPORT_SYMBOL_GPL(udsCloseIndexSession);
 EXPORT_SYMBOL_GPL(udsFlushIndexSession);

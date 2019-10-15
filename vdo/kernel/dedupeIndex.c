@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#30 $
  */
 
 #include "dedupeIndex.h"
@@ -101,6 +101,7 @@ struct dedupe_index {
 	RegisteredThread allocating_thread;
 	char *index_name;
 	UdsConfiguration configuration;
+	struct uds_parameters uds_params;
 	struct uds_index_session *index_session;
 	atomic_t active;
 	// for reporting UDS timeouts
@@ -586,16 +587,9 @@ static void open_session(struct dedupe_index *index)
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
 	bool next_create_flag = false;
-	int result = UDS_SUCCESS;
-	if (create_flag) {
-		result = udsCreateLocalIndex(index->index_name,
-					     index->configuration,
-					     &index->index_session);
-	} else {
-		result = udsRebuildLocalIndex(index->index_name,
-                                              index->configuration,
-					      &index->index_session);
-	}
+	int result = udsOpenIndex(create_flag ? UDS_CREATE : UDS_LOAD,
+				  index->index_name, &index->uds_params,
+				  index->configuration, &index->index_session);
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
 					"Error opening index %s",
@@ -944,6 +938,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
+        index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
 	result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
 					       &index->configuration);
 	if (result != VDO_SUCCESS) {

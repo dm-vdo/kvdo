@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#4 $
  */
 
 #include "indexPageMap.h"
@@ -121,9 +121,13 @@ int updateIndexPageMap(IndexPageMap   *map,
   const Geometry *geometry = map->geometry;
   if ((virtualChapterNumber < map->lastUpdate)
       || (virtualChapterNumber > map->lastUpdate + 1)) {
-    logWarning("unexpected index page map update, jumping from %" PRIu64
-               " to %llu",
-               map->lastUpdate, virtualChapterNumber);
+    // if the lastUpdate is 0, this is likely to be normal because we are
+    // replaying the volume
+    if (map->lastUpdate != 0) {
+      logWarning("unexpected index page map update, jumping from %" PRIu64
+                 " to %llu",
+                 map->lastUpdate, virtualChapterNumber);
+    }
   }
   map->lastUpdate = virtualChapterNumber;
 
@@ -353,30 +357,5 @@ static int readIndexPageMap(ReadPortal *portal)
     return result;
   }
   logDebug("read index page map, last update %llu", map->lastUpdate);
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-int dumpIndexPageMap(const IndexPageMap *map, unsigned int chapterNumber)
-{
-  const Geometry *geometry = map->geometry;
-  if (chapterNumber >= geometry->chaptersPerVolume) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "chapter number %u exceeds maximum %u",
-      chapterNumber, geometry->chaptersPerVolume - 1);
-  }
-
-  unsigned int slot = (chapterNumber * (geometry->indexPagesPerChapter - 1));
-  unsigned int limit = slot + (geometry->indexPagesPerChapter - 1);
-  unsigned int indexPageNumber = 0;
-  unsigned int deltaList = 0;
-  logInfo("index page map last update %llu", map->lastUpdate);
-  for (; slot < limit; indexPageNumber++, slot++) {
-    logInfo("chapter %u index page %u lists %u-%u",
-            chapterNumber, slot, deltaList, map->entries[slot]);
-    deltaList = map->entries[slot] + 1;
-  }
-  logInfo("chapter %u index page %u lists %u-%u",
-          chapterNumber, slot, deltaList, geometry->deltaListsPerChapter);
   return UDS_SUCCESS;
 }

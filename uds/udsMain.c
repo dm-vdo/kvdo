@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#7 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#8 $
  */
 
 #include "uds.h"
@@ -229,10 +229,18 @@ int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
 }
 
 /**********************************************************************/
-static int initializeIndexSession(struct uds_index_session *indexSession,
-                                  const char               *name,
-                                  LoadType                  loadType)
+static int initializeIndexSession(struct uds_index_session    *indexSession,
+                                  const char                  *name,
+                                  const struct uds_parameters *userParams,
+                                  LoadType                     loadType)
 {
+  struct uds_parameters udsParams __attribute__((unused));
+  if (userParams == NULL) {
+    udsParams = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
+  } else {
+    udsParams = *userParams;
+  }
+
   IndexLayout *layout;
   int result = makeIndexLayout(name, loadType == LOAD_CREATE,
                                &indexSession->userConfig, &layout);
@@ -246,10 +254,11 @@ static int initializeIndexSession(struct uds_index_session *indexSession,
 }
 
 /**********************************************************************/
-static int makeIndexSession(const char                *name,
-                            LoadType                   loadType,
-                            UdsConfiguration           userConfig,
-                            struct uds_index_session **session)
+int udsOpenIndex(UdsOpenIndexType              openType,
+                 const char                   *name,
+                 const struct uds_parameters  *userParams,
+                 UdsConfiguration              userConfig,
+                 struct uds_index_session    **session)
 {
   if (name == NULL) {
     return UDS_INDEX_NAME_REQUIRED;
@@ -268,41 +277,20 @@ static int makeIndexSession(const char                *name,
   }
   indexSession->userConfig = *userConfig;
 
+  // Map the external openType to the internal loadType
+  LoadType loadType =   openType == UDS_CREATE     ? LOAD_CREATE
+                      : openType == UDS_NO_REBUILD ? LOAD_LOAD
+                      :                              LOAD_REBUILD;
   logNotice("%s: %s", getLoadType(loadType), name);
-  result = initializeIndexSession(indexSession, name, loadType);
+
+  result = initializeIndexSession(indexSession, name, userParams, loadType);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
     saveAndFreeIndexSession(indexSession);
     return sansUnrecoverable(result);
   }
-
-  logDebug("Created index session");
   *session = indexSession;
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int udsCreateLocalIndex(const char                *name,
-                        UdsConfiguration           userConfig,
-                        struct uds_index_session **session)
-{
-  return makeIndexSession(name, LOAD_CREATE, userConfig, session);
-}
-
-/**********************************************************************/
-int udsLoadLocalIndex(const char                *name,
-                      UdsConfiguration           userConfig,
-                      struct uds_index_session **session)
-{
-  return makeIndexSession(name, LOAD_LOAD, userConfig, session);
-}
-
-/**********************************************************************/
-int udsRebuildLocalIndex(const char                *name,
-                         UdsConfiguration           userConfig,
-                         struct uds_index_session **session)
-{
-  return makeIndexSession(name, LOAD_REBUILD, userConfig, session);
 }
 
 /**********************************************************************/
