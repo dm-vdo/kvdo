@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#3 $
  */
 
 #include "priorityTable.h"
@@ -48,7 +48,7 @@ struct bucket {
  * vector represented as a single 8-byte word, which is very fast with
  * compiler and CPU support.
  **/
-struct priorityTable {
+struct priority_table {
   /** The maximum priority of entries that may be stored in this table */
   unsigned int        maxPriority;
   /** A bit vector flagging all buckets that are currently non-empty */
@@ -71,15 +71,16 @@ static inline struct bucket *asBucket(RingNode *head)
 }
 
 /**********************************************************************/
-int makePriorityTable(unsigned int maxPriority, PriorityTable **tablePtr)
+int makePriorityTable(unsigned int            maxPriority,
+                      struct priority_table **tablePtr)
 {
   if (maxPriority > MAX_PRIORITY) {
     return UDS_INVALID_ARGUMENT;
   }
 
-  PriorityTable *table;
-  int result = ALLOCATE_EXTENDED(PriorityTable, maxPriority + 1, struct bucket,
-                                 __func__, &table);
+  struct priority_table *table;
+  int result = ALLOCATE_EXTENDED(struct priority_table, maxPriority + 1,
+                                 struct bucket, __func__, &table);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -98,9 +99,9 @@ int makePriorityTable(unsigned int maxPriority, PriorityTable **tablePtr)
 }
 
 /**********************************************************************/
-void freePriorityTable(PriorityTable **tablePtr)
+void freePriorityTable(struct priority_table **tablePtr)
 {
-  PriorityTable *table = *tablePtr;
+  struct priority_table *table = *tablePtr;
   if (table == NULL) {
     return;
   }
@@ -114,7 +115,7 @@ void freePriorityTable(PriorityTable **tablePtr)
 }
 
 /**********************************************************************/
-void resetPriorityTable(PriorityTable *table)
+void resetPriorityTable(struct priority_table *table)
 {
   table->searchVector = 0;
   for (unsigned int priority = 0; priority <= table->maxPriority; priority++) {
@@ -123,9 +124,9 @@ void resetPriorityTable(PriorityTable *table)
 }
 
 /**********************************************************************/
-void priorityTableEnqueue(PriorityTable *table,
-                          unsigned int   priority,
-                          RingNode      *entry)
+void priorityTableEnqueue(struct priority_table *table,
+                          unsigned int           priority,
+                          RingNode              *entry)
 {
   ASSERT_LOG_ONLY((priority <= table->maxPriority),
                   "entry priority must be valid for the table");
@@ -138,13 +139,14 @@ void priorityTableEnqueue(PriorityTable *table,
 }
 
 /**********************************************************************/
-static inline void markBucketEmpty(PriorityTable *table, struct bucket *bucket)
+static inline void markBucketEmpty(struct priority_table *table,
+                                   struct bucket         *bucket)
 {
   table->searchVector &= ~(1ULL << bucket->priority);
 }
 
 /**********************************************************************/
-RingNode *priorityTableDequeue(PriorityTable *table)
+RingNode *priorityTableDequeue(struct priority_table *table)
 {
   // Find the highest priority non-empty bucket by finding the highest-order
   // non-zero bit in the search vector.
@@ -168,7 +170,7 @@ RingNode *priorityTableDequeue(PriorityTable *table)
 }
 
 /**********************************************************************/
-void priorityTableRemove(PriorityTable *table, RingNode *entry)
+void priorityTableRemove(struct priority_table *table, RingNode *entry)
 {
   // We can't guard against calls where the entry is on a ring for a different
   // table, but it's easy to deal with an entry not in any table or ring.
@@ -189,7 +191,7 @@ void priorityTableRemove(PriorityTable *table, RingNode *entry)
 }
 
 /**********************************************************************/
-bool isPriorityTableEmpty(PriorityTable *table)
+bool isPriorityTableEmpty(struct priority_table *table)
 {
   return (table->searchVector == 0);
 }

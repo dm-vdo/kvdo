@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#10 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -130,7 +130,7 @@ struct blockAllocator {
   /** The slab from which blocks are currently being allocated */
   Slab                                  *openSlab;
   /** A priority queue containing all slabs available for allocation */
-  PriorityTable                         *prioritizedSlabs;
+  struct priority_table                 *prioritizedSlabs;
   /** The slab scrubber */
   SlabScrubber                          *slabScrubber;
   /** What phase of the close operation the allocator is to perform */

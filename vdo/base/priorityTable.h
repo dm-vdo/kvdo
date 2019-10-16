@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#2 $
  */
 
 #ifndef PRIORITY_TABLE_H
@@ -26,7 +26,7 @@
 #include "ringNode.h"
 
 /**
- * A PriorityTable is a simple implementation of a priority queue for entries
+ * A priority_table is a simple implementation of a priority queue for entries
  * with priorities that are small non-negative integer values. It implements
  * the obvious priority queue operations of enqueuing an entry and dequeuing
  * an entry with the maximum priority. It also supports removing an arbitrary
@@ -37,7 +37,7 @@
  * The links for the table entries must be embedded in the entries themselves.
  * RingNode is used to link entries in the table and no wrapper type is
  * declared, so an existing RingNode link in an object can also be used to
- * queue it in a PriorityTable, assuming the field is not used for anything
+ * queue it in a priority_table, assuming the field is not used for anything
  * else while so queued.
  *
  * The table is implemented as an array of queues (circular lists) indexed by
@@ -47,26 +47,27 @@
  * more apt, if somewhat novel.
  **/
 
-typedef struct priorityTable PriorityTable;
+struct priority_table;
 
 /**
- * Allocate and initialize a new PriorityTable.
+ * Allocate and initialize a new priority_table.
  *
  * @param [in]  maxPriority  The maximum priority value for table entries
  * @param [out] tablePtr     A pointer to hold the new table
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makePriorityTable(unsigned int maxPriority, PriorityTable **tablePtr)
+int makePriorityTable(unsigned int            maxPriority,
+                      struct priority_table **tablePtr)
   __attribute__((warn_unused_result));
 
 /**
- * Free a PriorityTable and null out the reference to it. NOTE: The table does
+ * Free a priority_table and null out the reference to it. NOTE: The table does
  * not own the entries stored in it and they are not freed by this call.
  *
  * @param [in,out] tablePtr  The reference to the table to free
  **/
-void freePriorityTable(PriorityTable **tablePtr);
+void freePriorityTable(struct priority_table **tablePtr);
 
 /**
  * Add a new entry to the priority table, appending it to the queue for
@@ -77,9 +78,9 @@ void freePriorityTable(PriorityTable **tablePtr);
  * @param entry     The RingNode embedded in the entry to store in the table
  *                  (the caller must have initialized it)
  **/
-void priorityTableEnqueue(PriorityTable *table,
-                          unsigned int   priority,
-                          RingNode      *entry);
+void priorityTableEnqueue(struct priority_table *table,
+                          unsigned int           priority,
+                          RingNode              *entry);
 
 /**
  * Reset a priority table, leaving it in the same empty state as when newly
@@ -88,7 +89,7 @@ void priorityTableEnqueue(PriorityTable *table,
  *
  * @param table  The table to reset
  **/
-void resetPriorityTable(PriorityTable *table);
+void resetPriorityTable(struct priority_table *table);
 
 /**
  * Find the highest-priority entry in the table, remove it from the table, and
@@ -99,7 +100,7 @@ void resetPriorityTable(PriorityTable *table);
  *
  * @return the dequeued entry, or NULL if the table is currently empty
  **/
-RingNode *priorityTableDequeue(PriorityTable *table)
+RingNode *priorityTableDequeue(struct priority_table *table)
   __attribute__((warn_unused_result));
 
 /**
@@ -108,7 +109,7 @@ RingNode *priorityTableDequeue(PriorityTable *table)
  * @param table   The table from which to remove the entry
  * @param entry   The entry to remove from the table
  **/
-void priorityTableRemove(PriorityTable *table, RingNode *entry);
+void priorityTableRemove(struct priority_table *table, RingNode *entry);
 
 /**
  * Return whether the priority table is empty.
@@ -117,7 +118,7 @@ void priorityTableRemove(PriorityTable *table, RingNode *entry);
  *
  * @return <code>true</code> if the table is empty
  **/
-bool isPriorityTableEmpty(PriorityTable *table)
+bool isPriorityTableEmpty(struct priority_table *table)
   __attribute__((warn_unused_result));
 
 #endif /* PRIORITY_TABLE_H */
