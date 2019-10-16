@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#18 $
  */
 
 #include "blockMap.h"
@@ -550,9 +550,8 @@ static void drainZone(void          *context,
 {
   BlockMap     *map  = (BlockMap *) context;
   BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
-  if (startDraining(&zone->adminState,
-                    getCurrentManagerOperation(map->actionManager),
-                    parent)) {
+  if (startDraining(&zone->state,
+                    getCurrentManagerOperation(map->actionManager), parent)) {
     drainZoneTrees(&zone->treeZone);
   }
 }
@@ -577,7 +576,7 @@ static void resumeBlockMapZone(void          *context,
 {
   BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
   finishCompletion(parent,
-                   (resumeIfQuiescent(&zone->adminState)
+                   (resumeIfQuiescent(&zone->state)
                     ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE));
 }
 
@@ -675,7 +674,7 @@ static void setupMappedBlock(DataVIO   *dataVIO,
                              VDOAction *action)
 {
   BlockMapZone *zone = getBlockMapForZone(dataVIO->logical.zone);
-  if (isDraining(&zone->adminState)) {
+  if (isDraining(&zone->state)) {
     finishDataVIO(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }
