@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#22 $
  */
 
 #include "slabDepot.h"
@@ -216,7 +216,7 @@ static int allocateComponents(SlabDepot          *depot,
                               const ThreadConfig *threadConfig,
                               BlockCount          vioPoolSize,
                               PhysicalLayer      *layer,
-                              Partition          *summaryPartition)
+                              struct partition   *summaryPartition)
 {
   /*
    * If createVIO is NULL, the slab depot is only being used to format
@@ -305,7 +305,7 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
                          Nonce                               nonce,
                          BlockCount                          vioPoolSize,
                          PhysicalLayer                      *layer,
-                         Partition                          *summaryPartition,
+                         struct partition                   *summaryPartition,
                          ReadOnlyNotifier                   *readOnlyNotifier,
                          RecoveryJournal                    *recoveryJournal,
                          Atomic32                           *vdoState,
@@ -409,7 +409,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   Nonce                 nonce,
                   BlockCount            vioPoolSize,
                   PhysicalLayer        *layer,
-                  Partition            *summaryPartition,
+                  struct partition     *summaryPartition,
                   ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
                   Atomic32             *vdoState,
@@ -658,7 +658,7 @@ int decodeSlabDepot(Buffer              *buffer,
                     const ThreadConfig  *threadConfig,
                     Nonce                nonce,
                     PhysicalLayer       *layer,
-                    Partition           *summaryPartition,
+                    struct partition    *summaryPartition,
                     ReadOnlyNotifier    *readOnlyNotifier,
                     RecoveryJournal     *recoveryJournal,
                     Atomic32            *vdoState,
@@ -691,7 +691,7 @@ int decodeSodiumSlabDepot(Buffer              *buffer,
                           const ThreadConfig  *threadConfig,
                           Nonce                nonce,
                           PhysicalLayer       *layer,
-                          Partition           *summaryPartition,
+                          struct partition    *summaryPartition,
                           ReadOnlyNotifier    *readOnlyNotifier,
                           RecoveryJournal     *recoveryJournal,
                           SlabDepot          **depotPtr)

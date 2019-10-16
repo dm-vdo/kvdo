@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#4 $
  */
 
 #include "fixedLayout.h"
@@ -30,20 +30,20 @@
 
 const BlockCount ALL_FREE_BLOCKS = (uint64_t) -1;
 
-struct fixedLayout {
+struct fixed_layout {
   PhysicalBlockNumber  firstFree;
   PhysicalBlockNumber  lastFree;
   size_t               numPartitions;
-  Partition           *head;
+  struct partition    *head;
 };
 
 struct partition {
   PartitionID          id;     // The id of this partition
-  FixedLayout         *layout; // The layout to which this partition belongs
+  struct fixed_layout *layout; // The layout to which this partition belongs
   PhysicalBlockNumber  offset; // The offset into the layout of this partition
   PhysicalBlockNumber  base;   // The untranslated number of the first block
   BlockCount           count;  // The number of blocks in the partition
-  Partition           *next;   // A pointer to the next partition in the layout
+  struct partition    *next;   // A pointer to the next partition in the layout
 };
 
 struct layout_3_0 {
@@ -71,10 +71,10 @@ static const Header LAYOUT_HEADER_3_0 = {
 /**********************************************************************/
 int makeFixedLayout(BlockCount            totalBlocks,
                     PhysicalBlockNumber   startOffset,
-                    FixedLayout         **layoutPtr)
+                    struct fixed_layout **layoutPtr)
 {
-  FixedLayout *layout;
-  int result = ALLOCATE(1, FixedLayout, "fixed layout", &layout);
+  struct fixed_layout *layout;
+  int result = ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -89,15 +89,15 @@ int makeFixedLayout(BlockCount            totalBlocks,
 }
 
 /**********************************************************************/
-void freeFixedLayout(FixedLayout **layoutPtr)
+void freeFixedLayout(struct fixed_layout **layoutPtr)
 {
-  FixedLayout *layout = *layoutPtr;
+  struct fixed_layout *layout = *layoutPtr;
   if (layout == NULL) {
     return;
   }
 
   while (layout->head != NULL) {
-    Partition *part = layout->head;
+    struct partition *part = layout->head;
     layout->head = part->next;
     FREE(part);
   }
@@ -107,10 +107,10 @@ void freeFixedLayout(FixedLayout **layoutPtr)
 }
 
 /**********************************************************************/
-BlockCount getTotalFixedLayoutSize(const FixedLayout *layout)
+BlockCount getTotalFixedLayoutSize(const struct fixed_layout *layout)
 {
   BlockCount size = getFixedLayoutBlocksAvailable(layout);
-  for (Partition *partition = layout->head; partition != NULL;
+  for (struct partition *partition = layout->head; partition != NULL;
        partition = partition->next) {
     size += partition->count;
   }
@@ -119,9 +119,11 @@ BlockCount getTotalFixedLayoutSize(const FixedLayout *layout)
 }
 
 /**********************************************************************/
-int getPartition(FixedLayout *layout, PartitionID id, Partition **partitionPtr)
+int getPartition(struct fixed_layout  *layout,
+                 PartitionID           id,
+                 struct partition    **partitionPtr)
 {
-  for (Partition *partition = layout->head; partition != NULL;
+  for (struct partition *partition = layout->head; partition != NULL;
        partition = partition->next) {
     if (partition->id == id) {
       if (partitionPtr != NULL) {
@@ -135,9 +137,9 @@ int getPartition(FixedLayout *layout, PartitionID id, Partition **partitionPtr)
 }
 
 /**********************************************************************/
-int translateToPBN(const Partition     *partition,
-                   PhysicalBlockNumber  partitionBlockNumber,
-                   PhysicalBlockNumber *layerBlockNumber)
+int translateToPBN(const struct partition *partition,
+                   PhysicalBlockNumber     partitionBlockNumber,
+                   PhysicalBlockNumber    *layerBlockNumber)
 {
   if (partition == NULL) {
     *layerBlockNumber = partitionBlockNumber;
@@ -158,9 +160,9 @@ int translateToPBN(const Partition     *partition,
 }
 
 /**********************************************************************/
-int translateFromPBN(const Partition     *partition,
-                     PhysicalBlockNumber  layerBlockNumber,
-                     PhysicalBlockNumber *partitionBlockNumberPtr)
+int translateFromPBN(const struct partition *partition,
+                     PhysicalBlockNumber     layerBlockNumber,
+                     PhysicalBlockNumber    *partitionBlockNumberPtr)
 {
   if (partition == NULL) {
     *partitionBlockNumberPtr = layerBlockNumber;
@@ -182,7 +184,7 @@ int translateFromPBN(const Partition     *partition,
 }
 
 /**********************************************************************/
-BlockCount getFixedLayoutBlocksAvailable(const FixedLayout *layout)
+BlockCount getFixedLayoutBlocksAvailable(const struct fixed_layout *layout)
 {
   return layout->lastFree - layout->firstFree;
 }
@@ -199,14 +201,14 @@ BlockCount getFixedLayoutBlocksAvailable(const FixedLayout *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocatePartition(FixedLayout         *layout,
+static int allocatePartition(struct fixed_layout *layout,
                              byte                 id,
                              PhysicalBlockNumber  offset,
                              PhysicalBlockNumber  base,
                              BlockCount           blockCount)
 {
-  Partition *partition;
-  int result = ALLOCATE(1, Partition, "fixed layout partition", &partition);
+  struct partition *partition;
+  int result = ALLOCATE(1, struct partition, "fixed layout partition", &partition);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -223,7 +225,7 @@ static int allocatePartition(FixedLayout         *layout,
 }
 
 /**********************************************************************/
-int makeFixedLayoutPartition(FixedLayout         *layout,
+int makeFixedLayoutPartition(struct fixed_layout *layout,
                              PartitionID          id,
                              BlockCount           blockCount,
                              PartitionDirection   direction,
@@ -264,32 +266,34 @@ int makeFixedLayoutPartition(FixedLayout         *layout,
 }
 
 /**********************************************************************/
-BlockCount getFixedLayoutPartitionSize(const Partition *partition)
+BlockCount getFixedLayoutPartitionSize(const struct partition *partition)
 {
   return partition->count;
 }
 
 /**********************************************************************/
-PhysicalBlockNumber getFixedLayoutPartitionOffset(const Partition *partition)
+PhysicalBlockNumber
+getFixedLayoutPartitionOffset(const struct partition *partition)
 {
   return partition->offset;
 }
 
 /**********************************************************************/
-PhysicalBlockNumber getFixedLayoutPartitionBase(const Partition *partition)
+PhysicalBlockNumber
+getFixedLayoutPartitionBase(const struct partition *partition)
 {
   return partition->base;
 }
 
 /**********************************************************************/
-static inline size_t getEncodedSize(const FixedLayout *layout)
+static inline size_t getEncodedSize(const struct fixed_layout *layout)
 {
   return sizeof(struct layout_3_0) + (sizeof(struct partition_3_0)
                                       * layout->numPartitions);
 }
 
 /**********************************************************************/
-size_t getFixedLayoutEncodedSize(const FixedLayout *layout)
+size_t getFixedLayoutEncodedSize(const struct fixed_layout *layout)
 {
   return ENCODED_HEADER_SIZE + getEncodedSize(layout);
 }
@@ -303,9 +307,10 @@ size_t getFixedLayoutEncodedSize(const FixedLayout *layout)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encodePartitions_3_0(const FixedLayout *layout, Buffer *buffer)
+static int encodePartitions_3_0(const struct fixed_layout *layout,
+                                Buffer                    *buffer)
 {
-  for (const Partition *partition = layout->head;
+  for (const struct partition *partition = layout->head;
        partition != NULL;
        partition = partition->next) {
     STATIC_ASSERT_SIZEOF(PartitionID, sizeof(byte));
@@ -342,7 +347,7 @@ static int encodePartitions_3_0(const FixedLayout *layout, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encodeLayout_3_0(const FixedLayout *layout, Buffer *buffer)
+static int encodeLayout_3_0(const struct fixed_layout *layout, Buffer *buffer)
 {
   int result = ASSERT(layout->numPartitions <= UINT8_MAX,
                       "fixed layout partition count must fit in a byte");
@@ -364,7 +369,7 @@ static int encodeLayout_3_0(const FixedLayout *layout, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
+int encodeFixedLayout(const struct fixed_layout *layout, Buffer *buffer)
 {
   if (!ensureAvailableSpace(buffer, getFixedLayoutEncodedSize(layout))) {
     return UDS_BUFFER_ERROR;
@@ -410,7 +415,7 @@ int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decodePartitions_3_0(Buffer *buffer, FixedLayout *layout)
+static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
 {
   for (size_t i = 0; i < layout->numPartitions; i++) {
     byte id;
@@ -489,7 +494,7 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 }
 
 /**********************************************************************/
-int decodeFixedLayout(Buffer *buffer, FixedLayout **layoutPtr)
+int decodeFixedLayout(Buffer *buffer, struct fixed_layout **layoutPtr)
 {
   Header header;
   int result = decodeHeader(buffer, &header);
@@ -514,8 +519,8 @@ int decodeFixedLayout(Buffer *buffer, FixedLayout **layoutPtr)
     return VDO_UNSUPPORTED_VERSION;
   }
 
-  FixedLayout *layout;
-  result = ALLOCATE(1, FixedLayout, "fixed layout", &layout);
+  struct fixed_layout *layout;
+  result = ALLOCATE(1, struct fixed_layout, "fixed layout", &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }

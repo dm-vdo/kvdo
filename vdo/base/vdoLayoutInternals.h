@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#2 $
  */
 
 #ifndef VDO_LAYOUT_INTERNALS_H
@@ -27,11 +27,11 @@
 
 struct vdoLayout {
   // The current layout of the VDO
-  FixedLayout         *layout;
+  struct fixed_layout *layout;
   // The next layout of the VDO
-  FixedLayout         *nextLayout;
+  struct fixed_layout *nextLayout;
   // The previous layout of the VDO
-  FixedLayout         *previousLayout;
+  struct fixed_layout *previousLayout;
   // The first block in the layouts
   PhysicalBlockNumber  startingOffset;
   // A pointer to the copy completion (if there is one)

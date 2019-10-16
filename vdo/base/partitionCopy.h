@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#2 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -52,9 +52,9 @@ void freeCopyCompletion(VDOCompletion **completionPtr);
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copyPartitionAsync(VDOCompletion *completion,
-                        Partition     *source,
-                        Partition     *target,
-                        VDOCompletion *parent);
+void copyPartitionAsync(VDOCompletion    *completion,
+                        struct partition *source,
+                        struct partition *target,
+                        VDOCompletion    *parent);
 
 #endif /* PARTITION_COPY_H */

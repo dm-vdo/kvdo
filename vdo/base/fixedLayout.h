@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#2 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -38,8 +38,8 @@ extern const BlockCount ALL_FREE_BLOCKS;
  * beginning there is one large unused area, of which parts are carved off.
  * Each carved off section has its own internal offset and size.
  **/
-typedef struct fixedLayout FixedLayout;
-typedef struct partition Partition;
+struct fixed_layout;
+struct partition;
 
 /**
  * Make an unpartitioned fixed layout.
@@ -53,7 +53,7 @@ typedef struct partition Partition;
  **/
 int makeFixedLayout(BlockCount            totalBlocks,
                     PhysicalBlockNumber   startOffset,
-                    FixedLayout         **layoutPtr)
+                    struct fixed_layout **layoutPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -63,7 +63,7 @@ int makeFixedLayout(BlockCount            totalBlocks,
  *
  * @note all partitions created by this layout become invalid pointers
  **/
-void freeFixedLayout(FixedLayout **layoutPtr);
+void freeFixedLayout(struct fixed_layout **layoutPtr);
 
 /**
  * Get the total size of the layout in blocks.
@@ -72,7 +72,7 @@ void freeFixedLayout(FixedLayout **layoutPtr);
  *
  * @return The size of the layout
  **/
-BlockCount getTotalFixedLayoutSize(const FixedLayout *layout)
+BlockCount getTotalFixedLayoutSize(const struct fixed_layout *layout)
   __attribute__((warn_unused_result));
 
 /**
@@ -84,7 +84,9 @@ BlockCount getTotalFixedLayoutSize(const FixedLayout *layout)
  *
  * @return VDO_SUCCESS or an error
  **/
-int getPartition(FixedLayout *layout, PartitionID id, Partition **partitionPtr)
+int getPartition(struct fixed_layout  *layout,
+                 PartitionID           id,
+                 struct partition    **partitionPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -96,9 +98,9 @@ int getPartition(FixedLayout *layout, PartitionID id, Partition **partitionPtr)
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translateToPBN(const Partition     *partition,
-                   PhysicalBlockNumber  partitionBlockNumber,
-                   PhysicalBlockNumber *layerBlockNumber)
+int translateToPBN(const struct partition *partition,
+                   PhysicalBlockNumber     partitionBlockNumber,
+                   PhysicalBlockNumber    *layerBlockNumber)
   __attribute__((warn_unused_result));
 
 /**
@@ -111,9 +113,9 @@ int translateToPBN(const Partition     *partition,
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translateFromPBN(const Partition     *partition,
-                     PhysicalBlockNumber  layerBlockNumber,
-                     PhysicalBlockNumber *partitionBlockNumber)
+int translateFromPBN(const struct partition *partition,
+                     PhysicalBlockNumber     layerBlockNumber,
+                     PhysicalBlockNumber    *partitionBlockNumber)
   __attribute__((warn_unused_result));
 
 /**
@@ -123,7 +125,7 @@ int translateFromPBN(const Partition     *partition,
  *
  * @return the number of blocks yet unallocated to partitions
  **/
-BlockCount getFixedLayoutBlocksAvailable(const FixedLayout *layout)
+BlockCount getFixedLayoutBlocksAvailable(const struct fixed_layout *layout)
   __attribute__((warn_unused_result));
 
 /**
@@ -142,7 +144,7 @@ BlockCount getFixedLayoutBlocksAvailable(const FixedLayout *layout)
  * @return a success or error code, particularly
  *      VDO_NO_SPACE if there are less than blockCount blocks remaining
  **/
-int makeFixedLayoutPartition(FixedLayout         *layout,
+int makeFixedLayoutPartition(struct fixed_layout *layout,
                              PartitionID          id,
                              BlockCount           blockCount,
                              PartitionDirection   direction,
@@ -156,7 +158,7 @@ int makeFixedLayoutPartition(FixedLayout         *layout,
  *
  * @return the size of the partition in blocks
  **/
-BlockCount getFixedLayoutPartitionSize(const Partition *partition)
+BlockCount getFixedLayoutPartitionSize(const struct partition *partition)
   __attribute__((warn_unused_result));
 
 /**
@@ -166,7 +168,8 @@ BlockCount getFixedLayoutPartitionSize(const Partition *partition)
  *
  * @return the partition's offset in blocks
  **/
-PhysicalBlockNumber getFixedLayoutPartitionOffset(const Partition *partition)
+PhysicalBlockNumber
+getFixedLayoutPartitionOffset(const struct partition *partition)
   __attribute__((warn_unused_result));
 
 /**
@@ -177,7 +180,8 @@ PhysicalBlockNumber getFixedLayoutPartitionOffset(const Partition *partition)
  *
  * @return the number of the first block in the partition
  **/
-PhysicalBlockNumber getFixedLayoutPartitionBase(const Partition *partition)
+PhysicalBlockNumber
+getFixedLayoutPartitionBase(const struct partition *partition)
   __attribute__((warn_unused_result));
 
 /**
@@ -187,7 +191,7 @@ PhysicalBlockNumber getFixedLayoutPartitionBase(const Partition *partition)
  *
  * @return The encoded size of the layout
  **/
-size_t getFixedLayoutEncodedSize(const FixedLayout *layout)
+size_t getFixedLayoutEncodedSize(const struct fixed_layout *layout)
   __attribute__((warn_unused_result));
 
 /**
@@ -198,7 +202,7 @@ size_t getFixedLayoutEncodedSize(const FixedLayout *layout)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
+int encodeFixedLayout(const struct fixed_layout *layout, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -209,7 +213,7 @@ int encodeFixedLayout(const FixedLayout *layout, Buffer *buffer)
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeFixedLayout(Buffer *buffer, FixedLayout **layoutPtr)
+int decodeFixedLayout(Buffer *buffer, struct fixed_layout **layoutPtr)
   __attribute__((warn_unused_result));
 
 #endif // FIXED_LAYOUT_H

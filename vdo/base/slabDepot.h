@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#12 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -89,7 +89,7 @@ int makeSlabDepot(BlockCount            blockCount,
                   Nonce                 nonce,
                   BlockCount            vioPoolSize,
                   PhysicalLayer        *layer,
-                  Partition            *summaryPartition,
+                  struct partition     *summaryPartition,
                   ReadOnlyNotifier     *readOnlyNotifier,
                   RecoveryJournal      *recoveryJournal,
                   Atomic32             *vdoState,
@@ -140,7 +140,7 @@ int decodeSodiumSlabDepot(Buffer              *buffer,
                           const ThreadConfig  *threadConfig,
                           Nonce                nonce,
                           PhysicalLayer       *layer,
-                          Partition           *summaryPartition,
+                          struct partition    *summaryPartition,
                           ReadOnlyNotifier    *readOnlyNotifier,
                           RecoveryJournal     *recoveryJournal,
                           SlabDepot          **depotPtr)
@@ -165,7 +165,7 @@ int decodeSlabDepot(Buffer              *buffer,
                     const ThreadConfig  *threadConfig,
                     Nonce                nonce,
                     PhysicalLayer       *layer,
-                    Partition           *summaryPartition,
+                    struct partition    *summaryPartition,
                     ReadOnlyNotifier    *readOnlyNotifier,
                     RecoveryJournal     *recoveryJournal,
                     Atomic32            *vdoState,

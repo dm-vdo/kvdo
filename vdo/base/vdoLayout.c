@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#2 $
  */
 
 #include "vdoLayout.h"
@@ -51,7 +51,7 @@ static const uint8_t REQUIRED_PARTITION_COUNT = 4;
  * @param [in]  blockMapBlocks  The size of the block map partition
  * @param [in]  journalBlocks   The size of the journal partition
  * @param [in]  summaryBlocks   The size of the slab summary partition
- * @param [out] layoutPtr       A pointer to hold the new FixedLayout
+ * @param [out] layoutPtr       A pointer to hold the new fixed_layout
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -61,7 +61,7 @@ static int makeVDOFixedLayout(BlockCount            physicalBlocks,
                               BlockCount            blockMapBlocks,
                               BlockCount            journalBlocks,
                               BlockCount            summaryBlocks,
-                              FixedLayout         **layoutPtr)
+                              struct fixed_layout **layoutPtr)
 {
   BlockCount necessarySize
     = (startingOffset + blockMapBlocks + journalBlocks + summaryBlocks);
@@ -70,7 +70,7 @@ static int makeVDOFixedLayout(BlockCount            physicalBlocks,
                                    " make a VDO");
   }
 
-  FixedLayout *layout;
+  struct fixed_layout *layout;
   int result = makeFixedLayout(physicalBlocks - startingOffset,
                                startingOffset, &layout);
   if (result != VDO_SUCCESS) {
@@ -174,7 +174,7 @@ int decodeVDOLayout(Buffer *buffer, VDOLayout **vdoLayoutPtr)
   }
 
   // Check that all the expected partitions exist
-  Partition *partition;
+  struct partition *partition;
   for (uint8_t i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
     result = getPartition(vdoLayout->layout, REQUIRED_PARTITIONS[i],
                           &partition);
@@ -211,31 +211,32 @@ void freeVDOLayout(VDOLayout **vdoLayoutPtr)
 }
 
 /**
- * Get a partition from a FixedLayout in conditions where we expect that it can
+ * Get a partition from a fixed_layout in conditions where we expect that it can
  * not fail.
  *
- * @param layout  The FixedLayout from which to get the partition
+ * @param layout  The fixed_layout from which to get the partition
  * @param id      The ID of the partition to retrieve
  *
  * @return The desired partition
  **/
 __attribute__((warn_unused_result))
-static Partition *retrievePartition(FixedLayout *layout, PartitionID id)
+static struct partition *retrievePartition(struct fixed_layout *layout,
+                                           PartitionID          id)
 {
-  Partition *partition;
+  struct partition *partition;
   int result = getPartition(layout, id, &partition);
   ASSERT_LOG_ONLY(result == VDO_SUCCESS, "VDOLayout has expected partition");
   return partition;
 }
 
 /**********************************************************************/
-Partition *getVDOPartition(VDOLayout *vdoLayout, PartitionID id)
+struct partition *getVDOPartition(VDOLayout *vdoLayout, PartitionID id)
 {
   return retrievePartition(vdoLayout->layout, id);
 }
 
 /**
- * Get a partition from a VDOLayout's next FixedLayout. This method should
+ * Get a partition from a VDOLayout's next fixed_layout. This method should
  * only be called when the VDOLayout is prepared to grow.
  *
  * @param vdoLayout  The VDOLayout from which to get the partition
@@ -244,8 +245,8 @@ Partition *getVDOPartition(VDOLayout *vdoLayout, PartitionID id)
  * @return The requested partition
  **/
 __attribute__((warn_unused_result))
-static Partition *getPartitionFromNextLayout(VDOLayout   *vdoLayout,
-                                             PartitionID  id)
+static struct partition *getPartitionFromNextLayout(VDOLayout   *vdoLayout,
+                                                    PartitionID  id)
 {
   ASSERT_LOG_ONLY(vdoLayout->nextLayout != NULL,
                   "VDOLayout is prepared to grow");
@@ -305,9 +306,9 @@ int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
   }
 
   // Ensure the new journal and summary are entirely within the added blocks.
-  Partition *slabSummaryPartition
+  struct partition *slabSummaryPartition
     = getPartitionFromNextLayout(vdoLayout, SLAB_SUMMARY_PARTITION);
-  Partition *recoveryJournalPartition
+  struct partition *recoveryJournalPartition
     = getPartitionFromNextLayout(vdoLayout, RECOVERY_JOURNAL_PARTITION);
   BlockCount minNewSize
     = (oldPhysicalBlocks
@@ -324,7 +325,7 @@ int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
 }
 
 /**
- * Get the size of a VDO from the specified FixedLayout and the
+ * Get the size of a VDO from the specified fixed_layout and the
  * starting offset thereof.
  *
  * @param layout          The fixed layout whose size to use
@@ -333,9 +334,10 @@ int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
  * @return The total size of a VDO (in blocks) with the given layout
  **/
 __attribute__((warn_unused_result))
-static BlockCount getVDOSize(FixedLayout *layout, BlockCount startingOffset)
+static BlockCount getVDOSize(struct fixed_layout *layout,
+                             BlockCount           startingOffset)
 {
-  // The FixedLayout does not include the super block or any earlier
+  // The fixed_layout does not include the super block or any earlier
   // metadata; all that is captured in the VDOLayout's starting offset
   return getTotalFixedLayoutSize(layout) + startingOffset;
 }
@@ -354,8 +356,8 @@ BlockCount getNextBlockAllocatorPartitionSize(VDOLayout *vdoLayout)
     return 0;
   }
 
-  Partition *partition = getPartitionFromNextLayout(vdoLayout,
-                                                    BLOCK_ALLOCATOR_PARTITION);
+  struct partition *partition
+    = getPartitionFromNextLayout(vdoLayout, BLOCK_ALLOCATOR_PARTITION);
   return getFixedLayoutPartitionSize(partition);
 }
 

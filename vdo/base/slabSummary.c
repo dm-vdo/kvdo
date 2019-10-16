@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#9 $
  */
 
 #include "slabSummary.h"
@@ -192,7 +192,7 @@ static int makeSlabSummaryZone(SlabSummary      *summary,
 
 /**********************************************************************/
 int makeSlabSummary(PhysicalLayer       *layer,
-                    Partition           *partition,
+                    struct partition    *partition,
                     const ThreadConfig  *threadConfig,
                     unsigned int         slabSizeShift,
                     BlockCount           maximumFreeBlocksPerSlab,
@@ -530,7 +530,7 @@ void getSummarizedSlabStatuses(SlabSummaryZone    *summaryZone,
 // RESIZE FUNCTIONS
 
 /**********************************************************************/
-void setSlabSummaryOrigin(SlabSummary *summary, Partition *partition)
+void setSlabSummaryOrigin(SlabSummary *summary, struct partition *partition)
 {
   summary->origin = getFixedLayoutPartitionOffset(partition);
 }

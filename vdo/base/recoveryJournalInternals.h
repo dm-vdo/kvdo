@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#7 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -63,7 +63,7 @@ struct recoveryJournal {
   /** Whether a reap is in progress */
   bool                       reaping;
   /** The partition which holds the journal on disk */
-  Partition                 *partition;
+  struct partition          *partition;
   /** The oldest active block in the journal on disk for block map rebuild */
   SequenceNumber             blockMapHead;
   /** The oldest active block in the journal on disk for slab journal replay */

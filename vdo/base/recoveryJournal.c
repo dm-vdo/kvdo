@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#13 $
  */
 
 #include "recoveryJournal.h"
@@ -400,7 +400,7 @@ static void setJournalTail(RecoveryJournal *journal, SequenceNumber tail)
 /**********************************************************************/
 int makeRecoveryJournal(Nonce                nonce,
                         PhysicalLayer       *layer,
-                        Partition           *partition,
+                        struct partition    *partition,
                         uint64_t             recoveryCount,
                         BlockCount           journalSize,
                         BlockCount           tailBufferSize,
@@ -520,8 +520,8 @@ void freeRecoveryJournal(RecoveryJournal **journalPtr)
 }
 
 /**********************************************************************/
-void setRecoveryJournalPartition(RecoveryJournal *journal,
-                                 Partition       *partition)
+void setRecoveryJournalPartition(RecoveryJournal  *journal,
+                                 struct partition *partition)
 {
   journal->partition = partition;
 }

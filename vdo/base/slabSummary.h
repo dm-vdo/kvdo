@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#7 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -92,7 +92,7 @@ __attribute__((warn_unused_result));
  * @return VDO_SUCCESS or an error
  **/
 int makeSlabSummary(PhysicalLayer       *layer,
-                    Partition           *partition,
+                    struct partition    *partition,
                     const ThreadConfig  *threadConfig,
                     unsigned int         slabSizeShift,
                     BlockCount           maximumFreeBlocksPerSlab,
@@ -236,7 +236,7 @@ void getSummarizedSlabStatuses(SlabSummaryZone    *summaryZone,
  * @param summary    The SlabSummary to update
  * @param partition  The slab summary partition
  **/
-void setSlabSummaryOrigin(SlabSummary *summary, Partition *partition);
+void setSlabSummaryOrigin(SlabSummary *summary, struct partition *partition);
 
 /**
  * Read in all the slab summary data from the slab summary partition,

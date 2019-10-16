@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#3 $
  */
 
 #include "partitionCopy.h"
@@ -39,9 +39,9 @@ struct copy_completion {
   /** completion header */
   VDOCompletion        completion;
   /** the source partition to copy from */
-  Partition           *source;
+  struct partition    *source;
   /** the target partition to copy to */
-  Partition           *target;
+  struct partition    *target;
   /** the current in-partition PBN the copy is beginning at */
   PhysicalBlockNumber  currentIndex;
   /** the last block to copy */
@@ -196,7 +196,8 @@ static void copyPartitionStride(struct copy_completion *copy)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int validatePartitionCopy(Partition *source, Partition *target)
+static int validatePartitionCopy(struct partition *source,
+                                 struct partition *target)
 {
   BlockCount sourceSize = getFixedLayoutPartitionSize(source);
   BlockCount targetSize = getFixedLayoutPartitionSize(target);
@@ -218,10 +219,10 @@ static int validatePartitionCopy(Partition *source, Partition *target)
 }
 
 /**********************************************************************/
-void copyPartitionAsync(VDOCompletion *completion,
-                        Partition     *source,
-                        Partition     *target,
-                        VDOCompletion *parent)
+void copyPartitionAsync(VDOCompletion    *completion,
+                        struct partition *source,
+                        struct partition *target,
+                        VDOCompletion    *parent)
 {
   int result = validatePartitionCopy(source, target);
   if (result != VDO_SUCCESS) {

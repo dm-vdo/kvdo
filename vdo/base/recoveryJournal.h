@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#6 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -154,7 +154,7 @@ const char *getJournalOperationName(JournalOperation operation)
  **/
 int makeRecoveryJournal(Nonce                nonce,
                         PhysicalLayer       *layer,
-                        Partition           *partition,
+                        struct partition    *partition,
                         uint64_t             recoveryCount,
                         BlockCount           journalSize,
                         BlockCount           tailBufferSize,
@@ -177,8 +177,8 @@ void freeRecoveryJournal(RecoveryJournal **journalPtr);
  * @param journal   the journal being moved
  * @param partition the new journal partition
  **/
-void setRecoveryJournalPartition(RecoveryJournal *journal,
-                                 Partition       *partition);
+void setRecoveryJournalPartition(RecoveryJournal  *journal,
+                                 struct partition *partition);
 
 /**
  * Initialize the journal after a recovery.
