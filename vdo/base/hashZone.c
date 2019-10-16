@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#4 $
  */
 
 #include "hashZone.h"
@@ -67,7 +67,7 @@ struct hashZone {
   ThreadID                           threadID;
 
   /** Mapping from chunkName fields to HashLocks */
-  PointerMap                        *hashLockMap;
+  struct pointer_map                *hashLockMap;
 
   /** Ring containing all unused HashLocks */
   RingNode                           lockPool;
@@ -208,7 +208,7 @@ int acquireHashLockFromZone(HashZone            *zone,
                             HashLock           **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two
-  // PointerMap accesses in the common case of no lock contention.
+  // pointer_map accesses in the common case of no lock contention.
   HashLock *newLock = asHashLock(popRingNode(&zone->lockPool));
   int result = ASSERT(newLock != NULL,
                       "never need to wait for a free hash lock");

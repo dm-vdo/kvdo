@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.c#3 $
  */
 
 /**
@@ -103,12 +103,12 @@ struct __attribute__((packed)) bucket {
 };
 
 /**
- * The concrete definition of the opaque PointerMap type. To avoid having to
+ * The concrete definition of the opaque pointer_map type. To avoid having to
  * wrap the neighborhoods of the last entries back around to the start of the
  * bucket array, we allocate a few more buckets at the end of the array
  * instead, which is why capacity and bucketCount are different.
  **/
-struct pointerMap {
+struct pointer_map {
   /** the number of entries stored in the map */
   size_t                size;
   /** the number of neighborhoods in the map */
@@ -124,14 +124,14 @@ struct pointerMap {
 };
 
 /**
- * Initialize a PointerMap.
+ * Initialize a pointer_map.
  *
  * @param map       the map to initialize
  * @param capacity  the initial capacity of the map
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int allocateBuckets(PointerMap *map, size_t capacity)
+static int allocateBuckets(struct pointer_map *map, size_t capacity)
 {
   map->size     = 0;
   map->capacity = capacity;
@@ -139,7 +139,7 @@ static int allocateBuckets(PointerMap *map, size_t capacity)
   // Allocate NEIGHBORHOOD - 1 extra buckets so the last bucket can have a
   // full neighborhood without have to wrap back around to element zero.
   map->bucketCount = capacity + (NEIGHBORHOOD - 1);
-  return ALLOCATE(map->bucketCount, struct bucket, "PointerMap buckets",
+  return ALLOCATE(map->bucketCount, struct bucket, "pointer_map buckets",
                   &map->buckets);
 }
 
@@ -148,7 +148,7 @@ int makePointerMap(size_t                 initialCapacity,
                    unsigned int           initialLoad,
                    PointerKeyComparator   comparator,
                    PointerKeyHasher       hasher,
-                   PointerMap           **mapPtr)
+                   struct pointer_map   **mapPtr)
 {
   // Use the default initial load if the caller did not specify one.
   if (initialLoad == 0) {
@@ -158,8 +158,8 @@ int makePointerMap(size_t                 initialCapacity,
     return UDS_INVALID_ARGUMENT;
   }
 
-  PointerMap *map;
-  int result = ALLOCATE(1, PointerMap, "PointerMap", &map);
+  struct pointer_map *map;
+  int result = ALLOCATE(1, struct pointer_map, "pointer_map", &map);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -189,14 +189,14 @@ int makePointerMap(size_t                 initialCapacity,
  *
  * @param map  the map whose bucket array is to be freed
  **/
-static void freeBuckets(PointerMap *map)
+static void freeBuckets(struct pointer_map *map)
 {
   FREE(map->buckets);
   map->buckets = NULL;
 }
 
 /**********************************************************************/
-void freePointerMap(PointerMap **mapPtr)
+void freePointerMap(struct pointer_map **mapPtr)
 {
   if (*mapPtr != NULL) {
     freeBuckets(*mapPtr);
@@ -206,7 +206,7 @@ void freePointerMap(PointerMap **mapPtr)
 }
 
 /**********************************************************************/
-size_t pointerMapSize(const PointerMap *map)
+size_t pointerMapSize(const struct pointer_map *map)
 {
   return map->size;
 }
@@ -273,7 +273,8 @@ static void insertInHopList(struct bucket *neighborhood,
  * @param map  the map to search
  * @param key  the mapping key
  **/
-static struct bucket *selectBucket(const PointerMap *map, const void *key)
+static struct bucket *selectBucket(const struct pointer_map *map,
+                                   const void               *key)
 {
   /*
    * Scale the 32-bit hash to a bucket index by treating it as a binary
@@ -300,10 +301,10 @@ static struct bucket *selectBucket(const PointerMap *map, const void *key)
  *
  * @return an entry that matches the key, or <code>NULL</code> if not found
  **/
-static struct bucket *searchHopList(PointerMap  *map,
-                             struct bucket      *bucket,
-                             const void         *key,
-                             struct bucket     **previousPtr)
+static struct bucket *searchHopList(struct pointer_map  *map,
+                             struct bucket              *bucket,
+                             const void                 *key,
+                             struct bucket             **previousPtr)
 {
   struct bucket *previous = NULL;
   unsigned int nextHop = bucket->firstHop;
@@ -323,7 +324,7 @@ static struct bucket *searchHopList(PointerMap  *map,
 }
 
 /**********************************************************************/
-void *pointerMapGet(PointerMap *map, const void *key)
+void *pointerMapGet(struct pointer_map *map, const void *key)
 {
   struct bucket *match = searchHopList(map, selectBucket(map, key), key, NULL);
   return ((match != NULL) ? match->value : NULL);
@@ -335,10 +336,10 @@ void *pointerMapGet(PointerMap *map, const void *key)
  *
  * @param map  the map to resize
  **/
-static int resizeBuckets(PointerMap *map)
+static int resizeBuckets(struct pointer_map *map)
 {
   // Copy the top-level map data to the stack.
-  PointerMap oldMap = *map;
+  struct pointer_map oldMap = *map;
 
   // Re-initialize the map to be empty and 50% larger.
   size_t newCapacity = map->capacity / 2 * 3;
@@ -383,9 +384,9 @@ static int resizeBuckets(PointerMap *map)
  *
  * @return the next empty bucket, or <code>NULL</code> if the search failed
  **/
-static struct bucket *findEmptyBucket(PointerMap   *map,
-                               struct bucket       *bucket,
-                               unsigned int         maxProbes)
+static struct bucket *findEmptyBucket(struct pointer_map *map,
+                               struct bucket             *bucket,
+                               unsigned int               maxProbes)
 {
   // Limit the search to either the nearer of the end of the bucket array or a
   // fixed distance beyond the initial bucket.
@@ -413,8 +414,9 @@ static struct bucket *findEmptyBucket(PointerMap   *map,
  * @return the bucket that was vacated by moving its entry to the provided
  *         hole, or <code>NULL</code> if no entry could be moved
  **/
-static struct bucket *moveEmptyBucket(PointerMap *map __attribute__((unused)),
-                                      struct bucket *hole)
+static struct bucket *
+moveEmptyBucket(struct pointer_map *map __attribute__((unused)),
+                struct bucket      *hole)
 {
   /*
    * Examine every neighborhood that the empty bucket is part of, starting
@@ -468,7 +470,7 @@ static struct bucket *moveEmptyBucket(PointerMap *map __attribute__((unused)),
  * Find and update any existing mapping for a given key, returning the value
  * associated with the key in the provided pointer.
  *
- * @param [in]  map           the PointerMap to attempt to modify
+ * @param [in]  map           the pointer_map to attempt to modify
  * @param [in]  neighborhood  the first bucket in the neighborhood that
  *                            would contain the search key
  * @param [in]  key           the key with which to associate the new value
@@ -480,12 +482,12 @@ static struct bucket *moveEmptyBucket(PointerMap *map __attribute__((unused)),
  * @return <code>true</code> if the map contains a mapping for the key
  *         <code>false</code> if it does not
  **/
-static bool updateMapping(PointerMap    *map,
-                          struct bucket *neighborhood,
-                          const void    *key,
-                          void          *newValue,
-                          bool           update,
-                          void         **oldValuePtr)
+static bool updateMapping(struct pointer_map  *map,
+                          struct bucket       *neighborhood,
+                          const void          *key,
+                          void                *newValue,
+                          bool                 update,
+                          void               **oldValuePtr)
 {
   struct bucket *bucket = searchHopList(map, neighborhood, key, NULL);
   if (bucket == NULL) {
@@ -513,15 +515,15 @@ static bool updateMapping(PointerMap    *map,
  * may fail (returning NULL) if an empty bucket is not available or could not
  * be relocated to the neighborhood.
  *
- * @param map           the PointerMap to search or modify
+ * @param map           the pointer_map to search or modify
  * @param neighborhood  the first bucket in the neighborhood in which
  *                      an empty bucket is needed for a new mapping
  *
  * @return a pointer to an empty bucket in the desired neighborhood, or
  *         <code>NULL</code> if a vacancy could not be found or arranged
  **/
-static struct bucket *findOrMakeVacancy(PointerMap    *map,
-                                        struct bucket *neighborhood)
+static struct bucket *findOrMakeVacancy(struct pointer_map *map,
+                                        struct bucket      *neighborhood)
 {
   // Probe within and beyond the neighborhood for the first empty bucket.
   struct bucket *hole = findEmptyBucket(map, neighborhood, MAX_PROBES);
@@ -545,11 +547,11 @@ static struct bucket *findOrMakeVacancy(PointerMap    *map,
 }
 
 /**********************************************************************/
-int pointerMapPut(PointerMap  *map,
-                  const void  *key,
-                  void        *newValue,
-                  bool         update,
-                  void       **oldValuePtr)
+int pointerMapPut(struct pointer_map  *map,
+                  const void          *key,
+                  void                *newValue,
+                  bool                 update,
+                  void               **oldValuePtr)
 {
   if (newValue == NULL) {
     return UDS_INVALID_ARGUMENT;
@@ -603,7 +605,7 @@ int pointerMapPut(PointerMap  *map,
 }
 
 /**********************************************************************/
-void *pointerMapRemove(PointerMap *map, const void *key)
+void *pointerMapRemove(struct pointer_map *map, const void *key)
 {
   // Select the bucket to search and search it for an existing entry.
   struct bucket *bucket = selectBucket(map, key);
