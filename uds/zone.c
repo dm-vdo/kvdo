@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/zone.c#1 $
+ * $Id: //eng/uds-releases/homer/src/uds/zone.c#2 $
  */
 
 #include "zone.h"
@@ -36,7 +36,7 @@ static const NumericValidationData validRange = {
 /**********************************************************************/
 static unsigned int getDefaultZoneCount(void)
 {
-  unsigned int zoneCount = getNumCores();
+  unsigned int zoneCount = getNumCores() / 2;
   if (zoneCount < validRange.minValue) {
     zoneCount = validRange.minValue;
   }
