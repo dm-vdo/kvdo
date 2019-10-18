@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#4 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -155,8 +155,8 @@ __attribute__((warn_unused_result));
 /**
  * Convert an index config to a UDS configuration, which can be used by UDS.
  *
- * @param [in]  indexConfig   The index config to convert
- * @param [out] udsConfigPtr  A pointer to return the UDS configuration
+ * @param indexConfig   The index config to convert
+ * @param udsConfigPtr  A pointer to return the UDS configuration
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -167,8 +167,8 @@ __attribute__((warn_unused_result));
 /**
  * Modify the uds_parameters to match the requested index config.
  *
- * @param [in]     indexConfig  The index config to convert
- * @param [in/out] userParams   The uds_parameters to modify
+ * @param indexConfig  The index config to convert
+ * @param userParams   The uds_parameters to modify
  **/
 void indexConfigToUdsParameters(IndexConfig           *indexConfig,
                                 struct uds_parameters *userParams);
@@ -176,8 +176,8 @@ void indexConfigToUdsParameters(IndexConfig           *indexConfig,
 /**
  * Compute the index size in blocks from the IndexConfig.
  *
- * @param [in]  indexConfig     The index config
- * @param [out] indexBlocksPtr  A pointer to return the index size in blocks
+ * @param indexConfig     The index config
+ * @param indexBlocksPtr  A pointer to return the index size in blocks
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -187,8 +187,8 @@ __attribute__((warn_unused_result));
 /**
  * Set load config fields from a volume geometry.
  *
- * @param [in]  geometry    The geometry to use
- * @param [out] loadConfig  The load config to set
+ * @param geometry    The geometry to use
+ * @param loadConfig  The load config to set
  **/
 static inline void setLoadConfigFromGeometry(struct volume_geometry *geometry,
                                              VDOLoadConfig          *loadConfig)
