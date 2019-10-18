@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.c#2 $
  */
 
 #include "indexConfig.h"
@@ -270,7 +270,6 @@ int makeConfiguration(UdsConfiguration conf, Configuration **configPtr)
     return result;
   }
 
-  config->checkpointFrequency  = conf->checkpointFrequency;
   config->sparseSampleRate     = conf->sparseSampleRate;
   config->cacheChapters        = conf->cacheChapters;
   config->masterIndexMeanDelta = conf->masterIndexMeanDelta;

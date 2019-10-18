@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/config.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/config.c#2 $
  */
 
 #include "config.h"
@@ -61,11 +61,6 @@ bool areUdsConfigurationsEqual(UdsConfiguration a, UdsConfiguration b)
              a->cacheChapters, b->cacheChapters);
     result = false;
   }
-  if (a->checkpointFrequency != b->checkpointFrequency) {
-    logError("Checkpoint frequency (%u) does not match (%u)",
-             a->checkpointFrequency, b->checkpointFrequency);
-    result = false;
-  }
   if (a->masterIndexMeanDelta != b->masterIndexMeanDelta) {
     logError("Master index mean delta (%u) does not match (%u)",
              a->masterIndexMeanDelta, b->masterIndexMeanDelta);
@@ -97,7 +92,6 @@ void logUdsConfiguration(UdsConfiguration conf)
   logDebug("  Chapters per volume:        %10u", conf->chaptersPerVolume);
   logDebug("  Sparse chapters per volume: %10u", conf->sparseChaptersPerVolume);
   logDebug("  Cache size (chapters):      %10u", conf->cacheChapters);
-  logDebug("  Checkpoint frequency:       %10u", conf->checkpointFrequency);
   logDebug("  Master index mean delta:    %10u", conf->masterIndexMeanDelta);
   logDebug("  Bytes per page:             %10u", conf->bytesPerPage);
   logDebug("  Sparse sample rate:         %10u", conf->sparseSampleRate);

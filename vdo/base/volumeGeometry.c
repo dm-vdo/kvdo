@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#7 $
  */
 
 #include "volumeGeometry.h"
@@ -555,15 +555,13 @@ int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
   }
 
   udsConfigurationSetSparse(udsConfiguration, indexConfig->sparse);
-
-  uint32_t cfreq = indexConfig->checkpointFrequency;
-  result = udsConfigurationSetCheckpointFrequency(udsConfiguration, cfreq);
-  if (result != UDS_SUCCESS) {
-    udsFreeConfiguration(udsConfiguration);
-    return logErrorWithStringError(result, "error setting checkpoint"
-                                   " frequency");
-  }
-
   *udsConfigPtr = udsConfiguration;
   return VDO_SUCCESS;
+}
+
+/************************************************************************/
+void indexConfigToUdsParameters(IndexConfig           *indexConfig,
+                                struct uds_parameters *userParams)
+{
+  userParams->checkpoint_frequency = indexConfig->checkpointFrequency;
 }

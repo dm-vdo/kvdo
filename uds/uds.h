@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#10 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds.h#11 $
  */
 
 /**
@@ -94,11 +94,11 @@ typedef enum {
 } UdsOpenIndexType;
 
 /** General UDS constants. */
-/** The chunk name size in bytes (128 bits = 16 bytes). */
-#define UDS_CHUNK_NAME_SIZE 16
 enum {
+  /** The chunk name size in bytes (128 bits = 16 bytes). */
+  UDS_CHUNK_NAME_SIZE   = 16,
   /** The maximum metadata size in bytes. */
-  UDS_MAX_METADATA_SIZE = 16
+  UDS_MAX_METADATA_SIZE = 16,
 };
 
 /**
@@ -297,31 +297,6 @@ void udsConfigurationSetNonce(UdsConfiguration conf, UdsNonce nonce);
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 UdsNonce udsConfigurationGetNonce(UdsConfiguration conf);
-
-/**
- * Sets an index configuration's checkpoint frequency.
- *
- * @param [in,out] conf              The configuration to change
- * @param [in] checkpointFrequency   The number of chapters to write between
- *                                   checkpoints
- *
- * @return                           Either #UDS_SUCCESS or an error code.
- *
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsConfigurationSetCheckpointFrequency(UdsConfiguration conf,
-                                           unsigned int checkpointFrequency);
-
-/**
- * Fetches a configuration's checkpoint frequency.
- *
- * @param [in] conf                  The configuration to check
- *
- * @return The checkpoint frequency (the number of chapters written between
- *         checkpoints)
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-unsigned int udsConfigurationGetCheckpointFrequency(UdsConfiguration conf);
 
 /**
  * Fetches a configuration's maximum memory allocation.

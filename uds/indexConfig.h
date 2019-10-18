@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexConfig.h#2 $
  */
 
 #ifndef INDEX_CONFIG_H
@@ -36,9 +36,6 @@ struct configuration {
 
   /* Size of the page cache and sparse chapter index cache, in chapters */
   unsigned int cacheChapters;
-
-  /* The number of chapters to write before checkpointing */
-  unsigned int checkpointFrequency;
 
   /** Parameters for the master index */
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#9 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#10 $
  */
 
 #include "uds.h"
@@ -59,27 +59,22 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
    * the test infrastructure will be forced to test the new configuration.
    */
 
-  unsigned int chaptersPerVolume, recordPagesPerChapter, checkpointFrequency;
+  unsigned int chaptersPerVolume, recordPagesPerChapter;
   if (memGB == UDS_MEMORY_CONFIG_256MB) {
     chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
     recordPagesPerChapter = SMALL_RECORD_PAGES_PER_CHAPTER;
-    checkpointFrequency   = DEFAULT_CHECKPOINT_FREQUENCY;
   } else if (memGB == UDS_MEMORY_CONFIG_512MB) {
     chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
     recordPagesPerChapter = 2 * SMALL_RECORD_PAGES_PER_CHAPTER;
-    checkpointFrequency   = DEFAULT_CHECKPOINT_FREQUENCY;
   } else if (memGB == UDS_MEMORY_CONFIG_768MB) {
     chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
     recordPagesPerChapter = 3 * SMALL_RECORD_PAGES_PER_CHAPTER;
-    checkpointFrequency   = DEFAULT_CHECKPOINT_FREQUENCY;
   } else if (memGB == 1) {
     chaptersPerVolume     = DEFAULT_CHAPTERS_PER_VOLUME;
     recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-    checkpointFrequency   = DEFAULT_CHECKPOINT_FREQUENCY;
   } else if ((memGB > 1) && (memGB <= UDS_MEMORY_CONFIG_MAX)) {
     chaptersPerVolume     = memGB * DEFAULT_CHAPTERS_PER_VOLUME;
     recordPagesPerChapter = DEFAULT_RECORD_PAGES_PER_CHAPTER;
-    checkpointFrequency   = memGB * DEFAULT_CHECKPOINT_FREQUENCY;
   } else {
     return UDS_INVALID_MEMORY_SIZE;
   }
@@ -94,7 +89,7 @@ int udsInitializeConfiguration(UdsConfiguration    *userConfig,
   (*userConfig)->chaptersPerVolume       = chaptersPerVolume;
   (*userConfig)->sparseChaptersPerVolume = DEFAULT_SPARSE_CHAPTERS_PER_VOLUME;
   (*userConfig)->cacheChapters           = DEFAULT_CACHE_CHAPTERS;
-  (*userConfig)->checkpointFrequency     = checkpointFrequency;
+  (*userConfig)->checkpointFrequency     = DEFAULT_CHECKPOINT_FREQUENCY;
   (*userConfig)->masterIndexMeanDelta    = DEFAULT_MASTER_INDEX_MEAN_DELTA;
   (*userConfig)->bytesPerPage            = DEFAULT_BYTES_PER_PAGE;
   (*userConfig)->sparseSampleRate        = DEFAULT_SPARSE_SAMPLE_RATE;
@@ -141,25 +136,6 @@ void udsConfigurationSetNonce(UdsConfiguration userConfig, UdsNonce nonce)
 UdsNonce udsConfigurationGetNonce(UdsConfiguration userConfig)
 {
   return userConfig->nonce;
-}
-
-/**********************************************************************/
-int udsConfigurationSetCheckpointFrequency(
-  UdsConfiguration userConfig,
-  unsigned int checkpointFrequency)
-{
-  if (checkpointFrequency > userConfig->chaptersPerVolume) {
-    return UDS_BAD_CHECKPOINT_FREQUENCY;
-  }
-  userConfig->checkpointFrequency = checkpointFrequency;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-unsigned int udsConfigurationGetCheckpointFrequency(
-  UdsConfiguration userConfig)
-{
-  return userConfig->checkpointFrequency;
 }
 
 /**********************************************************************/

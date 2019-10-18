@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#7 $
  */
 
 #include "indexInternals.h"
@@ -45,6 +45,12 @@ int allocateIndex(IndexLayout                  *layout,
                   LoadType                      loadType,
                   Index                       **newIndex)
 {
+  unsigned int checkpoint_frequency
+    = userParams == NULL ? 0 : userParams->checkpoint_frequency;
+  if (checkpoint_frequency >= config->geometry->chaptersPerVolume) {
+    return UDS_BAD_CHECKPOINT_FREQUENCY;
+  }
+
   Index *index;
   int result = ALLOCATE(1, Index, "index", &index);
   if (result != UDS_SUCCESS) {
@@ -60,7 +66,7 @@ int allocateIndex(IndexLayout                  *layout,
     freeIndex(index);
     return result;
   }
-  setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
+  setIndexCheckpointFrequency(index->checkpoint, checkpoint_frequency);
 
   getIndexLayout(layout, &index->layout);
   index->zoneCount = zoneCount;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#31 $
  */
 
 #include "dedupeIndex.h"
@@ -939,6 +939,8 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	}
 
         index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
+	indexConfigToUdsParameters(&layer->geometry.indexConfig,
+				   &index->uds_params);
 	result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,
 					       &index->configuration);
 	if (result != VDO_SUCCESS) {

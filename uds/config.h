@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/config.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/config.h#2 $
  */
 
 #ifndef CONFIG_H
@@ -46,6 +46,7 @@ struct udsConfiguration {
   /** Size of the page cache, in chapters */
   unsigned int cacheChapters;
   /** Frequency with which to checkpoint */
+  // XXX the checkpointFrequency is not used - it is now a runtime parameter
   unsigned int checkpointFrequency;
   /** The master index mean delta to use */
   unsigned int masterIndexMeanDelta;
