@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.h#3 $
  */
 
 #ifndef BLOCK_MAP_PAGE_H
@@ -80,9 +80,9 @@ typedef union __attribute__((packed)) {
  * The format of a block map page.
  **/
 struct block_map_page {
-  PackedVersionNumber version;
-  PageHeader          header;
-  BlockMapEntry       entries[];
+  struct packed_version_number version;
+  PageHeader                   header;
+  BlockMapEntry                entries[];
 } __attribute__((packed));
 
 typedef enum {

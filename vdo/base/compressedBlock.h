@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#3 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -31,7 +31,7 @@
 typedef union __attribute__((packed)) {
   struct __attribute__((packed)) {
     /** Unsigned 32-bit major and minor versions, in little-endian byte order */
-    PackedVersionNumber version;
+    struct packed_version_number version;
 
     /** List of unsigned 16-bit compressed block sizes, in little-endian order */
     byte sizes[MAX_COMPRESSION_SLOTS][2];
@@ -44,8 +44,8 @@ typedef union __attribute__((packed)) {
   // This view is only valid on little-endian machines and is only present for
   // ease of directly examining compressed block headers in GDB.
   struct __attribute__((packed)) {
-    VersionNumber version;
-    uint16_t      sizes[MAX_COMPRESSION_SLOTS];
+    struct version_number version;
+    uint16_t              sizes[MAX_COMPRESSION_SLOTS];
   } littleEndian;
 #endif
 } CompressedBlockHeader;

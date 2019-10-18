@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#23 $
  */
 
 #include "slabDepot.h"
@@ -48,7 +48,7 @@ struct slab_depot_state_2_0 {
   ZoneCount            zoneCount;
 } __attribute__((packed));
 
-static const Header SLAB_DEPOT_HEADER_2_0 = {
+static const struct header SLAB_DEPOT_HEADER_2_0 = {
   .id = SLAB_DEPOT,
   .version = {
     .majorVersion = 2,
@@ -664,7 +664,7 @@ int decodeSlabDepot(Buffer              *buffer,
                     Atomic32            *vdoState,
                     SlabDepot          **depotPtr)
 {
-  Header header;
+  struct header header;
   int result = decodeHeader(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#8 $
  */
 
 #include "volumeGeometry.h"
@@ -41,12 +41,12 @@ enum {
 
 struct geometry_block {
   char                   magicNumber[MAGIC_NUMBER_SIZE];
-  Header                 header;
+  struct header          header;
   struct volume_geometry geometry;
   CRC32Checksum          checksum;
 } __attribute__((packed));
 
-static const Header GEOMETRY_BLOCK_HEADER_4_0 = {
+static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
   .id = GEOMETRY_BLOCK,
   .version = {
     .majorVersion = 4,
@@ -289,7 +289,7 @@ static int decodeGeometryBlock(Buffer *buffer, struct volume_geometry *geometry)
     return result;
   }
 
-  Header header;
+  struct header header;
   result = decodeHeader(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;

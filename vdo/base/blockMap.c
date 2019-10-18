@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#20 $
  */
 
 #include "blockMap.h"
@@ -47,7 +47,7 @@ struct block_map_state_2_0 {
   BlockCount          rootCount;
 } __attribute__((packed));
 
-static const Header BLOCK_MAP_HEADER_2_0 = {
+static const struct header BLOCK_MAP_HEADER_2_0 = {
   .id             = BLOCK_MAP,
   .version        = {
     .majorVersion = 2,
@@ -222,7 +222,7 @@ int decodeBlockMap(Buffer              *buffer,
                    const ThreadConfig  *threadConfig,
                    BlockMap           **mapPtr)
 {
-  Header header;
+  struct header header;
   int    result = decodeHeader(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;

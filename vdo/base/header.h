@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#2 $
  */
 
 #ifndef HEADER_H
@@ -39,19 +39,19 @@
  * to), should increment the major version, and set the minor version
  * to 0.
  **/
-typedef struct {
+struct version_number {
   uint32_t majorVersion;
   uint32_t minorVersion;
-} __attribute__((packed)) VersionNumber;
+} __attribute__((packed));
 
 /**
- * A packed, machine-independent, on-disk representation of a VersionNumber.
+ * A packed, machine-independent, on-disk representation of a version_number.
  * Both fields are stored in little-endian byte order.
  **/
-typedef struct {
+struct packed_version_number {
   byte majorVersion[4];
   byte minorVersion[4];
-} __attribute__((packed)) PackedVersionNumber;
+} __attribute__((packed));
 
 /**
  * The registry of component ids for use in headers
@@ -68,14 +68,14 @@ typedef enum {
 /**
  * The header for versioned data stored on disk.
  **/
-typedef struct {
-  ComponentID         id;       // The component this is a header for
-  VersionNumber       version;  // The version of the data format
-  size_t              size;     // The size of the data following this header
-} __attribute__((packed)) Header;
+struct header {
+  ComponentID           id;     // The component this is a header for
+  struct version_number version; // The version of the data format
+  size_t                size;   // The size of the data following this header
+} __attribute__((packed));
 
 enum {
-  ENCODED_HEADER_SIZE = sizeof(Header),
+  ENCODED_HEADER_SIZE = sizeof(struct header),
 };
 
 /**
@@ -86,8 +86,8 @@ enum {
  *
  * @return <code>true</code> if the two versions are the same
  **/
-static inline bool areSameVersion(VersionNumber versionA,
-                                  VersionNumber versionB)
+static inline bool areSameVersion(struct version_number versionA,
+                                  struct version_number versionB)
 {
   return ((versionA.majorVersion == versionB.majorVersion)
           && (versionA.minorVersion == versionB.minorVersion));
@@ -104,8 +104,8 @@ static inline bool areSameVersion(VersionNumber versionA,
  *
  * @return <code>true</code> if the actual version is upgradable
  **/
-static inline bool isUpgradableVersion(VersionNumber expectedVersion,
-                                       VersionNumber actualVersion)
+static inline bool isUpgradableVersion(struct version_number expectedVersion,
+                                       struct version_number actualVersion)
 {
   return ((expectedVersion.majorVersion == actualVersion.majorVersion)
           && (expectedVersion.minorVersion > actualVersion.minorVersion));
@@ -123,9 +123,9 @@ static inline bool isUpgradableVersion(VersionNumber expectedVersion,
  * @return VDO_SUCCESS             if the versions are the same
  *         VDO_UNSUPPORTED_VERSION if the versions don't match
  **/
-int validateVersion(VersionNumber  expectedVersion,
-                    VersionNumber  actualVersion,
-                    const char    *componentName)
+int validateVersion(struct version_number  expectedVersion,
+                    struct version_number  actualVersion,
+                    const char            *componentName)
   __attribute__((warn_unused_result));
 
 /**
@@ -143,10 +143,10 @@ int validateVersion(VersionNumber  expectedVersion,
  *         VDO_INCORRECT_COMPONENT if the component ids don't match
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
  **/
-int validateHeader(const Header *expectedHeader,
-                   const Header *actualHeader,
-                   bool          exactSize,
-                   const char   *componentName)
+int validateHeader(const struct header *expectedHeader,
+                   const struct header *actualHeader,
+                   bool                 exactSize,
+                   const char          *componentName)
   __attribute__((warn_unused_result));
 
 /**
@@ -157,7 +157,7 @@ int validateHeader(const Header *expectedHeader,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeHeader(const Header *header, Buffer *buffer)
+int encodeHeader(const struct header *header, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -168,7 +168,7 @@ int encodeHeader(const Header *header, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeVersionNumber(VersionNumber version, Buffer *buffer)
+int encodeVersionNumber(struct version_number version, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -179,7 +179,7 @@ int encodeVersionNumber(VersionNumber version, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decodeHeader(Buffer *buffer, Header *header)
+int decodeHeader(Buffer *buffer, struct header *header)
   __attribute__((warn_unused_result));
 
 /**
@@ -190,34 +190,36 @@ int decodeHeader(Buffer *buffer, Header *header)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
+int decodeVersionNumber(Buffer *buffer, struct version_number *version)
   __attribute__((warn_unused_result));
 
 /**
- * Convert a VersionNumber to its packed on-disk representation.
+ * Convert a version_number to its packed on-disk representation.
  *
  * @param version  The version number to convert
  *
  * @return the platform-independent representation of the version
  **/
-static inline PackedVersionNumber packVersionNumber(VersionNumber version)
+static inline struct packed_version_number
+packVersionNumber(struct version_number version)
 {
-  PackedVersionNumber packed;
+  struct packed_version_number packed;
   storeUInt32LE(packed.majorVersion, version.majorVersion);
   storeUInt32LE(packed.minorVersion, version.minorVersion);
   return packed;
 }
 
 /**
- * Convert a PackedVersionNumber to its native in-memory representation.
+ * Convert a packed_version_number to its native in-memory representation.
  *
  * @param version  The version number to convert
  *
  * @return the platform-independent representation of the version
  **/
-static inline VersionNumber unpackVersionNumber(PackedVersionNumber version)
+static inline struct version_number
+unpackVersionNumber(struct packed_version_number version)
 {
-  return (VersionNumber) {
+  return (struct version_number) {
     .majorVersion = getUInt32LE(version.majorVersion),
     .minorVersion = getUInt32LE(version.minorVersion),
   };

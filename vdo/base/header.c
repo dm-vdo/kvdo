@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.c#3 $
  */
 
 #include "header.h"
@@ -26,9 +26,9 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-int validateVersion(VersionNumber  expectedVersion,
-                    VersionNumber  actualVersion,
-                    const char    *componentName)
+int validateVersion(struct version_number  expectedVersion,
+                    struct version_number  actualVersion,
+                    const char            *componentName)
 {
   if (!areSameVersion(expectedVersion, actualVersion)) {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
@@ -44,10 +44,10 @@ int validateVersion(VersionNumber  expectedVersion,
 }
 
 /**********************************************************************/
-int validateHeader(const Header *expectedHeader,
-                   const Header *actualHeader,
-                   bool          exactSize,
-                   const char   *componentName)
+int validateHeader(const struct header *expectedHeader,
+                   const struct header *actualHeader,
+                   bool                 exactSize,
+                   const char          *componentName)
 {
   if (expectedHeader->id != actualHeader->id) {
     return logErrorWithStringError(VDO_INCORRECT_COMPONENT,
@@ -77,7 +77,7 @@ int validateHeader(const Header *expectedHeader,
 }
 
 /**********************************************************************/
-int encodeHeader(const Header *header, Buffer *buffer)
+int encodeHeader(const struct header *header, Buffer *buffer)
 {
   if (!ensureAvailableSpace(buffer, ENCODED_HEADER_SIZE)) {
     return UDS_BUFFER_ERROR;
@@ -97,14 +97,14 @@ int encodeHeader(const Header *header, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encodeVersionNumber(VersionNumber version, Buffer *buffer)
+int encodeVersionNumber(struct version_number version, Buffer *buffer)
 {
-  PackedVersionNumber packed = packVersionNumber(version);
+  struct packed_version_number packed = packVersionNumber(version);
   return putBytes(buffer, sizeof(packed), &packed);
 }
 
 /**********************************************************************/
-int decodeHeader(Buffer *buffer, Header *header)
+int decodeHeader(Buffer *buffer, struct header *header)
 {
   ComponentID id;
   int result = getUInt32LEFromBuffer(buffer, &id);
@@ -112,7 +112,7 @@ int decodeHeader(Buffer *buffer, Header *header)
     return result;
   }
 
-  VersionNumber version;
+  struct version_number version;
   result = decodeVersionNumber(buffer, &version);
   if (result != UDS_SUCCESS) {
     return result;
@@ -124,7 +124,7 @@ int decodeHeader(Buffer *buffer, Header *header)
     return result;
   }
 
-  *header = (Header) {
+  *header = (struct header) {
     .id      = id,
     .version = version,
     .size    = size,
@@ -133,9 +133,9 @@ int decodeHeader(Buffer *buffer, Header *header)
 }
 
 /**********************************************************************/
-int decodeVersionNumber(Buffer *buffer, VersionNumber *version)
+int decodeVersionNumber(Buffer *buffer, struct version_number *version)
 {
-  PackedVersionNumber packed;
+  struct packed_version_number packed;
   int result = getBytesFromBuffer(buffer, sizeof(packed), &packed);
   if (result != UDS_SUCCESS) {
     return result;

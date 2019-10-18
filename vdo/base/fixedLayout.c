@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#5 $
  */
 
 #include "fixedLayout.h"
@@ -59,7 +59,7 @@ struct partition_3_0 {
   BlockCount          count;
 } __attribute__((packed));
 
-static const Header LAYOUT_HEADER_3_0 = {
+static const struct header LAYOUT_HEADER_3_0 = {
   .id = FIXED_LAYOUT,
   .version = {
     .majorVersion = 3,
@@ -375,7 +375,7 @@ int encodeFixedLayout(const struct fixed_layout *layout, Buffer *buffer)
     return UDS_BUFFER_ERROR;
   }
 
-  Header header = LAYOUT_HEADER_3_0;
+  struct header header = LAYOUT_HEADER_3_0;
   header.size = getEncodedSize(layout);
   int result = encodeHeader(&header, buffer);
   if (result != UDS_SUCCESS) {
@@ -496,7 +496,7 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 /**********************************************************************/
 int decodeFixedLayout(Buffer *buffer, struct fixed_layout **layoutPtr)
 {
-  Header header;
+  struct header header;
   int result = decodeHeader(buffer, &header);
   if (result != UDS_SUCCESS) {
     return result;

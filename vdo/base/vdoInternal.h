@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#13 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -91,7 +91,7 @@ struct vdo {
   Flusher                         *flusher;
 
   /* The master version of the VDO when loaded (for upgrading) */
-  VersionNumber                    loadVersion;
+  struct version_number            loadVersion;
   /* The state the VDO was in when loaded (primarily for unit tests) */
   VDOState                         loadState;
   /* Whether VIO tracing is enabled */

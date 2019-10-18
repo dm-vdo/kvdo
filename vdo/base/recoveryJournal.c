@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#17 $
  */
 
 #include "recoveryJournal.h"
@@ -44,7 +44,7 @@ struct recovery_journal_state_7_0 {
   BlockCount     blockMapDataBlocks; // Number of block map pages allocated
 } __attribute__((packed));
 
-static const Header RECOVERY_JOURNAL_HEADER_7_0 = {
+static const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
   .id = RECOVERY_JOURNAL,
   .version = {
     .majorVersion = 7,
@@ -671,7 +671,7 @@ decodeRecoveryJournalState_7_0(Buffer                            *buffer,
 /**********************************************************************/
 int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
 {
-  Header header;
+  struct header header;
   int result = decodeHeader(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;

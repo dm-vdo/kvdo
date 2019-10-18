@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#15 $
  */
 
 /*
@@ -59,7 +59,7 @@
  * be upgraded to at all should increment the major version and set the minor
  * version to 0.
  **/
-static const VersionNumber VDO_MASTER_VERSION_67_0 = {
+static const struct version_number VDO_MASTER_VERSION_67_0 = {
   .majorVersion = 67,
   .minorVersion =  0,
 };
@@ -69,7 +69,7 @@ static const VersionNumber VDO_MASTER_VERSION_67_0 = {
  * be changed any time there is a change to encoding of the component data
  * of any VDO component.
  **/
-static const VersionNumber VDO_COMPONENT_DATA_41_0 = {
+static const struct version_number VDO_COMPONENT_DATA_41_0 = {
   .majorVersion = 41,
   .minorVersion =  0,
 };
@@ -194,8 +194,8 @@ void setVDOState(VDO *vdo, VDOState state)
 /**********************************************************************/
 size_t getComponentDataSize(VDO *vdo)
 {
-  return (sizeof(VersionNumber)
-          + sizeof(VersionNumber)
+  return (sizeof(struct version_number)
+          + sizeof(struct version_number)
           + sizeof(struct vdo_component_41_0)
           + getVDOLayoutEncodedSize(vdo->layout)
           + getRecoveryJournalEncodedSize()
@@ -546,7 +546,7 @@ int decodeVDOComponent(VDO *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
 
-  VersionNumber version;
+  struct version_number version;
   int result = decodeVersionNumber(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;

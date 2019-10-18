@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#6 $
  */
 
 #include "upgrade.h"
@@ -37,14 +37,14 @@
 
 /* The latest supported Sodium version */
 /* Commented out because not currently used.
- * static const VersionNumber SODIUM_MASTER_VERSION_67_0 = {
+ * static const struct version_number SODIUM_MASTER_VERSION_67_0 = {
  * .majorVersion = 67,
  * .minorVersion =  0,
  * };
  */
 
 /* The component data version for current Sodium */
-static const VersionNumber SODIUM_COMPONENT_DATA_41_0 = {
+static const struct version_number SODIUM_COMPONENT_DATA_41_0 = {
   .majorVersion = 41,
   .minorVersion =  0,
 };
@@ -130,7 +130,7 @@ __attribute__((warn_unused_result))
 static int decodeSodiumComponent(VDO *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
-  VersionNumber version;
+  struct version_number version;
   int result = decodeVersionNumber(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;

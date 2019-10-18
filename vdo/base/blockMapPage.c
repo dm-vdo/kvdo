@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#4 $
  */
 
 #include "blockMapPage.h"
@@ -36,7 +36,7 @@ enum {
   PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
 };
 
-static const VersionNumber BLOCK_MAP_4_1 = {
+static const struct version_number BLOCK_MAP_4_1 = {
   .majorVersion = 4,
   .minorVersion = 1,
 };
