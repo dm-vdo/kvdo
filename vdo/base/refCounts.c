@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#12 $
  */
 
 #include "refCounts.h"
@@ -59,7 +59,7 @@ static const bool     NORMAL_OPERATION = true;
  * @return  The RefCounts
  **/
 __attribute__((warn_unused_result))
-static inline RefCounts *refCountsFromWaiter(Waiter *waiter)
+static inline RefCounts *refCountsFromWaiter(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;
@@ -1002,7 +1002,8 @@ BlockCount countUnreferencedBlocks(RefCounts           *refCounts,
  *
  * @return  The wrapping reference_block
  **/
-static inline struct reference_block *waiterAsReferenceBlock(Waiter *waiter)
+static inline struct reference_block *
+waiterAsReferenceBlock(struct waiter *waiter)
 {
   STATIC_ASSERT(offsetof(struct reference_block, waiter) == 0);
   return (struct reference_block *) waiter;
@@ -1015,8 +1016,8 @@ static inline struct reference_block *waiterAsReferenceBlock(Waiter *waiter)
  * @param context      Unused
  **/
 static void
-clearDirtyReferenceBlocks(Waiter *blockWaiter,
-                          void   *context __attribute__((unused)))
+clearDirtyReferenceBlocks(struct waiter *blockWaiter,
+                          void          *context __attribute__((unused)))
 {
   waiterAsReferenceBlock(blockWaiter)->isDirty = false;
 }
@@ -1049,7 +1050,7 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
 /**
  * A waiter callback that resets the writing state of refCounts.
  **/
-static void finishSummaryUpdate(Waiter *waiter, void *context)
+static void finishSummaryUpdate(struct waiter *waiter, void *context)
 {
   RefCounts *refCounts           = refCountsFromWaiter(waiter);
   refCounts->updatingSlabSummary = false;
@@ -1179,7 +1180,7 @@ void packReferenceBlock(struct reference_block *block, void *buffer)
  * @param blockWaiter  The waiter of the dirty block
  * @param vioContext   The VIO returned by the pool
  **/
-static void writeReferenceBlock(Waiter *blockWaiter, void *vioContext)
+static void writeReferenceBlock(struct waiter *blockWaiter, void *vioContext)
 {
   struct vio_pool_entry           *entry = vioContext;
   struct reference_block          *block = waiterAsReferenceBlock(blockWaiter);
@@ -1214,7 +1215,7 @@ static void writeReferenceBlock(Waiter *blockWaiter, void *vioContext)
  * @param blockWaiter  The waiter of the block which is starting to write
  * @param context      The parent refCounts of the block
  **/
-static void launchReferenceBlockWrite(Waiter *blockWaiter, void *context)
+static void launchReferenceBlockWrite(struct waiter *blockWaiter, void *context)
 {
   RefCounts *refCounts = context;
   if (isReadOnly(refCounts->readOnlyNotifier)) {
@@ -1356,7 +1357,7 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
  * @param blockWaiter  The waiter of the block to load
  * @param vioContext   The VIO returned by the pool
  **/
-static void loadReferenceBlock(Waiter *blockWaiter, void *vioContext)
+static void loadReferenceBlock(struct waiter *blockWaiter, void *vioContext)
 {
   struct vio_pool_entry  *entry       = vioContext;
   struct reference_block *block       = waiterAsReferenceBlock(blockWaiter);
@@ -1381,7 +1382,7 @@ static void loadReferenceBlocks(RefCounts *refCounts)
   refCounts->freeBlocks  = refCounts->blockCount;
   refCounts->activeCount = refCounts->referenceBlockCount;
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
-    Waiter *blockWaiter = &refCounts->blocks[i].waiter;
+    struct waiter *blockWaiter = &refCounts->blocks[i].waiter;
     blockWaiter->callback = loadReferenceBlock;
     int result = acquireVIO(refCounts->slab->allocator, blockWaiter);
     if (result != VDO_SUCCESS) {

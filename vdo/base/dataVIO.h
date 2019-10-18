@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#6 $
  */
 
 #ifndef DATA_VIO_H
@@ -310,7 +310,7 @@ static inline VDOCompletion *dataVIOAsCompletion(DataVIO *dataVIO)
  *
  * @return The DataVIO as a wait queue entry
  **/
-static inline Waiter *dataVIOAsWaiter(DataVIO *dataVIO)
+static inline struct waiter *dataVIOAsWaiter(DataVIO *dataVIO)
 {
   return allocatingVIOAsWaiter(dataVIOAsAllocatingVIO(dataVIO));
 }
@@ -322,7 +322,7 @@ static inline Waiter *dataVIOAsWaiter(DataVIO *dataVIO)
  *
  * @return The wait queue entry as a DataVIO
  **/
-static inline DataVIO *waiterAsDataVIO(Waiter *waiter)
+static inline DataVIO *waiterAsDataVIO(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;

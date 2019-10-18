@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#9 $
  */
 
 #ifndef VDO_SLAB_H
@@ -289,13 +289,15 @@ bool shouldSaveFullyBuiltSlab(const Slab *slab)
   __attribute__((warn_unused_result));
 
 /**
- * Load the state of a slab from disk.
+ * Start an administrative operation on a slab.
  *
  * @param slab       The slab to load
  * @param operation  The type of load to perform
- * @param parent     The completion to notify when the load is complete
+ * @param parent     The object to notify when the operation is complete
  **/
-void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
+void startSlabAction(Slab           *slab,
+                     AdminStateCode  operation,
+                     VDOCompletion  *parent);
 
 /**
  * Inform a slab that its journal has been loaded.
@@ -326,15 +328,6 @@ bool isSlabDraining(Slab *slab)
   __attribute__((warn_unused_result));
 
 /**
- * Drain a slab.
- *
- * @param slab       The slab to drain
- * @param operation  The type of drain to perform
- * @param parent     The object to notify when the drain is complete
- **/
-void drainSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
-
-/**
  * Inform a slab that its journal has finished draining.
  *
  * @param slab    The slab whose journal has been drained
@@ -359,15 +352,6 @@ void notifyRefCountsAreDrained(Slab *slab, int result);
  **/
 bool isSlabResuming(Slab *slab)
   __attribute__((warn_unused_result));
-
-/**
- * Resume a quiescent slab.
- *
- * @param slab       The slab to resume
- * @param operation  The type of resume to perform
- * @param parent     The completion to notify when the resume is complete
- **/
-void resumeSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent);
 
 /**
  * Finish scrubbing a slab now that it has been rebuilt by updating its status,

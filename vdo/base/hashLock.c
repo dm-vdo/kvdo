@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#5 $
  */
 
 /**
@@ -398,8 +398,8 @@ static void waitOnHashLock(HashLock *lock, DataVIO *dataVIO)
  * @param waiter   The DataVIO's waiter link
  * @param context  Not used
  **/
-static void compressWaiter(Waiter *waiter,
-                           void   *context __attribute__((unused)))
+static void compressWaiter(struct waiter *waiter,
+                           void          *context __attribute__((unused)))
 {
   DataVIO *dataVIO     = waiterAsDataVIO(waiter);
   dataVIO->isDuplicate = false;
@@ -714,7 +714,7 @@ static void finishDeduping(HashLock *lock, DataVIO *dataVIO)
  * Implements WaiterCallback. Binds the DataVIO that was waiting to a new hash
  * lock and waits on that lock.
  **/
-static void enterForkedLock(Waiter *waiter, void *context)
+static void enterForkedLock(struct waiter *waiter, void *context)
 {
   DataVIO  *dataVIO = waiterAsDataVIO(waiter);
   HashLock *newLock = (HashLock *) context;

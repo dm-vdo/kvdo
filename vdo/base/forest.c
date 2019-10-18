@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#9 $
  */
 
 #include "forest.h"
@@ -69,7 +69,7 @@ struct cursor_level {
 struct cursors;
 
 struct cursor {
-  Waiter                 waiter;
+  struct waiter          waiter;
   struct block_map_tree *tree;
   Height                 height;
   struct cursors        *parent;
@@ -456,7 +456,7 @@ static void traverse(struct cursor *cursor)
  * @param waiter   The cursor
  * @param context  The vio_pool_entry just acquired
  **/
-static void launchCursor(Waiter *waiter, void *context)
+static void launchCursor(struct waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
   struct cursor *cursor               = (struct cursor *) waiter;

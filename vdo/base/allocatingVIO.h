@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#3 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -41,7 +41,7 @@ struct allocatingVIO {
   VIO                 vio;
 
   /** The WaitQueue entry structure */
-  Waiter              waiter;
+  struct waiter       waiter;
 
   /** The physical zone in which to allocate a physical block */
   PhysicalZone       *zone;
@@ -129,7 +129,7 @@ VDOCompletion *allocatingVIOAsCompletion(AllocatingVIO *allocatingVIO)
  *
  * @return The AllocatingVIO as a wait queue entry
  **/
-static inline Waiter *allocatingVIOAsWaiter(AllocatingVIO *allocatingVIO)
+static inline struct waiter *allocatingVIOAsWaiter(AllocatingVIO *allocatingVIO)
 {
   return &allocatingVIO->waiter;
 }
@@ -142,7 +142,7 @@ static inline Waiter *allocatingVIOAsWaiter(AllocatingVIO *allocatingVIO)
  *
  * @return The wait queue entry as an AllocatingVIO
  **/
-static inline AllocatingVIO *waiterAsAllocatingVIO(Waiter *waiter)
+static inline AllocatingVIO *waiterAsAllocatingVIO(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;

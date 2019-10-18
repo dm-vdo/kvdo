@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#3 $
  */
 
 #include "allocatingVIO.h"
@@ -107,8 +107,8 @@ static void allocateBlockForWrite(VDOCompletion *completion);
  * @param context  The context (unused)
  **/
 static void
-retryAllocateBlockForWrite(Waiter *waiter,
-                           void   *context __attribute__((unused)))
+retryAllocateBlockForWrite(struct waiter *waiter,
+                           void          *context __attribute__((unused)))
 {
   AllocatingVIO *allocatingVIO = waiterAsAllocatingVIO(waiter);
   allocateBlockForWrite(allocatingVIOAsCompletion(allocatingVIO));
@@ -126,7 +126,7 @@ retryAllocateBlockForWrite(Waiter *waiter,
  **/
 static int waitForCleanSlab(AllocatingVIO *allocatingVIO)
 {
-  Waiter *waiter   = allocatingVIOAsWaiter(allocatingVIO);
+  struct waiter *waiter = allocatingVIOAsWaiter(allocatingVIO);
   waiter->callback = retryAllocateBlockForWrite;
 
   BlockAllocator *allocator = getBlockAllocator(allocatingVIO->zone);

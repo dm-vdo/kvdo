@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#5 $
  */
 
 #include "request.h"
@@ -25,7 +25,6 @@
 #include "indexSession.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "parameter.h"
 #include "permassert.h"
 #include "requestQueue.h"
 

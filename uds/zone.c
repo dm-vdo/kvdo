@@ -16,93 +16,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/zone.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/zone.c#4 $
  */
 
 #include "zone.h"
 
 #include "logger.h"
-#include "parameter.h"
-#include "permassert.h"
-#include "stringUtils.h"
 #include "threads.h"
 
-static const NumericValidationData validRange = {
-  .minValue = 1,
-  .maxValue = MAX_ZONES,
-};
-
 /**********************************************************************/
-static unsigned int getDefaultZoneCount(void)
+unsigned int getZoneCount(const struct uds_parameters *userParams)
 {
-  unsigned int zoneCount = getNumCores() / 2;
-  if (zoneCount < validRange.minValue) {
-    zoneCount = validRange.minValue;
-  }
-  if (zoneCount > validRange.maxValue) {
-    zoneCount = validRange.maxValue;
-  }
-  return zoneCount;
-}
-
-/**********************************************************************/
-static UdsParameterValue getZoneCountInitialValue(void)
-{
-  UdsParameterValue value;
-
-
-  value.type = UDS_PARAM_TYPE_UNSIGNED_INT;
-  value.value.u_uint = getDefaultZoneCount();
-  return value;
-}
-
-/**********************************************************************/
-int defineParallelFactor(ParameterDefinition *pd)
-{
-  pd->validate       = validateNumericRange;
-  pd->validationData = &validRange;
-  pd->currentValue   = getZoneCountInitialValue();
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-unsigned int getZoneCount(void)
-{
-  unsigned int zoneCount = 0;
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_PARALLEL_FACTOR, &value) == UDS_SUCCESS) &&
-      value.type == UDS_PARAM_TYPE_UNSIGNED_INT)
-  {
-    zoneCount = value.value.u_uint;
-  }
-
+  unsigned int zoneCount = (userParams == NULL) ? 0 : userParams->zone_count;
   if (zoneCount == 0) {
-    zoneCount = getDefaultZoneCount();
+    zoneCount = getNumCores() / 2;
   }
-
+  if (zoneCount < 1) {
+    zoneCount = 1;
+  }
+  if (zoneCount > MAX_ZONES) {
+    zoneCount = MAX_ZONES;
+  }
   logInfo("Using %u indexing zone%s for concurrency.", zoneCount,
           zoneCount == 1 ? "" : "s");
   return zoneCount;
-}
-
-/**********************************************************************/
-int setZoneCount(unsigned int count)
-{
-  int result = udsSetParameter(UDS_PARALLEL_FACTOR, udsUnsignedValue(count));
-  if (result != UDS_SUCCESS) {
-    return logErrorWithStringError(result,
-                                   "cannot set %s to %u",
-                                   UDS_PARALLEL_FACTOR, count);
-  }
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-void resetZoneCount(void)
-{
-  int result = udsResetParameter(UDS_PARALLEL_FACTOR);
-  if (result != UDS_SUCCESS) {
-    logErrorWithStringError(result, "cannot reset %s", UDS_PARALLEL_FACTOR);
-  }
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#9 $
  */
 
 #include "uds.h"
@@ -198,9 +198,10 @@ void udsFreeConfiguration(UdsConfiguration userConfig)
 
 /**********************************************************************/
 static
-int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
-                                     IndexLayout              *layout,
-                                     LoadType                  loadType)
+int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
+                                     IndexLayout                 *layout,
+                                     const struct uds_parameters *userParams,
+                                     LoadType                     loadType)
 {
   int result = ((loadType == LOAD_CREATE)
                 ? writeIndexConfig(layout, &indexSession->userConfig)
@@ -215,8 +216,8 @@ int initializeIndexSessionWithLayout(struct uds_index_session *indexSession,
     logErrorWithStringError(result, "Failed to allocate config");
     return result;
   }
-  result = makeIndexRouter(layout, indexConfig, loadType, enterCallbackStage,
-                           &indexSession->router);
+  result = makeIndexRouter(layout, indexConfig, userParams, loadType,
+                           enterCallbackStage, &indexSession->router);
   freeConfiguration(indexConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to make router");
@@ -234,13 +235,6 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
                                   const struct uds_parameters *userParams,
                                   LoadType                     loadType)
 {
-  struct uds_parameters udsParams __attribute__((unused));
-  if (userParams == NULL) {
-    udsParams = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
-  } else {
-    udsParams = *userParams;
-  }
-
   IndexLayout *layout;
   int result = makeIndexLayout(name, loadType == LOAD_CREATE,
                                &indexSession->userConfig, &layout);
@@ -248,7 +242,8 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
     return result;
   }
 
-  result = initializeIndexSessionWithLayout(indexSession, layout, loadType);
+  result = initializeIndexSessionWithLayout(indexSession, layout, userParams,
+                                            loadType);
   putIndexLayout(&layout);
   return result;
 }

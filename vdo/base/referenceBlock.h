@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#4 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -66,7 +66,7 @@ struct packed_reference_block {
  **/
 struct reference_block {
   /** This block waits on the refCounts to tell it to write */
-  Waiter                waiter;
+  struct waiter         waiter;
   /** The parent RefCount structure */
   RefCounts            *refCounts;
   /** The number of references in this block that represent allocations */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#10 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -86,7 +86,7 @@ struct refCounts {
   size_t                              activeCount;
 
   /** A waiter object for updating the slab summary */
-  Waiter                              slabSummaryWaiter;
+  struct waiter                       slabSummaryWaiter;
   /** Whether slab summary update is in progress */
   bool                                updatingSlabSummary;
 

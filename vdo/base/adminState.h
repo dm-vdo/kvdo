@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#18 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -161,7 +161,16 @@ struct admin_state {
   AdminStateCode  nextState;
   /** A completion waiting on a state change */
   VDOCompletion  *waiter;
+  /** Whether an operation is being initiated */
+  bool            starting;
+  /** Whether an operation has completed in the initiator */
+  bool            complete;
 };
+
+/**
+ * A method to be called once an admin operation may be initiated.
+ **/
+typedef void AdminInitiator(struct admin_state *state);
 
 /**
  * Get the name of an AdminStateCode for logging purposes.
@@ -450,13 +459,16 @@ bool assertDrainOperation(AdminStateCode operation, VDOCompletion *waiter)
  * @param operation  The type of drain to initiate
  * @param waiter     The completion to notify when the drain is complete (may be
  *                   NULL)
+ * @param initiator  The AdminInitiator to call if the operation may begin; may
+ *                   be NULL
  *
  * @return <code>true</code> if the drain was initiated, if not the waiter
  *         will be notified
  **/
-bool startDraining(struct admin_state     *state,
-                   AdminStateCode          operation,
-                   VDOCompletion          *waiter);
+bool startDraining(struct admin_state *state,
+                   AdminStateCode      operation,
+                   VDOCompletion      *waiter,
+                   AdminInitiator     *initiator);
 
 /**
  * Finish a drain operation if one was in progress.
@@ -498,13 +510,16 @@ bool assertLoadOperation(AdminStateCode operation, VDOCompletion *waiter)
  * @param operation  The type of load to initiate
  * @param waiter     The completion to notify when the load is complete (may be
  *                   NULL)
+ * @param initiator  The AdminInitiator to call if the operation may begin; may
+ *                   be NULL
  *
  * @return <code>true</code> if the load was initiated, if not the waiter
  *         will be notified
  **/
-bool startLoading(struct admin_state     *state,
-                  AdminStateCode          operation,
-                  VDOCompletion          *waiter);
+bool startLoading(struct admin_state *state,
+                  AdminStateCode      operation,
+                  VDOCompletion      *waiter,
+                  AdminInitiator     *initiator);
 
 /**
  * Finish a load operation if one was in progress.
@@ -528,19 +543,33 @@ bool finishLoading(struct admin_state *state);
 bool finishLoadingWithResult(struct admin_state *state, int result);
 
 /**
+ * Check whether an AdminStateCode is a resume operation.
+ *
+ * @param operation  The operation to check
+ * @param waiter     The completion to notify if the operation is not a resume
+ *                   operation; may be NULL
+ *
+ * @return <code>true</code> if the code is a resume operation
+ **/
+bool assertResumeOperation(AdminStateCode operation, VDOCompletion *waiter);
+
+/**
  * Initiate a resume operation if the current state permits it.
  *
  * @param state      The admin_state
  * @param operation  The type of resume to start
  * @param waiter     The completion to notify when the resume is complete (may
  *                   be NULL)
+ * @param initiator  The AdminInitiator to call if the operation may begin; may
+ *                   be NULL
  *
  * @return <code>true</code> if the resume was initiated, if not the waiter
  *         will be notified
  **/
-bool startResuming(struct admin_state     *state,
-                   AdminStateCode          operation,
-                   VDOCompletion          *waiter);
+bool startResuming(struct admin_state *state,
+                   AdminStateCode      operation,
+                   VDOCompletion      *waiter,
+                   AdminInitiator     *initiator);
 
 /**
  * Finish a resume operation if one was in progress.
@@ -568,9 +597,9 @@ bool finishResumingWithResult(struct admin_state *state, int result);
  *
  * @param state  The admin_state to resume
  *
- * @return <code>true</code> if the state was resumed
+ * @return VDO_SUCCESS if the state resumed, VDO_INVALID_ADMIN_STATE otherwise
  **/
-bool resumeIfQuiescent(struct admin_state *state);
+int resumeIfQuiescent(struct admin_state *state);
 
 /**
  * Attempt to start an operation.
@@ -590,12 +619,15 @@ int startOperation(struct admin_state *state, AdminStateCode operation);
  * @param operation  the operation to start
  * @param waiter     the completion to notify when the operation completes or
  *                   fails to start; may be NULL
+ * @param initiator  The AdminInitiator to call if the operation may begin; may
+ *                   be NULL
  *
  * @return <code>true</code> if the operation was started
  **/
-bool startOperationWithWaiter(struct admin_state     *state,
-                              AdminStateCode          operation,
-                              VDOCompletion          *waiter);
+bool startOperationWithWaiter(struct admin_state *state,
+                              AdminStateCode      operation,
+                              VDOCompletion      *waiter,
+                              AdminInitiator     *initiator);
 
 /**
  * Finish the current operation. Will notify the operation waiter if there is

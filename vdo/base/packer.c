@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#13 $
  */
 
 #include "packerInternals.h"
@@ -361,8 +361,9 @@ static void abortPacking(DataVIO *dataVIO)
  * @param unused  An argument required so this function may be called
  *                from notifyAllWaiters
  **/
-static void continueVIOWithoutPacking(Waiter *waiter,
-                                      void *unused __attribute__((unused)))
+static void
+continueVIOWithoutPacking(struct waiter *waiter,
+                          void          *unused __attribute__((unused)))
 {
   abortPacking(waiterAsDataVIO(waiter));
 }
@@ -456,8 +457,8 @@ static void completeOutputBin(VDOCompletion *completion)
 /**
  * Implements WaiterCallback. Continues the DataVIO waiter.
  **/
-static void continueWaiter(Waiter *waiter,
-                           void   *context __attribute__((unused)))
+static void continueWaiter(struct waiter *waiter,
+                           void          *context __attribute__((unused)))
 {
   DataVIO *dataVIO = waiterAsDataVIO(waiter);
   continueDataVIO(dataVIO, VDO_SUCCESS);
@@ -468,7 +469,7 @@ static void continueWaiter(Waiter *waiter,
  * in the compressed block, gives the DataVIO a share of the PBN lock on that
  * block, and reserves a reference count increment on the lock.
  **/
-static void shareCompressedBlock(Waiter *waiter, void *context)
+static void shareCompressedBlock(struct waiter *waiter, void *context)
 {
   DataVIO           *dataVIO = waiterAsDataVIO(waiter);
   struct output_bin *bin     = context;
@@ -929,23 +930,31 @@ void incrementPackerFlushGeneration(struct packer *packer)
   flushPacker(packer);
 }
 
+/**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(struct admin_state *state)
+{
+  struct packer *packer = container_of(state, struct packer, state);
+  writeAllNonEmptyBins(packer);
+  checkForDrainComplete(packer);
+}
+
 /**********************************************************************/
 void drainPacker(struct packer *packer, VDOCompletion *completion)
 {
   assertOnPackerThread(packer, __func__);
-  if (startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion)) {
-    writeAllNonEmptyBins(packer);
-    checkForDrainComplete(packer);
-  }
+  startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
+                initiateDrain);
 }
 
 /**********************************************************************/
 void resumePacker(struct packer *packer, VDOCompletion *parent)
 {
   assertOnPackerThread(packer, __func__);
-  if (startResuming(&packer->state, ADMIN_STATE_RESUMING, parent)) {
-    finishResuming(&packer->state);
-  }
+  finishCompletion(parent, resumeIfQuiescent(&packer->state));
 }
 
 /**********************************************************************/

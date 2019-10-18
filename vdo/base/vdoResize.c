@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#11 $
  */
 
 #include "vdoResize.h"
@@ -82,7 +82,7 @@ static void growPhysicalCallback(VDOCompletion *completion)
 
     if (startOperationWithWaiter(&vdo->adminState,
                                  ADMIN_STATE_SUSPENDED_OPERATION,
-                                 &adminCompletion->completion)) {
+                                 &adminCompletion->completion, NULL)) {
       // Copy the journal into the new layout.
       copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
                     resetAdminSubTask(completion));

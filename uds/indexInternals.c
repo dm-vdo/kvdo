@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#6 $
  */
 
 #include "indexInternals.h"
@@ -38,11 +38,12 @@
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 
 /**********************************************************************/
-int allocateIndex(IndexLayout          *layout,
-                  const Configuration  *config,
-                  unsigned int          zoneCount,
-                  LoadType              loadType,
-                  Index               **newIndex)
+int allocateIndex(IndexLayout                  *layout,
+                  const Configuration          *config,
+                  const struct uds_parameters  *userParams,
+                  unsigned int                  zoneCount,
+                  LoadType                      loadType,
+                  Index                       **newIndex)
 {
   Index *index;
   int result = ALLOCATE(1, Index, "index", &index);
@@ -85,7 +86,7 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  result = makeVolume(config, index->layout,
+  result = makeVolume(config, index->layout, userParams,
                       VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS, index->zoneCount,
                       &index->volume);
   if (result != UDS_SUCCESS) {

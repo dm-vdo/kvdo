@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#6 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
 #define BLOCK_MAP_TREE_H
 
+#include "adminState.h"
 #include "constants.h"
 #include "types.h"
 
@@ -71,9 +72,9 @@ void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period);
  * the drain type, all dirty block map trees will be written to disk. This
  * method must not be called when lookups are active.
  *
- * @param zone  The BlockMapTreeZone to drain
+ * Implements AdminInitiator
  **/
-void drainZoneTrees(BlockMapTreeZone *zone);
+void drainZoneTrees(struct admin_state *state);
 
 /**
  * Look up the PBN of the block map page for a DataVIO's LBN in the arboreal

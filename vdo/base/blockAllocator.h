@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#13 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -219,7 +219,7 @@ SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
  *
  * @return VDO_SUCCESS or an error
  **/
-int acquireVIO(BlockAllocator *allocator, Waiter *waiter)
+int acquireVIO(BlockAllocator *allocator, struct waiter *waiter)
   __attribute__((warn_unused_result));
 
 /**
@@ -248,7 +248,7 @@ void scrubAllUnrecoveredSlabsInZone(void          *context,
  * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
  *         slabs to scrub, and some other error otherwise
  **/
-int enqueueForCleanSlab(BlockAllocator *allocator, Waiter *waiter)
+int enqueueForCleanSlab(BlockAllocator *allocator, struct waiter *waiter)
   __attribute__((warn_unused_result));
 
 /**

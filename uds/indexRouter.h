@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.h#2 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -47,19 +47,22 @@ struct indexRouter {
 /**
  * Construct and initialize an IndexRouter instance.
  *
- * @param layout     the IndexLayout that describes the stored index
- * @param config     the configuration to use
- * @param loadType   selects whether to create, load, or rebuild the index
- * @param callback   the function to invoke when a request completes or fails
- * @param routerPtr  a pointer in which to store the new router
+ * @param layout      the IndexLayout that describes the stored index
+ * @param config      the configuration to use
+ * @param userParams  the index session parameters.  If NULL, the default
+ *                    session parameters will be used.
+ * @param loadType    selects whether to create, load, or rebuild the index
+ * @param callback    the function to invoke when a request completes or fails
+ * @param routerPtr   a pointer in which to store the new router
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexRouter(IndexLayout          *layout,
-                    const Configuration  *config,
-                    LoadType              loadType,
-                    IndexRouterCallback   callback,
-                    IndexRouter         **routerPtr)
+int makeIndexRouter(IndexLayout                  *layout,
+                    const Configuration          *config,
+                    const struct uds_parameters  *userParams,
+                    LoadType                      loadType,
+                    IndexRouterCallback           callback,
+                    IndexRouter                 **routerPtr)
   __attribute__((warn_unused_result));
 
 /**

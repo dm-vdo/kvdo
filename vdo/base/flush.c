@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#5 $
  */
 
 #include "flush.h"
@@ -73,7 +73,7 @@ static Flusher *asFlusher(VDOCompletion *completion)
  *
  * @return The wait queue entry as a VDOFlush
  **/
-static VDOFlush *waiterAsFlush(Waiter *waiter)
+static VDOFlush *waiterAsFlush(struct waiter *waiter)
 {
   STATIC_ASSERT(offsetof(VDOFlush, waiter) == 0);
   return (VDOFlush *) waiter;
@@ -130,8 +130,8 @@ static void finishNotification(VDOCompletion *completion)
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
                   "finishNotification() called from flusher thread");
 
-  Waiter *waiter = dequeueNextWaiter(&flusher->notifiers);
-  int     result = enqueueWaiter(&flusher->pendingFlushes, waiter);
+  struct waiter *waiter = dequeueNextWaiter(&flusher->notifiers);
+  int            result = enqueueWaiter(&flusher->pendingFlushes, waiter);
   if (result != VDO_SUCCESS) {
     enterReadOnlyMode(flusher->vdo->readOnlyNotifier, result);
     VDOFlush *flush = waiterAsFlush(waiter);

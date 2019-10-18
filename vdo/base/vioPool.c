@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#7 $
  */
 
 #include "vioPool.h"
@@ -144,7 +144,7 @@ bool isVIOPoolBusy(VIOPool *pool)
 }
 
 /**********************************************************************/
-int acquireVIOFromPool(VIOPool *pool, Waiter *waiter)
+int acquireVIOFromPool(VIOPool *pool, struct waiter *waiter)
 {
   ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
                   "acquire from active VIOPool called from correct thread");

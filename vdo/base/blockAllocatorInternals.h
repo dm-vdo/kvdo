@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#11 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -51,8 +51,6 @@ typedef enum {
  * slabs.
  **/
 struct slab_actor {
-  /** Whether the allocator is currently launching a slab action */
-  bool       launchingSlabAction;
   /** The number of slabs performing a slab action */
   SlabCount  slabActionCount;
   /** The method to call when a slab action has been completed by all slabs */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#11 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -516,7 +516,7 @@ static void completeWithPage(struct page_info           *info,
  * @param waiter        The page completion, as a waiter
  * @param resultPtr     A pointer to the error code.
  **/
-static void completeWaiterWithError(Waiter *waiter, void *resultPtr)
+static void completeWaiterWithError(struct waiter *waiter, void *resultPtr)
 {
   int                        *result     = resultPtr;
   struct vdo_page_completion *completion = pageCompletionFromWaiter(waiter);
@@ -542,7 +542,7 @@ static void distributeErrorOverQueue(int result, struct wait_queue *queue)
  * @param waiter        The page completion, as a waiter
  * @param pageInfo      The page info to complete with
  **/
-static void completeWaiterWithPage(Waiter *waiter, void *pageInfo)
+static void completeWaiterWithPage(struct waiter *waiter, void *pageInfo)
 {
   struct page_info           *info       = pageInfo;
   struct vdo_page_completion *completion = pageCompletionFromWaiter(waiter);
@@ -915,7 +915,7 @@ static void launchPageSave(struct page_info *info)
  *
  * @return true if the page completion is for the desired page number
  **/
-static bool completionNeedsPage(Waiter *waiter, void *context)
+static bool completionNeedsPage(struct waiter *waiter, void *context)
 {
   PhysicalBlockNumber *pbn = context;
   return (pageCompletionFromWaiter(waiter)->pbn == *pbn);
@@ -944,7 +944,7 @@ static void allocateFreePage(struct page_info *info)
     return;
   }
 
-  Waiter *oldestWaiter = getFirstWaiter(&cache->freeWaiters);
+  struct waiter *oldestWaiter = getFirstWaiter(&cache->freeWaiters);
   PhysicalBlockNumber pbn = pageCompletionFromWaiter(oldestWaiter)->pbn;
 
   // Remove all entries which match the page number in question

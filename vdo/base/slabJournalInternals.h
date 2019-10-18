@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#10 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -173,11 +173,11 @@ struct journal_lock {
 
 struct slabJournal {
   /** A waiter object for getting a VIO pool entry */
-  Waiter                                 resourceWaiter;
+  struct waiter                          resourceWaiter;
   /** A waiter object for updating the slab summary */
-  Waiter                                 slabSummaryWaiter;
+  struct waiter                          slabSummaryWaiter;
   /** A waiter object for getting an extent with which to flush */
-  Waiter                                 flushWaiter;
+  struct waiter                          flushWaiter;
   /** The queue of VIOs waiting to make an entry */
   struct wait_queue                      entryWaiters;
   /** The parent slab reference of this journal */

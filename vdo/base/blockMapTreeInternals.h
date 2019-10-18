@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#5 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -29,8 +29,8 @@
 
 /** A single page of a block map tree */
 struct tree_page {
-  /** Waiter for a VIO to write out this page */
-  Waiter         waiter;
+  /** struct waiter for a VIO to write out this page */
+  struct waiter  waiter;
 
   /** Dirty list node */
   RingNode       node;

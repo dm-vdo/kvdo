@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#5 $
  */
 
 #include "vdoSuspend.h"
@@ -126,7 +126,7 @@ static void suspendCallback(VDOCompletion *completion)
     if (!startDraining(&vdo->adminState,
                        ((adminCompletion->type == ADMIN_OPERATION_SUSPEND)
                         ? ADMIN_STATE_SUSPENDING : ADMIN_STATE_SAVING),
-                       &adminCompletion->completion)) {
+                       &adminCompletion->completion, NULL)) {
       return;
     }
 

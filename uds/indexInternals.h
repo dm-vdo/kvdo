@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.h#3 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -29,21 +29,23 @@
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout         The index layout to use
- * @param config         The configuration to use
- * @param zoneCount      The number of zones for this index to use
- * @param loadType       How to create the index:  it can be create
- *                       only, allow loading from files, and allow
- *                       rebuilding from the volume
- * @param newIndex       A pointer to hold a pointer to the new index
+ * @param layout      The index layout to use
+ * @param config      The configuration to use
+ * @param userParams  The index session parameters.  If NULL, the default
+ *                    session parameters will be used.
+ * @param zoneCount   The number of zones for this index to use
+ * @param loadType    How to create the index:  it can be create only, allow
+ *                    loading from files, and allow rebuilding from the volume
+ * @param newIndex    A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
  **/
-int allocateIndex(IndexLayout          *layout,
-                  const Configuration  *config,
-                  unsigned int          zoneCount,
-                  LoadType              loadType,
-                  Index               **newIndex)
+int allocateIndex(IndexLayout                  *layout,
+                  const Configuration          *config,
+                  const struct uds_parameters  *userParams,
+                  unsigned int                  zoneCount,
+                  LoadType                      loadType,
+                  Index                       **newIndex)
   __attribute__((warn_unused_result));
 
 /**

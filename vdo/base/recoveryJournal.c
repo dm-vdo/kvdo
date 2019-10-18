@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#15 $
  */
 
 #include "recoveryJournal.h"
@@ -128,7 +128,7 @@ static void assertOnJournalThread(RecoveryJournal *journal,
  * from the journal, either because its entry was committed to disk,
  * or because there was an error.
  **/
-static void continueWaiter(Waiter *waiter, void *context)
+static void continueWaiter(struct waiter *waiter, void *context)
 {
   DataVIO *dataVIO = waiterAsDataVIO(waiter);
   dataVIOAddTraceRecord(dataVIO,
@@ -811,7 +811,7 @@ static void releaseJournalBlockReference(RecoveryJournalBlock *block)
 /**
  * Implements WaiterCallback. Assign an entry waiter to the active block.
  **/
-static void assignEntry(Waiter *waiter, void *context)
+static void assignEntry(struct waiter *waiter, void *context)
 {
   DataVIO              *dataVIO = waiterAsDataVIO(waiter);
   RecoveryJournalBlock *block   = (RecoveryJournalBlock *) context;
@@ -933,7 +933,7 @@ static void recycleJournalBlock(RecoveryJournalBlock *block)
  * WaiterCallback implementation invoked whenever a VIO is to be released
  * from the journal because its entry was committed to disk.
  **/
-static void continueCommittedWaiter(Waiter *waiter, void *context)
+static void continueCommittedWaiter(struct waiter *waiter, void *context)
 {
   DataVIO         *dataVIO = waiterAsDataVIO(waiter);
   RecoveryJournal *journal = (RecoveryJournal *) context;
@@ -1200,15 +1200,23 @@ void releasePerEntryLockFromOtherZone(RecoveryJournal *journal,
   releaseJournalZoneReferenceFromOtherZone(journal->lockCounter, blockNumber);
 }
 
+/**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(struct admin_state *state)
+{
+  checkForDrainComplete(container_of(state, RecoveryJournal, state));
+}
+
 /**********************************************************************/
 void drainRecoveryJournal(RecoveryJournal *journal,
                           AdminStateCode   operation,
                           VDOCompletion   *parent)
 {
   assertOnJournalThread(journal, __func__);
-  if (startDraining(&journal->state, operation, parent)) {
-    checkForDrainComplete(journal);
-  }
+  startDraining(&journal->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -1216,18 +1224,18 @@ void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
 {
   assertOnJournalThread(journal, __func__);
   bool saved = isSaved(&journal->state);
-  if (!startResuming(&journal->state, ADMIN_STATE_RESUMING, parent)) {
+  setCompletionResult(parent, resumeIfQuiescent(&journal->state));
+
+  if (isReadOnly(journal->readOnlyNotifier)) {
+    finishCompletion(parent, VDO_READ_ONLY);
     return;
   }
 
-  int result = VDO_SUCCESS;
-  if (isReadOnly(journal->readOnlyNotifier)) {
-    result = VDO_READ_ONLY;
-  } else if (saved) {
+  if (saved) {
     initializeJournalState(journal);
   }
 
-  finishResumingWithResult(&journal->state, result);
+  completeCompletion(parent);
 }
 
 /**********************************************************************/

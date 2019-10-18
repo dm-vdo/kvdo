@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#5 $
  */
 
 #ifndef VIO_POOL_H
@@ -100,7 +100,7 @@ bool isVIOPoolBusy(VIOPool *pool)
  *
  * @return VDO_SUCCESS or an error
  **/
-int acquireVIOFromPool(VIOPool *pool, Waiter *waiter);
+int acquireVIOFromPool(VIOPool *pool, struct waiter *waiter);
 
 /**
  * Return a VIO and its buffer to the pool.

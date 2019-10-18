@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/zone.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/zone.h#2 $
  */
 
 #ifndef ZONE_H
 #define ZONE_H
+
+#include "uds.h"
 
 enum {
   MAX_ZONES = 16,
@@ -29,29 +31,12 @@ enum {
 /**
  * Return the number of zones.
  *
- * @return  the number of zones
+ * @param userParams  the index session parameters.  If NULL, the default
+ *                    session parameters will be used.
+ *
+ * @return the number of zones
  **/
-unsigned int getZoneCount(void) __attribute__((warn_unused_result));
-
-/**
- * Set the number of zones.
- *
- * Must be called prior to initializeLocalIndexQueues() to have any effect.
- *
- * @param count   Desired number of zones. If set to 0,
- *                default behavior will apply.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int setZoneCount(unsigned int count);
-
-/**
- * Reset the number of zones back to 0.
- *
- * This should only be used for testing to allow a set of tests to change
- * the zone count multiple times.
- *
- **/
-void resetZoneCount(void);
+unsigned int getZoneCount(const struct uds_parameters *userParams)
+  __attribute__((warn_unused_result));
 
 #endif /* ZONE_H */

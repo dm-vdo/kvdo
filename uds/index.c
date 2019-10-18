@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#13 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#14 $
  */
 
 #include "index.h"
@@ -183,14 +183,16 @@ static int rebuildIndex(Index *index)
 }
 
 /**********************************************************************/
-int makeIndex(IndexLayout          *layout,
-              const Configuration  *config,
-              unsigned int          zoneCount,
-              LoadType              loadType,
-              Index               **newIndex)
+int makeIndex(IndexLayout                  *layout,
+              const Configuration          *config,
+              const struct uds_parameters  *userParams,
+              unsigned int                  zoneCount,
+              LoadType                      loadType,
+              Index                       **newIndex)
 {
   Index *index;
-  int result = allocateIndex(layout, config, zoneCount, loadType, &index);
+  int result = allocateIndex(layout, config, userParams, zoneCount, loadType,
+                             &index);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "could not allocate index");
   }

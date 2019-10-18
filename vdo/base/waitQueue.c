@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.c#3 $
  */
 
 #include "waitQueue.h"
@@ -26,7 +26,7 @@
 #include "statusCodes.h"
 
 /**********************************************************************/
-int enqueueWaiter(struct wait_queue *queue, Waiter *waiter)
+int enqueueWaiter(struct wait_queue *queue, struct waiter *waiter)
 {
   int result = ASSERT((waiter->nextWaiter == NULL),
                       "new waiter must not already be in a waiter queue");
@@ -60,8 +60,8 @@ void transferAllWaiters(struct wait_queue *fromQueue, struct wait_queue *toQueue
   if (hasWaiters(toQueue)) {
     // Both queues are non-empty. Splice the two circular lists together by
     // swapping the next (head) pointers in the list tails.
-    Waiter *fromHead = fromQueue->lastWaiter->nextWaiter;
-    Waiter *toHead   = toQueue->lastWaiter->nextWaiter;
+    struct waiter *fromHead = fromQueue->lastWaiter->nextWaiter;
+    struct waiter *toHead   = toQueue->lastWaiter->nextWaiter;
     toQueue->lastWaiter->nextWaiter   = fromHead;
     fromQueue->lastWaiter->nextWaiter = toHead;
   }
@@ -89,9 +89,9 @@ void notifyAllWaiters(struct wait_queue *queue,
 }
 
 /**********************************************************************/
-Waiter *getFirstWaiter(const struct wait_queue *queue)
+struct waiter *getFirstWaiter(const struct wait_queue *queue)
 {
-  Waiter *lastWaiter = queue->lastWaiter;
+  struct waiter *lastWaiter = queue->lastWaiter;
   if (lastWaiter == NULL) {
     // There are no waiters, so we're done.
     return NULL;
@@ -114,7 +114,7 @@ int dequeueMatchingWaiters(struct wait_queue *queue,
   initializeWaitQueue(&iterationQueue);
   transferAllWaiters(queue, &iterationQueue);
   while (hasWaiters(&iterationQueue)) {
-    Waiter *waiter = dequeueNextWaiter(&iterationQueue);
+    struct waiter *waiter = dequeueNextWaiter(&iterationQueue);
     int     result = VDO_SUCCESS;
     if (!matchMethod(waiter, matchContext)) {
       result = enqueueWaiter(queue, waiter);
@@ -133,14 +133,14 @@ int dequeueMatchingWaiters(struct wait_queue *queue,
 }
 
 /**********************************************************************/
-Waiter *dequeueNextWaiter(struct wait_queue *queue)
+struct waiter *dequeueNextWaiter(struct wait_queue *queue)
 {
-  Waiter *firstWaiter = getFirstWaiter(queue);
+  struct waiter *firstWaiter = getFirstWaiter(queue);
   if (firstWaiter == NULL) {
     return NULL;
   }
 
-  Waiter *lastWaiter = queue->lastWaiter;
+  struct waiter *lastWaiter = queue->lastWaiter;
   if (firstWaiter == lastWaiter) {
     // The queue has a single entry, so just empty it out by nulling the tail.
     queue->lastWaiter = NULL;
@@ -161,7 +161,7 @@ bool notifyNextWaiter(struct wait_queue *queue,
                       WaiterCallback    *callback,
                       void              *context)
 {
-  Waiter *waiter = dequeueNextWaiter(queue);
+  struct waiter *waiter = dequeueNextWaiter(queue);
   if (waiter == NULL) {
     return false;
   }
@@ -174,9 +174,10 @@ bool notifyNextWaiter(struct wait_queue *queue,
 }
 
 /**********************************************************************/
-const Waiter *getNextWaiter(const struct wait_queue *queue, const Waiter *waiter)
+const struct waiter *getNextWaiter(const struct wait_queue *queue,
+                                   const struct waiter     *waiter)
 {
-  Waiter *firstWaiter = getFirstWaiter(queue);
+  struct waiter *firstWaiter = getFirstWaiter(queue);
   if (waiter == NULL) {
     return firstWaiter;
   }

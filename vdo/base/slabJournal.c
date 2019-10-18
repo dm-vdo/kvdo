@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#16 $
  */
 
 #include "slabJournalInternals.h"
@@ -41,7 +41,7 @@
  * @return The slab journal
  **/
 __attribute__((warn_unused_result))
-static inline SlabJournal *slabJournalFromResourceWaiter(Waiter *waiter)
+static inline SlabJournal *slabJournalFromResourceWaiter(struct waiter *waiter)
 {
   STATIC_ASSERT(offsetof(SlabJournal, resourceWaiter) == 0);
   return (SlabJournal *) waiter;
@@ -55,7 +55,7 @@ static inline SlabJournal *slabJournalFromResourceWaiter(Waiter *waiter)
  * @return The slab journal
  **/
 __attribute__((warn_unused_result))
-static inline SlabJournal *slabJournalFromFlushWaiter(Waiter *waiter)
+static inline SlabJournal *slabJournalFromFlushWaiter(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;
@@ -81,7 +81,8 @@ SlabJournal *slabJournalFromDirtyNode(RingNode *node)
  * @return The slab journal
  **/
 __attribute__((warn_unused_result))
-static inline SlabJournal *slabJournalFromSlabSummaryWaiter(Waiter *waiter)
+static inline SlabJournal *
+slabJournalFromSlabSummaryWaiter(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;
@@ -231,7 +232,7 @@ static bool blockIsFull(SlabJournal *journal)
 /**********************************************************************/
 static void addEntries(SlabJournal *journal);
 static void updateTailBlockLocation(SlabJournal *journal);
-static void releaseJournalLocks(Waiter *waiter, void *context);
+static void releaseJournalLocks(struct waiter *waiter, void *context);
 
 /**********************************************************************/
 int makeSlabJournal(BlockAllocator   *allocator,
@@ -350,8 +351,8 @@ static void markSlabJournalClean(SlabJournal *journal)
  * Implements WaiterCallback. This callback is invoked on all VIOs waiting
  * to make slab journal entries after the VDO has gone into read-only mode.
  **/
-static void abortWaiter(Waiter *waiter,
-                        void   *context __attribute__((unused)))
+static void abortWaiter(struct waiter *waiter,
+                        void          *context __attribute__((unused)))
 {
   continueDataVIO(waiterAsDataVIO(waiter), VDO_READ_ONLY);
 }
@@ -425,13 +426,13 @@ static void handleFlushError(VDOCompletion *completion)
 }
 
 /**
- * Waiter callback for getting a VIO with which to flush the lower layer prior
- * to reaping.
+ * A waiter callback for getting a VIO with which to flush the lower
+ * layer prior to reaping.
  *
  * @param waiter      The journal as a flush waiter
  * @param vioContext  The newly acquired flush VIO
  **/
-static void flushForReaping(Waiter *waiter, void *vioContext)
+static void flushForReaping(struct waiter *waiter, void *vioContext)
 {
   SlabJournal           *journal = slabJournalFromFlushWaiter(waiter);
   struct vio_pool_entry *entry   = vioContext;
@@ -517,7 +518,7 @@ static void reapSlabJournal(SlabJournal *journal)
  * @param waiter        The slab summary waiter that has just been notified
  * @param context       The result code of the update
  **/
-static void releaseJournalLocks(Waiter *waiter, void *context)
+static void releaseJournalLocks(struct waiter *waiter, void *context)
 {
   SlabJournal *journal = slabJournalFromSlabSummaryWaiter(waiter);
   int          result  = *((int *) context);
@@ -676,7 +677,7 @@ static void completeWrite(VDOCompletion *completion)
  * @param waiter      The VIO pool waiter which was just notified
  * @param vioContext  The VIO pool entry for the write
  **/
-static void writeSlabJournalBlock(Waiter *waiter, void *vioContext)
+static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
 {
   SlabJournal            *journal = slabJournalFromResourceWaiter(waiter);
   struct vio_pool_entry  *entry   = vioContext;
@@ -868,7 +869,7 @@ bool attemptReplayIntoSlabJournal(SlabJournal          *journal,
 
   if (journal->waitingToCommit) {
     startOperationWithWaiter(&journal->slab->state,
-                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent);
+                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent, NULL);
     return false;
   }
 
@@ -929,7 +930,7 @@ bool requiresScrubbing(const SlabJournal *journal)
  * @param waiter        The VIO which should make an entry now
  * @param context       The slab journal to make an entry in
  **/
-static void addEntryFromWaiter(Waiter *waiter, void *context)
+static void addEntryFromWaiter(struct waiter *waiter, void *context)
 {
   DataVIO     *dataVIO = waiterAsDataVIO(waiter);
   SlabJournal *journal = (SlabJournal *) context;
@@ -1257,7 +1258,7 @@ static void setDecodedState(VDOCompletion *completion)
  * @param waiter      The VIO pool waiter which has just been notified
  * @param vioContext  The VIO pool entry given to the waiter
  **/
-static void readSlabJournalTail(Waiter *waiter, void *vioContext)
+static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
 {
   SlabJournal           *journal = slabJournalFromResourceWaiter(waiter);
   Slab                  *slab    = journal->slab;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#5 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -128,7 +128,7 @@ void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
  * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
  *         slabs to scrub, and some other error otherwise
  **/
-int enqueueCleanSlabWaiter(SlabScrubber *scrubber, Waiter *waiter);
+int enqueueCleanSlabWaiter(SlabScrubber *scrubber, struct waiter *waiter);
 
 /**
  * Get the number of slabs that are unrecovered or being scrubbed.

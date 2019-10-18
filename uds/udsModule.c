@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#23 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#26 $
  */
 
 #include <linux/module.h>
@@ -29,7 +29,6 @@
 #include "timeUtils.h"
 #include "uds.h"
 #include "uds-block.h"
-#include "uds-param.h"
 #include "util/funnelQueue.h"
 
 /**********************************************************************/
@@ -78,15 +77,6 @@ EXPORT_SYMBOL_GPL(udsGetIndexStats);
 EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
 EXPORT_SYMBOL_GPL(udsStringError);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
-
-EXPORT_SYMBOL_GPL(UDS_PARAM_FALSE);
-EXPORT_SYMBOL_GPL(UDS_PARAM_TRUE);
-EXPORT_SYMBOL_GPL(udsGetParameter);
-EXPORT_SYMBOL_GPL(udsIterateParameter);
-EXPORT_SYMBOL_GPL(udsResetParameter);
-EXPORT_SYMBOL_GPL(udsSetParameter);
-EXPORT_SYMBOL_GPL(udsStringValue);
-EXPORT_SYMBOL_GPL(udsUnsignedValue);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);

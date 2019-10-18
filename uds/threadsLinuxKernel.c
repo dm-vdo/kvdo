@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#3 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadsLinuxKernel.c#4 $
  */
 
 #include <linux/completion.h>
@@ -170,41 +170,41 @@ int initializeBarrier(Barrier *barrier, unsigned int threadCount)
 {
   barrier->arrived     = 0;
   barrier->threadCount = threadCount;
-  int result = initializeSemaphore(&barrier->mutex, 1, __func__);
+  int result = initializeSemaphore(&barrier->mutex, 1);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  return initializeSemaphore(&barrier->wait, 0, __func__);
+  return initializeSemaphore(&barrier->wait, 0);
 }
 
 /**********************************************************************/
 int destroyBarrier(Barrier *barrier)
 {
-  int result = destroySemaphore(&barrier->mutex, __func__);
+  int result = destroySemaphore(&barrier->mutex);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  return destroySemaphore(&barrier->wait, __func__);
+  return destroySemaphore(&barrier->wait);
 }
 
 /**********************************************************************/
 int enterBarrier(Barrier *barrier, bool *winner)
 {
-  acquireSemaphore(&barrier->mutex, __func__);
+  acquireSemaphore(&barrier->mutex);
   bool lastThread = ++barrier->arrived == barrier->threadCount;
   if (lastThread) {
     // This is the last thread to arrive, so wake up the others
     int i;
     for (i = 1; i < barrier->threadCount; i++) {
-      releaseSemaphore(&barrier->wait, __func__);
+      releaseSemaphore(&barrier->wait);
     }
     // Then reinitialize for the next cycle
     barrier->arrived = 0;
-    releaseSemaphore(&barrier->mutex, __func__);
+    releaseSemaphore(&barrier->mutex);
   } else {
     // This is NOT the last thread to arrive, so just wait
-    releaseSemaphore(&barrier->mutex, __func__);
-    acquireSemaphore(&barrier->wait, __func__);
+    releaseSemaphore(&barrier->mutex);
+    acquireSemaphore(&barrier->wait);
   }
   if (winner != NULL) {
     *winner = lastThread;

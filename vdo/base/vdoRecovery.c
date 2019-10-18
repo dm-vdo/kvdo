@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#21 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -50,7 +50,7 @@ enum {
 
 struct missing_decref {
   /** A waiter for queueing this object */
-  Waiter                      waiter;
+  struct waiter               waiter;
   /** The parent of this object */
   struct recovery_completion *recovery;
   /** Whether this decref is complete */
@@ -68,14 +68,14 @@ struct missing_decref {
 };
 
 /**
- * Convert a Waiter to the missing decref of which it is a part.
+ * Convert a waiter to the missing decref of which it is a part.
  *
- * @param waiter  The Waiter to convert
+ * @param waiter  The waiter to convert
  *
- * @return The missing_decref wrapping the Waiter
+ * @return The missing_decref wrapping the waiter
  **/
 __attribute__((warn_unused_result))
-static inline struct missing_decref *asMissingDecref(Waiter *waiter)
+static inline struct missing_decref *asMissingDecref(struct waiter *waiter)
 {
   STATIC_ASSERT(offsetof(struct missing_decref, waiter) == 0);
   return (struct missing_decref *) waiter;
@@ -326,8 +326,8 @@ int makeRecoveryCompletion(VDO *vdo, struct recovery_completion **recoveryPtr)
  *
  * Implements WaiterCallback.
  **/
-static void freeMissingDecref(Waiter *waiter,
-                              void   *context __attribute__((unused)))
+static void freeMissingDecref(struct waiter *waiter,
+                              void          *context __attribute__((unused)))
 {
   FREE(asMissingDecref(waiter));
 }
@@ -772,7 +772,7 @@ void replayIntoSlabJournals(BlockAllocator *allocator,
  *
  * Implements WaiterCallback.
  **/
-static void queueOnPhysicalZone(Waiter *waiter, void *context)
+static void queueOnPhysicalZone(struct waiter *waiter, void *context)
 {
   struct missing_decref *decref  = asMissingDecref(waiter);
   DataLocation           mapping = decref->penultimateMapping;
@@ -1009,7 +1009,7 @@ static void handleFetchError(VDOCompletion *completion)
  *
  * Implements WaiterCallback.
  **/
-static void launchFetch(Waiter *waiter, void *context)
+static void launchFetch(struct waiter *waiter, void *context)
 {
   struct missing_decref         *decref   = asMissingDecref(waiter);
   struct recovery_completion    *recovery = decref->recovery;

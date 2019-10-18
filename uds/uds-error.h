@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds-error.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/public/uds-error.h#4 $
  */
 
 /**
@@ -137,12 +137,12 @@ enum udsStatusCodes {
   UDS_UNUSED_CODE_48              = UDS_ERROR_CODE_BASE + 48,
   /** Unused */
   UDS_UNUSED_CODE_49              = UDS_ERROR_CODE_BASE + 49,
-  /** The parameter is not defined */
-  UDS_UNKNOWN_PARAMETER           = UDS_ERROR_CODE_BASE + 50,
-  /** The parameter value type is invalid */
-  UDS_BAD_PARAMETER_TYPE          = UDS_ERROR_CODE_BASE + 51,
-  /** The parameter value is invalid */
-  UDS_PARAMETER_INVALID           = UDS_ERROR_CODE_BASE + 52,
+  /** Unused */
+  UDS_UNUSED_CODE_50              = UDS_ERROR_CODE_BASE + 50,
+  /** Unused */
+  UDS_UNUSED_CODE_51              = UDS_ERROR_CODE_BASE + 51,
+  /** Unused */
+  UDS_UNUSED_CODE_52              = UDS_ERROR_CODE_BASE + 52,
   /** Callback required */
   UDS_CALLBACK_REQUIRED           = UDS_ERROR_CODE_BASE + 53,
   /** Wrong operation type */

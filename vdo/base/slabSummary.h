@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#8 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -151,7 +151,7 @@ void resumeSlabSummaryZone(SlabSummaryZone *summaryZone,
  * @param freeBlocks      The number of free blocks
  **/
 void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
-                            Waiter          *waiter,
+                            struct waiter   *waiter,
                             SlabCount        slabNumber,
                             TailBlockOffset  tailBlockOffset,
                             bool             loadRefCounts,

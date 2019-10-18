@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/threads.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/threads.h#2 $
  */
 
 #ifndef THREADS_H
@@ -25,7 +25,6 @@
 #include "threadCondVar.h"
 #include "threadDefs.h"
 #include "threadOnce.h"
-#include "threadSemaphore.h"
 
 /**
  * Create a thread, logging any cause of failure.

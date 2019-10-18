@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#17 $
  */
 
 #include "blockMapTree.h"
@@ -333,7 +333,7 @@ static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry);
  * @param waiter   The page to write
  * @param context  The vio_pool_entry with which to do the write
  **/
-static void writePageCallback(Waiter *waiter, void *context)
+static void writePageCallback(struct waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
   writePage((struct tree_page *) waiter, (struct vio_pool_entry *) context);
@@ -345,7 +345,7 @@ static void writePageCallback(Waiter *waiter, void *context)
  * @param waiter  The page which needs a VIO
  * @param zone    The zone
  **/
-static void acquireVIO(Waiter *waiter, BlockMapTreeZone *zone)
+static void acquireVIO(struct waiter *waiter, BlockMapTreeZone *zone)
 {
   waiter->callback = writePageCallback;
   int result = acquireVIOFromPool(zone->vioPool, waiter);
@@ -403,7 +403,7 @@ static void enqueuePage(struct tree_page *page, BlockMapTreeZone *zone)
  * @param waiter   The dirty page
  * @param context  The zone and generation
  **/
-static void writePageIfNotDirtied(Waiter *waiter, void *context)
+static void writePageIfNotDirtied(struct waiter *waiter, void *context)
 {
   STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
   struct tree_page *page = (struct tree_page *) waiter;
@@ -591,11 +591,13 @@ void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period)
 }
 
 /**********************************************************************/
-void drainZoneTrees(BlockMapTreeZone *zone)
+void drainZoneTrees(struct admin_state *state)
 {
+  BlockMapTreeZone *zone
+    = &(container_of(state, BlockMapZone, state)->treeZone);
   ASSERT_LOG_ONLY((zone->activeLookups == 0),
                   "drainZoneTrees() called with no active lookups");
-  if (!isSuspending(&zone->mapZone->state)) {
+  if (!isSuspending(state)) {
     flushDirtyLists(zone->dirtyLists);
   }
 
@@ -648,7 +650,7 @@ static void finishLookup(DataVIO *dataVIO, int result)
  * @param waiter   The DataVIO which was waiting for a page load or allocation
  * @param context  The error which caused the abort
  **/
-static void abortLookupForWaiter(Waiter *waiter, void *context)
+static void abortLookupForWaiter(struct waiter *waiter, void *context)
 {
   DataVIO *dataVIO = waiterAsDataVIO(waiter);
   int      result  = *((int *) context);
@@ -775,7 +777,7 @@ static void continueWithLoadedPage(DataVIO *dataVIO, struct block_map_page *page
  * @param waiter   The DataVIO waiting for a page to be loaded
  * @param context  The page which was just loaded
  **/
-static void continueLoadForWaiter(Waiter *waiter, void *context)
+static void continueLoadForWaiter(struct waiter *waiter, void *context)
 {
   DataVIO *dataVIO = waiterAsDataVIO(waiter);
   dataVIO->treeLock.height--;
@@ -835,7 +837,7 @@ static void handleIOError(VDOCompletion *completion)
  * @param waiter   The DataVIO which requires a page load
  * @param context  The VIOPool entry with which to do the read
  **/
-static void loadPage(Waiter *waiter, void *context)
+static void loadPage(struct waiter *waiter, void *context)
 {
   struct vio_pool_entry *entry   = context;
   DataVIO               *dataVIO = waiterAsDataVIO(waiter);
@@ -907,7 +909,7 @@ static void loadBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO)
   }
 
   if (dataVIO->treeLock.locked) {
-    Waiter *waiter   = dataVIOAsWaiter(dataVIO);
+    struct waiter *waiter = dataVIOAsWaiter(dataVIO);
     waiter->callback = loadPage;
     result = acquireVIOFromPool(zone->vioPool, waiter);
     if (result != VDO_SUCCESS) {
@@ -960,7 +962,7 @@ static void allocationFailure(VDOCompletion *completion)
  * @param context  The physical block number of the page which was just
  *                 allocated
  **/
-static void continueAllocationForWaiter(Waiter *waiter, void *context)
+static void continueAllocationForWaiter(struct waiter *waiter, void *context)
 {
   DataVIO             *dataVIO  = waiterAsDataVIO(waiter);
   struct tree_lock    *treeLock = &dataVIO->treeLock;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.c#22 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#23 $
  */
 
 #include "volume.h"
@@ -30,7 +30,6 @@
 #include "indexConfig.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "parameter.h"
 #include "permassert.h"
 #include "recordPage.h"
 #include "request.h"
@@ -39,32 +38,24 @@
 #include "threads.h"
 
 enum {
-  MAX_BAD_CHAPTERS    = 100,   // max number of contiguous bad chapters
-  VOLUME_READ_THREADS = 2      // Number of reader threads
-};
-
-static const NumericValidationData validRange = {
-  .minValue = 1,
-  .maxValue = MAX_VOLUME_READ_THREADS,
+  MAX_BAD_CHAPTERS = 100,           // max number of contiguous bad chapters
+  DEFAULT_VOLUME_READ_THREADS = 2,  // Default number of reader threads
+  MAX_VOLUME_READ_THREADS = 16,     // Maximum number of reader threads
 };
 
 /**********************************************************************/
-static UdsParameterValue getDefaultReadThreads(void)
+static unsigned int getReadThreads(const struct uds_parameters *userParams)
 {
-  UdsParameterValue value;
-  value.type = UDS_PARAM_TYPE_UNSIGNED_INT;
-  value.value.u_uint = VOLUME_READ_THREADS;
-  return value;
-}
-
-/**********************************************************************/
-int defineVolumeReadThreads(ParameterDefinition *pd)
-{
-  pd->validate       = validateNumericRange;
-  pd->validationData = &validRange;
-  pd->currentValue   = getDefaultReadThreads();
-  pd->update         = NULL;
-  return UDS_SUCCESS;
+  unsigned int readThreads = (userParams == NULL
+                              ? DEFAULT_VOLUME_READ_THREADS
+                              : userParams->read_threads);
+  if (readThreads < 1) {
+    readThreads = 1;
+  }
+  if (readThreads > MAX_VOLUME_READ_THREADS) {
+    readThreads = MAX_VOLUME_READ_THREADS;
+  }
+  return readThreads;
 }
 
 /**********************************************************************/
@@ -1293,21 +1284,14 @@ static int allocateVolume(const Configuration  *config,
 }
 
 /**********************************************************************/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
+int makeVolume(const Configuration          *config,
+               IndexLayout                  *layout,
+               const struct uds_parameters  *userParams,
+               unsigned int                  readQueueMaxSize,
+               unsigned int                  zoneCount,
+               Volume                      **newVolume)
 {
-  unsigned int volumeReadThreads;
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
-      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
-    volumeReadThreads = value.value.u_uint;
-  } else {
-    volumeReadThreads = VOLUME_READ_THREADS;
-  }
+  unsigned int volumeReadThreads = getReadThreads(userParams);
 
   if (readQueueMaxSize <= volumeReadThreads) {
     logError("Number of read threads must be smaller than read queue");

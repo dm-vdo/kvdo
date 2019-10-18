@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#6 $
  */
 
 #include "indexRouter.h"
@@ -131,13 +131,14 @@ static INLINE RequestQueue *getZoneQueue(IndexRouter  *router,
 }
 
 /**********************************************************************/
-int makeIndexRouter(IndexLayout          *layout,
-                    const Configuration  *config,
-                    LoadType              loadType,
-                    IndexRouterCallback   callback,
-                    IndexRouter         **routerPtr)
+int makeIndexRouter(IndexLayout                  *layout,
+                    const Configuration          *config,
+                    const struct uds_parameters  *userParams,
+                    LoadType                      loadType,
+                    IndexRouterCallback           callback,
+                    IndexRouter                 **routerPtr)
 {
-  unsigned int zoneCount = getZoneCount();
+  unsigned int zoneCount = getZoneCount(userParams);
   IndexRouter *router;
   int result = ALLOCATE_EXTENDED(IndexRouter, zoneCount, RequestQueue *,
                                  "index router", &router);
@@ -154,7 +155,7 @@ int makeIndexRouter(IndexLayout          *layout,
     return result;
   }
 
-  result = makeIndex(layout, config, router->zoneCount, loadType,
+  result = makeIndex(layout, config, userParams, router->zoneCount, loadType,
                      &router->index);
   if (result != UDS_SUCCESS) {
     freeIndexRouter(router);

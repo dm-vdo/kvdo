@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/volume.h#13 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#14 $
  */
 
 #ifndef VOLUME_H
@@ -34,10 +34,6 @@
 #include "uds.h"
 #include "util/radixSort.h"
 #include "volumeStore.h"
-
-enum {
-  MAX_VOLUME_READ_THREADS = 16
-};
 
 typedef enum {
   READER_STATE_RUN   = 1,
@@ -105,19 +101,22 @@ typedef struct volume {
 /**
  * Create a volume.
  *
- * @param config           The configuration to use.
- * @param layout           The index layout
- * @param readQueueMaxSize The maximum size of the read queue.
- * @param zoneCount        The number of zones to use.
- * @param newVolume        A pointer to hold a pointer to the new volume.
+ * @param config            The configuration to use.
+ * @param layout            The index layout
+ * @param userParams        The index session parameters.  If NULL, the default
+ *                          session parameters will be used.
+ * @param readQueueMaxSize  The maximum size of the read queue.
+ * @param zoneCount         The number of zones to use.
+ * @param newVolume         A pointer to hold a pointer to the new volume.
  *
  * @return          UDS_SUCCESS or an error code
  **/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
+int makeVolume(const Configuration          *config,
+               IndexLayout                  *layout,
+               const struct uds_parameters  *userParams,
+               unsigned int                  readQueueMaxSize,
+               unsigned int                  zoneCount,
+               Volume                      **newVolume)
   __attribute__((warn_unused_result));
 
 /**
