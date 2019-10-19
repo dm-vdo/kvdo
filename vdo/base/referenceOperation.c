@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#2 $
  */
 
 #include "referenceOperation.h"
@@ -25,19 +25,19 @@
 #include "types.h"
 
 /**********************************************************************/
-static PBNLock *returnPBNLock(ReferenceOperation operation)
+static PBNLock *returnPBNLock(struct reference_operation operation)
 {
   return (PBNLock *) operation.context;
 }
 
 /**********************************************************************/
-void setUpReferenceOperationWithLock(JournalOperation     type,
-                                     PhysicalBlockNumber  pbn,
-                                     BlockMappingState    state,
-                                     PBNLock             *lock,
-                                     ReferenceOperation  *operation)
+void setUpReferenceOperationWithLock(JournalOperation            type,
+                                     PhysicalBlockNumber         pbn,
+                                     BlockMappingState           state,
+                                     PBNLock                    *lock,
+                                     struct reference_operation *operation)
 {
-  *operation = (ReferenceOperation) {
+  *operation = (struct reference_operation) {
     .type       = type,
     .pbn        = pbn,
     .state      = state,
@@ -47,20 +47,20 @@ void setUpReferenceOperationWithLock(JournalOperation     type,
 }
 
 /**********************************************************************/
-static PBNLock *lookUpPBNLock(ReferenceOperation operation)
+static PBNLock *lookUpPBNLock(struct reference_operation operation)
 {
   return ((operation.context == NULL)
           ? NULL : getPBNLock(operation.context, operation.pbn));
 }
 
 /**********************************************************************/
-void setUpReferenceOperationWithZone(JournalOperation     type,
-                                     PhysicalBlockNumber  pbn,
-                                     BlockMappingState    state,
-                                     PhysicalZone        *zone,
-                                     ReferenceOperation  *operation)
+void setUpReferenceOperationWithZone(JournalOperation            type,
+                                     PhysicalBlockNumber         pbn,
+                                     BlockMappingState           state,
+                                     PhysicalZone               *zone,
+                                     struct reference_operation *operation)
 {
-  *operation = (ReferenceOperation) {
+  *operation = (struct reference_operation) {
     .type       = type,
     .pbn        = pbn,
     .state      = state,

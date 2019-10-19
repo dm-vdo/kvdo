@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#2 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -24,23 +24,23 @@
 
 #include "types.h"
 
-typedef struct referenceOperation ReferenceOperation;
+struct reference_operation;
 
 /**
- * Get the PBNLock associated with a ReferenceOperation.
+ * Get the PBNLock associated with a reference_operation.
  *
- * @param operation  The ReferenceOperation
+ * @param operation  The reference_operation
  *
- * @return The PBNLock on the block of a ReferenceOperation or NULL if there
+ * @return The PBNLock on the block of a reference_operation or NULL if there
  *         isn't one
  **/
-typedef PBNLock *PBNLockGetter(ReferenceOperation operation);
+typedef PBNLock *PBNLockGetter(struct reference_operation operation);
 
 /**
  * The current operation on a physical block (from the point of view of the
  * DataVIO doing the operation)
  **/
-struct referenceOperation {
+struct reference_operation {
   /** The operation being performed */
   JournalOperation     type;
   /** The PBN of the block being operated on */
@@ -54,7 +54,7 @@ struct referenceOperation {
 };
 
 /**
- * Get the PBNLock associated with the current ReferenceOperation.
+ * Get the PBNLock associated with the current reference_operation.
  *
  * @param operation  The reference operation
  *
@@ -63,41 +63,41 @@ struct referenceOperation {
  **/
 __attribute__((warn_unused_result))
 static inline
-PBNLock *getReferenceOperationPBNLock(ReferenceOperation operation)
+PBNLock *getReferenceOperationPBNLock(struct reference_operation operation)
 {
   return ((operation.lockGetter == NULL)
           ? NULL : operation.lockGetter(operation));
 }
 
 /**
- * Set up a ReferenceOperation for which we already have the lock.
+ * Set up a reference_operation for which we already have the lock.
  *
  * @param type       The type of operation
  * @param pbn        The PBN of the block on which to operate
  * @param state      The mapping state of the block on which to operate
  * @param lock       The PBNLock to associate with the operation
- * @param operation  The ReferenceOperation to set up
+ * @param operation  The reference_operation to set up
  **/
-void setUpReferenceOperationWithLock(JournalOperation     type,
-                                     PhysicalBlockNumber  pbn,
-                                     BlockMappingState    state,
-                                     PBNLock             *lock,
-                                     ReferenceOperation  *operation);
+void setUpReferenceOperationWithLock(JournalOperation            type,
+                                     PhysicalBlockNumber         pbn,
+                                     BlockMappingState           state,
+                                     PBNLock                    *lock,
+                                     struct reference_operation *operation);
 
 /**
- * Set up a ReferenceOperation for which we will need to look up the lock later.
+ * Set up a reference_operation for which we will need to look up the lock later.
  *
  * @param type       The type of operation
  * @param pbn        The PBN of the block on which to operate
  * @param state      The mapping state of the block on which to operate
  * @param zone       The PhysicalZone from which the PBNLock can be retrieved
  *                   when needed
- * @param operation  The ReferenceOperation to set up
+ * @param operation  The reference_operation to set up
  **/
-void setUpReferenceOperationWithZone(JournalOperation     type,
-                                     PhysicalBlockNumber  pbn,
-                                     BlockMappingState    state,
-                                     PhysicalZone        *zone,
-                                     ReferenceOperation  *operation);
+void setUpReferenceOperationWithZone(JournalOperation            type,
+                                     PhysicalBlockNumber         pbn,
+                                     BlockMappingState           state,
+                                     PhysicalZone               *zone,
+                                     struct reference_operation *operation);
 
 #endif // REFERENCE_OPERATION_H

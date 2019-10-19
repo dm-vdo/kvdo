@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#26 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -462,7 +462,7 @@ void releaseBlockReference(BlockAllocator      *allocator,
   }
 
   Slab *slab = getSlab(allocator->depot, pbn);
-  ReferenceOperation operation = {
+  struct reference_operation operation = {
     .type = DATA_DECREMENT,
     .pbn  = pbn,
   };

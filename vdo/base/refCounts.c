@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#13 $
  */
 
 #include "refCounts.h"
@@ -582,7 +582,7 @@ updateReferenceCount(RefCounts                  *refCounts,
                      struct reference_block     *block,
                      SlabBlockNumber             slabBlockNumber,
                      const struct journal_point *slabJournalPoint,
-                     ReferenceOperation          operation,
+                     struct reference_operation  operation,
                      bool                        normalOperation,
                      bool                       *freeStatusChanged,
                      bool                       *provisionalDecrementPtr)
@@ -634,7 +634,7 @@ updateReferenceCount(RefCounts                  *refCounts,
 
 /**********************************************************************/
 int adjustReferenceCount(RefCounts                  *refCounts,
-                         ReferenceOperation          operation,
+                         struct reference_operation  operation,
                          const struct journal_point *slabJournalPoint,
                          bool                       *freeStatusChanged)
 {
@@ -706,7 +706,7 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
 
   struct reference_block *block = getReferenceBlock(refCounts, slabBlockNumber);
   bool unusedFreeStatus;
-  ReferenceOperation physicalOperation = {
+  struct reference_operation physicalOperation = {
     .type = operation,
   };
   result = updateReferenceCount(refCounts, block, slabBlockNumber, NULL,
@@ -735,7 +735,7 @@ int replayReferenceCountChange(RefCounts                  *refCounts,
 
   // This entry is not yet counted in the reference counts.
   bool unusedFreeStatus;
-  ReferenceOperation operation = {
+  struct reference_operation operation = {
     .type = entry.operation
   };
   int result = updateReferenceCount(refCounts, block, entry.sbn,

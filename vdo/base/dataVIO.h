@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#7 $
  */
 
 #ifndef DATA_VIO_H
@@ -168,7 +168,7 @@ struct dataVIO {
   AsyncOperationNumber        lastAsyncOperation;
 
   /* The operation to record in the recovery and slab journals */
-  ReferenceOperation          operation;
+  struct reference_operation  operation;
 
   /* Whether this VIO is a read-and-write VIO */
   bool                        isPartialWrite;

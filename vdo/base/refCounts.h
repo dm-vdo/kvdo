@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#8 $
  */
 
 #ifndef REF_COUNTS_H
@@ -97,7 +97,7 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  *
  **/
 int adjustReferenceCount(RefCounts                  *refCounts,
-                         ReferenceOperation          operation,
+                         struct reference_operation  operation,
                          const struct journal_point *slabJournalPoint,
                          bool                       *freeStatusChanged)
   __attribute__((warn_unused_result));
