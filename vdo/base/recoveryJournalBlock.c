@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#8 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -34,9 +34,9 @@
 #include "waitQueue.h"
 
 /**********************************************************************/
-int makeRecoveryBlock(PhysicalLayer         *layer,
-                      RecoveryJournal       *journal,
-                      RecoveryJournalBlock **blockPtr)
+int makeRecoveryBlock(PhysicalLayer                  *layer,
+                      RecoveryJournal                *journal,
+                      struct recovery_journal_block **blockPtr)
 {
   // Ensure that a block is large enough to store
   // RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
@@ -44,8 +44,8 @@ int makeRecoveryBlock(PhysicalLayer         *layer,
                 <= ((VDO_BLOCK_SIZE - sizeof(PackedJournalHeader))
                     / sizeof(PackedRecoveryJournalEntry)));
 
-  RecoveryJournalBlock *block;
-  int result = ALLOCATE(1, RecoveryJournalBlock, __func__, &block);
+  struct recovery_journal_block *block;
+  int result = ALLOCATE(1, struct recovery_journal_block, __func__, &block);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -74,9 +74,9 @@ int makeRecoveryBlock(PhysicalLayer         *layer,
 }
 
 /**********************************************************************/
-void freeRecoveryBlock(RecoveryJournalBlock **blockPtr)
+void freeRecoveryBlock(struct recovery_journal_block **blockPtr)
 {
-  RecoveryJournalBlock *block = *blockPtr;
+  struct recovery_journal_block *block = *blockPtr;
   if (block == NULL) {
     return;
   }
@@ -95,7 +95,7 @@ void freeRecoveryBlock(RecoveryJournalBlock **blockPtr)
  * @return The block's header
  **/
 static inline
-PackedJournalHeader *getBlockHeader(const RecoveryJournalBlock *block)
+PackedJournalHeader *getBlockHeader(const struct recovery_journal_block *block)
 {
   return (PackedJournalHeader *) block->block;
 }
@@ -106,7 +106,7 @@ PackedJournalHeader *getBlockHeader(const RecoveryJournalBlock *block)
  * @param block  The block to update
  * @param sector A pointer to the first byte of the new sector
  **/
-static void setActiveSector(RecoveryJournalBlock *block, void *sector)
+static void setActiveSector(struct recovery_journal_block *block, void *sector)
 {
   block->sector                = (struct packed_journal_sector *) sector;
   block->sector->checkByte     = getBlockHeader(block)->fields.checkByte;
@@ -115,7 +115,7 @@ static void setActiveSector(RecoveryJournalBlock *block, void *sector)
 }
 
 /**********************************************************************/
-void initializeRecoveryBlock(RecoveryJournalBlock *block)
+void initializeRecoveryBlock(struct recovery_journal_block *block)
 {
   memset(block->block, 0x0, VDO_BLOCK_SIZE);
 
@@ -142,7 +142,8 @@ void initializeRecoveryBlock(RecoveryJournalBlock *block)
 }
 
 /**********************************************************************/
-int enqueueRecoveryBlockEntry(RecoveryJournalBlock *block, DataVIO *dataVIO)
+int enqueueRecoveryBlockEntry(struct recovery_journal_block *block,
+                              DataVIO                       *dataVIO)
 {
   // First queued entry indicates this is a journal block we've just opened
   // or a committing block we're extending and will have to write again.
@@ -175,7 +176,7 @@ int enqueueRecoveryBlockEntry(RecoveryJournalBlock *block, DataVIO *dataVIO)
  * @return <code>true</code> if the sector is full
  **/
 __attribute__((warn_unused_result))
-static bool isSectorFull(const RecoveryJournalBlock *block)
+static bool isSectorFull(const struct recovery_journal_block *block)
 {
   return (block->sector->entryCount == RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 }
@@ -188,7 +189,7 @@ static bool isSectorFull(const RecoveryJournalBlock *block)
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static int addQueuedRecoveryEntries(RecoveryJournalBlock *block)
+static int addQueuedRecoveryEntries(struct recovery_journal_block *block)
 {
   while (hasWaiters(&block->entryWaiters)) {
     DataVIO *dataVIO
@@ -243,8 +244,8 @@ static int addQueuedRecoveryEntries(RecoveryJournalBlock *block)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int getRecoveryBlockPBN(RecoveryJournalBlock *block,
-                               PhysicalBlockNumber  *pbnPtr)
+static int getRecoveryBlockPBN(struct recovery_journal_block *block,
+                               PhysicalBlockNumber           *pbnPtr)
 {
   RecoveryJournal *journal = block->journal;
   int result = translateToPBN(journal->partition, block->blockNumber, pbnPtr);
@@ -263,7 +264,7 @@ static int getRecoveryBlockPBN(RecoveryJournalBlock *block,
  *
  * @return <code>true</code> if the block should be committed now
  **/
-static bool shouldCommit(RecoveryJournalBlock *block)
+static bool shouldCommit(struct recovery_journal_block *block)
 {
   // Never commit in read-only mode, if already committing the block, or
   // if there are no entries to commit.
@@ -289,9 +290,9 @@ static bool shouldCommit(RecoveryJournalBlock *block)
 }
 
 /**********************************************************************/
-int commitRecoveryBlock(RecoveryJournalBlock *block,
-                        VDOAction            *callback,
-                        VDOAction            *errorHandler)
+int commitRecoveryBlock(struct recovery_journal_block *block,
+                        VDOAction                     *callback,
+                        VDOAction                     *errorHandler)
 {
   if (!shouldCommit(block)) {
     return VDO_SUCCESS;
@@ -346,7 +347,7 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
 }
 
 /**********************************************************************/
-void dumpRecoveryBlock(const RecoveryJournalBlock *block)
+void dumpRecoveryBlock(const struct recovery_journal_block *block)
 {
   logInfo("    sequence number %llu; entries %" PRIu16
           "; %s; %zu entry waiters; %zu commit waiters",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#6 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -30,7 +30,7 @@
 #include "types.h"
 #include "waitQueue.h"
 
-struct recoveryJournalBlock {
+struct recovery_journal_block {
   /** The doubly linked pointers for the free or active lists */
   RingNode                      ringNode;
   /** The journal to which this block belongs */
@@ -70,10 +70,10 @@ struct recoveryJournalBlock {
  *
  * @return The block
  **/
-static inline RecoveryJournalBlock *blockFromRingNode(RingNode *node)
+static inline struct recovery_journal_block *blockFromRingNode(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(RecoveryJournalBlock, ringNode) == 0);
-  return (RecoveryJournalBlock *) node;
+  STATIC_ASSERT(offsetof(struct recovery_journal_block, ringNode) == 0);
+  return (struct recovery_journal_block *) node;
 }
 
 /**
@@ -86,7 +86,8 @@ static inline RecoveryJournalBlock *blockFromRingNode(RingNode *node)
  * @return <code>true</code> if the block has any uncommitted entries
  **/
 __attribute__((warn_unused_result))
-static inline bool isRecoveryBlockDirty(const RecoveryJournalBlock *block)
+static inline bool
+isRecoveryBlockDirty(const struct recovery_journal_block *block)
 {
   return (block->uncommittedEntryCount > 0);
 }
@@ -99,7 +100,8 @@ static inline bool isRecoveryBlockDirty(const RecoveryJournalBlock *block)
  * @return <code>true</code> if the block has no entries
  **/
 __attribute__((warn_unused_result))
-static inline bool isRecoveryBlockEmpty(const RecoveryJournalBlock *block)
+static inline bool
+isRecoveryBlockEmpty(const struct recovery_journal_block *block)
 {
   return (block->entryCount == 0);
 }
@@ -112,7 +114,8 @@ static inline bool isRecoveryBlockEmpty(const RecoveryJournalBlock *block)
  * @return <code>true</code> if the the block is full
  **/
 __attribute__((warn_unused_result))
-static inline bool isRecoveryBlockFull(const RecoveryJournalBlock *block)
+static inline bool
+isRecoveryBlockFull(const struct recovery_journal_block *block)
 {
   return ((block == NULL)
 	  || (block->journal->entriesPerBlock == block->entryCount));
@@ -127,9 +130,9 @@ static inline bool isRecoveryBlockFull(const RecoveryJournalBlock *block)
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeRecoveryBlock(PhysicalLayer         *layer,
-                      RecoveryJournal       *journal,
-                      RecoveryJournalBlock **blockPtr)
+int makeRecoveryBlock(PhysicalLayer                  *layer,
+                      RecoveryJournal                *journal,
+                      struct recovery_journal_block **blockPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -137,14 +140,14 @@ int makeRecoveryBlock(PhysicalLayer         *layer,
  *
  * @param blockPtr  The reference to the tail block to free
  **/
-void freeRecoveryBlock(RecoveryJournalBlock **blockPtr);
+void freeRecoveryBlock(struct recovery_journal_block **blockPtr);
 
 /**
  * Initialize the next active recovery journal block.
  *
  * @param block  The journal block to initialize
  **/
-void initializeRecoveryBlock(RecoveryJournalBlock *block);
+void initializeRecoveryBlock(struct recovery_journal_block *block);
 
 /**
  * Enqueue a DataVIO to asynchronously encode and commit its next recovery
@@ -157,7 +160,8 @@ void initializeRecoveryBlock(RecoveryJournalBlock *block);
  *
  * @return VDO_SUCCESS or an error code if the DataVIO could not be enqueued
  **/
-int enqueueRecoveryBlockEntry(RecoveryJournalBlock *block, DataVIO *dataVIO)
+int enqueueRecoveryBlockEntry(struct recovery_journal_block *block,
+                              DataVIO                       *dataVIO)
   __attribute__((warn_unused_result));
 
 /**
@@ -171,9 +175,9 @@ int enqueueRecoveryBlockEntry(RecoveryJournalBlock *block, DataVIO *dataVIO)
  *
  * @return VDO_SUCCESS, or an error if the write could not be launched
  **/
-int commitRecoveryBlock(RecoveryJournalBlock *block,
-                        VDOAction            *callback,
-                        VDOAction            *errorHandler)
+int commitRecoveryBlock(struct recovery_journal_block *block,
+                        VDOAction                     *callback,
+                        VDOAction                     *errorHandler)
   __attribute__((warn_unused_result));
 
 /**
@@ -181,6 +185,6 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
  *
  * @param block  The block to dump
  **/
-void dumpRecoveryBlock(const RecoveryJournalBlock *block);
+void dumpRecoveryBlock(const struct recovery_journal_block *block);
 
 #endif // RECOVERY_JOURNAL_BLOCK_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#8 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -34,86 +34,86 @@
 #include "types.h"
 #include "waitQueue.h"
 
-typedef struct recoveryJournalBlock RecoveryJournalBlock;
+struct recovery_journal_block;
 
 struct recoveryJournal {
   /** The thread ID of the journal zone */
-  ThreadID                   threadID;
+  ThreadID                       threadID;
   /** The slab depot which can hold locks on this journal */
-  SlabDepot                 *depot;
+  SlabDepot                     *depot;
   /** The block map which can hold locks on this journal */
-  BlockMap                  *blockMap;
+  BlockMap                      *blockMap;
   /** The queue of VIOs waiting to make increment entries */
-  struct wait_queue          incrementWaiters;
+  struct wait_queue              incrementWaiters;
   /** The queue of VIOs waiting to make decrement entries */
-  struct wait_queue          decrementWaiters;
+  struct wait_queue              decrementWaiters;
   /** The number of free entries in the journal */
-  uint64_t                   availableSpace;
+  uint64_t                       availableSpace;
   /** The number of decrement entries which need to be made */
-  VIOCount                   pendingDecrementCount;
+  VIOCount                       pendingDecrementCount;
   /**
    * Whether the journal is adding entries from the increment or
    * decrement waiters queues
    **/
-  bool                       addingEntries;
+  bool                           addingEntries;
   /** The notifier for read-only mode */
-  ReadOnlyNotifier          *readOnlyNotifier;
+  ReadOnlyNotifier              *readOnlyNotifier;
   /** The administrative state of the journal */
-  struct admin_state         state;
+  struct admin_state             state;
   /** Whether a reap is in progress */
-  bool                       reaping;
+  bool                           reaping;
   /** The partition which holds the journal on disk */
-  struct partition          *partition;
+  struct partition              *partition;
   /** The oldest active block in the journal on disk for block map rebuild */
-  SequenceNumber             blockMapHead;
+  SequenceNumber                 blockMapHead;
   /** The oldest active block in the journal on disk for slab journal replay */
-  SequenceNumber             slabJournalHead;
+  SequenceNumber                 slabJournalHead;
   /** The newest block in the journal on disk to which a write has finished */
-  SequenceNumber             lastWriteAcknowledged;
+  SequenceNumber                 lastWriteAcknowledged;
   /** The end of the half-open interval of the active journal */
-  SequenceNumber             tail;
+  SequenceNumber                 tail;
   /** The point at which the last entry will have been added */
-  struct journal_point       appendPoint;
+  struct journal_point           appendPoint;
   /** The journal point of the VIO most recently released from the journal */
-  struct journal_point       commitPoint;
+  struct journal_point           commitPoint;
   /** The nonce of the VDO */
-  Nonce                      nonce;
+  Nonce                          nonce;
   /** The number of recoveries completed by the VDO */
-  uint8_t                    recoveryCount;
+  uint8_t                        recoveryCount;
   /** The number of entries which fit in a single block */
-  JournalEntryCount          entriesPerBlock;
+  JournalEntryCount              entriesPerBlock;
   /** Unused in-memory journal blocks */
-  RingNode                   freeTailBlocks;
+  RingNode                       freeTailBlocks;
   /** In-memory journal blocks with records */
-  RingNode                   activeTailBlocks;
+  RingNode                       activeTailBlocks;
   /** A pointer to the active block (the one we are writing to now) */
-  RecoveryJournalBlock      *activeBlock;
+  struct recovery_journal_block *activeBlock;
   /** The new block map reap head after reaping */
-  SequenceNumber             blockMapReapHead;
+  SequenceNumber                 blockMapReapHead;
   /** The head block number for the block map rebuild range */
-  BlockCount                 blockMapHeadBlockNumber;
+  BlockCount                     blockMapHeadBlockNumber;
   /** The new slab journal reap head after reaping */
-  SequenceNumber             slabJournalReapHead;
+  SequenceNumber                 slabJournalReapHead;
   /** The head block number for the slab journal replay range */
-  BlockCount                 slabJournalHeadBlockNumber;
+  BlockCount                     slabJournalHeadBlockNumber;
   /** The VIO on which we can call flush (less ick, but still ick) */
-  VIO                       *flushVIO;
+  VIO                           *flushVIO;
   /** The data block which must live in the VIO in the flush extent */
-  char                      *unusedFlushVIOData;
+  char                          *unusedFlushVIOData;
   /** The number of blocks in the on-disk journal */
-  BlockCount                 size;
+  BlockCount                     size;
   /** The number of logical blocks that are in-use */
-  BlockCount                 logicalBlocksUsed;
+  BlockCount                     logicalBlocksUsed;
   /** The number of block map pages that are allocated */
-  BlockCount                 blockMapDataBlocks;
+  BlockCount                     blockMapDataBlocks;
   /** The number of journal blocks written but not yet acknowledged */
-  BlockCount                 pendingWriteCount;
+  BlockCount                     pendingWriteCount;
   /** The threshold at which slab journal tail blocks will be written out */
-  BlockCount                 slabJournalCommitThreshold;
+  BlockCount                     slabJournalCommitThreshold;
   /** Counters for events in the journal that are reported as statistics */
-  RecoveryJournalStatistics  events;
+  RecoveryJournalStatistics      events;
   /** The locks for each on-disk block */
-  LockCounter               *lockCounter;
+  LockCounter                   *lockCounter;
 };
 
 /**

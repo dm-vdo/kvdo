@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#16 $
  */
 
 #include "recoveryJournal.h"
@@ -93,7 +93,7 @@ const char *getJournalOperationName(JournalOperation operation)
  *
  * @return The block or <code>NULL</code> if the list is empty
  **/
-static RecoveryJournalBlock *popFreeList(RecoveryJournal *journal)
+static struct recovery_journal_block *popFreeList(RecoveryJournal *journal)
 {
   return blockFromRingNode(popRingNode(&journal->freeTailBlocks));
 }
@@ -105,7 +105,7 @@ static RecoveryJournalBlock *popFreeList(RecoveryJournal *journal)
  *
  * @return The block or <code>NULL</code> if the list is empty
  **/
-static RecoveryJournalBlock *popActiveList(RecoveryJournal *journal)
+static struct recovery_journal_block *popActiveList(RecoveryJournal *journal)
 {
   return blockFromRingNode(popRingNode(&journal->activeTailBlocks));
 }
@@ -153,14 +153,14 @@ static inline bool hasBlockWaiters(RecoveryJournal *journal)
     return false;
   }
 
-  RecoveryJournalBlock *block
+  struct recovery_journal_block *block
     = blockFromRingNode(journal->activeTailBlocks.next);
   return (hasWaiters(&block->entryWaiters)
           || hasWaiters(&block->commitWaiters));
 }
 
 /**********************************************************************/
-static void recycleJournalBlock(RecoveryJournalBlock *block);
+static void recycleJournalBlock(struct recovery_journal_block *block);
 static void notifyCommitWaiters(RecoveryJournal *journal);
 
 /**
@@ -435,7 +435,7 @@ int makeRecoveryJournal(Nonce                nonce,
   // doesn't need them.
   if (layer->createMetadataVIO != NULL) {
     for (BlockCount i = 0; i < tailBufferSize; i++) {
-      RecoveryJournalBlock *block;
+      struct recovery_journal_block *block;
       result = makeRecoveryBlock(layer, journal, &block);
       if (result != VDO_SUCCESS) {
         freeRecoveryJournal(&journal);
@@ -506,7 +506,7 @@ void freeRecoveryJournal(RecoveryJournal **journalPtr)
     logWarning("journal being freed has uncommited entries");
   }
 
-  RecoveryJournalBlock *block;
+  struct recovery_journal_block *block;
   while ((block = popActiveList(journal)) != NULL) {
     freeRecoveryBlock(&block);
   }
@@ -796,14 +796,15 @@ static bool prepareToAssignEntry(RecoveryJournal *journal, bool increment)
 }
 
 /**********************************************************************/
-static void writeBlock(RecoveryJournal *journal, RecoveryJournalBlock *block);
+static void writeBlock(RecoveryJournal               *journal,
+                       struct recovery_journal_block *block);
 
 /**
  * Release a reference to a journal block.
  *
  * @param block  The journal block from which to release a reference
  **/
-static void releaseJournalBlockReference(RecoveryJournalBlock *block)
+static void releaseJournalBlockReference(struct recovery_journal_block *block)
 {
   releaseJournalZoneReference(block->journal->lockCounter, block->blockNumber);
 }
@@ -813,9 +814,10 @@ static void releaseJournalBlockReference(RecoveryJournalBlock *block)
  **/
 static void assignEntry(struct waiter *waiter, void *context)
 {
-  DataVIO              *dataVIO = waiterAsDataVIO(waiter);
-  RecoveryJournalBlock *block   = (RecoveryJournalBlock *) context;
-  RecoveryJournal      *journal = block->journal;
+  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct recovery_journal_block *block
+    = (struct recovery_journal_block *) context;
+  RecoveryJournal *journal = block->journal;
 
   // Record the point at which we will make the journal entry.
   dataVIO->recoveryJournalPoint = (struct journal_point) {
@@ -913,7 +915,7 @@ static void assignEntries(RecoveryJournal *journal)
  *
  * @param block  The block to be recycled
  **/
-static void recycleJournalBlock(RecoveryJournalBlock *block)
+static void recycleJournalBlock(struct recovery_journal_block *block)
 {
   RecoveryJournal *journal = block->journal;
   pushRingNode(&journal->freeTailBlocks, &block->ringNode);
@@ -961,9 +963,9 @@ static void continueCommittedWaiter(struct waiter *waiter, void *context)
  **/
 static void notifyCommitWaiters(RecoveryJournal *journal)
 {
-  RecoveryJournalBlock *lastIterationBlock = NULL;
+  struct recovery_journal_block *lastIterationBlock = NULL;
   while (!isRingEmpty(&journal->activeTailBlocks)) {
-    RecoveryJournalBlock *block
+    struct recovery_journal_block *block
       = blockFromRingNode(journal->activeTailBlocks.next);
 
     int result = ASSERT(block != lastIterationBlock,
@@ -1005,8 +1007,8 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
  **/
 static void completeWrite(VDOCompletion *completion)
 {
-  RecoveryJournalBlock *block   = completion->parent;
-  RecoveryJournal      *journal = block->journal;
+  struct recovery_journal_block *block   = completion->parent;
+  RecoveryJournal               *journal = block->journal;
   assertOnJournalThread(journal, __func__);
 
   journal->pendingWriteCount        -= 1;
@@ -1021,7 +1023,7 @@ static void completeWrite(VDOCompletion *completion)
     journal->lastWriteAcknowledged = block->sequenceNumber;
   }
 
-  RecoveryJournalBlock *lastActiveBlock
+  struct recovery_journal_block *lastActiveBlock
     = blockFromRingNode(journal->activeTailBlocks.next);
   ASSERT_LOG_ONLY((block->sequenceNumber >= lastActiveBlock->sequenceNumber),
                   "completed journal write is still active");
@@ -1040,8 +1042,8 @@ static void completeWrite(VDOCompletion *completion)
 /**********************************************************************/
 static void handleWriteError(VDOCompletion *completion)
 {
-  RecoveryJournalBlock *block   = completion->parent;
-  RecoveryJournal      *journal = block->journal;
+  struct recovery_journal_block *block   = completion->parent;
+  RecoveryJournal               *journal = block->journal;
   logErrorWithStringError(completion->result,
                           "cannot write recovery journal block %llu",
                           block->sequenceNumber);
@@ -1057,7 +1059,8 @@ static void handleWriteError(VDOCompletion *completion)
  * @param journal  The recovery journal
  * @param block    The block to write
  **/
-static void writeBlock(RecoveryJournal *journal, RecoveryJournalBlock *block)
+static void writeBlock(RecoveryJournal               *journal,
+                       struct recovery_journal_block *block)
 {
   assertOnJournalThread(journal, __func__);
   int result = commitRecoveryBlock(block, completeWrite, handleWriteError);
