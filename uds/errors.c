@@ -16,17 +16,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/errors.c#8 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.c#9 $
  */
 
 #include "errors.h"
 
 #include "common.h"
-#include "errorDefs.h"
 #include "permassert.h"
 #include "stringUtils.h"
 
+#include <linux/errno.h>
+
 static const struct errorInfo successful = { "UDS_SUCCESS", "Success" };
+
+static const char *const messageTable[] = {
+  [EPERM]   = "Operation not permitted",
+  [ENOENT]  = "No such file or directory",
+  [ESRCH]   = "No such process",
+  [EINTR]   = "Interrupted system call",
+  [EIO]     = "Input/output error",
+  [ENXIO]   = "No such device or address",
+  [E2BIG]   = "Argument list too long",
+  [ENOEXEC] = "Exec format error",
+  [EBADF]   = "Bad file descriptor",
+  [ECHILD]  = "No child processes",
+  [EAGAIN]  = "Resource temporarily unavailable",
+  [ENOMEM]  = "Cannot allocate memory",
+  [EACCES]  = "Permission denied",
+  [EFAULT]  = "Bad address",
+  [ENOTBLK] = "Block device required",
+  [EBUSY]   = "Device or resource busy",
+  [EEXIST]  = "File exists",
+  [EXDEV]   = "Invalid cross-device link",
+  [ENODEV]  = "No such device",
+  [ENOTDIR] = "Not a directory",
+  [EISDIR]  = "Is a directory",
+  [EINVAL]  = "Invalid argument",
+  [ENFILE]  = "Too many open files in system",
+  [EMFILE]  = "Too many open files",
+  [ENOTTY]  = "Inappropriate ioctl for device",
+  [ETXTBSY] = "Text file busy",
+  [EFBIG]   = "File too large",
+  [ENOSPC]  = "No space left on device",
+  [ESPIPE]  = "Illegal seek",
+  [EROFS]   = "Read-only file system",
+  [EMLINK]  = "Too many links",
+  [EPIPE]   = "Broken pipe",
+  [EDOM]    = "Numerical argument out of domain",
+  [ERANGE]  = "Numerical result out of range"
+};
 
 static const struct errorInfo errorList[] = {
   { "UDS_UNINITIALIZED", "UDS library is not initialized" },
@@ -191,6 +229,34 @@ static const char *getErrorInfo(int errnum, const ErrorInfo **infoPtr)
     *infoPtr = NULL;
   }
   return NULL;
+}
+
+/**
+ * Return string describing a system error message
+ *
+ * @param errnum  System error number
+ * @param buf     Buffer that can be used to contain the return value
+ * @param buflen  Length of the buffer
+ *
+ * @return The error string, which may be a string constant or may be
+ *         returned in the buf argument
+ **/
+static const char *systemStringError(int errnum, char *buf, size_t buflen)
+{
+  const char *errorString = NULL;
+  if ((errnum > 0) && (errnum < COUNT_OF(messageTable))) {
+    errorString = messageTable[errnum];
+  }
+
+  size_t len = ((errorString == NULL)
+                ? snprintf(buf, buflen, "Unknown error %d", errnum)
+                : snprintf(buf, buflen, "%s", errorString));
+  if (len < buflen) {
+    return buf;
+  }
+
+  buf[0] = '\0';
+  return "System error";
 }
 
 /*****************************************************************************/

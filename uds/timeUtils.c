@@ -16,54 +16,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#2 $
  */
 
 #include "stringUtils.h"
 #include "timeUtils.h"
 
+#include <linux/delay.h>
+#include <linux/ktime.h> // for getnstimeofday on Vivid
+
+
+
+/*****************************************************************************/
+AbsTime currentTime(ClockType clock)
+{
+  struct timespec now;
+  getnstimeofday(&now);
+  return 1000000000ul * now.tv_sec + now.tv_nsec;
+}
+
+
+
+
 /*****************************************************************************/
 uint64_t nowUsec(void)
 {
-  static const AbsTime epoch = ABSTIME_EPOCH;
+  static const AbsTime epoch = 0;
   return relTimeToMicroseconds(timeDifference(currentTime(CT_REALTIME),
                                               epoch));
 }
 
-/*****************************************************************************/
-int relTimeToString(char **strp, RelTime reltime, long counter)
-{
-  // If there is a counter, divide the time by the counter.  This is
-  // intended for reporting values of time per operation.
-  RelTime rt = reltime;
-  if (counter > 0) {
-    rt /= counter;
-  }
 
-  const char *sign, *units;
-  unsigned long value;
-  if (rt < 0) {
-    // Negative time is unusual, but ensure that the rest of the code
-    // behaves well.
-    sign = "-";
-    rt = -rt;
-  } else {
-    sign = "";
-  }
-  if (rt > secondsToRelTime(1)) {
-    // Larger than a second, so report to millisecond accuracy
-    units = "seconds";
-    value = relTimeToMilliseconds(rt);
-  } else if (rt > millisecondsToRelTime(1)) {
-    // Larger than a millisecond, so report to microsecond accuracy
-    units = "milliseconds";
-    value = relTimeToMicroseconds(rt);
-  } else {
-    // Larger than a microsecond, so report to nanosecond accuracy
-    units = "microseconds";
-    value = relTimeToNanoseconds(rt);
-  }
 
-  return allocSprintf(__func__, strp, "%s%ld.%03ld %s",
-                      sign, value / 1000, value % 1000, units);
-}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#3 $
  */
 
 #ifndef TIME_UTILS_H
@@ -25,23 +25,21 @@
 #include "compiler.h"
 #include "typeDefs.h"
 
+#include <linux/time.h>
+
+// Absolute time.
+typedef int64_t AbsTime;
+
 // Relative time, the length of a time interval, or the difference between
 // two times.  A signed 64-bit number of nanoseconds.
 typedef int64_t RelTime;
 
-// This must be included after RelTime is defined.
-#include "timeDefs.h"
+// XXX it would be better to not do this renaming at all
+typedef enum clockType {
+  CT_REALTIME  = CLOCK_REALTIME,
+  CT_MONOTONIC = CLOCK_MONOTONIC
+} ClockType;
 
-/**
- * Return true if the time is valid.
- *
- * @param time          a time
- * @return              true if the time is valid
- *
- * @note an invalid time is generally returned from a failed attempt
- *      to get the time from the system
- **/
-bool isValidTime(AbsTime time);
 
 /**
  * Return the current time according to the specified clock type.
@@ -53,30 +51,6 @@ bool isValidTime(AbsTime time);
  **/
 AbsTime currentTime(ClockType clock);
 
-/**
- * Return the timestamp a certain number of nanoseconds in the future.
- *
- * @param clock    Either CT_REALTIME or CT_MONOTONIC
- * @param reltime  The relative time to the clock value
- *
- * @return the timestamp for that time (potentially rounded to the next
- *         representable instant for the system in question)
- **/
-AbsTime futureTime(ClockType clock, RelTime reltime);
-
-/**
- * Return a time offset from the specified time.
- *
- * @param time     A time.
- * @param reltime  The relative time
- *
- * @return the sum of the time and the offset, possibly rounded up to the
- *         next representable instant.
- *
- * @note timeDifference(a, deltaTime(a, n)) may only be approx == -n
- *       depending on the system-specific time resolution
- **/
-AbsTime deltaTime(AbsTime time, RelTime reltime);
 
 /**
  * Return the difference between two timestamps.
@@ -86,49 +60,12 @@ AbsTime deltaTime(AbsTime time, RelTime reltime);
  *
  * @return the relative time between the two timestamps
  **/
-RelTime timeDifference(AbsTime a, AbsTime b);
+static INLINE RelTime timeDifference(AbsTime a, AbsTime b)
+{
+  return a - b;
+}
 
-/**
- * Convert the difference between two timestamps into a printable value.
- * The string will have the form "###.### seconds", or "###.###
- * milliseconds", or "###.### microseconds", depending upon the actual
- * value being converted.  Upon a success, the caller must FREE the string.
- *
- * @param strp     The pointer to the allocated string is returned here.
- * @param reltime  The time difference
- * @param counter  If non-zero, the reltime is divided by this value.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int relTimeToString(char **strp, RelTime reltime, long counter)
-  __attribute__((warn_unused_result));
 
-/**
- * Try to sleep for at least the time specified.
- *
- * @param reltime  the relative time to sleep
- **/
-void sleepFor(RelTime reltime);
-
-/**
- * Fill a buffer with the UTC time in ISO format.
- *
- * @param time          A time
- * @param buf           A buffer to fill
- * @param bufSize       The size of the buffer.
- * @param subseconds    If non-zero, how many decimal places after the
- *                      second to display.
- *
- * @result UDS_SUCCESS or an error code, particularly UDS_BUFFER_ERROR
- *         if there is insufficient space to hold the output.
- *
- * @note Output syntax is platform-dependent.
- **/
-int timeInISOFormat(AbsTime       time,
-                    char         *buf,
-                    size_t        bufSize,
-                    unsigned int  subseconds)
-  __attribute__((warn_unused_result));
 
 /**
  * Convert seconds to a RelTime value
@@ -235,5 +172,31 @@ static INLINE int64_t relTimeToNanoseconds(RelTime reltime)
  * @return the time in microseconds
  **/
 uint64_t nowUsec(void) __attribute__((warn_unused_result));
+
+/**
+ * Convert from an AbsTime to a time_t
+ *
+ * @param time  an AbsTime time
+ *
+ * @return a time_t time
+ **/
+static INLINE time_t asTimeT(AbsTime time)
+{
+  return time / 1000000000;
+}
+
+/**
+ * Convert from a time_t to an AbsTime,
+ *
+ * @param time  a time_t time
+ *
+ * @return an AbsTime time
+ **/
+static INLINE AbsTime fromTimeT(time_t time)
+{
+  return time * 1000000000;
+}
+
+
 
 #endif /* TIME_UTILS_H */

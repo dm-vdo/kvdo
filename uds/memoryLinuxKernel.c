@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#5 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#6 $
  */
 
 #include <linux/delay.h>
@@ -231,14 +231,8 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
    * use the OOM killer soon.  The caller must handle failure, but can
    * reasonably do so by failing a higher-level request, or completing it only
    * in a much less efficient manner.
-   *
-   * __GFP_REPEAT is an old name for __GFP_RETRY_MAYFAIL.
    */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
   const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
-#else
-  const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_REPEAT;
-#endif
 
   bool allocationsRestricted = !allocationsAllowed();
   unsigned int noioFlags;

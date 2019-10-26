@@ -16,15 +16,46 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/logger.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.h#5 $
  */
 
 #ifndef LOGGER_H
 #define LOGGER_H 1
 
-#include <stdarg.h>
+#include <linux/ratelimit.h>
+#include <linux/version.h>
 
-#include "loggerDefs.h"
+#define LOG_EMERG       0       /* system is unusable */
+#define LOG_ALERT       1       /* action must be taken immediately */
+#define LOG_CRIT        2       /* critical conditions */
+#define LOG_ERR         3       /* error conditions */
+#define LOG_WARNING     4       /* warning conditions */
+#define LOG_NOTICE      5       /* normal but significant condition */
+#define LOG_INFO        6       /* informational */
+#define LOG_DEBUG       7       /* debug-level messages */
+
+// Make it easy to log real pointer values using %px when in development.
+#ifdef LOG_INTERNAL
+#define PRIptr "px"
+#else
+#define PRIptr "pK"
+#endif
+
+/*
+ * Apply a rate limiter to a log method call.
+ *
+ * @param logFunc  A method that does logging, which is not invoked if we are
+ *                 running in the kernel and the ratelimiter detects that we
+ *                 are calling it frequently.
+ */
+#define logRatelimit(logFunc, ...)                                 \
+  do {                                                             \
+    static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL, \
+                                  DEFAULT_RATELIMIT_BURST);        \
+    if (__ratelimit(&_rs)) {                                       \
+      logFunc(__VA_ARGS__);                                        \
+    }                                                              \
+  } while (0)
 
 /**
  * @file
