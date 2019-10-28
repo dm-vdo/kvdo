@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#12 $
  */
 
 #include "slabSummary.h"
@@ -36,7 +36,7 @@
 /**********************************************************************/
 static BlockCount getSlabSummaryZoneSize(BlockSize blockSize)
 {
-  SlabCount entriesPerBlock = blockSize / sizeof(SlabSummaryEntry);
+  SlabCount entriesPerBlock = blockSize / sizeof(struct slab_summary_entry);
   BlockCount blocksNeeded   = MAX_SLABS / entriesPerBlock;
   return blocksNeeded;
 }
@@ -51,7 +51,7 @@ BlockCount getSlabSummarySize(BlockSize blockSize)
 
 /**
  * Translate a slab's free block count into a 'fullness hint' that can be
- * stored in a SlabSummaryEntry's 7 bits that are dedicated to its free count.
+ * stored in a slab_summary_entry's 7 bits that are dedicated to its free count.
  *
  * Note: the number of free blocks must be strictly less than 2^23 blocks,
  * even though theoretically slabs could contain precisely 2^23 blocks; there
@@ -101,10 +101,10 @@ static BlockCount getApproximateFreeBlocks(SlabSummary *summary,
 // MAKE/FREE FUNCTIONS
 
 /**********************************************************************/
-static void launchWrite(SlabSummaryBlock *summaryBlock);
+static void launchWrite(struct slab_summary_block *summaryBlock);
 
 /**
- * Initialize a SlabSummaryBlock.
+ * Initialize a slab_summary_block.
  *
  * @param layer             The backing layer
  * @param summaryZone       The parent SlabSummaryZone
@@ -115,12 +115,13 @@ static void launchWrite(SlabSummaryBlock *summaryBlock);
  *
  * @return VDO_SUCCESS or an error
  **/
-static int initializeSlabSummaryBlock(PhysicalLayer    *layer,
-                                      SlabSummaryZone  *summaryZone,
-                                      ThreadID          threadID,
-                                      SlabSummaryEntry *entries,
-                                      BlockCount        index,
-                                      SlabSummaryBlock *slabSummaryBlock)
+static int
+initializeSlabSummaryBlock(PhysicalLayer             *layer,
+                           SlabSummaryZone           *summaryZone,
+                           ThreadID                   threadID,
+                           struct slab_summary_entry *entries,
+                           BlockCount                 index,
+                           struct slab_summary_block *slabSummaryBlock)
 {
   int result = ALLOCATE(VDO_BLOCK_SIZE, char, __func__,
                         &slabSummaryBlock->outgoingEntries);
@@ -153,14 +154,14 @@ static int initializeSlabSummaryBlock(PhysicalLayer    *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int makeSlabSummaryZone(SlabSummary      *summary,
-                               PhysicalLayer    *layer,
-                               ZoneCount         zoneNumber,
-                               ThreadID          threadID,
-                               SlabSummaryEntry *entries)
+static int makeSlabSummaryZone(SlabSummary               *summary,
+                               PhysicalLayer             *layer,
+                               ZoneCount                  zoneNumber,
+                               ThreadID                   threadID,
+                               struct slab_summary_entry *entries)
 {
   int result = ALLOCATE_EXTENDED(SlabSummaryZone, summary->blocksPerZone,
-                                 SlabSummaryBlock, __func__,
+                                 struct slab_summary_block, __func__,
                                  &summary->zones[zoneNumber]);
   if (result != VDO_SUCCESS) {
     return result;
@@ -226,7 +227,7 @@ int makeSlabSummary(PhysicalLayer       *layer,
   summary->entriesPerBlock = entriesPerBlock;
 
   size_t totalEntries = MAX_SLABS * MAX_PHYSICAL_ZONES;
-  size_t entryBytes = totalEntries * sizeof(SlabSummaryEntry);
+  size_t entryBytes = totalEntries * sizeof(struct slab_summary_entry);
   result = layer->allocateIOBuffer(layer, entryBytes, "summary entries",
                                    (char **) &summary->entries);
   if (result != VDO_SUCCESS) {
@@ -239,7 +240,7 @@ int makeSlabSummary(PhysicalLayer       *layer,
   for (size_t i = 0; i < totalEntries; i++) {
     // This default tail block offset must be reflected in
     // slabJournal.c::readSlabJournalTail().
-    summary->entries[i] = (SlabSummaryEntry) {
+    summary->entries[i] = (struct slab_summary_entry) {
       .tailBlockOffset = 0,
       .fullnessHint    = hint,
       .loadRefCounts   = false,
@@ -330,7 +331,7 @@ static void notifyWaiters(SlabSummaryZone *summaryZone, struct wait_queue *queue
  *
  * @param block  The block
  **/
-static void finishUpdatingSlabSummaryBlock(SlabSummaryBlock *block)
+static void finishUpdatingSlabSummaryBlock(struct slab_summary_block *block)
 {
   notifyWaiters(block->zone, &block->currentUpdateWaiters);
   block->writing = false;
@@ -349,7 +350,7 @@ static void finishUpdatingSlabSummaryBlock(SlabSummaryBlock *block)
  **/
 static void finishUpdate(VDOCompletion *completion)
 {
-  SlabSummaryBlock *block = completion->parent;
+  struct slab_summary_block *block = completion->parent;
   atomicAdd64(&block->zone->summary->statistics.blocksWritten, 1);
   finishUpdatingSlabSummaryBlock(block);
 }
@@ -361,7 +362,7 @@ static void finishUpdate(VDOCompletion *completion)
  **/
 static void handleWriteError(VDOCompletion *completion)
 {
-  SlabSummaryBlock *block = completion->parent;
+  struct slab_summary_block *block = completion->parent;
   enterReadOnlyMode(block->zone->summary->readOnlyNotifier,
                     completion->result);
   finishUpdatingSlabSummaryBlock(block);
@@ -372,7 +373,7 @@ static void handleWriteError(VDOCompletion *completion)
  *
  * @param [in] block  The block that needs to be committed
  **/
-static void launchWrite(SlabSummaryBlock *block)
+static void launchWrite(struct slab_summary_block *block)
 {
   if (block->writing) {
     return;
@@ -390,7 +391,7 @@ static void launchWrite(SlabSummaryBlock *block)
   }
 
   memcpy(block->outgoingEntries, block->entries,
-         sizeof(SlabSummaryEntry) * summary->entriesPerBlock);
+         sizeof(struct slab_summary_entry) * summary->entriesPerBlock);
 
   // Flush before writing to ensure that the slab journal tail blocks and
   // reference updates covered by this summary update are stable (VDO-2332).
@@ -435,10 +436,11 @@ void resumeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
  * @param slabNumber     The slab whose summary location is sought
  *
  * @return A pointer to the SlabSummaryEntryBlock containing this
- *         SlabSummaryEntry
+ *         slab_summary_entry
  **/
-static SlabSummaryBlock *getSummaryBlockForSlab(SlabSummaryZone *summaryZone,
-                                                SlabCount        slabNumber)
+static struct slab_summary_block *
+getSummaryBlockForSlab(SlabSummaryZone *summaryZone,
+                       SlabCount        slabNumber)
 {
   SlabCount entriesPerBlock = summaryZone->summary->entriesPerBlock;
   return &summaryZone->summaryBlocks[slabNumber / entriesPerBlock];
@@ -453,8 +455,9 @@ void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
                             bool             isClean,
                             BlockCount       freeBlocks)
 {
-  SlabSummaryBlock *block = getSummaryBlockForSlab(summaryZone, slabNumber);
-  int               result;
+  struct slab_summary_block *block = getSummaryBlockForSlab(summaryZone,
+                                                            slabNumber);
+  int                        result;
   if (isReadOnly(summaryZone->summary->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
   } else if (isDraining(&summaryZone->state)
@@ -462,8 +465,8 @@ void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
     result = VDO_INVALID_ADMIN_STATE;
   } else {
     uint8_t hint = computeFullnessHint(summaryZone->summary, freeBlocks);
-    SlabSummaryEntry *entry = &summaryZone->entries[slabNumber];
-    *entry = (SlabSummaryEntry) {
+    struct slab_summary_entry *entry = &summaryZone->entries[slabNumber];
+    *entry = (struct slab_summary_entry) {
       .tailBlockOffset = tailBlockOffset,
       .loadRefCounts   = (entry->loadRefCounts || loadRefCounts),
       .isDirty         = !isClean,
@@ -504,7 +507,7 @@ bool getSummarizedCleanliness(SlabSummaryZone *summaryZone,
 BlockCount getSummarizedFreeBlockCount(SlabSummaryZone *summaryZone,
                                        SlabCount        slabNumber)
 {
-  SlabSummaryEntry *entry = &summaryZone->entries[slabNumber];
+  struct slab_summary_entry *entry = &summaryZone->entries[slabNumber];
   return getApproximateFreeBlocks(summaryZone->summary, entry->fullnessHint);
 }
 
@@ -514,7 +517,7 @@ void getSummarizedRefCountsState(SlabSummaryZone *summaryZone,
                                  size_t          *freeBlockHint,
                                  bool            *isClean)
 {
-  SlabSummaryEntry *entry = &summaryZone->entries[slabNumber];
+  struct slab_summary_entry *entry = &summaryZone->entries[slabNumber];
   *freeBlockHint          = entry->fullnessHint;
   *isClean                = !entry->isDirty;
 }
@@ -569,7 +572,7 @@ void combineZones(SlabSummary *summary)
       if (zone != 0) {
         memcpy(summary->entries + entryNumber,
                summary->entries + (zone * MAX_SLABS) + entryNumber,
-               sizeof(SlabSummaryEntry));
+               sizeof(struct slab_summary_entry));
       }
       zone++;
       if (zone == summary->zonesToCombine) {
@@ -581,7 +584,7 @@ void combineZones(SlabSummary *summary)
   // Copy the combined data to each zones's region of the buffer.
   for (zone = 1; zone < MAX_PHYSICAL_ZONES; zone++) {
     memcpy(summary->entries + (zone * MAX_SLABS), summary->entries,
-           MAX_SLABS * sizeof(SlabSummaryEntry));
+           MAX_SLABS * sizeof(struct slab_summary_entry));
   }
 }
 
@@ -644,7 +647,7 @@ void loadSlabSummary(SlabSummary    *summary,
 /**********************************************************************/
 SlabSummaryStatistics getSlabSummaryStatistics(const SlabSummary *summary)
 {
-  const AtomicSlabSummaryStatistics *atoms = &summary->statistics;
+  const struct atomic_slab_summary_statistics *atoms = &summary->statistics;
   return (SlabSummaryStatistics) {
     .blocksWritten = atomicLoad64(&atoms->blocksWritten),
   };

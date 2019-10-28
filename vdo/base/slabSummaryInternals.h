@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#8 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -27,7 +27,7 @@
 #include "adminState.h"
 #include "atomic.h"
 
-typedef struct slabSummaryEntry {
+struct slab_summary_entry {
   /** Bits 7..0: The offset of the tail block within the slab journal */
   TailBlockOffset tailBlockOffset;
 
@@ -46,73 +46,73 @@ typedef struct slabSummaryEntry {
   /** Bits 13..8: A hint about the fullness of the slab */
   unsigned int    fullnessHint  : 6;
 #endif
-}  __attribute__((packed)) SlabSummaryEntry;
+}  __attribute__((packed));
 
-typedef struct slabSummaryBlock {
+struct slab_summary_block {
   /** The zone to which this block belongs */
-  SlabSummaryZone   *zone;
+  SlabSummaryZone           *zone;
   /** The index of this block in its zone's summary */
-  BlockCount         index;
+  BlockCount                 index;
   /** Whether this block has a write outstanding */
-  bool               writing;
+  bool                       writing;
   /** Ring of updates waiting on the outstanding write */
-  struct wait_queue  currentUpdateWaiters;
+  struct wait_queue          currentUpdateWaiters;
   /** Ring of updates waiting on the next write */
-  struct wait_queue  nextUpdateWaiters;
-  /** The active SlabSummaryEntry array for this block */
-  SlabSummaryEntry  *entries;
+  struct wait_queue          nextUpdateWaiters;
+  /** The active slab_summary_entry array for this block */
+  struct slab_summary_entry *entries;
   /** The VIO used to write this block */
-  VIO               *vio;
+  VIO                       *vio;
   /** The packed entries, one block long, backing the VIO */
-  char              *outgoingEntries;
-} SlabSummaryBlock;
+  char                      *outgoingEntries;
+};
 
 /**
  * The statistics for all the slab summary zones owned by this slab summary.
  * These fields are all mutated only by their physical zone threads, but are
  * read by other threads when gathering statistics for the entire depot.
  **/
-typedef struct atomicSlabSummaryStatistics {
+struct atomic_slab_summary_statistics {
   /** Number of blocks written */
   Atomic64 blocksWritten;
-} AtomicSlabSummaryStatistics;
+};
 
 struct slabSummaryZone {
   /** The summary of which this is a zone */
-  SlabSummary       *summary;
+  SlabSummary               *summary;
   /** The number of this zone */
-  ZoneCount          zoneNumber;
+  ZoneCount                  zoneNumber;
   /** Count of the number of blocks currently out for writing */
-  BlockCount         writeCount;
+  BlockCount                 writeCount;
   /** The state of this zone */
-  struct admin_state state;
+  struct admin_state         state;
   /** The array (owned by the blocks) of all entries */
-  SlabSummaryEntry  *entries;
+  struct slab_summary_entry *entries;
   /** The array of SlabSummaryEntryBlocks */
-  SlabSummaryBlock   summaryBlocks[];
+  struct slab_summary_block  summaryBlocks[];
 };
 
 struct slabSummary {
   /** The context for entering read-only mode */
-  ReadOnlyNotifier            *readOnlyNotifier;
+  ReadOnlyNotifier                      *readOnlyNotifier;
   /** The statistics for this slab summary */
-  AtomicSlabSummaryStatistics  statistics;
+  struct atomic_slab_summary_statistics  statistics;
   /** The start of the slab summary partition relative to the layer */
-  PhysicalBlockNumber          origin;
+  PhysicalBlockNumber                    origin;
   /** The number of bits to shift to get a 7-bit fullness hint */
-  unsigned int                 hintShift;
+  unsigned int                           hintShift;
   /** The number of blocks (calculated based on MAX_SLABS) */
-  BlockCount                   blocksPerZone;
+  BlockCount                             blocksPerZone;
   /** The number of slabs per block (calculated from block size) */
-  SlabCount                    entriesPerBlock;
+  SlabCount                              entriesPerBlock;
   /** The entries for all of the zones the partition can hold */
-  SlabSummaryEntry            *entries;
+  struct slab_summary_entry             *entries;
   /** The number of zones which were active at the time of the last update */
-  ZoneCount                    zonesToCombine;
+  ZoneCount                              zonesToCombine;
   /** The current number of active zones */
-  ZoneCount                    zoneCount;
+  ZoneCount                              zoneCount;
   /** The currently active zones */
-  SlabSummaryZone             *zones[];
+  SlabSummaryZone                       *zones[];
 };
 
 /**
