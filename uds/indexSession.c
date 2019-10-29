@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexSession.c#6 $
  */
 
 #include "indexSession.h"
@@ -33,7 +33,7 @@ static void collectStats(const struct uds_index_session *indexSession,
 {
   const SessionStats *sessionStats = &indexSession->stats;
 
-  stats->currentTime = asTimeT(currentTime(CT_REALTIME));
+  stats->currentTime = asTimeT(currentTime(CLOCK_REALTIME));
 
   stats->postsFound         = READ_ONCE(sessionStats->postsFound);
   stats->inMemoryPostsFound = READ_ONCE(sessionStats->postsFoundOpenChapter);

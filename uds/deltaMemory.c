@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/deltaMemory.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaMemory.c#3 $
  */
 #include "deltaMemory.h"
 
@@ -574,7 +574,7 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
                                    " list memory");
   }
 
-  AbsTime startTime = currentTime(CT_MONOTONIC);
+  AbsTime startTime = currentTime(CLOCK_MONOTONIC);
 
   // Calculate the amount of space that is in use.  Include the space that
   // has a planned use.
@@ -614,7 +614,7 @@ int extendDeltaMemory(DeltaMemory *deltaMemory, unsigned int growingIndex,
   // copied.
   if (doCopy) {
     rebalanceDeltaMemory(deltaMemory, 1, deltaMemory->numLists + 1);
-    AbsTime endTime = currentTime(CT_MONOTONIC);
+    AbsTime endTime = currentTime(CLOCK_MONOTONIC);
     deltaMemory->rebalanceCount++;
     deltaMemory->rebalanceTime += timeDifference(endTime, startTime);
   } else {

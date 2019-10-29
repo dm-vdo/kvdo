@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#4 $
  */
 
 #ifndef TIME_UTILS_H
@@ -34,22 +34,16 @@ typedef int64_t AbsTime;
 // two times.  A signed 64-bit number of nanoseconds.
 typedef int64_t RelTime;
 
-// XXX it would be better to not do this renaming at all
-typedef enum clockType {
-  CT_REALTIME  = CLOCK_REALTIME,
-  CT_MONOTONIC = CLOCK_MONOTONIC
-} ClockType;
-
 
 /**
  * Return the current time according to the specified clock type.
  *
- * @param clock         Either CT_REALTIME or CT_MONOTONIC
+ * @param clock         Either CLOCK_REALTIME or CLOCK_MONOTONIC
  * @return the current time according to the clock in question
  *
  * @note the precision of the clock is system specific
  **/
-AbsTime currentTime(ClockType clock);
+AbsTime currentTime(clockid_t clock);
 
 
 /**

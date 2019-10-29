@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#18 $
  */
 
 #include "workQueue.h"
@@ -451,12 +451,12 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		 * involved.
 		 */
 		queue->stats.waits++;
-		uint64_t time_before_schedule = currentTime(CT_MONOTONIC);
+		uint64_t time_before_schedule = currentTime(CLOCK_MONOTONIC);
 		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
 		// Wake up often, to address the missed-wakeup race.
 		schedule_timeout(timeout_interval);
-		queue->most_recent_wakeup = currentTime(CT_MONOTONIC);
+		queue->most_recent_wakeup = currentTime(CLOCK_MONOTONIC);
 		uint64_t call_duration_ns =
 			queue->most_recent_wakeup - time_before_schedule;
 		enter_histogram_sample(queue->stats.schedule_time_histogram,
@@ -488,7 +488,7 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		if (first_wakeup != 0) {
 			enter_histogram_sample(
 				queue->stats.wakeup_latency_histogram,
-				(currentTime(CT_MONOTONIC) - first_wakeup) /
+				(currentTime(CLOCK_MONOTONIC) - first_wakeup) /
 					1000);
 			enter_histogram_sample(
 				queue->stats.wakeup_queue_length_histogram,
@@ -562,11 +562,11 @@ static void process_work_item(struct simple_work_queue *queue,
 	 * atomic operations.
 	 */
 	if (need_resched()) {
-		uint64_t time_before_reschedule = currentTime(CT_MONOTONIC);
+		uint64_t time_before_reschedule = currentTime(CLOCK_MONOTONIC);
 		// Record the queue length we have *before* rescheduling.
 		unsigned int queue_len = get_pending_count(queue);
 		cond_resched();
-		uint64_t time_after_reschedule = currentTime(CT_MONOTONIC);
+		uint64_t time_after_reschedule = currentTime(CLOCK_MONOTONIC);
 
 		enter_histogram_sample(
 			queue->stats.reschedule_queue_length_histogram,
@@ -630,7 +630,7 @@ static int work_queue_runner(void *ptr)
 	struct work_queue_stack_handle queue_handle;
 	initialize_work_queue_stack_handle(&queue_handle, queue);
 	queue->stats.start_time = queue->most_recent_wakeup =
-		currentTime(CT_MONOTONIC);
+		currentTime(CLOCK_MONOTONIC);
 	unsigned long flags;
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
@@ -671,7 +671,7 @@ void setup_work_item(struct kvdo_work_item *item,
 static inline void wake_worker_thread(struct simple_work_queue *queue)
 {
 	smp_mb();
-	atomic64_cmpxchg(&queue->first_wakeup, 0, currentTime(CT_MONOTONIC));
+	atomic64_cmpxchg(&queue->first_wakeup, 0, currentTime(CLOCK_MONOTONIC));
 	// Despite the name, there's a maximum of one thread in this list.
 	wake_up(&queue->waiting_worker_threads);
 }

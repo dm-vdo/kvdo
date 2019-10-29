@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.h#6 $
  */
 
 #ifndef WORK_ITEM_STATS_H
@@ -212,8 +212,9 @@ update_work_item_stats_for_dequeue(struct kvdo_work_item_stats *stats,
  **/
 static inline uint64_t record_start_time(unsigned int index)
 {
-	return (ENABLE_PER_FUNCTION_TIMING_STATS ? currentTime(CT_MONOTONIC) :
-						   0);
+	return (ENABLE_PER_FUNCTION_TIMING_STATS ?
+					currentTime(CLOCK_MONOTONIC) :
+					0);
 }
 
 /**
@@ -231,7 +232,7 @@ update_work_item_stats_for_work_time(struct kvdo_work_item_stats *stats,
 				     uint64_t start_time)
 {
 	if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-		uint64_t end_time = currentTime(CT_MONOTONIC);
+		uint64_t end_time = currentTime(CLOCK_MONOTONIC);
 		add_sample(&stats->times[index], end_time - start_time);
 	}
 }

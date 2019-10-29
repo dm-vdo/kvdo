@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#3 $
  */
 
 #include "nonce.h"
@@ -50,7 +50,7 @@ static void *memput(void *buf, void *end, const void *data, size_t len)
 /*****************************************************************************/
 size_t createUniqueNonceData(byte *buffer, size_t length)
 {
-  AbsTime now = currentTime(CT_REALTIME);
+  AbsTime now = currentTime(CLOCK_REALTIME);
 
   byte *be = buffer + length;
   byte *bp = memput(buffer, be, &now, sizeof(now));

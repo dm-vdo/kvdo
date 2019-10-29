@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#18 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexLayout.c#19 $
  */
 
 #include "indexLayout.h"
@@ -1892,7 +1892,7 @@ static int instantiateIndexSaveLayout(IndexSaveLayout *isl,
   isl->read = isl->written = false;
   isl->saveType = saveType;
   memset(&isl->saveData, 0, sizeof(isl->saveData));
-  isl->saveData.timestamp = getTimeMS(currentTime(CT_REALTIME));
+  isl->saveData.timestamp = getTimeMS(currentTime(CLOCK_REALTIME));
   isl->saveData.version   = 1;
 
   isl->saveData.nonce = generateIndexSaveNonce(volumeNonce, isl);

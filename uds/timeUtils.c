@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#3 $
  */
 
 #include "stringUtils.h"
@@ -28,7 +28,7 @@
 
 
 /*****************************************************************************/
-AbsTime currentTime(ClockType clock)
+AbsTime currentTime(clockid_t clock)
 {
   struct timespec now;
   getnstimeofday(&now);
@@ -42,7 +42,7 @@ AbsTime currentTime(ClockType clock)
 uint64_t nowUsec(void)
 {
   static const AbsTime epoch = 0;
-  return relTimeToMicroseconds(timeDifference(currentTime(CT_REALTIME),
+  return relTimeToMicroseconds(timeDifference(currentTime(CLOCK_REALTIME),
                                               epoch));
 }
 
