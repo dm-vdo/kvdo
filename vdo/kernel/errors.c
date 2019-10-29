@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#4 $
  */
 
 #include "errors.h"
@@ -25,7 +25,6 @@
 #include <linux/module.h>
 #include <linux/string.h>
 
-#include "common.h"
 #include "permassert.h"
 #include "statusCodes.h"
 
