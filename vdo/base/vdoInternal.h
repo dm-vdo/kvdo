@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#14 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -65,7 +65,7 @@ struct vdo {
   Nonce                            nonce;
 
   /* The super block */
-  SuperBlock                      *superBlock;
+  struct super_block              *superBlock;
 
   /* The physical storage below us */
   PhysicalLayer                   *layer;
