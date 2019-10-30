@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoInternal.h#10 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -35,6 +35,7 @@
 #include "types.h"
 #include "uds.h"
 #include "vdoLayout.h"
+#include "vdoState.h"
 
 /**
  * Error counters are atomic since updates can arrive concurrently from

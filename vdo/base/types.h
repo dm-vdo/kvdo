@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#12 $
  */
 
 #ifndef TYPES_H
@@ -314,20 +314,6 @@ typedef struct slabConfig {
    **/
   BlockCount slabJournalScrubbingThreshold;
 } __attribute__((packed)) SlabConfig;
-
-/**
- * The current operating mode of the VDO.
- **/
-typedef enum {
-  VDO_DIRTY = 0,
-  VDO_NEW,
-  VDO_CLEAN,
-  VDO_READ_ONLY_MODE,
-  VDO_FORCE_REBUILD,
-  VDO_RECOVERING,
-  VDO_REPLAYING,
-  VDO_REBUILD_FOR_UPGRADE,
-} VDOState;
 
 /**
  * The configuration of the VDO service.
