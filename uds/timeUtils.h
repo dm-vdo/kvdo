@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#5 $
  */
 
 #ifndef TIME_UTILS_H
@@ -25,6 +25,7 @@
 #include "compiler.h"
 #include "typeDefs.h"
 
+#include <linux/ktime.h>
 #include <linux/time.h>
 
 // Absolute time.
@@ -39,11 +40,16 @@ typedef int64_t RelTime;
  * Return the current time according to the specified clock type.
  *
  * @param clock         Either CLOCK_REALTIME or CLOCK_MONOTONIC
+ *
  * @return the current time according to the clock in question
  *
  * @note the precision of the clock is system specific
  **/
-AbsTime currentTime(clockid_t clock);
+static INLINE AbsTime currentTime(clockid_t clock)
+{
+  // clock is always a constant, so gcc reduces this to a single call
+  return clock == CLOCK_MONOTONIC ? ktime_get_ns() : ktime_get_real_ns();
+}
 
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#4 $
  */
 
 #include "stringUtils.h"
@@ -26,14 +26,6 @@
 #include <linux/ktime.h> // for getnstimeofday on Vivid
 
 
-
-/*****************************************************************************/
-AbsTime currentTime(clockid_t clock)
-{
-  struct timespec now;
-  getnstimeofday(&now);
-  return 1000000000ul * now.tv_sec + now.tv_nsec;
-}
 
 
 
