@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#2 $
  */
 
 #ifndef ALLOCATION_SELECTOR_H
@@ -25,7 +25,7 @@
 #include "completion.h"
 
 /**
- * An AllocationSelector is used by any zone which does data block allocations.
+ * An allocation_selector is used by any zone which does data block allocations.
  * The selector is used to round-robin allocation requests to different
  * physical zones. Currently, 128 allocations will be made to a given physical
  * zone before switching to the next.
@@ -40,17 +40,17 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeAllocationSelector(ZoneCount            physicalZoneCount,
-                           ThreadID             threadID,
-                           AllocationSelector **selectorPtr)
+int makeAllocationSelector(ZoneCount                    physicalZoneCount,
+                           ThreadID                     threadID,
+                           struct allocation_selector **selectorPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Free an AllocationSelector and null out the reference to it.
+ * Free an allocation_selector and null out the reference to it.
  *
  * @param selectorPtr  A reference to the selector to free
  **/
-void freeAllocationSelector(AllocationSelector **selectorPtr);
+void freeAllocationSelector(struct allocation_selector **selectorPtr);
 
 /**
  * Get number of the physical zone from which to allocate next.
@@ -59,7 +59,7 @@ void freeAllocationSelector(AllocationSelector **selectorPtr);
  *
  * @return The number of the physical zone from which to allocate
  **/
-ZoneCount getNextAllocationZone(AllocationSelector *selector)
+ZoneCount getNextAllocationZone(struct allocation_selector *selector)
   __attribute__((warn_unused_result));
 
 #endif /* ALLOCATION_SELECTOR_H */

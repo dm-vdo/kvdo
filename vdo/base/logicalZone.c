@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#9 $
  */
 
 #include "logicalZone.h"
@@ -38,49 +38,49 @@
 
 struct logicalZone {
   /** The completion for flush notifications */
-  VDOCompletion       completion;
+  VDOCompletion               completion;
   /** The owner of this zone */
-  LogicalZones       *zones;
+  LogicalZones               *zones;
   /** Which logical zone this is */
-  ZoneCount           zoneNumber;
+  ZoneCount                   zoneNumber;
   /** The thread id for this zone */
-  ThreadID            threadID;
+  ThreadID                    threadID;
   /** In progress operations keyed by LBN */
-  struct int_map     *lbnOperations;
+  struct int_map             *lbnOperations;
   /** The logical to physical map */
-  BlockMapZone       *blockMapZone;
+  BlockMapZone               *blockMapZone;
   /** The current flush generation */
-  SequenceNumber      flushGeneration;
+  SequenceNumber              flushGeneration;
   /** The oldest active generation in this zone */
-  SequenceNumber      oldestActiveGeneration;
+  SequenceNumber              oldestActiveGeneration;
   /** The number of IOs in the current flush generation */
-  BlockCount          iosInFlushGeneration;
+  BlockCount                  iosInFlushGeneration;
   /**
    * The oldest locked generation in this zone (an atomic copy of
-   *                  oldestActiveGeneration)
+   *                          oldestActiveGeneration)
    **/
-  Atomic64            oldestLockedGeneration;
+  Atomic64                    oldestLockedGeneration;
   /** The youngest generation of the current notification */
-  SequenceNumber      notificationGeneration;
+  SequenceNumber              notificationGeneration;
   /** Whether a notification is in progress */
-  bool                notifying;
+  bool                        notifying;
   /** The queue of active data write VIOs */
-  RingNode            writeVIOs;
+  RingNode                    writeVIOs;
   /** The administrative state of the zone */
-  struct admin_state  state;
+  struct admin_state          state;
   /** The selector for determining which physical zone to allocate from */
-  AllocationSelector *selector;
+  struct allocation_selector *selector;
 };
 
 struct logicalZones {
   /** The VDO whose zones these are */
-  VDO           *vdo;
+  VDO                   *vdo;
   /** The manager for administrative actions */
-  ActionManager *manager;
+  struct action_manager *manager;
   /** The number of zones */
-  ZoneCount      zoneCount;
+  ZoneCount              zoneCount;
   /** The logical zones themselves */
-  LogicalZone    zones[];
+  LogicalZone            zones[];
 };
 
 /**
@@ -444,7 +444,7 @@ void releaseFlushGenerationLock(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-AllocationSelector *getAllocationSelector(LogicalZone *zone)
+struct allocation_selector *getAllocationSelector(LogicalZone *zone)
 {
   return zone->selector;
 }

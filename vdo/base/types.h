@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#11 $
  */
 
 #ifndef TYPES_H
@@ -349,9 +349,9 @@ typedef struct vdoLoadConfig {
 /**
  * Forward declarations of abstract types
  **/
-typedef struct actionManager       ActionManager;
-typedef struct allocatingVIO       AllocatingVIO;
-typedef struct allocationSelector  AllocationSelector;
+struct action_manager;
+struct allocating_vio;
+struct allocation_selector;
 typedef struct blockAllocator      BlockAllocator;
 typedef struct blockMap            BlockMap;
 typedef struct blockMapTreeZone    BlockMapTreeZone;
@@ -418,9 +418,9 @@ typedef void AsyncOperation(VIO *vio);
 /**
  * An asynchronous compressed write operation.
  *
- * @param allocatingVIO  The AllocatingVIO to write
+ * @param allocatingVIO  The allocating_vio to write
  **/
-typedef void CompressedWriter(AllocatingVIO *allocatingVIO);
+typedef void CompressedWriter(struct allocating_vio *allocatingVIO);
 
 /**
  * An asynchronous data operation.

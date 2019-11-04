@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#14 $
  */
 
 #include "packerInternals.h"
@@ -523,14 +523,14 @@ static void finishCompressedWrite(VDOCompletion *completion)
 }
 
 /**
- * Continue the write path for a compressed write AllocatingVIO now that block
- * allocation is complete (the AllocatingVIO may or may not have actually
+ * Continue the write path for a compressed write allocating_vio now that block
+ * allocation is complete (the allocating_vio may or may not have actually
  * received an allocation).
  *
- * @param allocatingVIO  The AllocatingVIO which has finished the allocation
+ * @param allocatingVIO  The allocating_vio which has finished the allocation
  *                       process
  **/
-static void continueAfterAllocation(AllocatingVIO *allocatingVIO)
+static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
 {
   VIO           *vio        = allocatingVIOAsVIO(allocatingVIO);
   VDOCompletion *completion = vioAsCompletion(vio);

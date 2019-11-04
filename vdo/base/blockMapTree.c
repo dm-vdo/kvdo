@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#18 $
  */
 
 #include "blockMapTree.h"
@@ -1054,7 +1054,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
 static void releaseBlockMapWriteLock(VDOCompletion *completion)
 {
   DataVIO *dataVIO = asDataVIO(completion);
-  AllocatingVIO *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
+  struct allocating_vio *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
   assertInAllocatedZone(dataVIO);
   if (completion->result != VDO_SUCCESS) {
     launchLogicalCallback(dataVIO, allocationFailure, THIS_LOCATION(NULL));
@@ -1119,7 +1119,7 @@ static void journalBlockMapAllocation(VDOCompletion *completion)
  *
  * @param allocatingVIO  The DataVIO which is doing the allocation
  **/
-static void continueBlockMapPageAllocation(AllocatingVIO *allocatingVIO)
+static void continueBlockMapPageAllocation(struct allocating_vio *allocatingVIO)
 {
   DataVIO *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
   if (!hasAllocation(dataVIO)) {

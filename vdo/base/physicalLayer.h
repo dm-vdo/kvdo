@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#13 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -121,19 +121,19 @@ typedef int MetadataVIOCreator(PhysicalLayer  *layer,
                                VIO           **vioPtr);
 
 /**
- * A function to allocate an AllocatingVIO for compressed writes.
+ * A function to allocate an allocating_vio for compressed writes.
  *
  * @param [in]  layer             The physical layer
  * @param [in]  parent            The parent of this VIO
  * @param [in]  data              The buffer
- * @param [out] allocatingVIOPtr  A pointer to hold the new AllocatingVIO
+ * @param [out] allocatingVIOPtr  A pointer to hold the new allocating_vio
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int CompressedWriteVIOCreator(PhysicalLayer  *layer,
-                                      void           *parent,
-                                      char           *data,
-                                      AllocatingVIO **allocatingVIOPtr);
+typedef int CompressedWriteVIOCreator(PhysicalLayer          *layer,
+                                      void                   *parent,
+                                      char                   *data,
+                                      struct allocating_vio **allocatingVIOPtr);
 
 /**
  * A function to destroy a VIO. The pointer to the VIO will be nulled out.
@@ -503,9 +503,9 @@ void writeDataVIO(DataVIO *dataVIO);
 /**
  * A function to write a single compressed block to the layer
  *
- * @param allocatingVIO  The AllocatingVIO to write
+ * @param allocatingVIO  The allocating_vio to write
  **/
-void writeCompressedBlock(AllocatingVIO *allocatingVIO);
+void writeCompressedBlock(struct allocating_vio *allocatingVIO);
 
 /**
  * A function to compare the contents of a DataVIO to another DataVIO.

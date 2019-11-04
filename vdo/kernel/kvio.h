@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#15 $
  */
 
 #ifndef KVIO_H
@@ -60,8 +60,8 @@ struct metadata_kvio {
 };
 
 struct compressed_write_kvio {
-	struct kvio kvio;
-	AllocatingVIO allocating_vio;
+	struct kvio           kvio;
+	struct allocating_vio allocating_vio;
 };
 
 /**
@@ -128,17 +128,17 @@ metadata_kvio_as_kvio(struct metadata_kvio *metadata_kvio)
 
 /**
  * Returns a pointer to the struct compressed_write_kvio wrapping an
- * AllocatingVIO.
+ * allocating_vio.
  *
- * @param allocating_vio  The AllocatingVio to convert
+ * @param allocating_vio  The allocating_vio to convert
  *
  * @return the struct compressed_write_kvio
  **/
 static inline struct compressed_write_kvio *
-allocating_vio_as_compressed_write_kvio(AllocatingVIO *allocating_vio)
+allocating_vio_as_compressed_write_kvio(struct allocating_vio *allocating_vio)
 {
 	ASSERT_LOG_ONLY(isCompressedWriteAllocatingVIO(allocating_vio),
-			"AllocatingVIO is a compressed write");
+			"struct allocating_vio is a compressed write");
 	return container_of(allocating_vio, struct compressed_write_kvio,
 			    allocating_vio);
 }
@@ -301,22 +301,22 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 	__attribute__((warn_unused_result));
 
 /**
- * Create a new AllocatingVIO (and its enclosing kvio) for compressed writes.
+ * Create a new allocating_vio (and its enclosing kvio) for compressed writes.
  *
  * <p>Implements CompressedWriteVIOCreator.
  *
  * @param [in]  layer              The physical layer
- * @param [in]  parent             The parent to assign to the AllocatingVIO's
+ * @param [in]  parent             The parent to assign to the allocating_vio's
  *                                 completion
  * @param [in]  data               The buffer
- * @param [out] allocating_vio_ptr  A pointer to hold new AllocatingVIO
+ * @param [out] allocating_vio_ptr  A pointer to hold new allocating_vio
  *
  * @return VDO_SUCCESS or an error
  **/
 int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 				     void *parent,
 				     char *data,
-				     AllocatingVIO **allocating_vio_ptr)
+				     struct allocating_vio **allocating_vio_ptr)
 	__attribute__((warn_unused_result));
 
 /**

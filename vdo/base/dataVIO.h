@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#8 $
  */
 
 #ifndef DATA_VIO_H
@@ -149,8 +149,8 @@ struct compression_state {
  * A VIO for processing user data requests.
  **/
 struct dataVIO {
-  /* The underlying AllocatingVIO */
-  AllocatingVIO               allocatingVIO;
+  /* The underlying struct allocating_vio */
+  struct allocating_vio       allocatingVIO;
 
   /* The logical block of this request */
   LBNLock                     logical;
@@ -226,17 +226,17 @@ struct dataVIO {
 };
 
 /**
- * Convert an AllocatingVIO to a DataVIO.
+ * Convert an allocating_vio to a DataVIO.
  *
- * @param allocatingVIO  The AllocatingVIO to convert
+ * @param allocatingVIO  The allocating_vio to convert
  *
- * @return The AllocatingVIO as a DataVIO
+ * @return The allocating_vio as a DataVIO
  **/
-static inline DataVIO *allocatingVIOAsDataVIO(AllocatingVIO *allocatingVIO)
+static inline DataVIO *allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
 {
   STATIC_ASSERT(offsetof(DataVIO, allocatingVIO) == 0);
   ASSERT_LOG_ONLY((allocatingVIOAsVIO(allocatingVIO)->type == VIO_TYPE_DATA),
-                  "AllocatingVIO is a DataVIO");
+                  "allocating_vio is a DataVIO");
   return (DataVIO *) allocatingVIO;
 }
 
@@ -250,19 +250,19 @@ static inline DataVIO *allocatingVIOAsDataVIO(AllocatingVIO *allocatingVIO)
 static inline DataVIO *vioAsDataVIO(VIO *vio)
 {
   STATIC_ASSERT(offsetof(DataVIO, allocatingVIO) == 0);
-  STATIC_ASSERT(offsetof(AllocatingVIO, vio) == 0);
+  STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
   ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "VIO is a DataVIO");
   return (DataVIO *) vio;
 }
 
 /**
- * Convert a DataVIO to an AllocatingVIO.
+ * Convert a DataVIO to an allocating_vio.
  *
  * @param dataVIO  The DataVIO to convert
  *
- * @return The DataVIO as an AllocatingVIO
+ * @return The DataVIO as an allocating_vio
  **/
-static inline AllocatingVIO *dataVIOAsAllocatingVIO(DataVIO *dataVIO)
+static inline struct allocating_vio *dataVIOAsAllocatingVIO(DataVIO *dataVIO)
 {
   return &dataVIO->allocatingVIO;
 }

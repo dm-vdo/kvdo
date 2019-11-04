@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#2 $
  */
 
 #include "allocationSelector.h"
@@ -31,17 +31,17 @@ enum {
 };
 
 /**********************************************************************/
-int makeAllocationSelector(ZoneCount            physicalZoneCount,
-                           ThreadID             threadID,
-                           AllocationSelector **selectorPtr)
+int makeAllocationSelector(ZoneCount                    physicalZoneCount,
+                           ThreadID                     threadID,
+                           struct allocation_selector **selectorPtr)
 {
-  AllocationSelector *selector;
-  int result = ALLOCATE(1, AllocationSelector, __func__, &selector);
+  struct allocation_selector *selector;
+  int result = ALLOCATE(1, struct allocation_selector, __func__, &selector);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  *selector = (AllocationSelector) {
+  *selector = (struct allocation_selector) {
     .nextAllocationZone = threadID % physicalZoneCount,
     .lastPhysicalZone   = physicalZoneCount - 1,
   };
@@ -51,9 +51,9 @@ int makeAllocationSelector(ZoneCount            physicalZoneCount,
 }
 
 /**********************************************************************/
-void freeAllocationSelector(AllocationSelector **selectorPtr)
+void freeAllocationSelector(struct allocation_selector **selectorPtr)
 {
-  AllocationSelector *selector = *selectorPtr;
+  struct allocation_selector *selector = *selectorPtr;
   if (selector == NULL) {
     return;
   }
@@ -63,7 +63,7 @@ void freeAllocationSelector(AllocationSelector **selectorPtr)
 }
 
 /**********************************************************************/
-ZoneCount getNextAllocationZone(AllocationSelector *selector)
+ZoneCount getNextAllocationZone(struct allocation_selector *selector)
 {
   if (selector->lastPhysicalZone > 0) {
     if (selector->allocationCount < ALLOCATIONS_PER_ZONE) {

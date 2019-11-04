@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#5 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -164,7 +164,7 @@ void releaseFlushGenerationLock(DataVIO *dataVIO);
  *
  * @return The allocation selector for this zone
  **/
-AllocationSelector *getAllocationSelector(LogicalZone *zone)
+struct allocation_selector *getAllocationSelector(LogicalZone *zone)
   __attribute__((warn_unused_result));
 
 /**

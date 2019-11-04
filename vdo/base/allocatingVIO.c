@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#4 $
  */
 
 #include "allocatingVIO.h"
@@ -35,12 +35,12 @@
 /**
  * Make a single attempt to acquire a write lock on a newly-allocated PBN.
  *
- * @param allocatingVIO  The AllocatingVIO that wants a write lock for its
+ * @param allocatingVIO  The allocating_vio that wants a write lock for its
  *                       newly allocated block
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
+static int attemptPBNWriteLock(struct allocating_vio *allocatingVIO)
 {
   assertInPhysicalZone(allocatingVIO);
 
@@ -74,11 +74,11 @@ static int attemptPBNWriteLock(AllocatingVIO *allocatingVIO)
  * Attempt to allocate and lock a physical block. If successful, continue
  * along the write path.
  *
- * @param allocatingVIO  The AllocatingVIO which needs an allocation
+ * @param allocatingVIO  The allocating_vio which needs an allocation
  *
  * @return VDO_SUCCESS or an error if a block could not be allocated
  **/
-static int allocateAndLockBlock(AllocatingVIO *allocatingVIO)
+static int allocateAndLockBlock(struct allocating_vio *allocatingVIO)
 {
   BlockAllocator *allocator = getBlockAllocator(allocatingVIO->zone);
   int result = allocateBlock(allocator, &allocatingVIO->allocation);
@@ -103,28 +103,28 @@ static void allocateBlockForWrite(VDOCompletion *completion);
 /**
  * Retry allocating a block for write.
  *
- * @param waiter   The AllocatingVIO that was waiting to allocate
+ * @param waiter   The allocating_vio that was waiting to allocate
  * @param context  The context (unused)
  **/
 static void
 retryAllocateBlockForWrite(struct waiter *waiter,
                            void          *context __attribute__((unused)))
 {
-  AllocatingVIO *allocatingVIO = waiterAsAllocatingVIO(waiter);
+  struct allocating_vio *allocatingVIO = waiterAsAllocatingVIO(waiter);
   allocateBlockForWrite(allocatingVIOAsCompletion(allocatingVIO));
 }
 
 /**
- * Attempt to enqueue an AllocatingVIO to wait for a slab to be scrubbed in the
+ * Attempt to enqueue an allocating_vio to wait for a slab to be scrubbed in the
  * current allocation zone.
  *
- * @param allocatingVIO  The AllocatingVIO which wants to allocate a block
+ * @param allocatingVIO  The struct allocating_vio which wants to allocate a block
  *
- * @return VDO_SUCCESS if the AllocatingVIO was queued, VDO_NO_SPACE if there
+ * @return VDO_SUCCESS if the allocating_vio was queued, VDO_NO_SPACE if there
  *         are no slabs to be scrubbed in the current zone, or some other
  *         error
  **/
-static int waitForCleanSlab(AllocatingVIO *allocatingVIO)
+static int waitForCleanSlab(struct allocating_vio *allocatingVIO)
 {
   struct waiter *waiter = allocatingVIOAsWaiter(allocatingVIO);
   waiter->callback = retryAllocateBlockForWrite;
@@ -143,13 +143,13 @@ static int waitForCleanSlab(AllocatingVIO *allocatingVIO)
 }
 
 /**
- * Attempt to allocate a block in an AllocatingVIO's current allocation zone.
+ * Attempt to allocate a block in an allocating_vio's current allocation zone.
  *
- * @param allocatingVIO  The AllocatingVIO
+ * @param allocatingVIO  The allocating_vio
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocateBlockInZone(AllocatingVIO *allocatingVIO)
+static int allocateBlockInZone(struct allocating_vio *allocatingVIO)
 {
   allocatingVIO->allocationAttempts++;
   int result = allocateAndLockBlock(allocatingVIO);
@@ -193,11 +193,11 @@ static int allocateBlockInZone(AllocatingVIO *allocatingVIO)
  * Attempt to allocate a block. This callback is registered in
  * allocateDataBlock() and allocateBlockInZone().
  *
- * @param completion  The AllocatingVIO needing an allocation
+ * @param completion  The allocating_vio needing an allocation
  **/
 static void allocateBlockForWrite(VDOCompletion *completion)
 {
-  AllocatingVIO *allocatingVIO = asAllocatingVIO(completion);
+  struct allocating_vio *allocatingVIO = asAllocatingVIO(completion);
   assertInPhysicalZone(allocatingVIO);
   allocatingVIOAddTraceRecord(allocatingVIO, THIS_LOCATION(NULL));
   int result = allocateBlockInZone(allocatingVIO);
@@ -208,10 +208,10 @@ static void allocateBlockForWrite(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void allocateDataBlock(AllocatingVIO      *allocatingVIO,
-                       AllocationSelector *selector,
-                       PBNLockType         writeLockType,
-                       AllocationCallback *callback)
+void allocateDataBlock(struct allocating_vio      *allocatingVIO,
+                       struct allocation_selector *selector,
+                       PBNLockType                 writeLockType,
+                       AllocationCallback         *callback)
 {
   allocatingVIO->writeLockType      = writeLockType;
   allocatingVIO->allocationCallback = callback;
@@ -227,7 +227,7 @@ void allocateDataBlock(AllocatingVIO      *allocatingVIO,
 }
 
 /**********************************************************************/
-void releaseAllocationLock(AllocatingVIO *allocatingVIO)
+void releaseAllocationLock(struct allocating_vio *allocatingVIO)
 {
   assertInPhysicalZone(allocatingVIO);
   PhysicalBlockNumber lockedPBN = allocatingVIO->allocation;
@@ -240,7 +240,7 @@ void releaseAllocationLock(AllocatingVIO *allocatingVIO)
 }
 
 /**********************************************************************/
-void resetAllocation(AllocatingVIO *allocatingVIO)
+void resetAllocation(struct allocating_vio *allocatingVIO)
 {
   ASSERT_LOG_ONLY(allocatingVIO->allocationLock == NULL,
                   "must not reset allocation while holding a PBN lock");

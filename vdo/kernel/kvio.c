@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#21 $
  */
 
 #include "kvio.h"
@@ -104,7 +104,7 @@ void free_compressed_write_kvio(
 }
 
 /**********************************************************************/
-void writeCompressedBlock(AllocatingVIO *allocating_vio)
+void writeCompressedBlock(struct allocating_vio *allocating_vio)
 {
 	// This method assumes that compressed writes never set the flush or
 	// FUA bits.
@@ -407,10 +407,10 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 }
 
 /**********************************************************************/
-int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
-				     void *parent,
-				     char *data,
-				     AllocatingVIO **allocating_vio_ptr)
+int kvdo_create_compressed_write_vio(PhysicalLayer          *layer,
+				     void                   *parent,
+				     char                   *data,
+				     struct allocating_vio **allocating_vio_ptr)
 {
 	struct bio *bio;
 	struct kernel_layer *kernel_layer = as_kernel_layer(layer);

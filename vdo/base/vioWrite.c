@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#8 $
  */
 
 /*
@@ -547,7 +547,7 @@ static void decrementForDedupe(VDOCompletion *completion)
     return;
   }
 
-  AllocatingVIO *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
+  struct allocating_vio *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
   if (allocatingVIO->allocation == dataVIO->mapped.pbn) {
     /*
      * If we are about to release the reference on the allocated block,
@@ -1095,9 +1095,9 @@ static void writeBlock(DataVIO *dataVIO)
  * callback is registered in continueWriteWithBlockMapSlot().
  *
  * @param allocatingVIO  The DataVIO which has finished the allocation process
- *                       (as an AllocatingVIO)
+ *                       (as an allocating_vio)
  **/
-static void continueWriteAfterAllocation(AllocatingVIO *allocatingVIO)
+static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
 {
   DataVIO *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
   if (abortOnError(dataVIOAsCompletion(dataVIO)->result, dataVIO,

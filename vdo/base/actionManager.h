@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#6 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -27,7 +27,7 @@
 #include "types.h"
 
 /**
- * ActionManager provides a generic mechanism for applying actions to
+ * An action_manager provides a generic mechanism for applying actions to
  * multi-zone entities (such as the block map or slab depot). Each action
  * manager is tied to a specific context for which it manages actions. The
  * manager ensures that only one action is active on that context at a time,
@@ -114,13 +114,13 @@ typedef ThreadID ZoneThreadGetter(void *context, ZoneCount zoneNumber);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeActionManager(ZoneCount          zones,
-                      ZoneThreadGetter  *getZoneThreadID,
-                      ThreadID           initiatorThreadID,
-                      void              *context,
-                      ActionScheduler   *scheduler,
-                      PhysicalLayer     *layer,
-                      ActionManager    **managerPtr)
+int makeActionManager(ZoneCount               zones,
+                      ZoneThreadGetter       *getZoneThreadID,
+                      ThreadID                initiatorThreadID,
+                      void                   *context,
+                      ActionScheduler        *scheduler,
+                      PhysicalLayer          *layer,
+                      struct action_manager **managerPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -128,7 +128,7 @@ int makeActionManager(ZoneCount          zones,
  *
  * @param managerPtr  The reference to the manager to destroy
  **/
-void freeActionManager(ActionManager **managerPtr);
+void freeActionManager(struct action_manager **managerPtr);
 
 /**
  * Get the current operation an action manager is performing.
@@ -137,7 +137,7 @@ void freeActionManager(ActionManager **managerPtr);
  *
  * @return The manager's current operation
  **/
-AdminStateCode getCurrentManagerOperation(ActionManager *manager)
+AdminStateCode getCurrentManagerOperation(struct action_manager *manager)
   __attribute__((warn_unused_result));
 
 /**
@@ -149,7 +149,7 @@ AdminStateCode getCurrentManagerOperation(ActionManager *manager)
  * @return The action-specific context for the manager's current action or
  *         NULL if there is no context or no current action
  **/
-void *getCurrentActionContext(ActionManager *manager)
+void *getCurrentActionContext(struct action_manager *manager)
   __attribute__((warn_unused_result));
 
 /**
@@ -171,11 +171,11 @@ void *getCurrentActionContext(ActionManager *manager)
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool scheduleAction(ActionManager    *manager,
-                    ActionPreamble   *preamble,
-                    ZoneAction       *zoneAction,
-                    ActionConclusion *conclusion,
-                    VDOCompletion    *parent);
+bool scheduleAction(struct action_manager *manager,
+                    ActionPreamble        *preamble,
+                    ZoneAction            *zoneAction,
+                    ActionConclusion      *conclusion,
+                    VDOCompletion         *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -198,12 +198,12 @@ bool scheduleAction(ActionManager    *manager,
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool scheduleOperation(ActionManager    *manager,
-                       AdminStateCode    operation,
-                       ActionPreamble   *preamble,
-                       ZoneAction       *zoneAction,
-                       ActionConclusion *conclusion,
-                       VDOCompletion    *parent);
+bool scheduleOperation(struct action_manager *manager,
+                       AdminStateCode         operation,
+                       ActionPreamble        *preamble,
+                       ZoneAction            *zoneAction,
+                       ActionConclusion      *conclusion,
+                       VDOCompletion         *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -228,12 +228,12 @@ bool scheduleOperation(ActionManager    *manager,
  *
  * @return <code>true</code> if the action was scheduled
  **/
-bool scheduleOperationWithContext(ActionManager    *manager,
-                                  AdminStateCode    operation,
-                                  ActionPreamble   *preamble,
-                                  ZoneAction       *zoneAction,
-                                  ActionConclusion *conclusion,
-                                  void             *context,
-                                  VDOCompletion    *parent);
+bool scheduleOperationWithContext(struct action_manager *manager,
+                                  AdminStateCode         operation,
+                                  ActionPreamble        *preamble,
+                                  ZoneAction            *zoneAction,
+                                  ActionConclusion      *conclusion,
+                                  void                  *context,
+                                  VDOCompletion         *parent);
 
 #endif // ACTION_MANAGER_H
