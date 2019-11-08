@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#23 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -1023,7 +1023,7 @@ static void launchFetch(struct waiter *waiter, void *context)
     return;
   }
 
-  BlockMapZone *zone = context;
+  struct block_map_zone *zone = context;
   initVDOPageCompletion(&decref->pageCompletion, zone->pageCache,
                         decref->slot.pbn, false, decref, processFetchedPage,
                         handleFetchError);

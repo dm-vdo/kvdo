@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#22 $
  */
 
 #include "blockMap.h"
@@ -74,10 +74,10 @@ struct block_map_page_context {
 /**
  * Implements VDOPageReadFunction.
  **/
-static int validatePageOnRead(void                *buffer,
-                              PhysicalBlockNumber  pbn,
-                              BlockMapZone        *zone,
-                              void                *pageContext)
+static int validatePageOnRead(void                  *buffer,
+                              PhysicalBlockNumber    pbn,
+                              struct block_map_zone *zone,
+                              void                  *pageContext)
 {
   struct block_map_page         *page    = buffer;
   struct block_map_page_context *context = pageContext;
@@ -104,9 +104,9 @@ static int validatePageOnRead(void                *buffer,
  *
  * Implements VDOPageWriteFunction.
  **/
-static bool handlePageWrite(void         *rawPage,
-                            BlockMapZone *zone,
-                            void         *pageContext)
+static bool handlePageWrite(void                  *rawPage,
+                            struct block_map_zone *zone,
+                            void                  *pageContext)
 {
   struct block_map_page         *page    = rawPage;
   struct block_map_page_context *context = pageContext;
@@ -144,7 +144,7 @@ int makeBlockMap(BlockCount            logicalBlocks,
 
   struct block_map *map;
   int result = ALLOCATE_EXTENDED(struct block_map, threadConfig->logicalZoneCount,
-                                 BlockMapZone, __func__, &map);
+                                 struct block_map_zone, __func__, &map);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -156,10 +156,10 @@ int makeBlockMap(BlockCount            logicalBlocks,
 
   ZoneCount       zoneCount    = threadConfig->logicalZoneCount;
   for (ZoneCount zone = 0; zone < zoneCount; zone++) {
-    BlockMapZone *blockMapZone = &map->zones[zone];
-    blockMapZone->zoneNumber   = zone;
-    blockMapZone->threadID     = getLogicalZoneThread(threadConfig, zone);
-    blockMapZone->blockMap     = map;
+    struct block_map_zone *blockMapZone = &map->zones[zone];
+    blockMapZone->zoneNumber = zone;
+    blockMapZone->threadID = getLogicalZoneThread(threadConfig, zone);
+    blockMapZone->blockMap = map;
     map->zoneCount++;
   }
 
@@ -281,11 +281,11 @@ int decodeSodiumBlockMap(Buffer              *buffer,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int initializeBlockMapZone(BlockMapZone     *zone,
-                                  PhysicalLayer    *layer,
-                                  ReadOnlyNotifier *readOnlyNotifier,
-                                  PageCount         cacheSize,
-                                  BlockCount        maximumAge)
+static int initializeBlockMapZone(struct block_map_zone *zone,
+                                  PhysicalLayer         *layer,
+                                  ReadOnlyNotifier      *readOnlyNotifier,
+                                  PageCount              cacheSize,
+                                  BlockCount             maximumAge)
 {
   zone->readOnlyNotifier = readOnlyNotifier;
   int result = initializeTreeZone(zone, layer, maximumAge);
@@ -300,7 +300,7 @@ static int initializeBlockMapZone(BlockMapZone     *zone,
 }
 
 /**********************************************************************/
-BlockMapZone *getBlockMapZone(struct block_map *map, ZoneCount zoneNumber)
+struct block_map_zone *getBlockMapZone(struct block_map *map, ZoneCount zoneNumber)
 {
   return &map->zones[zoneNumber];
 }
@@ -336,7 +336,7 @@ static void advanceBlockMapZoneEra(void          *context,
                                    ZoneCount      zoneNumber,
                                    VDOCompletion *parent)
 {
-  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
+  struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   advanceVDOPageCachePeriod(zone->pageCache, zone->blockMap->currentEraPoint);
   advanceZoneTreePeriod(&zone->treeZone, zone->blockMap->currentEraPoint);
   finishCompletion(parent, VDO_SUCCESS);
@@ -396,11 +396,11 @@ int makeBlockMapCaches(struct block_map *map,
 }
 
 /**
- * Clean up a BlockMapZone.
+ * Clean up a struct block_map_zone.
  *
  * @param zone  The zone to uninitialize
  **/
-static void uninitializeBlockMapZone(BlockMapZone *zone)
+static void uninitializeBlockMapZone(struct block_map_zone *zone)
 {
   uninitializeBlockMapTreeZone(&zone->treeZone);
   freeVDOPageCache(&zone->pageCache);
@@ -550,7 +550,7 @@ static void drainZone(void          *context,
                       ZoneCount      zoneNumber,
                       VDOCompletion *parent)
 {
-  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
+  struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   startDraining(&zone->state,
                 getCurrentManagerOperation(zone->blockMap->actionManager),
                 parent, drainZoneTrees);
@@ -574,7 +574,7 @@ static void resumeBlockMapZone(void          *context,
                                ZoneCount      zoneNumber,
                                VDOCompletion *parent)
 {
-  BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
+  struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   finishCompletion(parent, resumeIfQuiescent(&zone->state));
 }
 
@@ -671,7 +671,7 @@ static void setupMappedBlock(DataVIO   *dataVIO,
                              bool       modifiable,
                              VDOAction *action)
 {
-  BlockMapZone *zone = getBlockMapForZone(dataVIO->logical.zone);
+  struct block_map_zone *zone = getBlockMapForZone(dataVIO->logical.zone);
   if (isDraining(&zone->state)) {
     finishDataVIO(dataVIO, VDO_SHUTTING_DOWN);
     return;

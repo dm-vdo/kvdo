@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#11 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -95,7 +95,7 @@ struct vdo_page_cache {
   /** counter for pressure reports */
   uint32_t                             pressureReport;
   /** the block map zone to which this cache belongs */
-  BlockMapZone                        *zone;
+  struct block_map_zone               *zone;
 };
 
 /**

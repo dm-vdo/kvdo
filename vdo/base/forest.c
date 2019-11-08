@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#11 $
  */
 
 #include "forest.h"
@@ -79,13 +79,13 @@ struct cursor {
 };
 
 struct cursors {
-  struct block_map *map;
-  BlockMapTreeZone *zone;
-  VIOPool          *pool;
-  EntryCallback    *entryCallback;
-  VDOCompletion    *parent;
-  RootCount         activeRoots;
-  struct cursor     cursors[];
+  struct block_map           *map;
+  struct block_map_tree_zone *zone;
+  VIOPool                    *pool;
+  EntryCallback              *entryCallback;
+  VDOCompletion              *parent;
+  RootCount                   activeRoots;
+  struct cursor               cursors[];
 };
 
 /**********************************************************************/
@@ -388,7 +388,8 @@ static void traverse(struct cursor *cursor)
     struct cursor_level *level  = &cursor->levels[height];
     struct tree_page *treePage
       = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
-    struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
+    struct block_map_page *page
+      = (struct block_map_page *) treePage->pageBuffer;
     if (!isBlockMapPageInitialized(page)) {
       continue;
     }

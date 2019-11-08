@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#19 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -37,47 +37,47 @@
 /**
  * The per-zone fields used by the block map tree.
  **/
-struct blockMapTreeZone {
-  /** The BlockMapZone which owns this tree zone */
-  BlockMapZone        *mapZone;
+struct block_map_tree_zone {
+  /** The struct block_map_zone which owns this tree zone */
+  struct block_map_zone *mapZone;
   /** The lists of dirty tree pages */
-  struct dirty_lists  *dirtyLists;
+  struct dirty_lists    *dirtyLists;
   /** The number of tree lookups in progress */
-  VIOCount             activeLookups;
+  VIOCount               activeLookups;
   /** The map of pages currently being loaded */
-  struct int_map      *loadingPages;
+  struct int_map        *loadingPages;
   /** The pool of VIOs for tree I/O */
-  VIOPool             *vioPool;
+  VIOPool               *vioPool;
   /** The tree page which has issued or will be issuing a flush */
-  struct tree_page    *flusher;
+  struct tree_page      *flusher;
   /** The queue of pages waiting for a flush so they can be written out */
-  struct wait_queue    flushWaiters;
+  struct wait_queue      flushWaiters;
   /** The generation after the most recent flush */
-  uint8_t              generation;
+  uint8_t                generation;
   /** The oldest active generation */
-  uint8_t              oldestGeneration;
+  uint8_t                oldestGeneration;
   /** The counts of dirty pages in each generation */
-  uint32_t             dirtyPageCounts[256];
+  uint32_t               dirtyPageCounts[256];
 };
 
 /**
  * The per-zone fields of the block map.
  **/
-struct blockMapZone {
+struct block_map_zone {
   /** The number of the zone this is */
-  ZoneCount              zoneNumber;
+  ZoneCount                   zoneNumber;
   /** The ID of this zone's logical thread */
-  ThreadID               threadID;
-  /** The block_map which owns this BlockMapZone */
-  struct block_map      *blockMap;
+  ThreadID                    threadID;
+  /** The block_map which owns this block_map_zone */
+  struct block_map           *blockMap;
   /** The ReadOnlyNotifier of the VDO */
-  ReadOnlyNotifier      *readOnlyNotifier;
+  ReadOnlyNotifier           *readOnlyNotifier;
   /** The page cache for this zone */
-  struct vdo_page_cache *pageCache;
+  struct vdo_page_cache      *pageCache;
   /** The per-zone portion of the tree for this zone */
-  BlockMapTreeZone       treeZone;
+  struct block_map_tree_zone  treeZone;
   /** The administrative state of the zone */
-  struct admin_state     state;
+  struct admin_state          state;
 };
 
 struct block_map {
@@ -112,7 +112,7 @@ struct block_map {
   /** The number of logical zones */
   ZoneCount              zoneCount;
   /** The per zone block map structure */
-  BlockMapZone           zones[];
+  struct block_map_zone  zones[];
 };
 
 /**

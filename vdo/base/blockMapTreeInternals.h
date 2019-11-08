@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#6 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -92,9 +92,9 @@ static inline struct block_map_page *asBlockMapPage(struct tree_page *treePage)
  *
  * @return VDO_SUCCESS or an error
  **/
-int replaceTreeZoneVIOPool(BlockMapTreeZone *zone,
-                           PhysicalLayer    *layer,
-                           size_t            poolSize)
+int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
+                           PhysicalLayer              *layer,
+                           size_t                      poolSize)
   __attribute__((warn_unused_result));
 
 /**

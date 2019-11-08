@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#14 $
  */
 
 #ifndef TYPES_H
@@ -354,8 +354,8 @@ struct allocating_vio;
 struct allocation_selector;
 struct block_allocator;
 struct block_map;
-typedef struct blockMapTreeZone    BlockMapTreeZone;
-typedef struct blockMapZone        BlockMapZone;
+struct block_map_tree_zone;
+struct block_map_zone;
 typedef struct dataVIO             DataVIO;
 typedef struct flusher             Flusher;
 typedef struct forest              Forest;

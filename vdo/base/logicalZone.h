@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#6 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -91,7 +91,7 @@ ThreadID getLogicalZoneThreadID(const LogicalZone *zone)
  *
  * @return The block map zone
  **/
-BlockMapZone *getBlockMapForZone(const LogicalZone *zone)
+struct block_map_zone *getBlockMapForZone(const LogicalZone *zone)
   __attribute__((warn_unused_result));
 
 /**

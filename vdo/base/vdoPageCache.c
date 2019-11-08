@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#12 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -121,7 +121,7 @@ int makeVDOPageCache(PhysicalLayer          *layer,
                      VDOPageWriteFunction   *writeHook,
                      size_t                  pageContextSize,
                      BlockCount              maximumAge,
-                     BlockMapZone           *zone,
+                     struct block_map_zone  *zone,
                      struct vdo_page_cache **cachePtr)
 {
   int result = ASSERT(pageContextSize <= MAX_PAGE_CONTEXT_SIZE,

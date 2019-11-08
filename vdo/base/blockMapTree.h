@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#8 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -29,26 +29,26 @@
 struct tree_page;
 
 /**
- * Intialize a BlockMapTreeZone.
+ * Intialize a block_map_tree_zone.
  *
- * @param zone              The BlockMapZone of the tree zone to intialize
+ * @param zone              The block_map_zone of the tree zone to intialize
  * @param layer             The physical layer
  * @param maximumAge        The number of journal blocks before a dirtied page
  *                          is considered old and may be written out
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeTreeZone(BlockMapZone     *zone,
-                       PhysicalLayer    *layer,
-                       BlockCount        maximumAge)
+int initializeTreeZone(struct block_map_zone *zone,
+                       PhysicalLayer         *layer,
+                       BlockCount             maximumAge)
   __attribute__((warn_unused_result));
 
 /**
- * Clean up a BlockMapTreeZone.
+ * Clean up a block_map_tree_zone.
  *
  * @param treeZone  The zone to clean up
  **/
-void uninitializeBlockMapTreeZone(BlockMapTreeZone *treeZone);
+void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone);
 
 /**
  * Set the initial dirty period for a tree zone.
@@ -56,16 +56,17 @@ void uninitializeBlockMapTreeZone(BlockMapTreeZone *treeZone);
  * @param treeZone  The tree zone
  * @param period    The initial dirty period to set
  **/
-void setTreeZoneInitialPeriod(BlockMapTreeZone *treeZone,
-                              SequenceNumber    period);
+void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
+                              SequenceNumber              period);
 
 /**
  * Advance the dirty period for a tree zone.
  *
- * @param zone    The BlockMapTreeZone to advance
+ * @param zone    The block_map_tree_zone to advance
  * @param period  The new dirty period
  **/
-void advanceZoneTreePeriod(BlockMapTreeZone *zone, SequenceNumber period);
+void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
+                           SequenceNumber              period);
 
 /**
  * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by
@@ -106,6 +107,6 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
  * @param page  The page to write
  * @param zone  The tree zone managing the page
  **/
-void writeTreePage(struct tree_page *page, BlockMapTreeZone *zone);
+void writeTreePage(struct tree_page *page, struct block_map_tree_zone *zone);
 
 #endif // BLOCK_MAP_TREE_H

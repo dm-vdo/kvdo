@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#8 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -111,10 +111,10 @@ struct atomic_page_cache_statistics {
  * @return VDO_SUCCESS on success or VDO_BAD_PAGE if the page is incorrectly
  *         formatted
  **/
-typedef int VDOPageReadFunction(void                *rawPage,
-                                PhysicalBlockNumber  pbn,
-                                BlockMapZone        *zone,
-                                void                *pageContext);
+typedef int VDOPageReadFunction(void                  *rawPage,
+                                PhysicalBlockNumber    pbn,
+                                struct block_map_zone *zone,
+                                void                  *pageContext);
 
 /**
  * Signature for a function to call when a page is written from the cache.
@@ -127,9 +127,9 @@ typedef int VDOPageReadFunction(void                *rawPage,
  *
  * @return whether the page needs to be rewritten
  **/
-typedef bool VDOPageWriteFunction(void         *rawPage,
-                                  BlockMapZone *zone,
-                                  void         *pageContext);
+typedef bool VDOPageWriteFunction(void                  *rawPage,
+                                  struct block_map_zone *zone,
+                                  void                  *pageContext);
 
 /**
  * Construct a PageCache.
@@ -156,7 +156,7 @@ int makeVDOPageCache(PhysicalLayer          *layer,
                      VDOPageWriteFunction   *writeHook,
                      size_t                  pageContextSize,
                      BlockCount              maximumAge,
-                     BlockMapZone           *zone,
+                     struct block_map_zone  *zone,
                      struct vdo_page_cache **cachePtr)
   __attribute__((warn_unused_result));
 
