@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#8 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -48,8 +48,8 @@ struct recovery_completion {
   VDOCompletion                          subTaskCompletion;
   /** The VDO in question */
   VDO                                   *vdo;
-  /** The BlockAllocator whose journals are being recovered */
-  BlockAllocator                        *allocator;
+  /** The struct block_allocator whose journals are being recovered */
+  struct block_allocator                *allocator;
   /** A buffer to hold the data read off disk */
   char                                  *journalData;
   /** The number of increfs */

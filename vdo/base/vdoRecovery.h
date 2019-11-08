@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#3 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -27,16 +27,16 @@
 
 /**
  * Replay recovery journal entries in the the slab journals of slabs owned by a
- * given BlockAllocator.
+ * given block_allocator.
  *
  * @param allocator   The allocator whose slab journals are to be recovered
  * @param completion  The completion to use for waiting on slab journal space
  * @param context     The slab depot load context supplied by a recovery when
  *                    it loads the depot
  **/
-void replayIntoSlabJournals(BlockAllocator *allocator,
-                            VDOCompletion  *completion,
-                            void           *context);
+void replayIntoSlabJournals(struct block_allocator *allocator,
+                            VDOCompletion          *completion,
+                            void                   *context);
 
 /**
  * Construct a recovery completion and launch it. Apply all valid journal block

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#24 $
  */
 
 #include "slabDepot.h"
@@ -128,7 +128,7 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
   BlockCount translation = depot->origin - depot->firstBlock;
   depot->newSlabCount = depot->slabCount;
   while (depot->newSlabCount < slabCount) {
-    BlockAllocator *allocator
+    struct block_allocator *allocator
       = depot->allocators[depot->newSlabCount % depot->zoneCount];
     Slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
     result = makeSlab(slabOrigin, allocator, translation, depot->journal,
@@ -322,7 +322,7 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
 
   SlabDepot *depot;
   int result = ALLOCATE_EXTENDED(SlabDepot, threadConfig->physicalZoneCount,
-                                 BlockAllocator *, __func__, &depot);
+                                 struct block_allocator *, __func__, &depot);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -716,8 +716,8 @@ int allocateSlabRefCounts(SlabDepot *depot)
 }
 
 /**********************************************************************/
-BlockAllocator *getBlockAllocatorForZone(SlabDepot *depot,
-                                         ZoneCount  zoneNumber)
+struct block_allocator *getBlockAllocatorForZone(SlabDepot *depot,
+                                                 ZoneCount  zoneNumber)
 {
   return depot->allocators[zoneNumber];
 }
@@ -1093,7 +1093,7 @@ getDepotBlockAllocatorStatistics(const SlabDepot *depot)
   memset(&totals, 0, sizeof(totals));
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
-    BlockAllocator *allocator = depot->allocators[zone];
+    struct block_allocator *allocator = depot->allocators[zone];
     BlockAllocatorStatistics stats = getBlockAllocatorStatistics(allocator);
     totals.slabCount     += stats.slabCount;
     totals.slabsOpened   += stats.slabsOpened;
@@ -1110,7 +1110,7 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
   memset(&depotStats, 0, sizeof(depotStats));
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
-    BlockAllocator *allocator = depot->allocators[zone];
+    struct block_allocator *allocator = depot->allocators[zone];
     RefCountsStatistics stats = getRefCountsStatistics(allocator);
     depotStats.blocksWritten += stats.blocksWritten;
   }
@@ -1125,7 +1125,7 @@ SlabJournalStatistics getDepotSlabJournalStatistics(const SlabDepot *depot)
   memset(&depotStats, 0, sizeof(depotStats));
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
-    BlockAllocator *allocator = depot->allocators[zone];
+    struct block_allocator *allocator = depot->allocators[zone];
     SlabJournalStatistics stats = getSlabJournalStatistics(allocator);
     depotStats.diskFullCount += stats.diskFullCount;
     depotStats.flushCount    += stats.flushCount;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#14 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -75,7 +75,7 @@ struct slabDepot {
   PhysicalBlockNumber     newLastBlock;
 
   /** The block allocators for this depot */
-  BlockAllocator         *allocators[];
+  struct block_allocator *allocators[];
 };
 
 /**

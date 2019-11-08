@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#17 $
  */
 
 #include "slabJournalInternals.h"
@@ -235,10 +235,10 @@ static void updateTailBlockLocation(SlabJournal *journal);
 static void releaseJournalLocks(struct waiter *waiter, void *context);
 
 /**********************************************************************/
-int makeSlabJournal(BlockAllocator   *allocator,
-                    Slab             *slab,
-                    RecoveryJournal  *recoveryJournal,
-                    SlabJournal     **journalPtr)
+int makeSlabJournal(struct block_allocator  *allocator,
+                    Slab                    *slab,
+                    RecoveryJournal         *recoveryJournal,
+                    SlabJournal            **journalPtr)
 {
   SlabJournal *journal;
   const SlabConfig *slabConfig = getSlabConfig(allocator->depot);

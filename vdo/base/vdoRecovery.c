@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#22 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -736,9 +736,9 @@ static void addSlabJournalEntries(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void replayIntoSlabJournals(BlockAllocator *allocator,
-                            VDOCompletion  *completion,
-                            void           *context)
+void replayIntoSlabJournals(struct block_allocator *allocator,
+                            VDOCompletion          *completion,
+                            void                   *context)
 {
   struct recovery_completion *recovery = context;
   assertOnPhysicalZoneThread(recovery->vdo, allocator->zoneNumber, __func__);

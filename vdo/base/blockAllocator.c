@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#27 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -114,7 +114,7 @@ static void prioritizeSlab(Slab *slab)
 }
 
 /**********************************************************************/
-void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab)
+void registerSlabWithAllocator(struct block_allocator *allocator, Slab *slab)
 {
   allocator->slabCount++;
   allocator->lastSlab = slab->slabNumber;
@@ -127,7 +127,8 @@ void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab)
  *
  * @return An iterator over the allocator's slabs
  **/
-static struct slab_iterator getSlabIterator(const BlockAllocator *allocator)
+static struct slab_iterator
+getSlabIterator(const struct block_allocator *allocator)
 {
   return iterateSlabs(allocator->depot->slabs, allocator->lastSlab,
                       allocator->zoneNumber, allocator->depot->zoneCount);
@@ -145,7 +146,7 @@ static struct slab_iterator getSlabIterator(const BlockAllocator *allocator)
 static void notifyBlockAllocatorOfReadOnlyMode(void          *listener,
                                                VDOCompletion *parent)
 {
-  BlockAllocator *allocator = listener;
+  struct block_allocator *allocator = listener;
   assertOnAllocatorThread(allocator->threadID, __func__);
   struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
@@ -176,9 +177,9 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocateComponents(BlockAllocator  *allocator,
-                              PhysicalLayer   *layer,
-                              BlockCount       vioPoolSize)
+static int allocateComponents(struct block_allocator *allocator,
+                              PhysicalLayer          *layer,
+                              BlockCount              vioPoolSize)
 {
   /*
    * If createVIO is NULL, the block allocator is only being used to format
@@ -251,18 +252,18 @@ static int allocateComponents(BlockAllocator  *allocator,
 }
 
 /**********************************************************************/
-int makeBlockAllocator(SlabDepot         *depot,
-                       ZoneCount          zoneNumber,
-                       ThreadID           threadID,
-                       Nonce              nonce,
-                       BlockCount         vioPoolSize,
-                       PhysicalLayer     *layer,
-                       ReadOnlyNotifier  *readOnlyNotifier,
-                       BlockAllocator   **allocatorPtr)
+int makeBlockAllocator(SlabDepot               *depot,
+                       ZoneCount                zoneNumber,
+                       ThreadID                 threadID,
+                       Nonce                    nonce,
+                       BlockCount               vioPoolSize,
+                       PhysicalLayer           *layer,
+                       ReadOnlyNotifier        *readOnlyNotifier,
+                       struct block_allocator **allocatorPtr)
 {
 
-  BlockAllocator *allocator;
-  int result = ALLOCATE(1, BlockAllocator, __func__, &allocator);
+  struct block_allocator *allocator;
+  int result = ALLOCATE(1, struct block_allocator, __func__, &allocator);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -285,9 +286,9 @@ int makeBlockAllocator(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void freeBlockAllocator(BlockAllocator **blockAllocatorPtr)
+void freeBlockAllocator(struct block_allocator **blockAllocatorPtr)
 {
-  BlockAllocator *allocator = *blockAllocatorPtr;
+  struct block_allocator *allocator = *blockAllocatorPtr;
   if (allocator == NULL) {
     return;
   }
@@ -301,9 +302,9 @@ void freeBlockAllocator(BlockAllocator **blockAllocatorPtr)
 }
 
 /**********************************************************************/
-int replaceVIOPool(BlockAllocator *allocator,
-                   size_t          size,
-                   PhysicalLayer  *layer)
+int replaceVIOPool(struct block_allocator *allocator,
+                   size_t                  size,
+                   PhysicalLayer          *layer)
 {
   freeVIOPool(&allocator->vioPool);
   return makeVIOPool(layer, size, allocator->threadID, makeAllocatorPoolVIOs,
@@ -318,19 +319,20 @@ int replaceVIOPool(BlockAllocator *allocator,
  * @return The number of data blocks that can be allocated
  **/
 __attribute__((warn_unused_result))
-static inline BlockCount getDataBlockCount(const BlockAllocator *allocator)
+static inline BlockCount
+getDataBlockCount(const struct block_allocator *allocator)
 {
   return (allocator->slabCount * allocator->depot->slabConfig.dataBlocks);
 }
 
 /**********************************************************************/
-BlockCount getAllocatedBlocks(const BlockAllocator *allocator)
+BlockCount getAllocatedBlocks(const struct block_allocator *allocator)
 {
   return relaxedLoad64(&allocator->statistics.allocatedBlocks);
 }
 
 /**********************************************************************/
-BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
+BlockCount getUnrecoveredSlabCount(const struct block_allocator *allocator)
 {
   return getScrubberSlabCount(allocator->slabScrubber);
 }
@@ -340,7 +342,7 @@ void queueSlab(Slab *slab)
 {
   ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
                   "a requeued slab must not already be on a ring");
-  BlockAllocator *allocator  = slab->allocator;
+  struct block_allocator *allocator  = slab->allocator;
   BlockCount      freeBlocks = getSlabFreeBlockCount(slab);
   int result = ASSERT((freeBlocks <= allocator->depot->slabConfig.dataBlocks),
                       "rebuilt slab %u must have a valid free block count"
@@ -373,7 +375,7 @@ void queueSlab(Slab *slab)
 /**********************************************************************/
 void adjustFreeBlockCount(Slab *slab, bool increment)
 {
-  BlockAllocator *allocator = slab->allocator;
+  struct block_allocator *allocator = slab->allocator;
   // The sense of increment is reversed since allocations are being counted.
   relaxedAdd64(&allocator->statistics.allocatedBlocks, (increment ? -1 : 1));
 
@@ -421,8 +423,8 @@ static int allocateSlabBlock(Slab *slab, PhysicalBlockNumber *blockNumberPtr)
 }
 
 /**********************************************************************/
-int allocateBlock(BlockAllocator *allocator,
-                  PhysicalBlockNumber *blockNumberPtr)
+int allocateBlock(struct block_allocator *allocator,
+                  PhysicalBlockNumber    *blockNumberPtr)
 {
   if (allocator->openSlab != NULL) {
     // Try to allocate the next block in the currently open slab.
@@ -453,9 +455,9 @@ int allocateBlock(BlockAllocator *allocator,
 }
 
 /**********************************************************************/
-void releaseBlockReference(BlockAllocator      *allocator,
-                           PhysicalBlockNumber  pbn,
-                           const char          *why)
+void releaseBlockReference(struct block_allocator *allocator,
+                           PhysicalBlockNumber     pbn,
+                           const char             *why)
 {
   if (pbn == ZERO_BLOCK) {
     return;
@@ -527,8 +529,9 @@ static void swapSlabStatuses(void *item1, void *item2)
  **/
 static void slabActionCallback(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = container_of(completion, BlockAllocator,
-                                           completion);
+  struct block_allocator *allocator = container_of(completion,
+                                                   struct block_allocator,
+                                                   completion);
   struct slab_actor *actor = &allocator->slabActor;
   if (--actor->slabActionCount == 0) {
     actor->callback(completion);
@@ -545,7 +548,7 @@ static void slabActionCallback(VDOCompletion *completion)
  **/
 static void handleOperationError(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = (BlockAllocator *) completion;
+  struct block_allocator *allocator = (struct block_allocator *) completion;
   setOperationResult(&allocator->state, completion->result);
   completion->callback(completion);
 }
@@ -558,7 +561,7 @@ static void handleOperationError(VDOCompletion *completion)
  * @param callback    The method to call when the action is complete on every
  *                    slab
  **/
-static void applyToSlabs(BlockAllocator *allocator, VDOAction *callback)
+static void applyToSlabs(struct block_allocator *allocator, VDOAction *callback)
 {
   prepareCompletion(&allocator->completion, slabActionCallback,
                     handleOperationError, allocator->threadID, NULL);
@@ -592,7 +595,7 @@ static void applyToSlabs(BlockAllocator *allocator, VDOAction *callback)
  **/
 static void finishLoadingAllocator(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = (BlockAllocator *) completion;
+  struct block_allocator *allocator = (struct block_allocator *) completion;
   if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
     void *context = getCurrentActionContext(allocator->depot->actionManager);
     replayIntoSlabJournals(allocator, completion, context);
@@ -609,7 +612,9 @@ static void finishLoadingAllocator(VDOCompletion *completion)
  **/
 static void initiateLoad(struct admin_state *state)
 {
-  BlockAllocator *allocator = container_of(state, BlockAllocator, state);
+  struct block_allocator *allocator = container_of(state,
+                                                   struct block_allocator,
+                                                   state);
   if (state->state == ADMIN_STATE_LOADING_FOR_REBUILD) {
     prepareCompletion(&allocator->completion, finishLoadingAllocator,
                       handleOperationError, allocator->threadID, NULL);
@@ -626,20 +631,22 @@ void loadBlockAllocator(void          *context,
                         ZoneCount      zoneNumber,
                         VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   startLoading(&allocator->state,
                getCurrentManagerOperation(allocator->depot->actionManager),
                parent, initiateLoad);
 }
 
 /**********************************************************************/
-void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result)
+void notifySlabJournalsAreRecovered(struct block_allocator *allocator,
+                                    int                     result)
 {
   finishLoadingWithResult(&allocator->state, result);
 }
 
 /**********************************************************************/
-int prepareSlabsForAllocation(BlockAllocator *allocator)
+int prepareSlabsForAllocation(struct block_allocator *allocator)
 {
   relaxedStore64(&allocator->statistics.allocatedBlocks,
                  getDataBlockCount(allocator));
@@ -691,7 +698,8 @@ void prepareAllocatorToAllocate(void          *context,
                                 ZoneCount      zoneNumber,
                                 VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   int result = prepareSlabsForAllocation(allocator);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
@@ -708,7 +716,8 @@ void registerNewSlabsForAllocator(void          *context,
                                   ZoneCount      zoneNumber,
                                   VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   SlabDepot *depot = allocator->depot;
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     Slab *slab = depot->newSlabs[i];
@@ -726,7 +735,7 @@ void registerNewSlabsForAllocator(void          *context,
  **/
 static void doDrainStep(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = (BlockAllocator *) completion;
+  struct block_allocator *allocator = (struct block_allocator *) completion;
   prepareForRequeue(&allocator->completion, doDrainStep, handleOperationError,
                     allocator->threadID, NULL);
   switch (++allocator->drainStep) {
@@ -760,7 +769,9 @@ static void doDrainStep(VDOCompletion *completion)
  **/
 static void initiateDrain(struct admin_state *state)
 {
-  BlockAllocator *allocator = container_of(state, BlockAllocator, state);
+  struct block_allocator *allocator = container_of(state,
+                                                   struct block_allocator,
+                                                   state);
   allocator->drainStep = DRAIN_ALLOCATOR_START;
   doDrainStep(&allocator->completion);
 }
@@ -770,7 +781,8 @@ void drainBlockAllocator(void          *context,
                          ZoneCount      zoneNumber,
                          VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   startDraining(&allocator->state,
                 getCurrentManagerOperation(allocator->depot->actionManager),
                 parent, initiateDrain);
@@ -784,7 +796,7 @@ void drainBlockAllocator(void          *context,
  **/
 static void doResumeStep(VDOCompletion *completion)
 {
-  BlockAllocator *allocator = (BlockAllocator *) completion;
+  struct block_allocator *allocator = (struct block_allocator *) completion;
   prepareForRequeue(&allocator->completion, doResumeStep, handleOperationError,
                     allocator->threadID, NULL);
   switch (--allocator->drainStep) {
@@ -816,7 +828,9 @@ static void doResumeStep(VDOCompletion *completion)
  **/
 static void initiateResume(struct admin_state *state)
 {
-  BlockAllocator *allocator = container_of(state, BlockAllocator, state);
+  struct block_allocator *allocator = container_of(state,
+                                                   struct block_allocator,
+                                                   state);
   allocator->drainStep = DRAIN_ALLOCATOR_STEP_FINISHED;
   doResumeStep(&allocator->completion);
 }
@@ -826,7 +840,8 @@ void resumeBlockAllocator(void          *context,
                           ZoneCount      zoneNumber,
                           VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   startResuming(&allocator->state,
                 getCurrentManagerOperation(allocator->depot->actionManager),
                 parent, initiateResume);
@@ -837,7 +852,8 @@ void releaseTailBlockLocks(void          *context,
                            ZoneCount      zoneNumber,
                            VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   RingNode       *ring      = &allocator->dirtySlabJournals;
   while (!isRingEmpty(ring)) {
     if (!releaseRecoveryJournalLock(slabJournalFromDirtyNode(ring->next),
@@ -849,19 +865,19 @@ void releaseTailBlockLocks(void          *context,
 }
 
 /**********************************************************************/
-SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
+SlabSummaryZone *getSlabSummaryZone(const struct block_allocator *allocator)
 {
   return allocator->summary;
 }
 
 /**********************************************************************/
-int acquireVIO(BlockAllocator *allocator, struct waiter *waiter)
+int acquireVIO(struct block_allocator *allocator, struct waiter *waiter)
 {
   return acquireVIOFromPool(allocator->vioPool, waiter);
 }
 
 /**********************************************************************/
-void returnVIO(BlockAllocator *allocator, struct vio_pool_entry *entry)
+void returnVIO(struct block_allocator *allocator, struct vio_pool_entry *entry)
 {
   returnVIOToPool(allocator->vioPool, entry);
 }
@@ -871,14 +887,16 @@ void scrubAllUnrecoveredSlabsInZone(void          *context,
                                     ZoneCount      zoneNumber,
                                     VDOCompletion *parent)
 {
-  BlockAllocator *allocator = getBlockAllocatorForZone(context, zoneNumber);
+  struct block_allocator *allocator = getBlockAllocatorForZone(context,
+                                                               zoneNumber);
   scrubSlabs(allocator->slabScrubber, allocator->depot,
              notifyZoneFinishedScrubbing, noopCallback);
   completeCompletion(parent);
 }
 
 /**********************************************************************/
-int enqueueForCleanSlab(BlockAllocator *allocator, struct waiter *waiter)
+int enqueueForCleanSlab(struct block_allocator *allocator,
+                        struct waiter          *waiter)
 {
   return enqueueCleanSlabWaiter(allocator->slabScrubber, waiter);
 }
@@ -890,7 +908,7 @@ void increaseScrubbingPriority(Slab *slab)
 }
 
 /**********************************************************************/
-void allocateFromAllocatorLastSlab(BlockAllocator *allocator)
+void allocateFromAllocatorLastSlab(struct block_allocator *allocator)
 {
   ASSERT_LOG_ONLY(allocator->openSlab == NULL, "mustn't have an open slab");
   Slab *lastSlab = allocator->depot->slabs[allocator->lastSlab];
@@ -900,7 +918,7 @@ void allocateFromAllocatorLastSlab(BlockAllocator *allocator)
 
 /**********************************************************************/
 BlockAllocatorStatistics
-getBlockAllocatorStatistics(const BlockAllocator *allocator)
+getBlockAllocatorStatistics(const struct block_allocator *allocator)
 {
   const struct atomic_allocator_statistics *atoms = &allocator->statistics;
   return (BlockAllocatorStatistics) {
@@ -911,7 +929,8 @@ getBlockAllocatorStatistics(const BlockAllocator *allocator)
 }
 
 /**********************************************************************/
-SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
+SlabJournalStatistics
+getSlabJournalStatistics(const struct block_allocator *allocator)
 {
   const struct atomic_slab_journal_statistics *atoms
     = &allocator->slabJournalStatistics;
@@ -925,7 +944,8 @@ SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
 }
 
 /**********************************************************************/
-RefCountsStatistics getRefCountsStatistics(const BlockAllocator *allocator)
+RefCountsStatistics
+getRefCountsStatistics(const struct block_allocator *allocator)
 {
   const struct atomic_ref_count_statistics *atoms
     = &allocator->refCountStatistics;
@@ -935,10 +955,10 @@ RefCountsStatistics getRefCountsStatistics(const BlockAllocator *allocator)
 }
 
 /**********************************************************************/
-void dumpBlockAllocator(const BlockAllocator *allocator)
+void dumpBlockAllocator(const struct block_allocator *allocator)
 {
   unsigned int pauseCounter = 0;
-  logInfo("BlockAllocator zone %u", allocator->zoneNumber);
+  logInfo("block_allocator zone %u", allocator->zoneNumber);
   struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
     dumpSlab(nextSlab(&iterator));

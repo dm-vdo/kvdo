@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#11 $
  */
 
 #include "slab.h"
@@ -123,13 +123,13 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
 }
 
 /**********************************************************************/
-int makeSlab(PhysicalBlockNumber   slabOrigin,
-             BlockAllocator       *allocator,
-             PhysicalBlockNumber   translation,
-             RecoveryJournal      *recoveryJournal,
-             SlabCount             slabNumber,
-             bool                  isNew,
-             Slab                **slabPtr)
+int makeSlab(PhysicalBlockNumber      slabOrigin,
+             struct block_allocator  *allocator,
+             PhysicalBlockNumber      translation,
+             RecoveryJournal         *recoveryJournal,
+             SlabCount                slabNumber,
+             bool                     isNew,
+             Slab                   **slabPtr)
 {
   Slab *slab;
   int result = ALLOCATE(1, Slab, __func__, &slab);
@@ -171,8 +171,8 @@ int makeSlab(PhysicalBlockNumber   slabOrigin,
 /**********************************************************************/
 int allocateRefCountsForSlab(Slab *slab)
 {
-  BlockAllocator   *allocator  = slab->allocator;
-  const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
+  struct block_allocator *allocator  = slab->allocator;
+  const SlabConfig       *slabConfig = getSlabConfig(allocator->depot);
 
   int result = ASSERT(slab->referenceCounts == NULL,
                       "Slab %u doesn't allocate refcounts twice",

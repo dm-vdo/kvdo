@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#14 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -43,14 +43,14 @@
  *
  * @return A success or error code
  **/
-int makeBlockAllocator(SlabDepot         *depot,
-                       ZoneCount          zoneNumber,
-                       ThreadID           threadID,
-                       Nonce              nonce,
-                       BlockCount         vioPoolSize,
-                       PhysicalLayer     *layer,
-                       ReadOnlyNotifier  *readOnlyNotifier,
-                       BlockAllocator   **allocatorPtr)
+int makeBlockAllocator(SlabDepot               *depot,
+                       ZoneCount                zoneNumber,
+                       ThreadID                 threadID,
+                       Nonce                    nonce,
+                       BlockCount               vioPoolSize,
+                       PhysicalLayer           *layer,
+                       ReadOnlyNotifier        *readOnlyNotifier,
+                       struct block_allocator **allocatorPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -58,7 +58,7 @@ int makeBlockAllocator(SlabDepot         *depot,
  *
  * @param blockAllocatorPtr  The reference to the allocator to destroy
  **/
-void freeBlockAllocator(BlockAllocator **blockAllocatorPtr);
+void freeBlockAllocator(struct block_allocator **blockAllocatorPtr);
 
 /**
  * Queue a slab for allocation or scrubbing.
@@ -91,8 +91,8 @@ void adjustFreeBlockCount(Slab *slab, bool increment);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int allocateBlock(BlockAllocator      *allocator,
-                  PhysicalBlockNumber *blockNumberPtr)
+int allocateBlock(struct block_allocator *allocator,
+                  PhysicalBlockNumber    *blockNumberPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -102,9 +102,9 @@ int allocateBlock(BlockAllocator      *allocator,
  * @param pbn        The block to dereference
  * @param why        Why the block was referenced (for logging)
  **/
-void releaseBlockReference(BlockAllocator      *allocator,
-                           PhysicalBlockNumber  pbn,
-                           const char          *why);
+void releaseBlockReference(struct block_allocator *allocator,
+                           PhysicalBlockNumber     pbn,
+                           const char             *why);
 
 /**
  * Get the number of allocated blocks, which is the total number of
@@ -114,7 +114,7 @@ void releaseBlockReference(BlockAllocator      *allocator,
  *
  * @return The number of blocks with a non-zero reference count
  **/
-BlockCount getAllocatedBlocks(const BlockAllocator *allocator)
+BlockCount getAllocatedBlocks(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -124,7 +124,7 @@ BlockCount getAllocatedBlocks(const BlockAllocator *allocator)
  *
  * @return The number of slabs that are unrecovered
  **/
-BlockCount getUnrecoveredSlabCount(const BlockAllocator *allocator)
+BlockCount getUnrecoveredSlabCount(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -143,7 +143,8 @@ void loadBlockAllocator(void          *context,
  * @param allocator  The allocator to inform
  * @param result     The result of the recovery operation
  **/
-void notifySlabJournalsAreRecovered(BlockAllocator *allocator, int result);
+void notifySlabJournalsAreRecovered(struct block_allocator *allocator,
+                                    int                     result);
 
 /**
  * Prepare the block allocator to come online and start allocating blocks.
@@ -160,7 +161,7 @@ void prepareAllocatorToAllocate(void          *context,
  * @param allocator  The allocator to use
  * @param slab       The slab in question
  **/
-void registerSlabWithAllocator(BlockAllocator *allocator, Slab *slab);
+void registerSlabWithAllocator(struct block_allocator *allocator, Slab *slab);
 
 /**
  * Register the new slabs belonging to this allocator.
@@ -208,7 +209,7 @@ void releaseTailBlockLocks(void          *context,
  *
  * @return The SlabSummaryZone for that allocator
  **/
-SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
+SlabSummaryZone *getSlabSummaryZone(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -219,7 +220,7 @@ SlabSummaryZone *getSlabSummaryZone(const BlockAllocator *allocator)
  *
  * @return VDO_SUCCESS or an error
  **/
-int acquireVIO(BlockAllocator *allocator, struct waiter *waiter)
+int acquireVIO(struct block_allocator *allocator, struct waiter *waiter)
   __attribute__((warn_unused_result));
 
 /**
@@ -228,7 +229,7 @@ int acquireVIO(BlockAllocator *allocator, struct waiter *waiter)
  * @param allocator  The block allocator which owns the VIO
  * @param entry      The VIO being returned
  **/
-void returnVIO(BlockAllocator *allocator, struct vio_pool_entry *entry);
+void returnVIO(struct block_allocator *allocator, struct vio_pool_entry *entry);
 
 /**
  * Initiate scrubbing all unrecovered slabs.
@@ -248,7 +249,8 @@ void scrubAllUnrecoveredSlabsInZone(void          *context,
  * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
  *         slabs to scrub, and some other error otherwise
  **/
-int enqueueForCleanSlab(BlockAllocator *allocator, struct waiter *waiter)
+int enqueueForCleanSlab(struct block_allocator *allocator,
+                        struct waiter          *waiter)
   __attribute__((warn_unused_result));
 
 /**
@@ -266,7 +268,7 @@ void increaseScrubbingPriority(Slab *slab);
  * @return A copy of the current statistics for the allocator
  **/
 BlockAllocatorStatistics
-getBlockAllocatorStatistics(const BlockAllocator *allocator)
+getBlockAllocatorStatistics(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -276,7 +278,8 @@ getBlockAllocatorStatistics(const BlockAllocator *allocator)
  *
  * @return A copy of the current statistics for the allocator
  **/
-SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
+SlabJournalStatistics
+getSlabJournalStatistics(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -286,7 +289,8 @@ SlabJournalStatistics getSlabJournalStatistics(const BlockAllocator *allocator)
  *
  * @return A copy of the current statistics for the allocator
  **/
-RefCountsStatistics getRefCountsStatistics(const BlockAllocator *allocator)
+RefCountsStatistics
+getRefCountsStatistics(const struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -294,6 +298,6 @@ RefCountsStatistics getRefCountsStatistics(const BlockAllocator *allocator)
  *
  * @param allocator  The allocator to dump
  **/
-void dumpBlockAllocator(const BlockAllocator *allocator);
+void dumpBlockAllocator(const struct block_allocator *allocator);
 
 #endif // BLOCK_ALLOCATOR_H

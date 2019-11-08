@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#9 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -66,10 +66,10 @@ SlabJournal *slabJournalFromDirtyNode(RingNode *node)
  *
  * @return VDO_SUCCESS or error code
  **/
-int makeSlabJournal(BlockAllocator   *allocator,
-                    Slab             *slab,
-                    RecoveryJournal  *recoveryJournal,
-                    SlabJournal     **journalPtr)
+int makeSlabJournal(struct block_allocator  *allocator,
+                    Slab                    *slab,
+                    RecoveryJournal         *recoveryJournal,
+                    SlabJournal            **journalPtr)
   __attribute__((warn_unused_result));
 
 /**

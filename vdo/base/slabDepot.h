@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#13 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -37,7 +37,7 @@
  * A SlabDepot is responsible for managing all of the slabs and block
  * allocators of a VDO. It has a single array of slabs in order to eliminate
  * the need for additional math in order to compute which physical zone a PBN
- * is in. It also has a BlockAllocator per zone.
+ * is in. It also has a block_allocator per zone.
  *
  * Load operations are required to be performed on a single thread. Normal
  * operations are assumed to be performed in the appropriate zone. Allocations
@@ -191,8 +191,8 @@ int allocateSlabRefCounts(SlabDepot *depot)
  *
  * @return The block allocator for the specified zone
  **/
-BlockAllocator *getBlockAllocatorForZone(SlabDepot *depot,
-                                         ZoneCount  zoneNumber)
+struct block_allocator *getBlockAllocatorForZone(SlabDepot *depot,
+                                         ZoneCount          zoneNumber)
   __attribute__((warn_unused_result));
 
 /**

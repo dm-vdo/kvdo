@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#12 $
  */
 
 #ifndef TYPES_H
@@ -352,7 +352,7 @@ typedef struct vdoLoadConfig {
 struct action_manager;
 struct allocating_vio;
 struct allocation_selector;
-typedef struct blockAllocator      BlockAllocator;
+struct block_allocator;
 typedef struct blockMap            BlockMap;
 typedef struct blockMapTreeZone    BlockMapTreeZone;
 typedef struct blockMapZone        BlockMapZone;

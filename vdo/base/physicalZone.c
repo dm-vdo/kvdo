@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#5 $
  */
 
 #include "physicalZone.h"
@@ -44,15 +44,15 @@ enum {
 
 struct physicalZone {
   /** Which physical zone this is */
-  ZoneCount             zoneNumber;
+  ZoneCount               zoneNumber;
   /** The thread ID for this zone */
-  ThreadID              threadID;
+  ThreadID                threadID;
   /** In progress operations keyed by PBN */
-  struct int_map       *pbnOperations;
+  struct int_map         *pbnOperations;
   /** Pool of unused PBNLock instances */
-  struct pbn_lock_pool *lockPool;
+  struct pbn_lock_pool   *lockPool;
   /** The block allocator for this zone */
-  BlockAllocator       *allocator;
+  struct block_allocator *allocator;
 };
 
 /**********************************************************************/
@@ -111,7 +111,7 @@ ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
 }
 
 /**********************************************************************/
-BlockAllocator *getBlockAllocator(const PhysicalZone *zone)
+struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
 {
   return zone->allocator;
 }

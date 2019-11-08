@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#2 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -71,7 +71,7 @@ ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
  *
  * @return The zone's allocator
  **/
-BlockAllocator *getBlockAllocator(const PhysicalZone *zone)
+struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
   __attribute__((warn_unused_result));
 
 /**

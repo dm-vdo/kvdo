@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#12 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -100,7 +100,7 @@ struct atomic_ref_count_statistics {
   Atomic64 blocksWritten;
 };
 
-struct blockAllocator {
+struct block_allocator {
   VDOCompletion                          completion;
   /** The slab depot for this allocator */
   SlabDepot                             *depot;
@@ -175,9 +175,9 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int replaceVIOPool(BlockAllocator *allocator,
-                   size_t          size,
-                   PhysicalLayer  *layer)
+int replaceVIOPool(struct block_allocator *allocator,
+                   size_t                  size,
+                   PhysicalLayer          *layer)
   __attribute__((warn_unused_result));
 
 /**
@@ -188,7 +188,7 @@ int replaceVIOPool(BlockAllocator *allocator,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepareSlabsForAllocation(BlockAllocator *allocator)
+int prepareSlabsForAllocation(struct block_allocator *allocator)
   __attribute__((warn_unused_result));
 
 /**
@@ -196,6 +196,6 @@ int prepareSlabsForAllocation(BlockAllocator *allocator)
  *
  * @param allocator   The allocator
  **/
-void allocateFromAllocatorLastSlab(BlockAllocator *allocator);
+void allocateFromAllocatorLastSlab(struct block_allocator *allocator);
 
 #endif // BLOCK_ALLOCATOR_INTERNALS_H

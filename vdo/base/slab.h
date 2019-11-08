@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#11 $
  */
 
 #ifndef VDO_SLAB_H
@@ -49,37 +49,37 @@ typedef enum {
  * reference counts and slab journal for the slab.
  **/
 struct vdoSlab {
-  /** A RingNode to queue this slab in a BlockAllocator ring */
-  RingNode             ringNode;
+  /** A RingNode to queue this slab in a block_allocator ring */
+  RingNode                ringNode;
 
-  /** The BlockAllocator that owns this slab */
-  BlockAllocator      *allocator;
+  /** The struct block_allocator that owns this slab */
+  struct block_allocator *allocator;
 
   /** The reference counts for the data blocks in this slab */
-  RefCounts           *referenceCounts;
+  RefCounts              *referenceCounts;
   /** The journal for this slab */
-  SlabJournal         *journal;
+  SlabJournal            *journal;
 
   /** The slab number of this slab */
-  SlabCount            slabNumber;
+  SlabCount               slabNumber;
   /** The offset in the allocator partition of the first block in this slab */
-  PhysicalBlockNumber  start;
+  PhysicalBlockNumber     start;
   /** The offset of the first block past the end of this slab */
-  PhysicalBlockNumber  end;
+  PhysicalBlockNumber     end;
   /** The starting translated PBN of the slab journal */
-  PhysicalBlockNumber  journalOrigin;
+  PhysicalBlockNumber     journalOrigin;
   /** The starting translated PBN of the reference counts */
-  PhysicalBlockNumber  refCountsOrigin;
+  PhysicalBlockNumber     refCountsOrigin;
 
   /** The administrative state of the slab */
-  struct admin_state   state;
+  struct admin_state      state;
   /** The status of the slab */
-  SlabRebuildStatus    status;
+  SlabRebuildStatus       status;
   /** Whether the slab was ever queued for scrubbing */
-  bool                 wasQueuedForScrubbing;
+  bool                    wasQueuedForScrubbing;
 
   /** The priority at which this slab has been queued for allocation */
-  uint8_t              priority;
+  uint8_t                 priority;
 };
 
 /**
@@ -137,13 +137,13 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeSlab(PhysicalBlockNumber   slabOrigin,
-             BlockAllocator       *allocator,
-             PhysicalBlockNumber   translation,
-             RecoveryJournal      *recoveryJournal,
-             SlabCount             slabNumber,
-             bool                  isNew,
-             Slab                **slabPtr)
+int makeSlab(PhysicalBlockNumber     slabOrigin,
+             struct block_allocator *allocator,
+             PhysicalBlockNumber     translation,
+             RecoveryJournal        *recoveryJournal,
+             SlabCount               slabNumber,
+             bool                    isNew,
+             Slab                  **slabPtr)
   __attribute__((warn_unused_result));
 
 /**
