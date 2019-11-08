@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#19 $
  */
 
 #include "blockMapTree.h"
@@ -737,7 +737,8 @@ static void allocateBlockMapPage(BlockMapTreeZone *zone, DataVIO *dataVIO);
  * @param dataVIO  The DataVIO doing the lookup
  * @param page     The page which was just loaded
  **/
-static void continueWithLoadedPage(DataVIO *dataVIO, struct block_map_page *page)
+static void continueWithLoadedPage(DataVIO               *dataVIO,
+                                   struct block_map_page *page)
 {
   struct tree_lock *lock = &dataVIO->treeLock;
   BlockMapTreeSlot  slot = lock->treeSlots[lock->height];
@@ -1242,7 +1243,8 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-PhysicalBlockNumber findBlockMapPagePBN(BlockMap *map, PageNumber pageNumber)
+PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
+                                        PageNumber        pageNumber)
 {
   if (pageNumber < map->flatPageCount) {
     return (BLOCK_MAP_FLAT_PAGE_ORIGIN + pageNumber);

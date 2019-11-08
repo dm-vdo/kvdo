@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#18 $
  */
 
 #include "recoveryJournal.h"
@@ -568,9 +568,9 @@ ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
 }
 
 /**********************************************************************/
-void openRecoveryJournal(RecoveryJournal *journal,
-                         SlabDepot       *depot,
-                         BlockMap        *blockMap)
+void openRecoveryJournal(RecoveryJournal  *journal,
+                         SlabDepot        *depot,
+                         struct block_map *blockMap)
 {
   journal->depot    = depot;
   journal->blockMap = blockMap;

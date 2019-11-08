@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#16 $
  */
 
 /*
@@ -960,7 +960,7 @@ PhysicalBlockNumber getFirstBlockOffset(const VDO *vdo)
 }
 
 /**********************************************************************/
-BlockMap *getBlockMap(const VDO *vdo)
+struct block_map *getBlockMap(const VDO *vdo)
 {
   return vdo->blockMap;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#10 $
  */
 
 #include "forest.h"
@@ -54,7 +54,7 @@ struct block_map_tree {
 } block_map_tree;
 
 struct forest {
-  BlockMap               *map;
+  struct block_map       *map;
   size_t                  segments;
   struct boundary        *boundaries;
   struct tree_page      **pages;
@@ -79,7 +79,7 @@ struct cursor {
 };
 
 struct cursors {
-  BlockMap         *map;
+  struct block_map *map;
   BlockMapTreeZone *zone;
   VIOPool          *pool;
   EntryCallback    *entryCallback;
@@ -244,7 +244,7 @@ static void deforest(Forest *forest, size_t firstPageSegment)
 }
 
 /**********************************************************************/
-int makeForest(BlockMap *map, BlockCount entries)
+int makeForest(struct block_map *map, BlockCount entries)
 {
   STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
 
@@ -294,7 +294,7 @@ void freeForest(Forest **forestPtr)
 }
 
 /**********************************************************************/
-void abandonForest(BlockMap *map)
+void abandonForest(struct block_map *map)
 {
   Forest *forest = map->nextForest;
   map->nextForest = NULL;
@@ -306,7 +306,7 @@ void abandonForest(BlockMap *map)
 }
 
 /**********************************************************************/
-void replaceForest(BlockMap *map)
+void replaceForest(struct block_map *map)
 {
   if (map->nextForest != NULL) {
     if (map->forest != NULL) {
@@ -475,7 +475,8 @@ static void launchCursor(struct waiter *waiter, void *context)
  *
  * @return The list of page counts as a boundary structure
  **/
-static struct boundary computeBoundary(BlockMap *map, RootCount rootIndex)
+static struct boundary computeBoundary(struct block_map *map,
+                                       RootCount         rootIndex)
 {
   PageCount leafPages     = computeBlockMapPageCount(map->entryCount);
   PageCount treeLeafPages = leafPages - map->flatPageCount;
@@ -506,9 +507,9 @@ static struct boundary computeBoundary(BlockMap *map, RootCount rootIndex)
 }
 
 /**********************************************************************/
-void traverseForest(BlockMap      *map,
-                    EntryCallback *entryCallback,
-                    VDOCompletion *parent)
+void traverseForest(struct block_map *map,
+                    EntryCallback    *entryCallback,
+                    VDOCompletion    *parent)
 {
   if (computeBlockMapPageCount(map->entryCount) <= map->flatPageCount) {
     // There are no tree pages, so there's nothing to do.

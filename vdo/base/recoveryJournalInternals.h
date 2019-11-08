@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#9 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -42,7 +42,7 @@ struct recoveryJournal {
   /** The slab depot which can hold locks on this journal */
   SlabDepot                     *depot;
   /** The block map which can hold locks on this journal */
-  BlockMap                      *blockMap;
+  struct block_map              *blockMap;
   /** The queue of VIOs waiting to make increment entries */
   struct wait_queue              incrementWaiters;
   /** The queue of VIOs waiting to make decrement entries */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#5 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -46,7 +46,7 @@ int makeBlockMap(BlockCount           logicalBlocks,
                  BlockCount           flatPageCount,
                  PhysicalBlockNumber  rootOrigin,
                  BlockCount           rootCount,
-                 BlockMap           **mapPtr)
+                 struct block_map   **mapPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -56,9 +56,9 @@ int makeBlockMap(BlockCount           logicalBlocks,
  * @param operation  The type of drain to perform
  * @param parent     The completion to notify when the drain is complete
  **/
-void drainBlockMap(BlockMap       *map,
-                   AdminStateCode  operation,
-                   VDOCompletion  *parent);
+void drainBlockMap(struct block_map *map,
+                   AdminStateCode    operation,
+                   VDOCompletion    *parent);
 
 /**
  * Resume I/O for a quiescent block map.
@@ -66,7 +66,7 @@ void drainBlockMap(BlockMap       *map,
  * @param map     The block map to resume
  * @param parent  The completion to notify when the resume is complete
  **/
-void resumeBlockMap(BlockMap *map, VDOCompletion *parent);
+void resumeBlockMap(struct block_map *map, VDOCompletion *parent);
 
 /**
  * Prepare to grow the block map by allocating an expanded collection of trees.
@@ -76,7 +76,7 @@ void resumeBlockMap(BlockMap *map, VDOCompletion *parent);
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToGrowBlockMap(BlockMap *map, BlockCount newLogicalBlocks)
+int prepareToGrowBlockMap(struct block_map *map, BlockCount newLogicalBlocks)
   __attribute__((warn_unused_result));
 
 /**
@@ -87,7 +87,7 @@ int prepareToGrowBlockMap(BlockMap *map, BlockCount newLogicalBlocks)
  * @return The new number of entries the block map will be grown to or 0 if
  *         the block map is not prepared to grow
  **/
-BlockCount getNewEntryCount(BlockMap *map)
+BlockCount getNewEntryCount(struct block_map *map)
   __attribute__((warn_unused_result));
 
 /**
@@ -96,14 +96,14 @@ BlockCount getNewEntryCount(BlockMap *map)
  * @param map     The block map to grow
  * @param parent  The object to notify when the growth is complete
  **/
-void growBlockMap(BlockMap *map, VDOCompletion *parent);
+void growBlockMap(struct block_map *map, VDOCompletion *parent);
 
 /**
  * Abandon any preparations which were made to grow this block map.
  *
  * @param map  The map which won't be grown
  **/
-void abandonBlockMapGrowth(BlockMap *map);
+void abandonBlockMapGrowth(struct block_map *map);
 
 /**
  * Decode the state of a block map saved in a buffer, without creating page
@@ -119,7 +119,7 @@ void abandonBlockMapGrowth(BlockMap *map);
 int decodeBlockMap(Buffer              *buffer,
                    BlockCount           logicalBlocks,
                    const ThreadConfig  *threadConfig,
-                   BlockMap           **mapPtr)
+                   struct block_map   **mapPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -136,7 +136,7 @@ int decodeBlockMap(Buffer              *buffer,
 int decodeSodiumBlockMap(Buffer              *buffer,
                          BlockCount           logicalBlocks,
                          const ThreadConfig  *threadConfig,
-                         BlockMap           **mapPtr)
+                         struct block_map   **mapPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -153,7 +153,7 @@ int decodeSodiumBlockMap(Buffer              *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeBlockMapCaches(BlockMap         *map,
+int makeBlockMapCaches(struct block_map *map,
                        PhysicalLayer    *layer,
                        ReadOnlyNotifier *readOnlyNotifier,
                        RecoveryJournal  *journal,
@@ -167,7 +167,7 @@ int makeBlockMapCaches(BlockMap         *map,
  *
  * @param mapPtr  A pointer to the block map to free
  **/
-void freeBlockMap(BlockMap **mapPtr);
+void freeBlockMap(struct block_map **mapPtr);
 
 /**
  * Get the size of the encoded state of a block map.
@@ -185,7 +185,7 @@ size_t getBlockMapEncodedSize(void)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeBlockMap(const BlockMap *map, Buffer *buffer)
+int encodeBlockMap(const struct block_map *map, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
@@ -195,7 +195,8 @@ int encodeBlockMap(const BlockMap *map, Buffer *buffer)
  * @param map      The map in question
  * @param journal  The journal to initialize from
  **/
-void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal);
+void initializeBlockMapFromJournal(struct block_map *map,
+                                   RecoveryJournal  *journal);
 
 /**
  * Get the portion of the block map for a given logical zone.
@@ -205,7 +206,7 @@ void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal);
  *
  * @return The requested block map zone
  **/
-BlockMapZone *getBlockMapZone(BlockMap *map, ZoneCount zoneNumber)
+BlockMapZone *getBlockMapZone(struct block_map *map, ZoneCount zoneNumber)
   __attribute__((warn_unused_result));
 
 /**
@@ -237,7 +238,7 @@ void findBlockMapSlotAsync(DataVIO   *dataVIO,
  *
  * @return The number of fixed pages used by the map
  **/
-PageCount getNumberOfFixedBlockMapPages(const BlockMap *map)
+PageCount getNumberOfFixedBlockMapPages(const struct block_map *map)
   __attribute__((warn_unused_result));
 
 /**
@@ -247,7 +248,7 @@ PageCount getNumberOfFixedBlockMapPages(const BlockMap *map)
  *
  * @return The number of entries stored in the map
  **/
-BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
+BlockCount getNumberOfBlockMapEntries(const struct block_map *map)
   __attribute__((warn_unused_result));
 
 /**
@@ -258,7 +259,8 @@ BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
  * @param recoveryBlockNumber  The sequence number of the finished recovery
  *                             journal block
  **/
-void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber);
+void advanceBlockMapEra(struct block_map *map,
+                        SequenceNumber    recoveryBlockNumber);
 
 /**
  * Get the block number of the physical block containing the data for the
@@ -284,7 +286,7 @@ void putMappedBlockAsync(DataVIO *dataVIO);
  *
  * @return The block map statistics
  **/
-BlockMapStatistics getBlockMapStatistics(BlockMap *map)
+BlockMapStatistics getBlockMapStatistics(struct block_map *map)
   __attribute__((warn_unused_result));
 
 #endif // BLOCK_MAP_H

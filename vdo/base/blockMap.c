@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#21 $
  */
 
 #include "blockMap.h"
@@ -136,14 +136,14 @@ int makeBlockMap(BlockCount            logicalBlocks,
                  BlockCount            flatPageCount,
                  PhysicalBlockNumber   rootOrigin,
                  BlockCount            rootCount,
-                 BlockMap            **mapPtr)
+                 struct block_map    **mapPtr)
 {
   STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE
                 == ((VDO_BLOCK_SIZE - sizeof(struct block_map_page))
                     / sizeof(BlockMapEntry)));
 
-  BlockMap *map;
-  int result = ALLOCATE_EXTENDED(BlockMap, threadConfig->logicalZoneCount,
+  struct block_map *map;
+  int result = ALLOCATE_EXTENDED(struct block_map, threadConfig->logicalZoneCount,
                                  BlockMapZone, __func__, &map);
   if (result != UDS_SUCCESS) {
     return result;
@@ -220,7 +220,7 @@ static int decodeBlockMapState_2_0(Buffer                     *buffer,
 int decodeBlockMap(Buffer              *buffer,
                    BlockCount           logicalBlocks,
                    const ThreadConfig  *threadConfig,
-                   BlockMap           **mapPtr)
+                   struct block_map   **mapPtr)
 {
   struct header header;
   int    result = decodeHeader(buffer, &header);
@@ -246,7 +246,7 @@ int decodeBlockMap(Buffer              *buffer,
     return result;
   }
 
-  BlockMap *map;
+  struct block_map *map;
   result = makeBlockMap(logicalBlocks, threadConfig,
                         state.flatPageCount, state.rootOrigin,
                         state.rootCount, &map);
@@ -262,7 +262,7 @@ int decodeBlockMap(Buffer              *buffer,
 int decodeSodiumBlockMap(Buffer              *buffer,
                          BlockCount           logicalBlocks,
                          const ThreadConfig  *threadConfig,
-                         BlockMap           **mapPtr)
+                         struct block_map   **mapPtr)
 {
   // Sodium uses state version 2.0.
   return decodeBlockMap(buffer, logicalBlocks, threadConfig, mapPtr);
@@ -300,7 +300,7 @@ static int initializeBlockMapZone(BlockMapZone     *zone,
 }
 
 /**********************************************************************/
-BlockMapZone *getBlockMapZone(BlockMap *map, ZoneCount zoneNumber)
+BlockMapZone *getBlockMapZone(struct block_map *map, ZoneCount zoneNumber)
 {
   return &map->zones[zoneNumber];
 }
@@ -322,7 +322,7 @@ static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
  **/
 static void prepareForEraAdvance(void *context, VDOCompletion *parent)
 {
-  BlockMap *map = context;
+  struct block_map *map = context;
   map->currentEraPoint = map->pendingEraPoint;
   completeCompletion(parent);
 }
@@ -349,7 +349,7 @@ static void advanceBlockMapZoneEra(void          *context,
  **/
 static bool scheduleEraAdvance(void *context)
 {
-  BlockMap *map = context;
+  struct block_map *map = context;
   if (map->currentEraPoint == map->pendingEraPoint) {
     return false;
   }
@@ -359,7 +359,7 @@ static bool scheduleEraAdvance(void *context)
 }
 
 /**********************************************************************/
-int makeBlockMapCaches(BlockMap         *map,
+int makeBlockMapCaches(struct block_map *map,
                        PhysicalLayer    *layer,
                        ReadOnlyNotifier *readOnlyNotifier,
                        RecoveryJournal  *journal,
@@ -407,9 +407,9 @@ static void uninitializeBlockMapZone(BlockMapZone *zone)
 }
 
 /**********************************************************************/
-void freeBlockMap(BlockMap **mapPtr)
+void freeBlockMap(struct block_map **mapPtr)
 {
-  BlockMap *map = *mapPtr;
+  struct block_map *map = *mapPtr;
   if (map == NULL) {
     return;
   }
@@ -433,7 +433,7 @@ size_t getBlockMapEncodedSize(void)
 }
 
 /**********************************************************************/
-int encodeBlockMap(const BlockMap *map, Buffer *buffer)
+int encodeBlockMap(const struct block_map *map, Buffer *buffer)
 {
   int result = encodeHeader(&BLOCK_MAP_HEADER_2_0, buffer);
   if (result != UDS_SUCCESS) {
@@ -468,7 +468,8 @@ int encodeBlockMap(const BlockMap *map, Buffer *buffer)
 }
 
 /**********************************************************************/
-void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal)
+void initializeBlockMapFromJournal(struct block_map *map,
+                                   RecoveryJournal  *journal)
 {
   map->currentEraPoint  = getCurrentJournalSequenceNumber(journal);
   map->pendingEraPoint  = map->currentEraPoint;
@@ -483,7 +484,7 @@ void initializeBlockMapFromJournal(BlockMap *map, RecoveryJournal *journal)
 /**********************************************************************/
 ZoneCount computeLogicalZone(DataVIO *dataVIO)
 {
-  BlockMap   *map                  = getBlockMap(getVDOFromDataVIO(dataVIO));
+  struct block_map   *map                  = getBlockMap(getVDOFromDataVIO(dataVIO));
   struct tree_lock   *treeLock     = &dataVIO->treeLock;
   PageNumber  pageNumber           = computePageNumber(dataVIO->logical.lbn);
   treeLock->treeSlots[0].pageIndex = pageNumber;
@@ -496,7 +497,7 @@ void findBlockMapSlotAsync(DataVIO   *dataVIO,
                            VDOAction *callback,
                            ThreadID   threadID)
 {
-  BlockMap *map = getBlockMap(getVDOFromDataVIO(dataVIO));
+  struct block_map *map = getBlockMap(getVDOFromDataVIO(dataVIO));
   if (dataVIO->logical.lbn >= map->entryCount) {
     finishDataVIO(dataVIO, VDO_OUT_OF_RANGE);
     return;
@@ -517,19 +518,20 @@ void findBlockMapSlotAsync(DataVIO   *dataVIO,
 }
 
 /**********************************************************************/
-PageCount getNumberOfFixedBlockMapPages(const BlockMap *map)
+PageCount getNumberOfFixedBlockMapPages(const struct block_map *map)
 {
   return (map->flatPageCount + map->rootCount);
 }
 
 /**********************************************************************/
-BlockCount getNumberOfBlockMapEntries(const BlockMap *map)
+BlockCount getNumberOfBlockMapEntries(const struct block_map *map)
 {
   return map->entryCount;
 }
 
 /**********************************************************************/
-void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
+void advanceBlockMapEra(struct block_map *map,
+                        SequenceNumber    recoveryBlockNumber)
 {
   if (map == NULL) {
     return;
@@ -555,9 +557,9 @@ static void drainZone(void          *context,
 }
 
 /**********************************************************************/
-void drainBlockMap(BlockMap       *map,
-                   AdminStateCode  operation,
-                   VDOCompletion  *parent)
+void drainBlockMap(struct block_map *map,
+                   AdminStateCode    operation,
+                   VDOCompletion    *parent)
 {
   scheduleOperation(map->actionManager, operation, NULL, drainZone, NULL,
                     parent);
@@ -577,14 +579,14 @@ static void resumeBlockMapZone(void          *context,
 }
 
 /**********************************************************************/
-void resumeBlockMap(BlockMap *map, VDOCompletion *parent)
+void resumeBlockMap(struct block_map *map, VDOCompletion *parent)
 {
   scheduleOperation(map->actionManager, ADMIN_STATE_RESUMING, NULL,
                     resumeBlockMapZone, NULL, parent);
 }
 
 /**********************************************************************/
-int prepareToGrowBlockMap(BlockMap *map, BlockCount newLogicalBlocks)
+int prepareToGrowBlockMap(struct block_map *map, BlockCount newLogicalBlocks)
 {
   if (map->nextEntryCount == newLogicalBlocks) {
     return VDO_SUCCESS;
@@ -603,7 +605,7 @@ int prepareToGrowBlockMap(BlockMap *map, BlockCount newLogicalBlocks)
 }
 
 /**********************************************************************/
-BlockCount getNewEntryCount(BlockMap *map)
+BlockCount getNewEntryCount(struct block_map *map)
 {
   return map->nextEntryCount;
 }
@@ -620,14 +622,14 @@ static void growForest(void *context, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void growBlockMap(BlockMap *map, VDOCompletion *parent)
+void growBlockMap(struct block_map *map, VDOCompletion *parent)
 {
   scheduleOperation(map->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
                     growForest, NULL, NULL, parent);
 }
 
 /**********************************************************************/
-void abandonBlockMapGrowth(BlockMap *map)
+void abandonBlockMapGrowth(struct block_map *map)
 {
   abandonForest(map);
 }
@@ -802,7 +804,7 @@ void putMappedBlockAsync(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-BlockMapStatistics getBlockMapStatistics(BlockMap *map)
+BlockMapStatistics getBlockMapStatistics(struct block_map *map)
 {
   BlockMapStatistics stats;
   memset(&stats, 0, sizeof(BlockMapStatistics));

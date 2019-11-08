@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#3 $
  */
 
 #ifndef FOREST_H
@@ -52,7 +52,7 @@ struct tree_page *getTreePageByIndex(Forest       *forest,
   __attribute__((warn_unused_result));
 
 /**
- * Make a collection of trees for a BlockMap, expanding the existing forest if
+ * Make a collection of trees for a block_map, expanding the existing forest if
  * there is one.
  *
  * @param map      The block map
@@ -60,7 +60,7 @@ struct tree_page *getTreePageByIndex(Forest       *forest,
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeForest(BlockMap *map, BlockCount entries)
+int makeForest(struct block_map *map, BlockCount entries)
   __attribute__((warn_unused_result));
 
 /**
@@ -72,18 +72,18 @@ int makeForest(BlockMap *map, BlockCount entries)
 void freeForest(Forest **forestPtr);
 
 /**
- * Abandon the unused next forest from a BlockMap.
+ * Abandon the unused next forest from a block_map.
  *
  * @param map  The block map
  **/
-void abandonForest(BlockMap *map);
+void abandonForest(struct block_map *map);
 
 /**
- * Replace a BlockMap's Forest with the already-prepared larger forest.
+ * Replace a block_map's Forest with the already-prepared larger forest.
  *
  * @param map  The block map
  **/
-void replaceForest(BlockMap *map);
+void replaceForest(struct block_map *map);
 
 /**
  * Walk the entire forest of a block map.
@@ -94,9 +94,9 @@ void replaceForest(BlockMap *map);
  * @param parent         The completion to notify on each traversed PBN, and
  *                       when the traversal is complete
  **/
-void traverseForest(BlockMap      *map,
-                    EntryCallback *entryCallback,
-                    VDOCompletion *parent);
+void traverseForest(struct block_map *map,
+                    EntryCallback    *entryCallback,
+                    VDOCompletion    *parent);
 
 /**
  * Compute the approximate number of pages which the forest will allocate in

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#8 $
  */
 
 #include "vdoResizeLogical.h"
@@ -114,7 +114,7 @@ static void handleGrowthError(VDOCompletion *completion)
     // We've failed to write the new size in the super block, so set our
     // in memory config back to the old size.
     VDO      *vdo = adminCompletion->completion.parent;
-    BlockMap *map = getBlockMap(vdo);
+    struct block_map *map = getBlockMap(vdo);
     vdo->config.logicalBlocks = getNumberOfBlockMapEntries(map);
     abandonBlockMapGrowth(map);
   }

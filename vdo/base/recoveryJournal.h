@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#7 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -244,9 +244,9 @@ ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
  * @param depot     The slab depot for this VDO
  * @param blockMap  The block map for this VDO
  **/
-void openRecoveryJournal(RecoveryJournal *journal,
-                         SlabDepot       *depot,
-                         BlockMap        *blockMap);
+void openRecoveryJournal(RecoveryJournal   *journal,
+                         SlabDepot         *depot,
+                         struct block_map  *blockMap);
 
 /**
  * Obtain the recovery journal's current sequence number. Exposed only so

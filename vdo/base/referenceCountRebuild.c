@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#7 $
  */
 
 #include "referenceCountRebuild.h"
@@ -51,7 +51,7 @@ struct rebuild_completion {
   /** the admin thread */
   ThreadID                    adminThreadID;
   /** the block map */
-  BlockMap                   *blockMap;
+  struct block_map           *blockMap;
   /** the slab depot */
   SlabDepot                  *depot;
   /** whether this recovery has been aborted */
@@ -143,7 +143,7 @@ static int makeRebuildCompletion(VDO                        *vdo,
                                  VDOCompletion              *parent,
                                  struct rebuild_completion **rebuildPtr)
 {
-  BlockMap *blockMap = getBlockMap(vdo);
+  struct block_map *blockMap = getBlockMap(vdo);
   PageCount pageCount
     = minPageCount(getConfiguredCacheSize(vdo) >> 1,
                    MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);

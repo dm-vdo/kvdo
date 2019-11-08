@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#15 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -74,7 +74,7 @@ struct vdo {
   VDOLayout                       *layout;
 
   /* The block map */
-  BlockMap                        *blockMap;
+  struct block_map                *blockMap;
 
   /* The journal for block map recovery */
   RecoveryJournal                 *recoveryJournal;
@@ -239,7 +239,7 @@ int enableReadOnlyEntry(VDO *vdo);
  *
  * @return the block map from the VDO
  **/
-BlockMap *getBlockMap(const VDO *vdo)
+struct block_map *getBlockMap(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**
