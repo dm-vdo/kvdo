@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#58 $
  */
 
 #include "kernelLayer.h"
@@ -1225,6 +1225,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 		return VDO_SUCCESS;
 	}
 
+	resume_dedupe_index(layer->dedupe_index);
 	int result = resume_kvdo(&layer->kvdo);
 	if (result != VDO_SUCCESS) {
 		return result;

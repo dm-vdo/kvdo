@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#33 $
  */
 
 #include "dedupeIndex.h"
@@ -32,15 +32,6 @@
 struct uds_attribute {
 	struct attribute attr;
 	const char *(*show_string)(struct dedupe_index *);
-};
-
-/*****************************************************************************/
-
-struct dedupe_suspend {
-	struct kvdo_work_item work_item;
-	struct completion completion;
-	struct dedupe_index *index;
-	bool save_flag;
 };
 
 /*****************************************************************************/
@@ -119,6 +110,7 @@ struct dedupe_index {
 	bool dedupe_flag; // protected by state_lock
 	bool deduping; // protected by state_lock
 	bool error_flag; // protected by state_lock
+	bool suspended; // protected by state_lock
 	// This spinlock protects the pending list, the pending flag in each
 	// kvio, and the timeout list.
 	spinlock_t pending_lock;
@@ -145,6 +137,7 @@ static const char *ERROR = "error";
 static const char *OFFLINE = "offline";
 static const char *ONLINE = "online";
 static const char *OPENING = "opening";
+static const char *SUSPENDED = "suspended";
 static const char *UNKNOWN = "unknown";
 
 /*****************************************************************************/
@@ -161,6 +154,10 @@ static Jiffies min_albireo_timer_jiffies = 0;
 static const char *index_state_to_string(struct dedupe_index *index,
 					 index_state state)
 {
+	if (index->suspended) {
+		return SUSPENDED;
+	}
+
 	switch (state) {
 	case IS_CLOSED:
 		// Closed.  The error_flag tells if it is because of an error.
@@ -306,46 +303,6 @@ static void finish_index_operation(UdsRequest *uds_request)
 				 UR_TIMED_OUT,
 				 UR_IDLE);
 	}
-}
-
-/*****************************************************************************/
-static void suspend_index(struct kvdo_work_item *item)
-{
-	struct dedupe_suspend *dedupe_suspend =
-		container_of(item, struct dedupe_suspend, work_item);
-	struct dedupe_index *index = dedupe_suspend->index;
-	spin_lock(&index->state_lock);
-	index_state index_state = index->index_state;
-	spin_unlock(&index->state_lock);
-	if (index_state == IS_OPENED) {
-		int result = UDS_SUCCESS;
-		if (dedupe_suspend->save_flag) {
-			result = udsSaveIndex(index->index_session);
-		} else {
-			result = udsFlushIndexSession(index->index_session);
-		}
-		if (result != UDS_SUCCESS) {
-			logErrorWithStringError(result,
-						"Error suspending dedupe index");
-		}
-	}
-	complete(&dedupe_suspend->completion);
-}
-
-/*****************************************************************************/
-void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
-{
-	struct dedupe_suspend dedupe_suspend = {
-		.index = index,
-		.save_flag = save_flag,
-	};
-	init_completion(&dedupe_suspend.completion);
-	setup_work_item(&dedupe_suspend.work_item,
-			suspend_index,
-			NULL,
-			UDS_Q_ACTION);
-	enqueue_work_queue(index->uds_queue, &dedupe_suspend.work_item);
-	wait_for_completion(&dedupe_suspend.completion);
 }
 
 /*****************************************************************************/
@@ -555,14 +512,14 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 }
 
 /*****************************************************************************/
-static void close_session(struct dedupe_index *index)
+static void close_index(struct dedupe_index *index)
 {
 	// Change the index state so that get_index_statistics will not try to
 	// use the index session we are closing.
 	index->index_state = IS_CHANGING;
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
-	int result = udsCloseIndexSession(index->index_session);
+	int result = udsCloseIndex(index->index_session);
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
 					"Error closing index %s",
@@ -575,7 +532,7 @@ static void close_session(struct dedupe_index *index)
 }
 
 /*****************************************************************************/
-static void open_session(struct dedupe_index *index)
+static void open_index(struct dedupe_index *index)
 {
 	// ASSERTION: We enter in IS_CLOSED state.
 	bool create_flag = index->create_flag;
@@ -586,19 +543,15 @@ static void open_session(struct dedupe_index *index)
 	index->error_flag = false;
 	// Open the index session, while not holding the state_lock
 	spin_unlock(&index->state_lock);
-	bool next_create_flag = false;
 	int result = udsOpenIndex(create_flag ? UDS_CREATE : UDS_LOAD,
 				  index->index_name, &index->uds_params,
-				  index->configuration, &index->index_session);
+				  index->configuration, index->index_session);
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
 					"Error opening index %s",
 					index->index_name);
 	}
 	spin_lock(&index->state_lock);
-	if (next_create_flag) {
-		index->create_flag = true;
-	}
 	if (!create_flag) {
 		switch (result) {
 		case UDS_CORRUPT_COMPONENT:
@@ -637,18 +590,48 @@ static void change_dedupe_state(struct kvdo_work_item *item)
 
 	// Loop until the index is in the target state and the create flag is
 	// clear.
-	while ((index->index_state != index->index_target) ||
-	       index->create_flag) {
+	while (!index->suspended &&
+	       ((index->index_state != index->index_target) ||
+		index->create_flag)) {
 		if (index->index_state == IS_OPENED) {
-			close_session(index);
+			close_index(index);
 		} else {
-			open_session(index);
+			open_index(index);
 		}
 	}
 	index->changing = false;
 	index->deduping =
 		index->dedupe_flag && (index->index_state == IS_OPENED);
 	spin_unlock(&index->state_lock);
+}
+
+/*****************************************************************************/
+static void launch_dedupe_state_change(struct dedupe_index *index)
+{
+	// ASSERTION: We enter with the state_lock held.
+	if (index->changing || index->suspended) {
+		// Either a change is already in progress, or changes are
+		// not allowed.
+		return;
+	}
+
+	if (index->create_flag ||
+	    (index->index_state != index->index_target)) {
+		index->changing = true;
+		index->deduping = false;
+		setup_work_item(&index->work_item,
+				change_dedupe_state,
+				NULL,
+				UDS_Q_ACTION);
+		enqueue_work_queue(index->uds_queue, &index->work_item);
+		return;
+	}
+
+	// Online vs. offline changes happen immediately
+	index->deduping = (index->dedupe_flag && !index->suspended &&
+			   (index->index_state == IS_OPENED));
+
+	// ASSERTION: We exit with the state_lock held.
 }
 
 /*****************************************************************************/
@@ -667,31 +650,44 @@ static void set_target_state(struct dedupe_index *index,
 	if (set_create) {
 		index->create_flag = true;
 	}
-	if (index->changing) {
-		// A change is already in progress, just change the target state
-		index->index_target = target;
-	} else if ((target != index->index_target) || set_create) {
-		// Must start a state change by enqueuing a work item that calls
-		// change_dedupe_state.
-		index->index_target = target;
-		index->changing = true;
-		index->deduping = false;
-		setup_work_item(&index->work_item,
-				change_dedupe_state,
-				NULL,
-				UDS_Q_ACTION);
-		enqueue_work_queue(index->uds_queue, &index->work_item);
-	} else {
-		// Online vs. offline changes happen immediately
-		index->deduping =
-			index->dedupe_flag && (index->index_state == IS_OPENED);
-	}
+	index->index_target = target;
+	launch_dedupe_state_change(index);
 	const char *new_state =
 		index_state_to_string(index, index->index_target);
 	spin_unlock(&index->state_lock);
 	if (old_state != new_state) {
 		logInfo("Setting UDS index target state to %s", new_state);
 	}
+}
+
+/*****************************************************************************/
+void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
+{
+	spin_lock(&index->state_lock);
+	index->suspended = true;
+	index_state index_state = index->index_state;
+	spin_unlock(&index->state_lock);
+	if (index_state != IS_CLOSED) {
+		int result = udsSuspendIndexSession(index->index_session,
+						    save_flag);
+		if (result != UDS_SUCCESS) {
+			logErrorWithStringError(result,
+						"Error suspending dedupe index");
+		}
+	}
+}
+
+/*****************************************************************************/
+void resume_dedupe_index(struct dedupe_index *index)
+{
+	int result = udsResumeIndexSession(index->index_session);
+	if (result != UDS_SUCCESS) {
+		logErrorWithStringError(result, "Error resuming dedupe index");
+	}
+	spin_lock(&index->state_lock);
+	index->suspended = false;
+	launch_dedupe_state_change(index);
+	spin_unlock(&index->state_lock);
 }
 
 /*****************************************************************************/
@@ -719,6 +715,7 @@ void dump_dedupe_index(struct dedupe_index *index, bool show_queue)
 void finish_dedupe_index(struct dedupe_index *index)
 {
 	set_target_state(index, IS_CLOSED, false, false, false);
+	udsDestroyIndexSession(index->index_session);
 	finish_work_queue(index->uds_queue);
 }
 
@@ -951,6 +948,14 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	udsConfigurationSetNonce(index->configuration,
 				 (UdsNonce)layer->geometry.nonce);
 
+	result = udsCreateIndexSession(&index->index_session);
+	if (result != UDS_SUCCESS) {
+		udsFreeConfiguration(index->configuration);
+		FREE(index->index_name);
+		FREE(index);
+		return result;
+	}
+
 	static const struct kvdo_work_queue_type uds_queue_type = {
 		.start = start_uds_queue,
 		.finish = finish_uds_queue,
@@ -971,6 +976,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 				 &index->uds_queue);
 	if (result != VDO_SUCCESS) {
 		logError("UDS index queue initialization failed (%d)", result);
+		udsDestroyIndexSession(index->index_session);
 		udsFreeConfiguration(index->configuration);
 		FREE(index->index_name);
 		FREE(index);
@@ -981,6 +987,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	result = kobject_add(&index->dedupe_object, &layer->kobj, "dedupe");
 	if (result != VDO_SUCCESS) {
 		free_work_queue(&index->uds_queue);
+		udsDestroyIndexSession(index->index_session);
 		udsFreeConfiguration(index->configuration);
 		FREE(index->index_name);
 		FREE(index);
