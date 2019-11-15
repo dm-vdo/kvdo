@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#9 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -143,13 +143,13 @@ void initializeRecoveryBlock(struct recovery_journal_block *block)
 
 /**********************************************************************/
 int enqueueRecoveryBlockEntry(struct recovery_journal_block *block,
-                              DataVIO                       *dataVIO)
+                              struct data_vio               *dataVIO)
 {
   // First queued entry indicates this is a journal block we've just opened
   // or a committing block we're extending and will have to write again.
   bool newBatch = !hasWaiters(&block->entryWaiters);
 
-  // Enqueue the DataVIO to wait for its entry to commit.
+  // Enqueue the data_vio to wait for its entry to commit.
   int result = enqueueDataVIO(&block->entryWaiters, dataVIO,
                               THIS_LOCATION("$F($j-$js)"));
   if (result != VDO_SUCCESS) {
@@ -192,7 +192,7 @@ __attribute__((warn_unused_result))
 static int addQueuedRecoveryEntries(struct recovery_journal_block *block)
 {
   while (hasWaiters(&block->entryWaiters)) {
-    DataVIO *dataVIO
+    struct data_vio *dataVIO
       = waiterAsDataVIO(dequeueNextWaiter(&block->entryWaiters));
     if (dataVIO->operation.type == DATA_INCREMENT) {
       // In order to not lose committed sectors of this partial write, we must
@@ -226,7 +226,7 @@ static int addQueuedRecoveryEntries(struct recovery_journal_block *block)
       dataVIO->recoverySequenceNumber = block->sequenceNumber;
     }
 
-    // Enqueue the DataVIO to wait for its entry to commit.
+    // Enqueue the data_vio to wait for its entry to commit.
     int result = enqueueDataVIO(&block->commitWaiters, dataVIO,
                                 THIS_LOCATION("$F($j-$js)"));
     if (result != VDO_SUCCESS) {

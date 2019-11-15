@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#6 $
  */
 
 #include "dataVIO.h"
@@ -68,14 +68,14 @@ static const char *ASYNC_OPERATION_NAMES[] = {
 };
 
 /**
- * Initialize the LBN lock of a DataVIO. In addition to recording the LBN on
- * which the DataVIO will operate, it will also find the logical zone
+ * Initialize the LBN lock of a data_vio. In addition to recording the LBN on
+ * which the data_vio will operate, it will also find the logical zone
  * associated with the LBN.
  *
  * @param dataVIO  The dataVIO to initialize
  * @param lbn      The lbn on which the dataVIO will operate
  **/
-static void initializeLBNLock(DataVIO *dataVIO, LogicalBlockNumber lbn)
+static void initializeLBNLock(struct data_vio *dataVIO, LogicalBlockNumber lbn)
 {
   LBNLock *lock = &dataVIO->logical;
   lock->lbn     = lbn;
@@ -87,7 +87,7 @@ static void initializeLBNLock(DataVIO *dataVIO, LogicalBlockNumber lbn)
 }
 
 /**********************************************************************/
-void prepareDataVIO(DataVIO            *dataVIO,
+void prepareDataVIO(struct data_vio    *dataVIO,
                     LogicalBlockNumber  lbn,
                     VIOOperation        operation,
                     bool                isTrim,
@@ -124,7 +124,7 @@ void prepareDataVIO(DataVIO            *dataVIO,
 /**********************************************************************/
 void completeDataVIO(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   if (completion->result != VDO_SUCCESS) {
     VIO *vio = dataVIOAsVIO(dataVIO);
     updateVIOErrorStats(vio,
@@ -143,7 +143,7 @@ void completeDataVIO(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void finishDataVIO(DataVIO *dataVIO, int result)
+void finishDataVIO(struct data_vio *dataVIO, int result)
 {
   VDOCompletion *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
@@ -151,7 +151,7 @@ void finishDataVIO(DataVIO *dataVIO, int result)
 }
 
 /**********************************************************************/
-const char *getOperationName(DataVIO *dataVIO)
+const char *getOperationName(struct data_vio *dataVIO)
 {
   STATIC_ASSERT((MAX_ASYNC_OPERATION_NUMBER - MIN_ASYNC_OPERATION_NUMBER)
                 == COUNT_OF(ASYNC_OPERATION_NAMES));
@@ -162,7 +162,7 @@ const char *getOperationName(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void receiveDedupeAdvice(DataVIO *dataVIO, const DataLocation *advice)
+void receiveDedupeAdvice(struct data_vio *dataVIO, const DataLocation *advice)
 {
   /*
    * NOTE: this is called on non-base-code threads. Be very careful to not do
@@ -176,20 +176,20 @@ void receiveDedupeAdvice(DataVIO *dataVIO, const DataLocation *advice)
 }
 
 /**********************************************************************/
-void setDuplicateLocation(DataVIO *dataVIO, const ZonedPBN source)
+void setDuplicateLocation(struct data_vio *dataVIO, const ZonedPBN source)
 {
   dataVIO->isDuplicate = (source.pbn != ZERO_BLOCK);
   dataVIO->duplicate   = source;
 }
 
 /**********************************************************************/
-void clearMappedLocation(DataVIO *dataVIO)
+void clearMappedLocation(struct data_vio *dataVIO)
 {
   dataVIO->mapped = (ZonedPBN) { .state = MAPPING_STATE_UNMAPPED };
 }
 
 /**********************************************************************/
-int setMappedLocation(DataVIO             *dataVIO,
+int setMappedLocation(struct data_vio     *dataVIO,
                       PhysicalBlockNumber  pbn,
                       BlockMappingState    state)
 {
@@ -210,9 +210,9 @@ int setMappedLocation(DataVIO             *dataVIO,
 /**
  * Launch a request which has acquired an LBN lock.
  *
- * @param dataVIO  The DataVIO which has just acquired a lock
+ * @param dataVIO  The data_vio which has just acquired a lock
  **/
-static void launchLockedRequest(DataVIO *dataVIO)
+static void launchLockedRequest(struct data_vio *dataVIO)
 {
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   dataVIO->logical.locked = true;
@@ -227,7 +227,7 @@ static void launchLockedRequest(DataVIO *dataVIO)
 /**********************************************************************/
 void attemptLogicalBlockLock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
 
   if (dataVIO->logical.lbn
@@ -236,7 +236,7 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
     return;
   }
 
-  DataVIO *lockHolder;
+  struct data_vio *lockHolder;
   LBNLock *lock = &dataVIO->logical;
   int result = intMapPut(getLBNLockMap(lock->zone), lock->lbn, dataVIO, false,
                          (void **) &lockHolder);
@@ -291,16 +291,16 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
 /**
  * Release an uncontended LBN lock.
  *
- * @param dataVIO  The DataVIO holding the lock
+ * @param dataVIO  The data_vio holding the lock
  **/
-static void releaseLock(DataVIO *dataVIO)
+static void releaseLock(struct data_vio *dataVIO)
 {
   LBNLock         *lock    = &dataVIO->logical;
   struct int_map  *lockMap = getLBNLockMap(lock->zone);
   if (!lock->locked) {
     // The lock is not locked, so it had better not be registered in the lock
     // map.
-    DataVIO *lockHolder = intMapGet(lockMap, lock->lbn);
+    struct data_vio *lockHolder = intMapGet(lockMap, lock->lbn);
     ASSERT_LOG_ONLY((dataVIO != lockHolder),
                     "no logical block lock held for block %llu",
                     lock->lbn);
@@ -308,7 +308,7 @@ static void releaseLock(DataVIO *dataVIO)
   }
 
   // Remove the lock from the logical block lock map, releasing the lock.
-  DataVIO *lockHolder = intMapRemove(lockMap, lock->lbn);
+  struct data_vio *lockHolder = intMapRemove(lockMap, lock->lbn);
   ASSERT_LOG_ONLY((dataVIO == lockHolder),
                   "logical block lock mismatch for block %llu", lock->lbn);
   lock->locked = false;
@@ -316,7 +316,7 @@ static void releaseLock(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void releaseLogicalBlockLock(DataVIO *dataVIO)
+void releaseLogicalBlockLock(struct data_vio *dataVIO)
 {
   assertInLogicalZone(dataVIO);
   if (!hasWaiters(&dataVIO->logical.waiters)) {
@@ -327,14 +327,14 @@ void releaseLogicalBlockLock(DataVIO *dataVIO)
   LBNLock *lock = &dataVIO->logical;
   ASSERT_LOG_ONLY(lock->locked, "LBNLock with waiters is not locked");
 
-  // Another DataVIO is waiting for the lock, so just transfer it in a single
+  // Another data_vio is waiting for the lock, so just transfer it in a single
   // lock map operation
-  DataVIO *nextLockHolder = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
+  struct data_vio *nextLockHolder = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
 
   // Transfer the remaining lock waiters to the next lock holder.
   transferAllWaiters(&lock->waiters, &nextLockHolder->logical.waiters);
 
-  DataVIO *lockHolder;
+  struct data_vio *lockHolder;
   int result = intMapPut(getLBNLockMap(lock->zone), lock->lbn, nextLockHolder,
                          true, (void **) &lockHolder);
   if (result != VDO_SUCCESS) {

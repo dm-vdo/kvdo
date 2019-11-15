@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.h#2 $
  */
 
 #ifndef VIO_WRITE_H
@@ -29,30 +29,30 @@
  *
  * @param dataVIO  The possible lock holder
  **/
-void releasePBNReadLock(DataVIO *dataVIO);
+void releasePBNReadLock(struct data_vio *dataVIO);
 
 /**
- * Start the asynchronous processing of a DataVIO for a write request which has
+ * Start the asynchronous processing of a data_vio for a write request which has
  * acquired a lock on its logical block by joining the current flush generation
  * and then attempting to allocate a physical block.
  *
- * @param dataVIO  The DataVIO doing the write
+ * @param dataVIO  The data_vio doing the write
  **/
-void launchWriteDataVIO(DataVIO *dataVIO);
+void launchWriteDataVIO(struct data_vio *dataVIO);
 
 /**
- * Clean up a DataVIO which has finished processing a write.
+ * Clean up a data_vio which has finished processing a write.
  *
- * @param dataVIO  The DataVIO to clean up
+ * @param dataVIO  The data_vio to clean up
  **/
-void cleanupWriteDataVIO(DataVIO *dataVIO);
+void cleanupWriteDataVIO(struct data_vio *dataVIO);
 
 /**
  * Continue a write by attempting to compress the data. This is a re-entry
  * point to vioWrite used by hash locks.
  *
- * @param dataVIO   The DataVIO to be compressed
+ * @param dataVIO   The data_vio to be compressed
  **/
-void compressData(DataVIO *dataVIO);
+void compressData(struct data_vio *dataVIO);
 
 #endif /* VIO_WRITE_H */

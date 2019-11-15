@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#8 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -310,17 +310,18 @@ int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
   __attribute__((warn_unused_result));
 
 /**
- * Add an entry to a recovery journal. This method is asynchronous. The DataVIO
+ * Add an entry to a recovery journal. This method is asynchronous. The data_vio
  * will not be called back until the entry is committed to the on-disk journal.
  *
  * @param journal  The journal in which to make an entry
- * @param dataVIO  The DataVIO for which to add the entry. The entry will be
+ * @param dataVIO  The data_vio for which to add the entry. The entry will be
  *                 taken from the logical and newMapped fields of the
- *                 DataVIO. The DataVIO's recoverySequenceNumber field will
+ *                 data_vio. The data_vio's recoverySequenceNumber field will
  *                 be set to the sequence number of the journal block in
  *                 which the entry was made.
  **/
-void addRecoveryJournalEntry(RecoveryJournal *journal, DataVIO *dataVIO);
+void addRecoveryJournalEntry(RecoveryJournal *journal,
+                             struct data_vio *dataVIO);
 
 /**
  * Acquire a reference to a recovery journal block from somewhere other than

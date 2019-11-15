@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#11 $
  */
 
 #include "logicalZone.h"
@@ -303,15 +303,16 @@ LogicalZone *getNextLogicalZone(const LogicalZone *zone)
 }
 
 /**
- * Convert a RingNode to a DataVIO.
+ * Convert a RingNode to a data_vio.
  *
  * @param ringNode The RingNode to convert
  *
- * @return The DataVIO which owns the RingNode
+ * @return The data_vio which owns the RingNode
  **/
-static inline DataVIO *dataVIOFromRingNode(RingNode *ringNode)
+static inline struct data_vio *dataVIOFromRingNode(RingNode *ringNode)
 {
-  return (DataVIO *) ((byte *) ringNode - offsetof(DataVIO, writeNode));
+  return (struct data_vio *) ((byte *) ringNode - offsetof(struct data_vio,
+                                                           writeNode));
 }
 
 /**
@@ -363,7 +364,7 @@ SequenceNumber getOldestLockedGeneration(const LogicalZone *zone)
 }
 
 /**********************************************************************/
-int acquireFlushGenerationLock(DataVIO *dataVIO)
+int acquireFlushGenerationLock(struct data_vio *dataVIO)
 {
   LogicalZone *zone = dataVIO->logical.zone;
   assertOnZoneThread(zone, __func__);
@@ -417,7 +418,7 @@ static void attemptGenerationCompleteNotification(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void releaseFlushGenerationLock(DataVIO *dataVIO)
+void releaseFlushGenerationLock(struct data_vio *dataVIO)
 {
   LogicalZone *zone = dataVIO->logical.zone;
   assertOnZoneThread(zone, __func__);
@@ -432,7 +433,7 @@ void releaseFlushGenerationLock(DataVIO *dataVIO)
   unspliceRingNode(&dataVIO->writeNode);
   dataVIO->hasFlushGenerationLock = false;
   ASSERT_LOG_ONLY(zone->oldestActiveGeneration <= dataVIO->flushGeneration,
-                  "DataVIO releasing lock on generation %" PRIu64
+                  "data_vio releasing lock on generation %" PRIu64
                   " is not older than oldest active generation %llu",
                   dataVIO->flushGeneration, zone->oldestActiveGeneration);
 

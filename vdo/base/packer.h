@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#5 $
  */
 
 #ifndef PACKER_H
@@ -63,13 +63,13 @@ int makePacker(PhysicalLayer       *layer,
 void freePacker(struct packer **packerPtr);
 
 /**
- * Check whether the compressed data in a DataVIO will fit in a packer bin.
+ * Check whether the compressed data in a data_vio will fit in a packer bin.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  *
- * @return <code>true</code> if the DataVIO will fit in a bin
+ * @return <code>true</code> if the data_vio will fit in a bin
  **/
-bool isSufficientlyCompressible(DataVIO *dataVIO)
+bool isSufficientlyCompressible(struct data_vio *dataVIO)
   __attribute__((warn_unused_result));
 
 /**
@@ -92,11 +92,11 @@ PackerStatistics getPackerStatistics(const struct packer *packer)
   __attribute__((warn_unused_result));
 
 /**
- * Attempt to rewrite the data in this DataVIO as part of a compressed block.
+ * Attempt to rewrite the data in this data_vio as part of a compressed block.
  *
- * @param dataVIO  The DataVIO to pack
+ * @param dataVIO  The data_vio to pack
  **/
-void attemptPacking(DataVIO *dataVIO);
+void attemptPacking(struct data_vio *dataVIO);
 
 /**
  * Request that the packer flush asynchronously. All bins with at least two
@@ -112,9 +112,9 @@ void flushPacker(struct packer *packer);
 /**
  * Remove a lock holder from the packer.
  *
- * @param completion  The DataVIO which needs a lock held by a DataVIO in the
+ * @param completion  The data_vio which needs a lock held by a data_vio in the
  *                    packer. The dataVIO's compressedVIO.lockHolder field will
- *                    point to the DataVIO to remove.
+ *                    point to the data_vio to remove.
  **/
 void removeLockHolderFromPacker(VDOCompletion *completion);
 

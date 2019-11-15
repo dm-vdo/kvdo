@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#41 $
  */
 
 #include "dataKVIO.h"
@@ -412,7 +412,7 @@ static void read_bio_callback(struct bio *bio, int result)
 }
 
 /**********************************************************************/
-void kvdo_read_block(DataVIO *data_vio,
+void kvdo_read_block(struct data_vio *data_vio,
 		     PhysicalBlockNumber location,
 		     BlockMappingState mapping_state,
 		     bio_q_action action,
@@ -440,7 +440,7 @@ void kvdo_read_block(DataVIO *data_vio,
 }
 
 /**********************************************************************/
-void readDataVIO(DataVIO *data_vio)
+void readDataVIO(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(!isWriteVIO(dataVIOAsVIO(data_vio)),
 			"operation set correctly for data read");
@@ -475,7 +475,7 @@ kvdo_acknowledge_data_kvio_then_continue(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void acknowledgeDataVIO(DataVIO *data_vio)
+void acknowledgeDataVIO(struct data_vio *data_vio)
 {
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
@@ -505,10 +505,10 @@ void acknowledgeDataVIO(DataVIO *data_vio)
 }
 
 /**********************************************************************/
-void writeDataVIO(DataVIO *data_vio)
+void writeDataVIO(struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(isWriteVIO(dataVIOAsVIO(data_vio)),
-			"kvdoWriteDataVIO() called on write DataVIO");
+			"kvdoWriteDataVIO() called on write data_vio");
 	dataVIOAddTraceRecord(data_vio,
 			      THIS_LOCATION("$F;io=writeData;j=normal"));
 
@@ -583,7 +583,7 @@ static inline bool is_zero_block(struct data_kvio *data_kvio)
 }
 
 /**********************************************************************/
-void applyPartialWrite(DataVIO *data_vio)
+void applyPartialWrite(struct data_vio *data_vio)
 {
 	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
@@ -607,7 +607,7 @@ void applyPartialWrite(DataVIO *data_vio)
 }
 
 /**********************************************************************/
-void zeroDataVIO(DataVIO *data_vio)
+void zeroDataVIO(struct data_vio *data_vio)
 {
 	dataVIOAddTraceRecord(data_vio,
 			      THIS_LOCATION("zeroDataVIO;io=readData"));
@@ -615,7 +615,7 @@ void zeroDataVIO(DataVIO *data_vio)
 }
 
 /**********************************************************************/
-void copyData(DataVIO *source, DataVIO *destination)
+void copyData(struct data_vio *source, struct data_vio *destination)
 {
 	dataVIOAddTraceRecord(destination, THIS_LOCATION(NULL));
 	bio_copy_data_out(data_vio_as_kvio(destination)->bio,
@@ -635,7 +635,7 @@ static void kvdo_compress_work(struct kvdo_work_item *item)
 					       data_kvio->scratch_block,
 					       VDO_BLOCK_SIZE,
 					       VDO_BLOCK_SIZE);
-	DataVIO *data_vio = &data_kvio->data_vio;
+	struct data_vio *data_vio = &data_kvio->data_vio;
 	if (size > 0) {
 		// The scratch block will be used to contain the compressed
 		// data.
@@ -651,7 +651,7 @@ static void kvdo_compress_work(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void compressDataVIO(DataVIO *data_vio)
+void compressDataVIO(struct data_vio *data_vio)
 {
 	dataVIOAddTraceRecord(data_vio,
 			      THIS_LOCATION("compressDataVIO;"
@@ -707,7 +707,7 @@ make_data_kvio(struct kernel_layer *layer,
 	memset(&kvio->enqueueable, 0, sizeof(struct kvdo_enqueueable));
 	memset(&data_kvio->dedupe_context.pending_list, 0,
 	       sizeof(struct list_head));
-	memset(&data_kvio->data_vio, 0, sizeof(DataVIO));
+	memset(&data_kvio->data_vio, 0, sizeof(struct data_vio));
 	kvio->bio_to_submit = NULL;
 	bio_list_init(&kvio->bios_merged);
 
@@ -727,10 +727,10 @@ make_data_kvio(struct kernel_layer *layer,
 }
 
 /**
- * Creates a new DataVIO structure. A DataVIO represents a single logical
+ * Creates a new data_vio structure. A data_vio represents a single logical
  * block of data. It is what most VDO operations work with. This function also
  * creates a wrapping data_kvio structure that is used when we want to
- * physically read or write the data associated with the DataVIO.
+ * physically read or write the data associated with the struct data_vio.
  *
  * @param [in]  layer          The physical layer
  * @param [in]  bio            The bio from the request the new data_kvio will
@@ -840,7 +840,7 @@ static void launchDataKVIOWork(struct kvdo_work_item *item)
  **/
 static void kvdo_continue_discard_kvio(VDOCompletion *completion)
 {
-	DataVIO *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = asDataVIO(completion);
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
 	struct kernel_layer *layer = get_layer_from_data_kvio(data_kvio);
 	data_kvio->remaining_discard -=
@@ -964,7 +964,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 static void kvdo_hash_data_work(struct kvdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
-	DataVIO *data_vio = &data_kvio->data_vio;
+	struct data_vio *data_vio = &data_kvio->data_vio;
 	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
 
 	MurmurHash3_x64_128(data_kvio->data_block, VDO_BLOCK_SIZE, 0x62ea60be,
@@ -975,7 +975,7 @@ static void kvdo_hash_data_work(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void hashDataVIO(DataVIO *data_vio)
+void hashDataVIO(struct data_vio *data_vio)
 {
 	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
 	launch_data_kvio_on_cpu_queue(data_vio_as_data_kvio(data_vio),
@@ -985,7 +985,7 @@ void hashDataVIO(DataVIO *data_vio)
 }
 
 /**********************************************************************/
-void checkForDuplication(DataVIO *data_vio)
+void checkForDuplication(struct data_vio *data_vio)
 {
 	dataVIOAddTraceRecord(data_vio,
 			      THIS_LOCATION("checkForDuplication;dup=post"));
@@ -1006,7 +1006,7 @@ void checkForDuplication(DataVIO *data_vio)
 }
 
 /**********************************************************************/
-void updateDedupeIndex(DataVIO *data_vio)
+void updateDedupeIndex(struct data_vio *data_vio)
 {
 	update_dedupe_advice(data_vio_as_data_kvio(data_vio));
 }
@@ -1137,7 +1137,7 @@ static int make_pooled_data_kvio(void *pool_data, void **data_ptr)
 }
 
 /**
- * Dump out the waiters on each DataVIO in the DataVIO buffer pool.
+ * Dump out the waiters on each struct data_vio in the struct data_vio buffer pool.
  *
  * @param queue    The queue to check (logical or physical)
  * @param wait_on  The label to print for queue (logical or physical)
@@ -1149,7 +1149,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 		return;
 	}
 
-	DataVIO *data_vio = waiterAsDataVIO(first);
+	struct data_vio *data_vio = waiterAsDataVIO(first);
 	logInfo("      %s is locked. Waited on by: VIO %" PRIptr " pbn %" PRIu64
 		" lbn %llu d-pbn %llu lastOp %s",
 		wait_on, data_vio, getDataVIOAllocation(data_vio),
@@ -1184,7 +1184,7 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
  * @param buffer    The buffer to receive a null-terminated string of encoded
  *                  flag character
  **/
-static void encode_vio_dump_flags(DataVIO *data_vio, char buffer[8])
+static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 {
 	char *p_flag = buffer;
 	*p_flag++ = ' ';
@@ -1216,7 +1216,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 			       void *data)
 {
 	struct data_kvio *data_kvio = (struct data_kvio *)data;
-	DataVIO *data_vio = &data_kvio->data_vio;
+	struct data_vio *data_vio = &data_kvio->data_vio;
 
 	/*
 	 * This just needs to be big enough to hold a queue (thread) name

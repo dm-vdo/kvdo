@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#2 $
  */
 
 #ifndef VIO_READ_H
@@ -25,19 +25,19 @@
 #include "types.h"
 
 /**
- * Start the asynchronous processing of the DataVIO for a read or
+ * Start the asynchronous processing of the data_vio for a read or
  * read-modify-write request which has acquired a lock on its logical block.
  * The first step is to perform a block map lookup.
  *
- * @param dataVIO  The DataVIO doing the read
+ * @param dataVIO  The data_vio doing the read
  **/
-void launchReadDataVIO(DataVIO *dataVIO);
+void launchReadDataVIO(struct data_vio *dataVIO);
 
 /**
- * Clean up a DataVIO which has finished processing a read.
+ * Clean up a data_vio which has finished processing a read.
  *
- * @param dataVIO  The DataVIO to clean up
+ * @param dataVIO  The data_vio to clean up
  **/
-void cleanupReadDataVIO(DataVIO *dataVIO);
+void cleanupReadDataVIO(struct data_vio *dataVIO);
 
 #endif /* VIO_READ_H */

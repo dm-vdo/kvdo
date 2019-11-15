@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#15 $
  */
 
 #include "packerInternals.h"
@@ -302,19 +302,19 @@ void freePacker(struct packer **packerPtr)
 }
 
 /**
- * Get the packer from a DataVIO.
+ * Get the packer from a data_vio.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  *
- * @return The packer from the VDO to which the DataVIO belongs
+ * @return The packer from the VDO to which the data_vio belongs
  **/
-static inline struct packer *getPackerFromDataVIO(DataVIO *dataVIO)
+static inline struct packer *getPackerFromDataVIO(struct data_vio *dataVIO)
 {
   return getVDOFromDataVIO(dataVIO)->packer;
 }
 
 /**********************************************************************/
-bool isSufficientlyCompressible(DataVIO *dataVIO)
+bool isSufficientlyCompressible(struct data_vio *dataVIO)
 {
   struct packer *packer = getPackerFromDataVIO(dataVIO);
   return (dataVIO->compression.size < packer->binDataSize);
@@ -342,11 +342,11 @@ PackerStatistics getPackerStatistics(const struct packer *packer)
 }
 
 /**
- * Abort packing a DataVIO.
+ * Abort packing a data_vio.
  *
- * @param dataVIO     The DataVIO to abort
+ * @param dataVIO     The data_vio to abort
  **/
-static void abortPacking(DataVIO *dataVIO)
+static void abortPacking(struct data_vio *dataVIO)
 {
   setCompressionDone(dataVIO);
   relaxedAdd64(&getPackerFromDataVIO(dataVIO)->fragmentsPending, -1);
@@ -455,23 +455,23 @@ static void completeOutputBin(VDOCompletion *completion)
 }
 
 /**
- * Implements WaiterCallback. Continues the DataVIO waiter.
+ * Implements WaiterCallback. Continues the data_vio waiter.
  **/
 static void continueWaiter(struct waiter *waiter,
                            void          *context __attribute__((unused)))
 {
-  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   continueDataVIO(dataVIO, VDO_SUCCESS);
 }
 
 /**
- * Implements WaiterCallback. Updates the DataVIO waiter to refer to its slot
- * in the compressed block, gives the DataVIO a share of the PBN lock on that
+ * Implements WaiterCallback. Updates the data_vio waiter to refer to its slot
+ * in the compressed block, gives the data_vio a share of the PBN lock on that
  * block, and reserves a reference count increment on the lock.
  **/
 static void shareCompressedBlock(struct waiter *waiter, void *context)
 {
-  DataVIO           *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio   *dataVIO = waiterAsDataVIO(waiter);
   struct output_bin *bin     = context;
 
   dataVIO->newMapped = (ZonedPBN) {
@@ -508,7 +508,7 @@ static void finishCompressedWrite(VDOCompletion *completion)
     return;
   }
 
-  // First give every DataVIO/HashLock a share of the PBN lock to ensure it
+  // First give every data_vio/HashLock a share of the PBN lock to ensure it
   // can't be released until they've all done their incRefs.
   notifyAllWaiters(&bin->outgoing, shareCompressedBlock, bin);
 
@@ -580,16 +580,16 @@ static void getNextBatch(struct packer *packer, struct output_batch *batch)
   BlockSize spaceRemaining = packer->binDataSize;
   batch->slotsUsed         = 0;
 
-  DataVIO *dataVIO;
+  struct data_vio *dataVIO;
   while ((dataVIO = waiterAsDataVIO(getFirstWaiter(&packer->batchedDataVIOs)))
          != NULL) {
-    // If there's not enough space for the next DataVIO, the batch is done.
+    // If there's not enough space for the next data_vio, the batch is done.
     if ((dataVIO->compression.size > spaceRemaining)
         || (batch->slotsUsed == packer->maxSlots)) {
       break;
     }
 
-    // Remove the next DataVIO from the queue and put it in the output batch.
+    // Remove the next data_vio from the queue and put it in the output batch.
     dequeueNextWaiter(&packer->batchedDataVIOs);
     batch->slots[batch->slotsUsed++]  = dataVIO;
     spaceRemaining                   -= dataVIO->compression.size;
@@ -627,7 +627,7 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
 
   size_t spaceUsed = 0;
   for (SlotNumber slot = 0; slot < batch.slotsUsed; slot++) {
-    DataVIO *dataVIO = batch.slots[slot];
+    struct data_vio *dataVIO = batch.slots[slot];
     dataVIO->compression.slot = slot;
     putCompressedBlockFragment(output->block, slot, spaceUsed,
                                dataVIO->compression.data,
@@ -649,12 +649,12 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
 }
 
 /**
- * Put a DataVIO in a specific InputBin in which it will definitely fit.
+ * Put a data_vio in a specific InputBin in which it will definitely fit.
  *
- * @param bin      The bin in which to put the DataVIO
- * @param dataVIO  The DataVIO to add
+ * @param bin      The bin in which to put the data_vio
+ * @param dataVIO  The data_vio to add
  **/
-static void addToInputBin(InputBin *bin, DataVIO *dataVIO)
+static void addToInputBin(InputBin *bin, struct data_vio *dataVIO)
 {
   dataVIO->compression.bin  = bin;
   dataVIO->compression.slot = bin->slotsUsed;
@@ -673,14 +673,14 @@ static void startNewBatch(struct packer *packer, InputBin *bin)
   // Move all the DataVIOs in the current batch to the batched queue so they
   // will get packed into the next free output bin.
   for (SlotNumber slot = 0; slot < bin->slotsUsed; slot++) {
-    DataVIO *dataVIO = bin->incoming[slot];
+    struct data_vio *dataVIO = bin->incoming[slot];
     dataVIO->compression.bin = NULL;
 
     if (!mayWriteCompressedDataVIO(dataVIO)) {
       /*
-       * Compression of this DataVIO was canceled while it was waiting; put it
+       * Compression of this data_vio was canceled while it was waiting; put it
        * in the canceled bin so it can be rendezvous with the canceling
-       * DataVIO.
+       * data_vio.
        */
       addToInputBin(packer->canceledBin, dataVIO);
       continue;
@@ -700,16 +700,16 @@ static void startNewBatch(struct packer *packer, InputBin *bin)
 }
 
 /**
- * Add a DataVIO to a bin's incoming queue, handle logical space change, and
+ * Add a data_vio to a bin's incoming queue, handle logical space change, and
  * call physical space processor.
  *
  * @param packer   The packer
- * @param bin      The bin to which to add the the DataVIO
- * @param dataVIO  The DataVIO to add to the bin's queue
+ * @param bin      The bin to which to add the the data_vio
+ * @param dataVIO  The data_vio to add to the bin's queue
  **/
-static void addDataVIOToInputBin(struct packer *packer,
-                                 InputBin      *bin,
-                                 DataVIO       *dataVIO)
+static void addDataVIOToInputBin(struct packer   *packer,
+                                 InputBin        *bin,
+                                 struct data_vio *dataVIO)
 {
   // If the selected bin doesn't have room, start a new batch to make room.
   if (bin->freeSpace < dataVIO->compression.size) {
@@ -766,16 +766,16 @@ static void writePendingBatches(struct packer *packer)
 
 /**
  * Select the input bin that should be used to pack the compressed data in a
- * DataVIO with other DataVIOs.
+ * data_vio with other DataVIOs.
  *
  * @param packer   The packer
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  **/
 __attribute__((warn_unused_result))
-static InputBin *selectInputBin(struct packer *packer, DataVIO *dataVIO)
+static InputBin *selectInputBin(struct packer *packer, struct data_vio *dataVIO)
 {
   // First best fit: select the bin with the least free space that has enough
-  // room for the compressed data in the DataVIO.
+  // room for the compressed data in the data_vio.
   InputBin *fullestBin = getFullestBin(packer);
   for (InputBin *bin = fullestBin; bin != NULL; bin = nextBin(packer, bin)) {
     if (bin->freeSpace >= dataVIO->compression.size) {
@@ -784,13 +784,13 @@ static InputBin *selectInputBin(struct packer *packer, DataVIO *dataVIO)
   }
 
   /*
-   * None of the bins have enough space for the DataVIO. We're not allowed to
+   * None of the bins have enough space for the data_vio. We're not allowed to
    * create new bins, so we have to overflow one of the existing bins. It's
    * pretty intuitive to select the fullest bin, since that "wastes" the least
    * amount of free space in the compressed block. But if the space currently
    * used in the fullest bin is smaller than the compressed size of the
    * incoming block, it seems wrong to force that bin to write when giving up
-   * on compressing the incoming DataVIO would likewise "waste" the the least
+   * on compressing the incoming data_vio would likewise "waste" the the least
    * amount of free space.
    */
   if (dataVIO->compression.size
@@ -799,19 +799,19 @@ static InputBin *selectInputBin(struct packer *packer, DataVIO *dataVIO)
   }
 
   // The fullest bin doesn't have room, but writing it out and starting a new
-  // batch with the incoming DataVIO will increase the packer's free space.
+  // batch with the incoming data_vio will increase the packer's free space.
   return fullestBin;
 }
 
 /**********************************************************************/
-void attemptPacking(DataVIO *dataVIO)
+void attemptPacking(struct data_vio *dataVIO)
 {
   struct packer *packer = getPackerFromDataVIO(dataVIO);
   assertOnPackerThread(packer, __func__);
 
   struct vio_compression_state state = getCompressionState(dataVIO);
   int result = ASSERT((state.status == VIO_COMPRESSING),
-                      "attempt to pack DataVIO not ready for packing, state: "
+                      "attempt to pack data_vio not ready for packing, state: "
                       "%u",
                       state.status);
   if (result != VDO_SUCCESS) {
@@ -819,12 +819,12 @@ void attemptPacking(DataVIO *dataVIO)
   }
 
   /*
-   * Increment whether or not this DataVIO will be packed or not since
+   * Increment whether or not this data_vio will be packed or not since
    * abortPacking() always decrements the counter.
    */
   relaxedAdd64(&packer->fragmentsPending, 1);
 
-  // If packing of this DataVIO is disallowed for administrative reasons, give
+  // If packing of this data_vio is disallowed for administrative reasons, give
   // up before making any state changes.
   if (!isNormal(&packer->state)
       || (dataVIO->flushGeneration < packer->flushGeneration)) {
@@ -833,14 +833,14 @@ void attemptPacking(DataVIO *dataVIO)
   }
 
   /*
-   * The check of mayBlockInPacker() here will set the DataVIO's compression
-   * state to VIO_PACKING if the DataVIO is allowed to be compressed (if it has
-   * already been canceled, we'll fall out here). Once the DataVIO is in the
+   * The check of mayBlockInPacker() here will set the data_vio's compression
+   * state to VIO_PACKING if the data_vio is allowed to be compressed (if it has
+   * already been canceled, we'll fall out here). Once the data_vio is in the
    * VIO_PACKING state, it must be guaranteed to be put in an input bin before
    * any more requests can be processed by the packer thread. Otherwise, a
-   * canceling DataVIO could attempt to remove the canceled DataVIO from the
+   * canceling data_vio could attempt to remove the canceled data_vio from the
    * packer and fail to rendezvous with it (VDO-2809). We must also make sure
-   * that we will actually bin the DataVIO and not give up on it as being
+   * that we will actually bin the data_vio and not give up on it as being
    * larger than the space used in the fullest bin. Hence we must call
    * selectInputBin() before calling mayBlockInPacker() (VDO-2826).
    */
@@ -886,10 +886,10 @@ void flushPacker(struct packer *packer)
  * This method is only exposed for unit tests and should not normally be called
  * directly; use removeLockHolderFromPacker() instead.
  */
-void removeFromPacker(DataVIO *dataVIO)
+void removeFromPacker(struct data_vio *dataVIO)
 {
   InputBin *bin    = dataVIO->compression.bin;
-  ASSERT_LOG_ONLY((bin != NULL), "DataVIO in packer has an input bin");
+  ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has an input bin");
 
   SlotNumber slot = dataVIO->compression.slot;
   bin->slotsUsed--;
@@ -914,10 +914,10 @@ void removeFromPacker(DataVIO *dataVIO)
 /**********************************************************************/
 void removeLockHolderFromPacker(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInPackerZone(dataVIO);
 
-  DataVIO *lockHolder             = dataVIO->compression.lockHolder;
+  struct data_vio *lockHolder     = dataVIO->compression.lockHolder;
   dataVIO->compression.lockHolder = NULL;
   removeFromPacker(lockHolder);
 }

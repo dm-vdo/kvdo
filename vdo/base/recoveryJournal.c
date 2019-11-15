@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#19 $
  */
 
 #include "recoveryJournal.h"
@@ -124,13 +124,13 @@ static void assertOnJournalThread(RecoveryJournal *journal,
 }
 
 /**
- * WaiterCallback implementation invoked whenever a DataVIO is to be released
+ * WaiterCallback implementation invoked whenever a data_vio is to be released
  * from the journal, either because its entry was committed to disk,
  * or because there was an error.
  **/
 static void continueWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   dataVIOAddTraceRecord(dataVIO,
                         THIS_LOCATION("$F($j-$js);"
                                       "cb=continueJournalWaiter($j-$js)"));
@@ -814,7 +814,7 @@ static void releaseJournalBlockReference(struct recovery_journal_block *block)
  **/
 static void assignEntry(struct waiter *waiter, void *context)
 {
-  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   struct recovery_journal_block *block
     = (struct recovery_journal_block *) context;
   RecoveryJournal *journal = block->journal;
@@ -937,7 +937,7 @@ static void recycleJournalBlock(struct recovery_journal_block *block)
  **/
 static void continueCommittedWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO         *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   RecoveryJournal *journal = (RecoveryJournal *) context;
   ASSERT_LOG_ONLY(beforeJournalPoint(&journal->commitPoint,
                                      &dataVIO->recoveryJournalPoint),
@@ -1071,7 +1071,7 @@ static void writeBlock(RecoveryJournal               *journal,
 }
 
 /**********************************************************************/
-void addRecoveryJournalEntry(RecoveryJournal *journal, DataVIO *dataVIO)
+void addRecoveryJournalEntry(RecoveryJournal *journal, struct data_vio *dataVIO)
 {
   assertOnJournalThread(journal, __func__);
   if (!isNormal(&journal->state)) {

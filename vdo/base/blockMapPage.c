@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#7 $
  */
 
 #include "blockMapPage.h"
@@ -86,7 +86,7 @@ BlockMapPageValidity validateBlockMapPage(struct block_map_page *page,
 
 /**********************************************************************/
 void updateBlockMapPage(struct block_map_page *page,
-                        DataVIO               *dataVIO,
+                        struct data_vio       *dataVIO,
                         PhysicalBlockNumber    pbn,
                         BlockMappingState      mappingState,
                         SequenceNumber        *recoveryLock)
@@ -118,7 +118,7 @@ void updateBlockMapPage(struct block_map_page *page,
     *recoveryLock = newLocked;
   }
 
-  // Release the transferred lock from the DataVIO.
+  // Release the transferred lock from the data_vio.
   releasePerEntryLockFromOtherZone(journal, newLocked);
   dataVIO->recoverySequenceNumber = 0;
 }

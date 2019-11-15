@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#15 $
  */
 
 #ifndef TYPES_H
@@ -356,7 +356,7 @@ struct block_allocator;
 struct block_map;
 struct block_map_tree_zone;
 struct block_map_zone;
-typedef struct dataVIO             DataVIO;
+struct data_vio;
 typedef struct flusher             Flusher;
 typedef struct forest              Forest;
 typedef struct hashLock            HashLock;
@@ -425,9 +425,9 @@ typedef void CompressedWriter(struct allocating_vio *allocatingVIO);
 /**
  * An asynchronous data operation.
  *
- * @param dataVIO  The DataVIO on which to operate
+ * @param dataVIO  The data_vio on which to operate
  **/
-typedef void AsyncDataOperation(DataVIO *dataVIO);
+typedef void AsyncDataOperation(struct data_vio *dataVIO);
 
 /**
  * A reference to a completion which (the reference) can be enqueued

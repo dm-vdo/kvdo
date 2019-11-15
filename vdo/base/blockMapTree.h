@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#9 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -78,13 +78,13 @@ void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
 void drainZoneTrees(struct admin_state *state);
 
 /**
- * Look up the PBN of the block map page for a DataVIO's LBN in the arboreal
+ * Look up the PBN of the block map page for a data_vio's LBN in the arboreal
  * block map. If necessary, the block map page will be allocated. Also, the
  * ancestors of the block map page will be allocated or loaded if necessary.
  *
- * @param dataVIO  The DataVIO requesting the lookup
+ * @param dataVIO  The data_vio requesting the lookup
  **/
-void lookupBlockMapPBN(DataVIO *dataVIO);
+void lookupBlockMapPBN(struct data_vio *dataVIO);
 
 /**
  * Find the PBN of a leaf block map page. This method may only be used after

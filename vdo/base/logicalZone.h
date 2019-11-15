@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#7 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -137,24 +137,24 @@ SequenceNumber getOldestLockedGeneration(const LogicalZone *zone)
   __attribute__((warn_unused_result));
 
 /**
- * Acquire the shared lock on a flush generation by a write DataVIO.
+ * Acquire the shared lock on a flush generation by a write data_vio.
  *
- * @param dataVIO   The DataVIO
+ * @param dataVIO   The data_vio
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquireFlushGenerationLock(DataVIO *dataVIO)
+int acquireFlushGenerationLock(struct data_vio *dataVIO)
   __attribute__((warn_unused_result));
 
 /**
- * Release the shared lock on a flush generation held by a write DataVIO. If
- * there are pending flushes, and this DataVIO completes the oldest generation
+ * Release the shared lock on a flush generation held by a write data_vio. If
+ * there are pending flushes, and this data_vio completes the oldest generation
  * active in this zone, an attempt will be made to finish any flushes which may
  * now be complete.
  *
- * @param dataVIO  The DataVIO whose lock is to be released
+ * @param dataVIO  The data_vio whose lock is to be released
  **/
-void releaseFlushGenerationLock(DataVIO *dataVIO);
+void releaseFlushGenerationLock(struct data_vio *dataVIO);
 
 /**
  * Get the selector for deciding which physical zone should be allocated from

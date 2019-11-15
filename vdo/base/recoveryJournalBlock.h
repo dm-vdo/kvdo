@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#7 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -150,18 +150,18 @@ void freeRecoveryBlock(struct recovery_journal_block **blockPtr);
 void initializeRecoveryBlock(struct recovery_journal_block *block);
 
 /**
- * Enqueue a DataVIO to asynchronously encode and commit its next recovery
- * journal entry in this block. The DataVIO will not be continued until the
+ * Enqueue a data_vio to asynchronously encode and commit its next recovery
+ * journal entry in this block. The data_vio will not be continued until the
  * entry is committed to the on-disk journal. The caller is responsible for
  * ensuring the block is not already full.
  *
  * @param block    The journal block in which to make an entry
- * @param dataVIO  The DataVIO to enqueue
+ * @param dataVIO  The data_vio to enqueue
  *
- * @return VDO_SUCCESS or an error code if the DataVIO could not be enqueued
+ * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
  **/
 int enqueueRecoveryBlockEntry(struct recovery_journal_block *block,
-                              DataVIO                       *dataVIO)
+                              struct data_vio               *dataVIO)
   __attribute__((warn_unused_result));
 
 /**

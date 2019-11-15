@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#18 $
  */
 
 #include "slabJournalInternals.h"
@@ -932,7 +932,7 @@ bool requiresScrubbing(const SlabJournal *journal)
  **/
 static void addEntryFromWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO     *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   SlabJournal *journal = (SlabJournal *) context;
   struct slab_journal_block_header *header = &journal->tailHeader;
   SequenceNumber recoveryBlock = dataVIO->recoveryJournalPoint.sequenceNumber;
@@ -991,7 +991,8 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
  **/
 static inline bool isNextEntryABlockMapIncrement(SlabJournal *journal)
 {
-  DataVIO *dataVIO = waiterAsDataVIO(getFirstWaiter(&journal->entryWaiters));
+  struct data_vio *dataVIO
+    = waiterAsDataVIO(getFirstWaiter(&journal->entryWaiters));
   return (dataVIO->operation.type == BLOCK_MAP_INCREMENT);
 }
 
@@ -1098,7 +1099,7 @@ static void addEntries(SlabJournal *journal)
 }
 
 /**********************************************************************/
-void addSlabJournalEntry(SlabJournal *journal, DataVIO *dataVIO)
+void addSlabJournalEntry(SlabJournal *journal, struct data_vio *dataVIO)
 {
   if (!isSlabOpen(journal->slab)) {
     continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);

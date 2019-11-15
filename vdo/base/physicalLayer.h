@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#14 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -143,22 +143,22 @@ typedef int CompressedWriteVIOCreator(PhysicalLayer          *layer,
 typedef void VIODestructor(VIO **vioPtr);
 
 /**
- * A function to zero the contents of a DataVIO.
+ * A function to zero the contents of a data_vio.
  *
- * @param dataVIO  The DataVIO to zero
+ * @param dataVIO  The data_vio to zero
  **/
 typedef AsyncDataOperation DataVIOZeroer;
 
 /**
- * A function to copy the contents of a DataVIO into another DataVIO.
+ * A function to copy the contents of a data_vio into another data_vio.
  *
  * @param source       The dataVIO to copy from
  * @param destination  The dataVIO to copy to
  **/
-typedef void DataCopier(DataVIO *source, DataVIO *destination);
+typedef void DataCopier(struct data_vio *source, struct data_vio *destination);
 
 /**
- * A function to apply a partial write to a DataVIO which has completed the
+ * A function to apply a partial write to a data_vio which has completed the
  * read portion of a read-modify-write operation.
  *
  * @param dataVIO  The dataVIO to modify
@@ -167,45 +167,45 @@ typedef AsyncDataOperation DataModifier;
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
- * the DataVIO. This is asynchronous to allow the computation to be done on
+ * the data_vio. This is asynchronous to allow the computation to be done on
  * different threads.
  *
- * @param dataVIO  The DataVIO to hash
+ * @param dataVIO  The data_vio to hash
  **/
 typedef AsyncDataOperation DataHasher;
 
 /**
  * A function to determine whether a block is a duplicate. This function
- * expects the 'physical' field of the DataVIO to be set to the physical block
+ * expects the 'physical' field of the data_vio to be set to the physical block
  * where the block will be written if it is not a duplicate. If the block does
- * turn out to be a duplicate, the DataVIO's 'isDuplicate' field will be set to
- * true, and the DataVIO's 'advice' field will be set to the physical block and
+ * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set to
+ * true, and the data_vio's 'advice' field will be set to the physical block and
  * mapping state of the already stored copy of the block.
  *
- * @param dataVIO  The DataVIO containing the block to check.
+ * @param dataVIO  The data_vio containing the block to check.
  **/
 typedef AsyncDataOperation DuplicationChecker;
 
 /**
  * A function to verify the duplication advice by examining an already-stored
- * data block. This function expects the 'physical' field of the DataVIO to be
+ * data block. This function expects the 'physical' field of the data_vio to be
  * set to the physical block where the block will be written if it is not a
  * duplicate, and the 'duplicate' field to be set to the physical block and
  * mapping state where a copy of the data may already exist. If the block is
- * not a duplicate, the DataVIO's 'isDuplicate' field will be cleared.
+ * not a duplicate, the data_vio's 'isDuplicate' field will be cleared.
  *
  * @param dataVIO  The dataVIO containing the block to check.
  **/
 typedef AsyncDataOperation DuplicationVerifier;
 
 /**
- * A function to read a single DataVIO from the layer.
+ * A function to read a single data_vio from the layer.
  *
- * If the DataVIO does not describe a read-modify-write operation, the
+ * If the data_vio does not describe a read-modify-write operation, the
  * physical layer may safely acknowledge the related user I/O request
  * as complete.
  *
- * @param dataVIO  The DataVIO to read
+ * @param dataVIO  The data_vio to read
  **/
 typedef AsyncDataOperation DataReader;
 
@@ -217,9 +217,9 @@ typedef AsyncDataOperation DataReader;
 typedef AsyncOperation MetadataReader;
 
 /**
- * A function to write a single DataVIO to the layer
+ * A function to write a single data_vio to the layer
  *
- * @param dataVIO  The DataVIO to write
+ * @param dataVIO  The data_vio to write
  **/
 typedef AsyncDataOperation DataWriter;
 
@@ -231,35 +231,35 @@ typedef AsyncDataOperation DataWriter;
 typedef AsyncOperation MetadataWriter;
 
 /**
- * A function to inform the layer that a DataVIO's related I/O request can be
- * safely acknowledged as complete, even though the DataVIO itself may have
+ * A function to inform the layer that a data_vio's related I/O request can be
+ * safely acknowledged as complete, even though the data_vio itself may have
  * further processing to do.
  *
- * @param dataVIO  The DataVIO to acknowledge
+ * @param dataVIO  The data_vio to acknowledge
  **/
 typedef AsyncDataOperation DataAcknowledger;
 
 /**
- * A function to compare the contents of a DataVIO to another DataVIO.
+ * A function to compare the contents of a data_vio to another data_vio.
  *
- * @param first   The first DataVIO to compare
- * @param second  The second DataVIO to compare
+ * @param first   The first data_vio to compare
+ * @param second  The second data_vio to compare
  *
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
-typedef bool DataVIOComparator(DataVIO *first, DataVIO *second);
+typedef bool DataVIOComparator(struct data_vio *first, struct data_vio *second);
 
 /**
- * A function to compress the data in a DataVIO.
+ * A function to compress the data in a data_vio.
  *
- * @param dataVIO  The DataVIO to compress
+ * @param dataVIO  The data_vio to compress
  **/
 typedef AsyncDataOperation DataCompressor;
 
 /**
  * Update albireo.
  *
- * @param dataVIO  The DataVIO which needs to change the entry for its data
+ * @param dataVIO  The data_vio which needs to change the entry for its data
  **/
 typedef AsyncDataOperation AlbireoUpdater;
 
@@ -405,100 +405,100 @@ void submitMetadataVIO(VIO *vio);
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
- * the DataVIO. This is asynchronous to allow the computation to be done on
+ * the data_vio. This is asynchronous to allow the computation to be done on
  * different threads.
  *
- * @param dataVIO  The DataVIO to hash
+ * @param dataVIO  The data_vio to hash
  **/
-void hashDataVIO(DataVIO *dataVIO);
+void hashDataVIO(struct data_vio *dataVIO);
 
 /**
  * A function to determine whether a block is a duplicate. This function
- * expects the 'physical' field of the DataVIO to be set to the physical block
+ * expects the 'physical' field of the data_vio to be set to the physical block
  * where the block will be written if it is not a duplicate. If the block does
- * turn out to be a duplicate, the DataVIO's 'isDuplicate' field will be set to
- * true, and the DataVIO's 'advice' field will be set to the physical block and
+ * turn out to be a duplicate, the data_vio's 'isDuplicate' field will be set to
+ * true, and the data_vio's 'advice' field will be set to the physical block and
  * mapping state of the already stored copy of the block.
  *
- * @param dataVIO  The DataVIO containing the block to check.
+ * @param dataVIO  The data_vio containing the block to check.
  **/
-void checkForDuplication(DataVIO *dataVIO);
+void checkForDuplication(struct data_vio *dataVIO);
 
 /**
  * A function to verify the duplication advice by examining an already-stored
- * data block. This function expects the 'physical' field of the DataVIO to be
+ * data block. This function expects the 'physical' field of the data_vio to be
  * set to the physical block where the block will be written if it is not a
  * duplicate, and the 'duplicate' field to be set to the physical block and
  * mapping state where a copy of the data may already exist. If the block is
- * not a duplicate, the DataVIO's 'isDuplicate' field will be cleared.
+ * not a duplicate, the data_vio's 'isDuplicate' field will be cleared.
  *
  * @param dataVIO  The dataVIO containing the block to check.
  **/
-void verifyDuplication(DataVIO *dataVIO);
+void verifyDuplication(struct data_vio *dataVIO);
 
 /**
  * Update the index with new dedupe advice.
  *
- * @param dataVIO  The DataVIO which needs to change the entry for its data
+ * @param dataVIO  The data_vio which needs to change the entry for its data
  **/
-void updateDedupeIndex(DataVIO *dataVIO);
+void updateDedupeIndex(struct data_vio *dataVIO);
 
 /**
- * A function to zero the contents of a DataVIO.
+ * A function to zero the contents of a data_vio.
  *
- * @param dataVIO  The DataVIO to zero
+ * @param dataVIO  The data_vio to zero
  **/
-void zeroDataVIO(DataVIO *dataVIO);
+void zeroDataVIO(struct data_vio *dataVIO);
 
 /**
- * A function to copy the contents of a DataVIO into another DataVIO.
+ * A function to copy the contents of a data_vio into another data_vio.
  *
  * @param source       The dataVIO to copy from
  * @param destination  The dataVIO to copy to
  **/
-void copyData(DataVIO *source, DataVIO *destination);
+void copyData(struct data_vio *source, struct data_vio *destination);
 
 /**
- * A function to apply a partial write to a DataVIO which has completed the
+ * A function to apply a partial write to a data_vio which has completed the
  * read portion of a read-modify-write operation.
  *
  * @param dataVIO  The dataVIO to modify
  **/
-void applyPartialWrite(DataVIO *dataVIO);
+void applyPartialWrite(struct data_vio *dataVIO);
 
 /**
- * A function to inform the layer that a DataVIO's related I/O request can be
- * safely acknowledged as complete, even though the DataVIO itself may have
+ * A function to inform the layer that a data_vio's related I/O request can be
+ * safely acknowledged as complete, even though the data_vio itself may have
  * further processing to do.
  *
- * @param dataVIO  The DataVIO to acknowledge
+ * @param dataVIO  The data_vio to acknowledge
  **/
-void acknowledgeDataVIO(DataVIO *dataVIO);
+void acknowledgeDataVIO(struct data_vio *dataVIO);
 
 /**
- * A function to compress the data in a DataVIO.
+ * A function to compress the data in a data_vio.
  *
- * @param dataVIO  The DataVIO to compress
+ * @param dataVIO  The data_vio to compress
  **/
-void compressDataVIO(DataVIO *dataVIO);
+void compressDataVIO(struct data_vio *dataVIO);
 
 /**
- * A function to read a single DataVIO from the layer.
+ * A function to read a single data_vio from the layer.
  *
- * If the DataVIO does not describe a read-modify-write operation, the
+ * If the data_vio does not describe a read-modify-write operation, the
  * physical layer may safely acknowledge the related user I/O request
  * as complete.
  *
- * @param dataVIO  The DataVIO to read
+ * @param dataVIO  The data_vio to read
  **/
-void readDataVIO(DataVIO *dataVIO);
+void readDataVIO(struct data_vio *dataVIO);
 
 /**
- * A function to write a single DataVIO to the layer
+ * A function to write a single data_vio to the layer
  *
- * @param dataVIO  The DataVIO to write
+ * @param dataVIO  The data_vio to write
  **/
-void writeDataVIO(DataVIO *dataVIO);
+void writeDataVIO(struct data_vio *dataVIO);
 
 /**
  * A function to write a single compressed block to the layer
@@ -508,13 +508,13 @@ void writeDataVIO(DataVIO *dataVIO);
 void writeCompressedBlock(struct allocating_vio *allocatingVIO);
 
 /**
- * A function to compare the contents of a DataVIO to another DataVIO.
+ * A function to compare the contents of a data_vio to another data_vio.
  *
- * @param first   The first DataVIO to compare
- * @param second  The second DataVIO to compare
+ * @param first   The first data_vio to compare
+ * @param second  The second data_vio to compare
  *
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
-bool compareDataVIOs(DataVIO *first, DataVIO *second);
+bool compareDataVIOs(struct data_vio *first, struct data_vio *second);
 
 #endif // PHYSICAL_LAYER_H

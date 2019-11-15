@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#21 $
  */
 
 #include "blockMapTree.h"
@@ -149,14 +149,15 @@ void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
 }
 
 /**
- * Get the block_map_tree_zone in which a DataVIO is operating.
+ * Get the block_map_tree_zone in which a data_vio is operating.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  *
  * @return The block_map_tree_zone
  **/
 __attribute__((warn_unused_result))
-static inline struct block_map_tree_zone *getBlockMapTreeZone(DataVIO *dataVIO)
+static inline struct block_map_tree_zone *
+getBlockMapTreeZone(struct data_vio *dataVIO)
 {
   return &(getBlockMapForZone(dataVIO->logical.zone)->treeZone);
 }
@@ -615,10 +616,10 @@ void drainZoneTrees(struct admin_state *state)
 /**
  * Release a lock on a page which was being loaded or allocated.
  *
- * @param dataVIO  The DataVIO releasing the page lock
- * @param what     What the DataVIO was doing (for logging)
+ * @param dataVIO  The data_vio releasing the page lock
+ * @param what     What the data_vio was doing (for logging)
  **/
-static void releasePageLock(DataVIO *dataVIO, char *what)
+static void releasePageLock(struct data_vio *dataVIO, char *what)
 {
   struct tree_lock *lock = &dataVIO->treeLock;
   ASSERT_LOG_ONLY(lock->locked,
@@ -635,12 +636,12 @@ static void releasePageLock(DataVIO *dataVIO, char *what)
 }
 
 /**
- * Continue a DataVIO now that the lookup is complete.
+ * Continue a data_vio now that the lookup is complete.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  * @param result   The result of the lookup
  **/
-static void finishLookup(DataVIO *dataVIO, int result)
+static void finishLookup(struct data_vio *dataVIO, int result)
 {
   dataVIO->treeLock.height = 0;
 
@@ -656,12 +657,12 @@ static void finishLookup(DataVIO *dataVIO, int result)
  * Abort a block map PBN lookup due to an error in the load or allocation on
  * which we were waiting.
  *
- * @param waiter   The DataVIO which was waiting for a page load or allocation
+ * @param waiter   The data_vio which was waiting for a page load or allocation
  * @param context  The error which caused the abort
  **/
 static void abortLookupForWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   int      result  = *((int *) context);
   if (isReadDataVIO(dataVIO)) {
     if (result == VDO_NO_SPACE) {
@@ -677,11 +678,11 @@ static void abortLookupForWaiter(struct waiter *waiter, void *context)
 /**
  * Abort a block map PBN lookup due to an error loading or allocating a page.
  *
- * @param dataVIO  The DataVIO which was loading or allocating a page
+ * @param dataVIO  The data_vio which was loading or allocating a page
  * @param result   The error code
- * @param what     What the DataVIO was doing (for logging)
+ * @param what     What the data_vio was doing (for logging)
  **/
-static void abortLookup(DataVIO *dataVIO, int result, char *what)
+static void abortLookup(struct data_vio *dataVIO, int result, char *what)
 {
   if (result != VDO_NO_SPACE) {
     enterZoneReadOnlyMode(getBlockMapTreeZone(dataVIO), result);
@@ -699,10 +700,10 @@ static void abortLookup(DataVIO *dataVIO, int result, char *what)
 /**
  * Abort a block map PBN lookup due to an error loading a page.
  *
- * @param dataVIO  The DataVIO doing the page load
+ * @param dataVIO  The data_vio doing the page load
  * @param result   The error code
  **/
-static void abortLoad(DataVIO *dataVIO, int result)
+static void abortLoad(struct data_vio *dataVIO, int result)
 {
   abortLookup(dataVIO, result, "load");
 }
@@ -737,19 +738,19 @@ static bool isInvalidTreeEntry(const VDO          *vdo,
 
 /**********************************************************************/
 static void loadBlockMapPage(struct block_map_tree_zone *zone,
-                             DataVIO                    *dataVIO);
+                             struct data_vio            *dataVIO);
 
 static void allocateBlockMapPage(struct block_map_tree_zone *zone,
-                                 DataVIO                    *dataVIO);
+                                 struct data_vio            *dataVIO);
 
 /**
  * Continue a block map PBN lookup now that a page has been loaded by
  * descending one level in the tree.
  *
- * @param dataVIO  The DataVIO doing the lookup
+ * @param dataVIO  The data_vio doing the lookup
  * @param page     The page which was just loaded
  **/
-static void continueWithLoadedPage(DataVIO               *dataVIO,
+static void continueWithLoadedPage(struct data_vio       *dataVIO,
                                    struct block_map_page *page)
 {
   struct tree_lock *lock = &dataVIO->treeLock;
@@ -787,12 +788,12 @@ static void continueWithLoadedPage(DataVIO               *dataVIO,
  * Continue a block map PBN lookup now that the page load we were waiting on
  * has finished.
  *
- * @param waiter   The DataVIO waiting for a page to be loaded
+ * @param waiter   The data_vio waiting for a page to be loaded
  * @param context  The page which was just loaded
  **/
 static void continueLoadForWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   dataVIO->treeLock.height--;
   continueWithLoadedPage(dataVIO, (struct block_map_page *) context);
 }
@@ -806,7 +807,7 @@ static void continueLoadForWaiter(struct waiter *waiter, void *context)
 static void finishBlockMapPageLoad(VDOCompletion *completion)
 {
   struct vio_pool_entry     *entry    = completion->parent;
-  DataVIO                   *dataVIO  = entry->parent;
+  struct data_vio           *dataVIO  = entry->parent;
   struct block_map_tree_zone *zone
     = (struct block_map_tree_zone *) entry->context;
   struct tree_lock          *treeLock = &dataVIO->treeLock;
@@ -838,7 +839,7 @@ static void handleIOError(VDOCompletion *completion)
 {
   int                        result  = completion->result;
   struct vio_pool_entry     *entry   = completion->parent;
-  DataVIO                   *dataVIO = entry->parent;
+  struct data_vio           *dataVIO = entry->parent;
   struct block_map_tree_zone *zone
     = (struct block_map_tree_zone *) entry->context;
   returnVIOToPool(zone->vioPool, entry);
@@ -849,13 +850,13 @@ static void handleIOError(VDOCompletion *completion)
  * Read a tree page from disk now that we've gotten a VIO with which to do the
  * read. This WaiterCallback is registered in loadBlockMapPage().
  *
- * @param waiter   The DataVIO which requires a page load
+ * @param waiter   The data_vio which requires a page load
  * @param context  The VIOPool entry with which to do the read
  **/
 static void loadPage(struct waiter *waiter, void *context)
 {
   struct vio_pool_entry *entry   = context;
-  DataVIO               *dataVIO = waiterAsDataVIO(waiter);
+  struct data_vio       *dataVIO = waiterAsDataVIO(waiter);
 
   entry->parent = dataVIO;
   entry->vio->completion.callbackThreadID
@@ -870,14 +871,15 @@ static void loadPage(struct waiter *waiter, void *context)
 /**
  * Attempt to acquire a lock on a page in the block map tree. If the page is
  * already locked, queue up to wait for the lock to be released. If the lock is
- * acquired, the DataVIO's treeLock.locked field will be set to true.
+ * acquired, the data_vio's treeLock.locked field will be set to true.
  *
- * @param zone     The block_map_tree_zone in which the DataVIO operates
- * @param dataVIO  The DataVIO which desires a page lock
+ * @param zone     The block_map_tree_zone in which the data_vio operates
+ * @param dataVIO  The data_vio which desires a page lock
  *
  * @return VDO_SUCCESS or an error
  **/
-static int attemptPageLock(struct block_map_tree_zone *zone, DataVIO *dataVIO)
+static int attemptPageLock(struct block_map_tree_zone *zone,
+                           struct data_vio            *dataVIO)
 {
   struct tree_lock *lock     = &dataVIO->treeLock;
   Height            height   = lock->height;
@@ -912,10 +914,11 @@ static int attemptPageLock(struct block_map_tree_zone *zone, DataVIO *dataVIO)
 /**
  * Load a block map tree page from disk.
  *
- * @param zone     The block_map_tree_zone in which the DataVIO operates
- * @param dataVIO  The DataVIO which requires a page to be loaded
+ * @param zone     The block_map_tree_zone in which the data_vio operates
+ * @param dataVIO  The data_vio which requires a page to be loaded
  **/
-static void loadBlockMapPage(struct block_map_tree_zone *zone, DataVIO *dataVIO)
+static void loadBlockMapPage(struct block_map_tree_zone *zone,
+                             struct data_vio            *dataVIO)
 {
   int result = attemptPageLock(zone, dataVIO);
   if (result != VDO_SUCCESS) {
@@ -934,11 +937,11 @@ static void loadBlockMapPage(struct block_map_tree_zone *zone, DataVIO *dataVIO)
 }
 
 /**
- * Set the callback of a DataVIO after it has allocated a block map page.
+ * Set the callback of a data_vio after it has allocated a block map page.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  **/
-static void setPostAllocationCallback(DataVIO *dataVIO)
+static void setPostAllocationCallback(struct data_vio *dataVIO)
 {
   setCallback(dataVIOAsCompletion(dataVIO), dataVIO->treeLock.callback,
               dataVIO->treeLock.threadID);
@@ -947,10 +950,10 @@ static void setPostAllocationCallback(DataVIO *dataVIO)
 /**
  * Abort a block map PBN lookup due to an error allocating a page.
  *
- * @param dataVIO  The DataVIO doing the page allocation
+ * @param dataVIO  The data_vio doing the page allocation
  * @param result   The error code
  **/
-static void abortAllocation(DataVIO *dataVIO, int result)
+static void abortAllocation(struct data_vio *dataVIO, int result)
 {
   setPostAllocationCallback(dataVIO);
   abortLookup(dataVIO, result, "allocation");
@@ -961,11 +964,11 @@ static void abortAllocation(DataVIO *dataVIO, int result)
  * callback is used to transfer back to the logical zone along the block map
  * page allocation path.
  *
- * @param completion  The DataVIO doing the allocation
+ * @param completion  The data_vio doing the allocation
  **/
 static void allocationFailure(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   abortAllocation(dataVIO, completion->result);
 }
@@ -973,13 +976,13 @@ static void allocationFailure(VDOCompletion *completion)
 /**
  * Continue with page allocations now that a parent page has been allocated.
  *
- * @param waiter   The DataVIO which was waiting for a page to be allocated
+ * @param waiter   The data_vio which was waiting for a page to be allocated
  * @param context  The physical block number of the page which was just
  *                 allocated
  **/
 static void continueAllocationForWaiter(struct waiter *waiter, void *context)
 {
-  DataVIO             *dataVIO  = waiterAsDataVIO(waiter);
+  struct data_vio     *dataVIO  = waiterAsDataVIO(waiter);
   struct tree_lock    *treeLock = &dataVIO->treeLock;
   PhysicalBlockNumber  pbn      = *((PhysicalBlockNumber *) context);
 
@@ -999,11 +1002,11 @@ static void continueAllocationForWaiter(struct waiter *waiter, void *context)
  * and waking any waiters now that the write lock has been released. This
  * callback is registered in releaseBlockMapWriteLock().
  *
- * @param completion  The DataVIO doing the allocation
+ * @param completion  The data_vio doing the allocation
  **/
 static void finishBlockMapAllocation(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   if (completion->result != VDO_SUCCESS) {
     allocationFailure(completion);
@@ -1064,11 +1067,11 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
  * have made its journal entries and reference count updates. This callback
  * is registered in setBlockMapPageReferenceCount().
  *
- * @param completion  The DataVIO doing the allocation
+ * @param completion  The data_vio doing the allocation
  **/
 static void releaseBlockMapWriteLock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   struct allocating_vio *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
   assertInAllocatedZone(dataVIO);
   if (completion->result != VDO_SUCCESS) {
@@ -1088,11 +1091,11 @@ static void releaseBlockMapWriteLock(VDOCompletion *completion)
  * MAXIMUM_REFERENCES is used to prevent deduplication against the block after
  * we release the write lock on it, but before we write out the page.
  *
- * @param completion  The DataVIO doing the allocation
+ * @param completion  The data_vio doing the allocation
  **/
 static void setBlockMapPageReferenceCount(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
   if (completion->result != VDO_SUCCESS) {
     launchLogicalCallback(dataVIO, allocationFailure, THIS_LOCATION(NULL));
@@ -1110,11 +1113,11 @@ static void setBlockMapPageReferenceCount(VDOCompletion *completion)
  * Make a recovery journal entry for a newly allocated block map page.
  * This callback is registered in continueBlockMapPageAllocation().
  *
- * @param completion  The DataVIO doing the allocation
+ * @param completion  The data_vio doing the allocation
  **/
 static void journalBlockMapAllocation(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (completion->result != VDO_SUCCESS) {
     launchLogicalCallback(dataVIO, allocationFailure, THIS_LOCATION(NULL));
@@ -1132,11 +1135,11 @@ static void journalBlockMapAllocation(VDOCompletion *completion)
  * BlockAllocator has given us a block. This method is supplied as the callback
  * to allocateDataBlock() by allocateBlockMapPage().
  *
- * @param allocatingVIO  The DataVIO which is doing the allocation
+ * @param allocatingVIO  The data_vio which is doing the allocation
  **/
 static void continueBlockMapPageAllocation(struct allocating_vio *allocatingVIO)
 {
-  DataVIO *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
+  struct data_vio *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
   if (!hasAllocation(dataVIO)) {
     setLogicalCallback(dataVIO, allocationFailure, THIS_LOCATION(NULL));
     continueDataVIO(dataVIO, VDO_NO_SPACE);
@@ -1157,11 +1160,11 @@ static void continueBlockMapPageAllocation(struct allocating_vio *allocatingVIO)
 /**
  * Allocate a block map page.
  *
- * @param zone     The zone in which the DataVIO is operating
- * @param dataVIO  The DataVIO which needs to allocate a page
+ * @param zone     The zone in which the data_vio is operating
+ * @param dataVIO  The data_vio which needs to allocate a page
  **/
 static void allocateBlockMapPage(struct block_map_tree_zone *zone,
-                                 DataVIO                    *dataVIO)
+                                 struct data_vio            *dataVIO)
 {
   if (!isWriteDataVIO(dataVIO) || isTrimDataVIO(dataVIO)) {
     // This is a pure read, the read phase of a read-modify-write, or a trim,
@@ -1187,7 +1190,7 @@ static void allocateBlockMapPage(struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-void lookupBlockMapPBN(DataVIO *dataVIO)
+void lookupBlockMapPBN(struct data_vio *dataVIO)
 {
   struct block_map_tree_zone *zone = getBlockMapTreeZone(dataVIO);
   zone->activeLookups++;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#9 $
  */
 
 /*
@@ -223,31 +223,32 @@ typedef enum {
 } ReadOnlyAction;
 
 // Forward declarations required because of circular function references.
-static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage);
-static void writeBlock(DataVIO *dataVIO);
+static void performCleanupStage(struct data_vio     *dataVIO,
+                                DataVIOCleanupStage  stage);
+static void writeBlock(struct data_vio *dataVIO);
 
 /**
  * Check whether we are in async mode.
  *
- * @param dataVIO  A DataVIO containing a pointer to the VDO whose write
+ * @param dataVIO  A data_vio containing a pointer to the VDO whose write
  *                 policy we want to check
  *
  * @return <code>true</code> if we are in async mode
  **/
-static inline bool isAsync(DataVIO *dataVIO)
+static inline bool isAsync(struct data_vio *dataVIO)
 {
   return (getWritePolicy(getVDOFromDataVIO(dataVIO)) == WRITE_POLICY_ASYNC);
 }
 
 /**
  * Release the PBN lock and/or the reference on the allocated block at the
- * end of processing a DataVIO.
+ * end of processing a data_vio.
  *
- * @param completion  The DataVIO
+ * @param completion  The data_vio
  **/
 static void releaseAllocatedLock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
   releaseAllocationLock(dataVIOAsAllocatingVIO(dataVIO));
   performCleanupStage(dataVIO, VIO_RELEASE_RECOVERY_LOCKS);
@@ -255,13 +256,13 @@ static void releaseAllocatedLock(VDOCompletion *completion)
 
 /**
  * Release the logical block lock and flush generation lock at the end of
- * processing a DataVIO.
+ * processing a data_vio.
  *
- * @param completion  The DataVIO
+ * @param completion  The data_vio
  **/
 static void releaseLogicalLock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   releaseLogicalBlockLock(dataVIO);
   releaseFlushGenerationLock(dataVIO);
@@ -269,40 +270,41 @@ static void releaseLogicalLock(VDOCompletion *completion)
 }
 
 /**
- * Release the hash lock at the end of processing a DataVIO.
+ * Release the hash lock at the end of processing a data_vio.
  *
- * @param completion  The DataVIO
+ * @param completion  The data_vio
  **/
 static void cleanHashLock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
   releaseHashLock(dataVIO);
   performCleanupStage(dataVIO, VIO_RELEASE_LOGICAL);
 }
 
 /**
- * Make some assertions about a DataVIO which has finished cleaning up
+ * Make some assertions about a data_vio which has finished cleaning up
  * and do its final callback.
  *
- * @param dataVIO  The DataVIO which has finished cleaning up
+ * @param dataVIO  The data_vio which has finished cleaning up
  **/
-static void finishCleanup(DataVIO *dataVIO)
+static void finishCleanup(struct data_vio *dataVIO)
 {
   ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->allocationLock == NULL,
-                  "complete DataVIO has no allocation lock");
+                  "complete data_vio has no allocation lock");
   ASSERT_LOG_ONLY(dataVIO->hashLock == NULL,
-                  "complete DataVIO has no hash lock");
+                  "complete data_vio has no hash lock");
   vioDoneCallback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
- * Perform the next step in the process of cleaning up a DataVIO.
+ * Perform the next step in the process of cleaning up a data_vio.
  *
- * @param dataVIO  The DataVIO to clean up
+ * @param dataVIO  The data_vio to clean up
  * @param stage    The cleanup stage to perform
  **/
-static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
+static void performCleanupStage(struct data_vio     *dataVIO,
+                                DataVIOCleanupStage  stage)
 {
   switch (stage) {
   case VIO_RELEASE_ALLOCATED:
@@ -317,7 +319,7 @@ static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
     if ((dataVIO->recoverySequenceNumber > 0)
         && !isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
         && (dataVIOAsCompletion(dataVIO)->result != VDO_READ_ONLY)) {
-      logWarning("VDO not read-only when cleaning DataVIO with RJ lock");
+      logWarning("VDO not read-only when cleaning data_vio with RJ lock");
     }
     // fall through
 
@@ -343,33 +345,33 @@ static void performCleanupStage(DataVIO *dataVIO, DataVIOCleanupStage stage)
 }
 
 /**
- * Return a DataVIO that encountered an error to its hash lock so it can
+ * Return a data_vio that encountered an error to its hash lock so it can
  * update the hash lock state accordingly. This continuation is registered in
- * abortOnError(), and must be called in the hash zone of the DataVIO.
+ * abortOnError(), and must be called in the hash zone of the data_vio.
  *
- * @param completion  The completion of the DataVIO to return to its hash lock
+ * @param completion  The completion of the data_vio to return to its hash lock
  **/
 static void finishWriteDataVIOWithError(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
   continueHashLockOnError(dataVIO);
 }
 
 /**
- * Check whether a result is an error, and if so abort the DataVIO associated
+ * Check whether a result is an error, and if so abort the data_vio associated
  * with the error.
  *
  * @param result            The result to check
- * @param dataVIO           The DataVIO
+ * @param dataVIO           The data_vio
  * @param readOnlyAction    The conditions under which the VDO should be put
  *                          into read-only mode if the result is an error
  *
  * @return <code>true</code> if the result is an error
  **/
-static bool abortOnError(int             result,
-                         DataVIO        *dataVIO,
-                         ReadOnlyAction  readOnlyAction)
+static bool abortOnError(int              result,
+                         struct data_vio *dataVIO,
+                         ReadOnlyAction   readOnlyAction)
 {
   if (result == VDO_SUCCESS) {
     return false;
@@ -382,7 +384,7 @@ static bool abortOnError(int             result,
     if (!isReadOnly(notifier)) {
       if (result != VDO_READ_ONLY) {
         logErrorWithStringError(result, "Preparing to enter read-only mode:"
-                                " DataVIO for LBN %llu (becoming mapped"
+                                " data_vio for LBN %llu (becoming mapped"
                                 " to %llu, previously mapped"
                                 " to %llu, allocated %llu) is"
                                 " completing with a fatal error after"
@@ -406,18 +408,18 @@ static bool abortOnError(int             result,
 }
 
 /**
- * Return a DataVIO that finished writing, compressing, or deduplicating to
+ * Return a data_vio that finished writing, compressing, or deduplicating to
  * its hash lock so it can share the result with any DataVIOs waiting in the
  * hash lock, or update albireo, or simply release its share of the lock. This
  * continuation is registered in updateBlockMapForWrite(),
  * updateBlockMapForDedupe(), and abortDeduplication(), and must be called in
- * the hash zone of the DataVIO.
+ * the hash zone of the data_vio.
  *
- * @param completion  The completion of the DataVIO to return to its hash lock
+ * @param completion  The completion of the data_vio to return to its hash lock
  **/
 static void finishWriteDataVIO(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -428,9 +430,9 @@ static void finishWriteDataVIO(VDOCompletion *completion)
 /**
  * Abort the data optimization process.
  *
- * @param dataVIO  The DataVIO which does not deduplicate or compress
+ * @param dataVIO  The data_vio which does not deduplicate or compress
  **/
-static void abortDeduplication(DataVIO *dataVIO)
+static void abortDeduplication(struct data_vio *dataVIO)
 {
   if (!hasAllocation(dataVIO)) {
     // There was no space to write this block and we failed to deduplicate
@@ -440,21 +442,21 @@ static void abortDeduplication(DataVIO *dataVIO)
   }
 
   if (isAsync(dataVIO)) {
-    // We failed to deduplicate or compress an async DataVIO, so now we need
+    // We failed to deduplicate or compress an async data_vio, so now we need
     // to actually write the data.
     writeBlock(dataVIO);
     return;
   }
 
   if (dataVIO->hashLock == NULL) {
-    // We failed to compress a synchronous DataVIO that is a hash collision,
-    // which means it can't dedpe or be used for dedupe, so it's done now.
+    // We failed to compress a synchronous data_vio that is a hash collision,
+    // which means it can't dedupe or be used for dedupe, so it's done now.
     finishDataVIO(dataVIO, VDO_SUCCESS);
     return;
   }
 
   /*
-   * This synchronous DataVIO failed to compress and so is finished, but must
+   * This synchronous data_vio failed to compress and so is finished, but must
    * now return to its hash lock so other DataVIOs with the same data can
    * deduplicate against the uncompressed block it wrote.
    */
@@ -470,7 +472,7 @@ static void abortDeduplication(DataVIO *dataVIO)
  **/
 static void updateBlockMapForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -488,10 +490,10 @@ static void updateBlockMapForDedupe(VDOCompletion *completion)
 /**
  * Make a recovery journal increment.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  * @param lock     The PBNLock on the block being incremented
  **/
-static void journalIncrement(DataVIO *dataVIO, PBNLock *lock)
+static void journalIncrement(struct data_vio *dataVIO, PBNLock *lock)
 {
   setUpReferenceOperationWithLock(DATA_INCREMENT, dataVIO->newMapped.pbn,
                                   dataVIO->newMapped.state, lock,
@@ -503,9 +505,9 @@ static void journalIncrement(DataVIO *dataVIO, PBNLock *lock)
 /**
  * Make a recovery journal decrement entry.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  **/
-static void journalDecrement(DataVIO *dataVIO)
+static void journalDecrement(struct data_vio *dataVIO)
 {
   setUpReferenceOperationWithZone(DATA_DECREMENT, dataVIO->mapped.pbn,
                                   dataVIO->mapped.state, dataVIO->mapped.zone,
@@ -517,9 +519,9 @@ static void journalDecrement(DataVIO *dataVIO)
 /**
  * Make a reference count change.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  **/
-static void updateReferenceCount(DataVIO *dataVIO)
+static void updateReferenceCount(struct data_vio *dataVIO)
 {
   SlabDepot           *depot = getVDOFromDataVIO(dataVIO)->depot;
   PhysicalBlockNumber  pbn   = dataVIO->operation.pbn;
@@ -541,7 +543,7 @@ static void updateReferenceCount(DataVIO *dataVIO)
  **/
 static void decrementForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInMappedZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -572,7 +574,7 @@ static void decrementForDedupe(VDOCompletion *completion)
  **/
 static void journalUnmappingForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -599,7 +601,7 @@ static void journalUnmappingForDedupe(VDOCompletion *completion)
  **/
 static void readOldBlockMappingForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -619,7 +621,7 @@ static void readOldBlockMappingForDedupe(VDOCompletion *completion)
  **/
 static void incrementForCompression(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInNewMappedZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -649,11 +651,11 @@ static void incrementForCompression(VDOCompletion *completion)
 /**
  * Add a recovery journal entry for the increment resulting from compression.
  *
- * @param completion  The DataVIO which has been compressed
+ * @param completion  The data_vio which has been compressed
  **/
 static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -672,14 +674,14 @@ static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
 }
 
 /**
- * Attempt to pack the compressed DataVIO into a block. This is the callback
+ * Attempt to pack the compressed data_vio into a block. This is the callback
  * registered in compressData().
  *
- * @param completion  The completion of a compressed DataVIO
+ * @param completion  The completion of a compressed data_vio
  **/
 static void packCompressedData(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInPackerZone(dataVIO);
 
   // XXX this is a callback, so there should probably be an error check here
@@ -697,7 +699,7 @@ static void packCompressedData(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void compressData(DataVIO *dataVIO)
+void compressData(struct data_vio *dataVIO)
 {
   ASSERT_LOG_ONLY(!dataVIO->isDuplicate,
                   "compressing a non-duplicate block");
@@ -719,7 +721,7 @@ void compressData(DataVIO *dataVIO)
  **/
 static void incrementForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInNewMappedZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -750,11 +752,11 @@ static void incrementForDedupe(VDOCompletion *completion)
  * Add a recovery journal entry for the increment resulting from deduplication.
  * This callback is registered in shareBlock().
  *
- * @param completion  The DataVIO which has been deduplicated
+ * @param completion  The data_vio which has been deduplicated
  **/
 static void addRecoveryJournalEntryForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -776,7 +778,7 @@ static void addRecoveryJournalEntryForDedupe(VDOCompletion *completion)
  **/
 void shareBlock(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInDuplicateZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -793,16 +795,16 @@ void shareBlock(VDOCompletion *completion)
 }
 
 /**
- * Route the DataVIO to the HashZone responsible for the chunk name to acquire
+ * Route the data_vio to the HashZone responsible for the chunk name to acquire
  * a hash lock on that name, or join with a existing hash lock managing
  * concurrent dedupe for that name. This is the callback registered in
  * resolveHashZone().
  *
- * @param completion  The DataVIO to lock
+ * @param completion  The data_vio to lock
  **/
 static void lockHashInZone(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
   // Shouldn't have had any errors since all we did was switch threads.
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
@@ -816,7 +818,7 @@ static void lockHashInZone(VDOCompletion *completion)
 
   if (dataVIO->hashLock == NULL) {
     // It's extremely unlikely, but in the case of a hash collision, the
-    // DataVIO will not obtain a reference to the lock and cannot deduplicate.
+    // data_vio will not obtain a reference to the lock and cannot deduplicate.
     compressData(dataVIO);
     return;
   }
@@ -829,12 +831,12 @@ static void lockHashInZone(VDOCompletion *completion)
  * thread that just hashed the data to set the chunk name. This is the
  * callback registered by prepareForDedupe().
  *
- * @param completion The DataVIO whose chunk name was just generated, as a
+ * @param completion The data_vio whose chunk name was just generated, as a
  *                   completion
  **/
 static void resolveHashZone(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we are on.
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -858,7 +860,7 @@ static void resolveHashZone(VDOCompletion *completion)
  **/
 static void prepareForDedupe(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we are on
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
@@ -892,7 +894,7 @@ static void prepareForDedupe(VDOCompletion *completion)
  **/
 static void updateBlockMapForWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
@@ -926,7 +928,7 @@ static void updateBlockMapForWrite(VDOCompletion *completion)
  **/
 static void decrementForWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInMappedZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -945,7 +947,7 @@ static void decrementForWrite(VDOCompletion *completion)
  **/
 static void journalUnmappingForWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -972,7 +974,7 @@ static void journalUnmappingForWrite(VDOCompletion *completion)
  **/
 static void readOldBlockMappingForWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
@@ -987,9 +989,9 @@ static void readOldBlockMappingForWrite(VDOCompletion *completion)
 /**
  * Acknowledge a write to the requestor.
  *
- * @param dataVIO  The DataVIO being acknowledged
+ * @param dataVIO  The data_vio being acknowledged
  **/
-static void acknowledgeWrite(DataVIO *dataVIO)
+static void acknowledgeWrite(struct data_vio *dataVIO)
 {
   ASSERT_LOG_ONLY(dataVIO->hasFlushGenerationLock,
                   "write VIO to be acknowledged has a flush generation lock");
@@ -1006,7 +1008,7 @@ static void acknowledgeWrite(DataVIO *dataVIO)
  **/
 static void acknowledgeWriteCallback(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
     return;
   }
@@ -1017,7 +1019,7 @@ static void acknowledgeWriteCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-static VDOAction *getWriteIncrementCallback(DataVIO *dataVIO)
+static VDOAction *getWriteIncrementCallback(struct data_vio *dataVIO)
 {
   return (isAsync(dataVIO)
           ? readOldBlockMappingForWrite : acknowledgeWriteCallback);
@@ -1031,7 +1033,7 @@ static VDOAction *getWriteIncrementCallback(DataVIO *dataVIO)
  **/
 static void incrementForWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -1059,7 +1061,7 @@ static void incrementForWrite(VDOCompletion *completion)
  **/
 static void finishBlockWrite(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
@@ -1079,9 +1081,9 @@ static void finishBlockWrite(VDOCompletion *completion)
 /**
  * Write data to the underlying storage.
  *
- * @param dataVIO  The DataVIO to write
+ * @param dataVIO  The data_vio to write
  **/
-static void writeBlock(DataVIO *dataVIO)
+static void writeBlock(struct data_vio *dataVIO)
 {
   dataVIO->lastAsyncOperation = WRITE_DATA;
   setJournalCallback(dataVIO, finishBlockWrite,
@@ -1090,16 +1092,16 @@ static void writeBlock(DataVIO *dataVIO)
 }
 
 /**
- * Continue the write path for a DataVIO now that block allocation is complete
- * (the DataVIO may or may not have actually received an allocation). This
+ * Continue the write path for a data_vio now that block allocation is complete
+ * (the data_vio may or may not have actually received an allocation). This
  * callback is registered in continueWriteWithBlockMapSlot().
  *
- * @param allocatingVIO  The DataVIO which has finished the allocation process
+ * @param allocatingVIO  The data_vio which has finished the allocation process
  *                       (as an allocating_vio)
  **/
 static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
 {
-  DataVIO *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
+  struct data_vio *dataVIO = allocatingVIOAsDataVIO(allocatingVIO);
   if (abortOnError(dataVIOAsCompletion(dataVIO)->result, dataVIO,
                    NOT_READ_ONLY)) {
     return;
@@ -1137,11 +1139,11 @@ static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
  * Continue the write path for a VIO now that block map slot resolution is
  * complete. This callback is registered in launchWriteDataVIO().
  *
- * @param completion  The DataVIO to write
+ * @param completion  The data_vio to write
  **/
 static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
 {
-  DataVIO *dataVIO = asDataVIO(completion);
+  struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we're on.
   if (abortOnError(completion->result, dataVIO, NOT_READ_ONLY)) {
     return;
@@ -1175,7 +1177,7 @@ static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void launchWriteDataVIO(DataVIO *dataVIO)
+void launchWriteDataVIO(struct data_vio *dataVIO)
 {
   if (isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)) {
     finishDataVIO(dataVIO, VDO_READ_ONLY);
@@ -1195,7 +1197,7 @@ void launchWriteDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void cleanupWriteDataVIO(DataVIO *dataVIO)
+void cleanupWriteDataVIO(struct data_vio *dataVIO)
 {
   performCleanupStage(dataVIO, VIO_CLEANUP_START);
 }

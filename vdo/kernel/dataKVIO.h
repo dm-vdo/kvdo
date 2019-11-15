@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.h#25 $
  */
 
 #ifndef DATA_KVIO_H
@@ -84,8 +84,8 @@ struct read_block {
 };
 
 struct data_kvio {
-	/* The embedded base code's DataVIO */
-	DataVIO data_vio;
+	/* The embedded base code's data_vio */
+	struct data_vio data_vio;
 	/* The embedded kvio */
 	struct kvio kvio;
 	/* The bio from the request which is being serviced by this kvio. */
@@ -141,25 +141,25 @@ static inline struct kvio *data_kvio_as_kvio(struct data_kvio *data_kvio)
 }
 
 /**
- * Returns a pointer to the data_kvio wrapping a DataVIO.
+ * Returns a pointer to the data_kvio wrapping a data_vio.
  *
- * @param data_vio  the DataVIO
+ * @param data_vio  the data_vio
  *
  * @return the data_kvio
  **/
-static inline struct data_kvio *data_vio_as_data_kvio(DataVIO *data_vio)
+static inline struct data_kvio *data_vio_as_data_kvio(struct data_vio *data_vio)
 {
 	return container_of(data_vio, struct data_kvio, data_vio);
 }
 
 /**
- * Returns a pointer to the kvio associated with a DataVIO.
+ * Returns a pointer to the kvio associated with a data_vio.
  *
- * @param data_vio  the DataVIO
+ * @param data_vio  the data_vio
  *
  * @return the kvio
  **/
-static inline struct kvio *data_vio_as_kvio(DataVIO *data_vio)
+static inline struct kvio *data_vio_as_kvio(struct data_vio *data_vio)
 {
 	return data_kvio_as_kvio(data_vio_as_data_kvio(data_vio));
 }
@@ -357,13 +357,13 @@ void return_data_kvio_batch_to_pool(struct batch_processor *batch,
  * operation will be stored in the read_block's status field. On success,
  * the data will be in the read_block's data pointer.
  *
- * @param data_vio       The DataVIO to read a block in for
+ * @param data_vio       The data_vio to read a block in for
  * @param location       The physical block number to read from
  * @param mapping_state  The mapping state of the block to read
  * @param action         The bio queue action
  * @param callback       The function to call when the read is done
  **/
-void kvdo_read_block(DataVIO *data_vio,
+void kvdo_read_block(struct data_vio *data_vio,
 		     PhysicalBlockNumber location,
 		     BlockMappingState mapping_state,
 		     bio_q_action action,

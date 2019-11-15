@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#3 $
  */
 
 #include "compressionStateInternals.h"
@@ -28,7 +28,7 @@ static const uint32_t STATUS_MASK           = 0xff;
 static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 
 /**********************************************************************/
-struct vio_compression_state getCompressionState(DataVIO *dataVIO)
+struct vio_compression_state getCompressionState(struct data_vio *dataVIO)
 {
   uint32_t packedValue = atomicLoad32(&dataVIO->compression.state);
   return (struct vio_compression_state) {
@@ -52,7 +52,7 @@ static uint32_t packState(struct vio_compression_state state)
 }
 
 /**********************************************************************/
-bool setCompressionState(DataVIO                      *dataVIO,
+bool setCompressionState(struct data_vio              *dataVIO,
                          struct vio_compression_state  state,
                          struct vio_compression_state  newState)
 {
@@ -63,11 +63,11 @@ bool setCompressionState(DataVIO                      *dataVIO,
 /**
  * Advance to the next compression state along the compression path.
  *
- * @param dataVIO  The DataVIO to advance
+ * @param dataVIO  The data_vio to advance
  *
- * @return The new compression status of the DataVIO
+ * @return The new compression status of the data_vio
  **/
-static VIOCompressionStatus advanceStatus(DataVIO *dataVIO)
+static VIOCompressionStatus advanceStatus(struct data_vio *dataVIO)
 {
   for (;;) {
     struct vio_compression_state state = getCompressionState(dataVIO);
@@ -95,7 +95,7 @@ static VIOCompressionStatus advanceStatus(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool mayCompressDataVIO(DataVIO *dataVIO)
+bool mayCompressDataVIO(struct data_vio *dataVIO)
 {
   if (!hasAllocation(dataVIO)
       || ((getWritePolicy(getVDOFromDataVIO(dataVIO)) == WRITE_POLICY_ASYNC)
@@ -120,7 +120,7 @@ bool mayCompressDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool mayPackDataVIO(DataVIO *dataVIO)
+bool mayPackDataVIO(struct data_vio *dataVIO)
 {
   if (!isSufficientlyCompressible(dataVIO)
       || !getVDOCompressing(getVDOFromDataVIO(dataVIO))
@@ -135,20 +135,20 @@ bool mayPackDataVIO(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool mayBlockInPacker(DataVIO *dataVIO)
+bool mayBlockInPacker(struct data_vio *dataVIO)
 {
   return (advanceStatus(dataVIO) == VIO_PACKING);
 }
 
 /**********************************************************************/
-bool mayWriteCompressedDataVIO(DataVIO *dataVIO)
+bool mayWriteCompressedDataVIO(struct data_vio *dataVIO)
 {
   advanceStatus(dataVIO);
   return !getCompressionState(dataVIO).mayNotCompress;
 }
 
 /**********************************************************************/
-void setCompressionDone(DataVIO *dataVIO)
+void setCompressionDone(struct data_vio *dataVIO)
 {
   for (;;) {
     struct vio_compression_state state = getCompressionState(dataVIO);
@@ -169,13 +169,13 @@ void setCompressionDone(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-bool cancelCompression(DataVIO *dataVIO)
+bool cancelCompression(struct data_vio *dataVIO)
 {
   struct vio_compression_state state;
   for (;;) {
     state = getCompressionState(dataVIO);
     if (state.mayNotCompress || (state.status == VIO_POST_PACKER)) {
-      // This DataVIO is already set up to not block in the packer.
+      // This data_vio is already set up to not block in the packer.
       break;
     }
 

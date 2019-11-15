@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#10 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -36,7 +36,7 @@
  * Each InputBin holds an incomplete batch of DataVIOs that only partially fill
  * a compressed block. The InputBins are kept in a ring sorted by the amount of
  * unused space so the first bin with enough space to hold a newly-compressed
- * DataVIO can easily be found. When the bin fills up or is flushed, the
+ * data_vio can easily be found. When the bin fills up or is flushed, the
  * incoming DataVIOs are moved to the packer's batchedDataVIOs queue, from
  * which they will eventually be routed to an idle output_bin.
  *
@@ -47,13 +47,13 @@
  **/
 struct inputBin {
   /** List links for packer.sortedBins */
-  RingNode    ring;
+  RingNode         ring;
   /** The number of items in the bin */
-  SlotNumber  slotsUsed;
+  SlotNumber       slotsUsed;
   /** The number of compressed block bytes remaining in the current batch */
-  size_t      freeSpace;
+  size_t           freeSpace;
   /** The current partial batch of DataVIOs, waiting for more */
-  DataVIO    *incoming[];
+  struct data_vio *incoming[];
 };
 
 /**
@@ -80,8 +80,8 @@ struct output_bin {
  * output bin.
  **/
 struct output_batch {
-  size_t   slotsUsed;
-  DataVIO *slots[MAX_COMPRESSION_SLOTS];
+  size_t           slotsUsed;
+  struct data_vio *slots[MAX_COMPRESSION_SLOTS];
 };
 
 struct packer {
@@ -101,7 +101,7 @@ struct packer {
   RingNode                    outputBins;
   /**
    * A bin to hold DataVIOs which were canceled out of the packer and are
-   * waiting to rendezvous with the canceling DataVIO.
+   * waiting to rendezvous with the canceling data_vio.
    **/
   InputBin                   *canceledBin;
 
@@ -155,10 +155,10 @@ InputBin *nextBin(const struct packer *packer, InputBin *bin);
 void resetSlotCount(struct packer *packer, CompressedFragmentCount slots);
 
 /**
- * Remove a DataVIO from the packer. This method is exposed for testing.
+ * Remove a data_vio from the packer. This method is exposed for testing.
  *
- * @param dataVIO  The DataVIO to remove
+ * @param dataVIO  The data_vio to remove
  **/
-void removeFromPacker(DataVIO *dataVIO);
+void removeFromPacker(struct data_vio *dataVIO);
 
 #endif /* PACKER_INTERNALS_H */

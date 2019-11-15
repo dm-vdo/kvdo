@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#7 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -211,26 +211,26 @@ struct block_map_zone *getBlockMapZone(struct block_map *map,
   __attribute__((warn_unused_result));
 
 /**
- * Compute the logical zone on which the entry for a DataVIO
+ * Compute the logical zone on which the entry for a data_vio
  * resides
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  *
- * @return The logical zone number for the DataVIO
+ * @return The logical zone number for the data_vio
  **/
-ZoneCount computeLogicalZone(DataVIO *dataVIO);
+ZoneCount computeLogicalZone(struct data_vio *dataVIO);
 
 /**
- * Compute the block map slot in which the block map entry for a DataVIO
- * resides, and cache that number in the DataVIO.
+ * Compute the block map slot in which the block map entry for a data_vio
+ * resides, and cache that number in the data_vio.
  *
- * @param dataVIO  The DataVIO
+ * @param dataVIO  The data_vio
  * @param callback The function to call once the slot has been found
  * @param threadID The thread on which to run the callback
  **/
-void findBlockMapSlotAsync(DataVIO   *dataVIO,
-                           VDOAction *callback,
-                           ThreadID   threadID);
+void findBlockMapSlotAsync(struct data_vio *dataVIO,
+                           VDOAction       *callback,
+                           ThreadID         threadID);
 
 /**
  * Get number of block map pages at predetermined locations.
@@ -268,17 +268,17 @@ void advanceBlockMapEra(struct block_map *map,
  * specified logical block number. All blocks are mapped to physical block
  * zero by default, which is conventionally the zero block.
  *
- * @param dataVIO  The DataVIO of the block to map
+ * @param dataVIO  The data_vio of the block to map
  **/
-void getMappedBlockAsync(DataVIO *dataVIO);
+void getMappedBlockAsync(struct data_vio *dataVIO);
 
 /**
- * Associate the logical block number for a block represented by a DataVIO
+ * Associate the logical block number for a block represented by a data_vio
  * with the physical block number in its newMapped field.
  *
- * @param dataVIO  The DataVIO of the block to map
+ * @param dataVIO  The data_vio of the block to map
  **/
-void putMappedBlockAsync(DataVIO *dataVIO);
+void putMappedBlockAsync(struct data_vio *dataVIO);
 
 /**
  * Get the stats for the block map page cache.

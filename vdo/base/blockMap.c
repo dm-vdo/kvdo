@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#23 $
  */
 
 #include "blockMap.h"
@@ -482,9 +482,9 @@ void initializeBlockMapFromJournal(struct block_map *map,
 }
 
 /**********************************************************************/
-ZoneCount computeLogicalZone(DataVIO *dataVIO)
+ZoneCount computeLogicalZone(struct data_vio *dataVIO)
 {
-  struct block_map   *map                  = getBlockMap(getVDOFromDataVIO(dataVIO));
+  struct block_map   *map          = getBlockMap(getVDOFromDataVIO(dataVIO));
   struct tree_lock   *treeLock     = &dataVIO->treeLock;
   PageNumber  pageNumber           = computePageNumber(dataVIO->logical.lbn);
   treeLock->treeSlots[0].pageIndex = pageNumber;
@@ -493,9 +493,9 @@ ZoneCount computeLogicalZone(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void findBlockMapSlotAsync(DataVIO   *dataVIO,
-                           VDOAction *callback,
-                           ThreadID   threadID)
+void findBlockMapSlotAsync(struct data_vio *dataVIO,
+                           VDOAction       *callback,
+                           ThreadID         threadID)
 {
   struct block_map *map = getBlockMap(getVDOFromDataVIO(dataVIO));
   if (dataVIO->logical.lbn >= map->entryCount) {
@@ -667,9 +667,9 @@ static void handlePageError(VDOCompletion *completion)
  * @param modifiable  Whether we intend to modify the mapping
  * @param action      The handler to process the mapping page
  **/
-static void setupMappedBlock(DataVIO   *dataVIO,
-                             bool       modifiable,
-                             VDOAction *action)
+static void setupMappedBlock(struct data_vio *dataVIO,
+                             bool             modifiable,
+                             VDOAction       *action)
 {
   struct block_map_zone *zone = getBlockMapForZone(dataVIO->logical.zone);
   if (isDraining(&zone->state)) {
@@ -686,16 +686,16 @@ static void setupMappedBlock(DataVIO   *dataVIO,
 
 /**
  * Decode and validate a block map entry and attempt to use it to set the
- * mapped location of a DataVIO.
+ * mapped location of a data_vio.
  *
- * @param dataVIO  The DataVIO to update with the map entry
+ * @param dataVIO  The data_vio to update with the map entry
  * @param entry    The block map entry for the logical block
  *
  * @return VDO_SUCCESS or VDO_BAD_MAPPING if the map entry is invalid
  *         or an error code for any other failure
  **/
 __attribute__((warn_unused_result))
-static int setMappedEntry(DataVIO *dataVIO, const BlockMapEntry *entry)
+static int setMappedEntry(struct data_vio *dataVIO, const BlockMapEntry *entry)
 {
   // Unpack the PBN for logging purposes even if the entry is invalid.
   DataLocation mapped = unpackBlockMapEntry(entry);
@@ -748,7 +748,7 @@ static void getMappingFromFetchedPage(VDOCompletion *completion)
     return;
   }
 
-  DataVIO             *dataVIO  = asDataVIO(completion->parent);
+  struct data_vio     *dataVIO  = asDataVIO(completion->parent);
   BlockMapTreeSlot    *treeSlot = &dataVIO->treeLock.treeSlots[0];
   const BlockMapEntry *entry    = &page->entries[treeSlot->blockMapSlot.slot];
 
@@ -773,7 +773,7 @@ static void putMappingInFetchedPage(VDOCompletion *completion)
     return;
   }
 
-  DataVIO *dataVIO = asDataVIO(completion->parent);
+  struct data_vio *dataVIO = asDataVIO(completion->parent);
   struct block_map_page_context *context
     = getVDOPageCompletionContext(completion);
   SequenceNumber oldLock = context->recoveryLock;
@@ -784,7 +784,7 @@ static void putMappingInFetchedPage(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void getMappedBlockAsync(DataVIO *dataVIO)
+void getMappedBlockAsync(struct data_vio *dataVIO)
 {
   if (dataVIO->treeLock.treeSlots[0].blockMapSlot.pbn == ZERO_BLOCK) {
     // We know that the block map page for this LBN has not been allocated,
@@ -798,7 +798,7 @@ void getMappedBlockAsync(DataVIO *dataVIO)
 }
 
 /**********************************************************************/
-void putMappedBlockAsync(DataVIO *dataVIO)
+void putMappedBlockAsync(struct data_vio *dataVIO)
 {
   setupMappedBlock(dataVIO, true, putMappingInFetchedPage);
 }
