@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#10 $
+ * $Id: //eng/uds-releases/jasper/src/uds/udsMain.c#12 $
  */
 
 #include "uds.h"
@@ -173,6 +173,23 @@ void udsFreeConfiguration(UdsConfiguration userConfig)
 }
 
 /**********************************************************************/
+int udsCreateIndexSession(struct uds_index_session **session)
+{
+  if (session == NULL) {
+    return UDS_NO_INDEXSESSION;
+  }
+
+  struct uds_index_session *indexSession = NULL;
+  int result = makeEmptyIndexSession(&indexSession);
+  if (result != UDS_SUCCESS) {
+    return result;
+  }
+
+  *session = indexSession;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
 static
 int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
                                      IndexLayout                 *layout,
@@ -192,8 +209,13 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
     logErrorWithStringError(result, "Failed to allocate config");
     return result;
   }
+
+  // Zero the stats for the new index. 
+  memset(&indexSession->stats, 0, sizeof(indexSession->stats));
+
   result = makeIndexRouter(layout, indexConfig, userParams, loadType,
-                           enterCallbackStage, &indexSession->router);
+                           &indexSession->loadContext, enterCallbackStage,
+                           &indexSession->router);
   freeConfiguration(indexConfig);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed to make router");
@@ -201,7 +223,6 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
   }
 
   logUdsConfiguration(&indexSession->userConfig);
-  setIndexSessionState(indexSession, IS_READY);
   return UDS_SUCCESS;
 }
 
@@ -225,11 +246,11 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
 }
 
 /**********************************************************************/
-int udsOpenIndex(UdsOpenIndexType              openType,
-                 const char                   *name,
-                 const struct uds_parameters  *userParams,
-                 UdsConfiguration              userConfig,
-                 struct uds_index_session    **session)
+int udsOpenIndex(UdsOpenIndexType             openType,
+                 const char                  *name,
+                 const struct uds_parameters *userParams,
+                 UdsConfiguration             userConfig,
+                 struct uds_index_session    *session)
 {
   if (name == NULL) {
     return UDS_INDEX_NAME_REQUIRED;
@@ -241,12 +262,12 @@ int udsOpenIndex(UdsOpenIndexType              openType,
     return UDS_NO_INDEXSESSION;
   }
 
-  struct uds_index_session *indexSession = NULL;
-  int result = makeEmptyIndexSession(&indexSession);
+  int result = startLoadingIndexSession(session);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  indexSession->userConfig = *userConfig;
+
+  session->userConfig = *userConfig;
 
   // Map the external openType to the internal loadType
   LoadType loadType =   openType == UDS_CREATE     ? LOAD_CREATE
@@ -254,14 +275,14 @@ int udsOpenIndex(UdsOpenIndexType              openType,
                       :                              LOAD_REBUILD;
   logNotice("%s: %s", getLoadType(loadType), name);
 
-  result = initializeIndexSession(indexSession, name, userParams, loadType);
+  result = initializeIndexSession(session, name, userParams, loadType);
   if (result != UDS_SUCCESS) {
     logErrorWithStringError(result, "Failed %s", getLoadType(loadType));
-    saveAndFreeIndexSession(indexSession);
-    return sansUnrecoverable(result);
+    saveAndFreeIndex(session);
   }
-  *session = indexSession;
-  return UDS_SUCCESS;
+
+  finishLoadingIndexSession(session, result);
+  return sansUnrecoverable(result);
 }
 
 /**********************************************************************/

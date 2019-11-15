@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/request.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#6 $
  */
 
 #include "request.h"
@@ -240,7 +240,7 @@ void enterCallbackStage(Request *request)
   if (!request->isControlMessage) {
     if (isUnrecoverable(request->status)) {
       // Unrecoverable errors must disable the index session
-      setIndexSessionState(request->session, IS_DISABLED);
+      disableIndexSession(request->session);
       // The unrecoverable state is internal and must not sent to the client.
       request->status = sansUnrecoverable(request->status);
     }

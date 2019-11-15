@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#6 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexRouter.c#7 $
  */
 
 #include "indexRouter.h"
@@ -135,6 +135,7 @@ int makeIndexRouter(IndexLayout                  *layout,
                     const Configuration          *config,
                     const struct uds_parameters  *userParams,
                     LoadType                      loadType,
+                    IndexLoadContext             *loadContext,
                     IndexRouterCallback           callback,
                     IndexRouter                 **routerPtr)
 {
@@ -156,7 +157,7 @@ int makeIndexRouter(IndexLayout                  *layout,
   }
 
   result = makeIndex(layout, config, userParams, router->zoneCount, loadType,
-                     &router->index);
+                     loadContext, &router->index);
   if (result != UDS_SUCCESS) {
     freeIndexRouter(router);
     return logErrorWithStringError(result, "failed to create index");

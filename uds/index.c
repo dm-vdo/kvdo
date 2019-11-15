@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#14 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#15 $
  */
 
 #include "index.h"
@@ -27,6 +27,7 @@
 #include "logger.h"
 
 static const uint64_t NO_LAST_CHECKPOINT = UINT_MAX;
+
 
 /**
  * Replay an index which was loaded from a checkpoint.
@@ -188,6 +189,7 @@ int makeIndex(IndexLayout                  *layout,
               const struct uds_parameters  *userParams,
               unsigned int                  zoneCount,
               LoadType                      loadType,
+              IndexLoadContext             *loadContext,
               Index                       **newIndex)
 {
   Index *index;
@@ -196,6 +198,8 @@ int makeIndex(IndexLayout                  *layout,
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "could not allocate index");
   }
+
+  index->loadContext = loadContext;
 
   uint64_t nonce = getVolumeNonce(layout);
   result = makeMasterIndex(config, zoneCount, nonce, &index->masterIndex);
@@ -256,6 +260,15 @@ int makeIndex(IndexLayout                  *layout,
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return logUnrecoverable(result, "fatal error in makeIndex");
+  }
+
+  if (index->loadContext != NULL) {
+    lockMutex(&index->loadContext->mutex);
+    index->loadContext->status = INDEX_READY;
+    // If we get here, suspend is meaningless, but notify any thread trying
+    // to suspend us so it doesn't hang.
+    broadcastCond(&index->loadContext->cond);
+    unlockMutex(&index->loadContext->mutex);
   }
 
   index->hasSavedOpenChapter = index->loadedType == LOAD_LOAD;
@@ -704,6 +717,39 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber)
   logInfo("beginning %s (vcn %llu)", what, index->lastCheckpoint);
 }
 
+/**
+ * Suspend the index if necessary and wait for a signal to resume.
+ *
+ * @param index  The index to replay
+ *
+ * @return <code>true</code> if the replay should terminate
+ **/
+static bool checkForSuspend(Index *index)
+{
+  if (index->loadContext == NULL) {
+    return false;
+  }
+
+  lockMutex(&index->loadContext->mutex);
+  if (index->loadContext->status != INDEX_SUSPENDING) {
+    unlockMutex(&index->loadContext->mutex);
+    return false;
+  }
+
+  // Notify that we are suspended and wait for the resume.
+  index->loadContext->status = INDEX_SUSPENDED;
+  broadcastCond(&index->loadContext->cond);
+
+  while ((index->loadContext->status != INDEX_OPENING)
+         && (index->loadContext->status != INDEX_FREEING)) {
+    waitCond(&index->loadContext->cond, &index->loadContext->mutex);
+  }
+
+  bool retVal = (index->loadContext->status == INDEX_FREEING);
+  unlockMutex(&index->loadContext->mutex);
+  return retVal;
+}
+
 /**********************************************************************/
 int replayVolume(Index *index, uint64_t fromVCN)
 {
@@ -738,6 +784,11 @@ int replayVolume(Index *index, uint64_t fromVCN)
   uint64_t oldIPMupdate = getLastUpdate(index->volume->indexPageMap);
   uint64_t vcn;
   for (vcn = fromVCN; vcn < uptoVCN; ++vcn) {
+    if (checkForSuspend(index)) {
+      logInfo("Replay interrupted by index shutdown at chapter %llu", vcn);
+      return UDS_SHUTTINGDOWN;
+    }
+
     bool willBeSparseChapter = isChapterSparse(geometry, fromVCN, uptoVCN,
                                                vcn);
     unsigned int chapter = mapToPhysicalChapter(geometry, vcn);

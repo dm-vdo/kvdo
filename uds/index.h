@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.h#3 $
  */
 
 #ifndef INDEX_H
@@ -24,10 +24,12 @@
 
 #include "chapterWriter.h"
 #include "indexLayout.h"
+#include "indexSession.h"
 #include "indexZone.h"
 #include "loadType.h"
 #include "masterIndexOps.h"
 #include "volume.h"
+
 
 /**
  * Index checkpoint state private to indexCheckpoint.c.
@@ -35,15 +37,16 @@
 typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
-  bool           existed;
-  bool           hasSavedOpenChapter;
-  LoadType       loadedType;
-  IndexLayout   *layout;
-  IndexState    *state;
-  MasterIndex   *masterIndex;
-  Volume        *volume;
-  unsigned int   zoneCount;
-  IndexZone    **zones;
+  bool               existed;
+  bool               hasSavedOpenChapter;
+  LoadType           loadedType;
+  IndexLoadContext  *loadContext;
+  IndexLayout       *layout;
+  IndexState        *state;
+  MasterIndex       *masterIndex;
+  Volume            *volume;
+  unsigned int       zoneCount;
+  IndexZone        **zones;
 
   /*
    * ATTENTION!!!
@@ -68,14 +71,15 @@ typedef struct index {
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout      The index layout
- * @param config      The configuration to use
- * @param userParams  The index session parameters.  If NULL, the default
- *                    session parameters will be used.
- * @param zoneCount   The number of zones for this index to use
- * @param loadType    How to create the index:  it can be create only, allow
- *                    loading from files, and allow rebuilding from the volume
- * @param newIndex    A pointer to hold a pointer to the new index
+ * @param layout       The index layout
+ * @param config       The configuration to use
+ * @param userParams   The index session parameters.  If NULL, the default
+ *                     session parameters will be used.
+ * @param zoneCount    The number of zones for this index to use
+ * @param loadType     How to create the index:  it can be create only, allow
+ *                     loading from files, and allow rebuilding from the volume
+ * @param loadContext  The load context to use
+ * @param newIndex     A pointer to hold a pointer to the new index
  *
  * @return         UDS_SUCCESS or an error code
  **/
@@ -84,6 +88,7 @@ int makeIndex(IndexLayout                  *layout,
               const struct uds_parameters  *userParams,
               unsigned int                  zoneCount,
               LoadType                      loadType,
+              IndexLoadContext             *loadContext,
               Index                       **newIndex)
   __attribute__((warn_unused_result));
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/public/uds.h#11 $
+ * $Id: //eng/uds-releases/jasper/src/uds/uds.h#2 $
  */
 
 /**
@@ -344,6 +344,21 @@ int udsComputeIndexSize(const UdsConfiguration  config,
                         uint64_t               *indexSize);
 
 /**
+ * Opens an index session.
+ *
+ * Creates a session for an index. #udsOpenIndex must be called before
+ * the index can be used.
+ *
+ * Destroy the session with #udsDestroyIndexSession.
+ *
+ * @param [out] session  A pointer to the new session
+ *
+ * @return Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsCreateIndexSession(struct uds_index_session **session);
+
+/**
  * Fetches the UDS library version.
  *
  * @return       The library version
@@ -362,26 +377,51 @@ const char *udsGetVersion(void);
  **/
 
 /**
- * Opens an index, and creates a session for it.
+ * Opens an index with an existing session.  This operation will fail if the
+ * index session is suspended, or if there is already an open index.
  *
- * The index should be closed with #udsCloseIndexSession.
+ * The index should be closed with #udsCloseIndex.
  *
- * @param [in] openType  The type of open, which is one of #UDS_LOAD,
- *                       #UDS_CREATE, or #UDS_NO_REBUILD.
- * @param [in] name      The name of the index
- * @param [in] params    The index session parameters.  If NULL, the default
+ * @param openType  The type of open, which is one of #UDS_LOAD, #UDS_CREATE,
+ *                  or #UDS_NO_REBUILD.
+ * @param name      The name of the index
+ * @param params    The index session parameters.  If NULL, the default
  *                       session parameters will be used.
- * @param [in] conf      The index configuration
- * @param [out] session  The name of the new local index session
+ * @param conf      The index configuration
+ * @param session   The index session
  *
- * @return               Either #UDS_SUCCESS or an error code
+ * @return          Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsOpenIndex(UdsOpenIndexType              openType,
-                 const char                   *name,
-                 const struct uds_parameters  *params,
-                 UdsConfiguration              conf,
-                 struct uds_index_session    **session);
+int udsOpenIndex(UdsOpenIndexType             openType,
+                 const char                  *name,
+                 const struct uds_parameters *params,
+                 UdsConfiguration             conf,
+                 struct uds_index_session    *session);
+
+/**
+ * Waits until all callbacks for index operations are complete, and prevents
+ * new index operations from starting. Index operations will return
+ * UDS_SUSPENDED until #udsResumeIndexSession is called. Optionally saves all
+ * index data before returning.
+ *
+ * @param session  The session to suspend
+ * @param save     Whether to save index data
+ *
+ * @return  Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsSuspendIndexSession(struct uds_index_session *session, bool save);
+
+/**
+ * Allows new index operations for an index, whether it was suspended or not.
+ *
+ * @param session  The session to resume
+ *
+ * @return  Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsResumeIndexSession(struct uds_index_session *session);
 
 /**
  * Waits until all callbacks for index operations are complete.
@@ -394,34 +434,30 @@ UDS_ATTR_WARN_UNUSED_RESULT
 int udsFlushIndexSession(struct uds_index_session *session);
 
 /**
- * Save an index, without closing the index session.
+ * Closes an index.  This operation will fail if the index session is
+ * suspended.
  *
- * Changes to the index are saved so that #udsOpenIndex can re-open it.
+ * Saves changes to the index so that #udsOpenIndex can re-open it.
  *
- * During the call to #udsSaveIndex, there should be no other call to
- * #udsSaveIndex and there should be no calls to #udsStartChunkOperation.
- *
- * @param [in] session  The session to save
+ * @param [in] session  The session containing the index to close
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsSaveIndex(struct uds_index_session *session);
+int udsCloseIndex(struct uds_index_session *session);
 
 /**
- * Closes an index session.
+ * Destroys an index session.
  *
- * Saves changes to the index and closes the index session.  Use
- * #udsCloseIndexSession for index sessions created by #udsOpenIndex.
+ * Saves changes to the index and closes the index if one is open.
+ * Use #udsDestroyIndexSession for index sessions created by
+ * #udsCreateIndexSession.
  *
- * The index is saved so that #udsOpenIndex can re-open it.
- *
- * @param [in] session  The session to close
+ * @param [in] session  The session to destroy
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCloseIndexSession(struct uds_index_session *session);
+int udsDestroyIndexSession(struct uds_index_session *session);
 
 /**
  * Returns the configuration for the given index session.
