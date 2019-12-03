@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#4 $
  */
 
 #ifndef FOREST_H
@@ -45,10 +45,10 @@ typedef int EntryCallback(PhysicalBlockNumber pbn, VDOCompletion *completion);
  *
  * @return The requested page
  **/
-struct tree_page *getTreePageByIndex(Forest       *forest,
-                                     RootCount     rootIndex,
-                                     Height        height,
-                                     PageNumber    pageIndex)
+struct tree_page *getTreePageByIndex(struct forest *forest,
+                                     RootCount      rootIndex,
+                                     Height         height,
+                                     PageNumber     pageIndex)
   __attribute__((warn_unused_result));
 
 /**
@@ -69,7 +69,7 @@ int makeForest(struct block_map *map, BlockCount entries)
  *
  * @param forestPtr  A pointer to the forest to free
  **/
-void freeForest(Forest **forestPtr);
+void freeForest(struct forest **forestPtr);
 
 /**
  * Abandon the unused next forest from a block_map.
@@ -79,7 +79,7 @@ void freeForest(Forest **forestPtr);
 void abandonForest(struct block_map *map);
 
 /**
- * Replace a block_map's Forest with the already-prepared larger forest.
+ * Replace a block_map's forest with the already-prepared larger forest.
  *
  * @param map  The block map
  **/

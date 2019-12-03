@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#20 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -103,9 +103,9 @@ struct block_map {
   RecoveryJournal       *journal;
 
   /** The trees for finding block map pages */
-  Forest                *forest;
+  struct forest         *forest;
   /** The expanded trees awaiting growth */
-  Forest                *nextForest;
+  struct forest         *nextForest;
   /** The number of entries after growth */
   BlockCount             nextEntryCount;
 

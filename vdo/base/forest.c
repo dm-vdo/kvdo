@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#12 $
  */
 
 #include "forest.h"
@@ -89,10 +89,10 @@ struct cursors {
 };
 
 /**********************************************************************/
-struct tree_page *getTreePageByIndex(Forest       *forest,
-                                     RootCount     rootIndex,
-                                     Height        height,
-                                     PageNumber    pageIndex)
+struct tree_page *getTreePageByIndex(struct forest *forest,
+                                     RootCount      rootIndex,
+                                     Height         height,
+                                     PageNumber     pageIndex)
 {
   PageNumber offset = 0;
   for (size_t segment = 0; segment < forest->segments; segment++) {
@@ -144,10 +144,10 @@ static BlockCount computeNewPages(RootCount          rootCount,
 }
 
 /**********************************************************************/
-static int makeSegment(Forest             *oldForest,
-                       BlockCount          newPages,
-                       struct boundary    *newBoundary,
-                       Forest             *forest)
+static int makeSegment(struct forest   *oldForest,
+                       BlockCount       newPages,
+                       struct boundary *newBoundary,
+                       struct forest   *forest)
 {
   size_t index     = (oldForest == NULL) ? 0 : oldForest->segments;
   forest->segments = index + 1;
@@ -224,7 +224,7 @@ static int makeSegment(Forest             *oldForest,
 }
 
 /**********************************************************************/
-static void deforest(Forest *forest, size_t firstPageSegment)
+static void deforest(struct forest *forest, size_t firstPageSegment)
 {
   if (forest->pages != NULL) {
     for (size_t segment = firstPageSegment; segment < forest->segments;
@@ -248,7 +248,7 @@ int makeForest(struct block_map *map, BlockCount entries)
 {
   STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
 
-  Forest   *oldForest   = map->forest;
+  struct forest   *oldForest   = map->forest;
   struct boundary *oldBoundary = NULL;
   if (oldForest != NULL) {
     oldBoundary = &(oldForest->boundaries[oldForest->segments - 1]);
@@ -262,9 +262,9 @@ int makeForest(struct block_map *map, BlockCount entries)
     return VDO_SUCCESS;
   }
 
-  Forest *forest;
-  int result = ALLOCATE_EXTENDED(Forest, map->rootCount, struct block_map_tree,
-                                 __func__, &forest);
+  struct forest *forest;
+  int result = ALLOCATE_EXTENDED(struct forest, map->rootCount,
+                                 struct block_map_tree, __func__, &forest);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -282,9 +282,9 @@ int makeForest(struct block_map *map, BlockCount entries)
 }
 
 /**********************************************************************/
-void freeForest(Forest **forestPtr)
+void freeForest(struct forest **forestPtr)
 {
-  Forest *forest = *forestPtr;
+  struct forest *forest = *forestPtr;
   if (forest == NULL) {
     return;
   }
@@ -296,7 +296,7 @@ void freeForest(Forest **forestPtr)
 /**********************************************************************/
 void abandonForest(struct block_map *map)
 {
-  Forest *forest = map->nextForest;
+  struct forest *forest = map->nextForest;
   map->nextForest = NULL;
   if (forest != NULL) {
     deforest(forest, forest->segments - 1);

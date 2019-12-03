@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#3 $
  */
 
 #ifndef FLUSH_H
@@ -50,7 +50,7 @@ int makeFlusher(VDO *vdo)
  *
  * @param flusherPtr  A pointer to the flusher to free
  **/
-void freeFlusher(Flusher **flusherPtr);
+void freeFlusher(struct flusher **flusherPtr);
 
 /**
  * Get the ID of the thread on which flusher functions should be called.
@@ -59,7 +59,7 @@ void freeFlusher(Flusher **flusherPtr);
  *
  * @return The ID of the thread which handles the flusher
  **/
-ThreadID getFlusherThreadID(Flusher *flusher)
+ThreadID getFlusherThreadID(struct flusher *flusher)
   __attribute__((warn_unused_result));
 
 /**
@@ -75,13 +75,13 @@ void flush(VDO *vdo, VDOFlush *vdoFlush);
  *
  * @param flusher  The flusher
  **/
-void completeFlushes(Flusher *flusher);
+void completeFlushes(struct flusher *flusher);
 
 /**
  * Dump the flusher, in a thread-unsafe fashion.
  *
  * @param flusher  The flusher
  **/
-void dumpFlusher(const Flusher *flusher);
+void dumpFlusher(const struct flusher *flusher);
 
 #endif /* FLUSH_H */

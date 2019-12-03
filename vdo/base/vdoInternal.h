@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#16 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -88,7 +88,7 @@ struct vdo {
   AtomicBool                       compressing;
 
   /* The handler for flush requests */
-  Flusher                         *flusher;
+  struct flusher                  *flusher;
 
   /* The master version of the VDO when loaded (for upgrading) */
   struct version_number            loadVersion;

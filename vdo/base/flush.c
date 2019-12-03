@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#6 $
  */
 
 #include "flush.h"
@@ -53,17 +53,17 @@ struct flusher {
 };
 
 /**
- * Convert a generic VDOCompletion to a Flusher.
+ * Convert a generic VDOCompletion to a flusher.
  *
  * @param completion  The completion to convert
  *
- * @return The completion as a Flusher
+ * @return The completion as a flusher
  **/
-static Flusher *asFlusher(VDOCompletion *completion)
+static struct flusher *asFlusher(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(Flusher, completion) == 0);
+  STATIC_ASSERT(offsetof(struct flusher, completion) == 0);
   assertCompletionType(completion->type, FLUSH_NOTIFICATION_COMPLETION);
-  return (Flusher *) completion;
+  return (struct flusher *) completion;
 }
 
 /**
@@ -82,7 +82,7 @@ static VDOFlush *waiterAsFlush(struct waiter *waiter)
 /**********************************************************************/
 int makeFlusher(VDO *vdo)
 {
-  int result = ALLOCATE(1, Flusher, __func__, &vdo->flusher);
+  int result = ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -95,26 +95,26 @@ int makeFlusher(VDO *vdo)
 }
 
 /**********************************************************************/
-void freeFlusher(Flusher **flusherPtr)
+void freeFlusher(struct flusher **flusherPtr)
 {
   if (*flusherPtr == NULL) {
     return;
   }
 
-  Flusher *flusher = *flusherPtr;
+  struct flusher *flusher = *flusherPtr;
   destroyEnqueueable(&flusher->completion);
   FREE(flusher);
   *flusherPtr = NULL;
 }
 
 /**********************************************************************/
-ThreadID getFlusherThreadID(Flusher *flusher)
+ThreadID getFlusherThreadID(struct flusher *flusher)
 {
   return flusher->threadID;
 }
 
 /**********************************************************************/
-static void notifyFlush(Flusher *flusher);
+static void notifyFlush(struct flusher *flusher);
 
 /**
  * Finish the notification process by checking if any flushes have completed
@@ -126,7 +126,7 @@ static void notifyFlush(Flusher *flusher);
  **/
 static void finishNotification(VDOCompletion *completion)
 {
-  Flusher *flusher = asFlusher(completion);
+  struct flusher *flusher = asFlusher(completion);
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
                   "finishNotification() called from flusher thread");
 
@@ -154,7 +154,7 @@ static void finishNotification(VDOCompletion *completion)
  **/
 static void flushPackerCallback(VDOCompletion *completion)
 {
-  Flusher *flusher = asFlusher(completion);
+  struct flusher *flusher = asFlusher(completion);
   incrementPackerFlushGeneration(flusher->vdo->packer);
   launchCallback(completion, finishNotification, flusher->threadID);
 }
@@ -168,7 +168,7 @@ static void flushPackerCallback(VDOCompletion *completion)
  **/
 static void incrementGeneration(VDOCompletion *completion)
 {
-  Flusher *flusher = asFlusher(completion);
+  struct flusher *flusher = asFlusher(completion);
   incrementFlushGeneration(flusher->logicalZoneToNotify,
                            flusher->notifyGeneration);
   flusher->logicalZoneToNotify
@@ -187,7 +187,7 @@ static void incrementGeneration(VDOCompletion *completion)
  *
  * @param flusher  The flusher doing the notification
  **/
-static void notifyFlush(Flusher *flusher)
+static void notifyFlush(struct flusher *flusher)
 {
   VDOFlush *flush = waiterAsFlush(getFirstWaiter(&flusher->notifiers));
   flusher->notifyGeneration    = flush->flushGeneration;
@@ -200,7 +200,7 @@ static void notifyFlush(Flusher *flusher)
 /**********************************************************************/
 void flush(VDO *vdo, VDOFlush *flush)
 {
-  Flusher *flusher = vdo->flusher;
+  struct flusher *flusher = vdo->flusher;
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
                   "flush() called from flusher thread");
 
@@ -220,7 +220,7 @@ void flush(VDO *vdo, VDOFlush *flush)
 }
 
 /**********************************************************************/
-void completeFlushes(Flusher *flusher)
+void completeFlushes(struct flusher *flusher)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
                   "completeFlushes() called from flusher thread");
@@ -253,9 +253,9 @@ void completeFlushes(Flusher *flusher)
 }
 
 /**********************************************************************/
-void dumpFlusher(const Flusher *flusher)
+void dumpFlusher(const struct flusher *flusher)
 {
-  logInfo("Flusher");
+  logInfo("struct flusher");
   logInfo("  flushGeneration=%" PRIu64
           " firstUnacknowledgedGeneration=%llu",
           flusher->flushGeneration, flusher->firstUnacknowledgedGeneration);
