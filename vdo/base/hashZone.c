@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#5 $
  */
 
 #include "hashZone.h"
@@ -59,7 +59,7 @@ struct atomic_hash_lock_statistics {
   Atomic64 concurrentHashCollisions;
 };
 
-struct hashZone {
+struct hash_zone {
   /** Which hash zone this is */
   ZoneCount	                     zoneNumber;
 
@@ -76,7 +76,7 @@ struct hashZone {
   struct atomic_hash_lock_statistics statistics;
 
   /** Array of all HashLocks */
-  HashLock                          *lockArray;
+  struct hash_lock                  *lockArray;
 };
 
 /**
@@ -103,17 +103,17 @@ static uint32_t hashKey(const void *key)
 }
 
 /**********************************************************************/
-static inline HashLock *asHashLock(RingNode *poolNode)
+static inline struct hash_lock *asHashLock(RingNode *poolNode)
 {
-  STATIC_ASSERT(offsetof(HashLock, poolNode) == 0);
-  return (HashLock *) poolNode;
+  STATIC_ASSERT(offsetof(struct hash_lock, poolNode) == 0);
+  return (struct hash_lock *) poolNode;
 }
 
 /**********************************************************************/
-int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
+int makeHashZone(VDO *vdo, ZoneCount zoneNumber, struct hash_zone **zonePtr)
 {
-  HashZone *zone;
-  int result = ALLOCATE(1, HashZone, __func__, &zone);
+  struct hash_zone *zone;
+  int result = ALLOCATE(1, struct hash_zone, __func__, &zone);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -129,15 +129,15 @@ int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
   zone->threadID   = getHashZoneThread(getThreadConfig(vdo), zoneNumber);
   initializeRing(&zone->lockPool);
 
-  result = ALLOCATE(LOCK_POOL_CAPACITY, HashLock, "HashLock array",
-                    &zone->lockArray);
+  result = ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,
+                    "hash_lock array", &zone->lockArray);
   if (result != VDO_SUCCESS) {
     freeHashZone(&zone);
     return result;
   }
 
   for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {
-    HashLock *lock = &zone->lockArray[i];
+    struct hash_lock *lock = &zone->lockArray[i];
     initializeHashLock(lock);
     pushRingNode(&zone->lockPool, &lock->poolNode);
   }
@@ -147,13 +147,13 @@ int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
 }
 
 /**********************************************************************/
-void freeHashZone(HashZone **zonePtr)
+void freeHashZone(struct hash_zone **zonePtr)
 {
   if (*zonePtr == NULL) {
     return;
   }
 
-  HashZone *zone = *zonePtr;
+  struct hash_zone *zone = *zonePtr;
   freePointerMap(&zone->hashLockMap);
   FREE(zone->lockArray);
   FREE(zone);
@@ -161,19 +161,19 @@ void freeHashZone(HashZone **zonePtr)
 }
 
 /**********************************************************************/
-ZoneCount getHashZoneNumber(const HashZone *zone)
+ZoneCount getHashZoneNumber(const struct hash_zone *zone)
 {
   return zone->zoneNumber;
 }
 
 /**********************************************************************/
-ThreadID getHashZoneThreadID(const HashZone *zone)
+ThreadID getHashZoneThreadID(const struct hash_zone *zone)
 {
   return zone->threadID;
 }
 
 /**********************************************************************/
-HashLockStatistics getHashZoneStatistics(const HashZone *zone)
+HashLockStatistics getHashZoneStatistics(const struct hash_zone *zone)
 {
   const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
   return (HashLockStatistics) {
@@ -191,9 +191,10 @@ HashLockStatistics getHashZoneStatistics(const HashZone *zone)
  * @param [in]     zone     The zone from which the lock was borrowed
  * @param [in,out] lockPtr  The last reference to the lock being returned
  **/
-static void returnHashLockToPool(HashZone *zone, HashLock **lockPtr)
+static void returnHashLockToPool(struct hash_zone  *zone,
+                                 struct hash_lock **lockPtr)
 {
-  HashLock *lock = *lockPtr;
+  struct hash_lock *lock = *lockPtr;
   *lockPtr = NULL;
 
   memset(lock, 0, sizeof(*lock));
@@ -202,14 +203,14 @@ static void returnHashLockToPool(HashZone *zone, HashLock **lockPtr)
 }
 
 /**********************************************************************/
-int acquireHashLockFromZone(HashZone            *zone,
+int acquireHashLockFromZone(struct hash_zone    *zone,
                             const UdsChunkName  *hash,
-                            HashLock            *replaceLock,
-                            HashLock           **lockPtr)
+                            struct hash_lock    *replaceLock,
+                            struct hash_lock   **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two
   // pointer_map accesses in the common case of no lock contention.
-  HashLock *newLock = asHashLock(popRingNode(&zone->lockPool));
+  struct hash_lock *newLock = asHashLock(popRingNode(&zone->lockPool));
   int result = ASSERT(newLock != NULL,
                       "never need to wait for a free hash lock");
   if (result != VDO_SUCCESS) {
@@ -220,7 +221,7 @@ int acquireHashLockFromZone(HashZone            *zone,
   // the hash as the map key.
   newLock->hash = *hash;
 
-  HashLock *lock;
+  struct hash_lock *lock;
   result = pointerMapPut(zone->hashLockMap, &newLock->hash, newLock,
                          (replaceLock != NULL), (void **) &lock);
   if (result != VDO_SUCCESS) {
@@ -251,13 +252,14 @@ int acquireHashLockFromZone(HashZone            *zone,
 }
 
 /**********************************************************************/
-void returnHashLockToZone(HashZone *zone, HashLock **lockPtr)
+void returnHashLockToZone(struct hash_zone *zone, struct hash_lock **lockPtr)
 {
-  HashLock *lock = *lockPtr;
+  struct hash_lock *lock = *lockPtr;
   *lockPtr = NULL;
 
   if (lock->registered) {
-    HashLock *removed = pointerMapRemove(zone->hashLockMap, &lock->hash);
+    struct hash_lock *removed = pointerMapRemove(zone->hashLockMap,
+                                                 &lock->hash);
     ASSERT_LOG_ONLY(lock == removed,
                     "hash lock being released must have been mapped");
   } else {
@@ -281,12 +283,12 @@ void returnHashLockToZone(HashZone *zone, HashLock **lockPtr)
 }
 
 /**
- * Dump a compact description of HashLock to the log if the lock is not on the
+ * Dump a compact description of hash_lock to the log if the lock is not on the
  * free list.
  *
  * @param lock  The hash lock to dump
  **/
-static void dumpHashLock(const HashLock *lock)
+static void dumpHashLock(const struct hash_lock *lock)
 {
   if (!isRingEmpty(&lock->poolNode)) {
     // This lock is on the free list.
@@ -308,42 +310,42 @@ static void dumpHashLock(const HashLock *lock)
 }
 
 /**********************************************************************/
-void bumpHashZoneValidAdviceCount(HashZone *zone)
+void bumpHashZoneValidAdviceCount(struct hash_zone *zone)
 {
   // Must only be mutated on the hash zone thread.
   relaxedAdd64(&zone->statistics.dedupeAdviceValid, 1);
 }
 
 /**********************************************************************/
-void bumpHashZoneStaleAdviceCount(HashZone *zone)
+void bumpHashZoneStaleAdviceCount(struct hash_zone *zone)
 {
   // Must only be mutated on the hash zone thread.
   relaxedAdd64(&zone->statistics.dedupeAdviceStale, 1);
 }
 
 /**********************************************************************/
-void bumpHashZoneDataMatchCount(HashZone *zone)
+void bumpHashZoneDataMatchCount(struct hash_zone *zone)
 {
   // Must only be mutated on the hash zone thread.
   relaxedAdd64(&zone->statistics.concurrentDataMatches, 1);
 }
 
 /**********************************************************************/
-void bumpHashZoneCollisionCount(HashZone *zone)
+void bumpHashZoneCollisionCount(struct hash_zone *zone)
 {
   // Must only be mutated on the hash zone thread.
   relaxedAdd64(&zone->statistics.concurrentHashCollisions, 1);
 }
 
 /**********************************************************************/
-void dumpHashZone(const HashZone *zone)
+void dumpHashZone(const struct hash_zone *zone)
 {
   if (zone->hashLockMap == NULL) {
-    logInfo("HashZone %u: NULL map", zone->zoneNumber);
+    logInfo("struct hash_zone %u: NULL map", zone->zoneNumber);
     return;
   }
 
-  logInfo("HashZone %u: mapSize=%zu",
+  logInfo("struct hash_zone %u: mapSize=%zu",
           zone->zoneNumber, pointerMapSize(zone->hashLockMap));
   for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {
     dumpHashLock(&zone->lockArray[i]);

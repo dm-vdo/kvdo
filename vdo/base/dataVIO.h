@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#10 $
  */
 
 #ifndef DATA_VIO_H
@@ -189,10 +189,10 @@ struct data_vio {
   ZonedPBN                    newMapped;
 
   /* The hash zone responsible for the chunk name (NULL if isZeroBlock) */
-  HashZone                   *hashZone;
+  struct hash_zone           *hashZone;
 
   /* The lock this VIO holds or shares with other VIOs with the same data */
-  HashLock                   *hashLock;
+  struct hash_lock           *hashLock;
 
   /* All DataVIOs sharing a hash lock are kept in a ring linking these nodes */
   RingNode                    hashLockNode;

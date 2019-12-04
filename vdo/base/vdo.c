@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#17 $
  */
 
 /*
@@ -1041,7 +1041,7 @@ void assertOnPhysicalZoneThread(const VDO  *vdo,
 }
 
 /**********************************************************************/
-HashZone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
+struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
 {
   /*
    * Use a fragment of the chunk name as a hash code. To ensure uniform

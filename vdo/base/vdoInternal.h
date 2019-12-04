@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#17 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -104,7 +104,7 @@ struct vdo {
   PhysicalZone                   **physicalZones;
 
   /* The hash lock zones of this VDO */
-  HashZone                       **hashZones;
+  struct hash_zone               **hashZones;
 
   /* The completion for administrative operations */
   struct admin_completion          adminCompletion;
@@ -370,7 +370,7 @@ void assertOnPhysicalZoneThread(const VDO  *vdo,
  *
  * @return  The hash zone responsible for the chunk name
  **/
-HashZone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
+struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
   __attribute__((warn_unused_result));
 
 /**

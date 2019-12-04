@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#2 $
  */
 
 #ifndef HASH_ZONE_H
@@ -32,11 +32,11 @@
  *
  * @param [in]  vdo         The VDO to which the zone will belong
  * @param [in]  zoneNumber  The number of the zone to create
- * @param [out] zonePtr     A pointer to hold the new HashZone
+ * @param [out] zonePtr     A pointer to hold the new hash_zone
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
+int makeHashZone(VDO *vdo, ZoneCount zoneNumber, struct hash_zone **zonePtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -44,7 +44,7 @@ int makeHashZone(VDO *vdo, ZoneCount zoneNumber, HashZone **zonePtr)
  *
  * @param zonePtr  A pointer to the zone to free
  **/
-void freeHashZone(HashZone **zonePtr);
+void freeHashZone(struct hash_zone **zonePtr);
 
 /**
  * Get the zone number of a hash zone.
@@ -53,7 +53,7 @@ void freeHashZone(HashZone **zonePtr);
  *
  * @return The number of the zone
  **/
-ZoneCount getHashZoneNumber(const HashZone *zone)
+ZoneCount getHashZoneNumber(const struct hash_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -63,7 +63,7 @@ ZoneCount getHashZoneNumber(const HashZone *zone)
  *
  * @return The zone's thread ID
  **/
-ThreadID getHashZoneThreadID(const HashZone *zone)
+ThreadID getHashZoneThreadID(const struct hash_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -73,7 +73,7 @@ ThreadID getHashZoneThreadID(const HashZone *zone)
  *
  * @return A copy of the current statistics for the hash zone
  **/
-HashLockStatistics getHashZoneStatistics(const HashZone *zone)
+HashLockStatistics getHashZoneStatistics(const struct hash_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -90,10 +90,10 @@ HashLockStatistics getHashZoneStatistics(const HashZone *zone)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquireHashLockFromZone(HashZone            *zone,
+int acquireHashLockFromZone(struct hash_zone    *zone,
                             const UdsChunkName  *hash,
-                            HashLock            *replaceLock,
-                            HashLock           **lockPtr)
+                            struct hash_lock    *replaceLock,
+                            struct hash_lock   **lockPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -105,7 +105,7 @@ int acquireHashLockFromZone(HashZone            *zone,
  * @param [in]     zone     The zone from which the lock was borrowed
  * @param [in,out] lockPtr  The lock that is no longer in use
  **/
-void returnHashLockToZone(HashZone *zone, HashLock **lockPtr);
+void returnHashLockToZone(struct hash_zone *zone, struct hash_lock **lockPtr);
 
 /**
  * Increment the valid advice count in the hash zone statistics.
@@ -113,7 +113,7 @@ void returnHashLockToZone(HashZone *zone, HashLock **lockPtr);
  *
  * @param zone  The hash zone of the lock that received valid advice
  **/
-void bumpHashZoneValidAdviceCount(HashZone *zone);
+void bumpHashZoneValidAdviceCount(struct hash_zone *zone);
 
 /**
  * Increment the stale advice count in the hash zone statistics.
@@ -121,7 +121,7 @@ void bumpHashZoneValidAdviceCount(HashZone *zone);
  *
  * @param zone  The hash zone of the lock that received stale advice
  **/
-void bumpHashZoneStaleAdviceCount(HashZone *zone);
+void bumpHashZoneStaleAdviceCount(struct hash_zone *zone);
 
 /**
  * Increment the concurrent dedupe count in the hash zone statistics.
@@ -129,7 +129,7 @@ void bumpHashZoneStaleAdviceCount(HashZone *zone);
  *
  * @param zone  The hash zone of the lock that matched a new DataVIO
  **/
-void bumpHashZoneDataMatchCount(HashZone *zone);
+void bumpHashZoneDataMatchCount(struct hash_zone *zone);
 
 /**
  * Increment the concurrent hash collision count in the hash zone statistics.
@@ -137,13 +137,13 @@ void bumpHashZoneDataMatchCount(HashZone *zone);
  *
  * @param zone  The hash zone of the lock that rejected a colliding DataVIO
  **/
-void bumpHashZoneCollisionCount(HashZone *zone);
+void bumpHashZoneCollisionCount(struct hash_zone *zone);
 
 /**
  * Dump information about a hash zone to the log for debugging.
  *
  * @param zone   The zone to dump
  **/
-void dumpHashZone(const HashZone *zone);
+void dumpHashZone(const struct hash_zone *zone);
 
 #endif // HASH_ZONE_H

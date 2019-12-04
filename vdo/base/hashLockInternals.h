@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#4 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -55,7 +55,7 @@ typedef enum {
   HASH_LOCK_DESTROYING,
 } HashLockState;
 
-struct hashLock {
+struct hash_lock {
   /** When the lock is unused, this RingNode allows the lock to be pooled */
   RingNode               poolNode;
 
@@ -110,11 +110,11 @@ struct hashLock {
 };
 
 /**
- * Initialize a HashLock instance which has been newly allocated.
+ * Initialize a hash_lock instance which has been newly allocated.
  *
  * @param lock  The lock to initialize
  **/
-static inline void initializeHashLock(HashLock *lock)
+static inline void initializeHashLock(struct hash_lock *lock)
 {
   initializeRing(&lock->poolNode);
   initializeRing(&lock->duplicateRing);
