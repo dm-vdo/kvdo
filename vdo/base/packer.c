@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#16 $
  */
 
 #include "packerInternals.h"
@@ -49,10 +49,10 @@ static inline void assertOnPackerThread(struct packer *packer,
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static inline InputBin *inputBinFromRingNode(RingNode *node)
+static inline struct input_bin *inputBinFromRingNode(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(InputBin, ring) == 0);
-  return (InputBin *) node;
+  STATIC_ASSERT(offsetof(struct input_bin, ring) == 0);
+  return (struct input_bin *) node;
 }
 
 /**********************************************************************/
@@ -64,7 +64,7 @@ static inline struct output_bin *outputBinFromRingNode(RingNode *node)
 }
 
 /**********************************************************************/
-InputBin *nextBin(const struct packer *packer, InputBin *bin)
+struct input_bin *nextBin(const struct packer *packer, struct input_bin *bin)
 {
   if (bin->ring.next == &packer->inputBins) {
     return NULL;
@@ -74,7 +74,7 @@ InputBin *nextBin(const struct packer *packer, InputBin *bin)
 }
 
 /**********************************************************************/
-InputBin *getFullestBin(const struct packer *packer)
+struct input_bin *getFullestBin(const struct packer *packer)
 {
   if (isRingEmpty(&packer->inputBins)) {
     return NULL;
@@ -91,9 +91,9 @@ InputBin *getFullestBin(const struct packer *packer)
  * @param packer  The packer
  * @param bin     The input bin to move to its sorted position
  **/
-static void insertInSortedList(struct packer *packer, InputBin *bin)
+static void insertInSortedList(struct packer *packer, struct input_bin *bin)
 {
-  for (InputBin *activeBin = getFullestBin(packer);
+  for (struct input_bin *activeBin = getFullestBin(packer);
        activeBin != NULL;
        activeBin = nextBin(packer, activeBin)) {
     if (activeBin->freeSpace > bin->freeSpace) {
@@ -113,8 +113,8 @@ static void insertInSortedList(struct packer *packer, InputBin *bin)
 __attribute__((warn_unused_result))
 static int makeInputBin(struct packer *packer)
 {
-  InputBin *bin;
-  int result = ALLOCATE_EXTENDED(InputBin, MAX_COMPRESSION_SLOTS, VIO *,
+  struct input_bin *bin;
+  int result = ALLOCATE_EXTENDED(struct input_bin, MAX_COMPRESSION_SLOTS, VIO *,
                                  __func__, &bin);
   if (result != VDO_SUCCESS) {
     return result;
@@ -256,8 +256,8 @@ int makePacker(PhysicalLayer       *layer,
    * canceled VIO in the bin must have a canceler for which it is waiting, and
    * any canceler will only have canceled one lock holder at a time.
    */
-  result = ALLOCATE_EXTENDED(InputBin, MAXIMUM_USER_VIOS / 2, VIO *, __func__,
-                             &packer->canceledBin);
+  result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_USER_VIOS / 2, VIO *,
+                             __func__, &packer->canceledBin);
   if (result != VDO_SUCCESS) {
     freePacker(&packer);
     return result;
@@ -283,7 +283,7 @@ void freePacker(struct packer **packerPtr)
     return;
   }
 
-  InputBin *input;
+  struct input_bin *input;
   while ((input = getFullestBin(packer)) != NULL) {
     unspliceRingNode(&input->ring);
     FREE(input);
@@ -649,12 +649,12 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
 }
 
 /**
- * Put a data_vio in a specific InputBin in which it will definitely fit.
+ * Put a data_vio in a specific input_bin in which it will definitely fit.
  *
  * @param bin      The bin in which to put the data_vio
  * @param dataVIO  The data_vio to add
  **/
-static void addToInputBin(InputBin *bin, struct data_vio *dataVIO)
+static void addToInputBin(struct input_bin *bin, struct data_vio *dataVIO)
 {
   dataVIO->compression.bin  = bin;
   dataVIO->compression.slot = bin->slotsUsed;
@@ -662,13 +662,13 @@ static void addToInputBin(InputBin *bin, struct data_vio *dataVIO)
 }
 
 /**
- * Start a new batch of VIOs in an InputBin, moving the existing batch, if
+ * Start a new batch of VIOs in an input_bin, moving the existing batch, if
  * any, to the queue of pending batched VIOs in the packer.
  *
  * @param packer  The packer
  * @param bin     The bin to prepare
  **/
-static void startNewBatch(struct packer *packer, InputBin *bin)
+static void startNewBatch(struct packer *packer, struct input_bin *bin)
 {
   // Move all the DataVIOs in the current batch to the batched queue so they
   // will get packed into the next free output bin.
@@ -707,9 +707,9 @@ static void startNewBatch(struct packer *packer, InputBin *bin)
  * @param bin      The bin to which to add the the data_vio
  * @param dataVIO  The data_vio to add to the bin's queue
  **/
-static void addDataVIOToInputBin(struct packer   *packer,
-                                 InputBin        *bin,
-                                 struct data_vio *dataVIO)
+static void addDataVIOToInputBin(struct packer    *packer,
+                                 struct input_bin *bin,
+                                 struct data_vio  *dataVIO)
 {
   // If the selected bin doesn't have room, start a new batch to make room.
   if (bin->freeSpace < dataVIO->compression.size) {
@@ -772,12 +772,15 @@ static void writePendingBatches(struct packer *packer)
  * @param dataVIO  The data_vio
  **/
 __attribute__((warn_unused_result))
-static InputBin *selectInputBin(struct packer *packer, struct data_vio *dataVIO)
+static struct input_bin *selectInputBin(struct packer   *packer,
+                                        struct data_vio *dataVIO)
 {
   // First best fit: select the bin with the least free space that has enough
   // room for the compressed data in the data_vio.
-  InputBin *fullestBin = getFullestBin(packer);
-  for (InputBin *bin = fullestBin; bin != NULL; bin = nextBin(packer, bin)) {
+  struct input_bin *fullestBin = getFullestBin(packer);
+  for (struct input_bin *bin = fullestBin;
+       bin != NULL;
+       bin = nextBin(packer, bin)) {
     if (bin->freeSpace >= dataVIO->compression.size) {
       return bin;
     }
@@ -844,7 +847,7 @@ void attemptPacking(struct data_vio *dataVIO)
    * larger than the space used in the fullest bin. Hence we must call
    * selectInputBin() before calling mayBlockInPacker() (VDO-2826).
    */
-  InputBin *bin = selectInputBin(packer, dataVIO);
+  struct input_bin *bin = selectInputBin(packer, dataVIO);
   if ((bin == NULL) || !mayBlockInPacker(dataVIO)) {
     abortPacking(dataVIO);
     return;
@@ -862,7 +865,7 @@ void attemptPacking(struct data_vio *dataVIO)
  **/
 static void writeAllNonEmptyBins(struct packer *packer)
 {
-  for (InputBin *bin = getFullestBin(packer);
+  for (struct input_bin *bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {
     startNewBatch(packer, bin);
@@ -888,7 +891,7 @@ void flushPacker(struct packer *packer)
  */
 void removeFromPacker(struct data_vio *dataVIO)
 {
-  InputBin *bin    = dataVIO->compression.bin;
+  struct input_bin *bin    = dataVIO->compression.bin;
   ASSERT_LOG_ONLY((bin != NULL), "data_vio in packer has an input bin");
 
   SlotNumber slot = dataVIO->compression.slot;
@@ -968,7 +971,7 @@ void resetSlotCount(struct packer *packer, CompressedFragmentCount slots)
 }
 
 /**********************************************************************/
-static void dumpInputBin(const InputBin *bin, bool canceled)
+static void dumpInputBin(const struct input_bin *bin, bool canceled)
 {
   if (bin->slotsUsed == 0) {
     // Don't dump empty input bins.
@@ -1008,7 +1011,7 @@ void dumpPacker(const struct packer *packer)
           boolToString(packer->writingBatches));
 
   logInfo("  inputBinCount=%llu", packer->size);
-  for (InputBin *bin = getFullestBin(packer);
+  for (struct input_bin *bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {
     dumpInputBin(bin, false);

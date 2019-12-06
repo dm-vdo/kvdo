@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/requestQueueKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/requestQueueKernel.c#2 $
  */
 
 #include "requestQueue.h"
@@ -173,23 +173,30 @@ static void requestQueueWorker(void *arg)
 
   for (;;) {
     Request *request;
-    currentBatch++;
     bool waited = false;
     if (dormant) {
-      wait_event(queue->wqhead, dequeueRequest(queue, &request, &waited));
+      wait_event_interruptible(queue->wqhead,
+                               dequeueRequest(queue, &request, &waited));
     } else {
-      wait_event_hrtimeout(queue->wqhead,
-                           dequeueRequest(queue, &request, &waited),
-                           ns_to_ktime(timeBatch));
+      wait_event_interruptible_hrtimeout(queue->wqhead,
+                                         dequeueRequest(queue, &request,
+                                                        &waited),
+                                         ns_to_ktime(timeBatch));
     }
 
-    if (request != NULL) {
-      // We got a request.
-      queue->processOne(request);
-    } else if (!READ_ONCE(queue->alive)) {
-      // We got no request, but we know we are shutting down.
-      break;
+    if (unlikely(request == NULL)) {
+      if (READ_ONCE(queue->alive)) {
+        // Must have taken an interrupt; keep polling.
+        continue;
+      } else {
+        // We got no request and we know we are shutting down.
+        break;
+      }
     }
+
+    // We got a request.
+    currentBatch++;
+    queue->processOne(request);
 
     if (dormant) {
       // We've been roused from dormancy. Clear the flag so enqueuers can stop
@@ -199,7 +206,6 @@ static void requestQueueWorker(void *arg)
       // Reset the timeout back to the default since we don't know how long
       // we've been asleep and we also want to be responsive to a new burst.
       timeBatch = DEFAULT_WAIT_TIME;
-
     } else if (waited) {
       // We waited for this request to show up.  Adjust the wait time if the
       // last batch of requests was too small or too large..

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packerInternals.h#11 $
  */
 
 #ifndef PACKER_INTERNALS_H
@@ -33,7 +33,7 @@
 #include "waitQueue.h"
 
 /**
- * Each InputBin holds an incomplete batch of DataVIOs that only partially fill
+ * Each input_bin holds an incomplete batch of DataVIOs that only partially fill
  * a compressed block. The InputBins are kept in a ring sorted by the amount of
  * unused space so the first bin with enough space to hold a newly-compressed
  * data_vio can easily be found. When the bin fills up or is flushed, the
@@ -45,7 +45,7 @@
  * need to wait for the canceller to rendezvous with them (VDO-2809) and so
  * they sit in this special bin.
  **/
-struct inputBin {
+struct input_bin {
   /** List links for packer.sortedBins */
   RingNode         ring;
   /** The number of items in the bin */
@@ -103,7 +103,7 @@ struct packer {
    * A bin to hold DataVIOs which were canceled out of the packer and are
    * waiting to rendezvous with the canceling data_vio.
    **/
-  InputBin                   *canceledBin;
+  struct input_bin           *canceledBin;
 
   /** The current flush generation */
   SequenceNumber              flushGeneration;
@@ -136,12 +136,12 @@ struct packer {
 /**
  * This returns the first bin in the freeSpace-sorted list.
  **/
-InputBin *getFullestBin(const struct packer *packer);
+struct input_bin *getFullestBin(const struct packer *packer);
 
 /**
  * This returns the next bin in the freeSpace-sorted list.
  **/
-InputBin *nextBin(const struct packer *packer, InputBin *bin);
+struct input_bin *nextBin(const struct packer *packer, struct input_bin *bin);
 
 /**
  * Change the maxiumum number of compression slots the packer will use. The new

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#11 $
  */
 
 #ifndef DATA_VIO_H
@@ -124,24 +124,24 @@ struct compression_state {
    * This field should be accessed through the getCompressionState() and
    * setCompressionState() methods. It should not be accessed directly.
    */
-  Atomic32         state;
+  Atomic32          state;
 
   /* The compressed size of this block */
-  uint16_t         size;
+  uint16_t          size;
 
   /* The packer input or output bin slot which holds the enclosing data_vio */
-  SlotNumber       slot;
+  SlotNumber        slot;
 
   /* The packer input bin to which the enclosing data_vio has been assigned */
-  InputBin        *bin;
+  struct input_bin *bin;
 
   /* A pointer to the compressed form of this block */
-  char            *data;
+  char             *data;
 
   /*
    * A VIO which is blocked in the packer while holding a lock this VIO needs.
    */
-  struct data_vio *lockHolder;
+  struct data_vio  *lockHolder;
 
 };
 
