@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#18 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -98,7 +98,7 @@ struct vdo {
   bool                             vioTraceRecording;
 
   /* The logical zones of this VDO */
-  LogicalZones                    *logicalZones;
+  struct logical_zones            *logicalZones;
 
   /* The physical zones of this VDO */
   PhysicalZone                   **physicalZones;

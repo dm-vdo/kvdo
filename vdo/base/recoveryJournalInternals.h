@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#10 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -113,7 +113,7 @@ struct recoveryJournal {
   /** Counters for events in the journal that are reported as statistics */
   RecoveryJournalStatistics      events;
   /** The locks for each on-disk block */
-  LockCounter                   *lockCounter;
+  struct lock_counter           *lockCounter;
 };
 
 /**

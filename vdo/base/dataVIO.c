@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#7 $
  */
 
 #include "dataVIO.h"
@@ -77,7 +77,7 @@ static const char *ASYNC_OPERATION_NAMES[] = {
  **/
 static void initializeLBNLock(struct data_vio *dataVIO, LogicalBlockNumber lbn)
 {
-  LBNLock *lock = &dataVIO->logical;
+  struct lbn_lock *lock = &dataVIO->logical;
   lock->lbn     = lbn;
   lock->locked  = false;
   initializeWaitQueue(&lock->waiters);
@@ -237,7 +237,7 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
   }
 
   struct data_vio *lockHolder;
-  LBNLock *lock = &dataVIO->logical;
+  struct lbn_lock *lock = &dataVIO->logical;
   int result = intMapPut(getLBNLockMap(lock->zone), lock->lbn, dataVIO, false,
                          (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
@@ -295,7 +295,7 @@ void attemptLogicalBlockLock(VDOCompletion *completion)
  **/
 static void releaseLock(struct data_vio *dataVIO)
 {
-  LBNLock         *lock    = &dataVIO->logical;
+  struct lbn_lock *lock    = &dataVIO->logical;
   struct int_map  *lockMap = getLBNLockMap(lock->zone);
   if (!lock->locked) {
     // The lock is not locked, so it had better not be registered in the lock
@@ -324,8 +324,8 @@ void releaseLogicalBlockLock(struct data_vio *dataVIO)
     return;
   }
 
-  LBNLock *lock = &dataVIO->logical;
-  ASSERT_LOG_ONLY(lock->locked, "LBNLock with waiters is not locked");
+  struct lbn_lock *lock = &dataVIO->logical;
+  ASSERT_LOG_ONLY(lock->locked, "lbn_lock with waiters is not locked");
 
   // Another data_vio is waiting for the lock, so just transfer it in a single
   // lock map operation
