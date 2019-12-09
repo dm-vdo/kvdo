@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#3 $
  */
 
 #ifndef HASH_LOCK_H
@@ -32,7 +32,7 @@
  *
  * @return The PBN lock on the data_vio's duplicate location
  **/
-PBNLock *getDuplicateLock(struct data_vio *dataVIO)
+struct pbn_lock *getDuplicateLock(struct data_vio *dataVIO)
   __attribute__((warn_unused_result));
 
 /**
@@ -97,6 +97,7 @@ void releaseHashLock(struct data_vio *dataVIO);
  * @param dataVIO  The data_vio which was just compressed
  * @param pbnLock  The PBN lock on the compressed block
  **/
-void shareCompressedWriteLock(struct data_vio *dataVIO, PBNLock *pbnLock);
+void shareCompressedWriteLock(struct data_vio *dataVIO,
+                              struct pbn_lock *pbnLock);
 
 #endif // HASH_LOCK_H

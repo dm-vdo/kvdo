@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#4 $
  */
 
 #include "pbnLock.h"
@@ -59,32 +59,32 @@ static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
 };
 
 /**********************************************************************/
-static inline bool hasLockType(const PBNLock *lock, PBNLockType type)
+static inline bool hasLockType(const struct pbn_lock *lock, PBNLockType type)
 {
   return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
 }
 
 /**********************************************************************/
-bool isPBNReadLock(const PBNLock *lock)
+bool isPBNReadLock(const struct pbn_lock *lock)
 {
   return hasLockType(lock, VIO_READ_LOCK);
 }
 
 /**********************************************************************/
-static inline void setPBNLockType(PBNLock *lock, PBNLockType type)
+static inline void setPBNLockType(struct pbn_lock *lock, PBNLockType type)
 {
   lock->implementation = &LOCK_IMPLEMENTATIONS[type];
 }
 
 /**********************************************************************/
-void initializePBNLock(PBNLock *lock, PBNLockType type)
+void initializePBNLock(struct pbn_lock *lock, PBNLockType type)
 {
   lock->holderCount = 0;
   setPBNLockType(lock, type);
 }
 
 /**********************************************************************/
-void downgradePBNWriteLock(PBNLock *lock)
+void downgradePBNWriteLock(struct pbn_lock *lock)
 {
   ASSERT_LOG_ONLY(!isPBNReadLock(lock),
                   "PBN lock must not already have been downgraded");
@@ -107,7 +107,7 @@ void downgradePBNWriteLock(PBNLock *lock)
 }
 
 /**********************************************************************/
-bool claimPBNLockIncrement(PBNLock *lock)
+bool claimPBNLockIncrement(struct pbn_lock *lock)
 {
   /*
    * Claim the next free reference atomically since hash locks from multiple
@@ -122,7 +122,7 @@ bool claimPBNLockIncrement(PBNLock *lock)
 }
 
 /**********************************************************************/
-void assignProvisionalReference(PBNLock *lock)
+void assignProvisionalReference(struct pbn_lock *lock)
 {
   ASSERT_LOG_ONLY(!lock->hasProvisionalReference,
                   "lock does not have a provisional reference");
@@ -130,13 +130,13 @@ void assignProvisionalReference(PBNLock *lock)
 }
 
 /**********************************************************************/
-void unassignProvisionalReference(PBNLock *lock)
+void unassignProvisionalReference(struct pbn_lock *lock)
 {
   lock->hasProvisionalReference = false;
 }
 
 /**********************************************************************/
-void releaseProvisionalReference(PBNLock                *lock,
+void releaseProvisionalReference(struct pbn_lock        *lock,
                                  PhysicalBlockNumber     lockedPBN,
                                  struct block_allocator *allocator)
 {

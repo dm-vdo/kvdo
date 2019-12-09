@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#5 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -54,7 +54,7 @@ struct allocating_vio {
    * write lock until the block has been written, after which it will become a
    * read lock.
    **/
-  PBNLock            *allocationLock;
+  struct pbn_lock    *allocationLock;
 
   /** The type of write lock to obtain on the allocated block */
   PBNLockType         writeLockType;

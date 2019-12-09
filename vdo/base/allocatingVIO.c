@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#6 $
  */
 
 #include "allocatingVIO.h"
@@ -47,7 +47,7 @@ static int attemptPBNWriteLock(struct allocating_vio *allocatingVIO)
   ASSERT_LOG_ONLY(allocatingVIO->allocationLock == NULL,
                   "must not acquire a lock while already referencing one");
 
-  PBNLock *lock;
+  struct pbn_lock *lock;
   int result = attemptPBNLock(allocatingVIO->zone, allocatingVIO->allocation,
                               allocatingVIO->writeLockType, &lock);
   if (result != VDO_SUCCESS) {

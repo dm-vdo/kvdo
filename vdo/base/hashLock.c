@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#9 $
  */
 
 /**
@@ -146,7 +146,7 @@ static void unlockDuplicatePBN(VDOCompletion *completion);
 static void transferAllocationLock(struct data_vio *dataVIO);
 
 /**********************************************************************/
-PBNLock *getDuplicateLock(struct data_vio *dataVIO)
+struct pbn_lock *getDuplicateLock(struct data_vio *dataVIO)
 {
   if (dataVIO->hashLock == NULL) {
     return NULL;
@@ -211,7 +211,8 @@ static void setAgent(struct hash_lock *lock, struct data_vio *newAgent)
  * @param hashLock  The hash lock to update
  * @param pbnLock   The PBN read lock to use as the duplicate lock
  **/
-static void setDuplicateLock(struct hash_lock *hashLock, PBNLock *pbnLock)
+static void setDuplicateLock(struct hash_lock *hashLock,
+                             struct pbn_lock  *pbnLock)
 {
   ASSERT_LOG_ONLY((hashLock->duplicateLock == NULL),
                   "hash lock must not already hold a duplicate lock");
@@ -1031,7 +1032,7 @@ static void lockDuplicatePBN(VDOCompletion *completion)
     return;
   }
 
-  PBNLock *lock;
+  struct pbn_lock *lock;
   int result = attemptPBNLock(zone, agent->duplicate.pbn, VIO_READ_LOCK,
                               &lock);
   if (result != VDO_SUCCESS) {
@@ -1567,7 +1568,7 @@ static void transferAllocationLock(struct data_vio *dataVIO)
                   "transferred lock must be for the block written");
 
   struct allocating_vio *allocatingVIO  = dataVIOAsAllocatingVIO(dataVIO);
-  PBNLock               *pbnLock        = allocatingVIO->allocationLock;
+  struct pbn_lock       *pbnLock        = allocatingVIO->allocationLock;
   allocatingVIO->allocationLock         = NULL;
   allocatingVIO->allocation             = ZERO_BLOCK;
 
@@ -1584,7 +1585,8 @@ static void transferAllocationLock(struct data_vio *dataVIO)
 }
 
 /**********************************************************************/
-void shareCompressedWriteLock(struct data_vio *dataVIO, PBNLock *pbnLock)
+void shareCompressedWriteLock(struct data_vio *dataVIO,
+                              struct pbn_lock *pbnLock)
 {
   ASSERT_LOG_ONLY(getDuplicateLock(dataVIO) == NULL,
                   "a duplicate PBN lock should not exist when writing");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#3 $
  */
 
 #include "pbnLockPool.h"
@@ -36,9 +36,9 @@
  **/
 typedef union idlePBNLock {
   /** Only used while locks are in the pool */
-  RingNode node;
+  RingNode        node;
   /** Only used while locks are not in the pool */
-  PBNLock  lock;
+  struct pbn_lock lock;
 } IdlePBNLock;
 
 /**
@@ -70,7 +70,7 @@ int makePBNLockPool(size_t capacity, struct pbn_lock_pool **poolPtr)
   initializeRing(&pool->idleRing);
 
   for (size_t i = 0; i < capacity; i++) {
-    PBNLock *lock = &pool->locks[i].lock;
+    struct pbn_lock *lock = &pool->locks[i].lock;
     returnPBNLockToPool(pool, &lock);
   }
 
@@ -97,7 +97,7 @@ void freePBNLockPool(struct pbn_lock_pool **poolPtr)
 /**********************************************************************/
 int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
                           PBNLockType            type,
-                          PBNLock              **lockPtr)
+                          struct pbn_lock      **lockPtr)
 {
   if (pool->borrowed >= pool->capacity) {
     return logErrorWithStringError(VDO_LOCK_ERROR,
@@ -111,7 +111,7 @@ int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
   memset(idleNode, 0, sizeof(*idleNode));
 
   STATIC_ASSERT(offsetof(IdlePBNLock, node) == offsetof(IdlePBNLock, lock));
-  PBNLock *lock = (PBNLock *) idleNode;
+  struct pbn_lock *lock = (struct pbn_lock *) idleNode;
   initializePBNLock(lock, type);
 
   *lockPtr = lock;
@@ -119,10 +119,10 @@ int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
 }
 
 /**********************************************************************/
-void returnPBNLockToPool(struct pbn_lock_pool *pool, PBNLock **lockPtr)
+void returnPBNLockToPool(struct pbn_lock_pool *pool, struct pbn_lock **lockPtr)
 {
   // Take what should be the last lock reference from the caller
-  PBNLock *lock = *lockPtr;
+  struct pbn_lock *lock = *lockPtr;
   *lockPtr = NULL;
 
   // A bit expensive, but will promptly catch some use-after-free errors.

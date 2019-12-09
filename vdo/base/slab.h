@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#12 $
  */
 
 #ifndef VDO_SLAB_H
@@ -260,7 +260,7 @@ int modifySlabReferenceCount(Slab                       *slab,
  **/
 int acquireProvisionalReference(Slab                *slab,
                                 PhysicalBlockNumber  pbn,
-                                PBNLock             *lock)
+                                struct pbn_lock     *lock)
   __attribute__((warn_unused_result));
 
 /**

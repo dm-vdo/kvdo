@@ -85,4 +85,4 @@ rm -rf $RPM_BUILD_ROOT
 %{_usr}/src/%{kmod_name}-%{version}-%{kmod_driver_version}/*
 
 %changelog
-* Fri Dec 06 2019 - corwin@bf30-1 - 8.0.0.0-1
+* Mon Dec 09 2019 - corwin@bf30-1 - 8.0.0.0-1

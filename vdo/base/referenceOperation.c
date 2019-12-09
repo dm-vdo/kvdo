@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#3 $
  */
 
 #include "referenceOperation.h"
@@ -25,16 +25,16 @@
 #include "types.h"
 
 /**********************************************************************/
-static PBNLock *returnPBNLock(struct reference_operation operation)
+static struct pbn_lock *returnPBNLock(struct reference_operation operation)
 {
-  return (PBNLock *) operation.context;
+  return (struct pbn_lock *) operation.context;
 }
 
 /**********************************************************************/
 void setUpReferenceOperationWithLock(JournalOperation            type,
                                      PhysicalBlockNumber         pbn,
                                      BlockMappingState           state,
-                                     PBNLock                    *lock,
+                                     struct pbn_lock            *lock,
                                      struct reference_operation *operation)
 {
   *operation = (struct reference_operation) {
@@ -47,7 +47,7 @@ void setUpReferenceOperationWithLock(JournalOperation            type,
 }
 
 /**********************************************************************/
-static PBNLock *lookUpPBNLock(struct reference_operation operation)
+static struct pbn_lock *lookUpPBNLock(struct reference_operation operation)
 {
   return ((operation.context == NULL)
           ? NULL : getPBNLock(operation.context, operation.pbn));

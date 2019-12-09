@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#10 $
  */
 
 /*
@@ -491,9 +491,9 @@ static void updateBlockMapForDedupe(VDOCompletion *completion)
  * Make a recovery journal increment.
  *
  * @param dataVIO  The data_vio
- * @param lock     The PBNLock on the block being incremented
+ * @param lock     The pbn_lock on the block being incremented
  **/
-static void journalIncrement(struct data_vio *dataVIO, PBNLock *lock)
+static void journalIncrement(struct data_vio *dataVIO, struct pbn_lock *lock)
 {
   setUpReferenceOperationWithLock(DATA_INCREMENT, dataVIO->newMapped.pbn,
                                   dataVIO->newMapped.state, lock,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#9 $
  */
 
 #ifndef REF_COUNTS_H
@@ -167,13 +167,13 @@ int allocateUnreferencedBlock(RefCounts           *refCounts,
  *
  * @param refCounts  The reference counters
  * @param pbn        The PBN to reference
- * @param lock       The PBNLock on the block (may be NULL)
+ * @param lock       The pbn_lock on the block (may be NULL)
  *
  * @return VDO_SUCCESS or an error
  **/
 int provisionallyReferenceBlock(RefCounts           *refCounts,
                                 PhysicalBlockNumber  pbn,
-                                PBNLock             *lock)
+                                struct pbn_lock     *lock)
   __attribute__((warn_unused_result));
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#14 $
  */
 
 #include "refCounts.h"
@@ -370,7 +370,7 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  * @param [in]     slabBlockNumber    The block to update
  * @param [in]     oldStatus          The reference status of the data block
  *                                    before this increment
- * @param [in]     lock               The PBNLock associated with this
+ * @param [in]     lock               The pbn_lock associated with this
  *                                    increment (may be NULL)
  * @param [in,out] counterPtr         A pointer to the count for the data block
  * @param [out]    freeStatusChanged  A pointer which will be set to true if
@@ -383,7 +383,7 @@ static int incrementForData(RefCounts              *refCounts,
                             struct reference_block *block,
                             SlabBlockNumber         slabBlockNumber,
                             ReferenceStatus         oldStatus,
-                            PBNLock                *lock,
+                            struct pbn_lock        *lock,
                             ReferenceCount         *counterPtr,
                             bool                   *freeStatusChanged)
 {
@@ -429,7 +429,7 @@ static int incrementForData(RefCounts              *refCounts,
  * @param [in]     slabBlockNumber    The block to update
  * @param [in]     oldStatus          The reference status of the data block
  *                                    before this decrement
- * @param [in]     lock               The PBNLock associated with the block
+ * @param [in]     lock               The pbn_lock associated with the block
  *                                    being decremented (may be NULL)
  * @param [in,out] counterPtr         A pointer to the count for the data block
  * @param [out]    freeStatusChanged  A pointer which will be set to true if
@@ -442,7 +442,7 @@ static int decrementForData(RefCounts              *refCounts,
                             struct reference_block *block,
                             SlabBlockNumber         slabBlockNumber,
                             ReferenceStatus         oldStatus,
-                            PBNLock                *lock,
+                            struct pbn_lock        *lock,
                             ReferenceCount         *counterPtr,
                             bool                   *freeStatusChanged)
 {
@@ -491,7 +491,7 @@ static int decrementForData(RefCounts              *refCounts,
  * @param [in]     slabBlockNumber    The block to update
  * @param [in]     oldStatus          The reference status of the block
  *                                    before this increment
- * @param [in]     lock               The PBNLock associated with this
+ * @param [in]     lock               The pbn_lock associated with this
  *                                    increment (may be NULL)
  * @param [in]     normalOperation    Whether we are in normal operation vs.
  *                                    recovery or rebuild
@@ -506,7 +506,7 @@ static int incrementForBlockMap(RefCounts              *refCounts,
                                 struct reference_block *block,
                                 SlabBlockNumber         slabBlockNumber,
                                 ReferenceStatus         oldStatus,
-                                PBNLock                *lock,
+                                struct pbn_lock        *lock,
                                 bool                    normalOperation,
                                 ReferenceCount         *counterPtr,
                                 bool                   *freeStatusChanged)
@@ -589,7 +589,7 @@ updateReferenceCount(RefCounts                  *refCounts,
 {
   ReferenceCount  *counterPtr = &refCounts->counters[slabBlockNumber];
   ReferenceStatus  oldStatus  = referenceCountToStatus(*counterPtr);
-  PBNLock         *lock       = getReferenceOperationPBNLock(operation);
+  struct pbn_lock *lock       = getReferenceOperationPBNLock(operation);
   int result;
 
   switch (operation.type) {
@@ -955,7 +955,7 @@ int allocateUnreferencedBlock(RefCounts           *refCounts,
 /**********************************************************************/
 int provisionallyReferenceBlock(RefCounts           *refCounts,
                                 PhysicalBlockNumber  pbn,
-                                PBNLock             *lock)
+                                struct pbn_lock     *lock)
 {
   if (!isSlabOpen(refCounts->slab)) {
     return VDO_INVALID_ADMIN_STATE;

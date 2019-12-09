@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#6 $
  */
 
 #include "physicalZone.h"
@@ -49,7 +49,7 @@ struct physicalZone {
   ThreadID                threadID;
   /** In progress operations keyed by PBN */
   struct int_map         *pbnOperations;
-  /** Pool of unused PBNLock instances */
+  /** Pool of unused pbn_lock instances */
   struct pbn_lock_pool   *lockPool;
   /** The block allocator for this zone */
   struct block_allocator *allocator;
@@ -117,7 +117,7 @@ struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
 }
 
 /**********************************************************************/
-PBNLock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
+struct pbn_lock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
 {
   return ((zone == NULL) ? NULL : intMapGet(zone->pbnOperations, pbn));
 }
@@ -126,18 +126,18 @@ PBNLock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
 int attemptPBNLock(PhysicalZone         *zone,
                    PhysicalBlockNumber   pbn,
                    PBNLockType           type,
-                   PBNLock             **lockPtr)
+                   struct pbn_lock     **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two int_map
   // accesses in the common case of no lock contention.
-  PBNLock *newLock;
+  struct pbn_lock *newLock;
   int result = borrowPBNLockFromPool(zone->lockPool, type, &newLock);
   if (result != VDO_SUCCESS) {
     ASSERT_LOG_ONLY(false, "must always be able to borrow a PBN lock");
     return result;
   }
 
-  PBNLock *lock;
+  struct pbn_lock *lock;
   result = intMapPut(zone->pbnOperations, pbn, newLock, false,
                      (void **) &lock);
   if (result != VDO_SUCCESS) {
@@ -164,9 +164,9 @@ int attemptPBNLock(PhysicalZone         *zone,
 /**********************************************************************/
 void releasePBNLock(PhysicalZone         *zone,
                     PhysicalBlockNumber   lockedPBN,
-                    PBNLock             **lockPtr)
+                    struct pbn_lock     **lockPtr)
 {
-  PBNLock *lock = *lockPtr;
+  struct pbn_lock *lock = *lockPtr;
   if (lock == NULL) {
     return;
   }
@@ -181,7 +181,7 @@ void releasePBNLock(PhysicalZone         *zone,
     return;
   }
 
-  PBNLock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
+  struct pbn_lock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
   ASSERT_LOG_ONLY((lock == holder),
                   "physical block lock mismatch for block %llu",
                   lockedPBN);

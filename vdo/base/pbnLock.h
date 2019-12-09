@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.h#4 $
  */
 
 #ifndef PBN_LOCK_H
@@ -40,7 +40,7 @@ struct pbn_lock_implementation;
 /**
  * A PBN lock.
  **/
-struct pbnLock {
+struct pbn_lock {
   /** The implementation of the lock */
   const struct pbn_lock_implementation *implementation;
 
@@ -73,21 +73,21 @@ struct pbnLock {
 };
 
 /**
- * Initialize a PBNLock.
+ * Initialize a pbn_lock.
  *
  * @param lock  The lock to initialize
  * @param type  The type of the lock
  **/
-void initializePBNLock(PBNLock *lock, PBNLockType type);
+void initializePBNLock(struct pbn_lock *lock, PBNLockType type);
 
 /**
- * Check whether a PBNLock is a read lock.
+ * Check whether a pbn_lock is a read lock.
  *
  * @param lock  The lock to check
  *
  * @return <code>true</code> if the lock is a read lock
  **/
-bool isPBNReadLock(const PBNLock *lock)
+bool isPBNReadLock(const struct pbn_lock *lock)
   __attribute__((warn_unused_result));
 
 /**
@@ -96,7 +96,7 @@ bool isPBNReadLock(const PBNLock *lock)
  *
  * @param lock  The PBN write lock to downgrade
  **/
-void downgradePBNWriteLock(PBNLock *lock);
+void downgradePBNWriteLock(struct pbn_lock *lock);
 
 /**
  * Try to claim one of the available reference count increments on a read
@@ -108,7 +108,7 @@ void downgradePBNWriteLock(PBNLock *lock);
  * @return <code>true</code> if the claim succeeded, guaranteeing one
  *         increment can be made without overflowing the PBN's reference count
  **/
-bool claimPBNLockIncrement(PBNLock *lock)
+bool claimPBNLockIncrement(struct pbn_lock *lock)
   __attribute__((warn_unused_result));
 
 /**
@@ -116,7 +116,7 @@ bool claimPBNLockIncrement(PBNLock *lock)
  *
  * @param lock  The PBN lock
  **/
-static inline bool hasProvisionalReference(PBNLock *lock)
+static inline bool hasProvisionalReference(struct pbn_lock *lock)
 {
   return ((lock != NULL) && lock->hasProvisionalReference);
 }
@@ -126,7 +126,7 @@ static inline bool hasProvisionalReference(PBNLock *lock)
  *
  * @param lock  The PBN lock
  **/
-void assignProvisionalReference(PBNLock *lock);
+void assignProvisionalReference(struct pbn_lock *lock);
 
 /**
  * Inform a PBN lock that it is no longer responsible for a provisional
@@ -134,7 +134,7 @@ void assignProvisionalReference(PBNLock *lock);
  *
  * @param lock  The PBN lock
  **/
-void unassignProvisionalReference(PBNLock *lock);
+void unassignProvisionalReference(struct pbn_lock *lock);
 
 /**
  * If the lock is responsible for a provisional reference, release that
@@ -144,8 +144,8 @@ void unassignProvisionalReference(PBNLock *lock);
  * @param lockedPBN  The PBN covered by the lock
  * @param allocator  The block allocator from which to release the reference
  **/
-void releaseProvisionalReference(PBNLock                *lock,
-                                 PhysicalBlockNumber     lockedPBN,
+void releaseProvisionalReference(struct pbn_lock     *lock,
+                                 PhysicalBlockNumber  lockedPBN,
                                  struct block_allocator *allocator);
 
 #endif /* PBN_LOCK_H */

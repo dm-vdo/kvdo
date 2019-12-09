@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#5 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -96,7 +96,7 @@ struct hash_lock {
   ZonedPBN               duplicate;
 
   /** The PBN lock on the block containing the duplicate data */
-  PBNLock               *duplicateLock;
+  struct pbn_lock       *duplicateLock;
 
   /** The data_vio designated to act on behalf of the lock */
   struct data_vio       *agent;
