@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#4 $
  */
 
 #include "recoveryUtils.h"
@@ -48,9 +48,9 @@ static void finishJournalLoad(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void loadJournalAsync(RecoveryJournal  *journal,
-                      VDOCompletion    *parent,
-                      char            **journalDataPtr)
+void loadJournalAsync(struct recovery_journal  *journal,
+                      VDOCompletion            *parent,
+                      char                    **journalDataPtr)
 {
   int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,
                         journalDataPtr);
@@ -86,7 +86,7 @@ void loadJournalAsync(RecoveryJournal  *journal,
  **/
 __attribute__((warn_unused_result))
 static bool
-isCongruentRecoveryJournalBlock(RecoveryJournal                    *journal,
+isCongruentRecoveryJournalBlock(struct recovery_journal            *journal,
                                 const struct recovery_block_header *header,
                                 PhysicalBlockNumber                 offset)
 {
@@ -97,11 +97,11 @@ isCongruentRecoveryJournalBlock(RecoveryJournal                    *journal,
 }
 
 /**********************************************************************/
-bool findHeadAndTail(RecoveryJournal *journal,
-                     char            *journalData,
-                     SequenceNumber  *tailPtr,
-                     SequenceNumber  *blockMapHeadPtr,
-                     SequenceNumber  *slabJournalHeadPtr)
+bool findHeadAndTail(struct recovery_journal *journal,
+                     char                    *journalData,
+                     SequenceNumber          *tailPtr,
+                     SequenceNumber          *blockMapHeadPtr,
+                     SequenceNumber          *slabJournalHeadPtr)
 {
   SequenceNumber   highestTail        = journal->tail;
   SequenceNumber   blockMapHeadMax    = 0;

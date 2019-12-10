@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#11 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -36,7 +36,7 @@
 
 struct recovery_journal_block;
 
-struct recoveryJournal {
+struct recovery_journal {
   /** The thread ID of the journal zone */
   ThreadID                       threadID;
   /** The slab depot which can hold locks on this journal */
@@ -126,8 +126,8 @@ struct recoveryJournal {
  **/
 __attribute__((warn_unused_result))
 static inline PhysicalBlockNumber
-getRecoveryJournalBlockNumber(const RecoveryJournal *journal,
-                              SequenceNumber         sequence)
+getRecoveryJournalBlockNumber(const struct recovery_journal *journal,
+                              SequenceNumber                 sequence)
 {
   // Since journal size is a power of two, the block number modulus can just
   // be extracted from the low-order bits of the sequence.
@@ -143,8 +143,9 @@ getRecoveryJournalBlockNumber(const RecoveryJournal *journal,
  * @return The check byte corresponding to the sequence number
  **/
 __attribute__((warn_unused_result))
-static inline uint8_t computeRecoveryCheckByte(const RecoveryJournal *journal,
-                                               SequenceNumber         sequence)
+static inline uint8_t
+computeRecoveryCheckByte(const struct recovery_journal        *journal,
+                                               SequenceNumber  sequence)
 {
   // The check byte must change with each trip around the journal.
   return (((sequence / journal->size) & 0x7F) | 0x80);

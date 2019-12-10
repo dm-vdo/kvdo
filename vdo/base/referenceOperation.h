@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#4 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -90,14 +90,14 @@ void setUpReferenceOperationWithLock(JournalOperation            type,
  * @param type       The type of operation
  * @param pbn        The PBN of the block on which to operate
  * @param state      The mapping state of the block on which to operate
- * @param zone       The PhysicalZone from which the pbn_lock can be retrieved
+ * @param zone       The physical_zone from which the pbn_lock can be retrieved
  *                   when needed
  * @param operation  The reference_operation to set up
  **/
 void setUpReferenceOperationWithZone(JournalOperation            type,
                                      PhysicalBlockNumber         pbn,
                                      BlockMappingState           state,
-                                     PhysicalZone               *zone,
+                                     struct physical_zone       *zone,
                                      struct reference_operation *operation);
 
 #endif // REFERENCE_OPERATION_H

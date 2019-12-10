@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#18 $
  */
 
 /*
@@ -850,18 +850,18 @@ void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
 {
   // These are immutable properties of the VDO object, so it is safe to
   // query them from any thread.
-  RecoveryJournal *journal  = vdo->recoveryJournal;
-  SlabDepot       *depot    = vdo->depot;
+  struct recovery_journal *journal  = vdo->recoveryJournal;
+  SlabDepot               *depot    = vdo->depot;
   // XXX config.physicalBlocks is actually mutated during resize and is in a
   // packed structure, but resize runs on the admin thread so we're usually OK.
-  stats->version            = STATISTICS_VERSION;
-  stats->releaseVersion     = CURRENT_RELEASE_VERSION_NUMBER;
-  stats->logicalBlocks      = vdo->config.logicalBlocks;
-  stats->physicalBlocks     = vdo->config.physicalBlocks;
-  stats->blockSize          = VDO_BLOCK_SIZE;
-  stats->completeRecoveries = vdo->completeRecoveries;
-  stats->readOnlyRecoveries = vdo->readOnlyRecoveries;
-  stats->blockMapCacheSize  = getBlockMapCacheSize(vdo);
+  stats->version                    = STATISTICS_VERSION;
+  stats->releaseVersion             = CURRENT_RELEASE_VERSION_NUMBER;
+  stats->logicalBlocks              = vdo->config.logicalBlocks;
+  stats->physicalBlocks             = vdo->config.physicalBlocks;
+  stats->blockSize                  = VDO_BLOCK_SIZE;
+  stats->completeRecoveries         = vdo->completeRecoveries;
+  stats->readOnlyRecoveries         = vdo->readOnlyRecoveries;
+  stats->blockMapCacheSize          = getBlockMapCacheSize(vdo);
   snprintf(stats->writePolicy, sizeof(stats->writePolicy), "%s",
            ((getWritePolicy(vdo) == WRITE_POLICY_ASYNC) ? "async" : "sync"));
 
@@ -972,7 +972,7 @@ SlabDepot *getSlabDepot(VDO *vdo)
 }
 
 /**********************************************************************/
-RecoveryJournal *getRecoveryJournal(VDO *vdo)
+struct recovery_journal *getRecoveryJournal(VDO *vdo)
 {
   return vdo->recoveryJournal;
 }
@@ -1063,9 +1063,9 @@ struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
 }
 
 /**********************************************************************/
-int getPhysicalZone(const VDO            *vdo,
-                    PhysicalBlockNumber   pbn,
-                    PhysicalZone        **zonePtr)
+int getPhysicalZone(const VDO             *vdo,
+                    PhysicalBlockNumber    pbn,
+                    struct physical_zone **zonePtr)
 {
   if (pbn == ZERO_BLOCK) {
     *zonePtr = NULL;
@@ -1109,7 +1109,7 @@ ZonedPBN validateDedupeAdvice(VDO                *vdo,
     return noAdvice;
   }
 
-  PhysicalZone  *zone;
+  struct physical_zone  *zone;
   int result = getPhysicalZone(vdo, advice->pbn, &zone);
   if ((result != VDO_SUCCESS) || (zone == NULL)) {
     logDebug("Invalid physical block number from deduplication server: %"

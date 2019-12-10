@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#20 $
  */
 
 #include "recoveryJournal.h"
@@ -93,7 +93,8 @@ const char *getJournalOperationName(JournalOperation operation)
  *
  * @return The block or <code>NULL</code> if the list is empty
  **/
-static struct recovery_journal_block *popFreeList(RecoveryJournal *journal)
+static struct recovery_journal_block *
+popFreeList(struct recovery_journal *journal)
 {
   return blockFromRingNode(popRingNode(&journal->freeTailBlocks));
 }
@@ -105,7 +106,8 @@ static struct recovery_journal_block *popFreeList(RecoveryJournal *journal)
  *
  * @return The block or <code>NULL</code> if the list is empty
  **/
-static struct recovery_journal_block *popActiveList(RecoveryJournal *journal)
+static struct recovery_journal_block *
+popActiveList(struct recovery_journal *journal)
 {
   return blockFromRingNode(popRingNode(&journal->activeTailBlocks));
 }
@@ -116,8 +118,8 @@ static struct recovery_journal_block *popActiveList(RecoveryJournal *journal)
  * @param journal       The journal
  * @param functionName  The function doing the check (for logging)
  **/
-static void assertOnJournalThread(RecoveryJournal *journal,
-                                  const char      *functionName)
+static void assertOnJournalThread(struct recovery_journal *journal,
+                                  const char              *functionName)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == journal->threadID),
                   "%s() called on journal thread", functionName);
@@ -145,7 +147,7 @@ static void continueWaiter(struct waiter *waiter, void *context)
  *
  * @return <code>true</code> if any block has a waiter
  **/
-static inline bool hasBlockWaiters(RecoveryJournal *journal)
+static inline bool hasBlockWaiters(struct recovery_journal *journal)
 {
   // Either the first active tail block (if it exists) has waiters,
   // or no active tail block has waiters.
@@ -161,14 +163,14 @@ static inline bool hasBlockWaiters(RecoveryJournal *journal)
 
 /**********************************************************************/
 static void recycleJournalBlock(struct recovery_journal_block *block);
-static void notifyCommitWaiters(RecoveryJournal *journal);
+static void notifyCommitWaiters(struct recovery_journal *journal);
 
 /**
  * Check whether the journal has drained.
  *
  * @param journal The journal which may have just drained
  **/
-static void checkForDrainComplete(RecoveryJournal *journal)
+static void checkForDrainComplete(struct recovery_journal *journal)
 {
   int result = VDO_SUCCESS;
   if (isReadOnly(journal->readOnlyNotifier)) {
@@ -232,14 +234,15 @@ static void notifyRecoveryJournalOfReadOnlyMode(void          *listener,
  * @param journal    The journal which has failed
  * @param errorCode  The error result triggering this call
  **/
-static void enterJournalReadOnlyMode(RecoveryJournal *journal, int errorCode)
+static void enterJournalReadOnlyMode(struct recovery_journal *journal,
+                                     int                      errorCode)
 {
   enterReadOnlyMode(journal->readOnlyNotifier, errorCode);
   checkForDrainComplete(journal);
 }
 
 /**********************************************************************/
-SequenceNumber getCurrentJournalSequenceNumber(RecoveryJournal *journal)
+SequenceNumber getCurrentJournalSequenceNumber(struct recovery_journal *journal)
 {
   return journal->tail;
 }
@@ -252,7 +255,8 @@ SequenceNumber getCurrentJournalSequenceNumber(RecoveryJournal *journal)
  *
  * @return the head of the journal
  **/
-static inline SequenceNumber getRecoveryJournalHead(RecoveryJournal *journal)
+static inline SequenceNumber
+getRecoveryJournalHead(struct recovery_journal *journal)
 {
   return minSequenceNumber(journal->blockMapHead, journal->slabJournalHead);
 }
@@ -276,7 +280,7 @@ static inline uint8_t computeRecoveryCountByte(uint64_t recoveryCount)
  *
  * @param journal    The journal
  **/
-static void checkSlabJournalCommitThreshold(RecoveryJournal *journal)
+static void checkSlabJournalCommitThreshold(struct recovery_journal *journal)
 {
   BlockCount currentLength = journal->tail - journal->slabJournalHead;
   if (currentLength > journal->slabJournalCommitThreshold) {
@@ -287,15 +291,15 @@ static void checkSlabJournalCommitThreshold(RecoveryJournal *journal)
 }
 
 /**********************************************************************/
-static void reapRecoveryJournal(RecoveryJournal *journal);
-static void assignEntries(RecoveryJournal *journal);
+static void reapRecoveryJournal(struct recovery_journal *journal);
+static void assignEntries(struct recovery_journal *journal);
 
 /**
  * Finish reaping the journal.
  *
  * @param journal The journal being reaped
  **/
-static void finishReaping(RecoveryJournal *journal)
+static void finishReaping(struct recovery_journal *journal)
 {
   SequenceNumber oldHead    = getRecoveryJournalHead(journal);
   journal->blockMapHead     = journal->blockMapReapHead;
@@ -316,7 +320,7 @@ static void finishReaping(RecoveryJournal *journal)
  **/
 static void completeReaping(VDOCompletion *completion)
 {
-  RecoveryJournal *journal = completion->parent;
+  struct recovery_journal *journal = completion->parent;
   finishReaping(journal);
 
   // Try reaping again in case more locks were released while flush was out.
@@ -330,7 +334,7 @@ static void completeReaping(VDOCompletion *completion)
  **/
 static void handleFlushError(VDOCompletion *completion)
 {
-  RecoveryJournal *journal = completion->parent;
+  struct recovery_journal *journal = completion->parent;
   journal->reaping = false;
   enterJournalReadOnlyMode(journal, completion->result);
 }
@@ -341,7 +345,7 @@ static void handleFlushError(VDOCompletion *completion)
  *
  * @param journal  The journal to be reset based on its active block
  **/
-static void initializeJournalState(RecoveryJournal *journal)
+static void initializeJournalState(struct recovery_journal *journal)
 {
   journal->appendPoint.sequenceNumber = journal->tail;
   journal->lastWriteAcknowledged      = journal->tail;
@@ -373,7 +377,8 @@ BlockCount getRecoveryJournalLength(BlockCount journalSize)
  **/
 static void reapRecoveryJournalCallback(VDOCompletion *completion)
 {
-  RecoveryJournal *journal = (RecoveryJournal *) completion->parent;
+  struct recovery_journal *journal
+    = (struct recovery_journal *) completion->parent;
   // The acknowledgement must be done before reaping so that there is no
   // race between acknowledging the notification and unlocks wishing to notify.
   acknowledgeUnlock(journal->lockCounter);
@@ -387,7 +392,8 @@ static void reapRecoveryJournalCallback(VDOCompletion *completion)
  * @param journal The journal whose tail is to be set
  * @param tail    The new tail value
  **/
-static void setJournalTail(RecoveryJournal *journal, SequenceNumber tail)
+static void setJournalTail(struct recovery_journal *journal,
+                           SequenceNumber           tail)
 {
   // VDO does not support sequence numbers above 1 << 48 in the slab journal.
   if (tail >= (1ULL << 48)) {
@@ -398,18 +404,18 @@ static void setJournalTail(RecoveryJournal *journal, SequenceNumber tail)
 }
 
 /**********************************************************************/
-int makeRecoveryJournal(Nonce                nonce,
-                        PhysicalLayer       *layer,
-                        struct partition    *partition,
-                        uint64_t             recoveryCount,
-                        BlockCount           journalSize,
-                        BlockCount           tailBufferSize,
-                        ReadOnlyNotifier    *readOnlyNotifier,
-                        const ThreadConfig  *threadConfig,
-                        RecoveryJournal    **journalPtr)
+int makeRecoveryJournal(Nonce                     nonce,
+                        PhysicalLayer            *layer,
+                        struct partition         *partition,
+                        uint64_t                  recoveryCount,
+                        BlockCount                journalSize,
+                        BlockCount                tailBufferSize,
+                        ReadOnlyNotifier         *readOnlyNotifier,
+                        const ThreadConfig       *threadConfig,
+                        struct recovery_journal **journalPtr)
 {
-  RecoveryJournal *journal;
-  int result = ALLOCATE(1, RecoveryJournal, __func__, &journal);
+  struct recovery_journal *journal;
+  int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -485,9 +491,9 @@ int makeRecoveryJournal(Nonce                nonce,
 }
 
 /**********************************************************************/
-void freeRecoveryJournal(RecoveryJournal **journalPtr)
+void freeRecoveryJournal(struct recovery_journal **journalPtr)
 {
-  RecoveryJournal *journal = *journalPtr;
+  struct recovery_journal *journal = *journalPtr;
   if (journal == NULL) {
     return;
   }
@@ -520,16 +526,17 @@ void freeRecoveryJournal(RecoveryJournal **journalPtr)
 }
 
 /**********************************************************************/
-void setRecoveryJournalPartition(RecoveryJournal  *journal,
-                                 struct partition *partition)
+void setRecoveryJournalPartition(struct recovery_journal *journal,
+                                 struct partition        *partition)
 {
   journal->partition = partition;
 }
 
 /**********************************************************************/
-void initializeRecoveryJournalPostRecovery(RecoveryJournal *journal,
-                                           uint64_t         recoveryCount,
-                                           SequenceNumber   tail)
+void
+initializeRecoveryJournalPostRecovery(struct recovery_journal *journal,
+                                      uint64_t                 recoveryCount,
+                                      SequenceNumber           tail)
 {
   setJournalTail(journal, tail + 1);
   journal->recoveryCount = computeRecoveryCountByte(recoveryCount);
@@ -537,11 +544,12 @@ void initializeRecoveryJournalPostRecovery(RecoveryJournal *journal,
 }
 
 /**********************************************************************/
-void initializeRecoveryJournalPostRebuild(RecoveryJournal *journal,
-                                          uint64_t         recoveryCount,
-                                          SequenceNumber   tail,
-                                          BlockCount       logicalBlocksUsed,
-                                          BlockCount       blockMapDataBlocks)
+void
+initializeRecoveryJournalPostRebuild(struct recovery_journal *journal,
+                                     uint64_t                 recoveryCount,
+                                     SequenceNumber           tail,
+                                     BlockCount               logicalBlocksUsed,
+                                     BlockCount               blockMapDataBlocks)
 {
   initializeRecoveryJournalPostRecovery(journal, recoveryCount, tail);
   journal->logicalBlocksUsed  = logicalBlocksUsed;
@@ -549,28 +557,28 @@ void initializeRecoveryJournalPostRebuild(RecoveryJournal *journal,
 }
 
 /**********************************************************************/
-BlockCount getJournalBlockMapDataBlocksUsed(RecoveryJournal *journal)
+BlockCount getJournalBlockMapDataBlocksUsed(struct recovery_journal *journal)
 {
   return journal->blockMapDataBlocks;
 }
 
 /**********************************************************************/
-void setJournalBlockMapDataBlocksUsed(RecoveryJournal *journal,
-                                      BlockCount       pages)
+void setJournalBlockMapDataBlocksUsed(struct recovery_journal *journal,
+                                      BlockCount               pages)
 {
   journal->blockMapDataBlocks = pages;
 }
 
 /**********************************************************************/
-ThreadID getRecoveryJournalThreadID(RecoveryJournal *journal)
+ThreadID getRecoveryJournalThreadID(struct recovery_journal *journal)
 {
   return journal->threadID;
 }
 
 /**********************************************************************/
-void openRecoveryJournal(RecoveryJournal  *journal,
-                         SlabDepot        *depot,
-                         struct block_map *blockMap)
+void openRecoveryJournal(struct recovery_journal *journal,
+                         SlabDepot               *depot,
+                         struct block_map        *blockMap)
 {
   journal->depot    = depot;
   journal->blockMap = blockMap;
@@ -584,7 +592,7 @@ size_t getRecoveryJournalEncodedSize(void)
 }
 
 /**********************************************************************/
-int encodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
+int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
 {
   SequenceNumber journalStart;
   if (isSaved(&journal->state)) {
@@ -669,7 +677,7 @@ decodeRecoveryJournalState_7_0(Buffer                            *buffer,
 }
 
 /**********************************************************************/
-int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
+int decodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
 {
   struct header header;
   int result = decodeHeader(buffer, &header);
@@ -701,7 +709,8 @@ int decodeRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
 }
 
 /**********************************************************************/
-int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
+int decodeSodiumRecoveryJournal(struct recovery_journal *journal,
+                                Buffer                  *buffer)
 {
   // Sodium uses version 7.0, same as head, currently.
   return decodeRecoveryJournal(journal, buffer);
@@ -714,7 +723,7 @@ int decodeSodiumRecoveryJournal(RecoveryJournal *journal, Buffer *buffer)
  *
  * @return <code>true</code> if the tail was advanced
  **/
-static bool advanceTail(RecoveryJournal *journal)
+static bool advanceTail(struct recovery_journal *journal)
 {
   journal->activeBlock = popFreeList(journal);
   if (journal->activeBlock == NULL) {
@@ -738,7 +747,7 @@ static bool advanceTail(RecoveryJournal *journal)
  * @return <code>true</code> if there is space in the journal to make an
  *         entry of the specified type
  **/
-static bool checkForEntrySpace(RecoveryJournal *journal, bool increment)
+static bool checkForEntrySpace(struct recovery_journal *journal, bool increment)
 {
   if (increment) {
     return ((journal->availableSpace - journal->pendingDecrementCount) > 1);
@@ -758,7 +767,8 @@ static bool checkForEntrySpace(RecoveryJournal *journal, bool increment)
  * @return <code>true</code> if there is space in the journal to store an
  *         entry of the specified type
  **/
-static bool prepareToAssignEntry(RecoveryJournal *journal, bool increment)
+static bool prepareToAssignEntry(struct recovery_journal *journal,
+                                 bool                     increment)
 {
   if (!checkForEntrySpace(journal, increment)) {
     if (!increment) {
@@ -796,7 +806,7 @@ static bool prepareToAssignEntry(RecoveryJournal *journal, bool increment)
 }
 
 /**********************************************************************/
-static void writeBlock(RecoveryJournal               *journal,
+static void writeBlock(struct recovery_journal       *journal,
                        struct recovery_journal_block *block);
 
 /**
@@ -817,7 +827,7 @@ static void assignEntry(struct waiter *waiter, void *context)
   struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   struct recovery_journal_block *block
     = (struct recovery_journal_block *) context;
-  RecoveryJournal *journal = block->journal;
+  struct recovery_journal *journal = block->journal;
 
   // Record the point at which we will make the journal entry.
   dataVIO->recoveryJournalPoint = (struct journal_point) {
@@ -875,9 +885,9 @@ static void assignEntry(struct waiter *waiter, void *context)
 }
 
 /**********************************************************************/
-static bool assignEntriesFromQueue(RecoveryJournal   *journal,
-                                   struct wait_queue *queue,
-                                   bool               increment)
+static bool assignEntriesFromQueue(struct recovery_journal *journal,
+                                   struct wait_queue       *queue,
+                                   bool                     increment)
 {
   while (hasWaiters(queue)) {
     if (!prepareToAssignEntry(journal, increment)) {
@@ -891,7 +901,7 @@ static bool assignEntriesFromQueue(RecoveryJournal   *journal,
 }
 
 /**********************************************************************/
-static void assignEntries(RecoveryJournal *journal)
+static void assignEntries(struct recovery_journal *journal)
 {
   if (journal->addingEntries) {
     // Protect against re-entrancy.
@@ -917,7 +927,7 @@ static void assignEntries(RecoveryJournal *journal)
  **/
 static void recycleJournalBlock(struct recovery_journal_block *block)
 {
-  RecoveryJournal *journal = block->journal;
+  struct recovery_journal *journal = block->journal;
   pushRingNode(&journal->freeTailBlocks, &block->ringNode);
 
   // Release our own lock against reaping now that the block is completely
@@ -938,7 +948,7 @@ static void recycleJournalBlock(struct recovery_journal_block *block)
 static void continueCommittedWaiter(struct waiter *waiter, void *context)
 {
   struct data_vio *dataVIO = waiterAsDataVIO(waiter);
-  RecoveryJournal *journal = (RecoveryJournal *) context;
+  struct recovery_journal *journal = (struct recovery_journal *) context;
   ASSERT_LOG_ONLY(beforeJournalPoint(&journal->commitPoint,
                                      &dataVIO->recoveryJournalPoint),
                   "DataVIOs released from recovery journal in order. "
@@ -961,7 +971,7 @@ static void continueCommittedWaiter(struct waiter *waiter, void *context)
  *
  * @param journal  The recovery journal to update
  **/
-static void notifyCommitWaiters(RecoveryJournal *journal)
+static void notifyCommitWaiters(struct recovery_journal *journal)
 {
   struct recovery_journal_block *lastIterationBlock = NULL;
   while (!isRingEmpty(&journal->activeTailBlocks)) {
@@ -1008,7 +1018,7 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
 static void completeWrite(VDOCompletion *completion)
 {
   struct recovery_journal_block *block   = completion->parent;
-  RecoveryJournal               *journal = block->journal;
+  struct recovery_journal       *journal = block->journal;
   assertOnJournalThread(journal, __func__);
 
   journal->pendingWriteCount        -= 1;
@@ -1043,7 +1053,7 @@ static void completeWrite(VDOCompletion *completion)
 static void handleWriteError(VDOCompletion *completion)
 {
   struct recovery_journal_block *block   = completion->parent;
-  RecoveryJournal               *journal = block->journal;
+  struct recovery_journal       *journal = block->journal;
   logErrorWithStringError(completion->result,
                           "cannot write recovery journal block %llu",
                           block->sequenceNumber);
@@ -1059,7 +1069,7 @@ static void handleWriteError(VDOCompletion *completion)
  * @param journal  The recovery journal
  * @param block    The block to write
  **/
-static void writeBlock(RecoveryJournal               *journal,
+static void writeBlock(struct recovery_journal       *journal,
                        struct recovery_journal_block *block)
 {
   assertOnJournalThread(journal, __func__);
@@ -1071,7 +1081,8 @@ static void writeBlock(RecoveryJournal               *journal,
 }
 
 /**********************************************************************/
-void addRecoveryJournalEntry(RecoveryJournal *journal, struct data_vio *dataVIO)
+void addRecoveryJournalEntry(struct recovery_journal *journal,
+                             struct data_vio         *dataVIO)
 {
   assertOnJournalThread(journal, __func__);
   if (!isNormal(&journal->state)) {
@@ -1107,7 +1118,7 @@ void addRecoveryJournalEntry(RecoveryJournal *journal, struct data_vio *dataVIO)
  *
  * @param journal  The recovery journal
  **/
-static void reapRecoveryJournal(RecoveryJournal *journal)
+static void reapRecoveryJournal(struct recovery_journal *journal)
 {
   if (journal->reaping) {
     // We already have an outstanding reap in progress. We need to wait for it
@@ -1159,10 +1170,11 @@ static void reapRecoveryJournal(RecoveryJournal *journal)
 }
 
 /**********************************************************************/
-void acquireRecoveryJournalBlockReference(RecoveryJournal *journal,
-                                          SequenceNumber   sequenceNumber,
-                                          ZoneType         zoneType,
-                                          ZoneCount        zoneID)
+void
+acquireRecoveryJournalBlockReference(struct recovery_journal *journal,
+                                     SequenceNumber           sequenceNumber,
+                                     ZoneType                 zoneType,
+                                     ZoneCount                zoneID)
 {
   if (sequenceNumber == 0) {
     return;
@@ -1175,10 +1187,11 @@ void acquireRecoveryJournalBlockReference(RecoveryJournal *journal,
 }
 
 /**********************************************************************/
-void releaseRecoveryJournalBlockReference(RecoveryJournal *journal,
-                                          SequenceNumber   sequenceNumber,
-                                          ZoneType         zoneType,
-                                          ZoneCount        zoneID)
+void
+releaseRecoveryJournalBlockReference(struct recovery_journal *journal,
+                                     SequenceNumber           sequenceNumber,
+                                     ZoneType                 zoneType,
+                                     ZoneCount                zoneID)
 {
   if (sequenceNumber == 0) {
     return;
@@ -1191,8 +1204,8 @@ void releaseRecoveryJournalBlockReference(RecoveryJournal *journal,
 }
 
 /**********************************************************************/
-void releasePerEntryLockFromOtherZone(RecoveryJournal *journal,
-                                      SequenceNumber   sequenceNumber)
+void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
+                                      SequenceNumber           sequenceNumber)
 {
   if (sequenceNumber == 0) {
     return;
@@ -1210,20 +1223,21 @@ void releasePerEntryLockFromOtherZone(RecoveryJournal *journal,
  **/
 static void initiateDrain(struct admin_state *state)
 {
-  checkForDrainComplete(container_of(state, RecoveryJournal, state));
+  checkForDrainComplete(container_of(state, struct recovery_journal, state));
 }
 
 /**********************************************************************/
-void drainRecoveryJournal(RecoveryJournal *journal,
-                          AdminStateCode   operation,
-                          VDOCompletion   *parent)
+void drainRecoveryJournal(struct recovery_journal *journal,
+                          AdminStateCode           operation,
+                          VDOCompletion           *parent)
 {
   assertOnJournalThread(journal, __func__);
   startDraining(&journal->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
-void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
+void resumeRecoveryJournal(struct recovery_journal *journal,
+                           VDOCompletion           *parent)
 {
   assertOnJournalThread(journal, __func__);
   bool saved = isSaved(&journal->state);
@@ -1242,20 +1256,20 @@ void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-BlockCount getJournalLogicalBlocksUsed(const RecoveryJournal *journal)
+BlockCount getJournalLogicalBlocksUsed(const struct recovery_journal *journal)
 {
   return journal->logicalBlocksUsed;
 }
 
 /**********************************************************************/
 RecoveryJournalStatistics
-getRecoveryJournalStatistics(const RecoveryJournal *journal)
+getRecoveryJournalStatistics(const struct recovery_journal *journal)
 {
   return journal->events;
 }
 
 /**********************************************************************/
-void dumpRecoveryJournalStatistics(const RecoveryJournal *journal)
+void dumpRecoveryJournalStatistics(const struct recovery_journal *journal)
 {
   RecoveryJournalStatistics stats = getRecoveryJournalStatistics(journal);
   logInfo("Recovery Journal");

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#13 $
  */
 
 #ifndef VDO_SLAB_H
@@ -137,13 +137,13 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeSlab(PhysicalBlockNumber     slabOrigin,
-             struct block_allocator *allocator,
-             PhysicalBlockNumber     translation,
-             RecoveryJournal        *recoveryJournal,
-             SlabCount               slabNumber,
-             bool                    isNew,
-             Slab                  **slabPtr)
+int makeSlab(PhysicalBlockNumber       slabOrigin,
+             struct block_allocator   *allocator,
+             PhysicalBlockNumber       translation,
+             struct recovery_journal  *recoveryJournal,
+             SlabCount                 slabNumber,
+             bool                      isNew,
+             Slab                    **slabPtr)
   __attribute__((warn_unused_result));
 
 /**

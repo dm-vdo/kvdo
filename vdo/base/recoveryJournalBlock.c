@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#10 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -35,7 +35,7 @@
 
 /**********************************************************************/
 int makeRecoveryBlock(PhysicalLayer                  *layer,
-                      RecoveryJournal                *journal,
+                      struct recovery_journal        *journal,
                       struct recovery_journal_block **blockPtr)
 {
   // Ensure that a block is large enough to store
@@ -119,10 +119,10 @@ void initializeRecoveryBlock(struct recovery_journal_block *block)
 {
   memset(block->block, 0x0, VDO_BLOCK_SIZE);
 
-  RecoveryJournal *journal     = block->journal;
-  block->sequenceNumber        = journal->tail;
-  block->entryCount            = 0;
-  block->uncommittedEntryCount = 0;
+  struct recovery_journal *journal     = block->journal;
+  block->sequenceNumber                = journal->tail;
+  block->entryCount                    = 0;
+  block->uncommittedEntryCount         = 0;
 
   block->blockNumber = getRecoveryJournalBlockNumber(journal, journal->tail);
 
@@ -247,7 +247,7 @@ __attribute__((warn_unused_result))
 static int getRecoveryBlockPBN(struct recovery_journal_block *block,
                                PhysicalBlockNumber           *pbnPtr)
 {
-  RecoveryJournal *journal = block->journal;
+  struct recovery_journal *journal = block->journal;
   int result = translateToPBN(journal->partition, block->blockNumber, pbnPtr);
   if (result != VDO_SUCCESS) {
     logErrorWithStringError(result,
@@ -310,8 +310,8 @@ int commitRecoveryBlock(struct recovery_journal_block *block,
     return result;
   }
 
-  RecoveryJournal     *journal = block->journal;
-  PackedJournalHeader *header  = getBlockHeader(block);
+  struct recovery_journal *journal = block->journal;
+  PackedJournalHeader     *header  = getBlockHeader(block);
 
   // Update stats to reflect the block and entries we're about to write.
   journal->pendingWriteCount      += 1;

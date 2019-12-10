@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#19 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -77,7 +77,7 @@ struct vdo {
   struct block_map                *blockMap;
 
   /* The journal for block map recovery */
-  RecoveryJournal                 *recoveryJournal;
+  struct recovery_journal         *recoveryJournal;
 
   /* The slab depot */
   SlabDepot                       *depot;
@@ -101,7 +101,7 @@ struct vdo {
   struct logical_zones            *logicalZones;
 
   /* The physical zones of this VDO */
-  PhysicalZone                   **physicalZones;
+  struct physical_zone           **physicalZones;
 
   /* The hash lock zones of this VDO */
   struct hash_zone               **hashZones;
@@ -259,7 +259,7 @@ SlabDepot *getSlabDepot(VDO *vdo)
  *
  * @return the recovery journal from the VDO
  **/
-RecoveryJournal *getRecoveryJournal(VDO *vdo)
+struct recovery_journal *getRecoveryJournal(VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**
@@ -388,9 +388,9 @@ struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int getPhysicalZone(const VDO            *vdo,
-                    PhysicalBlockNumber   pbn,
-                    PhysicalZone        **zonePtr)
+int getPhysicalZone(const VDO             *vdo,
+                    PhysicalBlockNumber    pbn,
+                    struct physical_zone **zonePtr)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/

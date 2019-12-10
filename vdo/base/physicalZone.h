@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#4 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -30,11 +30,13 @@
  *
  * @param [in]  vdo         The VDO to which the zone will belong
  * @param [in]  zoneNumber  The number of the zone to create
- * @param [out] zonePtr     A pointer to hold the new PhysicalZone
+ * @param [out] zonePtr     A pointer to hold the new physical_zone
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makePhysicalZone(VDO *vdo, ZoneCount zoneNumber, PhysicalZone **zonePtr)
+int makePhysicalZone(VDO                   *vdo,
+                     ZoneCount              zoneNumber,
+                     struct physical_zone **zonePtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -42,7 +44,7 @@ int makePhysicalZone(VDO *vdo, ZoneCount zoneNumber, PhysicalZone **zonePtr)
  *
  * @param zonePtr  A pointer to the zone to free
  **/
-void freePhysicalZone(PhysicalZone **zonePtr);
+void freePhysicalZone(struct physical_zone **zonePtr);
 
 /**
  * Get the zone number of a physical zone.
@@ -51,7 +53,7 @@ void freePhysicalZone(PhysicalZone **zonePtr);
  *
  * @return The number of the zone
  **/
-ZoneCount getPhysicalZoneNumber(const PhysicalZone *zone)
+ZoneCount getPhysicalZoneNumber(const struct physical_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -61,7 +63,7 @@ ZoneCount getPhysicalZoneNumber(const PhysicalZone *zone)
  *
  * @return The zone's thread ID
  **/
-ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
+ThreadID getPhysicalZoneThreadID(const struct physical_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -71,7 +73,7 @@ ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
  *
  * @return The zone's allocator
  **/
-struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
+struct block_allocator *getBlockAllocator(const struct physical_zone *zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -82,7 +84,7 @@ struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
  *
  * @return The lock or NULL if the PBN is not locked
  **/
-struct pbn_lock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
+struct pbn_lock *getPBNLock(struct physical_zone *zone, PhysicalBlockNumber pbn)
   __attribute__((warn_unused_result));
 
 /**
@@ -100,10 +102,10 @@ struct pbn_lock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
  *
  * @return VDO_SUCCESS or an error
  **/
-int attemptPBNLock(PhysicalZone         *zone,
-                   PhysicalBlockNumber   pbn,
-                   PBNLockType           type,
-                   struct pbn_lock     **lockPtr)
+int attemptPBNLock(struct physical_zone  *zone,
+                   PhysicalBlockNumber    pbn,
+                   PBNLockType            type,
+                   struct pbn_lock      **lockPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -116,15 +118,15 @@ int attemptPBNLock(PhysicalZone         *zone,
  * @param [in]     lockedPBN  The physical block number to unlock
  * @param [in,out] lockPtr    The last reference to the lock being released
  **/
-void releasePBNLock(PhysicalZone        *zone,
-                    PhysicalBlockNumber  lockedPBN,
-                    struct pbn_lock    **lockPtr);
+void releasePBNLock(struct physical_zone *zone,
+                    PhysicalBlockNumber   lockedPBN,
+                    struct pbn_lock     **lockPtr);
 
 /**
  * Dump information about a physical zone to the log for debugging.
  *
  * @param zone   The zone to dump
  **/
-void dumpPhysicalZone(const PhysicalZone *zone);
+void dumpPhysicalZone(const struct physical_zone *zone);
 
 #endif // PHYSICAL_ZONE_H

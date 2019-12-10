@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#8 $
  */
 
 #include "blockMapPage.h"
@@ -97,11 +97,11 @@ void updateBlockMapPage(struct block_map_page *page,
   page->entries[slot] = packPBN(pbn, mappingState);
 
   // Adjust references (locks) on the recovery journal blocks.
-  struct block_map_zone *zone      = getBlockMapForZone(dataVIO->logical.zone);
-  struct block_map      *blockMap  = zone->blockMap;
-  RecoveryJournal       *journal   = blockMap->journal;
-  SequenceNumber         oldLocked = *recoveryLock;
-  SequenceNumber         newLocked = dataVIO->recoverySequenceNumber;
+  struct block_map_zone   *zone      = getBlockMapForZone(dataVIO->logical.zone);
+  struct block_map        *blockMap  = zone->blockMap;
+  struct recovery_journal *journal   = blockMap->journal;
+  SequenceNumber           oldLocked = *recoveryLock;
+  SequenceNumber           newLocked = dataVIO->recoverySequenceNumber;
 
   if ((oldLocked == 0) || (oldLocked > newLocked)) {
     // Acquire a lock on the newly referenced journal block.

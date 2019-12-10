@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#11 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -220,7 +220,7 @@ struct slabJournal {
   JournalEntryCount                      fullEntriesPerBlock;
 
   /** The recovery journal of the VDO (slab journal holds locks on it) */
-  RecoveryJournal                       *recoveryJournal;
+  struct recovery_journal               *recoveryJournal;
 
   /** The slab summary to update tail block location */
   SlabSummaryZone                       *summary;

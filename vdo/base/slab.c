@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#13 $
  */
 
 #include "slab.h"
@@ -123,13 +123,13 @@ PhysicalBlockNumber getSlabJournalStartBlock(const SlabConfig    *slabConfig,
 }
 
 /**********************************************************************/
-int makeSlab(PhysicalBlockNumber      slabOrigin,
-             struct block_allocator  *allocator,
-             PhysicalBlockNumber      translation,
-             RecoveryJournal         *recoveryJournal,
-             SlabCount                slabNumber,
-             bool                     isNew,
-             Slab                   **slabPtr)
+int makeSlab(PhysicalBlockNumber       slabOrigin,
+             struct block_allocator   *allocator,
+             PhysicalBlockNumber       translation,
+             struct recovery_journal  *recoveryJournal,
+             SlabCount                 slabNumber,
+             bool                      isNew,
+             Slab                    **slabPtr)
 {
   Slab *slab;
   int result = ALLOCATE(1, Slab, __func__, &slab);

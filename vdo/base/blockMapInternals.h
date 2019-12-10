@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#21 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -82,37 +82,37 @@ struct block_map_zone {
 
 struct block_map {
   /** The manager for block map actions */
-  struct action_manager *actionManager;
+  struct action_manager    *actionManager;
   /** The count of pages in the linear part of the block map */
-  BlockCount             flatPageCount;
+  BlockCount                flatPageCount;
   /** The absolute PBN of the first root of the tree part of the block map */
-  PhysicalBlockNumber    rootOrigin;
+  PhysicalBlockNumber       rootOrigin;
   /** The count of root pages of the tree part of the block map */
-  BlockCount             rootCount;
+  BlockCount                rootCount;
 
   /** The era point we are currently distributing to the zones */
-  SequenceNumber         currentEraPoint;
+  SequenceNumber            currentEraPoint;
   /** The next era point, not yet distributed to any zone */
-  SequenceNumber         pendingEraPoint;
+  SequenceNumber            pendingEraPoint;
 
   /** The number of entries in block map */
-  BlockCount             entryCount;
+  BlockCount                entryCount;
   /** The VDO's nonce, for the pages */
-  Nonce                  nonce;
+  Nonce                     nonce;
   /** The recovery journal for this map */
-  RecoveryJournal       *journal;
+  struct recovery_journal  *journal;
 
   /** The trees for finding block map pages */
-  struct forest         *forest;
+  struct forest            *forest;
   /** The expanded trees awaiting growth */
-  struct forest         *nextForest;
+  struct forest            *nextForest;
   /** The number of entries after growth */
-  BlockCount             nextEntryCount;
+  BlockCount                nextEntryCount;
 
   /** The number of logical zones */
-  ZoneCount              zoneCount;
+  ZoneCount                 zoneCount;
   /** The per zone block map structure */
-  struct block_map_zone  zones[];
+  struct block_map_zone     zones[];
 };
 
 /**

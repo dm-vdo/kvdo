@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#4 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -39,9 +39,9 @@
  **/
 __attribute__((warn_unused_result))
 static inline
-PackedJournalHeader *getJournalBlockHeader(RecoveryJournal *journal,
-                                           char            *journalData,
-                                           SequenceNumber   sequence)
+PackedJournalHeader *getJournalBlockHeader(struct recovery_journal *journal,
+                                           char                    *journalData,
+                                           SequenceNumber           sequence)
 {
   off_t blockOffset = (getRecoveryJournalBlockNumber(journal, sequence)
                        * VDO_BLOCK_SIZE);
@@ -60,7 +60,7 @@ PackedJournalHeader *getJournalBlockHeader(RecoveryJournal *journal,
  **/
 __attribute__((warn_unused_result))
 static inline
-bool isValidRecoveryJournalBlock(const RecoveryJournal              *journal,
+bool isValidRecoveryJournalBlock(const struct recovery_journal      *journal,
                                  const struct recovery_block_header *header)
 {
   return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
@@ -79,7 +79,7 @@ bool isValidRecoveryJournalBlock(const RecoveryJournal              *journal,
  **/
 __attribute__((warn_unused_result))
 static inline
-bool isExactRecoveryJournalBlock(const RecoveryJournal              *journal,
+bool isExactRecoveryJournalBlock(const struct recovery_journal      *journal,
                                  const struct recovery_block_header *header,
                                  SequenceNumber                      sequence)
 {
@@ -114,9 +114,9 @@ bool isValidRecoveryJournalSector(const struct recovery_block_header *header,
  * @param [out] journalDataPtr  A pointer to the journal data buffer (it is the
  *                              caller's responsibility to free this buffer)
  **/
-void loadJournalAsync(RecoveryJournal  *journal,
-                      VDOCompletion    *parent,
-                      char            **journalDataPtr);
+void loadJournalAsync(struct recovery_journal *journal,
+                      VDOCompletion           *parent,
+                      char                   **journalDataPtr);
 
 /**
  * Find the tail and the head of the journal by searching for the highest
@@ -134,11 +134,11 @@ void loadJournalAsync(RecoveryJournal  *journal,
  *
  * @return  <code>True</code> if there were valid journal blocks
  **/
-bool findHeadAndTail(RecoveryJournal *journal,
-                     char            *journalData,
-                     SequenceNumber  *tailPtr,
-                     SequenceNumber  *blockMapHeadPtr,
-                     SequenceNumber  *slabJournalHeadPtr);
+bool findHeadAndTail(struct recovery_journal *journal,
+                     char                    *journalData,
+                     SequenceNumber          *tailPtr,
+                     SequenceNumber          *blockMapHeadPtr,
+                     SequenceNumber          *slabJournalHeadPtr);
 
 /**
  * Validate a recovery journal entry.

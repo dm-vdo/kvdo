@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#7 $
  */
 
 #include "physicalZone.h"
@@ -42,7 +42,7 @@ enum {
   LOCK_POOL_CAPACITY = 2 * MAXIMUM_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
 };
 
-struct physicalZone {
+struct physical_zone {
   /** Which physical zone this is */
   ZoneCount               zoneNumber;
   /** The thread ID for this zone */
@@ -56,10 +56,12 @@ struct physicalZone {
 };
 
 /**********************************************************************/
-int makePhysicalZone(VDO *vdo, ZoneCount zoneNumber, PhysicalZone **zonePtr)
+int makePhysicalZone(VDO                   *vdo,
+                     ZoneCount              zoneNumber,
+                     struct physical_zone **zonePtr)
 {
-  PhysicalZone *zone;
-  int result = ALLOCATE(1, PhysicalZone, __func__, &zone);
+  struct physical_zone *zone;
+  int result = ALLOCATE(1, struct physical_zone, __func__, &zone);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -85,13 +87,13 @@ int makePhysicalZone(VDO *vdo, ZoneCount zoneNumber, PhysicalZone **zonePtr)
 }
 
 /**********************************************************************/
-void freePhysicalZone(PhysicalZone **zonePtr)
+void freePhysicalZone(struct physical_zone **zonePtr)
 {
   if (*zonePtr == NULL) {
     return;
   }
 
-  PhysicalZone *zone = *zonePtr;
+  struct physical_zone *zone = *zonePtr;
   freePBNLockPool(&zone->lockPool);
   freeIntMap(&zone->pbnOperations);
   FREE(zone);
@@ -99,34 +101,34 @@ void freePhysicalZone(PhysicalZone **zonePtr)
 }
 
 /**********************************************************************/
-ZoneCount getPhysicalZoneNumber(const PhysicalZone *zone)
+ZoneCount getPhysicalZoneNumber(const struct physical_zone *zone)
 {
   return zone->zoneNumber;
 }
 
 /**********************************************************************/
-ThreadID getPhysicalZoneThreadID(const PhysicalZone *zone)
+ThreadID getPhysicalZoneThreadID(const struct physical_zone *zone)
 {
   return zone->threadID;
 }
 
 /**********************************************************************/
-struct block_allocator *getBlockAllocator(const PhysicalZone *zone)
+struct block_allocator *getBlockAllocator(const struct physical_zone *zone)
 {
   return zone->allocator;
 }
 
 /**********************************************************************/
-struct pbn_lock *getPBNLock(PhysicalZone *zone, PhysicalBlockNumber pbn)
+struct pbn_lock *getPBNLock(struct physical_zone *zone, PhysicalBlockNumber pbn)
 {
   return ((zone == NULL) ? NULL : intMapGet(zone->pbnOperations, pbn));
 }
 
 /**********************************************************************/
-int attemptPBNLock(PhysicalZone         *zone,
-                   PhysicalBlockNumber   pbn,
-                   PBNLockType           type,
-                   struct pbn_lock     **lockPtr)
+int attemptPBNLock(struct physical_zone  *zone,
+                   PhysicalBlockNumber    pbn,
+                   PBNLockType            type,
+                   struct pbn_lock      **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two int_map
   // accesses in the common case of no lock contention.
@@ -162,9 +164,9 @@ int attemptPBNLock(PhysicalZone         *zone,
 }
 
 /**********************************************************************/
-void releasePBNLock(PhysicalZone         *zone,
-                    PhysicalBlockNumber   lockedPBN,
-                    struct pbn_lock     **lockPtr)
+void releasePBNLock(struct physical_zone  *zone,
+                    PhysicalBlockNumber    lockedPBN,
+                    struct pbn_lock      **lockPtr)
 {
   struct pbn_lock *lock = *lockPtr;
   if (lock == NULL) {
@@ -192,7 +194,7 @@ void releasePBNLock(PhysicalZone         *zone,
 }
 
 /**********************************************************************/
-void dumpPhysicalZone(const PhysicalZone *zone)
+void dumpPhysicalZone(const struct physical_zone *zone)
 {
   dumpBlockAllocator(zone->allocator);
 }

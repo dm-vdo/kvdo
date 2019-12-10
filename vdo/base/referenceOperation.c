@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#4 $
  */
 
 #include "referenceOperation.h"
@@ -57,7 +57,7 @@ static struct pbn_lock *lookUpPBNLock(struct reference_operation operation)
 void setUpReferenceOperationWithZone(JournalOperation            type,
                                      PhysicalBlockNumber         pbn,
                                      BlockMappingState           state,
-                                     PhysicalZone               *zone,
+                                     struct physical_zone       *zone,
                                      struct reference_operation *operation)
 {
   *operation = (struct reference_operation) {

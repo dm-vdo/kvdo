@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#11 $
  */
 
 #include "readOnlyRebuild.h"
@@ -286,11 +286,12 @@ appendSectorEntries(struct read_only_rebuild_completion *rebuild,
  **/
 static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
 {
-  VDO             *vdo      = rebuild->vdo;
-  RecoveryJournal *journal  = vdo->recoveryJournal;
-  SequenceNumber   first    = rebuild->head;
-  SequenceNumber   last     = rebuild->tail;
-  BlockCount       maxCount = ((last - first + 1) * journal->entriesPerBlock);
+  VDO                     *vdo      = rebuild->vdo;
+  struct recovery_journal *journal  = vdo->recoveryJournal;
+  SequenceNumber           first    = rebuild->head;
+  SequenceNumber           last     = rebuild->tail;
+  BlockCount               maxCount = ((last - first + 1)
+                                       * journal->entriesPerBlock);
 
   /*
    * Allocate an array of numbered_block_mapping structures large

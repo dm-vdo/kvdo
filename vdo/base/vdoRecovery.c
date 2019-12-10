@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#24 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -423,7 +423,7 @@ static struct recovery_journal_entry
 getEntry(const struct recovery_completion *recovery,
          const struct recovery_point      *point)
 {
-  RecoveryJournal *journal = recovery->vdo->recoveryJournal;
+  struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   PhysicalBlockNumber blockNumber
     = getRecoveryJournalBlockNumber(journal, point->sequenceNumber);
   off_t sectorOffset
@@ -619,7 +619,7 @@ static void addSynthesizedEntries(VDOCompletion *completion)
  **/
 static int computeUsages(struct recovery_completion *recovery)
 {
-  RecoveryJournal *journal = recovery->vdo->recoveryJournal;
+  struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   PackedJournalHeader *tailHeader
     = getJournalBlockHeader(journal, recovery->journalData, recovery->tail);
 
@@ -693,8 +693,8 @@ static void addSlabJournalEntries(VDOCompletion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
-  RecoveryJournal    *journal  = vdo->recoveryJournal;
+  VDO                        *vdo      = recovery->vdo;
+  struct recovery_journal    *journal  = vdo->recoveryJournal;
 
   // Get ready in case we need to enqueue again.
   prepareCompletion(completion, addSlabJournalEntries,
@@ -1077,7 +1077,7 @@ static void findSlabJournalEntries(VDOCompletion *completion)
  **/
 static bool findContiguousRange(struct recovery_completion *recovery)
 {
-  RecoveryJournal *journal = recovery->vdo->recoveryJournal;
+  struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   SequenceNumber head
     = minSequenceNumber(recovery->blockMapHead, recovery->slabJournalHead);
 
@@ -1181,8 +1181,8 @@ static void prepareToApplyJournalEntries(VDOCompletion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO                *vdo      = recovery->vdo;
-  RecoveryJournal    *journal  = vdo->recoveryJournal;
+  VDO                        *vdo      = recovery->vdo;
+  struct recovery_journal    *journal  = vdo->recoveryJournal;
   logInfo("Finished reading recovery journal");
   bool foundEntries = findHeadAndTail(journal, recovery->journalData,
                                       &recovery->highestTail,

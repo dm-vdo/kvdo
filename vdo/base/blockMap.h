@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#8 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -153,13 +153,13 @@ int decodeSodiumBlockMap(Buffer              *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeBlockMapCaches(struct block_map *map,
-                       PhysicalLayer    *layer,
-                       ReadOnlyNotifier *readOnlyNotifier,
-                       RecoveryJournal  *journal,
-                       Nonce             nonce,
-                       PageCount         cacheSize,
-                       BlockCount        maximumAge)
+int makeBlockMapCaches(struct block_map        *map,
+                       PhysicalLayer           *layer,
+                       ReadOnlyNotifier        *readOnlyNotifier,
+                       struct recovery_journal *journal,
+                       Nonce                    nonce,
+                       PageCount                cacheSize,
+                       BlockCount               maximumAge)
   __attribute__((warn_unused_result));
 
 /**
@@ -195,8 +195,8 @@ int encodeBlockMap(const struct block_map *map, Buffer *buffer)
  * @param map      The map in question
  * @param journal  The journal to initialize from
  **/
-void initializeBlockMapFromJournal(struct block_map *map,
-                                   RecoveryJournal  *journal);
+void initializeBlockMapFromJournal(struct block_map         *map,
+                                   struct recovery_journal  *journal);
 
 /**
  * Get the portion of the block map for a given logical zone.

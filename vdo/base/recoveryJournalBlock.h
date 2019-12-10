@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#8 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -34,7 +34,7 @@ struct recovery_journal_block {
   /** The doubly linked pointers for the free or active lists */
   RingNode                      ringNode;
   /** The journal to which this block belongs */
-  RecoveryJournal              *journal;
+  struct recovery_journal      *journal;
   /** A pointer to a block-sized buffer holding the packed block data */
   char                         *block;
   /** A pointer to the current sector in the packed block buffer */
@@ -131,7 +131,7 @@ isRecoveryBlockFull(const struct recovery_journal_block *block)
  * @return VDO_SUCCESS or an error
  **/
 int makeRecoveryBlock(PhysicalLayer                  *layer,
-                      RecoveryJournal                *journal,
+                      struct recovery_journal        *journal,
                       struct recovery_journal_block **blockPtr)
   __attribute__((warn_unused_result));
 

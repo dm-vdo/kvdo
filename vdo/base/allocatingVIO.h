@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#6 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -38,35 +38,35 @@ typedef void AllocationCallback(struct allocating_vio *allocationVIO);
  **/
 struct allocating_vio {
   /** The underlying VIO */
-  VIO                 vio;
+  VIO                             vio;
 
   /** The WaitQueue entry structure */
-  struct waiter       waiter;
+  struct waiter                   waiter;
 
   /** The physical zone in which to allocate a physical block */
-  PhysicalZone       *zone;
+  struct physical_zone           *zone;
 
   /** The block allocated to this VIO */
-  PhysicalBlockNumber allocation;
+  PhysicalBlockNumber             allocation;
 
   /**
    * If non-NULL, the pooled PBN lock held on the allocated block. Must be a
-   * write lock until the block has been written, after which it will become a
+   * write lock until the block has been  written, after which it will become a
    * read lock.
    **/
-  struct pbn_lock    *allocationLock;
+  struct pbn_lock                *allocationLock;
 
   /** The type of write lock to obtain on the allocated block */
-  PBNLockType         writeLockType;
+  PBNLockType                     writeLockType;
 
   /** The number of zones in which this VIO has attempted an allocation */
-  ZoneCount           allocationAttempts;
+  ZoneCount                       allocationAttempts;
 
   /** Whether this VIO should wait for a clean slab */
-  bool                waitForCleanSlab;
+  bool                            waitForCleanSlab;
 
   /** The function to call once allocation is complete */
-  AllocationCallback *allocationCallback;
+  AllocationCallback             *allocationCallback;
 };
 
 /**
