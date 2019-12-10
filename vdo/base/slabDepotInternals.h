@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#16 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -29,53 +29,53 @@
 #include "actionManager.h"
 
 struct slabDepot {
-  ZoneCount                 zoneCount;
-  ZoneCount                 oldZoneCount;
-  SlabConfig                slabConfig;
-  SlabSummary              *slabSummary;
-  ReadOnlyNotifier         *readOnlyNotifier;
-  struct action_manager    *actionManager;
+  ZoneCount                   zoneCount;
+  ZoneCount                   oldZoneCount;
+  SlabConfig                  slabConfig;
+  SlabSummary                *slabSummary;
+  struct read_only_notifier  *readOnlyNotifier;
+  struct action_manager      *actionManager;
 
-  PhysicalBlockNumber       firstBlock;
-  PhysicalBlockNumber       lastBlock;
-  PhysicalBlockNumber       origin;
+  PhysicalBlockNumber         firstBlock;
+  PhysicalBlockNumber         lastBlock;
+  PhysicalBlockNumber         origin;
 
   /** slabSize == (1 << slabSizeShift) */
-  unsigned int              slabSizeShift;
+  unsigned int                slabSizeShift;
 
   /** Determines how slabs should be queued during load */
-  SlabDepotLoadType         loadType;
+  SlabDepotLoadType           loadType;
 
   /** The state for notifying slab journals to release recovery journal */
-  SequenceNumber            activeReleaseRequest;
-  SequenceNumber            newReleaseRequest;
+  SequenceNumber              activeReleaseRequest;
+  SequenceNumber              newReleaseRequest;
 
   /** State variables for scrubbing complete handling */
-  Atomic32                 *vdoState;
-  Atomic32                  zonesToScrub;
+  Atomic32                   *vdoState;
+  Atomic32                    zonesToScrub;
 
   /** Cached journal pointer for slab creation */
-  struct recovery_journal  *journal;
+  struct recovery_journal    *journal;
 
   /** Array of pointers to individually allocated slabs */
-  Slab                    **slabs;
+  Slab                      **slabs;
   /** The number of slabs currently allocated and stored in 'slabs' */
-  SlabCount                 slabCount;
+  SlabCount                   slabCount;
 
   /** Array of pointers to a larger set of slabs (used during resize) */
-  Slab                    **newSlabs;
+  Slab                      **newSlabs;
   /** The number of slabs currently allocated and stored in 'newSlabs' */
-  SlabCount                 newSlabCount;
+  SlabCount                   newSlabCount;
   /** The size that 'newSlabs' was allocated for */
-  BlockCount                newSize;
+  BlockCount                  newSize;
 
   /** The last block before resize, for rollback */
-  PhysicalBlockNumber       oldLastBlock;
+  PhysicalBlockNumber         oldLastBlock;
   /** The last block after resize, for resize */
-  PhysicalBlockNumber       newLastBlock;
+  PhysicalBlockNumber         newLastBlock;
 
   /** The block allocators for this depot */
-  struct block_allocator   *allocators[];
+  struct block_allocator     *allocators[];
 };
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#10 $
  */
 
 #include "slabScrubberInternals.h"
@@ -61,10 +61,10 @@ static int allocateExtentAndBuffer(SlabScrubber  *scrubber,
 }
 
 /**********************************************************************/
-int makeSlabScrubber(PhysicalLayer     *layer,
-                     BlockCount         slabJournalSize,
-                     ReadOnlyNotifier  *readOnlyNotifier,
-                     SlabScrubber     **scrubberPtr)
+int makeSlabScrubber(PhysicalLayer              *layer,
+                     BlockCount                  slabJournalSize,
+                     struct read_only_notifier  *readOnlyNotifier,
+                     SlabScrubber              **scrubberPtr)
 {
   SlabScrubber *scrubber;
   int result = ALLOCATE(1, SlabScrubber, __func__, &scrubber);
@@ -304,10 +304,10 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
  **/
 static void applyJournalEntries(VDOCompletion *completion)
 {
-  SlabScrubber *scrubber        = completion->parent;
-  Slab         *slab            = scrubber->slab;
-  SlabJournal  *journal         = slab->journal;
-  RefCounts    *referenceCounts = slab->referenceCounts;
+  SlabScrubber      *scrubber        = completion->parent;
+  Slab              *slab            = scrubber->slab;
+  SlabJournal       *journal         = slab->journal;
+  struct ref_counts *referenceCounts = slab->referenceCounts;
 
   // Find the boundaries of the useful part of the journal.
   SequenceNumber  tail     = journal->tail;

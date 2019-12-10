@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#11 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -58,7 +58,7 @@ struct search_cursor {
 };
 
 /*
- * RefCounts structure
+ * ref_counts structure
  *
  * A reference count is maintained for each PhysicalBlockNumber.  The vast
  * majority of blocks have a very small reference count (usually 0 or 1).
@@ -66,7 +66,7 @@ struct search_cursor {
  * is stored in counters[pbn].
  *
  */
-struct refCounts {
+struct ref_counts {
   /** The slab of this reference block */
   Slab                               *slab;
 
@@ -91,12 +91,12 @@ struct refCounts {
   bool                                updatingSlabSummary;
 
   /** The notifier for read-only mode */
-  ReadOnlyNotifier                   *readOnlyNotifier;
+  struct read_only_notifier          *readOnlyNotifier;
   /** The refcount statistics, shared by all refcounts in our physical zone */
   struct atomic_ref_count_statistics *statistics;
   /** The layer PBN for the first struct reference_block */
   PhysicalBlockNumber                 origin;
-  /** The latest slab journal entry this RefCounts has been updated with */
+  /** The latest slab journal entry this ref_counts has been updated with */
   struct journal_point                slabJournalPoint;
 
   /** The number of reference count blocks */
@@ -116,13 +116,13 @@ __attribute__((warn_unused_result))
 ReferenceStatus referenceCountToStatus(ReferenceCount count);
 
 /**
- * Convert a generic VDOCompletion to a RefCounts.
+ * Convert a generic VDOCompletion to a ref_counts object.
  *
  * @param completion The completion to convert
  *
- * @return The completion as a RefCounts
+ * @return The completion as a ref_counts object
  **/
-RefCounts *asRefCounts(VDOCompletion *completion)
+struct ref_counts *asRefCounts(VDOCompletion *completion)
   __attribute__((warn_unused_result));
 
 /**
@@ -132,8 +132,8 @@ RefCounts *asRefCounts(VDOCompletion *completion)
  * @param refCounts  The refcounts object
  * @param index      The block index
  **/
-struct reference_block *getReferenceBlock(RefCounts       *refCounts,
-                                          SlabBlockNumber  index)
+struct reference_block *getReferenceBlock(struct ref_counts *refCounts,
+                                          SlabBlockNumber    index)
   __attribute__((warn_unused_result));
 
 /**
@@ -165,7 +165,7 @@ void packReferenceBlock(struct reference_block *block, void *buffer);
  * @return                  A success or error code, specifically:
  *                          VDO_OUT_OF_RANGE if the pbn is out of range.
  **/
-int getReferenceStatus(RefCounts           *refCounts,
+int getReferenceStatus(struct ref_counts   *refCounts,
                        PhysicalBlockNumber  pbn,
                        ReferenceStatus     *statusPtr)
   __attribute__((warn_unused_result));
@@ -183,24 +183,24 @@ int getReferenceStatus(RefCounts           *refCounts,
  *
  * @return true if a free block was found in the specified range
  **/
-bool findFreeBlock(const RefCounts *refCounts,
-                   SlabBlockNumber  startIndex,
-                   SlabBlockNumber  endIndex,
-                   SlabBlockNumber *indexPtr)
+bool findFreeBlock(const struct ref_counts *refCounts,
+                   SlabBlockNumber          startIndex,
+                   SlabBlockNumber          endIndex,
+                   SlabBlockNumber         *indexPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Request a RefCounts save its oldest dirty block asynchronously.
+ * Request a ref_counts object save its oldest dirty block asynchronously.
  *
- * @param refCounts  The RefCounts object to notify
+ * @param refCounts  The ref_counts object to notify
  **/
-void saveOldestReferenceBlock(RefCounts *refCounts);
+void saveOldestReferenceBlock(struct ref_counts *refCounts);
 
 /**
  * Reset all reference counts back to RS_FREE.
  *
  * @param refCounts   The reference counters to reset
  **/
-void resetReferenceCounts(RefCounts *refCounts);
+void resetReferenceCounts(struct ref_counts *refCounts);
 
 #endif // REF_COUNTS_INTERNALS_H

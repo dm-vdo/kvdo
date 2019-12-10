@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#22 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -70,8 +70,8 @@ struct block_map_zone {
   ThreadID                    threadID;
   /** The block_map which owns this block_map_zone */
   struct block_map           *blockMap;
-  /** The ReadOnlyNotifier of the VDO */
-  ReadOnlyNotifier           *readOnlyNotifier;
+  /** The read_only_notifier of the VDO */
+  struct read_only_notifier  *readOnlyNotifier;
   /** The page cache for this zone */
   struct vdo_page_cache      *pageCache;
   /** The per-zone portion of the tree for this zone */

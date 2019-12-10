@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#9 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -94,7 +94,7 @@ struct slabSummaryZone {
 
 struct slabSummary {
   /** The context for entering read-only mode */
-  ReadOnlyNotifier                      *readOnlyNotifier;
+  struct read_only_notifier             *readOnlyNotifier;
   /** The statistics for this slab summary */
   struct atomic_slab_summary_statistics  statistics;
   /** The start of the slab summary partition relative to the layer */

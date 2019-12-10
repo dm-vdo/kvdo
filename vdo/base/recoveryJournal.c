@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#21 $
  */
 
 #include "recoveryJournal.h"
@@ -404,15 +404,15 @@ static void setJournalTail(struct recovery_journal *journal,
 }
 
 /**********************************************************************/
-int makeRecoveryJournal(Nonce                     nonce,
-                        PhysicalLayer            *layer,
-                        struct partition         *partition,
-                        uint64_t                  recoveryCount,
-                        BlockCount                journalSize,
-                        BlockCount                tailBufferSize,
-                        ReadOnlyNotifier         *readOnlyNotifier,
-                        const ThreadConfig       *threadConfig,
-                        struct recovery_journal **journalPtr)
+int makeRecoveryJournal(Nonce                       nonce,
+                        PhysicalLayer              *layer,
+                        struct partition           *partition,
+                        uint64_t                    recoveryCount,
+                        BlockCount                  journalSize,
+                        BlockCount                  tailBufferSize,
+                        struct read_only_notifier  *readOnlyNotifier,
+                        const ThreadConfig         *threadConfig,
+                        struct recovery_journal   **journalPtr)
 {
   struct recovery_journal *journal;
   int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#6 $
  */
 
 #include "readOnlyNotifier.h"
@@ -31,7 +31,7 @@
 #include "threadConfig.h"
 
 /**
- * A ReadOnlyNotifier has a single completion which is used to perform
+ * A read_only_notifier has a single completion which is used to perform
  * read-only notifications, however, enterReadOnlyMode() may be called from any
  * base thread. A pair of atomic fields are used to control the read-only mode
  * entry process. The first field holds the read-only error. The second is the
@@ -90,7 +90,7 @@ struct thread_data {
   struct read_only_listener *listeners;
 };
 
-struct readOnlyNotifier {
+struct read_only_notifier {
   /** The completion for entering read-only mode */
   VDOCompletion       completion;
   /** A completion waiting for notifications to be drained or enabled */
@@ -106,27 +106,27 @@ struct readOnlyNotifier {
 };
 
 /**
- * Convert a generic VDOCompletion to a ReadOnlyNotifier.
+ * Convert a generic VDOCompletion to a read_only_notifier.
  *
  * @param completion The completion to convert
  *
- * @return The completion as a ReadOnlyNotifier
+ * @return The completion as a read_only_notifier
  **/
-static inline ReadOnlyNotifier *asNotifier(VDOCompletion *completion)
+static inline struct read_only_notifier *asNotifier(VDOCompletion *completion)
 {
-  STATIC_ASSERT(offsetof(ReadOnlyNotifier, completion) == 0);
+  STATIC_ASSERT(offsetof(struct read_only_notifier, completion) == 0);
   assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
-  return (ReadOnlyNotifier *) completion;
+  return (struct read_only_notifier *) completion;
 }
 
 /**********************************************************************/
-int makeReadOnlyNotifier(bool                 isReadOnly,
-                         const ThreadConfig  *threadConfig,
-                         PhysicalLayer       *layer,
-                         ReadOnlyNotifier   **notifierPtr)
+int makeReadOnlyNotifier(bool                        isReadOnly,
+                         const ThreadConfig         *threadConfig,
+                         PhysicalLayer              *layer,
+                         struct read_only_notifier **notifierPtr)
 {
-  ReadOnlyNotifier *notifier;
-  int result = ALLOCATE_EXTENDED(ReadOnlyNotifier,
+  struct read_only_notifier *notifier;
+  int result = ALLOCATE_EXTENDED(struct read_only_notifier,
                                  threadConfig->baseThreadCount,
                                  struct thread_data,
                                  __func__, &notifier);
@@ -157,9 +157,9 @@ int makeReadOnlyNotifier(bool                 isReadOnly,
 }
 
 /**********************************************************************/
-void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr)
+void freeReadOnlyNotifier(struct read_only_notifier **notifierPtr)
 {
-  ReadOnlyNotifier *notifier = *notifierPtr;
+  struct read_only_notifier *notifier = *notifierPtr;
   if (notifier == NULL) {
     return;
   }
@@ -186,7 +186,8 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr)
  * @param notifier  The notifier
  * @param caller    The name of the function (for logging)
  **/
-static void assertOnAdminThread(ReadOnlyNotifier *notifier, const char *caller)
+static void assertOnAdminThread(struct read_only_notifier *notifier,
+                                const char                *caller)
 {
   ThreadID threadID = getCallbackThreadID();
   ASSERT_LOG_ONLY((getAdminThread(notifier->threadConfig) == threadID),
@@ -195,8 +196,8 @@ static void assertOnAdminThread(ReadOnlyNotifier *notifier, const char *caller)
 
 
 /**********************************************************************/
-void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
-                                      VDOCompletion    *parent)
+void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
+                                      VDOCompletion             *parent)
 {
   if (notifier == NULL) {
     finishCompletion(parent, VDO_SUCCESS);
@@ -237,7 +238,7 @@ void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
  **/
 static void finishEnteringReadOnlyMode(VDOCompletion *completion)
 {
-  ReadOnlyNotifier *notifier = asNotifier(completion);
+  struct read_only_notifier *notifier = asNotifier(completion);
   assertOnAdminThread(notifier, __func__);
   atomicStore32(&notifier->state, NOTIFIED);
 
@@ -256,7 +257,7 @@ static void finishEnteringReadOnlyMode(VDOCompletion *completion)
 static void makeThreadReadOnly(VDOCompletion *completion)
 {
   ThreadID                   threadID   = completion->callbackThreadID;
-  ReadOnlyNotifier          *notifier   = asNotifier(completion);
+  struct read_only_notifier *notifier   = asNotifier(completion);
   struct read_only_listener *listener   = completion->parent;
   if (listener == NULL) {
     // This is the first call on this thread
@@ -296,7 +297,8 @@ static void makeThreadReadOnly(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier, VDOCompletion *parent)
+void allowReadOnlyModeEntry(struct read_only_notifier *notifier,
+                            VDOCompletion             *parent)
 {
   assertOnAdminThread(notifier, __func__);
   if (notifier->waiter != NULL) {
@@ -333,7 +335,7 @@ void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode)
+void enterReadOnlyMode(struct read_only_notifier *notifier, int errorCode)
 {
   struct thread_data *threadData = &notifier->threadData[getCallbackThreadID()];
   if (threadData->isReadOnly) {
@@ -357,16 +359,16 @@ void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode)
 }
 
 /**********************************************************************/
-bool isReadOnly(ReadOnlyNotifier *notifier)
+bool isReadOnly(struct read_only_notifier *notifier)
 {
   return notifier->threadData[getCallbackThreadID()].isReadOnly;
 }
 
 /**********************************************************************/
-int registerReadOnlyListener(ReadOnlyNotifier     *notifier,
-                             void                 *listener,
-                             ReadOnlyNotification *notification,
-                             ThreadID              threadID)
+int registerReadOnlyListener(struct read_only_notifier *notifier,
+                             void                      *listener,
+                             ReadOnlyNotification      *notification,
+                             ThreadID                   threadID)
 {
   struct read_only_listener *readOnlyListener;
   int result = ALLOCATE(1, struct read_only_listener,

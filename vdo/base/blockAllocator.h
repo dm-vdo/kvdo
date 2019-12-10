@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#15 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -43,14 +43,14 @@
  *
  * @return A success or error code
  **/
-int makeBlockAllocator(SlabDepot               *depot,
-                       ZoneCount                zoneNumber,
-                       ThreadID                 threadID,
-                       Nonce                    nonce,
-                       BlockCount               vioPoolSize,
-                       PhysicalLayer           *layer,
-                       ReadOnlyNotifier        *readOnlyNotifier,
-                       struct block_allocator **allocatorPtr)
+int makeBlockAllocator(SlabDepot                  *depot,
+                       ZoneCount                   zoneNumber,
+                       ThreadID                    threadID,
+                       Nonce                       nonce,
+                       BlockCount                  vioPoolSize,
+                       PhysicalLayer              *layer,
+                       struct read_only_notifier  *readOnlyNotifier,
+                       struct block_allocator    **allocatorPtr)
   __attribute__((warn_unused_result));
 
 /**

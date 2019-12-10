@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#26 $
  */
 
 #include "slabDepot.h"
@@ -306,7 +306,7 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
                          BlockCount                          vioPoolSize,
                          PhysicalLayer                      *layer,
                          struct partition                   *summaryPartition,
-                         ReadOnlyNotifier                   *readOnlyNotifier,
+                         struct read_only_notifier          *readOnlyNotifier,
                          struct recovery_journal            *recoveryJournal,
                          Atomic32                           *vdoState,
                          SlabDepot                         **depotPtr)
@@ -402,18 +402,18 @@ static int configureState(BlockCount                     blockCount,
 }
 
 /**********************************************************************/
-int makeSlabDepot(BlockCount                blockCount,
-                  PhysicalBlockNumber       firstBlock,
-                  SlabConfig                slabConfig,
-                  const ThreadConfig       *threadConfig,
-                  Nonce                     nonce,
-                  BlockCount                vioPoolSize,
-                  PhysicalLayer            *layer,
-                  struct partition         *summaryPartition,
-                  ReadOnlyNotifier         *readOnlyNotifier,
-                  struct recovery_journal  *recoveryJournal,
-                  Atomic32                 *vdoState,
-                  SlabDepot               **depotPtr)
+int makeSlabDepot(BlockCount                  blockCount,
+                  PhysicalBlockNumber         firstBlock,
+                  SlabConfig                  slabConfig,
+                  const ThreadConfig         *threadConfig,
+                  Nonce                       nonce,
+                  BlockCount                  vioPoolSize,
+                  PhysicalLayer              *layer,
+                  struct partition           *summaryPartition,
+                  struct read_only_notifier  *readOnlyNotifier,
+                  struct recovery_journal    *recoveryJournal,
+                  Atomic32                   *vdoState,
+                  SlabDepot                 **depotPtr)
 {
   struct slab_depot_state_2_0 state;
   int result = configureState(blockCount, firstBlock, slabConfig, 0, &state);
@@ -654,15 +654,15 @@ static int decodeSlabDepotState_2_0(Buffer                      *buffer,
 }
 
 /**********************************************************************/
-int decodeSlabDepot(Buffer                   *buffer,
-                    const ThreadConfig       *threadConfig,
-                    Nonce                     nonce,
-                    PhysicalLayer            *layer,
-                    struct partition         *summaryPartition,
-                    ReadOnlyNotifier         *readOnlyNotifier,
-                    struct recovery_journal  *recoveryJournal,
-                    Atomic32                 *vdoState,
-                    SlabDepot               **depotPtr)
+int decodeSlabDepot(Buffer                     *buffer,
+                    const ThreadConfig         *threadConfig,
+                    Nonce                       nonce,
+                    PhysicalLayer              *layer,
+                    struct partition           *summaryPartition,
+                    struct read_only_notifier  *readOnlyNotifier,
+                    struct recovery_journal    *recoveryJournal,
+                    Atomic32                   *vdoState,
+                    SlabDepot                 **depotPtr)
 {
   struct header header;
   int result = decodeHeader(buffer, &header);
@@ -687,14 +687,14 @@ int decodeSlabDepot(Buffer                   *buffer,
 }
 
 /**********************************************************************/
-int decodeSodiumSlabDepot(Buffer                   *buffer,
-                          const ThreadConfig       *threadConfig,
-                          Nonce                     nonce,
-                          PhysicalLayer            *layer,
-                          struct partition         *summaryPartition,
-                          ReadOnlyNotifier         *readOnlyNotifier,
-                          struct recovery_journal  *recoveryJournal,
-                          SlabDepot               **depotPtr)
+int decodeSodiumSlabDepot(Buffer                     *buffer,
+                          const ThreadConfig         *threadConfig,
+                          Nonce                       nonce,
+                          PhysicalLayer              *layer,
+                          struct partition           *summaryPartition,
+                          struct read_only_notifier  *readOnlyNotifier,
+                          struct recovery_journal    *recoveryJournal,
+                          SlabDepot                 **depotPtr)
 {
   // Sodium uses version 2.0 of the slab depot state.
   return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
@@ -1029,7 +1029,7 @@ void notifyZoneFinishedScrubbing(VDOCompletion *completion)
     }
 
     /*
-     * We must check the VDO state here and not the depot's ReadOnlyNotifier
+     * We must check the VDO state here and not the depot's read_only_notifier
      * since the compare-swap-above could have failed due to a read-only entry
      * which our own thread does not yet know about.
      */

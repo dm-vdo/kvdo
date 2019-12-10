@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#7 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -30,30 +30,30 @@
 #include "ringNode.h"
 
 struct slabScrubber {
-  VDOCompletion      completion;
+  VDOCompletion              completion;
   /** The queue of slabs to scrub first */
-  RingNode           highPrioritySlabs;
+  RingNode                   highPrioritySlabs;
   /** The queue of slabs to scrub once there are no highPrioritySlabs */
-  RingNode           slabs;
+  RingNode                   slabs;
   /** The queue of VIOs waiting for a slab to be scrubbed */
-  struct wait_queue  waiters;
+  struct wait_queue          waiters;
 
   // The number of slabs that are unrecovered or being scrubbed. This field is
   // modified by the physical zone thread, but is queried by other threads.
-  Atomic64           slabCount;
+  Atomic64                   slabCount;
 
   /** The administrative state of the scrubber */
-  struct admin_state adminState;
+  struct admin_state         adminState;
   /** Whether to only scrub high-priority slabs */
-  bool               highPriorityOnly;
+  bool                       highPriorityOnly;
   /** The context for entering read-only mode */
-  ReadOnlyNotifier  *readOnlyNotifier;
+  struct read_only_notifier *readOnlyNotifier;
   /** The slab currently being scrubbed */
-  Slab              *slab;
+  Slab                      *slab;
   /** The extent for loading slab journal blocks */
-  VDOExtent         *extent;
+  VDOExtent                 *extent;
   /** A buffer to store the slab journal blocks */
-  char              *journalData;
+  char                      *journalData;
 };
 
 #endif // SLAB_SCRUBBER_INTERNALS_H

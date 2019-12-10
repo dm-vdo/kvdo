@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#25 $
  */
 
 #include "blockMap.h"
@@ -281,11 +281,11 @@ int decodeSodiumBlockMap(Buffer              *buffer,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int initializeBlockMapZone(struct block_map_zone *zone,
-                                  PhysicalLayer         *layer,
-                                  ReadOnlyNotifier      *readOnlyNotifier,
-                                  PageCount              cacheSize,
-                                  BlockCount             maximumAge)
+static int initializeBlockMapZone(struct block_map_zone     *zone,
+                                  PhysicalLayer             *layer,
+                                  struct read_only_notifier *readOnlyNotifier,
+                                  PageCount                  cacheSize,
+                                  BlockCount                 maximumAge)
 {
   zone->readOnlyNotifier = readOnlyNotifier;
   int result = initializeTreeZone(zone, layer, maximumAge);
@@ -359,13 +359,13 @@ static bool scheduleEraAdvance(void *context)
 }
 
 /**********************************************************************/
-int makeBlockMapCaches(struct block_map        *map,
-                       PhysicalLayer           *layer,
-                       ReadOnlyNotifier        *readOnlyNotifier,
-                       struct recovery_journal *journal,
-                       Nonce                    nonce,
-                       PageCount                cacheSize,
-                       BlockCount               maximumAge)
+int makeBlockMapCaches(struct block_map          *map,
+                       PhysicalLayer             *layer,
+                       struct read_only_notifier *readOnlyNotifier,
+                       struct recovery_journal   *journal,
+                       Nonce                      nonce,
+                       PageCount                  cacheSize,
+                       BlockCount                 maximumAge)
 {
   int result = ASSERT(cacheSize > 0, "block map cache size is specified");
   if (result != UDS_SUCCESS) {

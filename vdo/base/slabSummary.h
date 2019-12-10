@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#9 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -91,13 +91,13 @@ __attribute__((warn_unused_result));
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSlabSummary(PhysicalLayer       *layer,
-                    struct partition    *partition,
-                    const ThreadConfig  *threadConfig,
-                    unsigned int         slabSizeShift,
-                    BlockCount           maximumFreeBlocksPerSlab,
-                    ReadOnlyNotifier    *readOnlyNotifier,
-                    SlabSummary        **slabSummaryPtr)
+int makeSlabSummary(PhysicalLayer              *layer,
+                    struct partition           *partition,
+                    const ThreadConfig         *threadConfig,
+                    unsigned int                slabSizeShift,
+                    BlockCount                  maximumFreeBlocksPerSlab,
+                    struct read_only_notifier  *readOnlyNotifier,
+                    SlabSummary               **slabSummaryPtr)
   __attribute__((warn_unused_result));
 
 /**

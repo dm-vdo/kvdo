@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#9 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -153,13 +153,13 @@ int decodeSodiumBlockMap(Buffer              *buffer,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeBlockMapCaches(struct block_map        *map,
-                       PhysicalLayer           *layer,
-                       ReadOnlyNotifier        *readOnlyNotifier,
-                       struct recovery_journal *journal,
-                       Nonce                    nonce,
-                       PageCount                cacheSize,
-                       BlockCount               maximumAge)
+int makeBlockMapCaches(struct block_map          *map,
+                       PhysicalLayer             *layer,
+                       struct read_only_notifier *readOnlyNotifier,
+                       struct recovery_journal   *journal,
+                       Nonce                      nonce,
+                       PageCount                  cacheSize,
+                       BlockCount                 maximumAge)
   __attribute__((warn_unused_result));
 
 /**

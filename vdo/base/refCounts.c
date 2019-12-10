@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#15 $
  */
 
 #include "refCounts.h"
@@ -52,20 +52,20 @@ static const uint64_t BYTES_PER_WORD   = sizeof(uint64_t);
 static const bool     NORMAL_OPERATION = true;
 
 /**
- * Return the RefCounts from the RefCounts waiter.
+ * Return the ref_counts from the ref_counts waiter.
  *
  * @param waiter  The waiter to convert
  *
- * @return  The RefCounts
+ * @return  The ref_counts
  **/
 __attribute__((warn_unused_result))
-static inline RefCounts *refCountsFromWaiter(struct waiter *waiter)
+static inline struct ref_counts *refCountsFromWaiter(struct waiter *waiter)
 {
   if (waiter == NULL) {
     return NULL;
   }
-  return (RefCounts *)
-    ((uintptr_t) waiter - offsetof(RefCounts, slabSummaryWaiter));
+  return (struct ref_counts *)
+    ((uintptr_t) waiter - offsetof(struct ref_counts, slabSummaryWaiter));
 }
 
 /**
@@ -78,8 +78,8 @@ static inline RefCounts *refCountsFromWaiter(struct waiter *waiter)
  *
  * @return the physical block number corresponding to the index
  **/
-static PhysicalBlockNumber indexToPBN(const RefCounts *refCounts,
-                                      uint64_t         index)
+static PhysicalBlockNumber indexToPBN(const struct ref_counts *refCounts,
+                                      uint64_t                 index)
 {
   return (refCounts->slab->start + index);
 }
@@ -94,7 +94,8 @@ static PhysicalBlockNumber indexToPBN(const RefCounts *refCounts,
  *
  * @return the index corresponding to the physical block number
  **/
-static uint64_t pbnToIndex(const RefCounts *refCounts, PhysicalBlockNumber pbn)
+static uint64_t pbnToIndex(const struct ref_counts *refCounts,
+                           PhysicalBlockNumber      pbn)
 {
   if (pbn < refCounts->slab->start) {
     return 0;
@@ -121,9 +122,9 @@ ReferenceStatus referenceCountToStatus(ReferenceCount count)
  * Reset the free block search back to the first reference counter
  * in the first reference block.
  *
- * @param refCounts  The RefCounts object containing the search cursor
+ * @param refCounts  The ref_counts object containing the search cursor
  **/
-static void resetSearchCursor(RefCounts *refCounts)
+static void resetSearchCursor(struct ref_counts *refCounts)
 {
   struct search_cursor *cursor = &refCounts->searchCursor;
 
@@ -138,11 +139,11 @@ static void resetSearchCursor(RefCounts *refCounts)
  * wrapping around to the first reference block if the current block is the
  * last reference block.
  *
- * @param refCounts  The RefCounts object containing the search cursor
+ * @param refCounts  The ref_counts object containing the search cursor
  *
  * @return true unless the cursor was at the last reference block
  **/
-static bool advanceSearchCursor(RefCounts *refCounts)
+static bool advanceSearchCursor(struct ref_counts *refCounts)
 {
   struct search_cursor *cursor = &refCounts->searchCursor;
 
@@ -167,15 +168,15 @@ static bool advanceSearchCursor(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-int makeRefCounts(BlockCount            blockCount,
-                  Slab                 *slab,
-                  PhysicalBlockNumber   origin,
-                  ReadOnlyNotifier     *readOnlyNotifier,
-                  RefCounts           **refCountsPtr)
+int makeRefCounts(BlockCount                  blockCount,
+                  Slab                       *slab,
+                  PhysicalBlockNumber         origin,
+                  struct read_only_notifier  *readOnlyNotifier,
+                  struct ref_counts         **refCountsPtr)
 {
   BlockCount  refBlockCount = getSavedReferenceCountSize(blockCount);
-  RefCounts  *refCounts;
-  int result = ALLOCATE_EXTENDED(RefCounts, refBlockCount,
+  struct ref_counts  *refCounts;
+  int result = ALLOCATE_EXTENDED(struct ref_counts, refBlockCount,
                                  struct reference_block,
                                  "ref counts structure", &refCounts);
   if (result != UDS_SUCCESS) {
@@ -214,9 +215,9 @@ int makeRefCounts(BlockCount            blockCount,
 }
 
 /**********************************************************************/
-void freeRefCounts(RefCounts **refCountsPtr)
+void freeRefCounts(struct ref_counts **refCountsPtr)
 {
-  RefCounts *refCounts = *refCountsPtr;
+  struct ref_counts *refCounts = *refCountsPtr;
   if (refCounts == NULL) {
     return;
   }
@@ -227,15 +228,15 @@ void freeRefCounts(RefCounts **refCountsPtr)
 }
 
 /**
- * Check whether a RefCounts has active I/O.
+ * Check whether a ref_counts object has active I/O.
  *
- * @param refCounts  The RefCounts to check
+ * @param refCounts  The ref_counts to check
  *
  * @return <code>true</code> if there is reference block I/O or a summary
  *         update in progress
  **/
 __attribute__((warn_unused_result))
-static bool isRefCountsActive(RefCounts *refCounts)
+static bool isRefCountsActive(struct ref_counts *refCounts)
 {
   return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary);
 }
@@ -245,7 +246,7 @@ static bool isRefCountsActive(RefCounts *refCounts)
  *
  * @param refCounts  The refCounts to check
  **/
-static void checkForDrainComplete(RefCounts *refCounts)
+static void checkForDrainComplete(struct ref_counts *refCounts)
 {
   if (isRefCountsActive(refCounts)) {
     return;
@@ -268,7 +269,7 @@ static void checkForDrainComplete(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
+static void enterRefCountsReadOnlyMode(struct ref_counts *refCounts, int result)
 {
   enterReadOnlyMode(refCounts->readOnlyNotifier, result);
   checkForDrainComplete(refCounts);
@@ -310,14 +311,14 @@ static void dirtyBlock(struct reference_block *block)
 }
 
 /**********************************************************************/
-BlockCount getUnreferencedBlockCount(RefCounts *refCounts)
+BlockCount getUnreferencedBlockCount(struct ref_counts *refCounts)
 {
   return refCounts->freeBlocks;
 }
 
 /**********************************************************************/
-struct reference_block *getReferenceBlock(RefCounts       *refCounts,
-                                          SlabBlockNumber  index)
+struct reference_block *getReferenceBlock(struct ref_counts *refCounts,
+                                          SlabBlockNumber    index)
 {
   return &refCounts->blocks[index / COUNTS_PER_BLOCK];
 }
@@ -330,7 +331,7 @@ struct reference_block *getReferenceBlock(RefCounts       *refCounts,
  * @param [out] counterPtr      A pointer to the reference counter
 
  **/
-static int getReferenceCounter(RefCounts            *refCounts,
+static int getReferenceCounter(struct ref_counts    *refCounts,
                                PhysicalBlockNumber   pbn,
                                ReferenceCount      **counterPtr)
 {
@@ -346,7 +347,8 @@ static int getReferenceCounter(RefCounts            *refCounts,
 }
 
 /**********************************************************************/
-uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
+uint8_t getAvailableReferences(struct ref_counts   *refCounts,
+                               PhysicalBlockNumber  pbn)
 {
   ReferenceCount *counterPtr = NULL;
   int result = getReferenceCounter(refCounts, pbn, &counterPtr);
@@ -379,7 +381,7 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int incrementForData(RefCounts              *refCounts,
+static int incrementForData(struct ref_counts      *refCounts,
                             struct reference_block *block,
                             SlabBlockNumber         slabBlockNumber,
                             ReferenceStatus         oldStatus,
@@ -438,7 +440,7 @@ static int incrementForData(RefCounts              *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int decrementForData(RefCounts              *refCounts,
+static int decrementForData(struct ref_counts      *refCounts,
                             struct reference_block *block,
                             SlabBlockNumber         slabBlockNumber,
                             ReferenceStatus         oldStatus,
@@ -502,7 +504,7 @@ static int decrementForData(RefCounts              *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-static int incrementForBlockMap(RefCounts              *refCounts,
+static int incrementForBlockMap(struct ref_counts      *refCounts,
                                 struct reference_block *block,
                                 SlabBlockNumber         slabBlockNumber,
                                 ReferenceStatus         oldStatus,
@@ -578,7 +580,7 @@ static int incrementForBlockMap(RefCounts              *refCounts,
  * @return VDO_SUCCESS or an error
  **/
 static int
-updateReferenceCount(RefCounts                  *refCounts,
+updateReferenceCount(struct ref_counts          *refCounts,
                      struct reference_block     *block,
                      SlabBlockNumber             slabBlockNumber,
                      const struct journal_point *slabJournalPoint,
@@ -633,7 +635,7 @@ updateReferenceCount(RefCounts                  *refCounts,
 }
 
 /**********************************************************************/
-int adjustReferenceCount(RefCounts                  *refCounts,
+int adjustReferenceCount(struct ref_counts          *refCounts,
                          struct reference_operation  operation,
                          const struct journal_point *slabJournalPoint,
                          bool                       *freeStatusChanged)
@@ -694,7 +696,7 @@ int adjustReferenceCount(RefCounts                  *refCounts,
 }
 
 /**********************************************************************/
-int adjustReferenceCountForRebuild(RefCounts           *refCounts,
+int adjustReferenceCountForRebuild(struct ref_counts   *refCounts,
                                    PhysicalBlockNumber  pbn,
                                    JournalOperation     operation)
 {
@@ -721,7 +723,7 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
 }
 
 /**********************************************************************/
-int replayReferenceCountChange(RefCounts                  *refCounts,
+int replayReferenceCountChange(struct ref_counts          *refCounts,
                                const struct journal_point *entryPoint,
                                SlabJournalEntry            entry)
 {
@@ -750,7 +752,7 @@ int replayReferenceCountChange(RefCounts                  *refCounts,
 }
 
 /**********************************************************************/
-int getReferenceStatus(RefCounts           *refCounts,
+int getReferenceStatus(struct ref_counts   *refCounts,
                        PhysicalBlockNumber  pbn,
                        ReferenceStatus     *statusPtr)
 {
@@ -765,7 +767,8 @@ int getReferenceStatus(RefCounts           *refCounts,
 }
 
 /**********************************************************************/
-bool areEquivalentReferenceCounters(RefCounts *counterA, RefCounts *counterB)
+bool areEquivalentReferenceCounters(struct ref_counts *counterA,
+                                    struct ref_counts *counterB)
 {
   if ((counterA->blockCount             != counterB->blockCount)
       || (counterA->freeBlocks          != counterB->freeBlocks)
@@ -816,10 +819,10 @@ static inline SlabBlockNumber findZeroByteInWord(const byte      *wordPtr,
 }
 
 /**********************************************************************/
-bool findFreeBlock(const RefCounts *refCounts,
-                   SlabBlockNumber  startIndex,
-                   SlabBlockNumber  endIndex,
-                   SlabBlockNumber *indexPtr)
+bool findFreeBlock(const struct ref_counts *refCounts,
+                   SlabBlockNumber          startIndex,
+                   SlabBlockNumber          endIndex,
+                   SlabBlockNumber         *indexPtr)
 {
   SlabBlockNumber  zeroIndex;
   SlabBlockNumber  nextIndex   = startIndex;
@@ -864,13 +867,13 @@ bool findFreeBlock(const RefCounts *refCounts,
  * Search the reference block currently saved in the search cursor for a
  * reference count of zero, starting at the saved counter index.
  *
- * @param [in]  refCounts     The RefCounts object to search
+ * @param [in]  refCounts     The ref_counts object to search
  * @param [out] freeIndexPtr  A pointer to receive the array index of the
  *                            zero reference count
  *
  * @return true if an unreferenced counter was found
  **/
-static bool searchCurrentReferenceBlock(const RefCounts *refCounts,
+static bool searchCurrentReferenceBlock(const struct ref_counts *refCounts,
                                         SlabBlockNumber *freeIndexPtr)
 {
   // Don't bother searching if the current block is known to be full.
@@ -884,14 +887,14 @@ static bool searchCurrentReferenceBlock(const RefCounts *refCounts,
  * reference block and counter index saved in the search cursor and searching
  * up to the end of the last reference block. The search does not wrap.
  *
- * @param [in]  refCounts     The RefCounts object to search
+ * @param [in]  refCounts     The ref_counts object to search
  * @param [out] freeIndexPtr  A pointer to receive the array index of the
  *                            zero reference count
  *
  * @return true if an unreferenced counter was found
  **/
-static bool searchReferenceBlocks(RefCounts       *refCounts,
-                                  SlabBlockNumber *freeIndexPtr)
+static bool searchReferenceBlocks(struct ref_counts *refCounts,
+                                  SlabBlockNumber   *freeIndexPtr)
 {
   // Start searching at the saved search position in the current block.
   if (searchCurrentReferenceBlock(refCounts, freeIndexPtr)) {
@@ -911,11 +914,11 @@ static bool searchReferenceBlocks(RefCounts       *refCounts,
 /**
  * Do the bookkeeping for making a provisional reference.
  *
- * @param refCounts        The RefCounts
+ * @param refCounts        The ref_counts
  * @param slabBlockNumber  The block to reference
  **/
-static void makeProvisionalReference(RefCounts       *refCounts,
-                                     SlabBlockNumber  slabBlockNumber)
+static void makeProvisionalReference(struct ref_counts *refCounts,
+                                     SlabBlockNumber    slabBlockNumber)
 {
   // Make the initial transition from an unreferenced block to a provisionally
   // allocated block.
@@ -928,7 +931,7 @@ static void makeProvisionalReference(RefCounts       *refCounts,
 }
 
 /**********************************************************************/
-int allocateUnreferencedBlock(RefCounts           *refCounts,
+int allocateUnreferencedBlock(struct ref_counts   *refCounts,
                               PhysicalBlockNumber *allocatedPtr)
 {
   if (!isSlabOpen(refCounts->slab)) {
@@ -953,7 +956,7 @@ int allocateUnreferencedBlock(RefCounts           *refCounts,
 }
 
 /**********************************************************************/
-int provisionallyReferenceBlock(RefCounts           *refCounts,
+int provisionallyReferenceBlock(struct ref_counts   *refCounts,
                                 PhysicalBlockNumber  pbn,
                                 struct pbn_lock     *lock)
 {
@@ -978,7 +981,7 @@ int provisionallyReferenceBlock(RefCounts           *refCounts,
 }
 
 /**********************************************************************/
-BlockCount countUnreferencedBlocks(RefCounts           *refCounts,
+BlockCount countUnreferencedBlocks(struct ref_counts   *refCounts,
                                    PhysicalBlockNumber  startPBN,
                                    PhysicalBlockNumber  endPBN)
 {
@@ -1023,7 +1026,7 @@ clearDirtyReferenceBlocks(struct waiter *blockWaiter,
 }
 
 /**********************************************************************/
-void resetReferenceCounts(RefCounts *refCounts)
+void resetReferenceCounts(struct ref_counts *refCounts)
 {
   // We can just use memset() since each ReferenceCount is exactly one byte.
   STATIC_ASSERT(sizeof(ReferenceCount) == 1);
@@ -1052,7 +1055,7 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
  **/
 static void finishSummaryUpdate(struct waiter *waiter, void *context)
 {
-  RefCounts *refCounts           = refCountsFromWaiter(waiter);
+  struct ref_counts *refCounts   = refCountsFromWaiter(waiter);
   refCounts->updatingSlabSummary = false;
 
   int result = *((int *) context);
@@ -1066,11 +1069,11 @@ static void finishSummaryUpdate(struct waiter *waiter, void *context)
 }
 
 /**
- * Update slab summary that the RefCounts is clean.
+ * Update slab summary that the ref_counts object is clean.
  *
- * @param refCounts    The RefCounts object that is being written
+ * @param refCounts    The ref_counts object that is being written
  **/
-static void updateSlabSummaryAsClean(RefCounts *refCounts)
+static void updateSlabSummaryAsClean(struct ref_counts *refCounts)
 {
   SlabSummaryZone *summary = getSlabSummaryZone(refCounts->slab->allocator);
   if (summary == NULL) {
@@ -1096,7 +1099,7 @@ static void handleIOError(VDOCompletion *completion)
 {
   int                    result    = completion->result;
   struct vio_pool_entry *entry     = completion->parent;
-  RefCounts             *refCounts
+  struct ref_counts     *refCounts
     = ((struct reference_block *) entry->parent)->refCounts;
   returnVIO(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
@@ -1113,7 +1116,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
 {
   struct vio_pool_entry           *entry     = completion->parent;
   struct reference_block          *block     = entry->parent;
-  RefCounts                       *refCounts = block->refCounts;
+  struct ref_counts               *refCounts = block->refCounts;
   refCounts->activeCount--;
 
   // Release the slab journal lock.
@@ -1144,7 +1147,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
     return;
   }
 
-  // Mark the RefCounts as clean in the slab summary if there are no dirty
+  // Mark the ref_counts as clean in the slab summary if there are no dirty
   // or writing blocks and no summary update in progress.
   if (!isRefCountsActive(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
     updateSlabSummaryAsClean(refCounts);
@@ -1217,7 +1220,7 @@ static void writeReferenceBlock(struct waiter *blockWaiter, void *vioContext)
  **/
 static void launchReferenceBlockWrite(struct waiter *blockWaiter, void *context)
 {
-  RefCounts *refCounts = context;
+  struct ref_counts *refCounts = context;
   if (isReadOnly(refCounts->readOnlyNotifier)) {
     return;
   }
@@ -1235,14 +1238,15 @@ static void launchReferenceBlockWrite(struct waiter *blockWaiter, void *context)
 }
 
 /**********************************************************************/
-void saveOldestReferenceBlock(RefCounts *refCounts)
+void saveOldestReferenceBlock(struct ref_counts *refCounts)
 {
   notifyNextWaiter(&refCounts->dirtyBlocks, launchReferenceBlockWrite,
                    refCounts);
 }
 
 /**********************************************************************/
-void saveSeveralReferenceBlocks(RefCounts *refCounts, size_t flushDivisor)
+void saveSeveralReferenceBlocks(struct ref_counts *refCounts,
+                                size_t             flushDivisor)
 {
   BlockCount dirtyBlockCount = countWaiters(&refCounts->dirtyBlocks);
   if (dirtyBlockCount == 0) {
@@ -1261,7 +1265,7 @@ void saveSeveralReferenceBlocks(RefCounts *refCounts, size_t flushDivisor)
 }
 
 /**********************************************************************/
-void saveDirtyReferenceBlocks(RefCounts *refCounts)
+void saveDirtyReferenceBlocks(struct ref_counts *refCounts)
 {
   notifyAllWaiters(&refCounts->dirtyBlocks, launchReferenceBlockWrite,
                    refCounts);
@@ -1269,7 +1273,7 @@ void saveDirtyReferenceBlocks(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-void dirtyAllReferenceBlocks(RefCounts *refCounts)
+void dirtyAllReferenceBlocks(struct ref_counts *refCounts)
 {
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     dirtyBlock(&refCounts->blocks[i]);
@@ -1301,8 +1305,8 @@ static void clearProvisionalReferences(struct reference_block *block)
 static void unpackReferenceBlock(struct packed_reference_block *packed,
                                  struct reference_block        *block)
 {
-  RefCounts      *refCounts    = block->refCounts;
-  ReferenceCount *counters     = getReferenceCountersForBlock(block);
+  struct ref_counts *refCounts    = block->refCounts;
+  ReferenceCount    *counters     = getReferenceCountersForBlock(block);
   for (SectorCount i = 0; i < SECTORS_PER_BLOCK; i++) {
     struct packed_reference_sector *sector = &packed->sectors[i];
     unpackJournalPoint(&sector->commitPoint, &block->commitPoints[i]);
@@ -1342,7 +1346,7 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
   struct reference_block *block = entry->parent;
   unpackReferenceBlock((struct packed_reference_block *) entry->buffer, block);
 
-  RefCounts *refCounts = block->refCounts;
+  struct ref_counts *refCounts = block->refCounts;
   returnVIO(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
   clearProvisionalReferences(block);
@@ -1377,7 +1381,7 @@ static void loadReferenceBlock(struct waiter *blockWaiter, void *vioContext)
  *
  * @param refCounts  The reference counter to be loaded
  **/
-static void loadReferenceBlocks(RefCounts *refCounts)
+static void loadReferenceBlocks(struct ref_counts *refCounts)
 {
   refCounts->freeBlocks  = refCounts->blockCount;
   refCounts->activeCount = refCounts->referenceBlockCount;
@@ -1395,7 +1399,7 @@ static void loadReferenceBlocks(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-void drainRefCounts(RefCounts *refCounts)
+void drainRefCounts(struct ref_counts *refCounts)
 {
   Slab *slab = refCounts->slab;
   bool  save = false;
@@ -1444,7 +1448,7 @@ void drainRefCounts(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-void acquireDirtyBlockLocks(RefCounts *refCounts)
+void acquireDirtyBlockLocks(struct ref_counts *refCounts)
 {
   dirtyAllReferenceBlocks(refCounts);
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
@@ -1456,7 +1460,7 @@ void acquireDirtyBlockLocks(RefCounts *refCounts)
 }
 
 /**********************************************************************/
-void dumpRefCounts(const RefCounts *refCounts)
+void dumpRefCounts(const struct ref_counts *refCounts)
 {
   // Terse because there are a lot of slabs to dump and syslog is lossy.
   logInfo("  refCounts: free=%" PRIu32 "/%" PRIu32 " blocks=%" PRIu32

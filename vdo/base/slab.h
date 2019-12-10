@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#14 $
  */
 
 #ifndef VDO_SLAB_H
@@ -56,7 +56,7 @@ struct vdoSlab {
   struct block_allocator *allocator;
 
   /** The reference counts for the data blocks in this slab */
-  RefCounts              *referenceCounts;
+  struct ref_counts      *referenceCounts;
   /** The journal for this slab */
   SlabJournal            *journal;
 
@@ -336,9 +336,9 @@ bool isSlabDraining(Slab *slab)
 void notifySlabJournalIsDrained(Slab *slab, int result);
 
 /**
- * Inform a slab that its RefCounts have finished draining.
+ * Inform a slab that its ref_counts have finished draining.
  *
- * @param slab    The slab whose RefCounts has been drained
+ * @param slab    The slab whose ref_counts object has been drained
  * @param result  The result of the drain operation
  **/
 void notifyRefCountsAreDrained(Slab *slab, int result);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#6 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -36,10 +36,10 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSlabScrubber(PhysicalLayer     *layer,
-                     BlockCount         slabJournalSize,
-                     ReadOnlyNotifier  *readOnlyNotifier,
-                     SlabScrubber     **scrubberPtr)
+int makeSlabScrubber(PhysicalLayer              *layer,
+                     BlockCount                  slabJournalSize,
+                     struct read_only_notifier  *readOnlyNotifier,
+                     SlabScrubber              **scrubberPtr)
   __attribute__((warn_unused_result));
 
 /**

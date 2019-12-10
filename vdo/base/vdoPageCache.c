@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#13 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -593,7 +593,7 @@ static void setPersistentError(struct vdo_page_cache *cache,
                                int                    result)
 {
   // If we're already read-only, there's no need to log.
-  ReadOnlyNotifier *notifier = cache->zone->readOnlyNotifier;
+  struct read_only_notifier *notifier = cache->zone->readOnlyNotifier;
   if ((result != VDO_READ_ONLY) && !isReadOnly(notifier)) {
     logErrorWithStringError(result, "VDO Page Cache persistent error: %s",
                             context);

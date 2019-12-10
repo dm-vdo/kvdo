@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#15 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -82,18 +82,18 @@ SlabCount calculateSlabCount(SlabDepot *depot)
  *
  * @return A success or error code
  **/
-int makeSlabDepot(BlockCount                blockCount,
-                  PhysicalBlockNumber       firstBlock,
-                  SlabConfig                slabConfig,
-                  const ThreadConfig       *threadConfig,
-                  Nonce                     nonce,
-                  BlockCount                vioPoolSize,
-                  PhysicalLayer            *layer,
-                  struct partition         *summaryPartition,
-                  ReadOnlyNotifier         *readOnlyNotifier,
-                  struct recovery_journal  *recoveryJournal,
-                  Atomic32                 *vdoState,
-                  SlabDepot               **depotPtr)
+int makeSlabDepot(BlockCount                  blockCount,
+                  PhysicalBlockNumber         firstBlock,
+                  SlabConfig                  slabConfig,
+                  const ThreadConfig         *threadConfig,
+                  Nonce                       nonce,
+                  BlockCount                  vioPoolSize,
+                  PhysicalLayer              *layer,
+                  struct partition           *summaryPartition,
+                  struct read_only_notifier  *readOnlyNotifier,
+                  struct recovery_journal    *recoveryJournal,
+                  Atomic32                   *vdoState,
+                  SlabDepot                 **depotPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -136,14 +136,14 @@ int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
  *
  * @return A success or error code
  **/
-int decodeSodiumSlabDepot(Buffer                   *buffer,
-                          const ThreadConfig       *threadConfig,
-                          Nonce                     nonce,
-                          PhysicalLayer            *layer,
-                          struct partition         *summaryPartition,
-                          ReadOnlyNotifier         *readOnlyNotifier,
-                          struct recovery_journal  *recoveryJournal,
-                          SlabDepot               **depotPtr)
+int decodeSodiumSlabDepot(Buffer                     *buffer,
+                          const ThreadConfig         *threadConfig,
+                          Nonce                       nonce,
+                          PhysicalLayer              *layer,
+                          struct partition           *summaryPartition,
+                          struct read_only_notifier  *readOnlyNotifier,
+                          struct recovery_journal    *recoveryJournal,
+                          SlabDepot                 **depotPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -161,15 +161,15 @@ int decodeSodiumSlabDepot(Buffer                   *buffer,
  *
  * @return A success or error code
  **/
-int decodeSlabDepot(Buffer                   *buffer,
-                    const ThreadConfig       *threadConfig,
-                    Nonce                     nonce,
-                    PhysicalLayer            *layer,
-                    struct partition         *summaryPartition,
-                    ReadOnlyNotifier         *readOnlyNotifier,
-                    struct recovery_journal  *recoveryJournal,
-                    Atomic32                 *vdoState,
-                    SlabDepot               **depotPtr)
+int decodeSlabDepot(Buffer                     *buffer,
+                    const ThreadConfig         *threadConfig,
+                    Nonce                       nonce,
+                    PhysicalLayer              *layer,
+                    struct partition           *summaryPartition,
+                    struct read_only_notifier  *readOnlyNotifier,
+                    struct recovery_journal    *recoveryJournal,
+                    Atomic32                   *vdoState,
+                    SlabDepot                 **depotPtr)
   __attribute__((warn_unused_result));
 
 /**

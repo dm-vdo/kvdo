@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#20 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -52,7 +52,7 @@ struct vdo {
   /* The state of this VDO */
   Atomic32                         state;
   /* The read-only notifier */
-  ReadOnlyNotifier                *readOnlyNotifier;
+  struct read_only_notifier       *readOnlyNotifier;
   /* The number of times this VDO has recovered from a dirty state */
   uint64_t                         completeRecoveries;
   /* The number of times this VDO has recovered from a read-only state */

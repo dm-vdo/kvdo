@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#10 $
  */
 
 #ifndef REF_COUNTS_H
@@ -38,17 +38,17 @@
  * @param [in]  blockCount        The number of physical blocks that can be
  *                                referenced
  * @param [in]  slab              The slab of the ref counts object
- * @param [in]  origin            The layer PBN at which to save RefCounts
+ * @param [in]  origin            The layer PBN at which to save ref_counts
  * @param [in]  readOnlyNotifier  The context for tracking read-only mode
  * @param [out] refCountsPtr      The pointer to hold the new ref counts object
  *
  * @return a success or error code
  **/
-int makeRefCounts(BlockCount            blockCount,
-                  Slab                 *slab,
-                  PhysicalBlockNumber   origin,
-                  ReadOnlyNotifier     *readOnlyNotifier,
-                  RefCounts           **refCountsPtr)
+int makeRefCounts(BlockCount                  blockCount,
+                  Slab                       *slab,
+                  PhysicalBlockNumber         origin,
+                  struct read_only_notifier  *readOnlyNotifier,
+                  struct ref_counts         **refCountsPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -56,28 +56,29 @@ int makeRefCounts(BlockCount            blockCount,
  *
  * @param refCountsPtr  The reference to the reference counting object to free
  **/
-void freeRefCounts(RefCounts **refCountsPtr);
+void freeRefCounts(struct ref_counts **refCountsPtr);
 
 /**
  * Get the stored count of the number of blocks that are currently free.
  *
- * @param  refCounts  The RefCounts object
+ * @param  refCounts  The ref_counts object
  *
  * @return the number of blocks with a reference count of zero
  **/
-BlockCount getUnreferencedBlockCount(RefCounts *refCounts)
+BlockCount getUnreferencedBlockCount(struct ref_counts *refCounts)
   __attribute__((warn_unused_result));
 
 /**
  * Determine how many times a reference count can be incremented without
  * overflowing.
  *
- * @param  refCounts  The RefCounts object
+ * @param  refCounts  The ref_counts object
  * @param  pbn        The physical block number
  *
  * @return the number of increments that can be performed
  **/
-uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
+uint8_t getAvailableReferences(struct ref_counts   *refCounts,
+                               PhysicalBlockNumber  pbn)
   __attribute__((warn_unused_result));
 
 /**
@@ -96,7 +97,7 @@ uint8_t getAvailableReferences(RefCounts *refCounts, PhysicalBlockNumber pbn)
  *                                   count greater than MAXIMUM_REFS
  *
  **/
-int adjustReferenceCount(RefCounts                  *refCounts,
+int adjustReferenceCount(struct ref_counts          *refCounts,
                          struct reference_operation  operation,
                          const struct journal_point *slabJournalPoint,
                          bool                       *freeStatusChanged)
@@ -111,7 +112,7 @@ int adjustReferenceCount(RefCounts                  *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-int adjustReferenceCountForRebuild(RefCounts           *refCounts,
+int adjustReferenceCountForRebuild(struct ref_counts   *refCounts,
                                    PhysicalBlockNumber  pbn,
                                    JournalOperation     operation)
   __attribute__((warn_unused_result));
@@ -127,7 +128,7 @@ int adjustReferenceCountForRebuild(RefCounts           *refCounts,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int replayReferenceCountChange(RefCounts                  *refCounts,
+int replayReferenceCountChange(struct ref_counts          *refCounts,
                                const struct journal_point *entryPoint,
                                SlabJournalEntry            entry)
   __attribute__((warn_unused_result));
@@ -141,7 +142,8 @@ int replayReferenceCountChange(RefCounts                  *refCounts,
  *
  * @return <code>true</code> if the two counters are equivalent
  **/
-bool areEquivalentReferenceCounters(RefCounts *counterA, RefCounts *counterB)
+bool areEquivalentReferenceCounters(struct ref_counts *counterA,
+                                    struct ref_counts *counterB)
   __attribute__((warn_unused_result));
 
 /**
@@ -158,7 +160,7 @@ bool areEquivalentReferenceCounters(RefCounts *counterA, RefCounts *counterB)
  *         VDO_NO_SPACE if there are no unreferenced blocks;
  *         otherwise an error code
  **/
-int allocateUnreferencedBlock(RefCounts           *refCounts,
+int allocateUnreferencedBlock(struct ref_counts   *refCounts,
                               PhysicalBlockNumber *allocatedPtr)
   __attribute__((warn_unused_result));
 
@@ -171,7 +173,7 @@ int allocateUnreferencedBlock(RefCounts           *refCounts,
  *
  * @return VDO_SUCCESS or an error
  **/
-int provisionallyReferenceBlock(RefCounts           *refCounts,
+int provisionallyReferenceBlock(struct ref_counts   *refCounts,
                                 PhysicalBlockNumber  pbn,
                                 struct pbn_lock     *lock)
   __attribute__((warn_unused_result));
@@ -188,7 +190,7 @@ int provisionallyReferenceBlock(RefCounts           *refCounts,
  *
  * @return The number of unreferenced blocks
  **/
-BlockCount countUnreferencedBlocks(RefCounts           *refCounts,
+BlockCount countUnreferencedBlocks(struct ref_counts   *refCounts,
                                    PhysicalBlockNumber  startPBN,
                                    PhysicalBlockNumber  endPBN)
   __attribute__((warn_unused_result));
@@ -206,27 +208,28 @@ BlockCount getSavedReferenceCountSize(BlockCount blockCount)
   __attribute__((warn_unused_result));
 
 /**
- * Request a RefCounts save several dirty blocks asynchronously. This function
- * currently writes 1 / flushDivisor of the dirty blocks.
+ * Request a ref_counts object save several dirty blocks asynchronously. This
+ * function currently writes 1 / flushDivisor of the dirty blocks.
  *
- * @param refCounts       The RefCounts object to notify
+ * @param refCounts       The ref_counts object to notify
  * @param flushDivisor    The inverse fraction of the dirty blocks to write
  **/
-void saveSeveralReferenceBlocks(RefCounts *refCounts, size_t flushDivisor);
+void saveSeveralReferenceBlocks(struct ref_counts *refCounts,
+                                size_t             flushDivisor);
 
 /**
- * Ask a RefCounts to save all its dirty blocks asynchronously.
+ * Ask a ref_counts object to save all its dirty blocks asynchronously.
  *
- * @param refCounts     The RefCounts object to notify
+ * @param refCounts     The ref_counts object to notify
  **/
-void saveDirtyReferenceBlocks(RefCounts *refCounts);
+void saveDirtyReferenceBlocks(struct ref_counts *refCounts);
 
 /**
  * Mark all reference count blocks as dirty.
  *
- * @param refCounts  The RefCounts of the reference blocks
+ * @param refCounts  The ref_counts of the reference blocks
  **/
-void dirtyAllReferenceBlocks(RefCounts *refCounts);
+void dirtyAllReferenceBlocks(struct ref_counts *refCounts);
 
 /**
  * Drain all reference count I/O. Depending upon the type of drain being
@@ -235,21 +238,21 @@ void dirtyAllReferenceBlocks(RefCounts *refCounts);
  *
  * @param refCounts  The reference counts to drain
  **/
-void drainRefCounts(RefCounts *refCounts);
+void drainRefCounts(struct ref_counts *refCounts);
 
 /**
  * Mark all reference count blocks dirty and cause them to hold locks on slab
  * journal block 1.
  *
- * @param refCounts  The RefCounts of the reference blocks
+ * @param refCounts  The ref_counts of the reference blocks
  **/
-void acquireDirtyBlockLocks(RefCounts *refCounts);
+void acquireDirtyBlockLocks(struct ref_counts *refCounts);
 
 /**
- * Dump information about this RefCounts structure.
+ * Dump information about this ref_counts structure.
  *
- * @param refCounts     The RefCounts to dump
+ * @param refCounts     The ref_counts to dump
  **/
-void dumpRefCounts(const RefCounts *refCounts);
+void dumpRefCounts(const struct ref_counts *refCounts);
 
 #endif // REF_COUNTS_H

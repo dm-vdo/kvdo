@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#11 $
  */
 
 /*
@@ -380,7 +380,8 @@ static bool abortOnError(int              result,
   if ((result == VDO_READ_ONLY)
       || (readOnlyAction == READ_ONLY)
       || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
-    ReadOnlyNotifier *notifier = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
+    struct read_only_notifier *notifier
+      = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
     if (!isReadOnly(notifier)) {
       if (result != VDO_READ_ONLY) {
         logErrorWithStringError(result, "Preparing to enter read-only mode:"

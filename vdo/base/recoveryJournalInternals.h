@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#12 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -57,7 +57,7 @@ struct recovery_journal {
    **/
   bool                           addingEntries;
   /** The notifier for read-only mode */
-  ReadOnlyNotifier              *readOnlyNotifier;
+  struct read_only_notifier     *readOnlyNotifier;
   /** The administrative state of the journal */
   struct admin_state             state;
   /** Whether a reap is in progress */

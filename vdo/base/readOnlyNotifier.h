@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#3 $
  */
 
 /*
- * A ReadOnlyNotifier is responsible for propogating the fact that the VDO
+ * A read_only_notifier is responsible for propogating the fact that the VDO
  * has encountered an unrecoverable error to all base threads. It also persists
  * the read-only state to the super block.
  *
@@ -53,18 +53,18 @@ typedef void ReadOnlyNotification(void *listener, VDOCompletion *parent);
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeReadOnlyNotifier(bool                 isReadOnly,
-                         const ThreadConfig  *threadConfig,
-                         PhysicalLayer       *layer,
-                         ReadOnlyNotifier   **notifierPtr)
+int makeReadOnlyNotifier(bool                        isReadOnly,
+                         const ThreadConfig         *threadConfig,
+                         PhysicalLayer              *layer,
+                         struct read_only_notifier **notifierPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Free a ReadOnlyNotifier and null out the reference to it.
+ * Free a read_only_notifier and null out the reference to it.
  *
  * @param notifierPtr  The reference to the notifier to free
  **/
-void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr);
+void freeReadOnlyNotifier(struct read_only_notifier **notifierPtr);
 
 /**
  * Wait until no read-only notifications are in progress and prevent any
@@ -75,8 +75,8 @@ void freeReadOnlyNotifier(ReadOnlyNotifier **notifierPtr);
  * @param parent    The completion to notify when no threads are entering
  *                  read-only mode
  **/
-void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
-                                      VDOCompletion    *parent);
+void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
+                                      VDOCompletion             *parent);
 
 /**
  * Allow the notifier to put the VDO into read-only mode, reversing the effects
@@ -91,8 +91,8 @@ void waitUntilNotEnteringReadOnlyMode(ReadOnlyNotifier *notifier,
  * @param notifier  The notifier
  * @param parent    The object to notify once the operation is complete
  **/
-void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier,
-                            VDOCompletion    *parent);
+void allowReadOnlyModeEntry(struct read_only_notifier *notifier,
+                            VDOCompletion             *parent);
 
 /**
  * Put a VDO into read-only mode and save the read-only state in the super
@@ -102,14 +102,14 @@ void allowReadOnlyModeEntry(ReadOnlyNotifier *notifier,
  * @param errorCode       The error which caused the VDO to enter read-only
  *                        mode
  **/
-void enterReadOnlyMode(ReadOnlyNotifier *notifier, int errorCode);
+void enterReadOnlyMode(struct read_only_notifier *notifier, int errorCode);
 
 /**
  * Check whether the VDO is read-only. This method may be called from any
  * thread, as opposed to examining the VDO's state field which is only safe
  * to check from the admin thread.
  **/
-bool isReadOnly(ReadOnlyNotifier *notifier)
+bool isReadOnly(struct read_only_notifier *notifier)
   __attribute__((warn_unused_result));
 
 /**
@@ -122,9 +122,9 @@ bool isReadOnly(ReadOnlyNotifier *notifier)
  *
  * @return VDO_SUCCESS or an error
  **/
-int registerReadOnlyListener(ReadOnlyNotifier     *notifier,
-                             void                 *listener,
-                             ReadOnlyNotification *notification,
-                             ThreadID              threadID);
+int registerReadOnlyListener(struct read_only_notifier *notifier,
+                             void                      *listener,
+                             ReadOnlyNotification      *notification,
+                             ThreadID                   threadID);
 
 #endif /* READ_ONLY_NOTIFIER_H */

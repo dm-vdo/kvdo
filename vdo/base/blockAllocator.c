@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#28 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -252,14 +252,14 @@ static int allocateComponents(struct block_allocator *allocator,
 }
 
 /**********************************************************************/
-int makeBlockAllocator(SlabDepot               *depot,
-                       ZoneCount                zoneNumber,
-                       ThreadID                 threadID,
-                       Nonce                    nonce,
-                       BlockCount               vioPoolSize,
-                       PhysicalLayer           *layer,
-                       ReadOnlyNotifier        *readOnlyNotifier,
-                       struct block_allocator **allocatorPtr)
+int makeBlockAllocator(SlabDepot                  *depot,
+                       ZoneCount                   zoneNumber,
+                       ThreadID                    threadID,
+                       Nonce                       nonce,
+                       BlockCount                  vioPoolSize,
+                       PhysicalLayer              *layer,
+                       struct read_only_notifier  *readOnlyNotifier,
+                       struct block_allocator    **allocatorPtr)
 {
 
   struct block_allocator *allocator;

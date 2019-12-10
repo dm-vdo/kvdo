@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#13 $
  */
 
 #include "slabSummary.h"
@@ -192,13 +192,13 @@ static int makeSlabSummaryZone(SlabSummary               *summary,
 }
 
 /**********************************************************************/
-int makeSlabSummary(PhysicalLayer       *layer,
-                    struct partition    *partition,
-                    const ThreadConfig  *threadConfig,
-                    unsigned int         slabSizeShift,
-                    BlockCount           maximumFreeBlocksPerSlab,
-                    ReadOnlyNotifier    *readOnlyNotifier,
-                    SlabSummary        **slabSummaryPtr)
+int makeSlabSummary(PhysicalLayer              *layer,
+                    struct partition           *partition,
+                    const ThreadConfig         *threadConfig,
+                    unsigned int                slabSizeShift,
+                    BlockCount                  maximumFreeBlocksPerSlab,
+                    struct read_only_notifier  *readOnlyNotifier,
+                    SlabSummary               **slabSummaryPtr)
 {
   BlockCount blocksPerZone   = getSlabSummaryZoneSize(VDO_BLOCK_SIZE);
   SlabCount  entriesPerBlock = MAX_SLABS / blocksPerZone;
