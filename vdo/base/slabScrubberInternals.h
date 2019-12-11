@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#8 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -49,7 +49,7 @@ struct slabScrubber {
   /** The context for entering read-only mode */
   struct read_only_notifier *readOnlyNotifier;
   /** The slab currently being scrubbed */
-  Slab                      *slab;
+  struct vdo_slab           *slab;
   /** The extent for loading slab journal blocks */
   VDOExtent                 *extent;
   /** A buffer to store the slab journal blocks */

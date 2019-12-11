@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#12 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -68,7 +68,7 @@ struct search_cursor {
  */
 struct ref_counts {
   /** The slab of this reference block */
-  Slab                               *slab;
+  struct vdo_slab                    *slab;
 
   /** The size of the counters array */
   uint32_t                            blockCount;

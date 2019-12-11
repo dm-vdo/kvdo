@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#11 $
  */
 
 #include "slabScrubberInternals.h"
@@ -121,7 +121,7 @@ void freeSlabScrubber(SlabScrubber **scrubberPtr)
  *
  * @return The next slab to scrub or <code>NULL</code> if there are none
  **/
-static Slab *getNextSlab(SlabScrubber *scrubber)
+static struct vdo_slab *getNextSlab(SlabScrubber *scrubber)
 {
   if (!isRingEmpty(&scrubber->highPrioritySlabs)) {
     return slabFromRingNode(scrubber->highPrioritySlabs.next);
@@ -147,9 +147,9 @@ SlabCount getScrubberSlabCount(const SlabScrubber *scrubber)
 }
 
 /**********************************************************************/
-void registerSlabForScrubbing(SlabScrubber *scrubber,
-                              Slab         *slab,
-                              bool          highPriority)
+void registerSlabForScrubbing(SlabScrubber    *scrubber,
+                              struct vdo_slab *slab,
+                              bool             highPriority)
 {
   ASSERT_LOG_ONLY((slab->status != SLAB_REBUILT),
                   "slab to be scrubbed is unrecovered");
@@ -259,7 +259,7 @@ static void handleScrubberError(VDOCompletion *completion)
 static int applyBlockEntries(struct packed_slab_journal_block *block,
                              JournalEntryCount                 entryCount,
                              SequenceNumber                    blockNumber,
-                             Slab                             *slab)
+                             struct vdo_slab                  *slab)
 {
   struct journal_point entryPoint = {
     .sequenceNumber = blockNumber,
@@ -272,7 +272,8 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                                                     entryPoint.entryCount);
     if (entry.sbn > maxSBN) {
       // This entry is out of bounds.
-      return logErrorWithStringError(VDO_CORRUPT_JOURNAL, "Slab journal entry"
+      return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
+                                     "vdo_slab journal entry"
                                      " (%llu, %u) had invalid offset"
                                      " %u in slab (size %u blocks)",
                                      blockNumber, entryPoint.entryCount,
@@ -282,7 +283,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
     int result = replayReferenceCountChange(slab->referenceCounts, &entryPoint,
                                             entry);
     if (result != VDO_SUCCESS) {
-      logErrorWithStringError(result, "Slab journal entry (%llu, %u)"
+      logErrorWithStringError(result, "vdo_slab journal entry (%llu, %u)"
                               " (%s of offset %" PRIu32 ") could not be"
                               " applied in slab %u",
                               blockNumber, entryPoint.entryCount,
@@ -305,7 +306,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
 static void applyJournalEntries(VDOCompletion *completion)
 {
   SlabScrubber      *scrubber        = completion->parent;
-  Slab              *slab            = scrubber->slab;
+  struct vdo_slab   *slab            = scrubber->slab;
   SlabJournal       *journal         = slab->journal;
   struct ref_counts *referenceCounts = slab->referenceCounts;
 
@@ -336,7 +337,7 @@ static void applyJournalEntries(VDOCompletion *completion)
         || (header.hasBlockMapIncrements
             && (header.entryCount > journal->fullEntriesPerBlock))) {
       // The block is not what we expect it to be.
-      logError("Slab journal block for slab %u was invalid",
+      logError("vdo_slab journal block for slab %u was invalid",
                slab->slabNumber);
       abortScrubbing(scrubber, VDO_CORRUPT_JOURNAL);
       return;
@@ -379,8 +380,8 @@ static void applyJournalEntries(VDOCompletion *completion)
  **/
 static void startScrubbing(VDOCompletion *completion)
 {
-  SlabScrubber *scrubber = completion->parent;
-  Slab         *slab     = scrubber->slab;
+  SlabScrubber    *scrubber = completion->parent;
+  struct vdo_slab *slab     = scrubber->slab;
   if (getSummarizedCleanliness(slab->allocator->summary, slab->slabNumber)) {
     slabScrubbed(completion);
     return;
@@ -408,7 +409,7 @@ static void scrubNextSlab(SlabScrubber *scrubber)
     return;
   }
 
-  Slab *slab = getNextSlab(scrubber);
+  struct vdo_slab *slab = getNextSlab(scrubber);
   if ((slab == NULL)
       || (scrubber->highPriorityOnly
           && isRingEmpty(&scrubber->highPrioritySlabs))) {
@@ -456,7 +457,7 @@ void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
                             VDOAction     *errorHandler)
 {
   if (scrubAtLeastOne && isRingEmpty(&scrubber->highPrioritySlabs)) {
-    Slab *slab = getNextSlab(scrubber);
+    struct vdo_slab *slab = getNextSlab(scrubber);
     if (slab != NULL) {
       registerSlabForScrubbing(scrubber, slab, true);
     }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#27 $
  */
 
 #include "slabDepot.h"
@@ -108,7 +108,7 @@ static struct slab_iterator getSlabIterator(SlabDepot *depot)
  **/
 static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
 {
-  int result = ALLOCATE(slabCount, Slab *, "slab pointer array",
+  int result = ALLOCATE(slabCount, struct vdo_slab *, "slab pointer array",
                         &depot->newSlabs);
   if (result != VDO_SUCCESS) {
     return result;
@@ -116,7 +116,8 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
 
   bool resizing = false;
   if (depot->slabs != NULL) {
-    memcpy(depot->newSlabs, depot->slabs, depot->slabCount * sizeof(Slab *));
+    memcpy(depot->newSlabs, depot->slabs,
+           depot->slabCount * sizeof(struct vdo_slab *));
     resizing = true;
   }
 
@@ -130,7 +131,7 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
   while (depot->newSlabCount < slabCount) {
     struct block_allocator *allocator
       = depot->allocators[depot->newSlabCount % depot->zoneCount];
-    Slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
+    struct vdo_slab **slabPtr = &depot->newSlabs[depot->newSlabCount];
     result = makeSlab(slabOrigin, allocator, translation, depot->journal,
                       depot->newSlabCount, resizing, slabPtr);
     if (result != VDO_SUCCESS) {
@@ -270,7 +271,7 @@ static int allocateComponents(SlabDepot          *depot,
 
   // Use the new slabs.
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
-    Slab *slab = depot->newSlabs[i];
+    struct vdo_slab *slab = depot->newSlabs[i];
     registerSlabWithAllocator(slab->allocator, slab);
     depot->slabCount++;
   }
@@ -741,7 +742,7 @@ int getSlabNumber(const SlabDepot     *depot,
 }
 
 /**********************************************************************/
-Slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
+struct vdo_slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
 {
   if (pbn == ZERO_BLOCK) {
     return NULL;
@@ -761,14 +762,14 @@ Slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
 /**********************************************************************/
 SlabJournal *getSlabJournal(const SlabDepot *depot, PhysicalBlockNumber pbn)
 {
-  Slab *slab = getSlab(depot, pbn);
+  struct vdo_slab *slab = getSlab(depot, pbn);
   return ((slab != NULL) ? slab->journal : NULL);
 }
 
 /**********************************************************************/
 uint8_t getIncrementLimit(SlabDepot *depot, PhysicalBlockNumber pbn)
 {
-  Slab *slab = getSlab(depot, pbn);
+  struct vdo_slab *slab = getSlab(depot, pbn);
   if ((slab == NULL) || isUnrecoveredSlab(slab)) {
     return 0;
   }
@@ -1064,8 +1065,8 @@ bool areEquivalentDepots(SlabDepot *depotA, SlabDepot *depotB)
   }
 
   for (size_t i = 0; i < depotA->slabCount; i++) {
-    Slab *slabA = depotA->slabs[i];
-    Slab *slabB = depotB->slabs[i];
+    struct vdo_slab *slabA = depotA->slabs[i];
+    struct vdo_slab *slabB = depotB->slabs[i];
     if ((slabA->start  != slabB->start)
         || (slabA->end != slabB->end)
         || !areEquivalentReferenceCounters(slabA->referenceCounts,
@@ -1140,7 +1141,7 @@ SlabJournalStatistics getDepotSlabJournalStatistics(const SlabDepot *depot)
 /**********************************************************************/
 void dumpSlabDepot(const SlabDepot *depot)
 {
-  logInfo("Slab Depot");
+  logInfo("vdo_slab Depot");
   logInfo("  zoneCount=%u oldZoneCount=%u slabCount=%" PRIu32
           " activeReleaseRequest=%llu newReleaseRequest=%llu",
           (unsigned int) depot->zoneCount, (unsigned int) depot->oldZoneCount,

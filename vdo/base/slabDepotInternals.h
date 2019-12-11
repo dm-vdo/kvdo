@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#17 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -58,12 +58,12 @@ struct slabDepot {
   struct recovery_journal    *journal;
 
   /** Array of pointers to individually allocated slabs */
-  Slab                      **slabs;
+  struct vdo_slab           **slabs;
   /** The number of slabs currently allocated and stored in 'slabs' */
   SlabCount                   slabCount;
 
   /** Array of pointers to a larger set of slabs (used during resize) */
-  Slab                      **newSlabs;
+  struct vdo_slab           **newSlabs;
   /** The number of slabs currently allocated and stored in 'newSlabs' */
   SlabCount                   newSlabCount;
   /** The size that 'newSlabs' was allocated for */
@@ -83,14 +83,14 @@ struct slabDepot {
  *
  * @param slab  The slab to destroy
  **/
-void destroySlab(Slab *slab);
+void destroySlab(struct vdo_slab *slab);
 
 /**
  * Inform a slab's depot that the slab has been created.
  *
  * @param slab  The slab to register
  **/
-void registerSlabWithDepot(Slab *slab);
+void registerSlabWithDepot(struct vdo_slab *slab);
 
 /**
  * Notify a slab depot that one of its allocators has finished scrubbing slabs.

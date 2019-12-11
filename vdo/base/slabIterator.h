@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#3 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -29,10 +29,10 @@
  * A slab_iterator is a structure for iterating over a set of slabs.
  **/
 struct slab_iterator {
-  Slab      **slabs;
-  Slab       *next;
-  SlabCount   end;
-  SlabCount   stride;
+  struct vdo_slab **slabs;
+  struct vdo_slab  *next;
+  SlabCount         end;
+  SlabCount         stride;
 };
 
 /**
@@ -47,10 +47,10 @@ struct slab_iterator {
  *
  * @return an initialized iterator structure
  **/
-static inline struct slab_iterator iterateSlabs(Slab         **slabs,
-                                                SlabCount      start,
-                                                SlabCount      end,
-                                                SlabCount      stride)
+static inline struct slab_iterator iterateSlabs(struct vdo_slab **slabs,
+                                                SlabCount         start,
+                                                SlabCount         end,
+                                                SlabCount         stride)
 {
   return (struct slab_iterator) {
     .slabs  = slabs,
@@ -61,12 +61,12 @@ static inline struct slab_iterator iterateSlabs(Slab         **slabs,
 }
 
 /**
- * Check whether another Slab would be returned by the iterator.
+ * Check whether another vdo_slab would be returned by the iterator.
  *
  * @param iterator  The iterator to poll
  *
  * @return <code>true</code> if the next call to <code>nextSlab</code>
- *         will return a Slab
+ *         will return a vdo_slab
  **/
 static inline bool hasNextSlab(const struct slab_iterator *iterator)
 {
@@ -74,16 +74,16 @@ static inline bool hasNextSlab(const struct slab_iterator *iterator)
 }
 
 /**
- * Get the next Slab, advancing the iterator.
+ * Get the next vdo_slab, advancing the iterator.
  *
- * @param iterator  The iterator over the Slab chain
+ * @param iterator  The iterator over the vdo_slab chain
  *
- * @return the next Slab or <code>NULL</code> if the array of slabs is empty
+ * @return the next vdo_slab or <code>NULL</code> if the array of slabs is empty
  *         or if all the appropriate Slabs have been returned
  **/
-static inline Slab *nextSlab(struct slab_iterator *iterator)
+static inline struct vdo_slab *nextSlab(struct slab_iterator *iterator)
 {
-  Slab *slab = iterator->next;
+  struct vdo_slab *slab = iterator->next;
   if ((slab == NULL)
       || (slab->slabNumber < iterator->end + iterator->stride)) {
     iterator->next = NULL;

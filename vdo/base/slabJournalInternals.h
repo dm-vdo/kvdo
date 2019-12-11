@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#12 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -35,10 +35,10 @@
 #include "waitQueue.h"
 
 /**
- * Slab journal blocks may have one of two formats, depending upon whether or
- * not any of the entries in the block are block map increments. Since the
- * steady state for a VDO is that all of the necessary block map pages will
- * be allocated, most slab journal blocks will have only data entries. Such
+ * vdo_slab journal blocks may have one of two formats, depending upon whether
+ * or not any of the entries in the block are block map increments. Since the
+ * steady state for a VDO is that all of the necessary block map pages will be
+ * allocated, most slab journal blocks will have only data entries. Such
  * blocks can hold more entries, hence the two formats.
  **/
 
@@ -181,7 +181,7 @@ struct slabJournal {
   /** The queue of VIOs waiting to make an entry */
   struct wait_queue                      entryWaiters;
   /** The parent slab reference of this journal */
-  Slab                                  *slab;
+  struct vdo_slab                       *slab;
 
   /** Whether a tail block commit is pending */
   bool                                   waitingToCommit;

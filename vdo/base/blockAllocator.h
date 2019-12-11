@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#16 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -65,7 +65,7 @@ void freeBlockAllocator(struct block_allocator **blockAllocatorPtr);
  *
  * @param slab  The slab to queue
  **/
-void queueSlab(Slab *slab);
+void queueSlab(struct vdo_slab *slab);
 
 /**
  * Update the block allocator to reflect an increment or decrement of the free
@@ -76,7 +76,7 @@ void queueSlab(Slab *slab);
  * @param increment  True if the free block count went up by one,
  *                   false if it went down by one
  **/
-void adjustFreeBlockCount(Slab *slab, bool increment);
+void adjustFreeBlockCount(struct vdo_slab *slab, bool increment);
 
 /**
  * Allocate a physical block.
@@ -161,7 +161,8 @@ void prepareAllocatorToAllocate(void          *context,
  * @param allocator  The allocator to use
  * @param slab       The slab in question
  **/
-void registerSlabWithAllocator(struct block_allocator *allocator, Slab *slab);
+void registerSlabWithAllocator(struct block_allocator *allocator,
+                               struct vdo_slab        *slab);
 
 /**
  * Register the new slabs belonging to this allocator.
@@ -258,7 +259,7 @@ int enqueueForCleanSlab(struct block_allocator *allocator,
  *
  * @param slab  The slab
  **/
-void increaseScrubbingPriority(Slab *slab);
+void increaseScrubbingPriority(struct vdo_slab *slab);
 
 /**
  * Get the statistics for this allocator.

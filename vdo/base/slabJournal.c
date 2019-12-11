@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#20 $
  */
 
 #include "slabJournalInternals.h"
@@ -110,7 +110,7 @@ static inline PhysicalBlockNumber getBlockNumber(SlabJournal    *journal,
 /**
  * Get the lock object for a slab journal block by sequence number.
  *
- * @param journal         Slab journal to retrieve from
+ * @param journal         vdo_slab journal to retrieve from
  * @param sequenceNumber  Sequence number of the block
  *
  * @return the lock object for the given sequence number
@@ -236,7 +236,7 @@ static void releaseJournalLocks(struct waiter *waiter, void *context);
 
 /**********************************************************************/
 int makeSlabJournal(struct block_allocator   *allocator,
-                    Slab                     *slab,
+                    struct vdo_slab          *slab,
                     struct recovery_journal  *recoveryJournal,
                     SlabJournal             **journalPtr)
 {
@@ -594,10 +594,10 @@ static void updateTailBlockLocation(SlabJournal *journal)
 
   /*
    * Update slab summary as dirty.
-   * Slab journal can only reap past sequence number 1 when all the refCounts
-   * for this slab have been written to the layer. Therefore, indicate that the
-   * refCounts must be loaded when the journal head has reaped past sequence
-   * number 1.
+   * vdo_slab journal can only reap past sequence number 1 when all the
+   * refCounts for this slab have been written to the layer. Therefore,
+   * indicate that the refCounts must be loaded when the journal head has
+   * reaped past sequence number 1.
    */
   TailBlockOffset blockOffset
     = getSlabJournalBlockOffset(journal, journal->summarized);
@@ -610,7 +610,7 @@ static void updateTailBlockLocation(SlabJournal *journal)
 void reopenSlabJournal(SlabJournal *journal)
 {
   ASSERT_LOG_ONLY(journal->tailHeader.entryCount == 0,
-                  "Slab journal's active block empty before reopening");
+                  "vdo_slab journal's active block empty before reopening");
   journal->head       = journal->tail;
   initializeJournalState(journal);
 
@@ -691,7 +691,7 @@ static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
   memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);
 
   int unusedEntries = journal->entriesPerBlock - header->entryCount;
-  ASSERT_LOG_ONLY(unusedEntries >= 0, "Slab journal block is not overfull");
+  ASSERT_LOG_ONLY(unusedEntries >= 0, "vdo_slab journal block is not overfull");
   if (unusedEntries > 0) {
     // Release the per-entry locks for any unused entries in the block we are
     // about to write.
@@ -1262,14 +1262,14 @@ static void setDecodedState(VDOCompletion *completion)
 static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
 {
   SlabJournal           *journal = slabJournalFromResourceWaiter(waiter);
-  Slab                  *slab    = journal->slab;
+  struct vdo_slab       *slab    = journal->slab;
   struct vio_pool_entry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
     = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   entry->parent = journal;
 
 
-  // Slab summary keeps the commit point offset, so the tail block is the
+  // struct vdo_slab summary keeps the commit point offset, so the tail block is the
   // block before that. Calculation supports small journals in unit tests.
   TailBlockOffset tailBlock = ((lastCommitPoint == 0)
                                ? (TailBlockOffset) (journal->size - 1)
@@ -1285,7 +1285,7 @@ void decodeSlabJournal(SlabJournal *journal)
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "decodeSlabJournal() called on correct thread");
-  Slab *slab = journal->slab;
+  struct vdo_slab *slab = journal->slab;
   TailBlockOffset lastCommitPoint
     = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
   if ((lastCommitPoint == 0)

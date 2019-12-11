@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#29 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -64,7 +64,7 @@ static inline void assertOnAllocatorThread(ThreadID    threadID,
  *
  * @return the queue priority of the slab
  **/
-static unsigned int calculateSlabPriority(Slab *slab)
+static unsigned int calculateSlabPriority(struct vdo_slab *slab)
 {
   BlockCount freeBlocks = getSlabFreeBlockCount(slab);
 
@@ -104,7 +104,7 @@ static unsigned int calculateSlabPriority(Slab *slab)
  *
  * @param slab  The slab to prioritize
  **/
-static void prioritizeSlab(Slab *slab)
+static void prioritizeSlab(struct vdo_slab *slab)
 {
   ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
                   "a slab must not already be on a ring when prioritizing");
@@ -114,7 +114,8 @@ static void prioritizeSlab(Slab *slab)
 }
 
 /**********************************************************************/
-void registerSlabWithAllocator(struct block_allocator *allocator, Slab *slab)
+void registerSlabWithAllocator(struct block_allocator *allocator,
+                               struct vdo_slab        *slab)
 {
   allocator->slabCount++;
   allocator->lastSlab = slab->slabNumber;
@@ -150,7 +151,7 @@ static void notifyBlockAllocatorOfReadOnlyMode(void          *listener,
   assertOnAllocatorThread(allocator->threadID, __func__);
   struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
-    Slab *slab = nextSlab(&iterator);
+    struct vdo_slab *slab = nextSlab(&iterator);
     abortSlabJournalWaiters(slab->journal);
   }
 
@@ -338,7 +339,7 @@ BlockCount getUnrecoveredSlabCount(const struct block_allocator *allocator)
 }
 
 /**********************************************************************/
-void queueSlab(Slab *slab)
+void queueSlab(struct vdo_slab *slab)
 {
   ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
                   "a requeued slab must not already be on a ring");
@@ -373,7 +374,7 @@ void queueSlab(Slab *slab)
 }
 
 /**********************************************************************/
-void adjustFreeBlockCount(Slab *slab, bool increment)
+void adjustFreeBlockCount(struct vdo_slab *slab, bool increment)
 {
   struct block_allocator *allocator = slab->allocator;
   // The sense of increment is reversed since allocations are being counted.
@@ -408,7 +409,8 @@ void adjustFreeBlockCount(Slab *slab, bool increment)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int allocateSlabBlock(Slab *slab, PhysicalBlockNumber *blockNumberPtr)
+static int allocateSlabBlock(struct vdo_slab     *slab,
+                             PhysicalBlockNumber *blockNumberPtr)
 {
   PhysicalBlockNumber pbn;
   int result = allocateUnreferencedBlock(slab->referenceCounts, &pbn);
@@ -463,7 +465,7 @@ void releaseBlockReference(struct block_allocator *allocator,
     return;
   }
 
-  Slab *slab = getSlab(allocator->depot, pbn);
+  struct vdo_slab *slab = getSlab(allocator->depot, pbn);
   struct reference_operation operation = {
     .type = DATA_DECREMENT,
     .pbn  = pbn,
@@ -579,7 +581,7 @@ static void applyToSlabs(struct block_allocator *allocator, VDOAction *callback)
 
   struct slab_iterator iterator = getSlabIterator(allocator);
   while (hasNextSlab(&iterator)) {
-    Slab *slab = nextSlab(&iterator);
+    struct vdo_slab *slab = nextSlab(&iterator);
     unspliceRingNode(&slab->ringNode);
     allocator->slabActor.slabActionCount++;
     startSlabAction(slab, allocator->state.state, &allocator->completion);
@@ -670,7 +672,7 @@ int prepareSlabsForAllocation(struct block_allocator *allocator)
 
   struct slab_status currentSlabStatus;
   while (popMaxHeapElement(&heap, &currentSlabStatus)) {
-    Slab *slab = depot->slabs[currentSlabStatus.slabNumber];
+    struct vdo_slab *slab = depot->slabs[currentSlabStatus.slabNumber];
     if (slab->allocator != allocator) {
       continue;
     }
@@ -720,7 +722,7 @@ void registerNewSlabsForAllocator(void          *context,
                                                                zoneNumber);
   SlabDepot *depot = allocator->depot;
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
-    Slab *slab = depot->newSlabs[i];
+    struct vdo_slab *slab = depot->newSlabs[i];
     if (slab->allocator == allocator) {
       registerSlabWithAllocator(allocator, slab);
     }
@@ -902,7 +904,7 @@ int enqueueForCleanSlab(struct block_allocator *allocator,
 }
 
 /**********************************************************************/
-void increaseScrubbingPriority(Slab *slab)
+void increaseScrubbingPriority(struct vdo_slab *slab)
 {
   registerSlabForScrubbing(slab->allocator->slabScrubber, slab, true);
 }
@@ -911,7 +913,7 @@ void increaseScrubbingPriority(Slab *slab)
 void allocateFromAllocatorLastSlab(struct block_allocator *allocator)
 {
   ASSERT_LOG_ONLY(allocator->openSlab == NULL, "mustn't have an open slab");
-  Slab *lastSlab = allocator->depot->slabs[allocator->lastSlab];
+  struct vdo_slab *lastSlab = allocator->depot->slabs[allocator->lastSlab];
   priorityTableRemove(allocator->prioritizedSlabs, &lastSlab->ringNode);
   allocator->openSlab = lastSlab;
 }

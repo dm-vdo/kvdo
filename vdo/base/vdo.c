@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#19 $
  */
 
 /*
@@ -1079,7 +1079,7 @@ int getPhysicalZone(const VDO             *vdo,
   }
 
   // With the PBN already checked, we should always succeed in finding a slab.
-  Slab *slab = getSlab(vdo->depot, pbn);
+  struct vdo_slab *slab = getSlab(vdo->depot, pbn);
   int result = ASSERT(slab != NULL, "getSlab must succeed on all valid PBNs");
   if (result != VDO_SUCCESS) {
     return result;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#7 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -67,9 +67,9 @@ bool hasSlabsToScrub(SlabScrubber *scrubber)
  * @param highPriority  <code>true</code> if the slab should be put on the
  *                      high-priority queue
  **/
-void registerSlabForScrubbing(SlabScrubber *scrubber,
-                              Slab         *slab,
-                              bool          highPriority);
+void registerSlabForScrubbing(SlabScrubber    *scrubber,
+                              struct vdo_slab *slab,
+                              bool             highPriority);
 
 /**
  * Scrub all the slabs which have been registered with a slab scrubber.

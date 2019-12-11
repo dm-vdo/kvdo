@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#25 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -715,7 +715,7 @@ static void addSlabJournalEntries(VDOCompletion *completion)
       continue;
     }
 
-    Slab *slab = getSlab(vdo->depot, entry.mapping.pbn);
+    struct vdo_slab *slab = getSlab(vdo->depot, entry.mapping.pbn);
     if (slab->allocator != recovery->allocator) {
       continue;
     }

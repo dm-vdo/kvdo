@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#16 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -220,7 +220,7 @@ int getSlabNumber(const SlabDepot     *depot,
  * @return The slab containing the block, or NULL if the block number is the
  *         zero block or otherwise out of range
  **/
-Slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
+struct vdo_slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
   __attribute__((warn_unused_result));
 
 /**

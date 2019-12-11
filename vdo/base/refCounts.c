@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#16 $
  */
 
 #include "refCounts.h"
@@ -169,7 +169,7 @@ static bool advanceSearchCursor(struct ref_counts *refCounts)
 
 /**********************************************************************/
 int makeRefCounts(BlockCount                  blockCount,
-                  Slab                       *slab,
+                  struct vdo_slab            *slab,
                   PhysicalBlockNumber         origin,
                   struct read_only_notifier  *readOnlyNotifier,
                   struct ref_counts         **refCountsPtr)
@@ -1401,7 +1401,7 @@ static void loadReferenceBlocks(struct ref_counts *refCounts)
 /**********************************************************************/
 void drainRefCounts(struct ref_counts *refCounts)
 {
-  Slab *slab = refCounts->slab;
+  struct vdo_slab *slab = refCounts->slab;
   bool  save = false;
   switch (slab->state.state) {
   case ADMIN_STATE_SCRUBBING:
