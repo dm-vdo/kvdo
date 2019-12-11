@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#30 $
  */
 
 #include "slabDepot.h"
@@ -1002,14 +1002,14 @@ const SlabConfig *getSlabConfig(const struct slab_depot *depot)
 }
 
 /**********************************************************************/
-SlabSummary *getSlabSummary(const struct slab_depot *depot)
+struct slab_summary *getSlabSummary(const struct slab_depot *depot)
 {
   return depot->slabSummary;
 }
 
 /**********************************************************************/
-SlabSummaryZone *getSlabSummaryForZone(const struct slab_depot *depot,
-                                       ZoneCount                zone)
+struct slab_summary_zone *getSlabSummaryForZone(const struct slab_depot *depot,
+                                                ZoneCount                zone)
 {
   if (depot->slabSummary == NULL) {
     return NULL;

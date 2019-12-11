@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#26 $
  */
 
 #ifndef TYPES_H
@@ -378,8 +378,8 @@ struct slab_depot;
 struct slab_journal;
 struct slab_journal_entry;
 struct slab_scrubber;
-typedef struct slabSummary         SlabSummary;
-typedef struct slabSummaryZone     SlabSummaryZone;
+struct slab_summary;
+struct slab_summary_zone;
 typedef struct vdo                 VDO;
 typedef struct vdoCompletion       VDOCompletion;
 typedef struct vdoExtent           VDOExtent;

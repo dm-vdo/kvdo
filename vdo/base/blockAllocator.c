@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#31 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -867,7 +867,8 @@ void releaseTailBlockLocks(void          *context,
 }
 
 /**********************************************************************/
-SlabSummaryZone *getSlabSummaryZone(const struct block_allocator *allocator)
+struct slab_summary_zone *
+getSlabSummaryZone(const struct block_allocator *allocator)
 {
   return allocator->summary;
 }

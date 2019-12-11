@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#18 $
  */
 
 #include "refCounts.h"
@@ -1075,7 +1075,8 @@ static void finishSummaryUpdate(struct waiter *waiter, void *context)
  **/
 static void updateSlabSummaryAsClean(struct ref_counts *refCounts)
 {
-  SlabSummaryZone *summary = getSlabSummaryZone(refCounts->slab->allocator);
+  struct slab_summary_zone *summary
+    = getSlabSummaryZone(refCounts->slab->allocator);
   if (summary == NULL) {
     return;
   }

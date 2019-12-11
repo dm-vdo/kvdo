@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#10 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -30,7 +30,7 @@
 #include "waitQueue.h"
 
 /**
- * The SlabSummary provides hints during load and recovery about the state
+ * The slab_summary provides hints during load and recovery about the state
  * of the slabs in order to avoid the need to read the slab journals in their
  * entirety before a VDO can come online.
  *
@@ -39,16 +39,16 @@
  * slab (so that clean slabs containing free space will be used on restart),
  * and the location of the tail block of the slab's journal.
  *
- * The SlabSummary has its own partition at the end of the volume which is
+ * The slab_summary has its own partition at the end of the volume which is
  * sized to allow for a complete copy of the summary for each of up to 16
  * physical zones.
  *
- * During resize, the SlabSummary moves its backing partition and is saved once
- * moved; the SlabSummary is not permitted to overwrite the previous recovery
- * journal space.
+ * During resize, the slab_summary moves its backing partition and is saved
+ * once moved; the slab_summary is not permitted to overwrite the previous
+ * recovery journal space.
  *
- * The SlabSummary does not have its own version information, but relies on the
- * master version number.
+ * The slab_summary does not have its own version information, but relies on
+ * the master version number.
  **/
 
 /**
@@ -67,11 +67,11 @@ struct slab_status {
 };
 
 /**
- * Returns the size on disk of the SlabSummary structure.
+ * Returns the size on disk of the slab_summary structure.
  *
  * @param blockSize  The block size of the physical layer
  *
- * @return the blocks required to store the SlabSummary on disk
+ * @return the blocks required to store the slab_summary on disk
  **/
 BlockCount getSlabSummarySize(BlockSize blockSize)
 __attribute__((warn_unused_result));
@@ -97,15 +97,15 @@ int makeSlabSummary(PhysicalLayer              *layer,
                     unsigned int                slabSizeShift,
                     BlockCount                  maximumFreeBlocksPerSlab,
                     struct read_only_notifier  *readOnlyNotifier,
-                    SlabSummary               **slabSummaryPtr)
+                    struct slab_summary       **slabSummaryPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Destroy a SlabSummary and NULL out the reference to it.
+ * Destroy a slab_summary and NULL out the reference to it.
  *
- * @param [in,out] slabSummaryPtr A pointer to the SlabSummary to free
+ * @param [in,out] slabSummaryPtr A pointer to the slab_summary to free
  **/
-void freeSlabSummary(SlabSummary **slabSummaryPtr);
+void freeSlabSummary(struct slab_summary **slabSummaryPtr);
 
 /**
  * Get the portion of the slab summary for a specified zone.
@@ -115,7 +115,8 @@ void freeSlabSummary(SlabSummary **slabSummaryPtr);
  *
  * @return The portion of the slab summary for the specified zone
  **/
-SlabSummaryZone *getSummaryForZone(SlabSummary *summary, ZoneCount zone)
+struct slab_summary_zone *getSummaryForZone(struct slab_summary *summary,
+                                            ZoneCount            zone)
   __attribute__((warn_unused_result));
 
 /**
@@ -125,9 +126,9 @@ SlabSummaryZone *getSummaryForZone(SlabSummary *summary, ZoneCount zone)
  * @param operation    The type of drain to perform
  * @param parent       The object to notify when the suspend is complete
  **/
-void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
-                          AdminStateCode   operation,
-                          VDOCompletion   *parent);
+void drainSlabSummaryZone(struct slab_summary_zone *summaryZone,
+                          AdminStateCode            operation,
+                          VDOCompletion            *parent);
 
 /**
  * Resume a zone of the slab summary.
@@ -135,13 +136,13 @@ void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
  * @param summaryZone  The zone to resume
  * @param parent       The object to notify when the zone is resumed
  **/
-void resumeSlabSummaryZone(SlabSummaryZone *summaryZone,
-                           VDOCompletion   *parent);
+void resumeSlabSummaryZone(struct slab_summary_zone *summaryZone,
+                           VDOCompletion            *parent);
 
 /**
  * Update the entry for a slab.
  *
- * @param summaryZone     The SlabSummaryZone for the zone of the slab
+ * @param summaryZone     The slab_summary_zone for the zone of the slab
  * @param waiter          The waiter that is updating the summary
  * @param slabNumber      The slab number to update
  * @param tailBlockOffset The offset of slab journal's tail block
@@ -150,93 +151,96 @@ void resumeSlabSummaryZone(SlabSummaryZone *summaryZone,
  * @param isClean         Whether the slab is clean
  * @param freeBlocks      The number of free blocks
  **/
-void updateSlabSummaryEntry(SlabSummaryZone *summaryZone,
-                            struct waiter   *waiter,
-                            SlabCount        slabNumber,
-                            TailBlockOffset  tailBlockOffset,
-                            bool             loadRefCounts,
-                            bool             isClean,
-                            BlockCount       freeBlocks);
+void updateSlabSummaryEntry(struct slab_summary_zone *summaryZone,
+                            struct waiter            *waiter,
+                            SlabCount                 slabNumber,
+                            TailBlockOffset           tailBlockOffset,
+                            bool                      loadRefCounts,
+                            bool                      isClean,
+                            BlockCount                freeBlocks);
 
 /**
  * Get the stored tail block offset for a slab.
  *
- * @param summaryZone       The SlabSummaryZone to use
+ * @param summaryZone       The slab_summary_zone to use
  * @param slabNumber        The slab number to get the offset for
  *
  * @return The tail block offset for the slab
  **/
-TailBlockOffset getSummarizedTailBlockOffset(SlabSummaryZone *summaryZone,
-                                             SlabCount        slabNumber)
+TailBlockOffset
+getSummarizedTailBlockOffset(struct slab_summary_zone *summaryZone,
+                             SlabCount                 slabNumber)
   __attribute__((warn_unused_result));
 
 /**
  * Whether refCounts must be loaded from the layer.
  *
- * @param summaryZone   The SlabSummaryZone to use
+ * @param summaryZone   The slab_summary_zone to use
  * @param slabNumber    The slab number to get information for
  *
  * @return Whether refCounts must be loaded
  **/
-bool mustLoadRefCounts(SlabSummaryZone *summaryZone, SlabCount slabNumber)
+bool mustLoadRefCounts(struct slab_summary_zone *summaryZone,
+                       SlabCount                 slabNumber)
   __attribute__((warn_unused_result));
 
 /**
  * Get the stored cleanliness information for a single slab.
  *
- * @param summaryZone   The SlabSummaryZone to use
+ * @param summaryZone   The slab_summary_zone to use
  * @param slabNumber    The slab number to get information for
  *
  * @return Whether the slab is clean
  **/
-bool getSummarizedCleanliness(SlabSummaryZone *summaryZone,
-                              SlabCount        slabNumber)
+bool getSummarizedCleanliness(struct slab_summary_zone *summaryZone,
+                              SlabCount                 slabNumber)
   __attribute__((warn_unused_result));
 
 /**
  * Get the stored emptiness information for a single slab.
  *
- * @param summaryZone    The SlabSummaryZone to use
+ * @param summaryZone    The slab_summary_zone to use
  * @param slabNumber     The slab number to get information for
  *
  * @return An approximation to the free blocks in the slab
  **/
-BlockCount getSummarizedFreeBlockCount(SlabSummaryZone *summaryZone,
-                                       SlabCount        slabNumber)
+BlockCount getSummarizedFreeBlockCount(struct slab_summary_zone *summaryZone,
+                                       SlabCount                 slabNumber)
   __attribute__((warn_unused_result));
 
 /**
  * Get the stored RefCounts state information for a single slab. Used
  * in testing only.
  *
- * @param [in]  summaryZone     The SlabSummaryZone to use
+ * @param [in]  summaryZone     The slab_summary_zone to use
  * @param [in]  slabNumber      The slab number to get information for
  * @param [out] freeBlockHint   The approximate number of free blocks
  * @param [out] isClean         Whether the slab is clean
  **/
-void getSummarizedRefCountsState(SlabSummaryZone *summaryZone,
-                                 SlabCount        slabNumber,
-                                 size_t          *freeBlockHint,
-                                 bool            *isClean);
+void getSummarizedRefCountsState(struct slab_summary_zone *summaryZone,
+                                 SlabCount                 slabNumber,
+                                 size_t                   *freeBlockHint,
+                                 bool                     *isClean);
 
 /**
  * Get the stored slab statuses for all slabs in a zone.
  *
- * @param [in]     summaryZone   The SlabSummaryZone to use
+ * @param [in]     summaryZone   The slab_summary_zone to use
  * @param [in]     slabCount     The number of slabs to fetch
  * @param [in,out] statuses      An array of slab_status structures to populate
  **/
-void getSummarizedSlabStatuses(SlabSummaryZone    *summaryZone,
-                               SlabCount           slabCount,
-                               struct slab_status *statuses);
+void getSummarizedSlabStatuses(struct slab_summary_zone *summaryZone,
+                               SlabCount                 slabCount,
+                               struct slab_status       *statuses);
 
 /**
  * Set the origin of the slab summary relative to the physical layer.
  *
- * @param summary    The SlabSummary to update
+ * @param summary    The slab_summary to update
  * @param partition  The slab summary partition
  **/
-void setSlabSummaryOrigin(SlabSummary *summary, struct partition *partition);
+void setSlabSummaryOrigin(struct slab_summary *summary,
+                          struct partition    *partition);
 
 /**
  * Read in all the slab summary data from the slab summary partition,
@@ -250,10 +254,10 @@ void setSlabSummaryOrigin(SlabSummary *summary, struct partition *partition);
  *                        all of the summary will be initialized as new.
  * @param parent          The parent of this operation
  **/
-void loadSlabSummary(SlabSummary    *summary,
-                     AdminStateCode  operation,
-                     ZoneCount       zonesToCombine,
-                     VDOCompletion  *parent);
+void loadSlabSummary(struct slab_summary *summary,
+                     AdminStateCode       operation,
+                     ZoneCount            zonesToCombine,
+                     VDOCompletion       *parent);
 
 /**
  * Fetch the cumulative statistics for all slab summary zones in a summary.
@@ -262,7 +266,8 @@ void loadSlabSummary(SlabSummary    *summary,
  *
  * @return the cumulative slab summary statistics for the summary
  **/
-SlabSummaryStatistics getSlabSummaryStatistics(const SlabSummary *summary)
+SlabSummaryStatistics
+getSlabSummaryStatistics(const struct slab_summary *summary)
   __attribute__((warn_unused_result));
 
 #endif // SLAB_SUMMARY_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#10 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -50,7 +50,7 @@ struct slab_summary_entry {
 
 struct slab_summary_block {
   /** The zone to which this block belongs */
-  SlabSummaryZone           *zone;
+  struct slab_summary_zone   *zone;
   /** The index of this block in its zone's summary */
   BlockCount                 index;
   /** Whether this block has a write outstanding */
@@ -77,9 +77,9 @@ struct atomic_slab_summary_statistics {
   Atomic64 blocksWritten;
 };
 
-struct slabSummaryZone {
+struct slab_summary_zone {
   /** The summary of which this is a zone */
-  SlabSummary               *summary;
+  struct slab_summary       *summary;
   /** The number of this zone */
   ZoneCount                  zoneNumber;
   /** Count of the number of blocks currently out for writing */
@@ -92,7 +92,7 @@ struct slabSummaryZone {
   struct slab_summary_block  summaryBlocks[];
 };
 
-struct slabSummary {
+struct slab_summary {
   /** The context for entering read-only mode */
   struct read_only_notifier             *readOnlyNotifier;
   /** The statistics for this slab summary */
@@ -112,7 +112,7 @@ struct slabSummary {
   /** The current number of active zones */
   ZoneCount                              zoneCount;
   /** The currently active zones */
-  SlabSummaryZone                       *zones[];
+  struct slab_summary_zone              *zones[];
 };
 
 /**
@@ -121,6 +121,6 @@ struct slabSummary {
  *
  * @param summary       The summary whose entries should be combined
  **/
-void combineZones(SlabSummary *summary);
+void combineZones(struct slab_summary *summary);
 
 #endif // SLAB_SUMMARY_INTERNALS_H
