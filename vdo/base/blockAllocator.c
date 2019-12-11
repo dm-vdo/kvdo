@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#30 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -199,7 +199,7 @@ static int allocateComponents(struct block_allocator *allocator,
     return result;
   }
 
-  SlabDepot *depot = allocator->depot;
+  struct slab_depot *depot = allocator->depot;
   result = initializeEnqueueableCompletion(&allocator->completion,
                                            BLOCK_ALLOCATOR_COMPLETION, layer);
   if (result != VDO_SUCCESS) {
@@ -253,7 +253,7 @@ static int allocateComponents(struct block_allocator *allocator,
 }
 
 /**********************************************************************/
-int makeBlockAllocator(SlabDepot                  *depot,
+int makeBlockAllocator(struct slab_depot          *depot,
                        ZoneCount                   zoneNumber,
                        ThreadID                    threadID,
                        Nonce                       nonce,
@@ -653,8 +653,8 @@ int prepareSlabsForAllocation(struct block_allocator *allocator)
   relaxedStore64(&allocator->statistics.allocatedBlocks,
                  getDataBlockCount(allocator));
 
-  SlabDepot *depot     = allocator->depot;
-  SlabCount  slabCount = depot->slabCount;
+  struct slab_depot *depot     = allocator->depot;
+  SlabCount          slabCount = depot->slabCount;
 
   struct slab_status *slabStatuses;
   int result = ALLOCATE(slabCount, struct slab_status, __func__, &slabStatuses);
@@ -720,7 +720,7 @@ void registerNewSlabsForAllocator(void          *context,
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
-  SlabDepot *depot = allocator->depot;
+  struct slab_depot *depot = allocator->depot;
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     struct vdo_slab *slab = depot->newSlabs[i];
     if (slab->allocator == allocator) {

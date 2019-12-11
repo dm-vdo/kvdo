@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#8 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -39,7 +39,7 @@
 int makeSlabScrubber(PhysicalLayer              *layer,
                      BlockCount                  slabJournalSize,
                      struct read_only_notifier  *readOnlyNotifier,
-                     SlabScrubber              **scrubberPtr)
+                     struct slab_scrubber      **scrubberPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -47,7 +47,7 @@ int makeSlabScrubber(PhysicalLayer              *layer,
  *
  * @param scrubberPtr  A pointer to the scrubber to destroy
  **/
-void freeSlabScrubber(SlabScrubber **scrubberPtr);
+void freeSlabScrubber(struct slab_scrubber **scrubberPtr);
 
 /**
  * Check whether a scrubber has slabs to scrub.
@@ -56,7 +56,7 @@ void freeSlabScrubber(SlabScrubber **scrubberPtr);
  *
  * @return <code>true</code> if the scrubber has slabs to scrub
  **/
-bool hasSlabsToScrub(SlabScrubber *scrubber)
+bool hasSlabsToScrub(struct slab_scrubber *scrubber)
   __attribute__((warn_unused_result));
 
 /**
@@ -67,9 +67,9 @@ bool hasSlabsToScrub(SlabScrubber *scrubber)
  * @param highPriority  <code>true</code> if the slab should be put on the
  *                      high-priority queue
  **/
-void registerSlabForScrubbing(SlabScrubber    *scrubber,
-                              struct vdo_slab *slab,
-                              bool             highPriority);
+void registerSlabForScrubbing(struct slab_scrubber *scrubber,
+                              struct vdo_slab      *slab,
+                              bool                  highPriority);
 
 /**
  * Scrub all the slabs which have been registered with a slab scrubber.
@@ -79,10 +79,10 @@ void registerSlabForScrubbing(SlabScrubber    *scrubber,
  * @param callback      The function to run when scrubbing is complete
  * @param errorHandler  The handler for scrubbing errors
  **/
-void scrubSlabs(SlabScrubber *scrubber,
-                void         *parent,
-                VDOAction    *callback,
-                VDOAction    *errorHandler);
+void scrubSlabs(struct slab_scrubber *scrubber,
+                void                 *parent,
+                VDOAction            *callback,
+                VDOAction            *errorHandler);
 
 /**
  * Scrub any slabs which have been registered at high priority with a slab
@@ -96,11 +96,11 @@ void scrubSlabs(SlabScrubber *scrubber,
  * @param callback         The function to run when scrubbing is complete
  * @param errorHandler     The handler for scrubbing errors
  **/
-void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
-                            bool           scrubAtLeastOne,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler);
+void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
+                            bool                  scrubAtLeastOne,
+                            VDOCompletion        *parent,
+                            VDOAction            *callback,
+                            VDOAction            *errorHandler);
 
 /**
  * Tell the scrubber to stop scrubbing after it finishes the slab it is
@@ -109,7 +109,7 @@ void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
  * @param scrubber  The scrubber to stop
  * @param parent    The completion to notify when scrubbing has stopped
  **/
-void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
+void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent);
 
 /**
  * Tell the scrubber to resume scrubbing if it has been stopped.
@@ -117,7 +117,7 @@ void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
  * @param scrubber  The scrubber to resume
  * @param parent    The object to notify once scrubbing has resumed
  **/
-void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
+void resumeScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent);
 
 /**
  * Wait for a clean slab.
@@ -128,7 +128,8 @@ void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent);
  * @return VDO_SUCCESS if the waiter was queued, VDO_NO_SPACE if there are no
  *         slabs to scrub, and some other error otherwise
  **/
-int enqueueCleanSlabWaiter(SlabScrubber *scrubber, struct waiter *waiter);
+int enqueueCleanSlabWaiter(struct slab_scrubber *scrubber,
+                           struct waiter        *waiter);
 
 /**
  * Get the number of slabs that are unrecovered or being scrubbed.
@@ -137,7 +138,7 @@ int enqueueCleanSlabWaiter(SlabScrubber *scrubber, struct waiter *waiter);
  *
  * @return the number of slabs that are unrecovered or being scrubbed
  **/
-SlabCount getScrubberSlabCount(const SlabScrubber *scrubber)
+SlabCount getScrubberSlabCount(const struct slab_scrubber *scrubber)
   __attribute__((warn_unused_result));
 
 /**
@@ -145,6 +146,6 @@ SlabCount getScrubberSlabCount(const SlabScrubber *scrubber)
  *
  * @param scrubber   The scrubber to dump
  **/
-void dumpSlabScrubber(const SlabScrubber *scrubber);
+void dumpSlabScrubber(const struct slab_scrubber *scrubber);
 
 #endif /* SLAB_SCRUBBER_H */

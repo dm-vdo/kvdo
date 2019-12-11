@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#9 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -29,7 +29,7 @@
 #include "extent.h"
 #include "ringNode.h"
 
-struct slabScrubber {
+struct slab_scrubber {
   VDOCompletion              completion;
   /** The queue of slabs to scrub first */
   RingNode                   highPrioritySlabs;

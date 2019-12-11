@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#26 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -786,7 +786,8 @@ static void queueOnPhysicalZone(struct waiter *waiter, void *context)
     return;
   }
 
-  decref->slabJournal = getSlabJournal((SlabDepot *) context, mapping.pbn);
+  decref->slabJournal = getSlabJournal((struct slab_depot *) context,
+                                       mapping.pbn);
   ZoneCount zoneNumber = decref->slabJournal->slab->allocator->zoneNumber;
   enqueueMissingDecref(&decref->recovery->missingDecrefs[zoneNumber], decref);
 }
@@ -806,7 +807,7 @@ static void applyToDepot(VDOCompletion *completion)
   prepareSubTask(recovery, finishRecoveringDepot, finishParentCallback,
                  ZONE_TYPE_ADMIN);
 
-  SlabDepot *depot = getSlabDepot(recovery->vdo);
+  struct slab_depot *depot = getSlabDepot(recovery->vdo);
   notifyAllWaiters(&recovery->missingDecrefs[0], queueOnPhysicalZone, depot);
   if (abortRecoveryOnError(recovery->completion.result, recovery)) {
     return;
@@ -1210,7 +1211,7 @@ static void prepareToApplyJournalEntries(VDOCompletion *completion)
   if (!foundEntries) {
     // This message must be recognizable by VDOTest::RebuildBase.
     logInfo("Replaying 0 recovery entries into block map");
-    // We still need to load the SlabDepot.
+    // We still need to load the slab_depot.
     FREE(recovery->journalData);
     recovery->journalData = NULL;
     prepareSubTask(recovery, finishParentCallback, finishParentCallback,

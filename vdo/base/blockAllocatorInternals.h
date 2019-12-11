@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#15 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -103,7 +103,7 @@ struct atomic_ref_count_statistics {
 struct block_allocator {
   VDOCompletion                          completion;
   /** The slab depot for this allocator */
-  SlabDepot                             *depot;
+  struct slab_depot                     *depot;
   /** The slab summary zone for this allocator */
   SlabSummaryZone                       *summary;
   /** The notifier for entering read-only mode */
@@ -130,7 +130,7 @@ struct block_allocator {
   /** A priority queue containing all slabs available for allocation */
   struct priority_table                 *prioritizedSlabs;
   /** The slab scrubber */
-  SlabScrubber                          *slabScrubber;
+  struct slab_scrubber                  *slabScrubber;
   /** What phase of the close operation the allocator is to perform */
   BlockAllocatorDrainStep                drainStep;
   /** Statistics for this block allocator */

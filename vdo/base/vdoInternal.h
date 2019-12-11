@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#21 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -80,7 +80,7 @@ struct vdo {
   struct recovery_journal         *recoveryJournal;
 
   /* The slab depot */
-  SlabDepot                       *depot;
+  struct slab_depot               *depot;
 
   /* The compressed-block packer */
   struct packer                   *packer;
@@ -249,7 +249,7 @@ struct block_map *getBlockMap(const VDO *vdo)
  *
  * @return the slab depot from the VDO
  **/
-SlabDepot *getSlabDepot(VDO *vdo)
+struct slab_depot *getSlabDepot(VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**

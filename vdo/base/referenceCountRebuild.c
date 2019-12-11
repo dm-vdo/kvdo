@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#9 $
  */
 
 #include "referenceCountRebuild.h"
@@ -53,7 +53,7 @@ struct rebuild_completion {
   /** the block map */
   struct block_map           *blockMap;
   /** the slab depot */
-  SlabDepot                  *depot;
+  struct slab_depot          *depot;
   /** whether this recovery has been aborted */
   bool                        aborted;
   /** whether we are currently launching the initial round of requests */

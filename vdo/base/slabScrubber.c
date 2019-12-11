@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#12 $
  */
 
 #include "slabScrubberInternals.h"
@@ -45,9 +45,9 @@
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int allocateExtentAndBuffer(SlabScrubber  *scrubber,
-                                   PhysicalLayer *layer,
-                                   BlockCount     slabJournalSize)
+static int allocateExtentAndBuffer(struct slab_scrubber *scrubber,
+                                   PhysicalLayer        *layer,
+                                   BlockCount            slabJournalSize)
 {
   size_t bufferSize = VDO_BLOCK_SIZE * slabJournalSize;
   int result = ALLOCATE(bufferSize, char, __func__, &scrubber->journalData);
@@ -64,10 +64,10 @@ static int allocateExtentAndBuffer(SlabScrubber  *scrubber,
 int makeSlabScrubber(PhysicalLayer              *layer,
                      BlockCount                  slabJournalSize,
                      struct read_only_notifier  *readOnlyNotifier,
-                     SlabScrubber              **scrubberPtr)
+                     struct slab_scrubber      **scrubberPtr)
 {
-  SlabScrubber *scrubber;
-  int result = ALLOCATE(1, SlabScrubber, __func__, &scrubber);
+  struct slab_scrubber *scrubber;
+  int result = ALLOCATE(1, struct slab_scrubber, __func__, &scrubber);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -92,7 +92,7 @@ int makeSlabScrubber(PhysicalLayer              *layer,
  *
  * @param scrubber  The scrubber
  **/
-static void freeExtentAndBuffer(SlabScrubber *scrubber)
+static void freeExtentAndBuffer(struct slab_scrubber *scrubber)
 {
   freeExtent(&scrubber->extent);
   if (scrubber->journalData != NULL) {
@@ -102,13 +102,13 @@ static void freeExtentAndBuffer(SlabScrubber *scrubber)
 }
 
 /**********************************************************************/
-void freeSlabScrubber(SlabScrubber **scrubberPtr)
+void freeSlabScrubber(struct slab_scrubber **scrubberPtr)
 {
   if (*scrubberPtr == NULL) {
     return;
   }
 
-  SlabScrubber *scrubber = *scrubberPtr;
+  struct slab_scrubber *scrubber = *scrubberPtr;
   freeExtentAndBuffer(scrubber);
   FREE(scrubber);
   *scrubberPtr = NULL;
@@ -121,7 +121,7 @@ void freeSlabScrubber(SlabScrubber **scrubberPtr)
  *
  * @return The next slab to scrub or <code>NULL</code> if there are none
  **/
-static struct vdo_slab *getNextSlab(SlabScrubber *scrubber)
+static struct vdo_slab *getNextSlab(struct slab_scrubber *scrubber)
 {
   if (!isRingEmpty(&scrubber->highPrioritySlabs)) {
     return slabFromRingNode(scrubber->highPrioritySlabs.next);
@@ -135,21 +135,21 @@ static struct vdo_slab *getNextSlab(SlabScrubber *scrubber)
 }
 
 /**********************************************************************/
-bool hasSlabsToScrub(SlabScrubber *scrubber)
+bool hasSlabsToScrub(struct slab_scrubber *scrubber)
 {
   return (getNextSlab(scrubber) != NULL);
 }
 
 /**********************************************************************/
-SlabCount getScrubberSlabCount(const SlabScrubber *scrubber)
+SlabCount getScrubberSlabCount(const struct slab_scrubber *scrubber)
 {
   return relaxedLoad64(&scrubber->slabCount);
 }
 
 /**********************************************************************/
-void registerSlabForScrubbing(SlabScrubber    *scrubber,
-                              struct vdo_slab *slab,
-                              bool             highPriority)
+void registerSlabForScrubbing(struct slab_scrubber *scrubber,
+                              struct vdo_slab      *slab,
+                              bool                  highPriority)
 {
   ASSERT_LOG_ONLY((slab->status != SLAB_REBUILT),
                   "slab to be scrubbed is unrecovered");
@@ -179,7 +179,7 @@ void registerSlabForScrubbing(SlabScrubber    *scrubber,
  *
  * @param scrubber  The scrubber
  **/
-static void finishScrubbing(SlabScrubber *scrubber)
+static void finishScrubbing(struct slab_scrubber *scrubber)
 {
   if (!hasSlabsToScrub(scrubber)) {
     freeExtentAndBuffer(scrubber);
@@ -207,7 +207,7 @@ static void finishScrubbing(SlabScrubber *scrubber)
 }
 
 /**********************************************************************/
-static void scrubNextSlab(SlabScrubber *scrubber);
+static void scrubNextSlab(struct slab_scrubber *scrubber);
 
 /**
  * Notify the scrubber that a slab has been scrubbed. This callback is
@@ -217,7 +217,7 @@ static void scrubNextSlab(SlabScrubber *scrubber);
  **/
 static void slabScrubbed(VDOCompletion *completion)
 {
-  SlabScrubber *scrubber = completion->parent;
+  struct slab_scrubber *scrubber = completion->parent;
   finishScrubbingSlab(scrubber->slab);
   relaxedAdd64(&scrubber->slabCount, -1);
   scrubNextSlab(scrubber);
@@ -229,7 +229,7 @@ static void slabScrubbed(VDOCompletion *completion)
  * @param scrubber  The slab scrubber
  * @param result    The error
  **/
-static void abortScrubbing(SlabScrubber *scrubber, int result)
+static void abortScrubbing(struct slab_scrubber *scrubber, int result)
 {
   enterReadOnlyMode(scrubber->readOnlyNotifier, result);
   setCompletionResult(&scrubber->completion, result);
@@ -305,10 +305,10 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
  **/
 static void applyJournalEntries(VDOCompletion *completion)
 {
-  SlabScrubber      *scrubber        = completion->parent;
-  struct vdo_slab   *slab            = scrubber->slab;
-  SlabJournal       *journal         = slab->journal;
-  struct ref_counts *referenceCounts = slab->referenceCounts;
+  struct slab_scrubber  *scrubber        = completion->parent;
+  struct vdo_slab       *slab            = scrubber->slab;
+  SlabJournal           *journal         = slab->journal;
+  struct ref_counts     *referenceCounts = slab->referenceCounts;
 
   // Find the boundaries of the useful part of the journal.
   SequenceNumber  tail     = journal->tail;
@@ -380,8 +380,8 @@ static void applyJournalEntries(VDOCompletion *completion)
  **/
 static void startScrubbing(VDOCompletion *completion)
 {
-  SlabScrubber    *scrubber = completion->parent;
-  struct vdo_slab *slab     = scrubber->slab;
+  struct slab_scrubber    *scrubber = completion->parent;
+  struct vdo_slab         *slab     = scrubber->slab;
   if (getSummarizedCleanliness(slab->allocator->summary, slab->slabNumber)) {
     slabScrubbed(completion);
     return;
@@ -398,7 +398,7 @@ static void startScrubbing(VDOCompletion *completion)
  *
  * @param scrubber  The scrubber
  **/
-static void scrubNextSlab(SlabScrubber *scrubber)
+static void scrubNextSlab(struct slab_scrubber *scrubber)
 {
   // Note: this notify call is always safe only because scrubbing can only
   // be started when the VDO is quiescent.
@@ -432,10 +432,10 @@ static void scrubNextSlab(SlabScrubber *scrubber)
 }
 
 /**********************************************************************/
-void scrubSlabs(SlabScrubber *scrubber,
-                void         *parent,
-                VDOAction    *callback,
-                VDOAction    *errorHandler)
+void scrubSlabs(struct slab_scrubber *scrubber,
+                void                 *parent,
+                VDOAction            *callback,
+                VDOAction            *errorHandler)
 {
   resumeIfQuiescent(&scrubber->adminState);
   ThreadID threadID = getCallbackThreadID();
@@ -450,11 +450,11 @@ void scrubSlabs(SlabScrubber *scrubber,
 }
 
 /**********************************************************************/
-void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
-                            bool           scrubAtLeastOne,
-                            VDOCompletion *parent,
-                            VDOAction     *callback,
-                            VDOAction     *errorHandler)
+void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
+                            bool                  scrubAtLeastOne,
+                            VDOCompletion        *parent,
+                            VDOAction            *callback,
+                            VDOAction            *errorHandler)
 {
   if (scrubAtLeastOne && isRingEmpty(&scrubber->highPrioritySlabs)) {
     struct vdo_slab *slab = getNextSlab(scrubber);
@@ -467,7 +467,7 @@ void scrubHighPrioritySlabs(SlabScrubber  *scrubber,
 }
 
 /**********************************************************************/
-void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
+void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent)
 {
   if (isQuiescent(&scrubber->adminState)) {
     completeCompletion(parent);
@@ -477,7 +477,7 @@ void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
+void resumeScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent)
 {
   if (!hasSlabsToScrub(scrubber)) {
     completeCompletion(parent);
@@ -495,7 +495,8 @@ void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-int enqueueCleanSlabWaiter(SlabScrubber *scrubber, struct waiter *waiter)
+int enqueueCleanSlabWaiter(struct slab_scrubber *scrubber,
+                           struct waiter        *waiter)
 {
   if (isReadOnly(scrubber->readOnlyNotifier)) {
     return VDO_READ_ONLY;
@@ -509,7 +510,7 @@ int enqueueCleanSlabWaiter(SlabScrubber *scrubber, struct waiter *waiter)
 }
 
 /**********************************************************************/
-void dumpSlabScrubber(const SlabScrubber *scrubber)
+void dumpSlabScrubber(const struct slab_scrubber *scrubber)
 {
   logInfo("slabScrubber slabCount %u waiters %zu %s%s",
           getScrubberSlabCount(scrubber),

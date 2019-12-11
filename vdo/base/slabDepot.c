@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#28 $
  */
 
 #include "slabDepot.h"
@@ -76,7 +76,7 @@ static SlabCount computeSlabCount(PhysicalBlockNumber firstBlock,
 }
 
 /**********************************************************************/
-SlabCount calculateSlabCount(SlabDepot *depot)
+SlabCount calculateSlabCount(struct slab_depot *depot)
 {
   return computeSlabCount(depot->firstBlock, depot->lastBlock,
                           depot->slabSizeShift);
@@ -89,7 +89,7 @@ SlabCount calculateSlabCount(SlabDepot *depot)
  *
  * @return An iterator over the depot's slabs
  **/
-static struct slab_iterator getSlabIterator(SlabDepot *depot)
+static struct slab_iterator getSlabIterator(struct slab_depot *depot)
 {
   return iterateSlabs(depot->slabs, depot->slabCount - 1, 0, 1);
 }
@@ -106,7 +106,7 @@ static struct slab_iterator getSlabIterator(SlabDepot *depot)
  *
  * @return VDO_SUCCESS or an error code
  **/
-static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
+static int allocateSlabs(struct slab_depot *depot, SlabCount slabCount)
 {
   int result = ALLOCATE(slabCount, struct vdo_slab *, "slab pointer array",
                         &depot->newSlabs);
@@ -147,7 +147,7 @@ static int allocateSlabs(SlabDepot *depot, SlabCount slabCount)
 }
 
 /**********************************************************************/
-void abandonNewSlabs(SlabDepot *depot)
+void abandonNewSlabs(struct slab_depot *depot)
 {
   if (depot->newSlabs == NULL) {
     return;
@@ -178,7 +178,7 @@ static ThreadID getAllocatorThreadID(void *context, ZoneCount zoneNumber)
  **/
 static void prepareForTailBlockCommit(void *context, VDOCompletion *parent)
 {
-  SlabDepot *depot = context;
+  struct slab_depot *depot = context;
   depot->activeReleaseRequest = depot->newReleaseRequest;
   completeCompletion(parent);
 }
@@ -190,7 +190,7 @@ static void prepareForTailBlockCommit(void *context, VDOCompletion *parent)
  **/
 static bool scheduleTailBlockCommit(void *context)
 {
-  SlabDepot *depot = context;
+  struct slab_depot *depot = context;
   if (depot->newReleaseRequest == depot->activeReleaseRequest) {
     return false;
   }
@@ -212,7 +212,7 @@ static bool scheduleTailBlockCommit(void *context)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int allocateComponents(SlabDepot          *depot,
+static int allocateComponents(struct slab_depot  *depot,
                               Nonce               nonce,
                               const ThreadConfig *threadConfig,
                               BlockCount          vioPoolSize,
@@ -310,7 +310,7 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
                          struct read_only_notifier          *readOnlyNotifier,
                          struct recovery_journal            *recoveryJournal,
                          Atomic32                           *vdoState,
-                         SlabDepot                         **depotPtr)
+                         struct slab_depot                 **depotPtr)
 {
   // Calculate the bit shift for efficiently mapping block numbers to slabs.
   // Using a shift requires that the slab size be a power of two.
@@ -321,8 +321,9 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
   }
   unsigned int slabSizeShift = logBaseTwo(slabSize);
 
-  SlabDepot *depot;
-  int result = ALLOCATE_EXTENDED(SlabDepot, threadConfig->physicalZoneCount,
+  struct slab_depot *depot;
+  int result = ALLOCATE_EXTENDED(struct slab_depot,
+                                 threadConfig->physicalZoneCount,
                                  struct block_allocator *, __func__, &depot);
   if (result != VDO_SUCCESS) {
     return result;
@@ -350,7 +351,7 @@ static int allocateDepot(const struct slab_depot_state_2_0  *state,
 }
 
 /**
- * Configure the SlabDepot for the specified storage capacity, finding the
+ * Configure the slab_depot for the specified storage capacity, finding the
  * number of data blocks that will fit and still leave room for the depot
  * metadata, then return the saved state for that configuration.
  *
@@ -414,7 +415,7 @@ int makeSlabDepot(BlockCount                  blockCount,
                   struct read_only_notifier  *readOnlyNotifier,
                   struct recovery_journal    *recoveryJournal,
                   Atomic32                   *vdoState,
-                  SlabDepot                 **depotPtr)
+                  struct slab_depot         **depotPtr)
 {
   struct slab_depot_state_2_0 state;
   int result = configureState(blockCount, firstBlock, slabConfig, 0, &state);
@@ -422,7 +423,7 @@ int makeSlabDepot(BlockCount                  blockCount,
     return result;
   }
 
-  SlabDepot *depot = NULL;
+  struct slab_depot *depot = NULL;
   result = allocateDepot(&state, threadConfig, nonce, vioPoolSize, layer,
                          summaryPartition, readOnlyNotifier, recoveryJournal,
                          vdoState, &depot);
@@ -435,9 +436,9 @@ int makeSlabDepot(BlockCount                  blockCount,
 }
 
 /**********************************************************************/
-void freeSlabDepot(SlabDepot **depotPtr)
+void freeSlabDepot(struct slab_depot **depotPtr)
 {
-  SlabDepot *depot = *depotPtr;
+  struct slab_depot *depot = *depotPtr;
   if (depot == NULL) {
     return;
   }
@@ -567,7 +568,7 @@ static int encodeSlabConfig(const SlabConfig *config, Buffer *buffer)
 }
 
 /**********************************************************************/
-int encodeSlabDepot(const SlabDepot *depot, Buffer *buffer)
+int encodeSlabDepot(const struct slab_depot *depot, Buffer *buffer)
 {
   int result = encodeHeader(&SLAB_DEPOT_HEADER_2_0, buffer);
   if (result != UDS_SUCCESS) {
@@ -663,7 +664,7 @@ int decodeSlabDepot(Buffer                     *buffer,
                     struct read_only_notifier  *readOnlyNotifier,
                     struct recovery_journal    *recoveryJournal,
                     Atomic32                   *vdoState,
-                    SlabDepot                 **depotPtr)
+                    struct slab_depot         **depotPtr)
 {
   struct header header;
   int result = decodeHeader(buffer, &header);
@@ -695,7 +696,7 @@ int decodeSodiumSlabDepot(Buffer                     *buffer,
                           struct partition           *summaryPartition,
                           struct read_only_notifier  *readOnlyNotifier,
                           struct recovery_journal    *recoveryJournal,
-                          SlabDepot                 **depotPtr)
+                          struct slab_depot         **depotPtr)
 {
   // Sodium uses version 2.0 of the slab depot state.
   return decodeSlabDepot(buffer, threadConfig, nonce, layer, summaryPartition,
@@ -703,7 +704,7 @@ int decodeSodiumSlabDepot(Buffer                     *buffer,
 }
 
 /**********************************************************************/
-int allocateSlabRefCounts(SlabDepot *depot)
+int allocateSlabRefCounts(struct slab_depot *depot)
 {
   struct slab_iterator iterator = getSlabIterator(depot);
   while (hasNextSlab(&iterator)) {
@@ -717,16 +718,17 @@ int allocateSlabRefCounts(SlabDepot *depot)
 }
 
 /**********************************************************************/
-struct block_allocator *getBlockAllocatorForZone(SlabDepot *depot,
-                                                 ZoneCount  zoneNumber)
+struct block_allocator *
+getBlockAllocatorForZone(struct slab_depot *depot,
+                         ZoneCount          zoneNumber)
 {
   return depot->allocators[zoneNumber];
 }
 
 /**********************************************************************/
-int getSlabNumber(const SlabDepot     *depot,
-                  PhysicalBlockNumber  pbn,
-                  SlabCount           *slabNumberPtr)
+int getSlabNumber(const struct slab_depot *depot,
+                  PhysicalBlockNumber      pbn,
+                  SlabCount               *slabNumberPtr)
 {
   if (pbn < depot->firstBlock) {
     return VDO_OUT_OF_RANGE;
@@ -742,7 +744,8 @@ int getSlabNumber(const SlabDepot     *depot,
 }
 
 /**********************************************************************/
-struct vdo_slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
+struct vdo_slab *getSlab(const struct slab_depot *depot,
+                         PhysicalBlockNumber      pbn)
 {
   if (pbn == ZERO_BLOCK) {
     return NULL;
@@ -760,14 +763,15 @@ struct vdo_slab *getSlab(const SlabDepot *depot, PhysicalBlockNumber pbn)
 }
 
 /**********************************************************************/
-SlabJournal *getSlabJournal(const SlabDepot *depot, PhysicalBlockNumber pbn)
+SlabJournal *getSlabJournal(const struct slab_depot *depot,
+                            PhysicalBlockNumber      pbn)
 {
   struct vdo_slab *slab = getSlab(depot, pbn);
   return ((slab != NULL) ? slab->journal : NULL);
 }
 
 /**********************************************************************/
-uint8_t getIncrementLimit(SlabDepot *depot, PhysicalBlockNumber pbn)
+uint8_t getIncrementLimit(struct slab_depot *depot, PhysicalBlockNumber pbn)
 {
   struct vdo_slab *slab = getSlab(depot, pbn);
   if ((slab == NULL) || isUnrecoveredSlab(slab)) {
@@ -778,7 +782,8 @@ uint8_t getIncrementLimit(SlabDepot *depot, PhysicalBlockNumber pbn)
 }
 
 /**********************************************************************/
-bool isPhysicalDataBlock(const SlabDepot *depot, PhysicalBlockNumber pbn)
+bool isPhysicalDataBlock(const struct slab_depot *depot,
+                         PhysicalBlockNumber      pbn)
 {
   if (pbn == ZERO_BLOCK) {
     return true;
@@ -795,7 +800,7 @@ bool isPhysicalDataBlock(const SlabDepot *depot, PhysicalBlockNumber pbn)
 }
 
 /**********************************************************************/
-BlockCount getDepotAllocatedBlocks(const SlabDepot *depot)
+BlockCount getDepotAllocatedBlocks(const struct slab_depot *depot)
 {
   BlockCount total = 0;
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
@@ -806,7 +811,7 @@ BlockCount getDepotAllocatedBlocks(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-BlockCount getDepotDataBlocks(const SlabDepot *depot)
+BlockCount getDepotDataBlocks(const struct slab_depot *depot)
 {
   // XXX This needs to be thread safe, but resize changes the slab count. It
   // does so on the admin thread (our usual caller), so it's usually safe.
@@ -814,7 +819,7 @@ BlockCount getDepotDataBlocks(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-BlockCount getDepotFreeBlocks(const SlabDepot *depot)
+BlockCount getDepotFreeBlocks(const struct slab_depot *depot)
 {
   /*
    * We can't ever shrink a volume except when resize fails, and we can't
@@ -830,13 +835,13 @@ BlockCount getDepotFreeBlocks(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-SlabCount getDepotSlabCount(const SlabDepot *depot)
+SlabCount getDepotSlabCount(const struct slab_depot *depot)
 {
   return depot->slabCount;
 }
 
 /**********************************************************************/
-SlabCount getDepotUnrecoveredSlabCount(const SlabDepot *depot)
+SlabCount getDepotUnrecoveredSlabCount(const struct slab_depot *depot)
 {
   SlabCount total = 0;
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
@@ -853,17 +858,17 @@ SlabCount getDepotUnrecoveredSlabCount(const SlabDepot *depot)
  **/
 static void startDepotLoad(void *context, VDOCompletion *parent)
 {
-  SlabDepot *depot = context;
+  struct slab_depot *depot = context;
   loadSlabSummary(depot->slabSummary,
                   getCurrentManagerOperation(depot->actionManager),
                   depot->oldZoneCount, parent);
 }
 
 /**********************************************************************/
-void loadSlabDepot(SlabDepot      *depot,
-                   AdminStateCode  operation,
-                   VDOCompletion  *parent,
-                   void           *context)
+void loadSlabDepot(struct slab_depot *depot,
+                   AdminStateCode     operation,
+                   VDOCompletion     *parent,
+                   void              *context)
 {
   if (assertLoadOperation(operation, parent)) {
     scheduleOperationWithContext(depot->actionManager, operation,
@@ -873,7 +878,7 @@ void loadSlabDepot(SlabDepot      *depot,
 }
 
 /**********************************************************************/
-void prepareToAllocate(SlabDepot         *depot,
+void prepareToAllocate(struct slab_depot *depot,
                        SlabDepotLoadType  loadType,
                        VDOCompletion     *parent)
 {
@@ -884,13 +889,13 @@ void prepareToAllocate(SlabDepot         *depot,
 }
 
 /**********************************************************************/
-void updateSlabDepotSize(SlabDepot *depot)
+void updateSlabDepotSize(struct slab_depot *depot)
 {
   depot->lastBlock = depot->newLastBlock;
 }
 
 /**********************************************************************/
-int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
+int prepareToGrowSlabDepot(struct slab_depot *depot, BlockCount newSize)
 {
   if ((newSize >> depot->slabSizeShift) <= depot->slabCount) {
     return VDO_INCREMENT_TOO_SMALL;
@@ -938,7 +943,7 @@ int prepareToGrowSlabDepot(SlabDepot *depot, BlockCount newSize)
  **/
 static int finishRegistration(void *context)
 {
-  SlabDepot *depot = context;
+  struct slab_depot *depot = context;
   depot->slabCount = depot->newSlabCount;
   FREE(depot->slabs);
   depot->slabs        = depot->newSlabs;
@@ -948,7 +953,7 @@ static int finishRegistration(void *context)
 }
 
 /**********************************************************************/
-void useNewSlabs(SlabDepot *depot, VDOCompletion *parent)
+void useNewSlabs(struct slab_depot *depot, VDOCompletion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
   scheduleOperation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
@@ -957,16 +962,16 @@ void useNewSlabs(SlabDepot *depot, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void drainSlabDepot(SlabDepot      *depot,
-                    AdminStateCode  operation,
-                    VDOCompletion  *parent)
+void drainSlabDepot(struct slab_depot *depot,
+                    AdminStateCode     operation,
+                    VDOCompletion     *parent)
 {
   scheduleOperation(depot->actionManager, operation, NULL, drainBlockAllocator,
                     NULL, parent);
 }
 
 /**********************************************************************/
-void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
+void resumeSlabDepot(struct slab_depot *depot, VDOCompletion *parent)
 {
   if (isReadOnly(depot->readOnlyNotifier)) {
     finishCompletion(parent, VDO_READ_ONLY);
@@ -978,8 +983,9 @@ void resumeSlabDepot(SlabDepot *depot, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void commitOldestSlabJournalTailBlocks(SlabDepot      *depot,
-                                       SequenceNumber  recoveryBlockNumber)
+void
+commitOldestSlabJournalTailBlocks(struct slab_depot *depot,
+                                  SequenceNumber     recoveryBlockNumber)
 {
   if (depot == NULL) {
     return;
@@ -990,19 +996,20 @@ void commitOldestSlabJournalTailBlocks(SlabDepot      *depot,
 }
 
 /**********************************************************************/
-const SlabConfig *getSlabConfig(const SlabDepot *depot)
+const SlabConfig *getSlabConfig(const struct slab_depot *depot)
 {
   return &depot->slabConfig;
 }
 
 /**********************************************************************/
-SlabSummary *getSlabSummary(const SlabDepot *depot)
+SlabSummary *getSlabSummary(const struct slab_depot *depot)
 {
   return depot->slabSummary;
 }
 
 /**********************************************************************/
-SlabSummaryZone *getSlabSummaryForZone(const SlabDepot *depot, ZoneCount zone)
+SlabSummaryZone *getSlabSummaryForZone(const struct slab_depot *depot,
+                                       ZoneCount                zone)
 {
   if (depot->slabSummary == NULL) {
     return NULL;
@@ -1012,7 +1019,7 @@ SlabSummaryZone *getSlabSummaryForZone(const SlabDepot *depot, ZoneCount zone)
 }
 
 /**********************************************************************/
-void scrubAllUnrecoveredSlabs(SlabDepot *depot, VDOCompletion *parent)
+void scrubAllUnrecoveredSlabs(struct slab_depot *depot, VDOCompletion *parent)
 {
   scheduleAction(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
                  NULL, parent);
@@ -1021,7 +1028,7 @@ void scrubAllUnrecoveredSlabs(SlabDepot *depot, VDOCompletion *parent)
 /**********************************************************************/
 void notifyZoneFinishedScrubbing(VDOCompletion *completion)
 {
-  SlabDepot *depot = completion->parent;
+  struct slab_depot *depot = completion->parent;
   if (atomicAdd32(&depot->zonesToScrub, -1) == 0) {
     // We're the last!
     if (compareAndSwap32(depot->vdoState, VDO_RECOVERING, VDO_DIRTY)) {
@@ -1041,19 +1048,19 @@ void notifyZoneFinishedScrubbing(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-bool hasUnrecoveredSlabs(SlabDepot *depot)
+bool hasUnrecoveredSlabs(struct slab_depot *depot)
 {
   return (atomicLoad32(&depot->zonesToScrub) > 0);
 }
 
 /**********************************************************************/
-BlockCount getNewDepotSize(const SlabDepot *depot)
+BlockCount getNewDepotSize(const struct slab_depot *depot)
 {
   return (depot->newSlabs == NULL) ? 0 : depot->newSize;
 }
 
 /**********************************************************************/
-bool areEquivalentDepots(SlabDepot *depotA, SlabDepot *depotB)
+bool areEquivalentDepots(struct slab_depot *depotA, struct slab_depot *depotB)
 {
   if ((depotA->firstBlock       != depotB->firstBlock)
       || (depotA->lastBlock     != depotB->lastBlock)
@@ -1079,7 +1086,7 @@ bool areEquivalentDepots(SlabDepot *depotA, SlabDepot *depotB)
 }
 
 /**********************************************************************/
-void allocateFromLastSlab(SlabDepot *depot)
+void allocateFromLastSlab(struct slab_depot *depot)
 {
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     allocateFromAllocatorLastSlab(depot->allocators[zone]);
@@ -1088,7 +1095,7 @@ void allocateFromLastSlab(SlabDepot *depot)
 
 /**********************************************************************/
 BlockAllocatorStatistics
-getDepotBlockAllocatorStatistics(const SlabDepot *depot)
+getDepotBlockAllocatorStatistics(const struct slab_depot *depot)
 {
   BlockAllocatorStatistics totals;
   memset(&totals, 0, sizeof(totals));
@@ -1105,7 +1112,7 @@ getDepotBlockAllocatorStatistics(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
+RefCountsStatistics getDepotRefCountsStatistics(const struct slab_depot *depot)
 {
   RefCountsStatistics depotStats;
   memset(&depotStats, 0, sizeof(depotStats));
@@ -1120,7 +1127,8 @@ RefCountsStatistics getDepotRefCountsStatistics(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-SlabJournalStatistics getDepotSlabJournalStatistics(const SlabDepot *depot)
+SlabJournalStatistics
+getDepotSlabJournalStatistics(const struct slab_depot *depot)
 {
   SlabJournalStatistics depotStats;
   memset(&depotStats, 0, sizeof(depotStats));
@@ -1139,7 +1147,7 @@ SlabJournalStatistics getDepotSlabJournalStatistics(const SlabDepot *depot)
 }
 
 /**********************************************************************/
-void dumpSlabDepot(const SlabDepot *depot)
+void dumpSlabDepot(const struct slab_depot *depot)
 {
   logInfo("vdo_slab Depot");
   logInfo("  zoneCount=%u oldZoneCount=%u slabCount=%" PRIu32
