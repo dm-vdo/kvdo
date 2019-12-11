@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#27 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -64,7 +64,7 @@ struct missing_decref {
   /** The journal point which will be used for this entry */
   struct journal_point        journalPoint;
   /** The slab journal to which this entry will be applied */
-  SlabJournal                *slabJournal;
+  struct slab_journal        *slabJournal;
 };
 
 /**

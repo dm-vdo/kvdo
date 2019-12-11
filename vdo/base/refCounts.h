@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.h#12 $
  */
 
 #ifndef REF_COUNTS_H
@@ -130,7 +130,7 @@ int adjustReferenceCountForRebuild(struct ref_counts   *refCounts,
  **/
 int replayReferenceCountChange(struct ref_counts          *refCounts,
                                const struct journal_point *entryPoint,
-                               SlabJournalEntry            entry)
+                               struct slab_journal_entry   entry)
   __attribute__((warn_unused_result));
 
 /**

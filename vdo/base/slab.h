@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#16 $
  */
 
 #ifndef VDO_SLAB_H
@@ -57,7 +57,7 @@ struct vdo_slab {
   /** The reference counts for the data blocks in this slab */
   struct ref_counts      *referenceCounts;
   /** The journal for this slab */
-  SlabJournal            *journal;
+  struct slab_journal    *journal;
 
   /** The slab number of this slab */
   SlabCount               slabNumber;

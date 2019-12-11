@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#13 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -43,7 +43,7 @@
  **/
 
 /** A single slab journal entry */
-struct slabJournalEntry {
+struct slab_journal_entry {
   SlabBlockNumber  sbn;
   JournalOperation operation;
 };
@@ -171,7 +171,7 @@ struct journal_lock {
   SequenceNumber recoveryStart;
 };
 
-struct slabJournal {
+struct slab_journal {
   /** A waiter object for getting a VIO pool entry */
   struct waiter                          resourceWaiter;
   /** A waiter object for updating the slab summary */
@@ -233,9 +233,9 @@ struct slabJournal {
    * The current tail block header state. This will be packed into
    * the block just before it is written.
    **/
-  struct slab_journal_block_header         tailHeader;
+  struct slab_journal_block_header       tailHeader;
   /** A pointer to a block-sized buffer holding the packed block data */
-  struct packed_slab_journal_block        *block;
+  struct packed_slab_journal_block      *block;
 
   /** The number of blocks in the on-disk journal */
   BlockCount                             size;
@@ -267,7 +267,7 @@ struct slabJournal {
  **/
 __attribute__((warn_unused_result))
 static inline TailBlockOffset
-getSlabJournalBlockOffset(SlabJournal *journal, SequenceNumber sequence)
+getSlabJournalBlockOffset(struct slab_journal *journal, SequenceNumber sequence)
 {
   return (sequence % journal->size);
 }
@@ -293,7 +293,7 @@ void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
  *
  * @return The decoded entry
  **/
-SlabJournalEntry
+struct slab_journal_entry
 decodeSlabJournalEntry(struct packed_slab_journal_block *block,
                        JournalEntryCount                 entryCount)
   __attribute__((warn_unused_result));
@@ -324,9 +324,10 @@ static inline void packSlabJournalEntry(PackedSlabJournalEntry *packed,
  **/
 __attribute__((warn_unused_result))
 static inline
-SlabJournalEntry unpackSlabJournalEntry(const PackedSlabJournalEntry *packed)
+struct slab_journal_entry
+unpackSlabJournalEntry(const PackedSlabJournalEntry *packed)
 {
-  SlabJournalEntry entry;
+  struct slab_journal_entry entry;
   entry.sbn = packed->fields.offsetHigh7;
   entry.sbn <<= 8;
   entry.sbn |= packed->fields.offsetMid8;

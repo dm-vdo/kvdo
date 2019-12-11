@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#13 $
  */
 
 #include "slabScrubberInternals.h"
@@ -268,8 +268,8 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
 
   SlabBlockNumber maxSBN = slab->end - slab->start;
   while (entryPoint.entryCount < entryCount) {
-    SlabJournalEntry entry = decodeSlabJournalEntry(block,
-                                                    entryPoint.entryCount);
+    struct slab_journal_entry entry
+      = decodeSlabJournalEntry(block, entryPoint.entryCount);
     if (entry.sbn > maxSBN) {
       // This entry is out of bounds.
       return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
@@ -307,7 +307,7 @@ static void applyJournalEntries(VDOCompletion *completion)
 {
   struct slab_scrubber  *scrubber        = completion->parent;
   struct vdo_slab       *slab            = scrubber->slab;
-  SlabJournal           *journal         = slab->journal;
+  struct slab_journal   *journal         = slab->journal;
   struct ref_counts     *referenceCounts = slab->referenceCounts;
 
   // Find the boundaries of the useful part of the journal.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#17 $
  */
 
 #include "refCounts.h"
@@ -725,7 +725,7 @@ int adjustReferenceCountForRebuild(struct ref_counts   *refCounts,
 /**********************************************************************/
 int replayReferenceCountChange(struct ref_counts          *refCounts,
                                const struct journal_point *entryPoint,
-                               SlabJournalEntry            entry)
+                               struct slab_journal_entry   entry)
 {
   struct reference_block *block = getReferenceBlock(refCounts, entry.sbn);
   SectorCount sector

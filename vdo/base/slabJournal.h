@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#13 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -28,13 +28,13 @@
 #include "types.h"
 
 /**
- * Convert a completion to a SlabJournal.
+ * Convert a completion to a slab_journal.
  *
  * @param completion  The completion to convert
  *
- * @return The completion as a SlabJournal
+ * @return The completion as a slab_journal
  **/
-SlabJournal *asSlabJournal(VDOCompletion *completion)
+struct slab_journal *asSlabJournal(VDOCompletion *completion)
   __attribute__((warn_unused_result));
 
 /**
@@ -46,14 +46,14 @@ size_t getSlabJournalEntriesPerBlock(void)
   __attribute__((warn_unused_result));
 
 /**
- * Obtain a pointer to a SlabJournal structure from a pointer to the
+ * Obtain a pointer to a slab_journal structure from a pointer to the
  * dirtyRingNode field within it.
  *
  * @param node  The RingNode to convert
  *
- * @return The RingNode as a SlabJournal
+ * @return The RingNode as a slab_journal
  **/
-SlabJournal *slabJournalFromDirtyNode(RingNode *node)
+struct slab_journal *slabJournalFromDirtyNode(RingNode *node)
   __attribute__((warn_unused_result));
 
 /**
@@ -69,7 +69,7 @@ SlabJournal *slabJournalFromDirtyNode(RingNode *node)
 int makeSlabJournal(struct block_allocator   *allocator,
                     struct vdo_slab          *slab,
                     struct recovery_journal  *recoveryJournal,
-                    SlabJournal             **journalPtr)
+                    struct slab_journal     **journalPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -77,7 +77,7 @@ int makeSlabJournal(struct block_allocator   *allocator,
  *
  * @param journalPtr  The reference to the slab journal to free
  **/
-void freeSlabJournal(SlabJournal **journalPtr);
+void freeSlabJournal(struct slab_journal **journalPtr);
 
 /**
  * Check whether a slab journal is blank, meaning it has never had any entries
@@ -87,7 +87,7 @@ void freeSlabJournal(SlabJournal **journalPtr);
  *
  * @return <code>true</code> if the slab journal has never been modified
  **/
-bool isSlabJournalBlank(const SlabJournal *journal)
+bool isSlabJournalBlank(const struct slab_journal *journal)
   __attribute__((warn_unused_result));
 
 /**
@@ -98,7 +98,7 @@ bool isSlabJournalBlank(const SlabJournal *journal)
  *
  * @return <code>true</code> if the journal has been added to the dirty ring
  **/
-bool isSlabJournalDirty(const SlabJournal *journal)
+bool isSlabJournalDirty(const struct slab_journal *journal)
   __attribute__((warn_unused_result));
 
 /**
@@ -106,14 +106,14 @@ bool isSlabJournalDirty(const SlabJournal *journal)
  *
  * @param journal  The journal to abort
  **/
-void abortSlabJournalWaiters(SlabJournal *journal);
+void abortSlabJournalWaiters(struct slab_journal *journal);
 
 /**
  * Reopen a slab journal by emptying it and then adding any pending entries.
  *
  * @param journal  The journal to reopen
  **/
-void reopenSlabJournal(SlabJournal *journal);
+void reopenSlabJournal(struct slab_journal *journal);
 
 /**
  * Attempt to replay a recovery journal entry into a slab journal.
@@ -127,7 +127,7 @@ void reopenSlabJournal(SlabJournal *journal);
  *
  * @return <code>true</code> if the entry was added immediately
  **/
-bool attemptReplayIntoSlabJournal(SlabJournal          *journal,
+bool attemptReplayIntoSlabJournal(struct slab_journal  *journal,
                                   PhysicalBlockNumber   pbn,
                                   JournalOperation      operation,
                                   struct journal_point *recoveryPoint,
@@ -140,7 +140,8 @@ bool attemptReplayIntoSlabJournal(SlabJournal          *journal,
  * @param journal  The slab journal to use
  * @param dataVIO  The data_vio for which to add the entry
  **/
-void addSlabJournalEntry(SlabJournal *journal, struct data_vio *dataVIO);
+void addSlabJournalEntry(struct slab_journal *journal,
+                         struct data_vio     *dataVIO);
 
 /**
  * Adjust the reference count for a slab journal block. Note that when the
@@ -150,9 +151,9 @@ void addSlabJournalEntry(SlabJournal *journal, struct data_vio *dataVIO);
  * @param sequenceNumber  The journal sequence number of the referenced block
  * @param adjustment      Amount to adjust the reference counter
  **/
-void adjustSlabJournalBlockReference(SlabJournal    *journal,
-                                     SequenceNumber  sequenceNumber,
-                                     int             adjustment);
+void adjustSlabJournalBlockReference(struct slab_journal *journal,
+                                     SequenceNumber       sequenceNumber,
+                                     int                  adjustment);
 
 /**
  * Request the slab journal to release the recovery journal lock it may hold on
@@ -165,8 +166,8 @@ void adjustSlabJournalBlockReference(SlabJournal    *journal,
  * @return <code>true</code> if the journal does hold a lock on the specified
  *         block (which it will release)
  **/
-bool releaseRecoveryJournalLock(SlabJournal    *journal,
-                                SequenceNumber  recoveryLock)
+bool releaseRecoveryJournalLock(struct slab_journal *journal,
+                                SequenceNumber       recoveryLock)
   __attribute__((warn_unused_result));
 
 /**
@@ -174,7 +175,7 @@ bool releaseRecoveryJournalLock(SlabJournal    *journal,
  *
  * @param journal  The journal whose tail block should be committed
  **/
-void commitSlabJournalTail(SlabJournal *journal);
+void commitSlabJournalTail(struct slab_journal *journal);
 
 /**
  * Drain slab journal I/O. Depending upon the type of drain (as recorded in
@@ -182,14 +183,14 @@ void commitSlabJournalTail(SlabJournal *journal);
  *
  * @param journal  The journal to drain
  **/
-void drainSlabJournal(SlabJournal *journal);
+void drainSlabJournal(struct slab_journal *journal);
 
 /**
  * Decode the slab journal by reading its tail.
  *
  * @param journal  The journal to decode
  **/
-void decodeSlabJournal(SlabJournal *journal);
+void decodeSlabJournal(struct slab_journal *journal);
 
 /**
  * Check to see if the journal should be scrubbed.
@@ -198,7 +199,7 @@ void decodeSlabJournal(SlabJournal *journal);
  *
  * @return <code>true</code> if the journal requires scrubbing
  **/
-bool requiresScrubbing(const SlabJournal *journal)
+bool requiresScrubbing(const struct slab_journal *journal)
   __attribute__((warn_unused_result));
 
 /**
@@ -206,6 +207,6 @@ bool requiresScrubbing(const SlabJournal *journal)
  *
  * @param journal       The slab journal to dump
  **/
-void dumpSlabJournal(const SlabJournal *journal);
+void dumpSlabJournal(const struct slab_journal *journal);
 
 #endif // SLAB_JOURNAL_H
