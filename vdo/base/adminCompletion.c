@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#6 $
  */
 
 #include "adminCompletion.h"
@@ -40,11 +40,12 @@ void assertAdminOperationType(struct admin_completion    *completion,
 }
 
 /**********************************************************************/
-struct admin_completion *adminCompletionFromSubTask(VDOCompletion *completion)
+struct admin_completion *
+adminCompletionFromSubTask(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct admin_completion, completion) == 0);
   assertCompletionType(completion->type, SUB_TASK_COMPLETION);
-  VDOCompletion *parent = completion->parent;
+  struct vdo_completion *parent = completion->parent;
   assertCompletionType(parent->type, ADMIN_COMPLETION);
   return (struct admin_completion *) parent;
 }
@@ -61,8 +62,8 @@ void assertAdminPhaseThread(struct admin_completion *adminCompletion,
 }
 
 /**********************************************************************/
-VDO *vdoFromAdminSubTask(VDOCompletion      *completion,
-                         AdminOperationType  expected)
+VDO *vdoFromAdminSubTask(struct vdo_completion *completion,
+                         AdminOperationType     expected)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);
@@ -100,7 +101,7 @@ void uninitializeAdminCompletion(struct admin_completion *adminCompletion)
 }
 
 /**********************************************************************/
-VDOCompletion *resetAdminSubTask(VDOCompletion *completion)
+struct vdo_completion *resetAdminSubTask(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);
@@ -135,7 +136,7 @@ void prepareAdminSubTask(VDO       *vdo,
  *
  * @param completion  The admin completion
  **/
-static void adminOperationCallback(VDOCompletion *completion)
+static void adminOperationCallback(struct vdo_completion *completion)
 {
   completion->layer->completeAdminOperation(completion->layer);
 }

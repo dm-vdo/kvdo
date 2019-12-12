@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#11 $
  */
 
 #include "actionManager.h"
@@ -30,63 +30,64 @@
 /** An action to be performed in each of a set of zones */
 struct action {
   /** Whether this structure is in use */
-  bool              inUse;
+  bool                      inUse;
   /** The admin operation associated with this action */
-  AdminStateCode    operation;
+  AdminStateCode            operation;
   /**
    * The method to run on the initiator thread before the action is applied to
    * each zone.
    **/
-  ActionPreamble   *preamble;
+  ActionPreamble           *preamble;
   /** The action to be performed in each zone */
-  ZoneAction       *zoneAction;
+  ZoneAction               *zoneAction;
   /**
    * The method to run on the initiator thread after the action has been
    * applied to each zone
    **/
-  ActionConclusion *conclusion;
+  ActionConclusion         *conclusion;
   /** The object to notify when the action is complete */
-  VDOCompletion    *parent;
+  struct vdo_completion    *parent;
   /** The action specific context */
-  void             *context;
+  void                     *context;
   /** The action to perform after this one */
-  struct action    *next;
+  struct action            *next;
 };
 
 struct action_manager {
   /** The completion for performing actions */
-  VDOCompletion      completion;
+  struct vdo_completion      completion;
   /** The state of this action manager */
-  struct admin_state state;
+  struct admin_state         state;
   /** The two action slots*/
-  struct action      actions[2];
+  struct action              actions[2];
   /** The current action slot */
-  struct action     *currentAction;
+  struct action             *currentAction;
   /** The number of zones in which an action is to be applied */
-  ZoneCount          zones;
+  ZoneCount                  zones;
   /** A function to schedule a default next action */
-  ActionScheduler   *scheduler;
+  ActionScheduler           *scheduler;
   /**
    * A function to get the id of the thread on which to apply an action to a
    * zone
    **/
-  ZoneThreadGetter  *getZoneThreadID;
+  ZoneThreadGetter          *getZoneThreadID;
   /** The ID of the thread on which actions may be initiated */
-  ThreadID           initiatorThreadID;
+  ThreadID                   initiatorThreadID;
   /** Opaque data associated with this action manager */
-  void              *context;
+  void                      *context;
   /** The zone currently being acted upon */
-  ZoneCount          actingZone;
+  ZoneCount                  actingZone;
 };
 
 /**
- * Convert a generic VDOCompletion to a action_manager.
+ * Convert a generic vdo_completion to a action_manager.
  *
  * @param completion The completion to convert
  *
  * @return The completion as a action_manager
  **/
-static inline struct action_manager *asActionManager(VDOCompletion *completion)
+static inline struct action_manager *
+asActionManager(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct action_manager, completion) == 0);
   assertCompletionType(completion->type, ACTION_COMPLETION);
@@ -108,8 +109,8 @@ static bool noDefaultAction(void *context __attribute__((unused)))
  *
  * <p>Implements ActionPreamble
  **/
-static void noPreamble(void          *context __attribute__((unused)),
-                       VDOCompletion *completion)
+static void noPreamble(void                  *context __attribute__((unused)),
+                       struct vdo_completion *completion)
 {
   completeCompletion(completion);
 }
@@ -187,8 +188,8 @@ void *getCurrentActionContext(struct action_manager *manager)
 }
 
 /**********************************************************************/
-static void finishActionCallback(VDOCompletion *completion);
-static void applyToZone(VDOCompletion *completion);
+static void finishActionCallback(struct vdo_completion *completion);
+static void applyToZone(struct vdo_completion *completion);
 
 /**
  * Get the thread ID for the current zone.
@@ -232,7 +233,7 @@ static void prepareForConclusion(struct action_manager *manager)
  *
  * @param completion  The action completion
  **/
-static void applyToZone(VDOCompletion *completion)
+static void applyToZone(struct vdo_completion *completion)
 {
   struct action_manager *manager = asActionManager(completion);
   ASSERT_LOG_ONLY((getCallbackThreadID() == getActingZoneThreadID(manager)),
@@ -256,7 +257,7 @@ static void applyToZone(VDOCompletion *completion)
  *
  * @param completion  The manager completion
  **/
-static void handlePreambleError(VDOCompletion *completion)
+static void handlePreambleError(struct vdo_completion *completion)
 {
   // Skip the zone actions since the preamble failed.
   completion->callback = finishActionCallback;
@@ -301,7 +302,7 @@ static void launchCurrentAction(struct action_manager *manager)
  *
  * @param completion  The action manager completion
  **/
-static void finishActionCallback(VDOCompletion *completion)
+static void finishActionCallback(struct vdo_completion *completion)
 {
   struct action_manager *manager  = asActionManager(completion);
   struct action          action   = *(manager->currentAction);
@@ -328,7 +329,7 @@ bool scheduleAction(struct action_manager *manager,
                     ActionPreamble        *preamble,
                     ZoneAction            *zoneAction,
                     ActionConclusion      *conclusion,
-                    VDOCompletion         *parent)
+                    struct vdo_completion *parent)
 {
   return scheduleOperation(manager, ADMIN_STATE_OPERATING, preamble,
                            zoneAction, conclusion, parent);
@@ -340,7 +341,7 @@ bool scheduleOperation(struct action_manager *manager,
                        ActionPreamble        *preamble,
                        ZoneAction            *zoneAction,
                        ActionConclusion      *conclusion,
-                       VDOCompletion         *parent)
+                       struct vdo_completion *parent)
 {
   return scheduleOperationWithContext(manager, operation, preamble, zoneAction,
                                       conclusion, NULL, parent);
@@ -353,7 +354,7 @@ bool scheduleOperationWithContext(struct action_manager *manager,
                                   ZoneAction            *zoneAction,
                                   ActionConclusion      *conclusion,
                                   void                  *context,
-                                  VDOCompletion         *parent)
+                                  struct vdo_completion *parent)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID() == manager->initiatorThreadID),
                   "action initiated from correct thread");

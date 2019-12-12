@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#11 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -128,7 +128,7 @@ struct slab_summary_zone *getSummaryForZone(struct slab_summary *summary,
  **/
 void drainSlabSummaryZone(struct slab_summary_zone *summaryZone,
                           AdminStateCode            operation,
-                          VDOCompletion            *parent);
+                          struct vdo_completion    *parent);
 
 /**
  * Resume a zone of the slab summary.
@@ -137,7 +137,7 @@ void drainSlabSummaryZone(struct slab_summary_zone *summaryZone,
  * @param parent       The object to notify when the zone is resumed
  **/
 void resumeSlabSummaryZone(struct slab_summary_zone *summaryZone,
-                           VDOCompletion            *parent);
+                           struct vdo_completion    *parent);
 
 /**
  * Update the entry for a slab.
@@ -254,10 +254,10 @@ void setSlabSummaryOrigin(struct slab_summary *summary,
  *                        all of the summary will be initialized as new.
  * @param parent          The parent of this operation
  **/
-void loadSlabSummary(struct slab_summary *summary,
-                     AdminStateCode       operation,
-                     ZoneCount            zonesToCombine,
-                     VDOCompletion       *parent);
+void loadSlabSummary(struct slab_summary   *summary,
+                     AdminStateCode         operation,
+                     ZoneCount              zonesToCombine,
+                     struct vdo_completion *parent);
 
 /**
  * Fetch the cumulative statistics for all slab summary zones in a summary.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#3 $
  */
 
 #ifndef VDO_DEBUG_H
@@ -37,11 +37,11 @@
  * info level.
  **/
 struct vdo_command_completion {
-  VDOCompletion         completion;
-  VDOCompletion         subCompletion;
-  VDO                  *vdo;
-  int                   argc;
-  char                **argv;
+  struct vdo_completion   completion;
+  struct vdo_completion   subCompletion;
+  VDO                    *vdo;
+  int                     argc;
+  char                  **argv;
 };
 
 /**
@@ -73,6 +73,6 @@ int destroyVDOCommandCompletion(struct vdo_command_completion *command);
  *
  * @param completion    The completion embedded in vdo_command_completion.
  **/
-void executeVDOExtendedCommand(VDOCompletion *completion);
+void executeVDOExtendedCommand(struct vdo_completion *completion);
 
 #endif // VDO_DEBUG_H

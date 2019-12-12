@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#9 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -63,9 +63,9 @@ void freeLogicalZones(struct logical_zones **zonePtr);
  * @param operation   The type of drain to perform
  * @param completion  The object to notify when the zones are suspended
  **/
-void drainLogicalZones(struct logical_zones *zones,
-                       AdminStateCode        operation,
-                       VDOCompletion        *completion);
+void drainLogicalZones(struct logical_zones  *zones,
+                       AdminStateCode         operation,
+                       struct vdo_completion *completion);
 
 /**
  * Resume a set of logical zones.
@@ -73,7 +73,8 @@ void drainLogicalZones(struct logical_zones *zones,
  * @param zones   The logical zones to resume
  * @param parent  The object to notify when the zones have resumed
  **/
-void resumeLogicalZones(struct logical_zones *zones, VDOCompletion *parent);
+void resumeLogicalZones(struct logical_zones  *zones,
+                        struct vdo_completion *parent);
 
 /**
  * Get the ID of a logical zone's thread.

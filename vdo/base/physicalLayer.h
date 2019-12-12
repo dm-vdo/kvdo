@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#16 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -288,7 +288,7 @@ typedef bool FlushQuerier(PhysicalLayer *layer);
  *
  * @return VDO_SUCCESS or an error code
  **/
-typedef int EnqueueableCreator(VDOCompletion *completion);
+typedef int EnqueueableCreator(struct vdo_completion *completion);
 
 /**
  * A function to destroy and deallocate an Enqueueable object.

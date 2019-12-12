@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#6 $
  */
 
 #ifndef VIO_H
@@ -35,39 +35,39 @@
  **/
 struct vio {
   /* The completion for this VIO */
-  VDOCompletion        completion;
+  struct vdo_completion  completion;
 
   /* The functions to call when this VIO's operation is complete */
-  VDOAction           *callback;
-  VDOAction           *errorHandler;
+  VDOAction             *callback;
+  VDOAction             *errorHandler;
 
   /* The VDO handling this VIO */
-  VDO                 *vdo;
+  VDO                   *vdo;
 
   /* The address on the underlying device of the block to be read/written */
-  PhysicalBlockNumber  physical;
+  PhysicalBlockNumber    physical;
 
   /* The type of request this VIO is servicing */
-  VIOOperation         operation;
+  VIOOperation           operation;
 
   /* The queueing priority of the VIO operation */
-  VIOPriority          priority;
+  VIOPriority            priority;
 
   /* The VIO type is used for statistics and instrumentation. */
-  VIOType              type;
+  VIOType                type;
 
   /* Used for logging and debugging */
-  Trace               *trace;
+  Trace                 *trace;
 };
 
 /**
- * Convert a generic VDOCompletion to a VIO.
+ * Convert a generic vdo_completion to a VIO.
  *
  * @param completion  The completion to convert
  *
  * @return The completion as a VIO
  **/
-static inline VIO *asVIO(VDOCompletion *completion)
+static inline VIO *asVIO(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(VIO, completion) == 0);
   assertCompletionType(completion->type, VIO_COMPLETION);
@@ -81,7 +81,7 @@ static inline VIO *asVIO(VDOCompletion *completion)
  *
  * @return The VIO as a completion
  **/
-static inline VDOCompletion *vioAsCompletion(VIO *vio)
+static inline struct vdo_completion *vioAsCompletion(VIO *vio)
 {
   return &vio->completion;
 }
@@ -127,12 +127,12 @@ void freeVIO(VIO **vioPtr);
  * @param vdo       The VDO for this VIO
  * @param layer     The layer for this VIO
  **/
-void initializeVIO(VIO           *vio,
-                   VIOType        type,
-                   VIOPriority    priority,
-                   VDOCompletion *parent,
-                   VDO           *vdo,
-                   PhysicalLayer *layer);
+void initializeVIO(VIO                   *vio,
+                   VIOType                type,
+                   VIOPriority            priority,
+                   struct vdo_completion *parent,
+                   VDO                   *vdo,
+                   PhysicalLayer         *layer);
 
 /**
  * The very last step in processing a VIO. Set the VIO's completion's callback
@@ -141,7 +141,7 @@ void initializeVIO(VIO           *vio,
  *
  * @param completion  The VIO
  **/
-void vioDoneCallback(VDOCompletion *completion);
+void vioDoneCallback(struct vdo_completion *completion);
 
 /**
  * Get the name of a VIO's operation.

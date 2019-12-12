@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#7 $
  */
 
 #include "readOnlyNotifier.h"
@@ -92,27 +92,28 @@ struct thread_data {
 
 struct read_only_notifier {
   /** The completion for entering read-only mode */
-  VDOCompletion       completion;
+  struct vdo_completion  completion;
   /** A completion waiting for notifications to be drained or enabled */
-  VDOCompletion      *waiter;
+  struct vdo_completion *waiter;
   /** The code of the error which put the VDO into read-only mode */
-  Atomic32            readOnlyError;
+  Atomic32               readOnlyError;
   /** The current state of the notifier (values described above) */
-  Atomic32            state;
+  Atomic32               state;
   /** The thread config of the VDO */
-  const ThreadConfig *threadConfig;
+  const ThreadConfig    *threadConfig;
   /** The array of per-thread data */
-  struct thread_data  threadData[];
+  struct thread_data     threadData[];
 };
 
 /**
- * Convert a generic VDOCompletion to a read_only_notifier.
+ * Convert a generic vdo_completion to a read_only_notifier.
  *
  * @param completion The completion to convert
  *
  * @return The completion as a read_only_notifier
  **/
-static inline struct read_only_notifier *asNotifier(VDOCompletion *completion)
+static inline struct read_only_notifier *
+asNotifier(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct read_only_notifier, completion) == 0);
   assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
@@ -197,7 +198,7 @@ static void assertOnAdminThread(struct read_only_notifier *notifier,
 
 /**********************************************************************/
 void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
-                                      VDOCompletion             *parent)
+                                      struct vdo_completion     *parent)
 {
   if (notifier == NULL) {
     finishCompletion(parent, VDO_SUCCESS);
@@ -236,13 +237,13 @@ void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
  *
  * @param completion  The read-only mode completion
  **/
-static void finishEnteringReadOnlyMode(VDOCompletion *completion)
+static void finishEnteringReadOnlyMode(struct vdo_completion *completion)
 {
   struct read_only_notifier *notifier = asNotifier(completion);
   assertOnAdminThread(notifier, __func__);
   atomicStore32(&notifier->state, NOTIFIED);
 
-  VDOCompletion *waiter = notifier->waiter;
+  struct vdo_completion *waiter = notifier->waiter;
   if (waiter != NULL) {
     notifier->waiter = NULL;
     finishCompletion(waiter, completion->result);
@@ -254,7 +255,7 @@ static void finishEnteringReadOnlyMode(VDOCompletion *completion)
  *
  * @param completion  The read-only mode completion
  **/
-static void makeThreadReadOnly(VDOCompletion *completion)
+static void makeThreadReadOnly(struct vdo_completion *completion)
 {
   ThreadID                   threadID   = completion->callbackThreadID;
   struct read_only_notifier *notifier   = asNotifier(completion);
@@ -298,7 +299,7 @@ static void makeThreadReadOnly(VDOCompletion *completion)
 
 /**********************************************************************/
 void allowReadOnlyModeEntry(struct read_only_notifier *notifier,
-                            VDOCompletion             *parent)
+                            struct vdo_completion     *parent)
 {
   assertOnAdminThread(notifier, __func__);
   if (notifier->waiter != NULL) {

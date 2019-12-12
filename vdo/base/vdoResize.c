@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#12 $
  */
 
 #include "vdoResize.h"
@@ -63,7 +63,7 @@ static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
  *
  * @param completion  The sub-task completion
  **/
-static void growPhysicalCallback(VDOCompletion *completion)
+static void growPhysicalCallback(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);
@@ -129,7 +129,7 @@ static void growPhysicalCallback(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void handleGrowthError(VDOCompletion *completion)
+static void handleGrowthError(struct vdo_completion *completion)
 {
   adminCompletionFromSubTask(completion)->phase = GROW_PHYSICAL_PHASE_ERROR;
   growPhysicalCallback(completion);
@@ -181,7 +181,7 @@ int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
  *
  * @param completion  The sub-task completion
  **/
-static void checkMayGrowPhysical(VDOCompletion *completion)
+static void checkMayGrowPhysical(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);

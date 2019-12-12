@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#6 $
  */
 
 #ifndef PACKER_H
@@ -116,7 +116,7 @@ void flushPacker(struct packer *packer);
  *                    packer. The dataVIO's compressedVIO.lockHolder field will
  *                    point to the data_vio to remove.
  **/
-void removeLockHolderFromPacker(VDOCompletion *completion);
+void removeLockHolderFromPacker(struct vdo_completion *completion);
 
 /**
  * Increment the flush generation in the packer. This will also cause the
@@ -134,7 +134,7 @@ void incrementPackerFlushGeneration(struct packer *packer);
  * @param packer      The packer to drain
  * @param completion  The completion to finish when the packer has drained
  **/
-void drainPacker(struct packer *packer, VDOCompletion *completion);
+void drainPacker(struct packer *packer, struct vdo_completion *completion);
 
 /**
  * Resume a packer which has been suspended.
@@ -144,7 +144,7 @@ void drainPacker(struct packer *packer, VDOCompletion *completion);
  *
  * @return VDO_SUCCESS or an error
  **/
-void resumePacker(struct packer *packer, VDOCompletion *parent);
+void resumePacker(struct packer *packer, struct vdo_completion *parent);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.

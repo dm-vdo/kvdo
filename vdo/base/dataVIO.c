@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#9 $
  */
 
 #include "dataVIO.h"
@@ -122,7 +122,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
 }
 
 /**********************************************************************/
-void completeDataVIO(VDOCompletion *completion)
+void completeDataVIO(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   if (completion->result != VDO_SUCCESS) {
@@ -145,7 +145,7 @@ void completeDataVIO(VDOCompletion *completion)
 /**********************************************************************/
 void finishDataVIO(struct data_vio *dataVIO, int result)
 {
-  VDOCompletion *completion = dataVIOAsCompletion(dataVIO);
+  struct vdo_completion *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
   completeDataVIO(completion);
 }
@@ -225,7 +225,7 @@ static void launchLockedRequest(struct data_vio *dataVIO)
 }
 
 /**********************************************************************/
-void attemptLogicalBlockLock(VDOCompletion *completion)
+void attemptLogicalBlockLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);

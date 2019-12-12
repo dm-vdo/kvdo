@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#4 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -35,7 +35,7 @@
  *                    it loads the depot
  **/
 void replayIntoSlabJournals(struct block_allocator *allocator,
-                            VDOCompletion          *completion,
+                            struct vdo_completion  *completion,
                             void                   *context);
 
 /**
@@ -47,6 +47,6 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
  * @param parent  The completion to notify when the offline portion of the
  *                recovery is complete
  **/
-void launchRecovery(VDO *vdo, VDOCompletion *parent);
+void launchRecovery(VDO *vdo, struct vdo_completion *parent);
 
 #endif // VDO_RECOVERY_H

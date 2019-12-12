@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#4 $
  */
 
 #include "partitionCopy.h"
@@ -37,23 +37,23 @@ enum {
  **/
 struct copy_completion {
   /** completion header */
-  VDOCompletion        completion;
+  struct vdo_completion  completion;
   /** the source partition to copy from */
-  struct partition    *source;
+  struct partition      *source;
   /** the target partition to copy to */
-  struct partition    *target;
+  struct partition      *target;
   /** the current in-partition PBN the copy is beginning at */
-  PhysicalBlockNumber  currentIndex;
+  PhysicalBlockNumber    currentIndex;
   /** the last block to copy */
-  PhysicalBlockNumber  endingIndex;
+  PhysicalBlockNumber    endingIndex;
   /** the backing data used by the extent */
-  char                *data;
+  char                  *data;
   /** the extent being used to copy */
-  VDOExtent           *extent;
+  VDOExtent             *extent;
 };
 
 /**
- * Convert a VDOCompletion to a copy_completion.
+ * Convert a vdo_completion to a copy_completion.
  *
  * @param completion The completion to convert
  *
@@ -61,7 +61,7 @@ struct copy_completion {
  **/
 __attribute__((warn_unused_result))
 static inline
-struct copy_completion *asCopyCompletion(VDOCompletion *completion)
+struct copy_completion *asCopyCompletion(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct copy_completion, completion) == 0);
   assertCompletionType(completion->type, PARTITION_COPY_COMPLETION);
@@ -69,7 +69,8 @@ struct copy_completion *asCopyCompletion(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
+int makeCopyCompletion(PhysicalLayer          *layer,
+                       struct vdo_completion **completionPtr)
 {
   struct copy_completion *copy;
   int result = ALLOCATE(1, struct copy_completion, __func__, &copy);
@@ -81,7 +82,7 @@ int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
   result = ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH), char,
                     "partition copy extent", &copy->data);
   if (result != VDO_SUCCESS) {
-    VDOCompletion *completion = &copy->completion;
+    struct vdo_completion *completion = &copy->completion;
     freeCopyCompletion(&completion);
     return result;
   }
@@ -89,7 +90,7 @@ int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
   result = createExtent(layer, VIO_TYPE_PARTITION_COPY, VIO_PRIORITY_HIGH,
                         STRIDE_LENGTH, copy->data, &copy->extent);
   if (result != VDO_SUCCESS) {
-    VDOCompletion *completion = &copy->completion;
+    struct vdo_completion *completion = &copy->completion;
     freeCopyCompletion(&completion);
     return result;
   }
@@ -99,7 +100,7 @@ int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
 }
 
 /**********************************************************************/
-void freeCopyCompletion(VDOCompletion **completionPtr)
+void freeCopyCompletion(struct vdo_completion **completionPtr)
 {
   if (*completionPtr == NULL) {
     return;
@@ -132,7 +133,7 @@ static inline BlockCount getStrideSize(struct copy_completion *copy)
  *
  * @param completion  The extent which has just completed writing
  **/
-static void completeWriteForCopy(VDOCompletion *completion)
+static void completeWriteForCopy(struct vdo_completion *completion)
 {
   struct copy_completion *copy = asCopyCompletion(completion->parent);
   copy->currentIndex += getStrideSize(copy);
@@ -150,7 +151,7 @@ static void completeWriteForCopy(VDOCompletion *completion)
  *
  * @param completion  The extent which has just completed reading
  **/
-static void completeReadForCopy(VDOCompletion *completion)
+static void completeReadForCopy(struct vdo_completion *completion)
 {
   struct copy_completion *copy = asCopyCompletion(completion->parent);
   PhysicalBlockNumber layerStartBlock;
@@ -219,10 +220,10 @@ static int validatePartitionCopy(struct partition *source,
 }
 
 /**********************************************************************/
-void copyPartitionAsync(VDOCompletion    *completion,
-                        struct partition *source,
-                        struct partition *target,
-                        VDOCompletion    *parent)
+void copyPartitionAsync(struct vdo_completion *completion,
+                        struct partition      *source,
+                        struct partition      *target,
+                        struct vdo_completion *parent)
 {
   int result = validatePartitionCopy(source, target);
   if (result != VDO_SUCCESS) {

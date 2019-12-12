@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#28 $
  */
 
 #ifndef TYPES_H
@@ -381,7 +381,7 @@ struct slab_scrubber;
 struct slab_summary;
 struct slab_summary_zone;
 typedef struct vdo                 VDO;
-typedef struct vdoCompletion       VDOCompletion;
+struct vdo_completion;
 typedef struct vdoExtent           VDOExtent;
 struct vdo_flush;
 struct vdo_layout;
@@ -434,7 +434,7 @@ typedef void AsyncDataOperation(struct data_vio *dataVIO);
  * for completion on a specified thread.
  **/
 typedef struct enqueueable {
-  VDOCompletion *completion;
+  struct vdo_completion *completion;
 } Enqueueable;
 
 #endif // TYPES_H

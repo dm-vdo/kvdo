@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#12 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -39,7 +39,7 @@ struct kvdo {
 	ThreadID initialized_thread_count;
 	struct kvdo_work_item work_item;
 	VDOAction *action;
-	VDOCompletion *completion;
+	struct vdo_completion *completion;
 	// Base-code device info
 	VDO *vdo;
 };

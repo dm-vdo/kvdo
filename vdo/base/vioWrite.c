@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#13 $
  */
 
 /*
@@ -246,7 +246,7 @@ static inline bool isAsync(struct data_vio *dataVIO)
  *
  * @param completion  The data_vio
  **/
-static void releaseAllocatedLock(VDOCompletion *completion)
+static void releaseAllocatedLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
@@ -260,7 +260,7 @@ static void releaseAllocatedLock(VDOCompletion *completion)
  *
  * @param completion  The data_vio
  **/
-static void releaseLogicalLock(VDOCompletion *completion)
+static void releaseLogicalLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -274,7 +274,7 @@ static void releaseLogicalLock(VDOCompletion *completion)
  *
  * @param completion  The data_vio
  **/
-static void cleanHashLock(VDOCompletion *completion)
+static void cleanHashLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
@@ -351,7 +351,7 @@ static void performCleanupStage(struct data_vio     *dataVIO,
  *
  * @param completion  The completion of the data_vio to return to its hash lock
  **/
-static void finishWriteDataVIOWithError(VDOCompletion *completion)
+static void finishWriteDataVIOWithError(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
@@ -418,7 +418,7 @@ static bool abortOnError(int              result,
  *
  * @param completion  The completion of the data_vio to return to its hash lock
  **/
-static void finishWriteDataVIO(VDOCompletion *completion)
+static void finishWriteDataVIO(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
@@ -471,7 +471,7 @@ static void abortDeduplication(struct data_vio *dataVIO)
  *
  * @param completion  The completion of the write in progress
  **/
-static void updateBlockMapForDedupe(VDOCompletion *completion)
+static void updateBlockMapForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -542,7 +542,7 @@ static void updateReferenceCount(struct data_vio *dataVIO)
  *
  * @param completion  The completion of the write in progress
  **/
-static void decrementForDedupe(VDOCompletion *completion)
+static void decrementForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInMappedZone(dataVIO);
@@ -573,7 +573,7 @@ static void decrementForDedupe(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void journalUnmappingForDedupe(VDOCompletion *completion)
+static void journalUnmappingForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
@@ -600,7 +600,7 @@ static void journalUnmappingForDedupe(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void readOldBlockMappingForDedupe(VDOCompletion *completion)
+static void readOldBlockMappingForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -620,7 +620,7 @@ static void readOldBlockMappingForDedupe(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void incrementForCompression(VDOCompletion *completion)
+static void incrementForCompression(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInNewMappedZone(dataVIO);
@@ -654,7 +654,8 @@ static void incrementForCompression(VDOCompletion *completion)
  *
  * @param completion  The data_vio which has been compressed
  **/
-static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
+static void
+addRecoveryJournalEntryForCompression(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
@@ -680,7 +681,7 @@ static void addRecoveryJournalEntryForCompression(VDOCompletion *completion)
  *
  * @param completion  The completion of a compressed data_vio
  **/
-static void packCompressedData(VDOCompletion *completion)
+static void packCompressedData(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInPackerZone(dataVIO);
@@ -720,7 +721,7 @@ void compressData(struct data_vio *dataVIO)
  *
  * @param completion  The completion of the write in progress
  **/
-static void incrementForDedupe(VDOCompletion *completion)
+static void incrementForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInNewMappedZone(dataVIO);
@@ -755,7 +756,7 @@ static void incrementForDedupe(VDOCompletion *completion)
  *
  * @param completion  The data_vio which has been deduplicated
  **/
-static void addRecoveryJournalEntryForDedupe(VDOCompletion *completion)
+static void addRecoveryJournalEntryForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
@@ -777,7 +778,7 @@ static void addRecoveryJournalEntryForDedupe(VDOCompletion *completion)
  *
  * @param completion The completion of the write in progress
  **/
-void shareBlock(VDOCompletion *completion)
+void shareBlock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInDuplicateZone(dataVIO);
@@ -803,7 +804,7 @@ void shareBlock(VDOCompletion *completion)
  *
  * @param completion  The data_vio to lock
  **/
-static void lockHashInZone(VDOCompletion *completion)
+static void lockHashInZone(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
@@ -835,7 +836,7 @@ static void lockHashInZone(VDOCompletion *completion)
  * @param completion The data_vio whose chunk name was just generated, as a
  *                   completion
  **/
-static void resolveHashZone(VDOCompletion *completion)
+static void resolveHashZone(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we are on.
@@ -859,7 +860,7 @@ static void resolveHashZone(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void prepareForDedupe(VDOCompletion *completion)
+static void prepareForDedupe(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we are on
@@ -893,7 +894,7 @@ static void prepareForDedupe(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void updateBlockMapForWrite(VDOCompletion *completion)
+static void updateBlockMapForWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -927,7 +928,7 @@ static void updateBlockMapForWrite(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void decrementForWrite(VDOCompletion *completion)
+static void decrementForWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInMappedZone(dataVIO);
@@ -946,7 +947,7 @@ static void decrementForWrite(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void journalUnmappingForWrite(VDOCompletion *completion)
+static void journalUnmappingForWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
@@ -973,7 +974,7 @@ static void journalUnmappingForWrite(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void readOldBlockMappingForWrite(VDOCompletion *completion)
+static void readOldBlockMappingForWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -1007,7 +1008,7 @@ static void acknowledgeWrite(struct data_vio *dataVIO)
  *
  * @param completion The completion of the write in progress
  **/
-static void acknowledgeWriteCallback(VDOCompletion *completion)
+static void acknowledgeWriteCallback(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   if (abortOnError(completion->result, dataVIO, READ_ONLY)) {
@@ -1032,7 +1033,7 @@ static VDOAction *getWriteIncrementCallback(struct data_vio *dataVIO)
  *
  * @param completion  The completion of the write in progress
  **/
-static void incrementForWrite(VDOCompletion *completion)
+static void incrementForWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
@@ -1060,7 +1061,7 @@ static void incrementForWrite(VDOCompletion *completion)
  *
  * @param completion  The completion of the write in progress
  **/
-static void finishBlockWrite(VDOCompletion *completion)
+static void finishBlockWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);
@@ -1142,7 +1143,7 @@ static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
  *
  * @param completion  The data_vio to write
  **/
-static void continueWriteWithBlockMapSlot(VDOCompletion *completion)
+static void continueWriteWithBlockMapSlot(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   // We don't care what thread we're on.

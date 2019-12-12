@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#5 $
  */
 
 #include "vioRead.h"
@@ -34,7 +34,7 @@
  *
  * @param completion  The data_vio which has just finished its read
  **/
-static void modifyForPartialWrite(VDOCompletion *completion)
+static void modifyForPartialWrite(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -57,7 +57,7 @@ static void modifyForPartialWrite(VDOCompletion *completion)
  *
  * @param completion  The data_vio to read
  **/
-static void readBlock(VDOCompletion *completion)
+static void readBlock(struct vdo_completion *completion)
 {
   if (completion->result != VDO_SUCCESS) {
     completeDataVIO(completion);
@@ -86,7 +86,7 @@ static void readBlock(VDOCompletion *completion)
  *
  * @param completion  The data_vio to be read
  **/
-static void readBlockMapping(VDOCompletion *completion)
+static void readBlockMapping(struct vdo_completion *completion)
 {
   if (completion->result != VDO_SUCCESS) {
     completeDataVIO(completion);
@@ -116,7 +116,7 @@ void launchReadDataVIO(struct data_vio *dataVIO)
  *
  * @param completion  The data_vio
  **/
-static void releaseLogicalLock(VDOCompletion *completion)
+static void releaseLogicalLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);

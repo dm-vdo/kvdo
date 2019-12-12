@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#3 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -34,7 +34,8 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
+int makeCopyCompletion(PhysicalLayer          *layer,
+                       struct vdo_completion **completionPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -42,7 +43,7 @@ int makeCopyCompletion(PhysicalLayer *layer, VDOCompletion **completionPtr)
  *
  * @param completionPtr  A pointer to the complete to be freed
  **/
-void freeCopyCompletion(VDOCompletion **completionPtr);
+void freeCopyCompletion(struct vdo_completion **completionPtr);
 
 /**
  * Copy a partition.
@@ -52,9 +53,9 @@ void freeCopyCompletion(VDOCompletion **completionPtr);
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copyPartitionAsync(VDOCompletion    *completion,
-                        struct partition *source,
-                        struct partition *target,
-                        VDOCompletion    *parent);
+void copyPartitionAsync(struct vdo_completion *completion,
+                        struct partition      *source,
+                        struct partition      *target,
+                        struct vdo_completion *parent);
 
 #endif /* PARTITION_COPY_H */

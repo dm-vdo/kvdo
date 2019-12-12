@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#9 $
  */
 
 #include "vdoResizeLogical.h"
@@ -56,7 +56,7 @@ static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
  *
  * @param completion  The sub-task completion
  **/
-static void growLogicalCallback(VDOCompletion *completion)
+static void growLogicalCallback(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);
@@ -106,7 +106,7 @@ static void growLogicalCallback(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void handleGrowthError(VDOCompletion *completion)
+static void handleGrowthError(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);

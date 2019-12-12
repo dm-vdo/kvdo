@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#22 $
  */
 
 #include "kvio.h"
@@ -283,7 +283,7 @@ void initialize_kvio(struct kvio *kvio,
 	// write/read/flush path followed.
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F;io=?init;j=normal"));
 
-	VDOCompletion *completion = vioAsCompletion(kvio->vio);
+	struct vdo_completion *completion = vioAsCompletion(kvio->vio);
 	kvio->enqueueable.enqueueable.completion = completion;
 	completion->enqueueable = &kvio->enqueueable.enqueueable;
 }

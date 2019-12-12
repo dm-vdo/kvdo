@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#13 $
  */
 
 #ifndef DATA_VIO_H
@@ -281,13 +281,13 @@ static inline VIO *dataVIOAsVIO(struct data_vio *dataVIO)
 }
 
 /**
- * Convert a generic VDOCompletion to a data_vio.
+ * Convert a generic vdo_completion to a data_vio.
  *
  * @param completion  The completion to convert
  *
  * @return The completion as a data_vio
  **/
-static inline struct data_vio *asDataVIO(VDOCompletion *completion)
+static inline struct data_vio *asDataVIO(struct vdo_completion *completion)
 {
   return vioAsDataVIO(asVIO(completion));
 }
@@ -299,7 +299,8 @@ static inline struct data_vio *asDataVIO(VDOCompletion *completion)
  *
  * @return The data_vio as a completion
  **/
-static inline VDOCompletion *dataVIOAsCompletion(struct data_vio *dataVIO)
+static inline struct vdo_completion *
+dataVIOAsCompletion(struct data_vio *dataVIO)
 {
   return allocatingVIOAsCompletion(dataVIOAsAllocatingVIO(dataVIO));
 }
@@ -464,7 +465,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
  *
  * @param completion The completion of the VIO to complete
  **/
-void completeDataVIO(VDOCompletion *completion);
+void completeDataVIO(struct vdo_completion *completion);
 
 /**
  * Finish processing a data_vio, possibly due to an error. This function will
@@ -935,7 +936,7 @@ int setMappedLocation(struct data_vio     *dataVIO,
  *
  * @param completion  The data_vio for an external data request as a completion
  **/
-void attemptLogicalBlockLock(VDOCompletion *completion);
+void attemptLogicalBlockLock(struct vdo_completion *completion);
 
 /**
  * Release the lock on the logical block, if any, that a data_vio has acquired.

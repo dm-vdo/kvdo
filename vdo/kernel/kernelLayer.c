@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#60 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#61 $
  */
 
 #include "kernelLayer.h"
@@ -352,7 +352,7 @@ void complete_many_requests(struct kernel_layer *layer, uint32_t count)
 }
 
 /**********************************************************************/
-static int kvdo_create_enqueueable(VDOCompletion *completion)
+static int kvdo_create_enqueueable(struct vdo_completion *completion)
 {
 	struct kvdo_enqueueable *kvdo_enqueueable;
 	int result = ALLOCATE(1,

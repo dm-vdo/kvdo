@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#19 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -132,9 +132,9 @@ BlockCount getUnrecoveredSlabCount(const struct block_allocator *allocator)
  *
  * <p>Implements ZoneAction.
  **/
-void loadBlockAllocator(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent);
+void loadBlockAllocator(void                  *context,
+                        ZoneCount              zoneNumber,
+                        struct vdo_completion *parent);
 
 /**
  * Inform a block allocator that its slab journals have been recovered from the
@@ -151,9 +151,9 @@ void notifySlabJournalsAreRecovered(struct block_allocator *allocator,
  *
  * <p>Implements ZoneAction.
  **/
-void prepareAllocatorToAllocate(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent);
+void prepareAllocatorToAllocate(void                  *context,
+                                ZoneCount              zoneNumber,
+                                struct vdo_completion *parent);
 
 /**
  * Register a slab with the allocator, ready for use.
@@ -169,9 +169,9 @@ void registerSlabWithAllocator(struct block_allocator *allocator,
  *
  * <p>Implements ZoneAction.
  **/
-void registerNewSlabsForAllocator(void          *context,
-                                  ZoneCount      zoneNumber,
-                                  VDOCompletion *parent);
+void registerNewSlabsForAllocator(void                  *context,
+                                  ZoneCount              zoneNumber,
+                                  struct vdo_completion *parent);
 
 /**
  * Drain all allocator I/O. Depending upon the type of drain, some or all
@@ -180,18 +180,18 @@ void registerNewSlabsForAllocator(void          *context,
  *
  * <p>Implements ZoneAction.
  **/
-void drainBlockAllocator(void          *context,
-                         ZoneCount      zoneNumber,
-                         VDOCompletion *parent);
+void drainBlockAllocator(void                  *context,
+                         ZoneCount              zoneNumber,
+                         struct vdo_completion *parent);
 
 /**
  * Resume a quiescent allocator.
  *
  * <p>Implements ZoneAction.
  **/
-void resumeBlockAllocator(void          *context,
-                          ZoneCount      zoneNumber,
-                          VDOCompletion *parent);
+void resumeBlockAllocator(void                  *context,
+                          ZoneCount              zoneNumber,
+                          struct vdo_completion *parent);
 
 /**
  * Request a commit of all dirty tail blocks which are locking a given recovery
@@ -199,9 +199,9 @@ void resumeBlockAllocator(void          *context,
  *
  * <p>Implements ZoneAction.
  **/
-void releaseTailBlockLocks(void          *context,
-                           ZoneCount      zoneNumber,
-                           VDOCompletion *parent);
+void releaseTailBlockLocks(void                  *context,
+                           ZoneCount              zoneNumber,
+                           struct vdo_completion *parent);
 
 /**
  * Get the slab summary zone for an allocator.
@@ -238,9 +238,9 @@ void returnVIO(struct block_allocator *allocator, struct vio_pool_entry *entry);
  *
  * <p>Implements ZoneAction.
  **/
-void scrubAllUnrecoveredSlabsInZone(void          *context,
-                                    ZoneCount      zoneNumber,
-                                    VDOCompletion *parent);
+void scrubAllUnrecoveredSlabsInZone(void                  *context,
+                                    ZoneCount              zoneNumber,
+                                    struct vdo_completion *parent);
 
 /**
  * Queue a waiter for a clean slab.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#5 $
  */
 
 #include "recoveryUtils.h"
@@ -38,18 +38,18 @@
  *
  * @param completion  The load extent
  **/
-static void finishJournalLoad(VDOCompletion *completion)
+static void finishJournalLoad(struct vdo_completion *completion)
 {
-  int            result = completion->result;
-  VDOCompletion *parent = completion->parent;
-  VDOExtent     *extent = asVDOExtent(completion);
+  int                    result = completion->result;
+  struct vdo_completion *parent = completion->parent;
+  VDOExtent             *extent = asVDOExtent(completion);
   freeExtent(&extent);
   finishCompletion(parent, result);
 }
 
 /**********************************************************************/
 void loadJournalAsync(struct recovery_journal  *journal,
-                      VDOCompletion            *parent,
+                      struct vdo_completion    *parent,
                       char                    **journalDataPtr)
 {
   int result = ALLOCATE(journal->size * VDO_BLOCK_SIZE, char, __func__,

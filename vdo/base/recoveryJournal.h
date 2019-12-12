@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#12 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -58,7 +58,7 @@
  * The journal also contains a set of in-memory blocks which are used
  * to buffer up entries until they can be committed. In general the
  * number of in-memory blocks ('tailBufferCount') will be less than
- * the on-disk size. Each in-memory block is also a VDOCompletion.
+ * the on-disk size. Each in-memory block is also a vdo_completion.
  * Each in-memory block has a VDOExtent which is used to commit that
  * block to disk. The extent's data is a PackedJournalBlock (which is a
  * formatted journal block). In addition each in-memory block has a
@@ -379,7 +379,7 @@ void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
  **/
 void drainRecoveryJournal(struct recovery_journal *journal,
                           AdminStateCode           operation,
-                          VDOCompletion           *parent);
+                          struct vdo_completion   *parent);
 
 /**
  * Resume a recovery journal which has been drained.
@@ -390,7 +390,7 @@ void drainRecoveryJournal(struct recovery_journal *journal,
  * @return VDO_SUCCESS or an error
  **/
 void resumeRecoveryJournal(struct recovery_journal *journal,
-                           VDOCompletion           *parent);
+                           struct vdo_completion   *parent);
 
 /**
  * Get the number of logical blocks in use by the VDO

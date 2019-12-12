@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#9 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -227,7 +227,7 @@ void rotateVDOPageCacheEras(struct vdo_page_cache *cache);
  **/
 struct vdo_page_completion {
   /** The generic completion */
-  VDOCompletion          completion;
+  struct vdo_completion  completion;
   /** The cache involved */
   struct vdo_page_cache *cache;
   /** The waiter for the pending list */
@@ -256,7 +256,7 @@ struct vdo_page_completion {
  *
  * @note Once a completion has occurred for the getVDOPageAsync operation,
  *       the underlying page shall be busy (stuck in memory) until the
- *       VDOCompletion returned by this operation has been released.
+ *       vdo_completion returned by this operation has been released.
  **/
 void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
                            struct vdo_page_cache      *cache,
@@ -276,7 +276,7 @@ void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
  *
  * @param completion The completion to release
  **/
-void releaseVDOPageCompletion(VDOCompletion *completion);
+void releaseVDOPageCompletion(struct vdo_completion *completion);
 
 /**
  * Asynchronous operation to get a VDO page.
@@ -290,7 +290,7 @@ void releaseVDOPageCompletion(VDOCompletion *completion);
  *
  * @param completion    the completion initialized my initVDOPageCompletion().
  **/
-void getVDOPageAsync(VDOCompletion *completion);
+void getVDOPageAsync(struct vdo_completion *completion);
 
 /**
  * Mark a VDO page referenced by a completed vdo_page_completion as dirty.
@@ -300,16 +300,16 @@ void getVDOPageAsync(VDOCompletion *completion);
  *                        it wasn't)
  * @param newDirtyPeriod  the period in which the page is now dirty
  **/
-void markCompletedVDOPageDirty(VDOCompletion  *completion,
-                               SequenceNumber  oldDirtyPeriod,
-                               SequenceNumber  newDirtyPeriod);
+void markCompletedVDOPageDirty(struct vdo_completion *completion,
+                               SequenceNumber         oldDirtyPeriod,
+                               SequenceNumber         newDirtyPeriod);
 
 /**
  * Request that a VDO page be written out as soon as it is not busy.
  *
  * @param completion  the vdo_page_completion containing the page
  **/
-void requestVDOPageWrite(VDOCompletion *completion);
+void requestVDOPageWrite(struct vdo_completion *completion);
 
 /**
  * Access the raw memory for a read-only page of a completed
@@ -320,7 +320,7 @@ void requestVDOPageWrite(VDOCompletion *completion);
  * @return a pointer to the raw memory at the beginning of the page, or
  *         NULL if the page is not available.
  **/
-const void *dereferenceReadableVDOPage(VDOCompletion *completion);
+const void *dereferenceReadableVDOPage(struct vdo_completion *completion);
 
 /**
  * Access the raw memory for a writable page of a completed
@@ -331,7 +331,7 @@ const void *dereferenceReadableVDOPage(VDOCompletion *completion);
  * @return a pointer to the raw memory at the beginning of the page, or
  *         NULL if the page is not available, or if the page is read-only
  **/
-void *dereferenceWritableVDOPage(VDOCompletion *completion);
+void *dereferenceWritableVDOPage(struct vdo_completion *completion);
 
 /**
  * Get the per-page client context for the page in a page completion whose
@@ -343,7 +343,7 @@ void *dereferenceWritableVDOPage(VDOCompletion *completion);
  * @return a pointer to the per-page client context, or NULL if
  *         the page is not available
  **/
-void *getVDOPageCompletionContext(VDOCompletion *completion);
+void *getVDOPageCompletionContext(struct vdo_completion *completion);
 
 /**
  * Drain I/O for a page cache.

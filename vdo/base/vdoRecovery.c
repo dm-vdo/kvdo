@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#28 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -359,9 +359,9 @@ void freeRecoveryCompletion(struct recovery_completion **recoveryPtr)
  *
  * @param completion  The recovery completion
  **/
-static void finishRecovery(VDOCompletion *completion)
+static void finishRecovery(struct vdo_completion *completion)
 {
-  VDOCompletion              *parent        = completion->parent;
+  struct vdo_completion      *parent        = completion->parent;
   struct recovery_completion *recovery      = asRecoveryCompletion(completion);
   VDO                        *vdo           = recovery->vdo;
   uint64_t                    recoveryCount = ++vdo->completeRecoveries;
@@ -381,9 +381,9 @@ static void finishRecovery(VDOCompletion *completion)
  *
  * @param completion   The recovery completion
  **/
-static void abortRecovery(VDOCompletion *completion)
+static void abortRecovery(struct vdo_completion *completion)
 {
-  VDOCompletion              *parent   = completion->parent;
+  struct vdo_completion      *parent   = completion->parent;
   int                         result   = completion->result;
   struct recovery_completion *recovery = asRecoveryCompletion(completion);
   freeRecoveryCompletion(&recovery);
@@ -494,7 +494,7 @@ static int extractJournalEntries(struct recovery_completion *recovery)
  *
  * @param completion  The sub-task completion
  **/
-static void launchBlockMapRecovery(VDOCompletion *completion)
+static void launchBlockMapRecovery(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -517,7 +517,7 @@ static void launchBlockMapRecovery(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void startSuperBlockSave(VDOCompletion *completion)
+static void startSuperBlockSave(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -542,7 +542,7 @@ static void startSuperBlockSave(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void finishRecoveringDepot(VDOCompletion *completion)
+static void finishRecoveringDepot(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -568,7 +568,7 @@ static void finishRecoveringDepot(VDOCompletion *completion)
  *
  * @param completion  The completion of the block allocator being recovered
  **/
-static void handleAddSlabJournalEntryError(VDOCompletion *completion)
+static void handleAddSlabJournalEntryError(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -580,7 +580,7 @@ static void handleAddSlabJournalEntryError(VDOCompletion *completion)
  *
  * @param completion  The allocator completion
  **/
-static void addSynthesizedEntries(VDOCompletion *completion)
+static void addSynthesizedEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -689,7 +689,7 @@ static void advancePoints(struct recovery_completion *recovery,
  *
  * @param completion  The allocator completion
  **/
-static void addSlabJournalEntries(VDOCompletion *completion)
+static void addSlabJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -737,7 +737,7 @@ static void addSlabJournalEntries(VDOCompletion *completion)
 
 /**********************************************************************/
 void replayIntoSlabJournals(struct block_allocator *allocator,
-                            VDOCompletion          *completion,
+                            struct vdo_completion  *completion,
                             void                   *context)
 {
   struct recovery_completion *recovery = context;
@@ -799,7 +799,7 @@ static void queueOnPhysicalZone(struct waiter *waiter, void *context)
  *
  * @param completion  The sub-task completion
  **/
-static void applyToDepot(VDOCompletion *completion)
+static void applyToDepot(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -966,7 +966,7 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
  *
  * @param completion  The page completion which has just finished loading
  **/
-static void processFetchedPage(VDOCompletion *completion)
+static void processFetchedPage(struct vdo_completion *completion)
 {
   struct missing_decref         *currentDecref = completion->parent;
   struct recovery_completion    *recovery      = currentDecref->recovery;
@@ -988,7 +988,7 @@ static void processFetchedPage(VDOCompletion *completion)
  *
  * @param completion  The page completion which has just finished loading
  **/
-static void handleFetchError(VDOCompletion *completion)
+static void handleFetchError(struct vdo_completion *completion)
 {
   struct missing_decref         *decref   = completion->parent;
   struct recovery_completion    *recovery = decref->recovery;
@@ -1036,7 +1036,7 @@ static void launchFetch(struct waiter *waiter, void *context)
  *
  * @param completion  The sub-task completion
  **/
-static void findSlabJournalEntries(VDOCompletion *completion)
+static void findSlabJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -1178,7 +1178,7 @@ static int countIncrementEntries(struct recovery_completion *recovery)
  *
  * @param completion  The sub-task completion
  **/
-static void prepareToApplyJournalEntries(VDOCompletion *completion)
+static void prepareToApplyJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
@@ -1253,7 +1253,7 @@ static void prepareToApplyJournalEntries(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void launchRecovery(VDO *vdo, VDOCompletion *parent)
+void launchRecovery(VDO *vdo, struct vdo_completion *parent)
 {
   // Note: This message must be recognizable by Permabit::VDODeviceBase.
   logWarning("Device was dirty, rebuilding reference counts");
@@ -1265,7 +1265,7 @@ void launchRecovery(VDO *vdo, VDOCompletion *parent)
     return;
   }
 
-  VDOCompletion *completion = &recovery->completion;
+  struct vdo_completion *completion = &recovery->completion;
   prepareCompletion(completion, finishRecovery, abortRecovery,
                     parent->callbackThreadID, parent);
   prepareSubTask(recovery, prepareToApplyJournalEntries, finishParentCallback,

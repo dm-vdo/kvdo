@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#3 $
  */
 
 #ifndef BLOCK_MAP_RECOVERY_H
@@ -48,6 +48,6 @@ struct numbered_block_mapping {
 void recoverBlockMap(VDO                            *vdo,
                      BlockCount                      entryCount,
                      struct numbered_block_mapping  *journalEntries,
-                     VDOCompletion                  *parent);
+                     struct vdo_completion          *parent);
 
 #endif // BLOCK_MAP_RECOVERY_H

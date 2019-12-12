@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#26 $
  */
 
 #include "blockMap.h"
@@ -320,7 +320,7 @@ static ThreadID getBlockMapZoneThreadID(void *context, ZoneCount zoneNumber)
  *
  * <p>Implements ActionPreamble.
  **/
-static void prepareForEraAdvance(void *context, VDOCompletion *parent)
+static void prepareForEraAdvance(void *context, struct vdo_completion *parent)
 {
   struct block_map *map = context;
   map->currentEraPoint = map->pendingEraPoint;
@@ -332,9 +332,9 @@ static void prepareForEraAdvance(void *context, VDOCompletion *parent)
  *
  * <p>Implements ZoneAction.
  **/
-static void advanceBlockMapZoneEra(void          *context,
-                                   ZoneCount      zoneNumber,
-                                   VDOCompletion *parent)
+static void advanceBlockMapZoneEra(void                  *context,
+                                   ZoneCount              zoneNumber,
+                                   struct vdo_completion *parent)
 {
   struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   advanceVDOPageCachePeriod(zone->pageCache, zone->blockMap->currentEraPoint);
@@ -546,9 +546,9 @@ void advanceBlockMapEra(struct block_map *map,
  *
  * <p>Implements ZoneAction.
  **/
-static void drainZone(void          *context,
-                      ZoneCount      zoneNumber,
-                      VDOCompletion *parent)
+static void drainZone(void                  *context,
+                      ZoneCount              zoneNumber,
+                      struct vdo_completion *parent)
 {
   struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   startDraining(&zone->state,
@@ -557,9 +557,9 @@ static void drainZone(void          *context,
 }
 
 /**********************************************************************/
-void drainBlockMap(struct block_map *map,
-                   AdminStateCode    operation,
-                   VDOCompletion    *parent)
+void drainBlockMap(struct block_map      *map,
+                   AdminStateCode         operation,
+                   struct vdo_completion *parent)
 {
   scheduleOperation(map->actionManager, operation, NULL, drainZone, NULL,
                     parent);
@@ -570,16 +570,16 @@ void drainBlockMap(struct block_map *map,
  *
  * <p>Implements ZoneAction.
  **/
-static void resumeBlockMapZone(void          *context,
-                               ZoneCount      zoneNumber,
-                               VDOCompletion *parent)
+static void resumeBlockMapZone(void                  *context,
+                               ZoneCount              zoneNumber,
+                               struct vdo_completion *parent)
 {
   struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   finishCompletion(parent, resumeIfQuiescent(&zone->state));
 }
 
 /**********************************************************************/
-void resumeBlockMap(struct block_map *map, VDOCompletion *parent)
+void resumeBlockMap(struct block_map *map, struct vdo_completion *parent)
 {
   scheduleOperation(map->actionManager, ADMIN_STATE_RESUMING, NULL,
                     resumeBlockMapZone, NULL, parent);
@@ -615,14 +615,14 @@ BlockCount getNewEntryCount(struct block_map *map)
  *
  * Implements ActionPreamble
  **/
-static void growForest(void *context, VDOCompletion *completion)
+static void growForest(void *context, struct vdo_completion *completion)
 {
   replaceForest(context);
   completeCompletion(completion);
 }
 
 /**********************************************************************/
-void growBlockMap(struct block_map *map, VDOCompletion *parent)
+void growBlockMap(struct block_map *map, struct vdo_completion *parent)
 {
   scheduleOperation(map->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
                     growForest, NULL, NULL, parent);
@@ -641,9 +641,10 @@ void abandonBlockMapGrowth(struct block_map *map)
  * @param completion  The completion for the page fetch
  * @param result      The result of the block map operation
  **/
-static inline void finishProcessingPage(VDOCompletion *completion, int result)
+static inline void finishProcessingPage(struct vdo_completion *completion,
+                                        int                    result)
 {
-  VDOCompletion *parent = completion->parent;
+  struct vdo_completion *parent = completion->parent;
   releaseVDOPageCompletion(completion);
   continueCompletion(parent, result);
 }
@@ -654,7 +655,7 @@ static inline void finishProcessingPage(VDOCompletion *completion, int result)
  *
  * @param completion  The page completion which got an error
  **/
-static void handlePageError(VDOCompletion *completion)
+static void handlePageError(struct vdo_completion *completion)
 {
   finishProcessingPage(completion, completion->result);
 }
@@ -734,7 +735,7 @@ static int setMappedEntry(struct data_vio *dataVIO, const BlockMapEntry *entry)
 /**
  * This callback is registered in getMappedBlockAsync().
  **/
-static void getMappingFromFetchedPage(VDOCompletion *completion)
+static void getMappingFromFetchedPage(struct vdo_completion *completion)
 {
   if (completion->result != VDO_SUCCESS) {
     finishProcessingPage(completion, completion->result);
@@ -759,7 +760,7 @@ static void getMappingFromFetchedPage(VDOCompletion *completion)
 /**
  * This callback is registered in putMappedBlockAsync().
  **/
-static void putMappingInFetchedPage(VDOCompletion *completion)
+static void putMappingInFetchedPage(struct vdo_completion *completion)
 {
   if (completion->result != VDO_SUCCESS) {
     finishProcessingPage(completion, completion->result);

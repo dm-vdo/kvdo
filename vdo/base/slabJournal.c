@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#22 $
  */
 
 #include "slabJournalInternals.h"
@@ -411,7 +411,7 @@ static void reapSlabJournal(struct slab_journal *journal);
  *
  * @param completion  The flush VIO
  **/
-static void completeReaping(VDOCompletion *completion)
+static void completeReaping(struct vdo_completion *completion)
 {
   struct vio_pool_entry *entry   = completion->parent;
   struct slab_journal   *journal = entry->parent;
@@ -425,7 +425,7 @@ static void completeReaping(VDOCompletion *completion)
  *
  * @param completion  The flush VIO
  **/
-static void handleFlushError(VDOCompletion *completion)
+static void handleFlushError(struct vdo_completion *completion)
 {
   struct slab_journal *journal
     = ((struct vio_pool_entry *) completion->parent)->parent;
@@ -646,7 +646,7 @@ getCommittingSequenceNumber(const struct vio_pool_entry *entry)
  *
  * @param completion  The write VIO as a completion
  **/
-static void completeWrite(VDOCompletion *completion)
+static void completeWrite(struct vdo_completion *completion)
 {
   int                    writeResult = completion->result;
   struct vio_pool_entry *entry       = completion->parent;
@@ -855,11 +855,11 @@ static void addEntry(struct slab_journal        *journal,
 }
 
 /**********************************************************************/
-bool attemptReplayIntoSlabJournal(struct slab_journal  *journal,
-                                  PhysicalBlockNumber   pbn,
-                                  JournalOperation      operation,
-                                  struct journal_point *recoveryPoint,
-                                  VDOCompletion        *parent)
+bool attemptReplayIntoSlabJournal(struct slab_journal   *journal,
+                                  PhysicalBlockNumber    pbn,
+                                  JournalOperation       operation,
+                                  struct journal_point  *recoveryPoint,
+                                  struct vdo_completion *parent)
 {
   // Only accept entries after the current recovery point.
   if (!beforeJournalPoint(&journal->tailHeader.recoveryPoint, recoveryPoint)) {
@@ -1214,7 +1214,7 @@ void drainSlabJournal(struct slab_journal *journal)
  *
  * @param completion  The VIO as a completion
  **/
-static void finishDecodingJournal(VDOCompletion *completion)
+static void finishDecodingJournal(struct vdo_completion *completion)
 {
   int                    result  = completion->result;
   struct vio_pool_entry *entry   = completion->parent;
@@ -1229,7 +1229,7 @@ static void finishDecodingJournal(VDOCompletion *completion)
  *
  * @param completion  The VIO which was used to read the journal tail
  **/
-static void setDecodedState(VDOCompletion *completion)
+static void setDecodedState(struct vdo_completion *completion)
 {
   struct vio_pool_entry            *entry   = completion->parent;
   struct slab_journal              *journal = entry->parent;

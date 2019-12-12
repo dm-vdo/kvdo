@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#6 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -52,9 +52,9 @@ ThreadIDGetterForPhase(struct admin_completion *adminCompletion);
 
 struct admin_completion {
   /** The completion */
-  VDOCompletion           completion;
+  struct vdo_completion   completion;
   /** The sub-task completion */
-  VDOCompletion           subTaskCompletion;
+  struct vdo_completion   subTaskCompletion;
   /** Whether this completion is in use */
   AtomicBool              busy;
   /** The operation type */
@@ -82,7 +82,8 @@ void assertAdminOperationType(struct admin_completion    *completion,
  *
  * @return The sub-task completion as its enclosing admin_completion
  **/
-struct admin_completion *adminCompletionFromSubTask(VDOCompletion *completion)
+struct admin_completion *
+adminCompletionFromSubTask(struct vdo_completion *completion)
   __attribute__((warn_unused_result));
 
 /**
@@ -104,8 +105,8 @@ void assertAdminPhaseThread(struct admin_completion *adminCompletion,
  *
  * @return The VDO
  **/
-VDO *vdoFromAdminSubTask(VDOCompletion      *completion,
-                         AdminOperationType  expected)
+VDO *vdoFromAdminSubTask(struct vdo_completion *completion,
+                         AdminOperationType     expected)
   __attribute__((warn_unused_result));
 
 /**
@@ -134,7 +135,7 @@ void uninitializeAdminCompletion(struct admin_completion *adminCompletion);
  *
  * @return The sub-task completion for the convenience of callers
  **/
-VDOCompletion *resetAdminSubTask(VDOCompletion *completion);
+struct vdo_completion *resetAdminSubTask(struct vdo_completion *completion);
 
 /**
  * Prepare the sub-task completion of a VDO's admin_completion

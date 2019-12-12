@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#14 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -34,7 +34,7 @@
  *
  * @return The completion as a slab_journal
  **/
-struct slab_journal *asSlabJournal(VDOCompletion *completion)
+struct slab_journal *asSlabJournal(struct vdo_completion *completion)
   __attribute__((warn_unused_result));
 
 /**
@@ -127,11 +127,11 @@ void reopenSlabJournal(struct slab_journal *journal);
  *
  * @return <code>true</code> if the entry was added immediately
  **/
-bool attemptReplayIntoSlabJournal(struct slab_journal  *journal,
-                                  PhysicalBlockNumber   pbn,
-                                  JournalOperation      operation,
-                                  struct journal_point *recoveryPoint,
-                                  VDOCompletion        *parent)
+bool attemptReplayIntoSlabJournal(struct slab_journal   *journal,
+                                  PhysicalBlockNumber    pbn,
+                                  JournalOperation       operation,
+                                  struct journal_point  *recoveryPoint,
+                                  struct vdo_completion *parent)
   __attribute__((warn_unused_result));
 
 /**

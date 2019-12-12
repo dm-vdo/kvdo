@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#5 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -115,7 +115,7 @@ bool isValidRecoveryJournalSector(const struct recovery_block_header *header,
  *                              caller's responsibility to free this buffer)
  **/
 void loadJournalAsync(struct recovery_journal *journal,
-                      VDOCompletion           *parent,
+                      struct vdo_completion   *parent,
                       char                   **journalDataPtr);
 
 /**

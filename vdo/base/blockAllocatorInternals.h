@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#17 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -101,7 +101,7 @@ struct atomic_ref_count_statistics {
 };
 
 struct block_allocator {
-  VDOCompletion                          completion;
+  struct vdo_completion                  completion;
   /** The slab depot for this allocator */
   struct slab_depot                     *depot;
   /** The slab summary zone for this allocator */

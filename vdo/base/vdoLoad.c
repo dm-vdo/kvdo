@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#16 $
  */
 
 #include "vdoLoad.h"
@@ -51,7 +51,7 @@
  *
  * @return The VDO
  **/
-static inline VDO *vdoFromLoadSubTask(VDOCompletion *completion)
+static inline VDO *vdoFromLoadSubTask(struct vdo_completion *completion)
 {
   return vdoFromAdminSubTask(completion, ADMIN_OPERATION_LOAD);
 }
@@ -62,7 +62,7 @@ static inline VDO *vdoFromLoadSubTask(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void finishAborting(VDOCompletion *completion)
+static void finishAborting(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   vdo->closeRequired = false;
@@ -74,7 +74,7 @@ static void finishAborting(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void closeRecoveryJournalForAbort(VDOCompletion *completion)
+static void closeRecoveryJournalForAbort(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   prepareAdminSubTask(vdo, finishAborting, finishAborting);
@@ -87,7 +87,7 @@ static void closeRecoveryJournalForAbort(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void abortLoad(VDOCompletion *completion)
+static void abortLoad(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result, "aborting load");
@@ -115,7 +115,7 @@ static void abortLoad(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void waitForReadOnlyMode(VDOCompletion *completion)
+static void waitForReadOnlyMode(struct vdo_completion *completion)
 {
   prepareToFinishParent(completion, completion->parent);
   setCompletionResult(completion, VDO_READ_ONLY);
@@ -130,7 +130,7 @@ static void waitForReadOnlyMode(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void continueLoadReadOnly(VDOCompletion *completion)
+static void continueLoadReadOnly(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result,
@@ -145,7 +145,7 @@ static void continueLoadReadOnly(VDOCompletion *completion)
  *
  * @param completion   The sub-task completion
  **/
-static void scrubSlabs(VDOCompletion *completion)
+static void scrubSlabs(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   if (!hasUnrecoveredSlabs(vdo->depot)) {
@@ -167,7 +167,7 @@ static void scrubSlabs(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void handleScrubbingError(VDOCompletion *completion)
+static void handleScrubbingError(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
@@ -181,7 +181,7 @@ static void handleScrubbingError(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void prepareToComeOnline(VDOCompletion *completion)
+static void prepareToComeOnline(struct vdo_completion *completion)
 {
   VDO               *vdo      = vdoFromLoadSubTask(completion);
   SlabDepotLoadType  loadType = NORMAL_LOAD;
@@ -203,7 +203,7 @@ static void prepareToComeOnline(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void makeDirty(VDOCompletion *completion)
+static void makeDirty(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   if (isReadOnly(vdo->readOnlyNotifier)) {
@@ -222,7 +222,7 @@ static void makeDirty(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void loadCallback(VDOCompletion *completion)
+static void loadCallback(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
@@ -435,7 +435,7 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
  *
  * @param completion The sub-task completion
  **/
-static void loadVDOComponents(VDOCompletion *completion)
+static void loadVDOComponents(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
 
@@ -449,7 +449,7 @@ static void loadVDOComponents(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void preLoadCallback(VDOCompletion *completion)
+static void preLoadCallback(struct vdo_completion *completion)
 {
   VDO *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);

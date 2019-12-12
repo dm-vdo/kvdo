@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#22 $
  */
 
 #include "blockMapTree.h"
@@ -439,7 +439,7 @@ static void returnToPool(struct block_map_tree_zone *zone,
  *
  * @param completion  The VIO doing the write
  **/
-static void finishPageWrite(VDOCompletion *completion)
+static void finishPageWrite(struct vdo_completion *completion)
 {
   struct vio_pool_entry               *entry = completion->parent;
   struct tree_page                    *page  = entry->parent;
@@ -486,7 +486,7 @@ static void finishPageWrite(VDOCompletion *completion)
  *
  * @param completion  The VIO doing the write
  **/
-static void handleWriteError(VDOCompletion *completion)
+static void handleWriteError(struct vdo_completion *completion)
 {
   int                                  result = completion->result;
   struct vio_pool_entry               *entry  = completion->parent;
@@ -501,7 +501,7 @@ static void handleWriteError(VDOCompletion *completion)
  *
  * @param completion  The VIO which will do the write
  **/
-static void writeInitializedPage(VDOCompletion *completion)
+static void writeInitializedPage(struct vdo_completion *completion)
 {
   struct vio_pool_entry      *entry    = completion->parent;
   struct block_map_tree_zone *zone     =
@@ -542,8 +542,8 @@ static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry)
   entry->parent = treePage;
   memcpy(entry->buffer, treePage->pageBuffer, VDO_BLOCK_SIZE);
 
-  VDOCompletion *completion    = vioAsCompletion(entry->vio);
-  completion->callbackThreadID = zone->mapZone->threadID;
+  struct vdo_completion *completion = vioAsCompletion(entry->vio);
+  completion->callbackThreadID      = zone->mapZone->threadID;
 
   treePage->writing             = true;
   treePage->writingGeneration   = treePage->generation;
@@ -646,7 +646,7 @@ static void finishLookup(struct data_vio *dataVIO, int result)
   dataVIO->treeLock.height = 0;
 
   struct block_map_tree_zone *zone       = getBlockMapTreeZone(dataVIO);
-  VDOCompletion              *completion = dataVIOAsCompletion(dataVIO);
+  struct vdo_completion      *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
   launchCallback(completion, dataVIO->treeLock.callback,
                  dataVIO->treeLock.threadID);
@@ -804,7 +804,7 @@ static void continueLoadForWaiter(struct waiter *waiter, void *context)
  *
  * @param completion  The VIO doing the page read
  **/
-static void finishBlockMapPageLoad(VDOCompletion *completion)
+static void finishBlockMapPageLoad(struct vdo_completion *completion)
 {
   struct vio_pool_entry     *entry    = completion->parent;
   struct data_vio           *dataVIO  = entry->parent;
@@ -835,7 +835,7 @@ static void finishBlockMapPageLoad(VDOCompletion *completion)
  *
  * @param completion  The VIO doing the page read
  **/
-static void handleIOError(VDOCompletion *completion)
+static void handleIOError(struct vdo_completion *completion)
 {
   int                        result  = completion->result;
   struct vio_pool_entry     *entry   = completion->parent;
@@ -966,7 +966,7 @@ static void abortAllocation(struct data_vio *dataVIO, int result)
  *
  * @param completion  The data_vio doing the allocation
  **/
-static void allocationFailure(VDOCompletion *completion)
+static void allocationFailure(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -1004,7 +1004,7 @@ static void continueAllocationForWaiter(struct waiter *waiter, void *context)
  *
  * @param completion  The data_vio doing the allocation
  **/
-static void finishBlockMapAllocation(VDOCompletion *completion)
+static void finishBlockMapAllocation(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
@@ -1069,7 +1069,7 @@ static void finishBlockMapAllocation(VDOCompletion *completion)
  *
  * @param completion  The data_vio doing the allocation
  **/
-static void releaseBlockMapWriteLock(VDOCompletion *completion)
+static void releaseBlockMapWriteLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   struct allocating_vio *allocatingVIO = dataVIOAsAllocatingVIO(dataVIO);
@@ -1093,7 +1093,7 @@ static void releaseBlockMapWriteLock(VDOCompletion *completion)
  *
  * @param completion  The data_vio doing the allocation
  **/
-static void setBlockMapPageReferenceCount(VDOCompletion *completion)
+static void setBlockMapPageReferenceCount(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
@@ -1115,7 +1115,7 @@ static void setBlockMapPageReferenceCount(VDOCompletion *completion)
  *
  * @param completion  The data_vio doing the allocation
  **/
-static void journalBlockMapAllocation(VDOCompletion *completion)
+static void journalBlockMapAllocation(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInJournalZone(dataVIO);

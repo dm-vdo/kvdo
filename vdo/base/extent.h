@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#2 $
  */
 
 #ifndef EXTENT_H
@@ -36,23 +36,23 @@
  **/
 struct vdoExtent {
   // The completion for asynchronous extent processing
-  VDOCompletion  completion;
+  struct vdo_completion  completion;
   // The number of VIOs in the extent
-  BlockCount     count;
+  BlockCount             count;
   // The number of completed VIOs in the extent
-  BlockCount     completeCount;
+  BlockCount             completeCount;
   // The VIOs in the extent
-  VIO           *vios[];
+  VIO                   *vios[];
 };
 
 /**
- * Convert a generic VDOCompletion to a VDOExtent.
+ * Convert a generic vdo_completion to a VDOExtent.
  *
  * @param completion The completion to convert
  *
  * @return The completion as an extent
  **/
-static inline VDOExtent *asVDOExtent(VDOCompletion *completion)
+static inline VDOExtent *asVDOExtent(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(VDOExtent, completion) == 0);
   assertCompletionType(completion->type, VDO_EXTENT_COMPLETION);
@@ -60,13 +60,13 @@ static inline VDOExtent *asVDOExtent(VDOCompletion *completion)
 }
 
 /**
- * Convert a VDOExtent to VDOCompletion.
+ * Convert a VDOExtent to a vdo_completion.
  *
  * @param extent The extent to convert
  *
- * @return The extent as a VDOCompletion
+ * @return The extent as a vdo_completion
  **/
-static inline VDOCompletion *extentAsCompletion(VDOExtent *extent)
+static inline struct vdo_completion *extentAsCompletion(VDOExtent *extent)
 {
   return &extent->completion;
 }
@@ -157,6 +157,6 @@ static inline void writeMetadataExtent(VDOExtent           *extent,
  *
  * @param completion  The completion of the VIO which has just finished
  **/
-void handleVIOCompletion(VDOCompletion *completion);
+void handleVIOCompletion(struct vdo_completion *completion);
 
 #endif /* EXTENT_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#5 $
  */
 
 #include "vdoResume.h"
@@ -81,7 +81,7 @@ static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
  * @param vdo         The VDO being resumed
  * @param completion  The admin_completion's sub-task completion
  **/
-static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
+static void writeSuperBlock(VDO *vdo, struct vdo_completion *completion)
 {
   switch (getVDOState(vdo)) {
   case VDO_CLEAN:
@@ -110,7 +110,7 @@ static void writeSuperBlock(VDO *vdo, VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void resumeCallback(VDOCompletion *completion)
+static void resumeCallback(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);

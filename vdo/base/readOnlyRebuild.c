@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#12 $
  */
 
 #include "readOnlyRebuild.h"
@@ -38,9 +38,9 @@
 
 struct read_only_rebuild_completion {
   /** The completion header */
-  VDOCompletion                  completion;
+  struct vdo_completion          completion;
   /** A sub task completion */
-  VDOCompletion                  subTaskCompletion;
+  struct vdo_completion          subTaskCompletion;
   /** The VDO in question */
   VDO                           *vdo;
   /** A buffer to hold the data read off disk */
@@ -68,7 +68,7 @@ struct read_only_rebuild_completion {
  **/
 __attribute__((warn_unused_result))
 static inline struct read_only_rebuild_completion *
-asReadOnlyRebuildCompletion(VDOCompletion *completion)
+asReadOnlyRebuildCompletion(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct read_only_rebuild_completion, completion) == 0);
   assertCompletionType(completion->type, READ_ONLY_REBUILD_COMPLETION);
@@ -135,9 +135,9 @@ makeRebuildCompletion(VDO                                  *vdo,
  *
  * @param completion  The rebuild completion
  **/
-static void completeRebuild(VDOCompletion *completion)
+static void completeRebuild(struct vdo_completion *completion)
 {
-  VDOCompletion             *parent  = completion->parent;
+  struct vdo_completion     *parent  = completion->parent;
   int                        result  = completion->result;
   struct read_only_rebuild_completion *rebuild
                                      = asReadOnlyRebuildCompletion(completion);
@@ -152,7 +152,7 @@ static void completeRebuild(VDOCompletion *completion)
  *
  * @param completion  The rebuild completion
  **/
-static void finishRebuild(VDOCompletion *completion)
+static void finishRebuild(struct vdo_completion *completion)
 {
   struct read_only_rebuild_completion *rebuild
     = asReadOnlyRebuildCompletion(completion);
@@ -170,7 +170,7 @@ static void finishRebuild(VDOCompletion *completion)
  *
  * @param completion  The rebuild completion
  **/
-static void abortRebuild(VDOCompletion *completion)
+static void abortRebuild(struct vdo_completion *completion)
 {
   logInfo("Read-only rebuild aborted");
   completeRebuild(completion);
@@ -202,7 +202,7 @@ static bool abortRebuildOnError(int                                  result,
  *
  * @param completion  The sub-task completion
  **/
-static void finishReferenceCountRebuild(VDOCompletion *completion)
+static void finishReferenceCountRebuild(struct vdo_completion *completion)
 {
   struct read_only_rebuild_completion *rebuild = completion->parent;
   VDO                                 *vdo     = rebuild->vdo;
@@ -224,7 +224,7 @@ static void finishReferenceCountRebuild(VDOCompletion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void launchReferenceCountRebuild(VDOCompletion *completion)
+static void launchReferenceCountRebuild(struct vdo_completion *completion)
 {
   struct read_only_rebuild_completion *rebuild = completion->parent;
   VDO                                 *vdo     = rebuild->vdo;
@@ -355,7 +355,7 @@ static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
  *
  * @param completion   The sub-task completion
  **/
-static void applyJournalEntries(VDOCompletion *completion)
+static void applyJournalEntries(struct vdo_completion *completion)
 {
   struct read_only_rebuild_completion *rebuild
     = asReadOnlyRebuildCompletion(completion->parent);
@@ -389,7 +389,7 @@ static void applyJournalEntries(VDOCompletion *completion)
  *
  * @param completion    The sub task completion
  **/
-static void loadJournal(VDOCompletion *completion)
+static void loadJournal(struct vdo_completion *completion)
 {
   struct read_only_rebuild_completion *rebuild
     = asReadOnlyRebuildCompletion(completion->parent);
@@ -402,7 +402,7 @@ static void loadJournal(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void launchRebuild(VDO *vdo, VDOCompletion *parent)
+void launchRebuild(VDO *vdo, struct vdo_completion *parent)
 {
   // Note: These messages must be recognizable by Permabit::VDODeviceBase.
   if (vdo->loadState == VDO_REBUILD_FOR_UPGRADE) {
@@ -419,11 +419,11 @@ void launchRebuild(VDO *vdo, VDOCompletion *parent)
     return;
   }
 
-  VDOCompletion *completion = &rebuild->completion;
+  struct vdo_completion *completion = &rebuild->completion;
   prepareCompletion(completion, finishRebuild, abortRebuild,
                     parent->callbackThreadID, parent);
 
-  VDOCompletion *subTaskCompletion = &rebuild->subTaskCompletion;
+  struct vdo_completion *subTaskCompletion = &rebuild->subTaskCompletion;
   prepareCompletion(subTaskCompletion, loadJournal, finishParentCallback,
                     getLogicalZoneThread(getThreadConfig(vdo), 0),
                     completion);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#20 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -100,7 +100,7 @@ void registerSlabWithDepot(struct vdo_slab *slab);
  *
  * @param completion  A completion whose parent must be a slab depot
  **/
-void notifyZoneFinishedScrubbing(VDOCompletion *completion);
+void notifyZoneFinishedScrubbing(struct vdo_completion *completion);
 
 /**
  * Check whether two depots are equivalent (i.e. represent the same

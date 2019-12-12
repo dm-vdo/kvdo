@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#17 $
  */
 
 #include "packerInternals.h"
@@ -393,7 +393,7 @@ static void writePendingBatches(struct packer *packer);
  * @return <code>true</code> if the completion is on the packer thread
  **/
 __attribute__((warn_unused_result))
-static bool switchToPackerThread(VDOCompletion *completion)
+static bool switchToPackerThread(struct vdo_completion *completion)
 {
   VIO      *vio      = asVIO(completion);
   ThreadID  threadID = vio->vdo->packer->threadID;
@@ -434,7 +434,7 @@ static void finishOutputBin(struct packer *packer, struct output_bin *bin)
  *
  * @param completion  The compressed write VIO
  **/
-static void completeOutputBin(VDOCompletion *completion)
+static void completeOutputBin(struct vdo_completion *completion)
 {
   if (!switchToPackerThread(completion)) {
     return;
@@ -495,7 +495,7 @@ static void shareCompressedBlock(struct waiter *waiter, void *context)
  *
  * @param completion  The compressed write completion
  **/
-static void finishCompressedWrite(VDOCompletion *completion)
+static void finishCompressedWrite(struct vdo_completion *completion)
 {
   struct output_bin *bin = completion->parent;
   assertInPhysicalZone(bin->writer);
@@ -532,8 +532,8 @@ static void finishCompressedWrite(VDOCompletion *completion)
  **/
 static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
 {
-  VIO           *vio        = allocatingVIOAsVIO(allocatingVIO);
-  VDOCompletion *completion = vioAsCompletion(vio);
+  VIO                   *vio        = allocatingVIOAsVIO(allocatingVIO);
+  struct vdo_completion *completion = vioAsCompletion(vio);
   if (allocatingVIO->allocation == ZERO_BLOCK) {
     completion->requeue = true;
     setCompletionResult(completion, VDO_NO_SPACE);
@@ -915,7 +915,7 @@ void removeFromPacker(struct data_vio *dataVIO)
 }
 
 /**********************************************************************/
-void removeLockHolderFromPacker(VDOCompletion *completion)
+void removeLockHolderFromPacker(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInPackerZone(dataVIO);
@@ -946,7 +946,7 @@ static void initiateDrain(struct admin_state *state)
 }
 
 /**********************************************************************/
-void drainPacker(struct packer *packer, VDOCompletion *completion)
+void drainPacker(struct packer *packer, struct vdo_completion *completion)
 {
   assertOnPackerThread(packer, __func__);
   startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
@@ -954,7 +954,7 @@ void drainPacker(struct packer *packer, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void resumePacker(struct packer *packer, VDOCompletion *parent)
+void resumePacker(struct packer *packer, struct vdo_completion *parent)
 {
   assertOnPackerThread(packer, __func__);
   finishCompletion(parent, resumeIfQuiescent(&packer->state));

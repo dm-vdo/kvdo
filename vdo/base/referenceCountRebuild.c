@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#10 $
  */
 
 #include "referenceCountRebuild.h"
@@ -43,9 +43,9 @@
  **/
 struct rebuild_completion {
   /** completion header */
-  VDOCompletion               completion;
+  struct vdo_completion       completion;
   /** the completion for flushing the block map */
-  VDOCompletion               subTaskCompletion;
+  struct vdo_completion       subTaskCompletion;
   /** the thread on which all block map operations must be done */
   ThreadID                    logicalThreadID;
   /** the admin thread */
@@ -77,7 +77,7 @@ struct rebuild_completion {
 };
 
 /**
- * Convert a VDOCompletion to a rebuild_completion.
+ * Convert a vdo_completion to a rebuild_completion.
  *
  * @param completion  The completion to convert
  *
@@ -85,7 +85,7 @@ struct rebuild_completion {
  **/
 __attribute__((warn_unused_result))
 static inline struct rebuild_completion *
-asRebuildCompletion(VDOCompletion *completion)
+asRebuildCompletion(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct rebuild_completion, completion) == 0);
   assertCompletionType(completion->type, REFERENCE_COUNT_REBUILD_COMPLETION);
@@ -97,9 +97,9 @@ asRebuildCompletion(VDOCompletion *completion)
  *
  * @param completionPtr  a pointer to the completion to free
  **/
-static void freeRebuildCompletion(VDOCompletion **completionPtr)
+static void freeRebuildCompletion(struct vdo_completion **completionPtr)
 {
-  VDOCompletion *completion = *completionPtr;
+  struct vdo_completion *completion = *completionPtr;
   if (completion == NULL) {
     return;
   }
@@ -117,10 +117,10 @@ static void freeRebuildCompletion(VDOCompletion **completionPtr)
  *
  * @param completion  The rebuild_completion
  **/
-static void finishRebuild(VDOCompletion *completion)
+static void finishRebuild(struct vdo_completion *completion)
 {
   int            result = completion->result;
-  VDOCompletion *parent = completion->parent;
+  struct vdo_completion *parent = completion->parent;
   freeRebuildCompletion(&completion);
   finishCompletion(parent, result);
 }
@@ -140,7 +140,7 @@ static void finishRebuild(VDOCompletion *completion)
 static int makeRebuildCompletion(VDO                        *vdo,
                                  BlockCount                 *logicalBlocksUsed,
                                  BlockCount                 *blockMapDataBlocks,
-                                 VDOCompletion              *parent,
+                                 struct vdo_completion      *parent,
                                  struct rebuild_completion **rebuildPtr)
 {
   struct block_map *blockMap = getBlockMap(vdo);
@@ -159,7 +159,7 @@ static int makeRebuildCompletion(VDO                        *vdo,
                                            REFERENCE_COUNT_REBUILD_COMPLETION,
                                            vdo->layer);
   if (result != VDO_SUCCESS) {
-    VDOCompletion *completion = &rebuild->completion;
+    struct vdo_completion *completion = &rebuild->completion;
     freeRebuildCompletion(&completion);
     return result;
   }
@@ -167,7 +167,7 @@ static int makeRebuildCompletion(VDO                        *vdo,
   result = initializeEnqueueableCompletion(&rebuild->subTaskCompletion,
                                            SUB_TASK_COMPLETION, vdo->layer);
   if (result != VDO_SUCCESS) {
-    VDOCompletion *completion = &rebuild->completion;
+    struct vdo_completion *completion = &rebuild->completion;
     freeRebuildCompletion(&completion);
     return result;
   }
@@ -199,7 +199,7 @@ static int makeRebuildCompletion(VDO                        *vdo,
  *
  * @param completion  The sub-task completion
  **/
-static void flushBlockMapUpdates(VDOCompletion *completion)
+static void flushBlockMapUpdates(struct vdo_completion *completion)
 {
   logInfo("Flushing block map changes");
   prepareToFinishParent(completion, completion->parent);
@@ -253,7 +253,7 @@ static void abortRebuild(struct rebuild_completion *rebuild, int result)
  *
  * @param completion  The vdo_page_completion
  **/
-static void handlePageLoadError(VDOCompletion *completion)
+static void handlePageLoadError(struct vdo_completion *completion)
 {
   struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   rebuild->outstanding--;
@@ -271,7 +271,7 @@ static void handlePageLoadError(VDOCompletion *completion)
  * @return VDO_SUCCESS or an error
  **/
 static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
-                                          VDOCompletion             *completion)
+                                          struct vdo_completion     *completion)
 {
   struct block_map_page *page = dereferenceWritableVDOPage(completion);
   int result = ASSERT(page != NULL, "page available");
@@ -339,7 +339,7 @@ static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
 
 /**********************************************************************/
 static void fetchPage(struct rebuild_completion *rebuild,
-                      VDOCompletion             *completion);
+                      struct vdo_completion     *completion);
 
 /**
  * Process a page which has just been loaded. This callback is registered by
@@ -347,7 +347,7 @@ static void fetchPage(struct rebuild_completion *rebuild,
  *
  * @param completion  The vdo_page_completion for the fetched page
  **/
-static void pageLoaded(VDOCompletion *completion)
+static void pageLoaded(struct vdo_completion *completion)
 {
   struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   rebuild->outstanding--;
@@ -374,7 +374,7 @@ static void pageLoaded(VDOCompletion *completion)
  * @param completion  the page completion to use
  **/
 static void fetchPage(struct rebuild_completion *rebuild,
-                      VDOCompletion             *completion)
+                      struct vdo_completion     *completion)
 {
   while (rebuild->pageToFetch < rebuild->leafPages) {
     PhysicalBlockNumber pbn = findBlockMapPagePBN(rebuild->blockMap,
@@ -409,7 +409,7 @@ static void fetchPage(struct rebuild_completion *rebuild,
  *
  * @param completion  The sub-task completion
  **/
-static void rebuildFromLeaves(VDOCompletion *completion)
+static void rebuildFromLeaves(struct vdo_completion *completion)
 {
   struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   *rebuild->logicalBlocksUsed = 0;
@@ -440,7 +440,8 @@ static void rebuildFromLeaves(VDOCompletion *completion)
  *
  * @return VDO_SUCCESS or an error
  **/
-static int processEntry(PhysicalBlockNumber pbn, VDOCompletion *completion)
+static int processEntry(PhysicalBlockNumber    pbn,
+                        struct vdo_completion *completion)
 {
   struct rebuild_completion *rebuild = asRebuildCompletion(completion->parent);
   if ((pbn == ZERO_BLOCK) || !isPhysicalDataBlock(rebuild->depot, pbn)) {
@@ -464,10 +465,10 @@ static int processEntry(PhysicalBlockNumber pbn, VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void rebuildReferenceCounts(VDO           *vdo,
-                            VDOCompletion *parent,
-                            BlockCount    *logicalBlocksUsed,
-                            BlockCount    *blockMapDataBlocks)
+void rebuildReferenceCounts(VDO                   *vdo,
+                            struct vdo_completion *parent,
+                            BlockCount            *logicalBlocksUsed,
+                            BlockCount            *blockMapDataBlocks)
 {
   struct rebuild_completion *rebuild;
   int result = makeRebuildCompletion(vdo, logicalBlocksUsed,
@@ -487,7 +488,7 @@ void rebuildReferenceCounts(VDO           *vdo,
 
   // First traverse the block map trees.
   *rebuild->blockMapDataBlocks = 0;
-  VDOCompletion *completion = &rebuild->subTaskCompletion;
+  struct vdo_completion *completion = &rebuild->subTaskCompletion;
   prepareCompletion(completion, rebuildFromLeaves, finishParentCallback,
                     rebuild->logicalThreadID, rebuild);
   traverseForest(rebuild->blockMap, processEntry, completion);

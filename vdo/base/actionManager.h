@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#7 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -56,9 +56,9 @@
  * @param zoneNumber  The number of zone to which the action is being applied
  * @param parent      The object to notify when the action is complete
  **/
-typedef void ZoneAction(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent);
+typedef void ZoneAction(void                  *context,
+                        ZoneCount              zoneNumber,
+                        struct vdo_completion *parent);
 
 /**
  * A function which is to be applied asynchronously on an action manager's
@@ -67,7 +67,7 @@ typedef void ZoneAction(void          *context,
  * @param context  The object which holds the per-zone context for the action
  * @param parent   The object to notify when the action is complete
  **/
-typedef void ActionPreamble(void *context, VDOCompletion *parent);
+typedef void ActionPreamble(void *context, struct vdo_completion *parent);
 
 /**
  * A function which will run on the action manager's initiator thread as the
@@ -175,7 +175,7 @@ bool scheduleAction(struct action_manager *manager,
                     ActionPreamble        *preamble,
                     ZoneAction            *zoneAction,
                     ActionConclusion      *conclusion,
-                    VDOCompletion         *parent);
+                    struct vdo_completion *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -203,7 +203,7 @@ bool scheduleOperation(struct action_manager *manager,
                        ActionPreamble        *preamble,
                        ZoneAction            *zoneAction,
                        ActionConclusion      *conclusion,
-                       VDOCompletion         *parent);
+                       struct vdo_completion *parent);
 
 /**
  * Schedule an operation to be applied to all zones. The operation's action
@@ -234,6 +234,6 @@ bool scheduleOperationWithContext(struct action_manager *manager,
                                   ZoneAction            *zoneAction,
                                   ActionConclusion      *conclusion,
                                   void                  *context,
-                                  VDOCompletion         *parent);
+                                  struct vdo_completion *parent);
 
 #endif // ACTION_MANAGER_H

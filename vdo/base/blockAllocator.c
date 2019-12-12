@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#32 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -144,8 +144,8 @@ getSlabIterator(const struct block_allocator *allocator)
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-static void notifyBlockAllocatorOfReadOnlyMode(void          *listener,
-                                               VDOCompletion *parent)
+static void notifyBlockAllocatorOfReadOnlyMode(void                  *listener,
+                                               struct vdo_completion *parent)
 {
   struct block_allocator *allocator = listener;
   assertOnAllocatorThread(allocator->threadID, __func__);
@@ -529,7 +529,7 @@ static void swapSlabStatuses(void *item1, void *item2)
  *
  * @param completion  The allocator completion
  **/
-static void slabActionCallback(VDOCompletion *completion)
+static void slabActionCallback(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = container_of(completion,
                                                    struct block_allocator,
@@ -548,7 +548,7 @@ static void slabActionCallback(VDOCompletion *completion)
  *
  * @param completion  The allocator completion
  **/
-static void handleOperationError(VDOCompletion *completion)
+static void handleOperationError(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = (struct block_allocator *) completion;
   setOperationResult(&allocator->state, completion->result);
@@ -595,7 +595,7 @@ static void applyToSlabs(struct block_allocator *allocator, VDOAction *callback)
  *
  * @param completion  The allocator completion
  **/
-static void finishLoadingAllocator(VDOCompletion *completion)
+static void finishLoadingAllocator(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = (struct block_allocator *) completion;
   if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
@@ -629,9 +629,9 @@ static void initiateLoad(struct admin_state *state)
 }
 
 /**********************************************************************/
-void loadBlockAllocator(void          *context,
-                        ZoneCount      zoneNumber,
-                        VDOCompletion *parent)
+void loadBlockAllocator(void                  *context,
+                        ZoneCount              zoneNumber,
+                        struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -696,9 +696,9 @@ int prepareSlabsForAllocation(struct block_allocator *allocator)
 }
 
 /**********************************************************************/
-void prepareAllocatorToAllocate(void          *context,
-                                ZoneCount      zoneNumber,
-                                VDOCompletion *parent)
+void prepareAllocatorToAllocate(void                  *context,
+                                ZoneCount              zoneNumber,
+                                struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -714,9 +714,9 @@ void prepareAllocatorToAllocate(void          *context,
 }
 
 /**********************************************************************/
-void registerNewSlabsForAllocator(void          *context,
-                                  ZoneCount      zoneNumber,
-                                  VDOCompletion *parent)
+void registerNewSlabsForAllocator(void                  *context,
+                                  ZoneCount              zoneNumber,
+                                  struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -735,7 +735,7 @@ void registerNewSlabsForAllocator(void          *context,
  *
  * @param completion  The allocator's completion
  **/
-static void doDrainStep(VDOCompletion *completion)
+static void doDrainStep(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = (struct block_allocator *) completion;
   prepareForRequeue(&allocator->completion, doDrainStep, handleOperationError,
@@ -779,9 +779,9 @@ static void initiateDrain(struct admin_state *state)
 }
 
 /**********************************************************************/
-void drainBlockAllocator(void          *context,
-                         ZoneCount      zoneNumber,
-                         VDOCompletion *parent)
+void drainBlockAllocator(void                  *context,
+                         ZoneCount              zoneNumber,
+                         struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -796,7 +796,7 @@ void drainBlockAllocator(void          *context,
  *
  * @param completion  The allocator's completion
  **/
-static void doResumeStep(VDOCompletion *completion)
+static void doResumeStep(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = (struct block_allocator *) completion;
   prepareForRequeue(&allocator->completion, doResumeStep, handleOperationError,
@@ -838,9 +838,9 @@ static void initiateResume(struct admin_state *state)
 }
 
 /**********************************************************************/
-void resumeBlockAllocator(void          *context,
-                          ZoneCount      zoneNumber,
-                          VDOCompletion *parent)
+void resumeBlockAllocator(void                  *context,
+                          ZoneCount              zoneNumber,
+                          struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -850,9 +850,9 @@ void resumeBlockAllocator(void          *context,
 }
 
 /**********************************************************************/
-void releaseTailBlockLocks(void          *context,
-                           ZoneCount      zoneNumber,
-                           VDOCompletion *parent)
+void releaseTailBlockLocks(void                  *context,
+                           ZoneCount              zoneNumber,
+                           struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
@@ -886,9 +886,9 @@ void returnVIO(struct block_allocator *allocator, struct vio_pool_entry *entry)
 }
 
 /**********************************************************************/
-void scrubAllUnrecoveredSlabsInZone(void          *context,
-                                    ZoneCount      zoneNumber,
-                                    VDOCompletion *parent)
+void scrubAllUnrecoveredSlabsInZone(void                  *context,
+                                    ZoneCount              zoneNumber,
+                                    struct vdo_completion *parent)
 {
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);

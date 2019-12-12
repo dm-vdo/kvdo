@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#21 $
  */
 
 /*
@@ -354,7 +354,7 @@ int saveVDOComponents(VDO *vdo)
 }
 
 /**********************************************************************/
-void saveVDOComponentsAsync(VDO *vdo, VDOCompletion *parent)
+void saveVDOComponentsAsync(VDO *vdo, struct vdo_completion *parent)
 {
   int result = encodeVDO(vdo);
   if (result != VDO_SUCCESS) {
@@ -681,7 +681,8 @@ int validateVDOConfig(const VDOConfig *config,
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-static void notifyVDOOfReadOnlyMode(void *listener, VDOCompletion *parent)
+static void notifyVDOOfReadOnlyMode(void                  *listener,
+                                    struct vdo_completion *parent)
 {
   VDO *vdo = listener;
   if (inReadOnlyMode(vdo)) {

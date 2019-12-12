@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#15 $
  */
 
 #include "slabSummary.h"
@@ -353,7 +353,7 @@ static void finishUpdatingSlabSummaryBlock(struct slab_summary_block *block)
  *
  * @param completion  The write VIO
  **/
-static void finishUpdate(VDOCompletion *completion)
+static void finishUpdate(struct vdo_completion *completion)
 {
   struct slab_summary_block *block = completion->parent;
   atomicAdd64(&block->zone->summary->statistics.blocksWritten, 1);
@@ -365,7 +365,7 @@ static void finishUpdate(VDOCompletion *completion)
  *
  * @param completion  The write VIO
  **/
-static void handleWriteError(VDOCompletion *completion)
+static void handleWriteError(struct vdo_completion *completion)
 {
   struct slab_summary_block *block = completion->parent;
   enterReadOnlyMode(block->zone->summary->readOnlyNotifier,
@@ -420,14 +420,14 @@ static void initiateDrain(struct admin_state *state)
 /**********************************************************************/
 void drainSlabSummaryZone(struct slab_summary_zone *summaryZone,
                           AdminStateCode            operation,
-                          VDOCompletion            *parent)
+                          struct vdo_completion    *parent)
 {
   startDraining(&summaryZone->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
 void resumeSlabSummaryZone(struct slab_summary_zone *summaryZone,
-                           VDOCompletion            *parent)
+                           struct vdo_completion    *parent)
 {
   finishCompletion(parent, resumeIfQuiescent(&summaryZone->state));
 }
@@ -561,7 +561,7 @@ void setSlabSummaryOrigin(struct slab_summary *summary,
  *
  * @param completion  The extent which was used to write the summary data
  **/
-static void finishCombiningZones(VDOCompletion *completion)
+static void finishCombiningZones(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
   int          result  = completion->result;
@@ -605,7 +605,7 @@ void combineZones(struct slab_summary *summary)
  *
  * @param completion  The extent which was used to read the summary data
  **/
-static void finishLoadingSummary(VDOCompletion *completion)
+static void finishLoadingSummary(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
   VDOExtent   *extent  = asVDOExtent(completion);
@@ -619,10 +619,10 @@ static void finishLoadingSummary(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void loadSlabSummary(struct slab_summary *summary,
-                     AdminStateCode       operation,
-                     ZoneCount            zonesToCombine,
-                     VDOCompletion       *parent)
+void loadSlabSummary(struct slab_summary   *summary,
+                     AdminStateCode         operation,
+                     ZoneCount              zonesToCombine,
+                     struct vdo_completion *parent)
 {
   struct slab_summary_zone *zone = summary->zones[0];
   if (!startLoading(&zone->state, operation, parent, NULL)) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#23 $
  */
 
 #include "recoveryJournal.h"
@@ -219,8 +219,8 @@ static void checkForDrainComplete(struct recovery_journal *journal)
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-static void notifyRecoveryJournalOfReadOnlyMode(void          *listener,
-                                                VDOCompletion *parent)
+static void notifyRecoveryJournalOfReadOnlyMode(void                  *listener,
+                                                struct vdo_completion *parent)
 {
   checkForDrainComplete(listener);
   completeCompletion(parent);
@@ -318,7 +318,7 @@ static void finishReaping(struct recovery_journal *journal)
  *
  * @param completion  The journal's flush VIO
  **/
-static void completeReaping(VDOCompletion *completion)
+static void completeReaping(struct vdo_completion *completion)
 {
   struct recovery_journal *journal = completion->parent;
   finishReaping(journal);
@@ -332,7 +332,7 @@ static void completeReaping(VDOCompletion *completion)
  *
  * @param completion  The journal's flush VIO
  **/
-static void handleFlushError(VDOCompletion *completion)
+static void handleFlushError(struct vdo_completion *completion)
 {
   struct recovery_journal *journal = completion->parent;
   journal->reaping = false;
@@ -375,7 +375,7 @@ BlockCount getRecoveryJournalLength(BlockCount journalSize)
  *
  * @param completion  The lock counter completion
  **/
-static void reapRecoveryJournalCallback(VDOCompletion *completion)
+static void reapRecoveryJournalCallback(struct vdo_completion *completion)
 {
   struct recovery_journal *journal
     = (struct recovery_journal *) completion->parent;
@@ -1015,7 +1015,7 @@ static void notifyCommitWaiters(struct recovery_journal *journal)
  *
  * @param completion  The completion of the VIO writing this block
  **/
-static void completeWrite(VDOCompletion *completion)
+static void completeWrite(struct vdo_completion *completion)
 {
   struct recovery_journal_block *block   = completion->parent;
   struct recovery_journal       *journal = block->journal;
@@ -1050,7 +1050,7 @@ static void completeWrite(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-static void handleWriteError(VDOCompletion *completion)
+static void handleWriteError(struct vdo_completion *completion)
 {
   struct recovery_journal_block *block   = completion->parent;
   struct recovery_journal       *journal = block->journal;
@@ -1229,7 +1229,7 @@ static void initiateDrain(struct admin_state *state)
 /**********************************************************************/
 void drainRecoveryJournal(struct recovery_journal *journal,
                           AdminStateCode           operation,
-                          VDOCompletion           *parent)
+                          struct vdo_completion   *parent)
 {
   assertOnJournalThread(journal, __func__);
   startDraining(&journal->state, operation, parent, initiateDrain);
@@ -1237,7 +1237,7 @@ void drainRecoveryJournal(struct recovery_journal *journal,
 
 /**********************************************************************/
 void resumeRecoveryJournal(struct recovery_journal *journal,
-                           VDOCompletion           *parent)
+                           struct vdo_completion   *parent)
 {
   assertOnJournalThread(journal, __func__);
   bool saved = isSaved(&journal->state);

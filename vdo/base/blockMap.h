@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#10 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -56,9 +56,9 @@ int makeBlockMap(BlockCount           logicalBlocks,
  * @param operation  The type of drain to perform
  * @param parent     The completion to notify when the drain is complete
  **/
-void drainBlockMap(struct block_map *map,
-                   AdminStateCode    operation,
-                   VDOCompletion    *parent);
+void drainBlockMap(struct block_map      *map,
+                   AdminStateCode         operation,
+                   struct vdo_completion *parent);
 
 /**
  * Resume I/O for a quiescent block map.
@@ -66,7 +66,7 @@ void drainBlockMap(struct block_map *map,
  * @param map     The block map to resume
  * @param parent  The completion to notify when the resume is complete
  **/
-void resumeBlockMap(struct block_map *map, VDOCompletion *parent);
+void resumeBlockMap(struct block_map *map, struct vdo_completion *parent);
 
 /**
  * Prepare to grow the block map by allocating an expanded collection of trees.
@@ -96,7 +96,7 @@ BlockCount getNewEntryCount(struct block_map *map)
  * @param map     The block map to grow
  * @param parent  The object to notify when the growth is complete
  **/
-void growBlockMap(struct block_map *map, VDOCompletion *parent);
+void growBlockMap(struct block_map *map, struct vdo_completion *parent);
 
 /**
  * Abandon any preparations which were made to grow this block map.

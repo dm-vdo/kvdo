@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.h#2 $
  */
 
 #ifndef READ_ONLY_REBUILD_H
@@ -32,6 +32,6 @@
  * @param vdo           The VDO to rebuild
  * @param parent        The completion to notify when the rebuild is complete
  **/
-void launchRebuild(VDO *vdo, VDOCompletion *parent);
+void launchRebuild(VDO *vdo, struct vdo_completion *parent);
 
 #endif // READ_ONLY_REBUILD_H

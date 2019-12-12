@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#14 $
  */
 
 #include "slabScrubberInternals.h"
@@ -215,7 +215,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber);
  *
  * @param completion  The slab rebuild completion
  **/
-static void slabScrubbed(VDOCompletion *completion)
+static void slabScrubbed(struct vdo_completion *completion)
 {
   struct slab_scrubber *scrubber = completion->parent;
   finishScrubbingSlab(scrubber->slab);
@@ -241,7 +241,7 @@ static void abortScrubbing(struct slab_scrubber *scrubber, int result)
  *
  * @param completion  The slab rebuild completion
  **/
-static void handleScrubberError(VDOCompletion *completion)
+static void handleScrubberError(struct vdo_completion *completion)
 {
   abortScrubbing(completion->parent, completion->result);
 }
@@ -303,7 +303,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
  *
  * @param completion  The metadata read extent completion
  **/
-static void applyJournalEntries(VDOCompletion *completion)
+static void applyJournalEntries(struct vdo_completion *completion)
 {
   struct slab_scrubber  *scrubber        = completion->parent;
   struct vdo_slab       *slab            = scrubber->slab;
@@ -378,7 +378,7 @@ static void applyJournalEntries(VDOCompletion *completion)
  *
  * @param completion  The scrubber's extent completion
  **/
-static void startScrubbing(VDOCompletion *completion)
+static void startScrubbing(struct vdo_completion *completion)
 {
   struct slab_scrubber    *scrubber = completion->parent;
   struct vdo_slab         *slab     = scrubber->slab;
@@ -424,7 +424,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber)
 
   unspliceRingNode(&slab->ringNode);
   scrubber->slab = slab;
-  VDOCompletion *completion = extentAsCompletion(scrubber->extent);
+  struct vdo_completion *completion = extentAsCompletion(scrubber->extent);
   prepareCompletion(completion, startScrubbing,
                     handleScrubberError, scrubber->completion.callbackThreadID,
                     scrubber);
@@ -450,11 +450,11 @@ void scrubSlabs(struct slab_scrubber *scrubber,
 }
 
 /**********************************************************************/
-void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
-                            bool                  scrubAtLeastOne,
-                            VDOCompletion        *parent,
-                            VDOAction            *callback,
-                            VDOAction            *errorHandler)
+void scrubHighPrioritySlabs(struct slab_scrubber  *scrubber,
+                            bool                   scrubAtLeastOne,
+                            struct vdo_completion *parent,
+                            VDOAction             *callback,
+                            VDOAction             *errorHandler)
 {
   if (scrubAtLeastOne && isRingEmpty(&scrubber->highPrioritySlabs)) {
     struct vdo_slab *slab = getNextSlab(scrubber);
@@ -467,7 +467,8 @@ void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
 }
 
 /**********************************************************************/
-void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent)
+void stopScrubbing(struct slab_scrubber  *scrubber,
+                   struct vdo_completion *parent)
 {
   if (isQuiescent(&scrubber->adminState)) {
     completeCompletion(parent);
@@ -477,7 +478,8 @@ void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void resumeScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent)
+void resumeScrubbing(struct slab_scrubber *scrubber,
+                     struct vdo_completion *parent)
 {
   if (!hasSlabsToScrub(scrubber)) {
     completeCompletion(parent);

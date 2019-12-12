@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#4 $
  */
 
 #include "vdoLayout.h"
@@ -404,9 +404,9 @@ void finishVDOLayoutGrowth(struct vdo_layout *vdoLayout)
 }
 
 /**********************************************************************/
-void copyPartition(struct vdo_layout *layout,
-                   PartitionID        partitionID,
-                   VDOCompletion     *parent)
+void copyPartition(struct vdo_layout     *layout,
+                   PartitionID            partitionID,
+                   struct vdo_completion *parent)
 {
   copyPartitionAsync(layout->copyCompletion,
                      getVDOPartition(layout, partitionID),

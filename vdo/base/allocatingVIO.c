@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#7 $
  */
 
 #include "allocatingVIO.h"
@@ -98,7 +98,7 @@ static int allocateAndLockBlock(struct allocating_vio *allocatingVIO)
   return VDO_SUCCESS;
 }
 
-static void allocateBlockForWrite(VDOCompletion *completion);
+static void allocateBlockForWrite(struct vdo_completion *completion);
 
 /**
  * Retry allocating a block for write.
@@ -195,7 +195,7 @@ static int allocateBlockInZone(struct allocating_vio *allocatingVIO)
  *
  * @param completion  The allocating_vio needing an allocation
  **/
-static void allocateBlockForWrite(VDOCompletion *completion)
+static void allocateBlockForWrite(struct vdo_completion *completion)
 {
   struct allocating_vio *allocatingVIO = asAllocatingVIO(completion);
   assertInPhysicalZone(allocatingVIO);

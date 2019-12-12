@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#31 $
  */
 
 #include "slabDepot.h"
@@ -176,7 +176,8 @@ static ThreadID getAllocatorThreadID(void *context, ZoneCount zoneNumber)
  *
  * <p>Implements ActionPreamble.
  **/
-static void prepareForTailBlockCommit(void *context, VDOCompletion *parent)
+static void prepareForTailBlockCommit(void                  *context,
+                                      struct vdo_completion *parent)
 {
   struct slab_depot *depot = context;
   depot->activeReleaseRequest = depot->newReleaseRequest;
@@ -856,7 +857,7 @@ SlabCount getDepotUnrecoveredSlabCount(const struct slab_depot *depot)
  *
  * <p>Implements ActionPreamble.
  **/
-static void startDepotLoad(void *context, VDOCompletion *parent)
+static void startDepotLoad(void *context, struct vdo_completion *parent)
 {
   struct slab_depot *depot = context;
   loadSlabSummary(depot->slabSummary,
@@ -865,10 +866,10 @@ static void startDepotLoad(void *context, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void loadSlabDepot(struct slab_depot *depot,
-                   AdminStateCode     operation,
-                   VDOCompletion     *parent,
-                   void              *context)
+void loadSlabDepot(struct slab_depot     *depot,
+                   AdminStateCode         operation,
+                   struct vdo_completion *parent,
+                   void                  *context)
 {
   if (assertLoadOperation(operation, parent)) {
     scheduleOperationWithContext(depot->actionManager, operation,
@@ -878,9 +879,9 @@ void loadSlabDepot(struct slab_depot *depot,
 }
 
 /**********************************************************************/
-void prepareToAllocate(struct slab_depot *depot,
-                       SlabDepotLoadType  loadType,
-                       VDOCompletion     *parent)
+void prepareToAllocate(struct slab_depot     *depot,
+                       SlabDepotLoadType      loadType,
+                       struct vdo_completion *parent)
 {
   depot->loadType = loadType;
   atomicStore32(&depot->zonesToScrub, depot->zoneCount);
@@ -953,7 +954,7 @@ static int finishRegistration(void *context)
 }
 
 /**********************************************************************/
-void useNewSlabs(struct slab_depot *depot, VDOCompletion *parent)
+void useNewSlabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
   scheduleOperation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
@@ -962,16 +963,16 @@ void useNewSlabs(struct slab_depot *depot, VDOCompletion *parent)
 }
 
 /**********************************************************************/
-void drainSlabDepot(struct slab_depot *depot,
-                    AdminStateCode     operation,
-                    VDOCompletion     *parent)
+void drainSlabDepot(struct slab_depot     *depot,
+                    AdminStateCode         operation,
+                    struct vdo_completion *parent)
 {
   scheduleOperation(depot->actionManager, operation, NULL, drainBlockAllocator,
                     NULL, parent);
 }
 
 /**********************************************************************/
-void resumeSlabDepot(struct slab_depot *depot, VDOCompletion *parent)
+void resumeSlabDepot(struct slab_depot *depot, struct vdo_completion *parent)
 {
   if (isReadOnly(depot->readOnlyNotifier)) {
     finishCompletion(parent, VDO_READ_ONLY);
@@ -1019,14 +1020,15 @@ struct slab_summary_zone *getSlabSummaryForZone(const struct slab_depot *depot,
 }
 
 /**********************************************************************/
-void scrubAllUnrecoveredSlabs(struct slab_depot *depot, VDOCompletion *parent)
+void scrubAllUnrecoveredSlabs(struct slab_depot     *depot,
+                              struct vdo_completion *parent)
 {
   scheduleAction(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
                  NULL, parent);
 }
 
 /**********************************************************************/
-void notifyZoneFinishedScrubbing(VDOCompletion *completion)
+void notifyZoneFinishedScrubbing(struct vdo_completion *completion)
 {
   struct slab_depot *depot = completion->parent;
   if (atomicAdd32(&depot->zonesToScrub, -1) == 0) {

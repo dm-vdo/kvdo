@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#9 $
  */
 
 #include "flush.h"
@@ -33,33 +33,33 @@
 #include "vdoInternal.h"
 
 struct flusher {
-  VDOCompletion        completion;
+  struct vdo_completion  completion;
   /** The VDO to which this flusher belongs */
-  VDO                 *vdo;
+  VDO                   *vdo;
   /** The current flush generation of the VDO */
-  SequenceNumber       flushGeneration;
+  SequenceNumber         flushGeneration;
   /** The first unacknowledged flush generation */
-  SequenceNumber       firstUnacknowledgedGeneration;
+  SequenceNumber         firstUnacknowledgedGeneration;
   /** The queue of flush requests waiting to notify other threads */
-  struct wait_queue    notifiers;
+  struct wait_queue      notifiers;
   /** The queue of flush requests waiting for VIOs to complete */
-  struct wait_queue    pendingFlushes;
+  struct wait_queue      pendingFlushes;
   /** The flush generation for which notifications are being sent */
-  SequenceNumber       notifyGeneration;
+  SequenceNumber         notifyGeneration;
   /** The logical zone to notify next */
-  struct logical_zone *logicalZoneToNotify;
+  struct logical_zone   *logicalZoneToNotify;
   /** The ID of the thread on which flush requests should be made */
-  ThreadID             threadID;
+  ThreadID               threadID;
 };
 
 /**
- * Convert a generic VDOCompletion to a flusher.
+ * Convert a generic vdo_completion to a flusher.
  *
  * @param completion  The completion to convert
  *
  * @return The completion as a flusher
  **/
-static struct flusher *asFlusher(VDOCompletion *completion)
+static struct flusher *asFlusher(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct flusher, completion) == 0);
   assertCompletionType(completion->type, FLUSH_NOTIFICATION_COMPLETION);
@@ -124,7 +124,7 @@ static void notifyFlush(struct flusher *flusher);
  *
  * @param completion  The flusher completion
  **/
-static void finishNotification(VDOCompletion *completion)
+static void finishNotification(struct vdo_completion *completion)
 {
   struct flusher *flusher = asFlusher(completion);
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
@@ -152,7 +152,7 @@ static void finishNotification(VDOCompletion *completion)
  *
  * @param completion  The flusher completion
  **/
-static void flushPackerCallback(VDOCompletion *completion)
+static void flushPackerCallback(struct vdo_completion *completion)
 {
   struct flusher *flusher = asFlusher(completion);
   incrementPackerFlushGeneration(flusher->vdo->packer);
@@ -166,7 +166,7 @@ static void flushPackerCallback(VDOCompletion *completion)
  *
  * @param completion  The flusher as a completion
  **/
-static void incrementGeneration(VDOCompletion *completion)
+static void incrementGeneration(struct vdo_completion *completion)
 {
   struct flusher *flusher = asFlusher(completion);
   incrementFlushGeneration(flusher->logicalZoneToNotify,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#42 $
  */
 
 #include "dataKVIO.h"
@@ -212,7 +212,7 @@ kvdo_acknowledge_then_complete_data_kvio(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void kvdo_complete_data_kvio(VDOCompletion *completion)
+void kvdo_complete_data_kvio(struct vdo_completion *completion)
 {
 	struct data_kvio *data_kvio =
 		data_vio_as_data_kvio(asDataVIO(completion));
@@ -838,7 +838,7 @@ static void launchDataKVIOWork(struct kvdo_work_item *item)
  *
  * @param completion  A completion representing the discard kvio
  **/
-static void kvdo_continue_discard_kvio(VDOCompletion *completion)
+static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 {
 	struct data_vio *data_vio = asDataVIO(completion);
 	struct data_kvio *data_kvio = data_vio_as_data_kvio(data_vio);
@@ -884,7 +884,7 @@ static void kvdo_continue_discard_kvio(VDOCompletion *completion)
  *
  * @param completion  The partial read kvio
  **/
-static void kvdo_complete_partial_read(VDOCompletion *completion)
+static void kvdo_complete_partial_read(struct vdo_completion *completion)
 {
 	struct data_kvio *data_kvio =
 		data_vio_as_data_kvio(asDataVIO(completion));

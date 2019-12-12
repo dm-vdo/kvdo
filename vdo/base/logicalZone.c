@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#13 $
  */
 
 #include "logicalZone.h"
@@ -38,7 +38,7 @@
 
 struct logical_zone {
   /** The completion for flush notifications */
-  VDOCompletion               completion;
+  struct vdo_completion       completion;
   /** The owner of this zone */
   struct logical_zones       *zones;
   /** Which logical zone this is */
@@ -84,13 +84,13 @@ struct logical_zones {
 };
 
 /**
- * Convert a generic VDOCompletion to a logical_zone.
+ * Convert a generic vdo_completion to a logical_zone.
  *
  * @param completion  The completion to convert
  *
  * @return The completion as a logical_zone
  **/
-static struct logical_zone *asLogicalZone(VDOCompletion *completion)
+static struct logical_zone *asLogicalZone(struct vdo_completion *completion)
 {
   STATIC_ASSERT(offsetof(struct logical_zone, completion) == 0);
   assertCompletionType(completion->type, GENERATION_FLUSHED_COMPLETION);
@@ -243,9 +243,9 @@ static void initiateDrain(struct admin_state *state)
  *
  * <p>Implements ZoneAction.
  **/
-static void drainLogicalZone(void          *context,
-                             ZoneCount      zoneNumber,
-                             VDOCompletion *parent)
+static void drainLogicalZone(void                  *context,
+                             ZoneCount              zoneNumber,
+                             struct vdo_completion *parent)
 {
   struct logical_zone *zone = getLogicalZone(context, zoneNumber);
   startDraining(&zone->state, getCurrentManagerOperation(zone->zones->manager),
@@ -253,9 +253,9 @@ static void drainLogicalZone(void          *context,
 }
 
 /**********************************************************************/
-void drainLogicalZones(struct logical_zones *zones,
-                       AdminStateCode        operation,
-                       VDOCompletion        *parent)
+void drainLogicalZones(struct logical_zones  *zones,
+                       AdminStateCode         operation,
+                       struct vdo_completion *parent)
 {
   scheduleOperation(zones->manager, operation, NULL, drainLogicalZone, NULL,
                     parent);
@@ -266,16 +266,17 @@ void drainLogicalZones(struct logical_zones *zones,
  *
  * <p>Implements ZoneAction.
  **/
-static void resumeLogicalZone(void          *context,
-                              ZoneCount      zoneNumber,
-                              VDOCompletion *parent)
+static void resumeLogicalZone(void                  *context,
+                              ZoneCount              zoneNumber,
+                              struct vdo_completion *parent)
 {
   struct logical_zone *zone = getLogicalZone(context, zoneNumber);
   finishCompletion(parent, resumeIfQuiescent(&zone->state));
 }
 
 /**********************************************************************/
-void resumeLogicalZones(struct logical_zones *zones, VDOCompletion *parent)
+void resumeLogicalZones(struct logical_zones  *zones,
+                        struct vdo_completion *parent)
 {
   scheduleOperation(zones->manager, ADMIN_STATE_RESUMING, NULL,
                     resumeLogicalZone, NULL, parent);
@@ -383,7 +384,8 @@ int acquireFlushGenerationLock(struct data_vio *dataVIO)
 }
 
 /**********************************************************************/
-static void attemptGenerationCompleteNotification(VDOCompletion *completion);
+static void
+attemptGenerationCompleteNotification(struct vdo_completion *completion);
 
 /**
  * Notify the flush that at least one generation no longer has active VIOs.
@@ -391,7 +393,7 @@ static void attemptGenerationCompleteNotification(VDOCompletion *completion);
  *
  * @param completion  The zone completion
  **/
-static void notifyFlusher(VDOCompletion *completion)
+static void notifyFlusher(struct vdo_completion *completion)
 {
   struct logical_zone *zone = asLogicalZone(completion);
   completeFlushes(zone->zones->vdo->flusher);
@@ -404,7 +406,8 @@ static void notifyFlusher(VDOCompletion *completion)
  *
  * @param completion  The zone completion
  **/
-static void attemptGenerationCompleteNotification(VDOCompletion *completion)
+static void
+attemptGenerationCompleteNotification(struct vdo_completion *completion)
 {
   struct logical_zone *zone = asLogicalZone(completion);
   assertOnZoneThread(zone, __func__);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#9 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -96,11 +96,11 @@ void scrubSlabs(struct slab_scrubber *scrubber,
  * @param callback         The function to run when scrubbing is complete
  * @param errorHandler     The handler for scrubbing errors
  **/
-void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
-                            bool                  scrubAtLeastOne,
-                            VDOCompletion        *parent,
-                            VDOAction            *callback,
-                            VDOAction            *errorHandler);
+void scrubHighPrioritySlabs(struct slab_scrubber  *scrubber,
+                            bool                   scrubAtLeastOne,
+                            struct vdo_completion *parent,
+                            VDOAction             *callback,
+                            VDOAction             *errorHandler);
 
 /**
  * Tell the scrubber to stop scrubbing after it finishes the slab it is
@@ -109,7 +109,8 @@ void scrubHighPrioritySlabs(struct slab_scrubber *scrubber,
  * @param scrubber  The scrubber to stop
  * @param parent    The completion to notify when scrubbing has stopped
  **/
-void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent);
+void stopScrubbing(struct slab_scrubber  *scrubber,
+                   struct vdo_completion *parent);
 
 /**
  * Tell the scrubber to resume scrubbing if it has been stopped.
@@ -117,7 +118,8 @@ void stopScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent);
  * @param scrubber  The scrubber to resume
  * @param parent    The object to notify once scrubbing has resumed
  **/
-void resumeScrubbing(struct slab_scrubber *scrubber, VDOCompletion *parent);
+void resumeScrubbing(struct slab_scrubber  *scrubber,
+                     struct vdo_completion *parent);
 
 /**
  * Wait for a clean slab.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#12 $
  */
 
 #include "completion.h"
@@ -58,7 +58,7 @@ static const char *VDO_COMPLETION_TYPE_NAMES[] = {
 };
 
 /**********************************************************************/
-void initializeCompletion(VDOCompletion         *completion,
+void initializeCompletion(struct vdo_completion *completion,
                           VDOCompletionType      type,
                           PhysicalLayer         *layer)
 {
@@ -69,9 +69,9 @@ void initializeCompletion(VDOCompletion         *completion,
 }
 
 /**********************************************************************/
-int initializeEnqueueableCompletion(VDOCompletion      *completion,
-                                    VDOCompletionType   type,
-                                    PhysicalLayer      *layer)
+int initializeEnqueueableCompletion(struct vdo_completion *completion,
+                                    VDOCompletionType      type,
+                                    PhysicalLayer         *layer)
 {
   initializeCompletion(completion, type, layer);
   return ((layer->createEnqueueable == NULL)
@@ -79,7 +79,7 @@ int initializeEnqueueableCompletion(VDOCompletion      *completion,
 }
 
 /**********************************************************************/
-void resetCompletion(VDOCompletion *completion)
+void resetCompletion(struct vdo_completion *completion)
 {
   completion->result   = VDO_SUCCESS;
   completion->complete = false;
@@ -90,13 +90,13 @@ void resetCompletion(VDOCompletion *completion)
  *
  * @param completion The completion to check
  **/
-static inline void assertIncomplete(VDOCompletion *completion)
+static inline void assertIncomplete(struct vdo_completion *completion)
 {
   ASSERT_LOG_ONLY(!completion->complete, "completion is not complete");
 }
 
 /**********************************************************************/
-void setCompletionResult(VDOCompletion *completion, int result)
+void setCompletionResult(struct vdo_completion *completion, int result)
 {
   assertIncomplete(completion);
   if (completion->result == VDO_SUCCESS) {
@@ -115,7 +115,7 @@ void setCompletionResult(VDOCompletion *completion, int result)
  *         <code>true</code>  if the callback must be enqueued
  **/
 __attribute__((warn_unused_result))
-static inline bool requiresEnqueue(VDOCompletion *completion)
+static inline bool requiresEnqueue(struct vdo_completion *completion)
 {
   if (completion->requeue) {
     completion->requeue = false;
@@ -127,7 +127,7 @@ static inline bool requiresEnqueue(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void invokeCallback(VDOCompletion *completion)
+void invokeCallback(struct vdo_completion *completion)
 {
   if (requiresEnqueue(completion)) {
     if (completion->enqueueable != NULL) {
@@ -143,14 +143,14 @@ void invokeCallback(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void continueCompletion(VDOCompletion *completion, int result)
+void continueCompletion(struct vdo_completion *completion, int result)
 {
   setCompletionResult(completion, result);
   invokeCallback(completion);
 }
 
 /**********************************************************************/
-void completeCompletion(VDOCompletion *completion)
+void completeCompletion(struct vdo_completion *completion)
 {
   assertIncomplete(completion);
   completion->complete = true;
@@ -160,9 +160,9 @@ void completeCompletion(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void releaseCompletion(VDOCompletion **completionPtr)
+void releaseCompletion(struct vdo_completion **completionPtr)
 {
-  VDOCompletion *completion = *completionPtr;
+  struct vdo_completion *completion = *completionPtr;
   if (completion == NULL) {
     return;
   }
@@ -172,7 +172,8 @@ void releaseCompletion(VDOCompletion **completionPtr)
 }
 
 /**********************************************************************/
-void releaseCompletionWithResult(VDOCompletion **completionPtr, int result)
+void releaseCompletionWithResult(struct vdo_completion **completionPtr,
+                                 int                     result)
 {
   if (*completionPtr == NULL) {
     return;
@@ -183,13 +184,13 @@ void releaseCompletionWithResult(VDOCompletion **completionPtr, int result)
 }
 
 /**********************************************************************/
-void finishParentCallback(VDOCompletion *completion)
+void finishParentCallback(struct vdo_completion *completion)
 {
-  finishCompletion((VDOCompletion *) completion->parent, completion->result);
+  finishCompletion((struct vdo_completion *) completion->parent, completion->result);
 }
 
 /**********************************************************************/
-void preserveErrorAndContinue(VDOCompletion *completion)
+void preserveErrorAndContinue(struct vdo_completion *completion)
 {
   if (completion->parent != NULL) {
     setCompletionResult(completion->parent, completion->result);
@@ -216,7 +217,7 @@ const char *getCompletionTypeName(VDOCompletionType completionType)
 }
 
 /**********************************************************************/
-void destroyEnqueueable(VDOCompletion *completion)
+void destroyEnqueueable(struct vdo_completion *completion)
 {
   if ((completion == NULL) || (completion->layer == NULL)
       || (completion->layer->destroyEnqueueable == NULL)) {

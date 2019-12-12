@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#13 $
  */
 
 #include "forest.h"
@@ -83,7 +83,7 @@ struct cursors {
   struct block_map_tree_zone *zone;
   VIOPool                    *pool;
   EntryCallback              *entryCallback;
-  VDOCompletion              *parent;
+  struct vdo_completion      *parent;
   RootCount                   activeRoots;
   struct cursor               cursors[];
 };
@@ -334,7 +334,7 @@ static void finishCursor(struct cursor *cursor)
     return;
   }
 
-  VDOCompletion *parent = cursors->parent;
+  struct vdo_completion *parent = cursors->parent;
   FREE(cursors);
 
   finishCompletion(parent, VDO_SUCCESS);
@@ -348,7 +348,7 @@ static void traverse(struct cursor *cursor);
  *
  * @param completion  The VIO doing a read or write
  **/
-static void continueTraversal(VDOCompletion *completion)
+static void continueTraversal(struct vdo_completion *completion)
 {
   struct vio_pool_entry  *poolEntry = completion->parent;
   struct cursor          *cursor    = poolEntry->parent;
@@ -360,7 +360,7 @@ static void continueTraversal(VDOCompletion *completion)
  *
  * @param completion  The VIO doing the read
  **/
-static void finishTraversalLoad(VDOCompletion *completion)
+static void finishTraversalLoad(struct vdo_completion *completion)
 {
   struct vio_pool_entry         *entry  = completion->parent;
   struct cursor                 *cursor = entry->parent;
@@ -508,9 +508,9 @@ static struct boundary computeBoundary(struct block_map *map,
 }
 
 /**********************************************************************/
-void traverseForest(struct block_map *map,
-                    EntryCallback    *entryCallback,
-                    VDOCompletion    *parent)
+void traverseForest(struct block_map      *map,
+                    EntryCallback         *entryCallback,
+                    struct vdo_completion *parent)
 {
   if (computeBlockMapPageCount(map->entryCount) <= map->flatPageCount) {
     // There are no tree pages, so there's nothing to do.

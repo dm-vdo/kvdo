@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#19 $
  */
 
 #include "refCounts.h"
@@ -1096,7 +1096,7 @@ static void updateSlabSummaryAsClean(struct ref_counts *refCounts)
  *
  * @param completion  The VIO doing the I/O as a completion
  **/
-static void handleIOError(VDOCompletion *completion)
+static void handleIOError(struct vdo_completion *completion)
 {
   int                    result    = completion->result;
   struct vio_pool_entry *entry     = completion->parent;
@@ -1113,7 +1113,7 @@ static void handleIOError(VDOCompletion *completion)
  *
  * @param completion  The VIO that just finished writing
  **/
-static void finishReferenceBlockWrite(VDOCompletion *completion)
+static void finishReferenceBlockWrite(struct vdo_completion *completion)
 {
   struct vio_pool_entry           *entry     = completion->parent;
   struct reference_block          *block     = entry->parent;
@@ -1341,7 +1341,7 @@ static void unpackReferenceBlock(struct packed_reference_block *packed,
  *
  * @param completion  The VIO that just finished reading
  **/
-static void finishReferenceBlockLoad(VDOCompletion *completion)
+static void finishReferenceBlockLoad(struct vdo_completion *completion)
 {
   struct vio_pool_entry  *entry = completion->parent;
   struct reference_block *block = entry->parent;

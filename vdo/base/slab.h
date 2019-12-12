@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#17 $
  */
 
 #ifndef VDO_SLAB_H
@@ -294,9 +294,9 @@ bool shouldSaveFullyBuiltSlab(const struct vdo_slab *slab)
  * @param operation  The type of load to perform
  * @param parent     The object to notify when the operation is complete
  **/
-void startSlabAction(struct vdo_slab *slab,
-                     AdminStateCode   operation,
-                     VDOCompletion   *parent);
+void startSlabAction(struct vdo_slab       *slab,
+                     AdminStateCode         operation,
+                     struct vdo_completion *parent);
 
 /**
  * Inform a slab that its journal has been loaded.

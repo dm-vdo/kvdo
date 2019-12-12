@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#3 $
  */
 
 #include "vdoDebug.h"
@@ -58,7 +58,7 @@ int destroyVDOCommandCompletion(struct vdo_command_completion *command)
 
 /**********************************************************************/
 static inline struct vdo_command_completion *
-asVDOCommandCompletion(VDOCompletion *completion)
+asVDOCommandCompletion(struct vdo_completion *completion)
 {
   if (completion->type == VDO_COMMAND_COMPLETION) {
     return (struct vdo_command_completion *)
@@ -97,7 +97,7 @@ static void logDebugMessage(struct vdo_command_completion *cmd)
 }
 
 /**********************************************************************/
-void executeVDOExtendedCommand(VDOCompletion *completion)
+void executeVDOExtendedCommand(struct vdo_completion *completion)
 {
   struct vdo_command_completion *cmd = asVDOCommandCompletion(completion);
 

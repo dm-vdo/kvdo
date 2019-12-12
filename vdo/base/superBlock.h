@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#3 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -68,9 +68,9 @@ int saveSuperBlock(PhysicalLayer       *layer,
  * @param superBlockOffset  The location at which to write the super block
  * @param parent            The object to notify when the save is complete
  **/
-void saveSuperBlockAsync(struct super_block  *superBlock,
-                         PhysicalBlockNumber  superBlockOffset,
-                         VDOCompletion       *parent);
+void saveSuperBlockAsync(struct super_block    *superBlock,
+                         PhysicalBlockNumber    superBlockOffset,
+                         struct vdo_completion *parent);
 
 /**
  * Allocate a super block and read its contents from storage.
@@ -98,9 +98,9 @@ int loadSuperBlock(PhysicalLayer        *layer,
  *                                block
  * @param [out] superBlockPtr     A pointer to hold the super block
  **/
-void loadSuperBlockAsync(VDOCompletion        *parent,
-                         PhysicalBlockNumber   superBlockOffset,
-                         struct super_block  **superBlockPtr);
+void loadSuperBlockAsync(struct vdo_completion *parent,
+                         PhysicalBlockNumber    superBlockOffset,
+                         struct super_block   **superBlockPtr);
 
 /**
  * Get a buffer which contains the component data from a super block.

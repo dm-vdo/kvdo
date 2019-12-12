@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#20 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -361,10 +361,10 @@ RefCountsStatistics getDepotRefCountsStatistics(const struct slab_depot *depot)
  * @param parent       The completion to finish when the load is complete
  * @param context      Additional context for the load operation; may be NULL
  **/
-void loadSlabDepot(struct slab_depot *depot,
-                   AdminStateCode     operation,
-                   VDOCompletion     *parent,
-                   void              *context);
+void loadSlabDepot(struct slab_depot     *depot,
+                   AdminStateCode         operation,
+                   struct vdo_completion *parent,
+                   void                  *context);
 
 /**
  * Prepare the slab depot to come online and start allocating blocks. This
@@ -375,9 +375,9 @@ void loadSlabDepot(struct slab_depot *depot,
  * @param loadType  The load type
  * @param parent    The completion to finish when the operation is complete
  **/
-void prepareToAllocate(struct slab_depot *depot,
-                       SlabDepotLoadType  loadType,
-                       VDOCompletion     *parent);
+void prepareToAllocate(struct slab_depot     *depot,
+                       SlabDepotLoadType      loadType,
+                       struct vdo_completion *parent);
 
 /**
  * Update the slab depot to reflect its new size in memory. This size is saved
@@ -404,7 +404,7 @@ int prepareToGrowSlabDepot(struct slab_depot *depot, BlockCount newSize)
  * @param depot   The depot
  * @param parent  The object to notify when complete
  **/
-void useNewSlabs(struct slab_depot *depot, VDOCompletion *parent);
+void useNewSlabs(struct slab_depot *depot, struct vdo_completion *parent);
 
 /**
  * Abandon any new slabs in this depot, freeing them as needed.
@@ -422,9 +422,9 @@ void abandonNewSlabs(struct slab_depot *depot);
  * @param operation  The drain operation (flush, rebuild, suspend, or save)
  * @param parent     The completion to finish when the drain is complete
  **/
-void drainSlabDepot(struct slab_depot *depot,
-                    AdminStateCode     operation,
-                    VDOCompletion     *parent);
+void drainSlabDepot(struct slab_depot     *depot,
+                    AdminStateCode         operation,
+                    struct vdo_completion *parent);
 
 /**
  * Resume a suspended slab depot.
@@ -432,7 +432,7 @@ void drainSlabDepot(struct slab_depot *depot,
  * @param depot   The depot to resume
  * @param parent  The completion to finish when the depot has resumed
  **/
-void resumeSlabDepot(struct slab_depot *depot, VDOCompletion *parent);
+void resumeSlabDepot(struct slab_depot *depot, struct vdo_completion *parent);
 
 /**
  * Commit all dirty tail blocks which are locking a given recovery journal
@@ -485,7 +485,8 @@ struct slab_summary_zone *getSlabSummaryForZone(const struct slab_depot *depot,
  * @param parent        The object to notify when scrubbing has been launched
  *                      for all zones
  **/
-void scrubAllUnrecoveredSlabs(struct slab_depot *depot, VDOCompletion *parent);
+void scrubAllUnrecoveredSlabs(struct slab_depot     *depot,
+                              struct vdo_completion *parent);
 
 /**
  * Check whether there are outstanding unrecovered slabs.

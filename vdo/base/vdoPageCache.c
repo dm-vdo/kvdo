@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#14 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -629,7 +629,7 @@ void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
     .cache    = cache,
   };
 
-  VDOCompletion *completion = &pageCompletion->completion;
+  struct vdo_completion *completion = &pageCompletion->completion;
   initializeCompletion(completion, VDO_PAGE_COMPLETION, cache->layer);
   prepareCompletion(completion, callback, errorHandler, cache->zone->threadID,
                     parent);
@@ -646,8 +646,8 @@ void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
  **/
 __attribute__((warn_unused_result))
 static struct vdo_page_completion *
-validateCompletedPage(VDOCompletion *completion,
-                      bool           writable)
+validateCompletedPage(struct vdo_completion *completion,
+                      bool                   writable)
 {
   struct vdo_page_completion *vpc = asVDOPageCompletion(completion);
 
@@ -704,7 +704,7 @@ static void checkForIOComplete(struct vdo_page_cache *cache)
  * @param completion  A completion for the VIO, the parent of which is a
  *                    page_info.
  **/
-static void pageIsLoaded(VDOCompletion *completion)
+static void pageIsLoaded(struct vdo_completion *completion)
 {
   struct page_info      *info   = completion->parent;
   struct vdo_page_cache *cache  = info->cache;
@@ -727,7 +727,7 @@ static void pageIsLoaded(VDOCompletion *completion)
  *
  * @param completion  The page read VIO
  **/
-static void handleLoadError(VDOCompletion *completion)
+static void handleLoadError(struct vdo_completion *completion)
 {
   int                    result = completion->result;
   struct page_info      *info   = completion->parent;
@@ -755,7 +755,7 @@ static void handleLoadError(VDOCompletion *completion)
  *
  * @param completion  The page load completion
  **/
-static void runReadHook(VDOCompletion *completion)
+static void runReadHook(struct vdo_completion *completion)
 {
   struct page_info *info = completion->parent;
   completion->callback = pageIsLoaded;
@@ -770,7 +770,7 @@ static void runReadHook(VDOCompletion *completion)
  *
  * @param completion  The page load completion
  **/
-static void handleRebuildReadError(VDOCompletion *completion)
+static void handleRebuildReadError(struct vdo_completion *completion)
 {
   struct page_info      *info   = completion->parent;
   struct vdo_page_cache *cache  = info->cache;
@@ -823,14 +823,14 @@ static int launchPageLoad(struct page_info *info, PhysicalBlockNumber pbn)
 }
 
 /**********************************************************************/
-static void writePages(VDOCompletion *completion);
+static void writePages(struct vdo_completion *completion);
 
 /**
  * Handle errors flushing the layer.
  *
  * @param completion  The flush VIO
  **/
-static void handleFlushError(VDOCompletion *completion)
+static void handleFlushError(struct vdo_completion *completion)
 {
   struct vdo_page_cache *cache
     = ((struct page_info *) completion->parent)->cache;
@@ -1055,7 +1055,7 @@ static bool writeHasFinished(struct page_info *info)
  *
  * @param completion  The page write VIO
  **/
-static void handlePageWriteError(VDOCompletion *completion)
+static void handlePageWriteError(struct vdo_completion *completion)
 {
   int                    result = completion->result;
   struct page_info      *info   = completion->parent;
@@ -1088,7 +1088,7 @@ static void handlePageWriteError(VDOCompletion *completion)
  * @param completion    A completion for the VIO, the parent of which
  *                      is embedded in page_info.
  **/
-static void pageIsWrittenOut(VDOCompletion *completion)
+static void pageIsWrittenOut(struct vdo_completion *completion)
 {
   struct page_info      *info  = completion->parent;
   struct vdo_page_cache *cache = info->cache;
@@ -1131,7 +1131,7 @@ static void pageIsWrittenOut(VDOCompletion *completion)
  *
  * @param flushCompletion  The flush VIO
  **/
-static void writePages(VDOCompletion *flushCompletion)
+static void writePages(struct vdo_completion *flushCompletion)
 {
   struct vdo_page_cache *cache
     = ((struct page_info *) flushCompletion->parent)->cache;
@@ -1149,7 +1149,7 @@ static void writePages(VDOCompletion *flushCompletion)
     struct page_info *info
       = pageInfoFromListNode(chopRingNode(&cache->outgoingList));
     if (isReadOnly(info->cache->zone->readOnlyNotifier)) {
-      VDOCompletion *completion = &info->vio->completion;
+      struct vdo_completion *completion = &info->vio->completion;
       resetCompletion(completion);
       completion->callback     = pageIsWrittenOut;
       completion->errorHandler = handlePageWriteError;
@@ -1169,7 +1169,7 @@ static void writePages(VDOCompletion *flushCompletion)
 }
 
 /**********************************************************************/
-void releaseVDOPageCompletion(VDOCompletion *completion)
+void releaseVDOPageCompletion(struct vdo_completion *completion)
 {
   if (completion == NULL) {
     return;
@@ -1226,7 +1226,7 @@ static void loadPageForCompletion(struct page_info           *info,
 }
 
 /**********************************************************************/
-void getVDOPageAsync(VDOCompletion *completion)
+void getVDOPageAsync(struct vdo_completion *completion)
 {
   struct vdo_page_completion *vdoPageComp = asVDOPageCompletion(completion);
   struct vdo_page_cache      *cache       = vdoPageComp->cache;
@@ -1287,9 +1287,9 @@ void getVDOPageAsync(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void markCompletedVDOPageDirty(VDOCompletion  *completion,
-                               SequenceNumber  oldDirtyPeriod,
-                               SequenceNumber  newDirtyPeriod)
+void markCompletedVDOPageDirty(struct vdo_completion *completion,
+                               SequenceNumber         oldDirtyPeriod,
+                               SequenceNumber         newDirtyPeriod)
 {
   struct vdo_page_completion *vdoPageComp = validateCompletedPage(completion,
                                                                   true);
@@ -1304,7 +1304,7 @@ void markCompletedVDOPageDirty(VDOCompletion  *completion,
 }
 
 /**********************************************************************/
-void requestVDOPageWrite(VDOCompletion *completion)
+void requestVDOPageWrite(struct vdo_completion *completion)
 {
   struct vdo_page_completion *vdoPageComp = validateCompletedPage(completion,
                                                                   true);
@@ -1324,19 +1324,19 @@ static void *dereferencePageCompletion(struct vdo_page_completion *completion)
 }
 
 /**********************************************************************/
-const void *dereferenceReadableVDOPage(VDOCompletion *completion)
+const void *dereferenceReadableVDOPage(struct vdo_completion *completion)
 {
   return dereferencePageCompletion(validateCompletedPage(completion, false));
 }
 
 /**********************************************************************/
-void *dereferenceWritableVDOPage(VDOCompletion *completion)
+void *dereferenceWritableVDOPage(struct vdo_completion *completion)
 {
   return dereferencePageCompletion(validateCompletedPage(completion, true));
 }
 
 /**********************************************************************/
-void *getVDOPageCompletionContext(VDOCompletion *completion)
+void *getVDOPageCompletionContext(struct vdo_completion *completion)
 {
   struct vdo_page_completion *pageCompletion = asVDOPageCompletion(completion);
   struct page_info *info

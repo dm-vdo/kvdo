@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalEraser.c#6 $
  */
 
 #include "slabJournalEraser.h"
@@ -30,10 +30,10 @@
 #include "slabDepot.h"
 
 struct slab_journal_eraser {
-  VDOCompletion        *parent;
-  VDOExtent            *extent;
-  char                 *zeroBuffer;
-  struct slab_iterator  slabs;
+  struct vdo_completion *parent;
+  VDOExtent             *extent;
+  char                  *zeroBuffer;
+  struct slab_iterator   slabs;
 };
 
 /**
@@ -44,7 +44,7 @@ struct slab_journal_eraser {
  **/
 static void finishErasing(struct slab_journal_eraser *eraser, int result)
 {
-  VDOCompletion *parent = eraser->parent;
+  struct vdo_completion *parent = eraser->parent;
   freeExtent(&eraser->extent);
   FREE(eraser->zeroBuffer);
   FREE(eraser);
@@ -56,7 +56,7 @@ static void finishErasing(struct slab_journal_eraser *eraser, int result)
  *
  * @param completion   A completion whose parent is the eraser
  **/
-static void handleErasingError(VDOCompletion *completion)
+static void handleErasingError(struct vdo_completion *completion)
 {
   struct slab_journal_eraser *eraser = completion->parent;
   finishErasing(eraser, eraser->extent->completion.result);
@@ -67,7 +67,7 @@ static void handleErasingError(VDOCompletion *completion)
  *
  * @param extentCompletion  A completion whose parent is the eraser
  **/
-static void eraseNextSlabJournal(VDOCompletion *extentCompletion)
+static void eraseNextSlabJournal(struct vdo_completion *extentCompletion)
 {
   struct slab_journal_eraser *eraser = extentCompletion->parent;
 
@@ -81,9 +81,9 @@ static void eraseNextSlabJournal(VDOCompletion *extentCompletion)
 }
 
 /**********************************************************************/
-void eraseSlabJournals(struct slab_depot    *depot,
-                       struct slab_iterator  slabs,
-                       VDOCompletion        *parent)
+void eraseSlabJournals(struct slab_depot     *depot,
+                       struct slab_iterator   slabs,
+                       struct vdo_completion *parent)
 {
   struct slab_journal_eraser *eraser;
   int result = ALLOCATE(1, struct slab_journal_eraser, __func__, &eraser);
@@ -111,7 +111,7 @@ void eraseSlabJournals(struct slab_depot    *depot,
     return;
   }
 
-  VDOCompletion *extentCompletion = &eraser->extent->completion;
+  struct vdo_completion *extentCompletion = &eraser->extent->completion;
   prepareCompletion(extentCompletion, eraseNextSlabJournal,
                     handleErasingError, getCallbackThreadID(), eraser);
   eraseNextSlabJournal(extentCompletion);

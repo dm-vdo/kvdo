@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#2 $
  */
 
 #include "extent.h"
@@ -137,7 +137,7 @@ void writePartialMetadataExtent(VDOExtent           *extent,
 }
 
 /**********************************************************************/
-void handleVIOCompletion(VDOCompletion *completion)
+void handleVIOCompletion(struct vdo_completion *completion)
 {
   VDOExtent *extent = asVDOExtent(completion->parent);
   if (++extent->completeCount != extent->count) {

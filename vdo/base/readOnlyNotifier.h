@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#4 $
  */
 
 /*
@@ -41,7 +41,8 @@
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-typedef void ReadOnlyNotification(void *listener, VDOCompletion *parent);
+typedef void ReadOnlyNotification(void                  *listener,
+                                  struct vdo_completion *parent);
 
 /**
  * Create a read-only notifer.
@@ -76,7 +77,7 @@ void freeReadOnlyNotifier(struct read_only_notifier **notifierPtr);
  *                  read-only mode
  **/
 void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
-                                      VDOCompletion             *parent);
+                                      struct vdo_completion     *parent);
 
 /**
  * Allow the notifier to put the VDO into read-only mode, reversing the effects
@@ -92,7 +93,7 @@ void waitUntilNotEnteringReadOnlyMode(struct read_only_notifier *notifier,
  * @param parent    The object to notify once the operation is complete
  **/
 void allowReadOnlyModeEntry(struct read_only_notifier *notifier,
-                            VDOCompletion             *parent);
+                            struct vdo_completion     *parent);
 
 /**
  * Put a VDO into read-only mode and save the read-only state in the super

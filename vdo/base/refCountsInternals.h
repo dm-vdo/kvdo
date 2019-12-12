@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#13 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -116,13 +116,13 @@ __attribute__((warn_unused_result))
 ReferenceStatus referenceCountToStatus(ReferenceCount count);
 
 /**
- * Convert a generic VDOCompletion to a ref_counts object.
+ * Convert a generic vdo_completion to a ref_counts object.
  *
  * @param completion The completion to convert
  *
  * @return The completion as a ref_counts object
  **/
-struct ref_counts *asRefCounts(VDOCompletion *completion)
+struct ref_counts *asRefCounts(struct vdo_completion *completion)
   __attribute__((warn_unused_result));
 
 /**

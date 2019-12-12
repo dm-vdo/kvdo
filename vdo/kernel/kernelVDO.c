@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#26 $
  */
 
 /*
@@ -381,7 +381,7 @@ void get_kvdo_statistics(struct kvdo *kvdo, VDOStatistics *stats)
  **/
 struct vdo_action_data {
 	VDOAction *action;
-	VDOCompletion *vdo_completion;
+	struct vdo_completion *vdo_completion;
 	struct completion waiter;
 };
 
@@ -395,7 +395,7 @@ struct vdo_action_data {
  **/
 static void initialize_vdo_action_data(struct vdo_action_data *data,
 				       VDOAction *action,
-				       VDOCompletion *vdo_completion)
+				       struct vdo_completion *vdo_completion)
 {
 	*data = (struct vdo_action_data){
 		.action = action,
@@ -408,7 +408,7 @@ static void initialize_vdo_action_data(struct vdo_action_data *data,
  *
  * @param vdo_completion     The VDO completion which was acted upon.
  **/
-static void finish_vdo_action(VDOCompletion *vdo_completion)
+static void finish_vdo_action(struct vdo_completion *vdo_completion)
 {
 	struct sync_queue_work *work = vdo_completion->parent;
 	complete(work->completion);

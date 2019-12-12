@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#2 $
  */
 
 #ifndef REFERENCE_COUNT_REBUILD_H
@@ -34,9 +34,9 @@
  * @param [out] blockMapDataBlocks  A pointer to hold the number of block map
  *                                  data blocks
  **/
-void rebuildReferenceCounts(VDO           *vdo,
-                            VDOCompletion *parent,
-                            BlockCount    *logicalBlocksUsed,
-                            BlockCount    *blockMapDataBlocks);
+void rebuildReferenceCounts(VDO                   *vdo,
+                            struct vdo_completion *parent,
+                            BlockCount            *logicalBlocksUsed,
+                            BlockCount            *blockMapDataBlocks);
 
 #endif // REFERENCE_COUNT_REBUILD_H

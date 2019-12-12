@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#3 $
  */
 
 #include "lockCounter.h"
@@ -41,27 +41,27 @@
  **/
 struct lock_counter {
   /** The completion for notifying the owner of a lock release */
-  VDOCompletion  completion;
+  struct vdo_completion  completion;
   /** The number of logical zones which may hold locks */
-  ZoneCount      logicalZones;
+  ZoneCount              logicalZones;
   /** The number of physical zones which may hold locks */
-  ZoneCount      physicalZones;
+  ZoneCount              physicalZones;
   /** The number of locks */
-  BlockCount     locks;
+  BlockCount             locks;
   /** Whether the lock release notification is in flight */
-  AtomicBool     notifying;
+  AtomicBool             notifying;
   /** The number of logical zones which hold each lock */
-  Atomic32      *logicalZoneCounts;
+  Atomic32              *logicalZoneCounts;
   /** The number of physical zones which hold each lock */
-  Atomic32      *physicalZoneCounts;
+  Atomic32              *physicalZoneCounts;
   /** The per-zone, per-lock counts for the journal zone */
-  uint16_t      *journalCounters;
+  uint16_t              *journalCounters;
   /** The per-zone, per-lock decrement counts for the journal zone */
-  Atomic32      *journalDecrementCounts;
+  Atomic32              *journalDecrementCounts;
   /** The per-zone, per-lock reference counts for logical zones */
-  uint16_t      *logicalCounters;
+  uint16_t              *logicalCounters;
   /** The per-zone, per-lock reference counts for physical zones */
-  uint16_t      *physicalCounters;
+  uint16_t              *physicalCounters;
 };
 
 /**********************************************************************/

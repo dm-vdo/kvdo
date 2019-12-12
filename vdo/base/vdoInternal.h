@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#23 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -165,7 +165,7 @@ int saveVDOComponents(VDO *vdo)
  * @param vdo     The VDO whose state is being saved
  * @param parent  The completion to notify when the save is complete
  **/
-void saveVDOComponentsAsync(VDO *vdo, VDOCompletion *parent);
+void saveVDOComponentsAsync(VDO *vdo, struct vdo_completion *parent);
 
 /**
  * Re-encode the VDO component after a reconfiguration and save the super
@@ -396,6 +396,6 @@ int getPhysicalZone(const VDO             *vdo,
 /**********************************************************************/
 // Asynchronous callback to share a duplicate block. This is only public so
 // test code may compare it against the current callback in the completion.
-void shareBlock(VDOCompletion *completion);
+void shareBlock(struct vdo_completion *completion);
 
 #endif /* VDO_INTERNAL_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#7 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -98,13 +98,14 @@ static inline VIO *allocatingVIOAsVIO(struct allocating_vio *allocatingVIO)
 }
 
 /**
- * Convert a generic VDOCompletion to an allocating_vio.
+ * Convert a generic vdo_completion to an allocating_vio.
  *
  * @param completion  The completion to convert
  *
  * @return The completion as an allocating_vio
  **/
-static inline struct allocating_vio *asAllocatingVIO(VDOCompletion *completion)
+static inline struct allocating_vio *
+asAllocatingVIO(struct vdo_completion *completion)
 {
   return vioAsAllocatingVIO(asVIO(completion));
 }
@@ -117,7 +118,8 @@ static inline struct allocating_vio *asAllocatingVIO(VDOCompletion *completion)
  * @return The allocating_vio as a completion
  **/
 static inline
-VDOCompletion *allocatingVIOAsCompletion(struct allocating_vio *allocatingVIO)
+struct vdo_completion *
+allocatingVIOAsCompletion(struct allocating_vio *allocatingVIO)
 {
   return vioAsCompletion(allocatingVIOAsVIO(allocatingVIO));
 }

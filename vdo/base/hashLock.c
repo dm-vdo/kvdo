@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#13 $
  */
 
 /**
@@ -142,7 +142,7 @@ static void startDeduping(struct hash_lock        *lock,
                           bool                     agentIsDone);
 static void startLocking(struct hash_lock *lock, struct data_vio *agent);
 static void startWriting(struct hash_lock *lock, struct data_vio *agent);
-static void unlockDuplicatePBN(VDOCompletion *completion);
+static void unlockDuplicatePBN(struct vdo_completion *completion);
 static void transferAllocationLock(struct data_vio *dataVIO);
 
 /**********************************************************************/
@@ -357,7 +357,7 @@ static struct data_vio *retireLockAgent(struct hash_lock *lock)
  *
  * @param completion  The data_vio
  **/
-static void compressDataCallback(VDOCompletion *completion)
+static void compressDataCallback(struct vdo_completion *completion)
 {
   // XXX VDOSTORY-190 need an error check since compressData doesn't have one.
   compressData(asDataVIO(completion));
@@ -417,7 +417,7 @@ static void compressWaiter(struct waiter *waiter,
  *
  * @param completion  The completion of the  acting as the lock's agent
  **/
-static void finishBypassing(VDOCompletion *completion)
+static void finishBypassing(struct vdo_completion *completion)
 {
   struct data_vio  *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);
@@ -505,7 +505,7 @@ static void abortHashLock(struct hash_lock *lock, struct data_vio *dataVIO)
  *
  * @param completion  The completion of the data_vio acting as the lock's agent
  **/
-static void finishUnlocking(VDOCompletion *completion)
+static void finishUnlocking(struct vdo_completion *completion)
 {
   struct data_vio *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);
@@ -563,7 +563,7 @@ static void finishUnlocking(VDOCompletion *completion)
  *
  * @param completion  The completion of the data_vio acting as the lock's agent
  **/
-static void unlockDuplicatePBN(VDOCompletion *completion)
+static void unlockDuplicatePBN(struct vdo_completion *completion)
 {
   struct data_vio *agent = asDataVIO(completion);
   assertInDuplicateZone(agent);
@@ -607,7 +607,7 @@ static void startUnlocking(struct hash_lock *lock, struct data_vio *agent)
  *
  * @param completion  The completion of the data_vio that performed the update
  **/
-static void finishUpdating(VDOCompletion *completion)
+static void finishUpdating(struct vdo_completion *completion)
 {
   struct data_vio  *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);
@@ -853,7 +853,7 @@ static void startDeduping(struct hash_lock *lock,
  *
  * @param completion  The completion of the data_vio used to verify dedupe
  **/
-static void finishVerifying(VDOCompletion *completion)
+static void finishVerifying(struct vdo_completion *completion)
 {
   struct data_vio  *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);
@@ -940,7 +940,7 @@ static void startVerifying(struct hash_lock *lock, struct data_vio *agent)
  * @param completion  The completion of the data_vio that attempted to get
  *                    the read lock
  **/
-static void finishLocking(VDOCompletion *completion)
+static void finishLocking(struct vdo_completion *completion)
 {
   struct data_vio  *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);
@@ -1011,7 +1011,7 @@ static void finishLocking(VDOCompletion *completion)
  * @param completion The completion of the data_vio attempting to acquire the
  *                   physical block lock on behalf of its hash lock
  **/
-static void lockDuplicatePBN(VDOCompletion *completion)
+static void lockDuplicatePBN(struct vdo_completion *completion)
 {
   struct data_vio       *agent = asDataVIO(completion);
   struct physical_zone  *zone  = agent->duplicate.zone;
@@ -1316,7 +1316,7 @@ static void startWriting(struct hash_lock *lock, struct data_vio *agent)
  *
  * @param completion  The completion of the data_vio that performed the query
  **/
-static void finishQuerying(VDOCompletion *completion)
+static void finishQuerying(struct vdo_completion *completion)
 {
   struct data_vio  *agent = asDataVIO(completion);
   assertHashLockAgent(agent, __func__);

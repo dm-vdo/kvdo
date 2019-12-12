@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#5 $
  */
 
 #ifndef FOREST_H
@@ -33,7 +33,8 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int EntryCallback(PhysicalBlockNumber pbn, VDOCompletion *completion);
+typedef int EntryCallback(PhysicalBlockNumber    pbn,
+                          struct vdo_completion *completion);
 
 /**
  * Get the tree page for a given height and page index.
@@ -94,9 +95,9 @@ void replaceForest(struct block_map *map);
  * @param parent         The completion to notify on each traversed PBN, and
  *                       when the traversal is complete
  **/
-void traverseForest(struct block_map *map,
-                    EntryCallback    *entryCallback,
-                    VDOCompletion    *parent);
+void traverseForest(struct block_map       *map,
+                    EntryCallback          *entryCallback,
+                    struct vdo_completion  *parent);
 
 /**
  * Compute the approximate number of pages which the forest will allocate in

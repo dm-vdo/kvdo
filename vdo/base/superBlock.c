@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#8 $
  */
 
 #include "superBlock.h"
@@ -36,22 +36,22 @@
 
 struct super_block {
   /** The parent for asynchronous load and save operations */
-  VDOCompletion        *parent;
+  struct vdo_completion       *parent;
   /** The VIO for reading and writing the super block to disk */
-  VIO                  *vio;
+  VIO                         *vio;
   /** The buffer for encoding and decoding component data */
-  Buffer               *componentBuffer;
+  Buffer                      *componentBuffer;
   /**
-   * A sector-sized buffer wrapping the first sector of encodedSuperBlock, for
+   * A sector-sized buffer wrapping the first sector of  encodedSuperBlock, for
    * encoding and decoding the entire super block.
    **/
-  Buffer               *blockBuffer;
+  Buffer                      *blockBuffer;
   /** A 1-block buffer holding the encoded on-disk super block */
-  byte                 *encodedSuperBlock;
+  byte                        *encodedSuperBlock;
   /** The release version number loaded from the volume */
-  ReleaseVersionNumber  loadedReleaseVersion;
+  ReleaseVersionNumber         loadedReleaseVersion;
   /** Whether this super block may not be written */
-  bool                  unwriteable;
+  bool                         unwriteable;
 };
 
 enum {
@@ -222,10 +222,10 @@ int saveSuperBlock(PhysicalLayer       *layer,
  *
  * @param completion  The super block VIO
  **/
-static void finishSuperBlockParent(VDOCompletion *completion)
+static void finishSuperBlockParent(struct vdo_completion *completion)
 {
   struct super_block    *superBlock = completion->parent;
-  VDOCompletion         *parent     = superBlock->parent;
+  struct vdo_completion *parent     = superBlock->parent;
   superBlock->parent                = NULL;
   finishCompletion(parent, completion->result);
 }
@@ -236,7 +236,7 @@ static void finishSuperBlockParent(VDOCompletion *completion)
  *
  * @param completion  The super block VIO
  **/
-static void handleSaveError(VDOCompletion *completion)
+static void handleSaveError(struct vdo_completion *completion)
 {
   logErrorWithStringError(completion->result, "super block save failed");
   /*
@@ -253,9 +253,9 @@ static void handleSaveError(VDOCompletion *completion)
 }
 
 /**********************************************************************/
-void saveSuperBlockAsync(struct super_block  *superBlock,
-                         PhysicalBlockNumber  superBlockOffset,
-                         VDOCompletion       *parent)
+void saveSuperBlockAsync(struct super_block    *superBlock,
+                         PhysicalBlockNumber    superBlockOffset,
+                         struct vdo_completion *parent)
 {
   if (superBlock->unwriteable) {
     finishCompletion(parent, VDO_READ_ONLY);
@@ -390,18 +390,18 @@ int loadSuperBlock(PhysicalLayer        *layer,
  *
  * @param completion  The super block VIO
  **/
-static void finishReadingSuperBlock(VDOCompletion *completion)
+static void finishReadingSuperBlock(struct vdo_completion *completion)
 {
   struct super_block    *superBlock = completion->parent;
-  VDOCompletion *parent             = superBlock->parent;
+  struct vdo_completion *parent     = superBlock->parent;
   superBlock->parent        = NULL;
   finishCompletion(parent, decodeSuperBlock(superBlock));
 }
 
 /**********************************************************************/
-void loadSuperBlockAsync(VDOCompletion        *parent,
-                         PhysicalBlockNumber   superBlockOffset,
-                         struct super_block          **superBlockPtr)
+void loadSuperBlockAsync(struct vdo_completion  *parent,
+                         PhysicalBlockNumber     superBlockOffset,
+                         struct super_block    **superBlockPtr)
 {
   PhysicalLayer      *layer      = parent->layer;
   struct super_block *superBlock = NULL;
