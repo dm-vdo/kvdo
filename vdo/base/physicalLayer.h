@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#15 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -268,7 +268,7 @@ typedef AsyncDataOperation AlbireoUpdater;
  *
  * @param vdoFlush  The flush requests
  **/
-typedef void FlushComplete(VDOFlush **vdoFlush);
+typedef void FlushComplete(struct vdo_flush **vdoFlush);
 
 /**
  * A function to query whether the layer requires flushes for persistence.

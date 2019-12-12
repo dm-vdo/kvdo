@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#16 $
  */
 
 #include "kvdoFlush.h"
@@ -47,7 +47,7 @@ struct kvdo_flush {
 	struct kernel_layer *layer;
 	struct bio_list bios;
 	Jiffies arrival_time; // Time when earliest bio appeared
-	VDOFlush vdo_flush;
+	struct vdo_flush vdo_flush;
 };
 
 /**********************************************************************/
@@ -226,7 +226,7 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 }
 
 /**********************************************************************/
-void kvdo_complete_flush(VDOFlush **kfp)
+void kvdo_complete_flush(struct vdo_flush **kfp)
 {
 	if (*kfp != NULL) {
 		struct kvdo_flush *kvdo_flush = container_of(*kfp,

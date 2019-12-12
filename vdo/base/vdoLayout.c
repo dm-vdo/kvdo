@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#3 $
  */
 
 #include "vdoLayout.h"
@@ -125,8 +125,8 @@ static int makeVDOFixedLayout(BlockCount            physicalBlocks,
  * @return The offset of the partition (in blocks)
  **/
 __attribute__((warn_unused_result))
-static BlockCount getPartitionOffset(VDOLayout   *layout,
-                                     PartitionID  partitionID)
+static BlockCount getPartitionOffset(struct vdo_layout *layout,
+                                     PartitionID        partitionID)
 {
   return getFixedLayoutPartitionOffset(getVDOPartition(layout, partitionID));
 }
@@ -137,10 +137,10 @@ int makeVDOLayout(BlockCount            physicalBlocks,
                   BlockCount            blockMapBlocks,
                   BlockCount            journalBlocks,
                   BlockCount            summaryBlocks,
-                  VDOLayout           **vdoLayoutPtr)
+                  struct vdo_layout   **vdoLayoutPtr)
 {
-  VDOLayout *vdoLayout;
-  int result = ALLOCATE(1, VDOLayout, __func__, &vdoLayout);
+  struct vdo_layout *vdoLayout;
+  int result = ALLOCATE(1, struct vdo_layout, __func__, &vdoLayout);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -159,10 +159,10 @@ int makeVDOLayout(BlockCount            physicalBlocks,
 }
 
 /**********************************************************************/
-int decodeVDOLayout(Buffer *buffer, VDOLayout **vdoLayoutPtr)
+int decodeVDOLayout(Buffer *buffer, struct vdo_layout **vdoLayoutPtr)
 {
-  VDOLayout *vdoLayout;
-  int result = ALLOCATE(1, VDOLayout, __func__, &vdoLayout);
+  struct vdo_layout *vdoLayout;
+  int result = ALLOCATE(1, struct vdo_layout, __func__, &vdoLayout);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -195,9 +195,9 @@ int decodeVDOLayout(Buffer *buffer, VDOLayout **vdoLayoutPtr)
 }
 
 /**********************************************************************/
-void freeVDOLayout(VDOLayout **vdoLayoutPtr)
+void freeVDOLayout(struct vdo_layout **vdoLayoutPtr)
 {
-  VDOLayout *vdoLayout = *vdoLayoutPtr;
+  struct vdo_layout *vdoLayout = *vdoLayoutPtr;
   if (vdoLayout == NULL) {
     return;
   }
@@ -225,31 +225,32 @@ static struct partition *retrievePartition(struct fixed_layout *layout,
 {
   struct partition *partition;
   int result = getPartition(layout, id, &partition);
-  ASSERT_LOG_ONLY(result == VDO_SUCCESS, "VDOLayout has expected partition");
+  ASSERT_LOG_ONLY(result == VDO_SUCCESS, "vdo_layout has expected partition");
   return partition;
 }
 
 /**********************************************************************/
-struct partition *getVDOPartition(VDOLayout *vdoLayout, PartitionID id)
+struct partition *getVDOPartition(struct vdo_layout *vdoLayout, PartitionID id)
 {
   return retrievePartition(vdoLayout->layout, id);
 }
 
 /**
- * Get a partition from a VDOLayout's next fixed_layout. This method should
- * only be called when the VDOLayout is prepared to grow.
+ * Get a partition from a vdo_layout's next fixed_layout. This method should
+ * only be called when the vdo_layout is prepared to grow.
  *
- * @param vdoLayout  The VDOLayout from which to get the partition
+ * @param vdoLayout  The vdo_layout from which to get the partition
  * @param id         The ID of the desired partition
  *
  * @return The requested partition
  **/
 __attribute__((warn_unused_result))
-static struct partition *getPartitionFromNextLayout(VDOLayout   *vdoLayout,
-                                                    PartitionID  id)
+static struct partition *
+getPartitionFromNextLayout(struct vdo_layout *vdoLayout,
+                           PartitionID        id)
 {
   ASSERT_LOG_ONLY(vdoLayout->nextLayout != NULL,
-                  "VDOLayout is prepared to grow");
+                  "vdo_layout is prepared to grow");
   return retrievePartition(vdoLayout->nextLayout, id);
 }
 
@@ -262,16 +263,17 @@ static struct partition *getPartitionFromNextLayout(VDOLayout   *vdoLayout,
  * @return The size of the partition (in blocks)
  **/
 __attribute__((warn_unused_result))
-static BlockCount getPartitionSize(VDOLayout *layout, PartitionID partitionID)
+static BlockCount getPartitionSize(struct vdo_layout *layout,
+                                   PartitionID        partitionID)
 {
   return getFixedLayoutPartitionSize(getVDOPartition(layout, partitionID));
 }
 
 /**********************************************************************/
-int prepareToGrowVDOLayout(VDOLayout     *vdoLayout,
-                           BlockCount     oldPhysicalBlocks,
-                           BlockCount     newPhysicalBlocks,
-                           PhysicalLayer *layer)
+int prepareToGrowVDOLayout(struct vdo_layout *vdoLayout,
+                           BlockCount         oldPhysicalBlocks,
+                           BlockCount         newPhysicalBlocks,
+                           PhysicalLayer     *layer)
 {
   if (getNextVDOLayoutSize(vdoLayout) == newPhysicalBlocks) {
     // We are already prepared to grow to the new size, so we're done.
@@ -338,19 +340,19 @@ static BlockCount getVDOSize(struct fixed_layout *layout,
                              BlockCount           startingOffset)
 {
   // The fixed_layout does not include the super block or any earlier
-  // metadata; all that is captured in the VDOLayout's starting offset
+  // metadata; all that is captured in the vdo_layout's starting offset
   return getTotalFixedLayoutSize(layout) + startingOffset;
 }
 
 /**********************************************************************/
-BlockCount getNextVDOLayoutSize(VDOLayout *vdoLayout)
+BlockCount getNextVDOLayoutSize(struct vdo_layout *vdoLayout)
 {
   return ((vdoLayout->nextLayout == NULL)
           ? 0 : getVDOSize(vdoLayout->nextLayout, vdoLayout->startingOffset));
 }
 
 /**********************************************************************/
-BlockCount getNextBlockAllocatorPartitionSize(VDOLayout *vdoLayout)
+BlockCount getNextBlockAllocatorPartitionSize(struct vdo_layout *vdoLayout)
 {
   if (vdoLayout->nextLayout == NULL) {
     return 0;
@@ -362,7 +364,7 @@ BlockCount getNextBlockAllocatorPartitionSize(VDOLayout *vdoLayout)
 }
 
 /**********************************************************************/
-BlockCount growVDOLayout(VDOLayout *vdoLayout)
+BlockCount growVDOLayout(struct vdo_layout *vdoLayout)
 {
   ASSERT_LOG_ONLY(vdoLayout->nextLayout != NULL,
                   "VDO prepared to grow physical");
@@ -374,7 +376,7 @@ BlockCount growVDOLayout(VDOLayout *vdoLayout)
 }
 
 /**********************************************************************/
-BlockCount revertVDOLayout(VDOLayout *vdoLayout)
+BlockCount revertVDOLayout(struct vdo_layout *vdoLayout)
 {
   if ((vdoLayout->previousLayout != NULL)
       && (vdoLayout->previousLayout != vdoLayout->layout)) {
@@ -388,7 +390,7 @@ BlockCount revertVDOLayout(VDOLayout *vdoLayout)
 }
 
 /**********************************************************************/
-void finishVDOLayoutGrowth(VDOLayout *vdoLayout)
+void finishVDOLayoutGrowth(struct vdo_layout *vdoLayout)
 {
   if (vdoLayout->layout != vdoLayout->previousLayout) {
     freeFixedLayout(&vdoLayout->previousLayout);
@@ -402,9 +404,9 @@ void finishVDOLayoutGrowth(VDOLayout *vdoLayout)
 }
 
 /**********************************************************************/
-void copyPartition(VDOLayout     *layout,
-                   PartitionID    partitionID,
-                   VDOCompletion *parent)
+void copyPartition(struct vdo_layout *layout,
+                   PartitionID        partitionID,
+                   VDOCompletion     *parent)
 {
   copyPartitionAsync(layout->copyCompletion,
                      getVDOPartition(layout, partitionID),
@@ -412,13 +414,13 @@ void copyPartition(VDOLayout     *layout,
 }
 
 /**********************************************************************/
-size_t getVDOLayoutEncodedSize(const VDOLayout *vdoLayout)
+size_t getVDOLayoutEncodedSize(const struct vdo_layout *vdoLayout)
 {
   return getFixedLayoutEncodedSize(vdoLayout->layout);
 }
 
 /**********************************************************************/
-int encodeVDOLayout(const VDOLayout *vdoLayout, Buffer *buffer)
+int encodeVDOLayout(const struct vdo_layout *vdoLayout, Buffer *buffer)
 {
   return encodeFixedLayout(vdoLayout->layout, buffer);
 }

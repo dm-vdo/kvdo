@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#3 $
  */
 
 #ifndef VDO_LAYOUT_INTERNALS_H
@@ -25,7 +25,7 @@
 #include "fixedLayout.h"
 #include "types.h"
 
-struct vdoLayout {
+struct vdo_layout {
   // The current layout of the VDO
   struct fixed_layout *layout;
   // The next layout of the VDO

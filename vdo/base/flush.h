@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#4 $
  */
 
 #ifndef FLUSH_H
@@ -28,7 +28,7 @@
 /**
  * A marker for tracking which journal entries are affected by a flush request.
  **/
-struct vdoFlush {
+struct vdo_flush {
   /** The wait queue entry for this flush */
   struct waiter  waiter;
   /** Which flush this struct represents */
@@ -68,7 +68,7 @@ ThreadID getFlusherThreadID(struct flusher *flusher)
  * @param vdo       The VDO
  * @param vdoFlush  The opaque flush request
  **/
-void flush(VDO *vdo, VDOFlush *vdoFlush);
+void flush(VDO *vdo, struct vdo_flush *vdoFlush);
 
 /**
  * Attempt to complete any flushes which might have finished.

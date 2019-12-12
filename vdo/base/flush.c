@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#8 $
  */
 
 #include "flush.h"
@@ -67,16 +67,16 @@ static struct flusher *asFlusher(VDOCompletion *completion)
 }
 
 /**
- * Convert a VDOFlush's generic wait queue entry back to the VDOFlush.
+ * Convert a vdo_flush's generic wait queue entry back to the vdo_flush.
  *
  * @param waiter  The wait queue entry to convert
  *
- * @return The wait queue entry as a VDOFlush
+ * @return The wait queue entry as a vdo_flush
  **/
-static VDOFlush *waiterAsFlush(struct waiter *waiter)
+static struct vdo_flush *waiterAsFlush(struct waiter *waiter)
 {
-  STATIC_ASSERT(offsetof(VDOFlush, waiter) == 0);
-  return (VDOFlush *) waiter;
+  STATIC_ASSERT(offsetof(struct vdo_flush, waiter) == 0);
+  return (struct vdo_flush *) waiter;
 }
 
 /**********************************************************************/
@@ -134,7 +134,7 @@ static void finishNotification(VDOCompletion *completion)
   int            result = enqueueWaiter(&flusher->pendingFlushes, waiter);
   if (result != VDO_SUCCESS) {
     enterReadOnlyMode(flusher->vdo->readOnlyNotifier, result);
-    VDOFlush *flush = waiterAsFlush(waiter);
+    struct vdo_flush *flush = waiterAsFlush(waiter);
     completion->layer->completeFlush(&flush);
     return;
   }
@@ -189,7 +189,7 @@ static void incrementGeneration(VDOCompletion *completion)
  **/
 static void notifyFlush(struct flusher *flusher)
 {
-  VDOFlush *flush = waiterAsFlush(getFirstWaiter(&flusher->notifiers));
+  struct vdo_flush *flush = waiterAsFlush(getFirstWaiter(&flusher->notifiers));
   flusher->notifyGeneration    = flush->flushGeneration;
   flusher->logicalZoneToNotify = getLogicalZone(flusher->vdo->logicalZones, 0);
   flusher->completion.requeue  = true;
@@ -198,7 +198,7 @@ static void notifyFlush(struct flusher *flusher)
 }
 
 /**********************************************************************/
-void flush(VDO *vdo, VDOFlush *flush)
+void flush(VDO *vdo, struct vdo_flush *flush)
 {
   struct flusher *flusher = vdo->flusher;
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
@@ -235,7 +235,8 @@ void completeFlushes(struct flusher *flusher)
   }
 
   while (hasWaiters(&flusher->pendingFlushes)) {
-    VDOFlush *flush = waiterAsFlush(getFirstWaiter(&flusher->pendingFlushes));
+    struct vdo_flush *flush
+      = waiterAsFlush(getFirstWaiter(&flusher->pendingFlushes));
     if (flush->flushGeneration >= oldestActiveGeneration) {
       return;
     }
