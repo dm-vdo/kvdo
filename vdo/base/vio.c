@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#11 $
  */
 
 #include "vio.h"
@@ -29,9 +29,9 @@
 #include <linux/ratelimit.h>
 
 /**********************************************************************/
-void freeVIO(VIO **vioPtr)
+void freeVIO(struct vio **vioPtr)
 {
-  VIO *vio = *vioPtr;
+  struct vio *vio = *vioPtr;
   if (vio == NULL) {
     return;
   }
@@ -40,7 +40,7 @@ void freeVIO(VIO **vioPtr)
 }
 
 /**********************************************************************/
-void initializeVIO(VIO                   *vio,
+void initializeVIO(struct vio            *vio,
                    VIOType                type,
                    VIOPriority            priority,
                    struct vdo_completion *parent,
@@ -59,14 +59,14 @@ void initializeVIO(VIO                   *vio,
 /**********************************************************************/
 void vioDoneCallback(struct vdo_completion *completion)
 {
-  VIO *vio = asVIO(completion);
+  struct vio *vio = asVIO(completion);
   completion->callback     = vio->callback;
   completion->errorHandler = vio->errorHandler;
   completeCompletion(completion);
 }
 
 /**********************************************************************/
-const char *getVIOReadWriteFlavor(const VIO *vio)
+const char *getVIOReadWriteFlavor(const struct vio *vio)
 {
   if (isReadVIO(vio)) {
     return "read";
@@ -75,7 +75,7 @@ const char *getVIOReadWriteFlavor(const VIO *vio)
 }
 
 /**********************************************************************/
-void updateVIOErrorStats(VIO *vio, const char *format, ...)
+void updateVIOErrorStats(struct vio *vio, const char *format, ...)
 {
   int priority;
   int result = vioAsCompletion(vio)->result;
@@ -109,20 +109,20 @@ void updateVIOErrorStats(VIO *vio, const char *format, ...)
 /**
  * Handle an error from a metadata I/O.
  *
- * @param completion  The VIO
+ * @param completion  The vio
  **/
 static void handleMetadataIOError(struct vdo_completion *completion)
 {
-  VIO *vio = asVIO(completion);
+  struct vio *vio = asVIO(completion);
   updateVIOErrorStats(vio,
-                      "Completing %s VIO of type %u for physical block %"
+                      "Completing %s vio of type %u for physical block %"
                        PRIu64 " with error",
                        getVIOReadWriteFlavor(vio), vio->type, vio->physical);
   vioDoneCallback(completion);
 }
 
 /**********************************************************************/
-void launchMetadataVIO(VIO                 *vio,
+void launchMetadataVIO(struct vio          *vio,
                        PhysicalBlockNumber  physical,
                        VDOAction           *callback,
                        VDOAction           *errorHandler,
@@ -144,7 +144,7 @@ void launchMetadataVIO(VIO                 *vio,
 /**
  * Handle a flush error.
  *
- * @param completion  The flush VIO
+ * @param completion  The flush vio
  **/
 static void handleFlushError(struct vdo_completion *completion)
 {
@@ -154,7 +154,7 @@ static void handleFlushError(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void launchFlush(VIO *vio, VDOAction *callback, VDOAction *errorHandler)
+void launchFlush(struct vio *vio, VDOAction *callback, VDOAction *errorHandler)
 {
   ASSERT_LOG_ONLY(getWritePolicy(vio->vdo) == WRITE_POLICY_ASYNC,
 		  "pure flushes should not currently be issued in sync mode");

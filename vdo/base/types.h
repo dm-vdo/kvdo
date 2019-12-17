@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#29 $
  */
 
 #ifndef TYPES_H
@@ -117,7 +117,7 @@ typedef uint16_t SlabCount;
 typedef uint16_t SlotNumber;
 
 /**
- * A number of VIOs.
+ * A number of vios.
  **/
 typedef uint16_t VIOCount;
 
@@ -150,7 +150,7 @@ static const ThreadID INVALID_THREAD_ID = (ThreadID) -1;
 typedef uint8_t ZoneCount;
 
 /**
- * The type of request a VIO is performing
+ * The type of request a vio is performing
  **/
 typedef enum __attribute__((packed)) vioOperation {
   VIO_UNSPECIFIED_OPERATION = 0,
@@ -163,7 +163,7 @@ typedef enum __attribute__((packed)) vioOperation {
 } VIOOperation;
 
 /**
- * VIO types for statistics and instrumentation.
+ * vio types for statistics and instrumentation.
  **/
 typedef enum __attribute__((packed)) {
   VIO_TYPE_UNINITIALIZED = 0,
@@ -234,7 +234,7 @@ static inline bool isMetadataVIOType(VIOType vioType)
 }
 
 /**
- * Priority levels for asynchronous I/O operations performed on a VIO.
+ * Priority levels for asynchronous I/O operations performed on a vio.
  **/
 typedef enum __attribute__((packed)) vioPriority {
   VIO_PRIORITY_LOW             = 0,
@@ -305,7 +305,7 @@ typedef struct slabConfig {
   BlockCount slabJournalFlushingThreshold;
   /**
    * Number of blocks after which the slab journal pushes out all
-   * ReferenceBlocks and makes all VIOs wait.
+   * ReferenceBlocks and makes all vios wait.
    **/
   BlockCount slabJournalBlockingThreshold;
   /**
@@ -386,8 +386,8 @@ typedef struct vdoExtent           VDOExtent;
 struct vdo_flush;
 struct vdo_layout;
 typedef struct vdoStatistics       VDOStatistics;
-typedef struct vio                 VIO;
-typedef struct vioPool             VIOPool;
+struct vio;
+struct vio_pool;
 
 typedef struct {
   PhysicalBlockNumber pbn;
@@ -401,7 +401,7 @@ typedef struct {
 } ZonedPBN;
 
 /**
- * Callback which will be called by the VDO when all of the VIOs in the
+ * Callback which will be called by the VDO when all of the vios in the
  * extent have been processed.
  *
  * @param extent The extent which is complete
@@ -411,9 +411,9 @@ typedef void VDOExtentCallback(VDOExtent *extent);
 /**
  * An asynchronous operation.
  *
- * @param vio The VIO on which to operate
+ * @param vio The vio on which to operate
  **/
-typedef void AsyncOperation(VIO *vio);
+typedef void AsyncOperation(struct vio *vio);
 
 /**
  * An asynchronous compressed write operation.

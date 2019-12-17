@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#3 $
  */
 
 #include "extent.h"
@@ -47,7 +47,8 @@ int createExtent(PhysicalLayer  *layer,
   }
 
   VDOExtent *extent;
-  result = ALLOCATE_EXTENDED(VDOExtent, blockCount, VIO *, __func__, &extent);
+  result = ALLOCATE_EXTENDED(VDOExtent, blockCount, struct vio *, __func__,
+                             &extent);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -113,7 +114,7 @@ static void launchMetadataExtent(VDOExtent           *extent,
 
   extent->completeCount = extent->count - count;
   for (BlockCount i = 0; i < count; i++) {
-    VIO *vio = extent->vios[i];
+    struct vio *vio = extent->vios[i];
     vio->completion.callbackThreadID = extent->completion.callbackThreadID;
     launchMetadataVIO(vio, startBlock++, handleVIOCompletion,
                       handleVIOCompletion, operation);

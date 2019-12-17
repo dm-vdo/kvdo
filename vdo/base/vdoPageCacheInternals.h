@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#13 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -138,8 +138,8 @@ typedef enum __attribute__((packed)) {
  * Per-page-slot information.
  **/
 struct page_info {
-  /** Preallocated page VIO */
-  VIO                   *vio;
+  /** Preallocated page struct vio */
+  struct vio            *vio;
   /** back-link for references */
   struct vdo_page_cache *cache;
   /** the pbn of the page */

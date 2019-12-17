@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#14 $
  */
 
 #include "forest.h"
@@ -81,7 +81,7 @@ struct cursor {
 struct cursors {
   struct block_map           *map;
   struct block_map_tree_zone *zone;
-  VIOPool                    *pool;
+  struct vio_pool            *pool;
   EntryCallback              *entryCallback;
   struct vdo_completion      *parent;
   RootCount                   activeRoots;

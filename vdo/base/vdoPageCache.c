@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#15 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -699,9 +699,9 @@ static void checkForIOComplete(struct vdo_page_cache *cache)
 }
 
 /**
- * VIO callback used when a page has been loaded.
+ * vio callback used when a page has been loaded.
  *
- * @param completion  A completion for the VIO, the parent of which is a
+ * @param completion  A completion for the vio, the parent of which is a
  *                    page_info.
  **/
 static void pageIsLoaded(struct vdo_completion *completion)
@@ -725,7 +725,7 @@ static void pageIsLoaded(struct vdo_completion *completion)
 /**
  * Handle page load errors.
  *
- * @param completion  The page read VIO
+ * @param completion  The page read vio
  **/
 static void handleLoadError(struct vdo_completion *completion)
 {
@@ -828,7 +828,7 @@ static void writePages(struct vdo_completion *completion);
 /**
  * Handle errors flushing the layer.
  *
- * @param completion  The flush VIO
+ * @param completion  The flush vio
  **/
 static void handleFlushError(struct vdo_completion *completion)
 {
@@ -856,7 +856,7 @@ static void savePages(struct vdo_page_cache *cache)
   cache->pagesToFlush = 0;
   relaxedAdd64(&cache->stats.flushCount, 1);
 
-  VIO           *vio   = info->vio;
+  struct vio    *vio   = info->vio;
   PhysicalLayer *layer = vio->completion.layer;
   if (layer->isFlushRequired(layer)) {
     launchFlush(vio, writePages, handleFlushError);
@@ -1053,7 +1053,7 @@ static bool writeHasFinished(struct page_info *info)
 /**
  * Handler for page write errors.
  *
- * @param completion  The page write VIO
+ * @param completion  The page write vio
  **/
 static void handlePageWriteError(struct vdo_completion *completion)
 {
@@ -1083,9 +1083,9 @@ static void handlePageWriteError(struct vdo_completion *completion)
 }
 
 /**
- * VIO callback used when a page has been written out.
+ * vio callback used when a page has been written out.
  *
- * @param completion    A completion for the VIO, the parent of which
+ * @param completion    A completion for the vio, the parent of which
  *                      is embedded in page_info.
  **/
 static void pageIsWrittenOut(struct vdo_completion *completion)
@@ -1129,7 +1129,7 @@ static void pageIsWrittenOut(struct vdo_completion *completion)
  * Write the batch of pages which were covered by the layer flush which just
  * completed. This callback is registered in savePages().
  *
- * @param flushCompletion  The flush VIO
+ * @param flushCompletion  The flush vio
  **/
 static void writePages(struct vdo_completion *flushCompletion)
 {

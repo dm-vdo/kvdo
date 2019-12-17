@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummaryInternals.h#11 $
  */
 
 #ifndef SLAB_SUMMARY_INTERNALS_H
@@ -61,9 +61,9 @@ struct slab_summary_block {
   struct wait_queue          nextUpdateWaiters;
   /** The active slab_summary_entry array for this block */
   struct slab_summary_entry *entries;
-  /** The VIO used to write this block */
-  VIO                       *vio;
-  /** The packed entries, one block long, backing the VIO */
+  /** The vio used to write this block */
+  struct vio                *vio;
+  /** The packed entries, one block long, backing the vio */
   char                      *outgoingEntries;
 };
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#9 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -39,8 +39,8 @@ struct recovery_journal_block {
   char                         *block;
   /** A pointer to the current sector in the packed block buffer */
   struct packed_journal_sector *sector;
-  /** The VIO for writing this block */
-  VIO                          *vio;
+  /** The vio for writing this block */
+  struct vio                   *vio;
   /** The sequence number for this block */
   SequenceNumber                sequenceNumber;
   /** The location of this block in the on-disk journal */
@@ -57,9 +57,9 @@ struct recovery_journal_block {
   JournalEntryCount             uncommittedEntryCount;
   /** The number of new entries in the current commit */
   JournalEntryCount             entriesInCommit;
-  /** The queue of VIOs which will make entries for the next commit */
+  /** The queue of vios which will make entries for the next commit */
   struct wait_queue             entryWaiters;
-  /** The queue of VIOs waiting for the current commit */
+  /** The queue of vios waiting for the current commit */
   struct wait_queue             commitWaiters;
 };
 
@@ -124,7 +124,7 @@ isRecoveryBlockFull(const struct recovery_journal_block *block)
 /**
  * Construct a journal block.
  *
- * @param [in]  layer     The layer from which to construct VIOs
+ * @param [in]  layer     The layer from which to construct vios
  * @param [in]  journal   The journal to which the block will belong
  * @param [out] blockPtr  A pointer to receive the new block
  *

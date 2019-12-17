@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#8 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -32,13 +32,13 @@
 typedef void AllocationCallback(struct allocating_vio *allocationVIO);
 
 /**
- * A VIO which can receive an allocation from the block allocator. Currently,
+ * A vio which can receive an allocation from the block allocator. Currently,
  * these are used both for servicing external data requests and for compressed
  * block writes.
  **/
 struct allocating_vio {
-  /** The underlying VIO */
-  VIO                             vio;
+  /** The underlying vio */
+  struct vio                      vio;
 
   /** The WaitQueue entry structure */
   struct waiter                   waiter;
@@ -46,7 +46,7 @@ struct allocating_vio {
   /** The physical zone in which to allocate a physical block */
   struct physical_zone           *zone;
 
-  /** The block allocated to this VIO */
+  /** The block allocated to this vio */
   PhysicalBlockNumber             allocation;
 
   /**
@@ -59,10 +59,10 @@ struct allocating_vio {
   /** The type of write lock to obtain on the allocated block */
   PBNLockType                     writeLockType;
 
-  /** The number of zones in which this VIO has attempted an allocation */
+  /** The number of zones in which this vio has attempted an allocation */
   ZoneCount                       allocationAttempts;
 
-  /** Whether this VIO should wait for a clean slab */
+  /** Whether this vio should wait for a clean slab */
   bool                            waitForCleanSlab;
 
   /** The function to call once allocation is complete */
@@ -70,29 +70,29 @@ struct allocating_vio {
 };
 
 /**
- * Convert a VIO to an allocating_vio.
+ * Convert a vio to an allocating_vio.
  *
- * @param vio  The VIO to convert
+ * @param vio  The vio to convert
  *
- * @return The VIO as an allocating_vio
+ * @return The vio as an allocating_vio
  **/
-static inline struct allocating_vio *vioAsAllocatingVIO(VIO *vio)
+static inline struct allocating_vio *vioAsAllocatingVIO(struct vio *vio)
 {
   STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
   ASSERT_LOG_ONLY(((vio->type == VIO_TYPE_DATA)
                    || (vio->type == VIO_TYPE_COMPRESSED_BLOCK)),
-                  "VIO is an struct allocating_vio");
+                  "vio is an allocating_vio");
   return (struct allocating_vio *) vio;
 }
 
 /**
- * Convert an allocating_vio to a VIO.
+ * Convert an allocating_vio to a vio.
  *
  * @param allocatingVIO  The allocating_vio to convert
  *
- * @return The allocating_vio as a VIO
+ * @return The allocating_vio as a vio
  **/
-static inline VIO *allocatingVIOAsVIO(struct allocating_vio *allocatingVIO)
+static inline struct vio *allocatingVIOAsVIO(struct allocating_vio *allocatingVIO)
 {
   return &allocatingVIO->vio;
 }

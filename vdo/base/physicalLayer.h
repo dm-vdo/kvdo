@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#17 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -102,29 +102,29 @@ typedef int ExtentWriter(PhysicalLayer       *layer,
                          size_t              *blocksWritten);
 
 /**
- * A function to allocate a metadata VIO.
+ * A function to allocate a metadata vio.
  *
  * @param [in]  layer     The physical layer
- * @param [in]  vioType   The type of VIO to create
- * @param [in]  priority  The relative priority to assign to the VIOs
- * @param [in]  parent    The parent of this VIO
+ * @param [in]  vioType   The type of vio to create
+ * @param [in]  priority  The relative priority to assign to the vios
+ * @param [in]  parent    The parent of this vio
  * @param [in]  data      The buffer
- * @param [out] vioPtr    A pointer to hold the new VIO
+ * @param [out] vioPtr    A pointer to hold the new vio
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int MetadataVIOCreator(PhysicalLayer  *layer,
-                               VIOType         vioType,
-                               VIOPriority     priority,
-                               void           *parent,
-                               char           *data,
-                               VIO           **vioPtr);
+typedef int MetadataVIOCreator(PhysicalLayer *layer,
+                               VIOType        vioType,
+                               VIOPriority    priority,
+                               void          *parent,
+                               char          *data,
+                               struct vio   **vioPtr);
 
 /**
  * A function to allocate an allocating_vio for compressed writes.
  *
  * @param [in]  layer             The physical layer
- * @param [in]  parent            The parent of this VIO
+ * @param [in]  parent            The parent of this vio
  * @param [in]  data              The buffer
  * @param [out] allocatingVIOPtr  A pointer to hold the new allocating_vio
  *
@@ -136,11 +136,11 @@ typedef int CompressedWriteVIOCreator(PhysicalLayer          *layer,
                                       struct allocating_vio **allocatingVIOPtr);
 
 /**
- * A function to destroy a VIO. The pointer to the VIO will be nulled out.
+ * A function to destroy a vio. The pointer to the vio will be nulled out.
  *
- * @param vioPtr  A pointer to the VIO to destroy
+ * @param vioPtr  A pointer to the vio to destroy
  **/
-typedef void VIODestructor(VIO **vioPtr);
+typedef void VIODestructor(struct vio **vioPtr);
 
 /**
  * A function to zero the contents of a data_vio.
@@ -210,7 +210,7 @@ typedef AsyncDataOperation DuplicationVerifier;
 typedef AsyncDataOperation DataReader;
 
 /**
- * A function to read a single metadata VIO from the layer.
+ * A function to read a single metadata vio from the layer.
  *
  * @param vio  The vio to read
  **/
@@ -224,7 +224,7 @@ typedef AsyncOperation MetadataReader;
 typedef AsyncDataOperation DataWriter;
 
 /**
- * A function to write a single metadata VIO from the layer.
+ * A function to write a single metadata vio from the layer.
  *
  * @param vio  The vio to write
  **/
@@ -390,18 +390,18 @@ CRC32Checksum update_crc32(CRC32Checksum  crc,
                            size_t         length);
 
 /**
- * Destroy a vio. The pointer to the VIO will be nulled out.
+ * Destroy a vio. The pointer to the vio will be nulled out.
  *
- * @param vioPtr  A pointer to the VIO to destroy
+ * @param vioPtr  A pointer to the vio to destroy
  **/
-void destroy_vio(VIO **vioPtr);
+void destroy_vio(struct vio **vioPtr);
 
 /**
- * Read or write a single metadata VIO.
+ * Read or write a single metadata kvio.
  *
- * @param vio  The VIO to read or write
+ * @param vio  The vio to read or write
  **/
-void submitMetadataVIO(VIO *vio);
+void submitMetadataVIO(struct vio *vio);
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of

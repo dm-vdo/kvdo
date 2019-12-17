@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#14 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -43,9 +43,9 @@ struct recovery_journal {
   struct slab_depot             *depot;
   /** The block map which can hold locks on this journal */
   struct block_map              *blockMap;
-  /** The queue of VIOs waiting to make increment entries */
+  /** The queue of vios waiting to make increment entries */
   struct wait_queue              incrementWaiters;
-  /** The queue of VIOs waiting to make decrement entries */
+  /** The queue of vios waiting to make decrement entries */
   struct wait_queue              decrementWaiters;
   /** The number of free entries in the journal */
   uint64_t                       availableSpace;
@@ -74,7 +74,7 @@ struct recovery_journal {
   SequenceNumber                 tail;
   /** The point at which the last entry will have been added */
   struct journal_point           appendPoint;
-  /** The journal point of the VIO most recently released from the journal */
+  /** The journal point of the vio most recently released from the journal */
   struct journal_point           commitPoint;
   /** The nonce of the VDO */
   Nonce                          nonce;
@@ -96,9 +96,9 @@ struct recovery_journal {
   SequenceNumber                 slabJournalReapHead;
   /** The head block number for the slab journal replay range */
   BlockCount                     slabJournalHeadBlockNumber;
-  /** The VIO on which we can call flush (less ick, but still ick) */
-  VIO                           *flushVIO;
-  /** The data block which must live in the VIO in the flush extent */
+  /** The vio on which we can call flush (less ick, but still ick) */
+  struct vio                    *flushVIO;
+  /** The data block which must live in the vio in the flush extent */
   char                          *unusedFlushVIOData;
   /** The number of blocks in the on-disk journal */
   BlockCount                     size;

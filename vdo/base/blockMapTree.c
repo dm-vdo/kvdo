@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#23 $
  */
 
 #include "blockMapTree.h"
@@ -85,7 +85,7 @@ static inline struct tree_page *treePageFromRingNode(RingNode *ringNode)
 static void writeDirtyPagesCallback(RingNode *expired, void *context);
 
 /**
- * Make VIOs for reading, writing, and allocating the arboreal block map.
+ * Make vios for reading, writing, and allocating the arboreal block map.
  *
  * Implements VIOConstructor.
  **/
@@ -93,7 +93,7 @@ __attribute__((warn_unused_result))
 static int makeBlockMapVIOs(PhysicalLayer  *layer,
                             void           *parent,
                             void           *buffer,
-                            VIO           **vioPtr)
+                            struct vio    **vioPtr)
 {
   return createVIO(layer, VIO_TYPE_BLOCK_MAP_INTERIOR, VIO_PRIORITY_METADATA,
                    parent, buffer, vioPtr);
@@ -219,7 +219,7 @@ static void checkForIOComplete(struct block_map_tree_zone *zone)
 }
 
 /**
- * Put the VDO in read-only mode and wake any VIOs waiting for a flush.
+ * Put the VDO in read-only mode and wake any vios waiting for a flush.
  *
  * @param zone    The zone
  * @param result  The error which is causing read-only mode
@@ -343,9 +343,9 @@ static void writePageCallback(struct waiter *waiter, void *context)
 }
 
 /**
- * Acquire a VIO for writing a dirty page.
+ * Acquire a vio for writing a dirty page.
  *
- * @param waiter  The page which needs a VIO
+ * @param waiter  The page which needs a vio
  * @param zone    The zone
  **/
 static void acquireVIO(struct waiter *waiter, struct block_map_tree_zone *zone)
@@ -421,7 +421,7 @@ static void writePageIfNotDirtied(struct waiter *waiter, void *context)
 }
 
 /**
- * Return a VIO to the zone's pool.
+ * Return a vio to the zone's pool.
  *
  * @param zone   The zone which owns the pool
  * @param entry  The pool entry to return
@@ -437,7 +437,7 @@ static void returnToPool(struct block_map_tree_zone *zone,
  * Handle the successful write of a tree page. This callback is registered in
  * writeInitializedPage().
  *
- * @param completion  The VIO doing the write
+ * @param completion  The vio doing the write
  **/
 static void finishPageWrite(struct vdo_completion *completion)
 {
@@ -484,7 +484,7 @@ static void finishPageWrite(struct vdo_completion *completion)
  * Handle an error writing a tree page. This error handler is registered in
  * writePage() and writeInitializedPage().
  *
- * @param completion  The VIO doing the write
+ * @param completion  The vio doing the write
  **/
 static void handleWriteError(struct vdo_completion *completion)
 {
@@ -499,7 +499,7 @@ static void handleWriteError(struct vdo_completion *completion)
  * Write a page which has been written at least once. This callback is
  * registered in (or called directly from) writePage().
  *
- * @param completion  The VIO which will do the write
+ * @param completion  The vio which will do the write
  **/
 static void writeInitializedPage(struct vdo_completion *completion)
 {
@@ -521,7 +521,7 @@ static void writeInitializedPage(struct vdo_completion *completion)
 }
 
 /**
- * Write a dirty tree page now that we have a VIO with which to write it.
+ * Write a dirty tree page now that we have a vio with which to write it.
  *
  * @param treePage  The page to write
  * @param entry     The vio_pool_entry with which to write
@@ -802,7 +802,7 @@ static void continueLoadForWaiter(struct waiter *waiter, void *context)
  * Finish loading a page now that it has been read in from disk. This callback
  * is registered in loadPage().
  *
- * @param completion  The VIO doing the page read
+ * @param completion  The vio doing the page read
  **/
 static void finishBlockMapPageLoad(struct vdo_completion *completion)
 {
@@ -833,7 +833,7 @@ static void finishBlockMapPageLoad(struct vdo_completion *completion)
 /**
  * Handle an error loading a tree page.
  *
- * @param completion  The VIO doing the page read
+ * @param completion  The vio doing the page read
  **/
 static void handleIOError(struct vdo_completion *completion)
 {
@@ -847,7 +847,7 @@ static void handleIOError(struct vdo_completion *completion)
 }
 
 /**
- * Read a tree page from disk now that we've gotten a VIO with which to do the
+ * Read a tree page from disk now that we've gotten a vio with which to do the
  * read. This WaiterCallback is registered in loadBlockMapPage().
  *
  * @param waiter   The data_vio which requires a page load

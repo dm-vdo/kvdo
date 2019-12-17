@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#61 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#62 $
  */
 
 #include "kernelLayer.h"
@@ -251,7 +251,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	// Count all incoming bios.
 	count_bios(&layer->biosIn, bio);
 
-	// Handle empty bios.  Empty flush bios are not associated with a VIO.
+	// Handle empty bios.  Empty flush bios are not associated with a vio.
 	if (is_flush_bio(bio)) {
 		if (ASSERT(get_bio_size(bio) == 0, "Flush bio is size 0") !=
 		    VDO_SUCCESS) {
@@ -434,9 +434,9 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 }
 
 /**********************************************************************/
-void destroy_vio(VIO **vio_ptr)
+void destroy_vio(struct vio **vio_ptr)
 {
-	VIO *vio = *vio_ptr;
+	struct vio *vio = *vio_ptr;
 	if (vio == NULL) {
 		return;
 	}
@@ -725,7 +725,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		return result;
 	}
 
-	// KVIO and VIO pool
+	// KVIO and vio pool
 	BUG_ON(layer->device_config->logical_block_size <= 0);
 	BUG_ON(layer->request_limiter.limit <= 0);
 	BUG_ON(layer->device_config->owned_device == NULL);

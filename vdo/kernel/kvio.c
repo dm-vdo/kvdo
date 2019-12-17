@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#23 $
  */
 
 #include "kvio.h"
@@ -37,7 +37,7 @@
  * A function to tell vdo that we have completed the requested async
  * operation for a vio
  *
- * @param item    The work item of the VIO to complete
+ * @param item    The work item of the vio to complete
  **/
 static void kvdo_handle_vio_callback(struct kvdo_work_item *item)
 {
@@ -120,20 +120,20 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 }
 
 /**
- * Get the BioQueue action for a metadata VIO based on that VIO's priority.
+ * Get the BioQueue action for a metadata vio based on that vio's priority.
  *
- * @param vio  The VIO
+ * @param vio  The vio
  *
- * @return The action with which to submit the VIO's bio.
+ * @return The action with which to submit the vio's bio.
  **/
-static inline bio_q_action get_metadata_action(VIO *vio)
+static inline bio_q_action get_metadata_action(struct vio *vio)
 {
 	return ((vio->priority == VIO_PRIORITY_HIGH) ? BIO_Q_ACTION_HIGH :
 						       BIO_Q_ACTION_METADATA);
 }
 
 /**********************************************************************/
-void submitMetadataVIO(VIO *vio)
+void submitMetadataVIO(struct vio *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
@@ -144,7 +144,7 @@ void submitMetadataVIO(VIO *vio)
 	// Metadata I/Os bypass the read cache.
 	if (isReadVIO(vio)) {
 		ASSERT_LOG_ONLY(!vioRequiresFlushBefore(vio),
-				"read VIO does not require flush before");
+				"read vio does not require flush before");
 		vioAddTraceRecord(vio, THIS_LOCATION("$F;io=readMeta"));
 		set_bio_operation_read(bio);
 	} else {
@@ -174,7 +174,7 @@ void submitMetadataVIO(VIO *vio)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 /**
  * Handle the completion of a base-code initiated flush by continuing the flush
- * VIO.
+ * vio.
  *
  * @param bio    The bio to complete
  **/
@@ -182,7 +182,7 @@ static void complete_flush_bio(struct bio *bio)
 #else
 /**
  * Handle the completion of a base-code initiated flush by continuing the flush
- * VIO.
+ * vio.
  *
  * @param bio    The bio to complete
  * @param error  Possible error from underlying block device
@@ -201,7 +201,7 @@ static void complete_flush_bio(struct bio *bio, int error)
 }
 
 /**********************************************************************/
-void kvdo_flush_vio(VIO *vio)
+void kvdo_flush_vio(struct vio *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
@@ -216,10 +216,10 @@ void kvdo_flush_vio(VIO *vio)
 
 /*
  * Hook for a SystemTap probe to potentially restrict the choices
- * of which VIOs should have their latencies tracked.
+ * of which vios should have their latencies tracked.
  *
  * Normally returns true. Even if true is returned, sample_this_one may
- * cut down the monitored VIOs by some fraction so as to reduce the
+ * cut down the monitored vios by some fraction so as to reduce the
  * impact on system performance.
  *
  * Must be "noinline" so that SystemTap can find the return
@@ -229,7 +229,7 @@ void kvdo_flush_vio(VIO *vio)
  * @param layer  The kernel layer
  * @param bio    The incoming I/O request
  *
- * @return whether it's useful to track latency for VIOs looking like
+ * @return whether it's useful to track latency for vios looking like
  *         this one
  */
 static noinline bool sample_this_vio(struct kvio *kvio,
@@ -292,7 +292,7 @@ void initialize_kvio(struct kvio *kvio,
  * Construct a metadata kvio.
  *
  * @param [in]  layer             The physical layer
- * @param [in]  vio_type          The type of VIO to create
+ * @param [in]  vio_type          The type of vio to create
  * @param [in]  priority          The relative priority to assign to the
  *                                metadata_kvio
  * @param [in]  parent            The parent of the metadata_kvio completion
@@ -313,7 +313,7 @@ make_metadata_kvio(struct kernel_layer *layer,
 	// VDOSTORY-176.
 	STATIC_ASSERT(sizeof(struct metadata_kvio) <= 256);
 
-	// Metadata VIOs should use direct allocation and not use the buffer
+	// Metadata vios should use direct allocation and not use the buffer
 	// pool, which is reserved for submissions from the linux block layer.
 	struct metadata_kvio *metadata_kvio;
 	int result =
@@ -349,7 +349,7 @@ static int make_compressed_write_kvio(struct kernel_layer *layer,
 				      struct bio *bio,
 				      struct compressed_write_kvio **compressed_write_kvio_ptr)
 {
-	// Compressed write VIOs should use direct allocation and not use the
+	// Compressed write vios should use direct allocation and not use the
 	// buffer pool, which is reserved for submissions from the linux block
 	// layer.
 	struct compressed_write_kvio *compressed_write_kvio;
@@ -378,7 +378,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     VIOPriority priority,
 			     void *parent,
 			     char *data,
-			     VIO **vio_ptr)
+			     struct vio **vio_ptr)
 {
 	int result = ASSERT(isMetadataVIOType(vio_type),
 			    "%d is a metadata type",

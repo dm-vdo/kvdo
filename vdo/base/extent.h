@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#3 $
  */
 
 #ifndef EXTENT_H
@@ -29,20 +29,20 @@
 #include "vio.h"
 
 /**
- * A chain of VIOs which are part of the same request. An extent contains
- * a chain of at least 'count' VIOs. The 'next' pointer of the last VIO
+ * A chain of vios which are part of the same request. An extent contains
+ * a chain of at least 'count' vios. The 'next' pointer of the last vio
  * in the extent (as indicated by the count) may not be NULL, but it is not
- * part of the extent. A VIO may belong to a single extent.
+ * part of the extent. A vio may belong to a single extent.
  **/
 struct vdoExtent {
   // The completion for asynchronous extent processing
   struct vdo_completion  completion;
-  // The number of VIOs in the extent
+  // The number of vios in the extent
   BlockCount             count;
-  // The number of completed VIOs in the extent
+  // The number of completed vios in the extent
   BlockCount             completeCount;
-  // The VIOs in the extent
-  VIO                   *vios[];
+  // The vios in the extent
+  struct vio            *vios[];
 };
 
 /**
@@ -75,9 +75,9 @@ static inline struct vdo_completion *extentAsCompletion(VDOExtent *extent)
  * Create a VDOExtent.
  *
  * @param [in]  layer       The layer
- * @param [in]  vioType     The usage type to assign to the VIOs in the extent
+ * @param [in]  vioType     The usage type to assign to the vios in the extent
  *                          (data / block map / journal)
- * @param [in]  priority    The relative priority to assign to the VIOs
+ * @param [in]  priority    The relative priority to assign to the vios
  * @param [in]  blockCount  The number of blocks in the buffer
  * @param [in]  data        The buffer
  * @param [out] extentPtr   A pointer to hold the new extent
@@ -151,11 +151,11 @@ static inline void writeMetadataExtent(VDOExtent           *extent,
 }
 
 /**
- * Notify an extent that one of its VIOs has completed. If the signaling VIO
- * is the last of the extent's VIOs to complete, the extent will finish. This
- * function is set as the VIO callback in completeVIO().
+ * Notify an extent that one of its vios has completed. If the signaling vio
+ * is the last of the extent's vios to complete, the extent will finish. This
+ * function is set as the vio callback in completeVIO().
  *
- * @param completion  The completion of the VIO which has just finished
+ * @param completion  The completion of the vio which has just finished
  **/
 void handleVIOCompletion(struct vdo_completion *completion);
 

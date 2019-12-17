@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#16 $
  */
 
 #ifndef KVIO_H
@@ -32,7 +32,7 @@
  **/
 struct kvio {
 	struct kvdo_enqueueable enqueueable;
-	VIO *vio;
+	struct vio *vio;
 	struct kernel_layer *layer;
 	struct bio *bio;
 
@@ -56,7 +56,7 @@ struct kvio {
 
 struct metadata_kvio {
 	struct kvio kvio;
-	VIO vio;
+	struct vio vio;
 };
 
 struct compressed_write_kvio {
@@ -65,7 +65,7 @@ struct compressed_write_kvio {
 };
 
 /**
- * Determine whether a kvio is a data VIO or not
+ * Determine whether a kvio is a data vio or not
  *
  * @param kvio  The kvio to check
  *
@@ -77,7 +77,7 @@ static inline bool is_data(struct kvio *kvio)
 }
 
 /**
- * Determine whether a kvio is a compressed block write VIO or not
+ * Determine whether a kvio is a compressed block write vio or not
  *
  * @param kvio  The kvio to check
  *
@@ -89,7 +89,7 @@ static inline bool is_compressed_writer(struct kvio *kvio)
 }
 
 /**
- * Determine whether a kvio is a metadata VIO or not
+ * Determine whether a kvio is a metadata vio or not
  *
  * @param kvio  The kvio to check
  *
@@ -101,15 +101,15 @@ static inline bool is_metadata(struct kvio *kvio)
 }
 
 /**
- * Convert a VIO to a struct metadata_kvio.
+ * Convert a vio to a struct metadata_kvio.
  *
- * @param vio  The VIO to convert
+ * @param vio  The vio to convert
  *
- * @return the VIO as a metadata_kvio
+ * @return the vio as a metadata_kvio
  **/
-static inline struct metadata_kvio *vio_as_metadata_kvio(VIO *vio)
+static inline struct metadata_kvio *vio_as_metadata_kvio(struct vio *vio)
 {
-	ASSERT_LOG_ONLY(isMetadataVIO(vio), "VIO is a metadata VIO");
+	ASSERT_LOG_ONLY(isMetadataVIO(vio), "vio is a metadata vio");
 	return container_of(vio, struct metadata_kvio, vio);
 }
 
@@ -250,7 +250,7 @@ void kvdo_continue_kvio(struct kvio *kvio, int error);
  *
  * @param kvio       The kvio to initialize
  * @param layer      The physical layer
- * @param vio_type   The type of VIO to create
+ * @param vio_type   The type of vio to create
  * @param priority   The relative priority to assign to the kvio
  * @param parent     The parent of the kvio completion
  * @param bio        The bio to associate with this kvio
@@ -279,16 +279,16 @@ void
 free_compressed_write_kvio(struct compressed_write_kvio **compressed_write_kvio_ptr);
 
 /**
- * Create a new VIO (and its enclosing kvio) for metadata operations.
+ * Create a new vio (and its enclosing kvio) for metadata operations.
  *
  * <p>Implements MetadataVIOCreator.
  *
  * @param [in]  layer      The physical layer
- * @param [in]  vio_type   The type of VIO to create
- * @param [in]  priority   The relative priority to assign to the VIO
- * @param [in]  parent     The parent to assign to the VIO's completion
+ * @param [in]  vio_type   The type of vio to create
+ * @param [in]  priority   The relative priority to assign to the vio
+ * @param [in]  parent     The parent to assign to the vio's completion
  * @param [in]  data       The buffer
- * @param [out] vio_ptr    A pointer to hold new VIO
+ * @param [out] vio_ptr    A pointer to hold new vio
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -297,7 +297,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     VIOPriority priority,
 			     void *parent,
 			     char *data,
-			     VIO **vio_ptr)
+			     struct vio **vio_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -320,12 +320,12 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 	__attribute__((warn_unused_result));
 
 /**
- * Issue an empty flush to the lower layer using the bio in a metadata VIO.
+ * Issue an empty flush to the lower layer using the bio in a metadata vio.
  *
  * <p>Implements MetadataWriter.
  *
- * @param vio  The VIO to flush
+ * @param vio  The vio to flush
  **/
-void kvdo_flush_vio(VIO *vio);
+void kvdo_flush_vio(struct vio *vio);
 
 #endif /* KVIO_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#18 $
  */
 
 #include "packerInternals.h"
@@ -114,8 +114,8 @@ __attribute__((warn_unused_result))
 static int makeInputBin(struct packer *packer)
 {
   struct input_bin *bin;
-  int result = ALLOCATE_EXTENDED(struct input_bin, MAX_COMPRESSION_SLOTS, VIO *,
-                                 __func__, &bin);
+  int result = ALLOCATE_EXTENDED(struct input_bin, MAX_COMPRESSION_SLOTS,
+                                 struct vio *, __func__, &bin);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -207,7 +207,7 @@ static void freeOutputBin(struct output_bin **binPtr)
 
   unspliceRingNode(&bin->ring);
 
-  VIO *vio = allocatingVIOAsVIO(bin->writer);
+  struct vio *vio = allocatingVIOAsVIO(bin->writer);
   freeVIO(&vio);
   FREE(bin->block);
   FREE(bin);
@@ -252,12 +252,12 @@ int makePacker(PhysicalLayer       *layer,
   }
 
   /*
-   * The canceled bin can hold up to half the number of user VIOs. Every
-   * canceled VIO in the bin must have a canceler for which it is waiting, and
+   * The canceled bin can hold up to half the number of user vios. Every
+   * canceled vio in the bin must have a canceler for which it is waiting, and
    * any canceler will only have canceled one lock holder at a time.
    */
-  result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_USER_VIOS / 2, VIO *,
-                             __func__, &packer->canceledBin);
+  result = ALLOCATE_EXTENDED(struct input_bin, MAXIMUM_USER_VIOS / 2,
+                             struct vio *, __func__, &packer->canceledBin);
   if (result != VDO_SUCCESS) {
     freePacker(&packer);
     return result;
@@ -355,9 +355,9 @@ static void abortPacking(struct data_vio *dataVIO)
 }
 
 /**
- * This continues the VIO completion without packing the VIO.
+ * This continues the vio completion without packing the vio.
  *
- * @param waiter  The wait queue entry of the VIO to continue
+ * @param waiter  The wait queue entry of the vio to continue
  * @param unused  An argument required so this function may be called
  *                from notifyAllWaiters
  **/
@@ -388,15 +388,15 @@ static void writePendingBatches(struct packer *packer);
 /**
  * Ensure that a completion is running on the packer thread.
  *
- * @param completion  The compressed write VIO
+ * @param completion  The compressed write vio
  *
  * @return <code>true</code> if the completion is on the packer thread
  **/
 __attribute__((warn_unused_result))
 static bool switchToPackerThread(struct vdo_completion *completion)
 {
-  VIO      *vio      = asVIO(completion);
-  ThreadID  threadID = vio->vdo->packer->threadID;
+  struct vio *vio      = asVIO(completion);
+  ThreadID    threadID = vio->vdo->packer->threadID;
   if (completion->callbackThreadID == threadID) {
     return true;
   }
@@ -430,9 +430,9 @@ static void finishOutputBin(struct packer *packer, struct output_bin *bin)
 
 /**
  * This finishes the bin write process after the bin is written to disk. This
- * is the VIO callback function registered by writeOutputBin().
+ * is the vio callback function registered by writeOutputBin().
  *
- * @param completion  The compressed write VIO
+ * @param completion  The compressed write vio
  **/
 static void completeOutputBin(struct vdo_completion *completion)
 {
@@ -440,10 +440,10 @@ static void completeOutputBin(struct vdo_completion *completion)
     return;
   }
 
-  VIO *vio = asVIO(completion);
+  struct vio *vio = asVIO(completion);
   if (completion->result != VDO_SUCCESS) {
     updateVIOErrorStats(vio,
-                        "Completing compressed write VIO for physical block %"
+                        "Completing compressed write vio for physical block %"
                         PRIu64 " with error",
                         vio->physical);
   }
@@ -532,7 +532,7 @@ static void finishCompressedWrite(struct vdo_completion *completion)
  **/
 static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
 {
-  VIO                   *vio        = allocatingVIOAsVIO(allocatingVIO);
+  struct vio            *vio        = allocatingVIOAsVIO(allocatingVIO);
   struct vdo_completion *completion = vioAsCompletion(vio);
   if (allocatingVIO->allocation == ZERO_BLOCK) {
     completion->requeue = true;
@@ -559,7 +559,7 @@ static void launchCompressedWrite(struct packer *packer, struct output_bin *bin)
     return;
   }
 
-  VIO *vio = allocatingVIOAsVIO(bin->writer);
+  struct vio *vio = allocatingVIOAsVIO(bin->writer);
   resetCompletion(vioAsCompletion(vio));
   vio->callback = completeOutputBin;
   vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
@@ -568,12 +568,12 @@ static void launchCompressedWrite(struct packer *packer, struct output_bin *bin)
 }
 
 /**
- * Consume from the pending queue the next batch of VIOs that can be packed
- * together in a single compressed block. VIOs that have been mooted since
+ * Consume from the pending queue the next batch of vios that can be packed
+ * together in a single compressed block. vios that have been mooted since
  * being placed in the pending queue will not be returned.
  *
  * @param packer  The packer
- * @param batch   The counted array to fill with the next batch of VIOs
+ * @param batch   The counted array to fill with the next batch of vios
  **/
 static void getNextBatch(struct packer *packer, struct output_batch *batch)
 {
@@ -597,7 +597,7 @@ static void getNextBatch(struct packer *packer, struct output_batch *batch)
 }
 
 /**
- * Pack the next batch of compressed VIOs from the batched queue into an
+ * Pack the next batch of compressed vios from the batched queue into an
  * output bin and write the output bin.
  *
  * @param packer  The packer
@@ -612,12 +612,12 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
   getNextBatch(packer, &batch);
 
   if (batch.slotsUsed == 0) {
-    // The pending queue must now be empty (there may have been mooted VIOs).
+    // The pending queue must now be empty (there may have been mooted vios).
     return false;
   }
 
-  // If the batch contains only a single VIO, then we save nothing by saving
-  // the compressed form. Continue processing the single VIO in the batch.
+  // If the batch contains only a single vio, then we save nothing by saving
+  // the compressed form. Continue processing the single vio in the batch.
   if (batch.slotsUsed == 1) {
     abortPacking(batch.slots[0]);
     return false;
@@ -662,8 +662,8 @@ static void addToInputBin(struct input_bin *bin, struct data_vio *dataVIO)
 }
 
 /**
- * Start a new batch of VIOs in an input_bin, moving the existing batch, if
- * any, to the queue of pending batched VIOs in the packer.
+ * Start a new batch of vios in an input_bin, moving the existing batch, if
+ * any, to the queue of pending batched vios in the packer.
  *
  * @param packer  The packer
  * @param bin     The bin to prepare
@@ -981,8 +981,8 @@ static void dumpInputBin(const struct input_bin *bin, bool canceled)
   logInfo("    %sBin slotsUsed=%u freeSpace=%zu",
           (canceled ? "Canceled" : "Input"), bin->slotsUsed, bin->freeSpace);
 
-  // XXX dump VIOs in bin->incoming? The VIOs should have been dumped from the
-  // VIO pool. Maybe just dump their addresses so it's clear they're here?
+  // XXX dump vios in bin->incoming? The vios should have been dumped from the
+  // vio pool. Maybe just dump their addresses so it's clear they're here?
 }
 
 /**********************************************************************/
@@ -996,10 +996,10 @@ static void dumpOutputBin(const struct output_bin *bin)
 
   logInfo("    struct output_bin contains %zu outgoing waiters", count);
 
-  // XXX dump VIOs in bin->outgoing? The VIOs should have been dumped from the
-  // VIO pool. Maybe just dump their addresses so it's clear they're here?
+  // XXX dump vios in bin->outgoing? The vios should have been dumped from the
+  // vio pool. Maybe just dump their addresses so it's clear they're here?
 
-  // XXX dump writer VIO?
+  // XXX dump writer vio?
 }
 
 /**********************************************************************/

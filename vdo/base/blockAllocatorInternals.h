@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#18 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -32,7 +32,7 @@
 
 enum {
   /*
-   * The number of VIOs in the VIO pool is proportional to the throughput of
+   * The number of vios in the vio pool is proportional to the throughput of
    * the VDO.
    */
   VIO_POOL_SIZE = 128,
@@ -150,28 +150,28 @@ struct block_allocator {
    **/
   RingNode                               dirtySlabJournals;
 
-  /** The VIO pool for reading and writing block allocator metadata */
-  VIOPool                               *vioPool;
+  /** The vio pool for reading and writing block allocator metadata */
+  struct vio_pool                       *vioPool;
 };
 
 /**
- * Construct allocator metadata VIOs. Exposed for unit tests.
+ * Construct allocator metadata vios. Exposed for unit tests.
  *
  * Implements VIOConstructor
  **/
 int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
                           void           *parent,
                           void           *buffer,
-                          VIO           **vioPtr)
+                          struct vio    **vioPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Replace the VIO pool in a block allocator. This method exists for unit
+ * Replace the vio pool in a block allocator. This method exists for unit
  * tests.
  *
  * @param allocator  The block allocator
  * @param size       The number of entries in the pool
- * @param layer      The physical layer from which to allocate VIOs
+ * @param layer      The physical layer from which to allocate vios
  *
  * @return VDO_SUCCESS or an error
  **/

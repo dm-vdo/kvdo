@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#23 $
  */
 
 #include "slabJournalInternals.h"
@@ -354,7 +354,7 @@ static void markSlabJournalClean(struct slab_journal *journal)
 }
 
 /**
- * Implements WaiterCallback. This callback is invoked on all VIOs waiting
+ * Implements WaiterCallback. This callback is invoked on all vios waiting
  * to make slab journal entries after the VDO has gone into read-only mode.
  **/
 static void abortWaiter(struct waiter *waiter,
@@ -375,7 +375,7 @@ void abortSlabJournalWaiters(struct slab_journal *journal)
 
 /**
  * Put the journal in read-only mode. All attempts to add entries after
- * this function is called will fail. All VIOs waiting for to make entries
+ * this function is called will fail. All vios waiting for to make entries
  * will be awakened with an error. All flushes will complete as soon as all
  * pending IO is done.
  *
@@ -407,9 +407,9 @@ static void reapSlabJournal(struct slab_journal *journal);
 
 /**
  * Finish reaping now that we have flushed the lower layer and then try
- * reaping again in case we deferred reaping due to an outstanding VIO.
+ * reaping again in case we deferred reaping due to an outstanding vio.
  *
- * @param completion  The flush VIO
+ * @param completion  The flush vio
  **/
 static void completeReaping(struct vdo_completion *completion)
 {
@@ -423,7 +423,7 @@ static void completeReaping(struct vdo_completion *completion)
 /**
  * Handle an error flushing the lower layer.
  *
- * @param completion  The flush VIO
+ * @param completion  The flush vio
  **/
 static void handleFlushError(struct vdo_completion *completion)
 {
@@ -434,17 +434,17 @@ static void handleFlushError(struct vdo_completion *completion)
 }
 
 /**
- * A waiter callback for getting a VIO with which to flush the lower
+ * A waiter callback for getting a vio with which to flush the lower
  * layer prior to reaping.
  *
  * @param waiter      The journal as a flush waiter
- * @param vioContext  The newly acquired flush VIO
+ * @param vioContext  The newly acquired flush vio
  **/
 static void flushForReaping(struct waiter *waiter, void *vioContext)
 {
   struct slab_journal   *journal = slabJournalFromFlushWaiter(waiter);
   struct vio_pool_entry *entry   = vioContext;
-  VIO                   *vio     = entry->vio;
+  struct vio            *vio     = entry->vio;
 
   entry->parent                    = journal;
   vio->completion.callbackThreadID = journal->slab->allocator->threadID;
@@ -644,7 +644,7 @@ getCommittingSequenceNumber(const struct vio_pool_entry *entry)
  * Handle post-commit processing. This is the callback registered by
  * writeSlabJournalBlock().
  *
- * @param completion  The write VIO as a completion
+ * @param completion  The write vio as a completion
  **/
 static void completeWrite(struct vdo_completion *completion)
 {
@@ -682,8 +682,8 @@ static void completeWrite(struct vdo_completion *completion)
 /**
  * Callback from acquireVIO() registered in commitSlabJournalTail().
  *
- * @param waiter      The VIO pool waiter which was just notified
- * @param vioContext  The VIO pool entry for the write
+ * @param waiter      The vio pool waiter which was just notified
+ * @param vioContext  The vio pool entry for the write
  **/
 static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
 {
@@ -695,7 +695,7 @@ static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
   pushRingNode(&journal->uncommittedBlocks, &entry->node);
   packSlabJournalBlockHeader(header, &journal->block->header);
 
-  // Copy the tail block into the VIO.
+  // Copy the tail block into the vio.
   memcpy(entry->buffer, journal->block, VDO_BLOCK_SIZE);
 
   int unusedEntries = journal->entriesPerBlock - header->entryCount;
@@ -935,7 +935,7 @@ bool requiresScrubbing(const struct slab_journal *journal)
  * it has determined that we are ready to make another entry in the slab
  * journal.
  *
- * @param waiter        The VIO which should make an entry now
+ * @param waiter        The vio which should make an entry now
  * @param context       The slab journal to make an entry in
  **/
 static void addEntryFromWaiter(struct waiter *waiter, void *context)
@@ -1005,7 +1005,7 @@ static inline bool isNextEntryABlockMapIncrement(struct slab_journal *journal)
 }
 
 /**
- * Add as many entries as possible from the queue of VIOs waiting to make
+ * Add as many entries as possible from the queue of vios waiting to make
  * entries. By processing the queue in order, we ensure that slab journal
  * entries are made in the same order as recovery journal entries for the
  * same increment or decrement.
@@ -1044,7 +1044,7 @@ static void addEntries(struct slab_journal *journal)
       }
     }
 
-    // If the slab is over the blocking threshold, make the VIO wait.
+    // If the slab is over the blocking threshold, make the vio wait.
     if (requiresReaping(journal)) {
       relaxedAdd64(&journal->events->blockedCount, 1);
       saveDirtyReferenceBlocks(journal->slab->referenceCounts);
@@ -1209,10 +1209,10 @@ void drainSlabJournal(struct slab_journal *journal)
 }
 
 /**
- * Finish the decode process by returning the VIO and notifying the slab that
+ * Finish the decode process by returning the vio and notifying the slab that
  * we're done.
  *
- * @param completion  The VIO as a completion
+ * @param completion  The vio as a completion
  **/
 static void finishDecodingJournal(struct vdo_completion *completion)
 {
@@ -1227,7 +1227,7 @@ static void finishDecodingJournal(struct vdo_completion *completion)
  * Set up the in-memory journal state to the state which was written to disk.
  * This is the callback registered in readSlabJournalTail().
  *
- * @param completion  The VIO which was used to read the journal tail
+ * @param completion  The vio which was used to read the journal tail
  **/
 static void setDecodedState(struct vdo_completion *completion)
 {
@@ -1260,12 +1260,12 @@ static void setDecodedState(struct vdo_completion *completion)
 }
 
 /**
- * This reads the slab journal tail block by using a VIO acquired from the VIO
+ * This reads the slab journal tail block by using a vio acquired from the vio
  * pool. This is the success callback from acquireVIOFromPool() when decoding
  * the slab journal.
  *
- * @param waiter      The VIO pool waiter which has just been notified
- * @param vioContext  The VIO pool entry given to the waiter
+ * @param waiter      The vio pool waiter which has just been notified
+ * @param vioContext  The vio pool entry given to the waiter
  **/
 static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#14 $
  */
 
 #ifndef DATA_VIO_H
@@ -40,7 +40,7 @@
 #include "waitQueue.h"
 
 /**
- * Codes for describing the last asynchronous operation performed on a VIO.
+ * Codes for describing the last asynchronous operation performed on a vio.
  **/
 typedef enum __attribute__((packed)) {
   MIN_ASYNC_OPERATION_NUMBER = 0,
@@ -108,7 +108,7 @@ struct tree_lock {
   VDOAction        *callback;
   /* The key for the lock map */
   uint64_t          key;
-  /* The queue of waiters for the page this VIO is allocating or loading */
+  /* The queue of waiters for the page this vio is allocating or loading */
   struct wait_queue waiters;
   /* The block map tree slots for this LBN */
   BlockMapTreeSlot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
@@ -116,10 +116,10 @@ struct tree_lock {
 
 struct compression_state {
   /*
-   * The current compression state of this VIO. This field contains a value
+   * The current compression state of this vio. This field contains a value
    * which consists of a VIOCompressionState possibly ORed with a flag
    * indicating that a request has been made to cancel (or prevent) compression
-   * for this VIO.
+   * for this vio.
    *
    * This field should be accessed through the getCompressionState() and
    * setCompressionState() methods. It should not be accessed directly.
@@ -139,14 +139,14 @@ struct compression_state {
   char             *data;
 
   /*
-   * A VIO which is blocked in the packer while holding a lock this VIO needs.
+   * A vio which is blocked in the packer while holding a lock this vio needs.
    */
   struct data_vio  *lockHolder;
 
 };
 
 /**
- * A VIO for processing user data requests.
+ * A vio for processing user data requests.
  **/
 struct data_vio {
   /* The underlying struct allocating_vio */
@@ -161,7 +161,7 @@ struct data_vio {
   /* The current partition address of this block */
   ZonedPBN                    mapped;
 
-  /** The hash of this VIO (if not zero) */
+  /** The hash of this vio (if not zero) */
   UdsChunkName                chunkName;
 
   /* Used for logging and debugging */
@@ -170,28 +170,28 @@ struct data_vio {
   /* The operation to record in the recovery and slab journals */
   struct reference_operation  operation;
 
-  /* Whether this VIO is a read-and-write VIO */
+  /* Whether this vio is a read-and-write vio */
   bool                        isPartialWrite;
 
-  /* Whether this VIO contains all zeros */
+  /* Whether this vio contains all zeros */
   bool                        isZeroBlock;
 
-  /* Whether this VIO write is a duplicate */
+  /* Whether this vio write is a duplicate */
   bool                        isDuplicate;
 
   /*
-   * Whether this VIO has received an allocation (needs to be atomic so it can
+   * Whether this vio has received an allocation (needs to be atomic so it can
    * be examined from threads not in the allocation zone).
    */
   AtomicBool                  hasAllocation;
 
-  /* The new partition address of this block after the VIO write completes */
+  /* The new partition address of this block after the vio write completes */
   ZonedPBN                    newMapped;
 
   /* The hash zone responsible for the chunk name (NULL if isZeroBlock) */
   struct hash_zone           *hashZone;
 
-  /* The lock this VIO holds or shares with other VIOs with the same data */
+  /* The lock this vio holds or shares with other vios with the same data */
   struct hash_lock           *hashLock;
 
   /* All DataVIOs sharing a hash lock are kept in a ring linking these nodes */
@@ -202,20 +202,20 @@ struct data_vio {
 
   /*
    * The sequence number of the recovery journal block containing the increment
-   * entry for this VIO.
+   * entry for this vio.
    */
   SequenceNumber              recoverySequenceNumber;
 
   /* The point in the recovery journal where this write last made an entry */
   struct journal_point        recoveryJournalPoint;
 
-  /* The RingNode of VIOs in user initiated write requests */
+  /* The RingNode of vios in user initiated write requests */
   RingNode                    writeNode;
 
-  /* A flag indicating that a data write VIO has a flush generation lock */
+  /* A flag indicating that a data write vio has a flush generation lock */
   bool                        hasFlushGenerationLock;
 
-  /* The generation number of the VDO that this VIO belongs to */
+  /* The generation number of the VDO that this vio belongs to */
   SequenceNumber              flushGeneration;
 
   /* The completion to use for fetching block map pages for this vio */
@@ -242,17 +242,17 @@ allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
 }
 
 /**
- * Convert a VIO to a data_vio.
+ * Convert a vio to a data_vio.
  *
- * @param vio  The VIO to convert
+ * @param vio  The vio to convert
  *
- * @return The VIO as a data_vio
+ * @return The vio as a data_vio
  **/
-static inline struct data_vio *vioAsDataVIO(VIO *vio)
+static inline struct data_vio *vioAsDataVIO(struct vio *vio)
 {
   STATIC_ASSERT(offsetof(struct data_vio, allocatingVIO) == 0);
   STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
-  ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "VIO is a data_vio");
+  ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
   return (struct data_vio *) vio;
 }
 
@@ -269,13 +269,13 @@ static inline struct allocating_vio *dataVIOAsAllocatingVIO(struct data_vio *dat
 }
 
 /**
- * Convert a data_vio to a VIO.
+ * Convert a data_vio to a vio.
  *
  * @param dataVIO  The data_vio to convert
  *
- * @return The data_vio as a VIO
+ * @return The data_vio as a vio
  **/
-static inline VIO *dataVIOAsVIO(struct data_vio *dataVIO)
+static inline struct vio *dataVIOAsVIO(struct data_vio *dataVIO)
 {
   return allocatingVIOAsVIO(dataVIOAsAllocatingVIO(dataVIO));
 }
@@ -451,7 +451,7 @@ static inline bool hasAllocation(struct data_vio *dataVIO)
  * @param lbn        The logical block number of the data_vio
  * @param operation  The operation this data_vio will perform
  * @param isTrim     <code>true</code> if this data_vio is for a trim request
- * @param callback   The function to call once the VIO has completed its
+ * @param callback   The function to call once the vio has completed its
  *                   operation
  **/
 void prepareDataVIO(struct data_vio    *dataVIO,
@@ -463,7 +463,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
 /**
  * Complete the processing of a data_vio.
  *
- * @param completion The completion of the VIO to complete
+ * @param completion The completion of the vio to complete
  **/
 void completeDataVIO(struct vdo_completion *completion);
 
@@ -917,7 +917,7 @@ void clearMappedLocation(struct data_vio *dataVIO);
 
 /**
  * Set a data_vio's mapped field to the physical location recorded in the block
- * map for the logical block in the VIO.
+ * map for the logical block in the vio.
  *
  * @param dataVIO  The data_vio whose field is to be set
  * @param pbn      The physical block number to set

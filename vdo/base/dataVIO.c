@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#10 $
  */
 
 #include "dataVIO.h"
@@ -107,9 +107,9 @@ void prepareDataVIO(struct data_vio    *dataVIO,
   memset(&dataVIO->chunkName, 0, sizeof(dataVIO->chunkName));
   memset(&dataVIO->duplicate, 0, sizeof(dataVIO->duplicate));
 
-  VIO *vio       = dataVIOAsVIO(dataVIO);
-  vio->operation = operation;
-  vio->callback  = callback;
+  struct vio *vio = dataVIOAsVIO(dataVIO);
+  vio->operation  = operation;
+  vio->callback   = callback;
   dataVIO->pageCompletion.completion.enqueueable
     = vioAsCompletion(vio)->enqueueable;
 
@@ -126,9 +126,9 @@ void completeDataVIO(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   if (completion->result != VDO_SUCCESS) {
-    VIO *vio = dataVIOAsVIO(dataVIO);
+    struct vio *vio = dataVIOAsVIO(dataVIO);
     updateVIOErrorStats(vio,
-                        "Completing %s VIO for LBN %" PRIu64
+                        "Completing %s vio for LBN %" PRIu64
                         " with error after %s",
                         getVIOReadWriteFlavor(vio), dataVIO->logical.lbn,
                         getOperationName(dataVIO));

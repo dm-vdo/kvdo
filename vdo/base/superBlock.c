@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#9 $
  */
 
 #include "superBlock.h"
@@ -37,8 +37,8 @@
 struct super_block {
   /** The parent for asynchronous load and save operations */
   struct vdo_completion       *parent;
-  /** The VIO for reading and writing the super block to disk */
-  VIO                         *vio;
+  /** The vio for reading and writing the super block to disk */
+  struct vio                  *vio;
   /** The buffer for encoding and decoding component data */
   Buffer                      *componentBuffer;
   /**
@@ -220,7 +220,7 @@ int saveSuperBlock(PhysicalLayer       *layer,
  * Finish the parent of a super block load or save operation. This
  * callback is registered in saveSuperBlockAsync() and loadSuperBlockAsync.
  *
- * @param completion  The super block VIO
+ * @param completion  The super block vio
  **/
 static void finishSuperBlockParent(struct vdo_completion *completion)
 {
@@ -234,7 +234,7 @@ static void finishSuperBlockParent(struct vdo_completion *completion)
  * Log a super block save error. This error handler is registered in
  * saveSuperBlockAsync().
  *
- * @param completion  The super block VIO
+ * @param completion  The super block vio
  **/
 static void handleSaveError(struct vdo_completion *completion)
 {
@@ -388,7 +388,7 @@ int loadSuperBlock(PhysicalLayer        *layer,
  * Continue after loading the super block. This callback is registered
  * in loadSuperBlockAsync().
  *
- * @param completion  The super block VIO
+ * @param completion  The super block vio
  **/
 static void finishReadingSuperBlock(struct vdo_completion *completion)
 {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#8 $
  */
 
 #include "vioPool.h"
@@ -30,9 +30,9 @@
 #include "types.h"
 
 /**
- * An VIOPool is a collection of preallocated VIOs.
+ * An vio_pool is a collection of preallocated vios.
  **/
-struct vioPool {
+struct vio_pool {
   /** The number of objects managed by the pool */
   size_t                 size;
   /** The list of objects which are available */
@@ -47,23 +47,23 @@ struct vioPool {
   uint64_t               outageCount;
   /** The ID of the thread on which this pool may be used */
   ThreadID               threadID;
-  /** The buffer backing the pool's VIOs */
+  /** The buffer backing the pool's vios */
   char                  *buffer;
   /** The pool entries */
   struct vio_pool_entry  entries[];
 };
 
 /**********************************************************************/
-int makeVIOPool(PhysicalLayer   *layer,
-                size_t           poolSize,
-                ThreadID         threadID,
-                VIOConstructor  *vioConstructor,
-                void            *context,
-                VIOPool        **poolPtr)
+int makeVIOPool(PhysicalLayer    *layer,
+                size_t            poolSize,
+                ThreadID          threadID,
+                VIOConstructor   *vioConstructor,
+                void             *context,
+                struct vio_pool **poolPtr)
 {
-  VIOPool *pool;
-  int result = ALLOCATE_EXTENDED(VIOPool, poolSize, struct vio_pool_entry,
-                                 __func__, &pool);
+  struct vio_pool *pool;
+  int result = ALLOCATE_EXTENDED(struct vio_pool, poolSize,
+                                 struct vio_pool_entry, __func__, &pool);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -101,14 +101,14 @@ int makeVIOPool(PhysicalLayer   *layer,
 }
 
 /**********************************************************************/
-void freeVIOPool(VIOPool **poolPtr)
+void freeVIOPool(struct vio_pool **poolPtr)
 {
   if (*poolPtr == NULL) {
     return;
   }
 
   // Remove all available entries from the object pool.
-  VIOPool *pool = *poolPtr;
+  struct vio_pool *pool = *poolPtr;
   ASSERT_LOG_ONLY(!hasWaiters(&pool->waiting),
                   "VIO pool must not have any waiters when being freed");
   ASSERT_LOG_ONLY((pool->busyCount == 0),
@@ -138,16 +138,16 @@ void freeVIOPool(VIOPool **poolPtr)
 }
 
 /**********************************************************************/
-bool isVIOPoolBusy(VIOPool *pool)
+bool isVIOPoolBusy(struct vio_pool *pool)
 {
   return (pool->busyCount != 0);
 }
 
 /**********************************************************************/
-int acquireVIOFromPool(VIOPool *pool, struct waiter *waiter)
+int acquireVIOFromPool(struct vio_pool *pool, struct waiter *waiter)
 {
   ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
-                  "acquire from active VIOPool called from correct thread");
+                  "acquire from active vio_pool called from correct thread");
 
   if (isRingEmpty(&pool->available)) {
     pool->outageCount++;
@@ -162,7 +162,7 @@ int acquireVIOFromPool(VIOPool *pool, struct waiter *waiter)
 }
 
 /**********************************************************************/
-void returnVIOToPool(VIOPool *pool, struct vio_pool_entry *entry)
+void returnVIOToPool(struct vio_pool *pool, struct vio_pool_entry *entry)
 {
   ASSERT_LOG_ONLY((pool->threadID == getCallbackThreadID()),
                   "vio pool entry returned on same thread as it was acquired");
@@ -177,7 +177,7 @@ void returnVIOToPool(VIOPool *pool, struct vio_pool_entry *entry)
 }
 
 /**********************************************************************/
-uint64_t getVIOPoolOutageCount(VIOPool *pool)
+uint64_t getVIOPoolOutageCount(struct vio_pool *pool)
 {
   return pool->outageCount;
 }

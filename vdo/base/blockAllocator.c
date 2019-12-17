@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#33 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -162,7 +162,7 @@ static void notifyBlockAllocatorOfReadOnlyMode(void                  *listener,
 int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
                           void           *parent,
                           void           *buffer,
-                          VIO           **vioPtr)
+                          struct vio    **vioPtr)
 {
   return createVIO(layer, VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA, parent,
                    buffer, vioPtr);
@@ -174,7 +174,7 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
  *
  * @param allocator           The allocator
  * @param layer               The physical layer below this allocator
- * @param vioPoolSize         The VIO pool size
+ * @param vioPoolSize         The vio pool size
  *
  * @return VDO_SUCCESS or an error
  **/
@@ -755,7 +755,7 @@ static void doDrainStep(struct vdo_completion *completion)
     return;
 
   case DRAIN_ALLOCATOR_STEP_FINISHED:
-    ASSERT_LOG_ONLY(!isVIOPoolBusy(allocator->vioPool), "VIO Pool not busy");
+    ASSERT_LOG_ONLY(!isVIOPoolBusy(allocator->vioPool), "vio pool not busy");
     finishDrainingWithResult(&allocator->state, completion->result);
     return;
 
