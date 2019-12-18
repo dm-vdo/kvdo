@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#16 $
  */
 
 #include "slabSummary.h"
@@ -564,8 +564,8 @@ void setSlabSummaryOrigin(struct slab_summary *summary,
 static void finishCombiningZones(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
-  int          result  = completion->result;
-  VDOExtent   *extent  = asVDOExtent(completion);
+  int                  result  = completion->result;
+  struct vdo_extent   *extent  = asVDOExtent(completion);
   freeExtent(&extent);
   finishLoadingWithResult(&summary->zones[0]->state, result);
 }
@@ -608,7 +608,7 @@ void combineZones(struct slab_summary *summary)
 static void finishLoadingSummary(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
-  VDOExtent   *extent  = asVDOExtent(completion);
+  struct vdo_extent   *extent  = asVDOExtent(completion);
 
   // Combine the zones so each zone is correct for all slabs.
   combineZones(summary);
@@ -629,7 +629,7 @@ void loadSlabSummary(struct slab_summary   *summary,
     return;
   }
 
-  VDOExtent *extent;
+  struct vdo_extent *extent;
   BlockCount blocks = summary->blocksPerZone * MAX_PHYSICAL_ZONES;
   int        result = createExtent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
                                    VIO_PRIORITY_METADATA, blocks,

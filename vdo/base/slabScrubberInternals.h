@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#11 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -51,7 +51,7 @@ struct slab_scrubber {
   /** The slab currently being scrubbed */
   struct vdo_slab           *slab;
   /** The extent for loading slab journal blocks */
-  VDOExtent                 *extent;
+  struct vdo_extent         *extent;
   /** A buffer to store the slab journal blocks */
   char                      *journalData;
 };

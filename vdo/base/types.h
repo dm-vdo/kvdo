@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#30 $
  */
 
 #ifndef TYPES_H
@@ -382,7 +382,7 @@ struct slab_summary;
 struct slab_summary_zone;
 typedef struct vdo                 VDO;
 struct vdo_completion;
-typedef struct vdoExtent           VDOExtent;
+struct vdo_extent;
 struct vdo_flush;
 struct vdo_layout;
 typedef struct vdoStatistics       VDOStatistics;
@@ -406,7 +406,7 @@ typedef struct {
  *
  * @param extent The extent which is complete
  **/
-typedef void VDOExtentCallback(VDOExtent *extent);
+typedef void VDOExtentCallback(struct vdo_extent *extent);
 
 /**
  * An asynchronous operation.

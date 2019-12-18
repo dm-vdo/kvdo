@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.h#4 $
  */
 
 #ifndef EXTENT_H
@@ -34,7 +34,7 @@
  * in the extent (as indicated by the count) may not be NULL, but it is not
  * part of the extent. A vio may belong to a single extent.
  **/
-struct vdoExtent {
+struct vdo_extent {
   // The completion for asynchronous extent processing
   struct vdo_completion  completion;
   // The number of vios in the extent
@@ -46,33 +46,34 @@ struct vdoExtent {
 };
 
 /**
- * Convert a generic vdo_completion to a VDOExtent.
+ * Convert a generic vdo_completion to a vdo_extent.
  *
  * @param completion The completion to convert
  *
  * @return The completion as an extent
  **/
-static inline VDOExtent *asVDOExtent(struct vdo_completion *completion)
+static inline struct vdo_extent *asVDOExtent(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(VDOExtent, completion) == 0);
+  STATIC_ASSERT(offsetof(struct vdo_extent, completion) == 0);
   assertCompletionType(completion->type, VDO_EXTENT_COMPLETION);
-  return (VDOExtent *) completion;
+  return (struct vdo_extent *) completion;
 }
 
 /**
- * Convert a VDOExtent to a vdo_completion.
+ * Convert a vdo_extent to a vdo_completion.
  *
  * @param extent The extent to convert
  *
  * @return The extent as a vdo_completion
  **/
-static inline struct vdo_completion *extentAsCompletion(VDOExtent *extent)
+static inline struct vdo_completion *
+extentAsCompletion(struct vdo_extent *extent)
 {
   return &extent->completion;
 }
 
 /**
- * Create a VDOExtent.
+ * Create vdo_extent.
  *
  * @param [in]  layer       The layer
  * @param [in]  vioType     The usage type to assign to the vios in the extent
@@ -84,12 +85,12 @@ static inline struct vdo_completion *extentAsCompletion(VDOExtent *extent)
  *
  * @return VDO_SUCCESS or an error
  **/
-int createExtent(PhysicalLayer  *layer,
-                 VIOType         vioType,
-                 VIOPriority     priority,
-                 BlockCount      blockCount,
-                 char           *data,
-                 VDOExtent     **extentPtr)
+int createExtent(PhysicalLayer      *layer,
+                 VIOType             vioType,
+                 VIOPriority         priority,
+                 BlockCount          blockCount,
+                 char               *data,
+                 struct vdo_extent **extentPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -97,7 +98,7 @@ int createExtent(PhysicalLayer  *layer,
  *
  * @param [in,out] extentPtr   The reference to the extent to free
  **/
-void freeExtent(VDOExtent **extentPtr);
+void freeExtent(struct vdo_extent **extentPtr);
 
 /**
  * Read metadata from the underlying storage.
@@ -108,7 +109,7 @@ void freeExtent(VDOExtent **extentPtr);
  * @param count       The number of blocks to read (must be less than or
  *                    equal to the length of the extent)
  **/
-void readPartialMetadataExtent(VDOExtent           *extent,
+void readPartialMetadataExtent(struct vdo_extent   *extent,
                                PhysicalBlockNumber  startBlock,
                                BlockCount           count);
 
@@ -119,7 +120,7 @@ void readPartialMetadataExtent(VDOExtent           *extent,
  * @param startBlock  The physical block number of the first block
  *                    in the extent
  **/
-static inline void readMetadataExtent(VDOExtent           *extent,
+static inline void readMetadataExtent(struct vdo_extent   *extent,
                                       PhysicalBlockNumber  startBlock)
 {
   readPartialMetadataExtent(extent, startBlock, extent->count);
@@ -134,7 +135,7 @@ static inline void readMetadataExtent(VDOExtent           *extent,
  * @param count       The number of blocks to read (must be less than or
  *                    equal to the length of the extent)
  **/
-void writePartialMetadataExtent(VDOExtent           *extent,
+void writePartialMetadataExtent(struct vdo_extent   *extent,
                                 PhysicalBlockNumber  startBlock,
                                 BlockCount           count);
 /**
@@ -144,7 +145,7 @@ void writePartialMetadataExtent(VDOExtent           *extent,
  * @param startBlock  The physical block number of the first block in the
  *                    extent
  **/
-static inline void writeMetadataExtent(VDOExtent           *extent,
+static inline void writeMetadataExtent(struct vdo_extent   *extent,
                                        PhysicalBlockNumber  startBlock)
 {
   writePartialMetadataExtent(extent, startBlock, extent->count);

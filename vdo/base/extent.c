@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#4 $
  */
 
 #include "extent.h"
@@ -33,12 +33,12 @@
 #include "vioWrite.h"
 
 /**********************************************************************/
-int createExtent(PhysicalLayer  *layer,
-                 VIOType         vioType,
-                 VIOPriority     priority,
-                 BlockCount      blockCount,
-                 char           *data,
-                 VDOExtent     **extentPtr)
+int createExtent(PhysicalLayer      *layer,
+                 VIOType             vioType,
+                 VIOPriority         priority,
+                 BlockCount          blockCount,
+                 char               *data,
+                 struct vdo_extent **extentPtr)
 {
   int result = ASSERT(isMetadataVIOType(vioType),
                       "createExtent() called for metadata");
@@ -46,9 +46,9 @@ int createExtent(PhysicalLayer  *layer,
     return result;
   }
 
-  VDOExtent *extent;
-  result = ALLOCATE_EXTENDED(VDOExtent, blockCount, struct vio *, __func__,
-                             &extent);
+  struct vdo_extent *extent;
+  result = ALLOCATE_EXTENDED(struct vdo_extent, blockCount, struct vio *,
+                             __func__, &extent);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -76,9 +76,9 @@ int createExtent(PhysicalLayer  *layer,
 }
 
 /**********************************************************************/
-void freeExtent(VDOExtent **extentPtr)
+void freeExtent(struct vdo_extent **extentPtr)
 {
-  VDOExtent *extent = *extentPtr;
+  struct vdo_extent *extent = *extentPtr;
   if (extent == NULL) {
     return;
   }
@@ -101,7 +101,7 @@ void freeExtent(VDOExtent **extentPtr)
  * @param count       The number of blocks to write
  * @param operation   The operation to perform on the extent
  **/
-static void launchMetadataExtent(VDOExtent           *extent,
+static void launchMetadataExtent(struct vdo_extent   *extent,
                                  PhysicalBlockNumber  startBlock,
                                  BlockCount           count,
                                  VIOOperation         operation)
@@ -122,7 +122,7 @@ static void launchMetadataExtent(VDOExtent           *extent,
 }
 
 /**********************************************************************/
-void readPartialMetadataExtent(VDOExtent           *extent,
+void readPartialMetadataExtent(struct vdo_extent   *extent,
                                PhysicalBlockNumber  startBlock,
                                BlockCount           count)
 {
@@ -130,7 +130,7 @@ void readPartialMetadataExtent(VDOExtent           *extent,
 }
 
 /**********************************************************************/
-void writePartialMetadataExtent(VDOExtent           *extent,
+void writePartialMetadataExtent(struct vdo_extent   *extent,
                                 PhysicalBlockNumber  startBlock,
                                 BlockCount           count)
 {
@@ -140,7 +140,7 @@ void writePartialMetadataExtent(VDOExtent           *extent,
 /**********************************************************************/
 void handleVIOCompletion(struct vdo_completion *completion)
 {
-  VDOExtent *extent = asVDOExtent(completion->parent);
+  struct vdo_extent *extent = asVDOExtent(completion->parent);
   if (++extent->completeCount != extent->count) {
     setCompletionResult(extentAsCompletion(extent), completion->result);
     return;

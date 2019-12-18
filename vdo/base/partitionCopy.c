@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#5 $
  */
 
 #include "partitionCopy.h"
@@ -49,7 +49,7 @@ struct copy_completion {
   /** the backing data used by the extent */
   char                  *data;
   /** the extent being used to copy */
-  VDOExtent             *extent;
+  struct vdo_extent     *extent;
 };
 
 /**
