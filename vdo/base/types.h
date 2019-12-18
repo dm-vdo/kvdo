@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#31 $
  */
 
 #ifndef TYPES_H
@@ -276,18 +276,18 @@ typedef enum {
 /**
  * A position in the block map where a block map entry is stored.
  **/
-typedef struct {
+struct block_map_slot {
   PhysicalBlockNumber pbn;
   SlotNumber          slot;
-} BlockMapSlot;
+};
 
 /**
  * A position in the arboreal block map at a specific level.
  **/
-typedef struct {
+struct block_map_tree_slot {
   PageNumber   pageIndex;
-  BlockMapSlot blockMapSlot;
-} BlockMapTreeSlot;
+  struct block_map_slot blockMapSlot;
+};
 
 /**
  * The configuration of a single slab derived from the configured block size

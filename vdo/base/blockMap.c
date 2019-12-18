@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#27 $
  */
 
 #include "blockMap.h"
@@ -300,7 +300,8 @@ static int initializeBlockMapZone(struct block_map_zone     *zone,
 }
 
 /**********************************************************************/
-struct block_map_zone *getBlockMapZone(struct block_map *map, ZoneCount zoneNumber)
+struct block_map_zone *getBlockMapZone(struct block_map *map,
+                                       ZoneCount         zoneNumber)
 {
   return &map->zones[zoneNumber];
 }
@@ -396,7 +397,7 @@ int makeBlockMapCaches(struct block_map          *map,
 }
 
 /**
- * Clean up a struct block_map_zone.
+ * Clean up a block_map_zone.
  *
  * @param zone  The zone to uninitialize
  **/
@@ -503,8 +504,8 @@ void findBlockMapSlotAsync(struct data_vio *dataVIO,
     return;
   }
 
-  struct tree_lock *treeLock = &dataVIO->treeLock;
-  BlockMapTreeSlot *slot     = &treeLock->treeSlots[0];
+  struct tree_lock           *treeLock = &dataVIO->treeLock;
+  struct block_map_tree_slot *slot     = &treeLock->treeSlots[0];
   slot->blockMapSlot.slot    = computeSlot(dataVIO->logical.lbn);
   if (slot->pageIndex < map->flatPageCount) {
     slot->blockMapSlot.pbn   = slot->pageIndex + BLOCK_MAP_FLAT_PAGE_ORIGIN;
@@ -750,7 +751,7 @@ static void getMappingFromFetchedPage(struct vdo_completion *completion)
   }
 
   struct data_vio     *dataVIO  = asDataVIO(completion->parent);
-  BlockMapTreeSlot    *treeSlot = &dataVIO->treeLock.treeSlots[0];
+  struct block_map_tree_slot    *treeSlot = &dataVIO->treeLock.treeSlots[0];
   const BlockMapEntry *entry    = &page->entries[treeSlot->blockMapSlot.slot];
 
   result = setMappedEntry(dataVIO, entry);

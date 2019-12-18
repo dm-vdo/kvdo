@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#15 $
  */
 
 #ifndef DATA_VIO_H
@@ -97,21 +97,21 @@ struct lbn_lock {
  */
 struct tree_lock {
   /* The current height at which this data_vio is operating */
-  Height            height;
+  Height                      height;
   /* The block map tree for this LBN */
-  RootCount         rootIndex;
+  RootCount                   rootIndex;
   /* Whether we hold a page lock */
-  bool              locked;
+  bool                        locked;
   /* The thread on which to run the callback */
-  ThreadID          threadID;
+  ThreadID                    threadID;
   /* The function to call after looking up a block map slot */
-  VDOAction        *callback;
+  VDOAction                  *callback;
   /* The key for the lock map */
-  uint64_t          key;
+  uint64_t                    key;
   /* The queue of waiters for the page this vio is allocating or loading */
-  struct wait_queue waiters;
+  struct wait_queue           waiters;
   /* The block map tree slots for this LBN */
-  BlockMapTreeSlot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
+  struct block_map_tree_slot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
 };
 
 struct compression_state {

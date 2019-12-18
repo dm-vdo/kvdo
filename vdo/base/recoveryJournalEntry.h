@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#3 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -38,9 +38,9 @@
  * logical block or for the block map tree itself.
  **/
 struct recovery_journal_entry {
-  BlockMapSlot     slot;
-  DataLocation     mapping;
-  JournalOperation operation;
+  struct block_map_slot slot;
+  DataLocation          mapping;
+  JournalOperation      operation;
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */

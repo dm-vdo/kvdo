@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#29 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -56,7 +56,7 @@ struct missing_decref {
   /** Whether this decref is complete */
   bool                        complete;
   /** The slot for which the last decref was lost */
-  BlockMapSlot                slot;
+  struct block_map_slot       slot;
   /** The penultimate block map entry for this LBN */
   DataLocation                penultimateMapping;
   /** The page completion used to fetch the block map page for this LBN */
@@ -103,13 +103,13 @@ static int enqueueMissingDecref(struct wait_queue *queue,
 }
 
 /**
- * Convert a BlockMapSlot into a unique uint64_t.
+ * Convert a block_map_slot into a unique uint64_t.
  *
  * @param slot  The block map slot to convert.
  *
  * @return a one-to-one mappable uint64_t.
  **/
-static uint64_t slotAsNumber(BlockMapSlot slot)
+static uint64_t slotAsNumber(struct block_map_slot slot)
 {
   return (((uint64_t) slot.pbn << 10) + slot.slot);
 }

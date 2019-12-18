@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#24 $
  */
 
 #include "blockMapTree.h"
@@ -594,7 +594,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
 
 /**********************************************************************/
 void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
-                           SequenceNumber             period)
+                           SequenceNumber              period)
 {
   advancePeriod(zone->dirtyLists, period);
 }
@@ -754,7 +754,7 @@ static void continueWithLoadedPage(struct data_vio       *dataVIO,
                                    struct block_map_page *page)
 {
   struct tree_lock *lock = &dataVIO->treeLock;
-  BlockMapTreeSlot  slot = lock->treeSlots[lock->height];
+  struct block_map_tree_slot  slot = lock->treeSlots[lock->height];
   DataLocation mapping
     = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
@@ -881,9 +881,9 @@ static void loadPage(struct waiter *waiter, void *context)
 static int attemptPageLock(struct block_map_tree_zone *zone,
                            struct data_vio            *dataVIO)
 {
-  struct tree_lock *lock     = &dataVIO->treeLock;
-  Height            height   = lock->height;
-  BlockMapTreeSlot  treeSlot = lock->treeSlots[height];
+  struct tree_lock *lock              = &dataVIO->treeLock;
+  Height            height            = lock->height;
+  struct block_map_tree_slot treeSlot = lock->treeSlots[height];
   PageKey           key;
   key.descriptor = (struct page_descriptor) {
     .rootIndex = lock->rootIndex,
@@ -1203,7 +1203,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
   PageNumber pageIndex
     = ((lock->treeSlots[0].pageIndex - zone->mapZone->blockMap->flatPageCount)
        / zone->mapZone->blockMap->rootCount);
-  BlockMapTreeSlot treeSlot = {
+  struct block_map_tree_slot treeSlot = {
     .pageIndex = pageIndex / BLOCK_MAP_ENTRIES_PER_PAGE,
     .blockMapSlot = {
       .pbn  = 0,

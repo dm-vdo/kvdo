@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#11 $
  */
 
 #include "referenceCountRebuild.h"
@@ -67,7 +67,7 @@ struct rebuild_completion {
   /** the number of leaf pages in the block map */
   PageCount                   leafPages;
   /** the last slot of the block map */
-  BlockMapSlot                lastSlot;
+  struct block_map_slot       lastSlot;
   /** number of pending (non-ready) requests*/
   PageCount                   outstanding;
   /** number of page completions */
@@ -416,7 +416,7 @@ static void rebuildFromLeaves(struct vdo_completion *completion)
 
   // The PBN calculation doesn't work until the tree pages have been loaded,
   // so we can't set this value at the start of rebuild.
-  rebuild->lastSlot = (BlockMapSlot) {
+  rebuild->lastSlot = (struct block_map_slot) {
     .slot = rebuild->blockMap->entryCount % BLOCK_MAP_ENTRIES_PER_PAGE,
     .pbn  = findBlockMapPagePBN(rebuild->blockMap, rebuild->leafPages - 1),
   };
