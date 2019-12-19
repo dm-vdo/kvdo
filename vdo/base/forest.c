@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#15 $
  */
 
 #include "forest.h"
@@ -395,7 +395,8 @@ static void traverse(struct cursor *cursor)
     }
 
     for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE; level->slot++) {
-      DataLocation location = unpackBlockMapEntry(&page->entries[level->slot]);
+      struct data_location location
+        = unpackBlockMapEntry(&page->entries[level->slot]);
       if (!isValidLocation(&location)) {
         // This entry is invalid, so remove it from the page.
         page->entries[level->slot]

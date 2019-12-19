@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#36 $
  */
 
 #include "dedupeIndex.h"
@@ -180,7 +180,7 @@ static const char *index_state_to_string(struct dedupe_index *index,
  * @param request  The UDS request to receive the encoding
  * @param advice   The advice to encode
  **/
-static void encode_uds_advice(UdsRequest *request, DataLocation advice)
+static void encode_uds_advice(UdsRequest *request, struct data_location advice)
 {
 	size_t offset = 0;
 	struct udsChunkData *encoding = &request->newMetadata;
@@ -194,11 +194,12 @@ static void encode_uds_advice(UdsRequest *request, DataLocation advice)
  * Decode VDO duplicate advice from the oldMetadata field of a UDS request.
  *
  * @param request  The UDS request containing the encoding
- * @param advice   The DataLocation to receive the decoded advice
+ * @param advice   The data_location to receive the decoded advice
  *
  * @return <code>true</code> if valid advice was found and decoded
  **/
-static bool decode_uds_advice(const UdsRequest *request, DataLocation *advice)
+static bool decode_uds_advice(const UdsRequest *request,
+			      struct data_location *advice)
 {
 	if ((request->status != UDS_SUCCESS) || !request->found) {
 		return false;
@@ -289,7 +290,7 @@ static void finish_index_operation(UdsRequest *uds_request)
 		dedupe_context->status = uds_request->status;
 		if ((uds_request->type == UDS_POST) ||
 		    (uds_request->type == UDS_QUERY)) {
-			DataLocation advice;
+			struct data_location advice;
 			if (decode_uds_advice(uds_request, &advice)) {
 				set_dedupe_advice(dedupe_context, &advice);
 			} else {

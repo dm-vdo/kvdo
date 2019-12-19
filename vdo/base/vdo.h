@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#3 $
  */
 
 #ifndef VDO_H
@@ -215,23 +215,23 @@ bool wasNew(const VDO *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a DataLocation containing potential dedupe advice is
+ * Check whether a data_location containing potential dedupe advice is
  * well-formed and addresses a data block in one of the configured physical
- * zones of the VDO. If it is, return the location and zone as a ZonedPBN;
+ * zones of the VDO. If it is, return the location and zone as a zoned_pbn;
  * otherwise increment statistics tracking invalid advice and return an
- * unmapped ZonedPBN.
+ * unmapped zoned_pbn.
  *
  * @param vdo     The VDO
  * @param advice  The advice to validate (NULL indicates no advice)
  * @param lbn     The logical block number of the write that requested advice,
  *                which is only used for debug-level logging of invalid advice
  *
- * @return The ZonedPBN representing the advice, if valid, otherwise an
- *         unmapped ZonedPBN if the advice was invalid or NULL
+ * @return The zoned_pbn representing the advice, if valid, otherwise an
+ *         unmapped zoned_pbn if the advice was invalid or NULL
  **/
-ZonedPBN validateDedupeAdvice(VDO                *vdo,
-                              const DataLocation *advice,
-                              LogicalBlockNumber  lbn)
+struct zoned_pbn validateDedupeAdvice(VDO                        *vdo,
+                                      const struct data_location *advice,
+                                      LogicalBlockNumber          lbn)
   __attribute__((warn_unused_result));
 
 // TEST SUPPORT ONLY BEYOND THIS POINT

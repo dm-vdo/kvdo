@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#25 $
  */
 
 #include "blockMapTree.h"
@@ -712,15 +712,15 @@ static void abortLoad(struct data_vio *dataVIO, int result)
  * Determine if a location represents a valid mapping for a tree page.
  *
  * @param vdo      The VDO
- * @param mapping  The DataLocation to check
+ * @param mapping  The data_location to check
  * @param height   The height of the entry in the tree
  *
  * @return <code>true</code> if the entry represents a invalid page mapping
  **/
 __attribute__((warn_unused_result))
-static bool isInvalidTreeEntry(const VDO          *vdo,
-                               const DataLocation *mapping,
-                               Height              height)
+static bool isInvalidTreeEntry(const VDO                  *vdo,
+                               const struct data_location *mapping,
+                               Height                      height)
 {
   if (!isValidLocation(mapping)
       || isCompressed(mapping->state)
@@ -755,7 +755,7 @@ static void continueWithLoadedPage(struct data_vio       *dataVIO,
 {
   struct tree_lock *lock = &dataVIO->treeLock;
   struct block_map_tree_slot  slot = lock->treeSlots[lock->height];
-  DataLocation mapping
+  struct data_location mapping
     = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
@@ -1230,7 +1230,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
   }
 
   // The page at this height has been allocated and loaded.
-  DataLocation mapping
+  struct data_location mapping
     = unpackBlockMapEntry(&page->entries[treeSlot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
@@ -1280,7 +1280,7 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
     return ZERO_BLOCK;
   }
 
-  DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+  struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
   if (!isValidLocation(&mapping) || isCompressed(mapping.state)) {
     return ZERO_BLOCK;
   }

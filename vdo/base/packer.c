@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#19 $
  */
 
 #include "packerInternals.h"
@@ -474,7 +474,7 @@ static void shareCompressedBlock(struct waiter *waiter, void *context)
   struct data_vio   *dataVIO = waiterAsDataVIO(waiter);
   struct output_bin *bin     = context;
 
-  dataVIO->newMapped = (ZonedPBN) {
+  dataVIO->newMapped = (struct zoned_pbn) {
     .pbn   = bin->writer->allocation,
     .zone  = bin->writer->zone,
     .state = getStateForSlot(dataVIO->compression.slot),

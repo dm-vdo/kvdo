@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#6 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -93,7 +93,7 @@ struct hash_lock {
    * If verified is false, this is the location of a possible duplicate.
    * If verified is true, is is the verified location of a true duplicate.
    **/
-  ZonedPBN               duplicate;
+  struct zoned_pbn       duplicate;
 
   /** The PBN lock on the block containing the duplicate data */
   struct pbn_lock       *duplicateLock;

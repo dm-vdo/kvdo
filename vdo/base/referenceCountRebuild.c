@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#12 $
  */
 
 #include "referenceCountRebuild.h"
@@ -287,7 +287,7 @@ static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
   if (getBlockMapPagePBN(page) == rebuild->lastSlot.pbn) {
     for (SlotNumber slot = rebuild->lastSlot.slot;
          slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
-      DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+      struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
       if (isMappedLocation(&mapping)) {
         page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
         requestVDOPageWrite(completion);
@@ -297,7 +297,7 @@ static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
 
   // Inform the slab depot of all entries on this page.
   for (SlotNumber slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
-    DataLocation mapping = unpackBlockMapEntry(&page->entries[slot]);
+    struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
     if (!isValidLocation(&mapping)) {
       // This entry is invalid, so remove it from the page.
       page->entries[slot] = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);

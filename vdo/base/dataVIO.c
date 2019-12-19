@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#11 $
  */
 
 #include "dataVIO.h"
@@ -162,7 +162,8 @@ const char *getOperationName(struct data_vio *dataVIO)
 }
 
 /**********************************************************************/
-void receiveDedupeAdvice(struct data_vio *dataVIO, const DataLocation *advice)
+void receiveDedupeAdvice(struct data_vio            *dataVIO,
+                         const struct data_location *advice)
 {
   /*
    * NOTE: this is called on non-base-code threads. Be very careful to not do
@@ -171,12 +172,14 @@ void receiveDedupeAdvice(struct data_vio *dataVIO, const DataLocation *advice)
    */
 
   VDO *vdo = getVDOFromDataVIO(dataVIO);
-  ZonedPBN duplicate = validateDedupeAdvice(vdo, advice, dataVIO->logical.lbn);
+  struct zoned_pbn duplicate = validateDedupeAdvice(vdo, advice,
+                                                    dataVIO->logical.lbn);
   setDuplicateLocation(dataVIO, duplicate);
 }
 
 /**********************************************************************/
-void setDuplicateLocation(struct data_vio *dataVIO, const ZonedPBN source)
+void setDuplicateLocation(struct data_vio        *dataVIO,
+                          const struct zoned_pbn  source)
 {
   dataVIO->isDuplicate = (source.pbn != ZERO_BLOCK);
   dataVIO->duplicate   = source;
@@ -185,7 +188,7 @@ void setDuplicateLocation(struct data_vio *dataVIO, const ZonedPBN source)
 /**********************************************************************/
 void clearMappedLocation(struct data_vio *dataVIO)
 {
-  dataVIO->mapped = (ZonedPBN) { .state = MAPPING_STATE_UNMAPPED };
+  dataVIO->mapped = (struct zoned_pbn) { .state = MAPPING_STATE_UNMAPPED };
 }
 
 /**********************************************************************/
@@ -199,7 +202,7 @@ int setMappedLocation(struct data_vio     *dataVIO,
     return result;
   }
 
-  dataVIO->mapped = (ZonedPBN) {
+  dataVIO->mapped = (struct zoned_pbn) {
     .pbn   = pbn,
     .state = state,
     .zone  = zone,

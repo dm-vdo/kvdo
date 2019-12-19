@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#2 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -67,30 +67,31 @@ typedef union __attribute__((packed)) blockMapEntry {
 } BlockMapEntry;
 
 /**
- * Unpack the fields of a BlockMapEntry, returning them as a DataLocation.
+ * Unpack the fields of a BlockMapEntry, returning them as a data_location.
  *
  * @param entry   A pointer to the entry to unpack
  *
  * @return the location of the data mapped by the block map entry
  **/
-static inline DataLocation unpackBlockMapEntry(const BlockMapEntry *entry)
+static inline struct data_location
+unpackBlockMapEntry(const BlockMapEntry *entry)
 {
   PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
   PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
-  return (DataLocation) {
+  return (struct data_location) {
     .pbn   = ((high4 << 32) | low32),
     .state = entry->fields.mappingState,
   };
 }
 
 /**********************************************************************/
-static inline bool isMappedLocation(const DataLocation *location)
+static inline bool isMappedLocation(const struct data_location *location)
 {
   return (location->state != MAPPING_STATE_UNMAPPED);
 }
 
 /**********************************************************************/
-static inline bool isValidLocation(const DataLocation *location)
+static inline bool isValidLocation(const struct data_location *location)
 {
   if (location->pbn == ZERO_BLOCK) {
     return !isCompressed(location->state);

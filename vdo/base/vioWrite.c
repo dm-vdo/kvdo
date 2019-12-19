@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#14 $
  */
 
 /*
@@ -1115,7 +1115,7 @@ static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
   }
 
   atomicStoreBool(&dataVIO->hasAllocation, true);
-  dataVIO->newMapped = (ZonedPBN) {
+  dataVIO->newMapped = (struct zoned_pbn) {
     .zone  = allocatingVIO->zone,
     .pbn   = allocatingVIO->allocation,
     .state = MAPPING_STATE_UNCOMPRESSED,

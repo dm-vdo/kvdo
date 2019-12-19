@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#28 $
  */
 
 #include "blockMap.h"
@@ -700,7 +700,7 @@ __attribute__((warn_unused_result))
 static int setMappedEntry(struct data_vio *dataVIO, const BlockMapEntry *entry)
 {
   // Unpack the PBN for logging purposes even if the entry is invalid.
-  DataLocation mapped = unpackBlockMapEntry(entry);
+  struct data_location mapped = unpackBlockMapEntry(entry);
 
   if (isValidLocation(&mapped)) {
     int result = setMappedLocation(dataVIO, mapped.pbn, mapped.state);

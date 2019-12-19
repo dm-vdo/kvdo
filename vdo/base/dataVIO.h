@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#16 $
  */
 
 #ifndef DATA_VIO_H
@@ -159,7 +159,7 @@ struct data_vio {
   struct tree_lock            treeLock;
 
   /* The current partition address of this block */
-  ZonedPBN                    mapped;
+  struct zoned_pbn            mapped;
 
   /** The hash of this vio (if not zero) */
   UdsChunkName                chunkName;
@@ -186,7 +186,7 @@ struct data_vio {
   AtomicBool                  hasAllocation;
 
   /* The new partition address of this block after the vio write completes */
-  ZonedPBN                    newMapped;
+  struct zoned_pbn            newMapped;
 
   /* The hash zone responsible for the chunk name (NULL if isZeroBlock) */
   struct hash_zone           *hashZone;
@@ -198,7 +198,7 @@ struct data_vio {
   RingNode                    hashLockNode;
 
   /* The block number in the partition of the albireo deduplication advice */
-  ZonedPBN                    duplicate;
+  struct zoned_pbn            duplicate;
 
   /*
    * The sequence number of the recovery journal block containing the increment
@@ -383,11 +383,12 @@ static inline bool isTrimDataVIO(struct data_vio *dataVIO)
  *
  * @param dataVIO  The write data_vio that is ready to update Albireo
  *
- * @return a DataLocation containing the advice to store in Albireo
+ * @return a data_location containing the advice to store in Albireo
  **/
-static inline DataLocation getDataVIONewAdvice(const struct data_vio *dataVIO)
+static inline struct data_location
+getDataVIONewAdvice(const struct data_vio *dataVIO)
 {
-  return (DataLocation) {
+  return (struct data_location) {
     .pbn   = dataVIO->newMapped.pbn,
     .state = dataVIO->newMapped.state,
   };
@@ -895,16 +896,18 @@ static inline void launchPackerCallback(struct data_vio *dataVIO,
  * @param dataVIO  The data_vio that queried Albireo
  * @param advice   A potential location of the data, or NULL for no advice
  **/
-void receiveDedupeAdvice(struct data_vio *dataVIO, const DataLocation *advice);
+void receiveDedupeAdvice(struct data_vio            *dataVIO,
+                         const struct data_location *advice);
 
 /**
  * Set the location of the duplicate block for a data_vio, updating the
- * isDuplicate and duplicate fields from a ZonedPBN.
+ * isDuplicate and duplicate fields from a zoned_pbn.
  *
  * @param dataVIO  The data_vio to modify
  * @param source   The location of the duplicate
  **/
-void setDuplicateLocation(struct data_vio *dataVIO, const ZonedPBN source);
+void setDuplicateLocation(struct data_vio        *dataVIO,
+                          const struct zoned_pbn  source);
 
 /**
  * Clear a data_vio's mapped block location, setting it to be unmapped. This
