@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#13 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -41,7 +41,7 @@ struct kvdo {
 	VDOAction *action;
 	struct vdo_completion *completion;
 	// Base-code device info
-	VDO *vdo;
+	struct vdo *vdo;
 };
 
 typedef enum reqQAction {
@@ -144,7 +144,7 @@ void dump_kvdo_work_queue(struct kvdo *kvdo);
  *
  * @return the VDO pointer
  */
-static inline VDO *get_vdo(struct kvdo *kvdo)
+static inline struct vdo *get_vdo(struct kvdo *kvdo)
 {
 	return kvdo->vdo;
 }

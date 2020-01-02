@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#27 $
  */
 
 /*
@@ -477,7 +477,7 @@ bool get_kvdo_compressing(struct kvdo *kvdo)
 /**********************************************************************/
 int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count)
 {
-	VDO *vdo = kvdo->vdo;
+	struct vdo *vdo = kvdo->vdo;
 	return prepareToGrowPhysical(vdo, physical_count);
 }
 
@@ -500,7 +500,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count)
 /**********************************************************************/
 int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count)
 {
-	VDO *vdo = kvdo->vdo;
+	struct vdo *vdo = kvdo->vdo;
 	return prepareToGrowLogical(vdo, logical_count);
 }
 
