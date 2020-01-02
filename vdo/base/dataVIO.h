@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#17 $
  */
 
 #ifndef DATA_VIO_H
@@ -395,13 +395,13 @@ getDataVIONewAdvice(const struct data_vio *dataVIO)
 }
 
 /**
- * Get the VDO from a data_vio.
+ * Get the vdo from a data_vio.
  *
- * @param dataVIO  The data_vio from which to get the VDO
+ * @param dataVIO  The data_vio from which to get the vdo
  *
- * @return The VDO to which a data_vio belongs
+ * @return The vdo to which a data_vio belongs
  **/
-static inline VDO *getVDOFromDataVIO(struct data_vio *dataVIO)
+static inline struct vdo *getVDOFromDataVIO(struct data_vio *dataVIO)
 {
   return dataVIOAsVIO(dataVIO)->vdo;
 }
@@ -411,7 +411,7 @@ static inline VDO *getVDOFromDataVIO(struct data_vio *dataVIO)
  *
  * @param dataVIO  The data_vio from which to get the ThreadConfig
  *
- * @return The ThreadConfig of the VDO to which a data_vio belongs
+ * @return The ThreadConfig of the vdo to which a data_vio belongs
  **/
 static inline const ThreadConfig *
 getThreadConfigFromDataVIO(struct data_vio *dataVIO)

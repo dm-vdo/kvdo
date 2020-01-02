@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#7 $
  */
 
 #include "vdoSuspend.h"
@@ -78,10 +78,10 @@ static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 /**
  * Update the VDO state and save the super block.
  *
- * @param vdo         The VDO being suspended
+ * @param vdo         The vdo being suspended
  * @param completion  The admin_completion's sub-task completion
  **/
-static void writeSuperBlock(VDO *vdo, struct vdo_completion *completion)
+static void writeSuperBlock(struct vdo *vdo, struct vdo_completion *completion)
 {
   switch (getVDOState(vdo)) {
   case VDO_DIRTY:
@@ -120,7 +120,7 @@ static void suspendCallback(struct vdo_completion *completion)
                   "suspend nor save", adminCompletion->type);
   assertAdminPhaseThread(adminCompletion, __func__, SUSPEND_PHASE_NAMES);
 
-  VDO *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
   case SUSPEND_PHASE_START:
     if (!startDraining(&vdo->adminState,
@@ -194,7 +194,7 @@ static void suspendCallback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performVDOSuspend(VDO *vdo, bool save)
+int performVDOSuspend(struct vdo *vdo, bool save)
 {
   return performAdminOperation(vdo, (save
                                      ? ADMIN_OPERATION_SAVE

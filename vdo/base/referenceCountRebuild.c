@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#13 $
  */
 
 #include "referenceCountRebuild.h"
@@ -128,7 +128,7 @@ static void finishRebuild(struct vdo_completion *completion)
 /**
  * Make a new rebuild completion.
  *
- * @param [in]  vdo                 The VDO
+ * @param [in]  vdo                 The vdo
  * @param [in]  logicalBlocksUsed   A pointer to hold the logical blocks used
  * @param [in]  blockMapDataBlocks  A pointer to hold the number of block map
  *                                  data blocks
@@ -137,7 +137,7 @@ static void finishRebuild(struct vdo_completion *completion)
  *
  * @return a success or error code
  **/
-static int makeRebuildCompletion(VDO                        *vdo,
+static int makeRebuildCompletion(struct vdo                 *vdo,
                                  BlockCount                 *logicalBlocksUsed,
                                  BlockCount                 *blockMapDataBlocks,
                                  struct vdo_completion      *parent,
@@ -465,7 +465,7 @@ static int processEntry(PhysicalBlockNumber    pbn,
 }
 
 /**********************************************************************/
-void rebuildReferenceCounts(VDO                   *vdo,
+void rebuildReferenceCounts(struct vdo            *vdo,
                             struct vdo_completion *parent,
                             BlockCount            *logicalBlocksUsed,
                             BlockCount            *blockMapDataBlocks)

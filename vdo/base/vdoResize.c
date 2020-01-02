@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#13 $
  */
 
 #include "vdoResize.h"
@@ -70,7 +70,7 @@ static void growPhysicalCallback(struct vdo_completion *completion)
   assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_PHYSICAL);
   assertAdminPhaseThread(adminCompletion, __func__, GROW_PHYSICAL_PHASE_NAMES);
 
-  VDO *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
   case GROW_PHYSICAL_PHASE_START:
     if (isReadOnly(vdo->readOnlyNotifier)) {
@@ -136,7 +136,7 @@ static void handleGrowthError(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
+int performGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
 {
   BlockCount oldPhysicalBlocks = vdo->config.physicalBlocks;
 
@@ -188,7 +188,7 @@ static void checkMayGrowPhysical(struct vdo_completion *completion)
   assertAdminOperationType(adminCompletion,
                            ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 
-  VDO *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->completion.parent;
   assertOnAdminThread(vdo, __func__);
 
   resetAdminSubTask(completion);
@@ -209,7 +209,7 @@ static void checkMayGrowPhysical(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
+int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
 {
   BlockCount currentPhysicalBlocks = vdo->config.physicalBlocks;
   if (newPhysicalBlocks < currentPhysicalBlocks) {

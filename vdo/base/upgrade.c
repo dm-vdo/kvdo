@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#7 $
  */
 
 #include "upgrade.h"
@@ -64,11 +64,11 @@ struct sodium_component_41_0 {
  * Checks whether the release version loaded in the superblock is the
  * current VDO version.
  *
- * @param vdo  The VDO to validate
+ * @param vdo  The vdo to validate
  *
  * @return true if the release version number is the current version
  **/
-static bool isCurrentReleaseVersion(VDO *vdo)
+static bool isCurrentReleaseVersion(struct vdo *vdo)
 {
   ReleaseVersionNumber loadedVersion
     = getLoadedReleaseVersion(vdo->superBlock);
@@ -77,14 +77,14 @@ static bool isCurrentReleaseVersion(VDO *vdo)
 }
 
 /**
- * Loads the VDO master version into the VDO and checks that the version
- * can be understood by VDO.
+ * Loads the VDO master version into the vdo and checks that the version
+ * can be understood by vdo.
  *
- * @param vdo  The VDO to validate
+ * @param vdo  The vdo to validate
  *
  * @return VDO_SUCCESS or an error if the loaded version is not supported
  **/
-static int validateSodiumVersion(VDO *vdo)
+static int validateSodiumVersion(struct vdo *vdo)
 {
   int result = decodeVDOVersion(vdo);
   if (result != VDO_SUCCESS) {
@@ -122,12 +122,12 @@ static int decodeSodium41_0Component(Buffer                       *buffer,
  * Decode the component data for the VDO itself from the component data
  * buffer in the super block.
  *
- * @param vdo     The VDO to decode
+ * @param vdo     The vdo to decode
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int decodeSodiumComponent(VDO *vdo)
+static int decodeSodiumComponent(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   struct version_number version;
@@ -150,7 +150,7 @@ static int decodeSodiumComponent(VDO *vdo)
     return result;
   }
 
-  // Copy the decoded component into the VDO structure.
+  // Copy the decoded component into the vdo structure.
   setVDOState(vdo, component.state);
   vdo->loadState          = component.state;
   vdo->completeRecoveries = component.completeRecoveries;
@@ -165,7 +165,7 @@ static int decodeSodiumComponent(VDO *vdo)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int finishSodiumDecode(VDO *vdo)
+static int finishSodiumDecode(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
@@ -215,7 +215,7 @@ int upgradePriorVDO(PhysicalLayer *layer)
     return result;
   }
 
-  VDO *vdo;
+  struct vdo *vdo;
   result = makeVDO(layer, &vdo);
   if (result != VDO_SUCCESS) {
     return result;

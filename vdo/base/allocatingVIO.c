@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#9 $
  */
 
 #include "allocatingVIO.h"
@@ -164,7 +164,7 @@ static int allocateBlockInZone(struct allocating_vio *allocatingVIO)
     }
   }
 
-  VDO                *vdo          = getVDOFromAllocatingVIO(allocatingVIO);
+  struct vdo         *vdo          = getVDOFromAllocatingVIO(allocatingVIO);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   if (allocatingVIO->allocationAttempts >= threadConfig->physicalZoneCount) {
     if (allocatingVIO->waitForCleanSlab) {

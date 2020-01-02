@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#33 $
  */
 
 #ifndef TYPES_H
@@ -245,7 +245,7 @@ typedef enum __attribute__((packed)) vioPriority {
 } VIOPriority;
 
 /**
- * Metadata types for the VDO.
+ * Metadata types for the vdo.
  **/
 typedef enum __attribute__((packed)) {
   VDO_METADATA_RECOVERY_JOURNAL = 1,
@@ -327,7 +327,7 @@ typedef struct vdoConfig {
 } __attribute__((packed)) VDOConfig;
 
 /**
- * The configuration parameters of the VDO service specified at load time.
+ * The configuration parameters of the vdo service specified at load time.
  **/
 typedef struct vdoLoadConfig {
   /** the offset on the physical layer where the VDO begins */

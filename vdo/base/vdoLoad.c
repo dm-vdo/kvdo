@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#17 $
  */
 
 #include "vdoLoad.h"
@@ -44,14 +44,14 @@
 #include "volumeGeometry.h"
 
 /**
- * Extract the VDO from an AdminCompletion, checking that the current operation
+ * Extract the vdo from an AdminCompletion, checking that the current operation
  * is a load.
  *
  * @param completion  The AdminCompletion's sub-task completion
  *
- * @return The VDO
+ * @return The vdo
  **/
-static inline VDO *vdoFromLoadSubTask(struct vdo_completion *completion)
+static inline struct vdo *vdoFromLoadSubTask(struct vdo_completion *completion)
 {
   return vdoFromAdminSubTask(completion, ADMIN_OPERATION_LOAD);
 }
@@ -64,7 +64,7 @@ static inline VDO *vdoFromLoadSubTask(struct vdo_completion *completion)
  **/
 static void finishAborting(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   vdo->closeRequired = false;
   finishParentCallback(completion);
 }
@@ -76,7 +76,7 @@ static void finishAborting(struct vdo_completion *completion)
  **/
 static void closeRecoveryJournalForAbort(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   prepareAdminSubTask(vdo, finishAborting, finishAborting);
   drainRecoveryJournal(vdo->recoveryJournal, ADMIN_STATE_SAVING, completion);
 }
@@ -89,7 +89,7 @@ static void closeRecoveryJournalForAbort(struct vdo_completion *completion)
  **/
 static void abortLoad(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result, "aborting load");
   if (vdo->readOnlyNotifier == NULL) {
     // There are no threads, so we're done
@@ -119,7 +119,7 @@ static void waitForReadOnlyMode(struct vdo_completion *completion)
 {
   prepareToFinishParent(completion, completion->parent);
   setCompletionResult(completion, VDO_READ_ONLY);
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier, completion);
 }
 
@@ -132,7 +132,7 @@ static void waitForReadOnlyMode(struct vdo_completion *completion)
  **/
 static void continueLoadReadOnly(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result,
                           "Entering read-only mode due to load error");
   enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
@@ -147,7 +147,7 @@ static void continueLoadReadOnly(struct vdo_completion *completion)
  **/
 static void scrubSlabs(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   if (!hasUnrecoveredSlabs(vdo->depot)) {
     finishParentCallback(completion);
     return;
@@ -169,7 +169,7 @@ static void scrubSlabs(struct vdo_completion *completion)
  **/
 static void handleScrubbingError(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
   waitForReadOnlyMode(completion);
 }
@@ -183,7 +183,7 @@ static void handleScrubbingError(struct vdo_completion *completion)
  **/
 static void prepareToComeOnline(struct vdo_completion *completion)
 {
-  VDO               *vdo      = vdoFromLoadSubTask(completion);
+  struct vdo        *vdo      = vdoFromLoadSubTask(completion);
   SlabDepotLoadType  loadType = NORMAL_LOAD;
   if (requiresReadOnlyRebuild(vdo)) {
     loadType = REBUILD_LOAD;
@@ -205,7 +205,7 @@ static void prepareToComeOnline(struct vdo_completion *completion)
  **/
 static void makeDirty(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   if (isReadOnly(vdo->readOnlyNotifier)) {
     finishCompletion(completion->parent, VDO_READ_ONLY);
     return;
@@ -224,7 +224,7 @@ static void makeDirty(struct vdo_completion *completion)
  **/
 static void loadCallback(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
 
   // Prepare the recovery journal for new entries.
@@ -256,7 +256,7 @@ static void loadCallback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performVDOLoad(VDO *vdo)
+int performVDOLoad(struct vdo *vdo)
 {
   return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL, loadCallback,
                                loadCallback);
@@ -264,7 +264,7 @@ int performVDOLoad(VDO *vdo)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int startVDODecode(VDO *vdo, bool validateConfig)
+static int startVDODecode(struct vdo *vdo, bool validateConfig)
 {
   int result = validateVDOVersion(vdo);
   if (result != VDO_SUCCESS) {
@@ -292,7 +292,7 @@ static int startVDODecode(VDO *vdo, bool validateConfig)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int finishVDODecode(VDO *vdo)
+static int finishVDODecode(struct vdo *vdo)
 {
   Buffer             *buffer       = getComponentBuffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
@@ -335,18 +335,18 @@ static int finishVDODecode(VDO *vdo)
 
 /**
  * Decode the component data portion of a super block and fill in the
- * corresponding portions of the VDO being loaded. This will also allocate the
+ * corresponding portions of the vdo being loaded. This will also allocate the
  * recovery journal and slab depot. If this method is called with an
  * asynchronous layer (i.e. a thread config which specifies at least one base
  * thread), the block map and packer will be constructed as well.
  *
- * @param vdo             The VDO being loaded
+ * @param vdo             The vdo being loaded
  * @param validateConfig  Whether to validate the config
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int decodeVDO(VDO *vdo, bool validateConfig)
+static int decodeVDO(struct vdo *vdo, bool validateConfig)
 {
   int result = startVDODecode(vdo, validateConfig);
   if (result != VDO_SUCCESS) {
@@ -437,7 +437,7 @@ static int decodeVDO(VDO *vdo, bool validateConfig)
  **/
 static void loadVDOComponents(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
 
   prepareCompletion(completion, finishParentCallback, abortLoad,
                     completion->callbackThreadID, completion->parent);
@@ -451,14 +451,14 @@ static void loadVDOComponents(struct vdo_completion *completion)
  **/
 static void preLoadCallback(struct vdo_completion *completion)
 {
-  VDO *vdo = vdoFromLoadSubTask(completion);
+  struct vdo *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
   prepareAdminSubTask(vdo, loadVDOComponents, abortLoad);
   loadSuperBlockAsync(completion, getFirstBlockOffset(vdo), &vdo->superBlock);
 }
 
 /**********************************************************************/
-int prepareToLoadVDO(VDO *vdo, const VDOLoadConfig *loadConfig)
+int prepareToLoadVDO(struct vdo *vdo, const VDOLoadConfig *loadConfig)
 {
   vdo->loadConfig = *loadConfig;
   return performAdminOperation(vdo, ADMIN_OPERATION_LOAD, NULL,
@@ -467,7 +467,7 @@ int prepareToLoadVDO(VDO *vdo, const VDOLoadConfig *loadConfig)
 
 /**********************************************************************/
 __attribute__((warn_unused_result))
-static int decodeSynchronousVDO(VDO *vdo, bool validateConfig)
+static int decodeSynchronousVDO(struct vdo *vdo, bool validateConfig)
 {
   int result = startVDODecode(vdo, validateConfig);
   if (result != VDO_SUCCESS) {
@@ -487,9 +487,9 @@ int loadVDOSuperblock(PhysicalLayer           *layer,
                       struct volume_geometry  *geometry,
                       bool                     validateConfig,
                       VDODecoder              *decoder,
-                      VDO                    **vdoPtr)
+                      struct vdo             **vdoPtr)
 {
-  VDO *vdo;
+  struct vdo *vdo;
   int result = makeVDO(layer, &vdo);
   if (result != VDO_SUCCESS) {
     return result;
@@ -518,7 +518,7 @@ int loadVDOSuperblock(PhysicalLayer           *layer,
 int loadVDO(PhysicalLayer  *layer,
             bool            validateConfig,
             VDODecoder     *decoder,
-            VDO           **vdoPtr)
+            struct vdo    **vdoPtr)
 {
   struct volume_geometry geometry;
   int result = loadVolumeGeometry(layer, &geometry);

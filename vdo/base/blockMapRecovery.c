@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#11 $
  */
 
 #include "blockMapRecovery.h"
@@ -186,7 +186,7 @@ static void finishBlockMapRecovery(struct vdo_completion *completion)
 /**
  * Make a new block map recovery completion.
  *
- * @param [in]  vdo             The VDO
+ * @param [in]  vdo             The vdo
  * @param [in]  entryCount      The number of journal entries
  * @param [in]  journalEntries  An array of journal entries to process
  * @param [in]  parent          The parent of the recovery completion
@@ -195,7 +195,7 @@ static void finishBlockMapRecovery(struct vdo_completion *completion)
  * @return a success or error code
  **/
 static int
-makeRecoveryCompletion(VDO                                   *vdo,
+makeRecoveryCompletion(struct vdo                            *vdo,
                        BlockCount                             entryCount,
                        struct numbered_block_mapping         *journalEntries,
                        struct vdo_completion                 *parent,
@@ -511,7 +511,7 @@ static void recoverReadyPages(struct block_map_recovery_completion *recovery,
 }
 
 /**********************************************************************/
-void recoverBlockMap(VDO                           *vdo,
+void recoverBlockMap(struct vdo                    *vdo,
                      BlockCount                     entryCount,
                      struct numbered_block_mapping *journalEntries,
                      struct vdo_completion         *parent)

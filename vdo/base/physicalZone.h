@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.h#5 $
  */
 
 #ifndef PHYSICAL_ZONE_H
@@ -28,13 +28,13 @@
 /**
  * Create a physical zone.
  *
- * @param [in]  vdo         The VDO to which the zone will belong
+ * @param [in]  vdo         The vdo to which the zone will belong
  * @param [in]  zoneNumber  The number of the zone to create
  * @param [out] zonePtr     A pointer to hold the new physical_zone
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makePhysicalZone(VDO                   *vdo,
+int makePhysicalZone(struct vdo            *vdo,
                      ZoneCount              zoneNumber,
                      struct physical_zone **zonePtr)
   __attribute__((warn_unused_result));

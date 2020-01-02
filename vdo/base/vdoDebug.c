@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#4 $
  */
 
 #include "vdoDebug.h"
@@ -29,7 +29,7 @@ static const char xLogDebugMessage[]     = "x-log-debug-message";
 
 /**********************************************************************/
 int initializeVDOCommandCompletion(struct vdo_command_completion  *command,
-                                   VDO                            *vdo,
+                                   struct vdo                     *vdo,
                                    int                             argc,
                                    char                          **argv)
 {

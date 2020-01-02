@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.h#2 $
  */
 
 #ifndef VDO_RESUME_H
@@ -25,12 +25,12 @@
 #include "types.h"
 
 /**
- * Resume a suspended VDO.
+ * Resume a suspended vdo.
  *
- * @param vdo   The VDO to resume
+ * @param vdo   The vdo to resume
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOResume(VDO *vdo);
+int performVDOResume(struct vdo *vdo);
 
 #endif /* VDO_RESUME_H */

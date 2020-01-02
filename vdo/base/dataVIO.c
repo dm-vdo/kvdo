@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#12 $
  */
 
 #include "dataVIO.h"
@@ -82,8 +82,9 @@ static void initializeLBNLock(struct data_vio *dataVIO, LogicalBlockNumber lbn)
   lock->locked  = false;
   initializeWaitQueue(&lock->waiters);
 
-  VDO *vdo   = getVDOFromDataVIO(dataVIO);
-  lock->zone = getLogicalZone(vdo->logicalZones, computeLogicalZone(dataVIO));
+  struct vdo *vdo = getVDOFromDataVIO(dataVIO);
+  lock->zone      = getLogicalZone(vdo->logicalZones,
+                                   computeLogicalZone(dataVIO));
 }
 
 /**********************************************************************/
@@ -171,7 +172,7 @@ void receiveDedupeAdvice(struct data_vio            *dataVIO,
    * trying to get the current thread ID, or that does a lot of work.
    */
 
-  VDO *vdo = getVDOFromDataVIO(dataVIO);
+  struct vdo *vdo = getVDOFromDataVIO(dataVIO);
   struct zoned_pbn duplicate = validateDedupeAdvice(vdo, advice,
                                                     dataVIO->logical.lbn);
   setDuplicateLocation(dataVIO, duplicate);

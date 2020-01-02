@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#5 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -40,13 +40,13 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
 
 /**
  * Construct a recovery completion and launch it. Apply all valid journal block
- * entries to all VDO structures. This function performs the offline portion of
- * recovering a VDO from a crash.
+ * entries to all vdo structures. This function performs the offline portion of
+ * recovering a vdo from a crash.
  *
  * @param vdo     The vdo to recover
  * @param parent  The completion to notify when the offline portion of the
  *                recovery is complete
  **/
-void launchRecovery(VDO *vdo, struct vdo_completion *parent);
+void launchRecovery(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif // VDO_RECOVERY_H

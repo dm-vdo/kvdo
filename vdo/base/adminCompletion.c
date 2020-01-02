@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#7 $
  */
 
 #include "adminCompletion.h"
@@ -62,8 +62,8 @@ void assertAdminPhaseThread(struct admin_completion *adminCompletion,
 }
 
 /**********************************************************************/
-VDO *vdoFromAdminSubTask(struct vdo_completion *completion,
-                         AdminOperationType     expected)
+struct vdo *vdoFromAdminSubTask(struct vdo_completion *completion,
+                                AdminOperationType     expected)
 {
   struct admin_completion *adminCompletion
     = adminCompletionFromSubTask(completion);
@@ -72,7 +72,7 @@ VDO *vdoFromAdminSubTask(struct vdo_completion *completion,
 }
 
 /**********************************************************************/
-int initializeAdminCompletion(VDO                     *vdo,
+int initializeAdminCompletion(struct vdo              *vdo,
 			      struct admin_completion *adminCompletion)
 {
   int result = initializeEnqueueableCompletion(&adminCompletion->completion,
@@ -111,19 +111,19 @@ struct vdo_completion *resetAdminSubTask(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void prepareAdminSubTaskOnThread(VDO       *vdo,
-                                 VDOAction *callback,
-                                 VDOAction *errorHandler,
-                                 ThreadID   threadID)
+void prepareAdminSubTaskOnThread(struct vdo *vdo,
+                                 VDOAction  *callback,
+                                 VDOAction  *errorHandler,
+                                 ThreadID    threadID)
 {
   prepareForRequeue(&vdo->adminCompletion.subTaskCompletion, callback,
                     errorHandler, threadID, &vdo->adminCompletion);
 }
 
 /**********************************************************************/
-void prepareAdminSubTask(VDO       *vdo,
-                         VDOAction *callback,
-                         VDOAction *errorHandler)
+void prepareAdminSubTask(struct vdo *vdo,
+                         VDOAction  *callback,
+                         VDOAction  *errorHandler)
 {
   struct admin_completion *adminCompletion = &vdo->adminCompletion;
   prepareAdminSubTaskOnThread(vdo, callback, errorHandler,
@@ -142,7 +142,7 @@ static void adminOperationCallback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performAdminOperation(VDO                    *vdo,
+int performAdminOperation(struct vdo             *vdo,
                           AdminOperationType      type,
                           ThreadIDGetterForPhase *threadIDGetter,
                           VDOAction              *action,

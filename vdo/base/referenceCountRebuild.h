@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.h#3 $
  */
 
 #ifndef REFERENCE_COUNT_REBUILD_H
@@ -27,14 +27,14 @@
 /**
  * Rebuild the reference counts from the block map (read-only rebuild).
  *
- * @param [in]  vdo                 The VDO
+ * @param [in]  vdo                 The vdo
  * @param [in]  parent              The completion to notify when the rebuild is
  *                                  complete
  * @param [out] logicalBlocksUsed   A pointer to hold the logical blocks used
  * @param [out] blockMapDataBlocks  A pointer to hold the number of block map
  *                                  data blocks
  **/
-void rebuildReferenceCounts(VDO                   *vdo,
+void rebuildReferenceCounts(struct vdo            *vdo,
                             struct vdo_completion *parent,
                             BlockCount            *logicalBlocksUsed,
                             BlockCount            *blockMapDataBlocks);

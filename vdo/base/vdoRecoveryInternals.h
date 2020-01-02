@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#10 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -46,8 +46,8 @@ struct recovery_completion {
   struct vdo_completion                  completion;
   /** The sub-task completion */
   struct vdo_completion                  subTaskCompletion;
-  /** The VDO in question */
-  VDO                                   *vdo;
+  /** The struct vdo in question */
+  struct vdo                            *vdo;
   /** The struct block_allocator whose journals are being recovered */
   struct block_allocator                *allocator;
   /** A buffer to hold the data read off disk */
@@ -117,12 +117,13 @@ asRecoveryCompletion(struct vdo_completion *completion)
 /**
  * Allocate and initialize a recovery_completion.
  *
- * @param vdo          The VDO in question
+ * @param vdo          The vdo in question
  * @param recoveryPtr  A pointer to hold the new recovery_completion
  *
  * @return VDO_SUCCESS or a status code
  **/
-int makeRecoveryCompletion(VDO *vdo, struct recovery_completion **recoveryPtr)
+int makeRecoveryCompletion(struct vdo                  *vdo,
+                           struct recovery_completion **recoveryPtr)
   __attribute__((warn_unused_result));
 
 /**

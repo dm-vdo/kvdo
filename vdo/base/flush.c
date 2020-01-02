@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#10 $
  */
 
 #include "flush.h"
@@ -34,9 +34,9 @@
 
 struct flusher {
   struct vdo_completion  completion;
-  /** The VDO to which this flusher belongs */
-  VDO                   *vdo;
-  /** The current flush generation of the VDO */
+  /** The vdo to which this flusher belongs */
+  struct vdo            *vdo;
+  /** The current flush generation of the vdo */
   SequenceNumber         flushGeneration;
   /** The first unacknowledged flush generation */
   SequenceNumber         firstUnacknowledgedGeneration;
@@ -80,7 +80,7 @@ static struct vdo_flush *waiterAsFlush(struct waiter *waiter)
 }
 
 /**********************************************************************/
-int makeFlusher(VDO *vdo)
+int makeFlusher(struct vdo *vdo)
 {
   int result = ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
   if (result != VDO_SUCCESS) {
@@ -198,7 +198,7 @@ static void notifyFlush(struct flusher *flusher)
 }
 
 /**********************************************************************/
-void flush(VDO *vdo, struct vdo_flush *flush)
+void flush(struct vdo *vdo, struct vdo_flush *flush)
 {
   struct flusher *flusher = vdo->flusher;
   ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),

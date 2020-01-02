@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#23 $
  */
 
 /*
- * This file contains the main entry points for normal operations on a VDO as
- * well as functions for constructing and destroying VDO instances (in memory).
+ * This file contains the main entry points for normal operations on a vdo as
+ * well as functions for constructing and destroying vdo instances (in memory).
  */
 
 #include "vdoInternal.h"
@@ -75,7 +75,7 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
 };
 
 /**
- * This is the structure that captures the VDO fields saved as a SuperBlock
+ * This is the structure that captures the vdo fields saved as a SuperBlock
  * component.
  **/
 struct vdo_component_41_0 {
@@ -87,15 +87,15 @@ struct vdo_component_41_0 {
 } __attribute__((packed));
 
 /**********************************************************************/
-int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
+int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
 {
   int result = registerStatusCodes();
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  VDO *vdo;
-  result = ALLOCATE(1, VDO, __func__, &vdo);
+  struct vdo *vdo;
+  result = ALLOCATE(1, struct vdo, __func__, &vdo);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -114,9 +114,9 @@ int allocateVDO(PhysicalLayer *layer, VDO **vdoPtr)
 }
 
 /**********************************************************************/
-int makeVDO(PhysicalLayer *layer, VDO **vdoPtr)
+int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
 {
-  VDO *vdo;
+  struct vdo *vdo;
   int result = allocateVDO(layer, &vdo);
   if (result != VDO_SUCCESS) {
     return result;
@@ -133,7 +133,7 @@ int makeVDO(PhysicalLayer *layer, VDO **vdoPtr)
 }
 
 /**********************************************************************/
-void destroyVDO(VDO *vdo)
+void destroyVDO(struct vdo *vdo)
 {
   freeFlusher(&vdo->flusher);
   freePacker(&vdo->packer);
@@ -168,7 +168,7 @@ void destroyVDO(VDO *vdo)
 }
 
 /**********************************************************************/
-void freeVDO(VDO **vdoPtr)
+void freeVDO(struct vdo **vdoPtr)
 {
   if (*vdoPtr == NULL) {
     return;
@@ -180,19 +180,19 @@ void freeVDO(VDO **vdoPtr)
 }
 
 /**********************************************************************/
-VDOState getVDOState(const VDO *vdo)
+VDOState getVDOState(const struct vdo *vdo)
 {
   return atomicLoad32(&vdo->state);
 }
 
 /**********************************************************************/
-void setVDOState(VDO *vdo, VDOState state)
+void setVDOState(struct vdo *vdo, VDOState state)
 {
   atomicStore32(&vdo->state, state);
 }
 
 /**********************************************************************/
-size_t getComponentDataSize(VDO *vdo)
+size_t getComponentDataSize(struct vdo *vdo)
 {
   return (sizeof(struct version_number)
           + sizeof(struct version_number)
@@ -204,7 +204,7 @@ size_t getComponentDataSize(VDO *vdo)
 }
 
 /**
- * Encode the VDO master version.
+ * Encode the vdo master version.
  *
  * @param buffer  The buffer in which to encode the version
  *
@@ -251,15 +251,15 @@ static int encodeVDOConfig(const VDOConfig *config, Buffer *buffer)
 }
 
 /**
- * Encode the component data for the VDO itself.
+ * Encode the component data for the vdo itself.
  *
  * @param vdo     The vdo to encode
- * @param buffer  The buffer in which to encode the VDO
+ * @param buffer  The buffer in which to encode the vdo
  *
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
+static int encodeVDOComponent(const struct vdo *vdo, Buffer *buffer)
 {
   int result = encodeVersionNumber(VDO_COMPONENT_DATA_41_0, buffer);
   if (result != VDO_SUCCESS) {
@@ -299,7 +299,7 @@ static int encodeVDOComponent(const VDO *vdo, Buffer *buffer)
 }
 
 /**********************************************************************/
-static int encodeVDO(VDO *vdo)
+static int encodeVDO(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   int result = resetBufferEnd(buffer, 0);
@@ -343,7 +343,7 @@ static int encodeVDO(VDO *vdo)
 }
 
 /**********************************************************************/
-int saveVDOComponents(VDO *vdo)
+int saveVDOComponents(struct vdo *vdo)
 {
   int result = encodeVDO(vdo);
   if (result != VDO_SUCCESS) {
@@ -354,7 +354,7 @@ int saveVDOComponents(VDO *vdo)
 }
 
 /**********************************************************************/
-void saveVDOComponentsAsync(VDO *vdo, struct vdo_completion *parent)
+void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent)
 {
   int result = encodeVDO(vdo);
   if (result != VDO_SUCCESS) {
@@ -366,7 +366,7 @@ void saveVDOComponentsAsync(VDO *vdo, struct vdo_completion *parent)
 }
 
 /**********************************************************************/
-int saveReconfiguredVDO(VDO *vdo)
+int saveReconfiguredVDO(struct vdo *vdo)
 {
   Buffer *buffer         = getComponentBuffer(vdo->superBlock);
   size_t  componentsSize = contentLength(buffer);
@@ -405,14 +405,14 @@ int saveReconfiguredVDO(VDO *vdo)
 }
 
 /**********************************************************************/
-int decodeVDOVersion(VDO *vdo)
+int decodeVDOVersion(struct vdo *vdo)
 {
   return decodeVersionNumber(getComponentBuffer(vdo->superBlock),
                              &vdo->loadVersion);
 }
 
 /**********************************************************************/
-int validateVDOVersion(VDO *vdo)
+int validateVDOVersion(struct vdo *vdo)
 {
   int result = decodeVDOVersion(vdo);
   if (result != VDO_SUCCESS) {
@@ -485,7 +485,7 @@ static int decodeVDOConfig(Buffer *buffer, VDOConfig *config)
 }
 
 /**
- * Decode the version 41.0 component state for the VDO itself from a buffer.
+ * Decode the version 41.0 component state for the vdo itself from a buffer.
  *
  * @param buffer  A buffer positioned at the start of the encoding
  * @param state   The state structure to receive the decoded values
@@ -542,7 +542,7 @@ static int decodeVDOComponent_41_0(Buffer                    *buffer,
 }
 
 /**********************************************************************/
-int decodeVDOComponent(VDO *vdo)
+int decodeVDOComponent(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
 
@@ -564,7 +564,7 @@ int decodeVDOComponent(VDO *vdo)
     return result;
   }
 
-  // Copy the decoded component into the VDO structure.
+  // Copy the decoded component into the vdo structure.
   setVDOState(vdo, component.state);
   vdo->loadState          = component.state;
   vdo->completeRecoveries = component.completeRecoveries;
@@ -639,7 +639,7 @@ int validateVDOConfig(const VDOConfig *config,
   if (blockCount < config->physicalBlocks) {
     logError("A physical size of %llu blocks was specified,"
              " but that is smaller than the %llu blocks"
-             " configured in the VDO super block",
+             " configured in the vdo super block",
              blockCount, config->physicalBlocks);
     return VDO_PARAMETER_MISMATCH;
   }
@@ -672,19 +672,19 @@ int validateVDOConfig(const VDOConfig *config,
 }
 
 /**
- * Notify a VDO that it is going read-only. This will save the read-only state
+ * Notify a vdo that it is going read-only. This will save the read-only state
  * to the super block.
  *
  * <p>Implements ReadOnlyNotification.
  *
- * @param listener  The VDO
+ * @param listener  The vdo
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
 static void notifyVDOOfReadOnlyMode(void                  *listener,
                                     struct vdo_completion *parent)
 {
-  VDO *vdo = listener;
+  struct vdo *vdo = listener;
   if (inReadOnlyMode(vdo)) {
     completeCompletion(parent);
   }
@@ -694,7 +694,7 @@ static void notifyVDOOfReadOnlyMode(void                  *listener,
 }
 
 /**********************************************************************/
-int enableReadOnlyEntry(VDO *vdo)
+int enableReadOnlyEntry(struct vdo *vdo)
 {
   return registerReadOnlyListener(vdo->readOnlyNotifier, vdo,
                                   notifyVDOOfReadOnlyMode,
@@ -702,26 +702,26 @@ int enableReadOnlyEntry(VDO *vdo)
 }
 
 /**********************************************************************/
-bool inReadOnlyMode(const VDO *vdo)
+bool inReadOnlyMode(const struct vdo *vdo)
 {
   return (getVDOState(vdo) == VDO_READ_ONLY_MODE);
 }
 
 /**********************************************************************/
-bool wasNew(const VDO *vdo)
+bool wasNew(const struct vdo *vdo)
 {
   return (vdo->loadState == VDO_NEW);
 }
 
 /**********************************************************************/
-bool requiresReadOnlyRebuild(const VDO *vdo)
+bool requiresReadOnlyRebuild(const struct vdo *vdo)
 {
   return ((vdo->loadState == VDO_FORCE_REBUILD)
           || (vdo->loadState == VDO_REBUILD_FOR_UPGRADE));
 }
 
 /**********************************************************************/
-bool requiresRebuild(const VDO *vdo)
+bool requiresRebuild(const struct vdo *vdo)
 {
   switch (getVDOState(vdo)) {
   case VDO_DIRTY:
@@ -736,26 +736,26 @@ bool requiresRebuild(const VDO *vdo)
 }
 
 /**********************************************************************/
-bool requiresRecovery(const VDO *vdo)
+bool requiresRecovery(const struct vdo *vdo)
 {
   return ((vdo->loadState == VDO_DIRTY) || (vdo->loadState == VDO_REPLAYING)
           || (vdo->loadState == VDO_RECOVERING));
 }
 
 /**********************************************************************/
-bool isReplaying(const VDO *vdo)
+bool isReplaying(const struct vdo *vdo)
 {
   return (getVDOState(vdo) == VDO_REPLAYING);
 }
 
 /**********************************************************************/
-bool inRecoveryMode(const VDO *vdo)
+bool inRecoveryMode(const struct vdo *vdo)
 {
   return (getVDOState(vdo) == VDO_RECOVERING);
 }
 
 /**********************************************************************/
-void enterRecoveryMode(VDO *vdo)
+void enterRecoveryMode(struct vdo *vdo)
 {
   assertOnAdminThread(vdo, __func__);
 
@@ -768,13 +768,13 @@ void enterRecoveryMode(VDO *vdo)
 }
 
 /**********************************************************************/
-void makeVDOReadOnly(VDO *vdo, int errorCode)
+void makeVDOReadOnly(struct vdo *vdo, int errorCode)
 {
   enterReadOnlyMode(vdo->readOnlyNotifier, errorCode);
 }
 
 /**********************************************************************/
-bool setVDOCompressing(VDO *vdo, bool enableCompression)
+bool setVDOCompressing(struct vdo *vdo, bool enableCompression)
 {
   bool stateChanged = compareAndSwapBool(&vdo->compressing, !enableCompression,
                                          enableCompression);
@@ -789,13 +789,13 @@ bool setVDOCompressing(VDO *vdo, bool enableCompression)
 }
 
 /**********************************************************************/
-bool getVDOCompressing(VDO *vdo)
+bool getVDOCompressing(struct vdo *vdo)
 {
   return atomicLoadBool(&vdo->compressing);
 }
 
 /**********************************************************************/
-static size_t getBlockMapCacheSize(const VDO *vdo)
+static size_t getBlockMapCacheSize(const struct vdo *vdo)
 {
   return ((size_t) vdo->loadConfig.cacheSize) * VDO_BLOCK_SIZE;
 }
@@ -807,7 +807,7 @@ static size_t getBlockMapCacheSize(const VDO *vdo)
  *
  * @return The sum of the hash lock statistics from all hash zones
  **/
-static HashLockStatistics getHashLockStatistics(const VDO *vdo)
+static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
 {
   HashLockStatistics totals;
   memset(&totals, 0, sizeof(totals));
@@ -825,13 +825,13 @@ static HashLockStatistics getHashLockStatistics(const VDO *vdo)
 }
 
 /**
- * Get the current error statistics from VDO.
+ * Get the current error statistics from a vdo.
  *
  * @param vdo  The vdo to query
  *
- * @return a copy of the current VDO error counters
+ * @return a copy of the current vdo error counters
  **/
-static ErrorStatistics getVDOErrorStatistics(const VDO *vdo)
+static ErrorStatistics getVDOErrorStatistics(const struct vdo *vdo)
 {
   /*
    * The error counts can be incremented from arbitrary threads and so must be
@@ -847,9 +847,9 @@ static ErrorStatistics getVDOErrorStatistics(const VDO *vdo)
 }
 
 /**********************************************************************/
-void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
+void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 {
-  // These are immutable properties of the VDO object, so it is safe to
+  // These are immutable properties of the vdo object, so it is safe to
   // query them from any thread.
   struct recovery_journal *journal  = vdo->recoveryJournal;
   struct slab_depot       *depot    = vdo->depot;
@@ -889,20 +889,20 @@ void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksAllocated(const VDO *vdo)
+BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
 {
   return (getDepotAllocatedBlocks(vdo->depot)
           - getJournalBlockMapDataBlocksUsed(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksFree(const VDO *vdo)
+BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
 {
   return getDepotFreeBlocks(vdo->depot);
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksOverhead(const VDO *vdo)
+BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
 {
   // XXX config.physicalBlocks is actually mutated during resize and is in a
   // packed structure, but resize runs on admin thread so we're usually OK.
@@ -912,74 +912,74 @@ BlockCount getPhysicalBlocksOverhead(const VDO *vdo)
 }
 
 /**********************************************************************/
-BlockCount getTotalBlockMapBlocks(const VDO *vdo)
+BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
 {
   return (getNumberOfFixedBlockMapPages(vdo->blockMap)
           + getJournalBlockMapDataBlocksUsed(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
-WritePolicy getWritePolicy(const VDO *vdo)
+WritePolicy getWritePolicy(const struct vdo *vdo)
 {
   return vdo->loadConfig.writePolicy;
 }
 
 /**********************************************************************/
-void setWritePolicy(VDO *vdo, WritePolicy new)
+void setWritePolicy(struct vdo *vdo, WritePolicy new)
 {
   vdo->loadConfig.writePolicy = new;
 }
 
 /**********************************************************************/
-const VDOLoadConfig *getVDOLoadConfig(const VDO *vdo)
+const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
 {
   return &vdo->loadConfig;
 }
 
 /**********************************************************************/
-const ThreadConfig *getThreadConfig(const VDO *vdo)
+const ThreadConfig *getThreadConfig(const struct vdo *vdo)
 {
   return vdo->loadConfig.threadConfig;
 }
 
 /**********************************************************************/
-BlockCount getConfiguredBlockMapMaximumAge(const VDO *vdo)
+BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
 {
   return vdo->loadConfig.maximumAge;
 }
 
 /**********************************************************************/
-PageCount getConfiguredCacheSize(const VDO *vdo)
+PageCount getConfiguredCacheSize(const struct vdo *vdo)
 {
   return vdo->loadConfig.cacheSize;
 }
 
 /**********************************************************************/
-PhysicalBlockNumber getFirstBlockOffset(const VDO *vdo)
+PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
 {
   return vdo->loadConfig.firstBlockOffset;
 }
 
 /**********************************************************************/
-struct block_map *getBlockMap(const VDO *vdo)
+struct block_map *getBlockMap(const struct vdo *vdo)
 {
   return vdo->blockMap;
 }
 
 /**********************************************************************/
-struct slab_depot *getSlabDepot(VDO *vdo)
+struct slab_depot *getSlabDepot(struct vdo *vdo)
 {
   return vdo->depot;
 }
 
 /**********************************************************************/
-struct recovery_journal *getRecoveryJournal(VDO *vdo)
+struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
 {
   return vdo->recoveryJournal;
 }
 
 /**********************************************************************/
-void dumpVDOStatus(const VDO *vdo)
+void dumpVDOStatus(const struct vdo *vdo)
 {
   dumpFlusher(vdo->flusher);
   dumpRecoveryJournalStatistics(vdo->recoveryJournal);
@@ -1001,19 +1001,19 @@ void dumpVDOStatus(const VDO *vdo)
 }
 
 /**********************************************************************/
-void setVDOTracingFlags(VDO *vdo, bool vioTracing)
+void setVDOTracingFlags(struct vdo *vdo, bool vioTracing)
 {
   vdo->vioTraceRecording = vioTracing;
 }
 
 /**********************************************************************/
-bool vdoVIOTracingEnabled(const VDO *vdo)
+bool vdoVIOTracingEnabled(const struct vdo *vdo)
 {
   return ((vdo != NULL) && vdo->vioTraceRecording);
 }
 
 /**********************************************************************/
-void assertOnAdminThread(VDO *vdo, const char *name)
+void assertOnAdminThread(struct vdo *vdo, const char *name)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == getAdminThread(getThreadConfig(vdo))),
@@ -1021,9 +1021,9 @@ void assertOnAdminThread(VDO *vdo, const char *name)
 }
 
 /**********************************************************************/
-void assertOnLogicalZoneThread(const VDO  *vdo,
-                               ZoneCount   logicalZone,
-                               const char *name)
+void assertOnLogicalZoneThread(const struct vdo *vdo,
+                               ZoneCount         logicalZone,
+                               const char       *name)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == getLogicalZoneThread(getThreadConfig(vdo), logicalZone)),
@@ -1031,9 +1031,9 @@ void assertOnLogicalZoneThread(const VDO  *vdo,
 }
 
 /**********************************************************************/
-void assertOnPhysicalZoneThread(const VDO  *vdo,
-                                ZoneCount   physicalZone,
-                                const char *name)
+void assertOnPhysicalZoneThread(const struct vdo *vdo,
+                                ZoneCount         physicalZone,
+                                const char       *name)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == getPhysicalZoneThread(getThreadConfig(vdo),
@@ -1042,7 +1042,8 @@ void assertOnPhysicalZoneThread(const VDO  *vdo,
 }
 
 /**********************************************************************/
-struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
+struct hash_zone *selectHashZone(const struct vdo   *vdo,
+                                 const UdsChunkName *name)
 {
   /*
    * Use a fragment of the chunk name as a hash code. To ensure uniform
@@ -1064,7 +1065,7 @@ struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
 }
 
 /**********************************************************************/
-int getPhysicalZone(const VDO             *vdo,
+int getPhysicalZone(const struct vdo      *vdo,
                     PhysicalBlockNumber    pbn,
                     struct physical_zone **zonePtr)
 {
@@ -1091,9 +1092,9 @@ int getPhysicalZone(const VDO             *vdo,
 }
 
 /**********************************************************************/
-struct zoned_pbn validateDedupeAdvice(VDO                *vdo,
-                              const struct data_location *advice,
-                              LogicalBlockNumber          lbn)
+struct zoned_pbn validateDedupeAdvice(struct vdo                 *vdo,
+                                      const struct data_location *advice,
+                                      LogicalBlockNumber          lbn)
 {
   struct zoned_pbn noAdvice = { .pbn = ZERO_BLOCK };
   if (advice == NULL) {

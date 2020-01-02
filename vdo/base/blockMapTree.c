@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#26 $
  */
 
 #include "blockMapTree.h"
@@ -219,7 +219,7 @@ static void checkForIOComplete(struct block_map_tree_zone *zone)
 }
 
 /**
- * Put the VDO in read-only mode and wake any vios waiting for a flush.
+ * Put the vdo in read-only mode and wake any vios waiting for a flush.
  *
  * @param zone    The zone
  * @param result  The error which is causing read-only mode
@@ -711,14 +711,14 @@ static void abortLoad(struct data_vio *dataVIO, int result)
 /**
  * Determine if a location represents a valid mapping for a tree page.
  *
- * @param vdo      The VDO
+ * @param vdo      The vdo
  * @param mapping  The data_location to check
  * @param height   The height of the entry in the tree
  *
  * @return <code>true</code> if the entry represents a invalid page mapping
  **/
 __attribute__((warn_unused_result))
-static bool isInvalidTreeEntry(const VDO                  *vdo,
+static bool isInvalidTreeEntry(const struct vdo           *vdo,
                                const struct data_location *mapping,
                                Height                      height)
 {

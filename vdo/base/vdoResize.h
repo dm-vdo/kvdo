@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.h#3 $
  */
 
 #ifndef VDO_RESIZE_H
@@ -27,13 +27,13 @@
 /**
  * Make the completion for an asynchronous resize.
  *
- * @param vdo                The VDO
+ * @param vdo                The vdo
  * @param newPhysicalBlocks  The new physical size in blocks
  * @param completionPtr      A pointer to hold the completion
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeResizeVDOCompletion(VDO                    *vdo,
+int makeResizeVDOCompletion(struct vdo             *vdo,
                             BlockCount              newPhysicalBlocks,
                             struct vdo_completion **completionPtr)
   __attribute__((warn_unused_result));
@@ -47,23 +47,23 @@ int makeResizeVDOCompletion(VDO                    *vdo,
 void freeResizeVDOCompletion(struct vdo_completion **completionPtr);
 
 /**
- * Grow the physical size of the VDO. This method may only be called when the
- * VDO has been suspended and must not be called from a base thread.
+ * Grow the physical size of the vdo. This method may only be called when the
+ * vdo has been suspended and must not be called from a base thread.
  *
- * @param vdo                The VDO to resize
+ * @param vdo                The vdo to resize
  * @param newPhysicalBlocks  The new physical size in blocks
  *
  * @return VDO_SUCCESS or an error
  **/
-int performGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks);
+int performGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks);
 
 /**
- * Prepare to resize the VDO, allocating memory as needed.
+ * Prepare to resize the vdo, allocating memory as needed.
  *
- * @param vdo                The VDO
+ * @param vdo                The vdo
  * @param newPhysicalBlocks  The new physical size in blocks
  **/
-int prepareToGrowPhysical(VDO *vdo, BlockCount newPhysicalBlocks)
+int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
   __attribute__((warn_unused_result));
 
 #endif /* VDO_RESIZE_H */

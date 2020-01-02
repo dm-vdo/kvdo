@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#8 $
  */
 
 #include "physicalZone.h"
@@ -56,7 +56,7 @@ struct physical_zone {
 };
 
 /**********************************************************************/
-int makePhysicalZone(VDO                   *vdo,
+int makePhysicalZone(struct vdo            *vdo,
                      ZoneCount              zoneNumber,
                      struct physical_zone **zonePtr)
 {

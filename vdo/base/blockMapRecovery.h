@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#5 $
  */
 
 #ifndef BLOCK_MAP_RECOVERY_H
@@ -41,14 +41,14 @@ struct numbered_block_mapping {
 /**
  * Recover the block map (normal rebuild).
  *
- * @param vdo             The VDO
+ * @param vdo             The vdo
  * @param entryCount      The number of journal entries
  * @param journalEntries  An array of journal entries to process
  * @param parent          The completion to notify when the rebuild is complete
  **/
-void recoverBlockMap(VDO                            *vdo,
-                     BlockCount                      entryCount,
-                     struct numbered_block_mapping  *journalEntries,
-                     struct vdo_completion          *parent);
+void recoverBlockMap(struct vdo                    *vdo,
+                     BlockCount                     entryCount,
+                     struct numbered_block_mapping *journalEntries,
+                     struct vdo_completion         *parent);
 
 #endif // BLOCK_MAP_RECOVERY_H

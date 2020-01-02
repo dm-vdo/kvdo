@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#31 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -281,7 +281,8 @@ static void prepareSubTask(struct recovery_completion *recovery,
 }
 
 /**********************************************************************/
-int makeRecoveryCompletion(VDO *vdo, struct recovery_completion **recoveryPtr)
+int makeRecoveryCompletion(struct vdo                  *vdo,
+                           struct recovery_completion **recoveryPtr)
 {
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   struct recovery_completion *recovery;
@@ -363,7 +364,7 @@ static void finishRecovery(struct vdo_completion *completion)
 {
   struct vdo_completion      *parent        = completion->parent;
   struct recovery_completion *recovery      = asRecoveryCompletion(completion);
-  VDO                        *vdo           = recovery->vdo;
+  struct vdo                 *vdo           = recovery->vdo;
   uint64_t                    recoveryCount = ++vdo->completeRecoveries;
   initializeRecoveryJournalPostRecovery(vdo->recoveryJournal,
                                         recoveryCount, recovery->highestTail);
@@ -498,7 +499,7 @@ static void launchBlockMapRecovery(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO *vdo = recovery->vdo;
+  struct vdo *vdo = recovery->vdo;
   assertOnLogicalZoneThread(vdo, 0, __func__);
 
   // Extract the journal entries for the block map recovery.
@@ -521,7 +522,7 @@ static void startSuperBlockSave(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO *vdo = recovery->vdo;
+  struct vdo *vdo = recovery->vdo;
   assertOnAdminThread(vdo, __func__);
 
   logInfo("Saving recovery progress");
@@ -546,7 +547,7 @@ static void finishRecoveringDepot(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO *vdo = recovery->vdo;
+  struct vdo *vdo = recovery->vdo;
   assertOnAdminThread(vdo, __func__);
 
   logInfo("Replayed %zu journal entries into slab journals",
@@ -693,7 +694,7 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO                        *vdo      = recovery->vdo;
+  struct vdo                 *vdo      = recovery->vdo;
   struct recovery_journal    *journal  = vdo->recoveryJournal;
 
   // Get ready in case we need to enqueue again.
@@ -1040,7 +1041,7 @@ static void findSlabJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO *vdo = recovery->vdo;
+  struct vdo *vdo = recovery->vdo;
 
   // We need to be on logical zone 0's thread since we are going to use its
   // page cache.
@@ -1182,7 +1183,7 @@ static void prepareToApplyJournalEntries(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  VDO                        *vdo      = recovery->vdo;
+  struct vdo                 *vdo      = recovery->vdo;
   struct recovery_journal    *journal  = vdo->recoveryJournal;
   logInfo("Finished reading recovery journal");
   bool foundEntries = findHeadAndTail(journal, recovery->journalData,
@@ -1253,7 +1254,7 @@ static void prepareToApplyJournalEntries(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-void launchRecovery(VDO *vdo, struct vdo_completion *parent)
+void launchRecovery(struct vdo *vdo, struct vdo_completion *parent)
 {
   // Note: This message must be recognizable by Permabit::VDODeviceBase.
   logWarning("Device was dirty, rebuilding reference counts");

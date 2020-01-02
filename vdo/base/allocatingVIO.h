@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#9 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -183,13 +183,14 @@ allocatingVIOAddTraceRecord(struct allocating_vio *allocatingVIO,
 }
 
 /**
- * Get the VDO from an allocating_vio.
+ * Get the vdo from an allocating_vio.
  *
- * @param allocatingVIO  The allocating_vio from which to get the VDO
+ * @param allocatingVIO  The allocating_vio from which to get the vdo
  *
- * @return The VDO to which an allocating_vio belongs
+ * @return The vdo to which an allocating_vio belongs
  **/
-static inline VDO *getVDOFromAllocatingVIO(struct allocating_vio *allocatingVIO)
+static inline struct vdo *
+getVDOFromAllocatingVIO(struct allocating_vio *allocatingVIO)
 {
   return allocatingVIOAsVIO(allocatingVIO)->vdo;
 }

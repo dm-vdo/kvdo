@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#6 $
  */
 
 #include "hashZone.h"
@@ -110,7 +110,9 @@ static inline struct hash_lock *asHashLock(RingNode *poolNode)
 }
 
 /**********************************************************************/
-int makeHashZone(VDO *vdo, ZoneCount zoneNumber, struct hash_zone **zonePtr)
+int makeHashZone(struct vdo        *vdo,
+                 ZoneCount          zoneNumber,
+                 struct hash_zone **zonePtr)
 {
   struct hash_zone *zone;
   int result = ALLOCATE(1, struct hash_zone, __func__, &zone);

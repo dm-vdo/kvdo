@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#24 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -49,19 +49,19 @@ struct atomic_error_statistics {
 };
 
 struct vdo {
-  /* The state of this VDO */
+  /* The state of this vdo */
   Atomic32                         state;
   /* The read-only notifier */
   struct read_only_notifier       *readOnlyNotifier;
-  /* The number of times this VDO has recovered from a dirty state */
+  /* The number of times this vdo has recovered from a dirty state */
   uint64_t                         completeRecoveries;
-  /* The number of times this VDO has recovered from a read-only state */
+  /* The number of times this vdo has recovered from a read-only state */
   uint64_t                         readOnlyRecoveries;
-  /* The format-time configuration of this VDO */
+  /* The format-time configuration of this vdo */
   VDOConfig                        config;
-  /* The load-time configuration of this VDO */
+  /* The load-time configuration of this vdo */
   VDOLoadConfig                    loadConfig;
-  /* The nonce for this VDO */
+  /* The nonce for this vdo */
   Nonce                            nonce;
 
   /* The super block */
@@ -90,26 +90,26 @@ struct vdo {
   /* The handler for flush requests */
   struct flusher                  *flusher;
 
-  /* The master version of the VDO when loaded (for upgrading) */
+  /* The master version of the vdo when loaded (for upgrading) */
   struct version_number            loadVersion;
-  /* The state the VDO was in when loaded (primarily for unit tests) */
+  /* The state the vdo was in when loaded (primarily for unit tests) */
   VDOState                         loadState;
   /* Whether VIO tracing is enabled */
   bool                             vioTraceRecording;
 
-  /* The logical zones of this VDO */
+  /* The logical zones of this vdo */
   struct logical_zones            *logicalZones;
 
-  /* The physical zones of this VDO */
+  /* The physical zones of this vdo */
   struct physical_zone           **physicalZones;
 
-  /* The hash lock zones of this VDO */
+  /* The hash lock zones of this vdo */
   struct hash_zone               **hashZones;
 
   /* The completion for administrative operations */
   struct admin_completion          adminCompletion;
 
-  /* The administrative state of the VDO */
+  /* The administrative state of the vdo */
   struct admin_state               adminState;
 
   /* Whether a close is required */
@@ -120,96 +120,96 @@ struct vdo {
 };
 
 /**
- * Get the current state of the VDO. This method may be called from any thread.
+ * Get the current state of the vdo. This method may be called from any thread.
  *
- * @param vdo  The VDO
+ * @param vdo  The vdo
  *
- * @return the current state of the VDO
+ * @return the current state of the vdo
  **/
-VDOState getVDOState(const VDO *vdo)
+VDOState getVDOState(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Set the current state of the VDO. This method may be called from any thread.
+ * Set the current state of the vdo. This method may be called from any thread.
  *
- * @param vdo    The VDO whose state is to be set
- * @param state  The new state of the VDO
+ * @param vdo    The vdo whose state is to be set
+ * @param state  The new state of the vdo
  **/
-void setVDOState(VDO *vdo, VDOState state);
+void setVDOState(struct vdo *vdo, VDOState state);
 
 /**
- * Get the component data size of a VDO.
+ * Get the component data size of a vdo.
  *
- * @param vdo  The VDO whose component data size is desired
+ * @param vdo  The vdo whose component data size is desired
  *
- * @return the component data size of the VDO
+ * @return the component data size of the vdo
  **/
-size_t getComponentDataSize(VDO *vdo)
+size_t getComponentDataSize(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Encode the VDO and save the super block synchronously.
+ * Encode the vdo and save the super block synchronously.
  *
- * @param vdo  The VDO whose state is being saved
+ * @param vdo  The vdo whose state is being saved
  *
  * @return VDO_SUCCESS or an error
  **/
-int saveVDOComponents(VDO *vdo)
+int saveVDOComponents(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Encode the VDO and save the super block asynchronously. All non-user mode
+ * Encode the vdo and save the super block asynchronously. All non-user mode
  * super block savers should use this bottle neck instead of calling
  * saveSuperBlockAsync() directly.
  *
- * @param vdo     The VDO whose state is being saved
+ * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete
  **/
-void saveVDOComponentsAsync(VDO *vdo, struct vdo_completion *parent);
+void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent);
 
 /**
- * Re-encode the VDO component after a reconfiguration and save the super
+ * Re-encode the vdo component after a reconfiguration and save the super
  * block synchronously. This function avoids the need to decode and re-encode
  * the other components by simply copying their previous encoding.
  *
- * @param vdo  The VDO which was reconfigured
+ * @param vdo  The vdo which was reconfigured
  *
  * @return VDO_SUCCESS or an error code
  **/
-int saveReconfiguredVDO(VDO *vdo)
+int saveReconfiguredVDO(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Decode the VDO master version from the component data buffer in the super
- * block and store it in the VDO's loadVersion field.
+ * Decode the vdo master version from the component data buffer in the super
+ * block and store it in the vdo's loadVersion field.
  **/
-int decodeVDOVersion(VDO *vdo)
+int decodeVDOVersion(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Loads the VDO master version into the VDO and checks that the version
- * can be understood by VDO.
+ * Loads the vdo master version into the vdo and checks that the version
+ * can be understood by vdo.
  *
- * @param vdo  The VDO to validate
+ * @param vdo  The vdo to validate
  *
  * @return VDO_SUCCESS or an error if the loaded version is not supported
  **/
-int validateVDOVersion(VDO *vdo)
+int validateVDOVersion(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Decode the component data for the VDO itself from the component data buffer
+ * Decode the component data for the vdo itself from the component data buffer
  * in the super block.
  *
- * @param vdo  The VDO to decode
+ * @param vdo  The vdo to decode
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeVDOComponent(VDO *vdo)
+int decodeVDOComponent(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Validate constraints on VDO config.
+ * Validate constraints on a VDO config.
  *
  * @param config          The VDO config
  * @param blockCount      The block count of the VDO
@@ -224,171 +224,171 @@ int validateVDOConfig(const VDOConfig *config,
   __attribute__((warn_unused_result));
 
 /**
- * Enable a VDO to enter read-only mode on errors.
+ * Enable a vdo to enter read-only mode on errors.
  *
- * @param vdo  The VDO to enable
+ * @param vdo  The vdo to enable
  *
  * @return VDO_SUCCESS or an error
  **/
-int enableReadOnlyEntry(VDO *vdo);
+int enableReadOnlyEntry(struct vdo *vdo);
 
 /**
  * Get the block map.
  *
- * @param vdo  The VDO whose block map is desired
+ * @param vdo  The vdo whose block map is desired
  *
- * @return the block map from the VDO
+ * @return the block map from the vdo
  **/
-struct block_map *getBlockMap(const VDO *vdo)
+struct block_map *getBlockMap(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Get the slab depot from a VDO.
+ * Get the slab depot from a vdo.
  *
- * @param vdo  The VDO whose slab depot is desired
+ * @param vdo  The vdo whose slab depot is desired
  *
- * @return the slab depot from the VDO
+ * @return the slab depot from the vdo
  **/
-struct slab_depot *getSlabDepot(VDO *vdo)
+struct slab_depot *getSlabDepot(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Get the recovery journal from a VDO.
+ * Get the recovery journal from a vdo.
  *
- * @param vdo  The VDO whose recovery journal is desired
+ * @param vdo  The vdo whose recovery journal is desired
  *
- * @return the recovery journal from the VDO
+ * @return the recovery journal from the vdo
  **/
-struct recovery_journal *getRecoveryJournal(VDO *vdo)
+struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a VDO is in read-only mode.
+ * Check whether a vdo is in read-only mode.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO is in read-only mode
+ * @return <code>true</code> if the vdo is in read-only mode
  **/
-bool inReadOnlyMode(const VDO *vdo)
+bool inReadOnlyMode(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether the VDO requires a read-only mode rebuild.
+ * Check whether the vdo requires a read-only mode rebuild.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO requires a read-only rebuild
+ * @return <code>true</code> if the vdo requires a read-only rebuild
  **/
-bool requiresReadOnlyRebuild(const VDO *vdo)
+bool requiresReadOnlyRebuild(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a VDO requires rebuilding.
+ * Check whether a vdo requires rebuilding.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO must be rebuilt
+ * @return <code>true</code> if the vdo must be rebuilt
  **/
-bool requiresRebuild(const VDO *vdo)
+bool requiresRebuild(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a VDO should enter recovery mode.
+ * Check whether a vdo should enter recovery mode.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO requires recovery
+ * @return <code>true</code> if the vdo requires recovery
  **/
-bool requiresRecovery(const VDO *vdo)
+bool requiresRecovery(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether a VDO was replaying the recovery journal into the block map
+ * Check whether a vdo was replaying the recovery journal into the block map
  * when it crashed.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO crashed while reconstructing the
+ * @return <code>true</code> if the vdo crashed while reconstructing the
  *         block map
  **/
-bool isReplaying(const VDO *vdo)
+bool isReplaying(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Check whether the VDO is in recovery mode.
+ * Check whether the vdo is in recovery mode.
  *
- * @param vdo  The VDO to query
+ * @param vdo  The vdo to query
  *
- * @return <code>true</code> if the VDO is in recovery mode
+ * @return <code>true</code> if the vdo is in recovery mode
  **/
-bool inRecoveryMode(const VDO *vdo)
+bool inRecoveryMode(const struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
- * Put the VDO into recovery mode
+ * Put the vdo into recovery mode
  *
- * @param vdo  The VDO
+ * @param vdo  The vdo
  **/
-void enterRecoveryMode(VDO *vdo);
+void enterRecoveryMode(struct vdo *vdo);
 
 /**
  * Assert that we are running on the admin thread.
  *
- * @param vdo   The VDO
+ * @param vdo   The vdo
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assertOnAdminThread(VDO *vdo, const char *name);
+void assertOnAdminThread(struct vdo *vdo, const char *name);
 
 /**
  * Assert that this function was called on the specified logical zone thread.
  *
- * @param vdo          The VDO
+ * @param vdo          The vdo
  * @param logicalZone  The number of the logical zone
  * @param name         The name of the calling function
  **/
-void assertOnLogicalZoneThread(const VDO  *vdo,
-                               ZoneCount   logicalZone,
-                               const char *name);
+void assertOnLogicalZoneThread(const struct vdo *vdo,
+                               ZoneCount         logicalZone,
+                               const char       *name);
 
 /**
  * Assert that this function was called on the specified physical zone thread.
  *
- * @param vdo           The VDO
+ * @param vdo           The vdo
  * @param physicalZone  The number of the physical zone
  * @param name          The name of the calling function
  **/
-void assertOnPhysicalZoneThread(const VDO  *vdo,
-                                ZoneCount   physicalZone,
-                                const char *name);
+void assertOnPhysicalZoneThread(const struct vdo *vdo,
+                                ZoneCount         physicalZone,
+                                const char       *name);
 
 /**
  * Select the hash zone responsible for locking a given chunk name.
  *
- * @param vdo   The VDO containing the hash zones
+ * @param vdo   The vdo containing the hash zones
  * @param name  The chunk name
  *
  * @return  The hash zone responsible for the chunk name
  **/
-struct hash_zone *selectHashZone(const VDO *vdo, const UdsChunkName *name)
+struct hash_zone *selectHashZone(const struct vdo *vdo, const UdsChunkName *name)
   __attribute__((warn_unused_result));
 
 /**
  * Get the physical zone responsible for a given physical block number of a
- * data block in this VDO instance, or of the zero block (for which a NULL
+ * data block in this vdo instance, or of the zero block (for which a NULL
  * zone is returned). For any other block number that is not in the range of
  * valid data block numbers in any slab, an error will be returned. This
- * function is safe to call on invalid block numbers; it will not put the VDO
+ * function is safe to call on invalid block numbers; it will not put the vdo
  * into read-only mode.
  *
- * @param [in]  vdo      The VDO containing the physical zones
+ * @param [in]  vdo      The vdo containing the physical zones
  * @param [in]  pbn      The PBN of the data block
  * @param [out] zonePtr  A pointer to return the physical zone
  *
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int getPhysicalZone(const VDO             *vdo,
+int getPhysicalZone(const struct vdo      *vdo,
                     PhysicalBlockNumber    pbn,
                     struct physical_zone **zonePtr)
   __attribute__((warn_unused_result));

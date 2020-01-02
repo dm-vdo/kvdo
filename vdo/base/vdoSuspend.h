@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.h#2 $
  */
 
 #ifndef VDO_SUSPEND_H
@@ -25,15 +25,15 @@
 #include "types.h"
 
 /**
- * Ensure that the VDO has no outstanding I/O and will issue none until it is
+ * Ensure that the vdo has no outstanding I/O and will issue none until it is
  * resumed.
  *
- * @param vdo   The VDO to suspend
+ * @param vdo   The vdo to suspend
  * @param save  If <code>true</code>, all dirty metadata will be flushed as
  *              well
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOSuspend(VDO *vdo, bool save);
+int performVDOSuspend(struct vdo *vdo, bool save);
 
 #endif /* VDO_SUSPEND_H */

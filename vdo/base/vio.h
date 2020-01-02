@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#8 $
  */
 
 #ifndef VIO_H
@@ -41,8 +41,8 @@ struct vio {
   VDOAction             *callback;
   VDOAction             *errorHandler;
 
-  /* The VDO handling this vio */
-  VDO                   *vdo;
+  /* The vdo handling this vio */
+  struct vdo            *vdo;
 
   /* The address on the underlying device of the block to be read/written */
   PhysicalBlockNumber    physical;
@@ -124,14 +124,14 @@ void freeVIO(struct vio **vioPtr);
  * @param priority  The relative priority of the vio
  * @param parent    The parent (the extent completion) to assign to the vio
  *                  completion
- * @param vdo       The VDO for this vio
+ * @param vdo       The vdo for this vio
  * @param layer     The layer for this vio
  **/
 void initializeVIO(struct vio            *vio,
                    VIOType                type,
                    VIOPriority            priority,
                    struct vdo_completion *parent,
-                   VDO                   *vdo,
+                   struct vdo            *vdo,
                    PhysicalLayer         *layer);
 
 /**

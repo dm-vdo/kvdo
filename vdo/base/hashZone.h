@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#3 $
  */
 
 #ifndef HASH_ZONE_H
@@ -30,13 +30,15 @@
 /**
  * Create a hash zone.
  *
- * @param [in]  vdo         The VDO to which the zone will belong
+ * @param [in]  vdo         The vdo to which the zone will belong
  * @param [in]  zoneNumber  The number of the zone to create
  * @param [out] zonePtr     A pointer to hold the new hash_zone
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeHashZone(VDO *vdo, ZoneCount zoneNumber, struct hash_zone **zonePtr)
+int makeHashZone(struct vdo        *vdo,
+                 ZoneCount          zoneNumber,
+                 struct hash_zone **zonePtr)
   __attribute__((warn_unused_result));
 
 /**

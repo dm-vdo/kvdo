@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#5 $
  */
 
 #ifndef FLUSH_H
@@ -36,13 +36,13 @@ struct vdo_flush {
 };
 
 /**
- * Make a flusher for a VDO.
+ * Make a flusher for a vdo.
  *
- * @param vdo  The VDO which owns the flusher
+ * @param vdo  The vdo which owns the flusher
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeFlusher(VDO *vdo)
+int makeFlusher(struct vdo *vdo)
   __attribute__((warn_unused_result));
 
 /**
@@ -65,10 +65,10 @@ ThreadID getFlusherThreadID(struct flusher *flusher)
 /**
  * Handle empty flush requests.
  *
- * @param vdo       The VDO
+ * @param vdo       The vdo
  * @param vdoFlush  The opaque flush request
  **/
-void flush(VDO *vdo, struct vdo_flush *vdoFlush);
+void flush(struct vdo *vdo, struct vdo_flush *vdoFlush);
 
 /**
  * Attempt to complete any flushes which might have finished.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#10 $
  */
 
 #include "vdoResizeLogical.h"
@@ -63,7 +63,7 @@ static void growLogicalCallback(struct vdo_completion *completion)
   assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
   assertAdminPhaseThread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
 
-  VDO *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
   case GROW_LOGICAL_PHASE_START:
     if (isReadOnly(vdo->readOnlyNotifier)) {
@@ -113,7 +113,7 @@ static void handleGrowthError(struct vdo_completion *completion)
   if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
     // We've failed to write the new size in the super block, so set our
     // in memory config back to the old size.
-    VDO      *vdo = adminCompletion->completion.parent;
+    struct vdo       *vdo = adminCompletion->completion.parent;
     struct block_map *map = getBlockMap(vdo);
     vdo->config.logicalBlocks = getNumberOfBlockMapEntries(map);
     abandonBlockMapGrowth(map);
@@ -124,7 +124,7 @@ static void handleGrowthError(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-int performGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
+int performGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
 {
   if (getNewEntryCount(getBlockMap(vdo)) != newLogicalBlocks) {
     return VDO_PARAMETER_MISMATCH;
@@ -136,7 +136,7 @@ int performGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
 }
 
 /**********************************************************************/
-int prepareToGrowLogical(VDO *vdo, BlockCount newLogicalBlocks)
+int prepareToGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
 {
   if (newLogicalBlocks < vdo->config.logicalBlocks) {
     return logErrorWithStringError(VDO_PARAMETER_MISMATCH,

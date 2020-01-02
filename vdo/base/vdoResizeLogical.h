@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.h#2 $
  */
 
 #ifndef VDO_RESIZE_LOGICAL_H
@@ -25,25 +25,25 @@
 #include "types.h"
 
 /**
- * Grow the logical size of the VDO. This method may only be called when the
- * VDO has been suspended and must not be called from a base thread.
+ * Grow the logical size of the vdo. This method may only be called when the
+ * vdo has been suspended and must not be called from a base thread.
  *
- * @param vdo               The VDO to grow
- * @param newLogicalBlocks  The size to which the VDO should be grown
+ * @param vdo               The vdo to grow
+ * @param newLogicalBlocks  The size to which the vdo should be grown
  *
  * @return VDO_SUCCESS or an error
  **/
-int performGrowLogical(VDO *vdo, BlockCount newLogicalBlocks);
+int performGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks);
 
 /**
- * Prepare to grow the logical size of the VDO. This method may only be called
- * while the VDO is running.
+ * Prepare to grow the logical size of vdo. This method may only be called
+ * while the vdo is running.
  *
- * @param vdo               The VDO to prepare for growth
- * @param newLogicalBlocks  The size to which the VDO should be grown
+ * @param vdo               The vdo to prepare for growth
+ * @param newLogicalBlocks  The size to which the vdo should be grown
  *
  * @return VDO_SUCCESS or an error
  **/
-int prepareToGrowLogical(VDO *vdo, BlockCount newLogicalBlocks);
+int prepareToGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks);
 
 #endif /* VDO_RESIZE_LOGICAL_H */

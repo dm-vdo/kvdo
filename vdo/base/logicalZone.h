@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#10 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -41,12 +41,12 @@ struct logical_zone *getLogicalZone(struct logical_zones *zones,
 /**
  * Create a set of logical zones.
  *
- * @param [in]  vdo       The VDO to which the zones will belong
+ * @param [in]  vdo       The vdo to which the zones will belong
  * @param [out] zonesPtr  A pointer to hold the new zones
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeLogicalZones(VDO *vdo, struct logical_zones **zonesPtr)
+int makeLogicalZones(struct vdo *vdo, struct logical_zones **zonesPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -108,7 +108,7 @@ struct int_map *getLBNLockMap(const struct logical_zone *zone)
 
 /**
  * Get the next-highest-numbered logical zone, or <code>NULL</code> if the
- * zone is the highest-numbered zone in its VDO.
+ * zone is the highest-numbered zone in its vdo.
  *
  * @param zone  The logical zone to query
  *

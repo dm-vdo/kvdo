@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#7 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -98,26 +98,26 @@ void assertAdminPhaseThread(struct admin_completion *adminCompletion,
                             const char              *phaseNames[]);
 
 /**
- * Get the VDO from the sub-task completion of its admin_completion.
+ * Get the vdo from the sub-task completion of its admin_completion.
  *
  * @param completion  the sub-task completion
  * @param expected    the expected operation type of the admin_completion
  *
- * @return The VDO
+ * @return The vdo
  **/
-VDO *vdoFromAdminSubTask(struct vdo_completion *completion,
-                         AdminOperationType     expected)
+struct vdo *vdoFromAdminSubTask(struct vdo_completion *completion,
+                                AdminOperationType     expected)
   __attribute__((warn_unused_result));
 
 /**
  * Initialize an admin completion.
  *
- * @param vdo               The VDO which owns the completion
+ * @param vdo               The vdo which owns the completion
  * @param adminCompletion   The admin_completion to initialize
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeAdminCompletion(VDO *vdo,
+int initializeAdminCompletion(struct vdo              *vdo,
                               struct admin_completion *adminCompletion)
   __attribute__((warn_unused_result));
 
@@ -138,29 +138,29 @@ void uninitializeAdminCompletion(struct admin_completion *adminCompletion);
 struct vdo_completion *resetAdminSubTask(struct vdo_completion *completion);
 
 /**
- * Prepare the sub-task completion of a VDO's admin_completion
+ * Prepare the sub-task completion of a vdo's admin_completion
  *
- * @param vdo           The VDO
+ * @param vdo           The vdo
  * @param callback      The callback for the sub-task
  * @param errorHandler  The error handler for the sub-task
  * @param threadID      The ID of the thread on which to run the callback
  **/
-void prepareAdminSubTaskOnThread(VDO       *vdo,
-                                 VDOAction *callback,
-                                 VDOAction *errorHandler,
-                                 ThreadID   threadID);
+void prepareAdminSubTaskOnThread(struct vdo *vdo,
+                                 VDOAction  *callback,
+                                 VDOAction  *errorHandler,
+                                 ThreadID    threadID);
 
 /**
- * Prepare the sub-task completion of a VDO's admin_completion to run on the
+ * Prepare the sub-task completion of a vdo's admin_completion to run on the
  * same thread as the admin_completion's main completion.
  *
- * @param vdo           The VDO
+ * @param vdo           The vdo
  * @param callback      The callback for the sub-task
  * @param errorHandler  The error handler for the sub-task
  **/
-void prepareAdminSubTask(VDO       *vdo,
-                         VDOAction *callback,
-                         VDOAction *errorHandler);
+void prepareAdminSubTask(struct vdo *vdo,
+                         VDOAction  *callback,
+                         VDOAction  *errorHandler);
 
 /**
  * Perform an administrative operation (load, suspend, grow logical, or grow
@@ -168,7 +168,7 @@ void prepareAdminSubTask(VDO       *vdo,
  * certain the calling thread won't be needed to perform the operation. It may
  * (and should) be called from non-base threads.
  *
- * @param vdo             The VDO on which to perform the operation
+ * @param vdo             The vdo on which to perform the operation
  * @param type            The type of operation to perform
  * @param threadIDGetter  A function for getting the ID of the thread on which
  *                        a given phase should be run
@@ -177,7 +177,7 @@ void prepareAdminSubTask(VDO       *vdo,
  *
  * @return The result of the operation
  **/
-int performAdminOperation(VDO                    *vdo,
+int performAdminOperation(struct vdo             *vdo,
                           AdminOperationType      type,
                           ThreadIDGetterForPhase *threadIDGetter,
                           VDOAction              *action,
