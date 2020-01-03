@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#29 $
  */
 
 #ifndef KERNELLAYER_H
@@ -214,6 +214,12 @@ struct kvdo_enqueueable {
 	struct kvdo_work_item work_item;
 	Enqueueable enqueueable;
 };
+
+/**
+ * Implements LayerFilter.
+ **/
+bool layer_is_named(struct kernel_layer *layer, void *context)
+  __attribute__((warn_unused_result));
 
 /**
  * Creates a kernel specific physical layer to be used by VDO

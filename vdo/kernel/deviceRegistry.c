@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.c#6 $
  */
 
 #include "deviceRegistry.h"
@@ -38,7 +38,6 @@ struct device_registry {
 
 struct registered_device {
 	struct list_head links;
-	char *name;
 	struct kernel_layer *layer;
 };
 
@@ -52,39 +51,37 @@ void initialize_device_registry_once(void)
 }
 
 /**
+ * Implements LayerFilter.
+ **/
+static bool layer_is_equal(struct kernel_layer *layer, void *context)
+{
+	return ((void *) layer == context);
+}
+
+/**
  * Find a layer in the registry if it exists there. Must be called holding
  * the lock.
  *
- * @param name       The name of the layer to remove
+ * @param filter   The filter function to apply to devices
+ * @param context  A bit of context to provide the filter.
  *
- * @return the device object found, if any
+ * @return the layer object found, if any
  **/
 __attribute__((warn_unused_result))
-static struct registered_device *find_layer_locked(char *name)
+static struct kernel_layer *filter_layers_locked(LayerFilter *filter,
+						 void        *context)
 {
 	struct registered_device *device;
-	list_for_each_entry (device, &registry.links, links) {
-		if (strcmp(device->name, name) == 0) {
-			return device;
+	list_for_each_entry(device, &registry.links, links) {
+		if (filter(device->layer, context)) {
+			return device->layer;
 		}
 	}
 	return NULL;
 }
 
 /**********************************************************************/
-struct kernel_layer *get_layer_by_name(char *name)
-{
-	read_lock(&registry.lock);
-	struct registered_device *device = find_layer_locked(name);
-	read_unlock(&registry.lock);
-	if (device == NULL) {
-		return NULL;
-	}
-	return device->layer;
-}
-
-/**********************************************************************/
-int add_layer_to_device_registry(char *name, struct kernel_layer *layer)
+int add_layer_to_device_registry(struct kernel_layer *layer)
 {
 	struct registered_device *new_device;
 	int result =
@@ -93,18 +90,13 @@ int add_layer_to_device_registry(char *name, struct kernel_layer *layer)
 		return result;
 	}
 
-	result = duplicateString(name, "name", &new_device->name);
-	if (result != VDO_SUCCESS) {
-		FREE(new_device);
-		return result;
-	}
-
 	INIT_LIST_HEAD(&new_device->links);
 	new_device->layer = layer;
 
 	write_lock(&registry.lock);
-	struct registered_device *old_device = find_layer_locked(name);
-	result = ASSERT(old_device == NULL, "Device not already registered");
+	struct kernel_layer *old_layer = filter_layers_locked(layer_is_equal,
+							      layer);
+	result = ASSERT(old_layer == NULL, "Layer not already registered");
 	if (result == VDO_SUCCESS) {
 		list_add_tail(&new_device->links, &registry.links);
 	}
@@ -114,14 +106,25 @@ int add_layer_to_device_registry(char *name, struct kernel_layer *layer)
 }
 
 /**********************************************************************/
-void remove_layer_from_device_registry(char *name)
+void remove_layer_from_device_registry(struct kernel_layer *layer)
 {
 	write_lock(&registry.lock);
-	struct registered_device *device = find_layer_locked(name);
-	if (device != NULL) {
-		list_del_init(&device->links);
-		FREE(device->name);
+	struct registered_device *device;
+	list_for_each_entry(device, &registry.links, links) {
+		if (device->layer == layer) {
+			list_del_init(&device->links);
+			break;
+		}
 	}
 	write_unlock(&registry.lock);
 	FREE(device);
+}
+
+/**********************************************************************/
+struct kernel_layer *find_layer_matching(LayerFilter *filter, void *context)
+{
+  read_lock(&registry.lock);
+  struct kernel_layer *layer = filter_layers_locked(filter, context);
+  read_unlock(&registry.lock);
+  return layer;
 }

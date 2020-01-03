@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#62 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#63 $
  */
 
 #include "kernelLayer.h"
@@ -102,6 +102,12 @@ CRC32Checksum update_crc32(CRC32Checksum crc, const byte *buffer, size_t length)
 static BlockCount kvdo_get_block_count(PhysicalLayer *header)
 {
 	return as_kernel_layer(header)->device_config->physical_blocks;
+}
+
+/**********************************************************************/
+bool layer_is_named(struct kernel_layer *layer, void *context)
+{
+  return (strcmp(layer->device_config->pool_name, (char *) context) == 0);
 }
 
 /**********************************************************************/
@@ -619,7 +625,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	// layer is fully allocated.
 	layer->callbacks.congested_fn = kvdo_is_congested;
 
-	result = add_layer_to_device_registry(config->pool_name, layer);
+	result = add_layer_to_device_registry(layer);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot add layer to device registry";
 		free_kernel_layer(layer);
@@ -1021,8 +1027,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 		FREE(layer->spare_kvdo_flush);
 		layer->spare_kvdo_flush = NULL;
 		free_batch_processor(&layer->data_kvio_releaser);
-		remove_layer_from_device_registry(
-			layer->device_config->pool_name);
+		remove_layer_from_device_registry(layer);
 		break;
 
 	default:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceRegistry.h#4 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -30,32 +30,30 @@
 void initialize_device_registry_once(void);
 
 /**
- * Get a layer by name, if any layer has that device name.
+ * Add a layer to the device registry. The layer must not already exist in the
+ * registry.
  *
- * @param name  The name to look up
- *
- * @return the layer, if any was found
- **/
-struct kernel_layer *get_layer_by_name(char *name)
-  __attribute__((warn_unused_result));
-
-/**
- * Add a layer and name to the device registry. The name must not
- * already exist in the registry, and will be duplicated.
- *
- * @param name   The name of the layer
  * @param layer  The layer to add
  *
  * @return VDO_SUCCESS or an error
  **/
-int add_layer_to_device_registry(char *name, struct kernel_layer *layer)
+int add_layer_to_device_registry(struct kernel_layer *layer)
   __attribute__((warn_unused_result));
 
 /**
  * Remove a layer from the device registry.
  *
- * @param name  The name of the layer to remove
+ * @param layer  The layer to remove
  **/
-void remove_layer_from_device_registry(char *name);
+void remove_layer_from_device_registry(struct kernel_layer *layer);
+
+/**
+ * Find and return the first (if any) layer matching a given filter function.
+ *
+ * @param filter   The filter function to apply to layers
+ * @param context  A bit of context to provide the filter.
+ **/
+struct kernel_layer *find_layer_matching(LayerFilter *filter, void *context)
+  __attribute__((warn_unused_result));
 
 #endif // DEVICE_REGISTRY_H
