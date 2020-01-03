@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#34 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -599,7 +599,7 @@ static void finishLoadingAllocator(struct vdo_completion *completion)
 {
   struct block_allocator *allocator = (struct block_allocator *) completion;
   if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
-    void *context = getCurrentActionContext(allocator->depot->actionManager);
+    void *context = get_current_action_context(allocator->depot->actionManager);
     replayIntoSlabJournals(allocator, completion, context);
     return;
   }
@@ -636,7 +636,7 @@ void loadBlockAllocator(void                  *context,
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
   startLoading(&allocator->state,
-               getCurrentManagerOperation(allocator->depot->actionManager),
+               get_current_manager_operation(allocator->depot->actionManager),
                parent, initiateLoad);
 }
 
@@ -786,7 +786,7 @@ void drainBlockAllocator(void                  *context,
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
   startDraining(&allocator->state,
-                getCurrentManagerOperation(allocator->depot->actionManager),
+                get_current_manager_operation(allocator->depot->actionManager),
                 parent, initiateDrain);
 }
 
@@ -845,7 +845,7 @@ void resumeBlockAllocator(void                  *context,
   struct block_allocator *allocator = getBlockAllocatorForZone(context,
                                                                zoneNumber);
   startResuming(&allocator->state,
-                getCurrentManagerOperation(allocator->depot->actionManager),
+                get_current_manager_operation(allocator->depot->actionManager),
                 parent, initiateResume);
 }
 

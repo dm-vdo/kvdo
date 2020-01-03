@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#29 $
  */
 
 #include "blockMap.h"
@@ -355,8 +355,8 @@ static bool scheduleEraAdvance(void *context)
     return false;
   }
 
-  return scheduleAction(map->actionManager, prepareForEraAdvance,
-                        advanceBlockMapZoneEra, NULL, NULL);
+  return schedule_action(map->actionManager, prepareForEraAdvance,
+                         advanceBlockMapZoneEra, NULL, NULL);
 }
 
 /**********************************************************************/
@@ -390,10 +390,10 @@ int makeBlockMapCaches(struct block_map          *map,
     }
   }
 
-  return makeActionManager(map->zoneCount, getBlockMapZoneThreadID,
-                           getRecoveryJournalThreadID(journal), map,
-                           scheduleEraAdvance, layer,
-                           &map->actionManager);
+  return make_action_manager(map->zoneCount, getBlockMapZoneThreadID,
+                             getRecoveryJournalThreadID(journal), map,
+                             scheduleEraAdvance, layer,
+                             &map->actionManager);
 }
 
 /**
@@ -421,7 +421,7 @@ void freeBlockMap(struct block_map **mapPtr)
 
   abandonBlockMapGrowth(map);
   freeForest(&map->forest);
-  freeActionManager(&map->actionManager);
+  free_action_manager(&map->actionManager);
 
   FREE(map);
   *mapPtr = NULL;
@@ -553,7 +553,7 @@ static void drainZone(void                  *context,
 {
   struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   startDraining(&zone->state,
-                getCurrentManagerOperation(zone->blockMap->actionManager),
+                get_current_manager_operation(zone->blockMap->actionManager),
                 parent, drainZoneTrees);
 }
 
@@ -562,8 +562,8 @@ void drainBlockMap(struct block_map      *map,
                    AdminStateCode         operation,
                    struct vdo_completion *parent)
 {
-  scheduleOperation(map->actionManager, operation, NULL, drainZone, NULL,
-                    parent);
+  schedule_operation(map->actionManager, operation, NULL, drainZone, NULL,
+                     parent);
 }
 
 /**
@@ -582,8 +582,8 @@ static void resumeBlockMapZone(void                  *context,
 /**********************************************************************/
 void resumeBlockMap(struct block_map *map, struct vdo_completion *parent)
 {
-  scheduleOperation(map->actionManager, ADMIN_STATE_RESUMING, NULL,
-                    resumeBlockMapZone, NULL, parent);
+  schedule_operation(map->actionManager, ADMIN_STATE_RESUMING, NULL,
+                     resumeBlockMapZone, NULL, parent);
 }
 
 /**********************************************************************/
@@ -625,8 +625,8 @@ static void growForest(void *context, struct vdo_completion *completion)
 /**********************************************************************/
 void growBlockMap(struct block_map *map, struct vdo_completion *parent)
 {
-  scheduleOperation(map->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
-                    growForest, NULL, NULL, parent);
+  schedule_operation(map->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
+                     growForest, NULL, NULL, parent);
 }
 
 /**********************************************************************/

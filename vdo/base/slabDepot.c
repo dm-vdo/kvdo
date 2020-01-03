@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#32 $
  */
 
 #include "slabDepot.h"
@@ -196,8 +196,8 @@ static bool scheduleTailBlockCommit(void *context)
     return false;
   }
 
-  return scheduleAction(depot->actionManager, prepareForTailBlockCommit,
-                        releaseTailBlockLocks, NULL, NULL);
+  return schedule_action(depot->actionManager, prepareForTailBlockCommit,
+                         releaseTailBlockLocks, NULL, NULL);
 }
 
 /**
@@ -229,10 +229,10 @@ static int allocateComponents(struct slab_depot  *depot,
     return VDO_SUCCESS;
   }
 
-  int result = makeActionManager(depot->zoneCount, getAllocatorThreadID,
-                                 getJournalZoneThread(threadConfig), depot,
-                                 scheduleTailBlockCommit, layer,
-                                 &depot->actionManager);
+  int result = make_action_manager(depot->zoneCount, getAllocatorThreadID,
+                                   getJournalZoneThread(threadConfig), depot,
+                                   scheduleTailBlockCommit, layer,
+                                   &depot->actionManager);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -457,7 +457,7 @@ void freeSlabDepot(struct slab_depot **depotPtr)
   }
 
   FREE(depot->slabs);
-  freeActionManager(&depot->actionManager);
+  free_action_manager(&depot->actionManager);
   freeSlabSummary(&depot->slabSummary);
   FREE(depot);
   *depotPtr = NULL;
@@ -861,7 +861,7 @@ static void startDepotLoad(void *context, struct vdo_completion *parent)
 {
   struct slab_depot *depot = context;
   loadSlabSummary(depot->slabSummary,
-                  getCurrentManagerOperation(depot->actionManager),
+                  get_current_manager_operation(depot->actionManager),
                   depot->oldZoneCount, parent);
 }
 
@@ -872,7 +872,7 @@ void loadSlabDepot(struct slab_depot     *depot,
                    void                  *context)
 {
   if (assertLoadOperation(operation, parent)) {
-    scheduleOperationWithContext(depot->actionManager, operation,
+    schedule_operation_with_context(depot->actionManager, operation,
                                  startDepotLoad, loadBlockAllocator, NULL,
                                  context, parent);
   }
@@ -885,7 +885,7 @@ void prepareToAllocate(struct slab_depot     *depot,
 {
   depot->loadType = loadType;
   atomicStore32(&depot->zonesToScrub, depot->zoneCount);
-  scheduleAction(depot->actionManager, NULL, prepareAllocatorToAllocate,
+  schedule_action(depot->actionManager, NULL, prepareAllocatorToAllocate,
                  NULL, parent);
 }
 
@@ -957,7 +957,7 @@ static int finishRegistration(void *context)
 void useNewSlabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
-  scheduleOperation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
+  schedule_operation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
                     NULL, registerNewSlabsForAllocator, finishRegistration,
                     parent);
 }
@@ -967,7 +967,7 @@ void drainSlabDepot(struct slab_depot     *depot,
                     AdminStateCode         operation,
                     struct vdo_completion *parent)
 {
-  scheduleOperation(depot->actionManager, operation, NULL, drainBlockAllocator,
+  schedule_operation(depot->actionManager, operation, NULL, drainBlockAllocator,
                     NULL, parent);
 }
 
@@ -979,7 +979,7 @@ void resumeSlabDepot(struct slab_depot *depot, struct vdo_completion *parent)
     return;
   }
 
-  scheduleOperation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
+  schedule_operation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
                     resumeBlockAllocator, NULL, parent);
 }
 
@@ -1023,7 +1023,7 @@ struct slab_summary_zone *getSlabSummaryForZone(const struct slab_depot *depot,
 void scrubAllUnrecoveredSlabs(struct slab_depot     *depot,
                               struct vdo_completion *parent)
 {
-  scheduleAction(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
+  schedule_action(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
                  NULL, parent);
 }
 

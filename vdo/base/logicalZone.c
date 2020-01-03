@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#15 $
  */
 
 #include "logicalZone.h"
@@ -172,9 +172,9 @@ int makeLogicalZones(struct vdo *vdo, struct logical_zones **zonesPtr)
     }
   }
 
-  result = makeActionManager(zones->zoneCount, getThreadIDForZone,
-                             getAdminThread(threadConfig), zones, NULL,
-                             vdo->layer, &zones->manager);
+  result = make_action_manager(zones->zoneCount, getThreadIDForZone,
+                               getAdminThread(threadConfig), zones, NULL,
+                               vdo->layer, &zones->manager);
   if (result != VDO_SUCCESS) {
     freeLogicalZones(&zones);
     return result;
@@ -192,7 +192,7 @@ void freeLogicalZones(struct logical_zones **zonesPtr)
     return;
   }
 
-  freeActionManager(&zones->manager);
+  free_action_manager(&zones->manager);
 
   for (ZoneCount index = 0; index < zones->zoneCount; index++) {
     struct logical_zone *zone = &zones->zones[index];
@@ -248,7 +248,8 @@ static void drainLogicalZone(void                  *context,
                              struct vdo_completion *parent)
 {
   struct logical_zone *zone = getLogicalZone(context, zoneNumber);
-  startDraining(&zone->state, getCurrentManagerOperation(zone->zones->manager),
+  startDraining(&zone->state,
+                get_current_manager_operation(zone->zones->manager),
                 parent, initiateDrain);
 }
 
@@ -257,8 +258,8 @@ void drainLogicalZones(struct logical_zones  *zones,
                        AdminStateCode         operation,
                        struct vdo_completion *parent)
 {
-  scheduleOperation(zones->manager, operation, NULL, drainLogicalZone, NULL,
-                    parent);
+  schedule_operation(zones->manager, operation, NULL, drainLogicalZone, NULL,
+                     parent);
 }
 
 /**
@@ -278,8 +279,8 @@ static void resumeLogicalZone(void                  *context,
 void resumeLogicalZones(struct logical_zones  *zones,
                         struct vdo_completion *parent)
 {
-  scheduleOperation(zones->manager, ADMIN_STATE_RESUMING, NULL,
-                    resumeLogicalZone, NULL, parent);
+  schedule_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
+                     resumeLogicalZone, NULL, parent);
 }
 
 /**********************************************************************/
