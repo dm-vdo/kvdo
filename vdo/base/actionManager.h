@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.h#9 $
  */
 
 #ifndef ACTION_MANAGER_H
@@ -37,13 +37,13 @@
  * (which thread is determined when the action manager is constructed).
  *
  * A scheduled action consists of four components:
- *   preamble:   an optional method to be run on the initator thread before
- *               applying the action to all zones
- *   zoneAction: an optional method to be applied to each of the zones
- *   conclusion: an optional method to be run on the initiator thread once the
- *               per-zone method has been applied to all zones
- *   parent:     an optional completion to be finished once the conclusion
- *               is done
+ *   preamble:    an optional method to be run on the initator thread before
+ *                applying the action to all zones
+ *   zone_action: an optional method to be applied to each of the zones
+ *   conclusion:  an optional method to be run on the initiator thread once the
+ *                per-zone method has been applied to all zones
+ *   parent:      an optional completion to be finished once the conclusion
+ *                is done
  *
  * At least one of the three methods must be provided.
  **/
@@ -231,7 +231,7 @@ bool schedule_operation(struct action_manager *manager,
 bool schedule_operation_with_context(struct action_manager *manager,
 				     AdminStateCode operation,
 				     action_preamble *preamble,
-				     zone_action *zoneAction,
+				     zone_action *zone_action,
 				     action_conclusion *conclusion,
 				     void *context,
 				     struct vdo_completion *parent);
