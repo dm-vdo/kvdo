@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#30 $
  */
 
 #ifndef KERNELLAYER_H
@@ -161,8 +161,6 @@ struct kernel_layer {
 	bool trace_logging;
 	/* Storage for trace data. */
 	struct buffer_pool *trace_buffer_pool;
-	/* Private storage for procfs. */
-	void *procfs_private;
 	/* For returning batches of DataKVIOs to their pool */
 	struct batch_processor *data_kvio_releaser;
 

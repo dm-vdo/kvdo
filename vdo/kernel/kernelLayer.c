@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#63 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#64 $
  */
 
 #include "kernelLayer.h"
@@ -46,7 +46,6 @@
 #include "kvdoFlush.h"
 #include "kvio.h"
 #include "poolSysfs.h"
-#include "statusProcfs.h"
 #include "stringUtils.h"
 
 static const struct kvdo_work_queue_type bio_ack_q_type = {
@@ -1130,15 +1129,6 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	// messages) if this is known to be a newly-formatted volume.
 	start_dedupe_index(layer->dedupe_index, wasNew(layer->kvdo.vdo));
 
-	result = vdo_create_procfs_entry(layer,
-					 layer->device_config->pool_name,
-					 &layer->procfs_private);
-	if (result != VDO_SUCCESS) {
-		*reason = "Could not create proc filesystem entry";
-		stop_kernel_layer(layer);
-		return result;
-	}
-
 	layer->allocations_allowed = false;
 
 	return VDO_SUCCESS;
@@ -1157,8 +1147,6 @@ void stop_kernel_layer(struct kernel_layer *layer)
 		kobject_put(&layer->statsDirectory);
 		wait_for_completion(&layer->stats_shutdown);
 	}
-	vdo_destroy_procfs_entry(layer->device_config->pool_name,
-				 layer->procfs_private);
 
 	switch (get_kernel_layer_state(layer)) {
 	case LAYER_RUNNING:

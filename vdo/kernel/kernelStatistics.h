@@ -107,22 +107,4 @@ typedef struct {
   IndexStatistics index;
 } KernelStatistics;
 
-/**
- * Get the root for all stats proc files.
- *
- * @return The proc root
- **/
-static inline const char *getProcRoot(void) {
-  return "vdo";
-}
-
-/**
- * Get the proc file path for reading KernelStatistics.
- *
- * @return The proc file path
- **/
-static inline const char *getKernelStatisticsProcFile(void) {
-  return "kernel_stats";
-}
-
 #endif /* not KERNEL_STATISTICS_H */

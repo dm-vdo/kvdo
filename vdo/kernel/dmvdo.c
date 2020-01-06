@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#36 $
  */
 
 #include "dmvdo.h"
@@ -39,7 +39,7 @@
 #include "kernelLayer.h"
 #include "kvdoFlush.h"
 #include "memoryUsage.h"
-#include "statusProcfs.h"
+#include "messageStats.h"
 #include "stringUtils.h"
 #include "sysfs.h"
 #include "threadDevice.h"
@@ -366,9 +366,9 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
  * Process a dmsetup message. If the message is a dump, just do it. Otherwise,
  * check that no other message is being processed, and only proceed if so.
  *
- * @param layer The layer to which the message was sent
- * @param argc  The argument count of the message
- * @param argv  The arguments to the message
+ * @param layer         The layer to which the message was sent
+ * @param argc          The argument count of the message
+ * @param argv          The arguments to the message
  *
  * @return -EBUSY if another message is being processed or the result of
  *                processsing the message
@@ -436,15 +436,11 @@ static int process_vdo_message(struct kernel_layer *layer,
 }
 
 /**********************************************************************/
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 static int vdo_message(struct dm_target *ti,
 		       unsigned int argc,
 		       char **argv,
 		       char *result_buffer,
 		       unsigned int maxlen)
-#else
-static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
-#endif
 {
 	if (argc == 0) {
 		logWarning("unspecified dmsetup message");
@@ -455,7 +451,28 @@ static int vdo_message(struct dm_target *ti, unsigned int argc, char **argv)
 	RegisteredThread allocating_thread, instance_thread;
 	registerAllocatingThread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
+
+	// Must be done here so we don't map return codes. The code in
+	// dm-ioctl expects a 1 for a return code to look at the buffer
+	// and see if it is full or not.
+	if (argc == 1) {
+		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
+			write_vdo_statistics(layer, result_buffer, maxlen);
+			unregister_thread_device_id();
+			unregisterAllocatingThread();
+			return 1;
+		}
+
+		if (strcasecmp(argv[0], "kernel_stats") == 0) {
+			write_kernel_statistics(layer, result_buffer, maxlen);
+			unregister_thread_device_id();
+			unregisterAllocatingThread();
+			return 1;
+		}
+	}
+
 	int result = process_vdo_message(layer, argc, argv);
+
 	unregister_thread_device_id();
 	unregisterAllocatingThread();
 	return map_to_system_error(result);
@@ -867,7 +884,6 @@ static void vdo_destroy(void)
 	if (sysfs_initialized) {
 		vdo_put_sysfs(&kvdoGlobals.kobj);
 	}
-	vdo_destroy_procfs();
 
 	kvdoGlobals.status = UNINITIALIZED;
 
@@ -899,8 +915,6 @@ static int __init vdo_init(void)
 	dm_registered = true;
 
 	kvdoGlobals.status = UNINITIALIZED;
-
-	vdo_init_procfs();
 
 	result = vdo_init_sysfs(&kvdoGlobals.kobj);
 	if (result < 0) {

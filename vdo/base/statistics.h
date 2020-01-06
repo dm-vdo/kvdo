@@ -216,13 +216,4 @@ struct vdoStatistics {
   ErrorStatistics errors;
 };
 
-/**
- * Get the proc file path for reading VDOStatistics.
- *
- * @return The proc file path
- **/
-static inline const char *getVDOStatisticsProcFile(void) {
-  return "dedupe_stats";
-}
-
 #endif /* not STATISTICS_H */
