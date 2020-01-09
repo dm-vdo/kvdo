@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#11 $
  */
 
 #include "vdoResizeLogical.h"
@@ -59,9 +59,9 @@ static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 static void growLogicalCallback(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
-    = adminCompletionFromSubTask(completion);
-  assertAdminOperationType(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
-  assertAdminPhaseThread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
+    = admin_completion_from_sub_task(completion);
+  assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
+  assert_admin_phase_thread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
 
   struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
@@ -69,7 +69,7 @@ static void growLogicalCallback(struct vdo_completion *completion)
     if (isReadOnly(vdo->readOnlyNotifier)) {
       logErrorWithStringError(VDO_READ_ONLY,
                               "Can't grow logical size of a read-only VDO");
-      finishCompletion(resetAdminSubTask(completion), VDO_READ_ONLY);
+      finishCompletion(reset_admin_sub_task(completion), VDO_READ_ONLY);
       return;
     }
 
@@ -78,13 +78,13 @@ static void growLogicalCallback(struct vdo_completion *completion)
                                  &adminCompletion->completion, NULL)) {
 
       vdo->config.logicalBlocks = getNewEntryCount(getBlockMap(vdo));
-      saveVDOComponentsAsync(vdo, resetAdminSubTask(completion));
+      saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
     }
 
     return;
 
   case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-    growBlockMap(getBlockMap(vdo), resetAdminSubTask(completion));
+    growBlockMap(getBlockMap(vdo), reset_admin_sub_task(completion));
     return;
 
   case GROW_LOGICAL_PHASE_END:
@@ -95,7 +95,7 @@ static void growLogicalCallback(struct vdo_completion *completion)
     break;
 
   default:
-    setCompletionResult(resetAdminSubTask(completion), UDS_BAD_STATE);
+    setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
   }
 
   finishOperationWithResult(&vdo->adminState, completion->result);
@@ -109,7 +109,7 @@ static void growLogicalCallback(struct vdo_completion *completion)
 static void handleGrowthError(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
-    = adminCompletionFromSubTask(completion);
+    = admin_completion_from_sub_task(completion);
   if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
     // We've failed to write the new size in the super block, so set our
     // in memory config back to the old size.
@@ -130,9 +130,9 @@ int performGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
     return VDO_PARAMETER_MISMATCH;
   }
 
-  return performAdminOperation(vdo, ADMIN_OPERATION_GROW_LOGICAL,
-                               getThreadIDForPhase, growLogicalCallback,
-                               handleGrowthError);
+  return perform_admin_operation(vdo, ADMIN_OPERATION_GROW_LOGICAL,
+                                 getThreadIDForPhase, growLogicalCallback,
+                                 handleGrowthError);
 }
 
 /**********************************************************************/

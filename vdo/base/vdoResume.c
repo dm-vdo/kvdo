@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#7 $
  */
 
 #include "vdoResume.h"
@@ -113,9 +113,9 @@ static void writeSuperBlock(struct vdo *vdo, struct vdo_completion *completion)
 static void resumeCallback(struct vdo_completion *completion)
 {
   struct admin_completion *adminCompletion
-    = adminCompletionFromSubTask(completion);
-  assertAdminOperationType(adminCompletion, ADMIN_OPERATION_RESUME);
-  assertAdminPhaseThread(adminCompletion, __func__, RESUME_PHASE_NAMES);
+    = admin_completion_from_sub_task(completion);
+  assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_RESUME);
+  assert_admin_phase_thread(adminCompletion, __func__, RESUME_PHASE_NAMES);
 
   struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
@@ -128,34 +128,36 @@ static void resumeCallback(struct vdo_completion *completion)
 
   case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
     allowReadOnlyModeEntry(vdo->readOnlyNotifier,
-                           resetAdminSubTask(completion));
+                           reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_DEPOT:
-    resumeSlabDepot(vdo->depot, resetAdminSubTask(completion));
+    resumeSlabDepot(vdo->depot, reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_JOURNAL:
-    resumeRecoveryJournal(vdo->recoveryJournal, resetAdminSubTask(completion));
+    resumeRecoveryJournal(vdo->recoveryJournal,
+                          reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_BLOCK_MAP:
-    resumeBlockMap(vdo->blockMap, resetAdminSubTask(completion));
+    resumeBlockMap(vdo->blockMap, reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_LOGICAL_ZONES:
-      resumeLogicalZones(vdo->logicalZones,resetAdminSubTask(completion));
+      resumeLogicalZones(vdo->logicalZones,
+                         reset_admin_sub_task(completion));
       return;
 
   case RESUME_PHASE_PACKER:
-    resumePacker(vdo->packer, resetAdminSubTask(completion));
+    resumePacker(vdo->packer, reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_END:
     break;
 
   default:
-    setCompletionResult(resetAdminSubTask(completion), UDS_BAD_STATE);
+    setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
   }
 
   finishResumingWithResult(&vdo->adminState, completion->result);
@@ -164,7 +166,7 @@ static void resumeCallback(struct vdo_completion *completion)
 /**********************************************************************/
 int performVDOResume(struct vdo *vdo)
 {
-  return performAdminOperation(vdo, ADMIN_OPERATION_RESUME,
-                               getThreadIDForPhase, resumeCallback,
-                               preserveErrorAndContinue);
+  return perform_admin_operation(vdo, ADMIN_OPERATION_RESUME,
+                                 getThreadIDForPhase, resumeCallback,
+                                 preserveErrorAndContinue);
 }

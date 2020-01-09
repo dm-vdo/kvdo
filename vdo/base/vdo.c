@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#24 $
  */
 
 /*
@@ -102,7 +102,7 @@ int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
 
   vdo->layer = layer;
   if (layer->createEnqueueable != NULL) {
-    result = initializeAdminCompletion(vdo, &vdo->adminCompletion);
+    result = initialize_admin_completion(vdo, &vdo->adminCompletion);
     if (result != VDO_SUCCESS) {
       freeVDO(&vdo);
       return result;
@@ -162,7 +162,7 @@ void destroyVDO(struct vdo *vdo)
   FREE(vdo->physicalZones);
   vdo->physicalZones = NULL;
 
-  uninitializeAdminCompletion(&vdo->adminCompletion);
+  uninitialize_admin_completion(&vdo->adminCompletion);
   freeReadOnlyNotifier(&vdo->readOnlyNotifier);
   freeThreadConfig(&vdo->loadConfig.threadConfig);
 }
