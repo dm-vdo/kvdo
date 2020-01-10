@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#16 $
  */
 
 #include "slab.h"
@@ -324,23 +324,23 @@ static void initiateSlabAction(struct admin_state *state)
     return;
   }
 
-  if (isLoading(state)) {
+  if (is_loading(state)) {
     decodeSlabJournal(slab->journal);
     return;
   }
 
-  if (isDraining(state)) {
+  if (is_draining(state)) {
     drainSlabJournal(slab->journal);
     return;
   }
 
-  if (isResuming(state)) {
+  if (is_resuming(state)) {
     queueSlab(slab);
-    finishResuming(state);
+    finish_resuming(state);
     return;
   }
 
-  finishOperationWithResult(state, VDO_INVALID_ADMIN_STATE);
+  finish_operation_with_result(state, VDO_INVALID_ADMIN_STATE);
 }
 
 /**********************************************************************/
@@ -348,32 +348,32 @@ void startSlabAction(struct vdo_slab       *slab,
                      AdminStateCode         operation,
                      struct vdo_completion *parent)
 {
-  startOperationWithWaiter(&slab->state, operation, parent,
-                           initiateSlabAction);
+  start_operation_with_waiter(&slab->state, operation, parent,
+                              initiateSlabAction);
 }
 
 /**********************************************************************/
 void notifySlabJournalIsLoaded(struct vdo_slab *slab, int result)
 {
-  if ((result == VDO_SUCCESS) && isCleanLoad(&slab->state)) {
+  if ((result == VDO_SUCCESS) && is_clean_load(&slab->state)) {
     // Since this is a normal or new load, we don't need the memory to read and
     // process the recovery journal, so we can allocate reference counts now.
     result = allocateRefCountsForSlab(slab);
   }
 
-  finishLoadingWithResult(&slab->state, result);
+  finish_loading_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
 bool isSlabOpen(struct vdo_slab *slab)
 {
-  return (!isQuiescing(&slab->state) && !isQuiescent(&slab->state));
+  return (!is_quiescing(&slab->state) && !is_quiescent(&slab->state));
 }
 
 /**********************************************************************/
 bool isSlabDraining(struct vdo_slab *slab)
 {
-  return isDraining(&slab->state);
+  return is_draining(&slab->state);
 }
 
 /**********************************************************************/
@@ -386,20 +386,20 @@ void notifySlabJournalIsDrained(struct vdo_slab *slab, int result)
     return;
   }
 
-  setOperationResult(&slab->state, result);
+  set_operation_result(&slab->state, result);
   drainRefCounts(slab->referenceCounts);
 }
 
 /**********************************************************************/
 void notifyRefCountsAreDrained(struct vdo_slab *slab, int result)
 {
-  finishDrainingWithResult(&slab->state, result);
+  finish_draining_with_result(&slab->state, result);
 }
 
 /**********************************************************************/
 bool isSlabResuming(struct vdo_slab *slab)
 {
-  return isResuming(&slab->state);
+  return is_resuming(&slab->state);
 }
 
 /**********************************************************************/

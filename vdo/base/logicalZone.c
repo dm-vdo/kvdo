@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#16 $
  */
 
 #include "logicalZone.h"
@@ -220,12 +220,12 @@ static inline void assertOnZoneThread(struct logical_zone *zone,
  **/
 static void checkForDrainComplete(struct logical_zone *zone)
 {
-  if (!isDraining(&zone->state) || zone->notifying
+  if (!is_draining(&zone->state) || zone->notifying
       || !isRingEmpty(&zone->writeVIOs)) {
     return;
   }
 
-  finishDraining(&zone->state);
+  finish_draining(&zone->state);
 }
 
 /**
@@ -248,9 +248,9 @@ static void drainLogicalZone(void                  *context,
                              struct vdo_completion *parent)
 {
   struct logical_zone *zone = getLogicalZone(context, zoneNumber);
-  startDraining(&zone->state,
-                get_current_manager_operation(zone->zones->manager),
-                parent, initiateDrain);
+  start_draining(&zone->state,
+                 get_current_manager_operation(zone->zones->manager),
+                 parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -272,7 +272,7 @@ static void resumeLogicalZone(void                  *context,
                               struct vdo_completion *parent)
 {
   struct logical_zone *zone = getLogicalZone(context, zoneNumber);
-  finishCompletion(parent, resumeIfQuiescent(&zone->state));
+  finishCompletion(parent, resume_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -373,7 +373,7 @@ int acquireFlushGenerationLock(struct data_vio *dataVIO)
 {
   struct logical_zone *zone = dataVIO->logical.zone;
   assertOnZoneThread(zone, __func__);
-  if (!isNormal(&zone->state)) {
+  if (!is_normal(&zone->state)) {
     return VDO_INVALID_ADMIN_STATE;
   }
 

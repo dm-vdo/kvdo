@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#24 $
  */
 
 #include "recoveryJournal.h"
@@ -188,14 +188,14 @@ static void checkForDrainComplete(struct recovery_journal *journal)
     notifyAllWaiters(&journal->incrementWaiters, continueWaiter, &result);
   }
 
-  if (!isDraining(&journal->state)
+  if (!is_draining(&journal->state)
       || journal->reaping || hasBlockWaiters(journal)
       || hasWaiters(&journal->incrementWaiters)
       || hasWaiters(&journal->decrementWaiters)) {
     return;
   }
 
-  if (isSaving(&journal->state)) {
+  if (is_saving(&journal->state)) {
     if (journal->activeBlock != NULL) {
       ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
                        || !isRecoveryBlockDirty(journal->activeBlock)),
@@ -207,7 +207,7 @@ static void checkForDrainComplete(struct recovery_journal *journal)
 		    "all blocks in a journal being saved must be inactive");
   }
 
-  finishDrainingWithResult(&journal->state, result);
+  finish_draining_with_result(&journal->state, result);
 }
 
 /**
@@ -504,10 +504,10 @@ void freeRecoveryJournal(struct recovery_journal **journalPtr)
 
   // XXX: eventually, the journal should be constructed in a quiescent state
   //      which requires opening before use.
-  if (!isQuiescent(&journal->state)) {
+  if (!is_quiescent(&journal->state)) {
     ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
                     "journal being freed has no active tail blocks");
-  } else if (!isSaved(&journal->state)
+  } else if (!is_saved(&journal->state)
              && !isRingEmpty(&journal->activeTailBlocks)) {
     logWarning("journal being freed has uncommited entries");
   }
@@ -595,7 +595,7 @@ size_t getRecoveryJournalEncodedSize(void)
 int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
 {
   SequenceNumber journalStart;
-  if (isSaved(&journal->state)) {
+  if (is_saved(&journal->state)) {
     // If the journal is saved, we should start one past the active block
     // (since the active block is not guaranteed to be empty).
     journalStart = journal->tail;
@@ -1085,7 +1085,7 @@ void addRecoveryJournalEntry(struct recovery_journal *journal,
                              struct data_vio         *dataVIO)
 {
   assertOnJournalThread(journal, __func__);
-  if (!isNormal(&journal->state)) {
+  if (!is_normal(&journal->state)) {
     continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
     return;
   }
@@ -1232,7 +1232,7 @@ void drainRecoveryJournal(struct recovery_journal *journal,
                           struct vdo_completion   *parent)
 {
   assertOnJournalThread(journal, __func__);
-  startDraining(&journal->state, operation, parent, initiateDrain);
+  start_draining(&journal->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -1240,8 +1240,8 @@ void resumeRecoveryJournal(struct recovery_journal *journal,
                            struct vdo_completion   *parent)
 {
   assertOnJournalThread(journal, __func__);
-  bool saved = isSaved(&journal->state);
-  setCompletionResult(parent, resumeIfQuiescent(&journal->state));
+  bool saved = is_saved(&journal->state);
+  setCompletionResult(parent, resume_if_quiescent(&journal->state));
 
   if (isReadOnly(journal->readOnlyNotifier)) {
     finishCompletion(parent, VDO_READ_ONLY);

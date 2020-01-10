@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#24 $
  */
 
 #include "slabJournalInternals.h"
@@ -463,7 +463,7 @@ static void reapSlabJournal(struct slab_journal *journal)
     return;
   }
 
-  if (isUnrecoveredSlab(journal->slab) || !isNormal(&journal->slab->state)
+  if (isUnrecoveredSlab(journal->slab) || !is_normal(&journal->slab->state)
       || isVDOReadOnly(journal)) {
     // We must not reap in the first two cases, and there's no point in
     // read-only mode.
@@ -726,9 +726,9 @@ static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
   initializeTailBlock(journal);
   journal->waitingToCommit = false;
   if (journal->slab->state.state == ADMIN_STATE_WAITING_FOR_RECOVERY) {
-    finishOperationWithResult(&journal->slab->state,
-                              (isVDOReadOnly(journal)
-                               ? VDO_READ_ONLY : VDO_SUCCESS));
+    finish_operation_with_result(&journal->slab->state,
+                                 (isVDOReadOnly(journal)
+                                  ? VDO_READ_ONLY : VDO_SUCCESS));
     return;
   }
 
@@ -876,8 +876,8 @@ bool attemptReplayIntoSlabJournal(struct slab_journal   *journal,
   }
 
   if (journal->waitingToCommit) {
-    startOperationWithWaiter(&journal->slab->state,
-                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent, NULL);
+    start_operation_with_waiter(&journal->slab->state,
+                                ADMIN_STATE_WAITING_FOR_RECOVERY, parent, NULL);
     return false;
   }
 
@@ -1100,7 +1100,7 @@ static void addEntries(struct slab_journal *journal)
 
   // If there are no waiters, and we are flushing or saving, commit the
   // tail block.
-  if (isSlabDraining(journal->slab) && !isSuspending(&journal->slab->state)
+  if (isSlabDraining(journal->slab) && !is_suspending(&journal->slab->state)
       && !hasWaiters(&journal->entryWaiters)) {
     commitSlabJournalTail(journal);
   }
@@ -1187,7 +1187,7 @@ void drainSlabJournal(struct slab_journal *journal)
   ASSERT_LOG_ONLY((getCallbackThreadID()
                    == journal->slab->allocator->threadID),
                   "drainSlabJournal() called on correct thread");
-  if (isQuiescing(&journal->slab->state)) {
+  if (is_quiescing(&journal->slab->state)) {
     // XXX: we should revisit this assertion since it is no longer clear what
     //      it is for.
     ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)

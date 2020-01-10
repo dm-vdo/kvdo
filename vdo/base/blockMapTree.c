@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#27 $
  */
 
 #include "blockMapTree.h"
@@ -212,7 +212,7 @@ bool copyValidPage(char                     *buffer,
  **/
 static void checkForIOComplete(struct block_map_tree_zone *zone)
 {
-  if (isDraining(&zone->mapZone->state) && (zone->activeLookups == 0)
+  if (is_draining(&zone->mapZone->state) && (zone->activeLookups == 0)
       && !hasWaiters(&zone->flushWaiters) && !isVIOPoolBusy(zone->vioPool)) {
     drainVDOPageCache(zone->mapZone->pageCache);
   }
@@ -606,7 +606,7 @@ void drainZoneTrees(struct admin_state *state)
     = &(container_of(state, struct block_map_zone, state)->treeZone);
   ASSERT_LOG_ONLY((zone->activeLookups == 0),
                   "drainZoneTrees() called with no active lookups");
-  if (!isSuspending(state)) {
+  if (!is_suspending(state)) {
     flushDirtyLists(zone->dirtyLists);
   }
 
@@ -1194,7 +1194,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
 {
   struct block_map_tree_zone *zone = getBlockMapTreeZone(dataVIO);
   zone->activeLookups++;
-  if (isDraining(&zone->mapZone->state)) {
+  if (is_draining(&zone->mapZone->state)) {
     finishLookup(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }

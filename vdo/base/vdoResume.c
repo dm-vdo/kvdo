@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#8 $
  */
 
 #include "vdoResume.h"
@@ -120,8 +120,8 @@ static void resumeCallback(struct vdo_completion *completion)
   struct vdo *vdo = adminCompletion->completion.parent;
   switch (adminCompletion->phase++) {
   case RESUME_PHASE_START:
-    if (startResuming(&vdo->adminState, ADMIN_STATE_RESUMING,
-                      &adminCompletion->completion, NULL)) {
+    if (start_resuming(&vdo->adminState, ADMIN_STATE_RESUMING,
+                       &adminCompletion->completion, NULL)) {
       writeSuperBlock(vdo, completion);
     }
     return;
@@ -160,7 +160,7 @@ static void resumeCallback(struct vdo_completion *completion)
     setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
   }
 
-  finishResumingWithResult(&vdo->adminState, completion->result);
+  finish_resuming_with_result(&vdo->adminState, completion->result);
 }
 
 /**********************************************************************/

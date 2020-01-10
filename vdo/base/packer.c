@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#20 $
  */
 
 #include "packerInternals.h"
@@ -375,10 +375,10 @@ continueVIOWithoutPacking(struct waiter *waiter,
  **/
 static void checkForDrainComplete(struct packer *packer)
 {
-  if (isDraining(&packer->state)
+  if (is_draining(&packer->state)
       && (packer->canceledBin->slotsUsed == 0)
       && (packer->idleOutputBinCount == packer->outputBinCount)) {
-    finishDraining(&packer->state);
+    finish_draining(&packer->state);
   }
 }
 
@@ -829,7 +829,7 @@ void attemptPacking(struct data_vio *dataVIO)
 
   // If packing of this data_vio is disallowed for administrative reasons, give
   // up before making any state changes.
-  if (!isNormal(&packer->state)
+  if (!is_normal(&packer->state)
       || (dataVIO->flushGeneration < packer->flushGeneration)) {
     abortPacking(dataVIO);
     return;
@@ -880,7 +880,7 @@ static void writeAllNonEmptyBins(struct packer *packer)
 void flushPacker(struct packer *packer)
 {
   assertOnPackerThread(packer, __func__);
-  if (isNormal(&packer->state)) {
+  if (is_normal(&packer->state)) {
     writeAllNonEmptyBins(packer);
   }
 }
@@ -949,15 +949,15 @@ static void initiateDrain(struct admin_state *state)
 void drainPacker(struct packer *packer, struct vdo_completion *completion)
 {
   assertOnPackerThread(packer, __func__);
-  startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
-                initiateDrain);
+  start_draining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
+                 initiateDrain);
 }
 
 /**********************************************************************/
 void resumePacker(struct packer *packer, struct vdo_completion *parent)
 {
   assertOnPackerThread(packer, __func__);
-  finishCompletion(parent, resumeIfQuiescent(&packer->state));
+  finishCompletion(parent, resume_if_quiescent(&packer->state));
 }
 
 /**********************************************************************/
@@ -1007,7 +1007,7 @@ void dumpPacker(const struct packer *packer)
 {
   logInfo("packer");
   logInfo("  flushGeneration=%llu state %s writingBatches=%s",
-          packer->flushGeneration, getAdminStateName(&packer->state),
+          packer->flushGeneration, get_admin_state_name(&packer->state),
           boolToString(packer->writingBatches));
 
   logInfo("  inputBinCount=%llu", packer->size);

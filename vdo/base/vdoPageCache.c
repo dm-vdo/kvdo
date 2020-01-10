@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#16 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -228,7 +228,7 @@ static inline void assertOnCacheThread(struct vdo_page_cache *cache,
  **/
 static inline void assertIOAllowed(struct vdo_page_cache *cache)
 {
-  ASSERT_LOG_ONLY(!isQuiescent(&cache->zone->state),
+  ASSERT_LOG_ONLY(!is_quiescent(&cache->zone->state),
                   "VDO page cache may issue I/O");
 }
 
@@ -692,9 +692,9 @@ validateCompletedPage(struct vdo_completion *completion,
 static void checkForIOComplete(struct vdo_page_cache *cache)
 {
   if ((cache->outstandingReads + cache->outstandingWrites) == 0) {
-    finishDrainingWithResult(&cache->zone->state,
-                             (isReadOnly(cache->zone->readOnlyNotifier)
-                              ? VDO_READ_ONLY : VDO_SUCCESS));
+    finish_draining_with_result(&cache->zone->state,
+                                (isReadOnly(cache->zone->readOnlyNotifier)
+                                 ? VDO_READ_ONLY : VDO_SUCCESS));
   }
 }
 
@@ -1348,10 +1348,10 @@ void *getVDOPageCompletionContext(struct vdo_completion *completion)
 void drainVDOPageCache(struct vdo_page_cache *cache)
 {
   assertOnCacheThread(cache, __func__);
-  ASSERT_LOG_ONLY(isDraining(&cache->zone->state),
+  ASSERT_LOG_ONLY(is_draining(&cache->zone->state),
                   "drainVDOPageCache() called during block map drain");
 
-  if (!isSuspending(&cache->zone->state)) {
+  if (!is_suspending(&cache->zone->state)) {
     flushDirtyLists(cache->dirtyLists);
     savePages(cache);
   }

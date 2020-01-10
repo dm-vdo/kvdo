@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#13 $
  */
 
 #include "actionManager.h"
@@ -284,7 +284,7 @@ static void handlePreambleError(struct vdo_completion *completion)
 static void launchCurrentAction(struct action_manager *manager)
 {
 	struct action *action = manager->current_action;
-	int result = startOperation(&manager->state, action->operation);
+	int result = start_operation(&manager->state, action->operation);
 	if (result != VDO_SUCCESS) {
 		if (action->parent != NULL) {
 			setCompletionResult(action->parent, result);
@@ -330,7 +330,7 @@ static void finish_action_callback(struct vdo_completion *completion)
 	bool hasNextAction = (manager->current_action->in_use ||
 			      manager->scheduler(manager->context));
 	int result = action.conclusion(manager->context);
-	finishOperation(&manager->state);
+	finish_operation(&manager->state);
 	if (action.parent != NULL) {
 		finishCompletion(action.parent, result);
 	}

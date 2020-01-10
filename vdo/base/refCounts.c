@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#20 $
  */
 
 #include "refCounts.h"
@@ -253,7 +253,7 @@ static void checkForDrainComplete(struct ref_counts *refCounts)
   }
 
   AdminStateCode code = refCounts->slab->state.state;
-  if (!isDrainOperation(code)) {
+  if (!is_drain_operation(code)) {
     return;
   }
 
