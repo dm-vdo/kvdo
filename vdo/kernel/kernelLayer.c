@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#64 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#65 $
  */
 
 #include "kernelLayer.h"
@@ -450,7 +450,7 @@ void destroy_vio(struct vio **vio_ptr)
 
 	if (isCompressedWriteVIO(vio)) {
 		struct compressed_write_kvio *compressed_write_kvio =
-			allocating_vio_as_compressed_write_kvio(vioAsAllocatingVIO(vio));
+			allocating_vio_as_compressed_write_kvio(vio_as_allocating_vio(vio));
 		free_compressed_write_kvio(&compressed_write_kvio);
 	} else {
 		struct metadata_kvio *metadata_kvio = vio_as_metadata_kvio(vio);

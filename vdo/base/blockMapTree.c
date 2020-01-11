@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#28 $
  */
 
 #include "blockMapTree.h"
@@ -1079,8 +1079,8 @@ static void releaseBlockMapWriteLock(struct vdo_completion *completion)
     return;
   }
 
-  releaseAllocationLock(allocatingVIO);
-  resetAllocation(allocatingVIO);
+  release_allocation_lock(allocatingVIO);
+  reset_allocation(allocatingVIO);
   launchLogicalCallback(dataVIO, finishBlockMapAllocation,
                         THIS_LOCATION("$F;cb=finishBlockMapAllocation"));
 }
@@ -1133,7 +1133,7 @@ static void journalBlockMapAllocation(struct vdo_completion *completion)
 /**
  * Continue the process of allocating a block map page now that the
  * BlockAllocator has given us a block. This method is supplied as the callback
- * to allocateDataBlock() by allocateBlockMapPage().
+ * to allocate_data_block() by allocateBlockMapPage().
  *
  * @param allocatingVIO  The data_vio which is doing the allocation
  **/
@@ -1151,7 +1151,7 @@ static void continueBlockMapPageAllocation(struct allocating_vio *allocatingVIO)
   lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
   setUpReferenceOperationWithLock(BLOCK_MAP_INCREMENT, pbn,
                                   MAPPING_STATE_UNCOMPRESSED,
-                                  allocatingVIO->allocationLock,
+                                  allocatingVIO->allocation_lock,
                                   &dataVIO->operation);
   launchJournalCallback(dataVIO, journalBlockMapAllocation,
                         THIS_LOCATION("$F;cb=journalBlockMapAllocation"));
@@ -1183,10 +1183,10 @@ static void allocateBlockMapPage(struct block_map_tree_zone *zone,
     return;
   }
 
-  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
-                    getAllocationSelector(dataVIO->logical.zone),
-                    VIO_BLOCK_MAP_WRITE_LOCK,
-                    continueBlockMapPageAllocation);
+  allocate_data_block(dataVIOAsAllocatingVIO(dataVIO),
+                      getAllocationSelector(dataVIO->logical.zone),
+                      VIO_BLOCK_MAP_WRITE_LOCK,
+                      continueBlockMapPageAllocation);
 }
 
 /**********************************************************************/

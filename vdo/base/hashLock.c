@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#14 $
  */
 
 /**
@@ -1568,8 +1568,8 @@ static void transferAllocationLock(struct data_vio *dataVIO)
                   "transferred lock must be for the block written");
 
   struct allocating_vio *allocatingVIO  = dataVIOAsAllocatingVIO(dataVIO);
-  struct pbn_lock       *pbnLock        = allocatingVIO->allocationLock;
-  allocatingVIO->allocationLock         = NULL;
+  struct pbn_lock       *pbnLock        = allocatingVIO->allocation_lock;
+  allocatingVIO->allocation_lock        = NULL;
   allocatingVIO->allocation             = ZERO_BLOCK;
 
   ASSERT_LOG_ONLY(isPBNReadLock(pbnLock),

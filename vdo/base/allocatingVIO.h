@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#10 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -29,7 +29,7 @@
 #include "vio.h"
 #include "waitQueue.h"
 
-typedef void AllocationCallback(struct allocating_vio *allocationVIO);
+typedef void allocation_callback(struct allocating_vio *allocationVIO);
 
 /**
  * A vio which can receive an allocation from the block allocator. Currently,
@@ -37,36 +37,36 @@ typedef void AllocationCallback(struct allocating_vio *allocationVIO);
  * block writes.
  **/
 struct allocating_vio {
-  /** The underlying vio */
-  struct vio                      vio;
+	/** The underlying vio */
+	struct vio vio;
 
-  /** The WaitQueue entry structure */
-  struct waiter                   waiter;
+	/** The WaitQueue entry structure */
+	struct waiter waiter;
 
-  /** The physical zone in which to allocate a physical block */
-  struct physical_zone           *zone;
+	/** The physical zone in which to allocate a physical block */
+	struct physical_zone *zone;
 
-  /** The block allocated to this vio */
-  PhysicalBlockNumber             allocation;
+	/** The block allocated to this vio */
+	PhysicalBlockNumber allocation;
 
-  /**
-   * If non-NULL, the pooled PBN lock held on the allocated block. Must be a
-   * write lock until the block has been  written, after which it will become a
-   * read lock.
-   **/
-  struct pbn_lock                *allocationLock;
+	/**
+	 * If non-NULL, the pooled PBN lock held on the allocated block. Must be
+	 * a write lock until the block has been  written, after which it will
+	 * become a read lock.
+	 **/
+	struct pbn_lock *allocation_lock;
 
-  /** The type of write lock to obtain on the allocated block */
-  PBNLockType                     writeLockType;
+	/** The type of write lock to obtain on the allocated block */
+	PBNLockType write_lock_type;
 
-  /** The number of zones in which this vio has attempted an allocation */
-  ZoneCount                       allocationAttempts;
+	/** The number of zones in which this vio has attempted an allocation */
+	ZoneCount allocation_attempts;
 
-  /** Whether this vio should wait for a clean slab */
-  bool                            waitForCleanSlab;
+	/** Whether this vio should wait for a clean slab */
+	bool wait_for_clean_slab;
 
-  /** The function to call once allocation is complete */
-  AllocationCallback             *allocationCallback;
+	/** The function to call once allocation is complete */
+	allocation_callback *allocation_callback;
 };
 
 /**
@@ -76,25 +76,26 @@ struct allocating_vio {
  *
  * @return The vio as an allocating_vio
  **/
-static inline struct allocating_vio *vioAsAllocatingVIO(struct vio *vio)
+static inline struct allocating_vio *vio_as_allocating_vio(struct vio *vio)
 {
-  STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
-  ASSERT_LOG_ONLY(((vio->type == VIO_TYPE_DATA)
-                   || (vio->type == VIO_TYPE_COMPRESSED_BLOCK)),
-                  "vio is an allocating_vio");
-  return (struct allocating_vio *) vio;
+	STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
+	ASSERT_LOG_ONLY(((vio->type == VIO_TYPE_DATA) ||
+			 (vio->type == VIO_TYPE_COMPRESSED_BLOCK)),
+			"vio is an allocating_vio");
+	return (struct allocating_vio *)vio;
 }
 
 /**
  * Convert an allocating_vio to a vio.
  *
- * @param allocatingVIO  The allocating_vio to convert
+ * @param allocating_vio  The allocating_vio to convert
  *
  * @return The allocating_vio as a vio
  **/
-static inline struct vio *allocatingVIOAsVIO(struct allocating_vio *allocatingVIO)
+static inline struct vio *
+allocating_vio_as_vio(struct allocating_vio *allocating_vio)
 {
-  return &allocatingVIO->vio;
+	return &allocating_vio->vio;
 }
 
 /**
@@ -105,36 +106,35 @@ static inline struct vio *allocatingVIOAsVIO(struct allocating_vio *allocatingVI
  * @return The completion as an allocating_vio
  **/
 static inline struct allocating_vio *
-asAllocatingVIO(struct vdo_completion *completion)
+as_allocating_vio(struct vdo_completion *completion)
 {
-  return vioAsAllocatingVIO(asVIO(completion));
+	return vio_as_allocating_vio(asVIO(completion));
 }
 
 /**
  * Convert an allocating_vio to a generic completion.
  *
- * @param allocatingVIO  The allocating_vio to convert
+ * @param allocating_vio  The allocating_vio to convert
  *
  * @return The allocating_vio as a completion
  **/
-static inline
-struct vdo_completion *
-allocatingVIOAsCompletion(struct allocating_vio *allocatingVIO)
+static inline struct vdo_completion *
+allocating_vio_as_completion(struct allocating_vio *allocating_vio)
 {
-  return vioAsCompletion(allocatingVIOAsVIO(allocatingVIO));
+	return vioAsCompletion(allocating_vio_as_vio(allocating_vio));
 }
 
 /**
  * Convert an allocating_vio to a generic wait queue entry.
  *
- * @param allocatingVIO  The allocating_vio to convert
+ * @param allocating_vio  The allocating_vio to convert
  *
  * @return The allocating_vio as a wait queue entry
  **/
 static inline struct waiter *
-allocatingVIOAsWaiter(struct allocating_vio *allocatingVIO)
+allocating_vio_as_waiter(struct allocating_vio *allocating_vio)
 {
-  return &allocatingVIO->waiter;
+	return &allocating_vio->waiter;
 }
 
 /**
@@ -146,132 +146,136 @@ allocatingVIOAsWaiter(struct allocating_vio *allocatingVIO)
  * @return The wait queue entry as an allocating_vio
  **/
 static inline struct allocating_vio *
-waiterAsAllocatingVIO(struct waiter *waiter)
+waiter_as_allocating_vio(struct waiter *waiter)
 {
-  if (waiter == NULL) {
-    return NULL;
-  }
+	if (waiter == NULL) {
+		return NULL;
+	}
 
-  return (struct allocating_vio *) ((uintptr_t) waiter
-                                    - offsetof(struct allocating_vio, waiter));
+	return (struct allocating_vio *)((uintptr_t)waiter -
+					 offsetof(struct allocating_vio,
+						  waiter));
 }
 
 /**
  * Check whether an allocating_vio is a compressed block write.
  *
- * @param allocatingVIO  The allocating_vio to check
+ * @param allocating_vio  The allocating_vio to check
  *
  * @return <code>true</code> if the allocating_vio is a compressed block write
  **/
 static inline bool
-isCompressedWriteAllocatingVIO(struct allocating_vio *allocatingVIO)
+is_compressed_write_allocating_vio(struct allocating_vio *allocating_vio)
 {
-  return isCompressedWriteVIO(allocatingVIOAsVIO(allocatingVIO));
+	return isCompressedWriteVIO(allocating_vio_as_vio(allocating_vio));
 }
 
 /**
  * Add a trace record for the current source location.
  *
- * @param allocatingVIO  The allocating_vio structure to be updated
+ * @param allocating_vio  The allocating_vio structure to be updated
  * @param location       The source-location descriptor to be recorded
  **/
 static inline void
-allocatingVIOAddTraceRecord(struct allocating_vio *allocatingVIO,
-                            TraceLocation          location)
+allocating_vio_add_trace_record(struct allocating_vio *allocating_vio,
+				TraceLocation location)
 {
-  vioAddTraceRecord(allocatingVIOAsVIO(allocatingVIO), location);
+	vioAddTraceRecord(allocating_vio_as_vio(allocating_vio), location);
 }
 
 /**
  * Get the vdo from an allocating_vio.
  *
- * @param allocatingVIO  The allocating_vio from which to get the vdo
+ * @param allocating_vio  The allocating_vio from which to get the vdo
  *
  * @return The vdo to which an allocating_vio belongs
  **/
 static inline struct vdo *
-getVDOFromAllocatingVIO(struct allocating_vio *allocatingVIO)
+get_vdo_from_allocating_vio(struct allocating_vio *allocating_vio)
 {
-  return allocatingVIOAsVIO(allocatingVIO)->vdo;
+	return allocating_vio_as_vio(allocating_vio)->vdo;
 }
 
 /**
  * Check that an allocating_vio is running on the physical zone thread in
  * which it did its allocation.
  *
- * @param allocatingVIO  The allocating_vio in question
+ * @param allocating_vio  The allocating_vio in question
  **/
-static inline void assertInPhysicalZone(struct allocating_vio *allocatingVIO)
+static inline void assertInPhysicalZone(struct allocating_vio *allocating_vio)
 {
-  ThreadID expected = getPhysicalZoneThreadID(allocatingVIO->zone);
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "struct allocating_vio for allocated physical block %" PRIu64
-                  " on thread %u, should be on thread %u",
-                  allocatingVIO->allocation, threadID, expected);
+	ThreadID expected = getPhysicalZoneThreadID(allocating_vio->zone);
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"struct allocating_vio for allocated physical block %llu on thread %u, should be on thread %u",
+			allocating_vio->allocation,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a physical block operation in an allocating_vio's allocated
  * zone.
  *
- * @param allocatingVIO  The allocating_vio
- * @param callback       The callback to set
- * @param location       The tracing info for the call site
+ * @param allocating_vio  The allocating_vio
+ * @param callback        The callback to set
+ * @param location        The tracing info for the call site
  **/
-static inline void setPhysicalZoneCallback(struct allocating_vio *allocatingVIO,
-                                           VDOAction             *callback,
-                                           TraceLocation          location)
+static inline void
+set_physical_zone_callback(struct allocating_vio *allocating_vio,
+			   VDOAction *callback,
+			   TraceLocation location)
 {
-  setCallback(allocatingVIOAsCompletion(allocatingVIO), callback,
-              getPhysicalZoneThreadID(allocatingVIO->zone));
-  allocatingVIOAddTraceRecord(allocatingVIO, location);
+	setCallback(allocating_vio_as_completion(allocating_vio),
+		    callback,
+		    getPhysicalZoneThreadID(allocating_vio->zone));
+	allocating_vio_add_trace_record(allocating_vio, location);
 }
 
 /**
  * Set a callback as a physical block operation in an allocating_vio's allocated
  * zone and invoke it immediately.
  *
- * @param allocatingVIO  The allocating_vio
+ * @param allocating_vio  The allocating_vio
  * @param callback       The callback to invoke
  * @param location       The tracing info for the call site
  **/
 static inline void
-launchPhysicalZoneCallback(struct allocating_vio            *allocatingVIO,
-                                              VDOAction     *callback,
-                                              TraceLocation  location)
+launch_physical_zone_callback(struct allocating_vio *allocating_vio,
+			      VDOAction *callback,
+			      TraceLocation location)
 {
-  setPhysicalZoneCallback(allocatingVIO, callback, location);
-  invokeCallback(allocatingVIOAsCompletion(allocatingVIO));
+	set_physical_zone_callback(allocating_vio, callback, location);
+	invokeCallback(allocating_vio_as_completion(allocating_vio));
 }
 
 /**
  * Allocate a data block to an allocating_vio.
  *
- * @param allocatingVIO  The allocating_vio which needs an allocation
- * @param selector       The allocation selector for deciding which physical
- *                       zone to allocate from
- * @param writeLockType  The type of write lock to obtain on the block
- * @param callback       The function to call once the allocation is complete
+ * @param allocating_vio   The allocating_vio which needs an allocation
+ * @param selector         The allocation selector for deciding which physical
+ *                         zone to allocate from
+ * @param write_lock_type  The type of write lock to obtain on the block
+ * @param callback         The function to call once the allocation is complete
  **/
-void allocateDataBlock(struct allocating_vio      *allocatingVIO,
-                       struct allocation_selector *selector,
-                       PBNLockType                 writeLockType,
-                       AllocationCallback         *callback);
+void allocate_data_block(struct allocating_vio *allocating_vio,
+			 struct allocation_selector *selector,
+			 PBNLockType write_lock_type,
+			 allocation_callback *callback);
 
 /**
  * Release the PBN lock on the allocated block. If the reference to the locked
  * block is still provisional, it will be released as well.
  *
- * @param allocatingVIO  The lock holder
+ * @param allocating_vio  The lock holder
  **/
-void releaseAllocationLock(struct allocating_vio *allocatingVIO);
+void release_allocation_lock(struct allocating_vio *allocating_vio);
 
 /**
  * Reset an allocating_vio after it has done an allocation.
  *
- * @param allocatingVIO  The allocating_vio
+ * @param allocating_vio  The allocating_vio
  **/
-void resetAllocation(struct allocating_vio *allocatingVIO);
+void reset_allocation(struct allocating_vio *allocating_vio);
 
 #endif // ALLOCATING_VIO_H

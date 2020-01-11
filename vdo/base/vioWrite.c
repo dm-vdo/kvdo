@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#15 $
  */
 
 /*
@@ -250,7 +250,7 @@ static void releaseAllocatedLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInAllocatedZone(dataVIO);
-  releaseAllocationLock(dataVIOAsAllocatingVIO(dataVIO));
+  release_allocation_lock(dataVIOAsAllocatingVIO(dataVIO));
   performCleanupStage(dataVIO, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -290,7 +290,7 @@ static void cleanHashLock(struct vdo_completion *completion)
  **/
 static void finishCleanup(struct data_vio *dataVIO)
 {
-  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->allocationLock == NULL,
+  ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(dataVIO)->allocation_lock == NULL,
                   "complete data_vio has no allocation lock");
   ASSERT_LOG_ONLY(dataVIO->hashLock == NULL,
                   "complete data_vio has no hash lock");
@@ -557,7 +557,7 @@ static void decrementForDedupe(struct vdo_completion *completion)
      * we must release the PBN lock on it first so that the allocator will
      * not allocate a write-locked block.
      */
-    releaseAllocationLock(allocatingVIO);
+    release_allocation_lock(allocatingVIO);
   }
 
   setLogicalCallback(dataVIO, updateBlockMapForDedupe,
@@ -1046,7 +1046,7 @@ static void incrementForWrite(struct vdo_completion *completion)
    * block. Downgrade the allocation lock to a read lock so it can be used
    * later by the hash lock (which we don't have yet in sync mode).
    */
-  downgradePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
+  downgradePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO)->allocation_lock);
 
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
   setLogicalCallback(dataVIO, getWriteIncrementCallback(dataVIO),
@@ -1077,7 +1077,7 @@ static void finishBlockWrite(struct vdo_completion *completion)
                              THIS_LOCATION("$F;js=mapWrite"));
   }
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_WRITE;
-  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->allocationLock);
+  journalIncrement(dataVIO, dataVIOAsAllocatingVIO(dataVIO)->allocation_lock);
 }
 
 /**
@@ -1129,7 +1129,7 @@ static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
   // XXX prepareForDedupe can run from any thread, so this is a place where
   // running the callback on the kernel thread would save a thread switch.
   setAllocatedZoneCallback(dataVIO, prepareForDedupe, THIS_LOCATION(NULL));
-  if (vioRequiresFlushAfter(allocatingVIOAsVIO(allocatingVIO))) {
+  if (vioRequiresFlushAfter(allocating_vio_as_vio(allocatingVIO))) {
     invokeCallback(dataVIOAsCompletion(dataVIO));
     return;
   }
@@ -1173,9 +1173,9 @@ static void continueWriteWithBlockMapSlot(struct vdo_completion *completion)
     return;
   }
 
-  allocateDataBlock(dataVIOAsAllocatingVIO(dataVIO),
-                    getAllocationSelector(dataVIO->logical.zone),
-                    VIO_WRITE_LOCK, continueWriteAfterAllocation);
+  allocate_data_block(dataVIOAsAllocatingVIO(dataVIO),
+                      getAllocationSelector(dataVIO->logical.zone),
+                      VIO_WRITE_LOCK, continueWriteAfterAllocation);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#18 $
  */
 
 #ifndef DATA_VIO_H
@@ -236,7 +236,7 @@ static inline struct data_vio *
 allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
 {
   STATIC_ASSERT(offsetof(struct data_vio, allocatingVIO) == 0);
-  ASSERT_LOG_ONLY((allocatingVIOAsVIO(allocatingVIO)->type == VIO_TYPE_DATA),
+  ASSERT_LOG_ONLY((allocating_vio_as_vio(allocatingVIO)->type == VIO_TYPE_DATA),
                   "allocating_vio is a struct data_vio");
   return (struct data_vio *) allocatingVIO;
 }
@@ -277,7 +277,7 @@ static inline struct allocating_vio *dataVIOAsAllocatingVIO(struct data_vio *dat
  **/
 static inline struct vio *dataVIOAsVIO(struct data_vio *dataVIO)
 {
-  return allocatingVIOAsVIO(dataVIOAsAllocatingVIO(dataVIO));
+  return allocating_vio_as_vio(dataVIOAsAllocatingVIO(dataVIO));
 }
 
 /**
@@ -302,7 +302,7 @@ static inline struct data_vio *asDataVIO(struct vdo_completion *completion)
 static inline struct vdo_completion *
 dataVIOAsCompletion(struct data_vio *dataVIO)
 {
-  return allocatingVIOAsCompletion(dataVIOAsAllocatingVIO(dataVIO));
+  return allocating_vio_as_completion(dataVIOAsAllocatingVIO(dataVIO));
 }
 
 /**
@@ -314,7 +314,7 @@ dataVIOAsCompletion(struct data_vio *dataVIO)
  **/
 static inline struct waiter *dataVIOAsWaiter(struct data_vio *dataVIO)
 {
-  return allocatingVIOAsWaiter(dataVIOAsAllocatingVIO(dataVIO));
+  return allocating_vio_as_waiter(dataVIOAsAllocatingVIO(dataVIO));
 }
 
 /**
@@ -330,7 +330,7 @@ static inline struct data_vio *waiterAsDataVIO(struct waiter *waiter)
     return NULL;
   }
 
-  return allocatingVIOAsDataVIO(waiterAsAllocatingVIO(waiter));
+  return allocatingVIOAsDataVIO(waiter_as_allocating_vio(waiter));
 }
 
 /**
@@ -648,8 +648,8 @@ static inline void setAllocatedZoneCallback(struct data_vio *dataVIO,
                                             VDOAction       *callback,
                                             TraceLocation    location)
 {
-  setPhysicalZoneCallback(dataVIOAsAllocatingVIO(dataVIO), callback,
-                          location);
+  set_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
+                             location);
 }
 
 /**
@@ -664,8 +664,8 @@ static inline void launchAllocatedZoneCallback(struct data_vio *dataVIO,
                                                VDOAction       *callback,
                                                TraceLocation    location)
 {
-  launchPhysicalZoneCallback(dataVIOAsAllocatingVIO(dataVIO), callback,
-                             location);
+  launch_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
+                                location);
 }
 
 /**

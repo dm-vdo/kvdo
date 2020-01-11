@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#17 $
  */
 
 #ifndef KVIO_H
@@ -137,7 +137,7 @@ metadata_kvio_as_kvio(struct metadata_kvio *metadata_kvio)
 static inline struct compressed_write_kvio *
 allocating_vio_as_compressed_write_kvio(struct allocating_vio *allocating_vio)
 {
-	ASSERT_LOG_ONLY(isCompressedWriteAllocatingVIO(allocating_vio),
+	ASSERT_LOG_ONLY(is_compressed_write_allocating_vio(allocating_vio),
 			"struct allocating_vio is a compressed write");
 	return container_of(allocating_vio, struct compressed_write_kvio,
 			    allocating_vio);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#21 $
  */
 
 #include "packerInternals.h"
@@ -207,7 +207,7 @@ static void freeOutputBin(struct output_bin **binPtr)
 
   unspliceRingNode(&bin->ring);
 
-  struct vio *vio = allocatingVIOAsVIO(bin->writer);
+  struct vio *vio = allocating_vio_as_vio(bin->writer);
   freeVIO(&vio);
   FREE(bin->block);
   FREE(bin);
@@ -481,7 +481,7 @@ static void shareCompressedBlock(struct waiter *waiter, void *context)
   };
   dataVIOAsVIO(dataVIO)->physical = dataVIO->newMapped.pbn;
 
-  shareCompressedWriteLock(dataVIO, bin->writer->allocationLock);
+  shareCompressedWriteLock(dataVIO, bin->writer->allocation_lock);
 
   // Wait again for all the waiters to get a share.
   int result = enqueueWaiter(&bin->outgoing, waiter);
@@ -501,7 +501,7 @@ static void finishCompressedWrite(struct vdo_completion *completion)
   assertInPhysicalZone(bin->writer);
 
   if (completion->result != VDO_SUCCESS) {
-    releaseAllocationLock(bin->writer);
+    release_allocation_lock(bin->writer);
     // Invokes completeOutputBin() on the packer thread, which will deal with
     // the waiters.
     vioDoneCallback(completion);
@@ -513,7 +513,7 @@ static void finishCompressedWrite(struct vdo_completion *completion)
   notifyAllWaiters(&bin->outgoing, shareCompressedBlock, bin);
 
   // The waiters now hold the (downgraded) PBN lock.
-  bin->writer->allocationLock = NULL;
+  bin->writer->allocation_lock = NULL;
 
   // Invokes the callbacks registered before entering the packer.
   notifyAllWaiters(&bin->outgoing, continueWaiter, NULL);
@@ -532,7 +532,7 @@ static void finishCompressedWrite(struct vdo_completion *completion)
  **/
 static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
 {
-  struct vio            *vio        = allocatingVIOAsVIO(allocatingVIO);
+  struct vio            *vio        = allocating_vio_as_vio(allocatingVIO);
   struct vdo_completion *completion = vioAsCompletion(vio);
   if (allocatingVIO->allocation == ZERO_BLOCK) {
     completion->requeue = true;
@@ -541,8 +541,8 @@ static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
     return;
   }
 
-  setPhysicalZoneCallback(allocatingVIO, finishCompressedWrite,
-                          THIS_LOCATION("$F(meta);cb=finishCompressedWrite"));
+  set_physical_zone_callback(allocatingVIO, finishCompressedWrite,
+                             THIS_LOCATION("$F(meta);cb=finishCompressedWrite"));
   writeCompressedBlock(allocatingVIO);
 }
 
@@ -554,17 +554,17 @@ static void continueAfterAllocation(struct allocating_vio *allocatingVIO)
  **/
 static void launchCompressedWrite(struct packer *packer, struct output_bin *bin)
 {
-  if (isReadOnly(getVDOFromAllocatingVIO(bin->writer)->readOnlyNotifier)) {
+  if (isReadOnly(get_vdo_from_allocating_vio(bin->writer)->readOnlyNotifier)) {
     finishOutputBin(packer, bin);
     return;
   }
 
-  struct vio *vio = allocatingVIOAsVIO(bin->writer);
+  struct vio *vio = allocating_vio_as_vio(bin->writer);
   resetCompletion(vioAsCompletion(vio));
   vio->callback = completeOutputBin;
   vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
-  allocateDataBlock(bin->writer, packer->selector, VIO_COMPRESSED_WRITE_LOCK,
-                    continueAfterAllocation);
+  allocate_data_block(bin->writer, packer->selector, VIO_COMPRESSED_WRITE_LOCK,
+                      continueAfterAllocation);
 }
 
 /**
