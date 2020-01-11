@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.c#3 $
  */
 
 #include "allocationSelector.h"
@@ -27,56 +27,60 @@
 #include "types.h"
 
 enum {
-  ALLOCATIONS_PER_ZONE = 128,
+	ALLOCATIONS_PER_ZONE = 128,
 };
 
 /**********************************************************************/
-int makeAllocationSelector(ZoneCount                    physicalZoneCount,
-                           ThreadID                     threadID,
-                           struct allocation_selector **selectorPtr)
+int make_allocation_selector(ZoneCount physical_zone_count,
+			     ThreadID thread_id,
+			     struct allocation_selector **selector_ptr)
 {
-  struct allocation_selector *selector;
-  int result = ALLOCATE(1, struct allocation_selector, __func__, &selector);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct allocation_selector *selector;
+	int result = ALLOCATE(1,
+			      struct allocation_selector,
+			      __func__,
+			      &selector);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  *selector = (struct allocation_selector) {
-    .nextAllocationZone = threadID % physicalZoneCount,
-    .lastPhysicalZone   = physicalZoneCount - 1,
-  };
+	*selector = (struct allocation_selector){
+		.next_allocation_zone = thread_id % physical_zone_count,
+		.last_physical_zone = physical_zone_count - 1,
+	};
 
-  *selectorPtr = selector;
-  return VDO_SUCCESS;
+	*selector_ptr = selector;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeAllocationSelector(struct allocation_selector **selectorPtr)
+void free_allocation_selector(struct allocation_selector **selector_ptr)
 {
-  struct allocation_selector *selector = *selectorPtr;
-  if (selector == NULL) {
-    return;
-  }
+	struct allocation_selector *selector = *selector_ptr;
+	if (selector == NULL) {
+		return;
+	}
 
-  FREE(selector);
-  *selectorPtr = NULL;
+	FREE(selector);
+	*selector_ptr = NULL;
 }
 
 /**********************************************************************/
-ZoneCount getNextAllocationZone(struct allocation_selector *selector)
+ZoneCount get_next_allocation_zone(struct allocation_selector *selector)
 {
-  if (selector->lastPhysicalZone > 0) {
-    if (selector->allocationCount < ALLOCATIONS_PER_ZONE) {
-      selector->allocationCount++;
-    } else {
-      selector->allocationCount = 1;
-      if (selector->nextAllocationZone < selector->lastPhysicalZone) {
-        selector->nextAllocationZone++;
-      } else {
-        selector->nextAllocationZone = 0;
-      }
-    }
-  }
+	if (selector->last_physical_zone > 0) {
+		if (selector->allocation_count < ALLOCATIONS_PER_ZONE) {
+			selector->allocation_count++;
+		} else {
+			selector->allocation_count = 1;
+			if (selector->next_allocation_zone <
+			    selector->last_physical_zone) {
+				selector->next_allocation_zone++;
+			} else {
+				selector->next_allocation_zone = 0;
+			}
+		}
+	}
 
-  return selector->nextAllocationZone;
+	return selector->next_allocation_zone;
 }

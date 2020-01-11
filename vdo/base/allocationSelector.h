@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocationSelector.h#3 $
  */
 
 #ifndef ALLOCATION_SELECTOR_H
@@ -34,23 +34,23 @@
 /**
  * Make a new allocation selector.
  *
- * @param [in]  physicalZoneCount  The number of physical zones
- * @param [in]  threadID           The ID of the thread using this selector
- * @param [out] selectorPtr        A pointer to receive the new selector
+ * @param [in]  physical_zone_count  The number of physical zones
+ * @param [in]  thread_id            The ID of the thread using this selector
+ * @param [out] selector_ptr         A pointer to receive the new selector
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeAllocationSelector(ZoneCount                    physicalZoneCount,
-                           ThreadID                     threadID,
-                           struct allocation_selector **selectorPtr)
-  __attribute__((warn_unused_result));
+int make_allocation_selector(ZoneCount physical_zone_count,
+			     ThreadID thread_id,
+			     struct allocation_selector **selector_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free an allocation_selector and null out the reference to it.
  *
- * @param selectorPtr  A reference to the selector to free
+ * @param selector_ptr  A reference to the selector to free
  **/
-void freeAllocationSelector(struct allocation_selector **selectorPtr);
+void free_allocation_selector(struct allocation_selector **selector_ptr);
 
 /**
  * Get number of the physical zone from which to allocate next.
@@ -59,7 +59,7 @@ void freeAllocationSelector(struct allocation_selector **selectorPtr);
  *
  * @return The number of the physical zone from which to allocate
  **/
-ZoneCount getNextAllocationZone(struct allocation_selector *selector)
-  __attribute__((warn_unused_result));
+ZoneCount get_next_allocation_zone(struct allocation_selector *selector)
+	__attribute__((warn_unused_result));
 
 #endif /* ALLOCATION_SELECTOR_H */

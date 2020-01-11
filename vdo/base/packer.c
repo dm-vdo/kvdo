@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#22 $
  */
 
 #include "packerInternals.h"
@@ -236,8 +236,8 @@ int makePacker(PhysicalLayer       *layer,
   initializeRing(&packer->inputBins);
   initializeRing(&packer->outputBins);
 
-  result = makeAllocationSelector(threadConfig->physicalZoneCount,
-                                  packer->threadID, &packer->selector);
+  result = make_allocation_selector(threadConfig->physicalZoneCount,
+                                    packer->threadID, &packer->selector);
   if (result != VDO_SUCCESS) {
     freePacker(&packer);
     return result;
@@ -296,7 +296,7 @@ void freePacker(struct packer **packerPtr)
     freeOutputBin(&output);
   }
 
-  freeAllocationSelector(&packer->selector);
+  free_allocation_selector(&packer->selector);
   FREE(packer);
   *packerPtr = NULL;
 }
