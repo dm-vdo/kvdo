@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#23 $
  */
 
 #include "packerInternals.h"
@@ -229,7 +229,7 @@ int makePacker(PhysicalLayer       *layer,
   }
 
   packer->threadID       = getPackerZoneThread(threadConfig);
-  packer->binDataSize    = VDO_BLOCK_SIZE - sizeof(CompressedBlockHeader);
+  packer->binDataSize    = VDO_BLOCK_SIZE - sizeof(compressed_block_header);
   packer->size           = inputBinCount;
   packer->maxSlots       = MAX_COMPRESSION_SLOTS;
   packer->outputBinCount = outputBinCount;
@@ -623,15 +623,15 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
     return false;
   }
 
-  resetCompressedBlockHeader(&output->block->header);
+  reset_compressed_block_header(&output->block->header);
 
   size_t spaceUsed = 0;
   for (SlotNumber slot = 0; slot < batch.slotsUsed; slot++) {
     struct data_vio *dataVIO = batch.slots[slot];
     dataVIO->compression.slot = slot;
-    putCompressedBlockFragment(output->block, slot, spaceUsed,
-                               dataVIO->compression.data,
-                               dataVIO->compression.size);
+    put_compressed_block_fragment(output->block, slot, spaceUsed,
+                                  dataVIO->compression.data,
+                                  dataVIO->compression.size);
     spaceUsed += dataVIO->compression.size;
 
     int result = enqueueDataVIO(&output->outgoing, dataVIO,

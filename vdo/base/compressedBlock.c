@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#4 $
  */
 
 #include "compressedBlock.h"
@@ -25,73 +25,73 @@
 #include "numeric.h"
 
 static const struct version_number COMPRESSED_BLOCK_1_0 = {
-  .majorVersion = 1,
-  .minorVersion = 0,
+	.majorVersion = 1,
+	.minorVersion = 0,
 };
 
 /**********************************************************************/
-void resetCompressedBlockHeader(CompressedBlockHeader *header)
+void reset_compressed_block_header(compressed_block_header *header)
 {
-  STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
+	STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
 
-  header->fields.version = packVersionNumber(COMPRESSED_BLOCK_1_0);
-  memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
+	header->fields.version = packVersionNumber(COMPRESSED_BLOCK_1_0);
+	memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
 }
 
 /**********************************************************************/
 static uint16_t
-getCompressedFragmentSize(const CompressedBlockHeader *header, byte slot)
+get_compressed_fragment_size(const compressed_block_header *header,
+			     byte slot)
 {
-  return getUInt16LE(header->fields.sizes[slot]);
+	return getUInt16LE(header->fields.sizes[slot]);
 }
 
 /**********************************************************************/
-int getCompressedBlockFragment(BlockMappingState  mappingState,
-                               char              *buffer,
-                               BlockSize          blockSize,
-                               uint16_t          *fragmentOffset,
-                               uint16_t          *fragmentSize)
+int get_compressed_block_fragment(BlockMappingState mappingState, char *buffer,
+				  BlockSize blockSize, uint16_t *fragmentOffset,
+				  uint16_t *fragmentSize)
 {
-  if (!isCompressed(mappingState)) {
-    return VDO_INVALID_FRAGMENT;
-  }
+	if (!isCompressed(mappingState)) {
+		return VDO_INVALID_FRAGMENT;
+	}
 
-  CompressedBlockHeader *header = (CompressedBlockHeader *) buffer;
-  struct version_number version = unpackVersionNumber(header->fields.version);
-  if (!areSameVersion(version, COMPRESSED_BLOCK_1_0)) {
-    return VDO_INVALID_FRAGMENT;
-  }
+	compressed_block_header *header = (compressed_block_header *)buffer;
+	struct version_number version =
+		unpackVersionNumber(header->fields.version);
+	if (!areSameVersion(version, COMPRESSED_BLOCK_1_0)) {
+		return VDO_INVALID_FRAGMENT;
+	}
 
-  byte slot = getSlotFromState(mappingState);
-  if (slot >= MAX_COMPRESSION_SLOTS) {
-    return VDO_INVALID_FRAGMENT;
-  }
+	byte slot = getSlotFromState(mappingState);
+	if (slot >= MAX_COMPRESSION_SLOTS) {
+		return VDO_INVALID_FRAGMENT;
+	}
 
-  uint16_t compressedSize = getCompressedFragmentSize(header, slot);
-  uint16_t offset         = sizeof(CompressedBlockHeader);
-  for (unsigned int i = 0; i < slot; i++) {
-    offset += getCompressedFragmentSize(header, i);
-    if (offset >= blockSize) {
-      return VDO_INVALID_FRAGMENT;
-    }
-  }
+	uint16_t compressedSize = get_compressed_fragment_size(header, slot);
+	uint16_t offset = sizeof(compressed_block_header);
+	for (unsigned int i = 0; i < slot; i++) {
+		offset += get_compressed_fragment_size(header, i);
+		if (offset >= blockSize) {
+			return VDO_INVALID_FRAGMENT;
+		}
+	}
 
-  if ((offset + compressedSize) > blockSize) {
-    return VDO_INVALID_FRAGMENT;
-  }
+	if ((offset + compressedSize) > blockSize) {
+		return VDO_INVALID_FRAGMENT;
+	}
 
-  *fragmentOffset = offset;
-  *fragmentSize   = compressedSize;
-  return VDO_SUCCESS;
+	*fragmentOffset = offset;
+	*fragmentSize = compressedSize;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void putCompressedBlockFragment(struct compressed_block *block,
-                                unsigned int             fragment,
-                                uint16_t                 offset,
-                                const char              *data,
-                                uint16_t                 size)
+void put_compressed_block_fragment(struct compressed_block *block,
+				   unsigned int fragment,
+				   uint16_t offset,
+				   const char *data,
+				   uint16_t size)
 {
-  storeUInt16LE(block->header.fields.sizes[fragment], size);
-  memcpy(&block->data[offset], data, size);
+	storeUInt16LE(block->header.fields.sizes[fragment], size);
+	memcpy(&block->data[offset], data, size);
 }

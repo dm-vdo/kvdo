@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#44 $
  */
 
 #include "dataKVIO.h"
@@ -331,11 +331,11 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 	// uncompressed data.
 	uint16_t fragment_offset, fragment_size;
 	char *compressed_data = read_block->data;
-	int result = getCompressedBlockFragment(read_block->mapping_state,
-						compressed_data,
-						block_size,
-						&fragment_offset,
-						&fragment_size);
+	int result = get_compressed_block_fragment(read_block->mapping_state,
+						   compressed_data,
+						   block_size,
+						   &fragment_offset,
+						   &fragment_size);
 	if (result != VDO_SUCCESS) {
 		logDebug("%s: frag err %d", __func__, result);
 		read_block->status = result;

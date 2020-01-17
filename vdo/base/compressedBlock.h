@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.h#4 $
  */
 
 #ifndef COMPRESSED_BLOCK_H
@@ -29,33 +29,40 @@
  * The header of a compressed block.
  **/
 typedef union __attribute__((packed)) {
-  struct __attribute__((packed)) {
-    /** Unsigned 32-bit major and minor versions, in little-endian byte order */
-    struct packed_version_number version;
+	struct __attribute__((packed)) {
+		/**
+		 * Unsigned 32-bit major and minor versions,
+		 * in little-endian byte order
+		 */
+		struct packed_version_number version;
 
-    /** List of unsigned 16-bit compressed block sizes, in little-endian order */
-    byte sizes[MAX_COMPRESSION_SLOTS][2];
-  } fields;
+		/**
+		 * List of unsigned 16-bit compressed block sizes,
+		 * in little-endian order
+		 */
+		byte sizes[MAX_COMPRESSION_SLOTS][2];
+	} fields;
 
-  // A raw view of the packed encoding.
-  byte raw[4 + 4 + (2 * MAX_COMPRESSION_SLOTS)];
+	// A raw view of the packed encoding.
+	byte raw[4 + 4 + (2 * MAX_COMPRESSION_SLOTS)];
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  // This view is only valid on little-endian machines and is only present for
-  // ease of directly examining compressed block headers in GDB.
-  struct __attribute__((packed)) {
-    struct version_number version;
-    uint16_t              sizes[MAX_COMPRESSION_SLOTS];
-  } littleEndian;
+	// This view is only valid on little-endian machines and is only
+	// present for ease of directly examining compressed block headers in
+	// GDB.
+	struct __attribute__((packed)) {
+		struct version_number version;
+		uint16_t sizes[MAX_COMPRESSION_SLOTS];
+	} little_endian;
 #endif
-} CompressedBlockHeader;
+} compressed_block_header;
 
 /**
  * The compressed block overlay.
  **/
 struct compressed_block {
-  CompressedBlockHeader header;
-  char                  data[];
+	compressed_block_header header;
+	char data[];
 } __attribute__((packed));
 
 /**
@@ -66,26 +73,26 @@ struct compressed_block {
  * When done, the version number is set to the current version, and all
  * fragments are empty.
  **/
-void resetCompressedBlockHeader(CompressedBlockHeader *header);
+void reset_compressed_block_header(compressed_block_header *header);
 
 /**
  * Get a reference to a compressed fragment from a compression block.
  *
- * @param [in]  mappingState    the mapping state for the look up
- * @param [in]  buffer          buffer that contains compressed data
- * @param [in]  blockSize       size of a data block
- * @param [out] fragmentOffset  the offset of the fragment within a
- *                              compressed block
- * @param [out] fragmentSize    the size of the fragment
+ * @param [in]  mapping_state    the mapping state for the look up
+ * @param [in]  buffer           buffer that contains compressed data
+ * @param [in]  block_size       size of a data block
+ * @param [out] fragment_offset  the offset of the fragment within a
+ *                               compressed block
+ * @param [out] fragment_size    the size of the fragment
  *
  * @return If a valid compressed fragment is found, VDO_SUCCESS;
  *         otherwise, VDO_INVALID_FRAGMENT if the fragment is invalid.
  **/
-int getCompressedBlockFragment(BlockMappingState  mappingState,
-                               char              *buffer,
-                               BlockSize          blockSize,
-                               uint16_t          *fragmentOffset,
-                               uint16_t          *fragmentSize);
+int get_compressed_block_fragment(BlockMappingState mapping_state,
+				  char *buffer,
+				  BlockSize block_size,
+				  uint16_t *fragment_offset,
+				  uint16_t *fragment_size);
 
 /**
  * Copy a fragment into the compressed block.
@@ -98,10 +105,8 @@ int getCompressedBlockFragment(BlockMappingState  mappingState,
  *
  * @note no bounds checking -- the data better fit without smashing other stuff
  **/
-void putCompressedBlockFragment(struct compressed_block *block,
-                                unsigned int             fragment,
-                                uint16_t                 offset,
-                                const char              *data,
-                                uint16_t                 size);
+void put_compressed_block_fragment(struct compressed_block *block,
+				   unsigned int fragment, uint16_t offset,
+				   const char *data, uint16_t size);
 
 #endif // COMPRESSED_BLOCK_H
