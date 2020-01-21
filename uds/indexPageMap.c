@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexPageMap.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.c#4 $
  */
 
 #include "indexPageMap.h"
@@ -47,10 +47,10 @@ enum {
 const IndexComponentInfo INDEX_PAGE_MAP_INFO = {
   .kind        = RL_KIND_INDEX_PAGE_MAP,
   .name        = "index page map",
-  .fileName    = "page_map",
   .saveOnly    = false,
   .chapterSync = true,
   .multiZone   = false,
+  .ioStorage   = true,
   .loader      = readIndexPageMap,
   .saver       = writeIndexPageMap,
   .incremental = NULL,
@@ -121,9 +121,13 @@ int updateIndexPageMap(IndexPageMap   *map,
   const Geometry *geometry = map->geometry;
   if ((virtualChapterNumber < map->lastUpdate)
       || (virtualChapterNumber > map->lastUpdate + 1)) {
-    logWarning("unexpected index page map update, jumping from %" PRIu64
-               " to %" PRIu64,
-               map->lastUpdate, virtualChapterNumber);
+    // if the lastUpdate is 0, this is likely to be normal because we are
+    // replaying the volume
+    if (map->lastUpdate != 0) {
+      logWarning("unexpected index page map update, jumping from %" PRIu64
+                 " to %" PRIu64,
+                 map->lastUpdate, virtualChapterNumber);
+    }
   }
   map->lastUpdate = virtualChapterNumber;
 
@@ -313,7 +317,7 @@ static int decodeIndexPageMap(Buffer *buffer, IndexPageMap *map)
 /*****************************************************************************/
 static int readIndexPageMap(ReadPortal *portal)
 {
-  IndexPageMap *map = componentDataForPortal(portal);
+  IndexPageMap *map = indexComponentData(portal->component);
 
   BufferedReader *reader = NULL;
 
@@ -353,30 +357,5 @@ static int readIndexPageMap(ReadPortal *portal)
     return result;
   }
   logDebug("read index page map, last update %" PRIu64, map->lastUpdate);
-  return UDS_SUCCESS;
-}
-
-/*****************************************************************************/
-int dumpIndexPageMap(const IndexPageMap *map, unsigned int chapterNumber)
-{
-  const Geometry *geometry = map->geometry;
-  if (chapterNumber >= geometry->chaptersPerVolume) {
-    return logErrorWithStringError(
-      UDS_INVALID_ARGUMENT, "chapter number %u exceeds maximum %u",
-      chapterNumber, geometry->chaptersPerVolume - 1);
-  }
-
-  unsigned int slot = (chapterNumber * (geometry->indexPagesPerChapter - 1));
-  unsigned int limit = slot + (geometry->indexPagesPerChapter - 1);
-  unsigned int indexPageNumber = 0;
-  unsigned int deltaList = 0;
-  logInfo("index page map last update %" PRIu64, map->lastUpdate);
-  for (; slot < limit; indexPageNumber++, slot++) {
-    logInfo("chapter %u index page %u lists %u-%u",
-            chapterNumber, slot, deltaList, map->entries[slot]);
-    deltaList = map->entries[slot] + 1;
-  }
-  logInfo("chapter %u index page %u lists %u-%u",
-          chapterNumber, slot, deltaList, geometry->deltaListsPerChapter);
   return UDS_SUCCESS;
 }

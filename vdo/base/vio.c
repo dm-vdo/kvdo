@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vio.c#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vio.c#5 $
  */
 
 #include "vio.h"
@@ -173,7 +173,9 @@ void launchFlush(VIO *vio, VDOAction *callback, VDOAction *errorHandler)
   vio->physical            = ZERO_BLOCK;
 
   PhysicalLayer *layer = completion->layer;
-  if (!layer->isFlushRequired(layer)) {
+  if (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC) {
+    // XXX It is dangerous to be subtly dropping flushes possibly
+    // needed for correctness in sync mode.
     finishCompletion(completion, VDO_SUCCESS);
     return;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/masterIndexOps.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/masterIndexOps.c#4 $
  */
 #include "masterIndexOps.h"
 
@@ -84,8 +84,8 @@ int computeMasterIndexSaveBlocks(const Configuration *config,
 /**********************************************************************/
 static int readMasterIndex(ReadPortal *portal)
 {
-  MasterIndex *masterIndex = componentContextForPortal(portal);
-  unsigned int numZones = countPartsForPortal(portal);
+  MasterIndex *masterIndex = indexComponentContext(portal->component);
+  unsigned int numZones = portal->zones;
   if (numZones > MAX_ZONES) {
     return logErrorWithStringError(UDS_BAD_STATE,
                                    "zone count %u must not exceed MAX_ZONES",
@@ -93,7 +93,8 @@ static int readMasterIndex(ReadPortal *portal)
   }
 
   BufferedReader *readers[MAX_ZONES];
-  for (unsigned int z = 0; z < numZones; ++z) {
+  unsigned int z;
+  for (z = 0; z < numZones; ++z) {
     int result = getBufferedReaderForPortal(portal, z, &readers[z]);
     if (result != UDS_SUCCESS) {
       return logErrorWithStringError(result,
@@ -150,10 +151,10 @@ static int writeMasterIndex(IndexComponent           *component,
 static const IndexComponentInfo MASTER_INDEX_INFO_DATA = {
   .kind        = RL_KIND_MASTER_INDEX,
   .name        = "master index",
-  .fileName    = "master_index",
   .saveOnly    = false,
   .chapterSync = false,
   .multiZone   = true,
+  .ioStorage   = true,
   .loader      = readMasterIndex,
   .saver       = NULL,
   .incremental = writeMasterIndex,
@@ -173,7 +174,8 @@ static int restoreMasterIndexBody(BufferedReader **bufferedReaders,
     return result;
   }
   // Loop to read the delta lists, stopping when they have all been processed.
-  for (unsigned int z = 0; z < numReaders; z++) {
+  unsigned int z;
+  for (z = 0; z < numReaders; z++) {
     for (;;) {
       DeltaListSaveInfo dlsi;
       result = readSavedDeltaList(&dlsi, dlData, bufferedReaders[z]);

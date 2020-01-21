@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexInternals.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.h#3 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -26,29 +26,26 @@
 #include "loadType.h"
 #include "request.h"
 
-extern const bool READ_ONLY_INDEX;
-
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout         The index layout to use
- * @param config         The configuration to use
- * @param zoneCount      The number of zones for this index to use
- * @param loadType       How to create the index:  it can be create
- *                       only, allow loading from files, and allow
- *                       rebuilding from the volume
- * @param readOnly       <code>true</code> if the index should be
- *                       created read-only
- * @param newIndex       A pointer to hold a pointer to the new index
+ * @param layout      The index layout to use
+ * @param config      The configuration to use
+ * @param userParams  The index session parameters.  If NULL, the default
+ *                    session parameters will be used.
+ * @param zoneCount   The number of zones for this index to use
+ * @param loadType    How to create the index:  it can be create only, allow
+ *                    loading from files, and allow rebuilding from the volume
+ * @param newIndex    A pointer to hold a pointer to the new index
  *
  * @return UDS_SUCCESS or an error code
  **/
-int allocateIndex(IndexLayout          *layout,
-                  const Configuration  *config,
-                  unsigned int          zoneCount,
-                  LoadType              loadType,
-                  bool                  readOnly,
-                  Index               **newIndex)
+int allocateIndex(IndexLayout                  *layout,
+                  const Configuration          *config,
+                  const struct uds_parameters  *userParams,
+                  unsigned int                  zoneCount,
+                  LoadType                      loadType,
+                  Index                       **newIndex)
   __attribute__((warn_unused_result));
 
 /**

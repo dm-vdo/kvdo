@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.h#7 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -183,6 +183,17 @@ void setVDOPageCacheInitialPeriod(VDOPageCache *cache, SequenceNumber period);
  *                    read-only rebuild mode, <code>false</code> otherwise
  **/
 void setVDOPageCacheRebuildMode(VDOPageCache *cache, bool rebuilding);
+
+/**
+ * Check whether a page cache is active (i.e. has any active lookups,
+ * outstanding I/O, or pending I/O).
+ *
+ * @param cache  The cache to check
+ *
+ * @return <code>true</code> if the cache is active
+ **/
+bool isPageCacheActive(VDOPageCache *cache)
+  __attribute__((warn_unused_result));
 
 /**
  * Advance the dirty period for a page cache.

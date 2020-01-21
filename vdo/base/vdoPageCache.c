@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoPageCache.c#11 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -229,7 +229,7 @@ static inline void assertOnCacheThread(VDOPageCache *cache,
  **/
 static inline void assertIOAllowed(VDOPageCache *cache)
 {
-  ASSERT_LOG_ONLY(!isQuiescent(&cache->zone->adminState),
+  ASSERT_LOG_ONLY(!isQuiescent(&cache->zone->state),
                   "VDO page cache may issue I/O");
 }
 
@@ -679,19 +679,10 @@ static VDOPageCompletion *validateCompletedPage(VDOCompletion *completion,
   return vpc;
 }
 
-/**
- * Check if there are no outstanding I/O operations, and if so complete
- * any cache operation which is pending.
- *
- * @param cache   the VDO page cache
- **/
-static void checkForIOComplete(VDOPageCache *cache)
+/**********************************************************************/
+bool isPageCacheActive(VDOPageCache *cache)
 {
-  if ((cache->outstandingReads + cache->outstandingWrites) == 0) {
-    finishDrainingWithResult(&cache->zone->adminState,
-                             (isReadOnly(cache->zone->readOnlyNotifier)
-                              ? VDO_READ_ONLY : VDO_SUCCESS));
-  }
+  return ((cache->outstandingReads != 0) || (cache->outstandingWrites != 0));
 }
 
 /**
@@ -710,12 +701,12 @@ static void pageIsLoaded(VDOCompletion *completion)
   distributePageOverQueue(info, &info->waiting);
 
   /*
-   * Don't decrement until right before calling checkForIOComplete() to ensure
-   * that the above work can't cause the page cache to be freed out from under
-   * us.
+   * Don't decrement until right before calling checkForDrainComplete() to
+   * ensure that the above work can't cause the page cache to be freed out from
+   * under us.
    */
   cache->outstandingReads--;
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -737,12 +728,12 @@ static void handleLoadError(VDOCompletion *completion)
   resetPageInfo(info);
 
   /*
-   * Don't decrement until right before calling checkForIOComplete() to ensure
-   * that the above work can't cause the page cache to be freed out from under
-   * us.
+   * Don't decrement until right before calling checkForDrainComplete() to
+   * ensure that the above work can't cause the page cache to be freed out from
+   * under us.
    */
   cache->outstandingReads--;
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -853,7 +844,15 @@ static void savePages(VDOPageCache *cache)
 
   VIO           *vio   = info->vio;
   PhysicalLayer *layer = vio->completion.layer;
-  if (layer->isFlushRequired(layer)) {
+
+  /*
+   * We must make sure that the recovery journal entries that changed these
+   * pages were successfully persisted, and thus must issue a flush before
+   * each batch of pages is written to ensure this. However, in sync mode,
+   * every journal block is written with FUA, thus guaranteeing the journal
+   * persisted already.
+   */
+  if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
     launchFlush(vio, writePages, handleFlushError);
     return;
   }
@@ -1077,7 +1076,7 @@ static void handlePageWriteError(VDOCompletion *completion)
     discardPageIfNeeded(cache);
   }
 
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -1120,7 +1119,7 @@ static void pageIsWrittenOut(VDOCompletion *completion)
     allocateFreePage(info);
   }
 
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -1341,15 +1340,13 @@ void *getVDOPageCompletionContext(VDOCompletion *completion)
 void drainVDOPageCache(VDOPageCache *cache)
 {
   assertOnCacheThread(cache, __func__);
-  ASSERT_LOG_ONLY(isDraining(&cache->zone->adminState),
+  ASSERT_LOG_ONLY(isDraining(&cache->zone->state),
                   "drainVDOPageCache() called during block map drain");
 
-  if (!isSuspending(&cache->zone->adminState)) {
+  if (!isSuspending(&cache->zone->state)) {
     flushDirtyLists(cache->dirtyLists);
     savePages(cache);
   }
-
-  checkForIOComplete(cache);
 }
 
 /**********************************************************************/

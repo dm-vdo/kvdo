@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabSummary.c#7 $
  */
 
 #include "slabSummary.h"
@@ -401,22 +401,28 @@ static void launchWrite(SlabSummaryBlock *block)
                                   handleWriteError, true, false);
 }
 
+/**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(AdminState *state)
+{
+  checkForDrainComplete(container_of(state, SlabSummaryZone, state));
+}
+
 /**********************************************************************/
 void drainSlabSummaryZone(SlabSummaryZone *summaryZone,
                           AdminStateCode   operation,
                           VDOCompletion   *parent)
 {
-  if (startDraining(&summaryZone->state, operation, parent)) {
-    checkForDrainComplete(summaryZone);
-  }
+  startDraining(&summaryZone->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
 void resumeSlabSummaryZone(SlabSummaryZone *summaryZone, VDOCompletion *parent)
 {
-  if (startResuming(&summaryZone->state, ADMIN_STATE_RESUMING, parent)) {
-    finishResuming(&summaryZone->state);
-  }
+  finishCompletion(parent, resumeIfQuiescent(&summaryZone->state));
 }
 
 // READ/UPDATE FUNCTIONS
@@ -607,7 +613,7 @@ void loadSlabSummary(SlabSummary    *summary,
                      VDOCompletion  *parent)
 {
   SlabSummaryZone *zone = summary->zones[0];
-  if (!startLoading(&zone->state, operation, parent)) {
+  if (!startLoading(&zone->state, operation, parent, NULL)) {
     return;
   }
 

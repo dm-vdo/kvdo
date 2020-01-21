@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/nonce.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/nonce.c#3 $
  */
 
 #include "nonce.h"
@@ -24,6 +24,7 @@
 #include "murmur/MurmurHash3.h"
 #include "numeric.h"
 #include "random.h"
+#include "stringUtils.h"
 #include "timeUtils.h"
 
 /*****************************************************************************/
@@ -49,7 +50,7 @@ static void *memput(void *buf, void *end, const void *data, size_t len)
 /*****************************************************************************/
 size_t createUniqueNonceData(byte *buffer, size_t length)
 {
-  AbsTime now = currentTime(CT_REALTIME);
+  AbsTime now = currentTime(CLOCK_REALTIME);
 
   byte *be = buffer + length;
   byte *bp = memput(buffer, be, &now, sizeof(now));

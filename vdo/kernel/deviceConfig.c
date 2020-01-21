@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#11 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceConfig.c#13 $
  */
 
 #include "deviceConfig.h"
@@ -640,6 +640,8 @@ int parseDeviceConfig(int                argc,
   // Get the write policy and validate.
   if (strcmp(argSet.argv[0], "async") == 0) {
     config->writePolicy = WRITE_POLICY_ASYNC;
+  } else if (strcmp(argSet.argv[0], "async-unsafe") == 0) {
+    config->writePolicy = WRITE_POLICY_ASYNC_UNSAFE;
   } else if (strcmp(argSet.argv[0], "sync") == 0) {
     config->writePolicy = WRITE_POLICY_SYNC;
   } else if (strcmp(argSet.argv[0], "auto") == 0) {
@@ -736,10 +738,18 @@ void freeDeviceConfig(DeviceConfig **configPtr)
 /**********************************************************************/
 const char *getConfigWritePolicyString(DeviceConfig *config)
 {
-  if (config->writePolicy == WRITE_POLICY_AUTO) {
+  switch (config->writePolicy) {
+  case WRITE_POLICY_AUTO:
     return "auto";
+  case WRITE_POLICY_ASYNC:
+    return "async";
+  case WRITE_POLICY_ASYNC_UNSAFE:
+    return "async-unsafe";
+  case WRITE_POLICY_SYNC:
+    return "sync";
+  default:
+    return "unknown";
   }
-  return ((config->writePolicy == WRITE_POLICY_ASYNC) ? "async" : "sync");
 }
 
 /**********************************************************************/

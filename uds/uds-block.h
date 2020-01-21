@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/public/uds-block.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/uds-block.h#1 $
  */
 
 /**
@@ -33,14 +33,6 @@ enum {
   /** The maximum metadata size for a block. */
   UDS_MAX_BLOCK_DATA_SIZE = UDS_MAX_METADATA_SIZE
 };
-
-/**
- * A UDS block context.
- **/
-typedef struct udsBlockContext {
-  /** The context ID. */
-  unsigned int id;
-} UdsBlockContext;
 
 /**
  * Metadata to associate with a blockName.
@@ -61,59 +53,6 @@ struct udsChunkData {
  * possible.
  **/
 typedef void *UdsBlockAddress;
-/** @{ */
-/** @name Context Management */
-
-/**
- * Opens a new block context for an index session.
- *
- * You must first create the index session with #udsCreateLocalIndex,
- * #udsLoadLocalIndex, or #udsRebuildLocalIndex.
- *
- * The Application Software can use this context for any number of operations
- * while the underlying index session is active. Call #udsCloseBlockContext to
- * close the context.
- *
- * If a fatal error occurs on either the context or the underlying index
- * session, or if the index session has been closed, all subsequent operations
- * will return #UDS_DISABLED.  In that case, close the block context, close the
- * index session, and then reload or rebuild the index. Then call
- * #udsOpenBlockContext to open a fresh block context.
- *
- * @param [in] session       The index session
- * @param [in] metadataSize  This value is unused
- * @param [out] context      The new block context
- *
- * @return Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsOpenBlockContext(UdsIndexSession  session,
-                        unsigned int     metadataSize,
-                        UdsBlockContext *context);
-
-/**
- * Closes a block context.
- *
- * #udsCloseBlockContext flushes and saves work in that context
- * before closing it.
- *
- * @param [in] context  The block context to close
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCloseBlockContext(UdsBlockContext context);
-
-/**
- * Waits until all callbacks for index operations are complete.
- *
- * @param [in] context  The block context to flush
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsFlushBlockContext(UdsBlockContext context);
-/** @} */
 
 /** @{ */
 /** @name Deduplication */
@@ -162,11 +101,11 @@ struct udsRequest {
    */
   UdsChunkCallback *callback;
   /*
-   * The block context.
+   * The index session.
    * Set before starting an operation.
    * Unchanged at time of callback.
    */
-  UdsBlockContext context;
+  struct uds_index_session *session;
   /*
    * The operation type, which is one of #UDS_DELETE, #UDS_POST, #UDS_QUERY or
    * #UDS_UPDATE.
@@ -237,35 +176,6 @@ struct udsRequest {
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
 int udsStartChunkOperation(UdsRequest *request);
-/** @} */
-
-/** @{ */
-/** @name Monitoring */
-
-/**
- * Fetches index statistics for the given context.
- *
- * @param [in]  context The block context
- * @param [out] stats   The index statistics structure to fill
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetBlockContextIndexStats(UdsBlockContext  context,
-                                 UdsIndexStats   *stats);
-
-/**
- * Fetches context statistics for the given context.
- *
- * @param [in]  context The block context
- * @param [out] stats   The context statistics structure to fill
- *
- * @return              Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetBlockContextStats(UdsBlockContext  context,
-                            UdsContextStats *stats);
-
 /** @} */
 
 #endif /* UDS_BLOCK_H */

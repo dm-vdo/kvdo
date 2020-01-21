@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueue.c#11 $
  */
 
 #include "workQueue.h"
@@ -417,12 +417,12 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
      * place it is modified and there is only one thread involved.
      */
     queue->stats.waits++;
-    uint64_t timeBeforeSchedule = currentTime(CT_MONOTONIC);
+    uint64_t timeBeforeSchedule = currentTime(CLOCK_MONOTONIC);
     atomic64_add(timeBeforeSchedule - queue->mostRecentWakeup,
                  &queue->stats.runTime);
     // Wake up often, to address the missed-wakeup race.
     schedule_timeout(timeoutInterval);
-    queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
+    queue->mostRecentWakeup = currentTime(CLOCK_MONOTONIC);
     uint64_t callDurationNS = queue->mostRecentWakeup - timeBeforeSchedule;
     enterHistogramSample(queue->stats.scheduleTimeHistogram,
                          callDurationNS / 1000);
@@ -450,7 +450,7 @@ static KvdoWorkItem *waitForNextWorkItem(SimpleWorkQueue *queue,
     loadFence();
     if (firstWakeup != 0) {
       enterHistogramSample(queue->stats.wakeupLatencyHistogram,
-                           (currentTime(CT_MONOTONIC) - firstWakeup) / 1000);
+                           (currentTime(CLOCK_MONOTONIC) - firstWakeup) / 1000);
       enterHistogramSample(queue->stats.wakeupQueueLengthHistogram,
                            getPendingCount(queue));
     }
@@ -519,11 +519,11 @@ static void processWorkItem(SimpleWorkQueue *queue,
    * deal, as long as reads and writes are atomic operations.
    */
   if (need_resched()) {
-    uint64_t timeBeforeReschedule = currentTime(CT_MONOTONIC);
+    uint64_t timeBeforeReschedule = currentTime(CLOCK_MONOTONIC);
     // Record the queue length we have *before* rescheduling.
     unsigned int queueLen = getPendingCount(queue);
     cond_resched();
-    uint64_t timeAfterReschedule = currentTime(CT_MONOTONIC);
+    uint64_t timeAfterReschedule = currentTime(CLOCK_MONOTONIC);
 
     enterHistogramSample(queue->stats.rescheduleQueueLengthHistogram,
                          queueLen);
@@ -581,7 +581,7 @@ static int workQueueRunner(void *ptr)
 
   WorkQueueStackHandle queueHandle;
   initializeWorkQueueStackHandle(&queueHandle, queue);
-  queue->stats.startTime = queue->mostRecentWakeup = currentTime(CT_MONOTONIC);
+  queue->stats.startTime = queue->mostRecentWakeup = currentTime(CLOCK_MONOTONIC);
   unsigned long flags;
   spin_lock_irqsave(&queue->lock, flags);
   queue->started = true;
@@ -621,7 +621,7 @@ void setupWorkItem(KvdoWorkItem     *item,
 static inline void wakeWorkerThread(SimpleWorkQueue *queue)
 {
   smp_mb();
-  atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CT_MONOTONIC));
+  atomic64_cmpxchg(&queue->firstWakeup, 0, currentTime(CLOCK_MONOTONIC));
   // Despite the name, there's a maximum of one thread in this list.
   wake_up(&queue->waitingWorkerThreads);
 }

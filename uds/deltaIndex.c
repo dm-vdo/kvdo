@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/deltaIndex.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.c#7 $
  */
 #include "deltaIndex.h"
 
@@ -599,84 +599,103 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
 }
 
 /**********************************************************************/
-int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
-                             uint64_t expectedNonce, unsigned int meanDelta,
-                             unsigned int numPayloadBits, byte *memory,
-                             size_t memSize)
+static bool verifyDeltaIndexPage(uint64_t  nonce,
+                                 uint16_t  numLists,
+                                 uint64_t  expectedNonce,
+                                 byte     *memory,
+                                 size_t    memSize)
 {
-  const DeltaPageHeader *header = (const DeltaPageHeader *) memory;
-  unsigned int numLists = header->numLists;
-
-  if ((expectedNonce != 0) && (header->nonce != expectedNonce)) {
-    // Do not log this as an error.  It happens in normal operation when we
-    // are doing a rebuild but haven't written the entire volume once.
-    return UDS_CORRUPT_COMPONENT;
+  // Verify the nonce.  A mismatch here happens in normal operation when we are
+  // doing a rebuild but haven't written the entire volume once.
+  if (nonce != expectedNonce) {
+    return false;
   }
 
-  // Verify that the memory page is valid
+  // Verify that the number of delta lists can fit in the page.
   if (numLists >
       (memSize - sizeof(DeltaPageHeader)) * CHAR_BIT / IMMUTABLE_HEADER_SIZE) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-      "%u lists will not fit on a %zu byte page", numLists, memSize);
-  }
-  if (getImmutableStart(memory, 0) != getImmutableHeaderOffset(numLists + 1)) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-      "the first list is at offset %u, but should be at %u",
-      getImmutableStart(memory, 0),
-      getImmutableHeaderOffset(numLists + 1));
+    return false;
   }
 
+  // Verify that the first delta list is immediately after the last delta list
+  // header.
+  if (getImmutableStart(memory, 0) != getImmutableHeaderOffset(numLists + 1)) {
+    return false;
+  }
+
+  // Verify that the lists are in the correct order.
   unsigned int i;
   for (i = 0; i < numLists; i++) {
     if (getImmutableStart(memory, i) > getImmutableStart(memory, i + 1)) {
-      return logWarningWithStringError(
-        UDS_CORRUPT_COMPONENT, "error initializing delta index page: "
-        "list %u at offset %u is after list %u at %u",
-        i,     getImmutableStart(memory, i),
-        i + 1, getImmutableStart(memory, i + 1));
+      return false;
     }
   }
-  if (getImmutableStart(memory, numLists) > memSize * CHAR_BIT) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT,
-      "error initializing delta index page: The last list ends at "
-      "%u, which is after the end of the %zu byte page",
-      getImmutableStart(memory, numLists), memSize);
-  }
+
+  // Verify that the last list ends on the page, and that there is room for the
+  // post-field guard bits.
   if (getImmutableStart(memory, numLists)
       > (memSize - POST_FIELD_GUARD_BYTES) * CHAR_BIT) {
-    return logWarningWithStringError(
-      UDS_CORRUPT_COMPONENT,
-      "error initializing delta index page: The last list ends at "
-      "%u, which does not allow the %u guard bits at the end of "
-      "the %zu byte page",
-      getImmutableStart(memory, numLists),
-      POST_FIELD_GUARD_BYTES * CHAR_BIT, memSize);
+    return false;
   }
+
+  // Verify that the guard bytes are correctly set to all ones.
   for (i = 0; i < POST_FIELD_GUARD_BYTES; i++) {
     byte guardByte = memory[memSize - POST_FIELD_GUARD_BYTES + i];
     if (guardByte != (byte) ~0) {
-      return logWarningWithStringError(UDS_CORRUPT_COMPONENT,
-                                       "guard byte %d has invalid value 0x%X",
-                                       i, guardByte);
+      return false;
     }
   }
+
+  // All verifications passed.
+  return true;
+}
+
+/**********************************************************************/
+int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
+                             uint64_t        expectedNonce,
+                             unsigned int    meanDelta,
+                             unsigned int    numPayloadBits,
+                             byte           *memory,
+                             size_t          memSize)
+{
+  const DeltaPageHeader *header = (const DeltaPageHeader *) memory;
 
   if (invalidParameters(meanDelta, numPayloadBits)) {
     return UDS_INVALID_ARGUMENT;
   }
 
-  deltaIndex->deltaZones   = deltaMemory;
-  deltaIndex->numZones     = 1;
-  deltaIndex->numLists     = numLists;
-  deltaIndex->listsPerZone = numLists;
-  deltaIndex->isMutable    = false;
-  deltaIndex->tag          = 'p';
+  // First assume that the header is little endian
+  uint64_t nonce = getUInt64LE((const byte *) &header->nonce);
+  uint64_t vcn   = getUInt64LE((const byte *) &header->virtualChapterNumber);
+  uint16_t firstList = getUInt16LE((const byte *) &header->firstList);
+  uint16_t numLists  = getUInt16LE((const byte *) &header->numLists);
+  if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory, memSize)) {
+    // That failed, so try big endian
+    nonce     = getUInt64BE((const byte *) &header->nonce);
+    vcn       = getUInt64BE((const byte *) &header->virtualChapterNumber);
+    firstList = getUInt16BE((const byte *) &header->firstList);
+    numLists  = getUInt16BE((const byte *) &header->numLists);
+    if (!verifyDeltaIndexPage(nonce, numLists, expectedNonce, memory,
+                              memSize)) {
+      // Also failed.  Do not log this as an error.  It happens in normal
+      // operation when we are doing a rebuild but haven't written the entire
+      // volume once.
+      return UDS_CORRUPT_COMPONENT;
+    }
+  }
 
-  initializeDeltaMemoryPage(deltaMemory, (byte *) memory, memSize, numLists,
-                            meanDelta, numPayloadBits);
+  deltaIndexPage->deltaIndex.deltaZones   = &deltaIndexPage->deltaMemory;
+  deltaIndexPage->deltaIndex.numZones     = 1;
+  deltaIndexPage->deltaIndex.numLists     = numLists;
+  deltaIndexPage->deltaIndex.listsPerZone = numLists;
+  deltaIndexPage->deltaIndex.isMutable    = false;
+  deltaIndexPage->deltaIndex.tag          = 'p';
+  deltaIndexPage->virtualChapterNumber = vcn;
+  deltaIndexPage->lowestListNumber     = firstList;
+  deltaIndexPage->highestListNumber    = firstList + numLists - 1;
+
+  initializeDeltaMemoryPage(&deltaIndexPage->deltaMemory, (byte *) memory,
+                            memSize, numLists, meanDelta, numPayloadBits);
   return UDS_SUCCESS;
 }
 
@@ -709,10 +728,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex, unsigned int zoneNumber)
 }
 
 /**********************************************************************/
-int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
-                       byte *memory, size_t memSize,
-                       uint64_t virtualChapterNumber, unsigned int firstList,
-                       unsigned int *numLists)
+int packDeltaIndexPage(const DeltaIndex *deltaIndex,
+                       uint64_t          headerNonce,
+                       bool              headerNativeEndian,
+                       byte             *memory,
+                       size_t            memSize,
+                       uint64_t          virtualChapterNumber,
+                       unsigned int      firstList,
+                       unsigned int     *numLists)
 {
   if (!deltaIndex->isMutable) {
     return logErrorWithStringError(UDS_BAD_STATE,
@@ -765,10 +788,18 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
 
   // Construct the page header
   DeltaPageHeader *header = (DeltaPageHeader *) memory;
-  header->nonce                = headerNonce;
-  header->virtualChapterNumber = virtualChapterNumber;
-  header->firstList            = firstList;
-  header->numLists             = nLists;
+  if (headerNativeEndian) {
+    header->nonce                = headerNonce;
+    header->virtualChapterNumber = virtualChapterNumber;
+    header->firstList            = firstList;
+    header->numLists             = nLists;
+  } else {
+    storeUInt64LE((byte *) &header->nonce,     headerNonce);
+    storeUInt64LE((byte *) &header->virtualChapterNumber,
+                  virtualChapterNumber);
+    storeUInt16LE((byte *) &header->firstList, firstList);
+    storeUInt16LE((byte *) &header->numLists,  nLists);
+  }
 
   // Construct the delta list offset table, making sure that the memory
   // page is large enough.
@@ -793,6 +824,7 @@ int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
          POST_FIELD_GUARD_BYTES);
   return UDS_SUCCESS;
 }
+
 
 /**********************************************************************/
 void setDeltaIndexTag(DeltaIndex *deltaIndex, byte tag)
@@ -1636,29 +1668,6 @@ void getDeltaIndexStats(const DeltaIndex *deltaIndex, DeltaIndexStats *stats)
     stats->overflowCount   += deltaZone->overflowCount;
     stats->numLists        += deltaZone->numLists;
   }
-}
-
-/**********************************************************************/
-uint64_t getDeltaIndexVirtualChapterNumber(const DeltaIndex *deltaIndex)
-{
-  const DeltaPageHeader *header
-    = (const DeltaPageHeader *) deltaIndex->deltaZones[0].memory;
-  return header->virtualChapterNumber;
-}
-
-/**********************************************************************/
-unsigned int getDeltaIndexLowestListNumber(const DeltaIndex *deltaIndex)
-{
-  const DeltaMemory *deltaZone = &deltaIndex->deltaZones[0];
-  return (deltaIndex->isMutable
-          ? deltaZone->firstList
-          : ((DeltaPageHeader *) deltaZone->memory)->firstList);
-}
-
-/**********************************************************************/
-unsigned int getDeltaIndexHighestListNumber(const DeltaIndex *deltaIndex)
-{
-  return getDeltaIndexLowestListNumber(deltaIndex) + deltaIndex->numLists - 1;
 }
 
 /**********************************************************************/

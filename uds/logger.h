@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,28 +16,76 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/logger.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.h#5 $
  */
 
 #ifndef LOGGER_H
 #define LOGGER_H 1
 
+#ifdef __KERNEL__
+#include <linux/ratelimit.h>
+#include <linux/version.h>
+#else
 #include <stdarg.h>
+#include "minisyslog.h"
+#endif
 
-#include "loggerDefs.h"
+#ifdef __KERNEL__
+#define LOG_EMERG       0       /* system is unusable */
+#define LOG_ALERT       1       /* action must be taken immediately */
+#define LOG_CRIT        2       /* critical conditions */
+#define LOG_ERR         3       /* error conditions */
+#define LOG_WARNING     4       /* warning conditions */
+#define LOG_NOTICE      5       /* normal but significant condition */
+#define LOG_INFO        6       /* informational */
+#define LOG_DEBUG       7       /* debug-level messages */
+#endif
+
+#ifdef __KERNEL__
+// Make it easy to log real pointer values using %px when in development.
+#ifdef LOG_INTERNAL
+#define PRIptr "px"
+#else
+#define PRIptr "pK"
+#endif
+#else // not __KERNEL__
+// For compatibility with hooks we need when compiling in kernel mode.
+#define PRIptr "p"
+#endif
+
+/*
+ * Apply a rate limiter to a log method call.
+ *
+ * @param logFunc  A method that does logging, which is not invoked if we are
+ *                 running in the kernel and the ratelimiter detects that we
+ *                 are calling it frequently.
+ */
+#ifdef __KERNEL__
+#define logRatelimit(logFunc, ...)                                 \
+  do {                                                             \
+    static DEFINE_RATELIMIT_STATE(_rs, DEFAULT_RATELIMIT_INTERVAL, \
+                                  DEFAULT_RATELIMIT_BURST);        \
+    if (__ratelimit(&_rs)) {                                       \
+      logFunc(__VA_ARGS__);                                        \
+    }                                                              \
+  } while (0)
+#else
+#define logRatelimit(logFunc, ...) logFunc(__VA_ARGS__)
+#endif
 
 /**
  * @file
  *
- * The functions in this file are not thread safe in the sense that nothing
- * prevents multiple threads from opening or closing loggers out from under
- * other threads. In reality this isn't a problem since the only calls in
- * production code to openLogger() and closeLogger() are made in uds.c while
- * uds mutex is held, and uds does not make any logging calls before it calls
- * openLogger or after it calls closeLogger().
- *
  * All of the log<Level>() functions will preserve the callers value of errno.
  **/
+
+#ifndef __KERNEL__
+/*
+ * In user mode, the functions in this file are not thread safe in the sense
+ * that nothing prevents multiple threads from closing loggers out from under
+ * other threads.  In reality this isn't a problem since there are no calls to
+ * closeLogger() in production code.
+ */
 
 /**
  * Start the logger.
@@ -48,6 +96,7 @@ void openLogger(void);
  * Stop the logger.
  **/
 void closeLogger(void);
+#endif
 
 /**
  * Get the current logging level.
@@ -216,14 +265,14 @@ int logFatalWithStringError(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));
 
 /**
- * If the result was an error, log an ERROR level message and return
- * makeUnrecoverable(errnum).  If the result was not an error (UDS_SUCCESS or
- * UDS_QUEUED), just return the result.
+ * IF the result is an error, log a FATAL level message and return the result
+ * after marking it unrecoverable.  The UDS_SUCCESS and UDS_QUEUED results are
+ * not considered errors and are returned unmodified.
  *
- * @param  errnum Int value of errno or a UDS_* value.
- * @param  format The format of the message (a printf style format)
+ * @param errnum  int value of errno or a UDS_* value.
+ * @param format  The format of the message (a printf style format)
  *
- * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED.
+ * @return makeUnrecoverable(errnum) or UDS_SUCCESS or UDS_QUEUED
  **/
 int logUnrecoverable(int errnum, const char *format, ...)
   __attribute__((format(printf, 2, 3)));

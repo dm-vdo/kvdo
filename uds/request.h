@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/request.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.h#7 $
  */
 
 #ifndef REQUEST_H
@@ -25,9 +25,8 @@
 #include "cacheCounters.h"
 #include "common.h"
 #include "compiler.h"
-#include "context.h"
-#include "featureDefs.h"
-#include "queue.h"
+#include "opaqueTypes.h"
+#include "threads.h"
 #include "timeUtils.h"
 #include "uds.h"
 #include "util/funnelQueue.h"
@@ -53,20 +52,6 @@ typedef enum {
   // request used by an indexZone to signal the other zones that it
   // has closed the current open chapter.
   REQUEST_ANNOUNCE_CHAPTER_CLOSED,
-
-  // REQUEST_OPEN through REQUEST_FINISH are the actions for control requests
-  // used by remoteIndexRouter.
-  REQUEST_OPEN,
-  REQUEST_CLOSE,
-  REQUEST_GET_CONFIG,
-  REQUEST_GET_STATS,
-  REQUEST_GET_SERVER_STATUS,
-  REQUEST_WRITE,
-  REQUEST_FINISH,
-
-  // REQUEST_COLLECT_CONTEXT_STATS messages are sent to the callback thread
-  // from a client thread requesting the context statistics.
-  REQUEST_COLLECT_CONTEXT_STATS,
 } RequestAction;
 
 /**
@@ -129,110 +114,51 @@ typedef struct zoneMessage {
 
 /**
  * Request context for queuing throughout the uds pipeline
+ *
+ * XXX Note that the typedef for this struct defines "Request", and that this
+ *     should therefore be "struct request".  However, this conflicts with the
+ *     Linux kernel which also has a "struct request".  This is a workaround so
+ *     that we can make upstreaming progress.  The real solution is to expose
+ *     this structure as the true "struct uds_request" and do a lot of
+ *     renaming.
  **/
-struct request {
+struct internalRequest {
   /*
    * The first part of this structure must be exactly parallel to the
    * UdsRequest structure, which is part of the public UDS API.
    */
-  UdsChunkName      hash;         // hash value
+  UdsChunkName      chunkName;    // hash value
   UdsChunkData      oldMetadata;  // metadata from index
   UdsChunkData      newMetadata;  // metadata from request
   UdsChunkCallback *callback;     // callback method when complete
-  UdsBlockContext   blockContext; // The block context
-  UdsCallbackType   type;         // the type of request
-  int               status;       // the success or error code for this request
-  bool              found;        // True if the block was found in the index
-  bool              update;       // move record to newest chapter if found
+  struct uds_index_session *session; // The public index session
+  UdsCallbackType   type;            // the type of request
+  int               status;          // success or error code for this request
+  bool              found;           // True if the block was found in index
+  bool              update;          // move record to newest chapter if found
 
   /*
    * The remainder of this structure is private to the UDS implementation.
    */
-  FunnelQueueEntry  requestQueueLink; // link for lock-free request queue
-  STAILQ_ENTRY(request) link;
-  AIPContext       *serverContext; // context for AIP only
-  UdsContext       *context;    // context for UDS only: callbacks, etc.
-  IndexRouter      *router;     // the router handling this request
+  FunnelQueueEntry  requestQueueLink; // for lock-free request queue
+  Request          *nextRequest;
+  IndexRouter      *router;
 
   // Data for control message requests
-  void            *controlData;
-  ZoneMessage      zoneMessage;
-  bool             isControlMessage;
+  ZoneMessage zoneMessage;
+  bool        isControlMessage;
 
-  bool           unbatched;     // if true, must wake worker when enqueued
-  bool           requeued;
-  RequestAction  action;        // the action for the index to perform
-  unsigned int   zoneNumber;    // the zone for this request to use
-  IndexRegion    location;      // if and where the block was found
+  bool          unbatched;      // if true, must wake worker when enqueued
+  bool          requeued;
+  RequestAction action;         // the action for the index to perform
+  unsigned int  zoneNumber;     // the zone for this request to use
+  IndexRegion   location;       // if and where the block was found
 
-  bool             slLocationKnown; // slow lane has determined a location
-  IndexRegion      slLocation;      // location determined by slowlane
-
-  SynchronousCallback *synchronous; // wait/wake object if request synchronous
+  bool        slLocationKnown;  // slow lane has determined a location
+  IndexRegion slLocation;       // location determined by slowlane
 };
 
 typedef void (*RequestRestarter)(Request *);
-
-/**
- * Start a request from an API client on a block context.  The request is
- * asynchronous.
- *
- * @param request  The request.
- *
- * @return UDS_SUCCESS or an error code
- **/
-int launchAllocatedClientRequest(Request *request)
-  __attribute__((warn_unused_result));
-
-/**
- * Make a control message and enqueue it for processing. If the message
- * is synchronous, this will wait until the request has completed before
- * returning.
- *
- * @param serverContext  The AIP context for the message, ownership of which
- *                       is transferred by this call, successful or not
- * @param controlData    A pointer to data required by the control message
- *                       handler
- * @param controlAction  The control action to perform
- * @param initialStage   The pipeline stage that should start processing
- *                       the control request (typically STAGE_INDEX)
- * @param router         The index router responsible for handling the message
- * @param requestPtr     A pointer to hold the new control message request if
- *                       the message is synchronous, otherwise should be NULL
- *
- * @return              UDS_SUCCESS or an error code
- **/
-int launchAIPControlMessage(AIPContext     *serverContext,
-                            void           *controlData,
-                            RequestAction   controlAction,
-                            RequestStage    initialStage,
-                            IndexRouter    *router,
-                            Request       **requestPtr)
-  __attribute__((warn_unused_result));
-
-/**
- * Make a control message for an API client and enqueue it for processing. If
- * the message is synchronous, this will wait until the request has completed
- * before returning.
- *
- * @param [in]  context        The client context for the message, ownership of
- *                             which is transferred to the request by this call
- * @param [in]  controlData    A pointer to data required by the control
- *                             message handler
- * @param [in]  controlAction  The control action to perform
- * @param [in]  initialStage   The pipeline stage that should start processing
- *                             the control request (typically STAGE_CALLBACK)
- * @param [out] requestPtr     A pointer to hold the new control request if the
- *                             message is synchronous, otherwise should be NULL
- *
- * @return UDS_SUCCESS or an error code
- **/
-int launchClientControlMessage(UdsContext     *context,
-                               void           *controlData,
-                               RequestAction   controlAction,
-                               RequestStage    initialStage,
-                               Request       **requestPtr)
-  __attribute__((warn_unused_result));
 
 /**
  * Make an asynchronous control message for an index zone and enqueue it for

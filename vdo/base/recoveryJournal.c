@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#21 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournal.c#26 $
  */
 
 #include "recoveryJournal.h"
@@ -197,12 +197,12 @@ static void checkForDrainComplete(RecoveryJournal *journal)
     if (journal->activeBlock != NULL) {
       ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
                        || !isRecoveryBlockDirty(journal->activeBlock)),
-		      "journal being saved has clean active block");
+                      "journal being saved has clean active block");
       recycleJournalBlock(journal->activeBlock);
     }
 
     ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
-		    "all blocks in a journal being saved must be inactive");
+                    "all blocks in a journal being saved must be inactive");
   }
 
   finishDrainingWithResult(&journal->state, result);
@@ -416,6 +416,7 @@ int makeRecoveryJournal(Nonce                nonce,
 
   initializeRing(&journal->freeTailBlocks);
   initializeRing(&journal->activeTailBlocks);
+  initializeWaitQueue(&journal->pendingWrites);
 
   journal->threadID         = getJournalZoneThread(threadConfig);
   journal->partition        = partition;
@@ -795,7 +796,41 @@ static bool prepareToAssignEntry(RecoveryJournal *journal, bool increment)
 }
 
 /**********************************************************************/
-static void writeBlock(RecoveryJournal *journal, RecoveryJournalBlock *block);
+static void writeBlocks(RecoveryJournal *journal);
+
+/**
+ * Queue a block for writing. The block is expected to be full. If the block
+ * is currently writing, this is a noop as the block will be queued for
+ * writing when the write finishes. The block must not currently be queued
+ * for writing.
+ *
+ * @param journal  The journal in question
+ * @param block    The block which is now ready to write
+ **/
+static void scheduleBlockWrite(RecoveryJournal      *journal,
+                               RecoveryJournalBlock *block)
+{
+  if (block->committing) {
+    return;
+  }
+
+  int result = enqueueWaiter(&journal->pendingWrites, &block->writeWaiter);
+  if (result != VDO_SUCCESS) {
+    enterJournalReadOnlyMode(journal, result);
+    return;
+  }
+
+  PhysicalLayer *layer = vioAsCompletion(journal->flushVIO)->layer;
+  if ((layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC)) {
+    /*
+     * At the end of adding entries, or discovering this partial block
+     * is now full and ready to rewrite, we will call writeBlocks() and
+     * write a whole batch.
+     */
+    return;
+  }
+  writeBlocks(journal);
+}
 
 /**
  * Release a reference to a journal block.
@@ -862,9 +897,9 @@ static void assignEntry(Waiter *waiter, void *context)
   }
 
   if (isRecoveryBlockFull(block)) {
-    // Only attempt to write the block once we've filled it. Commits of
-    // partially filled journal blocks are handled outside the append loop.
-    writeBlock(journal, block);
+    // The block is full, so we can write it anytime henceforth. If it is
+    // already committing, we'll queue it for writing when it comes back.
+    scheduleBlockWrite(journal, block);
   }
 
   // Force out slab journal tail blocks when threshold is reached.
@@ -900,9 +935,9 @@ static void assignEntries(RecoveryJournal *journal)
     assignEntriesFromQueue(journal, &journal->incrementWaiters, true);
   }
 
-  // We might not have committed a partial block because there were still
-  // incoming entries, but they might have been increments with no room.
-  writeBlock(journal, journal->activeBlock);
+  // Now that we've finished with entries, see if we have a batch of blocks to
+  // write.
+  writeBlocks(journal);
   journal->addingEntries = false;
 }
 
@@ -916,6 +951,11 @@ static void recycleJournalBlock(RecoveryJournalBlock *block)
 {
   RecoveryJournal *journal = block->journal;
   pushRingNode(&journal->freeTailBlocks, &block->ringNode);
+
+  // Release any unused entry locks.
+  for (BlockCount i = block->entryCount; i < journal->entriesPerBlock; i++) {
+    releaseJournalBlockReference(block);
+  }
 
   // Release our own lock against reaping now that the block is completely
   // committed, or we're giving up because we're in read-only mode.
@@ -986,12 +1026,6 @@ static void notifyCommitWaiters(RecoveryJournal *journal)
     }
 
     recycleJournalBlock(block);
-
-    /*
-     * We may have just completed the last outstanding block write. If the
-     * active block is partial and hasn't been written, we must trigger it now.
-     */
-    writeBlock(journal, journal->activeBlock);
   }
 }
 
@@ -1027,11 +1061,13 @@ static void completeWrite(VDOCompletion *completion)
 
   notifyCommitWaiters(journal);
 
-  // Write out the entries (if any) which accumulated while we were writing.
-  if (hasWaiters(&block->entryWaiters)) {
-    writeBlock(journal, block);
-    return;
+  // Is this block now full? Reaping, and adding entries, might have already
+  // sent it off for rewriting; else, queue it for rewrite.
+  if (isRecoveryBlockDirty(block) && isRecoveryBlockFull(block)) {
+    scheduleBlockWrite(journal, block);
   }
+
+  writeBlocks(journal);
 
   checkForDrainComplete(journal);
 }
@@ -1049,20 +1085,57 @@ static void handleWriteError(VDOCompletion *completion)
 }
 
 /**
- * Attempt to commit a block. If the block is not the oldest block
- * with uncommitted entries or if it is already being committed,
- * nothing will be done.
- *
- * @param journal  The recovery journal
- * @param block    The block to write
+ * Issue a block for writing. Implements WaiterCallback.
  **/
-static void writeBlock(RecoveryJournal *journal, RecoveryJournalBlock *block)
+static void writeBlock(Waiter *waiter, void *context __attribute__((unused)))
 {
-  assertOnJournalThread(journal, __func__);
+  RecoveryJournalBlock *block = blockFromWaiter(waiter);
+  if (isReadOnly(block->journal->readOnlyNotifier)) {
+    return;
+  }
+
   int result = commitRecoveryBlock(block, completeWrite, handleWriteError);
   if (result != VDO_SUCCESS) {
-    enterJournalReadOnlyMode(journal, result);
-    return;
+    enterJournalReadOnlyMode(block->journal, result);
+  }
+}
+
+/**
+ * Attempt to commit blocks, according to write policy.
+ *
+ * @param journal     The recovery journal
+ **/
+static void writeBlocks(RecoveryJournal *journal)
+{
+  assertOnJournalThread(journal, __func__);
+  /*
+   * In sync and async-unsafe modes, we call this function each time we queue
+   * a full block on pending writes; in addition, in all cases we call this
+   * function after adding entries to the journal and finishing a block write.
+   * Thus, when this function terminates we must either have no VIOs waiting
+   * in the journal or have some outstanding IO to provide a future wakeup.
+   *
+   * In all modes, if there are no outstanding writes and some unwritten
+   * entries, we must issue a block, even if it's the active block and it
+   * isn't full. Otherwise, in sync/async-unsafe modes, we want to issue
+   * all full blocks every time; since we call it each time we fill a block,
+   * this is equivalent to issuing every full block as soon as its full. In
+   * async mode, we want to only issue full blocks if there are no
+   * pending writes.
+   */
+
+  PhysicalLayer *layer = vioAsCompletion(journal->flushVIO)->layer;
+  if ((layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC)
+      || (journal->pendingWriteCount == 0)) {
+    // Write all the full blocks.
+    notifyAllWaiters(&journal->pendingWrites, writeBlock, NULL);
+  }
+
+  // Do we need to write the active block? Only if we have no outstanding
+  // writes, even after issuing all of the full writes.
+  if ((journal->pendingWriteCount == 0)
+      && canCommitRecoveryBlock(journal->activeBlock)) {
+    writeBlock(&journal->activeBlock->writeWaiter, NULL);
   }
 }
 
@@ -1139,12 +1212,17 @@ static void reapRecoveryJournal(RecoveryJournal *journal)
   }
 
   PhysicalLayer *layer = vioAsCompletion(journal->flushVIO)->layer;
-  if (layer->isFlushRequired(layer)) {
+  if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
     /*
      * If the block map head will advance, we must flush any block map page
      * modified by the entries we are reaping. If the slab journal head will
      * advance, we must flush the slab summary update covering the slab journal
      * that just released some lock.
+     *
+     * In sync mode, this is unnecessary because we won't record these numbers
+     * on disk until the next journal block write, and in sync mode every
+     * journal block write is preceded by a flush, which does the block map
+     * page and slab summary update flushing itself.
      */
     journal->reaping = true;
     launchFlush(journal->flushVIO, completeReaping, handleFlushError);
@@ -1199,15 +1277,23 @@ void releasePerEntryLockFromOtherZone(RecoveryJournal *journal,
   releaseJournalZoneReferenceFromOtherZone(journal->lockCounter, blockNumber);
 }
 
+/**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(AdminState *state)
+{
+  checkForDrainComplete(container_of(state, RecoveryJournal, state));
+}
+
 /**********************************************************************/
 void drainRecoveryJournal(RecoveryJournal *journal,
                           AdminStateCode   operation,
                           VDOCompletion   *parent)
 {
   assertOnJournalThread(journal, __func__);
-  if (startDraining(&journal->state, operation, parent)) {
-    checkForDrainComplete(journal);
-  }
+  startDraining(&journal->state, operation, parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -1215,18 +1301,18 @@ void resumeRecoveryJournal(RecoveryJournal *journal, VDOCompletion *parent)
 {
   assertOnJournalThread(journal, __func__);
   bool saved = isSaved(&journal->state);
-  if (!startResuming(&journal->state, ADMIN_STATE_RESUMING, parent)) {
+  setCompletionResult(parent, resumeIfQuiescent(&journal->state));
+
+  if (isReadOnly(journal->readOnlyNotifier)) {
+    finishCompletion(parent, VDO_READ_ONLY);
     return;
   }
 
-  int result = VDO_SUCCESS;
-  if (isReadOnly(journal->readOnlyNotifier)) {
-    result = VDO_READ_ONLY;
-  } else if (saved) {
+  if (saved) {
     initializeJournalState(journal);
   }
 
-  finishResumingWithResult(&journal->state, result);
+  completeCompletion(parent);
 }
 
 /**********************************************************************/

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slab.c#9 $
  */
 
 #include "slab.h"
@@ -310,14 +310,50 @@ bool shouldSaveFullyBuiltSlab(const Slab *slab)
           || !isSlabJournalBlank(slab->journal));
 }
 
-/**********************************************************************/
-void loadSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+/**
+ * Initiate a slab action.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateSlabAction(AdminState *state)
 {
-  if (!startLoading(&slab->state, operation, parent)) {
+  Slab *slab = container_of(state, Slab, state);
+  if (isDraining(state)) {
+    if (state->state == ADMIN_STATE_SCRUBBING) {
+      slab->status = SLAB_REBUILDING;
+    }
+
+    drainSlabJournal(slab->journal);
+
+    if (slab->referenceCounts != NULL) {
+      drainRefCounts(slab->referenceCounts);
+    }
+
+    checkIfSlabDrained(slab);
     return;
   }
 
-  decodeSlabJournal(slab->journal);
+  if (isLoading(state)) {
+    decodeSlabJournal(slab->journal);
+    return;
+  }
+
+  if (isResuming(state)) {
+    queueSlab(slab);
+    finishResuming(state);
+    return;
+  }
+
+  finishOperationWithResult(state, VDO_INVALID_ADMIN_STATE);
+}
+
+/**********************************************************************/
+void startSlabAction(Slab           *slab,
+                     AdminStateCode  operation,
+                     VDOCompletion  *parent)
+{
+  startOperationWithWaiter(&slab->state, operation, parent,
+                           initiateSlabAction);
 }
 
 /**********************************************************************/
@@ -345,17 +381,16 @@ bool isSlabDraining(Slab *slab)
 }
 
 /**********************************************************************/
-void drainSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
+void checkIfSlabDrained(Slab *slab)
 {
-  if (!startDraining(&slab->state, operation, parent)) {
-    return;
+  if (isDraining(&slab->state)
+      && !isSlabJournalActive(slab->journal)
+      && ((slab->referenceCounts == NULL)
+          || !areRefCountsActive(slab->referenceCounts))) {
+    finishDrainingWithResult(&slab->state,
+                             (isReadOnly(slab->allocator->readOnlyNotifier)
+                              ? VDO_READ_ONLY : VDO_SUCCESS));
   }
-
-  if (operation == ADMIN_STATE_SCRUBBING) {
-    slab->status = SLAB_REBUILDING;
-  }
-
-  drainSlabJournal(slab->journal);
 }
 
 /**********************************************************************/
@@ -382,15 +417,6 @@ void notifyRefCountsAreDrained(Slab *slab, int result)
 bool isSlabResuming(Slab *slab)
 {
   return isResuming(&slab->state);
-}
-
-/**********************************************************************/
-void resumeSlab(Slab *slab, AdminStateCode operation, VDOCompletion *parent)
-{
-  if (startResuming(&slab->state, operation, parent)) {
-    queueSlab(slab);
-    finishResuming(&slab->state);
-  }
 }
 
 /**********************************************************************/

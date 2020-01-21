@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResume.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResume.c#2 $
  */
 
 #include "vdoResume.h"
@@ -120,7 +120,7 @@ static void resumeCallback(VDOCompletion *completion)
   switch (adminCompletion->phase++) {
   case RESUME_PHASE_START:
     if (startResuming(&vdo->adminState, ADMIN_STATE_RESUMING,
-                      &adminCompletion->completion)) {
+                      &adminCompletion->completion, NULL)) {
       writeSuperBlock(vdo, completion);
     }
     return;

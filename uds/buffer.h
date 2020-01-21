@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/buffer.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/buffer.h#2 $
  */
 
 #ifndef BUFFER_H
@@ -503,6 +503,19 @@ int getUInt16LEsFromBuffer(Buffer *buffer, size_t count, uint16_t *ui)
  *         in the buffer
  **/
 int putUInt16LEsIntoBuffer(Buffer *buffer, size_t count, const uint16_t *ui)
+  __attribute__((warn_unused_result));
+
+/**
+ * Get a 4 byte, little endian encoded integer from a buffer and advance the
+ * start pointer past it.
+ *
+ * @param buffer The buffer
+ * @param i      A pointer to hold the integer
+ *
+ * @return UDS_SUCCESS or UDS_BUFFER_ERROR if there are fewer than 4
+ *         bytes available
+ **/
+int getInt32LEFromBuffer(Buffer *buffer, int32_t *i)
   __attribute__((warn_unused_result));
 
 /**

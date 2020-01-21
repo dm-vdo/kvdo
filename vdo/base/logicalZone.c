@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/logicalZone.c#6 $
  */
 
 #include "logicalZone.h"
@@ -226,6 +226,16 @@ static void checkForDrainComplete(LogicalZone *zone)
 }
 
 /**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(AdminState *state)
+{
+  checkForDrainComplete(container_of(state, LogicalZone, state));
+}
+
+/**
  * Drain a logical zone.
  *
  * <p>Implements ZoneAction.
@@ -234,11 +244,9 @@ static void drainLogicalZone(void          *context,
                              ZoneCount      zoneNumber,
                              VDOCompletion *parent)
 {
-  LogicalZone    *zone      = getLogicalZone(context, zoneNumber);
-  AdminStateCode  operation = getCurrentManagerOperation(zone->zones->manager);
-  if (startDraining(&zone->state, operation, parent)) {
-    checkForDrainComplete(zone);
-  }
+  LogicalZone *zone = getLogicalZone(context, zoneNumber);
+  startDraining(&zone->state, getCurrentManagerOperation(zone->zones->manager),
+                parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -260,9 +268,7 @@ static void resumeLogicalZone(void          *context,
                               VDOCompletion *parent)
 {
   LogicalZone *zone = getLogicalZone(context, zoneNumber);
-  if (startResuming(&zone->state, ADMIN_STATE_RESUMING, parent)) {
-    finishResuming(&zone->state);
-  }
+  finishCompletion(parent, resumeIfQuiescent(&zone->state));
 }
 
 /**********************************************************************/

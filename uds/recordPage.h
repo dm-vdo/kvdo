@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/recordPage.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/recordPage.h#2 $
  */
 
 #ifndef RECORDPAGE_H
@@ -31,10 +31,13 @@
  *
  * @param volume     The volume
  * @param records    The records to be encoded
+ * @param recordPage The record page
  *
  * @return UDS_SUCCESS or an error code
  **/
-int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[]);
+int encodeRecordPage(const Volume         *volume,
+                     const UdsChunkRecord  records[],
+                     byte                  recordPage[]);
 
 /**
  * Find the metadata for a given block name in this page.

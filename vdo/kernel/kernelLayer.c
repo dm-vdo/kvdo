@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#26 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.c#31 $
  */
 
 #include "kernelLayer.h"
@@ -101,6 +101,21 @@ static BlockCount kvdoGetBlockCount(PhysicalLayer *header)
 }
 
 /**********************************************************************/
+bool layerIsNamed(KernelLayer *layer, void *context)
+{
+  return (strcmp(layer->deviceConfig->poolName, (char *) context) == 0);
+}
+
+/**
+ * Implements LayerFilter.
+ **/
+static bool layerUsesDevice(KernelLayer *layer, void *context)
+{
+  DeviceConfig *config = context;
+  return (layer->deviceConfig->ownedDevice->bdev->bd_dev
+          == config->ownedDevice->bdev->bd_dev);
+}
+
 int mapToSystemError(int error)
 {
   // 0 is success, negative a system error code
@@ -525,9 +540,10 @@ static void kvdoFreeVIO(VIO **vioPtr)
 }
 
 /**********************************************************************/
-static bool isFlushRequired(PhysicalLayer *common)
+static WritePolicy kvdoGetWritePolicy(PhysicalLayer *common)
 {
-  return shouldProcessFlush(asKernelLayer(common));
+  KernelLayer *layer = asKernelLayer(common);
+  return getKVDOWritePolicy(&layer->kvdo);
 }
 
 /**
@@ -605,6 +621,15 @@ int makeKernelLayer(uint64_t        startingSector,
   // VDO-3769 - Set a generic reason so we don't ever return garbage.
   *reason = "Unspecified error";
 
+  KernelLayer *oldLayer = findLayerMatching(layerUsesDevice, config);
+  if (oldLayer != NULL) {
+    logError("Existing layer named %s already uses device %s",
+             oldLayer->deviceConfig->poolName,
+	     oldLayer->deviceConfig->parentDeviceName);
+    *reason = "Cannot share storage device with already-running VDO";
+    return VDO_BAD_CONFIGURATION;
+  }
+
   /*
    * Part 1 - Allocate the kernel layer, its essential parts, and setup up the
    * sysfs node.  These must come first so that the sysfs node works correctly
@@ -676,7 +701,7 @@ int makeKernelLayer(uint64_t        startingSector,
 
   layer->common.updateCRC32              = kvdoUpdateCRC32;
   layer->common.getBlockCount            = kvdoGetBlockCount;
-  layer->common.isFlushRequired          = isFlushRequired;
+  layer->common.getWritePolicy           = kvdoGetWritePolicy;
   layer->common.createMetadataVIO        = kvdoCreateMetadataVIO;
   layer->common.createCompressedWriteVIO = kvdoCreateCompressedWriteVIO;
   layer->common.freeVIO                  = kvdoFreeVIO;
@@ -706,7 +731,7 @@ int makeKernelLayer(uint64_t        startingSector,
   mutex_init(&layer->statsMutex);
   bio_list_init(&layer->waitingFlushes);
 
-  result = addLayerToDeviceRegistry(config->poolName, layer);
+  result = addLayerToDeviceRegistry(layer);
   if (result != VDO_SUCCESS) {
     *reason = "Cannot add layer to device registry";
     freeKernelLayer(layer);
@@ -956,7 +981,12 @@ int prepareToModifyKernelLayer(KernelLayer       *layer,
   if (config->physicalBlocks != extantConfig->physicalBlocks) {
     int result = prepareToResizePhysical(layer, config->physicalBlocks);
     if (result != VDO_SUCCESS) {
-      *errorPtr = "Device prepareToGrowPhysical failed";
+      if (result == VDO_TOO_MANY_SLABS) {
+        *errorPtr = "Device prepareToGrowPhysical failed (specified physical"
+                    " size too big based on formatted slab size)";
+      } else {
+        *errorPtr = "Device prepareToGrowPhysical failed";
+      }
       return result;
     }
   }
@@ -1088,7 +1118,7 @@ void freeKernelLayer(KernelLayer *layer)
     FREE(layer->spareKVDOFlush);
     layer->spareKVDOFlush = NULL;
     freeBatchProcessor(&layer->dataKVIOReleaser);
-    removeLayerFromDeviceRegistry(layer->deviceConfig->poolName);
+    removeLayerFromDeviceRegistry(layer);
     break;
 
   default:
@@ -1287,6 +1317,7 @@ int resumeKernelLayer(KernelLayer *layer)
     return VDO_SUCCESS;
   }
 
+  resumeDedupeIndex(layer->dedupeIndex);
   int result = resumeKVDO(&layer->kvdo);
   if (result != VDO_SUCCESS) {
     return result;

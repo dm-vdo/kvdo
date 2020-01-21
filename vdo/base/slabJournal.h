@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.h#8 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -99,6 +99,16 @@ bool isSlabJournalBlank(const SlabJournal *journal)
  * @return <code>true</code> if the journal has been added to the dirty ring
  **/
 bool isSlabJournalDirty(const SlabJournal *journal)
+  __attribute__((warn_unused_result));
+
+/**
+ * Check whether a slab journal is active.
+ *
+ * @param journal  The slab journal to check
+ *
+ * @return <code>true</code> if the journal is active
+ **/
+bool isSlabJournalActive(SlabJournal *journal)
   __attribute__((warn_unused_result));
 
 /**

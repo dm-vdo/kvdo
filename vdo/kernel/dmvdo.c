@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#32 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dmvdo.c#34 $
  */
 
 #include "dmvdo.h"
@@ -111,6 +111,7 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
   return ((DeviceConfig *) ti->private)->layer;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
 /**
  * Begin VDO processing of a bio.  This is called by the device mapper
  * through the "map" function, and has resulted from a call to either
@@ -140,9 +141,35 @@ static KernelLayer *getKernelLayerForTarget(struct dm_target *ti)
  *                             mapper devices to defer an I/O request
  *                             during suspend/resume processing.
  **/
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,8,0)
 static int vdoMapBio(struct dm_target *ti, BIO *bio, union map_info *unused)
 #else
+/**
+ * Begin VDO processing of a bio.  This is called by the device mapper
+ * through the "map" function, and has resulted from a call to either
+ * submit_bio or generic_make_request.
+ *
+ * @param ti      The dm_target.  We only need the "private" member to give
+ *                us the KernelLayer.
+ * @param bio     The bio.
+ *
+ * @return One of these values:
+ *
+ *         negative            A negative value is an error code.
+ *                             Usually -EIO.
+ *
+ *         DM_MAPIO_SUBMITTED  VDO will take care of this I/O, either
+ *                             processing it completely and calling
+ *                             bio_endio, or forwarding it onward by
+ *                             calling generic_make_request.
+ *
+ *         DM_MAPIO_REMAPPED   VDO has modified the bio and the device
+ *                             mapper will immediately forward the bio
+ *                             onward using generic_make_request.
+ *
+ *         DM_MAPIO_REQUEUE    We do not use this.  It is used by device
+ *                             mapper devices to defer an I/O request
+ *                             during suspend/resume processing.
+ **/
 static int vdoMapBio(struct dm_target *ti, BIO *bio)
 #endif
 {
@@ -663,7 +690,7 @@ static int vdoCtr(struct dm_target *ti, unsigned int argc, char **argv)
   RegisteredThread allocatingThread;
   registerAllocatingThread(&allocatingThread, NULL);
 
-  KernelLayer *oldLayer = getLayerByName(poolName);
+  KernelLayer *oldLayer = findLayerMatching(layerIsNamed, poolName);
   unsigned int instance;
   if (oldLayer == NULL) {
     result = allocateKVDOInstance(&instance);

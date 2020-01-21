@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.c#9 $
  */
 
 #include "refCounts.h"
@@ -234,43 +234,30 @@ void freeRefCounts(RefCounts **refCountsPtr)
  *         update in progress
  **/
 __attribute__((warn_unused_result))
-static bool isRefCountsActive(RefCounts *refCounts)
+static bool hasActiveIO(RefCounts *refCounts)
 {
   return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary);
 }
 
-/**
- * Check whether a drain is in progress and all I/O has completed.
- *
- * @param refCounts  The refCounts to check
- **/
-static void checkForDrainComplete(RefCounts *refCounts)
+/**********************************************************************/
+bool areRefCountsActive(RefCounts *refCounts)
 {
-  if (isRefCountsActive(refCounts)) {
-    return;
+  if (hasActiveIO(refCounts)) {
+    return true;
   }
 
-  AdminStateCode code = refCounts->slab->state.state;
-  if (!isDrainOperation(code)) {
-    return;
-  }
-
-  if (((code != ADMIN_STATE_SUSPENDING) && (code != ADMIN_STATE_RECOVERING))
-      && hasWaiters(&refCounts->dirtyBlocks)) {
     // When not suspending or recovering, the refCounts must be clean.
-    return;
-  }
-
-  notifyRefCountsAreDrained(refCounts->slab,
-                            (isReadOnly(refCounts->readOnlyNotifier)
-                             ? VDO_READ_ONLY : VDO_SUCCESS));
+  AdminStateCode code = refCounts->slab->state.state;
+  return (hasWaiters(&refCounts->dirtyBlocks)
+          && (code != ADMIN_STATE_SUSPENDING)
+          && (code != ADMIN_STATE_RECOVERING));
 }
 
 /**********************************************************************/
 static void enterRefCountsReadOnlyMode(RefCounts *refCounts, int result)
 {
   enterReadOnlyMode(refCounts->readOnlyNotifier, result);
-  checkForDrainComplete(refCounts);
+  checkIfSlabDrained(refCounts->slab);
 }
 
 /**
@@ -1053,7 +1040,7 @@ static void finishSummaryUpdate(Waiter *waiter, void *context)
 
   int result = *((int *) context);
   if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-    checkForDrainComplete(refCounts);
+    checkIfSlabDrained(refCounts->slab);
     return;
   }
 
@@ -1124,7 +1111,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
   block->isWriting = false;
 
   if (isReadOnly(refCounts->readOnlyNotifier)) {
-    checkForDrainComplete(refCounts);
+    checkIfSlabDrained(refCounts->slab);
     return;
   }
 
@@ -1141,7 +1128,7 @@ static void finishReferenceBlockWrite(VDOCompletion *completion)
 
   // Mark the RefCounts as clean in the slab summary if there are no dirty
   // or writing blocks and no summary update in progress.
-  if (!isRefCountsActive(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
+  if (!hasActiveIO(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
     updateSlabSummaryAsClean(refCounts);
   }
 }
@@ -1260,7 +1247,7 @@ void saveDirtyReferenceBlocks(RefCounts *refCounts)
 {
   notifyAllWaiters(&refCounts->dirtyBlocks, launchReferenceBlockWrite,
                    refCounts);
-  checkForDrainComplete(refCounts);
+  checkIfSlabDrained(refCounts->slab);
 }
 
 /**********************************************************************/
@@ -1343,7 +1330,7 @@ static void finishReferenceBlockLoad(VDOCompletion *completion)
   clearProvisionalReferences(block);
 
   refCounts->freeBlocks -= block->allocatedCount;
-  checkForDrainComplete(block->refCounts);
+  checkIfSlabDrained(block->refCounts->slab);
 }
 
 /**
@@ -1434,8 +1421,6 @@ void drainRefCounts(RefCounts *refCounts)
   if (save) {
     saveDirtyReferenceBlocks(refCounts);
   }
-
-  checkForDrainComplete(refCounts);
 }
 
 /**********************************************************************/

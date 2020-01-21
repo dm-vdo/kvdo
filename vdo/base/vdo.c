@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#19 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdo.c#20 $
  */
 
 /*
@@ -857,6 +857,21 @@ static ErrorStatistics getVDOErrorStatistics(const VDO *vdo)
 }
 
 /**********************************************************************/
+static const char *describeWritePolicy(WritePolicy policy)
+{
+  switch (policy) {
+  case WRITE_POLICY_ASYNC:
+    return "async";
+  case WRITE_POLICY_ASYNC_UNSAFE:
+    return "async-unsafe";
+  case WRITE_POLICY_SYNC:
+    return "sync";
+  default:
+    return "unknown";
+  }
+}
+
+/**********************************************************************/
 void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
 {
   // These are immutable properties of the VDO object, so it is safe to
@@ -874,7 +889,7 @@ void getVDOStatistics(const VDO *vdo, VDOStatistics *stats)
   stats->readOnlyRecoveries = vdo->readOnlyRecoveries;
   stats->blockMapCacheSize  = getBlockMapCacheSize(vdo);
   snprintf(stats->writePolicy, sizeof(stats->writePolicy), "%s",
-           ((getWritePolicy(vdo) == WRITE_POLICY_ASYNC) ? "async" : "sync"));
+           describeWritePolicy(getWritePolicy(vdo)));
 
   // The callees are responsible for thread-safety.
   stats->dataBlocksUsed     = getPhysicalBlocksAllocated(vdo);

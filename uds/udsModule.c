@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/udsModule.c#2 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/udsModule.c#31 $
  */
 
 #include <linux/module.h>
@@ -29,7 +29,6 @@
 #include "timeUtils.h"
 #include "uds.h"
 #include "uds-block.h"
-#include "uds-param.h"
 #include "util/funnelQueue.h"
 
 /**********************************************************************/
@@ -44,7 +43,6 @@ static int __init dedupeInit(void)
 /**********************************************************************/
 static void __exit dedupeExit(void)
 {
-  udsShutdown();
   putSysfs();
   memoryExit();
   logInfo("unloaded version %s", UDS_VERSION);
@@ -64,36 +62,22 @@ EXPORT_SYMBOL_GPL(udsConfigurationSetNonce);
 EXPORT_SYMBOL_GPL(udsConfigurationGetNonce);
 EXPORT_SYMBOL_GPL(udsConfigurationSetSparse);
 EXPORT_SYMBOL_GPL(udsConfigurationGetSparse);
-EXPORT_SYMBOL_GPL(udsConfigurationSetCheckpointFrequency);
-EXPORT_SYMBOL_GPL(udsConfigurationGetCheckpointFrequency);
 EXPORT_SYMBOL_GPL(udsConfigurationGetMemory);
 EXPORT_SYMBOL_GPL(udsConfigurationGetChaptersPerVolume);
 EXPORT_SYMBOL_GPL(udsFreeConfiguration);
 EXPORT_SYMBOL_GPL(udsGetVersion);
-EXPORT_SYMBOL_GPL(udsCreateLocalIndex);
-EXPORT_SYMBOL_GPL(udsLoadLocalIndex);
-EXPORT_SYMBOL_GPL(udsRebuildLocalIndex);
-EXPORT_SYMBOL_GPL(udsSaveIndex);
-EXPORT_SYMBOL_GPL(udsCloseIndexSession);
+EXPORT_SYMBOL_GPL(udsCreateIndexSession);
+EXPORT_SYMBOL_GPL(udsOpenIndex);
+EXPORT_SYMBOL_GPL(udsSuspendIndexSession);
+EXPORT_SYMBOL_GPL(udsResumeIndexSession);
+EXPORT_SYMBOL_GPL(udsCloseIndex);
+EXPORT_SYMBOL_GPL(udsDestroyIndexSession);
+EXPORT_SYMBOL_GPL(udsFlushIndexSession);
 EXPORT_SYMBOL_GPL(udsGetIndexConfiguration);
 EXPORT_SYMBOL_GPL(udsGetIndexStats);
+EXPORT_SYMBOL_GPL(udsGetIndexSessionStats);
 EXPORT_SYMBOL_GPL(udsStringError);
-
-EXPORT_SYMBOL_GPL(udsOpenBlockContext);
-EXPORT_SYMBOL_GPL(udsCloseBlockContext);
-EXPORT_SYMBOL_GPL(udsFlushBlockContext);
 EXPORT_SYMBOL_GPL(udsStartChunkOperation);
-EXPORT_SYMBOL_GPL(udsGetBlockContextIndexStats);
-EXPORT_SYMBOL_GPL(udsGetBlockContextStats);
-
-EXPORT_SYMBOL_GPL(UDS_PARAM_FALSE);
-EXPORT_SYMBOL_GPL(UDS_PARAM_TRUE);
-EXPORT_SYMBOL_GPL(udsGetParameter);
-EXPORT_SYMBOL_GPL(udsIterateParameter);
-EXPORT_SYMBOL_GPL(udsResetParameter);
-EXPORT_SYMBOL_GPL(udsSetParameter);
-EXPORT_SYMBOL_GPL(udsStringValue);
-EXPORT_SYMBOL_GPL(udsUnsignedValue);
 
 EXPORT_SYMBOL_GPL(allocSprintf);
 EXPORT_SYMBOL_GPL(allocateMemory);
@@ -153,8 +137,6 @@ EXPORT_SYMBOL_GPL(putUInt64BEsIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEIntoBuffer);
 EXPORT_SYMBOL_GPL(putUInt64LEsIntoBuffer);
 EXPORT_SYMBOL_GPL(reallocateMemory);
-EXPORT_SYMBOL_GPL(recordBioAlloc);
-EXPORT_SYMBOL_GPL(recordBioFree);
 EXPORT_SYMBOL_GPL(registerAllocatingThread);
 EXPORT_SYMBOL_GPL(reportMemoryUsage);
 EXPORT_SYMBOL_GPL(resetBufferEnd);

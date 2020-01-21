@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueHandle.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueHandle.c#2 $
  */
 
 #include "workQueueHandle.h"
@@ -46,5 +46,5 @@ void initializeWorkQueueStackHandle(WorkQueueStackHandle *handle,
 void initWorkQueueStackHandleOnce(void)
 {
   spin_lock_init(&workQueueStackHandleGlobals.offsetLock);
-  workQueueStackHandleGlobals.nonce = currentTime(CT_MONOTONIC);
+  workQueueStackHandleGlobals.nonce = currentTime(CLOCK_MONOTONIC);
 }

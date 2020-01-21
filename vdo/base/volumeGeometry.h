@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.h#5 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -160,6 +160,15 @@ __attribute__((warn_unused_result));
 int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
                                   UdsConfiguration *udsConfigPtr)
 __attribute__((warn_unused_result));
+
+/**
+ * Modify the uds_parameters to match the requested index config.
+ *
+ * @param indexConfig  The index config to convert
+ * @param userParams   The uds_parameters to modify
+ **/
+void indexConfigToUdsParameters(IndexConfig           *indexConfig,
+                                struct uds_parameters *userParams);
 
 /**
  * Compute the index size in blocks from the IndexConfig.

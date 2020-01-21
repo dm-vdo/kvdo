@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.c#6 $
  */
 
 #include "workQueueStats.h"
@@ -149,7 +149,7 @@ ssize_t formatRunTimeStats(const KvdoWorkQueueStats *stats, char *buffer)
   uint64_t runTime = atomic64_read(&stats->runTime);
   uint64_t rescheduleTime = atomic64_read(&stats->rescheduleTime);
   loadFence();                  // rdtsc barrier
-  uint64_t now = currentTime(CT_MONOTONIC);
+  uint64_t now = currentTime(CLOCK_MONOTONIC);
   uint64_t lifetime = now - startTime;
 
   return sprintf(buffer,

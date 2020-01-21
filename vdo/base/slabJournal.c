@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabJournal.c#17 $
  */
 
 #include "slabJournalInternals.h"
@@ -163,26 +163,14 @@ static inline bool isReaping(SlabJournal *journal)
   return (journal->head != journal->unreapable);
 }
 
-/**
- * Check whether the journal has drained (i.e. it has been told to drain,
- * and I/O is quiescent).
- *
- * @param journal  The journal
- **/
-static inline void checkForDrainComplete(SlabJournal *journal)
+/**********************************************************************/
+bool isSlabJournalActive(SlabJournal *journal)
 {
-  if (!isSlabDraining(journal->slab)
-      || mustMakeEntriesToFlush(journal)
-      || isReaping(journal)
-      || journal->waitingToCommit
-      || !isRingEmpty(&journal->uncommittedBlocks)
-      || journal->updatingSlabSummary) {
-    return;
-  }
-
-  notifySlabJournalIsDrained(journal->slab,
-                             (isVDOReadOnly(journal)
-                              ? VDO_READ_ONLY : VDO_SUCCESS));
+  return (mustMakeEntriesToFlush(journal)
+          || isReaping(journal)
+          || journal->waitingToCommit
+          || !isRingEmpty(&journal->uncommittedBlocks)
+          || journal->updatingSlabSummary);
 }
 
 /**
@@ -363,7 +351,7 @@ void abortSlabJournalWaiters(SlabJournal *journal)
                    == journal->slab->allocator->threadID),
                   "abortSlabJournalWaiters() called on correct thread");
   notifyAllWaiters(&journal->entryWaiters, abortWaiter, journal);
-  checkForDrainComplete(journal);
+  checkIfSlabDrained(journal->slab);
 }
 
 /**
@@ -391,7 +379,7 @@ static void finishReaping(SlabJournal *journal)
 {
   journal->head = journal->unreapable;
   addEntries(journal);
-  checkForDrainComplete(journal);
+  checkIfSlabDrained(journal->slab);
 }
 
 /**********************************************************************/
@@ -483,7 +471,7 @@ static void reapSlabJournal(SlabJournal *journal)
   }
 
   PhysicalLayer *layer = journal->slab->allocator->completion.layer;
-  if (!layer->isFlushRequired(layer)) {
+  if (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC) {
     finishReaping(journal);
     return;
   }
@@ -499,6 +487,16 @@ static void reapSlabJournal(SlabJournal *journal)
    * if the slab summary update is not persisted, they may still overwrite the
    * to-be-reaped slab journal block resulting in a loss of reference count
    * updates (VDO-2912).
+   *
+   * In sync mode, it is similarly unsafe. However, we cannot possibly make
+   * those additional slab journal block writes due to the blocking threshold
+   * and the recovery journal's flush policy of flushing before every block.
+   * We may make no more than (number of VIOs) entries in slab journals since
+   * the last recovery journal flush; thus, due to the size of the slab
+   * journal blocks, the RJ must have flushed the storage no more than one
+   * slab journal block ago. So we could only overwrite the to-be-reaped block
+   * if we wrote and flushed the last block in the journal. But the blocking
+   * threshold prevents that.
    */
   journal->flushWaiter.callback = flushForReaping;
   int result = acquireVIO(journal->slab->allocator, &journal->flushWaiter);
@@ -576,7 +574,7 @@ static void updateTailBlockLocation(SlabJournal *journal)
 {
   if (journal->updatingSlabSummary || isVDOReadOnly(journal)
       || (journal->lastSummarized >= journal->nextCommit)) {
-    checkForDrainComplete(journal);
+    checkIfSlabDrained(journal->slab);
     return;
   }
 
@@ -865,7 +863,7 @@ bool attemptReplayIntoSlabJournal(SlabJournal         *journal,
 
   if (journal->waitingToCommit) {
     startOperationWithWaiter(&journal->slab->state,
-                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent);
+                             ADMIN_STATE_WAITING_FOR_RECOVERY, parent, NULL);
     return false;
   }
 
@@ -1191,8 +1189,6 @@ void drainSlabJournal(SlabJournal *journal)
   default:
     commitSlabJournalTail(journal);
   }
-
-  checkForDrainComplete(journal);
 }
 
 /**

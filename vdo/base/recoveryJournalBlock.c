@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalBlock.c#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalBlock.c#13 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -256,36 +256,15 @@ static int getRecoveryBlockPBN(RecoveryJournalBlock *block,
   return result;
 }
 
-/**
- * Check whether a journal block should be committed.
- *
- * @param block  The journal block in question
- *
- * @return <code>true</code> if the block should be committed now
- **/
-static bool shouldCommit(RecoveryJournalBlock *block)
+/**********************************************************************/
+bool canCommitRecoveryBlock(RecoveryJournalBlock *block)
 {
-  // Never commit in read-only mode, if already committing the block, or
+  // Cannot commit in read-only mode, if already committing the block, or
   // if there are no entries to commit.
-  if ((block == NULL) || block->committing || !hasWaiters(&block->entryWaiters)
-      || isReadOnly(block->journal->readOnlyNotifier)) {
-    return false;
-  }
-
-  // Always commit filled journal blocks.
-  if (isRecoveryBlockFull(block)) {
-    return true;
-  }
-
-  /*
-   * We want to commit any journal blocks that have VIOs waiting on them, but
-   * we'd also like to accumulate entries instead of always writing a journal
-   * block immediately after the first entry is added. If there are any
-   * pending journal writes, we can safely defer committing this partial
-   * journal block until the last pending write completes, using the last
-   * write's completion as a flush/wake-up.
-   */
-  return (block->journal->pendingWriteCount == 0);
+  return ((block != NULL)
+           && !block->committing
+           && hasWaiters(&block->entryWaiters)
+           && !isReadOnly(block->journal->readOnlyNotifier));
 }
 
 /**********************************************************************/
@@ -293,12 +272,14 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
                         VDOAction            *callback,
                         VDOAction            *errorHandler)
 {
-  if (!shouldCommit(block)) {
-    return VDO_SUCCESS;
+  int result = ASSERT(canCommitRecoveryBlock(block), "should never call %s"
+		      " when the block can't be committed", __func__);
+  if (result != VDO_SUCCESS) {
+    return result;
   }
 
   PhysicalBlockNumber blockPBN;
-  int result = getRecoveryBlockPBN(block, &blockPBN);
+  result = getRecoveryBlockPBN(block, &blockPBN);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -324,23 +305,25 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
   block->committing = true;
 
   /*
-   * In sync mode, when we are writing an increment entry for a request with
-   * FUA, or when making the increment entry for a partial write, we need to
-   * make sure all the data being mapped to by this block is stable on disk
-   * and also that the recovery journal is stable up to the current block, so
-   * we must flush before writing.
+   * In sync or async mode, when we are writing an increment entry for a
+   * request with FUA, or when making the increment entry for a partial
+   * write, we need to make sure all the data being mapped to by this block
+   * is stable on disk and also that the recovery journal is stable up to
+   * the current block, so we must flush before writing.
    *
    * In sync mode, and for FUA, we also need to make sure that the write we
    * are doing is stable, so we issue the write with FUA.
    */
   PhysicalLayer *layer        = vioAsCompletion(block->vio)->layer;
-  bool           sync         = !layer->isFlushRequired(layer);
-  bool           fua          = sync || block->hasFUAEntry;
-  bool           flushBefore  = fua || block->hasPartialWriteEntry;
+  bool fua = (block->hasFUAEntry
+              || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+  bool flush = (block->hasFUAEntry
+                || (layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC_UNSAFE)
+		|| block->hasPartialWriteEntry);
   block->hasFUAEntry          = false;
   block->hasPartialWriteEntry = false;
   launchWriteMetadataVIOWithFlush(block->vio, blockPBN, callback, errorHandler,
-                                  flushBefore, fua);
+                                  flush, fua);
 
   return VDO_SUCCESS;
 }

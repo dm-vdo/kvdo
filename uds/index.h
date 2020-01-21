@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,19 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/index.h#4 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.h#3 $
  */
 
 #ifndef INDEX_H
 #define INDEX_H
 
 #include "chapterWriter.h"
-#include "indexRouterStats.h"
 #include "indexLayout.h"
+#include "indexSession.h"
 #include "indexZone.h"
 #include "loadType.h"
 #include "masterIndexOps.h"
 #include "volume.h"
+
 
 /**
  * Index checkpoint state private to indexCheckpoint.c.
@@ -36,15 +37,16 @@
 typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
-  bool           existed;
-  bool           hasSavedOpenChapter;
-  LoadType       loadedType;
-  IndexLayout   *layout;
-  IndexState    *state;
-  MasterIndex   *masterIndex;
-  Volume        *volume;
-  unsigned int   zoneCount;
-  IndexZone    **zones;
+  bool               existed;
+  bool               hasSavedOpenChapter;
+  LoadType           loadedType;
+  IndexLoadContext  *loadContext;
+  IndexLayout       *layout;
+  IndexState        *state;
+  MasterIndex       *masterIndex;
+  Volume            *volume;
+  unsigned int       zoneCount;
+  IndexZone        **zones;
 
   /*
    * ATTENTION!!!
@@ -69,21 +71,25 @@ typedef struct index {
 /**
  * Construct a new index from the given configuration.
  *
- * @param layout         The index layout
- * @param config         The configuration to use
- * @param zoneCount      The number of zones for this index to use
- * @param loadType       How to create the index:  it can be create only,
- *                       allow loading from files, and allow rebuilding
- *                       from the volume
- * @param newIndex       A pointer to hold a pointer to the new index
+ * @param layout       The index layout
+ * @param config       The configuration to use
+ * @param userParams   The index session parameters.  If NULL, the default
+ *                     session parameters will be used.
+ * @param zoneCount    The number of zones for this index to use
+ * @param loadType     How to create the index:  it can be create only, allow
+ *                     loading from files, and allow rebuilding from the volume
+ * @param loadContext  The load context to use
+ * @param newIndex     A pointer to hold a pointer to the new index
  *
  * @return         UDS_SUCCESS or an error code
  **/
-int makeIndex(IndexLayout          *layout,
-              const Configuration  *config,
-              unsigned int          zoneCount,
-              LoadType              loadType,
-              Index               **newIndex)
+int makeIndex(IndexLayout                  *layout,
+              const Configuration          *config,
+              const struct uds_parameters  *userParams,
+              unsigned int                  zoneCount,
+              LoadType                      loadType,
+              IndexLoadContext             *loadContext,
+              Index                       **newIndex)
   __attribute__((warn_unused_result));
 
 /**
@@ -95,11 +101,6 @@ int makeIndex(IndexLayout          *layout,
  * Some users follow saveIndex immediately with a freeIndex.  But some tests
  * use the IndexLayout to modify the saved index.  The Index will then have
  * some cached information that does not reflect these updates.
- *
- * XXX - If we put a use count on the IndexLayout, and implement a get/put
- *       mechanism, we can refactor into a safer saveAndFreeIndex method.  The
- *       tests could then "get" the IndexLayout and use it to modify the saved
- *       index after the Index is freed.
  *
  * @param index   The index to save
  *
@@ -174,7 +175,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
  * @param index     The index
  * @param counters  the statistic counters for the index
  **/
-void getIndexStats(Index *index, IndexRouterStatCounters *counters);
+void getIndexStats(Index *index, UdsIndexStats *counters);
 
 /**
  * Set lookup state for this index.  Disabling lookups means assume

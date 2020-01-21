@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,15 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/indexLayoutLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/indexLayoutLinuxKernel.c#5 $
  */
 
 #include "indexLayout.h"
 #include "indexLayoutParser.h"
-#include "linuxIORegion.h"
-#include "logger.h"
 #include "memoryAlloc.h"
-#include "singleFileLayout.h"
 
 /*****************************************************************************/
 int makeIndexLayout(const char              *name,
@@ -56,40 +53,19 @@ int makeIndexLayout(const char              *name,
     return result;
   }
 
-  if (size == 0) {
-    if (config == NULL) {
-      size = 1L << 40;
-    } else {
-      result = udsComputeIndexSize(config, 0, &size);
-      if (result != UDS_SUCCESS) {
-        FREE(params);
-        return result;
-      }
-    }
-  }
-
-  IORegion *region = NULL;
-  if (dev != NULL) {
-    result = openLinuxRegion(dev, offset + size, &region);
-  } else {
-    FREE(params);
-    return logErrorWithStringError(UDS_INDEX_NAME_REQUIRED,
-                                   "no index specified");
-  }
+  IOFactory *factory = NULL;
+  result = makeIOFactory(dev, &factory);
   FREE(params);
   if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
     return result;
   }
-
-
-  if (newLayout) {
-    result = createSingleFileLayout(region, offset, size, config, layoutPtr);
-  } else {
-    result = loadSingleFileLayout(region, offset, layoutPtr);
-  }
+  IndexLayout *layout;
+  result = makeIndexLayoutFromFactory(factory, offset, size, newLayout, config,
+                                      &layout);
+  putIOFactory(factory);
   if (result != UDS_SUCCESS) {
-    closeIORegion(&region);
+    return result;
   }
-  return result;
+  *layoutPtr = layout;
+  return UDS_SUCCESS;
 }

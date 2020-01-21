@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/util/radixSort.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/util/radixSort.c#2 $
  */
 
 /*
@@ -121,7 +121,8 @@ static INLINE void insertionSort(const Task task)
 {
   // (firstKey .. firstKey) is trivially sorted. Repeatedly insert the next
   // key into the sorted list of keys preceding it, and voila!
-  for (Key *next = task.firstKey + 1; next <= task.lastKey; next++) {
+  Key *next;
+  for (next = task.firstKey + 1; next <= task.lastKey; next++) {
     insertKey(task, next);
   }
 }
@@ -168,7 +169,8 @@ static INLINE void measureBins(const Task task, Histogram *bins)
   // sorting code clears it all out as it goes. Even though this structure is
   // re-used, we don't need to pay to zero it before starting a new tally.
 
-  for (Key *keyPtr = task.firstKey; keyPtr <= task.lastKey; keyPtr++) {
+  Key *keyPtr;
+  for (keyPtr = task.firstKey; keyPtr <= task.lastKey; keyPtr++) {
     // Increment the count for the byte in the key at the current offset.
     uint8_t bin = (*keyPtr)[task.offset];
     uint32_t size = ++bins->size[bin];
@@ -218,7 +220,8 @@ static INLINE int pushBins(Task       **stack,
                            uint16_t    length)
 {
   Key *pileStart = firstKey;
-  for (int bin = bins->first; ; bin++) {
+  int bin;
+  for (bin = bins->first; ; bin++) {
     uint32_t size = bins->size[bin];
     // Skip empty piles.
     if (size == 0) {
@@ -324,7 +327,8 @@ int radixSort(RadixSorter         *sorter,
     Key *end = task.lastKey - bins->size[bins->last];
     bins->size[bins->last] = 0;
 
-    for (Key *fence = task.firstKey; fence <= end; ) {
+    Key *fence;
+    for (fence = task.firstKey; fence <= end; ) {
       uint8_t bin;
       Key key = *fence;
       // The radix byte of the key tells us which pile it belongs in. Swap it

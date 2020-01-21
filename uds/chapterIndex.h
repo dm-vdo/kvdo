@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/chapterIndex.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.h#4 $
  */
 
 #ifndef CHAPTER_INDEX_H
@@ -35,24 +35,25 @@ typedef struct openChapterIndex {
   const Geometry *geometry;
   DeltaIndex      deltaIndex;
   uint64_t        virtualChapterNumber;
+  bool            headerNativeEndian;
+  uint64_t        volumeNonce;
 } OpenChapterIndex;
-
-typedef struct chapterIndexPage {
-  DeltaIndex  deltaIndex;
-  DeltaMemory deltaMemory;
-} ChapterIndexPage;
 
 
 /**
  * Make a new open chapter index.
  *
  * @param openChapterIndex  Location to hold new open chapter index pointer
- * @param geometry          The geometry
+ * @param geometry                        The geometry
+ * @param chapterIndexHeaderNativeEndian  chapter index header format
+ * @param volumeNonce                     The volume nonce.
  *
  * @return error code or UDS_SUCCESS
  **/
 int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry)
+                         const Geometry    *geometry,
+                         bool               chapterIndexHeaderNativeEndian,
+                         uint64_t           volumeNonce)
   __attribute__((warn_unused_result));
 
 /**
@@ -94,7 +95,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  * copied onto the page is returned to the caller.
  *
  * @param openChapterIndex  The open chapter index
- * @param volumeNonce       The nonce value used to authenticate the volume
  * @param memory            The memory page to use
  * @param firstList         The first delta list number to be copied
  * @param lastPage          If true, this is the last page of the chapter
@@ -106,7 +106,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
  *         argument contains the number of lists copied.
  **/
 int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             uint64_t          volumeNonce,
                              byte             *memory,
                              unsigned int      firstList,
                              bool              lastPage,
@@ -143,10 +142,10 @@ size_t getOpenChapterIndexMemoryAllocated(OpenChapterIndex *openChapterIndex);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int initializeChapterIndexPage(ChapterIndexPage *chapterIndexPage,
-                               const Geometry   *geometry,
-                               byte             *indexPage,
-                               uint64_t          volumeNonce)
+int initializeChapterIndexPage(DeltaIndexPage *chapterIndexPage,
+                               const Geometry *geometry,
+                               byte           *indexPage,
+                               uint64_t        volumeNonce)
   __attribute__((warn_unused_result));
 
 /**
@@ -162,8 +161,8 @@ int initializeChapterIndexPage(ChapterIndexPage *chapterIndexPage,
  *         UDS_CORRUPT_DATA if there is a problem in a delta list bit stream
  *         UDS_BAD_STATE if the code follows an invalid code path
  **/
-int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
-                             const Geometry         *geometry)
+int validateChapterIndexPage(const DeltaIndexPage *chapterIndexPage,
+                             const Geometry       *geometry)
   __attribute__((warn_unused_result));
 
 /**
@@ -178,39 +177,10 @@ int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
+int searchChapterIndexPage(DeltaIndexPage     *chapterIndexPage,
                            const Geometry     *geometry,
                            const UdsChunkName *name,
                            int                *recordPagePtr)
   __attribute__((warn_unused_result));
-
-/**
- * Get the virtual chapter number from an immutable chapter index page.
- *
- * @param page  The chapter index page
- *
- * @return the virtual chapter number
- **/
-uint64_t getChapterIndexVirtualChapterNumber(const ChapterIndexPage *page);
-
-/**
- * Get the lowest numbered delta list for the given immutable chapter index
- * page.
- *
- * @param page  The chapter index page
- *
- * @return the number of the first delta list in the page
- **/
-unsigned int getChapterIndexLowestListNumber(const ChapterIndexPage *page);
-
-/**
- * Get the highest numbered delta list for the given immutable chapter index
- * page.
- *
- * @param page  The chapter index page
- *
- * @return the number of the last delta list in the page
- **/
-unsigned int getChapterIndexHighestListNumber(const ChapterIndexPage *page);
 
 #endif /* CHAPTER_INDEX_H */

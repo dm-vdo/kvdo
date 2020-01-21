@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/memoryLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#6 $
  */
 
 #include <linux/delay.h>
@@ -24,8 +24,8 @@
 #include <linux/module.h>
 #include <linux/sched/mm.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 
 #include "compilerDefs.h"
 #include "logger.h"
@@ -95,8 +95,6 @@ static struct {
   size_t            vmallocBlocks;
   size_t            vmallocBytes;
   size_t            peakBytes;
-  size_t            bioCount;
-  size_t            peakBioCount;
   VmallocBlockInfo *vmallocList;
 } memoryStats __cacheline_aligned;
 
@@ -233,14 +231,8 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
    * use the OOM killer soon.  The caller must handle failure, but can
    * reasonably do so by failing a higher-level request, or completing it only
    * in a much less efficient manner.
-   *
-   * __GFP_REPEAT is an old name for __GFP_RETRY_MAYFAIL.
    */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,13,0)
   const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_RETRY_MAYFAIL;
-#else
-  const gfp_t gfpFlags = GFP_KERNEL | __GFP_ZERO | __GFP_REPEAT;
-#endif
 
   bool allocationsRestricted = !allocationsAllowed();
   unsigned int noioFlags;
@@ -314,7 +306,7 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
 
   if (p == NULL) {
     unsigned int duration = jiffies_to_msecs(jiffies - startTime);
-    logError("Could not allocate %lu bytes for %s in %u msecs",
+    logError("Could not allocate %zu bytes for %s in %u msecs",
              size, what, duration);
     return ENOMEM;
   }
@@ -345,24 +337,6 @@ void freeMemory(void *ptr)
       kfree(ptr);
     }
   }
-}
-
-/*****************************************************************************/
-int doPlatformVasprintf(const char  *what,
-                        char       **strp,
-                        const char  *fmt,
-                        va_list      ap)
-{
-  va_list args;
-  va_copy(args, ap);
-  int count = vsnprintf(NULL, 0, fmt, args) + 1;
-  va_end(args);
-  int result = ALLOCATE(count, char, what, strp);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-  vsnprintf(*strp, count, fmt, ap);
-  return UDS_SUCCESS;
 }
 
 /*****************************************************************************/
@@ -417,49 +391,15 @@ void memoryExit(void)
                   memoryStats.vmallocBytes, memoryStats.vmallocBlocks);
   logDebug("%s peak usage %zd bytes", THIS_MODULE->name,
            memoryStats.peakBytes);
-
-  if (memoryStats.peakBioCount > 0) {
-    ASSERT_LOG_ONLY(memoryStats.bioCount == 0,
-                    "bio structures used (%zd) are returned to the kernel",
-                    memoryStats.bioCount);
-    logDebug("%s peak usage %zd bio structures", THIS_MODULE->name,
-             memoryStats.peakBioCount);
-  }
 }
 
 /**********************************************************************/
-void recordBioAlloc(void)
-{
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.bioCount++;
-  if (memoryStats.bioCount > memoryStats.peakBioCount) {
-    memoryStats.peakBioCount = memoryStats.bioCount;
-  }
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-}
-
-/**********************************************************************/
-void recordBioFree(void)
-{
-  unsigned long flags;
-  spin_lock_irqsave(&memoryStats.lock, flags);
-  memoryStats.bioCount--;
-  spin_unlock_irqrestore(&memoryStats.lock, flags);
-}
-
-/**********************************************************************/
-void getMemoryStats(uint64_t *bytesUsed,
-                    uint64_t *peakBytesUsed,
-                    uint64_t *biosUsed,
-                    uint64_t *peakBioCount)
+void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed)
 {
   unsigned long flags;
   spin_lock_irqsave(&memoryStats.lock, flags);
   *bytesUsed     = memoryStats.kmallocBytes + memoryStats.vmallocBytes;
   *peakBytesUsed = memoryStats.peakBytes;
-  *biosUsed      = memoryStats.bioCount;
-  *peakBioCount  = memoryStats.peakBioCount;
   spin_unlock_irqrestore(&memoryStats.lock, flags);
 }
 
@@ -473,8 +413,6 @@ void reportMemoryUsage()
   uint64_t vmallocBlocks = memoryStats.vmallocBlocks;
   uint64_t vmallocBytes = memoryStats.vmallocBytes;
   uint64_t peakUsage = memoryStats.peakBytes;
-  uint64_t bioCount = memoryStats.bioCount;
-  uint64_t peakBioCount = memoryStats.peakBioCount;
   spin_unlock_irqrestore(&memoryStats.lock, flags);
   uint64_t totalBytes = kmallocBytes + vmallocBytes;
   logInfo("current module memory tracking"
@@ -485,7 +423,4 @@ void reportMemoryUsage()
           vmallocBytes, vmallocBlocks);
   logInfo("  total %" PRIu64 " bytes, peak usage %" PRIu64 " bytes",
           totalBytes, peakUsage);
-  // Someday maybe we could track the size of allocated bios too.
-  logInfo("  %" PRIu64 " bio structs, peak %" PRIu64,
-          bioCount, peakBioCount);
 }

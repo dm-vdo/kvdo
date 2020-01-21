@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/util/eventCount.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/util/eventCount.c#2 $
  */
 
 /**
@@ -168,7 +168,7 @@ void eventCountBroadcast(EventCount *ec)
    * semaphores, so we've got to loop to do them all.
    */
   while (waiters-- > 0) {
-    releaseSemaphore(&ec->semaphore, __func__);
+    releaseSemaphore(&ec->semaphore);
   }
 }
 
@@ -214,14 +214,14 @@ static INLINE bool fastCancel(EventCount *ec, EventToken token)
 static bool consumeWaitToken(EventCount *ec, const RelTime *timeout)
 {
   // Try to grab a token without waiting.
-  if (attemptSemaphore(&ec->semaphore, 0, __func__)) {
+  if (attemptSemaphore(&ec->semaphore, 0)) {
     return true;
   }
 
 
   if (timeout == NULL) {
-    acquireSemaphore(&ec->semaphore, __func__);
-  } else if (!attemptSemaphore(&ec->semaphore, *timeout, __func__)) {
+    acquireSemaphore(&ec->semaphore);
+  } else if (!attemptSemaphore(&ec->semaphore, *timeout)) {
     return false;
   }
   return true;
@@ -239,7 +239,7 @@ int makeEventCount(EventCount **ecPtr)
   }
 
   atomic64_set(&ec->state, 0);
-  result = initializeSemaphore(&ec->semaphore, 0, __func__);
+  result = initializeSemaphore(&ec->semaphore, 0);
   if (result != UDS_SUCCESS) {
     FREE(ec);
     return result;
@@ -255,7 +255,7 @@ void freeEventCount(EventCount *ec)
   if (ec == NULL) {
     return;
   }
-  destroySemaphore(&ec->semaphore, __func__);
+  destroySemaphore(&ec->semaphore);
   FREE(ec);
 }
 
@@ -309,7 +309,7 @@ bool eventCountWait(EventCount *ec, EventToken token, const RelTime *timeout)
 
     // We consumed someone else's wait token. Put it back in the semaphore,
     // which will wake another waiter, hopefully one who can stop waiting.
-    releaseSemaphore(&ec->semaphore, __func__);
+    releaseSemaphore(&ec->semaphore);
 
     // Attempt to give an earlier waiter a shot at the semaphore.
     yieldScheduler();

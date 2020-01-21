@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,37 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/random.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/random.h#2 $
  */
 
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#include "common.h"
+#ifdef __KERNEL__
+#include <linux/random.h>
+#else
+#include <stdlib.h>
+#endif
+
 #include "compiler.h"
-#include "randomDefs.h"
 #include "typeDefs.h"
-
-/**
- * Create a random block name.
- *
- * @param [out] name    the resulting random block name
- **/
-
-static INLINE void createRandomBlockName(UdsChunkName *name)
-{
-  fillRandomly(name->name, UDS_CHUNK_NAME_SIZE);
-}
-
-/**
- * Create random block metadata.
- *
- * @param [out] data    the result random metadata
- **/
-static INLINE void createRandomMetadata(UdsChunkData *data)
-{
-  fillRandomly(data->data, UDS_MAX_BLOCK_DATA_SIZE);
-}
 
 /**
  * Get random unsigned integer in a given range
@@ -60,8 +43,39 @@ unsigned int randomInRange(unsigned int lo, unsigned int hi);
 
 /**
  * Special function wrapper required for compile-time assertions. This
- * function will fail to compile RAND_MAX is not of the form 2^n - 1.
+ * function will fail to compile if RAND_MAX is not of the form 2^n - 1.
  **/
 void randomCompileTimeAssertions(void);
+
+/**
+ * Fill bytes with random data.
+ *
+ * @param ptr   where to store bytes
+ * @param len   number of bytes to write
+ **/
+#ifdef __KERNEL__
+static INLINE void fillRandomly(void *ptr, size_t len)
+{
+  prandom_bytes(ptr, len);
+}
+#else
+void fillRandomly(void *ptr, size_t len);
+#endif
+
+#ifdef __KERNEL__
+#define RAND_MAX 2147483647
+
+/**
+ * Random number generator
+ *
+ * @return a random number in the rand 0 to RAND_MAX
+ **/
+static INLINE long random(void)
+{
+  long value;
+  fillRandomly(&value, sizeof(value));
+  return value & RAND_MAX;
+}
+#endif
 
 #endif /* RANDOM_H */

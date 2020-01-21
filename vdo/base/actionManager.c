@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/actionManager.c#8 $
  */
 
 #include "actionManager.h"
@@ -297,6 +297,21 @@ static void launchCurrentAction(ActionManager *manager)
 }
 
 /**
+ * Attempt to schedule a next action.
+ *
+ * @param manager  The action manager
+ *
+ * @return <code>true</code> if an action was scheduled.
+ **/
+static bool scheduleDefaultAction(ActionManager *manager)
+{
+  // Don't schedule a default action if we are operating or not in normal
+  // operation.
+  return ((manager->state.state == ADMIN_STATE_NORMAL_OPERATION)
+          && manager->scheduler(manager->context));
+}
+
+/**
  * Finish an action now that it has been applied to all zones. This
  * callback is registered in applyToZone().
  *
@@ -312,7 +327,7 @@ static void finishActionCallback(VDOCompletion *completion)
   // We need to check this now to avoid use-after-free issues if running the
   // conclusion or notifying the parent results in the manager being freed.
   bool hasNextAction = (manager->currentAction->inUse
-                        || manager->scheduler(manager->context));
+                        || scheduleDefaultAction(manager));
   int result = action.conclusion(manager->context);
   finishOperation(&manager->state);
   if (action.parent != NULL) {

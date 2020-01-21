@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/deltaIndex.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/deltaIndex.h#4 $
  */
 
 #ifndef DELTAINDEX_H
@@ -39,6 +39,23 @@ typedef struct deltaIndex {
   bool isMutable;             // True if this index is mutable
   byte tag;                   // Tag belonging to this delta index
 } DeltaIndex;
+
+/*
+ * A DeltaIndexPage describes a single page of a chapter index.  The deltaIndex
+ * field allows the page to be treated as an immutable DeltaIndex.  We use the
+ * deltaMemory field to treat the chapter index page as a single zone index,
+ * and without the need to do an additional memory allocation.
+ */
+
+typedef struct deltaIndexPage {
+  DeltaIndex   deltaIndex;
+  // These values are loaded from the DeltaPageHeader
+  unsigned int lowestListNumber;
+  unsigned int highestListNumber;
+  uint64_t     virtualChapterNumber;
+  // This structure describes the single zone of a delta index page.
+  DeltaMemory  deltaMemory;
+} DeltaIndexPage;
 
 /*
  * Notes on the DeltaIndexEntries:
@@ -119,8 +136,7 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
 /**
  * Initialize an immutable delta index page.
  *
- * @param deltaIndex      The delta index to initialize
- * @param deltaMemory     The delta memory used for the immutable delta zone
+ * @param deltaIndexPage  The delta index page to initialize
  * @param expectedNonce   If non-zero, the expected nonce.
  * @param meanDelta       The mean delta value
  * @param numPayloadBits  The number of bits in the payload or value
@@ -129,10 +145,12 @@ int initializeDeltaIndex(DeltaIndex *deltaIndex, unsigned int numZones,
  *
  * @return error code or UDS_SUCCESS
  **/
-int initializeDeltaIndexPage(DeltaIndex *deltaIndex, DeltaMemory *deltaMemory,
-                             uint64_t expectedNonce, unsigned int meanDelta,
-                             unsigned int numPayloadBits, byte *memory,
-                             size_t memSize)
+int initializeDeltaIndexPage(DeltaIndexPage *deltaIndexPage,
+                             uint64_t        expectedNonce,
+                             unsigned int    meanDelta,
+                             unsigned int    numPayloadBits,
+                             byte           *memory,
+                             size_t          memSize)
   __attribute__((warn_unused_result));
 
 /**
@@ -159,14 +177,14 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex,
                          unsigned int zoneNumber);
 
 /**
- * Pack delta lists from a mutable delta index into an immutable delta
- * index page.  A range of delta lists (starting with a specified list
- * index) is copied from the mutable delta index into a memory page used
- * in the immutable index.  The number of lists copied onto the page is
- * returned to the caller.
+ * Pack delta lists from a mutable delta index into an immutable delta index
+ * page.  A range of delta lists (starting with a specified list index) is
+ * copied from the mutable delta index into a memory page used in the immutable
+ * index.  The number of lists copied onto the page is returned to the caller.
  *
  * @param deltaIndex            The delta index being converted
  * @param headerNonce           The header nonce to store
+ * @param headerNativeEndian    If true, write native endian header
  * @param memory                The memory page to use
  * @param memSize               The size of the memory page
  * @param virtualChapterNumber  The virtual chapter number
@@ -176,11 +194,16 @@ void emptyDeltaIndexZone(const DeltaIndex *deltaIndex,
  * @return error code or UDS_SUCCESS.  On UDS_SUCCESS, the numLists
  *         argument contains the number of lists copied.
  **/
-int packDeltaIndexPage(const DeltaIndex *deltaIndex, uint64_t headerNonce,
-                       byte *memory, size_t memSize,
-                       uint64_t virtualChapterNumber, unsigned int firstList,
-                       unsigned int *numLists)
+int packDeltaIndexPage(const DeltaIndex *deltaIndex,
+                       uint64_t          headerNonce,
+                       bool              headerNativeEndian,
+                       byte             *memory,
+                       size_t            memSize,
+                       uint64_t          virtualChapterNumber,
+                       unsigned int      firstList,
+                       unsigned int     *numLists)
   __attribute__((warn_unused_result));
+
 
 /**
  * Set the tag value used when saving and/or restoring a delta index.
@@ -544,36 +567,6 @@ uint64_t getDeltaIndexDlistBitsAllocated(const DeltaIndex *deltaIndex)
  * @param stats       The statistics
  **/
 void getDeltaIndexStats(const DeltaIndex *deltaIndex, DeltaIndexStats *stats);
-
-/**
- * Get the virtual chapter number for the given delta index page.
- *
- * @param deltaIndex    The delta index
- *
- * @return the virtual chapter number
- **/
-uint64_t getDeltaIndexVirtualChapterNumber(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
-
-/**
- * Get the lowest numbered delta list for the given index.
- *
- * @param deltaIndex    The delta index
- *
- * @return              The number of the first delta list in the index
- **/
-unsigned int getDeltaIndexLowestListNumber(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
-
-/**
- * Get the highest numbered delta list for the given index.
- *
- * @param deltaIndex    The delta index
- *
- * @return              The number of the last delta list in the index
- **/
-unsigned int getDeltaIndexHighestListNumber(const DeltaIndex *deltaIndex)
-  __attribute__((warn_unused_result));
 
 /**
  * Get the number of pages needed for an immutable delta index.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#17 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.c#20 $
  */
 
 #include "blockMapTree.h"
@@ -216,18 +216,12 @@ bool copyValidPage(char                *buffer,
   return false;
 }
 
-/**
- * Check whether the zone has any outstanding I/O, and if not, drain the page
- * cache.
- *
- * @param zone  The zone to check
- **/
-static void checkForIOComplete(BlockMapTreeZone *zone)
+/**********************************************************************/
+bool isTreeZoneActive(BlockMapTreeZone *zone)
 {
-  if (isDraining(&zone->mapZone->adminState) && (zone->activeLookups == 0)
-      && !hasWaiters(&zone->flushWaiters) && !isVIOPoolBusy(zone->vioPool)) {
-    drainVDOPageCache(zone->mapZone->pageCache);
-  }
+  return ((zone->activeLookups != 0)
+          || hasWaiters(&zone->flushWaiters)
+          || isVIOPoolBusy(zone->vioPool));
 }
 
 /**
@@ -246,7 +240,7 @@ static void enterZoneReadOnlyMode(BlockMapTreeZone *zone, int result)
     dequeueNextWaiter(&zone->flushWaiters);
   }
 
-  checkForIOComplete(zone);
+  checkForDrainComplete(zone->mapZone);
 }
 
 /**
@@ -439,7 +433,7 @@ static void writePageIfNotDirtied(Waiter *waiter, void *context)
 static void returnToPool(BlockMapTreeZone *zone, VIOPoolEntry *entry)
 {
   returnVIOToPool(zone->vioPool, entry);
-  checkForIOComplete(zone);
+  checkForDrainComplete(zone->mapZone);
 }
 
 /**
@@ -609,11 +603,9 @@ void drainZoneTrees(BlockMapTreeZone *zone)
 {
   ASSERT_LOG_ONLY((zone->activeLookups == 0),
                   "drainZoneTrees() called with no active lookups");
-  if (!isSuspending(&zone->mapZone->adminState)) {
+  if (!isSuspending(&zone->mapZone->state)) {
     flushDirtyLists(zone->dirtyLists);
   }
-
-  checkForIOComplete(zone);
 }
 
 /**
@@ -647,12 +639,13 @@ static void finishLookup(DataVIO *dataVIO, int result)
 {
   dataVIO->treeLock.height = 0;
 
-  BlockMapTreeZone *zone       = getBlockMapTreeZone(dataVIO);
-  VDOCompletion    *completion = dataVIOAsCompletion(dataVIO);
+  BlockMapTreeZone *zone = getBlockMapTreeZone(dataVIO);
+  --zone->activeLookups;
+
+  VDOCompletion *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
   launchCallback(completion, dataVIO->treeLock.callback,
                  dataVIO->treeLock.threadID);
-  --zone->activeLookups;
 }
 
 /**
@@ -1188,7 +1181,7 @@ void lookupBlockMapPBN(DataVIO *dataVIO)
 {
   BlockMapTreeZone *zone = getBlockMapTreeZone(dataVIO);
   zone->activeLookups++;
-  if (isDraining(&zone->mapZone->adminState)) {
+  if (isDraining(&zone->mapZone->state)) {
     finishLookup(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }

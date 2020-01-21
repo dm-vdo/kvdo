@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexPageMap.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexPageMap.h#2 $
  */
 
 #ifndef INDEX_PAGE_MAP_H
@@ -137,17 +137,6 @@ int getListNumberBounds(const IndexPageMap *map,
                         unsigned int        indexPageNumber,
                         IndexPageBounds    *bounds)
   __attribute__((warn_unused_result));
-
-/**
- * Dump information about the specified chapter of the index page map
- * into the log.
- *
- * @param map       The map to search
- * @param chapter   The chapter containing the delta list
- *
- * @return UDS_SUCCESS or an error code
- **/
-int dumpIndexPageMap(const IndexPageMap *map, unsigned int  chapter);
 
 /**
  * Compute the size of the index page map save image, including all headers.

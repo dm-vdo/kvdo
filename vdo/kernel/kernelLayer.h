@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelLayer.h#15 $
  */
 
 #ifndef KERNELLAYER_H
@@ -246,6 +246,12 @@ typedef struct kvdoEnqueueable {
   KvdoWorkItem workItem;
   Enqueueable  enqueueable;
 } KvdoEnqueueable;
+
+/**
+ * Implements LayerFilter.
+ **/
+bool layerIsNamed(KernelLayer *layer, void *context)
+  __attribute__((warn_unused_result));
 
 /**
  * Creates a kernel specific physical layer to be used by VDO

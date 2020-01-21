@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/index.c#5 $
+ * $Id: //eng/uds-releases/jasper/src/uds/index.c#15 $
  */
 
 #include "index.h"
@@ -27,6 +27,7 @@
 #include "logger.h"
 
 static const uint64_t NO_LAST_CHECKPOINT = UINT_MAX;
+
 
 /**
  * Replay an index which was loaded from a checkpoint.
@@ -112,7 +113,8 @@ static int loadIndex(Index *index, bool allowReplay)
     }
   }
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     setActiveChapters(index->zones[i]);
   }
 
@@ -172,7 +174,8 @@ static int rebuildIndex(Index *index)
     return result;
   }
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
     setActiveChapters(index->zones[i]);
   }
 
@@ -181,18 +184,22 @@ static int rebuildIndex(Index *index)
 }
 
 /**********************************************************************/
-int makeIndex(IndexLayout          *layout,
-              const Configuration  *config,
-              unsigned int          zoneCount,
-              LoadType              loadType,
-              Index               **newIndex)
+int makeIndex(IndexLayout                  *layout,
+              const Configuration          *config,
+              const struct uds_parameters  *userParams,
+              unsigned int                  zoneCount,
+              LoadType                      loadType,
+              IndexLoadContext             *loadContext,
+              Index                       **newIndex)
 {
   Index *index;
-  int result = allocateIndex(layout, config, zoneCount, loadType,
-                             !READ_ONLY_INDEX, &index);
+  int result = allocateIndex(layout, config, userParams, zoneCount, loadType,
+                             &index);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "could not allocate index");
   }
+
+  index->loadContext = loadContext;
 
   uint64_t nonce = getVolumeNonce(layout);
   result = makeMasterIndex(config, zoneCount, nonce, &index->masterIndex);
@@ -215,7 +222,8 @@ int makeIndex(IndexLayout          *layout,
     return result;
   }
 
-  result = makeChapterWriter(index, &index->chapterWriter);
+  result = makeChapterWriter(index, getIndexVersion(layout),
+                             &index->chapterWriter);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;
@@ -227,7 +235,14 @@ int makeIndex(IndexLayout          *layout,
       return UDS_NO_INDEX;
     }
     result = loadIndex(index, loadType == LOAD_REBUILD);
-    if (result != UDS_SUCCESS) {
+    switch (result) {
+    case UDS_SUCCESS:
+      break;
+    case ENOMEM:
+      // We should not try a rebuild for this error.
+      logErrorWithStringError(result, "index could not be loaded");
+      break;
+    default:
       logErrorWithStringError(result, "index could not be loaded");
       if (loadType == LOAD_REBUILD) {
         result = rebuildIndex(index);
@@ -235,6 +250,7 @@ int makeIndex(IndexLayout          *layout,
           logErrorWithStringError(result, "index could not be rebuilt");
         }
       }
+      break;
     }
   } else {
     index->loadedType = LOAD_CREATE;
@@ -244,6 +260,15 @@ int makeIndex(IndexLayout          *layout,
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return logUnrecoverable(result, "fatal error in makeIndex");
+  }
+
+  if (index->loadContext != NULL) {
+    lockMutex(&index->loadContext->mutex);
+    index->loadContext->status = INDEX_READY;
+    // If we get here, suspend is meaningless, but notify any thread trying
+    // to suspend us so it doesn't hang.
+    broadcastCond(&index->loadContext->cond);
+    unlockMutex(&index->loadContext->mutex);
   }
 
   index->hasSavedOpenChapter = index->loadedType == LOAD_LOAD;
@@ -266,8 +291,9 @@ void freeIndex(Index *index)
 }
 
 /**********************************************************************/
-static int saveIndexComponents(Index *index)
+int saveIndex(Index *index)
 {
+  waitForIdleChapterWriter(index->chapterWriter);
   int result = finishCheckpointing(index);
   if (result != UDS_SUCCESS) {
     logInfo("save index failed");
@@ -284,25 +310,6 @@ static int saveIndexComponents(Index *index)
     logInfo("finished save (vcn %" PRIu64 ")", index->lastCheckpoint);
   }
   return result;
-}
-
-/**********************************************************************/
-int saveIndex(Index *index)
-{
-  // Ensure that the volume is securely on storage
-  waitForIdleChapterWriter(index->chapterWriter);
-  int result = syncRegionContents(index->volume->region);
-  switch (result) {
-  case UDS_SUCCESS:
-  case UDS_UNSUPPORTED:
-    break;
-  default:
-    // If we couldn't save the volume, the index state is useless
-    discardIndexStateData(index->state);
-    return logErrorWithStringError(result, "cannot sync volume IORegion");
-  }
-
-  return saveIndexComponents(index);
 }
 
 /**
@@ -329,8 +336,8 @@ static IndexZone *getRequestZone(Index *index, Request *request)
 static int searchIndexZone(IndexZone *zone, Request *request)
 {
   MasterIndexRecord record;
-  int result = getMasterIndexRecord(zone->index->masterIndex, &request->hash,
-                                    &record);
+  int result = getMasterIndexRecord(zone->index->masterIndex,
+                                    &request->chunkName, &record);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -375,7 +382,7 @@ static int searchIndexZone(IndexZone *zone, Request *request)
   } else {
     // The record wasn't in the master index, so check whether the name
     // is in a cached sparse chapter.
-    if (!isMasterIndexSample(zone->index->masterIndex, &request->hash)
+    if (!isMasterIndexSample(zone->index->masterIndex, &request->chunkName)
         && isSparse(zone->index->volume->geometry)) {
       // Passing UINT64_MAX triggers a search of the entire sparse cache.
       result = searchSparseCacheInZone(zone, request, UINT64_MAX, &found);
@@ -431,8 +438,8 @@ static int searchIndexZone(IndexZone *zone, Request *request)
 static int removeFromIndexZone(IndexZone *zone, Request *request)
 {
   MasterIndexRecord record;
-  int result = getMasterIndexRecord(zone->index->masterIndex, &request->hash,
-                                    &record);
+  int result = getMasterIndexRecord(zone->index->masterIndex,
+                                    &request->chunkName, &record);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -473,7 +480,7 @@ static int removeFromIndexZone(IndexZone *zone, Request *request)
   // deleted to avoid trouble if the record is added again later.
   if (request->location == LOC_IN_OPEN_CHAPTER) {
     bool hashExists = false;
-    removeFromOpenChapter(zone->openChapter, &request->hash, &hashExists);
+    removeFromOpenChapter(zone->openChapter, &request->chunkName, &hashExists);
     result = ASSERT(hashExists, "removing record not found in open chapter");
     if (result != UDS_SUCCESS) {
       return result;
@@ -571,10 +578,12 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
 {
   Geometry *geometry = index->volume->geometry;
   unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
-  for (unsigned int indexPageNumber = 0;
+  unsigned int expectedListNumber = 0;
+  unsigned int indexPageNumber;
+  for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    ChapterIndexPage *chapterIndexPage;
+    DeltaIndexPage *chapterIndexPage;
     int result = getPage(index->volume, chapter, indexPageNumber,
                          CACHE_PROBE_INDEX_FIRST, NULL, &chapterIndexPage);
     if (result != UDS_SUCCESS) {
@@ -583,8 +592,13 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " in chapter %u",
                                      indexPageNumber, chapter);
     }
-    unsigned int highestDeltaList
-      = getChapterIndexHighestListNumber(chapterIndexPage);
+    unsigned int lowestDeltaList = chapterIndexPage->lowestListNumber;
+    unsigned int highestDeltaList = chapterIndexPage->highestListNumber;
+    if (lowestDeltaList != expectedListNumber) {
+      return logErrorWithStringError(UDS_CORRUPT_DATA,
+                                     "chapter %u index page %u is corrupt",
+                                     chapter, indexPageNumber);
+    }
     result = updateIndexPageMap(index->volume->indexPageMap, vcn, chapter,
                                 indexPageNumber, highestDeltaList);
     if (result != UDS_SUCCESS) {
@@ -593,6 +607,7 @@ static int rebuildIndexPageMap(Index *index, uint64_t vcn)
                                      " %u",
                                      chapter, indexPageNumber);
     }
+    expectedListNumber = highestDeltaList + 1;
   }
   return UDS_SUCCESS;
 }
@@ -702,6 +717,39 @@ void beginSave(Index *index, bool checkpoint, uint64_t openChapterNumber)
   logInfo("beginning %s (vcn %" PRIu64 ")", what, index->lastCheckpoint);
 }
 
+/**
+ * Suspend the index if necessary and wait for a signal to resume.
+ *
+ * @param index  The index to replay
+ *
+ * @return <code>true</code> if the replay should terminate
+ **/
+static bool checkForSuspend(Index *index)
+{
+  if (index->loadContext == NULL) {
+    return false;
+  }
+
+  lockMutex(&index->loadContext->mutex);
+  if (index->loadContext->status != INDEX_SUSPENDING) {
+    unlockMutex(&index->loadContext->mutex);
+    return false;
+  }
+
+  // Notify that we are suspended and wait for the resume.
+  index->loadContext->status = INDEX_SUSPENDED;
+  broadcastCond(&index->loadContext->cond);
+
+  while ((index->loadContext->status != INDEX_OPENING)
+         && (index->loadContext->status != INDEX_FREEING)) {
+    waitCond(&index->loadContext->cond, &index->loadContext->mutex);
+  }
+
+  bool retVal = (index->loadContext->status == INDEX_FREEING);
+  unlockMutex(&index->loadContext->mutex);
+  return retVal;
+}
+
 /**********************************************************************/
 int replayVolume(Index *index, uint64_t fromVCN)
 {
@@ -734,10 +782,19 @@ int replayVolume(Index *index, uint64_t fromVCN)
    */
   const Geometry *geometry = index->volume->geometry;
   uint64_t oldIPMupdate = getLastUpdate(index->volume->indexPageMap);
-  for (uint64_t vcn = fromVCN; vcn < uptoVCN; ++vcn) {
-    bool willBeSparseChapter = isChapterSparse(index->volume->geometry,
-                                               fromVCN, uptoVCN, vcn);
+  uint64_t vcn;
+  for (vcn = fromVCN; vcn < uptoVCN; ++vcn) {
+    if (checkForSuspend(index)) {
+      logInfo("Replay interrupted by index shutdown at chapter %" PRIu64, vcn);
+      return UDS_SHUTTINGDOWN;
+    }
+
+    bool willBeSparseChapter = isChapterSparse(geometry, fromVCN, uptoVCN,
+                                               vcn);
     unsigned int chapter = mapToPhysicalChapter(geometry, vcn);
+    prefetchVolumePages(&index->volume->volumeStore,
+                        mapToPhysicalPage(geometry, chapter, 0),
+                        geometry->pagesPerChapter);
     setMasterIndexOpenChapter(index->masterIndex, vcn);
     result = rebuildIndexPageMap(index, vcn);
     if (result != UDS_SUCCESS) {
@@ -748,7 +805,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
                                      chapter);
     }
 
-    for (unsigned int j = 0; j < geometry->recordPagesPerChapter; j++) {
+    unsigned int j;
+    for (j = 0; j < geometry->recordPagesPerChapter; j++) {
       unsigned int recordPageNumber = geometry->indexPagesPerChapter + j;
       byte *recordPage;
       result = getPage(index->volume, chapter, recordPageNumber,
@@ -758,7 +816,8 @@ int replayVolume(Index *index, uint64_t fromVCN)
         return logUnrecoverable(result, "could not get page %d",
                                 recordPageNumber);
       }
-      for (unsigned int k = 0; k < geometry->recordsPerPage; k++) {
+      unsigned int k;
+      for (k = 0; k < geometry->recordsPerPage; k++) {
         const byte *nameBytes = recordPage + (k * BYTES_PER_RECORD);
 
         UdsChunkName name;
@@ -794,7 +853,7 @@ int replayVolume(Index *index, uint64_t fromVCN)
 }
 
 /**********************************************************************/
-void getIndexStats(Index *index, IndexRouterStatCounters *counters)
+void getIndexStats(Index *index, UdsIndexStats *counters)
 {
   uint64_t cwAllocated = getChapterWriterMemoryAllocated(index->chapterWriter);
   // We're accessing the master index while not on a zone thread, but that's
@@ -802,16 +861,12 @@ void getIndexStats(Index *index, IndexRouterStatCounters *counters)
   MasterIndexStats denseStats, sparseStats;
   getMasterIndexStats(index->masterIndex, &denseStats, &sparseStats);
 
-  memset(counters, 0, sizeof(IndexRouterStatCounters));
-  getCacheCounters(index->volume, &counters->volumeCache);
-
   counters->entriesIndexed   = (denseStats.recordCount
                                 + sparseStats.recordCount);
   counters->memoryUsed       = ((uint64_t) denseStats.memoryAllocated
                                 + (uint64_t) sparseStats.memoryAllocated
                                 + (uint64_t) getCacheSize(index->volume)
                                 + cwAllocated);
-  counters->diskUsed         = (uint64_t) getVolumeSize(index->volume);
   counters->collisions       = (denseStats.collisionCount
                                 + sparseStats.collisionCount);
   counters->entriesDiscarded = (denseStats.discardCount
@@ -834,7 +889,7 @@ void advanceActiveChapters(Index *index)
 uint64_t triageIndexRequest(Index *index, Request *request)
 {
   MasterIndexTriage triage;
-  lookupMasterIndexName(index->masterIndex, &request->hash, &triage);
+  lookupMasterIndexName(index->masterIndex, &request->chunkName, &triage);
   if (!triage.inSampledChapter) {
     // Not indexed or not a hook.
     return UINT64_MAX;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#8 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/volumeGeometry.c#9 $
  */
 
 #include "volumeGeometry.h"
@@ -553,14 +553,13 @@ int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
 
   udsConfigurationSetSparse(udsConfiguration, indexConfig->sparse);
 
-  uint32_t cfreq = indexConfig->checkpointFrequency;
-  result = udsConfigurationSetCheckpointFrequency(udsConfiguration, cfreq);
-  if (result != UDS_SUCCESS) {
-    udsFreeConfiguration(udsConfiguration);
-    return logErrorWithStringError(result, "error setting checkpoint"
-                                   " frequency");
-  }
-
   *udsConfigPtr = udsConfiguration;
   return VDO_SUCCESS;
+}
+
+/************************************************************************/
+void indexConfigToUdsParameters(IndexConfig           *indexConfig,
+                                struct uds_parameters *userParams)
+{
+  userParams->checkpoint_frequency = indexConfig->checkpointFrequency;
 }

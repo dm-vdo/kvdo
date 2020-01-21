@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#9 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalInternals.h#10 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -86,8 +86,10 @@ struct recoveryJournal {
   RingNode                   freeTailBlocks;
   /** In-memory journal blocks with records */
   RingNode                   activeTailBlocks;
-  /** A pointer to the active block (the one we are writing to now) */
+  /** A pointer to the active block (the one we are adding entries to now) */
   RecoveryJournalBlock      *activeBlock;
+  /** Journal blocks that need writing */
+  WaitQueue                  pendingWrites;
   /** The new block map reap head after reaping */
   SequenceNumber             blockMapReapHead;
   /** The head block number for the block map rebuild range */

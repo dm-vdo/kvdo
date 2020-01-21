@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#21 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMap.c#23 $
  */
 
 #include "blockMap.h"
@@ -537,6 +537,31 @@ void advanceBlockMapEra(BlockMap *map, SequenceNumber recoveryBlockNumber)
   scheduleEraAdvance(map);
 }
 
+/**********************************************************************/
+void checkForDrainComplete(BlockMapZone *zone)
+{
+  if (isDraining(&zone->state)
+      && !isTreeZoneActive(&zone->treeZone)
+      && !isPageCacheActive(zone->pageCache)) {
+    finishDrainingWithResult(&zone->state,
+                             (isReadOnly(zone->readOnlyNotifier)
+                              ? VDO_READ_ONLY : VDO_SUCCESS));
+  }
+}
+
+/**
+ * Initiate a drain of the trees and page cache of a block map zone.
+ *
+ * Implements AdminInitiator
+ **/
+static void initiateDrain(AdminState *state)
+{
+  BlockMapZone *zone = container_of(state, BlockMapZone, state);
+  drainZoneTrees(&zone->treeZone);
+  drainVDOPageCache(zone->pageCache);
+  checkForDrainComplete(zone);
+}
+
 /**
  * Drain a zone of the block map.
  *
@@ -546,13 +571,10 @@ static void drainZone(void          *context,
                       ZoneCount      zoneNumber,
                       VDOCompletion *parent)
 {
-  BlockMap     *map  = (BlockMap *) context;
   BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
-  if (startDraining(&zone->adminState,
-                    getCurrentManagerOperation(map->actionManager),
-                    parent)) {
-    drainZoneTrees(&zone->treeZone);
-  }
+  startDraining(&zone->state,
+                getCurrentManagerOperation(zone->blockMap->actionManager),
+                parent, initiateDrain);
 }
 
 /**********************************************************************/
@@ -574,9 +596,7 @@ static void resumeBlockMapZone(void          *context,
                                VDOCompletion *parent)
 {
   BlockMapZone *zone = getBlockMapZone(context, zoneNumber);
-  finishCompletion(parent,
-                   (resumeIfQuiescent(&zone->adminState)
-                    ? VDO_SUCCESS : VDO_INVALID_ADMIN_STATE));
+  finishCompletion(parent, resumeIfQuiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -673,7 +693,7 @@ static void setupMappedBlock(DataVIO   *dataVIO,
                              VDOAction *action)
 {
   BlockMapZone *zone = getBlockMapForZone(dataVIO->logical.zone);
-  if (isDraining(&zone->adminState)) {
+  if (isDraining(&zone->state)) {
     finishDataVIO(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }

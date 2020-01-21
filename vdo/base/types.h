@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#12 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/types.h#13 $
  */
 
 #ifndef TYPES_H
@@ -256,14 +256,19 @@ typedef enum __attribute__((packed)) {
  * The possible write policy values.
  **/
 typedef enum {
-  WRITE_POLICY_SYNC,    ///< All writes are synchronous, i. e., they
-                        ///< are acknowledged only when the data is
-                        ///< written to stable storage.
-  WRITE_POLICY_ASYNC,   ///< Writes are acknowledged when the data is
-                        ///< cached for writing to stable storage, subject
-                        ///< to resiliency guarantees specified elsewhere.
-  WRITE_POLICY_AUTO,    ///< The appropriate policy is chosen based on the
-                        ///< underlying device
+  WRITE_POLICY_SYNC,           ///< All writes are synchronous, i. e., they
+                               ///< are acknowledged only when the data is
+                               ///< written to stable storage.
+  WRITE_POLICY_ASYNC,          ///< Writes are acknowledged when the data is
+                               ///< cached for writing to stable storage, subject
+                               ///< to resiliency guarantees specified elsewhere.
+			       ///< After a crash, the data will be either old or
+			       ///< new value for unflushed writes, never garbage.
+  WRITE_POLICY_ASYNC_UNSAFE,   ///< Writes are acknowledged when the data is
+                               ///< cached for writing to stable storage, subject
+                               ///< to resiliency guarantees specified elsewhere.
+  WRITE_POLICY_AUTO,           ///< The appropriate policy is chosen based on the
+                               ///< underlying device
 } WritePolicy;
 
 typedef enum {

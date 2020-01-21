@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapTree.h#7 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -57,6 +57,17 @@ void uninitializeBlockMapTreeZone(BlockMapTreeZone *treeZone);
  **/
 void setTreeZoneInitialPeriod(BlockMapTreeZone *treeZone,
                               SequenceNumber    period);
+
+/**
+ * Check whether a tree zone is active (i.e. has any active lookups,
+ * outstanding I/O, or pending I/O).
+ *
+ * @param zone  The zone to check
+ *
+ * @return <code>true</code> if the zone is active
+ **/
+bool isTreeZoneActive(BlockMapTreeZone *zone)
+  __attribute__((warn_unused_result));
 
 /**
  * Advance the dirty period for a tree zone.

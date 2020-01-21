@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoSuspend.c#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoSuspend.c#3 $
  */
 
 #include "vdoSuspend.h"
@@ -125,7 +125,7 @@ static void suspendCallback(VDOCompletion *completion)
     if (!startDraining(&vdo->adminState,
                        ((adminCompletion->type == ADMIN_OPERATION_SUSPEND)
                         ? ADMIN_STATE_SUSPENDING : ADMIN_STATE_SAVING),
-                       &adminCompletion->completion)) {
+                       &adminCompletion->completion, NULL)) {
       return;
     }
 

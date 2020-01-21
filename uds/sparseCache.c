@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/sparseCache.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/sparseCache.c#3 $
  */
 
 /**
@@ -214,7 +214,8 @@ static int initializeSparseCache(SparseCache    *cache,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  for (unsigned int i = 0; i < capacity; i++) {
+  unsigned int i;
+  for (i = 0; i < capacity; i++) {
     result = initializeCachedChapterIndex(&cache->chapters[i], geometry);
     if (result != UDS_SUCCESS) {
       return result;
@@ -222,7 +223,7 @@ static int initializeSparseCache(SparseCache    *cache,
   }
 
   // Allocate each zone's independent LRU order.
-  for (unsigned int i = 0; i < zoneCount; i++) {
+  for (i = 0; i < zoneCount; i++) {
     result = makeSearchList(capacity, &cache->searchLists[i]);
     if (result != UDS_SUCCESS) {
       return result;
@@ -259,8 +260,8 @@ int makeSparseCache(const Geometry  *geometry,
 /**********************************************************************/
 size_t getSparseCacheMemorySize(const SparseCache *cache)
 {
-  // Count the ChapterIndexPage as cache memory, but ignore all other overhead.
-  size_t pageSize = (sizeof(ChapterIndexPage) + cache->geometry->bytesPerPage);
+  // Count the DeltaIndexPage as cache memory, but ignore all other overhead.
+  size_t pageSize = (sizeof(DeltaIndexPage) + cache->geometry->bytesPerPage);
   size_t chapterSize = (pageSize * cache->geometry->indexPagesPerChapter);
   return (cache->capacity * chapterSize);
 }
@@ -353,11 +354,12 @@ void freeSparseCache(SparseCache *cache)
     return;
   }
 
-  for (unsigned int i = 0; i < cache->zoneCount; i++) {
+  unsigned int i;
+  for (i = 0; i < cache->zoneCount; i++) {
     freeSearchList(&cache->searchLists[i]);
   }
 
-  for (unsigned int i = 0; i < cache->capacity; i++) {
+  for (i = 0; i < cache->capacity; i++) {
     CachedChapterIndex *chapter = &cache->chapters[i];
     destroyCachedChapterIndex(chapter);
   }
@@ -367,23 +369,6 @@ void freeSparseCache(SparseCache *cache)
   FREE(cache);
 }
 
-/**********************************************************************/
-CacheCounters getSparseCacheCounters(const SparseCache *cache)
-{
-  CacheCounters counters = {
-    .sparseChapters = {
-      .hits      = cache->counters.chapterHits,
-      .misses    = cache->counters.chapterMisses,
-    },
-    .sparseSearches = {
-      .hits      = cache->counters.searchHits,
-      .misses    = cache->counters.searchMisses,
-    },
-    .evictions   = cache->counters.evictions,
-    .expirations = cache->counters.invalidations,
-  };
-  return counters;
-}
 
 /**********************************************************************/
 bool sparseCacheContains(SparseCache  *cache,
@@ -470,8 +455,9 @@ int updateSparseCache(IndexZone *zone, uint64_t virtualChapter)
 
     // Copy the new search list state to all the other zone threads so they'll
     // get the result of pruning and see the new chapter.
-    for (unsigned int zone = 1; zone < cache->zoneCount; zone++) {
-      copySearchList(zoneZeroList, cache->searchLists[zone]);
+    unsigned int z;
+    for (z = 1; z < cache->zoneCount; z++) {
+      copySearchList(zoneZeroList, cache->searchLists[z]);
     }
   }
 

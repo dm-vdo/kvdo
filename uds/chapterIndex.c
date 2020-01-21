@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/chapterIndex.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterIndex.c#5 $
  */
 
 #include "chapterIndex.h"
@@ -32,7 +32,9 @@
 
 /**********************************************************************/
 int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
-                         const Geometry    *geometry)
+                         const Geometry    *geometry,
+                         bool               chapterIndexHeaderNativeEndian,
+                         uint64_t           volumeNonce)
 {
 
   int result = ALLOCATE(1, OpenChapterIndex, "open chapter index",
@@ -45,14 +47,16 @@ int makeOpenChapterIndex(OpenChapterIndex **openChapterIndex,
   // give the chapter index one extra page.
   size_t memorySize
     = (geometry->indexPagesPerChapter + 1) * geometry->bytesPerPage;
-  (*openChapterIndex)->geometry = geometry;
+  (*openChapterIndex)->geometry           = geometry;
+  (*openChapterIndex)->volumeNonce        = volumeNonce;
+  (*openChapterIndex)->headerNativeEndian = chapterIndexHeaderNativeEndian,
   result = initializeDeltaIndex(&(*openChapterIndex)->deltaIndex, 1,
                                 geometry->deltaListsPerChapter,
                                 geometry->chapterMeanDelta,
                                 geometry->chapterPayloadBits, memorySize);
   if (result != UDS_SUCCESS) {
     FREE(*openChapterIndex);
-    *openChapterIndex = NULL;
+    *openChapterIndex                     = NULL;
   }
   return result;
 }
@@ -131,7 +135,6 @@ int putOpenChapterIndexRecord(OpenChapterIndex   *openChapterIndex,
 
 /**********************************************************************/
 int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
-                             uint64_t          volumeNonce,
                              byte             *memory,
                              unsigned int      firstList,
                              bool              lastPage,
@@ -141,8 +144,9 @@ int packOpenChapterIndexPage(OpenChapterIndex *openChapterIndex,
   const Geometry *geometry = openChapterIndex->geometry;
   unsigned int removals = 0;
   for (;;) {
-    int result = packDeltaIndexPage(deltaIndex, volumeNonce, memory,
-                                    geometry->bytesPerPage,
+    int result = packDeltaIndexPage(deltaIndex, openChapterIndex->volumeNonce,
+                                    openChapterIndex->headerNativeEndian,
+                                    memory, geometry->bytesPerPage,
                                     openChapterIndex->virtualChapterNumber,
                                     firstList, numLists);
     if (result != UDS_SUCCESS) {
@@ -223,28 +227,27 @@ size_t getOpenChapterIndexMemoryAllocated(OpenChapterIndex *openChapterIndex)
 }
 
 /**********************************************************************/
-int initializeChapterIndexPage(ChapterIndexPage *chapterIndexPage,
-                               const Geometry   *geometry,
-                               byte             *indexPage,
-                               uint64_t          volumeNonce)
+int initializeChapterIndexPage(DeltaIndexPage *chapterIndexPage,
+                               const Geometry *geometry,
+                               byte           *indexPage,
+                               uint64_t        volumeNonce)
 {
-  return initializeDeltaIndexPage(&chapterIndexPage->deltaIndex,
-                                  &chapterIndexPage->deltaMemory,
-                                  volumeNonce,
+  return initializeDeltaIndexPage(chapterIndexPage, volumeNonce,
                                   geometry->chapterMeanDelta,
                                   geometry->chapterPayloadBits,
                                   indexPage, geometry->bytesPerPage);
 }
 
 /**********************************************************************/
-int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
-                             const Geometry         *geometry)
+int validateChapterIndexPage(const DeltaIndexPage *chapterIndexPage,
+                             const Geometry       *geometry)
 {
   const DeltaIndex *deltaIndex = &chapterIndexPage->deltaIndex;
-  unsigned int first = getDeltaIndexLowestListNumber(deltaIndex);
-  unsigned int last = getDeltaIndexHighestListNumber(deltaIndex);
+  unsigned int first = chapterIndexPage->lowestListNumber;
+  unsigned int last  = chapterIndexPage->highestListNumber;
   // We walk every delta list from start to finish.
-  for (unsigned int listNumber = first; listNumber <= last; listNumber++) {
+  unsigned int listNumber;
+  for (listNumber = first; listNumber <= last; listNumber++) {
     DeltaIndexEntry entry;
     int result = startDeltaIndexSearch(deltaIndex, listNumber - first, 0, true,
                                        &entry);
@@ -276,7 +279,7 @@ int validateChapterIndexPage(const ChapterIndexPage *chapterIndexPage,
 }
 
 /**********************************************************************/
-int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
+int searchChapterIndexPage(DeltaIndexPage     *chapterIndexPage,
                            const Geometry     *geometry,
                            const UdsChunkName *name,
                            int                *recordPagePtr)
@@ -285,7 +288,7 @@ int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
   unsigned int address = hashToChapterDeltaAddress(name, geometry);
   unsigned int deltaListNumber = hashToChapterDeltaList(name, geometry);
   unsigned int subListNumber
-    = deltaListNumber - getDeltaIndexLowestListNumber(deltaIndex);
+    = deltaListNumber - chapterIndexPage->lowestListNumber;;
   DeltaIndexEntry entry;
   int result = getDeltaIndexEntry(deltaIndex, subListNumber, address,
                                   name->name, true, &entry);
@@ -299,22 +302,4 @@ int searchChapterIndexPage(ChapterIndexPage   *chapterIndexPage,
     *recordPagePtr = NO_CHAPTER_INDEX_ENTRY;
   }
   return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-uint64_t getChapterIndexVirtualChapterNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexVirtualChapterNumber(&page->deltaIndex);
-}
-
-/**********************************************************************/
-unsigned int getChapterIndexLowestListNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexLowestListNumber(&page->deltaIndex);
-}
-
-/**********************************************************************/
-unsigned int getChapterIndexHighestListNumber(const ChapterIndexPage *page)
-{
-  return getDeltaIndexHighestListNumber(&page->deltaIndex);
 }

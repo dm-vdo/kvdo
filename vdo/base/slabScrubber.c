@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/slabScrubber.c#6 $
  */
 
 #include "slabScrubberInternals.h"
@@ -366,7 +366,7 @@ static void applyJournalEntries(VDOCompletion *completion)
   // Save out the rebuilt reference blocks.
   prepareCompletion(completion, slabScrubbed, handleScrubberError,
                     completion->callbackThreadID, scrubber);
-  drainSlab(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
+  startSlabAction(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
 
 /**
@@ -425,7 +425,7 @@ static void scrubNextSlab(SlabScrubber *scrubber)
   prepareCompletion(completion, startScrubbing,
                     handleScrubberError, scrubber->completion.callbackThreadID,
                     scrubber);
-  drainSlab(slab, ADMIN_STATE_SCRUBBING, completion);
+  startSlabAction(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
 /**********************************************************************/
@@ -469,7 +469,7 @@ void stopScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
   if (isQuiescent(&scrubber->adminState)) {
     completeCompletion(parent);
   } else {
-    startDraining(&scrubber->adminState, ADMIN_STATE_SUSPENDING, parent);
+    startDraining(&scrubber->adminState, ADMIN_STATE_SUSPENDING, parent, NULL);
   }
 }
 
@@ -481,13 +481,14 @@ void resumeScrubbing(SlabScrubber *scrubber, VDOCompletion *parent)
     return;
   }
 
-  if (resumeIfQuiescent(&scrubber->adminState)) {
-    scrubNextSlab(scrubber);
-    completeCompletion(parent);
+  int result = resumeIfQuiescent(&scrubber->adminState);
+  if (result != VDO_SUCCESS) {
+    finishCompletion(parent, result);
     return;
   }
 
-  finishCompletion(parent, VDO_INVALID_ADMIN_STATE);
+  scrubNextSlab(scrubber);
+  completeCompletion(parent);
 }
 
 /**********************************************************************/

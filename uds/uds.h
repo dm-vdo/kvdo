@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/public/uds.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/uds.h#2 $
  */
 
 /**
  * @mainpage UDS API Reference
- * <center>Copyright (c) 2018 Red Hat, Inc.</center>
+ * <center>Copyright (c) 2020 Red Hat, Inc.</center>
  **/
 
 /**
@@ -30,10 +30,6 @@
  **/
 #ifndef UDS_H
 #define UDS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "uds-platform.h"
 
@@ -74,15 +70,35 @@ typedef enum {
    * is updated unless it's the no-update call.
    **/
   UDS_QUERY
-
 } UdsCallbackType;
 
+/**
+ * Valid types for opening an index.
+ **/
+typedef enum {
+  /**
+   * Load an existing index.  If the index was not saved cleanly, try to
+   * recover and rebuild the index.
+   **/
+  UDS_LOAD = 0,
+
+  /**
+   * Create a new index.
+   **/
+  UDS_CREATE = 1,
+
+  /**
+   * Load an existing index, but only if it was cleanly saved.
+   **/
+  UDS_NO_REBUILD = 2,
+} UdsOpenIndexType;
+
 /** General UDS constants. */
-/** The chunk name size in bytes (128 bits = 16 bytes). */
-#define UDS_CHUNK_NAME_SIZE 16
 enum {
+  /** The chunk name size in bytes (128 bits = 16 bytes). */
+  UDS_CHUNK_NAME_SIZE   = 16,
   /** The maximum metadata size in bytes. */
-  UDS_MAX_METADATA_SIZE = 16
+  UDS_MAX_METADATA_SIZE = 16,
 };
 
 /**
@@ -108,18 +124,32 @@ typedef struct udsChunkName {
 } UdsChunkName;
 
 /**
- * An active index session, either local or grid.
+ * An active index session.
  **/
-typedef struct udsIndexSession {
-  /** The session ID. */
-  unsigned int id;
-} UdsIndexSession;
+struct uds_index_session;
 
 /**
  * The data used to configure a new index.
  **/
 typedef struct udsConfiguration *UdsConfiguration;
 typedef uint64_t UdsNonce;
+
+/**
+ * The data used to configure a new index session.
+ **/
+struct uds_parameters {
+  // Tne number of threads used to process index requests.
+  int zone_count;
+  // The number of threads used to read volume pages.
+  int read_threads;
+  // The number of chapters to write between checkpoints.
+  int checkpoint_frequency;
+};
+#define UDS_PARAMETERS_INITIALIZER {		\
+		.zone_count = 0,		\
+		.read_threads = 2,		\
+		.checkpoint_frequency = 0,	\
+	}
 
 /**
  * Index statistics
@@ -129,17 +159,15 @@ typedef uint64_t UdsNonce;
  **/
 typedef struct udsIndexStats {
   /** The total number of chunk names stored in the index */
-  uint64_t      entriesIndexed;
+  uint64_t entriesIndexed;
   /** An estimate of the index's memory usage */
-  uint64_t      memoryUsed;
-  /** An estimate of the index's size on disk */
-  uint64_t      diskUsed;
+  uint64_t memoryUsed;
   /** The number of collisions recorded in the master index */
-  uint64_t      collisions;
+  uint64_t collisions;
   /** The number of entries discarded from the index since index startup */
-  uint64_t      entriesDiscarded;
+  uint64_t entriesDiscarded;
   /** The number of checkpoints done this session */
-  uint64_t      checkpoints;
+  uint64_t checkpoints;
 } UdsIndexStats;
 
 /**
@@ -271,31 +299,6 @@ UDS_ATTR_WARN_UNUSED_RESULT
 UdsNonce udsConfigurationGetNonce(UdsConfiguration conf);
 
 /**
- * Sets an index configuration's checkpoint frequency.
- *
- * @param [in,out] conf              The configuration to change
- * @param [in] checkpointFrequency   The number of chapters to write between
- *                                   checkpoints
- *
- * @return                           Either #UDS_SUCCESS or an error code.
- *
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsConfigurationSetCheckpointFrequency(UdsConfiguration conf,
-                                           unsigned int checkpointFrequency);
-
-/**
- * Fetches a configuration's checkpoint frequency.
- *
- * @param [in] conf                  The configuration to check
- *
- * @return The checkpoint frequency (the number of chapters written between
- *         checkpoints)
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-unsigned int udsConfigurationGetCheckpointFrequency(UdsConfiguration conf);
-
-/**
  * Fetches a configuration's maximum memory allocation.
  *
  * @param [in] conf  The configuration to check
@@ -341,6 +344,21 @@ int udsComputeIndexSize(const UdsConfiguration  config,
                         uint64_t               *indexSize);
 
 /**
+ * Opens an index session.
+ *
+ * Creates a session for an index. #udsOpenIndex must be called before
+ * the index can be used.
+ *
+ * Destroy the session with #udsDestroyIndexSession.
+ *
+ * @param [out] session  A pointer to the new session
+ *
+ * @return Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsCreateIndexSession(struct uds_index_session **session);
+
+/**
  * Fetches the UDS library version.
  *
  * @return       The library version
@@ -348,163 +366,110 @@ int udsComputeIndexSize(const UdsConfiguration  config,
 UDS_ATTR_WARN_UNUSED_RESULT
 const char *udsGetVersion(void);
 
+#ifdef __KERNEL__
 /**
- * The name argument to #udsCreateLocalIndex, #udsLoadLocalIndex or
- * #udsRebuildLocalIndex is a text string that names the index.
- *
- * For an index stored in a regular file, the name should have the form
- * "file=path", where path is the name of the directory containing the
- * index.  The path should not contain white space.
- *
- * For an index stored on a block device and accessed through the Linux page
- * cache, the name should have the form "file=path", where path is the name of
- * the block device.  The path should not contain white space.
- *
- * For an index stored on a block device and accessed through the block device
- * interfaces, the name should have the form "dev=path", where path is the name
- * of the block device.  The path should not contain white space.
- *
- * Any of these names can optionally contain size and/or offset options which
- * give the number of bytes in the index and the byte offset to the start of
- * the index.  For example, the name "file=/dev/sda8 offset=409600
- * size=2048000000" is an index that is stored in 2040000000 bytes of /dev/sda8
- * starting at byte 409600.
+ * The name argument to #udsOpenIndex is a text string that names the index.
+ * The name should have the form "path", where path is the name of the block
+ * device.  The path should not contain white space.  The names can optionally
+ * contain size and/or offset options which give the number of bytes in the
+ * index and the byte offset to the start of the index.  For example, the name
+ * "/dev/sda8 offset=409600 size=2048000000" is an index that is stored in
+ * 2040000000 bytes of /dev/sda8 starting at byte 409600.
  **/
+#else
+/**
+ * The name argument to #udsOpenIndex is a text string that names the index.
+ * The name should have the form "path", where path is the name of the file or
+ * block device.  The path should not contain white space.  The name can
+ * optionally contain size and/or offset options which give the number of bytes
+ * in the index and the byte offset to the start of the index.  For example,
+ * the name "/dev/sda8 offset=409600 size=2048000000" is an index that is
+ * stored in 2040000000 bytes of /dev/sda8 starting at byte 409600.
+ **/
+#endif
 
 /**
- * Initializes a new local index and creates a session for it.
+ * Opens an index with an existing session.  This operation will fail if the
+ * index session is suspended, or if there is already an open index.
  *
- * The Application Software can use #UdsIndexSession to open any number of
- * block contexts.
+ * The index should be closed with #udsCloseIndex.
  *
- * Close the local index with #udsCloseIndexSession after all of its contexts
- * have been closed.
+ * @param openType  The type of open, which is one of #UDS_LOAD, #UDS_CREATE,
+ *                  or #UDS_NO_REBUILD.
+ * @param name      The name of the index
+ * @param params    The index session parameters.  If NULL, the default
+ *                       session parameters will be used.
+ * @param conf      The index configuration
+ * @param session   The index session
  *
- * @param [in] name      The name of the index
- * @param [in] conf      The index configuration
- * @param [out] session  The name of the new local index session
- *
- * @return               Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCreateLocalIndex(const char       *name,
-                        UdsConfiguration  conf,
-                        UdsIndexSession  *session);
-
-/**
- * Loads a saved index and creates a session for it.
- *
- * This function can only load a cleanly closed local index.  If the index was
- * not cleanly closed, use #udsRebuildLocalIndex.
- *
- * The Application Software can use #UdsIndexSession to open any number of
- * block contexts.
- *
- * Close the local index with #udsCloseIndexSession after all of its contexts
- * have been closed.
- *
- * @param [in] name      The name of the index
- * @param [out] session  The name of the new local index session
- *
- * @return               Either #UDS_SUCCESS or an error code
+ * @return          Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsLoadLocalIndex(const char *name, UdsIndexSession *session);
+int udsOpenIndex(UdsOpenIndexType             openType,
+                 const char                  *name,
+                 const struct uds_parameters *params,
+                 UdsConfiguration             conf,
+                 struct uds_index_session    *session);
 
 /**
- * Loads a saved index, rebuilds it if necessary, and creates a session for it.
+ * Waits until all callbacks for index operations are complete, and prevents
+ * new index operations from starting. Index operations will return
+ * UDS_SUSPENDED until #udsResumeIndexSession is called. Optionally saves all
+ * index data before returning.
  *
- * This function can only load a local index.  If the index was not cleanly
- * closed, then it is rebuilt from the most recent consistent checkpoint.
+ * @param session  The session to suspend
+ * @param save     Whether to save index data
  *
- * The application can use #UdsIndexSession to open any number of block
- * contexts.
+ * @return  Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsSuspendIndexSession(struct uds_index_session *session, bool save);
+
+/**
+ * Allows new index operations for an index, whether it was suspended or not.
  *
- * Close the local index with #udsCloseIndexSession after all contexts for it
- * have been closed.
+ * @param session  The session to resume
  *
- * @param [in] name      The name of the index
- * @param [out] session  The name of the new local index session
+ * @return  Either #UDS_SUCCESS or an error code
+ **/
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsResumeIndexSession(struct uds_index_session *session);
+
+/**
+ * Waits until all callbacks for index operations are complete.
+ *
+ * @param [in] session  The session to flush
  *
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsRebuildLocalIndex(const char *name, UdsIndexSession *session);
+int udsFlushIndexSession(struct uds_index_session *session);
 
 /**
- * The structure that holds a grid configuration.
- **/
-typedef struct udsGridConfig *UdsGridConfig;
-
-/**
- * Creates a new grid configuration.
+ * Closes an index.  This operation will fail if the index session is
+ * suspended.
  *
- * @param [out] gridConfig  The new grid configuration
+ * Saves changes to the index so that #udsOpenIndex can re-open it.
  *
- * @return                  Either #UDS_SUCCESS or an error code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsInitializeGridConfig(UdsGridConfig *gridConfig);
-
-/**
- * Frees a grid configuration.
- *
- * @param [in,out] gridConfig           The grid configuration to free
- **/
-void udsFreeGridConfig(UdsGridConfig gridConfig);
-
-/**
- * Adds a server name and port to an existing grid configuration.
- *
- * @param [in,out] gridConfig    The grid configuration being modified
- * @param [in] host              The server running the UDS Grid server (albserver)
- * @param [in] port              The port number to connect to
- *
- * @return                       Either #UDS_SUCCESS or an error
- *                               code
- **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsAddGridServer(UdsGridConfig gridConfig,
-                     const char *host,
-                     const char *port);
-
-
-/**
- * Saves an index, without closing the index session.
- *
- * The underlying local index is flushed and changes to the index are saved so
- * that #udsLoadLocalIndex can re-open it.
- *
- * During the call to #udsSaveIndex, there should be no other call to
- * #udsSaveIndex and there should be no calls to #udsStartChunkOperation.
- *
- * @param [in] session  The session that has the open index 
+ * @param [in] session  The session containing the index to close
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsSaveIndex(UdsIndexSession session);
+int udsCloseIndex(struct uds_index_session *session);
 
 /**
- * Closes an index session.
+ * Destroys an index session.
  *
- * Flushes and saves changes to the index.  Use #udsCloseIndexSession
- * for index sessions created by #udsCreateLocalIndex, #udsLoadLocalIndex,
- * or #udsRebuildLocalIndex.
+ * Saves changes to the index and closes the index if one is open.
+ * Use #udsDestroyIndexSession for index sessions created by
+ * #udsCreateIndexSession.
  *
- * The underlying local index is flushed and properly checkpointed so that
- * #udsLoadLocalIndex can re-open it.
- *
- * Any contexts opened for this session will no longer be valid, and
- * #UDS_DISABLED will be returned if any subsequent operations are
- * attempted on them.
- *
- * @param [in,out] session The session to close
+ * @param [in] session  The session to destroy
  *
  * @return Either #UDS_SUCCESS or an error code
  **/
-UDS_ATTR_WARN_UNUSED_RESULT
-int udsCloseIndexSession(UdsIndexSession session);
+int udsDestroyIndexSession(struct uds_index_session *session);
 
 /**
  * Returns the configuration for the given index session.
@@ -515,7 +480,8 @@ int udsCloseIndexSession(UdsIndexSession session);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
+int udsGetIndexConfiguration(struct uds_index_session *session,
+                             UdsConfiguration         *conf);
 
 /**
  * Fetches index statistics for the given index session.
@@ -526,24 +492,19 @@ int udsGetIndexConfiguration(UdsIndexSession session, UdsConfiguration *conf);
  * @return              Either #UDS_SUCCESS or an error code
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsGetIndexStats(UdsIndexSession session, UdsIndexStats *stats);
+int udsGetIndexStats(struct uds_index_session *session, UdsIndexStats *stats);
 
 /**
- * The possible status that an index server can return.
+ * Fetches index session statistics for the given index session.
+ *
+ * @param [in]  session  The session
+ * @param [out] stats    The context statistics structure to fill
+ *
+ * @return              Either #UDS_SUCCESS or an error code
  **/
-typedef enum {
-  /** The server's status is unknown. */
-  UDS_STATUS_UNKNOWN = 0,
-  /** The server is starting up and possibly rebuilding the index. */
-  UDS_STATUS_STARTING,
-  /** The server is up and ready to receive index requests. */
-  UDS_STATUS_ONLINE,
-  /** The server is saving in-memory state to persistent storage. */
-  UDS_STATUS_STOPPING,
-  /** The machine is up but there is no server running. */
-  UDS_STATUS_OFFLINE
-} UdsGridServerStatus;
-
+UDS_ATTR_WARN_UNUSED_RESULT
+int udsGetIndexSessionStats(struct uds_index_session *session,
+                            UdsContextStats          *stats);
 
 /**
  * Convert an error code to a string.
@@ -557,23 +518,11 @@ typedef enum {
 UDS_ATTR_WARN_UNUSED_RESULT
 const char *udsStringError(int errnum, char *buf, size_t buflen);
 
-
-
-/**
- * Shutdown the UDS library. This is normally called implicitly
- * when a program using the library exits.
- **/
-void udsShutdown(void);
-
 /**
  * Suggested buffer size for udsStringError.
  **/
 enum {
   UDS_STRING_ERROR_BUFSIZE = 128
 };
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
 
 #endif /* UDS_H */

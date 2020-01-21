@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockAllocatorInternals.h#11 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -51,8 +51,6 @@ typedef enum {
  * slabs.
  **/
 typedef struct {
-  /** Whether the allocator is currently launching a slab action */
-  bool       launchingSlabAction;
   /** The number of slabs performing a slab action */
   SlabCount  slabActionCount;
   /** The method to call when a slab action has been completed by all slabs */

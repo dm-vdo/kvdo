@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/threadCondVarLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadCondVarLinuxKernel.c#2 $
  */
 
 #include "threads.h"
@@ -47,22 +47,19 @@ int broadcastCond(CondVar *cv)
 /**********************************************************************/
 int waitCond(CondVar *cv, Mutex *mutex)
 {
-  timedWaitCond(cv, mutex, NULL);
+  EventToken token = eventCountPrepare(cv->eventCount);
+  unlockMutex(mutex);
+  eventCountWait(cv->eventCount, token, NULL);
+  lockMutex(mutex);
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
-int timedWaitCond(CondVar *cv, Mutex *mutex, const AbsTime *deadline)
+int timedWaitCond(CondVar *cv, Mutex *mutex, RelTime timeout)
 {
-  RelTime *timeout = NULL;
-  RelTime timeoutValue;
-  if (deadline != NULL) {
-    timeoutValue = timeDifference(*deadline, currentTime(CT_REALTIME));
-    timeout = &timeoutValue;
-  }
   EventToken token = eventCountPrepare(cv->eventCount);
   unlockMutex(mutex);
-  bool happened = eventCountWait(cv->eventCount, token, timeout);
+  bool happened = eventCountWait(cv->eventCount, token, &timeout);
   lockMutex(mutex);
   return happened ? UDS_SUCCESS : ETIMEDOUT;
 }

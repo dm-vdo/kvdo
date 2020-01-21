@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.h#14 $
  */
 
 #ifndef VOLUME_H
@@ -28,16 +28,12 @@
 #include "indexConfig.h"
 #include "indexLayout.h"
 #include "indexPageMap.h"
-#include "ioRegion.h"
 #include "pageCache.h"
 #include "request.h"
 #include "sparseCache.h"
 #include "uds.h"
 #include "util/radixSort.h"
-
-enum {
-  MAX_VOLUME_READ_THREADS = 16
-};
+#include "volumeStore.h"
 
 typedef enum {
   READER_STATE_RUN   = 1,
@@ -69,15 +65,11 @@ typedef struct volume {
   /* The configuration of the volume */
   Configuration         *config;
   /* The access to the volume's backing store */
-  IORegion              *region;
-  /* Whether the volume is read-only or not */
-  bool                   readOnly;
-  /* The size of the volume on disk in bytes */
-  off_t                  volumeSize;
+  struct volume_store    volumeStore;
+  /* A single page used for writing to the volume */
+  struct volume_page     scratchPage;
   /* The nonce used to save the volume */
   uint64_t               nonce;
-  /* A single page sized scratch buffer */
-  byte                  *scratchPage;
   /* A single page's records, for sorting */
   const UdsChunkRecord **recordPointers;
   /* For sorting record pages */
@@ -109,19 +101,22 @@ typedef struct volume {
 /**
  * Create a volume.
  *
- * @param config           The configuration to use.
- * @param layout           The index layout
- * @param readQueueMaxSize The maximum size of the read queue.
- * @param zoneCount        The number of zones to use.
- * @param newVolume        A pointer to hold a pointer to the new volume.
+ * @param config            The configuration to use.
+ * @param layout            The index layout
+ * @param userParams        The index session parameters.  If NULL, the default
+ *                          session parameters will be used.
+ * @param readQueueMaxSize  The maximum size of the read queue.
+ * @param zoneCount         The number of zones to use.
+ * @param newVolume         A pointer to hold a pointer to the new volume.
  *
  * @return          UDS_SUCCESS or an error code
  **/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
+int makeVolume(const Configuration          *config,
+               IndexLayout                  *layout,
+               const struct uds_parameters  *userParams,
+               unsigned int                  readQueueMaxSize,
+               unsigned int                  zoneCount,
+               Volume                      **newVolume)
   __attribute__((warn_unused_result));
 
 /**
@@ -141,17 +136,6 @@ void freeVolume(Volume *volume);
  * @return UDS_QUEUED if successful, or an error code
  **/
 int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
-  __attribute__((warn_unused_result));
-
-/**
- * Format a new, empty volume on stable storage.
- *
- * @param region   The region to write to.
- * @param geometry The geometry of the volume being formatted
- *
- * @return UDS_SUCCESS on success
- **/
-int formatVolume(IORegion *region, const Geometry *geometry)
   __attribute__((warn_unused_result));
 
 /**
@@ -254,27 +238,18 @@ int forgetChapter(Volume             *volume,
   __attribute__((warn_unused_result));
 
 /**
- * Updates the size of the volume if needed
- *
- * @param volume the volume to update
- * @param size   the new size
- **/
-void updateVolumeSize(Volume *volume, off_t size);
-
-/**
  * Write a chapter's worth of index pages to a volume
  *
- * @param volume                the volume containing the chapter
- * @param chapterOffset         the offset into the volume for the chapter
- * @param chapterIndex          the populated delta chapter index
- * @param pages                 pointer to array of page pointers. Used only
- *                              in testing to return what data has been
- *                              written to disk.
+ * @param volume        the volume containing the chapter
+ * @param physicalPage  the page number in the volume for the chapter
+ * @param chapterIndex  the populated delta chapter index
+ * @param pages         pointer to array of page pointers. Used only in testing
+ *                      to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int writeIndexPages(Volume            *volume,
-                    off_t              chapterOffset,
+                    int                physicalPage,
                     OpenChapterIndex  *chapterIndex,
                     byte             **pages)
 __attribute__((warn_unused_result));
@@ -282,17 +257,16 @@ __attribute__((warn_unused_result));
 /**
  * Write a chapter's worth of record pages to a volume
  *
- * @param volume                the volume containing the chapter
- * @param chapterOffset         the offset into the volume for the chapter
- * @param records               a 1-based array of chunk records in the chapter
- * @param pages                 pointer to array of page pointers. Used only
- *                              in testing to return what data has been
- *                              written to disk.
+ * @param volume        the volume containing the chapter
+ * @param physicalPage  the page number in the volume for the chapter
+ * @param records       a 1-based array of chunk records in the chapter
+ * @param pages         pointer to array of page pointers. Used only in testing
+ *                      to return what data has been written to disk.
  *
  * @return UDS_SUCCESS or an error code
  **/
 int writeRecordPages(Volume                *volume,
-                     off_t                  chapterOffset,
+                     int                    physicalPage,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 __attribute__((warn_unused_result));
@@ -307,9 +281,9 @@ __attribute__((warn_unused_result));
  *
  * @return UDS_SUCCESS or an error code
  **/
-int writeChapter(Volume                 *volume,
-                 OpenChapterIndex       *chapterIndex,
-                 const UdsChunkRecord    records[])
+int writeChapter(Volume               *volume,
+                 OpenChapterIndex     *chapterIndex,
+                 const UdsChunkRecord  records[])
   __attribute__((warn_unused_result));
 
 /**
@@ -318,15 +292,15 @@ int writeChapter(Volume                 *volume,
  *
  * @param [in]  volume          the volume containing the chapter
  * @param [in]  virtualChapter  the virtual chapter number of the index to read
- * @param [out] pageData        an array to receive the raw index page data
+ * @param [out] volumePages     an array to receive the raw index page data
  * @param [out] indexPages      an array of ChapterIndexPages to initialize
  *
  * @return UDS_SUCCESS or an error code
  **/
-int readChapterIndexFromVolume(const Volume     *volume,
-                               uint64_t          virtualChapter,
-                               byte              pageData[],
-                               ChapterIndexPage  indexPages[])
+int readChapterIndexFromVolume(const Volume       *volume,
+                               uint64_t            virtualChapter,
+                               struct volume_page  volumePages[],
+                               DeltaIndexPage      indexPages[])
   __attribute__((warn_unused_result));
 
 /**
@@ -415,27 +389,16 @@ int getPageProtected(Volume          *volume,
  *
  * @return UDS_SUCCESS or an error code
  **/
-int getPage(Volume            *volume,
-            unsigned int       chapter,
-            unsigned int       pageNumber,
-            CacheProbeType     probeType,
-            byte             **dataPtr,
-            ChapterIndexPage **indexPagePtr)
+int getPage(Volume          *volume,
+            unsigned int     chapter,
+            unsigned int     pageNumber,
+            CacheProbeType   probeType,
+            byte           **dataPtr,
+            DeltaIndexPage **indexPagePtr)
   __attribute__((warn_unused_result));
 
 /**********************************************************************/
 size_t getCacheSize(Volume *volume) __attribute__((warn_unused_result));
-
-/**********************************************************************/
-off_t getVolumeSize(Volume *volume) __attribute__((warn_unused_result));
-
-/**********************************************************************/
-off_t offsetForChapter(const Geometry *geometry,
-                       unsigned int    chapter)
-  __attribute__((warn_unused_result));
-
-/**********************************************************************/
-void getCacheCounters(Volume *volume, CacheCounters *counters);
 
 /**********************************************************************/
 int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
@@ -446,6 +409,18 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
                                                      unsigned int  chapter,
                                                      uint64_t     *vcn),
                                     void *aux)
+  __attribute__((warn_unused_result));
+
+/**
+ * Map a chapter number and page number to a phsical volume page number.
+ *
+ * @param geometry the layout of the volume
+ * @param chapter  the chapter number of the desired page
+ * @param page     the chapter page number of the desired page
+ *
+ * @return the physical page number
+ **/
+int mapToPhysicalPage(const Geometry *geometry, int chapter, int page)
   __attribute__((warn_unused_result));
 
 #endif /* VOLUME_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/errors.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/errors.h#4 $
  */
 
 #ifndef ERRORS_H
@@ -29,12 +29,12 @@
 enum udsInternalErrorCodes {
   /** Used as a base value for reporting internal errors */
   UDS_INTERNAL_ERROR_CODE_BASE = 66560,
-  /** Client/server protocol framing error */
-  UDS_PROTOCOL_ERROR           = UDS_INTERNAL_ERROR_CODE_BASE + 0,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_0        = UDS_INTERNAL_ERROR_CODE_BASE + 0,
   /** Index overflow */
   UDS_OVERFLOW                 = UDS_INTERNAL_ERROR_CODE_BASE + 1,
-  /** Fill phase done (intended for albfill only) */
-  UDS_FILLDONE                 = UDS_INTERNAL_ERROR_CODE_BASE + 2,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_2        = UDS_INTERNAL_ERROR_CODE_BASE + 2,
   /** Invalid argument passed to internal routine */
   UDS_INVALID_ARGUMENT         = UDS_INTERNAL_ERROR_CODE_BASE + 3,
   /** UDS data structures are in an invalid state */
@@ -47,28 +47,28 @@ enum udsInternalErrorCodes {
   UDS_INJECTED_ERROR           = UDS_INTERNAL_ERROR_CODE_BASE + 7,
   /** An assertion failed */
   UDS_ASSERTION_FAILED         = UDS_INTERNAL_ERROR_CODE_BASE + 8,
-  /** A file or stream is not scannable with the current scanner */
-  UDS_UNSCANNABLE              = UDS_INTERNAL_ERROR_CODE_BASE + 9,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_9        = UDS_INTERNAL_ERROR_CODE_BASE + 9,
   /** Not an actual error, but reporting that the result will be delayed */
   UDS_QUEUED                   = UDS_INTERNAL_ERROR_CODE_BASE + 10,
-  /** Queue already connected */
-  UDS_QUEUE_ALREADY_CONNECTED  = UDS_INTERNAL_ERROR_CODE_BASE + 11,
-  /** Fill phase not supported */
-  UDS_BAD_FILL_PHASE           = UDS_INTERNAL_ERROR_CODE_BASE + 12,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_11       = UDS_INTERNAL_ERROR_CODE_BASE + 11,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_12       = UDS_INTERNAL_ERROR_CODE_BASE + 12,
   /** A problem has occured with a Buffer */
   UDS_BUFFER_ERROR             = UDS_INTERNAL_ERROR_CODE_BASE + 13,
-  /** A network connection was lost */
-  UDS_CONNECTION_LOST          = UDS_INTERNAL_ERROR_CODE_BASE + 14,
-  /** A time out has occured */
-  UDS_TIMEOUT                  = UDS_INTERNAL_ERROR_CODE_BASE + 15,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_14       = UDS_INTERNAL_ERROR_CODE_BASE + 14,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_15       = UDS_INTERNAL_ERROR_CODE_BASE + 15,
   /** No directory was found where one was expected */
   UDS_NO_DIRECTORY             = UDS_INTERNAL_ERROR_CODE_BASE + 16,
   /** Checkpoint not completed */
   UDS_CHECKPOINT_INCOMPLETE    = UDS_INTERNAL_ERROR_CODE_BASE + 17,
-  /** Invalid albGenTest server run ID */
-  UDS_INVALID_RUN_ID           = UDS_INTERNAL_ERROR_CODE_BASE + 18,
-  /** AlbGenTest server run canceled */
-  UDS_RUN_CANCELED             = UDS_INTERNAL_ERROR_CODE_BASE + 19,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_18       = UDS_INTERNAL_ERROR_CODE_BASE + 18,
+  /** Unused */
+  UDS_INTERNAL_UNUSED_19       = UDS_INTERNAL_ERROR_CODE_BASE + 19,
   /** This error range has already been registered */
   UDS_ALREADY_REGISTERED       = UDS_INTERNAL_ERROR_CODE_BASE + 20,
   /** Either read-only or write-only */
@@ -87,24 +87,68 @@ enum {
   ERRBUF_SIZE = 128 // default size for buffer passed to stringError
 };
 
+// Error attributes - or into top half of error code
+enum { UDS_UNRECOVERABLE = (1 << 17) };
+
 const char *stringError(int errnum, char *buf, size_t buflen);
 const char *stringErrorName(int errnum, char *buf, size_t buflen);
 
-int makeUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-bool isUnrecoverable(int resultCode) __attribute__((warn_unused_result));
-int sansUnrecoverable(int resultCode) __attribute__((warn_unused_result));
+/*
+ * Identify that an result code is a successful result.
+ *
+ * @param result  A result code
+ *
+ * @return true if the result represents a success.
+ */
+__attribute__((warn_unused_result))
+static INLINE bool isSuccessful(int result)
+{
+  return (result == UDS_SUCCESS) || (result == UDS_QUEUED);
+}
+
+/*
+ * Identify that an result code has been marked unrecoverable.
+ *
+ * @param result  A result code
+ *
+ * @return true if the result has been marked unrecoverable.
+ */
+__attribute__((warn_unused_result))
+static INLINE bool isUnrecoverable(int result)
+{
+  return (result & UDS_UNRECOVERABLE) != 0;
+}
+
+/*
+ * Mark a result code as unrecoverable.
+ *
+ * @param result  A result code
+ *
+ * @return the result code with the unrecoverable marker added
+ */
+__attribute__((warn_unused_result))
+static INLINE int makeUnrecoverable(int result)
+{
+  return isSuccessful(result) ? result : (result | UDS_UNRECOVERABLE);
+}
+
+/*
+ * Remove the unrecoverable marker from a result code.
+ *
+ * @param result  A result code
+ *
+ * @return the result code with the unrecoverable marker removed
+ */
+__attribute__((warn_unused_result))
+static INLINE int sansUnrecoverable(int result)
+{
+  return result & ~UDS_UNRECOVERABLE;
+}
 
 typedef struct errorInfo {
   const char *name;
   const char *message;
 } ErrorInfo;
-
-/**
- * Ensure that UDS error code blocks are initialized.
- *
- * @note This function is called as needed, but only the first call matters.
- **/
-void ensureStandardErrorBlocks(void);
 
 /**
  * Register an error code block for stringError and stringErrorName.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/kernelLinux/uds/sysfs.c#1 $
+ * $Id: //eng/uds-releases/jasper/kernelLinux/uds/sysfs.c#4 $
  */
 
 #include "sysfs.h"
@@ -29,7 +29,6 @@
 #include "memoryAlloc.h"
 #include "stringUtils.h"
 #include "uds.h"
-#include "uds-param.h"
 
 static struct {
   struct kobject kobj;               // /sys/uds
@@ -102,14 +101,11 @@ static struct kobj_type emptyObjectType = {
 // This is the the code for the /sys/<module_name>/parameter directory.
 //
 // <dir>/log_level                 UDS_LOG_LEVEL
-// <dir>/parallel_factor           UDS_PARALLEL_FACTOR
-// <dir>/volume_read_threads       UDS_VOLUME_READ_THREADS
 //
 /**********************************************************************/
 
 typedef struct {
   struct attribute  attr;
-  const char       *name;
   const char *(*showString)(void);
   void (*storeString)(const char *);
 } ParameterAttribute;
@@ -123,22 +119,7 @@ static ssize_t parameterShow(struct kobject   *kobj,
   if (pa->showString != NULL) {
     return sprintf(buf, "%s\n", pa->showString());
   } else {
-    UdsParameterValue value;
-    int result = udsGetParameter(pa->name, &value);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "error getting parameter %s", pa->name);
-      return result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
-    }
-    switch (value.type) {
-    case UDS_PARAM_TYPE_BOOL:
-      return sprintf(buf, "%s\n", value.value.u_bool ? "true" : "false");
-    case UDS_PARAM_TYPE_UNSIGNED_INT:
-      return sprintf(buf, "%u\n", value.value.u_uint);
-    case UDS_PARAM_TYPE_STRING:
-      return sprintf(buf, "%s\n", value.value.u_string);
-    default:
-      return -EINVAL;
-    }
+    return -EINVAL;
   }
 }
 
@@ -157,16 +138,7 @@ static ssize_t parameterStore(struct kobject   *kobj,
   if (pa->storeString != NULL) {
     pa->storeString(string);
   } else {
-    UdsParameterValue parameter = {
-      .type  = UDS_PARAM_TYPE_STRING,
-      .value = { .u_string = string },
-    };
-    result = udsSetParameter(pa->name, parameter);
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result, "error setting parameter %s to %s",
-                              pa->name, string);
-    }
-    result = result < UDS_ERROR_CODE_BASE ? -result : -EINVAL;
+    return -EINVAL;
   }
   FREE(string);
   return result == UDS_SUCCESS ? length : result;
@@ -194,20 +166,8 @@ static ParameterAttribute logLevelAttr = {
   .storeString = parameterStoreLogLevel,
 };
 
-static ParameterAttribute parallelFactorAttr = {
-  .attr = { .name = "parallel_factor", .mode = 0600 },
-  .name = "UDS_PARALLEL_FACTOR",
-};
-
-static ParameterAttribute volumeReadThreadsAttr = {
-  .attr = { .name = "volume_read_threads", .mode = 0600 },
-  .name = "UDS_VOLUME_READ_THREADS",
-};
-
 static struct attribute *parameterAttrs[] = {
   &logLevelAttr.attr,
-  &parallelFactorAttr.attr,
-  &volumeReadThreadsAttr.attr,
   NULL,
 };
 

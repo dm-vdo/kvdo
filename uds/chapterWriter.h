@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,13 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/chapterWriter.h#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/chapterWriter.h#2 $
  */
 
 #ifndef CHAPTER_WRITER_H
 #define CHAPTER_WRITER_H
 
 #include "atomicDefs.h"
+#include "indexVersion.h"
 #include "openChapterZone.h"
 
 typedef struct chapterWriter ChapterWriter;
@@ -34,13 +35,15 @@ struct index;
 /**
  * Create a chapter writer and start its thread.
  *
- * @param index      the index containing the chapters to be written
- * @param writerPtr  a pointer to hold the new writer
+ * @param index         the index containing the chapters to be written
+ * @param indexVersion  the index version parameters
+ * @param writerPtr     pointer to hold the new writer
  *
  * @return           UDS_SUCCESS or an error code
  **/
-int makeChapterWriter(struct index   *index,
-                      ChapterWriter **writerPtr)
+int makeChapterWriter(struct index                *index,
+                      const struct index_version  *indexVersion,
+                      ChapterWriter              **writerPtr)
   __attribute__((warn_unused_result));
 
 /**

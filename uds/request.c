@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,127 +16,49 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/request.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/request.c#6 $
  */
 
 #include "request.h"
 
-#include "featureDefs.h"
-#include "grid.h"
+#include "indexRouter.h"
 #include "indexSession.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "parameter.h"
 #include "permassert.h"
-#include "udsState.h"
+#include "requestQueue.h"
 
 /**********************************************************************/
-int launchAllocatedClientRequest(Request *request)
+int udsStartChunkOperation(UdsRequest *udsRequest)
 {
-  int result = getBaseContext(request->blockContext.id, &request->context);
+  if (udsRequest->callback == NULL) {
+    return UDS_CALLBACK_REQUIRED;
+  }
+  switch (udsRequest->type) {
+  case UDS_DELETE:
+  case UDS_POST:
+  case UDS_QUERY:
+  case UDS_UPDATE:
+    break;
+  default:
+    return UDS_INVALID_OPERATION_TYPE;
+  }
+  memset(udsRequest->private, 0, sizeof(udsRequest->private));
+  Request *request = (Request *)udsRequest;
+
+  int result = getIndexSession(request->session);
   if (result != UDS_SUCCESS) {
     return sansUnrecoverable(result);
   }
 
+  request->found            = false;
   request->action           = (RequestAction) request->type;
   request->isControlMessage = false;
   request->unbatched        = false;
-
-  request->router = selectGridRouter(request->context->indexSession->grid,
-                                     &request->hash);
+  request->router           = request->session->router;
 
   enqueueRequest(request, STAGE_TRIAGE);
   return UDS_SUCCESS;
-}
-
-#if GRID
-/**********************************************************************/
-int launchAIPControlMessage(AIPContext     *serverContext,
-                            void           *controlData,
-                            RequestAction   controlAction,
-                            RequestStage    initialStage,
-                            IndexRouter    *router,
-                            Request       **requestPtr)
-{
-  Request *request;
-  int result = ALLOCATE(1, Request, __func__, &request);
-  if (result != UDS_SUCCESS) {
-    FREE(serverContext);
-    return result;
-  }
-
-  request->serverContext    = serverContext;
-  request->router           = router;
-  request->isControlMessage = true;
-  request->unbatched        = true;
-  request->action           = controlAction;
-  request->controlData      = controlData;
-
-  // Enqueue and return immediately for asynchronous requests.
-  if (requestPtr == NULL) {
-    enqueueRequest(request, initialStage);
-    return UDS_SUCCESS;
-  }
-
-  // Initialize the synchronous notification fields in the request.
-  SynchronousCallback synchronous;
-  result = initializeSynchronousRequest(&synchronous);
-  if (result != UDS_SUCCESS) {
-    FREE(request);
-    FREE(serverContext);
-    return result;
-  }
-  request->synchronous = &synchronous;
-
-  enqueueRequest(request, initialStage);
-  awaitSynchronousRequest(request->synchronous);
-  request->synchronous = NULL;
-
-  *requestPtr = request;
-  return result;
-}
-#endif /* GRID */
-
-/**********************************************************************/
-int launchClientControlMessage(UdsContext     *context,
-                               void           *controlData,
-                               RequestAction   controlAction,
-                               RequestStage    initialStage,
-                               Request       **requestPtr)
-{
-  Request *request;
-  int result = ALLOCATE(1, Request, __func__, &request);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  request->context          = context;
-  request->isControlMessage = true;
-  request->unbatched        = true;
-  request->action           = controlAction;
-  request->controlData      = controlData;
-
-  // Enqueue and return immediately for asynchronous requests.
-  if (requestPtr == NULL) {
-    enqueueRequest(request, initialStage);
-    return UDS_SUCCESS;
-  }
-
-  // Initialize the synchronous notification fields in the request.
-  SynchronousCallback synchronous;
-  result = initializeSynchronousRequest(&synchronous);
-  if (result != UDS_SUCCESS) {
-    FREE(request);
-    return result;
-  }
-  request->synchronous = &synchronous;
-
-  enqueueRequest(request, initialStage);
-  awaitSynchronousRequest(request->synchronous);
-  request->synchronous = NULL;
-
-  *requestPtr = request;
-  return result;
 }
 
 /**********************************************************************/
@@ -165,24 +87,9 @@ int launchZoneControlMessage(RequestAction  action,
 /**********************************************************************/
 void freeRequest(Request *request)
 {
-  if (request == NULL) {
-    return;
+  if (request != NULL) {
+    FREE(request);
   }
-
-  // Capture fields from the request we need after it is freed.
-  UdsContext *context = request->context;
-
-  FREE(request->serverContext);
-  FREE(request);
-  request = NULL;
-
-  if (context == NULL) {
-    return;
-  }
-
-  // Release the counted reference to the context that was acquired for the
-  // request (and not released) in createRequest().
-  releaseBaseContext(context);
 }
 
 /**********************************************************************/
@@ -190,13 +97,12 @@ static RequestQueue *getNextStageQueue(Request      *request,
                                        RequestStage  nextStage)
 {
   if (nextStage == STAGE_CALLBACK) {
-    return request->context->indexSession->callbackQueue;
+    return request->session->callbackQueue;
   }
 
   // Local and remote index routers handle the rest of the pipeline
   // differently, so delegate the choice of queue to the router.
-  return request->router->methods->selectQueue(request->router, request,
-                                               nextStage);
+  return selectIndexRouterQueue(request->router, request, nextStage);
 }
 
 /**********************************************************************/
@@ -205,12 +111,7 @@ static void handleRequestErrors(Request *request)
   // XXX Use the router's callback function to hand back the error
   // and clean up the request? (Possible thread issues doing that.)
 
-  // Awaken any synchronous request waiting for us.
-  if (request->synchronous != NULL) {
-    awakenSynchronousRequest(request->synchronous);
-  } else {
-    freeRequest(request);
-  }
+  freeRequest(request);
 }
 
 /**********************************************************************/
@@ -249,54 +150,81 @@ void setRequestRestarter(RequestRestarter restarter)
 }
 
 /**********************************************************************/
+static INLINE void increment_once(uint64_t *countPtr)
+{
+  WRITE_ONCE(*countPtr, READ_ONCE(*countPtr) + 1);
+}
+
+/**********************************************************************/
 void updateRequestContextStats(Request *request)
 {
-  // We don't need any synchronization since the context stats are only
-  // accessed from the single callback thread.
+  /*
+   * We don't need any synchronization since the context stats are only
+   *  modified from the single callback thread.
+   *
+   * We increment either 2 or 3 counters in this method.
+   *
+   * XXX We always increment the "requests" counter.  But there is no code
+   *     that uses the value stored in this counter.
+   *
+   * We always increment exactly one of these counters (unless there is an
+   * error in the code, which never happens):
+   *     postsFound      postsNotFound
+   *     updatesFound    updatesNotFound
+   *     deletionsFound  deletionsNotFound
+   *     queriesFound    queriesNotFound
+   *
+   * XXX In the case of post request that were found in the index, we increment
+   *     exactly one of these counters.  But there is no code that uses the
+   *     value stored in these counters.
+   *          inMemoryPostsFound
+   *          densePostsFound
+   *          sparsePostsFound
+   */
 
-  SessionStats *sessionStats = &request->context->indexSession->stats;
+  SessionStats *sessionStats = &request->session->stats;
 
-  sessionStats->requests++;
+  increment_once(&sessionStats->requests);
   bool found = (request->location != LOC_UNAVAILABLE);
 
   switch (request->action) {
   case REQUEST_INDEX:
     if (found) {
-      sessionStats->postsFound++;
+      increment_once(&sessionStats->postsFound);
 
       if (request->location == LOC_IN_OPEN_CHAPTER) {
-        sessionStats->postsFoundOpenChapter++;
+        increment_once(&sessionStats->postsFoundOpenChapter);
       } else if (request->location == LOC_IN_DENSE) {
-        sessionStats->postsFoundDense++;
+        increment_once(&sessionStats->postsFoundDense);
       } else if (request->location == LOC_IN_SPARSE) {
-        sessionStats->postsFoundSparse++;
+        increment_once(&sessionStats->postsFoundSparse);
       }
     } else {
-      sessionStats->postsNotFound++;
+      increment_once(&sessionStats->postsNotFound);
     }
     break;
 
   case REQUEST_UPDATE:
     if (found) {
-      sessionStats->updatesFound++;
+      increment_once(&sessionStats->updatesFound);
     } else {
-      sessionStats->updatesNotFound++;
+      increment_once(&sessionStats->updatesNotFound);
     }
     break;
 
   case REQUEST_DELETE:
     if (found) {
-      sessionStats->deletionsFound++;
+      increment_once(&sessionStats->deletionsFound);
     } else {
-      sessionStats->deletionsNotFound++;
+      increment_once(&sessionStats->deletionsNotFound);
     }
     break;
 
   case REQUEST_QUERY:
     if (found) {
-      sessionStats->queriesFound++;
+      increment_once(&sessionStats->queriesFound);
     } else {
-      sessionStats->queriesNotFound++;
+      increment_once(&sessionStats->queriesNotFound);
     }
     break;
 
@@ -310,22 +238,15 @@ void updateRequestContextStats(Request *request)
 void enterCallbackStage(Request *request)
 {
   if (!request->isControlMessage) {
-    // This is a client index request, all of which are now asynchronous.
-    ASSERT_LOG_ONLY(request->synchronous == NULL, "asynchronous request");
-
-    if (request->status != UDS_SUCCESS) {
-      request->status = handleError(request->context, request->status);
+    if (isUnrecoverable(request->status)) {
+      // Unrecoverable errors must disable the index session
+      disableIndexSession(request->session);
+      // The unrecoverable state is internal and must not sent to the client.
+      request->status = sansUnrecoverable(request->status);
     }
 
     // Handle asynchronous client callbacks in the designated thread.
     enqueueRequest(request, STAGE_CALLBACK);
-  } else if (request->synchronous != NULL) {
-    /*
-     * Synchronous control messages require that we mark the callback
-     * structure complete, transferring request ownership back to the waiting
-     * thread (and waking it).
-     */
-    awakenSynchronousRequest(request->synchronous);
   } else {
     /*
      * Asynchronous control messages are complete when they are executed.

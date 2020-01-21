@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/volume.c#23 $
  */
 
 #include "volume.h"
@@ -25,89 +25,37 @@
 #include "chapterIndex.h"
 #include "compiler.h"
 #include "errors.h"
-#include "featureDefs.h"
 #include "geometry.h"
 #include "hashUtils.h"
 #include "indexConfig.h"
 #include "logger.h"
 #include "memoryAlloc.h"
-#include "parameter.h"
 #include "permassert.h"
 #include "recordPage.h"
 #include "request.h"
 #include "sparseCache.h"
 #include "stringUtils.h"
 #include "threads.h"
-#include "volumeInternals.h"
 
 enum {
-  MAX_BAD_CHAPTERS    = 100,   // max number of contiguous bad chapters
-  VOLUME_READ_THREADS = 2      // Number of reader threads
-};
-
-static const NumericValidationData validRange = {
-  .minValue = 1,
-  .maxValue = MAX_VOLUME_READ_THREADS,
+  MAX_BAD_CHAPTERS = 100,           // max number of contiguous bad chapters
+  DEFAULT_VOLUME_READ_THREADS = 2,  // Default number of reader threads
+  MAX_VOLUME_READ_THREADS = 16,     // Maximum number of reader threads
 };
 
 /**********************************************************************/
-static UdsParameterValue getDefaultReadThreads(void)
+static unsigned int getReadThreads(const struct uds_parameters *userParams)
 {
-  UdsParameterValue value;
-#if ENVIRONMENT
-  char *env = getenv(UDS_VOLUME_READ_THREADS);
-  if (env != NULL) {
-    UdsParameterValue tmp = {
-      .type = UDS_PARAM_TYPE_STRING,
-      .value.u_string = env,
-    };
-    if (validateNumericRange(&tmp, &validRange, &value) == UDS_SUCCESS) {
-      return value;
-    }
+  unsigned int readThreads = (userParams == NULL
+                              ? DEFAULT_VOLUME_READ_THREADS
+                              : userParams->read_threads);
+  if (readThreads < 1) {
+    readThreads = 1;
   }
-#endif // ENVIRONMENT
-  value.type = UDS_PARAM_TYPE_UNSIGNED_INT;
-  value.value.u_uint = VOLUME_READ_THREADS;
-  return value;
-}
-
-/**********************************************************************/
-int defineVolumeReadThreads(ParameterDefinition *pd)
-{
-  pd->validate       = validateNumericRange;
-  pd->validationData = &validRange;
-  pd->currentValue   = getDefaultReadThreads();
-  pd->update         = NULL;
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-int formatVolume(IORegion *region, const Geometry *geometry)
-{
-  // Create the header page with the magic number and version.
-  byte *headerPage;
-  int result = ALLOCATE_IO_ALIGNED(geometry->bytesPerPage, byte,
-                                   "volume header page", &headerPage);
-  if (result != UDS_SUCCESS) {
-    return result;
+  if (readThreads > MAX_VOLUME_READ_THREADS) {
+    readThreads = MAX_VOLUME_READ_THREADS;
   }
-
-  unsigned int volumeFormatLength = encodeVolumeFormat(headerPage, geometry);
-  if (volumeFormatLength > geometry->bytesPerPage) {
-    FREE(headerPage);
-    logWarning("Volume format header is too large");
-    return EINVAL;
-  }
-
-  // Write the full page to the start of the volume file.
-  result = writeToRegion(region, 0, headerPage, geometry->bytesPerPage,
-                         geometry->bytesPerPage);
-  FREE(headerPage);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  return syncRegionContents(region);
+  return readThreads;
 }
 
 /**********************************************************************/
@@ -135,6 +83,14 @@ static INLINE bool isRecordPage(Geometry *geometry, unsigned int physicalPage)
 static INLINE unsigned int getZoneNumber(Request *request)
 {
   return (request == NULL) ? 0 : request->zoneNumber;
+}
+
+/**********************************************************************/
+int mapToPhysicalPage(const Geometry *geometry, int chapter, int page)
+{
+  // Page zero is the header page, so the first index page in the
+  // first chapter is physical page one.
+  return (1 + (geometry->pagesPerChapter * chapter) + page);
 }
 
 /**********************************************************************/
@@ -192,27 +148,26 @@ int enqueuePageRead(Volume *volume, Request *request, int physicalPage)
 }
 
 /**********************************************************************/
-static INLINE void waitToReserveReadQueueEntry(Volume       *volume,
-                                               unsigned int *queuePos,
-                                               UdsQueueHead *queuedRequests,
-                                               unsigned int *physicalPage,
-                                               bool         *invalid)
+static INLINE void waitToReserveReadQueueEntry(Volume        *volume,
+                                               unsigned int  *queuePos,
+                                               Request      **requestList,
+                                               unsigned int  *physicalPage,
+                                               bool          *invalid)
 {
   while (((volume->readerState & READER_STATE_EXIT) == 0)
          && (((volume->readerState & READER_STATE_STOP) != 0)
              || !reserveReadQueueEntry(volume->pageCache, queuePos,
-                                       queuedRequests, physicalPage,
-                                       invalid))) {
+                                       requestList, physicalPage, invalid))) {
     waitCond(&volume->readThreadsCond, &volume->readThreadsMutex);
   }
 }
 
 /**********************************************************************/
-static int initChapterIndexPage(const Volume     *volume,
-                                byte             *indexPage,
-                                unsigned int      chapter,
-                                unsigned int      indexPageNumber,
-                                ChapterIndexPage *chapterIndexPage)
+static int initChapterIndexPage(const Volume   *volume,
+                                byte           *indexPage,
+                                unsigned int    chapter,
+                                unsigned int    indexPageNumber,
+                                DeltaIndexPage *chapterIndexPage)
 {
   Geometry *geometry = volume->geometry;
 
@@ -235,14 +190,11 @@ static int initChapterIndexPage(const Volume     *volume,
     return result;
   }
 
-  uint64_t     ciVirtual
-    = getChapterIndexVirtualChapterNumber(chapterIndexPage);
+  uint64_t     ciVirtual = chapterIndexPage->virtualChapterNumber;
   unsigned int ciChapter = mapToPhysicalChapter(geometry, ciVirtual);
-  unsigned int ciLowest  = getChapterIndexLowestListNumber(chapterIndexPage);
-  unsigned int ciHighest = getChapterIndexHighestListNumber(chapterIndexPage);
   if ((chapter == ciChapter)
-      && (bounds.lowestList == ciLowest)
-      && (bounds.highestList == ciHighest)) {
+      && (bounds.lowestList == chapterIndexPage->lowestListNumber)
+      && (bounds.highestList == chapterIndexPage->highestListNumber)) {
     return UDS_SUCCESS;
   }
 
@@ -252,7 +204,8 @@ static int initChapterIndexPage(const Volume     *volume,
              "but chapter index page has chapter %" PRIu64
              " with range %u to %u",
              chapter, indexPageNumber, bounds.lowestList, bounds.highestList,
-             ciVirtual, ciLowest, ciHighest);
+             ciVirtual, chapterIndexPage->lowestListNumber,
+             chapterIndexPage->highestListNumber);
   return ASSERT_WITH_ERROR_CODE(false,
                                 UDS_CORRUPT_DATA,
                                 "index page map mismatch with chapter index");
@@ -266,9 +219,9 @@ static int initializeIndexPage(const Volume *volume,
   unsigned int chapter = mapToChapterNumber(volume->geometry, physicalPage);
   unsigned int indexPageNumber = mapToPageNumber(volume->geometry,
                                                  physicalPage);
-  int result = initChapterIndexPage(volume, page->data,
+  int result = initChapterIndexPage(volume, getPageData(&page->cp_pageData),
                                     chapter, indexPageNumber,
-                                    &page->indexPage);
+                                    &page->cp_indexPage);
   return result;
 }
 
@@ -277,15 +230,15 @@ static void readThreadFunction(void *arg)
 {
   Volume       *volume  = arg;
   unsigned int  queuePos;
-  UdsQueueHead  queuedRequests;
+  Request      *requestList;
   unsigned int  physicalPage;
   bool          invalid = false;
 
   logDebug("reader starting");
   lockMutex(&volume->readThreadsMutex);
   while (true) {
-    waitToReserveReadQueueEntry(volume, &queuePos, &queuedRequests,
-                                &physicalPage, &invalid);
+    waitToReserveReadQueueEntry(volume, &queuePos, &requestList, &physicalPage,
+                                &invalid);
     if ((volume->readerState & READER_STATE_EXIT) != 0) {
       break;
     }
@@ -301,7 +254,8 @@ static void readThreadFunction(void *arg)
       result = selectVictimInCache(volume->pageCache, &page);
       if (result == UDS_SUCCESS) {
         unlockMutex(&volume->readThreadsMutex);
-        result = readPageToBuffer(volume, physicalPage, page->data);
+        result = readVolumePage(&volume->volumeStore, physicalPage,
+                                &page->cp_pageData);
         if (result != UDS_SUCCESS) {
           logWarning("Error reading page %u from volume", physicalPage);
           cancelPageInCache(volume->pageCache, physicalPage, page);
@@ -343,9 +297,9 @@ static void readThreadFunction(void *arg)
       page = NULL;
     }
 
-    while (!STAILQ_EMPTY(&queuedRequests)) {
-      Request *request = STAILQ_FIRST(&queuedRequests);
-      STAILQ_REMOVE_HEAD(&queuedRequests, link);
+    while (requestList != NULL) {
+      Request *request = requestList;
+      requestList = request->nextRequest;
 
       /*
        * If we've read in a record page, we're going to do an immediate search,
@@ -358,7 +312,8 @@ static void readThreadFunction(void *arg)
        * again.
        */
       if ((result == UDS_SUCCESS) && (page != NULL) && recordPage) {
-        if (searchRecordPage(page->data, &request->hash, volume->geometry,
+        if (searchRecordPage(getPageData(&page->cp_pageData),
+                             &request->chunkName, volume->geometry,
                              &request->oldMetadata)) {
           request->slLocation = LOC_IN_DENSE;
         } else {
@@ -388,10 +343,9 @@ static int readPageLocked(Volume        *volume,
                           bool           syncRead,
                           CachedPage   **pagePtr)
 {
-  syncRead |= (volume->lookupMode == LOOKUP_FOR_REBUILD)
+  syncRead |= ((volume->lookupMode == LOOKUP_FOR_REBUILD)
                || (request == NULL)
-               || ((request->context == NULL)
-                   && (request->serverContext == NULL));
+               || (request->session == NULL));
 
   int result = UDS_SUCCESS;
 
@@ -403,7 +357,8 @@ static int readPageLocked(Volume        *volume,
       logWarning("Error selecting cache victim for page read");
       return result;
     }
-    result = readPageToBuffer(volume, physicalPage, page->data);
+    result = readVolumePage(&volume->volumeStore, physicalPage,
+                            &page->cp_pageData);
     if (result != UDS_SUCCESS) {
       logWarning("Error reading page %u from volume", physicalPage);
       cancelPageInCache(volume->pageCache, physicalPage, page);
@@ -564,12 +519,12 @@ int getPageProtected(Volume          *volume,
 }
 
 /**********************************************************************/
-int getPage(Volume            *volume,
-            unsigned int       chapter,
-            unsigned int       pageNumber,
-            CacheProbeType     probeType,
-            byte             **dataPtr,
-            ChapterIndexPage **indexPagePtr)
+int getPage(Volume          *volume,
+            unsigned int     chapter,
+            unsigned int     pageNumber,
+            CacheProbeType   probeType,
+            byte           **dataPtr,
+            DeltaIndexPage **indexPagePtr)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, chapter, pageNumber);
@@ -580,10 +535,10 @@ int getPage(Volume            *volume,
   unlockMutex(&volume->readThreadsMutex);
 
   if (dataPtr != NULL) {
-    *dataPtr = (page != NULL) ? page->data : NULL;
+    *dataPtr = (page != NULL) ? getPageData(&page->cp_pageData) : NULL;
   }
   if (indexPagePtr != NULL) {
-    *indexPagePtr = (page != NULL) ? &page->indexPage : NULL;
+    *indexPagePtr = (page != NULL) ? &page->cp_indexPage : NULL;
   }
   return result;
 }
@@ -640,7 +595,7 @@ static int searchCachedIndexPage(Volume             *volume,
     return result;
   }
 
-  result = searchChapterIndexPage(&page->indexPage, volume->geometry, name,
+  result = searchChapterIndexPage(&page->cp_indexPage, volume->geometry, name,
                                   recordPageNumber);
   endPendingSearch(volume->pageCache, zoneNumber);
   return result;
@@ -695,7 +650,8 @@ int searchCachedRecordPage(Volume             *volume,
     return result;
   }
 
-  if (searchRecordPage(recordPage->data, name, geometry, duplicate)) {
+  if (searchRecordPage(getPageData(&recordPage->cp_pageData), name, geometry,
+                       duplicate)) {
     *found = true;
   }
   endPendingSearch(volume->pageCache, zoneNumber);
@@ -703,27 +659,36 @@ int searchCachedRecordPage(Volume             *volume,
 }
 
 /**********************************************************************/
-int readChapterIndexFromVolume(const Volume     *volume,
-                               uint64_t          virtualChapter,
-                               byte              pageData[],
-                               ChapterIndexPage  indexPages[])
+int readChapterIndexFromVolume(const Volume       *volume,
+                               uint64_t            virtualChapter,
+                               struct volume_page  volumePages[],
+                               DeltaIndexPage      indexPages[])
 {
-  unsigned int physicalChapter
-    = mapToPhysicalChapter(volume->geometry, virtualChapter);
-  int result = readChapterIndexToBuffer(volume, physicalChapter, pageData);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+  const Geometry *geometry = volume->geometry;
+  unsigned int physicalChapter = mapToPhysicalChapter(geometry,
+                                                      virtualChapter);
+  int physicalPage = mapToPhysicalPage(geometry, physicalChapter, 0);
+  prefetchVolumePages(&volume->volumeStore, physicalPage,
+                      geometry->indexPagesPerChapter);
 
-  for (unsigned int i = 0; i < volume->geometry->indexPagesPerChapter; i++) {
-    byte *indexPage = &pageData[i * volume->geometry->bytesPerPage];
-    result = initChapterIndexPage(volume, indexPage, physicalChapter,
-                                  i, &indexPages[i]);
+  unsigned int i;
+  struct volume_page volumePage;
+  int result = initializeVolumePage(geometry, &volumePage);
+  for (i = 0; i < geometry->indexPagesPerChapter; i++) {
+    int result = readVolumePage(&volume->volumeStore, physicalPage + i,
+                                &volumePages[i]);
     if (result != UDS_SUCCESS) {
-      return result;
+      break;
+    }
+    byte *indexPage = getPageData(&volumePages[i]);
+    result = initChapterIndexPage(volume, indexPage, physicalChapter, i,
+                                  &indexPages[i]);
+    if (result != UDS_SUCCESS) {
+      break;
     }
   }
-  return UDS_SUCCESS;
+  destroyVolumePage(&volumePage);
+  return result;
 }
 
 /**********************************************************************/
@@ -771,37 +736,20 @@ int forgetChapter(Volume             *volume,
   return result;
 }
 
-/**********************************************************************/
-static int writeScratchPage(Volume *volume, off_t *offset)
-{
-  int result = writeToRegion(volume->region, *offset, volume->scratchPage,
-                             volume->geometry->bytesPerPage,
-                             volume->geometry->bytesPerPage);
-  *offset += volume->geometry->bytesPerPage;
-  return result;
-}
-
-/**********************************************************************/
-void updateVolumeSize(Volume *volume, off_t size)
-{
-  if (volume->volumeSize < size) {
-    volume->volumeSize = size;
-  }
-}
-
 /**
  * Donate index page data to the page cache for an index page that was just
- * written to the volume. The index page data is expected to be in the
- * volume's scratch page. The caller must already hold the reader thread
+ * written to the volume.  The caller must already hold the reader thread
  * mutex.
  *
  * @param volume           the volume
  * @param physicalChapter  the physical chapter number of the index page
  * @param indexPageNumber  the chapter page number of the index page
+ * @param scratchPage      the index page data
  **/
-static int donateIndexPageLocked(Volume       *volume,
-                                 unsigned int  physicalChapter,
-                                 unsigned int  indexPageNumber)
+static int donateIndexPageLocked(Volume             *volume,
+                                 unsigned int        physicalChapter,
+                                 unsigned int        indexPageNumber,
+                                 struct volume_page *scratchPage)
 {
   unsigned int physicalPage
     = mapToPhysicalPage(volume->geometry, physicalChapter, indexPageNumber);
@@ -813,11 +761,12 @@ static int donateIndexPageLocked(Volume       *volume,
     return result;
   }
 
-  // Copy the scratch page containing the index page bytes to the cache page.
-  memcpy(page->data, volume->scratchPage, volume->geometry->bytesPerPage);
-
-  result = initChapterIndexPage(volume, page->data, physicalChapter,
-                                indexPageNumber, &page->indexPage);
+  // Exchange the scratch page with the cache page
+  swapVolumePages(&page->cp_pageData, scratchPage);
+  
+  result = initChapterIndexPage(volume, getPageData(&page->cp_pageData),
+                                physicalChapter, indexPageNumber,
+                                &page->cp_indexPage);
   if (result != UDS_SUCCESS) {
     logWarning("Error initialize chapter index page");
     cancelPageInCache(volume->pageCache, physicalPage, page);
@@ -836,7 +785,7 @@ static int donateIndexPageLocked(Volume       *volume,
 
 /**********************************************************************/
 int writeIndexPages(Volume            *volume,
-                    off_t             chapterOffset,
+                    int                physicalPage,
                     OpenChapterIndex  *chapterIndex,
                     byte             **pages)
 {
@@ -844,40 +793,46 @@ int writeIndexPages(Volume            *volume,
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
   unsigned int deltaListNumber = 0;
-  // The first chapter index page is written at the start of the chapter.
-  off_t pageOffset = chapterOffset;
 
-  for (unsigned int indexPageNumber = 0;
+  unsigned int indexPageNumber;
+  for (indexPageNumber = 0;
        indexPageNumber < geometry->indexPagesPerChapter;
        indexPageNumber++) {
-    // Pack as many delta lists into the scratch page as will fit.
-    unsigned int listsPacked;
-    bool lastPage = ((indexPageNumber + 1) == geometry->indexPagesPerChapter);
-    int result = packOpenChapterIndexPage(chapterIndex, volume->nonce,
-                                          volume->scratchPage,
-                                          deltaListNumber, lastPage,
-                                          &listsPacked);
+    int result = prepareToWriteVolumePage(&volume->volumeStore,
+                                          physicalPage + indexPageNumber,
+                                          &volume->scratchPage);
     if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result, "failed to pack index page");
+      return logWarningWithStringError(result, "failed to prepare index page");
     }
 
-    // Write the scratch page to the volume as the next chapter index page.
-    result = writeScratchPage(volume, &pageOffset);
+    // Pack as many delta lists into the index page as will fit.
+    unsigned int listsPacked;
+    bool lastPage = ((indexPageNumber + 1) == geometry->indexPagesPerChapter);
+    result = packOpenChapterIndexPage(chapterIndex,
+                                      getPageData(&volume->scratchPage),
+                                      deltaListNumber, lastPage, &listsPacked);
     if (result != UDS_SUCCESS) {
-      return logErrorWithStringError(result,
-                                     "failed to write chapter index page");
+      return logWarningWithStringError(result, "failed to pack index page");
+    }
+
+    result = writeVolumePage(&volume->volumeStore,
+                             physicalPage + indexPageNumber,
+                             &volume->scratchPage);
+    if (result != UDS_SUCCESS) {
+      return logWarningWithStringError(result,
+                                       "failed to write chapter index page");
     }
 
     if (pages != NULL) {
-      memcpy(pages[indexPageNumber], volume->scratchPage,
+      memcpy(pages[indexPageNumber], getPageData(&volume->scratchPage),
              geometry->bytesPerPage);
     }
 
     // Tell the index page map the list number of the last delta list that was
     // packed into the index page.
     if (listsPacked == 0) {
-      logInfo("no delta lists packed on chapter %u page %u",
-              physicalChapterNumber, indexPageNumber);
+      logDebug("no delta lists packed on chapter %u page %u",
+               physicalChapterNumber, indexPageNumber);
     } else {
       deltaListNumber += listsPacked;
     }
@@ -893,35 +848,43 @@ int writeIndexPages(Volume            *volume,
     // Donate the page data for the index page to the page cache.
     lockMutex(&volume->readThreadsMutex);
     result = donateIndexPageLocked(volume, physicalChapterNumber,
-                                   indexPageNumber);
+                                   indexPageNumber, &volume->scratchPage);
     unlockMutex(&volume->readThreadsMutex);
     if (result != UDS_SUCCESS) {
       return result;
     }
   }
-
-  return ASSERT((pageOffset == (chapterOffset + geometry->recordPageOffset)),
-                "unexpected page offset");
   return UDS_SUCCESS;
 }
 
 /**********************************************************************/
 int writeRecordPages(Volume                *volume,
-                     off_t                  chapterOffset,
+                     int                    physicalPage,
                      const UdsChunkRecord   records[],
                      byte                 **pages)
 {
   Geometry *geometry = volume->geometry;
-  off_t pageOffset = chapterOffset + geometry->recordPageOffset;
+  // Skip over the index pages, which come before the record pages
+  physicalPage += geometry->indexPagesPerChapter;
   // The record array from the open chapter is 1-based.
   const UdsChunkRecord *nextRecord = &records[1];
 
-  for (unsigned int recordPageNumber = 0;
+  unsigned int recordPageNumber;
+  for (recordPageNumber = 0;
        recordPageNumber < geometry->recordPagesPerChapter;
        recordPageNumber++) {
-    // Sort the next page of records and copy them to the scratch page
-    // as a binary tree stored in heap order.
-    int result = encodeRecordPage(volume, nextRecord);
+    int result = prepareToWriteVolumePage(&volume->volumeStore,
+                                          physicalPage + recordPageNumber,
+                                          &volume->scratchPage);
+    if (result != UDS_SUCCESS) {
+      return logWarningWithStringError(result,
+                                       "failed to prepare record page");
+    }
+
+    // Sort the next page of records and copy them to the record page as a
+    // binary tree stored in heap order.
+    result = encodeRecordPage(volume, nextRecord,
+                              getPageData(&volume->scratchPage));
     if (result != UDS_SUCCESS) {
       return logWarningWithStringError(result,
                                        "failed to encode record page %u",
@@ -929,22 +892,20 @@ int writeRecordPages(Volume                *volume,
     }
     nextRecord += geometry->recordsPerPage;
 
-    // Write the scratch page to the volume as the next record page.
-    result = writeScratchPage(volume, &pageOffset);
+    result = writeVolumePage(&volume->volumeStore,
+                             physicalPage + recordPageNumber,
+                             &volume->scratchPage);
     if (result != UDS_SUCCESS) {
-      return logWarningWithStringError(result, "failed to write record page %u",
-                                       recordPageNumber);
+      return logWarningWithStringError(result,
+                                       "failed to write chapter record page");
     }
 
     if (pages != NULL) {
-      memcpy(pages[recordPageNumber], volume->scratchPage,
+      memcpy(pages[recordPageNumber], getPageData(&volume->scratchPage),
              geometry->bytesPerPage);
     }
   }
-
-  return ASSERT((pageOffset
-                 == (chapterOffset + (off_t) geometry->bytesPerChapter)),
-                "unexpected page offset");
+  return UDS_SUCCESS;
 }
 
 /**********************************************************************/
@@ -957,26 +918,20 @@ int writeChapter(Volume                 *volume,
   unsigned int physicalChapterNumber
     = mapToPhysicalChapter(geometry, chapterIndex->virtualChapterNumber);
   int physicalPage = mapToPhysicalPage(geometry, physicalChapterNumber, 0);
-  off_t chapterOffset = (off_t) physicalPage * (off_t) geometry->bytesPerPage;
 
   // Pack and write the delta chapter index pages to the volume.
-  int result = writeIndexPages(volume, chapterOffset, chapterIndex, NULL);
+  int result = writeIndexPages(volume, physicalPage, chapterIndex, NULL);
   if (result != UDS_SUCCESS) {
     return result;
   }
   // Sort and write the record pages to the volume.
-  result = writeRecordPages(volume, chapterOffset, records, NULL);
+  result = writeRecordPages(volume, physicalPage, records, NULL);
   if (result != UDS_SUCCESS) {
     return result;
   }
-  updateVolumeSize(volume, chapterOffset + geometry->bytesPerChapter);
-  return UDS_SUCCESS;
-}
-
-/**********************************************************************/
-off_t getVolumeSize(Volume *volume)
-{
-  return volume->volumeSize;
+  releaseVolumePage(&volume->scratchPage);
+  // Flush the data to permanent storage.
+  return syncVolumeStore(&volume->volumeStore);
 }
 
 /**********************************************************************/
@@ -990,24 +945,6 @@ size_t getCacheSize(Volume *volume)
 }
 
 /**********************************************************************/
-void getCacheCounters(Volume *volume, CacheCounters *counters)
-{
-  getPageCacheCounters(volume->pageCache, counters);
-  if (isSparse(volume->geometry)) {
-    CacheCounters sparseCounters = getSparseCacheCounters(volume->sparseCache);
-    addCacheCounters(counters, &sparseCounters);
-  }
-}
-
-/**********************************************************************/
-off_t offsetForChapter(const Geometry *geometry,
-                       unsigned int    chapter)
-{
-  return geometry->bytesPerPage +                       // header page
-    (((off_t) chapter) * geometry->bytesPerChapter);    // chapter span
-}
-
-/**********************************************************************/
 static int probeChapter(Volume       *volume,
                         unsigned int  chapterNumber,
                         uint64_t     *virtualChapterNumber)
@@ -1016,15 +953,20 @@ static int probeChapter(Volume       *volume,
   unsigned int expectedListNumber = 0;
   uint64_t lastVCN = UINT64_MAX;
 
-  for (unsigned int i = 0; i < geometry->indexPagesPerChapter; ++i) {
-    ChapterIndexPage *page;
+  prefetchVolumePages(&volume->volumeStore,
+                      mapToPhysicalPage(geometry, chapterNumber, 0),
+                      geometry->indexPagesPerChapter);
+
+  unsigned int i;
+  for (i = 0; i < geometry->indexPagesPerChapter; ++i) {
+    DeltaIndexPage *page;
     int result = getPage(volume, chapterNumber, i, CACHE_PROBE_INDEX_FIRST,
                          NULL, &page);
     if (result != UDS_SUCCESS) {
       return result;
     }
 
-    uint64_t vcn = getChapterIndexVirtualChapterNumber(page);
+    uint64_t vcn = page->virtualChapterNumber;
     if (lastVCN == UINT64_MAX) {
       lastVCN = vcn;
     } else if (vcn != lastVCN) {
@@ -1034,14 +976,13 @@ static int probeChapter(Volume       *volume,
       return UDS_CORRUPT_COMPONENT;
     }
 
-    if (expectedListNumber != getChapterIndexLowestListNumber(page)) {
+    if (expectedListNumber != page->lowestListNumber) {
       logError("inconsistent chapter %u index page %u: expected list number %u"
                ", got list number %u",
-               chapterNumber, i, expectedListNumber,
-               getChapterIndexLowestListNumber(page));
+               chapterNumber, i, expectedListNumber, page->lowestListNumber);
       return UDS_CORRUPT_COMPONENT;
     }
-    expectedListNumber = getChapterIndexHighestListNumber(page) + 1;
+    expectedListNumber = page->highestListNumber + 1;
 
     result = validateChapterIndexPage(page, geometry);
     if (result != UDS_SUCCESS) {
@@ -1121,43 +1062,9 @@ int findVolumeChapterBoundaries(Volume   *volume,
                                 uint64_t *highestVCN,
                                 bool     *isEmpty)
 {
-  const Geometry *geometry = volume->geometry;
+  unsigned int chapterLimit = volume->geometry->chaptersPerVolume;
 
-  off_t volSize = 0;
-
-  int result = getRegionDataSize(volume->region, &volSize);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
-
-  if (volSize < (off_t) (geometry->bytesPerPage + geometry->bytesPerChapter)) {
-    if (volSize == (off_t) (geometry->bytesPerPage)) {
-      *lowestVCN = 0;
-      *highestVCN = 0;
-      *isEmpty = true;
-      return UDS_SUCCESS;
-    }
-
-    return logErrorWithStringError(UDS_CORRUPT_COMPONENT,
-                                   "invalid volume size (%" PRIu64 " bytes)",
-                                   (uint64_t) volSize);
-  }
-
-  // determine highest present physical chapter number
-
-  unsigned int chapterLimit = (unsigned int)
-    ((volSize - geometry->bytesPerPage) / geometry->bytesPerChapter);
-
-  logDebug("volume size %" PRIu64 " bytes, %u chapters",
-           (uint64_t) volSize, chapterLimit);
-
-  if (chapterLimit > geometry->chaptersPerVolume) {
-    logWarning("excess chapters detected, expected no more than %u",
-               geometry->chaptersPerVolume);
-    chapterLimit = geometry->chaptersPerVolume;
-  }
-
-  result = findRealEndOfVolume(volume, chapterLimit, &chapterLimit);
+  int result = findRealEndOfVolume(volume, chapterLimit, &chapterLimit);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot find end of volume");
   }
@@ -1283,32 +1190,117 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
   return UDS_SUCCESS;
 }
 
-/**********************************************************************/
-int makeVolume(const Configuration  *config,
-               IndexLayout          *layout,
-               unsigned int          readQueueMaxSize,
-               unsigned int          zoneCount,
-               Volume              **newVolume)
+/**
+ * Allocate a volume.
+ *
+ * @param config            The configuration to use
+ * @param layout            The index layout
+ * @param readQueueMaxSize  The maximum size of the read queue
+ * @param zoneCount         The number of zones to use
+ * @param newVolume         A pointer to hold the new volume
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+__attribute__((warn_unused_result))
+static int allocateVolume(const Configuration  *config,
+                          IndexLayout          *layout,
+                          unsigned int          readQueueMaxSize,
+                          unsigned int          zoneCount,
+                          Volume              **newVolume)
 {
-  unsigned int volumeReadThreads;
-
-  UdsParameterValue value;
-  if ((udsGetParameter(UDS_VOLUME_READ_THREADS, &value) == UDS_SUCCESS) &&
-      (value.type == UDS_PARAM_TYPE_UNSIGNED_INT)) {
-    volumeReadThreads = value.value.u_uint;
-  } else {
-    volumeReadThreads = VOLUME_READ_THREADS;
+  Volume *volume;
+  int result = ALLOCATE(1, Volume, "volume", &volume);
+  if (result != UDS_SUCCESS) {
+    return result;
   }
+  volume->nonce = getVolumeNonce(layout);
+  // It is safe to call freeVolume now to clean up and close the volume
+
+  result = copyGeometry(config->geometry, &volume->geometry);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return logWarningWithStringError(result,
+                                     "failed to allocate geometry: error");
+  }
+
+  // Need a buffer for each entry in the page cache
+  unsigned int reservedBuffers
+    = config->cacheChapters * config->geometry->recordPagesPerChapter;
+  // And a buffer for the chapter writer
+  reservedBuffers += 1;
+  // And a buffer for each entry in the sparse cache
+  if (isSparse(volume->geometry)) {
+    reservedBuffers
+      += config->cacheChapters * config->geometry->indexPagesPerChapter;
+  }
+  result = openVolumeStore(&volume->volumeStore, layout, reservedBuffers,
+                           config->geometry->bytesPerPage);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = initializeVolumePage(config->geometry, &volume->scratchPage);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  result = makeRadixSorter(config->geometry->recordsPerPage,
+                           &volume->radixSorter);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  result = ALLOCATE(config->geometry->recordsPerPage, const UdsChunkRecord *,
+                    "record pointers", &volume->recordPointers);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  if (isSparse(volume->geometry)) {
+    result = makeSparseCache(volume->geometry, config->cacheChapters,
+                             zoneCount, &volume->sparseCache);
+    if (result != UDS_SUCCESS) {
+      freeVolume(volume);
+      return result;
+    }
+  }
+  result = makePageCache(volume->geometry, config->cacheChapters,
+                         readQueueMaxSize, zoneCount, &volume->pageCache);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+  result = makeIndexPageMap(volume->geometry, &volume->indexPageMap);
+  if (result != UDS_SUCCESS) {
+    freeVolume(volume);
+    return result;
+  }
+
+  *newVolume = volume;
+  return UDS_SUCCESS;
+}
+
+/**********************************************************************/
+int makeVolume(const Configuration          *config,
+               IndexLayout                  *layout,
+               const struct uds_parameters  *userParams,
+               unsigned int                  readQueueMaxSize,
+               unsigned int                  zoneCount,
+               Volume                      **newVolume)
+{
+  unsigned int volumeReadThreads = getReadThreads(userParams);
 
   if (readQueueMaxSize <= volumeReadThreads) {
     logError("Number of read threads must be smaller than read queue");
     return UDS_INVALID_ARGUMENT;
   }
 
-  Volume *volume;
-
+  Volume *volume = NULL;
   int result = allocateVolume(config, layout, readQueueMaxSize, zoneCount,
-                              !READ_ONLY_VOLUME, &volume);
+                              &volume);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -1336,7 +1328,8 @@ int makeVolume(const Configuration  *config,
     freeVolume(volume);
     return result;
   }
-  for (unsigned int i = 0; i < volumeReadThreads; i++) {
+  unsigned int i;
+  for (i = 0; i < volumeReadThreads; i++) {
     result = createThread(readThreadFunction, (void *) volume, "reader",
                           &volume->readerThreads[i]);
     if (result != UDS_SUCCESS) {
@@ -1365,30 +1358,26 @@ void freeVolume(Volume *volume)
     volume->readerState |= READER_STATE_EXIT;
     broadcastCond(&volume->readThreadsCond);
     unlockMutex(&volume->readThreadsMutex);
-    for (unsigned int i = 0; i < volume->numReadThreads; i++) {
+    unsigned int i;
+    for (i = 0; i < volume->numReadThreads; i++) {
       joinThreads(volume->readerThreads[i]);
     }
     FREE(volume->readerThreads);
     volume->readerThreads = NULL;
   }
 
-  if (volume->region != NULL) {
-    int result = syncAndCloseRegion(&volume->region, "index volume");
-    if (result != UDS_SUCCESS) {
-      logErrorWithStringError(result,
-                              "error closing volume, releasing anyway");
-    }
-  }
+  // Must close the volume store AFTER freeing the scratch page and the caches
+  destroyVolumePage(&volume->scratchPage);
+  freePageCache(volume->pageCache);
+  freeSparseCache(volume->sparseCache);
+  closeVolumeStore(&volume->volumeStore);
 
   destroyCond(&volume->readThreadsCond);
   destroyCond(&volume->readThreadsReadDoneCond);
   destroyMutex(&volume->readThreadsMutex);
   freeIndexPageMap(volume->indexPageMap);
-  freePageCache(volume->pageCache);
   freeRadixSorter(volume->radixSorter);
-  freeSparseCache(volume->sparseCache);
   FREE(volume->geometry);
   FREE(volume->recordPointers);
-  FREE(volume->scratchPage);
   FREE(volume);
 }

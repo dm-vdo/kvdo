@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#4 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/dedupeIndex.h#5 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -104,14 +104,26 @@ struct dedupeIndex {
   void (*stop)(DedupeIndex *index);
 
   /**
-   * Wait until the dedupe index has completed all its outstanding I/O.
+   * Suspend the dedupe index. If there are any outstanding index
+   * requests, wait for them to finish. If the index is doing any
+   * asynchronous writing, wait for the I/O to complete. If the index
+   * is not open yet and we are doing a rebuild of the master index,
+   * pause the rebuild so that it can be resumed later. May be called
+   * from any thread.
    *
    * @param index     The dedupe index
    * @param saveFlag  True if we should save the index
    **/
   void (*suspend)(DedupeIndex *index, bool saveFlag);
-
+ 
   /**
+   * Resume a suspended dedupe index. May be called from any thread.
+   *
+   * @param index  The dedupe index
+   **/
+  void (*resume)(DedupeIndex *index);
+
+ /**
    * Finish the dedupe index; shuts it down for good and prepares to
    * free resources. After this point, no more requests may be sent to
    * it.
@@ -271,7 +283,12 @@ static inline void stopDedupeIndex(DedupeIndex *index)
 }
 
 /**
- * Wait until the dedupe index has completed all its outstanding I/O.
+ * Suspend the dedupe index. If there are any outstanding index
+ * requests, wait for them to finish. If the index is doing any
+ * asynchronous writing, wait for the I/O to complete. If the index is
+ * not open yet and we are doing a rebuild of the master index, pause
+ * the rebuild so that it can be resumed later. May be called from any
+ * thread.
  *
  * @param index     The dedupe index
  * @param saveFlag  True if we should save the index
@@ -279,6 +296,16 @@ static inline void stopDedupeIndex(DedupeIndex *index)
 static inline void suspendDedupeIndex(DedupeIndex *index, bool saveFlag)
 {
   index->suspend(index, saveFlag);
+}
+
+/**
+ * Resume a suspended dedupe index. May be called from any thread.
+ *
+ * @param index  The dedupe index
+ **/
+static inline void resumeDedupeIndex(DedupeIndex *index)
+{
+  index->resume(index);
 }
 
 /**

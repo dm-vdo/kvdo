@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2018 Red Hat, Inc.
+/*
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,20 +16,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/accessMode.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexVersion.h#1 $
+ */
+
+#ifndef INDEX_VERSION_H
+#define INDEX_VERSION_H
+
+#include "typeDefs.h"
+
+struct index_version {
+  bool chapterIndexHeaderNativeEndian;
+};
+
+enum {
+  SUPER_VERSION_MINIMUM = 1,
+  SUPER_VERSION_MAXIMUM = 3,
+  SUPER_VERSION_CURRENT = 3,
+};
+
+/**
+ * Initialize the version parameters that we normally learn when loading the
+ * index but need to use during index operation.
+ *
+ * @param version       The version parameters
+ * @param superVersion  The SuperBlock version number
  **/
+void initializeIndexVersion(struct index_version *version,
+                            uint32_t              superVersion);
 
-#ifndef ACCESS_MODE_H
-#define ACCESS_MODE_H
-
-typedef enum {
-  IO_READ              = 0x1,
-  IO_WRITE             = 0x2,
-  IO_CREATE            = 0x4,
-  IO_READ_WRITE        = IO_READ | IO_WRITE,
-  IO_CREATE_READ_WRITE = IO_READ_WRITE | IO_CREATE,
-  IO_CREATE_WRITE      = IO_WRITE | IO_CREATE,
-  IO_ACCESS_MASK       = 0x7,
-} IOAccessMode;
-
-#endif // ACCESS_MODE_H
+#endif // INDEX_VERSION_H

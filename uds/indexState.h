@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,15 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexState.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexState.h#4 $
  */
 
 #ifndef INDEX_STATE_H
 #define INDEX_STATE_H 1
 
+#include "buffer.h"
 #include "indexComponent.h"
-
-typedef struct indexStateOps IndexStateOps;
 
 /**
  * Used here and in SingleFileLayout.
@@ -35,22 +34,46 @@ typedef enum {
   NO_SAVE = 9999,
 } IndexSaveType;
 
+/*
+ * Used in getStateIndexStateBuffer to identify whether the index state buffer
+ * is for the index being loaded or the index being saved.
+ */
+typedef enum {
+  IO_READ  = 0x1,
+  IO_WRITE = 0x2,
+} IOAccessMode;
+
 /**
  * The index state structure controls the loading and saving of the index
- * state. In this implementation it is an abstract type which is embedded
- * within the concrete type, usually a FileIndexState for the file-system-based
- * index store, or a BlockIndexState for a block-device or single-file
- * store.
+ * state.
  **/
 typedef struct indexState {
-  unsigned int          id;          //- the sub-index id for this index
-  unsigned int          zoneCount;   //- number of index zones to use
-  unsigned int          count;       //- count of registered entries (<= length)
-  unsigned int          length;      //- total span of array allocation
-  IndexComponent      **entries;     //- array of index component entries
-  bool                  saving;      //- incremental save in progress
-  const IndexStateOps  *ops;         //- set of type-specific operations
+  struct indexLayout *layout;
+  unsigned int        zoneCount;  // number of index zones to use
+  unsigned int        loadZones;
+  unsigned int        loadSlot;
+  unsigned int        saveSlot;
+  unsigned int        count;     // count of registered entries (<= length)
+  unsigned int        length;    // total span of array allocation
+  bool                saving;    // incremental save in progress
+  IndexComponent     *entries[]; // array of index component entries
 } IndexState;
+
+/**
+ * Make an index state object,
+ *
+ * @param [in]  layout         The index layout.
+ * @param [in]  numZones       The number of zones to use.
+ * @param [in]  maxComponents  The maximum number of components to be handled.
+ * @param [out] statePtr       Where to store the index state object.
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+int makeIndexState(struct indexLayout  *layout,
+                   unsigned int         numZones,
+                   unsigned int         maxComponents,
+                   IndexState         **statePtr)
+  __attribute__((warn_unused_result));
 
 /**
  * Free an index state (generically).
@@ -84,8 +107,7 @@ int addIndexStateComponent(IndexState               *state,
  *
  * @return           UDS_SUCCESS or error
  **/
-int loadIndexState(IndexState *state,
-                   bool       *replayPtr)
+int loadIndexState(IndexState *state, bool *replayPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -95,7 +117,17 @@ int loadIndexState(IndexState *state,
  *
  * @return              UDS_SUCCESS or error
  **/
-int saveIndexState(IndexState *state)
+int saveIndexState(IndexState *state) __attribute__((warn_unused_result));
+
+/**
+ *  Prepare to save the index state.
+ *
+ *  @param state     the index state
+ *  @param saveType  whether a checkpoint or save
+ *
+ *  @return UDS_SUCCESS or an error code
+ **/
+int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
   __attribute__((warn_unused_result));
 
 /**
@@ -232,15 +264,48 @@ IndexComponent *findIndexComponent(const IndexState         *state,
   __attribute__((warn_unused_result));
 
 /**
- * Write a single index component, for testing.
+ * Get the indexStateBuffer for a specified mode.
  *
- * @param state The index state
- * @param info  The index component file specification
+ * @param state      The index state.
+ * @param mode       One of IO_READ or IO_WRITE.
  *
- * @return      UDS_SUCCESS or error code
+ * @return the index state buffer
  **/
-int writeSingleIndexStateComponent(IndexState               *state,
-                                   const IndexComponentInfo *info)
+Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
+  __attribute__((warn_unused_result));
+
+/**
+ * Open a BufferedReader for a specified state, kind, and zone.
+ * This helper function is used by IndexComponent.
+ *
+ * @param state      The index state.
+ * @param kind       The kind if index save region to open.
+ * @param zone       The zone number for the region.
+ * @param readerPtr  Where to store the BufferedReader.
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+int openStateBufferedReader(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedReader **readerPtr)
+  __attribute__((warn_unused_result));
+
+/**
+ * Open a BufferedWriter for a specified state, kind, and zone.
+ * This helper function is used by IndexComponent.
+ *
+ * @param state      The index state.
+ * @param kind       The kind if index save region to open.
+ * @param zone       The zone number for the region.
+ * @param writerPtr  Where to store the BufferedWriter.
+ *
+ * @return UDS_SUCCESS or an error code.
+ **/
+int openStateBufferedWriter(IndexState      *state,
+                            RegionKind       kind,
+                            unsigned int     zone,
+                            BufferedWriter **writerPtr)
   __attribute__((warn_unused_result));
 
 #endif // INDEX_STATE_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#6 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/refCounts.h#7 $
  */
 
 #ifndef REF_COUNTS_H
@@ -57,6 +57,14 @@ int makeRefCounts(BlockCount            blockCount,
  * @param refCountsPtr  The reference to the reference counting object to free
  **/
 void freeRefCounts(RefCounts **refCountsPtr);
+
+/**
+ * Check whether a RefCounts is active.
+ *
+ * @param refCounts  The RefCounts to check
+ **/
+bool areRefCountsActive(RefCounts *refCounts)
+  __attribute__((warn_unused_result));
 
 /**
  * Get the stored count of the number of blocks that are currently free.

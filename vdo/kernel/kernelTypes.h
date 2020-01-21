@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelTypes.h#2 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/kernelTypes.h#3 $
  */
 
 #ifndef KERNEL_TYPES_H
@@ -55,5 +55,12 @@ typedef struct kvio           KVIO;
 typedef void (*KVIOCallback)(KVIO *kvio);
 typedef void (*DataKVIOCallback)(DataKVIO *dataKVIO);
 typedef void (*KvdoWorkFunction)(KvdoWorkItem *workItem);
+
+/**
+ * Method type for layer matching methods.
+ *
+ * A LayerFilter method returns false if the layer doesn't match.
+ **/
+typedef bool LayerFilter(KernelLayer *layer, void *context);
 
 #endif /* KERNEL_TYPES_H */

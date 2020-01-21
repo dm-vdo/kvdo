@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/workQueueStats.h#2 $
  */
 
 #ifndef WORK_QUEUE_STATS_H
@@ -117,7 +117,7 @@ static inline void updateStatsForEnqueue(KvdoWorkQueueStats *stats,
                                          int                 priority)
 {
   updateWorkItemStatsForEnqueue(&stats->workItemStats, item, priority);
-  item->enqueueTime = currentTime(CT_MONOTONIC);
+  item->enqueueTime = currentTime(CLOCK_MONOTONIC);
 }
 
 /**
@@ -132,7 +132,7 @@ static inline void updateStatsForDequeue(KvdoWorkQueueStats *stats,
 {
   updateWorkItemStatsForDequeue(&stats->workItemStats, item);
   enterHistogramSample(stats->queueTimeHistogram,
-                       (currentTime(CT_MONOTONIC) - item->enqueueTime) / 1000);
+                       (currentTime(CLOCK_MONOTONIC) - item->enqueueTime) / 1000);
   item->enqueueTime = 0;
 }
 

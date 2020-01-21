@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/heap.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/heap.h#2 $
  */
 
 #ifndef HEAP_H
@@ -39,6 +39,14 @@
 typedef int HeapComparator(const void *item1, const void *item2);
 
 /**
+ * Prototype for functions which swap two array elements.
+ *
+ * @param item1  The first element to swap
+ * @param item2  The second element to swap
+ **/
+typedef void HeapSwapper(void *item1, void *item2);
+
+/**
  * A heap array can be any array of fixed-length elements in which the heap
  * invariant can be established. In a max-heap, every child of a node must be
  * at least as large as its children. Once that invariant is established in an
@@ -50,6 +58,8 @@ typedef struct heap {
   byte           *array;
   /** the function to use to compare two elements */
   HeapComparator *comparator;
+  /** the function to use to swap two elements */
+  HeapSwapper    *swapper;
   /** the maximum number of elements that can be stored */
   size_t          capacity;
   /** the size of every element (in bytes) */
@@ -66,12 +76,14 @@ typedef struct heap {
  *
  * @param heap          The heap to initialize
  * @param comparator    The function to use to compare two heap elements
+ * @param swapper       The function to use to swap two heap elements
  * @param array         The array of elements (not modified by this call)
  * @param capacity      The maximum number of elements which fit in the array
  * @param elementSize   The size of every array element, in bytes
  **/
 void initializeHeap(Heap           *heap,
                     HeapComparator *comparator,
+                    HeapSwapper    *swapper,
                     void           *array,
                     size_t          capacity,
                     size_t          elementSize);

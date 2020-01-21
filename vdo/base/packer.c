@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/packer.c#8 $
  */
 
 #include "packerInternals.h"
@@ -928,23 +928,31 @@ void incrementPackerFlushGeneration(Packer *packer)
   flushPacker(packer);
 }
 
+/**
+ * Initiate a drain.
+ *
+ * Implements AdminInitiator.
+ **/
+static void initiateDrain(AdminState *state)
+{
+  Packer *packer = container_of(state, Packer, state);
+  writeAllNonEmptyBins(packer);
+  checkForDrainComplete(packer);
+}
+
 /**********************************************************************/
 void drainPacker(Packer *packer, VDOCompletion *completion)
 {
   assertOnPackerThread(packer, __func__);
-  if (startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion)) {
-    writeAllNonEmptyBins(packer);
-    checkForDrainComplete(packer);
-  }
+  startDraining(&packer->state, ADMIN_STATE_SUSPENDING, completion,
+                initiateDrain);
 }
 
 /**********************************************************************/
 void resumePacker(Packer *packer, VDOCompletion *parent)
 {
   assertOnPackerThread(packer, __func__);
-  if (startResuming(&packer->state, ADMIN_STATE_RESUMING, parent)) {
-    finishResuming(&packer->state);
-  }
+  finishCompletion(parent, resumeIfQuiescent(&packer->state));
 }
 
 /**********************************************************************/

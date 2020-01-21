@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.c#3 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/readOnlyNotifier.c#4 $
  */
 
 #include "readOnlyNotifier.h"
@@ -265,7 +265,7 @@ static void makeThreadReadOnly(VDOCompletion *completion)
     threadData->isReadOnly = true;
     listener               = threadData->listeners;
     if (threadID == 0) {
-      // Note: This message must be recognizable by Permabit::VDODeviceBase.
+      // Note: This message must be recognizable by Permabit::UserMachine.
       logErrorWithStringError((int) atomicLoad32(&notifier->readOnlyError),
                               "Unrecoverable error, entering read-only mode");
     }

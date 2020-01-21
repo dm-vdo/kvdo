@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#14 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/vdoResize.c#15 $
  */
 
 #include "vdoResize.h"
@@ -81,7 +81,7 @@ static void growPhysicalCallback(VDOCompletion *completion)
 
     if (startOperationWithWaiter(&vdo->adminState,
                                  ADMIN_STATE_SUSPENDED_OPERATION,
-                                 &adminCompletion->completion)) {
+                                 &adminCompletion->completion, NULL)) {
       // Copy the journal into the new layout.
       copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
                     resetAdminSubTask(completion));

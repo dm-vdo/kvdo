@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/cachedChapterIndex.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/cachedChapterIndex.h#3 $
  */
 
 #ifndef CACHED_CHAPTER_INDEX_H
@@ -30,6 +30,7 @@
 #include "indexPageMap.h"
 #include "typeDefs.h"
 #include "volume.h"
+#include "volumeStore.h"
 
 /**
  * These counters are essentially fields of the CachedChapterIndex, but are
@@ -54,12 +55,15 @@ typedef struct cachedIndexCounters CachedIndexCounters;
  * single cached chapter index in the sparse chapter index cache.
  **/
 struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedChapterIndex {
-  /**
+  /*
    * The virtual chapter number of the cached chapter index. UINT64_MAX means
    * this cache entry is unused. Must only be modified in the critical section
    * in updateSparseCache().
-   **/
+   */
   uint64_t          virtualChapter;
+
+  /* The number of index pages in a chapter */
+  unsigned int      indexPagesCount;
 
   /*
    * This flag is mutable between cache updates, but it rarely changes and
@@ -76,16 +80,16 @@ struct __attribute__((aligned(CACHE_LINE_BYTES))) cachedChapterIndex {
   // These pointers are immutable during the life of the cache. The contents
   // of the arrays change when the cache entry is replaced.
 
-  /** pointer to a cache-aligned array of ChapterIndexPages */
-  ChapterIndexPage *indexPages;
+  /* pointer to a cache-aligned array of ChapterIndexPages */
+  DeltaIndexPage *indexPages;
 
-  /** pointer to a cache-aligned array of raw index page data */
-  byte             *pageData;
+  /* pointer to an array of VolumePages containing the index pages */
+  struct volume_page *volumePages;
 
   // The cache-aligned counters change often and are placed at the end of the
   // structure to prevent false sharing with the more stable fields above.
 
-  /*** counter values updated by the thread servicing zone zero */
+  /* counter values updated by the thread servicing zone zero */
   CachedIndexCounters counters;
 };
 typedef struct cachedChapterIndex CachedChapterIndex;

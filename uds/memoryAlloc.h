@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/memoryAlloc.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/memoryAlloc.h#2 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -49,23 +49,6 @@ int allocateMemory(size_t size, size_t align, const char *what, void *ptr)
  * @param ptr  The memory to be freed
  **/
 void freeMemory(void *ptr);
-
-/**
- * Allocate storage and do a vsprintf into it.  The memory allocation part of
- * this operation is platform dependent.
- *
- * @param what  A description of what is being allocated.
- * @param strp  The pointer in which to store the allocated string.
- * @param fmt   The sprintf format parameter.
- * @param ap    The format argument list
- *
- * @return UDS_SUCCESS or an error code
- **/
-int doPlatformVasprintf(const char  *what,
-                        char       **strp,
-                        const char  *fmt,
-                        va_list      ap)
-  __attribute__((format(printf, 3, 0), warn_unused_result));
 
 /**
  * Allocate storage based on element counts, sizes, and alignment.

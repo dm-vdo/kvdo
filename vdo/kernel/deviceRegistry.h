@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceRegistry.h#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/deviceRegistry.h#2 $
  */
 
 #ifndef DEVICE_REGISTRY_H
@@ -30,32 +30,29 @@
 void initializeDeviceRegistryOnce(void);
 
 /**
- * Get a layer by name, if any layer has that device name.
+ * Add a layer to the device registry. The layer must not already exist in the
+ * registry.
  *
- * @param name  The name to look up
- *
- * @return the layer, if any was found
- **/
-KernelLayer *getLayerByName(char *name)
-  __attribute__((warn_unused_result));
-
-/**
- * Add a layer and name to the device registry. The name must not
- * already exist in the registry, and will be duplicated.
- *
- * @param name   The name of the layer
  * @param layer  The layer to add
  *
  * @return VDO_SUCCESS or an error
  **/
-int addLayerToDeviceRegistry(char *name, KernelLayer *layer)
+int addLayerToDeviceRegistry(KernelLayer *layer)
   __attribute__((warn_unused_result));
 
 /**
  * Remove a layer from the device registry.
  *
- * @param name  The name of the layer to remove
+ * @param layer  The layer to remove
  **/
-void removeLayerFromDeviceRegistry(char *name);
+void removeLayerFromDeviceRegistry(KernelLayer *layer);
+
+/**
+ * Find and return the first (if any) layer matching a given filter function.
+ *
+ * @param filter   The filter function to apply to layers
+ * @param context  A bit of context to provide the filter.
+ **/
+KernelLayer *findLayerMatching(LayerFilter *filter, void *context);
 
 #endif // DEVICE_REGISTRY_H

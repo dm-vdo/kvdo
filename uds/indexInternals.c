@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/indexInternals.c#3 $
+ * $Id: //eng/uds-releases/jasper/src/uds/indexInternals.c#7 $
  */
 
 #include "indexInternals.h"
@@ -28,7 +28,6 @@
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "openChapter.h"
-#include "readOnlyVolume.h"
 #include "request.h"
 #include "stringUtils.h"
 #include "threads.h"
@@ -36,36 +35,20 @@
 #include "volume.h"
 #include "zone.h"
 
-const bool READ_ONLY_INDEX = true;
-
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 
 /**********************************************************************/
-int allocateIndex(IndexLayout          *layout,
-                  const Configuration  *config,
-                  unsigned int          zoneCount,
-                  LoadType              loadType,
-                  bool                  readOnly,
-                  Index               **newIndex)
+int allocateIndex(IndexLayout                  *layout,
+                  const Configuration          *config,
+                  const struct uds_parameters  *userParams,
+                  unsigned int                  zoneCount,
+                  LoadType                      loadType,
+                  Index                       **newIndex)
 {
-  if (loadType == LOAD_CREATE) {
-    if (readOnly) {
-      logError("Can't create a read only index");
-      return EINVAL;
-    }
-    IORegion *region = NULL;
-    int result = openVolumeRegion(layout, IO_CREATE_WRITE, &region);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    result = formatVolume(region, config->geometry);
-    int closeResult = closeIORegion(&region);
-    if (result != UDS_SUCCESS) {
-      return result;
-    }
-    if (closeResult != UDS_SUCCESS) {
-      return closeResult;
-    }
+  unsigned int checkpoint_frequency
+    = userParams == NULL ? 0 : userParams->checkpoint_frequency;
+  if (checkpoint_frequency >= config->geometry->chaptersPerVolume) {
+    return UDS_BAD_CHECKPOINT_FREQUENCY;
   }
 
   Index *index;
@@ -83,10 +66,10 @@ int allocateIndex(IndexLayout          *layout,
     freeIndex(index);
     return result;
   }
-  setIndexCheckpointFrequency(index->checkpoint, config->checkpointFrequency);
+  setIndexCheckpointFrequency(index->checkpoint, checkpoint_frequency);
 
-  index->layout    = layout;
-  index->zoneCount = (readOnly ? 1 : zoneCount);
+  getIndexLayout(layout, &index->layout);
+  index->zoneCount = zoneCount;
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
                     &index->zones);
@@ -109,22 +92,18 @@ int allocateIndex(IndexLayout          *layout,
     return result;
   }
 
-  if (readOnly) {
-    result = makeReadOnlyVolume(config, index->layout, &index->volume);
-  } else {
-    result = makeVolume(config, index->layout,
-                        VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS,
-                        index->zoneCount, &index->volume);
-  }
-
+  result = makeVolume(config, index->layout, userParams,
+                      VOLUME_CACHE_DEFAULT_MAX_QUEUED_READS, index->zoneCount,
+                      &index->volume);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
     return result;
   }
   index->volume->lookupMode  = LOOKUP_NORMAL;
 
-  for (unsigned int i = 0; i < index->zoneCount; i++) {
-    result = makeIndexZone(index, i, readOnly);
+  unsigned int i;
+  for (i = 0; i < index->zoneCount; i++) {
+    result = makeIndexZone(index, i);
     if (result != UDS_SUCCESS) {
       freeIndex(index);
       return logErrorWithStringError(result, "Could not create index zone");
@@ -150,7 +129,8 @@ void releaseIndex(Index *index)
   }
 
   if (index->zones != NULL) {
-    for (unsigned int i = 0; i < index->zoneCount; i++) {
+    unsigned int i;
+    for (i = 0; i < index->zoneCount; i++) {
       freeIndexZone(index->zones[i]);
     }
     FREE(index->zones);
@@ -160,5 +140,6 @@ void releaseIndex(Index *index)
 
   freeIndexState(&index->state);
   freeIndexCheckpoint(index->checkpoint);
+  putIndexLayout(&index->layout);
   FREE(index);
 }

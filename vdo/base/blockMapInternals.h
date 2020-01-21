@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#10 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/blockMapInternals.h#12 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -77,7 +77,7 @@ struct blockMapZone {
   /** The per-zone portion of the tree for this zone */
   BlockMapTreeZone  treeZone;
   /** The administrative state of the zone */
-  AdminState        adminState;
+  AdminState        state;
 };
 
 struct blockMap {
@@ -153,5 +153,14 @@ static inline SlotNumber computeSlot(LogicalBlockNumber lbn)
 {
   return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
 }
+
+/**
+ * Check whether a zone of the block map has drained, and if so, send a
+ * notification thereof.
+ *
+ * @param zone  The zone to check
+ **/
+void checkForDrainComplete(BlockMapZone *zone);
+
 
 #endif // BLOCK_MAP_INTERNALS_H

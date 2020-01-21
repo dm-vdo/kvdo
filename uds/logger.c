@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/logger.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/logger.c#3 $
  */
 
 #include "logger.h"
@@ -77,7 +77,8 @@ void setLogLevel(int newLogLevel)
 /*****************************************************************************/
 int stringToPriority(const char *string)
 {
-  for (int i = 0; PRIORITIES[i].name != NULL; i++) {
+  int i;
+  for (i = 0; PRIORITIES[i].name != NULL; i++) {
     if (strcasecmp(string, PRIORITIES[i].name) == 0) {
       return PRIORITIES[i].priority;
     }
@@ -300,7 +301,7 @@ int logFatalWithStringError(int errnum, const char *format, ...)
 /*****************************************************************************/
 int logUnrecoverable(int errnum, const char *format, ...)
 {
-  if ((errnum == UDS_SUCCESS || errnum == UDS_QUEUED) || (errnum == 0)) {
+  if (isSuccessful(errnum)) {
     return errnum;
   }
   va_list args;

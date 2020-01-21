@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/searchList.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/searchList.c#2 $
  */
 
 #include "searchList.h"
@@ -52,7 +52,8 @@ int makeSearchList(unsigned int   capacity,
 
   // Fill in the indexes of the chapter index cache entries. These will be
   // only ever be permuted as the search list is used.
-  for (uint8_t i = 0; i < capacity; i++) {
+  uint8_t i;
+  for (i = 0; i < capacity; i++) {
     list->entries[i] = i;
   }
 
@@ -90,7 +91,8 @@ void purgeSearchList(SearchList               *searchList,
   unsigned int nextSkipped = 0;
   unsigned int nextDead    = 0;
 
-  for (int i = 0; i < searchList->firstDeadEntry; i++) {
+  int i;
+  for (i = 0; i < searchList->firstDeadEntry; i++) {
     uint8_t entry = entries[i];
     const CachedChapterIndex *chapter = &chapters[entry];
     if ((chapter->virtualChapter < oldestVirtualChapter)

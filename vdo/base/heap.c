@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/heap.c#1 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/heap.c#2 $
  */
 
 #include "heap.h"
@@ -30,12 +30,14 @@
 /**********************************************************************/
 void initializeHeap(Heap           *heap,
                     HeapComparator *comparator,
+                    HeapSwapper    *swapper,
                     void           *array,
                     size_t          capacity,
                     size_t          elementSize)
 {
   *heap = (Heap) {
     .comparator  = comparator,
+    .swapper     = swapper,
     .capacity    = capacity,
     .elementSize = elementSize,
   };
@@ -44,16 +46,6 @@ void initializeHeap(Heap           *heap,
     // is 1-based.
     heap->array = ((byte *) array - elementSize);
   }
-}
-
-/**********************************************************************/
-static inline void swapElements(Heap *heap, size_t node1, size_t node2)
-{
-  byte temp[heap->elementSize];
-
-  memcpy(temp,                &heap->array[node1], heap->elementSize);
-  memcpy(&heap->array[node1], &heap->array[node2], heap->elementSize);
-  memcpy(&heap->array[node2], temp,                heap->elementSize);
 }
 
 /**********************************************************************/
@@ -79,7 +71,7 @@ static void siftHeapDown(Heap *heap, size_t topNode, size_t lastNode)
     }
 
     // Swap the element we've been sifting down with the larger child.
-    swapElements(heap, topNode, swapNode);
+    heap->swapper(&heap->array[topNode], &heap->array[swapNode]);
 
     // Descend into the sub-heap rooted at that child, going around the loop
     // again in place of a tail-recursive call to siftHeapDown().
@@ -162,7 +154,7 @@ static inline size_t siftAndSort(Heap *heap, size_t rootNode, size_t lastNode)
    * right-most leaf node in the heap, moving it to its sorted position in
    * the array.
    */
-  swapElements(heap, rootNode, lastNode);
+  heap->swapper(&heap->array[rootNode], &heap->array[lastNode]);
   // The sorted list is now one element larger and valid. The heap is
   // one element smaller, and invalid.
   lastNode -= heap->elementSize;

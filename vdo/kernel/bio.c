@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#5 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/kernel/bio.c#6 $
  */
 
 #include "bio.h"
@@ -92,7 +92,6 @@ void setBioOperation(BIO *bio, unsigned int operation)
 /**********************************************************************/
 void freeBio(BIO *bio, KernelLayer *layer)
 {
-  recordBioFree();
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
   bio_free(bio, layer->bioset);
 #else
@@ -254,7 +253,6 @@ int allocateBio(KernelLayer *layer, unsigned int bvecCount, BIO **bioPtr)
     logError("bio allocation failure %ld", PTR_ERR(bio));
     return PTR_ERR(bio);
   }
-  recordBioAlloc();
 
   initializeBio(bio, layer);
 

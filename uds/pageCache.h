@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/pageCache.h#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/pageCache.h#5 $
  */
 
-#ifndef PAGE_CACHE_H_
-#define PAGE_CACHE_H_
+#ifndef PAGE_CACHE_H
+#define PAGE_CACHE_H
 
 #include "atomicDefs.h"
 #include "cacheCounters.h"
@@ -31,21 +31,24 @@
 #include "opaqueTypes.h"
 #include "permassert.h"
 #include "request.h"
+#include "volumeStore.h"
 
-STAILQ_HEAD(udsQueueHead, request);
-typedef struct udsQueueHead UdsQueueHead;
+typedef struct requestList {
+  Request *first;
+  Request *last;
+} RequestList;
 
 typedef struct cachedPage {
   /* whether this page is currently being read asynchronously */
-  bool              readPending;
+  bool               cp_readPending;
   /* if equal to numCacheEntries, the page is invalid */
-  unsigned int      physicalPage;
+  unsigned int       cp_physicalPage;
   /* the value of the volume clock when this page was last used */
-  int64_t           lastUsed;
+  int64_t            cp_lastUsed;
   /* the cache page data */
-  byte             *data;
+  struct volume_page cp_pageData;
   /* the chapter index page. This is here, even for record pages */
-  ChapterIndexPage  indexPage;
+  DeltaIndexPage     cp_indexPage;
 } CachedPage;
 
 enum {
@@ -61,8 +64,8 @@ typedef struct queuedRead {
   bool         reserved;
   /* physical page to read */
   unsigned int physicalPage;
-  /* queue of requests waiting on a queued read */
-  UdsQueueHead queueHead;
+  /* list of requests waiting on a queued read */
+  RequestList  requestList;
 } QueuedRead;
 
 // Reason for invalidating a cache entry, used for gathering statistics
@@ -108,8 +111,6 @@ typedef struct pageCache {
   uint16_t       *index;
   // The cache
   CachedPage     *cache;
-  // The data buffer for the cache
-  byte           *data;
   // A counter for each zone to keep track of when a search is occurring
   // within that zone.
   SearchPendingCounter *searchPendingCounters;
@@ -266,17 +267,17 @@ int enqueueRead(PageCache *cache, Request *request, unsigned int physicalPage)
  *
  * @param cache          the page cache
  * @param queuePos       the position in the read queue for this pending read
- * @param queuedRequests a list of requests for the pending read
+ * @param firstRequests  list of requests for the pending read
  * @param physicalPage   the physicalPage for the requests
  * @param invalid        whether or not this entry is invalid
  *
  * @return UDS_SUCCESS or an error code
  **/
-bool reserveReadQueueEntry(PageCache    *cache,
-                           unsigned int *queuePos,
-                           UdsQueueHead *queuedRequests,
-                           unsigned int *physicalPage,
-                           bool         *invalid);
+bool reserveReadQueueEntry(PageCache     *cache,
+                           unsigned int  *queuePos,
+                           Request      **firstRequests,
+                           unsigned int  *physicalPage,
+                           bool          *invalid);
 
 /**
  * Releases a read from the queue, allowing it to be reused by future
@@ -376,13 +377,6 @@ void cancelPageInCache(PageCache    *cache,
 size_t getPageCacheSize(PageCache *cache)
   __attribute__((warn_unused_result));
 
-/**
- * Get the page cache stat counters
- *
- * @param cache     the page cache
- * @param counters  the cache's counters
- **/
-void getPageCacheCounters(PageCache *cache, CacheCounters *counters);
 
 /**
  * Read the InvalidateCounter for the given zone.
@@ -507,4 +501,4 @@ static INLINE void endPendingSearch(PageCache    *cache,
   setInvalidateCounter(cache, zoneNumber, invalidateCounter);
 }
 
-#endif /* PAGE_CACHE_H_ */
+#endif /* PAGE_CACHE_H */

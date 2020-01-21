@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/geometry.c#2 $
+ * $Id: //eng/uds-releases/jasper/src/uds/geometry.c#3 $
  */
 
 #include "geometry.h"
@@ -98,7 +98,6 @@ static int initializeGeometry(Geometry    *geometry,
   geometry->bytesPerVolume = bytesPerPage *
     (geometry->pagesPerVolume + geometry->headerPagesPerVolume);
   geometry->bytesPerChapter = bytesPerPage * geometry->pagesPerChapter;
-  geometry->recordPageOffset = geometry->indexPagesPerChapter * bytesPerPage;
 
   return UDS_SUCCESS;
 }

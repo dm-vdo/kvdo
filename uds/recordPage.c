@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/homer/src/uds/recordPage.c#1 $
+ * $Id: //eng/uds-releases/jasper/src/uds/recordPage.c#3 $
  */
 
 #include "recordPage.h"
@@ -49,14 +49,17 @@ static unsigned int encodeTree(byte                  recordPage[],
 }
 
 /**********************************************************************/
-int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[])
+int encodeRecordPage(const Volume         *volume,
+                     const UdsChunkRecord  records[],
+                     byte                  recordPage[])
 {
   unsigned int recordsPerPage = volume->geometry->recordsPerPage;
   const UdsChunkRecord **recordPointers = volume->recordPointers;
 
   // Build an array of record pointers. We'll sort the pointers by the block
   // names in the records, which is less work than sorting the record values.
-  for (unsigned int i = 0; i < recordsPerPage; i++) {
+  unsigned int i;
+  for (i = 0; i < recordsPerPage; i++) {
     recordPointers[i] = &records[i];
   }
 
@@ -69,7 +72,7 @@ int encodeRecordPage(const Volume *volume, const UdsChunkRecord records[])
 
   // Use the sorted pointers to copy the records from the chapter to the
   // record page in tree order.
-  encodeTree(volume->scratchPage, recordPointers, 0, 0, recordsPerPage);
+  encodeTree(recordPage, recordPointers, 0, 0, recordsPerPage);
   return UDS_SUCCESS;
 }
 

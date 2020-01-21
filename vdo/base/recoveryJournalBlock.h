@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Red Hat, Inc.
+ * Copyright (c) 2020 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalBlock.h#7 $
+ * $Id: //eng/vdo-releases/aluminum/src/c++/vdo/base/recoveryJournalBlock.h#8 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -33,6 +33,8 @@
 struct recoveryJournalBlock {
   /** The doubly linked pointers for the free or active lists */
   RingNode             ringNode;
+  /** The waiter for the pending full block list */
+  Waiter               writeWaiter;
   /** The journal to which this block belongs */
   RecoveryJournal     *journal;
   /** A pointer to a block-sized buffer holding the packed block data */
@@ -77,6 +79,19 @@ static inline RecoveryJournalBlock *blockFromRingNode(RingNode *node)
 }
 
 /**
+ * Return the block associated with a waiter
+ *
+ * @param waiter  The waiter to recast as a block
+ *
+ * @return The block
+ **/
+static inline RecoveryJournalBlock *blockFromWaiter(Waiter *waiter)
+{
+  return (RecoveryJournalBlock *)
+    ((uintptr_t) waiter - offsetof(RecoveryJournalBlock, writeWaiter));
+}
+
+/**
  * Check whether a recovery block is dirty, indicating it has any uncommitted
  * entries, which includes both entries not written and entries written but
  * not yet acknowledged.
@@ -115,7 +130,7 @@ __attribute__((warn_unused_result))
 static inline bool isRecoveryBlockFull(const RecoveryJournalBlock *block)
 {
   return ((block == NULL)
-	  || (block->journal->entriesPerBlock == block->entryCount));
+          || (block->journal->entriesPerBlock == block->entryCount));
 }
 
 /**
@@ -182,5 +197,15 @@ int commitRecoveryBlock(RecoveryJournalBlock *block,
  * @param block  The block to dump
  **/
 void dumpRecoveryBlock(const RecoveryJournalBlock *block);
+
+/**
+ * Check whether a journal block can be committed.
+ *
+ * @param block  The journal block in question
+ *
+ * @return <code>true</code> if the block can be committed now
+ **/
+bool canCommitRecoveryBlock(RecoveryJournalBlock *block)
+  __attribute__((warn_unused_result));
 
 #endif // RECOVERY_JOURNAL_BLOCK_H
