@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#25 $
  */
 
 #include "slabJournalInternals.h"
@@ -137,7 +137,7 @@ static inline struct journal_lock *getLock(struct slab_journal *journal,
 __attribute__((warn_unused_result))
 static inline bool isVDOReadOnly(struct slab_journal *journal)
 {
-  return isReadOnly(journal->slab->allocator->readOnlyNotifier);
+  return isReadOnly(journal->slab->allocator->read_only_notifier);
 }
 
 /**
@@ -260,9 +260,9 @@ int makeSlabJournal(struct block_allocator   *allocator,
   journal->scrubbingThreshold  = slabConfig->slabJournalScrubbingThreshold;
   journal->entriesPerBlock     = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
   journal->fullEntriesPerBlock = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
-  journal->events              = &allocator->slabJournalStatistics;
+  journal->events              = &allocator->slab_journal_statistics;
   journal->recoveryJournal     = recoveryJournal;
-  journal->summary             = getSlabSummaryZone(allocator);
+  journal->summary             = get_slab_summary_zone(allocator);
   journal->tail                = 1;
   journal->head                = 1;
 
@@ -332,7 +332,7 @@ static void markSlabJournalDirty(struct slab_journal *journal,
   ASSERT_LOG_ONLY(!isSlabJournalDirty(journal), "slab journal was clean");
 
   journal->recoveryLock = lock;
-  RingNode *dirtyRing   = &journal->slab->allocator->dirtySlabJournals;
+  RingNode *dirtyRing   = &journal->slab->allocator->dirty_slab_journals;
   RingNode *node        = dirtyRing->prev;
   while (node != dirtyRing) {
     struct slab_journal *dirtyJournal = slabJournalFromDirtyNode(node);
@@ -367,7 +367,7 @@ static void abortWaiter(struct waiter *waiter,
 void abortSlabJournalWaiters(struct slab_journal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
-                   == journal->slab->allocator->threadID),
+                   == journal->slab->allocator->thread_id),
                   "abortSlabJournalWaiters() called on correct thread");
   notifyAllWaiters(&journal->entryWaiters, abortWaiter, journal);
   checkForDrainComplete(journal);
@@ -385,7 +385,7 @@ void abortSlabJournalWaiters(struct slab_journal *journal)
 static void enterJournalReadOnlyMode(struct slab_journal *journal,
                                      int                  errorCode)
 {
-  enterReadOnlyMode(journal->slab->allocator->readOnlyNotifier, errorCode);
+  enterReadOnlyMode(journal->slab->allocator->read_only_notifier, errorCode);
   abortSlabJournalWaiters(journal);
 }
 
@@ -415,7 +415,7 @@ static void completeReaping(struct vdo_completion *completion)
 {
   struct vio_pool_entry *entry   = completion->parent;
   struct slab_journal   *journal = entry->parent;
-  returnVIO(journal->slab->allocator, entry);
+  return_vio(journal->slab->allocator, entry);
   finishReaping(journal);
   reapSlabJournal(journal);
 }
@@ -447,7 +447,7 @@ static void flushForReaping(struct waiter *waiter, void *vioContext)
   struct vio            *vio     = entry->vio;
 
   entry->parent                    = journal;
-  vio->completion.callbackThreadID = journal->slab->allocator->threadID;
+  vio->completion.callbackThreadID = journal->slab->allocator->thread_id;
   launchFlush(vio, completeReaping, handleFlushError);
 }
 
@@ -510,7 +510,7 @@ static void reapSlabJournal(struct slab_journal *journal)
    * updates (VDO-2912).
    */
   journal->flushWaiter.callback = flushForReaping;
-  int result = acquireVIO(journal->slab->allocator, &journal->flushWaiter);
+  int result = acquire_vio(journal->slab->allocator, &journal->flushWaiter);
   if (result != VDO_SUCCESS) {
     enterJournalReadOnlyMode(journal, result);
     return;
@@ -555,7 +555,7 @@ static void releaseJournalLocks(struct waiter *waiter, void *context)
     // Release the lock the summarized block held on the recovery journal.
     // (During replay, recoveryStart will always be 0.)
     if (journal->recoveryJournal != NULL) {
-      ZoneCount zoneNumber = journal->slab->allocator->zoneNumber;
+      ZoneCount zoneNumber = journal->slab->allocator->zone_number;
       releaseRecoveryJournalBlockReference(journal->recoveryJournal,
                                            getLock(journal, i)->recoveryStart,
                                            ZONE_TYPE_PHYSICAL,
@@ -654,7 +654,7 @@ static void completeWrite(struct vdo_completion *completion)
 
   SequenceNumber committed = getCommittingSequenceNumber(entry);
   unspliceRingNode(&entry->node);
-  returnVIO(journal->slab->allocator, entry);
+  return_vio(journal->slab->allocator, entry);
 
   if (writeResult != VDO_SUCCESS) {
     logErrorWithStringError(writeResult,
@@ -680,7 +680,7 @@ static void completeWrite(struct vdo_completion *completion)
 }
 
 /**
- * Callback from acquireVIO() registered in commitSlabJournalTail().
+ * Callback from acquire_vio() registered in commitSlabJournalTail().
  *
  * @param waiter      The vio pool waiter which was just notified
  * @param vioContext  The vio pool entry for the write
@@ -712,7 +712,7 @@ static void writeSlabJournalBlock(struct waiter *waiter, void *vioContext)
     = getBlockNumber(journal, header->sequenceNumber);
 
   entry->parent = journal;
-  entry->vio->completion.callbackThreadID = journal->slab->allocator->threadID;
+  entry->vio->completion.callbackThreadID = journal->slab->allocator->thread_id;
   /*
    * This block won't be read in recovery until the slab summary is updated
    * to refer to it. The slab summary update does a flush which is sufficient
@@ -763,7 +763,7 @@ void commitSlabJournalTail(struct slab_journal *journal)
   journal->waitingToCommit = true;
 
   journal->resourceWaiter.callback = writeSlabJournalBlock;
-  int result = acquireVIO(journal->slab->allocator, &journal->resourceWaiter);
+  int result = acquire_vio(journal->slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
     journal->waitingToCommit = false;
     enterJournalReadOnlyMode(journal, result);
@@ -953,7 +953,7 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
      */
     getLock(journal, header->sequenceNumber)->recoveryStart = recoveryBlock;
     if (journal->recoveryJournal != NULL) {
-      ZoneCount zoneNumber = journal->slab->allocator->zoneNumber;
+      ZoneCount zoneNumber = journal->slab->allocator->zone_number;
       acquireRecoveryJournalBlockReference(journal->recoveryJournal,
                                            recoveryBlock, ZONE_TYPE_PHYSICAL,
                                            zoneNumber);
@@ -1127,7 +1127,7 @@ void addSlabJournalEntry(struct slab_journal *journal, struct data_vio *dataVIO)
   }
 
   if (isUnrecoveredSlab(journal->slab) && requiresReaping(journal)) {
-    increaseScrubbingPriority(journal->slab);
+    increase_scrubbing_priority(journal->slab);
   }
 
   addEntries(journal);
@@ -1185,7 +1185,7 @@ bool releaseRecoveryJournalLock(struct slab_journal *journal,
 void drainSlabJournal(struct slab_journal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
-                   == journal->slab->allocator->threadID),
+                   == journal->slab->allocator->thread_id),
                   "drainSlabJournal() called on correct thread");
   if (is_quiescing(&journal->slab->state)) {
     // XXX: we should revisit this assertion since it is no longer clear what
@@ -1219,7 +1219,7 @@ static void finishDecodingJournal(struct vdo_completion *completion)
   int                    result  = completion->result;
   struct vio_pool_entry *entry   = completion->parent;
   struct slab_journal   *journal = entry->parent;
-  returnVIO(journal->slab->allocator, entry);
+  return_vio(journal->slab->allocator, entry);
   notifySlabJournalIsLoaded(journal->slab, result);
 }
 
@@ -1282,7 +1282,7 @@ static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
   TailBlockOffset tailBlock = ((lastCommitPoint == 0)
                                ? (TailBlockOffset) (journal->size - 1)
                                : (lastCommitPoint - 1));
-  entry->vio->completion.callbackThreadID = slab->allocator->threadID;
+  entry->vio->completion.callbackThreadID = slab->allocator->thread_id;
   launchReadMetadataVIO(entry->vio, slab->journalOrigin + tailBlock,
                         setDecodedState, finishDecodingJournal);
 }
@@ -1291,7 +1291,7 @@ static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
 void decodeSlabJournal(struct slab_journal *journal)
 {
   ASSERT_LOG_ONLY((getCallbackThreadID()
-                   == journal->slab->allocator->threadID),
+                   == journal->slab->allocator->thread_id),
                   "decodeSlabJournal() called on correct thread");
   struct vdo_slab *slab = journal->slab;
   TailBlockOffset lastCommitPoint
@@ -1312,7 +1312,7 @@ void decodeSlabJournal(struct slab_journal *journal)
   }
 
   journal->resourceWaiter.callback = readSlabJournalTail;
-  int result = acquireVIO(slab->allocator, &journal->resourceWaiter);
+  int result = acquire_vio(slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
     notifySlabJournalIsLoaded(slab, result);
   }

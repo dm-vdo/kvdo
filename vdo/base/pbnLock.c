@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#5 $
  */
 
 #include "pbnLock.h"
@@ -141,8 +141,8 @@ void releaseProvisionalReference(struct pbn_lock        *lock,
                                  struct block_allocator *allocator)
 {
   if (hasProvisionalReference(lock)) {
-    releaseBlockReference(allocator, lockedPBN,
-                          lock->implementation->releaseReason);
+    release_block_reference(allocator, lockedPBN,
+                            lock->implementation->releaseReason);
     unassignProvisionalReference(lock);
   }
 }

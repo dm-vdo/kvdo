@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#19 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -31,19 +31,19 @@
 #include "vioPool.h"
 
 enum {
-  /*
-   * The number of vios in the vio pool is proportional to the throughput of
-   * the VDO.
-   */
-  VIO_POOL_SIZE = 128,
+	/*
+	 * The number of vios in the vio pool is proportional to the throughput
+	 * of the VDO.
+	 */
+	VIO_POOL_SIZE = 128,
 };
 
 typedef enum {
-  DRAIN_ALLOCATOR_START = 0,
-  DRAIN_ALLOCATOR_STEP_SCRUBBER,
-  DRAIN_ALLOCATOR_STEP_SLABS,
-  DRAIN_ALLOCATOR_STEP_SUMMARY,
-  DRAIN_ALLOCATOR_STEP_FINISHED,
+	DRAIN_ALLOCATOR_START = 0,
+	DRAIN_ALLOCATOR_STEP_SCRUBBER,
+	DRAIN_ALLOCATOR_STEP_SLABS,
+	DRAIN_ALLOCATOR_STEP_SUMMARY,
+	DRAIN_ALLOCATOR_STEP_FINISHED,
 } BlockAllocatorDrainStep;
 
 /**
@@ -51,10 +51,11 @@ typedef enum {
  * slabs.
  **/
 struct slab_actor {
-  /** The number of slabs performing a slab action */
-  SlabCount  slabActionCount;
-  /** The method to call when a slab action has been completed by all slabs */
-  VDOAction *callback;
+	/** The number of slabs performing a slab action */
+	SlabCount slab_action_count;
+	/** The method to call when a slab action has been completed by all
+	 * slabs */
+	VDOAction *callback;
 };
 
 /**
@@ -62,12 +63,12 @@ struct slab_actor {
  * by other threads.
  **/
 struct atomic_allocator_statistics {
-  /** The count of allocated blocks in this zone */
-  Atomic64 allocatedBlocks;
-  /** The number of slabs from which blocks have ever been allocated */
-  Atomic64 slabsOpened;
-  /** The number of times since loading that a slab been re-opened */
-  Atomic64 slabsReopened;
+	/** The count of allocated blocks in this zone */
+	Atomic64 allocatedBlocks;
+	/** The number of slabs from which blocks have ever been allocated */
+	Atomic64 slabsOpened;
+	/** The number of times since loading that a slab been re-opened */
+	Atomic64 slabsReopened;
 };
 
 /**
@@ -77,16 +78,16 @@ struct atomic_allocator_statistics {
  * depot.
  **/
 struct atomic_slab_journal_statistics {
-  /** Number of times the on-disk journal was full */
-  Atomic64 diskFullCount;
-  /** Number of times an entry was added over the flush threshold */
-  Atomic64 flushCount;
-  /** Number of times an entry was added over the block threshold */
-  Atomic64 blockedCount;
-  /** Number of times the tail block was written */
-  Atomic64 blocksWritten;
-  /** Number of times we had to wait for the tail block commit */
-  Atomic64 tailBusyCount;
+	/** Number of times the on-disk journal was full */
+	Atomic64 diskFullCount;
+	/** Number of times an entry was added over the flush threshold */
+	Atomic64 flushCount;
+	/** Number of times an entry was added over the block threshold */
+	Atomic64 blockedCount;
+	/** Number of times the tail block was written */
+	Atomic64 blocksWritten;
+	/** Number of times we had to wait for the tail block commit */
+	Atomic64 tailBusyCount;
 };
 
 /**
@@ -96,62 +97,63 @@ struct atomic_slab_journal_statistics {
  * depot.
  **/
 struct atomic_ref_count_statistics {
-  /** Number of blocks written */
-  Atomic64 blocksWritten;
+	/** Number of blocks written */
+	Atomic64 blocksWritten;
 };
 
 struct block_allocator {
-  struct vdo_completion                  completion;
-  /** The slab depot for this allocator */
-  struct slab_depot                     *depot;
-  /** The slab summary zone for this allocator */
-  struct slab_summary_zone              *summary;
-  /** The notifier for entering read-only mode */
-  struct read_only_notifier             *readOnlyNotifier;
-  /** The nonce of the VDO */
-  Nonce                                  nonce;
-  /** The physical zone number of this allocator */
-  ZoneCount                              zoneNumber;
-  /** The thread ID for this allocator's physical zone */
-  ThreadID                               threadID;
-  /** The number of slabs in this allocator */
-  SlabCount                              slabCount;
-  /** The number of the last slab owned by this allocator */
-  SlabCount                              lastSlab;
-  /** The reduced priority level used to preserve unopened slabs */
-  unsigned int                           unopenedSlabPriority;
-  /** The state of this allocator */
-  struct admin_state                     state;
-  /** The actor for applying an action to all slabs */
-  struct slab_actor                      slabActor;
+	struct vdo_completion completion;
+	/** The slab depot for this allocator */
+	struct slab_depot *depot;
+	/** The slab summary zone for this allocator */
+	struct slab_summary_zone *summary;
+	/** The notifier for entering read-only mode */
+	struct read_only_notifier *read_only_notifier;
+	/** The nonce of the VDO */
+	Nonce nonce;
+	/** The physical zone number of this allocator */
+	ZoneCount zone_number;
+	/** The thread ID for this allocator's physical zone */
+	ThreadID thread_id;
+	/** The number of slabs in this allocator */
+	SlabCount slab_count;
+	/** The number of the last slab owned by this allocator */
+	SlabCount last_slab;
+	/** The reduced priority level used to preserve unopened slabs */
+	unsigned int unopened_slab_priority;
+	/** The state of this allocator */
+	struct admin_state state;
+	/** The actor for applying an action to all slabs */
+	struct slab_actor slab_actor;
 
-  /** The slab from which blocks are currently being allocated */
-  struct vdo_slab                       *openSlab;
-  /** A priority queue containing all slabs available for allocation */
-  struct priority_table                 *prioritizedSlabs;
-  /** The slab scrubber */
-  struct slab_scrubber                  *slabScrubber;
-  /** What phase of the close operation the allocator is to perform */
-  BlockAllocatorDrainStep                drainStep;
-  /** Statistics for this block allocator */
-  struct atomic_allocator_statistics     statistics;
-  /** Cumulative statistics for the slab journals in this zone */
-  struct atomic_slab_journal_statistics  slabJournalStatistics;
-  /** Cumulative statistics for the RefCounts in this zone */
-  struct atomic_ref_count_statistics     refCountStatistics;
+	/** The slab from which blocks are currently being allocated */
+	struct vdo_slab *open_slab;
+	/** A priority queue containing all slabs available for allocation */
+	struct priority_table *prioritized_slabs;
+	/** The slab scrubber */
+	struct slab_scrubber *slab_scrubber;
+	/** What phase of the close operation the allocator is to perform */
+	BlockAllocatorDrainStep drain_step;
+	/** Statistics for this block allocator */
+	struct atomic_allocator_statistics statistics;
+	/** Cumulative statistics for the slab journals in this zone */
+	struct atomic_slab_journal_statistics slab_journal_statistics;
+	/** Cumulative statistics for the RefCounts in this zone */
+	struct atomic_ref_count_statistics ref_count_statistics;
 
-  /**
-   * This is the head of a queue of slab journals which have entries in their
-   * tail blocks which have not yet started to commit. When the recovery
-   * journal is under space pressure, slab journals which have uncommitted
-   * entries holding a lock on the recovery journal head are forced to commit
-   * their blocks early. This list is kept in order, with the tail containing
-   * the slab journal holding the most recent recovery journal lock.
-   **/
-  RingNode                               dirtySlabJournals;
+	/**
+	 * This is the head of a queue of slab journals which have entries in
+	 * their tail blocks which have not yet started to commit. When the
+	 * recovery journal is under space pressure, slab journals which have
+	 * uncommitted entries holding a lock on the recovery journal head are
+	 * forced to commit their blocks early. This list is kept in order, with
+	 * the tail containing the slab journal holding the most recent recovery
+	 * journal lock.
+	 **/
+	RingNode dirty_slab_journals;
 
-  /** The vio pool for reading and writing block allocator metadata */
-  struct vio_pool                       *vioPool;
+	/** The vio pool for reading and writing block allocator metadata */
+	struct vio_pool *vio_pool;
 };
 
 /**
@@ -159,11 +161,11 @@ struct block_allocator {
  *
  * Implements VIOConstructor
  **/
-int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
-                          void           *parent,
-                          void           *buffer,
-                          struct vio    **vioPtr)
-  __attribute__((warn_unused_result));
+int make_allocator_pool_vios(PhysicalLayer *layer,
+			     void *parent,
+			     void *buffer,
+			     struct vio **vio_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Replace the vio pool in a block allocator. This method exists for unit
@@ -175,10 +177,9 @@ int makeAllocatorPoolVIOs(PhysicalLayer  *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-int replaceVIOPool(struct block_allocator *allocator,
-                   size_t                  size,
-                   PhysicalLayer          *layer)
-  __attribute__((warn_unused_result));
+int replace_vio_pool(struct block_allocator *allocator,
+		     size_t size,
+		     PhysicalLayer *layer) __attribute__((warn_unused_result));
 
 /**
  * Prepare slabs for allocation or scrubbing. This method is exposed for
@@ -188,14 +189,14 @@ int replaceVIOPool(struct block_allocator *allocator,
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepareSlabsForAllocation(struct block_allocator *allocator)
-  __attribute__((warn_unused_result));
+int prepare_slabs_for_allocation(struct block_allocator *allocator)
+	__attribute__((warn_unused_result));
 
 /**
  * Start allocating from the highest numbered slab.
  *
  * @param allocator   The allocator
  **/
-void allocateFromAllocatorLastSlab(struct block_allocator *allocator);
+void allocate_from_allocator_last_slab(struct block_allocator *allocator);
 
 #endif // BLOCK_ALLOCATOR_INTERNALS_H

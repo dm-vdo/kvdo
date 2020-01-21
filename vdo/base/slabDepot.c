@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#34 $
  */
 
 #include "slabDepot.h"
@@ -168,7 +168,7 @@ void abandonNewSlabs(struct slab_depot *depot)
  **/
 static ThreadID getAllocatorThreadID(void *context, ZoneCount zoneNumber)
 {
-  return getBlockAllocatorForZone(context, zoneNumber)->threadID;
+  return getBlockAllocatorForZone(context, zoneNumber)->thread_id;
 }
 
 /**
@@ -197,7 +197,7 @@ static bool scheduleTailBlockCommit(void *context)
   }
 
   return schedule_action(depot->actionManager, prepareForTailBlockCommit,
-                         releaseTailBlockLocks, NULL, NULL);
+                         release_tail_block_locks, NULL, NULL);
 }
 
 /**
@@ -256,9 +256,9 @@ static int allocateComponents(struct slab_depot  *depot,
   // Allocate the block allocators.
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     ThreadID threadID = getPhysicalZoneThread(threadConfig, zone);
-    result = makeBlockAllocator(depot, zone, threadID, nonce, vioPoolSize,
-                                layer, depot->readOnlyNotifier,
-                                &depot->allocators[zone]);
+    result = make_block_allocator(depot, zone, threadID, nonce, vioPoolSize,
+                                  layer, depot->readOnlyNotifier,
+                                  &depot->allocators[zone]);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -273,7 +273,7 @@ static int allocateComponents(struct slab_depot  *depot,
   // Use the new slabs.
   for (SlabCount i = depot->slabCount; i < depot->newSlabCount; i++) {
     struct vdo_slab *slab = depot->newSlabs[i];
-    registerSlabWithAllocator(slab->allocator, slab);
+    register_slab_with_allocator(slab->allocator, slab);
     depot->slabCount++;
   }
 
@@ -447,7 +447,7 @@ void freeSlabDepot(struct slab_depot **depotPtr)
   abandonNewSlabs(depot);
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
-    freeBlockAllocator(&depot->allocators[zone]);
+    free_block_allocator(&depot->allocators[zone]);
   }
 
   if (depot->slabs != NULL) {
@@ -806,7 +806,7 @@ BlockCount getDepotAllocatedBlocks(const struct slab_depot *depot)
   BlockCount total = 0;
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     // The allocators are responsible for thread safety.
-    total += getAllocatedBlocks(depot->allocators[zone]);
+    total += get_allocated_blocks(depot->allocators[zone]);
   }
   return total;
 }
@@ -847,7 +847,7 @@ SlabCount getDepotUnrecoveredSlabCount(const struct slab_depot *depot)
   SlabCount total = 0;
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     // The allocators are responsible for thread safety.
-    total += getUnrecoveredSlabCount(depot->allocators[zone]);
+    total += get_unrecovered_slab_count(depot->allocators[zone]);
   }
   return total;
 }
@@ -873,7 +873,7 @@ void loadSlabDepot(struct slab_depot     *depot,
 {
   if (assert_load_operation(operation, parent)) {
     schedule_operation_with_context(depot->actionManager, operation,
-                                    startDepotLoad, loadBlockAllocator, NULL,
+                                    startDepotLoad, load_block_allocator, NULL,
                                     context, parent);
   }
 }
@@ -885,7 +885,7 @@ void prepareToAllocate(struct slab_depot     *depot,
 {
   depot->loadType = loadType;
   atomicStore32(&depot->zonesToScrub, depot->zoneCount);
-  schedule_action(depot->actionManager, NULL, prepareAllocatorToAllocate,
+  schedule_action(depot->actionManager, NULL, prepare_allocator_to_allocate,
                  NULL, parent);
 }
 
@@ -958,7 +958,7 @@ void useNewSlabs(struct slab_depot *depot, struct vdo_completion *parent)
 {
   ASSERT_LOG_ONLY(depot->newSlabs != NULL, "Must have new slabs to use");
   schedule_operation(depot->actionManager, ADMIN_STATE_SUSPENDED_OPERATION,
-                    NULL, registerNewSlabsForAllocator, finishRegistration,
+                    NULL, register_new_slabs_for_allocator, finishRegistration,
                     parent);
 }
 
@@ -967,8 +967,8 @@ void drainSlabDepot(struct slab_depot     *depot,
                     AdminStateCode         operation,
                     struct vdo_completion *parent)
 {
-  schedule_operation(depot->actionManager, operation, NULL, drainBlockAllocator,
-                    NULL, parent);
+  schedule_operation(depot->actionManager, operation, NULL,
+                     drain_block_allocator, NULL, parent);
 }
 
 /**********************************************************************/
@@ -980,7 +980,7 @@ void resumeSlabDepot(struct slab_depot *depot, struct vdo_completion *parent)
   }
 
   schedule_operation(depot->actionManager, ADMIN_STATE_RESUMING, NULL,
-                    resumeBlockAllocator, NULL, parent);
+                    resume_block_allocator, NULL, parent);
 }
 
 /**********************************************************************/
@@ -1023,8 +1023,8 @@ struct slab_summary_zone *getSlabSummaryForZone(const struct slab_depot *depot,
 void scrubAllUnrecoveredSlabs(struct slab_depot     *depot,
                               struct vdo_completion *parent)
 {
-  schedule_action(depot->actionManager, NULL, scrubAllUnrecoveredSlabsInZone,
-                 NULL, parent);
+  schedule_action(depot->actionManager, NULL,
+                  scrub_all_unrecovered_slabs_in_zone, NULL, parent);
 }
 
 /**********************************************************************/
@@ -1091,7 +1091,7 @@ bool areEquivalentDepots(struct slab_depot *depotA, struct slab_depot *depotB)
 void allocateFromLastSlab(struct slab_depot *depot)
 {
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
-    allocateFromAllocatorLastSlab(depot->allocators[zone]);
+    allocate_from_allocator_last_slab(depot->allocators[zone]);
   }
 }
 
@@ -1104,7 +1104,7 @@ getDepotBlockAllocatorStatistics(const struct slab_depot *depot)
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     struct block_allocator *allocator = depot->allocators[zone];
-    BlockAllocatorStatistics stats = getBlockAllocatorStatistics(allocator);
+    BlockAllocatorStatistics stats = get_block_allocator_statistics(allocator);
     totals.slabCount     += stats.slabCount;
     totals.slabsOpened   += stats.slabsOpened;
     totals.slabsReopened += stats.slabsReopened;
@@ -1121,7 +1121,7 @@ RefCountsStatistics getDepotRefCountsStatistics(const struct slab_depot *depot)
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     struct block_allocator *allocator = depot->allocators[zone];
-    RefCountsStatistics stats = getRefCountsStatistics(allocator);
+    RefCountsStatistics stats = get_ref_counts_statistics(allocator);
     depotStats.blocksWritten += stats.blocksWritten;
   }
 
@@ -1137,7 +1137,7 @@ getDepotSlabJournalStatistics(const struct slab_depot *depot)
 
   for (ZoneCount zone = 0; zone < depot->zoneCount; zone++) {
     struct block_allocator *allocator = depot->allocators[zone];
-    SlabJournalStatistics stats = getSlabJournalStatistics(allocator);
+    SlabJournalStatistics stats = get_slab_journal_statistics(allocator);
     depotStats.diskFullCount += stats.diskFullCount;
     depotStats.flushCount    += stats.flushCount;
     depotStats.blockedCount  += stats.blockedCount;

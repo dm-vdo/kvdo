@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#32 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -268,7 +268,7 @@ static void prepareSubTask(struct recovery_completion *recovery,
     break;
 
   case ZONE_TYPE_PHYSICAL:
-    threadID = recovery->allocator->threadID;
+    threadID = recovery->allocator->thread_id;
     break;
 
   case ZONE_TYPE_ADMIN:
@@ -573,7 +573,7 @@ static void handleAddSlabJournalEntryError(struct vdo_completion *completion)
 {
   struct recovery_completion *recovery
     = asRecoveryCompletion(completion->parent);
-  notifySlabJournalsAreRecovered(recovery->allocator, completion->result);
+  notify_slab_journals_are_recovered(recovery->allocator, completion->result);
 }
 
 /**
@@ -591,7 +591,7 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
                     handleAddSlabJournalEntryError,
                     completion->callbackThreadID, recovery);
   struct wait_queue *missingDecrefs
-    = &recovery->missingDecrefs[recovery->allocator->zoneNumber];
+    = &recovery->missingDecrefs[recovery->allocator->zone_number];
   while (hasWaiters(missingDecrefs)) {
     struct missing_decref *decref
       = asMissingDecref(getFirstWaiter(missingDecrefs));
@@ -606,7 +606,7 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
     FREE(decref);
   }
 
-  notifySlabJournalsAreRecovered(recovery->allocator, VDO_SUCCESS);
+  notify_slab_journals_are_recovered(recovery->allocator, VDO_SUCCESS);
 }
 
 /**
@@ -732,7 +732,7 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
   }
 
   logInfo("Recreating missing journal entries for zone %u",
-          recovery->allocator->zoneNumber);
+          recovery->allocator->zone_number);
   addSynthesizedEntries(completion);
 }
 
@@ -742,10 +742,10 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
                             void                   *context)
 {
   struct recovery_completion *recovery = context;
-  assertOnPhysicalZoneThread(recovery->vdo, allocator->zoneNumber, __func__);
+  assertOnPhysicalZoneThread(recovery->vdo, allocator->zone_number, __func__);
   if ((recovery->journalData == NULL) || isReplaying(recovery->vdo)) {
     // there's nothing to replay
-    notifySlabJournalsAreRecovered(allocator, VDO_SUCCESS);
+    notify_slab_journals_are_recovered(allocator, VDO_SUCCESS);
     return;
   }
 
@@ -762,7 +762,7 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
   };
 
   logInfo("Replaying entries into slab journals for zone %u",
-          allocator->zoneNumber);
+          allocator->zone_number);
   completion->parent = recovery;
   addSlabJournalEntries(completion);
 }
@@ -789,7 +789,7 @@ static void queueOnPhysicalZone(struct waiter *waiter, void *context)
 
   decref->slabJournal = getSlabJournal((struct slab_depot *) context,
                                        mapping.pbn);
-  ZoneCount zoneNumber = decref->slabJournal->slab->allocator->zoneNumber;
+  ZoneCount zoneNumber = decref->slabJournal->slab->allocator->zone_number;
   enqueueMissingDecref(&decref->recovery->missingDecrefs[zoneNumber], decref);
 }
 

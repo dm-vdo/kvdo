@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#21 $
  */
 
 #include "refCounts.h"
@@ -199,7 +199,7 @@ int makeRefCounts(BlockCount                  blockCount,
   refCounts->origin                  = origin;
   refCounts->referenceBlockCount     = refBlockCount;
   refCounts->readOnlyNotifier        = readOnlyNotifier;
-  refCounts->statistics              = &slab->allocator->refCountStatistics;
+  refCounts->statistics              = &slab->allocator->ref_count_statistics;
   refCounts->searchCursor.firstBlock = &refCounts->blocks[0];
   refCounts->searchCursor.lastBlock  = &refCounts->blocks[refBlockCount - 1];
   resetSearchCursor(refCounts);
@@ -1076,7 +1076,7 @@ static void finishSummaryUpdate(struct waiter *waiter, void *context)
 static void updateSlabSummaryAsClean(struct ref_counts *refCounts)
 {
   struct slab_summary_zone *summary
-    = getSlabSummaryZone(refCounts->slab->allocator);
+    = get_slab_summary_zone(refCounts->slab->allocator);
   if (summary == NULL) {
     return;
   }
@@ -1102,7 +1102,7 @@ static void handleIOError(struct vdo_completion *completion)
   struct vio_pool_entry *entry     = completion->parent;
   struct ref_counts     *refCounts
     = ((struct reference_block *) entry->parent)->refCounts;
-  returnVIO(refCounts->slab->allocator, entry);
+  return_vio(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
   enterRefCountsReadOnlyMode(refCounts, result);
 }
@@ -1123,7 +1123,7 @@ static void finishReferenceBlockWrite(struct vdo_completion *completion)
   // Release the slab journal lock.
   adjustSlabJournalBlockReference(refCounts->slab->journal,
                                   block->slabJournalLockToRelease, -1);
-  returnVIO(refCounts->slab->allocator, entry);
+  return_vio(refCounts->slab->allocator, entry);
 
   /*
    * We can't clear the isWriting flag earlier as releasing the slab journal
@@ -1206,7 +1206,7 @@ static void writeReferenceBlock(struct waiter *blockWaiter, void *vioContext)
   // entries which cover this reference update are stable (VDO-2331).
   relaxedAdd64(&block->refCounts->statistics->blocksWritten, 1);
   entry->vio->completion.callbackThreadID
-    = block->refCounts->slab->allocator->threadID;
+    = block->refCounts->slab->allocator->thread_id;
   launchWriteMetadataVIOWithFlush(entry->vio, pbn, finishReferenceBlockWrite,
                                   handleIOError, true, false);
 }
@@ -1230,7 +1230,7 @@ static void launchReferenceBlockWrite(struct waiter *blockWaiter, void *context)
   struct reference_block *block = waiterAsReferenceBlock(blockWaiter);
   block->isWriting              = true;
   blockWaiter->callback         = writeReferenceBlock;
-  int result = acquireVIO(refCounts->slab->allocator, blockWaiter);
+  int result = acquire_vio(refCounts->slab->allocator, blockWaiter);
   if (result != VDO_SUCCESS) {
     // This should never happen.
     refCounts->activeCount--;
@@ -1348,7 +1348,7 @@ static void finishReferenceBlockLoad(struct vdo_completion *completion)
   unpackReferenceBlock((struct packed_reference_block *) entry->buffer, block);
 
   struct ref_counts *refCounts = block->refCounts;
-  returnVIO(refCounts->slab->allocator, entry);
+  return_vio(refCounts->slab->allocator, entry);
   refCounts->activeCount--;
   clearProvisionalReferences(block);
 
@@ -1371,7 +1371,7 @@ static void loadReferenceBlock(struct waiter *blockWaiter, void *vioContext)
   entry->parent                       = block;
 
   entry->vio->completion.callbackThreadID
-    = block->refCounts->slab->allocator->threadID;
+    = block->refCounts->slab->allocator->thread_id;
   launchReadMetadataVIO(entry->vio, pbn, finishReferenceBlockLoad,
                         handleIOError);
 }
@@ -1389,7 +1389,7 @@ static void loadReferenceBlocks(struct ref_counts *refCounts)
   for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
     struct waiter *blockWaiter = &refCounts->blocks[i].waiter;
     blockWaiter->callback = loadReferenceBlock;
-    int result = acquireVIO(refCounts->slab->allocator, blockWaiter);
+    int result = acquire_vio(refCounts->slab->allocator, blockWaiter);
     if (result != VDO_SUCCESS) {
       // This should never happen.
       refCounts->activeCount -= (refCounts->referenceBlockCount - i);

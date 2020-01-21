@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#29 $
  */
 
 #include "blockMapTree.h"
@@ -348,7 +348,7 @@ static void writePageCallback(struct waiter *waiter, void *context)
  * @param waiter  The page which needs a vio
  * @param zone    The zone
  **/
-static void acquireVIO(struct waiter *waiter, struct block_map_tree_zone *zone)
+static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
   waiter->callback = writePageCallback;
   int result = acquireVIOFromPool(zone->vioPool, waiter);
@@ -388,7 +388,7 @@ static void enqueuePage(struct tree_page           *page,
 {
   if ((zone->flusher == NULL) && attemptIncrement(zone)) {
     zone->flusher = page;
-    acquireVIO(&page->waiter, zone);
+    acquire_vio(&page->waiter, zone);
     return;
   }
 
@@ -413,7 +413,7 @@ static void writePageIfNotDirtied(struct waiter *waiter, void *context)
   struct tree_page *page = (struct tree_page *) waiter;
   struct write_if_not_dirtied_context *writeContext = context;
   if (page->generation == writeContext->generation) {
-    acquireVIO(waiter, writeContext->zone);
+    acquire_vio(waiter, writeContext->zone);
     return;
   }
 

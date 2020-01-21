@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#17 $
  */
 
 #include "slab.h"
@@ -182,7 +182,7 @@ int allocateRefCountsForSlab(struct vdo_slab *slab)
   }
 
   return makeRefCounts(slabConfig->dataBlocks, slab, slab->refCountsOrigin,
-                       allocator->readOnlyNotifier, &slab->referenceCounts);
+                       allocator->read_only_notifier, &slab->referenceCounts);
 }
 
 /**********************************************************************/
@@ -203,7 +203,7 @@ void freeSlab(struct vdo_slab **slabPtr)
 /**********************************************************************/
 ZoneCount getSlabZoneNumber(struct vdo_slab *slab)
 {
-  return slab->allocator->zoneNumber;
+  return slab->allocator->zone_number;
 }
 
 /**********************************************************************/
@@ -254,7 +254,7 @@ int modifySlabReferenceCount(struct vdo_slab            *slab,
   }
 
   if (freeStatusChanged) {
-    adjustFreeBlockCount(slab, !isIncrementOperation(operation.type));
+    adjust_free_block_count(slab, !isIncrementOperation(operation.type));
   }
 
   return VDO_SUCCESS;
@@ -275,7 +275,7 @@ int acquireProvisionalReference(struct vdo_slab     *slab,
   }
 
   if (hasProvisionalReference(lock)) {
-    adjustFreeBlockCount(slab, false);
+    adjust_free_block_count(slab, false);
   }
 
   return VDO_SUCCESS;
@@ -335,7 +335,7 @@ static void initiateSlabAction(struct admin_state *state)
   }
 
   if (is_resuming(state)) {
-    queueSlab(slab);
+    queue_slab(slab);
     finish_resuming(state);
     return;
   }
@@ -406,7 +406,7 @@ bool isSlabResuming(struct vdo_slab *slab)
 void finishScrubbingSlab(struct vdo_slab *slab)
 {
   slab->status = SLAB_REBUILT;
-  queueSlab(slab);
+  queue_slab(slab);
   reopenSlabJournal(slab->journal);
 }
 
