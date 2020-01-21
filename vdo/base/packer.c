@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#24 $
  */
 
 #include "packerInternals.h"
@@ -348,7 +348,7 @@ PackerStatistics getPackerStatistics(const struct packer *packer)
  **/
 static void abortPacking(struct data_vio *dataVIO)
 {
-  setCompressionDone(dataVIO);
+  set_compression_done(dataVIO);
   relaxedAdd64(&getPackerFromDataVIO(dataVIO)->fragmentsPending, -1);
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION(NULL));
   continueDataVIO(dataVIO, VDO_SUCCESS);
@@ -676,7 +676,7 @@ static void startNewBatch(struct packer *packer, struct input_bin *bin)
     struct data_vio *dataVIO = bin->incoming[slot];
     dataVIO->compression.bin = NULL;
 
-    if (!mayWriteCompressedDataVIO(dataVIO)) {
+    if (!may_write_compressed_data_vio(dataVIO)) {
       /*
        * Compression of this data_vio was canceled while it was waiting; put it
        * in the canceled bin so it can be rendezvous with the canceling
@@ -812,7 +812,7 @@ void attemptPacking(struct data_vio *dataVIO)
   struct packer *packer = getPackerFromDataVIO(dataVIO);
   assertOnPackerThread(packer, __func__);
 
-  struct vio_compression_state state = getCompressionState(dataVIO);
+  struct vio_compression_state state = get_compression_state(dataVIO);
   int result = ASSERT((state.status == VIO_COMPRESSING),
                       "attempt to pack data_vio not ready for packing, state: "
                       "%u",
@@ -836,7 +836,7 @@ void attemptPacking(struct data_vio *dataVIO)
   }
 
   /*
-   * The check of mayBlockInPacker() here will set the data_vio's compression
+   * The check of may_block_in_packer() here will set the data_vio's compression
    * state to VIO_PACKING if the data_vio is allowed to be compressed (if it has
    * already been canceled, we'll fall out here). Once the data_vio is in the
    * VIO_PACKING state, it must be guaranteed to be put in an input bin before
@@ -845,10 +845,10 @@ void attemptPacking(struct data_vio *dataVIO)
    * packer and fail to rendezvous with it (VDO-2809). We must also make sure
    * that we will actually bin the data_vio and not give up on it as being
    * larger than the space used in the fullest bin. Hence we must call
-   * selectInputBin() before calling mayBlockInPacker() (VDO-2826).
+   * selectInputBin() before calling may_block_in_packer() (VDO-2826).
    */
   struct input_bin *bin = selectInputBin(packer, dataVIO);
-  if ((bin == NULL) || !mayBlockInPacker(dataVIO)) {
+  if ((bin == NULL) || !may_block_in_packer(dataVIO)) {
     abortPacking(dataVIO);
     return;
   }

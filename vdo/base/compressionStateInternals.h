@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionStateInternals.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionStateInternals.h#4 $
  */
 
 #ifndef COMPRESSION_STATE_INTERNALS_H
@@ -27,16 +27,16 @@
 /**
  * Set the compression state of a data_vio (exposed for testing).
  *
- * @param dataVIO   The data_vio whose compression state is to be set
- * @param state     The expected current state of the data_vio
- * @param newState  The state to set
+ * @param data_vio   The data_vio whose compression state is to be set
+ * @param state      The expected current state of the data_vio
+ * @param new_state  The state to set
  *
  * @return <code>true</code> if the new state was set, false if the data_vio's
  *         compression state did not match the expected state, and so was
  *         left unchanged
  **/
-bool setCompressionState(struct data_vio              *dataVIO,
-                         struct vio_compression_state  state,
-                         struct vio_compression_state  newState);
+bool set_compression_state(struct data_vio *data_vio,
+			   struct vio_compression_state state,
+			   struct vio_compression_state new_state);
 
 #endif /* COMPRESSION_STATE_H */

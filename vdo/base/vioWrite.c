@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#16 $
  */
 
 /*
@@ -689,7 +689,7 @@ static void packCompressedData(struct vdo_completion *completion)
   // XXX this is a callback, so there should probably be an error check here
   // even if we think compression can't currently return one.
 
-  if (!mayPackDataVIO(dataVIO)) {
+  if (!may_pack_data_vio(dataVIO)) {
     abortDeduplication(dataVIO);
     return;
   }
@@ -705,7 +705,7 @@ void compressData(struct data_vio *dataVIO)
 {
   ASSERT_LOG_ONLY(!dataVIO->isDuplicate,
                   "compressing a non-duplicate block");
-  if (!mayCompressDataVIO(dataVIO)) {
+  if (!may_compress_data_vio(dataVIO)) {
     abortDeduplication(dataVIO);
     return;
   }
