@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#30 $
  */
 
 #include "blockMapTree.h"
@@ -108,8 +108,8 @@ int initializeTreeZone(struct block_map_zone *zone,
   struct block_map_tree_zone *treeZone = &zone->treeZone;
   treeZone->mapZone                    = zone;
 
-  int result = makeDirtyLists(eraLength, writeDirtyPagesCallback, treeZone,
-                              &treeZone->dirtyLists);
+  int result = make_dirty_lists(eraLength, writeDirtyPagesCallback, treeZone,
+                                &treeZone->dirtyLists);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -136,7 +136,7 @@ int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
 /**********************************************************************/
 void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone)
 {
-  freeDirtyLists(&treeZone->dirtyLists);
+  free_dirty_lists(&treeZone->dirtyLists);
   freeVIOPool(&treeZone->vioPool);
   freeIntMap(&treeZone->loadingPages);
 }
@@ -145,7 +145,7 @@ void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone)
 void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
                               SequenceNumber              period)
 {
-  setCurrentPeriod(treeZone->dirtyLists, period);
+  set_current_period(treeZone->dirtyLists, period);
 }
 
 /**
@@ -596,7 +596,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
 void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
                            SequenceNumber              period)
 {
-  advancePeriod(zone->dirtyLists, period);
+  advance_period(zone->dirtyLists, period);
 }
 
 /**********************************************************************/
@@ -607,7 +607,7 @@ void drainZoneTrees(struct admin_state *state)
   ASSERT_LOG_ONLY((zone->activeLookups == 0),
                   "drainZoneTrees() called with no active lookups");
   if (!is_suspending(state)) {
-    flushDirtyLists(zone->dirtyLists);
+    flush_dirty_lists(zone->dirtyLists);
   }
 
   checkForIOComplete(zone);
@@ -1039,8 +1039,8 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
     if (oldLock == 0) {
       initializeRing(&treePage->node);
     }
-    addToDirtyLists(zone->dirtyLists, &treePage->node, oldLock,
-                    treePage->recoveryLock);
+    add_to_dirty_lists(zone->dirtyLists, &treePage->node, oldLock,
+                       treePage->recoveryLock);
   }
 
   treeLock->height--;

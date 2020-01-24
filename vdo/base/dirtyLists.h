@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.h#3 $
  */
 
 #ifndef DIRTY_LISTS_H
@@ -42,70 +42,66 @@ struct dirty_lists;
  * @param expired  The list of expired elements
  * @param context  The context for the callback
  **/
-typedef void DirtyCallback(RingNode *expired, void *context);
+typedef void dirty_callback(RingNode *expired, void *context);
 
 /**
  * Construct a new set of dirty lists.
  *
- * @param [in]  maximumAge     The age at which an element will be expired
- * @param [in]  callback       The function to call when a set of elements have
- *                             expired
- * @param [in]  context        The context for the callback
- * @param [out] dirtyListsPtr  A pointer to hold the new dirty_lists structure
+ * @param [in]  maximum_age      The age at which an element will be expired
+ * @param [in]  callback         The function to call when a set of elements
+ *                               have expired
+ * @param [in]  context          The context for the callback
+ * @param [out] dirty_lists_ptr  A pointer to hold the new dirty_lists structure
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeDirtyLists(BlockCount           maximumAge,
-                   DirtyCallback       *callback,
-                   void                *context,
-                   struct dirty_lists **dirtyListsPtr)
-  __attribute__((warn_unused_result));
+int make_dirty_lists(BlockCount maximum_age, dirty_callback *callback,
+		     void *context, struct dirty_lists **dirty_lists_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a set of dirty lists and null out the pointer to them.
  *
- * @param dirtyListsPtr A pointer to the dirty lists to be freed
+ * @param dirty_lists_ptr A pointer to the dirty lists to be freed
  **/
-void freeDirtyLists(struct dirty_lists **dirtyListsPtr);
+void free_dirty_lists(struct dirty_lists **dirty_lists_ptr);
 
 /**
  * Set the current period. This function should only be called once.
  *
- * @param dirtyLists  The dirtyLists
- * @param period      The current period
+ * @param dirty_lists  The dirty_lists
+ * @param period       The current period
  **/
-void setCurrentPeriod(struct dirty_lists *dirtyLists, SequenceNumber period);
+void set_current_period(struct dirty_lists *dirty_lists, SequenceNumber period);
 
 /**
  * Add an element to the dirty lists.
  *
- * @param dirtyLists  The dirty_lists structure receiving the element
- * @param node        The RingNode of the element to add
- * @param oldPeriod   The period in which the element was previous dirtied,
- *                    or 0 if it was not dirty
- * @param newPeriod   The period in which the element has now been dirtied,
- *                    or 0 if it does not hold a lock
+ * @param dirty_lists  The dirty_lists structure receiving the element
+ * @param node         The RingNode of the element to add
+ * @param old_period   The period in which the element was previous dirtied,
+ *                     or 0 if it was not dirty
+ * @param new_period   The period in which the element has now been dirtied,
+ *                     or 0 if it does not hold a lock
  **/
-void addToDirtyLists(struct dirty_lists *dirtyLists,
-                     RingNode           *node,
-                     SequenceNumber      oldPeriod,
-                     SequenceNumber      newPeriod);
+void add_to_dirty_lists(struct dirty_lists *dirty_lists, RingNode *node,
+			SequenceNumber old_period, SequenceNumber new_period);
 
 /**
  * Advance the current period. If the current period is greater than the number
  * of lists, expire the oldest lists.
  *
- * @param dirtyLists  The dirty_lists to advance
- * @param period      The new current period
+ * @param dirty_lists  The dirty_lists to advance
+ * @param period       The new current period
  **/
-void advancePeriod(struct dirty_lists *dirtyLists, SequenceNumber period);
+void advance_period(struct dirty_lists *dirty_lists, SequenceNumber period);
 
 /**
  * Flush all dirty lists. This will cause the period to be advanced past the
  * current period.
  *
- * @param dirtyLists  The dirty_lists to flush
+ * @param dirty_lists  The dirty_lists to flush
  **/
-void flushDirtyLists(struct dirty_lists *dirtyLists);
+void flush_dirty_lists(struct dirty_lists *dirty_lists);
 
 #endif // DIRTY_LISTS_H
