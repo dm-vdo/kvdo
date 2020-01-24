@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#5 $
  */
 
 #include "extent.h"
@@ -33,118 +33,117 @@
 #include "vioWrite.h"
 
 /**********************************************************************/
-int createExtent(PhysicalLayer      *layer,
-                 VIOType             vioType,
-                 VIOPriority         priority,
-                 BlockCount          blockCount,
-                 char               *data,
-                 struct vdo_extent **extentPtr)
+int create_extent(PhysicalLayer *layer, VIOType vio_type, VIOPriority priority,
+		  BlockCount block_count, char *data,
+		  struct vdo_extent **extent_ptr)
 {
-  int result = ASSERT(isMetadataVIOType(vioType),
-                      "createExtent() called for metadata");
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	int result = ASSERT(isMetadataVIOType(vio_type),
+			    "create_extent() called for metadata");
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  struct vdo_extent *extent;
-  result = ALLOCATE_EXTENDED(struct vdo_extent, blockCount, struct vio *,
-                             __func__, &extent);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct vdo_extent *extent;
+	result = ALLOCATE_EXTENDED(struct vdo_extent, block_count, struct vio *,
+				   __func__, &extent);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = initializeEnqueueableCompletion(&extent->completion,
-                                           VDO_EXTENT_COMPLETION, layer);
-  if (result != VDO_SUCCESS) {
-    FREE(extent);
-    return result;
-  }
+	result = initializeEnqueueableCompletion(&extent->completion,
+						 VDO_EXTENT_COMPLETION, layer);
+	if (result != VDO_SUCCESS) {
+		FREE(extent);
+		return result;
+	}
 
-  for (; extent->count < blockCount; extent->count++) {
-    result = layer->createMetadataVIO(layer, vioType, priority, extent, data,
-                                      &extent->vios[extent->count]);
-    if (result != VDO_SUCCESS) {
-      freeExtent(&extent);
-      return result;
-    }
+	for (; extent->count < block_count; extent->count++) {
+		result = layer->createMetadataVIO(layer, vio_type, priority,
+						  extent, data,
+						  &extent->vios[extent->count]);
+		if (result != VDO_SUCCESS) {
+			free_extent(&extent);
+			return result;
+		}
 
-    data += VDO_BLOCK_SIZE;
-  }
+		data += VDO_BLOCK_SIZE;
+	}
 
-  *extentPtr = extent;
-  return VDO_SUCCESS;
+	*extent_ptr = extent;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeExtent(struct vdo_extent **extentPtr)
+void free_extent(struct vdo_extent **extent_ptr)
 {
-  struct vdo_extent *extent = *extentPtr;
-  if (extent == NULL) {
-    return;
-  }
+	struct vdo_extent *extent = *extent_ptr;
+	if (extent == NULL) {
+		return;
+	}
 
-  for (BlockCount i = 0; i < extent->count; i++) {
-    freeVIO(&extent->vios[i]);
-  }
+	for (BlockCount i = 0; i < extent->count; i++) {
+		freeVIO(&extent->vios[i]);
+	}
 
-  destroyEnqueueable(&extent->completion);
-  FREE(extent);
-  *extentPtr = NULL;
+	destroyEnqueueable(&extent->completion);
+	FREE(extent);
+	*extent_ptr = NULL;
 }
 
 /**
  * Launch a metadata extent.
  *
- * @param extent      The extent
- * @param startBlock  The absolute physical block at which the extent should
- *                    begin its I/O
- * @param count       The number of blocks to write
- * @param operation   The operation to perform on the extent
+ * @param extent       The extent
+ * @param start_block  The absolute physical block at which the extent should
+ *                     begin its I/O
+ * @param count        The number of blocks to write
+ * @param operation    The operation to perform on the extent
  **/
-static void launchMetadataExtent(struct vdo_extent   *extent,
-                                 PhysicalBlockNumber  startBlock,
-                                 BlockCount           count,
-                                 VIOOperation         operation)
+static void launchMetadataExtent(struct vdo_extent *extent,
+				 PhysicalBlockNumber start_block,
+				 BlockCount count, VIOOperation operation)
 {
-  resetCompletion(&extent->completion);
-  if (count > extent->count) {
-    finishCompletion(&extent->completion, VDO_OUT_OF_RANGE);
-    return;
-  }
+	resetCompletion(&extent->completion);
+	if (count > extent->count) {
+		finishCompletion(&extent->completion, VDO_OUT_OF_RANGE);
+		return;
+	}
 
-  extent->completeCount = extent->count - count;
-  for (BlockCount i = 0; i < count; i++) {
-    struct vio *vio = extent->vios[i];
-    vio->completion.callbackThreadID = extent->completion.callbackThreadID;
-    launchMetadataVIO(vio, startBlock++, handleVIOCompletion,
-                      handleVIOCompletion, operation);
-  }
+	extent->complete_count = extent->count - count;
+	for (BlockCount i = 0; i < count; i++) {
+		struct vio *vio = extent->vios[i];
+		vio->completion.callbackThreadID =
+			extent->completion.callbackThreadID;
+		launchMetadataVIO(vio, start_block++, handle_vio_completion,
+				  handle_vio_completion, operation);
+	}
 }
 
 /**********************************************************************/
-void readPartialMetadataExtent(struct vdo_extent   *extent,
-                               PhysicalBlockNumber  startBlock,
-                               BlockCount           count)
+void read_partial_metadata_extent(struct vdo_extent *extent,
+				  PhysicalBlockNumber start_block,
+				  BlockCount count)
 {
-  launchMetadataExtent(extent, startBlock, count, VIO_READ);
+	launchMetadataExtent(extent, start_block, count, VIO_READ);
 }
 
 /**********************************************************************/
-void writePartialMetadataExtent(struct vdo_extent   *extent,
-                                PhysicalBlockNumber  startBlock,
-                                BlockCount           count)
+void write_partial_metadata_extent(struct vdo_extent *extent,
+				   PhysicalBlockNumber start_block,
+				   BlockCount count)
 {
-  launchMetadataExtent(extent, startBlock, count, VIO_WRITE);
+	launchMetadataExtent(extent, start_block, count, VIO_WRITE);
 }
 
 /**********************************************************************/
-void handleVIOCompletion(struct vdo_completion *completion)
+void handle_vio_completion(struct vdo_completion *completion)
 {
-  struct vdo_extent *extent = asVDOExtent(completion->parent);
-  if (++extent->completeCount != extent->count) {
-    setCompletionResult(extentAsCompletion(extent), completion->result);
-    return;
-  }
+	struct vdo_extent *extent = as_vdo_extent(completion->parent);
+	if (++extent->complete_count != extent->count) {
+		setCompletionResult(extent_as_completion(extent),
+				    completion->result);
+		return;
+	}
 
-  finishCompletion(extentAsCompletion(extent), completion->result);
+	finishCompletion(extent_as_completion(extent), completion->result);
 }

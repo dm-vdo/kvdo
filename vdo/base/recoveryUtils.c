@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#8 $
  */
 
 #include "recoveryUtils.h"
@@ -42,8 +42,8 @@ static void finishJournalLoad(struct vdo_completion *completion)
 {
   int                    result = completion->result;
   struct vdo_completion *parent = completion->parent;
-  struct vdo_extent     *extent = asVDOExtent(completion);
-  freeExtent(&extent);
+  struct vdo_extent     *extent = as_vdo_extent(completion);
+  free_extent(&extent);
   finishCompletion(parent, result);
 }
 
@@ -60,9 +60,9 @@ void loadJournalAsync(struct recovery_journal  *journal,
   }
 
   struct vdo_extent *extent;
-  result = createExtent(parent->layer, VIO_TYPE_RECOVERY_JOURNAL,
-                        VIO_PRIORITY_METADATA, journal->size,
-                        *journalDataPtr, &extent);
+  result = create_extent(parent->layer, VIO_TYPE_RECOVERY_JOURNAL,
+                         VIO_PRIORITY_METADATA, journal->size,
+                         *journalDataPtr, &extent);
   if (result != VDO_SUCCESS) {
     finishCompletion(parent, result);
     return;
@@ -70,8 +70,8 @@ void loadJournalAsync(struct recovery_journal  *journal,
 
   prepareCompletion(&extent->completion, finishJournalLoad, finishJournalLoad,
                     parent->callbackThreadID, parent);
-  readMetadataExtent(extent,
-                     getFixedLayoutPartitionOffset(journal->partition));
+  read_metadata_extent(extent,
+                       getFixedLayoutPartitionOffset(journal->partition));
 }
 
 /**

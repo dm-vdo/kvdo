@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#6 $
  */
 
 #include "partitionCopy.h"
@@ -87,8 +87,8 @@ int makeCopyCompletion(PhysicalLayer          *layer,
     return result;
   }
 
-  result = createExtent(layer, VIO_TYPE_PARTITION_COPY, VIO_PRIORITY_HIGH,
-                        STRIDE_LENGTH, copy->data, &copy->extent);
+  result = create_extent(layer, VIO_TYPE_PARTITION_COPY, VIO_PRIORITY_HIGH,
+                         STRIDE_LENGTH, copy->data, &copy->extent);
   if (result != VDO_SUCCESS) {
     struct vdo_completion *completion = &copy->completion;
     freeCopyCompletion(&completion);
@@ -107,7 +107,7 @@ void freeCopyCompletion(struct vdo_completion **completionPtr)
   }
 
   struct copy_completion *copy = asCopyCompletion(*completionPtr);
-  freeExtent(&copy->extent);
+  free_extent(&copy->extent);
   FREE(copy->data);
   FREE(copy);
   *completionPtr = NULL;
@@ -163,8 +163,8 @@ static void completeReadForCopy(struct vdo_completion *completion)
   }
 
   completion->callback = completeWriteForCopy;
-  writePartialMetadataExtent(asVDOExtent(completion), layerStartBlock,
-                             getStrideSize(copy));
+  write_partial_metadata_extent(as_vdo_extent(completion), layerStartBlock,
+                                getStrideSize(copy));
 }
 
 /**
@@ -185,8 +185,8 @@ static void copyPartitionStride(struct copy_completion *copy)
   prepareCompletion(&copy->extent->completion, completeReadForCopy,
                     finishParentCallback, copy->completion.callbackThreadID,
                     &copy->completion);
-  readPartialMetadataExtent(copy->extent, layerStartBlock,
-                            getStrideSize(copy));
+  read_partial_metadata_extent(copy->extent, layerStartBlock,
+                               getStrideSize(copy));
 }
 
 /**

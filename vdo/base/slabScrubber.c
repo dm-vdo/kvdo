@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#16 $
  */
 
 #include "slabScrubberInternals.h"
@@ -55,9 +55,9 @@ static int allocateExtentAndBuffer(struct slab_scrubber *scrubber,
     return result;
   }
 
-  return createExtent(layer, VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA,
-                      slabJournalSize, scrubber->journalData,
-                      &scrubber->extent);
+  return create_extent(layer, VIO_TYPE_SLAB_JOURNAL, VIO_PRIORITY_METADATA,
+                       slabJournalSize, scrubber->journalData,
+                       &scrubber->extent);
 }
 
 /**********************************************************************/
@@ -94,7 +94,7 @@ int makeSlabScrubber(PhysicalLayer              *layer,
  **/
 static void freeExtentAndBuffer(struct slab_scrubber *scrubber)
 {
-  freeExtent(&scrubber->extent);
+  free_extent(&scrubber->extent);
   if (scrubber->journalData != NULL) {
     FREE(scrubber->journalData);
     scrubber->journalData = NULL;
@@ -390,7 +390,7 @@ static void startScrubbing(struct vdo_completion *completion)
   prepareCompletion(&scrubber->extent->completion, applyJournalEntries,
                     handleScrubberError, completion->callbackThreadID,
                     completion->parent);
-  readMetadataExtent(scrubber->extent, slab->journalOrigin);
+  read_metadata_extent(scrubber->extent, slab->journalOrigin);
 }
 
 /**
@@ -424,7 +424,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber)
 
   unspliceRingNode(&slab->ringNode);
   scrubber->slab = slab;
-  struct vdo_completion *completion = extentAsCompletion(scrubber->extent);
+  struct vdo_completion *completion = extent_as_completion(scrubber->extent);
   prepareCompletion(completion, startScrubbing,
                     handleScrubberError, scrubber->completion.callbackThreadID,
                     scrubber);

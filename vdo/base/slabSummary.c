@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#18 $
  */
 
 #include "slabSummary.h"
@@ -565,8 +565,8 @@ static void finishCombiningZones(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
   int                  result  = completion->result;
-  struct vdo_extent   *extent  = asVDOExtent(completion);
-  freeExtent(&extent);
+  struct vdo_extent   *extent  = as_vdo_extent(completion);
+  free_extent(&extent);
   finish_loading_with_result(&summary->zones[0]->state, result);
 }
 
@@ -608,14 +608,14 @@ void combineZones(struct slab_summary *summary)
 static void finishLoadingSummary(struct vdo_completion *completion)
 {
   struct slab_summary *summary = completion->parent;
-  struct vdo_extent   *extent  = asVDOExtent(completion);
+  struct vdo_extent   *extent  = as_vdo_extent(completion);
 
   // Combine the zones so each zone is correct for all slabs.
   combineZones(summary);
 
   // Write the combined summary back out.
   extent->completion.callback = finishCombiningZones;
-  writeMetadataExtent(extent, summary->origin);
+  write_metadata_extent(extent, summary->origin);
 }
 
 /**********************************************************************/
@@ -631,9 +631,9 @@ void loadSlabSummary(struct slab_summary   *summary,
 
   struct vdo_extent *extent;
   BlockCount blocks = summary->blocksPerZone * MAX_PHYSICAL_ZONES;
-  int        result = createExtent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
-                                   VIO_PRIORITY_METADATA, blocks,
-                                   (char *) summary->entries, &extent);
+  int        result = create_extent(parent->layer, VIO_TYPE_SLAB_SUMMARY,
+                                    VIO_PRIORITY_METADATA, blocks,
+                                    (char *) summary->entries, &extent);
   if (result != VDO_SUCCESS) {
     finish_loading_with_result(&zone->state, result);
     return;
@@ -643,14 +643,14 @@ void loadSlabSummary(struct slab_summary   *summary,
       || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
     prepareCompletion(&extent->completion, finishCombiningZones,
                       finishCombiningZones, 0, summary);
-    writeMetadataExtent(extent, summary->origin);
+    write_metadata_extent(extent, summary->origin);
     return;
   }
 
   summary->zonesToCombine = zonesToCombine;
   prepareCompletion(&extent->completion, finishLoadingSummary,
                     finishCombiningZones, 0, summary);
-  readMetadataExtent(extent, summary->origin);
+  read_metadata_extent(extent, summary->origin);
 }
 
 /**********************************************************************/
