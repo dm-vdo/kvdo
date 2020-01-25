@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#9 $
  */
 
 #include "recoveryUtils.h"
@@ -71,7 +71,7 @@ void loadJournalAsync(struct recovery_journal  *journal,
   prepareCompletion(&extent->completion, finishJournalLoad, finishJournalLoad,
                     parent->callbackThreadID, parent);
   read_metadata_extent(extent,
-                       getFixedLayoutPartitionOffset(journal->partition));
+                       get_fixed_layout_partition_offset(journal->partition));
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#19 $
  */
 
 #include "slabSummary.h"
@@ -550,7 +550,7 @@ void getSummarizedSlabStatuses(struct slab_summary_zone *summaryZone,
 void setSlabSummaryOrigin(struct slab_summary *summary,
                           struct partition    *partition)
 {
-  summary->origin = getFixedLayoutPartitionOffset(partition);
+  summary->origin = get_fixed_layout_partition_offset(partition);
 }
 
 // COMBINING FUNCTIONS (LOAD)

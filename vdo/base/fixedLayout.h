@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.h#3 $
  */
 
 #ifndef FIXED_LAYOUT_H
@@ -27,9 +27,9 @@
 #include "types.h"
 
 typedef enum {
-  FROM_BEGINNING,
-  FROM_END,
-} PartitionDirection;
+	FROM_BEGINNING,
+	FROM_END,
+} partition_direction;
 
 extern const BlockCount ALL_FREE_BLOCKS;
 
@@ -44,26 +44,26 @@ struct partition;
 /**
  * Make an unpartitioned fixed layout.
  *
- * @param [in]  totalBlocks  The total size of the layout, in blocks
- * @param [in]  startOffset  The block offset in the underlying layer at which
+ * @param [in]  total_blocks  The total size of the layout, in blocks
+ * @param [in]  start_offset  The block offset in the underlying layer at which
  *                           the fixed layout begins
- * @param [out] layoutPtr    The pointer to hold the resulting layout
+ * @param [out] layout_ptr    The pointer to hold the resulting layout
  *
  * @return a success or error code
  **/
-int makeFixedLayout(BlockCount            totalBlocks,
-                    PhysicalBlockNumber   startOffset,
-                    struct fixed_layout **layoutPtr)
-  __attribute__((warn_unused_result));
+int make_fixed_layout(BlockCount total_blocks,
+		      PhysicalBlockNumber start_offset,
+		      struct fixed_layout **layout_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free the fixed layout and null out the reference to it.
  *
- * @param layoutPtr  The reference to the layout to free
+ * @param layout_ptr  The reference to the layout to free
  *
  * @note all partitions created by this layout become invalid pointers
  **/
-void freeFixedLayout(struct fixed_layout **layoutPtr);
+void free_fixed_layout(struct fixed_layout **layout_ptr);
 
 /**
  * Get the total size of the layout in blocks.
@@ -72,51 +72,51 @@ void freeFixedLayout(struct fixed_layout **layoutPtr);
  *
  * @return The size of the layout
  **/
-BlockCount getTotalFixedLayoutSize(const struct fixed_layout *layout)
-  __attribute__((warn_unused_result));
+BlockCount get_total_fixed_layout_size(const struct fixed_layout *layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Get a partition by id.
  *
- * @param layout        The layout from which to get a partition
- * @param id            The id of the partition
- * @param partitionPtr  A pointer to hold the partition
+ * @param layout         The layout from which to get a partition
+ * @param id             The id of the partition
+ * @param partition_ptr  A pointer to hold the partition
  *
  * @return VDO_SUCCESS or an error
  **/
-int getPartition(struct fixed_layout  *layout,
-                 PartitionID           id,
-                 struct partition    **partitionPtr)
-  __attribute__((warn_unused_result));
+int get_partition(struct fixed_layout *layout,
+		  PartitionID id,
+		  struct partition **partition_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Translate a block number from the partition's view to the layer's
  *
- * @param partition             The partition to use for translation
- * @param partitionBlockNumber  The block number relative to the partition
- * @param layerBlockNumber      The block number relative to the layer
+ * @param partition               The partition to use for translation
+ * @param partition_block_number  The block number relative to the partition
+ * @param layer_block_number      The block number relative to the layer
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translateToPBN(const struct partition *partition,
-                   PhysicalBlockNumber     partitionBlockNumber,
-                   PhysicalBlockNumber    *layerBlockNumber)
-  __attribute__((warn_unused_result));
+int translate_to_pbn(const struct partition *partition,
+		     PhysicalBlockNumber partition_block_number,
+		     PhysicalBlockNumber *layer_block_number)
+	__attribute__((warn_unused_result));
 
 /**
  * Translate a block number from the layer's view to the partition's.
- * This is the inverse of translateToPBN().
+ * This is the inverse of translate_to_pbn().
  *
- * @param partition             The partition to use for translation
- * @param layerBlockNumber      The block number relative to the layer
- * @param partitionBlockNumber  The block number relative to the partition
+ * @param partition               The partition to use for translation
+ * @param layer_block_number      The block number relative to the layer
+ * @param partition_block_number  The block number relative to the partition
  *
  * @return  VDO_SUCCESS or an error code
  **/
-int translateFromPBN(const struct partition *partition,
-                     PhysicalBlockNumber     layerBlockNumber,
-                     PhysicalBlockNumber    *partitionBlockNumber)
-  __attribute__((warn_unused_result));
+int translate_from_pbn(const struct partition *partition,
+		       PhysicalBlockNumber layer_block_number,
+		       PhysicalBlockNumber *partition_block_number)
+	__attribute__((warn_unused_result));
 
 /**
  * Return the number of unallocated blocks available.
@@ -125,31 +125,31 @@ int translateFromPBN(const struct partition *partition,
  *
  * @return the number of blocks yet unallocated to partitions
  **/
-BlockCount getFixedLayoutBlocksAvailable(const struct fixed_layout *layout)
-  __attribute__((warn_unused_result));
+BlockCount get_fixed_layout_blocks_available(const struct fixed_layout *layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Create a new partition from the beginning or end of the unused space
  * within a fixed layout.
  *
- * @param   layout          the fixed layout
- * @param   id              the id of the partition to make
- * @param   blockCount      the number of blocks to carve out, if set
- *                          to ALL_FREE_BLOCKS, all remaining blocks will
- *                          be used
- * @param   direction       whether to carve out from beginning or end
- * @param   base            the number of the first block in the partition
- *                          from the point of view of its users
+ * @param   layout           the fixed layout
+ * @param   id               the id of the partition to make
+ * @param   block_count      the number of blocks to carve out, if set
+ *                           to ALL_FREE_BLOCKS, all remaining blocks will
+ *                           be used
+ * @param   direction        whether to carve out from beginning or end
+ * @param   base             the number of the first block in the partition
+ *                           from the point of view of its users
  *
  * @return a success or error code, particularly
- *      VDO_NO_SPACE if there are less than blockCount blocks remaining
+ *      VDO_NO_SPACE if there are less than block_count blocks remaining
  **/
-int makeFixedLayoutPartition(struct fixed_layout *layout,
-                             PartitionID          id,
-                             BlockCount           blockCount,
-                             PartitionDirection   direction,
-                             PhysicalBlockNumber  base)
-  __attribute__((warn_unused_result));
+int make_fixed_layout_partition(struct fixed_layout *layout,
+				PartitionID id,
+				BlockCount block_count,
+				partition_direction direction,
+				PhysicalBlockNumber base)
+	__attribute__((warn_unused_result));
 
 /**
  * Return the size in blocks of a partition.
@@ -158,8 +158,8 @@ int makeFixedLayoutPartition(struct fixed_layout *layout,
  *
  * @return the size of the partition in blocks
  **/
-BlockCount getFixedLayoutPartitionSize(const struct partition *partition)
-  __attribute__((warn_unused_result));
+BlockCount get_fixed_layout_partition_size(const struct partition *partition)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the first block of the partition in the layout.
@@ -169,8 +169,8 @@ BlockCount getFixedLayoutPartitionSize(const struct partition *partition)
  * @return the partition's offset in blocks
  **/
 PhysicalBlockNumber
-getFixedLayoutPartitionOffset(const struct partition *partition)
-  __attribute__((warn_unused_result));
+get_fixed_layout_partition_offset(const struct partition *partition)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the number of the first block in the partition from the partition users
@@ -181,8 +181,8 @@ getFixedLayoutPartitionOffset(const struct partition *partition)
  * @return the number of the first block in the partition
  **/
 PhysicalBlockNumber
-getFixedLayoutPartitionBase(const struct partition *partition)
-  __attribute__((warn_unused_result));
+get_fixed_layout_partition_base(const struct partition *partition)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the size of an encoded layout
@@ -191,8 +191,8 @@ getFixedLayoutPartitionBase(const struct partition *partition)
  *
  * @return The encoded size of the layout
  **/
-size_t getFixedLayoutEncodedSize(const struct fixed_layout *layout)
-  __attribute__((warn_unused_result));
+size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Encode a layout into a buffer.
@@ -202,18 +202,18 @@ size_t getFixedLayoutEncodedSize(const struct fixed_layout *layout)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeFixedLayout(const struct fixed_layout *layout, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode a fixed layout from a buffer.
  *
- * @param [in]  buffer    The buffer from which to decode
- * @param [out] layoutPtr A pointer to hold the layout
+ * @param [in]  buffer     The buffer from which to decode
+ * @param [out] layout_ptr A pointer to hold the layout
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeFixedLayout(Buffer *buffer, struct fixed_layout **layoutPtr)
-  __attribute__((warn_unused_result));
+int decode_fixed_layout(Buffer *buffer, struct fixed_layout **layout_ptr)
+	__attribute__((warn_unused_result));
 
 #endif // FIXED_LAYOUT_H
