@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.h#6 $
  */
 
 #ifndef FLUSH_H
@@ -29,10 +29,10 @@
  * A marker for tracking which journal entries are affected by a flush request.
  **/
 struct vdo_flush {
-  /** The wait queue entry for this flush */
-  struct waiter  waiter;
-  /** Which flush this struct represents */
-  SequenceNumber flushGeneration;
+	/** The wait queue entry for this flush */
+	struct waiter waiter;
+	/** Which flush this struct represents */
+	SequenceNumber flush_generation;
 };
 
 /**
@@ -42,15 +42,14 @@ struct vdo_flush {
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeFlusher(struct vdo *vdo)
-  __attribute__((warn_unused_result));
+int make_flusher(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Free a flusher and null out the reference to it.
  *
- * @param flusherPtr  A pointer to the flusher to free
+ * @param flusher_ptr  A pointer to the flusher to free
  **/
-void freeFlusher(struct flusher **flusherPtr);
+void free_flusher(struct flusher **flusher_ptr);
 
 /**
  * Get the ID of the thread on which flusher functions should be called.
@@ -59,29 +58,29 @@ void freeFlusher(struct flusher **flusherPtr);
  *
  * @return The ID of the thread which handles the flusher
  **/
-ThreadID getFlusherThreadID(struct flusher *flusher)
-  __attribute__((warn_unused_result));
+ThreadID get_flusher_thread_id(struct flusher *flusher)
+	__attribute__((warn_unused_result));
 
 /**
  * Handle empty flush requests.
  *
- * @param vdo       The vdo
- * @param vdoFlush  The opaque flush request
+ * @param vdo        The vdo
+ * @param vdo_flush  The opaque flush request
  **/
-void flush(struct vdo *vdo, struct vdo_flush *vdoFlush);
+void flush(struct vdo *vdo, struct vdo_flush *vdo_flush);
 
 /**
  * Attempt to complete any flushes which might have finished.
  *
  * @param flusher  The flusher
  **/
-void completeFlushes(struct flusher *flusher);
+void complete_flushes(struct flusher *flusher);
 
 /**
  * Dump the flusher, in a thread-unsafe fashion.
  *
  * @param flusher  The flusher
  **/
-void dumpFlusher(const struct flusher *flusher);
+void dump_flusher(const struct flusher *flusher);
 
 #endif /* FLUSH_H */

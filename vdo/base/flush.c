@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#11 $
  */
 
 #include "flush.h"
@@ -33,23 +33,23 @@
 #include "vdoInternal.h"
 
 struct flusher {
-  struct vdo_completion  completion;
-  /** The vdo to which this flusher belongs */
-  struct vdo            *vdo;
-  /** The current flush generation of the vdo */
-  SequenceNumber         flushGeneration;
-  /** The first unacknowledged flush generation */
-  SequenceNumber         firstUnacknowledgedGeneration;
-  /** The queue of flush requests waiting to notify other threads */
-  struct wait_queue      notifiers;
-  /** The queue of flush requests waiting for VIOs to complete */
-  struct wait_queue      pendingFlushes;
-  /** The flush generation for which notifications are being sent */
-  SequenceNumber         notifyGeneration;
-  /** The logical zone to notify next */
-  struct logical_zone   *logicalZoneToNotify;
-  /** The ID of the thread on which flush requests should be made */
-  ThreadID               threadID;
+	struct vdo_completion completion;
+	/** The vdo to which this flusher belongs */
+	struct vdo *vdo;
+	/** The current flush generation of the vdo */
+	SequenceNumber flush_generation;
+	/** The first unacknowledged flush generation */
+	SequenceNumber first_unacknowledged_generation;
+	/** The queue of flush requests waiting to notify other threads */
+	struct wait_queue notifiers;
+	/** The queue of flush requests waiting for VIOs to complete */
+	struct wait_queue pending_flushes;
+	/** The flush generation for which notifications are being sent */
+	SequenceNumber notify_generation;
+	/** The logical zone to notify next */
+	struct logical_zone *logical_zone_to_notify;
+	/** The ID of the thread on which flush requests should be made */
+	ThreadID thread_id;
 };
 
 /**
@@ -59,11 +59,11 @@ struct flusher {
  *
  * @return The completion as a flusher
  **/
-static struct flusher *asFlusher(struct vdo_completion *completion)
+static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(struct flusher, completion) == 0);
-  assertCompletionType(completion->type, FLUSH_NOTIFICATION_COMPLETION);
-  return (struct flusher *) completion;
+	STATIC_ASSERT(offsetof(struct flusher, completion) == 0);
+	assertCompletionType(completion->type, FLUSH_NOTIFICATION_COMPLETION);
+	return (struct flusher *)completion;
 }
 
 /**
@@ -73,48 +73,48 @@ static struct flusher *asFlusher(struct vdo_completion *completion)
  *
  * @return The wait queue entry as a vdo_flush
  **/
-static struct vdo_flush *waiterAsFlush(struct waiter *waiter)
+static struct vdo_flush *waiter_as_flush(struct waiter *waiter)
 {
-  STATIC_ASSERT(offsetof(struct vdo_flush, waiter) == 0);
-  return (struct vdo_flush *) waiter;
+	STATIC_ASSERT(offsetof(struct vdo_flush, waiter) == 0);
+	return (struct vdo_flush *)waiter;
 }
 
 /**********************************************************************/
-int makeFlusher(struct vdo *vdo)
+int make_flusher(struct vdo *vdo)
 {
-  int result = ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(1, struct flusher, __func__, &vdo->flusher);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  vdo->flusher->vdo      = vdo;
-  vdo->flusher->threadID = getPackerZoneThread(getThreadConfig(vdo));
-  return initializeEnqueueableCompletion(&vdo->flusher->completion,
-                                         FLUSH_NOTIFICATION_COMPLETION,
-                                         vdo->layer);
+	vdo->flusher->vdo = vdo;
+	vdo->flusher->thread_id = getPackerZoneThread(getThreadConfig(vdo));
+	return initializeEnqueueableCompletion(&vdo->flusher->completion,
+					       FLUSH_NOTIFICATION_COMPLETION,
+					       vdo->layer);
 }
 
 /**********************************************************************/
-void freeFlusher(struct flusher **flusherPtr)
+void free_flusher(struct flusher **flusher_ptr)
 {
-  if (*flusherPtr == NULL) {
-    return;
-  }
+	if (*flusher_ptr == NULL) {
+		return;
+	}
 
-  struct flusher *flusher = *flusherPtr;
-  destroyEnqueueable(&flusher->completion);
-  FREE(flusher);
-  *flusherPtr = NULL;
+	struct flusher *flusher = *flusher_ptr;
+	destroyEnqueueable(&flusher->completion);
+	FREE(flusher);
+	*flusher_ptr = NULL;
 }
 
 /**********************************************************************/
-ThreadID getFlusherThreadID(struct flusher *flusher)
+ThreadID get_flusher_thread_id(struct flusher *flusher)
 {
-  return flusher->threadID;
+	return flusher->thread_id;
 }
 
 /**********************************************************************/
-static void notifyFlush(struct flusher *flusher);
+static void notify_flush(struct flusher *flusher);
 
 /**
  * Finish the notification process by checking if any flushes have completed
@@ -124,25 +124,25 @@ static void notifyFlush(struct flusher *flusher);
  *
  * @param completion  The flusher completion
  **/
-static void finishNotification(struct vdo_completion *completion)
+static void finish_notification(struct vdo_completion *completion)
 {
-  struct flusher *flusher = asFlusher(completion);
-  ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
-                  "finishNotification() called from flusher thread");
+	struct flusher *flusher = as_flusher(completion);
+	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+			"finish_notification() called from flusher thread");
 
-  struct waiter *waiter = dequeueNextWaiter(&flusher->notifiers);
-  int            result = enqueueWaiter(&flusher->pendingFlushes, waiter);
-  if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(flusher->vdo->readOnlyNotifier, result);
-    struct vdo_flush *flush = waiterAsFlush(waiter);
-    completion->layer->completeFlush(&flush);
-    return;
-  }
+	struct waiter *waiter = dequeueNextWaiter(&flusher->notifiers);
+	int result = enqueueWaiter(&flusher->pending_flushes, waiter);
+	if (result != VDO_SUCCESS) {
+		enterReadOnlyMode(flusher->vdo->readOnlyNotifier, result);
+		struct vdo_flush *flush = waiter_as_flush(waiter);
+		completion->layer->completeFlush(&flush);
+		return;
+	}
 
-  completeFlushes(flusher);
-  if (hasWaiters(&flusher->notifiers)) {
-    notifyFlush(flusher);
-  }
+	complete_flushes(flusher);
+	if (hasWaiters(&flusher->notifiers)) {
+		notify_flush(flusher);
+	}
 }
 
 /**
@@ -152,34 +152,35 @@ static void finishNotification(struct vdo_completion *completion)
  *
  * @param completion  The flusher completion
  **/
-static void flushPackerCallback(struct vdo_completion *completion)
+static void flush_packer_callback(struct vdo_completion *completion)
 {
-  struct flusher *flusher = asFlusher(completion);
-  incrementPackerFlushGeneration(flusher->vdo->packer);
-  launchCallback(completion, finishNotification, flusher->threadID);
+	struct flusher *flusher = as_flusher(completion);
+	incrementPackerFlushGeneration(flusher->vdo->packer);
+	launchCallback(completion, finish_notification, flusher->thread_id);
 }
 
 /**
  * Increment the flush generation in a logical zone. If there are more logical
  * zones, go on to the next one, otherwise, prepare the physical zones. This
- * callback is registered both in notifyFlush() and in itself.
+ * callback is registered both in notify_flush() and in itself.
  *
  * @param completion  The flusher as a completion
  **/
-static void incrementGeneration(struct vdo_completion *completion)
+static void increment_generation(struct vdo_completion *completion)
 {
-  struct flusher *flusher = asFlusher(completion);
-  incrementFlushGeneration(flusher->logicalZoneToNotify,
-                           flusher->notifyGeneration);
-  flusher->logicalZoneToNotify
-    = getNextLogicalZone(flusher->logicalZoneToNotify);
-  if (flusher->logicalZoneToNotify == NULL) {
-    launchCallback(completion, flushPackerCallback, flusher->threadID);
-    return;
-  }
+	struct flusher *flusher = as_flusher(completion);
+	incrementFlushGeneration(flusher->logical_zone_to_notify,
+				 flusher->notify_generation);
+	flusher->logical_zone_to_notify =
+		getNextLogicalZone(flusher->logical_zone_to_notify);
+	if (flusher->logical_zone_to_notify == NULL) {
+		launchCallback(completion, flush_packer_callback,
+			       flusher->thread_id);
+		return;
+	}
 
-  launchCallback(completion, incrementGeneration,
-                 getLogicalZoneThreadID(flusher->logicalZoneToNotify));
+	launchCallback(completion, increment_generation,
+		       getLogicalZoneThreadID(flusher->logical_zone_to_notify));
 }
 
 /**
@@ -187,80 +188,84 @@ static void incrementGeneration(struct vdo_completion *completion)
  *
  * @param flusher  The flusher doing the notification
  **/
-static void notifyFlush(struct flusher *flusher)
+static void notify_flush(struct flusher *flusher)
 {
-  struct vdo_flush *flush = waiterAsFlush(getFirstWaiter(&flusher->notifiers));
-  flusher->notifyGeneration    = flush->flushGeneration;
-  flusher->logicalZoneToNotify = getLogicalZone(flusher->vdo->logicalZones, 0);
-  flusher->completion.requeue  = true;
-  launchCallback(&flusher->completion, incrementGeneration,
-                 getLogicalZoneThreadID(flusher->logicalZoneToNotify));
+	struct vdo_flush *flush =
+		waiter_as_flush(getFirstWaiter(&flusher->notifiers));
+	flusher->notify_generation = flush->flush_generation;
+	flusher->logical_zone_to_notify =
+		getLogicalZone(flusher->vdo->logicalZones, 0);
+	flusher->completion.requeue = true;
+	launchCallback(&flusher->completion, increment_generation,
+		       getLogicalZoneThreadID(flusher->logical_zone_to_notify));
 }
 
 /**********************************************************************/
 void flush(struct vdo *vdo, struct vdo_flush *flush)
 {
-  struct flusher *flusher = vdo->flusher;
-  ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
-                  "flush() called from flusher thread");
+	struct flusher *flusher = vdo->flusher;
+	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+			"flush() called from flusher thread");
 
-  flush->flushGeneration = flusher->flushGeneration++;
-  bool mayNotify         = !hasWaiters(&flusher->notifiers);
+	flush->flush_generation = flusher->flush_generation++;
+	bool may_notify = !hasWaiters(&flusher->notifiers);
 
-  int result = enqueueWaiter(&flusher->notifiers, &flush->waiter);
-  if (result != VDO_SUCCESS) {
-    enterReadOnlyMode(vdo->readOnlyNotifier, result);
-    flusher->completion.layer->completeFlush(&flush);
-    return;
-  }
+	int result = enqueueWaiter(&flusher->notifiers, &flush->waiter);
+	if (result != VDO_SUCCESS) {
+		enterReadOnlyMode(vdo->readOnlyNotifier, result);
+		flusher->completion.layer->completeFlush(&flush);
+		return;
+	}
 
-  if (mayNotify) {
-    notifyFlush(flusher);
-  }
+	if (may_notify) {
+		notify_flush(flusher);
+	}
 }
 
 /**********************************************************************/
-void completeFlushes(struct flusher *flusher)
+void complete_flushes(struct flusher *flusher)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->threadID),
-                  "completeFlushes() called from flusher thread");
+	ASSERT_LOG_ONLY((getCallbackThreadID() == flusher->thread_id),
+			"complete_flushes() called from flusher thread");
 
-  SequenceNumber oldestActiveGeneration = UINT64_MAX;
-  for (struct logical_zone *zone = getLogicalZone(flusher->vdo->logicalZones, 0);
-       zone != NULL;
-       zone = getNextLogicalZone(zone)) {
-    SequenceNumber oldestInZone = getOldestLockedGeneration(zone);
-    oldestActiveGeneration = minSequenceNumber(oldestActiveGeneration,
-                                               oldestInZone);
-  }
+	SequenceNumber oldest_active_generation = UINT64_MAX;
+	for (struct logical_zone *zone =
+		     getLogicalZone(flusher->vdo->logicalZones, 0);
+	     zone != NULL; zone = getNextLogicalZone(zone)) {
+		SequenceNumber oldest_in_zone = getOldestLockedGeneration(zone);
+		oldest_active_generation =
+			minSequenceNumber(oldest_active_generation,
+					  oldest_in_zone);
+	}
 
-  while (hasWaiters(&flusher->pendingFlushes)) {
-    struct vdo_flush *flush
-      = waiterAsFlush(getFirstWaiter(&flusher->pendingFlushes));
-    if (flush->flushGeneration >= oldestActiveGeneration) {
-      return;
-    }
+	while (hasWaiters(&flusher->pending_flushes)) {
+		struct vdo_flush *flush =
+			waiter_as_flush(getFirstWaiter(&flusher->pending_flushes));
+		if (flush->flush_generation >= oldest_active_generation) {
+			return;
+		}
 
-    ASSERT_LOG_ONLY((flush->flushGeneration
-                     == flusher->firstUnacknowledgedGeneration),
-                    "acknowledged next expected flush, %" PRIu64
-                    ", was: %llu",
-                    flusher->firstUnacknowledgedGeneration,
-                    flush->flushGeneration);
-    dequeueNextWaiter(&flusher->pendingFlushes);
-    flusher->completion.layer->completeFlush(&flush);
-    flusher->firstUnacknowledgedGeneration++;
-  }
+		ASSERT_LOG_ONLY((flush->flush_generation
+				 == flusher->first_unacknowledged_generation),
+				"acknowledged next expected flush, %" PRIu64
+				", was: %llu",
+				flusher->first_unacknowledged_generation,
+				flush->flush_generation);
+		dequeueNextWaiter(&flusher->pending_flushes);
+		flusher->completion.layer->completeFlush(&flush);
+		flusher->first_unacknowledged_generation++;
+	}
 }
 
 /**********************************************************************/
-void dumpFlusher(const struct flusher *flusher)
+void dump_flusher(const struct flusher *flusher)
 {
-  logInfo("struct flusher");
-  logInfo("  flushGeneration=%" PRIu64
-          " firstUnacknowledgedGeneration=%llu",
-          flusher->flushGeneration, flusher->firstUnacknowledgedGeneration);
-  logInfo("  notifiers queue is %s; pendingFlushes queue is %s",
-          (hasWaiters(&flusher->notifiers) ? "not empty" : "empty"),
-          (hasWaiters(&flusher->pendingFlushes) ? "not empty" : "empty"));
+	logInfo("struct flusher");
+	logInfo("  flush_generation=%" PRIu64
+		" first_unacknowledged_generation=%llu",
+		flusher->flush_generation,
+		flusher->first_unacknowledged_generation);
+	logInfo("  notifiers queue is %s; pending_flushes queue is %s",
+		(hasWaiters(&flusher->notifiers) ? "not empty" : "empty"),
+		(hasWaiters(&flusher->pending_flushes) ? "not empty" : "empty"));
 }

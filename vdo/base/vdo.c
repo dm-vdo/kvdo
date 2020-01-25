@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#25 $
  */
 
 /*
@@ -135,7 +135,7 @@ int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
 /**********************************************************************/
 void destroyVDO(struct vdo *vdo)
 {
-  freeFlusher(&vdo->flusher);
+  free_flusher(&vdo->flusher);
   freePacker(&vdo->packer);
   freeRecoveryJournal(&vdo->recoveryJournal);
   freeSlabDepot(&vdo->depot);
@@ -981,7 +981,7 @@ struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
 /**********************************************************************/
 void dumpVDOStatus(const struct vdo *vdo)
 {
-  dumpFlusher(vdo->flusher);
+  dump_flusher(vdo->flusher);
   dumpRecoveryJournalStatistics(vdo->recoveryJournal);
   dumpPacker(vdo->packer);
   dumpSlabDepot(vdo->depot);
