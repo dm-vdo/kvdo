@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadRegistry.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadRegistry.c#3 $
  */
 
 #include "threadRegistry.h"
@@ -43,8 +43,9 @@ void registerThread(ThreadRegistry *registry,
 
 	bool found_it = false;
 	RegisteredThread *thread;
+
 	write_lock(&registry->lock);
-	list_for_each_entry (thread, &registry->links, links) {
+	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
 			// This should not have been there.
 			// We'll complain after releasing the lock.
@@ -63,8 +64,9 @@ void unregisterThread(ThreadRegistry *registry)
 {
 	bool found_it = false;
 	RegisteredThread *thread;
+
 	write_lock(&registry->lock);
-	list_for_each_entry (thread, &registry->links, links) {
+	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
 			list_del_init(&thread->links);
 			found_it = true;
@@ -86,9 +88,11 @@ void initializeThreadRegistry(ThreadRegistry *registry)
 const void *lookupThread(ThreadRegistry *registry)
 {
 	const void *result = NULL;
+
 	read_lock(&registry->lock);
 	RegisteredThread *thread;
-	list_for_each_entry (thread, &registry->links, links) {
+
+	list_for_each_entry(thread, &registry->links, links) {
 		if (thread->task == current) {
 			result = thread->pointer;
 			break;

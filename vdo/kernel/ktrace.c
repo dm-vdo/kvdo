@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#11 $
  */
 
 #include "ktrace.h"
@@ -37,7 +37,7 @@ enum {
 	TRACE_SAMPLE_INTERVAL = 3,
 };
 
-bool trace_recording = false;
+bool trace_recording;
 
 static struct {
 	char buffer[2000];
@@ -64,6 +64,7 @@ static void initialize_sample_counter(struct sample_counter *counter,
 bool sample_this_one(struct sample_counter *counter)
 {
 	bool want_tracing = false;
+
 	spin_lock(&counter->lock);
 	counter->tick++;
 	if (counter->tick >= counter->interval) {
@@ -78,6 +79,7 @@ bool sample_this_one(struct sample_counter *counter)
 static void free_trace_data_buffer(void *pool_data, void *data)
 {
 	Trace *trace = (Trace *)data;
+
 	FREE(trace);
 }
 
@@ -86,6 +88,7 @@ static int alloc_trace_data_buffer(void *pool_data, void **data_ptr)
 {
 	Trace *trace;
 	int result = ALLOCATE(1, Trace, __func__, &trace);
+
 	if (result != VDO_SUCCESS) {
 		logError("trace data allocation failure %d", result);
 		return result;
@@ -119,6 +122,7 @@ int trace_kernel_layer_init(struct kernel_layer *layer)
 	initialize_sample_counter(&layer->trace_sample_counter,
 				  TRACE_SAMPLE_INTERVAL);
 	unsigned int trace_records_needed = 0;
+
 	if (layer->vioTraceRecording) {
 		trace_records_needed += layer->request_limiter.limit;
 	}
@@ -155,6 +159,7 @@ void log_kvio_trace(struct kvio *kvio)
 	    ((trace_logging_state.counter % 1024) == 37)) {
 		kvio_add_trace_record(kvio, THIS_LOCATION(NULL));
 		size_t trace_len = 0;
+
 		formatTrace(kvio->vio->trace, trace_logging_state.buffer,
 			    sizeof(trace_logging_state.buffer), &trace_len);
 
@@ -167,9 +172,10 @@ void log_kvio_trace(struct kvio *kvio)
 				kvio, trace_logging_state.buffer);
 		} else {
 			const char *dupe_label = "";
+
 			if (isWriteVIO(kvio->vio)) {
 				struct data_vio *data_vio
-                                  = vioAsDataVIO(kvio->vio);
+				  = vioAsDataVIO(kvio->vio);
 				if (isTrimDataVIO(data_vio)) {
 					dupe_label = "trim ";
 				} else if (data_vio->isZeroBlock) {
@@ -188,6 +194,7 @@ void log_kvio_trace(struct kvio *kvio)
 				TRACE_LOG_MAX,
 				trace_logging_state.buffer);
 			char *buf = trace_logging_state.buffer;
+
 			while (trace_len > TRACE_LOG_MAX) {
 				trace_len -= TRACE_LOG_MAX;
 				buf += TRACE_LOG_MAX;

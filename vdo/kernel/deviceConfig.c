@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#10 $
  */
 
 #include "deviceConfig.h"
@@ -113,6 +113,7 @@ int get_pool_name_from_argv(int argc,
 {
 	TableVersion version;
 	int result = get_version_number(argc, argv, error_ptr, &version);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -170,6 +171,7 @@ static void resolve_config_with_device(struct device_config *config,
 
 	if (config->version == 0) {
 		uint64_t device_size    = i_size_read(dev->bdev->bd_inode);
+
 		config->physical_blocks = device_size / VDO_BLOCK_SIZE;
 	}
 }
@@ -192,6 +194,7 @@ static inline int parse_bool(const char *bool_str,
 			     bool *bool_ptr)
 {
 	bool value = false;
+
 	if (strcmp(bool_str, true_str) == 0) {
 		value = true;
 	} else if (strcmp(bool_str, false_str) == 0) {
@@ -307,6 +310,7 @@ static int parse_one_thread_config_spec(const char *spec,
 {
 	char **fields;
 	int result = split_string(spec, '=', &fields);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -319,6 +323,7 @@ static int parse_one_thread_config_spec(const char *spec,
 	}
 
 	unsigned int count;
+
 	result = string_to_uint(fields[1], &count);
 	if (result != UDS_SUCCESS) {
 		logError(
@@ -360,6 +365,7 @@ static int parse_thread_config_string(const char *string,
 	int result = VDO_SUCCESS;
 
 	char **specs;
+
 	if (strcmp(".", string) != 0) {
 		result = split_string(string, ',', &specs);
 		if (result != UDS_SUCCESS) {
@@ -367,6 +373,7 @@ static int parse_thread_config_string(const char *string,
 		}
 
 		unsigned int i;
+
 		for (i = 0; specs[i] != NULL; i++) {
 			result = parse_one_thread_config_spec(specs[i], config);
 			if (result != VDO_SUCCESS) {
@@ -434,6 +441,7 @@ static int parse_one_key_value_pair(const char *key,
 {
 	unsigned int count;
 	int result = string_to_uint(value, &count);
+
 	if (result != UDS_SUCCESS) {
 		logError(
 			"optional config string error: integer value needed, found \"%s\"",
@@ -465,6 +473,7 @@ static int parse_key_value_pairs(int argc,
 				 struct device_config *config)
 {
 	int result = VDO_SUCCESS;
+
 	while (argc) {
 		result = parse_one_key_value_pair(argv[0], argv[1], config);
 		if (result != VDO_SUCCESS) {
@@ -633,6 +642,7 @@ int parse_device_config(int argc,
 
 	// Get the logical block size and validate
 	bool enable_512e;
+
 	result = parse_bool(dm_shift_arg(&arg_set),
 			    "512",
 			    "4096",
@@ -765,6 +775,7 @@ void free_device_config(struct device_config **config_ptr)
 	}
 
 	struct device_config *config = *config_ptr;
+
 	if (config == NULL) {
 		*config_ptr = NULL;
 		return;

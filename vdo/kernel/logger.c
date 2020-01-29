@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#8 $
  */
 
 #include "logger.h"
@@ -73,6 +73,7 @@ static int log_level = LOG_INFO;
 int stringToPriority(const char *string)
 {
 	int i;
+
 	for (i = 0; PRIORITIES[i].name != NULL; i++) {
 		if (strcasecmp(string, PRIORITIES[i].name) == 0) {
 			return PRIORITIES[i].priority;
@@ -172,6 +173,7 @@ static void emit_log_message(const char *level,
 	// Not at interrupt level; we have a process we can look at, and
 	// might have a device ID.
 	int device_instance = get_thread_device_id();
+
 	if (device_instance != -1) {
 		printk("%s%s%u:%s: %s%pV%pV\n",
 		       level,
@@ -239,8 +241,10 @@ void logMessagePack(int priority,
 	 * works the way we want.
 	 */
 	va_list args1Copy;
+
 	va_copy(args1Copy, args1);
 	va_list args2Copy;
+
 	va_copy(args2Copy, args2);
 	struct va_format vaf1 = {
 		.fmt = (fmt1 != NULL) ? fmt1 : "",
@@ -274,6 +278,7 @@ void logEmbeddedMessage(int priority,
 			...)
 {
 	va_list ap;
+
 	va_start(ap, fmt2);
 	logMessagePack(priority, prefix, fmt1, args1, fmt2, ap);
 	va_end(ap);
@@ -306,6 +311,7 @@ static void v_log_message_helper(int priority,
 				 ...)
 {
 	va_list dummy;
+
 	va_start(dummy, args);
 	logMessagePack(priority, NULL, format, args, NULL, dummy);
 	va_end(dummy);
@@ -329,7 +335,7 @@ void logMessage(int priority, const char *format, ...)
 }
 
 /**********************************************************************/
-__attribute__((format(printf, 2, 3))) static void
+__printf(2, 3) static void
 logAtLevel(int priority, const char *format, ...)
 {
 	va_list args;
@@ -410,6 +416,7 @@ int vLogWithStringError(int priority, int errnum, const char *format,
 			va_list args)
 {
 	char errbuf[ERRBUF_SIZE] = "";
+
 	logEmbeddedMessage(priority,
 			   NULL,
 			   format,
@@ -512,6 +519,7 @@ int logUnrecoverable(int errnum, const char *format, ...)
 	}
 
 	va_list args;
+
 	va_start(args, format);
 	vLogWithStringError(LOG_CRIT, errnum, format, args);
 	va_end(args);

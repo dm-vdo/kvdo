@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#38 $
  */
 
 #include "dedupeIndex.h"
@@ -147,8 +147,8 @@ unsigned int albireo_timeout_interval = 5000;
 unsigned int min_albireo_timer_interval = 100;
 
 // These times are in jiffies
-static Jiffies albireo_timeout_jiffies = 0;
-static Jiffies min_albireo_timer_jiffies = 0;
+static Jiffies albireo_timeout_jiffies;
+static Jiffies min_albireo_timer_jiffies;
 
 /*****************************************************************************/
 static const char *index_state_to_string(struct dedupe_index *index,
@@ -184,6 +184,7 @@ static void encode_uds_advice(UdsRequest *request, struct data_location advice)
 {
 	size_t offset = 0;
 	struct udsChunkData *encoding = &request->newMetadata;
+
 	encoding->data[offset++] = UDS_ADVICE_VERSION;
 	encoding->data[offset++] = advice.state;
 	encodeUInt64LE(encoding->data, &offset, advice.pbn);
@@ -208,6 +209,7 @@ static bool decode_uds_advice(const UdsRequest *request,
 	size_t offset = 0;
 	const struct udsChunkData *encoding = &request->oldMetadata;
 	byte version = encoding->data[offset++];
+
 	if (version != UDS_ADVICE_VERSION) {
 		logError("invalid UDS advice version code %u", version);
 		return false;
@@ -242,6 +244,7 @@ void set_albireo_timeout_interval(unsigned int value)
 	}
 	// Arbitrary minimum value is 2 jiffies
 	Jiffies alb_jiffies = msecs_to_jiffies(value);
+
 	if (alb_jiffies < 2) {
 		alb_jiffies = 2;
 		value = jiffies_to_msecs(alb_jiffies);
@@ -260,6 +263,7 @@ void set_min_albireo_timer_interval(unsigned int value)
 
 	// Arbitrary minimum value is 2 jiffies
 	Jiffies min_jiffies = msecs_to_jiffies(value);
+
 	if (min_jiffies < 2) {
 		min_jiffies = 2;
 		value = jiffies_to_msecs(min_jiffies);
@@ -276,6 +280,7 @@ static void finish_index_operation(UdsRequest *uds_request)
 						   struct data_kvio,
 						   dedupe_context.uds_request);
 	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
+
 	if (compareAndSwap32(&dedupe_context->request_state, UR_BUSY, UR_IDLE)) {
 		struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 		struct dedupe_index *index = kvio->layer->dedupe_index;
@@ -291,6 +296,7 @@ static void finish_index_operation(UdsRequest *uds_request)
 		if ((uds_request->type == UDS_POST) ||
 		    (uds_request->type == UDS_QUERY)) {
 			struct data_location advice;
+
 			if (decode_uds_advice(uds_request, &advice)) {
 				set_dedupe_advice(dedupe_context, &advice);
 			} else {
@@ -334,6 +340,7 @@ static void start_index_operation(struct kvdo_work_item *item)
 
 	UdsRequest *uds_request = &dedupe_context->uds_request;
 	int status = udsStartChunkOperation(uds_request);
+
 	if (status != UDS_SUCCESS) {
 		uds_request->status = status;
 		finish_index_operation(uds_request);
@@ -352,6 +359,7 @@ static void report_events(struct periodic_event_reporter *reporter)
 	atomic_set(&reporter->work_item_queued, 0);
 	uint64_t new_value = atomic64_read(&reporter->value);
 	uint64_t difference = new_value - reporter->last_reported_value;
+
 	if (difference != 0) {
 		logDebug(reporter->format, difference);
 		reporter->last_reported_value = new_value;
@@ -395,6 +403,7 @@ static void report_dedupe_timeout(struct periodic_event_reporter *reporter)
 {
 	atomic64_inc(&reporter->value);
 	int oldWorkItemQueued = atomic_xchg(&reporter->work_item_queued, 1);
+
 	if (oldWorkItemQueued == 0) {
 		enqueue_work_queue_delayed(reporter->layer->cpu_queue,
 					   &reporter->work_item,
@@ -425,6 +434,7 @@ static void timeout_index_operations(unsigned long arg)
 	LIST_HEAD(expiredHead);
 	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
 	unsigned long earliest_submission_allowed = jiffies - timeout_jiffies;
+
 	spin_lock_bh(&index->pending_lock);
 	index->started_timer = false;
 	while (!list_empty(&index->pending_head)) {
@@ -470,10 +480,12 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 	struct kvio *kvio = data_kvio_as_kvio(data_kvio);
 	struct dedupe_context *dedupe_context = &data_kvio->dedupe_context;
 	struct dedupe_index *index = kvio->layer->dedupe_index;
+
 	dedupe_context->status = UDS_SUCCESS;
 	dedupe_context->submission_time = jiffies;
 	if (compareAndSwap32(&dedupe_context->request_state, UR_IDLE, UR_BUSY)) {
 		UdsRequest *uds_request = &data_kvio->dedupe_context.uds_request;
+
 		uds_request->chunkName = *dedupe_context->chunk_name;
 		uds_request->callback = finish_index_operation;
 		uds_request->session = index->index_session;
@@ -494,6 +506,7 @@ static void enqueue_index_operation(struct data_kvio *data_kvio,
 			enqueue_work_queue(index->uds_queue,
 					   &kvio->enqueueable.work_item);
 			unsigned int active = atomic_inc_return(&index->active);
+
 			if (active > index->maximum) {
 				index->maximum = active;
 			}
@@ -521,6 +534,7 @@ static void close_index(struct dedupe_index *index)
 	// Close the index session, while not holding the state_lock.
 	spin_unlock(&index->state_lock);
 	int result = udsCloseIndex(index->index_session);
+
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result,
 					"Error closing index %s",
@@ -537,6 +551,7 @@ static void open_index(struct dedupe_index *index)
 {
 	// ASSERTION: We enter in IS_CLOSED state.
 	bool create_flag = index->create_flag;
+
 	index->create_flag = false;
 	// Change the index state so that the it will be reported to the
 	// outside world as "opening".
@@ -667,6 +682,7 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 	spin_lock(&index->state_lock);
 	index->suspended = true;
 	index_state index_state = index->index_state;
+
 	spin_unlock(&index->state_lock);
 	if (index_state != IS_CLOSED) {
 		int result = udsSuspendIndexSession(index->index_session,
@@ -682,6 +698,7 @@ void suspend_dedupe_index(struct dedupe_index *index, bool save_flag)
 void resume_dedupe_index(struct dedupe_index *index)
 {
 	int result = udsResumeIndexSession(index->index_session);
+
 	if (result != UDS_SUCCESS) {
 		logErrorWithStringError(result, "Error resuming dedupe index");
 	}
@@ -744,6 +761,7 @@ const char *get_dedupe_state_name(struct dedupe_index *index)
 {
 	spin_lock(&index->state_lock);
 	const char *state = index_state_to_string(index, index->index_state);
+
 	spin_unlock(&index->state_lock);
 	return state;
 }
@@ -753,6 +771,7 @@ void get_index_statistics(struct dedupe_index *index, IndexStatistics *stats)
 {
 	spin_lock(&index->state_lock);
 	index_state index_state = index->index_state;
+
 	stats->maxDedupeQueries = index->maximum;
 	spin_unlock(&index->state_lock);
 	stats->currDedupeQueries = atomic_read(&index->active);
@@ -767,6 +786,7 @@ void get_index_statistics(struct dedupe_index *index, IndexStatistics *stats)
 						"Error reading index stats");
 		}
 		UdsContextStats context_stats;
+
 		result = udsGetIndexSessionStats(index->index_session,
 						 &context_stats);
 		if (result == UDS_SUCCESS) {
@@ -903,6 +923,7 @@ static void start_uds_queue(void *ptr)
 	 * threads do), but it would be an unnecessary embellishment.
 	 */
 	struct dedupe_index *index = ptr;
+
 	registerAllocatingThread(&index->allocating_thread, NULL);
 }
 
@@ -921,6 +942,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 
 	struct dedupe_index *index;
 	int result = ALLOCATE(1, struct dedupe_index, "UDS index data", &index);
+
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -936,7 +958,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 
-        index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
+	index->uds_params = (struct uds_parameters) UDS_PARAMETERS_INITIALIZER;
 	indexConfigToUdsParameters(&layer->geometry.indexConfig,
 				   &index->uds_params);
 	result = indexConfigToUdsConfiguration(&layer->geometry.indexConfig,

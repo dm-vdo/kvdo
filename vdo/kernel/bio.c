@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bio.c#15 $
  */
 
 #include "bio.h"
@@ -30,7 +30,7 @@
 
 #include "ioSubmitter.h"
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
 #include "bioIterator.h"
 
 /**
@@ -50,18 +50,21 @@ static char *get_buffer_for_biovec(struct bio_vec *biovec)
 void bio_copy_data_in(struct bio *bio, char *data_ptr)
 {
 	// 4.14 is probably newer than necessary.
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	struct bio_vec biovec;
-	struct bvec_iter iter; 
+	struct bvec_iter iter;
 	unsigned long flags;
+
 	bio_for_each_segment(biovec, bio, iter) {
 		void *from = bvec_kmap_irq(&biovec, &flags);
+
 		memcpy(data_ptr, from, biovec.bv_len);
 		data_ptr += biovec.bv_len;
 		bvec_kunmap_irq(from, &flags);
 	}
 #else
 	struct bio_vec *biovec;
+
 	for (struct bio_iterator iter = create_bio_iterator(bio);
 	     (biovec = get_next_biovec(&iter)) != NULL;
 	     advance_bio_iterator(&iter)) {
@@ -74,12 +77,14 @@ void bio_copy_data_in(struct bio *bio, char *data_ptr)
 /**********************************************************************/
 void bio_copy_data_out(struct bio *bio, char *data_ptr)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 	struct bio_vec biovec;
-	struct bvec_iter iter; 
+	struct bvec_iter iter;
 	unsigned long flags;
+
 	bio_for_each_segment(biovec, bio, iter) {
 		void *dest = bvec_kmap_irq(&biovec, &flags);
+
 		memcpy(dest, data_ptr, biovec.bv_len);
 		data_ptr += biovec.bv_len;
 		flush_dcache_page(biovec.bv_page);
@@ -87,6 +92,7 @@ void bio_copy_data_out(struct bio *bio, char *data_ptr)
 	}
 #else
 	struct bio_vec *biovec;
+
 	for (struct bio_iterator iter = create_bio_iterator(bio);
 	     (biovec = get_next_biovec(&iter)) != NULL;
 	     advance_bio_iterator(&iter)) {
@@ -169,6 +175,7 @@ static void initialize_bio(struct bio *bio, struct kernel_layer *layer)
 	// Save off important info so it can be set back later
 	unsigned short vcnt = bio->bi_vcnt;
 	void *pvt	   = bio->bi_private;
+
 	bio_reset(bio); // Memsets large portion of bio. Reset all needed
 			// fields.
 	bio->bi_private = pvt;
@@ -202,6 +209,7 @@ void reset_bio(struct bio *bio, struct kernel_layer *layer)
 int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 {
 	int bvec_count = 0;
+
 	if (data != NULL) {
 		bvec_count = (offset_in_page(data) + VDO_BLOCK_SIZE +
 			      PAGE_SIZE - 1) >> PAGE_SHIFT;
@@ -253,8 +261,10 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 	int len    = VDO_BLOCK_SIZE;
 	int offset = offset_in_page(data);
 	unsigned int i;
+
 	for (i = 0; (i < bvec_count) && (len > 0); i++) {
 		unsigned int bytes = PAGE_SIZE - offset;
+
 		if (bytes > len) {
 			bytes = len;
 		}
@@ -263,6 +273,7 @@ int create_bio(struct kernel_layer *layer, char *data, struct bio **bio_ptr)
 					    vmalloc_to_page(data) :
 					    virt_to_page(data);
 		int bytes_added = bio_add_page(bio, page, bytes, offset);
+
 		if (bytes_added != bytes) {
 			free_bio(bio, layer);
 			return logErrorWithStringError(

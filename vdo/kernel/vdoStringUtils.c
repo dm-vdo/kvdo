@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#4 $
  */
 
 #include "vdoStringUtils.h"
@@ -35,6 +35,7 @@ char *v_append_to_buffer(char *buffer,
 			 va_list args)
 {
 	size_t n = vsnprintf(buffer, buf_end - buffer, fmt, args);
+
 	if (n >= (size_t)(buf_end - buffer)) {
 		buffer = buf_end;
 	} else {
@@ -50,6 +51,7 @@ char *appendToBuffer(char *buffer, char *buf_end, const char *fmt, ...)
 
 	va_start(ap, fmt);
 	char *pos = v_append_to_buffer(buffer, buf_end, fmt, ap);
+
 	va_end(ap);
 	return pos;
 }
@@ -58,6 +60,7 @@ char *appendToBuffer(char *buffer, char *buf_end, const char *fmt, ...)
 void free_string_array(char **string_array)
 {
 	unsigned int offset;
+
 	for (offset = 0; string_array[offset] != NULL; offset++) {
 		FREE(string_array[offset]);
 	}
@@ -71,6 +74,7 @@ int split_string(const char *string,
 {
 	unsigned int substring_count = 1;
 	const char *s;
+
 	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
 			substring_count++;
@@ -86,9 +90,11 @@ int split_string(const char *string,
 		return result;
 	}
 	unsigned int current_substring = 0;
+
 	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
 			ptrdiff_t length = s - string;
+
 			result = ALLOCATE(length + 1,
 					  char,
 					  "split string",
@@ -113,6 +119,7 @@ int split_string(const char *string,
 	// Process final string, with no trailing separator.
 	BUG_ON(current_substring != (substring_count - 1));
 	ptrdiff_t length = strlen(string);
+
 	result = ALLOCATE(length + 1,
 			  char,
 			  "split string",
@@ -134,17 +141,20 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 {
 	size_t string_length = 0;
 	size_t i;
+
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		string_length += strlen(substring_array[i]) + 1;
 	}
 
 	char *output;
 	int result = ALLOCATE(string_length, char, __func__, &output);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	char *current_position = &output[0];
+
 	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		current_position = appendToBuffer(current_position,
 						  output + string_length,
@@ -168,6 +178,7 @@ int string_to_uint(const char *input, unsigned int *value_ptr)
 {
 	unsigned long long_value;
 	int result = kstrtoul(input, 10, &long_value);
+
 	if (result != 0) {
 		return result;
 	}

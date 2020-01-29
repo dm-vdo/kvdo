@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#29 $
  */
 
 #include "ioSubmitter.h"
@@ -84,6 +84,7 @@ struct io_submitter {
 static void start_bio_queue(void *ptr)
 {
 	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *)ptr;
+
 	blk_start_plug(&bio_queue_data->plug);
 }
 
@@ -91,14 +92,15 @@ static void start_bio_queue(void *ptr)
 static void finish_bio_queue(void *ptr)
 {
 	struct bio_queue_data *bio_queue_data = (struct bio_queue_data *)ptr;
+
 	blk_finish_plug(&bio_queue_data->plug);
 }
 
 static const struct kvdo_work_queue_type bio_queue_type = {
 	.start = start_bio_queue,
 	.finish = finish_bio_queue,
-	.action_table =
-		{
+	.action_table = {
+		
 			{ .name = "bio_compressed_data",
 			  .code = BIO_Q_ACTION_COMPRESSED_DATA,
 			  .priority = 0 },
@@ -214,6 +216,7 @@ static void assert_running_in_bio_queue_for_pbn(PhysicalBlockNumber pbn)
 static void count_all_bios_completed(struct kvio *kvio, struct bio *bio)
 {
 	struct kernel_layer *layer = kvio->layer;
+
 	if (is_data(kvio)) {
 		count_bios(&layer->biosOutCompleted, bio);
 		return;
@@ -247,10 +250,12 @@ void complete_async_bio(struct bio *bio, int error)
 	int error = get_bio_result(bio);
 #endif
 	struct kvio *kvio = (struct kvio *)bio->bi_private;
+
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F($io);cb=io($io)"));
 	count_completed_bios(bio);
 	if ((error == 0) && is_data(kvio) && isReadVIO(kvio->vio)) {
 		struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
+
 		if (!isCompressed(data_kvio->data_vio.mapped.state) &&
 		    !data_kvio->isPartial) {
 			acknowledgeDataVIO(&data_kvio->data_vio);
@@ -269,6 +274,7 @@ void complete_async_bio(struct bio *bio, int error)
 static void count_all_bios(struct kvio *kvio, struct bio *bio)
 {
 	struct kernel_layer *layer = kvio->layer;
+
 	if (is_data(kvio)) {
 		count_bios(&layer->biosOut, bio);
 		return;
@@ -336,6 +342,7 @@ static void process_bio_map(struct kvdo_work_item *item)
 		struct bio_queue_data *bio_queue_data =
 			get_work_queue_private_data();
 		struct bio *bio = NULL;
+
 		mutex_lock(&bio_queue_data->lock);
 		if (!bio_list_empty(&kvio->bios_merged)) {
 			intMapRemove(bio_queue_data->map,
@@ -353,6 +360,7 @@ static void process_bio_map(struct kvdo_work_item *item)
 		while (bio != NULL) {
 			struct kvio *kvio_bio = bio->bi_private;
 			struct bio *next = bio->bi_next;
+
 			bio->bi_next = NULL;
 			set_bio_block_device(bio,
 					     get_kernel_layer_bdev(kvio_bio->layer));
@@ -386,6 +394,7 @@ static struct kvio *get_mergeable_locked(struct int_map *map,
 {
 	struct bio *bio = kvio->bio_to_submit;
 	sector_t merge_sector = get_bio_sector(bio);
+
 	switch (merge_type) {
 	case ELEVATOR_BACK_MERGE:
 		merge_sector -= VDO_SECTORS_PER_BLOCK;
@@ -449,15 +458,16 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 
 	mutex_lock(&bio_queue_data->lock);
 	struct kvio *prev_kvio = get_mergeable_locked(bio_queue_data->map,
-                                                      kvio,
-                                                      ELEVATOR_BACK_MERGE);
+						      kvio,
+						      ELEVATOR_BACK_MERGE);
 	struct kvio *next_kvio = get_mergeable_locked(bio_queue_data->map,
-                                                      kvio,
-                                                      ELEVATOR_FRONT_MERGE);
+						      kvio,
+						      ELEVATOR_FRONT_MERGE);
 	if (prev_kvio == next_kvio) {
 		next_kvio = NULL;
 	}
 	int result;
+
 	if ((prev_kvio == NULL) && (next_kvio == NULL)) {
 		// no merge. just add to bio_queue
 		result = intMapPut(bio_queue_data->map, get_bio_sector(bio),
@@ -525,6 +535,7 @@ bio_queue_data_for_pbn(struct io_submitter *io_submitter,
 void vdo_submit_bio(struct bio *bio, bio_q_action action)
 {
 	struct kvio *kvio = bio->bi_private;
+
 	kvio->bio_to_submit = bio;
 	setup_kvio_work(kvio, process_bio_map, (KvdoWorkFunction)bio->bi_end_io,
 		      action);
@@ -577,6 +588,7 @@ void vdo_submit_bio(struct bio *bio, bio_q_action action)
 	 */
 
 	bool merged = false;
+
 	if (USE_BIOMAP && is_data(kvio)) {
 		merged = try_bio_map_merge(bio_queue_data, kvio, bio);
 	}
@@ -623,8 +635,10 @@ int make_io_submitter(const char *thread_name_prefix,
 
 	// Setup for each bio-submission work queue
 	char queue_name[MAX_QUEUE_NAME_LEN];
+
 	io_submitter->bio_queue_rotation_interval = rotation_interval;
 	unsigned int i;
+
 	for (i = 0; i < thread_count; i++) {
 		struct bio_queue_data *bio_queue_data =
 			&io_submitter->bio_queue_data[i];
@@ -687,6 +701,7 @@ int make_io_submitter(const char *thread_name_prefix,
 void cleanup_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
+
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		finish_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
@@ -696,6 +711,7 @@ void cleanup_io_submitter(struct io_submitter *io_submitter)
 void free_io_submitter(struct io_submitter *io_submitter)
 {
 	int i;
+
 	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		free_work_queue(&io_submitter->bio_queue_data[i].queue);
@@ -710,6 +726,7 @@ void free_io_submitter(struct io_submitter *io_submitter)
 void dump_bio_work_queue(struct io_submitter *io_submitter)
 {
 	int i;
+
 	for (i = 0; i < io_submitter->num_bio_queues_used; i++) {
 		dump_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
@@ -721,6 +738,7 @@ void enqueue_bio_work_item(struct io_submitter *io_submitter,
 			   struct kvdo_work_item *work_item)
 {
 	unsigned int bio_queue_index = advance_bio_rotor(io_submitter);
+
 	enqueue_work_queue(io_submitter->bio_queue_data[bio_queue_index].queue,
 			   work_item);
 }

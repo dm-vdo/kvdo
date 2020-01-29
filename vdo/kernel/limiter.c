@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/limiter.c#5 $
  */
 
 #include "limiter.h"
@@ -49,6 +49,7 @@ bool limiter_is_idle(struct limiter *limiter)
 {
 	spin_lock(&limiter->lock);
 	bool idle = limiter->active == 0;
+
 	spin_unlock(&limiter->lock);
 	return idle;
 }
@@ -58,6 +59,7 @@ bool limiter_has_one_free(struct limiter *limiter)
 {
 	spin_lock(&limiter->lock);
 	bool has_one_free = (limiter->active < limiter->limit);
+
 	spin_unlock(&limiter->lock);
 	return has_one_free;
 }
@@ -79,6 +81,7 @@ void limiter_wait_for_idle(struct limiter *limiter)
 	spin_lock(&limiter->lock);
 	while (limiter->active > 0) {
 		DEFINE_WAIT(wait);
+
 		prepare_to_wait_exclusive(&limiter->waiter_queue,
 					  &wait,
 					  TASK_UNINTERRUPTIBLE);
@@ -118,6 +121,7 @@ void limiter_wait_for_one_free(struct limiter *limiter)
 	spin_lock(&limiter->lock);
 	while (!take_permit_locked(limiter)) {
 		DEFINE_WAIT(wait);
+
 		prepare_to_wait_exclusive(&limiter->waiter_queue,
 					  &wait,
 					  TASK_UNINTERRUPTIBLE);
@@ -134,6 +138,7 @@ bool limiter_poll(struct limiter *limiter)
 {
 	spin_lock(&limiter->lock);
 	bool acquired = take_permit_locked(limiter);
+
 	spin_unlock(&limiter->lock);
 	return acquired;
 }

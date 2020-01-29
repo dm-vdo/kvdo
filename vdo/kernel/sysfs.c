@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#6 $
  */
 
 #include "sysfs.h"
@@ -95,6 +95,7 @@ static ssize_t scan_int(const char *buf,
 		return -EINVAL;
 	}
 	unsigned int value;
+
 	if (sscanf(buf, "%d", &value) != 1) {
 		return -EINVAL;
 	}
@@ -130,6 +131,7 @@ static ssize_t scan_uint(const char *buf,
 		return -EINVAL;
 	}
 	unsigned int value;
+
 	if (sscanf(buf, "%u", &value) != 1) {
 		return -EINVAL;
 	}
@@ -158,6 +160,7 @@ static ssize_t show_uint(struct kvdo_module_globals *kvdo_globals,
 static ssize_t scan_bool(const char *buf, size_t n, bool *value_ptr)
 {
 	unsigned int int_value = 0;
+
 	n = scan_uint(buf, n, &int_value, 0, 1);
 	if (n > 0) {
 		*value_ptr = (int_value != 0);
@@ -213,6 +216,7 @@ vdo_albireo_timeout_interval_store(struct kvdo_module_globals *kvdo_globals,
 {
 	unsigned int value;
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
+
 	if (result > 0) {
 		set_albireo_timeout_interval(value);
 	}
@@ -227,6 +231,7 @@ vdo_min_albireo_timer_interval_store(struct kvdo_module_globals *kvdo_globals,
 {
 	unsigned int value;
 	ssize_t result = scan_uint(buf, n, &value, 0, UINT_MAX);
+
 	if (result > 0) {
 		set_min_albireo_timer_interval(value);
 	}
@@ -253,6 +258,7 @@ vdo_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 	}
 
 	struct kvdo_module_globals *kvdo_globals;
+
 	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
 	return (*vdo_attr->show)(kvdo_globals, attr, buf);
 }
@@ -270,13 +276,14 @@ static ssize_t vdo_attr_store(struct kobject *kobj,
 	}
 
 	struct kvdo_module_globals *kvdo_globals;
+
 	kvdo_globals = container_of(kobj, struct kvdo_module_globals, kobj);
 	return (*vdo_attr->store)(kvdo_globals, buf, length);
 }
 
 static struct vdo_attribute vdo_status_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "status",
 			.mode = 0444,
 		},
@@ -284,8 +291,8 @@ static struct vdo_attribute vdo_status_attr = {
 };
 
 static struct vdo_attribute vdo_log_level_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "log_level",
 			.mode = 0644,
 		},
@@ -294,8 +301,8 @@ static struct vdo_attribute vdo_log_level_attr = {
 };
 
 static struct vdo_attribute vdo_max_req_active_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "max_requests_active",
 			.mode = 0644,
 		},
@@ -305,8 +312,8 @@ static struct vdo_attribute vdo_max_req_active_attr = {
 };
 
 static struct vdo_attribute vdo_albireo_timeout_interval = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "deduplication_timeout_interval",
 			.mode = 0644,
 		},
@@ -316,8 +323,8 @@ static struct vdo_attribute vdo_albireo_timeout_interval = {
 };
 
 static struct vdo_attribute vdo_min_albireo_timer_interval = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "min_deduplication_timer_interval",
 			.mode = 0644,
 		},
@@ -327,8 +334,8 @@ static struct vdo_attribute vdo_min_albireo_timer_interval = {
 };
 
 static struct vdo_attribute vdo_trace_recording = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "trace_recording",
 			.mode = 0644,
 		},
@@ -338,8 +345,8 @@ static struct vdo_attribute vdo_trace_recording = {
 };
 
 static struct vdo_attribute vdo_version_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "version",
 			.mode = 0444,
 		},
@@ -379,6 +386,7 @@ int vdo_init_sysfs(struct kobject *module_object)
 {
 	kobject_init(module_object, &vdo_ktype);
 	int result = kobject_add(module_object, NULL, THIS_MODULE->name);
+
 	if (result < 0) {
 		logError("kobject_add failed with status %d", -result);
 		kobject_put(module_object);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#11 $
  */
 
 #include "physicalLayer.h"
@@ -49,6 +49,7 @@ memory_equal(void *pointer_argument1,
 {
 	byte *pointer1 = pointer_argument1;
 	byte *pointer2 = pointer_argument2;
+
 	while (length >= sizeof(uint64_t)) {
 		/*
 		 * get_unaligned is just for paranoia.  (1) On x86_64 it is
@@ -92,6 +93,7 @@ memory_equal(void *pointer_argument1,
 static void verify_duplication_work(struct kvdo_work_item *item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(item);
+
 	data_kvio_add_trace_record(data_kvio,
 				   THIS_LOCATION("$F;j=dedupe;cb=verify"));
 
@@ -116,6 +118,7 @@ static void verify_read_block_callback(struct data_kvio *data_kvio)
 {
 	data_kvio_add_trace_record(data_kvio, THIS_LOCATION(NULL));
 	int err = data_kvio->read_block.status;
+
 	if (unlikely(err != 0)) {
 		logDebug("%s: err %d", __func__, err);
 		data_kvio->data_vio.isDuplicate = false;
@@ -157,5 +160,6 @@ bool compareDataVIOs(struct data_vio *first, struct data_vio *second)
 	dataVIOAddTraceRecord(second, THIS_LOCATION(NULL));
 	struct data_kvio *a = data_vio_as_data_kvio(first);
 	struct data_kvio *b = data_vio_as_data_kvio(second);
+
 	return memory_equal(a->data_block, b->data_block, VDO_BLOCK_SIZE);
 }

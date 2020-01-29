@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#37 $
  */
 
 #include "dmvdo.h"
@@ -109,6 +109,7 @@ static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 static int vdo_map_bio(struct dm_target *ti, struct bio *bio)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
+
 	return kvdo_map_bio(layer, bio);
 }
 
@@ -191,6 +192,7 @@ static void vdo_status(struct dm_target *ti,
 		mutex_lock(&layer->statsMutex);
 		get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
 		VDOStatistics *stats = &layer->vdo_stats_storage;
+
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
 		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
 		       stats->mode,
@@ -232,6 +234,7 @@ static BlockCount get_underlying_device_block_count(struct kernel_layer *layer)
 static int vdo_prepare_to_grow_logical(struct kernel_layer *layer, char *size_string)
 {
 	BlockCount logical_count;
+
 	if (sscanf(size_string, "%llu", &logical_count) != 1) {
 		logWarning("Logical block count \"%s\" is not a number",
 			   size_string);
@@ -431,6 +434,7 @@ static int process_vdo_message(struct kernel_layer *layer,
 	}
 
 	int result = process_vdo_message_locked(layer, argc, argv);
+
 	atomicStoreBool(&layer->processing_message, false);
 	return result;
 }
@@ -449,6 +453,7 @@ static int vdo_message(struct dm_target *ti,
 
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread allocating_thread, instance_thread;
+
 	registerAllocatingThread(&allocating_thread, NULL);
 	register_thread_device(&instance_thread, layer);
 
@@ -651,11 +656,13 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	RegisteredThread allocating_thread;
+
 	registerAllocatingThread(&allocating_thread, NULL);
 
 	struct kernel_layer *old_layer = find_layer_matching(layer_is_named,
 							      pool_name);
 	unsigned int instance;
+
 	if (old_layer == NULL) {
 		result = allocate_kvdo_instance(&instance);
 		if (result != VDO_SUCCESS) {
@@ -667,10 +674,12 @@ static int vdo_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	}
 
 	RegisteredThread instance_thread;
+
 	register_thread_device_id(&instance_thread, &instance);
 
 	bool verbose = (old_layer == NULL);
 	struct device_config *config = NULL;
+
 	result = parse_device_config(argc, argv, ti, verbose, &config);
 	if (result != VDO_SUCCESS) {
 		unregister_thread_device_id();
@@ -731,6 +740,7 @@ static void vdo_dtr(struct dm_target *ti)
 		// This was the last config referencing the layer. Free it.
 		unsigned int instance = layer->instance;
 		RegisteredThread allocating_thread, instance_thread;
+
 		register_thread_device_id(&instance_thread, &instance);
 		registerAllocatingThread(&allocating_thread, NULL);
 
@@ -761,6 +771,7 @@ static void vdo_presuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
+
 	register_thread_device(&instance_thread, layer);
 	if (dm_noflush_suspending(ti)) {
 		layer->no_flush_suspend = true;
@@ -773,10 +784,13 @@ static void vdo_postsuspend(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
+
 	register_thread_device(&instance_thread, layer);
 	const char *pool_name = layer->device_config->pool_name;
+
 	logInfo("suspending device '%s'", pool_name);
 	int result = suspend_kernel_layer(layer);
+
 	if (result == VDO_SUCCESS) {
 		logInfo("device '%s' suspended", pool_name);
 	} else {
@@ -794,6 +808,7 @@ static int vdo_preresume(struct dm_target *ti)
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	struct device_config *config = ti->private;
 	RegisteredThread instance_thread;
+
 	register_thread_device(&instance_thread, layer);
 
 	if (get_kernel_layer_state(layer) == LAYER_STARTING) {
@@ -802,6 +817,7 @@ static int vdo_preresume(struct dm_target *ti)
 		logInfo("starting device '%s'", config->pool_name);
 		char *failure_reason;
 		int result = start_kernel_layer(layer, &failure_reason);
+
 		if (result != VDO_SUCCESS) {
 			logError("Could not run kernel physical layer. (VDO error %d, message %s)",
 				 result,
@@ -819,6 +835,7 @@ static int vdo_preresume(struct dm_target *ti)
 	// This is a noop if nothing has changed, and by calling it every time
 	// we capture old-style growPhysicals, which change the config in place.
 	int result = modify_kernel_layer(layer, config);
+
 	if (result != VDO_SUCCESS) {
 		logErrorWithStringError(result,
 					"Commit of modifications to device '%s' failed",
@@ -842,6 +859,7 @@ static void vdo_resume(struct dm_target *ti)
 {
 	struct kernel_layer *layer = get_kernel_layer_for_target(ti);
 	RegisteredThread instance_thread;
+
 	register_thread_device(&instance_thread, layer);
 	logInfo("device '%s' resumed", layer->device_config->pool_name);
 	unregister_thread_device_id();
@@ -871,8 +889,8 @@ static struct target_type vdo_target_bio = {
 	.resume = vdo_resume,
 };
 
-static bool dm_registered = false;
-static bool sysfs_initialized = false;
+static bool dm_registered;
+static bool sysfs_initialized;
 
 /**********************************************************************/
 static void vdo_destroy(void)

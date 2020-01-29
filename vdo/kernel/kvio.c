@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#25 $
  */
 
 #include "kvio.h"
@@ -42,6 +42,7 @@
 static void kvdo_handle_vio_callback(struct kvdo_work_item *item)
 {
 	struct kvio *kvio = work_item_as_kvio(item);
+
 	runCallback(vioAsCompletion(kvio->vio));
 }
 
@@ -49,9 +50,9 @@ static void kvdo_handle_vio_callback(struct kvdo_work_item *item)
 void kvdo_enqueue_vio_callback(struct kvio *kvio)
 {
 	enqueue_kvio(kvio,
-                     kvdo_handle_vio_callback,
-                     (KvdoWorkFunction)vioAsCompletion(kvio->vio)->callback,
-                     REQ_Q_ACTION_VIO_CALLBACK);
+		     kvdo_handle_vio_callback,
+		     (KvdoWorkFunction)vioAsCompletion(kvio->vio)->callback,
+		     REQ_Q_ACTION_VIO_CALLBACK);
 }
 
 /**********************************************************************/
@@ -76,6 +77,7 @@ static noinline void maybe_log_kvio_trace(struct kvio *kvio)
 static void free_kvio(struct kvio **kvio_ptr)
 {
 	struct kvio *kvio = *kvio_ptr;
+
 	if (kvio == NULL) {
 		return;
 	}
@@ -113,6 +115,7 @@ void writeCompressedBlock(struct allocating_vio *allocating_vio)
 	struct kvio *kvio =
 		compressed_write_kvio_as_kvio(compressed_write_kvio);
 	struct bio *bio = kvio->bio;
+
 	reset_bio(bio, kvio->layer);
 	set_bio_operation_write(bio);
 	set_bio_sector(bio, block_to_sector(kvio->layer, kvio->vio->physical));
@@ -137,6 +140,7 @@ void submitMetadataVIO(struct vio *vio)
 {
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
+
 	reset_bio(bio, kvio->layer);
 
 	set_bio_sector(bio, block_to_sector(kvio->layer, vio->physical));
@@ -149,6 +153,7 @@ void submitMetadataVIO(struct vio *vio)
 		set_bio_operation_read(bio);
 	} else {
 		kernel_layer_state state = get_kernel_layer_state(kvio->layer);
+
 		ASSERT_LOG_ONLY(((state == LAYER_RUNNING)
 				 || (state == LAYER_RESUMING)
 				 || (state = LAYER_STARTING)),
@@ -206,6 +211,7 @@ void kvdo_flush_vio(struct vio *vio)
 	struct kvio *kvio = metadata_kvio_as_kvio(vio_as_metadata_kvio(vio));
 	struct bio *bio = kvio->bio;
 	struct kernel_layer *layer = kvio->layer;
+
 	reset_bio(bio, layer);
 	prepare_flush_bio(bio,
 			  kvio,
@@ -284,6 +290,7 @@ void initialize_kvio(struct kvio *kvio,
 	kvio_add_trace_record(kvio, THIS_LOCATION("$F;io=?init;j=normal"));
 
 	struct vdo_completion *completion = vioAsCompletion(kvio->vio);
+
 	kvio->enqueueable.enqueueable.completion = completion;
 	completion->enqueueable = &kvio->enqueueable.enqueueable;
 }
@@ -324,6 +331,7 @@ make_metadata_kvio(struct kernel_layer *layer,
 	}
 
 	struct kvio *kvio = &metadata_kvio->kvio;
+
 	kvio->vio = &metadata_kvio->vio;
 	initialize_kvio(kvio, layer, vio_type, priority, parent, bio);
 	*metadata_kvio_ptr = metadata_kvio;
@@ -361,6 +369,7 @@ static int make_compressed_write_kvio(struct kernel_layer *layer,
 	}
 
 	struct kvio *kvio = &compressed_write_kvio->kvio;
+
 	kvio->vio =
 		allocating_vio_as_vio(&compressed_write_kvio->allocating_vio);
 	initialize_kvio(kvio,
@@ -390,12 +399,14 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 
 	struct bio *bio;
 	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
+
 	result = create_bio(kernel_layer, data, &bio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	struct metadata_kvio *metadata_kvio;
+
 	result = make_metadata_kvio(kernel_layer, vio_type, priority, parent,
 				    bio, &metadata_kvio);
 	if (result != VDO_SUCCESS) {
@@ -416,11 +427,13 @@ int kvdo_create_compressed_write_vio(PhysicalLayer          *layer,
 	struct bio *bio;
 	struct kernel_layer *kernel_layer = as_kernel_layer(layer);
 	int result = create_bio(kernel_layer, data, &bio);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	struct compressed_write_kvio *compressed_write_kvio;
+
 	result = make_compressed_write_kvio(kernel_layer, parent, bio,
 					    &compressed_write_kvio);
 	if (result != VDO_SUCCESS) {

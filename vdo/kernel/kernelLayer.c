@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#66 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#67 $
  */
 
 #include "kernelLayer.h"
@@ -122,6 +122,7 @@ int map_to_system_error(int error)
 	}
 	// VDO or UDS error
 	char error_name[80], error_message[ERRBUF_SIZE];
+
 	switch (sans_unrecoverable(error)) {
 	case VDO_NO_SPACE:
 		return -ENOSPC;
@@ -249,6 +250,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 {
 	Jiffies arrival_time = jiffies;
 	kernel_layer_state state = get_kernel_layer_state(layer);
+
 	ASSERT_LOG_ONLY(state == LAYER_RUNNING,
 			"kvdo_map_bio should not be called while in state %d",
 			state);
@@ -291,6 +293,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 	}
 
 	struct kvdo_work_queue *current_work_queue = get_current_work_queue();
+
 	if ((current_work_queue != NULL) &&
 	    (layer == get_work_queue_owner(current_work_queue))) {
 		/*
@@ -302,6 +305,7 @@ int kvdo_map_bio(struct kernel_layer *layer, struct bio *bio)
 							arrival_time);
 	}
 	bool has_discard_permit = false;
+
 	if (is_discard_bio(bio)) {
 		limiter_wait_for_one_free(&layer->discard_limiter);
 		has_discard_permit = true;
@@ -377,6 +381,7 @@ static int kvdo_create_enqueueable(struct vdo_completion *completion)
 static void kvdo_destroy_enqueueable(Enqueueable **enqueueable_ptr)
 {
 	Enqueueable *enqueueable = *enqueueable_ptr;
+
 	if (enqueueable != NULL) {
 		struct kvdo_enqueueable *kvdo_enqueueable =
 		  container_of(enqueueable,
@@ -416,6 +421,7 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 
 	struct bio *bio;
 	int result = create_bio(kernel_layer, buffer, &bio);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -442,6 +448,7 @@ static int kvdo_synchronous_read(PhysicalLayer *layer,
 void destroy_vio(struct vio **vio_ptr)
 {
 	struct vio *vio = *vio_ptr;
+
 	if (vio == NULL) {
 		return;
 	}
@@ -454,6 +461,7 @@ void destroy_vio(struct vio **vio_ptr)
 		free_compressed_write_kvio(&compressed_write_kvio);
 	} else {
 		struct metadata_kvio *metadata_kvio = vio_as_metadata_kvio(vio);
+
 		free_metadata_kvio(&metadata_kvio);
 	}
 
@@ -477,6 +485,7 @@ static bool is_flush_required(PhysicalLayer *common)
 static void kvdo_complete_sync_operation(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
+
 	complete(&layer->callbackSync);
 }
 
@@ -597,6 +606,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	initialize_deadlock_queue(&layer->deadlock_queue);
 
 	int request_limit = default_max_requests_active;
+
 	initialize_limiter(&layer->request_limiter, request_limit);
 	initialize_limiter(&layer->discard_limiter, request_limit * 3 / 4);
 
@@ -703,6 +713,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	}
 
 	int i;
+
 	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
 		result = ALLOCATE(LZ4_context_size(),
 				  char,
@@ -824,6 +835,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 				   char **error_ptr)
 {
 	struct device_config *extant_config = layer->device_config;
+
 	if (config->owning_target->begin !=
 	    extant_config->owning_target->begin) {
 		*error_ptr = "Starting sector cannot change";
@@ -873,6 +885,7 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 
 	if (config->owning_target->len != extant_config->owning_target->len) {
 		size_t logical_bytes = to_bytes(config->owning_target->len);
+
 		if ((logical_bytes % VDO_BLOCK_SIZE) != 0) {
 			*error_ptr = "Logical size must be a multiple of 4096";
 			return VDO_PARAMETER_MISMATCH;
@@ -904,6 +917,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 {
 	struct device_config *extant_config = layer->device_config;
 	kernel_layer_state state = get_kernel_layer_state(layer);
+
 	if (state == LAYER_RUNNING) {
 		return VDO_SUCCESS;
 	} else if (state != LAYER_SUSPENDED) {
@@ -947,6 +961,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 	if ((config->physical_blocks != extant_config->physical_blocks) ||
 	    (config->version == 0)) {
 		int result = resize_physical(layer, config->physical_blocks);
+
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -970,6 +985,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	bool release_instance = false;
 
 	kernel_layer_state state = get_kernel_layer_state(layer);
+
 	switch (state) {
 	case LAYER_STOPPING:
 		logError("re-entered free_kernel_layer while stopping");
@@ -1016,6 +1032,7 @@ void free_kernel_layer(struct kernel_layer *layer)
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		if (layer->compressionContext != NULL) {
 			int i;
+
 			for (i = 0;
 			     i < layer->device_config->thread_counts.cpu_threads;
 			     i++) {
@@ -1106,6 +1123,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 	}
 
 	int result = start_kvdo(&layer->kvdo, &layer->common, reason);
+
 	if (result != VDO_SUCCESS) {
 		stop_kernel_layer(layer);
 		return result;
@@ -1177,6 +1195,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * post suspend.
 	 */
 	kernel_layer_state state = get_kernel_layer_state(layer);
+
 	if (state == LAYER_SUSPENDED) {
 		return VDO_SUCCESS;
 	}
@@ -1195,6 +1214,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 */
 	wait_for_no_requests_active(layer);
 	int result = synchronous_flush(layer);
+
 	if (result != VDO_SUCCESS) {
 		set_kvdo_read_only(&layer->kvdo, result);
 	}
@@ -1205,6 +1225,7 @@ int suspend_kernel_layer(struct kernel_layer *layer)
 	 * don't have cause to write while suspended [VDO-4402].
 	 */
 	int suspend_result = suspend_kvdo(&layer->kvdo);
+
 	if (result == VDO_SUCCESS) {
 		result = suspend_result;
 	}
@@ -1223,6 +1244,7 @@ int resume_kernel_layer(struct kernel_layer *layer)
 
 	resume_dedupe_index(layer->dedupe_index);
 	int result = resume_kvdo(&layer->kvdo);
+
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -1267,6 +1289,7 @@ int resize_physical(struct kernel_layer *layer, BlockCount physical_count)
 	 * suspended VDO.
 	 */
 	int result = kvdo_resize_physical(&layer->kvdo, physical_count);
+
 	if (result != VDO_SUCCESS) {
 		// kvdo_resize_physical logs errors
 		return result;
@@ -1282,6 +1305,7 @@ int prepare_to_resize_logical(struct kernel_layer *layer,
 	// Allocations are allowed and permissible through this non-VDO thread,
 	// since IO triggered by this allocation to VDO can finish just fine.
 	int result = kvdo_prepare_to_grow_logical(&layer->kvdo, logical_count);
+
 	if (result != VDO_SUCCESS) {
 		// kvdo_prepare_to_grow_logical logs errors
 		return result;
@@ -1301,6 +1325,7 @@ int resize_logical(struct kernel_layer *layer, BlockCount logical_count)
 	 * suspended VDO.
 	 */
 	int result = kvdo_resize_logical(&layer->kvdo, logical_count);
+
 	if (result != VDO_SUCCESS) {
 		// kvdo_resize_logical logs errors
 		return result;

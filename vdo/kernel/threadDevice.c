@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/threadDevice.c#3 $
  */
 
 #include "threadDevice.h"
@@ -46,6 +46,7 @@ void unregister_thread_device_id(void)
 int get_thread_device_id(void)
 {
 	const unsigned int *pointer = lookupThread(&device_id_thread_registry);
+
 	return pointer ? *pointer : -1;
 }
 

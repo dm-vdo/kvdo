@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#15 $
  */
 
 #include "dump.h"
@@ -89,6 +89,7 @@ static void do_dump(struct kernel_layer *layer,
 	logInfo("%s dump triggered via %s", THIS_MODULE->name, why);
 	// XXX Add in number of outstanding requests being processed by vdo
 	uint32_t active, maximum;
+
 	get_limiter_values_atomically(&layer->request_limiter,
 				      &active,
 				      &maximum);
@@ -166,8 +167,10 @@ static int parse_dump_options(unsigned int argc,
 
 	bool options_okay = true;
 	int i;
+
 	for (i = 1; i < argc; i++) {
 		int j;
+
 		for (j = 0; j < COUNT_OF(option_names); j++) {
 			if (is_arg_string(argv[i], option_names[j].name)) {
 				dump_options_requested |= option_names[j].flags;
@@ -197,6 +200,7 @@ int vdo_dump(struct kernel_layer *layer,
 {
 	unsigned int dump_options_requested = 0;
 	int result = parse_dump_options(argc, argv, &dump_options_requested);
+
 	if (result != 0) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#21 $
  */
 
 #include "workQueue.h"
@@ -78,6 +78,7 @@ static void add_to_work_item_list(struct kvdo_work_item_list *list,
 		item->next = item;
 	} else {
 		struct kvdo_work_item *head = list->tail->next;
+
 		list->tail->next = item;
 		item->next = head;
 	}
@@ -95,6 +96,7 @@ static struct kvdo_work_item *
 work_item_list_poll(struct kvdo_work_item_list *list)
 {
 	struct kvdo_work_item *tail = list->tail;
+
 	if (tail == NULL) {
 		return NULL;
 	}
@@ -115,6 +117,7 @@ static struct kvdo_work_item *
 work_item_list_peek(struct kvdo_work_item_list *list)
 {
 	struct kvdo_work_item *tail = list->tail;
+
 	return tail ? tail->next : NULL;
 }
 
@@ -141,6 +144,7 @@ next_service_queue(struct round_robin_work_queue *queue)
 	 */
 	unsigned int rotor = this_cpu_inc_return(service_queue_rotor);
 	unsigned int index = rotor % queue->num_service_queues;
+
 	return queue->service_queues[index];
 }
 
@@ -183,6 +187,7 @@ poll_for_work_item(struct simple_work_queue *queue)
 {
 	struct kvdo_work_item *item = NULL;
 	int i;
+
 	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
 		FunnelQueueEntry *link =
 			funnelQueuePoll(queue->priority_lists[i]);
@@ -285,6 +290,7 @@ static unsigned int get_pending_count(struct simple_work_queue *queue)
 	struct kvdo_work_item_stats *stats = &queue->stats.work_item_stats;
 	long long pending = 0;
 	int i;
+
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 		pending += atomic64_read(&stats->enqueued[i]);
 		pending -= stats->times[i].count;
@@ -357,6 +363,7 @@ static bool has_delayed_work_items(struct simple_work_queue *queue)
 {
 	bool result;
 	unsigned long flags;
+
 	spin_lock_irqsave(&queue->lock, flags);
 	result = !is_work_item_list_empty(&queue->delayed_items);
 	spin_unlock_irqrestore(&queue->lock, flags);
@@ -382,11 +389,13 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 			TimeoutJiffies timeout_interval)
 {
 	struct kvdo_work_item *item = run_suspend_hook(queue);
+
 	if (item != NULL) {
 		return item;
 	}
 
 	DEFINE_WAIT(wait);
+
 	while (true) {
 		atomic64_set(&queue->first_wakeup, 0);
 		prepare_to_wait(&queue->waiting_worker_threads,
@@ -454,6 +463,7 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		 */
 		queue->stats.waits++;
 		uint64_t time_before_schedule = ktime_get_ns();
+
 		atomic64_add(time_before_schedule - queue->most_recent_wakeup,
 			     &queue->stats.run_time);
 		// Wake up often, to address the missed-wakeup race.
@@ -519,6 +529,7 @@ get_next_work_item(struct simple_work_queue *queue,
 		   TimeoutJiffies timeout_interval)
 {
 	struct kvdo_work_item *item = poll_for_work_item(queue);
+
 	if (item != NULL) {
 		return item;
 	}
@@ -545,6 +556,7 @@ static void process_work_item(struct simple_work_queue *queue,
 	// Save the index, so we can use it after the work function.
 	unsigned int index = item->stat_table_index;
 	uint64_t work_start_time = record_start_time(index);
+
 	item->work(item);
 	// We just surrendered control of the work item; no more access.
 	item = NULL;
@@ -566,6 +578,7 @@ static void process_work_item(struct simple_work_queue *queue,
 		uint64_t time_before_reschedule = ktime_get_ns();
 		// Record the queue length we have *before* rescheduling.
 		unsigned int queue_len = get_pending_count(queue);
+
 		cond_resched();
 		uint64_t time_after_reschedule = ktime_get_ns();
 
@@ -626,13 +639,16 @@ static void service_work_queue(struct simple_work_queue *queue)
 static int work_queue_runner(void *ptr)
 {
 	struct simple_work_queue *queue = ptr;
+
 	kobject_get(&queue->common.kobj);
 
 	struct work_queue_stack_handle queue_handle;
+
 	initialize_work_queue_stack_handle(&queue_handle, queue);
 	queue->stats.start_time = queue->most_recent_wakeup = ktime_get_ns();
 
 	unsigned long flags;
+
 	spin_lock_irqsave(&queue->lock, flags);
 	queue->started = true;
 	spin_unlock_irqrestore(&queue->lock, flags);
@@ -708,6 +724,7 @@ static void process_delayed_work_items(unsigned long data)
 	bool needs_wakeup = false;
 
 	unsigned long flags;
+
 	spin_lock_irqsave(&queue->lock, flags);
 	while (!is_work_item_list_empty(&queue->delayed_items)) {
 		struct kvdo_work_item *item =
@@ -737,8 +754,10 @@ static void process_delayed_work_items(unsigned long data)
 static bool queue_started(struct simple_work_queue *queue)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&queue->lock, flags);
 	bool started = queue->started;
+
 	spin_unlock_irqrestore(&queue->lock, flags);
 	return started;
 }
@@ -783,6 +802,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	unsigned int num_priority_lists = 1;
 	int i;
+
 	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
 		const struct kvdo_work_queue_action *action =
 			&queue->type->action_table[i];
@@ -862,6 +882,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	queue->started = false;
 	struct task_struct *thread = NULL;
+
 	thread = kthread_run(work_queue_runner,
 			     queue,
 			     "%s:%s",
@@ -960,6 +981,7 @@ int make_work_queue(const char *thread_name_prefix,
 
 	char thread_name[TASK_COMM_LEN];
 	unsigned int i;
+
 	for (i = 0; i < thread_count; i++) {
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		void *context = (thread_privates != NULL) ? thread_privates[i] :
@@ -1012,6 +1034,7 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 	unsigned int count = queue->num_service_queues;
 
 	unsigned int i;
+
 	for (i = 0; i < count; i++) {
 		finish_simple_work_queue(queue_table[i]);
 	}
@@ -1036,6 +1059,7 @@ void finish_work_queue(struct kvdo_work_queue *queue)
 static void free_simple_work_queue(struct simple_work_queue *queue)
 {
 	unsigned int i;
+
 	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
 		freeFunnelQueue(queue->priority_lists[i]);
 	}
@@ -1056,6 +1080,7 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 
 	queue->service_queues = NULL;
 	unsigned int i;
+
 	for (i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
 	}
@@ -1067,6 +1092,7 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 void free_work_queue(struct kvdo_work_queue **queue_ptr)
 {
 	struct kvdo_work_queue *queue = *queue_ptr;
+
 	if (queue == NULL) {
 		return;
 	}
@@ -1092,13 +1118,16 @@ static void dump_simple_work_queue(struct simple_work_queue *queue)
 	const char *thread_status;
 
 	char task_state_report = '-';
+
 	if (queue_data.thread != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		task_state_report = task_state_to_char(queue->thread);
 #else
 		unsigned int task_state = queue->thread->state & TASK_REPORT;
+
 		task_state &= 0x1ff;
 		unsigned int task_state_index;
+
 		if (task_state != 0) {
 			task_state_index = __ffs(task_state) + 1;
 			BUG_ON(task_state_index >=
@@ -1141,6 +1170,7 @@ void dump_work_queue(struct kvdo_work_queue *queue)
 		struct round_robin_work_queue *round_robin_queue =
 			as_round_robin_work_queue(queue);
 		unsigned int i;
+
 		for (i = 0;
 		     i < round_robin_queue->num_service_queues; i++) {
 			dump_simple_work_queue(round_robin_queue->service_queues[i]);
@@ -1227,6 +1257,7 @@ void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
 struct kvdo_work_queue *get_current_work_queue(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
+
 	return (queue == NULL) ? NULL : &queue->common;
 }
 
@@ -1240,6 +1271,7 @@ struct kernel_layer *get_work_queue_owner(struct kvdo_work_queue *queue)
 void *get_work_queue_private_data(void)
 {
 	struct simple_work_queue *queue = get_current_thread_work_queue();
+
 	return (queue != NULL) ? queue->private : NULL;
 }
 

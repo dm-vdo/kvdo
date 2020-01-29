@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#17 $
  */
 
 #include "kvdoFlush.h"
@@ -101,9 +101,10 @@ static void enqueue_kvdo_flush(struct kvdo_flush *kvdo_flush)
 			NULL,
 			REQ_Q_ACTION_FLUSH);
 	struct kvdo *kvdo = &kvdo_flush->layer->kvdo;
+
 	enqueue_kvdo_work(kvdo,
-                          &kvdo_flush->work_item,
-                          getPackerZoneThread(getThreadConfig(kvdo->vdo)));
+			  &kvdo_flush->work_item,
+			  getPackerZoneThread(getThreadConfig(kvdo->vdo)));
 }
 
 /**********************************************************************/
@@ -204,6 +205,7 @@ static void kvdo_complete_flush_work(struct kvdo_work_item *item)
 	struct kernel_layer *layer = kvdo_flush->layer;
 
 	struct bio *bio;
+
 	while ((bio = bio_list_pop(&kvdo_flush->bios)) != NULL) {
 		// We're not acknowledging this bio now, but we'll never touch
 		// it again, so this is the last chance to account for it.
@@ -253,6 +255,7 @@ int synchronous_flush(struct kernel_layer *layer)
 #endif
 	prepare_flush_bio(&bio, layer, get_kernel_layer_bdev(layer), NULL);
 	int result = submit_bio_and_wait(&bio);
+
 	atomic64_inc(&layer->flushOut);
 	if (result != 0) {
 		logErrorWithStringError(result, "synchronous flush failed");

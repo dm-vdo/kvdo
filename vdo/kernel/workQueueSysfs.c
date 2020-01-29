@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueSysfs.c#8 $
  */
 
 #include "workQueueSysfs.h"
@@ -77,8 +77,8 @@ static ssize_t work_functions_show(const struct kvdo_work_queue *queue,
 
 /**********************************************************************/
 static struct work_queue_attribute name_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "name",
 			.mode = 0444,
 		},
@@ -87,8 +87,8 @@ static struct work_queue_attribute name_attr = {
 
 /**********************************************************************/
 static struct work_queue_attribute pid_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "pid",
 			.mode = 0444,
 		},
@@ -97,8 +97,8 @@ static struct work_queue_attribute pid_attr = {
 
 /**********************************************************************/
 static struct work_queue_attribute times_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "times",
 			.mode = 0444
 		},
@@ -107,8 +107,8 @@ static struct work_queue_attribute times_attr = {
 
 /**********************************************************************/
 static struct work_queue_attribute type_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "type",
 			.mode = 0444,
 		},
@@ -117,8 +117,8 @@ static struct work_queue_attribute type_attr = {
 
 /**********************************************************************/
 static struct work_queue_attribute work_functions_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "work_functions",
 			.mode = 0444,
 		},

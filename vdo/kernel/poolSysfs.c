@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#6 $
  */
 
 #include "poolSysfs.h"
@@ -98,6 +98,7 @@ static ssize_t pool_discards_limit_store(struct kernel_layer *layer,
 					 size_t length)
 {
 	unsigned int value;
+
 	if ((length > 12) || (sscanf(buf, "%u", &value) != 1) || (value < 1)) {
 		return -EINVAL;
 	}
@@ -146,8 +147,8 @@ static void vdo_pool_release(struct kobject *kobj)
 }
 
 static struct pool_attribute vdo_pool_compressing_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "compressing",
 			.mode = 0444,
 		},
@@ -155,8 +156,8 @@ static struct pool_attribute vdo_pool_compressing_attr = {
 };
 
 static struct pool_attribute vdo_pool_discards_active_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "discards_active",
 			.mode = 0444,
 		},
@@ -164,8 +165,8 @@ static struct pool_attribute vdo_pool_discards_active_attr = {
 };
 
 static struct pool_attribute vdo_pool_discards_limit_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "discards_limit",
 			.mode = 0644,
 		},
@@ -174,8 +175,8 @@ static struct pool_attribute vdo_pool_discards_limit_attr = {
 };
 
 static struct pool_attribute vdo_pool_discards_maximum_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "discards_maximum",
 			.mode = 0444,
 		},
@@ -183,8 +184,8 @@ static struct pool_attribute vdo_pool_discards_maximum_attr = {
 };
 
 static struct pool_attribute vdo_pool_instance_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "instance",
 			.mode = 0444,
 		},
@@ -192,8 +193,8 @@ static struct pool_attribute vdo_pool_instance_attr = {
 };
 
 static struct pool_attribute vdo_pool_requests_active_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "requests_active",
 			.mode = 0444,
 		},
@@ -201,8 +202,8 @@ static struct pool_attribute vdo_pool_requests_active_attr = {
 };
 
 static struct pool_attribute vdo_pool_requests_limit_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "requests_limit",
 			.mode = 0444,
 		},
@@ -210,8 +211,8 @@ static struct pool_attribute vdo_pool_requests_limit_attr = {
 };
 
 static struct pool_attribute vdo_pool_requests_maximum_attr = {
-	.attr =
-		{
+	.attr = {
+		
 			.name = "requests_maximum",
 			.mode = 0444,
 		},

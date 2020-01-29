@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#6 $
  */
 
 #include "bufferPool.h"
@@ -72,6 +72,7 @@ int make_buffer_pool(const char *pool_name,
 	struct buffer_pool *pool;
 
 	int result = ALLOCATE(1, struct buffer_pool, "buffer pool", &pool);
+
 	if (result != VDO_SUCCESS) {
 		logError("buffer pool allocation failure %d", result);
 		return result;
@@ -103,6 +104,7 @@ int make_buffer_pool(const char *pool_name,
 	INIT_LIST_HEAD(&pool->spare_list_nodes);
 	struct buffer_element *bh = pool->bhead;
 	int i;
+
 	for (i = 0; i < pool->size; i++) {
 		result = pool->alloc(pool->data, &bh->data);
 		if (result != VDO_SUCCESS) {
@@ -125,6 +127,7 @@ int make_buffer_pool(const char *pool_name,
 void free_buffer_pool(struct buffer_pool **pool_ptr)
 {
 	struct buffer_pool *pool = *pool_ptr;
+
 	if (pool == NULL) {
 		return;
 	}
@@ -134,6 +137,7 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 			pool->num_busy);
 	if (pool->objects != NULL) {
 		int i;
+
 		for (i = 0; i < pool->size; i++) {
 			if (pool->objects[i] != NULL) {
 				pool->free(pool->data, pool->objects[i]);
@@ -150,7 +154,8 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 static bool in_free_list(struct buffer_pool *pool, void *data)
 {
 	struct list_head *node;
-	list_for_each (node, &pool->free_object_list) {
+
+	list_for_each(node, &pool->free_object_list) {
 		if (container_of(node, struct buffer_element, list)->data ==
 		    data) {
 			return true;
@@ -177,6 +182,7 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 	if (dump_elements && (pool->dump != NULL)) {
 		int dumped = 0;
 		int i;
+
 		for (i = 0; i < pool->size; i++) {
 			if (!in_free_list(pool, pool->objects[i])) {
 				pool->dump(pool->data, pool->objects[i]);
@@ -241,6 +247,7 @@ void free_buffer_to_pool(struct buffer_pool *pool, void *data)
 {
 	spin_lock(&pool->lock);
 	bool success = free_buffer_to_pool_internal(pool, data);
+
 	spin_unlock(&pool->lock);
 	if (!success) {
 		logDebug("trying to add to free list when already full");
@@ -253,6 +260,7 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 	spin_lock(&pool->lock);
 	bool success = true;
 	int i;
+
 	for (i = 0; (i < count) && success; i++) {
 		success = free_buffer_to_pool_internal(pool, data[i]);
 	}

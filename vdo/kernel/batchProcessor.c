@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/batchProcessor.c#11 $
  */
 
 #include "batchProcessor.h"
@@ -102,6 +102,7 @@ static void batch_processor_work(struct kvdo_work_item *item)
 	atomic_set(&batch->state, BATCH_PROCESSOR_IDLE);
 	memoryFence();
 	bool need_reschedule = !isFunnelQueueEmpty(batch->queue);
+
 	spin_unlock(&batch->consumer_lock);
 	if (need_reschedule) {
 		schedule_batch_processing(batch);
@@ -148,6 +149,7 @@ static void schedule_batch_processing(struct batch_processor *batch)
 	enum batch_processor_state old_state = atomic_cmpxchg(
 		&batch->state, BATCH_PROCESSOR_IDLE, BATCH_PROCESSOR_ENQUEUED);
 	bool do_schedule = (old_state == BATCH_PROCESSOR_IDLE);
+
 	if (do_schedule) {
 		enqueue_cpu_work_queue(batch->layer, &batch->work_item);
 	}
@@ -188,7 +190,7 @@ int make_batch_processor(struct kernel_layer *layer,
 
 /**********************************************************************/
 void add_to_batch_processor(struct batch_processor *batch,
-                            struct kvdo_work_item *item)
+			    struct kvdo_work_item *item)
 {
 	funnelQueuePut(batch->queue, &item->work_queue_entry_link);
 	schedule_batch_processing(batch);
@@ -217,6 +219,7 @@ void cond_resched_batch_processor(struct batch_processor *batch)
 void free_batch_processor(struct batch_processor **batch_ptr)
 {
 	struct batch_processor *batch = *batch_ptr;
+
 	if (batch) {
 		memoryFence();
 		BUG_ON(atomic_read(&batch->state) == BATCH_PROCESSOR_ENQUEUED);

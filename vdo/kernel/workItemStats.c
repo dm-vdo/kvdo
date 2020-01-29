@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workItemStats.c#6 $
  */
 
 #include "workItemStats.h"
@@ -79,6 +79,7 @@ static unsigned int get_stat_table_index(struct kvdo_work_item_stats *stats,
 		&stats->function_table;
 
 	unsigned int index = scan_stat_table(function_table, work, priority);
+
 	if (unlikely(index == NUM_WORK_QUEUE_ITEM_STATS) ||
 	    likely(function_table->functions[index] != NULL)) {
 		return index;
@@ -131,6 +132,7 @@ get_work_item_counts_by_item(const struct kvdo_work_item_stats *stats,
 	uint64_t enqueued = atomic64_read(&stats->enqueued[index]);
 	uint64_t processed = stats->times[index].count;
 	unsigned int pending;
+
 	if (enqueued < processed) {
 		// Probably just out of sync.
 		pending = 1;
@@ -159,6 +161,7 @@ static void get_other_work_item_counts(const struct kvdo_work_item_stats *stats,
 				       uint64_t *processed_ptr)
 {
 	unsigned int pending;
+
 	get_work_item_counts_by_item(stats,
 				     NUM_WORK_QUEUE_ITEM_STATS,
 				     enqueued_ptr,
@@ -217,6 +220,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 		 * code.
 		 */
 		static char truncated_function_name_format_string[] = "%.*ps";
+
 		snprintf(buffer,
 			 buffer_length,
 			 truncated_function_name_format_string,
@@ -224,6 +228,7 @@ char *get_function_name(void *pointer, char *buffer, size_t buffer_length)
 			 pointer);
 
 		char *space = strchr(buffer, ' ');
+
 		if (space != NULL) {
 			*space = '\0';
 		}
@@ -243,6 +248,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 
 	uint64_t enqueued, processed;
 	int i;
+
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
 		if (function_ids->functions[i] == NULL) {
 			break;
@@ -260,6 +266,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 		 * not-necessarily-redundant values.
 		 */
 		unsigned int pending;
+
 		get_work_item_counts_by_item(stats,
 					     i,
 					     &enqueued,
@@ -269,6 +276,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 		// Format: fn prio enq proc timeo [ min max mean ]
 		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
 			uint64_t min, mean, max;
+
 			get_work_item_times_by_item(stats,
 						    i,
 						    &min,
@@ -303,6 +311,7 @@ size_t format_work_item_stats(const struct kvdo_work_item_stats *stats,
 	}
 	if ((i == NUM_WORK_QUEUE_ITEM_STATS) && (current_offset < length)) {
 		uint64_t enqueued, processed;
+
 		get_other_work_item_counts(stats, &enqueued, &processed);
 		if (enqueued > 0) {
 			current_offset += snprintf(buffer + current_offset,
@@ -328,6 +337,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 		&stats->function_table;
 
 	int i;
+
 	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS; i++) {
 		if (function_ids->functions[i] == NULL) {
 			break;
@@ -346,6 +356,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 		 */
 		uint64_t enqueued, processed;
 		unsigned int pending;
+
 		get_work_item_counts_by_item(stats,
 					     i,
 					     &enqueued,
@@ -355,21 +366,23 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 		total_processed += processed;
 
 		static char work[256]; // arbitrary size
+
 		get_function_name(function_ids->functions[i],
 				  work,
 				  sizeof(work));
 
 		if (ENABLE_PER_FUNCTION_TIMING_STATS) {
 			uint64_t min, mean, max;
+
 			get_work_item_times_by_item(stats,
 						    i,
 						    &min,
 						    &mean,
 						    &max);
-			logInfo("  priority %d: %u pending"
-				" %llu enqueued %llu processed"
-				" %s"
-				" times %llu/%llu/%lluns",
+			logInfo("  priority %d: %u pending %"
+				 PRIu64 " enqueued %llu processed"
+				" %s times %"
+				 PRIu64 "/%llu/%lluns",
 				function_ids->priorities[i],
 				pending,
 				enqueued,
@@ -379,8 +392,8 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 				mean,
 				max);
 		} else {
-			logInfo("  priority %d: %u pending"
-				" %llu enqueued %llu processed"
+			logInfo("  priority %d: %u pending %"
+				 PRIu64 " enqueued %llu processed"
 				" %s",
 				function_ids->priorities[i],
 				pending,
@@ -391,6 +404,7 @@ void log_work_item_stats(const struct kvdo_work_item_stats *stats)
 	}
 	if (i == NUM_WORK_QUEUE_ITEM_STATS) {
 		uint64_t enqueued, processed;
+
 		get_other_work_item_counts(stats, &enqueued, &processed);
 		if (enqueued > 0) {
 			total_enqueued += enqueued;
