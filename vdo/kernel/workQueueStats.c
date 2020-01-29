@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueStats.c#10 $
  */
 
 #include "workQueueStats.h"
@@ -32,7 +32,8 @@ int initialize_work_queue_stats(struct kvdo_work_queue_stats *stats,
 {
 	spin_lock_init(&stats->work_item_stats.function_table.lock);
 	if (ENABLE_PER_FUNCTION_TIMING_STATS) {
-		for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+		int i;
+		for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 			init_simple_stats(&stats->work_item_stats.times[i]);
 		}
 	}
@@ -115,7 +116,8 @@ void cleanup_work_queue_stats(struct kvdo_work_queue_stats *stats)
 static uint64_t get_total_processed(const struct simple_work_queue *queue)
 {
 	uint64_t total_processed = 0;
-	for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+	int i;
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 		total_processed += queue->stats.work_item_stats.times[i].count;
 	}
 	return total_processed;

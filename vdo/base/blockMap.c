@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#31 $
  */
 
 #include "blockMap.h"
@@ -154,8 +154,9 @@ int makeBlockMap(BlockCount            logicalBlocks,
   map->rootCount     = rootCount;
   map->entryCount    = logicalBlocks;
 
-  ZoneCount       zoneCount    = threadConfig->logicalZoneCount;
-  for (ZoneCount zone = 0; zone < zoneCount; zone++) {
+  ZoneCount zoneCount = threadConfig->logicalZoneCount;
+  ZoneCount zone      = 0;
+  for (zone = 0; zone < zoneCount; zone++) {
     struct block_map_zone *blockMapZone = &map->zones[zone];
     blockMapZone->zoneNumber = zone;
     blockMapZone->threadID = getLogicalZoneThread(threadConfig, zone);
@@ -382,7 +383,8 @@ int makeBlockMapCaches(struct block_map          *map,
   }
 
   replaceForest(map);
-  for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
+  ZoneCount zone = 0;
+  for (zone = 0; zone < map->zoneCount; zone++) {
     result = initializeBlockMapZone(&map->zones[zone], layer, readOnlyNotifier,
                                     cacheSize / map->zoneCount, maximumAge);
     if (result != VDO_SUCCESS) {
@@ -415,7 +417,8 @@ void freeBlockMap(struct block_map **mapPtr)
     return;
   }
 
-  for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
+  ZoneCount zone = 0;
+  for (zone = 0; zone < map->zoneCount; zone++) {
     uninitializeBlockMapZone(&map->zones[zone]);
   }
 
@@ -475,7 +478,8 @@ void initializeBlockMapFromJournal(struct block_map        *map,
   map->currentEraPoint  = getCurrentJournalSequenceNumber(journal);
   map->pendingEraPoint  = map->currentEraPoint;
 
-  for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
+  ZoneCount zone = 0;
+  for (zone = 0; zone < map->zoneCount; zone++) {
     setTreeZoneInitialPeriod(&map->zones[zone].treeZone, map->currentEraPoint);
     setVDOPageCacheInitialPeriod(map->zones[zone].pageCache,
                                  map->currentEraPoint);
@@ -811,7 +815,8 @@ BlockMapStatistics getBlockMapStatistics(struct block_map *map)
   BlockMapStatistics stats;
   memset(&stats, 0, sizeof(BlockMapStatistics));
 
-  for (ZoneCount zone = 0; zone < map->zoneCount; zone++) {
+  ZoneCount zone = 0;
+  for (zone = 0; zone < map->zoneCount; zone++) {
     const struct atomic_page_cache_statistics *atoms
       = getVDOPageCacheStatistics(map->zones[zone].pageCache);
     stats.dirtyPages      += atomicLoad64(&atoms->counts.dirtyPages);

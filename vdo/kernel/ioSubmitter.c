@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#28 $
  */
 
 #include "ioSubmitter.h"
@@ -624,7 +624,8 @@ int make_io_submitter(const char *thread_name_prefix,
 	// Setup for each bio-submission work queue
 	char queue_name[MAX_QUEUE_NAME_LEN];
 	io_submitter->bio_queue_rotation_interval = rotation_interval;
-	for (unsigned int i = 0; i < thread_count; i++) {
+	unsigned int i;
+	for (i = 0; i < thread_count; i++) {
 		struct bio_queue_data *bio_queue_data =
 			&io_submitter->bio_queue_data[i];
 		snprintf(queue_name, sizeof(queue_name), "bioQ%u", i);
@@ -685,7 +686,8 @@ int make_io_submitter(const char *thread_name_prefix,
 /**********************************************************************/
 void cleanup_io_submitter(struct io_submitter *io_submitter)
 {
-	for (int i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
+	int i;
+	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		finish_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
 }
@@ -693,7 +695,8 @@ void cleanup_io_submitter(struct io_submitter *io_submitter)
 /**********************************************************************/
 void free_io_submitter(struct io_submitter *io_submitter)
 {
-	for (int i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
+	int i;
+	for (i = io_submitter->num_bio_queues_used - 1; i >= 0; i--) {
 		io_submitter->num_bio_queues_used--;
 		free_work_queue(&io_submitter->bio_queue_data[i].queue);
 		if (USE_BIOMAP) {
@@ -706,7 +709,8 @@ void free_io_submitter(struct io_submitter *io_submitter)
 /**********************************************************************/
 void dump_bio_work_queue(struct io_submitter *io_submitter)
 {
-	for (int i = 0; i < io_submitter->num_bio_queues_used; i++) {
+	int i;
+	for (i = 0; i < io_submitter->num_bio_queues_used; i++) {
 		dump_work_queue(io_submitter->bio_queue_data[i].queue);
 	}
 }

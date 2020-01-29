@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#6 $
  */
 
 #include "extent.h"
@@ -81,7 +81,8 @@ void free_extent(struct vdo_extent **extent_ptr)
 		return;
 	}
 
-	for (BlockCount i = 0; i < extent->count; i++) {
+	BlockCount i;
+	for (i = 0; i < extent->count; i++) {
 		freeVIO(&extent->vios[i]);
 	}
 
@@ -110,7 +111,8 @@ static void launchMetadataExtent(struct vdo_extent *extent,
 	}
 
 	extent->complete_count = extent->count - count;
-	for (BlockCount i = 0; i < count; i++) {
+	BlockCount i;
+	for (i = 0; i < count; i++) {
 		struct vio *vio = extent->vios[i];
 		vio->completion.callbackThreadID =
 			extent->completion.callbackThreadID;

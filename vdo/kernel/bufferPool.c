@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/bufferPool.c#5 $
  */
 
 #include "bufferPool.h"
@@ -102,7 +102,8 @@ int make_buffer_pool(const char *pool_name,
 	INIT_LIST_HEAD(&pool->free_object_list);
 	INIT_LIST_HEAD(&pool->spare_list_nodes);
 	struct buffer_element *bh = pool->bhead;
-	for (int i = 0; i < pool->size; i++) {
+	int i;
+	for (i = 0; i < pool->size; i++) {
 		result = pool->alloc(pool->data, &bh->data);
 		if (result != VDO_SUCCESS) {
 			logError("verify buffer data allocation failure %d",
@@ -132,7 +133,8 @@ void free_buffer_pool(struct buffer_pool **pool_ptr)
 			"freeing busy buffer pool, num_busy=%d",
 			pool->num_busy);
 	if (pool->objects != NULL) {
-		for (int i = 0; i < pool->size; i++) {
+		int i;
+		for (i = 0; i < pool->size; i++) {
 			if (pool->objects[i] != NULL) {
 				pool->free(pool->data, pool->objects[i]);
 			}
@@ -174,7 +176,8 @@ void dump_buffer_pool(struct buffer_pool *pool, bool dump_elements)
 		pool->size, pool->max_busy);
 	if (dump_elements && (pool->dump != NULL)) {
 		int dumped = 0;
-		for (int i = 0; i < pool->size; i++) {
+		int i;
+		for (i = 0; i < pool->size; i++) {
 			if (!in_free_list(pool, pool->objects[i])) {
 				pool->dump(pool->data, pool->objects[i]);
 				if (++dumped >= ELEMENTS_PER_BATCH) {
@@ -249,7 +252,8 @@ void free_buffers_to_pool(struct buffer_pool *pool, void **data, int count)
 {
 	spin_lock(&pool->lock);
 	bool success = true;
-	for (int i = 0; (i < count) && success; i++) {
+	int i;
+	for (i = 0; (i < count) && success; i++) {
 		success = free_buffer_to_pool_internal(pool, data[i]);
 	}
 	spin_unlock(&pool->lock);

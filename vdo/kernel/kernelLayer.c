@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#65 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#66 $
  */
 
 #include "kernelLayer.h"
@@ -701,7 +701,9 @@ int make_kernel_layer(uint64_t starting_sector,
 		free_kernel_layer(layer);
 		return result;
 	}
-	for (int i = 0; i < config->thread_counts.cpu_threads; i++) {
+
+	int i;
+	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
 		result = ALLOCATE(LZ4_context_size(),
 				  char,
 				  "LZ4 context",
@@ -1013,7 +1015,8 @@ void free_kernel_layer(struct kernel_layer *layer)
 
 	case LAYER_SIMPLE_THINGS_INITIALIZED:
 		if (layer->compressionContext != NULL) {
-			for (int i = 0;
+			int i;
+			for (i = 0;
 			     i < layer->device_config->thread_counts.cpu_threads;
 			     i++) {
 				FREE(layer->compressionContext[i]);

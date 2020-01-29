@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#5 $
  */
 
 #include "compressedBlock.h"
@@ -69,7 +69,8 @@ int get_compressed_block_fragment(BlockMappingState mappingState, char *buffer,
 
 	uint16_t compressedSize = get_compressed_fragment_size(header, slot);
 	uint16_t offset = sizeof(compressed_block_header);
-	for (unsigned int i = 0; i < slot; i++) {
+	unsigned int i;
+	for (i = 0; i < slot; i++) {
 		offset += get_compressed_fragment_size(header, i);
 		if (offset >= blockSize) {
 			return VDO_INVALID_FRAGMENT;

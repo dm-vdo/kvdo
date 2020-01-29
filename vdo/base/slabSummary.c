@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#20 $
  */
 
 #include "slabSummary.h"
@@ -181,7 +181,8 @@ static int makeSlabSummaryZone(struct slab_summary       *summary,
   }
 
   // Initialize each block.
-  for (BlockCount i = 0; i < summary->blocksPerZone; i++) {
+  BlockCount i;
+  for (i = 0; i < summary->blocksPerZone; i++) {
     result = initializeSlabSummaryBlock(layer, summaryZone, threadID, entries,
                                         i, &summaryZone->summaryBlocks[i]);
     if (result != VDO_SUCCESS) {
@@ -240,7 +241,8 @@ int makeSlabSummary(PhysicalLayer              *layer,
 
   // Initialize all the entries.
   uint8_t hint = computeFullnessHint(summary, maximumFreeBlocksPerSlab);
-  for (size_t i = 0; i < totalEntries; i++) {
+  size_t i;
+  for (i = 0; i < totalEntries; i++) {
     // This default tail block offset must be reflected in
     // slabJournal.c::readSlabJournalTail().
     summary->entries[i] = (struct slab_summary_entry) {
@@ -252,7 +254,8 @@ int makeSlabSummary(PhysicalLayer              *layer,
   }
 
   setSlabSummaryOrigin(summary, partition);
-  for (ZoneCount zone = 0; zone < summary->zoneCount; zone++) {
+  ZoneCount zone;
+  for (zone = 0; zone < summary->zoneCount; zone++) {
     result = makeSlabSummaryZone(summary, layer, zone,
                                  getPhysicalZoneThread(threadConfig, zone),
                                  summary->entries + (MAX_SLABS * zone));
@@ -274,10 +277,12 @@ void freeSlabSummary(struct slab_summary **slabSummaryPtr)
   }
 
   struct slab_summary *summary = *slabSummaryPtr;
-  for (ZoneCount zone = 0; zone < summary->zoneCount; zone++) {
+  ZoneCount zone;
+  for (zone = 0; zone < summary->zoneCount; zone++) {
     struct slab_summary_zone *summaryZone = summary->zones[zone];
     if (summaryZone != NULL) {
-      for (BlockCount i = 0; i < summary->blocksPerZone; i++) {
+      BlockCount i;
+      for (i = 0; i < summary->blocksPerZone; i++) {
         freeVIO(&summaryZone->summaryBlocks[i].vio);
         FREE(summaryZone->summaryBlocks[i].outgoingEntries);
       }
@@ -535,7 +540,8 @@ void getSummarizedSlabStatuses(struct slab_summary_zone *summaryZone,
                                SlabCount                 slabCount,
                                struct slab_status       *statuses)
 {
-  for (SlabCount i = 0; i < slabCount; i++) {
+  SlabCount i;
+  for (i = 0; i < slabCount; i++) {
     statuses[i] = (struct slab_status) {
       .slabNumber = i,
       .isClean    = !summaryZone->entries[i].isDirty,
@@ -577,7 +583,8 @@ void combineZones(struct slab_summary *summary)
   // corresponding to the first zone.
   ZoneCount zone = 0;
   if (summary->zonesToCombine > 1) {
-    for (SlabCount entryNumber = 0; entryNumber < MAX_SLABS; entryNumber++) {
+    SlabCount entryNumber;
+    for (entryNumber = 0; entryNumber < MAX_SLABS; entryNumber++) {
       if (zone != 0) {
         memcpy(summary->entries + entryNumber,
                summary->entries + (zone * MAX_SLABS) + entryNumber,

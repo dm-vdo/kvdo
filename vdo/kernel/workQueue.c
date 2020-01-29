@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#20 $
  */
 
 #include "workQueue.h"
@@ -182,7 +182,8 @@ static struct kvdo_work_item *
 poll_for_work_item(struct simple_work_queue *queue)
 {
 	struct kvdo_work_item *item = NULL;
-	for (int i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
+	int i;
+	for (i = READ_ONCE(queue->num_priority_lists) - 1; i >= 0; i--) {
 		FunnelQueueEntry *link =
 			funnelQueuePoll(queue->priority_lists[i]);
 		if (link != NULL) {
@@ -283,7 +284,8 @@ static unsigned int get_pending_count(struct simple_work_queue *queue)
 {
 	struct kvdo_work_item_stats *stats = &queue->stats.work_item_stats;
 	long long pending = 0;
-	for (int i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
+	int i;
+	for (i = 0; i < NUM_WORK_QUEUE_ITEM_STATS + 1; i++) {
 		pending += atomic64_read(&stats->enqueued[i]);
 		pending -= stats->times[i].count;
 	}
@@ -780,7 +782,8 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	queue->common.owner = owner;
 
 	unsigned int num_priority_lists = 1;
-	for (int i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
+	int i;
+	for (i = 0; i < WORK_QUEUE_ACTION_COUNT; i++) {
 		const struct kvdo_work_queue_action *action =
 			&queue->type->action_table[i];
 		if (action->name == NULL) {
@@ -842,7 +845,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 		return result;
 	}
 	queue->num_priority_lists = num_priority_lists;
-	for (int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
 		result = makeFunnelQueue(&queue->priority_lists[i]);
 		if (result != UDS_SUCCESS) {
 			free_simple_work_queue(queue);
@@ -956,7 +959,8 @@ int make_work_queue(const char *thread_name_prefix,
 	*queue_ptr = &queue->common;
 
 	char thread_name[TASK_COMM_LEN];
-	for (unsigned int i = 0; i < thread_count; i++) {
+	unsigned int i;
+	for (i = 0; i < thread_count; i++) {
 		snprintf(thread_name, sizeof(thread_name), "%s%u", name, i);
 		void *context = (thread_privates != NULL) ? thread_privates[i] :
 							    private;
@@ -1007,7 +1011,8 @@ static void finish_round_robin_work_queue(struct round_robin_work_queue *queue)
 	struct simple_work_queue **queue_table = queue->service_queues;
 	unsigned int count = queue->num_service_queues;
 
-	for (unsigned int i = 0; i < count; i++) {
+	unsigned int i;
+	for (i = 0; i < count; i++) {
 		finish_simple_work_queue(queue_table[i]);
 	}
 }
@@ -1030,7 +1035,8 @@ void finish_work_queue(struct kvdo_work_queue *queue)
  **/
 static void free_simple_work_queue(struct simple_work_queue *queue)
 {
-	for (unsigned int i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
+	unsigned int i;
+	for (i = 0; i < WORK_QUEUE_PRIORITY_COUNT; i++) {
 		freeFunnelQueue(queue->priority_lists[i]);
 	}
 	cleanup_work_queue_stats(&queue->stats);
@@ -1049,7 +1055,8 @@ static void free_round_robin_work_queue(struct round_robin_work_queue *queue)
 	unsigned int count = queue->num_service_queues;
 
 	queue->service_queues = NULL;
-	for (unsigned int i = 0; i < count; i++) {
+	unsigned int i;
+	for (i = 0; i < count; i++) {
 		free_simple_work_queue(queue_table[i]);
 	}
 	FREE(queue_table);
@@ -1133,7 +1140,8 @@ void dump_work_queue(struct kvdo_work_queue *queue)
 	if (queue->round_robin_mode) {
 		struct round_robin_work_queue *round_robin_queue =
 			as_round_robin_work_queue(queue);
-		for (unsigned int i = 0;
+		unsigned int i;
+		for (i = 0;
 		     i < round_robin_queue->num_service_queues; i++) {
 			dump_simple_work_queue(round_robin_queue->service_queues[i]);
 		}

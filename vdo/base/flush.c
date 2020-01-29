@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#12 $
  */
 
 #include "flush.h"
@@ -229,8 +229,8 @@ void complete_flushes(struct flusher *flusher)
 			"complete_flushes() called from flusher thread");
 
 	SequenceNumber oldest_active_generation = UINT64_MAX;
-	for (struct logical_zone *zone =
-		     getLogicalZone(flusher->vdo->logicalZones, 0);
+	struct logical_zone *zone;
+	for (zone = getLogicalZone(flusher->vdo->logicalZones, 0);
 	     zone != NULL; zone = getNextLogicalZone(zone)) {
 		SequenceNumber oldest_in_zone = getOldestLockedGeneration(zone);
 		oldest_active_generation =

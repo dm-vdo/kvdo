@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dump.c#14 $
  */
 
 #include "dump.h"
@@ -165,7 +165,8 @@ static int parse_dump_options(unsigned int argc,
 	};
 
 	bool options_okay = true;
-	for (int i = 1; i < argc; i++) {
+	int i;
+	for (i = 1; i < argc; i++) {
 		int j;
 		for (j = 0; j < COUNT_OF(option_names); j++) {
 			if (is_arg_string(argv[i], option_names[j].name)) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dirtyLists.c#4 $
  */
 
 #include "dirtyLists.h"
@@ -62,7 +62,8 @@ int make_dirty_lists(BlockCount maximum_age, dirty_callback *callback,
 	dirty_lists->context = context;
 
 	initializeRing(&dirty_lists->expired);
-	for (BlockCount i = 0; i < maximum_age; i++) {
+	BlockCount i;
+	for (i = 0; i < maximum_age; i++) {
 		initializeRing(&dirty_lists->lists[i]);
 	}
 

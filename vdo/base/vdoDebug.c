@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#5 $
  */
 
 #include "vdoDebug.h"
@@ -86,7 +86,8 @@ static void logDebugMessage(struct vdo_command_completion *cmd)
   char *buf = buffer;
   char *end = buffer + sizeof(buffer);
 
-  for (int i = 1; i < cmd->argc; ++i) {
+  int i;
+  for (i = 1; i < cmd->argc; ++i) {
     buf = appendToBuffer(buf, end, " %s", cmd->argv[i]);
   }
   if (buf == end) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#22 $
  */
 
 #include "refCounts.h"
@@ -204,7 +204,8 @@ int makeRefCounts(BlockCount                  blockCount,
   refCounts->searchCursor.lastBlock  = &refCounts->blocks[refBlockCount - 1];
   resetSearchCursor(refCounts);
 
-  for (size_t index = 0; index < refBlockCount; index++) {
+  size_t index;
+  for (index = 0; index < refBlockCount; index++) {
     refCounts->blocks[index] = (struct reference_block) {
       .refCounts = refCounts,
     };
@@ -776,7 +777,8 @@ bool areEquivalentReferenceCounters(struct ref_counts *counterA,
     return false;
   }
 
-  for (size_t i = 0; i < counterA->referenceBlockCount; i++) {
+  size_t i;
+  for (i = 0; i < counterA->referenceBlockCount; i++) {
     struct reference_block *blockA = &counterA->blocks[i];
     struct reference_block *blockB = &counterB->blocks[i];
     if (blockA->allocatedCount != blockB->allocatedCount) {
@@ -807,7 +809,8 @@ static inline SlabBlockNumber findZeroByteInWord(const byte      *wordPtr,
   uint64_t word = getUInt64LE(wordPtr);
 
   // This looks like a loop, but GCC will unroll the eight iterations for us.
-  for (unsigned int offset = 0; offset < BYTES_PER_WORD; offset++) {
+  unsigned int offset;
+  for (offset = 0; offset < BYTES_PER_WORD; offset++) {
     // Assumes little-endian byte order, which we have on X86.
     if ((word & 0xFF) == 0) {
       return (startIndex + offset);
@@ -988,7 +991,8 @@ BlockCount countUnreferencedBlocks(struct ref_counts   *refCounts,
   BlockCount freeBlocks = 0;
   SlabBlockNumber   startIndex = pbnToIndex(refCounts, startPBN);
   SlabBlockNumber   endIndex   = pbnToIndex(refCounts, endPBN);
-  for (SlabBlockNumber index = startIndex; index < endIndex; index++) {
+  SlabBlockNumber   index;
+  for (index = startIndex; index < endIndex; index++) {
     if (refCounts->counters[index] == EMPTY_REFERENCE_COUNT) {
       freeBlocks++;
     }
@@ -1037,7 +1041,8 @@ void resetReferenceCounts(struct ref_counts *refCounts)
     .entryCount     = 0,
   };
 
-  for (size_t i = 0; i < refCounts->referenceBlockCount; i++) {
+  size_t i;
+  for (i = 0; i < refCounts->referenceBlockCount; i++) {
     refCounts->blocks[i].allocatedCount = 0;
   }
 
@@ -1170,7 +1175,8 @@ void packReferenceBlock(struct reference_block *block, void *buffer)
 
   struct packed_reference_block *packed = buffer;
   ReferenceCount *counters = getReferenceCountersForBlock(block);
-  for (SectorCount i = 0; i < SECTORS_PER_BLOCK; i++) {
+  SectorCount i;
+  for (i = 0; i < SECTORS_PER_BLOCK; i++) {
     packed->sectors[i].commitPoint = commitPoint;
     memcpy(packed->sectors[i].counts, counters + (i * COUNTS_PER_SECTOR),
            (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
@@ -1260,7 +1266,8 @@ void saveSeveralReferenceBlocks(struct ref_counts *refCounts,
     blocksToWrite = 1;
   }
 
-  for (BlockCount written = 0; written < blocksToWrite; written++) {
+  BlockCount written;
+  for (written = 0; written < blocksToWrite; written++) {
     saveOldestReferenceBlock(refCounts);
   }
 }
@@ -1276,7 +1283,8 @@ void saveDirtyReferenceBlocks(struct ref_counts *refCounts)
 /**********************************************************************/
 void dirtyAllReferenceBlocks(struct ref_counts *refCounts)
 {
-  for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
+  BlockCount i;
+  for (i = 0; i < refCounts->referenceBlockCount; i++) {
     dirtyBlock(&refCounts->blocks[i]);
   }
 }
@@ -1289,7 +1297,8 @@ void dirtyAllReferenceBlocks(struct ref_counts *refCounts)
 static void clearProvisionalReferences(struct reference_block *block)
 {
   ReferenceCount *counters = getReferenceCountersForBlock(block);
-  for (BlockCount j = 0; j < COUNTS_PER_BLOCK; j++) {
+  BlockCount j;
+  for (j = 0; j < COUNTS_PER_BLOCK; j++) {
     if (counters[j] == PROVISIONAL_REFERENCE_COUNT) {
       counters[j] = EMPTY_REFERENCE_COUNT;
       block->allocatedCount--;
@@ -1308,7 +1317,8 @@ static void unpackReferenceBlock(struct packed_reference_block *packed,
 {
   struct ref_counts *refCounts    = block->refCounts;
   ReferenceCount    *counters     = getReferenceCountersForBlock(block);
-  for (SectorCount i = 0; i < SECTORS_PER_BLOCK; i++) {
+  SectorCount i;
+  for (i = 0; i < SECTORS_PER_BLOCK; i++) {
     struct packed_reference_sector *sector = &packed->sectors[i];
     unpackJournalPoint(&sector->commitPoint, &block->commitPoints[i]);
     memcpy(counters + (i * COUNTS_PER_SECTOR), sector->counts,
@@ -1329,8 +1339,9 @@ static void unpackReferenceBlock(struct packed_reference_block *packed,
   }
 
   block->allocatedCount = 0;
-  for (BlockCount i = 0; i < COUNTS_PER_BLOCK; i++) {
-    if (counters[i] != EMPTY_REFERENCE_COUNT) {
+  BlockCount index;
+  for (index = 0; index < COUNTS_PER_BLOCK; index++) {
+    if (counters[index] != EMPTY_REFERENCE_COUNT) {
       block->allocatedCount++;
     }
   }
@@ -1386,7 +1397,8 @@ static void loadReferenceBlocks(struct ref_counts *refCounts)
 {
   refCounts->freeBlocks  = refCounts->blockCount;
   refCounts->activeCount = refCounts->referenceBlockCount;
-  for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
+  BlockCount i;
+  for (i = 0; i < refCounts->referenceBlockCount; i++) {
     struct waiter *blockWaiter = &refCounts->blocks[i].waiter;
     blockWaiter->callback = loadReferenceBlock;
     int result = acquire_vio(refCounts->slab->allocator, blockWaiter);
@@ -1452,7 +1464,8 @@ void drainRefCounts(struct ref_counts *refCounts)
 void acquireDirtyBlockLocks(struct ref_counts *refCounts)
 {
   dirtyAllReferenceBlocks(refCounts);
-  for (BlockCount i = 0; i < refCounts->referenceBlockCount; i++) {
+  BlockCount i;
+  for (i = 0; i < refCounts->referenceBlockCount; i++) {
     refCounts->blocks[i].slabJournalLock = 1;
   }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#2 $
  */
 
 #include "threadConfig.h"
@@ -75,7 +75,8 @@ static void assignThreadIDs(ThreadID   threadIDs[],
                             ZoneCount  count,
                             ThreadID  *idPtr)
 {
-  for (ZoneCount zone = 0; zone < count; zone++) {
+  ZoneCount zone;
+  for (zone = 0; zone < count; zone++) {
     threadIDs[zone] = (*idPtr)++;
   }
 }
@@ -177,13 +178,14 @@ int copyThreadConfig(const ThreadConfig *oldConfig, ThreadConfig **configPtr)
   config->adminThread   = oldConfig->adminThread;
   config->journalThread = oldConfig->journalThread;
   config->packerThread  = oldConfig->packerThread;
-  for (ZoneCount i = 0; i < config->logicalZoneCount; i++) {
+  ZoneCount i;
+  for (i = 0; i < config->logicalZoneCount; i++) {
     config->logicalThreads[i] = oldConfig->logicalThreads[i];
   }
-  for (ZoneCount i = 0; i < config->physicalZoneCount; i++) {
+  for (i = 0; i < config->physicalZoneCount; i++) {
     config->physicalThreads[i] = oldConfig->physicalThreads[i];
   }
-  for (ZoneCount i = 0; i < config->hashZoneCount; i++) {
+  for (i = 0; i < config->hashZoneCount; i++) {
     config->hashZoneThreads[i] = oldConfig->hashZoneThreads[i];
   }
 

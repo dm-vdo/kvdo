@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#6 $
  */
 
 #include <linux/kobject.h>
@@ -322,7 +322,8 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	bar[BAR_SIZE + 1] = '\0';
 
 	uint64_t total = 0;
-	for (int i = 0; i <= max; i++) {
+	int i;
+	for (i = 0; i <= max; i++) {
 		total += atomic64_read(&h->counters[i]);
 	}
 
@@ -348,7 +349,7 @@ static ssize_t histogram_show_histogram(struct histogram *h, char *buffer)
 	if (length >= (buffer_size - 1)) {
 		return buffer_size - 1;
 	}
-	for (int i = 0; i <= max; i++) {
+	for (i = 0; i <= max; i++) {
 		uint64_t value = atomic64_read(&h->counters[i]);
 
 		unsigned int bar_length;

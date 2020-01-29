@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#33 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -294,7 +294,8 @@ int makeRecoveryCompletion(struct vdo                  *vdo,
   }
 
   recovery->vdo = vdo;
-  for (ZoneCount z = 0; z < threadConfig->physicalZoneCount; z++) {
+  ZoneCount z;
+  for (z = 0; z < threadConfig->physicalZoneCount; z++) {
     initializeWaitQueue(&recovery->missingDecrefs[z]);
   }
 
@@ -343,7 +344,8 @@ void freeRecoveryCompletion(struct recovery_completion **recoveryPtr)
 
   freeIntMap(&recovery->slotEntryMap);
   const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
-  for (ZoneCount z = 0; z < threadConfig->physicalZoneCount; z++) {
+  ZoneCount z;
+  for (z = 0; z < threadConfig->physicalZoneCount; z++) {
     notifyAllWaiters(&recovery->missingDecrefs[z], freeMissingDecref, NULL);
   }
 
@@ -701,7 +703,8 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
   prepareCompletion(completion, addSlabJournalEntries,
                     handleAddSlabJournalEntryError,
                     completion->callbackThreadID, recovery);
-  for (struct recovery_point *recoveryPoint = &recovery->nextRecoveryPoint;
+  struct recovery_point *recoveryPoint;
+  for (recoveryPoint = &recovery->nextRecoveryPoint;
        beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
        advancePoints(recovery, journal->entriesPerBlock)) {
     struct recovery_journal_entry entry = getEntry(recovery, recoveryPoint);
@@ -1084,7 +1087,8 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     = minSequenceNumber(recovery->blockMapHead, recovery->slabJournalHead);
 
   bool foundEntries = false;
-  for (SequenceNumber i = head; i <= recovery->highestTail; i++) {
+  SequenceNumber i;
+  for (i = head; i <= recovery->highestTail; i++) {
     recovery->tail = i;
     recovery->tailRecoveryPoint = (struct recovery_point) {
       .sequenceNumber = i,
@@ -1105,7 +1109,8 @@ static bool findContiguousRange(struct recovery_completion *recovery)
 
     JournalEntryCount blockEntries = header.entryCount;
     // Examine each sector in turn to determine the last valid sector.
-    for (uint8_t j = 1; j < SECTORS_PER_BLOCK; j++) {
+    uint8_t j;
+    for (j = 1; j < SECTORS_PER_BLOCK; j++) {
       struct packed_journal_sector *sector
         = getJournalBlockSector(packedHeader, j);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#14 $
  */
 
 #include "referenceCountRebuild.h"
@@ -285,7 +285,8 @@ static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
 
   // Remove any bogus entries which exist beyond the end of the logical space.
   if (getBlockMapPagePBN(page) == rebuild->lastSlot.pbn) {
-    for (SlotNumber slot = rebuild->lastSlot.slot;
+    SlotNumber slot;
+    for (slot = rebuild->lastSlot.slot;
          slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
       struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
       if (isMappedLocation(&mapping)) {
@@ -296,7 +297,8 @@ static int rebuildReferenceCountsFromPage(struct rebuild_completion *rebuild,
   }
 
   // Inform the slab depot of all entries on this page.
-  for (SlotNumber slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
+  SlotNumber slot;
+  for (slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
     struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
     if (!isValidLocation(&mapping)) {
       // This entry is invalid, so remove it from the page.
@@ -423,7 +425,8 @@ static void rebuildFromLeaves(struct vdo_completion *completion)
 
   // Prevent any page from being processed until all pages have been launched.
   rebuild->launching = true;
-  for (PageCount i = 0; i < rebuild->pageCount; i++) {
+  PageCount i;
+  for (i = 0; i < rebuild->pageCount; i++) {
     fetchPage(rebuild, &rebuild->pageCompletions[i].completion);
   }
   rebuild->launching = false;

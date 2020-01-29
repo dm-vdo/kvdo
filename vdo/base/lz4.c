@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lz4.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lz4.c#2 $
  */
 
 // Get the memcpy fixup from common.h.
@@ -125,7 +125,7 @@
 //**************************************
 // Compiler Options
 //**************************************
-#if __STDC_VERSION__ >= 199901L   // C99
+#if defined(__STDC_VERSION) && (__STDC_VERSION__ >= 199901L)   // C99
 /* "restrict" is a known keyword */
 #else
 #  define restrict // Disable restrict

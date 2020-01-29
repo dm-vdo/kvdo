@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#9 $
  */
 
 #include "vioPool.h"
@@ -80,7 +80,8 @@ int makeVIOPool(PhysicalLayer    *layer,
   }
 
   char *ptr = pool->buffer;
-  for (size_t i = 0; i < poolSize; i++) {
+  size_t i;
+  for (i = 0; i < poolSize; i++) {
     struct vio_pool_entry *entry = &pool->entries[i];
     entry->buffer                = ptr;
     entry->context               = context;
@@ -123,7 +124,8 @@ void freeVIOPool(struct vio_pool **poolPtr)
   }
 
   // Make sure every vio_pool_entry has been removed.
-  for (size_t i = 0; i < pool->size; i++) {
+  size_t i;
+  for (i = 0; i < pool->size; i++) {
     struct vio_pool_entry *entry = &pool->entries[i];
     ASSERT_LOG_ONLY(isRingEmpty(&entry->node), "VIO Pool entry still in use:"
                     " VIO is in use for physical block %" PRIu64

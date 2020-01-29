@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#2 $
  */
 
 #include "trace.h"
@@ -72,7 +72,8 @@ void formatTrace(Trace  *trace,
              record->when % 1000000);
     buf += strlen(buf);
 
-    for (unsigned int i = 1; i < trace->used; i++) {
+    unsigned int i;
+    for (i = 1; i < trace->used; i++) {
       TraceRecord *prev = record;
       record++;
 

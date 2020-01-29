@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#4 $
  */
 
 #include "pbnLockPool.h"
@@ -69,7 +69,8 @@ int makePBNLockPool(size_t capacity, struct pbn_lock_pool **poolPtr)
   pool->borrowed = capacity;
   initializeRing(&pool->idleRing);
 
-  for (size_t i = 0; i < capacity; i++) {
+  size_t i;
+  for (i = 0; i < capacity; i++) {
     struct pbn_lock *lock = &pool->locks[i].lock;
     returnPBNLockToPool(pool, &lock);
   }

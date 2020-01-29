@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#5 $
  */
 
 #include "errors.h"
@@ -175,7 +175,8 @@ void initialize_standard_error_blocks(void)
  **/
 static const char *get_error_info(int errnum, const ErrorInfo **info_ptr)
 {
-	for (struct error_block *block = registered_errors.blocks;
+	struct error_block *block;
+	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;
 	     ++block) {
 		if ((errnum >= block->base) && (errnum < block->last)) {
@@ -278,7 +279,8 @@ int register_error_block(const char *block_name,
 		return UDS_OVERFLOW;
 	}
 
-	for (struct error_block *block = registered_errors.blocks;
+	struct error_block *block;
+	for (block = registered_errors.blocks;
 	     block < registered_errors.blocks + registered_errors.count;
 	     ++block) {
 		if (strcmp(block_name, block->name) == 0) {

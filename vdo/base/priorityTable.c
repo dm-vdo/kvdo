@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#4 $
  */
 
 #include "priorityTable.h"
@@ -85,7 +85,8 @@ int makePriorityTable(unsigned int            maxPriority,
     return result;
   }
 
-  for (unsigned int priority = 0; priority <= maxPriority; priority++) {
+  unsigned int priority;
+  for (priority = 0; priority <= maxPriority; priority++) {
     struct bucket *bucket   = &table->buckets[priority];
     bucket->priority = priority;
     initializeRing(&bucket->queue);
@@ -118,7 +119,8 @@ void freePriorityTable(struct priority_table **tablePtr)
 void resetPriorityTable(struct priority_table *table)
 {
   table->searchVector = 0;
-  for (unsigned int priority = 0; priority <= table->maxPriority; priority++) {
+  unsigned int priority;
+  for (priority = 0; priority <= table->maxPriority; priority++) {
     unspliceRingNode(&table->buckets[priority].queue);
   }
 }

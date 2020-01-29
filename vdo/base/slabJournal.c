@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#26 $
  */
 
 #include "slabJournalInternals.h"
@@ -551,7 +551,8 @@ static void releaseJournalLocks(struct waiter *waiter, void *context)
 
   SequenceNumber first    = journal->lastSummarized;
   journal->lastSummarized = journal->summarized;
-  for (SequenceNumber i = journal->summarized - 1; i >= first; i--) {
+  SequenceNumber i;
+  for (i = journal->summarized - 1; i >= first; i--) {
     // Release the lock the summarized block held on the recovery journal.
     // (During replay, recoveryStart will always be 0.)
     if (journal->recoveryJournal != NULL) {
@@ -623,7 +624,8 @@ void reopenSlabJournal(struct slab_journal *journal)
   initializeJournalState(journal);
 
   // Ensure no locks are spuriously held on an empty journal.
-  for (SequenceNumber block = 1; block <= journal->size; block++) {
+  SequenceNumber block;
+  for (block = 1; block <= journal->size; block++) {
     ASSERT_LOG_ONLY((getLock(journal, block)->count == 0),
                     "Scrubbed journal's block %llu is not locked",
                     block);

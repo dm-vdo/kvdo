@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#12 $
  */
 
 #include "blockMapRecovery.h"
@@ -297,7 +297,8 @@ static bool finishIfDone(struct block_map_recovery_completion *recovery)
      * We need to be careful here to only free completions that exist. But
      * since we know none are outstanding, we just go through the ready ones.
      */
-    for (size_t i = 0; i < recovery->pageCount; i++) {
+    size_t i;
+    for (i = 0; i < recovery->pageCount; i++) {
       struct vdo_page_completion *pageCompletion = &recovery->pageCompletions[i];
       if (recovery->pageCompletions[i].ready) {
         releaseVDOPageCompletion(&pageCompletion->completion);
@@ -538,7 +539,8 @@ void recoverBlockMap(struct vdo                    *vdo,
   recovery->launching = true;
   recovery->pbn       = recovery->currentEntry->blockMapSlot.pbn;
   recovery->currentUnfetchedEntry = recovery->currentEntry;
-  for (PageCount i = 0; i < recovery->pageCount; i++) {
+  PageCount i;
+  for (i = 0; i < recovery->pageCount; i++) {
     if (recovery->currentUnfetchedEntry < recovery->journalEntries) {
       break;
     }

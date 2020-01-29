@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#9 $
  */
 
 #include "volumeGeometry.h"
@@ -78,7 +78,8 @@ static inline bool isLoadableReleaseVersion(ReleaseVersionNumber version)
     return true;
   }
 
-  for (unsigned int i = 0; i < COUNT_OF(COMPATIBLE_RELEASE_VERSIONS); i++) {
+  unsigned int i;
+  for (i = 0; i < COUNT_OF(COMPATIBLE_RELEASE_VERSIONS); i++) {
     if (version == COMPATIBLE_RELEASE_VERSIONS[i]) {
       return true;
     }
@@ -223,7 +224,8 @@ static int decodeVolumeGeometry(Buffer *buffer, struct volume_geometry *geometry
     return result;
   }
 
-  for (VolumeRegionID id = 0; id < VOLUME_REGION_COUNT; id++) {
+  VolumeRegionID id;
+  for (id = 0; id < VOLUME_REGION_COUNT; id++) {
     result = decodeVolumeRegion(buffer, &geometry->regions[id]);
     if (result != VDO_SUCCESS) {
       return result;
@@ -259,7 +261,8 @@ static int encodeVolumeGeometry(const struct volume_geometry *geometry,
     return result;
   }
 
-  for (VolumeRegionID id = 0; id < VOLUME_REGION_COUNT; id++) {
+  VolumeRegionID id;
+  for (id = 0; id < VOLUME_REGION_COUNT; id++) {
     result = encodeVolumeRegion(&geometry->regions[id], buffer);
     if (result != VDO_SUCCESS) {
       return result;

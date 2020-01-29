@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#6 $
  */
 
 #include "vdoLayout.h"
@@ -175,7 +175,8 @@ int decodeVDOLayout(Buffer *buffer, struct vdo_layout **vdoLayoutPtr)
 
   // Check that all the expected partitions exist
   struct partition *partition;
-  for (uint8_t i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
+  uint8_t i;
+  for (i = 0; i < REQUIRED_PARTITION_COUNT; i++) {
     result = get_partition(vdoLayout->layout, REQUIRED_PARTITIONS[i],
                            &partition);
     if (result != VDO_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#3 $
  */
 
 #include "vdoStringUtils.h"
@@ -57,7 +57,8 @@ char *appendToBuffer(char *buffer, char *buf_end, const char *fmt, ...)
 /**********************************************************************/
 void free_string_array(char **string_array)
 {
-	for (unsigned int offset = 0; string_array[offset] != NULL; offset++) {
+	unsigned int offset;
+	for (offset = 0; string_array[offset] != NULL; offset++) {
 		FREE(string_array[offset]);
 	}
 	FREE(string_array);
@@ -69,7 +70,8 @@ int split_string(const char *string,
 		 char ***substring_array_ptr)
 {
 	unsigned int substring_count = 1;
-	for (const char *s = string; *s != 0; s++) {
+	const char *s;
+	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
 			substring_count++;
 		}
@@ -84,7 +86,7 @@ int split_string(const char *string,
 		return result;
 	}
 	unsigned int current_substring = 0;
-	for (const char *s = string; *s != 0; s++) {
+	for (s = string; *s != 0; s++) {
 		if (*s == separator) {
 			ptrdiff_t length = s - string;
 			result = ALLOCATE(length + 1,
@@ -131,8 +133,8 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 		 char **string_ptr)
 {
 	size_t string_length = 0;
-	for (size_t i = 0; (i < array_length) && (substring_array[i] != NULL);
-	     i++) {
+	size_t i;
+	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		string_length += strlen(substring_array[i]) + 1;
 	}
 
@@ -143,8 +145,7 @@ int join_strings(char **substring_array, size_t array_length, char separator,
 	}
 
 	char *current_position = &output[0];
-	for (size_t i = 0; (i < array_length) && (substring_array[i] != NULL);
-	     i++) {
+	for (i = 0; (i < array_length) && (substring_array[i] != NULL); i++) {
 		current_position = appendToBuffer(current_position,
 						  output + string_length,
 						  "%s",

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#25 $
  */
 
 #include "packerInternals.h"
@@ -93,7 +93,8 @@ struct input_bin *getFullestBin(const struct packer *packer)
  **/
 static void insertInSortedList(struct packer *packer, struct input_bin *bin)
 {
-  for (struct input_bin *activeBin = getFullestBin(packer);
+  struct input_bin *activeBin;
+  for (activeBin = getFullestBin(packer);
        activeBin != NULL;
        activeBin = nextBin(packer, activeBin)) {
     if (activeBin->freeSpace > bin->freeSpace) {
@@ -243,7 +244,8 @@ int makePacker(PhysicalLayer       *layer,
     return result;
   }
 
-  for (BlockCount i = 0; i < inputBinCount; i++) {
+  BlockCount i;
+  for (i = 0; i < inputBinCount; i++) {
     int result = makeInputBin(packer);
     if (result != VDO_SUCCESS) {
       freePacker(&packer);
@@ -263,7 +265,7 @@ int makePacker(PhysicalLayer       *layer,
     return result;
   }
 
-  for (BlockCount i = 0; i < outputBinCount; i++) {
+  for (i = 0; i < outputBinCount; i++) {
     int result = makeOutputBin(packer, layer);
     if (result != VDO_SUCCESS) {
       freePacker(&packer);
@@ -626,7 +628,8 @@ static bool writeNextBatch(struct packer *packer, struct output_bin *output)
   reset_compressed_block_header(&output->block->header);
 
   size_t spaceUsed = 0;
-  for (SlotNumber slot = 0; slot < batch.slotsUsed; slot++) {
+  SlotNumber slot;
+  for (slot = 0; slot < batch.slotsUsed; slot++) {
     struct data_vio *dataVIO = batch.slots[slot];
     dataVIO->compression.slot = slot;
     put_compressed_block_fragment(output->block, slot, spaceUsed,
@@ -672,7 +675,8 @@ static void startNewBatch(struct packer *packer, struct input_bin *bin)
 {
   // Move all the DataVIOs in the current batch to the batched queue so they
   // will get packed into the next free output bin.
-  for (SlotNumber slot = 0; slot < bin->slotsUsed; slot++) {
+  SlotNumber slot;
+  for (slot = 0; slot < bin->slotsUsed; slot++) {
     struct data_vio *dataVIO = bin->incoming[slot];
     dataVIO->compression.bin = NULL;
 
@@ -778,7 +782,8 @@ static struct input_bin *selectInputBin(struct packer   *packer,
   // First best fit: select the bin with the least free space that has enough
   // room for the compressed data in the data_vio.
   struct input_bin *fullestBin = getFullestBin(packer);
-  for (struct input_bin *bin = fullestBin;
+  struct input_bin *bin;
+  for (bin = fullestBin;
        bin != NULL;
        bin = nextBin(packer, bin)) {
     if (bin->freeSpace >= dataVIO->compression.size) {
@@ -865,7 +870,8 @@ void attemptPacking(struct data_vio *dataVIO)
  **/
 static void writeAllNonEmptyBins(struct packer *packer)
 {
-  for (struct input_bin *bin = getFullestBin(packer);
+  struct input_bin *bin;
+  for (bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {
     startNewBatch(packer, bin);
@@ -1011,7 +1017,8 @@ void dumpPacker(const struct packer *packer)
           boolToString(packer->writingBatches));
 
   logInfo("  inputBinCount=%llu", packer->size);
-  for (struct input_bin *bin = getFullestBin(packer);
+  struct input_bin *bin;
+  for (bin = getFullestBin(packer);
        bin != NULL;
        bin = nextBin(packer, bin)) {
     dumpInputBin(bin, false);
@@ -1022,7 +1029,8 @@ void dumpPacker(const struct packer *packer)
   logInfo("  outputBinCount=%zu idleOutputBinCount=%zu",
           packer->outputBinCount, packer->idleOutputBinCount);
   const RingNode *head = &packer->outputBins;
-  for (RingNode *node = head->next; node != head; node = node->next) {
+  RingNode *node;
+  for (node = head->next; node != head; node = node->next) {
     dumpOutputBin(outputBinFromRingNode(node));
   }
 }

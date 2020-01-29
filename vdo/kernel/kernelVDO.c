@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#28 $
  */
 
 /*
@@ -222,7 +222,8 @@ int resume_kvdo(struct kvdo *kvdo)
 /**********************************************************************/
 void finish_kvdo(struct kvdo *kvdo)
 {
-	for (int i = 0; i < kvdo->initialized_thread_count; i++) {
+	int i;
+	for (i = 0; i < kvdo->initialized_thread_count; i++) {
 		finish_work_queue(kvdo->threads[i].request_queue);
 	}
 }
@@ -231,7 +232,8 @@ void finish_kvdo(struct kvdo *kvdo)
 void destroy_kvdo(struct kvdo *kvdo)
 {
 	destroyVDO(kvdo->vdo);
-	for (int i = 0; i < kvdo->initialized_thread_count; i++) {
+	int i;
+	for (i = 0; i < kvdo->initialized_thread_count; i++) {
 		free_work_queue(&kvdo->threads[i].request_queue);
 	}
 	FREE(kvdo->threads);
@@ -242,7 +244,8 @@ void destroy_kvdo(struct kvdo *kvdo)
 /**********************************************************************/
 void dump_kvdo_work_queue(struct kvdo *kvdo)
 {
-	for (int i = 0; i < kvdo->initialized_thread_count; i++) {
+	int i;
+	for (i = 0; i < kvdo->initialized_thread_count; i++) {
 		dump_work_queue(kvdo->threads[i].request_queue);
 	}
 }

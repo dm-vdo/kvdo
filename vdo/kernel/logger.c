@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/logger.c#7 $
  */
 
 #include "logger.h"
@@ -72,7 +72,8 @@ static int log_level = LOG_INFO;
 /**********************************************************************/
 int stringToPriority(const char *string)
 {
-	for (int i = 0; PRIORITIES[i].name != NULL; i++) {
+	int i;
+	for (i = 0; PRIORITIES[i].name != NULL; i++) {
 		if (strcasecmp(string, PRIORITIES[i].name) == 0) {
 			return PRIORITIES[i].priority;
 		}

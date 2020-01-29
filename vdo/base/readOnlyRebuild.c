@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#14 $
  */
 
 #include "readOnlyRebuild.h"
@@ -256,7 +256,8 @@ appendSectorEntries(struct read_only_rebuild_completion *rebuild,
                     struct packed_journal_sector        *sector,
                     JournalEntryCount                    entryCount)
 {
-  for (JournalEntryCount i = 0; i < entryCount; i++) {
+  JournalEntryCount i;
+  for (i = 0; i < entryCount; i++) {
     struct recovery_journal_entry entry
       = unpackRecoveryJournalEntry(&sector->entries[i]);
     int result = validateRecoveryJournalEntry(rebuild->vdo, &entry);
@@ -304,7 +305,8 @@ static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
     return result;
   }
 
-  for (SequenceNumber i = first; i <= last; i++) {
+  SequenceNumber i;
+  for (i = first; i <= last; i++) {
     PackedJournalHeader *packedHeader
       = getJournalBlockHeader(journal, rebuild->journalData, i);
     struct recovery_block_header header;
@@ -318,7 +320,8 @@ static int extractJournalEntries(struct read_only_rebuild_completion *rebuild)
     // Don't extract more than the expected maximum entries per block.
     JournalEntryCount blockEntries = minBlock(journal->entriesPerBlock,
                                               header.entryCount);
-    for (uint8_t j = 1; j < SECTORS_PER_BLOCK; j++) {
+    uint8_t j;
+    for (j = 1; j < SECTORS_PER_BLOCK; j++) {
       // Stop when all entries counted in the header are applied or skipped.
       if (blockEntries == 0) {
         break;

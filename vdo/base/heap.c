@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#3 $
  */
 
 #include "heap.h"
@@ -110,7 +110,8 @@ void buildHeap(struct heap *heap, size_t count)
   size_t size       = heap->elementSize;
   size_t lastParent = size * (heap->count / 2);
   size_t lastNode   = size * heap->count;
-  for (size_t topNode = lastParent; topNode > 0; topNode -= size) {
+  size_t topNode;
+  for (topNode = lastParent; topNode > 0; topNode -= size) {
     siftHeapDown(heap, topNode, lastNode);
   }
 }

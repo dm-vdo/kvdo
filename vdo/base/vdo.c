@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#26 $
  */
 
 /*
@@ -145,7 +145,8 @@ void destroyVDO(struct vdo *vdo)
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   if (vdo->hashZones != NULL) {
-    for (ZoneCount zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+    ZoneCount zone;
+    for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
       freeHashZone(&vdo->hashZones[zone]);
     }
   }
@@ -155,7 +156,8 @@ void destroyVDO(struct vdo *vdo)
   freeLogicalZones(&vdo->logicalZones);
 
   if (vdo->physicalZones != NULL) {
-    for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
+    ZoneCount zone;
+    for (zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
       freePhysicalZone(&vdo->physicalZones[zone]);
     }
   }
@@ -813,7 +815,8 @@ static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
   memset(&totals, 0, sizeof(totals));
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  for (ZoneCount zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+  ZoneCount zone;
+  for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
     HashLockStatistics stats  = getHashZoneStatistics(vdo->hashZones[zone]);
     totals.dedupeAdviceValid        += stats.dedupeAdviceValid;
     totals.dedupeAdviceStale        += stats.dedupeAdviceStale;
@@ -987,15 +990,16 @@ void dumpVDOStatus(const struct vdo *vdo)
   dumpSlabDepot(vdo->depot);
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  for (ZoneCount zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
+  ZoneCount zone;
+  for (zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
     dumpLogicalZone(getLogicalZone(vdo->logicalZones, zone));
   }
 
-  for (ZoneCount zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
+  for (zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
     dumpPhysicalZone(vdo->physicalZones[zone]);
   }
 
-  for (ZoneCount zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+  for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
     dumpHashZone(vdo->hashZones[zone]);
   }
 }

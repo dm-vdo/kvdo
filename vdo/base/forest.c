@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#16 $
  */
 
 #include "forest.h"
@@ -95,7 +95,8 @@ struct tree_page *getTreePageByIndex(struct forest *forest,
                                      PageNumber     pageIndex)
 {
   PageNumber offset = 0;
-  for (size_t segment = 0; segment < forest->segments; segment++) {
+  size_t segment;
+  for (segment = 0; segment < forest->segments; segment++) {
     PageNumber border = forest->boundaries[segment].levels[height - 1];
     if (pageIndex < border) {
       struct block_map_tree *tree = &forest->trees[rootIndex];
@@ -130,7 +131,8 @@ static BlockCount computeNewPages(RootCount          rootCount,
     = maxPageCount(computeBlockMapPageCount(entries) - flatPageCount, 1);
   PageCount  levelSize  = computeBucketCount(leafPages, rootCount);
   BlockCount totalPages = 0;
-  for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+  Height height;
+  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
     levelSize = computeBucketCount(levelSize, BLOCK_MAP_ENTRIES_PER_PAGE);
     newSizes->levels[height] = levelSize;
     BlockCount newPages = levelSize;
@@ -180,7 +182,8 @@ static int makeSegment(struct forest   *oldForest,
   memcpy(&(forest->boundaries[index]), newBoundary, sizeof(struct boundary));
 
   PageCount segmentSizes[BLOCK_MAP_TREE_HEIGHT];
-  for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+  Height height;
+  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
     segmentSizes[height] = newBoundary->levels[height];
     if (index > 0) {
       segmentSizes[height] -= oldForest->boundaries[index - 1].levels[height];
@@ -188,7 +191,8 @@ static int makeSegment(struct forest   *oldForest,
   }
 
   struct tree_page *pagePtr = forest->pages[index];
-  for (RootCount root = 0; root < forest->map->rootCount; root++) {
+  RootCount root;
+  for (root = 0; root < forest->map->rootCount; root++) {
     struct block_map_tree *tree = &(forest->trees[root]);
     int result = ALLOCATE(forest->segments, struct block_map_tree_segment,
                           "tree root segments", &tree->segments);
@@ -202,7 +206,8 @@ static int makeSegment(struct forest   *oldForest,
     }
 
     struct block_map_tree_segment *segment = &(tree->segments[index]);
-    for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+    Height height;
+    for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
       if (segmentSizes[height] == 0) {
         continue;
       }
@@ -227,14 +232,16 @@ static int makeSegment(struct forest   *oldForest,
 static void deforest(struct forest *forest, size_t firstPageSegment)
 {
   if (forest->pages != NULL) {
-    for (size_t segment = firstPageSegment; segment < forest->segments;
+    size_t segment;
+    for (segment = firstPageSegment; segment < forest->segments;
          segment++) {
       FREE(forest->pages[segment]);
     }
     FREE(forest->pages);
   }
 
-  for (RootCount root = 0; root < forest->map->rootCount; root++) {
+  RootCount root;
+  for (root = 0; root < forest->map->rootCount; root++) {
     struct block_map_tree *tree = &(forest->trees[root]);
     FREE(tree->segments);
   }
@@ -497,7 +504,8 @@ static struct boundary computeBoundary(struct block_map *map,
   }
 
   struct boundary boundary;
-  for (Height height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
+  Height height;
+  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
     boundary.levels[height] = levelPages;
     levelPages = computeBucketCount(levelPages, BLOCK_MAP_ENTRIES_PER_PAGE);
   }
@@ -533,7 +541,8 @@ void traverseForest(struct block_map      *map,
   cursors->entryCallback = entryCallback;
   cursors->parent        = parent;
   cursors->activeRoots   = map->rootCount;
-  for (RootCount root = 0; root < map->rootCount; root++) {
+  RootCount root;
+  for (root = 0; root < map->rootCount; root++) {
     struct cursor *cursor = &cursors->cursors[root];
     *cursor = (struct cursor) {
       .tree     = &map->forest->trees[root],

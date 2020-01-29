@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#7 $
  */
 
 #include "fixedLayout.h"
@@ -113,7 +113,8 @@ void free_fixed_layout(struct fixed_layout **layout_ptr)
 BlockCount get_total_fixed_layout_size(const struct fixed_layout *layout)
 {
 	BlockCount size = get_fixed_layout_blocks_available(layout);
-	for (struct partition *partition = layout->head; partition != NULL;
+	struct partition *partition;
+	for (partition = layout->head; partition != NULL;
 	     partition = partition->next) {
 		size += partition->count;
 	}
@@ -126,7 +127,8 @@ int get_partition(struct fixed_layout *layout,
 		  PartitionID id,
 		  struct partition **partition_ptr)
 {
-	for (struct partition *partition = layout->head; partition != NULL;
+	struct partition *partition;
+	for (partition = layout->head; partition != NULL;
 	     partition = partition->next) {
 		if (partition->id == id) {
 			if (partition_ptr != NULL) {
@@ -315,7 +317,8 @@ size_t get_fixed_layout_encoded_size(const struct fixed_layout *layout)
 static int encodePartitions_3_0(const struct fixed_layout *layout,
 				Buffer *buffer)
 {
-	for (const struct partition *partition = layout->head;
+	const struct partition *partition;
+	for (partition = layout->head;
 	     partition != NULL;
 	     partition = partition->next) {
 		STATIC_ASSERT_SIZEOF(PartitionID, sizeof(byte));
@@ -423,7 +426,8 @@ int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
  **/
 static int decodePartitions_3_0(Buffer *buffer, struct fixed_layout *layout)
 {
-	for (size_t i = 0; i < layout->num_partitions; i++) {
+	size_t i;
+	for (i = 0; i < layout->num_partitions; i++) {
 		byte id;
 		int result = getByte(buffer, &id);
 		if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#4 $
  */
 
 /**
@@ -383,7 +383,8 @@ static int resizeBuckets(struct int_map *map)
   }
 
   // Populate the new hash table from the entries in the old bucket array.
-  for (size_t i = 0; i < oldMap.bucketCount; i++) {
+  size_t i;
+  for (i = 0; i < oldMap.bucketCount; i++) {
     struct bucket *entry = &oldMap.buckets[i];
     if (entry->value == NULL) {
       continue;
@@ -424,7 +425,8 @@ static struct bucket *findEmptyBucket(struct int_map *map,
   size_t remaining = &map->buckets[map->bucketCount] - bucket;
   struct bucket *sentinel = &bucket[minSizeT(remaining, maxProbes)];
 
-  for (struct bucket *entry = bucket; entry < sentinel; entry++) {
+  struct bucket *entry;
+  for (entry = bucket; entry < sentinel; entry++) {
     if (entry->value == NULL) {
       return entry;
     }
@@ -455,7 +457,8 @@ static struct bucket *moveEmptyBucket(struct int_map *map __attribute__((unused)
    * hole is at least NEIGHBORHOOD cells deeper into the array than a valid
    * bucket.
    */
-  for (struct bucket *bucket = &hole[1 - NEIGHBORHOOD]; bucket < hole; bucket++) {
+  struct bucket *bucket;
+  for (bucket = &hole[1 - NEIGHBORHOOD]; bucket < hole; bucket++) {
     // Find the entry that is nearest to the bucket, which means it will be
     // nearest to the hash bucket whose neighborhood is full.
     struct bucket *newHole = dereferenceHop(bucket, bucket->firstHop);

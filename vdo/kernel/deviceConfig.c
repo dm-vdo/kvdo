@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#9 $
  */
 
 #include "deviceConfig.h"
@@ -365,7 +365,9 @@ static int parse_thread_config_string(const char *string,
 		if (result != UDS_SUCCESS) {
 			return result;
 		}
-		for (unsigned int i = 0; specs[i] != NULL; i++) {
+
+		unsigned int i;
+		for (i = 0; specs[i] != NULL; i++) {
 			result = parse_one_thread_config_spec(specs[i], config);
 			if (result != VDO_SUCCESS) {
 				break;

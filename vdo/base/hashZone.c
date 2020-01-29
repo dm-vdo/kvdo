@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#7 $
  */
 
 #include "hashZone.h"
@@ -138,7 +138,8 @@ int makeHashZone(struct vdo        *vdo,
     return result;
   }
 
-  for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {
+  VIOCount i;
+  for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
     struct hash_lock *lock = &zone->lockArray[i];
     initializeHashLock(lock);
     pushRingNode(&zone->lockPool, &lock->poolNode);
@@ -349,7 +350,8 @@ void dumpHashZone(const struct hash_zone *zone)
 
   logInfo("struct hash_zone %u: mapSize=%zu",
           zone->zoneNumber, pointerMapSize(zone->hashLockMap));
-  for (VIOCount i = 0; i < LOCK_POOL_CAPACITY; i++) {
+  VIOCount i;
+  for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
     dumpHashLock(&zone->lockArray[i]);
   }
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#25 $
  */
 
 #include "recoveryJournal.h"
@@ -440,7 +440,8 @@ int makeRecoveryJournal(Nonce                       nonce,
   // Only make the tail buffer and VIO in normal operation since the formatter
   // doesn't need them.
   if (layer->createMetadataVIO != NULL) {
-    for (BlockCount i = 0; i < tailBufferSize; i++) {
+    BlockCount i;
+    for (i = 0; i < tailBufferSize; i++) {
       struct recovery_journal_block *block;
       result = makeRecoveryBlock(layer, journal, &block);
       if (result != VDO_SUCCESS) {
@@ -1295,7 +1296,8 @@ void dumpRecoveryJournalStatistics(const struct recovery_journal *journal)
 
   logInfo("  active blocks:");
   const RingNode *head = &journal->activeTailBlocks;
-  for (RingNode *node = head->next; node != head; node = node->next) {
+  RingNode *node;
+  for (node = head->next; node != head; node = node->next) {
     dumpRecoveryBlock(blockFromRingNode(node));
   }
 }
