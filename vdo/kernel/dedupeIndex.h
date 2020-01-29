@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#15 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -144,7 +144,7 @@ void start_dedupe_index(struct dedupe_index *index, bool create_flag);
 void stop_dedupe_index(struct dedupe_index *index);
 
 /**
- * Wait until the dedupe index has completed all its outstanding I/O. 
+ * Wait until the dedupe index has completed all its outstanding I/O.
  * May be called from any thread,
  *
  * @param index      The dedupe index

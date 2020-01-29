@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#7 $
  */
 
 #include "sysfs.h"
@@ -283,7 +283,7 @@ static ssize_t vdo_attr_store(struct kobject *kobj,
 
 static struct vdo_attribute vdo_status_attr = {
 	.attr = {
-		
+
 			.name = "status",
 			.mode = 0444,
 		},
@@ -292,7 +292,7 @@ static struct vdo_attribute vdo_status_attr = {
 
 static struct vdo_attribute vdo_log_level_attr = {
 	.attr = {
-		
+
 			.name = "log_level",
 			.mode = 0644,
 		},
@@ -302,7 +302,7 @@ static struct vdo_attribute vdo_log_level_attr = {
 
 static struct vdo_attribute vdo_max_req_active_attr = {
 	.attr = {
-		
+
 			.name = "max_requests_active",
 			.mode = 0644,
 		},
@@ -313,7 +313,7 @@ static struct vdo_attribute vdo_max_req_active_attr = {
 
 static struct vdo_attribute vdo_albireo_timeout_interval = {
 	.attr = {
-		
+
 			.name = "deduplication_timeout_interval",
 			.mode = 0644,
 		},
@@ -324,7 +324,7 @@ static struct vdo_attribute vdo_albireo_timeout_interval = {
 
 static struct vdo_attribute vdo_min_albireo_timer_interval = {
 	.attr = {
-		
+
 			.name = "min_deduplication_timer_interval",
 			.mode = 0644,
 		},
@@ -335,7 +335,7 @@ static struct vdo_attribute vdo_min_albireo_timer_interval = {
 
 static struct vdo_attribute vdo_trace_recording = {
 	.attr = {
-		
+
 			.name = "trace_recording",
 			.mode = 0644,
 		},
@@ -346,7 +346,7 @@ static struct vdo_attribute vdo_trace_recording = {
 
 static struct vdo_attribute vdo_version_attr = {
 	.attr = {
-		
+
 			.name = "version",
 			.mode = 0444,
 		},
