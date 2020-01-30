@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#8 $
  */
 
 #include "hashZone.h"
@@ -105,7 +105,7 @@ static uint32_t hashKey(const void *key)
 /**********************************************************************/
 static inline struct hash_lock *asHashLock(RingNode *poolNode)
 {
-  STATIC_ASSERT(offsetof(struct hash_lock, poolNode) == 0);
+  STATIC_ASSERT(offsetof(struct hash_lock, pool_node) == 0);
   return (struct hash_lock *) poolNode;
 }
 
@@ -141,8 +141,8 @@ int makeHashZone(struct vdo        *vdo,
   VIOCount i;
   for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
     struct hash_lock *lock = &zone->lockArray[i];
-    initializeHashLock(lock);
-    pushRingNode(&zone->lockPool, &lock->poolNode);
+    initialize_hash_lock(lock);
+    pushRingNode(&zone->lockPool, &lock->pool_node);
   }
 
   *zonePtr = zone;
@@ -201,8 +201,8 @@ static void returnHashLockToPool(struct hash_zone  *zone,
   *lockPtr = NULL;
 
   memset(lock, 0, sizeof(*lock));
-  initializeHashLock(lock);
-  pushRingNode(&zone->lockPool, &lock->poolNode);
+  initialize_hash_lock(lock);
+  pushRingNode(&zone->lockPool, &lock->pool_node);
 }
 
 /**********************************************************************/
@@ -272,14 +272,14 @@ void returnHashLockToZone(struct hash_zone *zone, struct hash_lock **lockPtr)
 
   ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
                   "hash lock returned to zone must have no waiters");
-  ASSERT_LOG_ONLY((lock->duplicateLock == NULL),
+  ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
                   "hash lock returned to zone must not reference a PBN lock");
   ASSERT_LOG_ONLY((lock->state == HASH_LOCK_DESTROYING),
                   "returned hash lock must not be in use with state %s",
-                  getHashLockStateName(lock->state));
-  ASSERT_LOG_ONLY(isRingEmpty(&lock->poolNode),
+                  get_hash_lock_state_name(lock->state));
+  ASSERT_LOG_ONLY(isRingEmpty(&lock->pool_node),
                   "hash lock returned to zone must not be in a pool ring");
-  ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicateRing),
+  ASSERT_LOG_ONLY(isRingEmpty(&lock->duplicate_ring),
                   "hash lock returned to zone must not reference DataVIOs");
 
   returnHashLockToPool(zone, &lock);
@@ -293,21 +293,21 @@ void returnHashLockToZone(struct hash_zone *zone, struct hash_lock **lockPtr)
  **/
 static void dumpHashLock(const struct hash_lock *lock)
 {
-  if (!isRingEmpty(&lock->poolNode)) {
+  if (!isRingEmpty(&lock->pool_node)) {
     // This lock is on the free list.
     return;
   }
 
   // Necessarily cryptic since we can log a lot of these. First three chars of
   // state is unambiguous. 'U' indicates a lock not registered in the map.
-  const char *state = getHashLockStateName(lock->state);
+  const char *state = get_hash_lock_state_name(lock->state);
   logInfo("  hl %" PRIptr ": %3.3s %c%llu/%u rc=%u wc=%zu agt=%" PRIptr,
           (const void *) lock,
           state,
           (lock->registered ? 'D' : 'U'),
           lock->duplicate.pbn,
           lock->duplicate.state,
-          lock->referenceCount,
+          lock->reference_count,
           countWaiters(&lock->waiters),
           (void *) lock->agent);
 }

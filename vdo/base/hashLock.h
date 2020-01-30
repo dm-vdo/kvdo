@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.h#4 $
  */
 
 #ifndef HASH_LOCK_H
@@ -28,12 +28,12 @@
  * Get the PBN lock on the duplicate data location for a data_vio from the
  * HashLock the data_vio holds (if there is one).
  *
- * @param dataVIO  The data_vio to query
+ * @param data_vio  The data_vio to query
  *
  * @return The PBN lock on the data_vio's duplicate location
  **/
-struct pbn_lock *getDuplicateLock(struct data_vio *dataVIO)
-  __attribute__((warn_unused_result));
+struct pbn_lock *get_duplicate_lock(struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Acquire or share a lock on the hash (chunk name) of the data in a data_vio,
@@ -41,38 +41,38 @@ struct pbn_lock *getDuplicateLock(struct data_vio *dataVIO)
  * correct thread for the zone. In the unlikely case of a hash collision, this
  * function will succeed, but the data_vio will not get a lock reference.
  *
- * @param dataVIO  The data_vio acquiring a lock on its chunk name
+ * @param data_vio  The data_vio acquiring a lock on its chunk name
  **/
-int acquireHashLock(struct data_vio *dataVIO)
-  __attribute__((warn_unused_result));
+int acquire_hash_lock(struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Asynchronously process a data_vio that has just acquired its reference to a
  * hash lock. This may place the data_vio on a wait queue, or it may use the
  * data_vio to perform operations on the lock's behalf.
  *
- * @param dataVIO  The data_vio that has just acquired a lock on its chunk name
+ * @param data_vio  The data_vio that has just acquired a lock on its chunk name
  **/
-void enterHashLock(struct data_vio *dataVIO);
+void enter_hash_lock(struct data_vio *data_vio);
 
 /**
  * Asynchronously continue processing a data_vio in its hash lock after it has
  * finished writing, compressing, or deduplicating, so it can share the result
- * with any DataVIOs waiting in the hash lock, or update Albireo, or simply
+ * with any data_vios waiting in the hash lock, or update Albireo, or simply
  * release its share of the lock. This must only be called in the correct
  * thread for the hash zone.
  *
- * @param dataVIO  The data_vio to continue processing in its hash lock
+ * @param data_vio  The data_vio to continue processing in its hash lock
  **/
-void continueHashLock(struct data_vio *dataVIO);
+void continue_hash_lock(struct data_vio *data_vio);
 
 /**
  * Re-enter the hash lock after encountering an error, to clean up the hash
  * lock.
  *
- * @param dataVIO  The data_vio with an error
+ * @param data_vio  The data_vio with an error
  **/
-void continueHashLockOnError(struct data_vio *dataVIO);
+void continue_hash_lock_on_error(struct data_vio *data_vio);
 
 /**
  * Release a data_vio's share of a hash lock, if held, and null out the
@@ -84,9 +84,9 @@ void continueHashLockOnError(struct data_vio *dataVIO);
  * block containing data with the same hash) and returns the lock to the hash
  * zone's lock pool.
  *
- * @param dataVIO  The data_vio releasing its hash lock
+ * @param data_vio  The data_vio releasing its hash lock
  **/
-void releaseHashLock(struct data_vio *dataVIO);
+void release_hash_lock(struct data_vio *data_vio);
 
 /**
  * Make a data_vio's hash lock a shared holder of the PBN lock on the
@@ -94,10 +94,10 @@ void releaseHashLock(struct data_vio *dataVIO);
  * write lock (as it will be for the first share), it will be converted to a
  * read lock. This also reserves a reference count increment for the data_vio.
  *
- * @param dataVIO  The data_vio which was just compressed
- * @param pbnLock  The PBN lock on the compressed block
+ * @param data_vio  The data_vio which was just compressed
+ * @param pbn_lock  The PBN lock on the compressed block
  **/
-void shareCompressedWriteLock(struct data_vio *dataVIO,
-                              struct pbn_lock *pbnLock);
+void share_compressed_write_lock(struct data_vio *data_vio,
+				 struct pbn_lock *pbn_lock);
 
 #endif // HASH_LOCK_H

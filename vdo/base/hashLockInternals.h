@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#7 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -29,84 +29,94 @@
 #include "waitQueue.h"
 
 typedef enum {
-  /** State for locks that are not in use or are being initialized. */
-  HASH_LOCK_INITIALIZING = 0,
+	/** State for locks that are not in use or are being initialized. */
+	HASH_LOCK_INITIALIZING = 0,
 
-  // This is the sequence of states typically used on the non-dedupe path.
-  HASH_LOCK_QUERYING,
-  HASH_LOCK_WRITING,
-  HASH_LOCK_UPDATING,
+	// This is the sequence of states typically used on the non-dedupe path.
+	HASH_LOCK_QUERYING,
+	HASH_LOCK_WRITING,
+	HASH_LOCK_UPDATING,
 
-  // The remaining states are typically used on the dedupe path in this order.
-  HASH_LOCK_LOCKING,
-  HASH_LOCK_VERIFYING,
-  HASH_LOCK_DEDUPING,
-  HASH_LOCK_UNLOCKING,
+	// The remaining states are typically used on the dedupe path in this
+	// order.
+	HASH_LOCK_LOCKING,
+	HASH_LOCK_VERIFYING,
+	HASH_LOCK_DEDUPING,
+	HASH_LOCK_UNLOCKING,
 
-  // XXX This is a temporary state denoting a lock which is sending VIOs back
-  // to the old dedupe and vioWrite pathways. It won't be in the final version
-  // of VDOSTORY-190.
-  HASH_LOCK_BYPASSING,
+	// XXX This is a temporary state denoting a lock which is sending VIOs
+	// back to the old dedupe and vioWrite pathways. It won't be in the
+	// final version of VDOSTORY-190.
+	HASH_LOCK_BYPASSING,
 
-  /**
-   * Terminal state for locks returning to the pool. Must be last both because
-   * it's the final state, and also because it's used to count the states.
-   **/
-  HASH_LOCK_DESTROYING,
-} HashLockState;
+	/**
+	 * Terminal state for locks returning to the pool. Must be last both
+	 * because it's the final state, and also because it's used to count the
+	 * states.
+	 **/
+	HASH_LOCK_DESTROYING,
+} hash_lock_state;
 
 struct hash_lock {
-  /** When the lock is unused, this RingNode allows the lock to be pooled */
-  RingNode               poolNode;
+	/**
+	 * When the lock is unused, this RingNode allows the lock to be pooled
+	 */
+	RingNode pool_node;
 
-  /** The block hash covered by this lock */
-  UdsChunkName           hash;
+	/** The block hash covered by this lock */
+	UdsChunkName hash;
 
-  /**
-   * A ring containing the DataVIOs sharing this lock, all having the same
-   * chunk name and data block contents, linked by their hashLockNode fields.
-   **/
-  RingNode               duplicateRing;
+	/**
+	 * A ring containing the DataVIOs sharing this lock, all having the same
+	 * chunk name and data block contents, linked by their hashLockNode
+	 * fields.
+	 **/
+	RingNode duplicate_ring;
 
-  /** The number of DataVIOs sharing this lock instance */
-  VIOCount               referenceCount;
+	/** The number of DataVIOs sharing this lock instance */
+	VIOCount reference_count;
 
-  /** The maximum value of referenceCount in the lifetime of this lock */
-  VIOCount               maxReferences;
+	/** The maximum value of reference_count in the lifetime of this lock */
+	VIOCount max_references;
 
-  /** The current state of this lock */
-  HashLockState          state;
+	/** The current state of this lock */
+	hash_lock_state state;
 
-  /** True if the UDS index should be updated with new advice */
-  bool                   updateAdvice;
+	/** True if the UDS index should be updated with new advice */
+	bool update_advice;
 
-  /** True if the advice has been verified to be a true duplicate */
-  bool                   verified;
+	/** True if the advice has been verified to be a true duplicate */
+	bool verified;
 
-  /** True if the lock has already accounted for an initial verification */
-  bool                   verifyCounted;
+	/**
+	 * True if the lock has already accounted for an initial verification
+	 */
+	bool verify_counted;
 
-  /** True if this lock is registered in the lock map (cleared on rollover) */
-  bool                   registered;
+	/** True if this lock is registered in the lock map (cleared on
+	 * rollover)
+	 */
+	bool registered;
 
-  /**
-   * If verified is false, this is the location of a possible duplicate.
-   * If verified is true, is is the verified location of a true duplicate.
-   **/
-  struct zoned_pbn       duplicate;
+	/**
+	 * If verified is false, this is the location of a possible duplicate.
+	 * If verified is true, is is the verified location of a true duplicate.
+	 **/
+	struct zoned_pbn duplicate;
 
-  /** The PBN lock on the block containing the duplicate data */
-  struct pbn_lock       *duplicateLock;
+	/** The PBN lock on the block containing the duplicate data */
+	struct pbn_lock *duplicate_lock;
 
-  /** The data_vio designated to act on behalf of the lock */
-  struct data_vio       *agent;
+	/** The data_vio designated to act on behalf of the lock */
+	struct data_vio *agent;
 
-  /**
-   * Other DataVIOs with data identical to the agent who are currently waiting
-   * for the agent to get the information they all need to deduplicate--either
-   * against each other, or against an existing duplicate on disk.
-   **/
-  struct wait_queue      waiters;
+	/**
+	 * Other DataVIOs with data identical to the agent who are currently
+	 * waiting for the agent to get the information they all need to
+	 * deduplicate--either against each other, or against an existing
+	 * duplicate on disk.
+	 **/
+	struct wait_queue waiters;
 };
 
 /**
@@ -114,11 +124,11 @@ struct hash_lock {
  *
  * @param lock  The lock to initialize
  **/
-static inline void initializeHashLock(struct hash_lock *lock)
+static inline void initialize_hash_lock(struct hash_lock *lock)
 {
-  initializeRing(&lock->poolNode);
-  initializeRing(&lock->duplicateRing);
-  initializeWaitQueue(&lock->waiters);
+	initializeRing(&lock->pool_node);
+	initializeRing(&lock->duplicate_ring);
+	initializeWaitQueue(&lock->waiters);
 }
 
 /**
@@ -128,7 +138,7 @@ static inline void initializeHashLock(struct hash_lock *lock)
  *
  * @return The short string representing the state
  **/
-const char *getHashLockStateName(HashLockState state)
-  __attribute__((warn_unused_result));
+const char *get_hash_lock_state_name(hash_lock_state state)
+	__attribute__((warn_unused_result));
 
 #endif // HASH_LOCK_INTERNALS_H

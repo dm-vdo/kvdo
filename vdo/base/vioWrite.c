@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#17 $
  */
 
 /*
@@ -62,7 +62,7 @@
  *     prepareForDedupe()
  *     hashData()
  *     resolveHashZone()
- *     acquireHashLock()
+ *     acquire_hash_lock()
  *     attemptDedupe() (query albireo)
  *     if (isDuplicate) {
  *       verifyAdvice() (read verify)
@@ -124,7 +124,7 @@
  *       prepareForDedupe()
  *       hashData()
  *       resolveHashZone()
- *       acquireHashLock()
+ *       acquire_hash_lock()
  *       attemptDedupe() (query albireo)
  *       if (isDuplicate) {
  *         verifyAdvice() (read verify)
@@ -278,7 +278,7 @@ static void cleanHashLock(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
-  releaseHashLock(dataVIO);
+  release_hash_lock(dataVIO);
   performCleanupStage(dataVIO, VIO_RELEASE_LOGICAL);
 }
 
@@ -355,7 +355,7 @@ static void finishWriteDataVIOWithError(struct vdo_completion *completion)
 {
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInHashZone(dataVIO);
-  continueHashLockOnError(dataVIO);
+  continue_hash_lock_on_error(dataVIO);
 }
 
 /**
@@ -425,7 +425,7 @@ static void finishWriteDataVIO(struct vdo_completion *completion)
   if (abortOnError(completion->result, dataVIO, READ_ONLY_IF_ASYNC)) {
     return;
   }
-  continueHashLock(dataVIO);
+  continue_hash_lock(dataVIO);
 }
 
 /**
@@ -672,7 +672,7 @@ addRecoveryJournalEntryForCompression(struct vdo_completion *completion)
                            THIS_LOCATION("$F($dup);js=map/$dup;"
                                          "cb=incCompress($dup)"));
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_COMPRESSION;
-  journalIncrement(dataVIO, getDuplicateLock(dataVIO));
+  journalIncrement(dataVIO, get_duplicate_lock(dataVIO));
 }
 
 /**
@@ -768,7 +768,7 @@ static void addRecoveryJournalEntryForDedupe(struct vdo_completion *completion)
                            THIS_LOCATION("$F($dup);js=map/$dup;"
                                          "cb=incDedupe($dup)"));
   dataVIO->lastAsyncOperation = JOURNAL_MAPPING_FOR_DEDUPE;
-  journalIncrement(dataVIO, getDuplicateLock(dataVIO));
+  journalIncrement(dataVIO, get_duplicate_lock(dataVIO));
 }
 
 /**
@@ -813,7 +813,7 @@ static void lockHashInZone(struct vdo_completion *completion)
     return;
   }
 
-  int result = acquireHashLock(dataVIO);
+  int result = acquire_hash_lock(dataVIO);
   if (abortOnError(result, dataVIO, READ_ONLY)) {
     return;
   }
@@ -825,7 +825,7 @@ static void lockHashInZone(struct vdo_completion *completion)
     return;
   }
 
-  enterHashLock(dataVIO);
+  enter_hash_lock(dataVIO);
 }
 
 /**
