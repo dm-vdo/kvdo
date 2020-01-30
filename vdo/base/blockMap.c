@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#32 $
  */
 
 #include "blockMap.h"
@@ -377,12 +377,12 @@ int makeBlockMapCaches(struct block_map          *map,
   map->journal = journal;
   map->nonce   = nonce;
 
-  result = makeForest(map, map->entryCount);
+  result = make_forest(map, map->entryCount);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  replaceForest(map);
+  replace_forest(map);
   ZoneCount zone = 0;
   for (zone = 0; zone < map->zoneCount; zone++) {
     result = initializeBlockMapZone(&map->zones[zone], layer, readOnlyNotifier,
@@ -423,7 +423,7 @@ void freeBlockMap(struct block_map **mapPtr)
   }
 
   abandonBlockMapGrowth(map);
-  freeForest(&map->forest);
+  free_forest(&map->forest);
   free_action_manager(&map->actionManager);
 
   FREE(map);
@@ -606,7 +606,7 @@ int prepareToGrowBlockMap(struct block_map *map, BlockCount newLogicalBlocks)
     return VDO_SUCCESS;
   }
 
-  return makeForest(map, newLogicalBlocks);
+  return make_forest(map, newLogicalBlocks);
 }
 
 /**********************************************************************/
@@ -622,7 +622,7 @@ BlockCount getNewEntryCount(struct block_map *map)
  **/
 static void growForest(void *context, struct vdo_completion *completion)
 {
-  replaceForest(context);
+  replace_forest(context);
   completeCompletion(completion);
 }
 
@@ -636,7 +636,7 @@ void growBlockMap(struct block_map *map, struct vdo_completion *parent)
 /**********************************************************************/
 void abandonBlockMapGrowth(struct block_map *map)
 {
-  abandonForest(map);
+  abandon_forest(map);
 }
 
 /**

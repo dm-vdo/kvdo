@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#17 $
  */
 
 #include "forest.h"
@@ -42,289 +42,317 @@
 #include "vioPool.h"
 
 enum {
-  BLOCK_MAP_VIO_POOL_SIZE = 64,
+	BLOCK_MAP_VIO_POOL_SIZE = 64,
 };
 
 struct block_map_tree_segment {
-  struct tree_page *levels[BLOCK_MAP_TREE_HEIGHT];
+	struct tree_page *levels[BLOCK_MAP_TREE_HEIGHT];
 };
 
 struct block_map_tree {
-  struct block_map_tree_segment *segments;
+	struct block_map_tree_segment *segments;
 } block_map_tree;
 
 struct forest {
-  struct block_map       *map;
-  size_t                  segments;
-  struct boundary        *boundaries;
-  struct tree_page      **pages;
-  struct block_map_tree   trees[];
+	struct block_map *map;
+	size_t segments;
+	struct boundary *boundaries;
+	struct tree_page **pages;
+	struct block_map_tree trees[];
 };
 
 struct cursor_level {
-  PageNumber pageIndex;
-  SlotNumber slot;
+	PageNumber page_index;
+	SlotNumber slot;
 };
 
 struct cursors;
 
 struct cursor {
-  struct waiter          waiter;
-  struct block_map_tree *tree;
-  Height                 height;
-  struct cursors        *parent;
-  struct boundary        boundary;
-  struct cursor_level    levels[BLOCK_MAP_TREE_HEIGHT];
-  struct vio_pool_entry *vioPoolEntry;
+	struct waiter waiter;
+	struct block_map_tree *tree;
+	Height height;
+	struct cursors *parent;
+	struct boundary boundary;
+	struct cursor_level levels[BLOCK_MAP_TREE_HEIGHT];
+	struct vio_pool_entry *vio_pool_entry;
 };
 
 struct cursors {
-  struct block_map           *map;
-  struct block_map_tree_zone *zone;
-  struct vio_pool            *pool;
-  EntryCallback              *entryCallback;
-  struct vdo_completion      *parent;
-  RootCount                   activeRoots;
-  struct cursor               cursors[];
+	struct block_map *map;
+	struct block_map_tree_zone *zone;
+	struct vio_pool *pool;
+	entry_callback *entry_callback;
+	struct vdo_completion *parent;
+	RootCount active_roots;
+	struct cursor cursors[];
 };
 
 /**********************************************************************/
-struct tree_page *getTreePageByIndex(struct forest *forest,
-                                     RootCount      rootIndex,
-                                     Height         height,
-                                     PageNumber     pageIndex)
+struct tree_page *get_tree_page_by_index(struct forest *forest,
+					 RootCount root_index,
+					 Height height,
+					 PageNumber page_index)
 {
-  PageNumber offset = 0;
-  size_t segment;
-  for (segment = 0; segment < forest->segments; segment++) {
-    PageNumber border = forest->boundaries[segment].levels[height - 1];
-    if (pageIndex < border) {
-      struct block_map_tree *tree = &forest->trees[rootIndex];
-      return &(tree->segments[segment].levels[height - 1][pageIndex - offset]);
-    }
-    offset = border;
-  }
+	PageNumber offset = 0;
+	size_t segment;
+	for (segment = 0; segment < forest->segments; segment++) {
+		PageNumber border =
+			forest->boundaries[segment].levels[height - 1];
+		if (page_index < border) {
+			struct block_map_tree *tree = &forest->trees[root_index];
+			return &(tree->segments[segment]
+				 .levels[height - 1][page_index - offset]);
+		}
+		offset = border;
+	}
 
-  return NULL;
+	return NULL;
 }
 
 /**
  * Compute the number of pages which must be allocated at each level in order
  * to grow the forest to a new number of entries.
  *
- * @param [in]  rootCount      The number of roots
- * @param [in]  flatPageCount  The number of flat block map pages
- * @param [in]  oldSizes       The current size of the forest at each level
- * @param [in]  entries        The new number of entries the block map must
- *                             address
- * @param [out] newSizes       The new size of the forest at each level
+ * @param [in]  root_count       The number of roots
+ * @param [in]  flat_page_count  The number of flat block map pages
+ * @param [in]  old_sizes        The current size of the forest at each level
+ * @param [in]  entries          The new number of entries the block map must
+ *                               address
+ * @param [out] new_sizes        The new size of the forest at each level
  *
  * @return The total number of non-leaf pages required
  **/
-static BlockCount computeNewPages(RootCount          rootCount,
-                                  BlockCount         flatPageCount,
-                                  struct boundary   *oldSizes,
-                                  BlockCount         entries,
-                                  struct boundary   *newSizes)
+static BlockCount compute_new_pages(RootCount root_count,
+				    BlockCount flat_page_count,
+				    struct boundary *old_sizes,
+				    BlockCount entries,
+				    struct boundary *new_sizes)
 {
-  PageCount leafPages
-    = maxPageCount(computeBlockMapPageCount(entries) - flatPageCount, 1);
-  PageCount  levelSize  = computeBucketCount(leafPages, rootCount);
-  BlockCount totalPages = 0;
-  Height height;
-  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
-    levelSize = computeBucketCount(levelSize, BLOCK_MAP_ENTRIES_PER_PAGE);
-    newSizes->levels[height] = levelSize;
-    BlockCount newPages = levelSize;
-    if (oldSizes != NULL) {
-      newPages -= oldSizes->levels[height];
-    }
-    totalPages += (newPages * rootCount);
-  }
+	PageCount leaf_pages = maxPageCount(computeBlockMapPageCount(entries) -
+					    flat_page_count, 1);
+	PageCount level_size = computeBucketCount(leaf_pages, root_count);
+	BlockCount total_pages = 0;
+	Height height;
+	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+		level_size = computeBucketCount(level_size,
+					       BLOCK_MAP_ENTRIES_PER_PAGE);
+		new_sizes->levels[height] = level_size;
+		BlockCount new_pages = level_size;
+		if (old_sizes != NULL) {
+			new_pages -= old_sizes->levels[height];
+		}
+		total_pages += (new_pages * root_count);
+	}
 
-  return totalPages;
+	return total_pages;
 }
 
 /**********************************************************************/
-static int makeSegment(struct forest   *oldForest,
-                       BlockCount       newPages,
-                       struct boundary *newBoundary,
-                       struct forest   *forest)
+static int make_segment(struct forest *old_forest,
+			BlockCount new_pages,
+			struct boundary *new_boundary,
+			struct forest *forest)
 {
-  size_t index     = (oldForest == NULL) ? 0 : oldForest->segments;
-  forest->segments = index + 1;
+	size_t index = (old_forest == NULL) ? 0 : old_forest->segments;
+	forest->segments = index + 1;
 
-  int result = ALLOCATE(forest->segments, struct boundary,
-                        "forest boundary array", &forest->boundaries);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	int result = ALLOCATE(forest->segments,
+			      struct boundary,
+			      "forest boundary array",
+			      &forest->boundaries);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = ALLOCATE(forest->segments, struct tree_page *,
-                    "forest page pointers",
-                    &forest->pages);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	result = ALLOCATE(forest->segments,
+			  struct tree_page *,
+			  "forest page pointers",
+			  &forest->pages);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = ALLOCATE(newPages, struct tree_page, "new forest pages",
-                    &forest->pages[index]);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	result = ALLOCATE(new_pages,
+			  struct tree_page,
+			  "new forest pages",
+			  &forest->pages[index]);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  if (index > 0) {
-    memcpy(forest->boundaries, oldForest->boundaries,
-           index * sizeof(struct boundary));
-    memcpy(forest->pages, oldForest->pages, index * sizeof(struct tree_page *));
-  }
+	if (index > 0) {
+		memcpy(forest->boundaries,
+		       old_forest->boundaries,
+		       index * sizeof(struct boundary));
+		memcpy(forest->pages,
+		       old_forest->pages,
+		       index * sizeof(struct tree_page *));
+	}
 
-  memcpy(&(forest->boundaries[index]), newBoundary, sizeof(struct boundary));
+	memcpy(&(forest->boundaries[index]),
+	       new_boundary,
+	       sizeof(struct boundary));
 
-  PageCount segmentSizes[BLOCK_MAP_TREE_HEIGHT];
-  Height height;
-  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
-    segmentSizes[height] = newBoundary->levels[height];
-    if (index > 0) {
-      segmentSizes[height] -= oldForest->boundaries[index - 1].levels[height];
-    }
-  }
+	PageCount segment_sizes[BLOCK_MAP_TREE_HEIGHT];
+	Height height;
+	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+		segment_sizes[height] = new_boundary->levels[height];
+		if (index > 0) {
+			segment_sizes[height] -=
+				old_forest->boundaries[index - 1].levels[height];
+		}
+	}
 
-  struct tree_page *pagePtr = forest->pages[index];
-  RootCount root;
-  for (root = 0; root < forest->map->rootCount; root++) {
-    struct block_map_tree *tree = &(forest->trees[root]);
-    int result = ALLOCATE(forest->segments, struct block_map_tree_segment,
-                          "tree root segments", &tree->segments);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
+	struct tree_page *page_ptr = forest->pages[index];
+	RootCount root;
+	for (root = 0; root < forest->map->rootCount; root++) {
+		struct block_map_tree *tree = &(forest->trees[root]);
+		int result = ALLOCATE(forest->segments,
+				      struct block_map_tree_segment,
+				      "tree root segments",
+				      &tree->segments);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
 
-    if (index > 0) {
-      memcpy(tree->segments, oldForest->trees[root].segments,
-             index * sizeof(struct block_map_tree_segment));
-    }
+		if (index > 0) {
+			memcpy(tree->segments,
+			       old_forest->trees[root].segments,
+			       index * sizeof(struct block_map_tree_segment));
+		}
 
-    struct block_map_tree_segment *segment = &(tree->segments[index]);
-    Height height;
-    for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
-      if (segmentSizes[height] == 0) {
-        continue;
-      }
+		struct block_map_tree_segment *segment =
+			&(tree->segments[index]);
+		Height height;
+		for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
+			if (segment_sizes[height] == 0) {
+				continue;
+			}
 
-      segment->levels[height] = pagePtr;
-      if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
-        // Record the root.
-        struct block_map_page *page = formatBlockMapPage(pagePtr->pageBuffer,
-                                                         forest->map->nonce,
-                                                         INVALID_PBN, true);
-        page->entries[0] = packPBN(forest->map->rootOrigin + root,
-                                   MAPPING_STATE_UNCOMPRESSED);
-      }
-      pagePtr += segmentSizes[height];
-    }
-  }
+			segment->levels[height] = page_ptr;
+			if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
+				// Record the root.
+				struct block_map_page *page =
+					formatBlockMapPage(page_ptr->pageBuffer,
+							   forest->map->nonce,
+							   INVALID_PBN,
+							   true);
+				page->entries[0] =
+					packPBN(forest->map->rootOrigin + root,
+						MAPPING_STATE_UNCOMPRESSED);
+			}
+			page_ptr += segment_sizes[height];
+		}
+	}
 
-  return VDO_SUCCESS;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-static void deforest(struct forest *forest, size_t firstPageSegment)
+static void deforest(struct forest *forest, size_t first_page_segment)
 {
-  if (forest->pages != NULL) {
-    size_t segment;
-    for (segment = firstPageSegment; segment < forest->segments;
-         segment++) {
-      FREE(forest->pages[segment]);
-    }
-    FREE(forest->pages);
-  }
+	if (forest->pages != NULL) {
+		size_t segment;
+		for (segment = first_page_segment; segment < forest->segments;
+		     segment++) {
+			FREE(forest->pages[segment]);
+		}
+		FREE(forest->pages);
+	}
 
-  RootCount root;
-  for (root = 0; root < forest->map->rootCount; root++) {
-    struct block_map_tree *tree = &(forest->trees[root]);
-    FREE(tree->segments);
-  }
+	RootCount root;
+	for (root = 0; root < forest->map->rootCount; root++) {
+		struct block_map_tree *tree = &(forest->trees[root]);
+		FREE(tree->segments);
+	}
 
-  FREE(forest->boundaries);
-  FREE(forest);
+	FREE(forest->boundaries);
+	FREE(forest);
 }
 
 /**********************************************************************/
-int makeForest(struct block_map *map, BlockCount entries)
+int make_forest(struct block_map *map, BlockCount entries)
 {
-  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
+	STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
 
-  struct forest   *oldForest   = map->forest;
-  struct boundary *oldBoundary = NULL;
-  if (oldForest != NULL) {
-    oldBoundary = &(oldForest->boundaries[oldForest->segments - 1]);
-  }
+	struct forest *old_forest = map->forest;
+	struct boundary *oldBoundary = NULL;
+	if (old_forest != NULL) {
+		oldBoundary =
+			&(old_forest->boundaries[old_forest->segments - 1]);
+	}
 
-  struct boundary newBoundary;
-  BlockCount newPages = computeNewPages(map->rootCount, map->flatPageCount,
-                                        oldBoundary, entries, &newBoundary);
-  if (newPages == 0) {
-    map->nextEntryCount = entries;
-    return VDO_SUCCESS;
-  }
+	struct boundary new_boundary;
+	BlockCount new_pages = compute_new_pages(map->rootCount,
+						 map->flatPageCount,
+						 oldBoundary,
+						 entries,
+						 &new_boundary);
+	if (new_pages == 0) {
+		map->nextEntryCount = entries;
+		return VDO_SUCCESS;
+	}
 
-  struct forest *forest;
-  int result = ALLOCATE_EXTENDED(struct forest, map->rootCount,
-                                 struct block_map_tree, __func__, &forest);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct forest *forest;
+	int result = ALLOCATE_EXTENDED(struct forest,
+				       map->rootCount,
+				       struct block_map_tree,
+				       __func__,
+				       &forest);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  forest->map = map;
-  result = makeSegment(oldForest, newPages, &newBoundary, forest);
-  if (result != VDO_SUCCESS) {
-    deforest(forest, forest->segments - 1);
-    return result;
-  }
+	forest->map = map;
+	result = make_segment(old_forest, new_pages, &new_boundary, forest);
+	if (result != VDO_SUCCESS) {
+		deforest(forest, forest->segments - 1);
+		return result;
+	}
 
-  map->nextForest     = forest;
-  map->nextEntryCount = entries;
-  return VDO_SUCCESS;
+	map->nextForest = forest;
+	map->nextEntryCount = entries;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeForest(struct forest **forestPtr)
+void free_forest(struct forest **forestPtr)
 {
-  struct forest *forest = *forestPtr;
-  if (forest == NULL) {
-    return;
-  }
+	struct forest *forest = *forestPtr;
+	if (forest == NULL) {
+		return;
+	}
 
-  deforest(forest, 0);
-  *forestPtr = NULL;
+	deforest(forest, 0);
+	*forestPtr = NULL;
 }
 
 /**********************************************************************/
-void abandonForest(struct block_map *map)
+void abandon_forest(struct block_map *map)
 {
-  struct forest *forest = map->nextForest;
-  map->nextForest = NULL;
-  if (forest != NULL) {
-    deforest(forest, forest->segments - 1);
-  }
+	struct forest *forest = map->nextForest;
+	map->nextForest = NULL;
+	if (forest != NULL) {
+		deforest(forest, forest->segments - 1);
+	}
 
-  map->nextEntryCount = 0;
+	map->nextEntryCount = 0;
 }
 
 /**********************************************************************/
-void replaceForest(struct block_map *map)
+void replace_forest(struct block_map *map)
 {
-  if (map->nextForest != NULL) {
-    if (map->forest != NULL) {
-      deforest(map->forest, map->forest->segments);
-    }
-    map->forest     = map->nextForest;
-    map->nextForest = NULL;
-  }
+	if (map->nextForest != NULL) {
+		if (map->forest != NULL) {
+			deforest(map->forest, map->forest->segments);
+		}
+		map->forest = map->nextForest;
+		map->nextForest = NULL;
+	}
 
-  map->entryCount     = map->nextEntryCount;
-  map->nextEntryCount = 0;
+	map->entryCount = map->nextEntryCount;
+	map->nextEntryCount = 0;
 }
 
 /**
@@ -333,18 +361,18 @@ void replaceForest(struct block_map *map)
  *
  * @param cursor  The cursor doing the traversal
  **/
-static void finishCursor(struct cursor *cursor)
+static void finish_cursor(struct cursor *cursor)
 {
-  struct cursors *cursors = cursor->parent;
-  returnVIOToPool(cursors->pool, cursor->vioPoolEntry);
-  if (--cursors->activeRoots > 0) {
-    return;
-  }
+	struct cursors *cursors = cursor->parent;
+	returnVIOToPool(cursors->pool, cursor->vio_pool_entry);
+	if (--cursors->active_roots > 0) {
+		return;
+	}
 
-  struct vdo_completion *parent = cursors->parent;
-  FREE(cursors);
+	struct vdo_completion *parent = cursors->parent;
+	FREE(cursors);
 
-  finishCompletion(parent, VDO_SUCCESS);
+	finishCompletion(parent, VDO_SUCCESS);
 }
 
 /**********************************************************************/
@@ -357,9 +385,9 @@ static void traverse(struct cursor *cursor);
  **/
 static void continueTraversal(struct vdo_completion *completion)
 {
-  struct vio_pool_entry  *poolEntry = completion->parent;
-  struct cursor          *cursor    = poolEntry->parent;
-  traverse(cursor);
+	struct vio_pool_entry *pool_entry = completion->parent;
+	struct cursor *cursor = pool_entry->parent;
+	traverse(cursor);
 }
 
 /**
@@ -369,17 +397,20 @@ static void continueTraversal(struct vdo_completion *completion)
  **/
 static void finishTraversalLoad(struct vdo_completion *completion)
 {
-  struct vio_pool_entry         *entry  = completion->parent;
-  struct cursor                 *cursor = entry->parent;
-  Height                         height = cursor->height;
-  struct cursor_level           *level  = &cursor->levels[height];
+	struct vio_pool_entry *entry = completion->parent;
+	struct cursor *cursor = entry->parent;
+	Height height = cursor->height;
+	struct cursor_level *level = &cursor->levels[height];
 
-  struct tree_page *treePage
-    = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
-  struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
-  copyValidPage(entry->buffer, cursor->parent->map->nonce,
-                entry->vio->physical, page);
-  traverse(cursor);
+	struct tree_page *treePage =
+		&(cursor->tree->segments[0].levels[height][level->page_index]);
+	struct block_map_page *page =
+		(struct block_map_page *)treePage->pageBuffer;
+	copyValidPage(entry->buffer,
+		      cursor->parent->map->nonce,
+		      entry->vio->physical,
+		      page);
+	traverse(cursor);
 }
 
 /**
@@ -390,70 +421,83 @@ static void finishTraversalLoad(struct vdo_completion *completion)
  **/
 static void traverse(struct cursor *cursor)
 {
-  for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
-    Height               height = cursor->height;
-    struct cursor_level *level  = &cursor->levels[height];
-    struct tree_page *treePage
-      = &(cursor->tree->segments[0].levels[height][level->pageIndex]);
-    struct block_map_page *page
-      = (struct block_map_page *) treePage->pageBuffer;
-    if (!isBlockMapPageInitialized(page)) {
-      continue;
-    }
+	for (; cursor->height < BLOCK_MAP_TREE_HEIGHT; cursor->height++) {
+		Height height = cursor->height;
+		struct cursor_level *level = &cursor->levels[height];
+		struct tree_page *tree_page =
+			&(cursor->tree->segments[0]
+				  .levels[height][level->page_index]);
+		struct block_map_page *page =
+			(struct block_map_page *)tree_page->pageBuffer;
+		if (!isBlockMapPageInitialized(page)) {
+			continue;
+		}
 
-    for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE; level->slot++) {
-      struct data_location location
-        = unpackBlockMapEntry(&page->entries[level->slot]);
-      if (!isValidLocation(&location)) {
-        // This entry is invalid, so remove it from the page.
-        page->entries[level->slot]
-          = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-        writeTreePage(treePage, cursor->parent->zone);
-        continue;
-      }
+		for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE;
+		     level->slot++) {
+			struct data_location location =
+				unpackBlockMapEntry(&page->entries[level->slot]);
+			if (!isValidLocation(&location)) {
+				// This entry is invalid, so remove it from the
+				// page.
+				page->entries[level->slot] =
+					packPBN(ZERO_BLOCK,
+						MAPPING_STATE_UNMAPPED);
+				writeTreePage(tree_page, cursor->parent->zone);
+				continue;
+			}
 
-      if (!isMappedLocation(&location)) {
-        continue;
-      }
+			if (!isMappedLocation(&location)) {
+				continue;
+			}
 
-      PageNumber entryIndex
-        = (BLOCK_MAP_ENTRIES_PER_PAGE * level->pageIndex) + level->slot;
+			PageNumber entry_index =
+				(BLOCK_MAP_ENTRIES_PER_PAGE *
+				 level->page_index) + level->slot;
 
-      // Erase mapped entries past the end of the logical space.
-      if (entryIndex >= cursor->boundary.levels[height]) {
-        page->entries[level->slot]
-          = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-        writeTreePage(treePage, cursor->parent->zone);
-        continue;
-      }
+			// Erase mapped entries past the end of the logical
+			// space.
+			if (entry_index >= cursor->boundary.levels[height]) {
+				page->entries[level->slot] =
+					packPBN(ZERO_BLOCK,
+						MAPPING_STATE_UNMAPPED);
+				writeTreePage(tree_page, cursor->parent->zone);
+				continue;
+			}
 
-      if (cursor->height < BLOCK_MAP_TREE_HEIGHT - 1) {
-        int result = cursor->parent->entryCallback(location.pbn,
-                                                   cursor->parent->parent);
-        if (result != VDO_SUCCESS) {
-          page->entries[level->slot]
-            = packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-          writeTreePage(treePage, cursor->parent->zone);
-          continue;
-        }
-      }
+			if (cursor->height < BLOCK_MAP_TREE_HEIGHT - 1) {
+				int result =
+					cursor->parent->entry_callback(location.pbn,
+								       cursor->parent->parent);
+				if (result != VDO_SUCCESS) {
+					page->entries[level->slot] =
+						packPBN(ZERO_BLOCK,
+							MAPPING_STATE_UNMAPPED);
+					writeTreePage(tree_page,
+						      cursor->parent->zone);
+					continue;
+				}
+			}
 
-      if (cursor->height == 0) {
-        continue;
-      }
+			if (cursor->height == 0) {
+				continue;
+			}
 
-      cursor->height--;
-      struct cursor_level *nextLevel = &cursor->levels[cursor->height];
-      nextLevel->pageIndex           = entryIndex;
-      nextLevel->slot                = 0;
-      level->slot++;
-      launchReadMetadataVIO(cursor->vioPoolEntry->vio, location.pbn,
-                            finishTraversalLoad, continueTraversal);
-      return;
-    }
-  }
+			cursor->height--;
+			struct cursor_level *nextLevel =
+				&cursor->levels[cursor->height];
+			nextLevel->page_index = entry_index;
+			nextLevel->slot = 0;
+			level->slot++;
+			launchReadMetadataVIO(cursor->vio_pool_entry->vio,
+					      location.pbn,
+					      finishTraversalLoad,
+					      continueTraversal);
+			return;
+		}
+	}
 
-  finishCursor(cursor);
+	finish_cursor(cursor);
 }
 
 /**
@@ -465,114 +509,127 @@ static void traverse(struct cursor *cursor)
  * @param waiter   The cursor
  * @param context  The vio_pool_entry just acquired
  **/
-static void launchCursor(struct waiter *waiter, void *context)
+static void launch_cursor(struct waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
-  struct cursor *cursor               = (struct cursor *) waiter;
-  cursor->vioPoolEntry                = (struct vio_pool_entry *) context;
-  cursor->vioPoolEntry->parent        = cursor;
-  vioAsCompletion(cursor->vioPoolEntry->vio)->callbackThreadID
-    = cursor->parent->zone->mapZone->threadID;
-  traverse(cursor);
+	STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
+	struct cursor *cursor = (struct cursor *)waiter;
+	cursor->vio_pool_entry = (struct vio_pool_entry *)context;
+	cursor->vio_pool_entry->parent = cursor;
+	vioAsCompletion(cursor->vio_pool_entry->vio)->callbackThreadID =
+		cursor->parent->zone->mapZone->threadID;
+	traverse(cursor);
 }
 
 /**
  * Compute the number of pages used at each level of the given root's tree.
  *
- * @param map        The block map
- * @param rootIndex  The index of the root to measure
+ * @param map         The block map
+ * @param root_index  The index of the root to measure
  *
  * @return The list of page counts as a boundary structure
  **/
-static struct boundary computeBoundary(struct block_map *map,
-                                       RootCount         rootIndex)
+static struct boundary compute_boundary(struct block_map *map,
+				       RootCount root_index)
 {
-  PageCount leafPages     = computeBlockMapPageCount(map->entryCount);
-  PageCount treeLeafPages = leafPages - map->flatPageCount;
+	PageCount leaf_pages = computeBlockMapPageCount(map->entryCount);
+	PageCount tree_leaf_pages = leaf_pages - map->flatPageCount;
 
-  /*
-   * Compute the leaf pages for this root. If the number of leaf pages does
-   * not distribute evenly, we must determine if this root gets an extra page.
-   * Extra pages are assigned to roots starting at firstTreeRoot and going up.
-   */
-  PageCount firstTreeRoot = map->flatPageCount % map->rootCount;
-  PageCount lastTreeRoot  = (leafPages - 1) % map->rootCount;
+	/*
+	 * Compute the leaf pages for this root. If the number of leaf pages
+	 * does not distribute evenly, we must determine if this root gets an
+	 * extra page. Extra pages are assigned to roots starting at
+	 * first_tree_root and going up.
+	 */
+	PageCount first_tree_root = map->flatPageCount % map->rootCount;
+	PageCount last_tree_root = (leaf_pages - 1) % map->rootCount;
 
-  PageCount levelPages = treeLeafPages / map->rootCount;
-  if (inCyclicRange(firstTreeRoot, rootIndex, lastTreeRoot, map->rootCount)) {
-    levelPages++;
-  }
+	PageCount level_pages = tree_leaf_pages / map->rootCount;
+	if (inCyclicRange(first_tree_root,
+			  root_index,
+			  last_tree_root,
+			  map->rootCount)) {
+		level_pages++;
+	}
 
-  struct boundary boundary;
-  Height height;
-  for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
-    boundary.levels[height] = levelPages;
-    levelPages = computeBucketCount(levelPages, BLOCK_MAP_ENTRIES_PER_PAGE);
-  }
+	struct boundary boundary;
+	Height height;
+	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
+		boundary.levels[height] = level_pages;
+		level_pages = computeBucketCount(level_pages,
+						 BLOCK_MAP_ENTRIES_PER_PAGE);
+	}
 
-  // The root node always exists, even if the root is otherwise unused.
-  boundary.levels[BLOCK_MAP_TREE_HEIGHT - 1] = 1;
+	// The root node always exists, even if the root is otherwise unused.
+	boundary.levels[BLOCK_MAP_TREE_HEIGHT - 1] = 1;
 
-  return boundary;
+	return boundary;
 }
 
 /**********************************************************************/
-void traverseForest(struct block_map      *map,
-                    EntryCallback         *entryCallback,
-                    struct vdo_completion *parent)
+void traverse_forest(struct block_map *map,
+		     entry_callback *entry_callback,
+		     struct vdo_completion *parent)
 {
-  if (computeBlockMapPageCount(map->entryCount) <= map->flatPageCount) {
-    // There are no tree pages, so there's nothing to do.
-    finishCompletion(parent, VDO_SUCCESS);
-    return;
-  }
+	if (computeBlockMapPageCount(map->entryCount) <= map->flatPageCount) {
+		// There are no tree pages, so there's nothing to do.
+		finishCompletion(parent, VDO_SUCCESS);
+		return;
+	}
 
-  struct cursors *cursors;
-  int result = ALLOCATE_EXTENDED(struct cursors, map->rootCount,
-                                 struct cursor, __func__, &cursors);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
-    return;
-  }
+	struct cursors *cursors;
+	int result = ALLOCATE_EXTENDED(struct cursors,
+				       map->rootCount,
+				       struct cursor,
+				       __func__,
+				       &cursors);
+	if (result != VDO_SUCCESS) {
+		finishCompletion(parent, result);
+		return;
+	}
 
-  cursors->map           = map;
-  cursors->zone          = &(getBlockMapZone(map, 0)->treeZone);
-  cursors->pool          = cursors->zone->vioPool;
-  cursors->entryCallback = entryCallback;
-  cursors->parent        = parent;
-  cursors->activeRoots   = map->rootCount;
-  RootCount root;
-  for (root = 0; root < map->rootCount; root++) {
-    struct cursor *cursor = &cursors->cursors[root];
-    *cursor = (struct cursor) {
-      .tree     = &map->forest->trees[root],
-      .height   = BLOCK_MAP_TREE_HEIGHT - 1,
-      .parent   = cursors,
-      .boundary = computeBoundary(map, root),
-    };
+	cursors->map = map;
+	cursors->zone = &(getBlockMapZone(map, 0)->treeZone);
+	cursors->pool = cursors->zone->vioPool;
+	cursors->entry_callback = entry_callback;
+	cursors->parent = parent;
+	cursors->active_roots = map->rootCount;
+	RootCount root;
+	for (root = 0; root < map->rootCount; root++) {
+		struct cursor *cursor = &cursors->cursors[root];
+		*cursor = (struct cursor) {
+			.tree = &map->forest->trees[root],
+			.height = BLOCK_MAP_TREE_HEIGHT - 1,
+			.parent = cursors,
+			.boundary = compute_boundary(map, root),
+		};
 
-    cursor->waiter.callback = launchCursor;
-    acquireVIOFromPool(cursors->pool, &cursor->waiter);
-  };
+		cursor->waiter.callback = launch_cursor;
+		acquireVIOFromPool(cursors->pool, &cursor->waiter);
+	};
 }
 
 /**********************************************************************/
-BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
+BlockCount compute_forest_size(BlockCount logical_blocks, RootCount root_count)
 {
-  struct boundary newSizes;
-  BlockCount approximateNonLeaves
-    = computeNewPages(rootCount, 0, NULL, logicalBlocks, &newSizes);
+	struct boundary new_sizes;
+	BlockCount approximate_non_leaves =
+		compute_new_pages(root_count,
+				  0,
+				  NULL,
+				  logical_blocks,
+				  &new_sizes);
 
-  // Exclude the tree roots since those aren't allocated from slabs,
-  // and also exclude the super-roots, which only exist in memory.
-  approximateNonLeaves
-    -= rootCount * (newSizes.levels[BLOCK_MAP_TREE_HEIGHT - 2]
-                    + newSizes.levels[BLOCK_MAP_TREE_HEIGHT - 1]);
+	// Exclude the tree roots since those aren't allocated from slabs,
+	// and also exclude the super-roots, which only exist in memory.
+	approximate_non_leaves -=
+		root_count * (new_sizes.levels[BLOCK_MAP_TREE_HEIGHT - 2] +
+			      new_sizes.levels[BLOCK_MAP_TREE_HEIGHT - 1]);
 
-  BlockCount approximateLeaves
-    = computeBlockMapPageCount(logicalBlocks - approximateNonLeaves);
+	BlockCount approximate_leaves =
+		computeBlockMapPageCount(logical_blocks -
+					 approximate_non_leaves);
 
-  // This can be a slight over-estimate since the tree will never have to
-  // address these blocks, so it might be a tiny bit smaller.
-  return (approximateNonLeaves + approximateLeaves);
+	// This can be a slight over-estimate since the tree will never have to
+	// address these blocks, so it might be a tiny bit smaller.
+	return (approximate_non_leaves + approximate_leaves);
 }

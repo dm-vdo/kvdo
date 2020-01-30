@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#31 $
  */
 
 #include "blockMapTree.h"
@@ -175,10 +175,10 @@ static inline struct tree_page *
 getTreePage(const struct block_map_tree_zone *zone,
             const struct tree_lock           *lock)
 {
-  return getTreePageByIndex(zone->mapZone->blockMap->forest,
-                            lock->rootIndex,
-                            lock->height,
-                            lock->treeSlots[lock->height].pageIndex);
+  return get_tree_page_by_index(zone->mapZone->blockMap->forest,
+                                lock->rootIndex,
+                                lock->height,
+                                lock->treeSlots[lock->height].pageIndex);
 }
 
 /**********************************************************************/
@@ -1274,7 +1274,7 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
   pageIndex /= BLOCK_MAP_ENTRIES_PER_PAGE;
 
   struct tree_page *treePage
-    = getTreePageByIndex(map->forest, rootIndex, 1, pageIndex);
+    = get_tree_page_by_index(map->forest, rootIndex, 1, pageIndex);
   struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
   if (!isBlockMapPageInitialized(page)) {
     return ZERO_BLOCK;

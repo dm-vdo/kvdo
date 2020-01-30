@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.h#6 $
  */
 
 #ifndef FOREST_H
@@ -33,24 +33,24 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int EntryCallback(PhysicalBlockNumber    pbn,
-                          struct vdo_completion *completion);
+typedef int entry_callback(PhysicalBlockNumber pbn,
+			   struct vdo_completion *completion);
 
 /**
  * Get the tree page for a given height and page index.
  *
- * @param forest     The forest which holds the page
- * @param rootIndex  The index of the tree that holds the page
- * @param height     The height of the desired page
- * @param pageIndex  The index of the desired page
+ * @param forest      The forest which holds the page
+ * @param root_index  The index of the tree that holds the page
+ * @param height      The height of the desired page
+ * @param page_index  The index of the desired page
  *
  * @return The requested page
  **/
-struct tree_page *getTreePageByIndex(struct forest *forest,
-                                     RootCount      rootIndex,
-                                     Height         height,
-                                     PageNumber     pageIndex)
-  __attribute__((warn_unused_result));
+struct tree_page *get_tree_page_by_index(struct forest *forest,
+					 RootCount root_index,
+					 Height height,
+					 PageNumber page_index)
+	__attribute__((warn_unused_result));
 
 /**
  * Make a collection of trees for a block_map, expanding the existing forest if
@@ -61,55 +61,55 @@ struct tree_page *getTreePageByIndex(struct forest *forest,
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeForest(struct block_map *map, BlockCount entries)
-  __attribute__((warn_unused_result));
+int make_forest(struct block_map *map, BlockCount entries)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a forest and all of the segments it contains and NULL out the reference
  * to it.
  *
- * @param forestPtr  A pointer to the forest to free
+ * @param forest_ptr  A pointer to the forest to free
  **/
-void freeForest(struct forest **forestPtr);
+void free_forest(struct forest **forest_ptr);
 
 /**
  * Abandon the unused next forest from a block_map.
  *
  * @param map  The block map
  **/
-void abandonForest(struct block_map *map);
+void abandon_forest(struct block_map *map);
 
 /**
  * Replace a block_map's forest with the already-prepared larger forest.
  *
  * @param map  The block map
  **/
-void replaceForest(struct block_map *map);
+void replace_forest(struct block_map *map);
 
 /**
  * Walk the entire forest of a block map.
  *
- * @param map            The block map to traverse
- * @param entryCallback  A function to call with the pbn of each allocated node
- *                       in the forest
- * @param parent         The completion to notify on each traversed PBN, and
- *                       when the traversal is complete
+ * @param map             The block map to traverse
+ * @param entry_callback  A function to call with the pbn of each allocated node
+ *                        in the forest
+ * @param parent          The completion to notify on each traversed PBN, and
+ *                        when the traversal is complete
  **/
-void traverseForest(struct block_map       *map,
-                    EntryCallback          *entryCallback,
-                    struct vdo_completion  *parent);
+void traverse_forest(struct block_map *map,
+		     entry_callback *entry_callback,
+		     struct vdo_completion *parent);
 
 /**
  * Compute the approximate number of pages which the forest will allocate in
  * order to map the specified number of logical blocks. This method assumes
  * that the block map is entirely arboreal.
  *
- * @param logicalBlocks  The number of blocks to map
- * @param rootCount      The number of trees in the forest
+ * @param logical_blocks  The number of blocks to map
+ * @param root_count      The number of trees in the forest
  *
  * @return A (slight) over-estimate of the total number of possible forest
  *         pages including the leaves
  **/
-BlockCount computeForestSize(BlockCount logicalBlocks, RootCount rootCount)
-  __attribute__((warn_unused_result));
+BlockCount compute_forest_size(BlockCount logical_blocks, RootCount root_count)
+	__attribute__((warn_unused_result));
 #endif // FOREST_H
