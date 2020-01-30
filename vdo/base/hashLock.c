@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#17 $
  */
 
 /**
@@ -165,8 +165,8 @@ const char *get_hash_lock_state_name(hash_lock_state state)
 /**
  * Set the current state of a hash lock.
  *
- * @param lock      The lock to update
- * @param newState  The new state
+ * @param lock       The lock to update
+ * @param new_state  The new state
  **/
 static void set_hash_lock_state(struct hash_lock *lock,
 				hash_lock_state new_state)
