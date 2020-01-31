@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressedBlock.c#6 $
  */
 
 #include "compressedBlock.h"
@@ -25,8 +25,8 @@
 #include "numeric.h"
 
 static const struct version_number COMPRESSED_BLOCK_1_0 = {
-	.majorVersion = 1,
-	.minorVersion = 0,
+	.major_version = 1,
+	.minor_version = 0,
 };
 
 /**********************************************************************/
@@ -34,7 +34,7 @@ void reset_compressed_block_header(compressed_block_header *header)
 {
 	STATIC_ASSERT(sizeof(header->fields) == sizeof(header->raw));
 
-	header->fields.version = packVersionNumber(COMPRESSED_BLOCK_1_0);
+	header->fields.version = pack_version_number(COMPRESSED_BLOCK_1_0);
 	memset(header->fields.sizes, 0, sizeof(header->fields.sizes));
 }
 
@@ -57,8 +57,8 @@ int get_compressed_block_fragment(BlockMappingState mappingState, char *buffer,
 
 	compressed_block_header *header = (compressed_block_header *)buffer;
 	struct version_number version =
-		unpackVersionNumber(header->fields.version);
-	if (!areSameVersion(version, COMPRESSED_BLOCK_1_0)) {
+		unpack_version_number(header->fields.version);
+	if (!are_same_version(version, COMPRESSED_BLOCK_1_0)) {
 		return VDO_INVALID_FRAGMENT;
 	}
 

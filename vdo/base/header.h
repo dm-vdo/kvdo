@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#3 $
  */
 
 #ifndef HEADER_H
@@ -40,8 +40,8 @@
  * to 0.
  **/
 struct version_number {
-  uint32_t majorVersion;
-  uint32_t minorVersion;
+	uint32_t major_version;
+	uint32_t minor_version;
 } __attribute__((packed));
 
 /**
@@ -49,48 +49,48 @@ struct version_number {
  * Both fields are stored in little-endian byte order.
  **/
 struct packed_version_number {
-  byte majorVersion[4];
-  byte minorVersion[4];
+	byte major_version[4];
+	byte minor_version[4];
 } __attribute__((packed));
 
 /**
  * The registry of component ids for use in headers
  **/
 typedef enum {
-  SUPER_BLOCK       = 0,
-  FIXED_LAYOUT      = 1,
-  RECOVERY_JOURNAL  = 2,
-  SLAB_DEPOT        = 3,
-  BLOCK_MAP         = 4,
-  GEOMETRY_BLOCK    = 5,
-} ComponentID;
+	SUPER_BLOCK = 0,
+	FIXED_LAYOUT = 1,
+	RECOVERY_JOURNAL = 2,
+	SLAB_DEPOT = 3,
+	BLOCK_MAP = 4,
+	GEOMETRY_BLOCK = 5,
+} component_id;
 
 /**
  * The header for versioned data stored on disk.
  **/
 struct header {
-  ComponentID           id;     // The component this is a header for
-  struct version_number version; // The version of the data format
-  size_t                size;   // The size of the data following this header
+	component_id id; // The component this is a header for
+	struct version_number version; // The version of the data format
+	size_t size; // The size of the data following this header
 } __attribute__((packed));
 
 enum {
-  ENCODED_HEADER_SIZE = sizeof(struct header),
+	ENCODED_HEADER_SIZE = sizeof(struct header),
 };
 
 /**
  * Check whether two version numbers are the same.
  *
- * @param versionA The first version
- * @param versionB The second version
+ * @param version_a The first version
+ * @param version_b The second version
  *
  * @return <code>true</code> if the two versions are the same
  **/
-static inline bool areSameVersion(struct version_number versionA,
-                                  struct version_number versionB)
+static inline bool are_same_version(struct version_number version_a,
+				    struct version_number version_b)
 {
-  return ((versionA.majorVersion == versionB.majorVersion)
-          && (versionA.minorVersion == versionB.minorVersion));
+	return ((version_a.major_version == version_b.major_version)
+		&& (version_a.minor_version == version_b.minor_version));
 }
 
 /**
@@ -99,55 +99,54 @@ static inline bool areSameVersion(struct version_number versionA,
  * its minor number differs, and the expected version's minor number
  * is greater than the actual version's minor number.
  *
- * @param expectedVersion The expected version
- * @param actualVersion   The version being validated
+ * @param expected_version The expected version
+ * @param actual_version   The version being validated
  *
  * @return <code>true</code> if the actual version is upgradable
  **/
-static inline bool isUpgradableVersion(struct version_number expectedVersion,
-                                       struct version_number actualVersion)
+static inline bool is_upgradable_version(struct version_number expected_version,
+					 struct version_number actual_version)
 {
-  return ((expectedVersion.majorVersion == actualVersion.majorVersion)
-          && (expectedVersion.minorVersion > actualVersion.minorVersion));
+	return ((expected_version.major_version == actual_version.major_version)
+		&& (expected_version.minor_version > actual_version.minor_version));
 }
 
 /**
  * Check whether a version matches an expected version. Logs an error
  * describing a mismatch.
  *
- * @param expectedVersion  The expected version
- * @param actualVersion    The version being validated
- * @param componentName    The name of the component or the calling function
- *                         (for error logging)
+ * @param expected_version  The expected version
+ * @param actual_version    The version being validated
+ * @param component_name    The name of the component or the calling function
+ *                          (for error logging)
  *
  * @return VDO_SUCCESS             if the versions are the same
  *         VDO_UNSUPPORTED_VERSION if the versions don't match
  **/
-int validateVersion(struct version_number  expectedVersion,
-                    struct version_number  actualVersion,
-                    const char            *componentName)
-  __attribute__((warn_unused_result));
+int validate_version(struct version_number expected_version,
+		     struct version_number actual_version,
+		     const char *component_name)
+	__attribute__((warn_unused_result));
 
 /**
  * Check whether a header matches expectations. Logs an error describing the
  * first mismatch found.
  *
- * @param expectedHeader  The expected header
- * @param actualHeader    The header being validated
- * @param exactSize       If true, the size fields of the two headers must be
- *                        the same, otherwise actualSize >= expectedSize is OK
- * @param componentName   The name of the component or the calling function
- *                        (for error logging)
+ * @param expected_header  The expected header
+ * @param actual_header    The header being validated
+ * @param exact_size       If true, the size fields of the two headers must be
+ *                         the same, otherwise actualSize >= expectedSize is OK
+ * @param component_name   The name of the component or the calling function
+ *                         (for error logging)
  *
  * @return VDO_SUCCESS             if the header meets expectations
  *         VDO_INCORRECT_COMPONENT if the component ids don't match
  *         VDO_UNSUPPORTED_VERSION if the versions or sizes don't match
  **/
-int validateHeader(const struct header *expectedHeader,
-                   const struct header *actualHeader,
-                   bool                 exactSize,
-                   const char          *componentName)
-  __attribute__((warn_unused_result));
+int validate_header(const struct header *expected_header,
+		    const struct header *actual_header, bool exact_size,
+		    const char *component_name)
+	__attribute__((warn_unused_result));
 
 /**
  * Encode a header into a buffer.
@@ -157,8 +156,8 @@ int validateHeader(const struct header *expectedHeader,
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeHeader(const struct header *header, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int encode_header(const struct header *header, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Encode a version number into a buffer.
@@ -168,8 +167,8 @@ int encodeHeader(const struct header *header, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeVersionNumber(struct version_number version, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int encode_version_number(struct version_number version, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode a header from a buffer.
@@ -179,8 +178,8 @@ int encodeVersionNumber(struct version_number version, Buffer *buffer)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decodeHeader(Buffer *buffer, struct header *header)
-  __attribute__((warn_unused_result));
+int decode_header(Buffer *buffer, struct header *header)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode a version number from a buffer.
@@ -190,8 +189,8 @@ int decodeHeader(Buffer *buffer, struct header *header)
  *
  * @return UDS_SUCCESS or an error
  **/
-int decodeVersionNumber(Buffer *buffer, struct version_number *version)
-  __attribute__((warn_unused_result));
+int decode_version_number(Buffer *buffer, struct version_number *version)
+	__attribute__((warn_unused_result));
 
 /**
  * Convert a version_number to its packed on-disk representation.
@@ -201,12 +200,12 @@ int decodeVersionNumber(Buffer *buffer, struct version_number *version)
  * @return the platform-independent representation of the version
  **/
 static inline struct packed_version_number
-packVersionNumber(struct version_number version)
+pack_version_number(struct version_number version)
 {
-  struct packed_version_number packed;
-  storeUInt32LE(packed.majorVersion, version.majorVersion);
-  storeUInt32LE(packed.minorVersion, version.minorVersion);
-  return packed;
+	struct packed_version_number packed;
+	storeUInt32LE(packed.major_version, version.major_version);
+	storeUInt32LE(packed.minor_version, version.minor_version);
+	return packed;
 }
 
 /**
@@ -217,12 +216,12 @@ packVersionNumber(struct version_number version)
  * @return the platform-independent representation of the version
  **/
 static inline struct version_number
-unpackVersionNumber(struct packed_version_number version)
+unpack_version_number(struct packed_version_number version)
 {
-  return (struct version_number) {
-    .majorVersion = getUInt32LE(version.majorVersion),
-    .minorVersion = getUInt32LE(version.minorVersion),
-  };
+	return (struct version_number){
+		.major_version = getUInt32LE(version.major_version),
+		.minor_version = getUInt32LE(version.minor_version),
+	};
 }
 
 #endif // HEADER_H

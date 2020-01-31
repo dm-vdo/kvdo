@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#8 $
  */
 
 #include "fixedLayout.h"
@@ -64,8 +64,8 @@ struct partition_3_0 {
 static const struct header LAYOUT_HEADER_3_0 = {
 	.id = FIXED_LAYOUT,
 	.version = {
-		.majorVersion = 3,
-		.minorVersion = 0,
+		.major_version = 3,
+		.minor_version = 0,
 	},
 	.size = sizeof(struct layout_3_0), // Minimum size
 					   // (contains no partitions)
@@ -386,7 +386,7 @@ int encode_fixed_layout(const struct fixed_layout *layout, Buffer *buffer)
 
 	struct header header = LAYOUT_HEADER_3_0;
 	header.size = getEncodedSize(layout);
-	int result = encodeHeader(&header, buffer);
+	int result = encode_header(&header, buffer);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
@@ -507,13 +507,13 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 int decode_fixed_layout(Buffer *buffer, struct fixed_layout **layout_ptr)
 {
 	struct header header;
-	int result = decodeHeader(buffer, &header);
+	int result = decode_header(buffer, &header);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// Layout is variable size, so only do a minimum size check here.
-	result = validateHeader(&LAYOUT_HEADER_3_0, &header, false, __func__);
+	result = validate_header(&LAYOUT_HEADER_3_0, &header, false, __func__);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#33 $
  */
 
 #include "blockMap.h"
@@ -50,8 +50,8 @@ struct block_map_state_2_0 {
 static const struct header BLOCK_MAP_HEADER_2_0 = {
   .id             = BLOCK_MAP,
   .version        = {
-    .majorVersion = 2,
-    .minorVersion = 0,
+    .major_version = 2,
+    .minor_version = 0,
   },
   .size           = sizeof(struct block_map_state_2_0),
 };
@@ -224,12 +224,12 @@ int decodeBlockMap(Buffer              *buffer,
                    struct block_map   **mapPtr)
 {
   struct header header;
-  int    result = decodeHeader(buffer, &header);
+  int    result = decode_header(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateHeader(&BLOCK_MAP_HEADER_2_0, &header, true, __func__);
+  result = validate_header(&BLOCK_MAP_HEADER_2_0, &header, true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -439,7 +439,7 @@ size_t getBlockMapEncodedSize(void)
 /**********************************************************************/
 int encodeBlockMap(const struct block_map *map, Buffer *buffer)
 {
-  int result = encodeHeader(&BLOCK_MAP_HEADER_2_0, buffer);
+  int result = encode_header(&BLOCK_MAP_HEADER_2_0, buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }

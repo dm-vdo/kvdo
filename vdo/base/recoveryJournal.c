@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#26 $
  */
 
 #include "recoveryJournal.h"
@@ -47,8 +47,8 @@ struct recovery_journal_state_7_0 {
 static const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
   .id = RECOVERY_JOURNAL,
   .version = {
-    .majorVersion = 7,
-    .minorVersion = 0,
+    .major_version = 7,
+    .minor_version = 0,
   },
   .size = sizeof(struct recovery_journal_state_7_0),
 };
@@ -606,7 +606,7 @@ int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
     journalStart = getRecoveryJournalHead(journal);
   }
 
-  int result = encodeHeader(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
+  int result = encode_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -681,13 +681,13 @@ decodeRecoveryJournalState_7_0(Buffer                            *buffer,
 int decodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
 {
   struct header header;
-  int result = decodeHeader(buffer, &header);
+  int result = decode_header(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateHeader(&RECOVERY_JOURNAL_HEADER_7_0, &header,
-                          true, __func__);
+  result = validate_header(&RECOVERY_JOURNAL_HEADER_7_0, &header,
+                           true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }

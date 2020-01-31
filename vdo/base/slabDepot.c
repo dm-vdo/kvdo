@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#36 $
  */
 
 #include "slabDepot.h"
@@ -51,8 +51,8 @@ struct slab_depot_state_2_0 {
 static const struct header SLAB_DEPOT_HEADER_2_0 = {
   .id = SLAB_DEPOT,
   .version = {
-    .majorVersion = 2,
-    .minorVersion = 0,
+    .major_version = 2,
+    .minor_version = 0,
   },
   .size = sizeof(struct slab_depot_state_2_0),
 };
@@ -576,7 +576,7 @@ static int encodeSlabConfig(const SlabConfig *config, Buffer *buffer)
 /**********************************************************************/
 int encodeSlabDepot(const struct slab_depot *depot, Buffer *buffer)
 {
-  int result = encodeHeader(&SLAB_DEPOT_HEADER_2_0, buffer);
+  int result = encode_header(&SLAB_DEPOT_HEADER_2_0, buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -673,12 +673,12 @@ int decodeSlabDepot(Buffer                     *buffer,
                     struct slab_depot         **depotPtr)
 {
   struct header header;
-  int result = decodeHeader(buffer, &header);
+  int result = decode_header(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateHeader(&SLAB_DEPOT_HEADER_2_0, &header, true, __func__);
+  result = validate_header(&SLAB_DEPOT_HEADER_2_0, &header, true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }

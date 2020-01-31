@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#10 $
  */
 
 #include "volumeGeometry.h"
@@ -49,8 +49,8 @@ struct geometry_block {
 static const struct header GEOMETRY_BLOCK_HEADER_4_0 = {
   .id = GEOMETRY_BLOCK,
   .version = {
-    .majorVersion = 4,
-    .minorVersion = 0,
+    .major_version = 4,
+    .minor_version = 0,
   },
   // Note: this size isn't just the payload size following the header, like it
   // is everywhere else in VDO.
@@ -293,12 +293,12 @@ static int decodeGeometryBlock(Buffer *buffer, struct volume_geometry *geometry)
   }
 
   struct header header;
-  result = decodeHeader(buffer, &header);
+  result = decode_header(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateHeader(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
+  result = validate_header(&GEOMETRY_BLOCK_HEADER_4_0, &header, true, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -331,7 +331,7 @@ static int encodeGeometryBlock(const struct volume_geometry *geometry,
     return result;
   }
 
-  result = encodeHeader(&GEOMETRY_BLOCK_HEADER_4_0, buffer);
+  result = encode_header(&GEOMETRY_BLOCK_HEADER_4_0, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }

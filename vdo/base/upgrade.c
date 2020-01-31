@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#8 $
  */
 
 #include "upgrade.h"
@@ -38,15 +38,15 @@
 /* The latest supported Sodium version */
 /* Commented out because not currently used.
  * static const struct version_number SODIUM_MASTER_VERSION_67_0 = {
- * .majorVersion = 67,
- * .minorVersion =  0,
+ * .major_version = 67,
+ * .minor_version =  0,
  * };
  */
 
 /* The component data version for current Sodium */
 static const struct version_number SODIUM_COMPONENT_DATA_41_0 = {
-  .majorVersion = 41,
-  .minorVersion =  0,
+  .major_version = 41,
+  .minor_version =  0,
 };
 
 /**
@@ -100,8 +100,8 @@ static int validateSodiumVersion(struct vdo *vdo)
   return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
                                  "Release version %d, load version %d.%d"
                                  " cannot be upgraded", loadedVersion,
-                                 vdo->loadVersion.majorVersion,
-                                 vdo->loadVersion.minorVersion);
+                                 vdo->loadVersion.major_version,
+                                 vdo->loadVersion.minor_version);
 }
 
 /**
@@ -131,20 +131,20 @@ static int decodeSodiumComponent(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   struct version_number version;
-  int result = decodeVersionNumber(buffer, &version);
+  int result = decode_version_number(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
   struct sodium_component_41_0 component;
-  if (areSameVersion(SODIUM_COMPONENT_DATA_41_0, version)) {
+  if (are_same_version(SODIUM_COMPONENT_DATA_41_0, version)) {
     result = decodeSodium41_0Component(buffer, &component);
   } else {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
                                    "VDO component data version mismatch,"
                                    " expected 41.0, got %d.%d",
-                                   version.majorVersion,
-                                   version.minorVersion);
+                                   version.major_version,
+                                   version.minor_version);
   }
   if (result != VDO_SUCCESS) {
     return result;
@@ -159,7 +159,7 @@ static int decodeSodiumComponent(struct vdo *vdo)
   vdo->nonce              = component.nonce;
 
   logInfo("Converted VDO component data version %d.%d",
-          version.majorVersion, version.minorVersion);
+          version.major_version, version.minor_version);
   return VDO_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#28 $
  */
 
 /*
@@ -60,8 +60,8 @@
  * version to 0.
  **/
 static const struct version_number VDO_MASTER_VERSION_67_0 = {
-  .majorVersion = 67,
-  .minorVersion =  0,
+  .major_version = 67,
+  .minor_version =  0,
 };
 
 /**
@@ -70,8 +70,8 @@ static const struct version_number VDO_MASTER_VERSION_67_0 = {
  * of any VDO component.
  **/
 static const struct version_number VDO_COMPONENT_DATA_41_0 = {
-  .majorVersion = 41,
-  .minorVersion =  0,
+  .major_version = 41,
+  .minor_version =  0,
 };
 
 /**
@@ -215,7 +215,7 @@ size_t getComponentDataSize(struct vdo *vdo)
 __attribute__((warn_unused_result))
 static int encodeMasterVersion(Buffer *buffer)
 {
-  return encodeVersionNumber(VDO_MASTER_VERSION_67_0, buffer);
+  return encode_version_number(VDO_MASTER_VERSION_67_0, buffer);
 }
 
 /**
@@ -263,7 +263,7 @@ static int encodeVDOConfig(const VDOConfig *config, Buffer *buffer)
 __attribute__((warn_unused_result))
 static int encodeVDOComponent(const struct vdo *vdo, Buffer *buffer)
 {
-  int result = encodeVersionNumber(VDO_COMPONENT_DATA_41_0, buffer);
+  int result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -409,8 +409,8 @@ int saveReconfiguredVDO(struct vdo *vdo)
 /**********************************************************************/
 int decodeVDOVersion(struct vdo *vdo)
 {
-  return decodeVersionNumber(getComponentBuffer(vdo->superBlock),
-                             &vdo->loadVersion);
+  return decode_version_number(getComponentBuffer(vdo->superBlock),
+                               &vdo->loadVersion);
 }
 
 /**********************************************************************/
@@ -432,7 +432,7 @@ int validateVDOVersion(struct vdo *vdo)
                                    loadedReleaseVersion);
   }
 
-  return validateVersion(VDO_MASTER_VERSION_67_0, vdo->loadVersion, "master");
+  return validate_version(VDO_MASTER_VERSION_67_0, vdo->loadVersion, "master");
 }
 
 /**
@@ -549,13 +549,13 @@ int decodeVDOComponent(struct vdo *vdo)
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
 
   struct version_number version;
-  int result = decodeVersionNumber(buffer, &version);
+  int result = decode_version_number(buffer, &version);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateVersion(version, VDO_COMPONENT_DATA_41_0,
-                           "VDO component data");
+  result = validate_version(version, VDO_COMPONENT_DATA_41_0,
+                            "VDO component data");
   if (result != VDO_SUCCESS) {
     return result;
   }

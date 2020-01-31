@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#10 $
  */
 
 #include "superBlock.h"
@@ -63,8 +63,8 @@ enum {
 static const struct header SUPER_BLOCK_HEADER_12_0 = {
   .id = SUPER_BLOCK,
   .version = {
-    .majorVersion = 12,
-    .minorVersion = 0,
+    .major_version = 12,
+    .minor_version = 0,
   },
 
   // This is the minimum size, if the super block contains no components.
@@ -172,7 +172,7 @@ static int encodeSuperBlock(struct super_block *superBlock)
   // Encode the header.
   struct header header = SUPER_BLOCK_HEADER_12_0;
   header.size += componentDataSize;
-  result = encodeHeader(&header, buffer);
+  result = encode_header(&header, buffer);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -296,12 +296,12 @@ static int decodeSuperBlock(struct super_block *superBlock)
 
   // Decode and validate the header.
   struct header header;
-  int result = decodeHeader(buffer, &header);
+  int result = decode_header(buffer, &header);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = validateHeader(&SUPER_BLOCK_HEADER_12_0, &header, false, __func__);
+  result = validate_header(&SUPER_BLOCK_HEADER_12_0, &header, false, __func__);
   if (result != VDO_SUCCESS) {
     return result;
   }
