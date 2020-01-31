@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#13 $
  */
 
 #include "blockMapRecovery.h"
@@ -242,10 +242,10 @@ makeRecoveryCompletion(struct vdo                            *vdo,
 
   // Organize the journal entries into a binary heap so we can iterate over
   // them in sorted order incrementally, avoiding an expensive sort call.
-  initializeHeap(&recovery->replayHeap, compareMappings, swapMappings,
-                 journalEntries, entryCount,
-                 sizeof(struct numbered_block_mapping));
-  buildHeap(&recovery->replayHeap, entryCount);
+  initialize_heap(&recovery->replayHeap, compareMappings, swapMappings,
+                  journalEntries, entryCount,
+                  sizeof(struct numbered_block_mapping));
+  build_heap(&recovery->replayHeap, entryCount);
 
   ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logicalThreadID),
                   "%s must be called on logical thread %u (not %u)", __func__,
@@ -356,7 +356,7 @@ findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
          && (currentEntry->blockMapSlot.pbn == currentPage)) {
     if (needsSort) {
       struct numbered_block_mapping *justSortedEntry
-        = sortNextHeapElement(&recovery->replayHeap);
+        = sort_next_heap_element(&recovery->replayHeap);
       ASSERT_LOG_ONLY(justSortedEntry < currentEntry,
                       "heap is returning elements in an unexpected order");
     }
@@ -525,13 +525,13 @@ void recoverBlockMap(struct vdo                    *vdo,
     return;
   }
 
-  if (isHeapEmpty(&recovery->replayHeap)) {
+  if (is_heap_empty(&recovery->replayHeap)) {
     finishCompletion(&recovery->completion, VDO_SUCCESS);
     return;
   }
 
   struct numbered_block_mapping *firstSortedEntry
-    = sortNextHeapElement(&recovery->replayHeap);
+    = sort_next_heap_element(&recovery->replayHeap);
   ASSERT_LOG_ONLY(firstSortedEntry == recovery->currentEntry,
                   "heap is returning elements in an unexpected order");
 

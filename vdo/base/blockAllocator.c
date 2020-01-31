@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#38 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -712,16 +712,16 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 
 	// Sort the slabs by cleanliness, then by emptiness hint.
 	struct heap heap;
-	initializeHeap(&heap,
-		       compare_slab_statuses,
-		       swap_slab_statuses,
-		       slab_statuses,
-		       slab_count,
-		       sizeof(struct slab_status));
-	buildHeap(&heap, slab_count);
+	initialize_heap(&heap,
+			compare_slab_statuses,
+			swap_slab_statuses,
+			slab_statuses,
+			slab_count,
+			sizeof(struct slab_status));
+	build_heap(&heap, slab_count);
 
 	struct slab_status current_slab_status;
-	while (popMaxHeapElement(&heap, &current_slab_status)) {
+	while (pop_max_heap_element(&heap, &current_slab_status)) {
 		struct vdo_slab *slab =
 			depot->slabs[current_slab_status.slabNumber];
 		if (slab->allocator != allocator) {

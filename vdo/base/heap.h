@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.h#3 $
  */
 
 #ifndef HEAP_H
@@ -36,7 +36,7 @@
  *         depending on whether item1 is less than, equal to, or greater
  *         than item2, respectively
  **/
-typedef int HeapComparator(const void *item1, const void *item2);
+typedef int heap_comparator(const void *item1, const void *item2);
 
 /**
  * Prototype for functions which swap two array elements.
@@ -44,34 +44,34 @@ typedef int HeapComparator(const void *item1, const void *item2);
  * @param item1  The first element to swap
  * @param item2  The second element to swap
  **/
-typedef void HeapSwapper(void *item1, void *item2);
+typedef void heap_swapper(void *item1, void *item2);
 
 /**
  * A heap array can be any array of fixed-length elements in which the heap
  * invariant can be established. In a max-heap, every child of a node must be
  * at least as large as its children. Once that invariant is established in an
- * array by calling buildHeap(), all the other heap operations may be used on
+ * array by calling build_heap(), all the other heap operations may be used on
  * that array.
  **/
 struct heap {
-  /** the 1-based array of heap elements (nodes) */
-  byte           *array;
-  /** the function to use to compare two elements */
-  HeapComparator *comparator;
-  /** the function to use to swap two elements */
-  HeapSwapper    *swapper;
-  /** the maximum number of elements that can be stored */
-  size_t          capacity;
-  /** the size of every element (in bytes) */
-  size_t          elementSize;
-  /** the current number of elements in the heap */
-  size_t          count;
+	/** the 1-based array of heap elements (nodes) */
+	byte *array;
+	/** the function to use to compare two elements */
+	heap_comparator *comparator;
+	/** the function to use to swap two elements */
+	heap_swapper *swapper;
+	/** the maximum number of elements that can be stored */
+	size_t capacity;
+	/** the size of every element (in bytes) */
+	size_t element_size;
+	/** the current number of elements in the heap */
+	size_t count;
 };
 
 /**
  * Initialize an binary heap by wrapping it around an array of elements.
  *
- * The heap will not own the array it wraps. Use buildHeap() subsequently to
+ * The heap will not own the array it wraps. Use build_heap() subsequently to
  * arrange any elements contained in the array into a valid heap.
  *
  * @param heap          The heap to initialize
@@ -79,26 +79,23 @@ struct heap {
  * @param swapper       The function to use to swap two heap elements
  * @param array         The array of elements (not modified by this call)
  * @param capacity      The maximum number of elements which fit in the array
- * @param elementSize   The size of every array element, in bytes
+ * @param element_size   The size of every array element, in bytes
  **/
-void initializeHeap(struct heap    *heap,
-                    HeapComparator *comparator,
-                    HeapSwapper    *swapper,
-                    void           *array,
-                    size_t          capacity,
-                    size_t          elementSize);
+void initialize_heap(struct heap *heap, heap_comparator *comparator,
+		     heap_swapper *swapper, void *array, size_t capacity,
+		     size_t element_size);
 
 /**
  * Build a max-heap in place in an array (heapify it) by re-ordering the
  * elements to establish the heap invariant. Before calling this function,
  * first copy the elements to be arranged into a heap into the array that was
- * passed to initializeHeap(). This operation has O(N) time complexity in the
+ * passed to initialize_heap(). This operation has O(N) time complexity in the
  * number of elements in the array.
  *
  * @param heap   The heap to build
  * @param count  The number of elements in the array to build into a heap
  **/
-void buildHeap(struct heap *heap, size_t count);
+void build_heap(struct heap *heap, size_t count);
 
 /**
  * Check whether the heap is currently empty.
@@ -107,9 +104,9 @@ void buildHeap(struct heap *heap, size_t count);
  *
  * @return <code>true</code> if there are no elements in the heap
  **/
-static inline bool isHeapEmpty(const struct heap *heap)
+static inline bool is_heap_empty(const struct heap *heap)
 {
-  return (heap->count == 0);
+	return (heap->count == 0);
 }
 
 /**
@@ -117,13 +114,13 @@ static inline bool isHeapEmpty(const struct heap *heap)
  * invariant on the remaining elements. This operation has O(log2(N)) time
  * complexity.
  *
- * @param [in]  heap        The heap to modify
- * @param [out] elementPtr  A pointer to receive the largest element (may be
- *                          NULL if the caller just wishes to discard it)
+ * @param [in]  heap         The heap to modify
+ * @param [out] element_ptr  A pointer to receive the largest element (may be
+ *                           NULL if the caller just wishes to discard it)
  *
  * @return <code>false</code> if the heap was empty, so no element was removed
  **/
-bool popMaxHeapElement(struct heap *heap, void *elementPtr);
+bool pop_max_heap_element(struct heap *heap, void *element_ptr);
 
 /**
  * Sort the elements contained in a heap.
@@ -140,7 +137,7 @@ bool popMaxHeapElement(struct heap *heap, void *elementPtr);
  *
  * @return the number of elements that were sorted
  **/
-size_t sortHeap(struct heap *heap);
+size_t sort_heap(struct heap *heap);
 
 /**
  * Gets the next sorted heap element and returns a pointer to it, in O(log2(N))
@@ -150,6 +147,6 @@ size_t sortHeap(struct heap *heap);
  *
  * @return a pointer to the element sorted, or NULL if already fully sorted.
  **/
-void *sortNextHeapElement(struct heap *heap);
+void *sort_next_heap_element(struct heap *heap);
 
 #endif /* HEAP_H */
