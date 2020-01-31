@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#27 $
  */
 
 /*
@@ -147,7 +147,7 @@ void destroyVDO(struct vdo *vdo)
   if (vdo->hashZones != NULL) {
     ZoneCount zone;
     for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-      freeHashZone(&vdo->hashZones[zone]);
+      free_hash_zone(&vdo->hashZones[zone]);
     }
   }
   FREE(vdo->hashZones);
@@ -817,7 +817,7 @@ static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   ZoneCount zone;
   for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-    HashLockStatistics stats  = getHashZoneStatistics(vdo->hashZones[zone]);
+    HashLockStatistics stats  = get_hash_zone_statistics(vdo->hashZones[zone]);
     totals.dedupeAdviceValid        += stats.dedupeAdviceValid;
     totals.dedupeAdviceStale        += stats.dedupeAdviceStale;
     totals.concurrentDataMatches    += stats.concurrentDataMatches;
@@ -1000,7 +1000,7 @@ void dumpVDOStatus(const struct vdo *vdo)
   }
 
   for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-    dumpHashZone(vdo->hashZones[zone]);
+    dump_hash_zone(vdo->hashZones[zone]);
   }
 }
 

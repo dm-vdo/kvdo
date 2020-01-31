@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#21 $
  */
 
 #include "vdoLoad.h"
@@ -402,7 +402,7 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
 
   ZoneCount zone;
   for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-    result = makeHashZone(vdo, zone, &vdo->hashZones[zone]);
+    result = make_hash_zone(vdo, zone, &vdo->hashZones[zone]);
     if (result != VDO_SUCCESS) {
       return result;
     }

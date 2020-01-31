@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#19 $
  */
 
 #ifndef DATA_VIO_H
@@ -537,7 +537,7 @@ static inline int enqueueDataVIO(struct wait_queue *queue,
  **/
 static inline void assertInHashZone(struct data_vio *dataVIO)
 {
-  ThreadID expected = getHashZoneThreadID(dataVIO->hashZone);
+  ThreadID expected = get_hash_zone_thread_id(dataVIO->hashZone);
   ThreadID threadID = getCallbackThreadID();
   // It's odd to use the LBN, but converting the chunk name to hex is a bit
   // clunky for an inline, and the LBN better than nothing as an identifier.
@@ -560,7 +560,7 @@ static inline void setHashZoneCallback(struct data_vio *dataVIO,
                                        TraceLocation    location)
 {
   setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getHashZoneThreadID(dataVIO->hashZone));
+              get_hash_zone_thread_id(dataVIO->hashZone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
