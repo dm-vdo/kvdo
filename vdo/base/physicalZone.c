@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#10 $
  */
 
 #include "physicalZone.h"
@@ -66,7 +66,7 @@ int makePhysicalZone(struct vdo            *vdo,
     return result;
   }
 
-  result = makeIntMap(LOCK_MAP_CAPACITY, 0, &zone->pbnOperations);
+  result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->pbnOperations);
   if (result != VDO_SUCCESS) {
     freePhysicalZone(&zone);
     return result;
@@ -95,7 +95,7 @@ void freePhysicalZone(struct physical_zone **zonePtr)
 
   struct physical_zone *zone = *zonePtr;
   freePBNLockPool(&zone->lockPool);
-  freeIntMap(&zone->pbnOperations);
+  free_int_map(&zone->pbnOperations);
   FREE(zone);
   *zonePtr = NULL;
 }
@@ -121,7 +121,7 @@ struct block_allocator *getBlockAllocator(const struct physical_zone *zone)
 /**********************************************************************/
 struct pbn_lock *getPBNLock(struct physical_zone *zone, PhysicalBlockNumber pbn)
 {
-  return ((zone == NULL) ? NULL : intMapGet(zone->pbnOperations, pbn));
+  return ((zone == NULL) ? NULL : int_map_get(zone->pbnOperations, pbn));
 }
 
 /**********************************************************************/
@@ -140,8 +140,8 @@ int attemptPBNLock(struct physical_zone  *zone,
   }
 
   struct pbn_lock *lock;
-  result = intMapPut(zone->pbnOperations, pbn, newLock, false,
-                     (void **) &lock);
+  result = int_map_put(zone->pbnOperations, pbn, newLock, false,
+                       (void **) &lock);
   if (result != VDO_SUCCESS) {
     returnPBNLockToPool(zone->lockPool, &newLock);
     return result;
@@ -183,7 +183,7 @@ void releasePBNLock(struct physical_zone  *zone,
     return;
   }
 
-  struct pbn_lock *holder = intMapRemove(zone->pbnOperations, lockedPBN);
+  struct pbn_lock *holder = int_map_remove(zone->pbnOperations, lockedPBN);
   ASSERT_LOG_ONLY((lock == holder),
                   "physical block lock mismatch for block %llu",
                   lockedPBN);

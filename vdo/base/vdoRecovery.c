@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#34 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -313,7 +313,7 @@ int makeRecoveryCompletion(struct vdo                  *vdo,
     return result;
   }
 
-  result = makeIntMap(INT_MAP_CAPACITY, 0, &recovery->slotEntryMap);
+  result = make_int_map(INT_MAP_CAPACITY, 0, &recovery->slotEntryMap);
   if (result != VDO_SUCCESS) {
     freeRecoveryCompletion(&recovery);
     return result;
@@ -342,7 +342,7 @@ void freeRecoveryCompletion(struct recovery_completion **recoveryPtr)
     return;
   }
 
-  freeIntMap(&recovery->slotEntryMap);
+  free_int_map(&recovery->slotEntryMap);
   const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
   ZoneCount z;
   for (z = 0; z < threadConfig->physicalZoneCount; z++) {
@@ -901,8 +901,8 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
     if (!isIncrementOperation(entry.operation)) {
       // Observe that we've seen a decref before its incref, but only if
       // the int_map does not contain an unpaired incref for this lbn.
-      int result = intMapPut(slotEntryMap, slotAsNumber(entry.slot),
-                             &foundDecref, false, NULL);
+      int result = int_map_put(slotEntryMap, slotAsNumber(entry.slot),
+                               &foundDecref, false, NULL);
       if (result != VDO_SUCCESS) {
         return result;
       }
@@ -913,7 +913,7 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
     recovery->increfCount++;
 
     struct missing_decref *decref
-      = intMapRemove(slotEntryMap, slotAsNumber(entry.slot));
+      = int_map_remove(slotEntryMap, slotAsNumber(entry.slot));
     if (entry.operation == BLOCK_MAP_INCREMENT) {
       if (decref != NULL) {
         return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
@@ -939,8 +939,8 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
         return result;
       }
 
-      result = intMapPut(slotEntryMap, slotAsNumber(entry.slot), decref,
-                         false, NULL);
+      result = int_map_put(slotEntryMap, slotAsNumber(entry.slot), decref,
+                           false, NULL);
       if (result != VDO_SUCCESS) {
         return result;
       }

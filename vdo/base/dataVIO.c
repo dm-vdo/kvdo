@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#16 $
  */
 
 #include "dataVIO.h"
@@ -242,8 +242,8 @@ void attemptLogicalBlockLock(struct vdo_completion *completion)
 
   struct data_vio *lockHolder;
   struct lbn_lock *lock = &dataVIO->logical;
-  int result = intMapPut(getLBNLockMap(lock->zone), lock->lbn, dataVIO, false,
-                         (void **) &lockHolder);
+  int result = int_map_put(getLBNLockMap(lock->zone), lock->lbn, dataVIO, false,
+                           (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     finishDataVIO(dataVIO, result);
     return;
@@ -304,7 +304,7 @@ static void releaseLock(struct data_vio *dataVIO)
   if (!lock->locked) {
     // The lock is not locked, so it had better not be registered in the lock
     // map.
-    struct data_vio *lockHolder = intMapGet(lockMap, lock->lbn);
+    struct data_vio *lockHolder = int_map_get(lockMap, lock->lbn);
     ASSERT_LOG_ONLY((dataVIO != lockHolder),
                     "no logical block lock held for block %llu",
                     lock->lbn);
@@ -312,7 +312,7 @@ static void releaseLock(struct data_vio *dataVIO)
   }
 
   // Remove the lock from the logical block lock map, releasing the lock.
-  struct data_vio *lockHolder = intMapRemove(lockMap, lock->lbn);
+  struct data_vio *lockHolder = int_map_remove(lockMap, lock->lbn);
   ASSERT_LOG_ONLY((dataVIO == lockHolder),
                   "logical block lock mismatch for block %llu", lock->lbn);
   lock->locked = false;
@@ -339,8 +339,8 @@ void releaseLogicalBlockLock(struct data_vio *dataVIO)
   transferAllWaiters(&lock->waiters, &nextLockHolder->logical.waiters);
 
   struct data_vio *lockHolder;
-  int result = intMapPut(getLBNLockMap(lock->zone), lock->lbn, nextLockHolder,
-                         true, (void **) &lockHolder);
+  int result = int_map_put(getLBNLockMap(lock->zone), lock->lbn, nextLockHolder,
+                           true, (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     finishDataVIO(nextLockHolder, result);
     return;

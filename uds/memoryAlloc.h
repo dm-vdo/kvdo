@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/memoryAlloc.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/memoryAlloc.h#1 $
  */
 
 #ifndef MEMORY_ALLOC_H
@@ -26,8 +26,11 @@
 
 #include "compiler.h"
 #include "cpu.h"
-#include "memoryDefs.h"
 #include "permassert.h"
+#include "typeDefs.h"
+
+#include <linux/io.h>  // for PAGE_SIZE
+#include "threadRegistry.h"
 
 /**
  * Allocate storage based on memory size and  alignment, logging an error if
@@ -156,6 +159,21 @@ int reallocateMemory(void       *ptr,
     })
 
 /**
+ * Allocate one or more elements of the indicated type, aligning them
+ * on the boundary that will allow them to be used in I/O, logging an
+ * error if the allocation fails. The memory will be zeroed.
+ *
+ * @param COUNT  The number of objects to allocate
+ * @param TYPE   The type of objects to allocate
+ * @param WHAT   What is being allocated (for error logging)
+ * @param PTR    A pointer to hold the allocated memory
+ *
+ * @return UDS_SUCCESS or an error code
+ **/
+#define ALLOCATE_IO_ALIGNED(COUNT, TYPE, WHAT, PTR) \
+  doAllocation(COUNT, sizeof(TYPE), 0, PAGE_SIZE, WHAT, PTR)
+
+/**
  * Free memory allocated with ALLOCATE().
  *
  * @param ptr    Pointer to the memory to free
@@ -182,6 +200,30 @@ static INLINE int allocateCacheAligned(size_t      size,
 {
   return allocateMemory(size, CACHE_LINE_BYTES, what, ptr);
 }
+
+/**
+ * Allocate storage based on memory size, failing immediately if the required
+ * memory is not available.  The memory will be zeroed.
+ *
+ * @param size  The size of an object.
+ * @param what  What is being allocated (for error logging)
+ *
+ * @return pointer to the allocated memory, or NULL if the required space is
+ *         not available.
+ **/
+void *allocateMemoryNowait(size_t size, const char *what)
+  __attribute__((warn_unused_result));
+
+/**
+ * Allocate one element of the indicated type immediately, failing if the
+ * required memory is not immediately available.
+ *
+ * @param TYPE   The type of objects to allocate
+ * @param WHAT   What is being allocated (for error logging)
+ *
+ * @return pointer to the memory, or NULL if the memory is not available.
+ **/
+#define ALLOCATE_NOWAIT(TYPE, WHAT) allocateMemoryNowait(sizeof(TYPE), WHAT)
 
 /**
  * Duplicate a string.
@@ -235,5 +277,55 @@ static INLINE void freeVolatile(volatile void *pointer)
   } u = { .volP = pointer };
   FREE(u.notVol);
 }
+
+/**
+ * Perform termination of the memory allocation subsystem.
+ **/
+void memoryExit(void);
+
+/**
+ * Perform initialization of the memory allocation subsystem.
+ **/
+void memoryInit(void);
+
+/**
+ * Register the current thread as an allocating thread.
+ *
+ * An optional flag location can be supplied indicating whether, at
+ * any given point in time, the threads associated with that flag
+ * should be allocating storage.  If the flag is false, a message will
+ * be logged.
+ *
+ * If no flag is supplied, the thread is always allowed to allocate
+ * storage without complaint.
+ *
+ * @param newThread  RegisteredThread structure to use for the current thread
+ * @param flagPtr    Location of the allocation-allowed flag
+ **/
+void registerAllocatingThread(RegisteredThread *newThread,
+                              const bool       *flagPtr);
+
+/**
+ * Unregister the current thread as an allocating thread.
+ **/
+void unregisterAllocatingThread(void);
+
+/**
+ * Get the memory statistics.
+ *
+ * @param bytesUsed     A pointer to hold the number of bytes in use
+ * @param peakBytesUsed A pointer to hold the maximum value bytesUsed has
+ *                      attained
+ **/
+void getMemoryStats(uint64_t *bytesUsed, uint64_t *peakBytesUsed);
+
+/**
+ * Report stats on any allocated memory that we're tracking.
+ *
+ * Not all allocation types are guaranteed to be tracked in bytes
+ * (e.g., bios).
+ **/
+void reportMemoryUsage(void);
+
 
 #endif /* MEMORY_ALLOC_H */

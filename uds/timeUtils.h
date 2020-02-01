@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.h#5 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.h#2 $
  */
 
 #ifndef TIME_UTILS_H
@@ -28,13 +28,14 @@
 #include <linux/ktime.h>
 #include <linux/time.h>
 
+// Some constants that are defined in kernel headers.
+
 // Absolute time.
 typedef int64_t AbsTime;
 
 // Relative time, the length of a time interval, or the difference between
 // two times.  A signed 64-bit number of nanoseconds.
 typedef int64_t RelTime;
-
 
 /**
  * Return the current time according to the specified clock type.
@@ -66,6 +67,18 @@ static INLINE RelTime timeDifference(AbsTime a, AbsTime b)
 }
 
 
+
+/**
+ * Convert an AbsTime value to milliseconds
+ *
+ * @param abstime  The absolute time
+ *
+ * @return the equivalent number of milliseconds since the epoch
+ **/
+static INLINE int64_t absTimeToMilliseconds(AbsTime abstime)
+{
+  return abstime / NSEC_PER_MSEC;
+}
 
 /**
  * Convert seconds to a RelTime value
@@ -174,29 +187,28 @@ static INLINE int64_t relTimeToNanoseconds(RelTime reltime)
 uint64_t nowUsec(void) __attribute__((warn_unused_result));
 
 /**
- * Convert from an AbsTime to a time_t
+ * Convert from an AbsTime to seconds truncating
  *
  * @param time  an AbsTime time
  *
- * @return a time_t time
+ * @return a 64 bit signed number of seconds
  **/
-static INLINE time_t asTimeT(AbsTime time)
+static INLINE int64_t absTimeToSeconds(AbsTime time)
 {
-  return time / 1000000000;
+  return time / NSEC_PER_SEC;
 }
 
 /**
- * Convert from a time_t to an AbsTime,
+ * Convert from seconds to an AbsTime,
  *
- * @param time  a time_t time
+ * @param time  a 64 bit signed number of seconds
  *
  * @return an AbsTime time
  **/
-static INLINE AbsTime fromTimeT(time_t time)
+static INLINE AbsTime fromSeconds(int64_t time)
 {
-  return time * 1000000000;
+  return time * NSEC_PER_SEC;
 }
-
 
 
 #endif /* TIME_UTILS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/index.c#15 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#1 $
  */
 
 #include "index.h"

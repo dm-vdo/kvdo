@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/memoryLinuxKernel.c#6 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/memoryLinuxKernel.c#1 $
  */
 
 #include <linux/delay.h>
@@ -27,7 +27,7 @@
 #include <linux/version.h>
 #include <linux/vmalloc.h>
 
-#include "compilerDefs.h"
+#include "compiler.h"
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "permassert.h"

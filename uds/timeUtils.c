@@ -16,9 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/timeUtils.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/timeUtils.c#2 $
  */
 
+#include "permassert.h"
 #include "stringUtils.h"
 #include "timeUtils.h"
 
@@ -27,15 +28,10 @@
 
 
 
-
-
-
 /*****************************************************************************/
 uint64_t nowUsec(void)
 {
-  static const AbsTime epoch = 0;
-  return relTimeToMicroseconds(timeDifference(currentTime(CLOCK_REALTIME),
-                                              epoch));
+  return currentTime(CLOCK_REALTIME) / NSEC_PER_USEC;
 }
 
 

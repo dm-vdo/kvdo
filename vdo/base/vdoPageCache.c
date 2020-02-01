@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#18 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -71,7 +71,7 @@ static int allocateCacheComponents(struct vdo_page_cache *cache)
     return result;
   }
 
-  return makeIntMap(cache->pageCount, 0, &cache->pageMap);
+  return make_int_map(cache->pageCount, 0, &cache->pageMap);
 }
 
 /**
@@ -186,7 +186,7 @@ void freeVDOPageCache(struct vdo_page_cache **cachePtr)
   }
 
   free_dirty_lists(&cache->dirtyLists);
-  freeIntMap(&cache->pageMap);
+  free_int_map(&cache->pageMap);
   FREE(cache->infos);
   FREE(cache->pages);
   FREE(cache);
@@ -379,13 +379,13 @@ static int setInfoPBN(struct page_info *info, PhysicalBlockNumber pbn)
   }
 
   if (info->pbn != NO_PAGE) {
-    intMapRemove(cache->pageMap, info->pbn);
+    int_map_remove(cache->pageMap, info->pbn);
   }
 
   info->pbn = pbn;
 
   if (pbn != NO_PAGE) {
-    result = intMapPut(cache->pageMap, pbn, info, true, NULL);
+    result = int_map_put(cache->pageMap, pbn, info, true, NULL);
     if (result != UDS_SUCCESS) {
       return result;
     }
@@ -441,7 +441,7 @@ struct page_info *vpcFindPage(struct vdo_page_cache *cache,
       && (cache->lastFound->pbn == pbn)) {
     return cache->lastFound;
   }
-  cache->lastFound = intMapGet(cache->pageMap, pbn);
+  cache->lastFound = int_map_get(cache->pageMap, pbn);
   return cache->lastFound;
 }
 
@@ -1374,6 +1374,6 @@ int invalidateVDOPageCache(struct vdo_page_cache *cache)
   }
 
   // Reset the pageMap by re-allocating it.
-  freeIntMap(&cache->pageMap);
-  return makeIntMap(cache->pageCount, 0, &cache->pageMap);
+  free_int_map(&cache->pageMap);
+  return make_int_map(cache->pageCount, 0, &cache->pageMap);
 }

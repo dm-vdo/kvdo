@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.h#3 $
  */
 
 #ifndef INT_MAP_H
@@ -41,29 +41,27 @@ struct int_map;
 /**
  * Allocate and initialize an int_map.
  *
- * @param [in]  initialCapacity  the number of entries the map should
- *                               initially be capable of holding (zero tells
- *                               the map to use its own small default)
- * @param [in]  initialLoad      the load factor of the map, expressed as an
- *                               integer percentage (typically in the range
- *                               50 to 90, with zero telling the map to use
- *                               its own default)
- * @param [out] mapPtr           a pointer to hold the new int_map
+ * @param [in]  initial_capacity  the number of entries the map should
+ *                                initially be capable of holding (zero tells
+ *                                the map to use its own small default)
+ * @param [in]  initial_load      the load factor of the map, expressed as an
+ *                                integer percentage (typically in the range
+ *                                50 to 90, with zero telling the map to use
+ *                                its own default)
+ * @param [out] map_ptr           a pointer to hold the new int_map
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIntMap(size_t           initialCapacity,
-               unsigned int     initialLoad,
-               struct int_map **mapPtr)
-  __attribute__((warn_unused_result));
+int make_int_map(size_t initial_capacity, unsigned int initial_load,
+		 struct int_map **map_ptr) __attribute__((warn_unused_result));
 
 /**
  * Free an int_map and null out the reference to it. NOTE: The map does not own
  * the pointer values stored in the map and they are not freed by this call.
  *
- * @param [in,out] mapPtr  the reference to the int_map to free
+ * @param [in,out] map_ptr  the reference to the int_map to free
  **/
-void freeIntMap(struct int_map **mapPtr);
+void free_int_map(struct int_map **map_ptr);
 
 /**
  * Get the number of entries stored in an int_map.
@@ -72,7 +70,7 @@ void freeIntMap(struct int_map **mapPtr);
  *
  * @return the number of entries in the map
  **/
-size_t intMapSize(const struct int_map *map);
+size_t int_map_size(const struct int_map *map);
 
 /**
  * Retrieve the value associated with a given key from the int_map.
@@ -83,7 +81,7 @@ size_t intMapSize(const struct int_map *map);
  * @return the value associated with the given key, or <code>NULL</code>
  *         if the key is not mapped to any value
  **/
-void *intMapGet(struct int_map *map, uint64_t key);
+void *int_map_get(struct int_map *map, uint64_t key);
 
 /**
  * Try to associate a value (a pointer) with an integer in an int_map. If the
@@ -92,24 +90,20 @@ void *intMapGet(struct int_map *map, uint64_t key);
  * the old value is returned. If the map does not already contain a value for
  * the specified key, the new value is added regardless of the value of update.
  *
- * @param [in]  map          the int_map to attempt to modify
- * @param [in]  key          the key with which to associate the new value
- * @param [in]  newValue     the value to be associated with the key
- * @param [in]  update       whether to overwrite an existing value
- * @param [out] oldValuePtr  a pointer in which to store either the old value
- *                           (if the key was already mapped) or
- *                           <code>NULL</code> if the map did not contain the
- *                           key; <code>NULL</code> may be provided if the
- *                           caller does not need to know the old value
+ * @param [in]  map           the int_map to attempt to modify
+ * @param [in]  key           the key with which to associate the new value
+ * @param [in]  new_value     the value to be associated with the key
+ * @param [in]  update        whether to overwrite an existing value
+ * @param [out] old_value_ptr  a pointer in which to store either the old value
+ *                            (if the key was already mapped) or
+ *                            <code>NULL</code> if the map did not contain the
+ *                            key; <code>NULL</code> may be provided if the
+ *                            caller does not need to know the old value
  *
  * @return UDS_SUCCESS or an error code
  **/
-int intMapPut(struct int_map  *map,
-              uint64_t         key,
-              void            *newValue,
-              bool             update,
-              void           **oldValuePtr)
-  __attribute__((warn_unused_result));
+int int_map_put(struct int_map *map, uint64_t key, void *new_value, bool update,
+		void **old_value_ptr) __attribute__((warn_unused_result));
 
 /**
  * Remove the mapping for a given key from the int_map.
@@ -120,6 +114,6 @@ int intMapPut(struct int_map  *map,
  * @return the value that was associated with the key, or
  *         <code>NULL</code> if it was not mapped
  **/
-void *intMapRemove(struct int_map *map, uint64_t key);
+void *int_map_remove(struct int_map *map, uint64_t key);
 
 #endif /* INT_MAP_H */

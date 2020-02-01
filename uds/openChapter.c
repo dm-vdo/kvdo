@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/openChapter.c#4 $
+ * $Id: //eng/uds-releases/krusty/src/uds/openChapter.c#1 $
  */
 
 #include "openChapter.h"

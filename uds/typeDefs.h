@@ -16,21 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/typeDefs.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/typeDefs.h#1 $
  */
 
-#ifndef LINUX_KERNEL_TYPE_DEFS_H
-#define LINUX_KERNEL_TYPE_DEFS_H
+#ifndef TYPE_DEFS_H
+#define TYPE_DEFS_H
 
 /*
- * General system type definitions.  This file is parallel to the other
- * typeDefs.h files in this project.  We pick up what we can from the system
- * include files, and explicitly define the other things we need.
+ * General system type definitions.
  */
+
+#include <stddef.h>
 
 #include <linux/kernel.h>
 #include <linux/types.h>
-#include <stddef.h>
+
+typedef unsigned char byte;
 
 #define CHAR_BIT 8
 
@@ -53,6 +54,4 @@
 typedef unsigned long uintmax_t;
 #define PRIuMAX "lu"
 
-typedef unsigned char byte;
-
-#endif /* LINUX_KERNEL_TYPE_DEFS_H */
+#endif /* TYPE_DEFS_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#32 $
  */
 
 #include "blockMapTree.h"
@@ -114,7 +114,7 @@ int initializeTreeZone(struct block_map_zone *zone,
     return result;
   }
 
-  result = makeIntMap(LOCK_MAP_CAPACITY, 0, &treeZone->loadingPages);
+  result = make_int_map(LOCK_MAP_CAPACITY, 0, &treeZone->loadingPages);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -138,7 +138,7 @@ void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone)
 {
   free_dirty_lists(&treeZone->dirtyLists);
   freeVIOPool(&treeZone->vioPool);
-  freeIntMap(&treeZone->loadingPages);
+  free_int_map(&treeZone->loadingPages);
 }
 
 /**********************************************************************/
@@ -627,8 +627,8 @@ static void releasePageLock(struct data_vio *dataVIO, char *what)
                   " in tree %u",
                   what, lock->key, lock->rootIndex);
   struct block_map_tree_zone *zone       = getBlockMapTreeZone(dataVIO);
-  struct tree_lock           *lockHolder = intMapRemove(zone->loadingPages,
-                                                        lock->key);
+  struct tree_lock           *lockHolder = int_map_remove(zone->loadingPages,
+                                                          lock->key);
   ASSERT_LOG_ONLY((lockHolder == lock),
                   "block map page %s mismatch for key %llu in tree %u",
                   what, lock->key, lock->rootIndex);
@@ -894,8 +894,8 @@ static int attemptPageLock(struct block_map_tree_zone *zone,
   lock->key = key.key;
 
   struct tree_lock *lockHolder;
-  int result = intMapPut(zone->loadingPages, lock->key, lock, false,
-                         (void **) &lockHolder);
+  int result = int_map_put(zone->loadingPages, lock->key, lock, false,
+                           (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     return result;
   }

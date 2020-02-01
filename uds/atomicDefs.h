@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/atomicDefs.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/atomicDefs.h#1 $
  */
 
-#ifndef LINUX_KERNEL_ATOMIC_DEFS_H
-#define LINUX_KERNEL_ATOMIC_DEFS_H
+#ifndef ATOMIC_DEFS_H
+#define ATOMIC_DEFS_H
 
 #include <linux/atomic.h>
-
-#endif /* LINUX_KERNEL_ATOMIC_DEFS_H */
+#endif /* ATOMIC_DEFS_H */

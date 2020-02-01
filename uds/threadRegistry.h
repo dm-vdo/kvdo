@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/kernelLinux/uds/threadRegistry.h#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadRegistry.h#1 $
  */
 
 #ifndef THREAD_REGISTRY_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#31 $
  */
 
 #include "ioSubmitter.h"
@@ -345,10 +345,10 @@ static void process_bio_map(struct kvdo_work_item *item)
 
 		mutex_lock(&bio_queue_data->lock);
 		if (!bio_list_empty(&kvio->bios_merged)) {
-			intMapRemove(bio_queue_data->map,
-				     get_bio_sector(kvio->bios_merged.head));
-			intMapRemove(bio_queue_data->map,
-				     get_bio_sector(kvio->bios_merged.tail));
+			int_map_remove(bio_queue_data->map,
+				       get_bio_sector(kvio->bios_merged.head));
+			int_map_remove(bio_queue_data->map,
+				       get_bio_sector(kvio->bios_merged.tail));
 		}
 		bio = kvio->bios_merged.head;
 		bio_list_init(&kvio->bios_merged);
@@ -404,7 +404,7 @@ static struct kvio *get_mergeable_locked(struct int_map *map,
 		break;
 	}
 
-	struct kvio *kvio_merge = intMapGet(map, merge_sector);
+	struct kvio *kvio_merge = int_map_get(map, merge_sector);
 
 	if (kvio_merge != NULL) {
 		if (!are_work_item_actions_equal(
@@ -470,27 +470,24 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 
 	if ((prev_kvio == NULL) && (next_kvio == NULL)) {
 		// no merge. just add to bio_queue
-		result = intMapPut(bio_queue_data->map, get_bio_sector(bio),
-				   kvio, true, NULL);
-		// We don't care about failure of intMapPut in this case.
+		result = int_map_put(bio_queue_data->map, get_bio_sector(bio),
+				     kvio, true, NULL);
+		// We don't care about failure of int_map_put in this case.
 		result = result;
 		mutex_unlock(&bio_queue_data->lock);
 	} else {
 		if (next_kvio == NULL) {
 			// Only prev. merge to  prev's tail
-			intMapRemove(
-				bio_queue_data->map,
-				get_bio_sector(prev_kvio->bios_merged.tail));
+			int_map_remove(bio_queue_data->map,
+				       get_bio_sector(prev_kvio->bios_merged.tail));
 			bio_list_merge(&prev_kvio->bios_merged,
 				       &kvio->bios_merged);
-			result = intMapPut(
-				bio_queue_data->map,
-				get_bio_sector(prev_kvio->bios_merged.head),
-				prev_kvio, true, NULL);
-			result = intMapPut(
-				bio_queue_data->map,
-				get_bio_sector(prev_kvio->bios_merged.tail),
-				prev_kvio, true, NULL);
+			result = int_map_put(bio_queue_data->map,
+					     get_bio_sector(prev_kvio->bios_merged.head),
+					     prev_kvio, true, NULL);
+			result = int_map_put(bio_queue_data->map,
+					     get_bio_sector(prev_kvio->bios_merged.tail),
+					     prev_kvio, true, NULL);
 		} else {
 			// Only next. merge to next's head
 			//
@@ -498,22 +495,19 @@ static bool try_bio_map_merge(struct bio_queue_data *bio_queue_data,
 			// so as to reorder bios in a way that's compatible with
 			// using funnel queues in work queues.  This avoids
 			// removing an existing work item.
-			intMapRemove(
-				bio_queue_data->map,
-				get_bio_sector(next_kvio->bios_merged.head));
+			int_map_remove(bio_queue_data->map,
+				       get_bio_sector(next_kvio->bios_merged.head));
 			bio_list_merge_head(&next_kvio->bios_merged,
 					    &kvio->bios_merged);
-			result = intMapPut(
-				bio_queue_data->map,
-				get_bio_sector(next_kvio->bios_merged.head),
-				next_kvio, true, NULL);
-			result = intMapPut(
-				bio_queue_data->map,
-				get_bio_sector(next_kvio->bios_merged.tail),
-				next_kvio, true, NULL);
+			result = int_map_put(bio_queue_data->map,
+					     get_bio_sector(next_kvio->bios_merged.head),
+					     next_kvio, true, NULL);
+			result = int_map_put(bio_queue_data->map,
+					     get_bio_sector(next_kvio->bios_merged.tail),
+					     next_kvio, true, NULL);
 		}
 
-		// We don't care about failure of intMapPut in this case.
+		// We don't care about failure of int_map_put in this case.
 		result = result;
 		mutex_unlock(&bio_queue_data->lock);
 		merged = true;
@@ -657,8 +651,8 @@ int make_io_submitter(const char *thread_name_prefix,
 			 * requests *may* wind up on one thread, and thus all
 			 * in the same map.
 			 */
-			result = makeIntMap(max_requests_active * 2, 0,
-					    &bio_queue_data->map);
+			result = make_int_map(max_requests_active * 2, 0,
+					      &bio_queue_data->map);
 			if (result != 0) {
 				// Clean up the partially initialized bio-queue
 				// entirely and indicate that initialization
@@ -680,8 +674,7 @@ int make_io_submitter(const char *thread_name_prefix,
 			// Clean up the partially initialized bio-queue entirely
 			// and indicate that initialization failed.
 			if (USE_BIOMAP) {
-				freeIntMap(
-					&io_submitter->bio_queue_data[i].map);
+				free_int_map(&io_submitter->bio_queue_data[i].map);
 			}
 			logError("bio queue initialization failed %d", result);
 			cleanup_io_submitter(io_submitter);
@@ -716,7 +709,7 @@ void free_io_submitter(struct io_submitter *io_submitter)
 		io_submitter->num_bio_queues_used--;
 		free_work_queue(&io_submitter->bio_queue_data[i].queue);
 		if (USE_BIOMAP) {
-			freeIntMap(&io_submitter->bio_queue_data[i].map);
+			free_int_map(&io_submitter->bio_queue_data[i].map);
 		}
 	}
 	FREE(io_submitter);

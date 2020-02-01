@@ -16,19 +16,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/jasper/src/uds/numeric.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#1 $
  */
 
 #ifndef NUMERIC_H
 #define NUMERIC_H 1
 
 #include "compiler.h"
-#include "numericDefs.h"
 #include "typeDefs.h"
 
 #if !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__) \
   || !defined(__BYTE_ORDER__)
 #error "GCC byte order macros not defined?"
+#endif
+
+#ifdef __x86_64__
+/*
+ * __builtin_bswap16 should work fine here too, but check for a
+ * performance impact before changing it, just to be safe.
+ */
+#define bswap_16(x) \
+  (__extension__                                                        \
+   ({ register unsigned short int __v, __x = (unsigned short int) (x);  \
+     __asm__ ("rorw $8, %w0"                                            \
+              : "=r" (__v)                                              \
+              : "0" (__x)                                               \
+              : "cc");                                                  \
+     __v; }))
+#else
+#define bswap_16(x) __builtin_bswap16(x)
 #endif
 
 /*
