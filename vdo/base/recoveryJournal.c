@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#27 $
  */
 
 #include "recoveryJournal.h"
@@ -381,7 +381,7 @@ static void reapRecoveryJournalCallback(struct vdo_completion *completion)
     = (struct recovery_journal *) completion->parent;
   // The acknowledgement must be done before reaping so that there is no
   // race between acknowledging the notification and unlocks wishing to notify.
-  acknowledgeUnlock(journal->lockCounter);
+  acknowledge_unlock(journal->lockCounter);
   reapRecoveryJournal(journal);
   checkSlabJournalCommitThreshold(journal);
 }
@@ -452,10 +452,11 @@ int makeRecoveryJournal(Nonce                       nonce,
       pushRingNode(&journal->freeTailBlocks, &block->ringNode);
     }
 
-    result = makeLockCounter(layer, journal, reapRecoveryJournalCallback,
-                             journal->threadID, threadConfig->logicalZoneCount,
-                             threadConfig->physicalZoneCount, journal->size,
-                             &journal->lockCounter);
+    result = make_lock_counter(layer, journal, reapRecoveryJournalCallback,
+                               journal->threadID,
+                               threadConfig->logicalZoneCount,
+                               threadConfig->physicalZoneCount, journal->size,
+                               &journal->lockCounter);
     if (result != VDO_SUCCESS) {
       freeRecoveryJournal(&journal);
       return result;
@@ -499,7 +500,7 @@ void freeRecoveryJournal(struct recovery_journal **journalPtr)
     return;
   }
 
-  freeLockCounter(&journal->lockCounter);
+  free_lock_counter(&journal->lockCounter);
   freeVIO(&journal->flushVIO);
   FREE(journal->unusedFlushVIOData);
 
@@ -801,8 +802,8 @@ static bool prepareToAssignEntry(struct recovery_journal *journal,
    * slab journal entries have been made, the per-entry lock for the block map
    * entry serves to protect those as well.
    */
-  initializeLockCount(journal->lockCounter, journal->activeBlock->blockNumber,
-                      journal->entriesPerBlock + 1);
+  initialize_lock_count(journal->lockCounter, journal->activeBlock->blockNumber,
+                        journal->entriesPerBlock + 1);
   return true;
 }
 
@@ -817,7 +818,8 @@ static void writeBlock(struct recovery_journal       *journal,
  **/
 static void releaseJournalBlockReference(struct recovery_journal_block *block)
 {
-  releaseJournalZoneReference(block->journal->lockCounter, block->blockNumber);
+  release_journal_zone_reference(block->journal->lockCounter,
+                                 block->blockNumber);
 }
 
 /**
@@ -1130,8 +1132,8 @@ static void reapRecoveryJournal(struct recovery_journal *journal)
   // Start reclaiming blocks only when the journal head has no references. Then
   // stop when a block is referenced.
   while ((journal->blockMapReapHead < journal->lastWriteAcknowledged)
-         && !isLocked(journal->lockCounter, journal->blockMapHeadBlockNumber,
-                      ZONE_TYPE_LOGICAL)) {
+         && !is_locked(journal->lockCounter, journal->blockMapHeadBlockNumber,
+                       ZONE_TYPE_LOGICAL)) {
     journal->blockMapReapHead++;
     if (++journal->blockMapHeadBlockNumber == journal->size) {
       journal->blockMapHeadBlockNumber = 0;
@@ -1139,9 +1141,9 @@ static void reapRecoveryJournal(struct recovery_journal *journal)
   }
 
   while ((journal->slabJournalReapHead < journal->lastWriteAcknowledged)
-         && !isLocked(journal->lockCounter,
-                      journal->slabJournalHeadBlockNumber,
-                      ZONE_TYPE_PHYSICAL)) {
+         && !is_locked(journal->lockCounter,
+                       journal->slabJournalHeadBlockNumber,
+                       ZONE_TYPE_PHYSICAL)) {
     journal->slabJournalReapHead++;
     if (++journal->slabJournalHeadBlockNumber == journal->size) {
       journal->slabJournalHeadBlockNumber = 0;
@@ -1183,8 +1185,8 @@ acquireRecoveryJournalBlockReference(struct recovery_journal *journal,
 
   BlockCount blockNumber
     = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  acquireLockCountReference(journal->lockCounter, blockNumber, zoneType,
-                            zoneID);
+  acquire_lock_count_reference(journal->lockCounter, blockNumber, zoneType,
+                               zoneID);
 }
 
 /**********************************************************************/
@@ -1200,8 +1202,8 @@ releaseRecoveryJournalBlockReference(struct recovery_journal *journal,
 
   BlockCount blockNumber
     = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  releaseLockCountReference(journal->lockCounter, blockNumber, zoneType,
-                            zoneID);
+  release_lock_count_reference(journal->lockCounter, blockNumber, zoneType,
+                               zoneID);
 }
 
 /**********************************************************************/
@@ -1214,7 +1216,8 @@ void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
 
   BlockCount blockNumber
     = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  releaseJournalZoneReferenceFromOtherZone(journal->lockCounter, blockNumber);
+  release_journal_zone_reference_from_other_zone(journal->lockCounter,
+                                                 blockNumber);
 }
 
 /**

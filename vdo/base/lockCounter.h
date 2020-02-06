@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#3 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -37,118 +37,110 @@
  * completion is not in use, the completion is launched to inform the counter's
  * owner that some lock has been released. It is the owner's responsibility to
  * check for which locks have been released, and to inform the lock counter
- * that it has received the notification by calling acknowledgeUnlock().
+ * that it has received the notification by calling acknowledge_unlock().
  **/
 
 /**
  * Create a lock counter.
  *
- * @param [in]  layer           The physical layer of the VDO
- * @param [in]  parent          The parent to notify when the lock count goes
- *                              to zero
- * @param [in]  callback        The function to call when the lock count goes
- *                              to zero
- * @param [in]  threadID        The id of thread on which to run the callback
- * @param [in]  logicalZones    The total number of logical zones
- * @param [in]  physicalZones   The total number of physical zones
- * @param [in]  locks           The number of locks
- * @param [out] lockCounterPtr  A pointer to hold the new counter
+ * @param [in]  layer             The physical layer of the VDO
+ * @param [in]  parent            The parent to notify when the lock count goes
+ *                                to zero
+ * @param [in]  callback          The function to call when the lock count goes
+ *                                to zero
+ * @param [in]  thread_id         The id of thread on which to run the callback
+ * @param [in]  logical_zones     The total number of logical zones
+ * @param [in]  physical_zones    The total number of physical zones
+ * @param [in]  locks             The number of locks
+ * @param [out] lock_counter_ptr  A pointer to hold the new counter
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeLockCounter(PhysicalLayer        *layer,
-                    void                 *parent,
-                    VDOAction             callback,
-                    ThreadID              threadID,
-                    ZoneCount             logicalZones,
-                    ZoneCount             physicalZones,
-                    BlockCount            locks,
-                    struct lock_counter **lockCounterPtr)
-  __attribute__((warn_unused_result));
+int make_lock_counter(PhysicalLayer *layer, void *parent, VDOAction callback,
+		      ThreadID thread_id, ZoneCount logical_zones,
+		      ZoneCount physical_zones, BlockCount locks,
+		      struct lock_counter **lock_counter_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Destroy a lock counter and NULL out the reference to it.
  *
- * @param lockCounterPtr  A pointer to the lock counter reference to free
+ * @param lock_counter_ptr  A pointer to the lock counter reference to free
  **/
-void freeLockCounter(struct lock_counter **lockCounterPtr);
+void free_lock_counter(struct lock_counter **lock_counter_ptr);
 
 /**
  * Check whether a lock is locked for a zone type. If the recovery journal has
  * a lock on the lock number, both logical and physical zones are considered
  * locked.
  *
- * @param lockCounter  The set of locks to check
- * @param lockNumber   The lock to check
- * @param zoneType     The type of the zone
+ * @param lock_counter  The set of locks to check
+ * @param lock_number   The lock to check
+ * @param zone_type     The type of the zone
  *
  * @return <code>true</code> if the specified lock has references (is locked)
  **/
-bool isLocked(struct lock_counter *lockCounter,
-              BlockCount           lockNumber,
-              ZoneType             zoneType)
-  __attribute__((warn_unused_result));
+bool is_locked(struct lock_counter *lock_counter, BlockCount lock_number,
+	       ZoneType zone_type) __attribute__((warn_unused_result));
 
 /**
  * Initialize the value of the journal zone's counter for a given lock. This
  * must be called from the journal zone.
  *
- * @param counter     The counter to initialize
- * @param lockNumber  Which lock to initialize
- * @param value       The value to set
+ * @param counter      The counter to initialize
+ * @param lock_number  Which lock to initialize
+ * @param value        The value to set
  **/
-void initializeLockCount(struct lock_counter *counter,
-                         BlockCount           lockNumber,
-                         uint16_t             value);
+void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
+			   uint16_t value);
 
 /**
  * Acquire a reference to a given lock in the specified zone. This method must
  * not be used from the journal zone.
  *
- * @param counter     The lock_counter
- * @param lockNumber  Which lock to increment
- * @param zoneType    The type of the zone acquiring the reference
- * @param zoneID      The ID of the zone acquiring the reference
+ * @param counter      The lock_counter
+ * @param lock_number  Which lock to increment
+ * @param zone_type    The type of the zone acquiring the reference
+ * @param zoneID       The ID of the zone acquiring the reference
  **/
-void acquireLockCountReference(struct lock_counter *counter,
-                               BlockCount           lockNumber,
-                               ZoneType             zoneType,
-                               ZoneCount            zoneID);
+void acquire_lock_count_reference(struct lock_counter *counter,
+				  BlockCount lock_number, ZoneType zone_type,
+				  ZoneCount zoneID);
 
 /**
  * Release a reference to a given lock in the specified zone. This method
  * must not be used from the journal zone.
  *
- * @param counter     The lock_counter
- * @param lockNumber  Which lock to increment
- * @param zoneType    The type of the zone releasing the reference
- * @param zoneID      The ID of the zone releasing the reference
+ * @param counter      The lock_counter
+ * @param lock_number  Which lock to increment
+ * @param zone_type    The type of the zone releasing the reference
+ * @param zone_id      The ID of the zone releasing the reference
  **/
-void releaseLockCountReference(struct lock_counter *counter,
-                               BlockCount           lockNumber,
-                               ZoneType             zoneType,
-                               ZoneCount            zoneID);
+void release_lock_count_reference(struct lock_counter *counter,
+				  BlockCount lock_number, ZoneType zone_type,
+				  ZoneCount zone_id);
 
 /**
  * Release a single journal zone reference from the journal zone. This method
  * must be called from the journal zone.
  *
- * @param counter     The counter from which to release a reference
- * @param lockNumber  The lock from which to release a reference
+ * @param counter      The counter from which to release a reference
+ * @param lock_number  The lock from which to release a reference
  **/
-void releaseJournalZoneReference(struct lock_counter *counter,
-                                 BlockCount           lockNumber);
+void release_journal_zone_reference(struct lock_counter *counter,
+				    BlockCount lock_number);
 
 /**
  * Release a single journal zone reference from any zone. This method shouldn't
  * be called from the journal zone as it would be inefficient; use
- * releaseJournalZoneReference() instead.
+ * release_journal_zone_reference() instead.
  *
- * @param counter     The counter from which to release a reference
- * @param lockNumber  The lock from which to release a reference
+ * @param counter      The counter from which to release a reference
+ * @param lock_number  The lock from which to release a reference
  **/
-void releaseJournalZoneReferenceFromOtherZone(struct lock_counter *counter,
-                                              BlockCount           lockNumber);
+void
+release_journal_zone_reference_from_other_zone(struct lock_counter *counter,
+					       BlockCount lock_number);
 
 /**
  * Inform a lock counter that an unlock notification was received by the
@@ -156,6 +148,6 @@ void releaseJournalZoneReferenceFromOtherZone(struct lock_counter *counter,
  *
  * @param counter  The counter to inform
  **/
-void acknowledgeUnlock(struct lock_counter *counter);
+void acknowledge_unlock(struct lock_counter *counter);
 
 #endif // LOCK_COUNTER_H
