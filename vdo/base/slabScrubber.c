@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#18 $
  */
 
 #include "slabScrubberInternals.h"
@@ -262,21 +262,21 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                              struct vdo_slab                  *slab)
 {
   struct journal_point entryPoint = {
-    .sequenceNumber = blockNumber,
-    .entryCount     = 0,
+    .sequence_number = blockNumber,
+    .entry_count     = 0,
   };
 
   SlabBlockNumber maxSBN = slab->end - slab->start;
-  while (entryPoint.entryCount < entryCount) {
+  while (entryPoint.entry_count < entryCount) {
     struct slab_journal_entry entry
-      = decodeSlabJournalEntry(block, entryPoint.entryCount);
+      = decodeSlabJournalEntry(block, entryPoint.entry_count);
     if (entry.sbn > maxSBN) {
       // This entry is out of bounds.
       return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
                                      "vdo_slab journal entry"
                                      " (%llu, %u) had invalid offset"
                                      " %u in slab (size %u blocks)",
-                                     blockNumber, entryPoint.entryCount,
+                                     blockNumber, entryPoint.entry_count,
                                      entry.sbn, maxSBN);
     }
 
@@ -286,12 +286,12 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
       logErrorWithStringError(result, "vdo_slab journal entry (%llu, %u)"
                               " (%s of offset %" PRIu32 ") could not be"
                               " applied in slab %u",
-                              blockNumber, entryPoint.entryCount,
+                              blockNumber, entryPoint.entry_count,
                               getJournalOperationName(entry.operation),
                               entry.sbn, slab->slabNumber);
       return result;
     }
-    entryPoint.entryCount++;
+    entryPoint.entry_count++;
   }
 
   return VDO_SUCCESS;
@@ -350,8 +350,8 @@ static void applyJournalEntries(struct vdo_completion *completion)
       return;
     }
 
-    lastEntryApplied.sequenceNumber = sequence;
-    lastEntryApplied.entryCount     = header.entryCount - 1;
+    lastEntryApplied.sequence_number = sequence;
+    lastEntryApplied.entry_count     = header.entryCount - 1;
     index++;
     if (index == journal->size) {
       index = 0;
@@ -360,7 +360,7 @@ static void applyJournalEntries(struct vdo_completion *completion)
 
   // At the end of rebuild, the refCounts should be accurate to the end
   // of the journal we just applied.
-  int result = ASSERT(!beforeJournalPoint(&lastEntryApplied, &refCountsPoint),
+  int result = ASSERT(!before_journal_point(&lastEntryApplied, &refCountsPoint),
                       "Refcounts are not more accurate than the slab journal");
   if (result != VDO_SUCCESS) {
     abortScrubbing(scrubber, result);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/journalPoint.h#3 $
  */
 
 #ifndef JOURNAL_POINT_H
@@ -31,39 +31,39 @@ typedef uint16_t JournalEntryCount;
  * The absolute position of an entry in a recovery journal or slab journal.
  **/
 struct journal_point {
-  SequenceNumber    sequenceNumber;
-  JournalEntryCount entryCount;
+	SequenceNumber sequence_number;
+	JournalEntryCount entry_count;
 };
 
 /**
  * A packed, platform-independent encoding of a struct journal_point.
  **/
 struct packed_journal_point {
-  /**
-   * The packed representation is the little-endian 64-bit representation of
-   * the low-order 48 bits of the sequence number, shifted up 16 bits, or'ed
-   * with the 16-bit entry count.
-   *
-   * Very long-term, the top 16 bits of the sequence number may not always be
-   * zero, as this encoding assumes--see BZ 1523240.
-   **/
-  byte encodedPoint[8];
+	/**
+	 * The packed representation is the little-endian 64-bit representation
+	 * of the low-order 48 bits of the sequence number, shifted up 16 bits,
+	 * or'ed with the 16-bit entry count.
+	 *
+	 * Very long-term, the top 16 bits of the sequence number may not always
+	 * be zero, as this encoding assumes--see BZ 1523240.
+	 **/
+	byte encoded_point[8];
 } __attribute__((packed));
 
 /**
  * Move the given journal point forward by one entry.
  *
- * @param point            the journal point to adjust
- * @param entriesPerBlock  the number of entries in one full block
+ * @param point              the journal point to adjust
+ * @param entries_per_block  the number of entries in one full block
  **/
-static inline void advanceJournalPoint(struct journal_point  *point,
-                                       JournalEntryCount      entriesPerBlock)
+static inline void advance_journal_point(struct journal_point *point,
+					 JournalEntryCount entries_per_block)
 {
-  point->entryCount++;
-  if (point->entryCount == entriesPerBlock) {
-    point->sequenceNumber++;
-    point->entryCount = 0;
-  }
+	point->entry_count++;
+	if (point->entry_count == entries_per_block) {
+		point->sequence_number++;
+		point->entry_count = 0;
+	}
 }
 
 /**
@@ -73,9 +73,9 @@ static inline void advanceJournalPoint(struct journal_point  *point,
  *
  * @return <code>true</code> if the journal point is valid
  **/
-static inline bool isValidJournalPoint(const struct journal_point *point)
+static inline bool is_valid_journal_point(const struct journal_point *point)
 {
-  return ((point != NULL) && (point->sequenceNumber > 0));
+	return ((point != NULL) && (point->sequence_number > 0));
 }
 
 /**
@@ -87,12 +87,12 @@ static inline bool isValidJournalPoint(const struct journal_point *point)
  *
  * @return <code>true</code> if the first point precedes the second point.
  **/
-static inline bool beforeJournalPoint(const struct journal_point *first,
-                                      const struct journal_point *second)
+static inline bool before_journal_point(const struct journal_point *first,
+					const struct journal_point *second)
 {
-  return ((first->sequenceNumber < second->sequenceNumber)
-          || ((first->sequenceNumber == second->sequenceNumber)
-              && (first->entryCount < second->entryCount)));
+	return ((first->sequence_number < second->sequence_number) ||
+		((first->sequence_number == second->sequence_number) &&
+		 (first->entry_count < second->entry_count)));
 }
 
 /**
@@ -104,11 +104,12 @@ static inline bool beforeJournalPoint(const struct journal_point *first,
  * @return <code>true</code> if both points reference the same logical
  *         position of an entry the journal
  **/
-static inline bool areEquivalentJournalPoints(const struct journal_point *first,
-                                              const struct journal_point *second)
+static inline bool
+are_equivalent_journal_points(const struct journal_point *first,
+			      const struct journal_point *second)
 {
-  return ((first->sequenceNumber == second->sequenceNumber)
-          && (first->entryCount  == second->entryCount));
+	return ((first->sequence_number == second->sequence_number) &&
+		(first->entry_count == second->entry_count));
 }
 
 /**
@@ -118,11 +119,12 @@ static inline bool areEquivalentJournalPoints(const struct journal_point *first,
  * @param unpacked  The unpacked input point
  * @param packed    The packed output point
  **/
-static inline void packJournalPoint(const struct journal_point  *unpacked,
-                                    struct packed_journal_point *packed)
+static inline void pack_journal_point(const struct journal_point *unpacked,
+				      struct packed_journal_point *packed)
 {
-  uint64_t native = ((unpacked->sequenceNumber << 16) | unpacked->entryCount);
-  storeUInt64LE(packed->encodedPoint, native);
+	uint64_t native =
+		((unpacked->sequence_number << 16) | unpacked->entry_count);
+	storeUInt64LE(packed->encoded_point, native);
 }
 
 /**
@@ -133,12 +135,12 @@ static inline void packJournalPoint(const struct journal_point  *unpacked,
  * @param unpacked  The unpacked output point
  **/
 static inline void
-unpackJournalPoint(const struct packed_journal_point  *packed,
-                   struct journal_point               *unpacked)
+unpack_journal_point(const struct packed_journal_point *packed,
+		     struct journal_point *unpacked)
 {
-  uint64_t native          = getUInt64LE(packed->encodedPoint);
-  unpacked->sequenceNumber = (native >> 16);
-  unpacked->entryCount     = (native & 0xffff);
+	uint64_t native = getUInt64LE(packed->encoded_point);
+	unpacked->sequence_number = (native >> 16);
+	unpacked->entry_count = (native & 0xffff);
 }
 
 #endif // JOURNAL_POINT_H

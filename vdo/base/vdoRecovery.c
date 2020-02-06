@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#35 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -161,7 +161,7 @@ static int makeMissingDecref(struct recovery_completion     *recovery,
    */
   decref->slot         = entry.slot;
   decref->journalPoint = recovery->nextSynthesizedJournalPoint;
-  recovery->nextSynthesizedJournalPoint.entryCount++;
+  recovery->nextSynthesizedJournalPoint.entry_count++;
   recovery->missingDecrefCount++;
   recovery->incompleteDecrefCount++;
 
@@ -682,7 +682,7 @@ static void advancePoints(struct recovery_completion *recovery,
                           JournalEntryCount           entriesPerBlock)
 {
   incrementRecoveryPoint(&recovery->nextRecoveryPoint);
-  advanceJournalPoint(&recovery->nextJournalPoint, entriesPerBlock);
+  advance_journal_point(&recovery->nextJournalPoint, entriesPerBlock);
 }
 
 /**
@@ -760,8 +760,8 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
   };
 
   recovery->nextJournalPoint = (struct journal_point) {
-    .sequenceNumber = recovery->slabJournalHead,
-    .entryCount     = 0,
+    .sequence_number = recovery->slabJournalHead,
+    .entry_count     = 0,
   };
 
   logInfo("Replaying entries into slab journals for zone %u",
@@ -889,8 +889,8 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
   // Set up for the first fake journal point that will be used for a
   // synthesized entry.
   recovery->nextSynthesizedJournalPoint = (struct journal_point) {
-    .sequenceNumber = recovery->tail,
-    .entryCount     = recovery->vdo->recoveryJournal->entriesPerBlock,
+    .sequence_number = recovery->tail,
+    .entry_count     = recovery->vdo->recoveryJournal->entriesPerBlock,
   };
 
   struct recovery_point recoveryPoint = recovery->tailRecoveryPoint;

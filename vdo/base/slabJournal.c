@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#27 $
  */
 
 #include "slabJournalInternals.h"
@@ -798,13 +798,13 @@ void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
 /**********************************************************************/
 struct slab_journal_entry
 decodeSlabJournalEntry(struct packed_slab_journal_block   *block,
-                       JournalEntryCount                   entryCount)
+                       JournalEntryCount                   entry_count)
 {
   struct slab_journal_entry entry
-    = unpackSlabJournalEntry(&block->payload.entries[entryCount]);
+    = unpackSlabJournalEntry(&block->payload.entries[entry_count]);
   if (block->header.fields.hasBlockMapIncrements
-      && ((block->payload.fullEntries.entryTypes[entryCount / 8]
-           & ((byte) 1 << (entryCount % 8))) != 0)) {
+      && ((block->payload.fullEntries.entryTypes[entry_count / 8]
+           & ((byte) 1 << (entry_count % 8))) != 0)) {
     entry.operation = BLOCK_MAP_INCREMENT;
   }
   return entry;
@@ -824,14 +824,15 @@ static void addEntry(struct slab_journal        *journal,
                      JournalOperation            operation,
                      const struct journal_point *recoveryPoint)
 {
-  int result = ASSERT(beforeJournalPoint(&journal->tailHeader.recoveryPoint,
-                                         recoveryPoint),
+  int result = ASSERT(before_journal_point(&journal->tailHeader.recoveryPoint,
+                                           recoveryPoint),
                       "recovery journal point is monotonically increasing, "
                       "recovery point: %llu.%u, "
                       "block recovery point: %llu.%u",
-                      recoveryPoint->sequenceNumber, recoveryPoint->entryCount,
-                      journal->tailHeader.recoveryPoint.sequenceNumber,
-                      journal->tailHeader.recoveryPoint.entryCount);
+                      recoveryPoint->sequence_number,
+		      recoveryPoint->entry_count,
+                      journal->tailHeader.recoveryPoint.sequence_number,
+                      journal->tailHeader.recoveryPoint.entry_count);
   if (result != VDO_SUCCESS) {
     enterJournalReadOnlyMode(journal, result);
     return;
@@ -864,7 +865,8 @@ bool attemptReplayIntoSlabJournal(struct slab_journal   *journal,
                                   struct vdo_completion *parent)
 {
   // Only accept entries after the current recovery point.
-  if (!beforeJournalPoint(&journal->tailHeader.recoveryPoint, recoveryPoint)) {
+  if (!before_journal_point(&journal->tailHeader.recoveryPoint,
+                            recoveryPoint)) {
     return true;
   }
 
@@ -945,7 +947,7 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
   struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   struct slab_journal *journal = (struct slab_journal *) context;
   struct slab_journal_block_header *header = &journal->tailHeader;
-  SequenceNumber recoveryBlock = dataVIO->recoveryJournalPoint.sequenceNumber;
+  SequenceNumber recoveryBlock = dataVIO->recoveryJournalPoint.sequence_number;
 
   if (header->entryCount == 0) {
     /*
@@ -977,8 +979,8 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
   }
 
   struct journal_point slabJournalPoint = {
-    .sequenceNumber = header->sequenceNumber,
-    .entryCount     = header->entryCount,
+    .sequence_number = header->sequenceNumber,
+    .entry_count     = header->entryCount,
   };
 
   addEntry(journal, dataVIO->operation.pbn, dataVIO->operation.type,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#28 $
  */
 
 #include "recoveryJournal.h"
@@ -347,12 +347,12 @@ static void handleFlushError(struct vdo_completion *completion)
  **/
 static void initializeJournalState(struct recovery_journal *journal)
 {
-  journal->appendPoint.sequenceNumber = journal->tail;
-  journal->lastWriteAcknowledged      = journal->tail;
-  journal->blockMapHead               = journal->tail;
-  journal->slabJournalHead            = journal->tail;
-  journal->blockMapReapHead           = journal->tail;
-  journal->slabJournalReapHead        = journal->tail;
+  journal->appendPoint.sequence_number = journal->tail;
+  journal->lastWriteAcknowledged       = journal->tail;
+  journal->blockMapHead                = journal->tail;
+  journal->slabJournalHead             = journal->tail;
+  journal->blockMapReapHead            = journal->tail;
+  journal->slabJournalReapHead         = journal->tail;
   journal->blockMapHeadBlockNumber
     = getRecoveryJournalBlockNumber(journal, journal->blockMapHead);
   journal->slabJournalHeadBlockNumber
@@ -834,8 +834,8 @@ static void assignEntry(struct waiter *waiter, void *context)
 
   // Record the point at which we will make the journal entry.
   dataVIO->recoveryJournalPoint = (struct journal_point) {
-    .sequenceNumber = block->sequenceNumber,
-    .entryCount     = block->entryCount,
+    .sequence_number  = block->sequenceNumber,
+    .entry_count      = block->entryCount,
   };
 
   switch (dataVIO->operation.type) {
@@ -952,15 +952,15 @@ static void continueCommittedWaiter(struct waiter *waiter, void *context)
 {
   struct data_vio *dataVIO = waiterAsDataVIO(waiter);
   struct recovery_journal *journal = (struct recovery_journal *) context;
-  ASSERT_LOG_ONLY(beforeJournalPoint(&journal->commitPoint,
-                                     &dataVIO->recoveryJournalPoint),
+  ASSERT_LOG_ONLY(before_journal_point(&journal->commitPoint,
+                                       &dataVIO->recoveryJournalPoint),
                   "DataVIOs released from recovery journal in order. "
                   "Recovery journal point is (%llu, %" PRIu16 "), "
                   "but commit waiter point is (%llu, %" PRIu16 ")",
-                  journal->commitPoint.sequenceNumber,
-                  journal->commitPoint.entryCount,
-                  dataVIO->recoveryJournalPoint.sequenceNumber,
-                  dataVIO->recoveryJournalPoint.entryCount);
+                  journal->commitPoint.sequence_number,
+                  journal->commitPoint.entry_count,
+                  dataVIO->recoveryJournalPoint.sequence_number,
+                  dataVIO->recoveryJournalPoint.entry_count);
   journal->commitPoint = dataVIO->recoveryJournalPoint;
 
   int result
@@ -1102,7 +1102,7 @@ void addRecoveryJournalEntry(struct recovery_journal *journal,
   ASSERT_LOG_ONLY((!increment || (dataVIO->recoverySequenceNumber == 0)),
                   "journal lock not held for increment");
 
-  advanceJournalPoint(&journal->appendPoint, journal->entriesPerBlock);
+  advance_journal_point(&journal->appendPoint, journal->entriesPerBlock);
   int result = enqueueDataVIO((increment
                                ? &journal->incrementWaiters
                                : &journal->decrementWaiters), dataVIO,

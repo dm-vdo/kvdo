@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#15 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -288,8 +288,8 @@ void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
 /**
  * Decode a slab journal entry.
  *
- * @param block       The journal block holding the entry
- * @param entryCount  The number of the entry
+ * @param block        The journal block holding the entry
+ * @param entryCount   The number of the entry
  *
  * @return The decoded entry
  **/
@@ -348,15 +348,15 @@ static inline
 void packSlabJournalBlockHeader(const struct slab_journal_block_header *header,
                                 PackedSlabJournalBlockHeader           *packed)
 {
-  storeUInt64LE(packed->fields.head,           header->head);
-  storeUInt64LE(packed->fields.sequenceNumber, header->sequenceNumber);
-  storeUInt64LE(packed->fields.nonce,          header->nonce);
-  storeUInt16LE(packed->fields.entryCount,     header->entryCount);
+  storeUInt64LE(packed->fields.head,            header->head);
+  storeUInt64LE(packed->fields.sequenceNumber,  header->sequenceNumber);
+  storeUInt64LE(packed->fields.nonce,           header->nonce);
+  storeUInt16LE(packed->fields.entryCount,      header->entryCount);
 
   packed->fields.metadataType          = header->metadataType;
   packed->fields.hasBlockMapIncrements = header->hasBlockMapIncrements;
 
-  packJournalPoint(&header->recoveryPoint, &packed->fields.recoveryPoint);
+  pack_journal_point(&header->recoveryPoint, &packed->fields.recoveryPoint);
 }
 
 /**
@@ -377,7 +377,7 @@ void unpackSlabJournalBlockHeader(const PackedSlabJournalBlockHeader *packed,
     .metadataType          = packed->fields.metadataType,
     .hasBlockMapIncrements = packed->fields.hasBlockMapIncrements,
   };
-  unpackJournalPoint(&packed->fields.recoveryPoint, &header->recoveryPoint);
+  unpack_journal_point(&packed->fields.recoveryPoint, &header->recoveryPoint);
 }
 
 #endif // SLAB_JOURNAL_INTERNALS_H
