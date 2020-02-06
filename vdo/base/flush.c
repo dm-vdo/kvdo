@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#13 $
  */
 
 #include "flush.h"
@@ -169,10 +169,10 @@ static void flush_packer_callback(struct vdo_completion *completion)
 static void increment_generation(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
-	incrementFlushGeneration(flusher->logical_zone_to_notify,
-				 flusher->notify_generation);
+	increment_flush_generation(flusher->logical_zone_to_notify,
+				   flusher->notify_generation);
 	flusher->logical_zone_to_notify =
-		getNextLogicalZone(flusher->logical_zone_to_notify);
+		get_next_logical_zone(flusher->logical_zone_to_notify);
 	if (flusher->logical_zone_to_notify == NULL) {
 		launchCallback(completion, flush_packer_callback,
 			       flusher->thread_id);
@@ -180,7 +180,7 @@ static void increment_generation(struct vdo_completion *completion)
 	}
 
 	launchCallback(completion, increment_generation,
-		       getLogicalZoneThreadID(flusher->logical_zone_to_notify));
+		       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
 }
 
 /**
@@ -194,10 +194,10 @@ static void notify_flush(struct flusher *flusher)
 		waiter_as_flush(getFirstWaiter(&flusher->notifiers));
 	flusher->notify_generation = flush->flush_generation;
 	flusher->logical_zone_to_notify =
-		getLogicalZone(flusher->vdo->logicalZones, 0);
+		get_logical_zone(flusher->vdo->logicalZones, 0);
 	flusher->completion.requeue = true;
 	launchCallback(&flusher->completion, increment_generation,
-		       getLogicalZoneThreadID(flusher->logical_zone_to_notify));
+		       get_logical_zone_thread_id(flusher->logical_zone_to_notify));
 }
 
 /**********************************************************************/
@@ -230,9 +230,10 @@ void complete_flushes(struct flusher *flusher)
 
 	SequenceNumber oldest_active_generation = UINT64_MAX;
 	struct logical_zone *zone;
-	for (zone = getLogicalZone(flusher->vdo->logicalZones, 0);
-	     zone != NULL; zone = getNextLogicalZone(zone)) {
-		SequenceNumber oldest_in_zone = getOldestLockedGeneration(zone);
+	for (zone = get_logical_zone(flusher->vdo->logicalZones, 0);
+	     zone != NULL; zone = get_next_logical_zone(zone)) {
+		SequenceNumber oldest_in_zone =
+                  get_oldest_locked_generation(zone);
 		oldest_active_generation =
 			minSequenceNumber(oldest_active_generation,
 					  oldest_in_zone);

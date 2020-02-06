@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#21 $
  */
 
 #include "logicalZone.h"
@@ -37,50 +37,50 @@
 #include "vdoInternal.h"
 
 struct logical_zone {
-  /** The completion for flush notifications */
-  struct vdo_completion       completion;
-  /** The owner of this zone */
-  struct logical_zones       *zones;
-  /** Which logical zone this is */
-  ZoneCount                   zoneNumber;
-  /** The thread id for this zone */
-  ThreadID                    threadID;
-  /** In progress operations keyed by LBN */
-  struct int_map             *lbnOperations;
-  /** The logical to physical map */
-  struct block_map_zone      *blockMapZone;
-  /** The current flush generation */
-  SequenceNumber              flushGeneration;
-  /** The oldest active generation in this zone */
-  SequenceNumber              oldestActiveGeneration;
-  /** The number of IOs in the current flush generation */
-  BlockCount                  iosInFlushGeneration;
-  /**
-   * The oldest locked generation in this zone (an atomic copy of
-   *                          oldestActiveGeneration)
-   **/
-  Atomic64                    oldestLockedGeneration;
-  /** The youngest generation of the current notification */
-  SequenceNumber              notificationGeneration;
-  /** Whether a notification is in progress */
-  bool                        notifying;
-  /** The queue of active data write VIOs */
-  RingNode                    writeVIOs;
-  /** The administrative state of the zone */
-  struct admin_state          state;
-  /** The selector for determining which physical zone to allocate from */
-  struct allocation_selector *selector;
+	/** The completion for flush notifications */
+	struct vdo_completion completion;
+	/** The owner of this zone */
+	struct logical_zones *zones;
+	/** Which logical zone this is */
+	ZoneCount zone_number;
+	/** The thread id for this zone */
+	ThreadID thread_id;
+	/** In progress operations keyed by LBN */
+	struct int_map *lbn_operations;
+	/** The logical to physical map */
+	struct block_map_zone *block_map_zone;
+	/** The current flush generation */
+	SequenceNumber flush_generation;
+	/** The oldest active generation in this zone */
+	SequenceNumber oldest_active_generation;
+	/** The number of IOs in the current flush generation */
+	BlockCount ios_in_flush_generation;
+	/**
+	 * The oldest locked generation in this zone (an atomic copy of
+	 * oldest_active_generation)
+	 **/
+	Atomic64 oldest_locked_generation;
+	/** The youngest generation of the current notification */
+	SequenceNumber notification_generation;
+	/** Whether a notification is in progress */
+	bool notifying;
+	/** The queue of active data write VIOs */
+	RingNode write_vios;
+	/** The administrative state of the zone */
+	struct admin_state state;
+	/** The selector for determining which physical zone to allocate from */
+	struct allocation_selector *selector;
 };
 
 struct logical_zones {
-  /** The vdo whose zones these are */
-  struct vdo            *vdo;
-  /** The manager for administrative actions */
-  struct action_manager *manager;
-  /** The number of zones */
-  ZoneCount              zoneCount;
-  /** The logical zones themselves */
-  struct logical_zone    zones[];
+	/** The vdo whose zones these are */
+	struct vdo *vdo;
+	/** The manager for administrative actions */
+	struct action_manager *manager;
+	/** The number of zones */
+	ZoneCount zone_count;
+	/** The logical zones themselves */
+	struct logical_zone zones[];
 };
 
 /**
@@ -90,129 +90,131 @@ struct logical_zones {
  *
  * @return The completion as a logical_zone
  **/
-static struct logical_zone *asLogicalZone(struct vdo_completion *completion)
+static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(struct logical_zone, completion) == 0);
-  assertCompletionType(completion->type, GENERATION_FLUSHED_COMPLETION);
-  return (struct logical_zone *) completion;
+	STATIC_ASSERT(offsetof(struct logical_zone, completion) == 0);
+	assertCompletionType(completion->type, GENERATION_FLUSHED_COMPLETION);
+	return (struct logical_zone *)completion;
 }
 
 /**********************************************************************/
-struct logical_zone *getLogicalZone(struct logical_zones *zones,
-                                    ZoneCount             zoneNumber)
+struct logical_zone *get_logical_zone(struct logical_zones *zones,
+				      ZoneCount zone_number)
 {
-  return (zoneNumber < zones->zoneCount) ? &zones->zones[zoneNumber] : NULL;
+	return (zone_number < zones->zone_count) ? &zones->zones[zone_number]
+		: NULL;
 }
 
 /**
  * Implements ZoneThreadGetter
  **/
-static ThreadID getThreadIDForZone(void *context, ZoneCount zoneNumber)
+static ThreadID get_thread_id_for_zone(void *context, ZoneCount zone_number)
 {
-  return getLogicalZoneThreadID(getLogicalZone(context, zoneNumber));
+	return get_logical_zone_thread_id(get_logical_zone(context,
+							   zone_number));
 }
 
 /**
  * Initialize a logical zone.
  *
- * @param zones       The logical_zones to which this zone belongs
- * @param zoneNumber  The logical_zone's index
+ * @param zones        The logical_zones to which this zone belongs
+ * @param zone_number  The logical_zone's index
  **/
-static int initializeZone(struct logical_zones *zones, ZoneCount zoneNumber)
+static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 {
-  struct logical_zone *zone = &zones->zones[zoneNumber];
-  zone->zones = zones;
-  int result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->lbnOperations);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct logical_zone *zone = &zones->zones[zone_number];
+	zone->zones = zones;
+	int result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->lbn_operations);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  struct vdo *vdo = zones->vdo;
-  result = initializeEnqueueableCompletion(&zone->completion,
-                                           GENERATION_FLUSHED_COMPLETION,
-                                           vdo->layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct vdo *vdo = zones->vdo;
+	result = initializeEnqueueableCompletion(&zone->completion,
+						 GENERATION_FLUSHED_COMPLETION,
+						 vdo->layer);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  zone->zoneNumber   = zoneNumber;
-  zone->threadID     = getLogicalZoneThread(getThreadConfig(vdo),
-                                            zoneNumber);
-  zone->blockMapZone = getBlockMapZone(vdo->blockMap, zoneNumber);
-  initializeRing(&zone->writeVIOs);
-  atomicStore64(&zone->oldestLockedGeneration, 0);
+	zone->zone_number = zone_number;
+	zone->thread_id = getLogicalZoneThread(getThreadConfig(vdo),
+					       zone_number);
+	zone->block_map_zone = getBlockMapZone(vdo->blockMap, zone_number);
+	initializeRing(&zone->write_vios);
+	atomicStore64(&zone->oldest_locked_generation, 0);
 
-  return make_allocation_selector(getThreadConfig(vdo)->physicalZoneCount,
-                                  zone->threadID, &zone->selector);
+	return make_allocation_selector(getThreadConfig(vdo)->physicalZoneCount,
+					zone->thread_id, &zone->selector);
 }
 
 /**********************************************************************/
-int makeLogicalZones(struct vdo *vdo, struct logical_zones **zonesPtr)
+int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
-  const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  if (threadConfig->logicalZoneCount == 0) {
-    return VDO_SUCCESS;
-  }
+	const ThreadConfig *thread_config = getThreadConfig(vdo);
+	if (thread_config->logicalZoneCount == 0) {
+		return VDO_SUCCESS;
+	}
 
-  struct logical_zones *zones;
-  int result = ALLOCATE_EXTENDED(struct logical_zones,
-                                 threadConfig->logicalZoneCount,
-                                 struct logical_zone, __func__, &zones);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct logical_zones *zones;
+	int result = ALLOCATE_EXTENDED(struct logical_zones,
+				       thread_config->logicalZoneCount,
+				       struct logical_zone, __func__, &zones);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  zones->vdo = vdo;
-  zones->zoneCount = threadConfig->logicalZoneCount;
-  ZoneCount zone;
-  for (zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-    result = initializeZone(zones, zone);
-    if (result != VDO_SUCCESS) {
-      freeLogicalZones(&zones);
-      return result;
-    }
-  }
+	zones->vdo = vdo;
+	zones->zone_count = thread_config->logicalZoneCount;
+	ZoneCount zone;
+	for (zone = 0; zone < thread_config->logicalZoneCount; zone++) {
+		result = initialize_zone(zones, zone);
+		if (result != VDO_SUCCESS) {
+			free_logical_zones(&zones);
+			return result;
+		}
+	}
 
-  result = make_action_manager(zones->zoneCount, getThreadIDForZone,
-                               getAdminThread(threadConfig), zones, NULL,
-                               vdo->layer, &zones->manager);
-  if (result != VDO_SUCCESS) {
-    freeLogicalZones(&zones);
-    return result;
-  }
+	result = make_action_manager(zones->zone_count, get_thread_id_for_zone,
+				     getAdminThread(thread_config), zones, NULL,
+				     vdo->layer, &zones->manager);
+	if (result != VDO_SUCCESS) {
+		free_logical_zones(&zones);
+		return result;
+	}
 
-  *zonesPtr = zones;
-  return VDO_SUCCESS;
+	*zones_ptr = zones;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeLogicalZones(struct logical_zones **zonesPtr)
+void free_logical_zones(struct logical_zones **zones_ptr)
 {
-  struct logical_zones *zones = *zonesPtr;
-  if (zones == NULL) {
-    return;
-  }
+	struct logical_zones *zones = *zones_ptr;
+	if (zones == NULL) {
+		return;
+	}
 
-  free_action_manager(&zones->manager);
+	free_action_manager(&zones->manager);
 
-  ZoneCount index;
-  for (index = 0; index < zones->zoneCount; index++) {
-    struct logical_zone *zone = &zones->zones[index];
-    free_allocation_selector(&zone->selector);
-    destroyEnqueueable(&zone->completion);
-    free_int_map(&zone->lbnOperations);
-  }
+	ZoneCount index;
+	for (index = 0; index < zones->zone_count; index++) {
+		struct logical_zone *zone = &zones->zones[index];
+		free_allocation_selector(&zone->selector);
+		destroyEnqueueable(&zone->completion);
+		free_int_map(&zone->lbn_operations);
+	}
 
-  FREE(zones);
-  *zonesPtr = NULL;
+	FREE(zones);
+	*zones_ptr = NULL;
 }
 
 /**********************************************************************/
-static inline void assertOnZoneThread(struct logical_zone *zone,
-                                      const char          *what)
+static inline void assert_on_zone_thread(struct logical_zone *zone,
+					 const char *what)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == zone->threadID),
-                  "%s() called on correct thread", what);
+	ASSERT_LOG_ONLY((getCallbackThreadID() == zone->thread_id),
+			"%s() called on correct thread", what);
 }
 
 /**
@@ -220,14 +222,14 @@ static inline void assertOnZoneThread(struct logical_zone *zone,
  *
  * @param zone  The zone to check
  **/
-static void checkForDrainComplete(struct logical_zone *zone)
+static void check_for_drain_complete(struct logical_zone *zone)
 {
-  if (!is_draining(&zone->state) || zone->notifying
-      || !isRingEmpty(&zone->writeVIOs)) {
-    return;
-  }
+	if (!is_draining(&zone->state) || zone->notifying
+	    || !isRingEmpty(&zone->write_vios)) {
+		return;
+	}
 
-  finish_draining(&zone->state);
+	finish_draining(&zone->state);
 }
 
 /**
@@ -235,9 +237,9 @@ static void checkForDrainComplete(struct logical_zone *zone)
  *
  * Implements AdminInitiator.
  **/
-static void initiateDrain(struct admin_state *state)
+static void initiate_drain(struct admin_state *state)
 {
-  checkForDrainComplete(container_of(state, struct logical_zone, state));
+	check_for_drain_complete(container_of(state, struct logical_zone, state));
 }
 
 /**
@@ -245,23 +247,21 @@ static void initiateDrain(struct admin_state *state)
  *
  * <p>Implements ZoneAction.
  **/
-static void drainLogicalZone(void                  *context,
-                             ZoneCount              zoneNumber,
-                             struct vdo_completion *parent)
+static void drain_logical_zone(void *context, ZoneCount zone_number,
+			       struct vdo_completion *parent)
 {
-  struct logical_zone *zone = getLogicalZone(context, zoneNumber);
-  start_draining(&zone->state,
-                 get_current_manager_operation(zone->zones->manager),
-                 parent, initiateDrain);
+	struct logical_zone *zone = get_logical_zone(context, zone_number);
+	start_draining(&zone->state,
+		       get_current_manager_operation(zone->zones->manager),
+		       parent, initiate_drain);
 }
 
 /**********************************************************************/
-void drainLogicalZones(struct logical_zones  *zones,
-                       AdminStateCode         operation,
-                       struct vdo_completion *parent)
+void drain_logical_zones(struct logical_zones *zones, AdminStateCode operation,
+			 struct vdo_completion *parent)
 {
-  schedule_operation(zones->manager, operation, NULL, drainLogicalZone, NULL,
-                     parent);
+	schedule_operation(zones->manager, operation, NULL, drain_logical_zone,
+			   NULL, parent);
 }
 
 /**
@@ -269,57 +269,56 @@ void drainLogicalZones(struct logical_zones  *zones,
  *
  * <p>Implements ZoneAction.
  **/
-static void resumeLogicalZone(void                  *context,
-                              ZoneCount              zoneNumber,
-                              struct vdo_completion *parent)
+static void resume_logical_zone(void *context, ZoneCount zone_number,
+				struct vdo_completion *parent)
 {
-  struct logical_zone *zone = getLogicalZone(context, zoneNumber);
-  finishCompletion(parent, resume_if_quiescent(&zone->state));
+	struct logical_zone *zone = get_logical_zone(context, zone_number);
+	finishCompletion(parent, resume_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
-void resumeLogicalZones(struct logical_zones  *zones,
-                        struct vdo_completion *parent)
+void resume_logical_zones(struct logical_zones *zones,
+			  struct vdo_completion *parent)
 {
-  schedule_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
-                     resumeLogicalZone, NULL, parent);
+	schedule_operation(zones->manager, ADMIN_STATE_RESUMING, NULL,
+			   resume_logical_zone, NULL, parent);
 }
 
 /**********************************************************************/
-ThreadID getLogicalZoneThreadID(const struct logical_zone *zone)
+ThreadID get_logical_zone_thread_id(const struct logical_zone *zone)
 {
-  return zone->threadID;
+	return zone->thread_id;
 }
 
 /**********************************************************************/
-struct block_map_zone *getBlockMapForZone(const struct logical_zone *zone)
+struct block_map_zone *get_block_map_for_zone(const struct logical_zone *zone)
 {
-  return zone->blockMapZone;
+	return zone->block_map_zone;
 }
 
 /**********************************************************************/
-struct int_map *getLBNLockMap(const struct logical_zone *zone)
+struct int_map *get_lbn_lock_map(const struct logical_zone *zone)
 {
-  return zone->lbnOperations;
+	return zone->lbn_operations;
 }
 
 /**********************************************************************/
-struct logical_zone *getNextLogicalZone(const struct logical_zone *zone)
+struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
 {
-  return getLogicalZone(zone->zones, zone->zoneNumber + 1);
+	return get_logical_zone(zone->zones, zone->zone_number + 1);
 }
 
 /**
  * Convert a RingNode to a data_vio.
  *
- * @param ringNode The RingNode to convert
+ * @param ring_node The RingNode to convert
  *
  * @return The data_vio which owns the RingNode
  **/
-static inline struct data_vio *dataVIOFromRingNode(RingNode *ringNode)
+static inline struct data_vio *data_vio_from_ring_node(RingNode *ring_node)
 {
-  return (struct data_vio *) ((byte *) ringNode - offsetof(struct data_vio,
-                                                           writeNode));
+	return (struct data_vio *)((byte *)ring_node
+				   - offsetof(struct data_vio, writeNode));
 }
 
 /**
@@ -330,78 +329,79 @@ static inline struct data_vio *dataVIOFromRingNode(RingNode *ringNode)
  *
  * @return <code>true</code> if the oldest active generation has changed
  **/
-static bool updateOldestActiveGeneration(struct logical_zone *zone)
+static bool update_oldest_active_generation(struct logical_zone *zone)
 {
-  SequenceNumber currentOldest = zone->oldestActiveGeneration;
-  if (isRingEmpty(&zone->writeVIOs)) {
-    zone->oldestActiveGeneration = zone->flushGeneration;
-  } else {
-    zone->oldestActiveGeneration
-      = dataVIOFromRingNode(zone->writeVIOs.next)->flushGeneration;
-  }
+	SequenceNumber current_oldest = zone->oldest_active_generation;
+	if (isRingEmpty(&zone->write_vios)) {
+		zone->oldest_active_generation = zone->flush_generation;
+	} else {
+		zone->oldest_active_generation =
+			data_vio_from_ring_node(zone->write_vios.next)->flushGeneration;
+	}
 
-  if (zone->oldestActiveGeneration == currentOldest) {
-    return false;
-  }
+	if (zone->oldest_active_generation == current_oldest) {
+		return false;
+	}
 
-  atomicStore64(&zone->oldestLockedGeneration, zone->oldestActiveGeneration);
-  return true;
+	atomicStore64(&zone->oldest_locked_generation,
+		      zone->oldest_active_generation);
+	return true;
 }
 
 /**********************************************************************/
-void incrementFlushGeneration(struct logical_zone *zone,
-                              SequenceNumber       expectedGeneration)
+void increment_flush_generation(struct logical_zone *zone,
+				SequenceNumber expected_generation)
 {
-  assertOnZoneThread(zone, __func__);
-  ASSERT_LOG_ONLY((zone->flushGeneration == expectedGeneration),
-                  "logical zone %u flush generation %" PRIu64
-                  " should be %llu before increment",
-                  zone->zoneNumber, zone->flushGeneration,
-                  expectedGeneration);
+	assert_on_zone_thread(zone, __func__);
+	ASSERT_LOG_ONLY((zone->flush_generation == expected_generation),
+			"logical zone %u flush generation %" PRIu64
+			" should be %llu before increment",
+			zone->zone_number, zone->flush_generation,
+			expected_generation);
 
-  zone->flushGeneration++;
-  zone->iosInFlushGeneration = 0;
-  updateOldestActiveGeneration(zone);
+	zone->flush_generation++;
+	zone->ios_in_flush_generation = 0;
+	update_oldest_active_generation(zone);
 }
 
 /**********************************************************************/
-SequenceNumber getOldestLockedGeneration(const struct logical_zone *zone)
+SequenceNumber get_oldest_locked_generation(const struct logical_zone *zone)
 {
-  return (SequenceNumber) atomicLoad64(&zone->oldestLockedGeneration);
+	return (SequenceNumber)atomicLoad64(&zone->oldest_locked_generation);
 }
 
 /**********************************************************************/
-int acquireFlushGenerationLock(struct data_vio *dataVIO)
+int acquire_flush_generation_lock(struct data_vio *dataVIO)
 {
-  struct logical_zone *zone = dataVIO->logical.zone;
-  assertOnZoneThread(zone, __func__);
-  if (!is_normal(&zone->state)) {
-    return VDO_INVALID_ADMIN_STATE;
-  }
+	struct logical_zone *zone = dataVIO->logical.zone;
+	assert_on_zone_thread(zone, __func__);
+	if (!is_normal(&zone->state)) {
+		return VDO_INVALID_ADMIN_STATE;
+	}
 
-  dataVIO->flushGeneration = zone->flushGeneration;
-  pushRingNode(&zone->writeVIOs, &dataVIO->writeNode);
-  dataVIO->hasFlushGenerationLock = true;
-  zone->iosInFlushGeneration++;
-  return VDO_SUCCESS;
+	dataVIO->flushGeneration = zone->flush_generation;
+	pushRingNode(&zone->write_vios, &dataVIO->writeNode);
+	dataVIO->hasFlushGenerationLock = true;
+	zone->ios_in_flush_generation++;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 static void
-attemptGenerationCompleteNotification(struct vdo_completion *completion);
+attempt_generation_complete_notification(struct vdo_completion *completion);
 
 /**
  * Notify the flush that at least one generation no longer has active VIOs.
- * This callback is registered in attemptGenerationCompleteNotification().
+ * This callback is registered in attempt_generation_complete_notification().
  *
  * @param completion  The zone completion
  **/
-static void notifyFlusher(struct vdo_completion *completion)
+static void notify_flusher(struct vdo_completion *completion)
 {
-  struct logical_zone *zone = asLogicalZone(completion);
-  complete_flushes(zone->zones->vdo->flusher);
-  launchCallback(completion, attemptGenerationCompleteNotification,
-                 zone->threadID);
+	struct logical_zone *zone = as_logical_zone(completion);
+	complete_flushes(zone->zones->vdo->flusher);
+	launchCallback(completion, attempt_generation_complete_notification,
+		       zone->thread_id);
 }
 
 /**
@@ -410,64 +410,66 @@ static void notifyFlusher(struct vdo_completion *completion)
  * @param completion  The zone completion
  **/
 static void
-attemptGenerationCompleteNotification(struct vdo_completion *completion)
+attempt_generation_complete_notification(struct vdo_completion *completion)
 {
-  struct logical_zone *zone = asLogicalZone(completion);
-  assertOnZoneThread(zone, __func__);
-  if (zone->oldestActiveGeneration <= zone->notificationGeneration) {
-    zone->notifying = false;
-    checkForDrainComplete(zone);
-    return;
-  }
+	struct logical_zone *zone = as_logical_zone(completion);
+	assert_on_zone_thread(zone, __func__);
+	if (zone->oldest_active_generation <= zone->notification_generation) {
+		zone->notifying = false;
+		check_for_drain_complete(zone);
+		return;
+	}
 
-  zone->notifying              = true;
-  zone->notificationGeneration = zone->oldestActiveGeneration;
-  launchCallback(&zone->completion, notifyFlusher,
-                 get_flusher_thread_id(zone->zones->vdo->flusher));
+	zone->notifying = true;
+	zone->notification_generation = zone->oldest_active_generation;
+	launchCallback(&zone->completion, notify_flusher,
+		       get_flusher_thread_id(zone->zones->vdo->flusher));
 }
 
 /**********************************************************************/
-void releaseFlushGenerationLock(struct data_vio *dataVIO)
+void release_flush_generation_lock(struct data_vio *data_vio)
 {
-  struct logical_zone *zone = dataVIO->logical.zone;
-  assertOnZoneThread(zone, __func__);
-  if (isRingEmpty(&dataVIO->writeNode)) {
-    // This VIO never got a lock, either because it is a read, or because
-    // we are in read-only mode.
-    ASSERT_LOG_ONLY(!dataVIO->hasFlushGenerationLock,
-                    "hasFlushGenerationLock false for VIO not on active list");
-    return;
-  }
+	struct logical_zone *zone = data_vio->logical.zone;
+	assert_on_zone_thread(zone, __func__);
+	if (isRingEmpty(&data_vio->writeNode)) {
+		// This VIO never got a lock, either because it is a read, or
+		// because we are in read-only mode.
+		ASSERT_LOG_ONLY(!data_vio->hasFlushGenerationLock,
+				"hasFlushGenerationLock false for VIO not on active list");
+		return;
+	}
 
-  unspliceRingNode(&dataVIO->writeNode);
-  dataVIO->hasFlushGenerationLock = false;
-  ASSERT_LOG_ONLY(zone->oldestActiveGeneration <= dataVIO->flushGeneration,
-                  "data_vio releasing lock on generation %" PRIu64
-                  " is not older than oldest active generation %llu",
-                  dataVIO->flushGeneration, zone->oldestActiveGeneration);
+	unspliceRingNode(&data_vio->writeNode);
+	data_vio->hasFlushGenerationLock = false;
+	ASSERT_LOG_ONLY(zone->oldest_active_generation
+				<= data_vio->flushGeneration,
+			"data_vio releasing lock on generation %" PRIu64
+			" is not older than oldest active generation %llu",
+			data_vio->flushGeneration, zone->oldest_active_generation);
 
-  if (!updateOldestActiveGeneration(zone) || zone->notifying) {
-    return;
-  }
+	if (!update_oldest_active_generation(zone) || zone->notifying) {
+		return;
+	}
 
-  attemptGenerationCompleteNotification(&zone->completion);
+	attempt_generation_complete_notification(&zone->completion);
 }
 
 /**********************************************************************/
-struct allocation_selector *getAllocationSelector(struct logical_zone *zone)
+struct allocation_selector *get_allocation_selector(struct logical_zone *zone)
 {
-  return zone->selector;
+	return zone->selector;
 }
 
 /**********************************************************************/
-void dumpLogicalZone(const struct logical_zone *zone)
+void dump_logical_zone(const struct logical_zone *zone)
 {
-  logInfo("logical_zone %u", zone->zoneNumber);
-  logInfo("  flushGeneration=%llu oldestActiveGeneration=%" PRIu64
-          " oldestLockedGeneration=%llu notificationGeneration=%" PRIu64
-          " notifying=%s iosInCurrentGeneration=%llu",
-          zone->flushGeneration, zone->oldestActiveGeneration,
-          relaxedLoad64(&zone->oldestLockedGeneration),
-          zone->notificationGeneration, boolToString(zone->notifying),
-          zone->iosInFlushGeneration);
+	logInfo("logical_zone %u", zone->zone_number);
+	logInfo("  flush_generation=%llu oldest_active_generation=%" PRIu64
+		" oldest_locked_generation=%" PRIu64
+		" notification_generation=%" PRIu64
+		" notifying=%s iosInCurrentGeneration=%llu",
+		zone->flush_generation, zone->oldest_active_generation,
+		relaxedLoad64(&zone->oldest_locked_generation),
+		zone->notification_generation, boolToString(zone->notifying),
+		zone->ios_in_flush_generation);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#20 $
  */
 
 #ifndef DATA_VIO_H
@@ -586,7 +586,7 @@ static inline void launchHashZoneCallback(struct data_vio *dataVIO,
  **/
 static inline void assertInLogicalZone(struct data_vio *dataVIO)
 {
-  ThreadID expected = getLogicalZoneThreadID(dataVIO->logical.zone);
+  ThreadID expected = get_logical_zone_thread_id(dataVIO->logical.zone);
   ThreadID threadID = getCallbackThreadID();
   ASSERT_LOG_ONLY((expected == threadID),
                   "data_vio for logical block %" PRIu64
@@ -607,7 +607,7 @@ static inline void setLogicalCallback(struct data_vio *dataVIO,
                                       TraceLocation    location)
 {
   setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getLogicalZoneThreadID(dataVIO->logical.zone));
+              get_logical_zone_thread_id(dataVIO->logical.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 

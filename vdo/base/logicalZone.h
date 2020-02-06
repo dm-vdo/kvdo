@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.h#11 $
  */
 
 #ifndef LOGICAL_ZONE_H
@@ -29,32 +29,32 @@
 /**
  * Get a logical zone by number.
  *
- * @param zones       A set of logical zones
- * @param zoneNumber  The number of the zone to get
+ * @param zones        A set of logical zones
+ * @param zone_number  The number of the zone to get
  *
  * @return The requested zone
  **/
-struct logical_zone *getLogicalZone(struct logical_zones *zones,
-                                    ZoneCount             zoneNumber)
-  __attribute__((warn_unused_result));
+struct logical_zone *get_logical_zone(struct logical_zones *zones,
+				      ZoneCount zone_number)
+	__attribute__((warn_unused_result));
 
 /**
  * Create a set of logical zones.
  *
- * @param [in]  vdo       The vdo to which the zones will belong
- * @param [out] zonesPtr  A pointer to hold the new zones
+ * @param [in]  vdo        The vdo to which the zones will belong
+ * @param [out] zones_ptr  A pointer to hold the new zones
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makeLogicalZones(struct vdo *vdo, struct logical_zones **zonesPtr)
-  __attribute__((warn_unused_result));
+int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a set of logical zones and null out the reference to it.
  *
- * @param zonePtr  A pointer to the zone to free
+ * @param zone_ptr  A pointer to the zone to free
  **/
-void freeLogicalZones(struct logical_zones **zonePtr);
+void free_logical_zones(struct logical_zones **zone_ptr);
 
 /**
  * Drain a set of logical zones.
@@ -63,9 +63,8 @@ void freeLogicalZones(struct logical_zones **zonePtr);
  * @param operation   The type of drain to perform
  * @param completion  The object to notify when the zones are suspended
  **/
-void drainLogicalZones(struct logical_zones  *zones,
-                       AdminStateCode         operation,
-                       struct vdo_completion *completion);
+void drain_logical_zones(struct logical_zones *zones, AdminStateCode operation,
+			 struct vdo_completion *completion);
 
 /**
  * Resume a set of logical zones.
@@ -73,8 +72,8 @@ void drainLogicalZones(struct logical_zones  *zones,
  * @param zones   The logical zones to resume
  * @param parent  The object to notify when the zones have resumed
  **/
-void resumeLogicalZones(struct logical_zones  *zones,
-                        struct vdo_completion *parent);
+void resume_logical_zones(struct logical_zones *zones,
+			  struct vdo_completion *parent);
 
 /**
  * Get the ID of a logical zone's thread.
@@ -83,8 +82,8 @@ void resumeLogicalZones(struct logical_zones  *zones,
  *
  * @return The zone's thread ID
  **/
-ThreadID getLogicalZoneThreadID(const struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+ThreadID get_logical_zone_thread_id(const struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the portion of the block map for this zone.
@@ -93,8 +92,8 @@ ThreadID getLogicalZoneThreadID(const struct logical_zone *zone)
  *
  * @return The block map zone
  **/
-struct block_map_zone *getBlockMapForZone(const struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+struct block_map_zone *get_block_map_for_zone(const struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the logical lock map for this zone.
@@ -103,8 +102,8 @@ struct block_map_zone *getBlockMapForZone(const struct logical_zone *zone)
  *
  * @return The logical lock map for the zone
  **/
-struct int_map *getLBNLockMap(const struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+struct int_map *get_lbn_lock_map(const struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the next-highest-numbered logical zone, or <code>NULL</code> if the
@@ -115,18 +114,18 @@ struct int_map *getLBNLockMap(const struct logical_zone *zone)
  * @return The logical zone whose zone number is one greater than the given
  *         zone, or <code>NULL</code> if there is no such zone
  **/
-struct logical_zone *getNextLogicalZone(const struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Increment the flush generation in a logical zone.
  *
- * @param zone                The logical zone
- * @param expectedGeneration  The expected value of the flush generation
- *                            before the increment
+ * @param zone                 The logical zone
+ * @param expected_generation  The expected value of the flush generation
+ *                             before the increment
  **/
-void incrementFlushGeneration(struct logical_zone *zone,
-                              SequenceNumber       expectedGeneration);
+void increment_flush_generation(struct logical_zone *zone,
+				SequenceNumber expected_generation);
 
 /**
  * Get the oldest flush generation which is locked by a logical zone.
@@ -135,18 +134,18 @@ void incrementFlushGeneration(struct logical_zone *zone,
  *
  * @return The oldest generation locked by the zone
  **/
-SequenceNumber getOldestLockedGeneration(const struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+SequenceNumber get_oldest_locked_generation(const struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Acquire the shared lock on a flush generation by a write data_vio.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio   The data_vio
  *
  * @return VDO_SUCCESS or an error code
  **/
-int acquireFlushGenerationLock(struct data_vio *dataVIO)
-  __attribute__((warn_unused_result));
+int acquire_flush_generation_lock(struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Release the shared lock on a flush generation held by a write data_vio. If
@@ -154,9 +153,9 @@ int acquireFlushGenerationLock(struct data_vio *dataVIO)
  * active in this zone, an attempt will be made to finish any flushes which may
  * now be complete.
  *
- * @param dataVIO  The data_vio whose lock is to be released
+ * @param data_vio  The data_vio whose lock is to be released
  **/
-void releaseFlushGenerationLock(struct data_vio *dataVIO);
+void release_flush_generation_lock(struct data_vio *data_vio);
 
 /**
  * Get the selector for deciding which physical zone should be allocated from
@@ -166,8 +165,8 @@ void releaseFlushGenerationLock(struct data_vio *dataVIO);
  *
  * @return The allocation selector for this zone
  **/
-struct allocation_selector *getAllocationSelector(struct logical_zone *zone)
-  __attribute__((warn_unused_result));
+struct allocation_selector *get_allocation_selector(struct logical_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Dump information about a logical zone to the log for debugging, in a
@@ -175,6 +174,6 @@ struct allocation_selector *getAllocationSelector(struct logical_zone *zone)
  *
  * @param zone   The zone to dump
  **/
-void dumpLogicalZone(const struct logical_zone *zone);
+void dump_logical_zone(const struct logical_zone *zone);
 
 #endif // LOGICAL_ZONE_H

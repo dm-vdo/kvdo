@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#33 $
  */
 
 #include "blockMapTree.h"
@@ -159,7 +159,7 @@ __attribute__((warn_unused_result))
 static inline struct block_map_tree_zone *
 getBlockMapTreeZone(struct data_vio *dataVIO)
 {
-  return &(getBlockMapForZone(dataVIO->logical.zone)->treeZone);
+  return &(get_block_map_for_zone(dataVIO->logical.zone)->treeZone);
 }
 
 /**
@@ -860,7 +860,7 @@ static void loadPage(struct waiter *waiter, void *context)
 
   entry->parent = dataVIO;
   entry->vio->completion.callbackThreadID
-    = getBlockMapForZone(dataVIO->logical.zone)->threadID;
+    = get_block_map_for_zone(dataVIO->logical.zone)->threadID;
 
   struct tree_lock *lock = &dataVIO->treeLock;
   launchReadMetadataVIO(entry->vio,
@@ -1184,7 +1184,7 @@ static void allocateBlockMapPage(struct block_map_tree_zone *zone,
   }
 
   allocate_data_block(dataVIOAsAllocatingVIO(dataVIO),
-                      getAllocationSelector(dataVIO->logical.zone),
+                      get_allocation_selector(dataVIO->logical.zone),
                       VIO_BLOCK_MAP_WRITE_LOCK,
                       continueBlockMapPageAllocation);
 }

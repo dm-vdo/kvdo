@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#18 $
  */
 
 /*
@@ -265,7 +265,7 @@ static void releaseLogicalLock(struct vdo_completion *completion)
   struct data_vio *dataVIO = asDataVIO(completion);
   assertInLogicalZone(dataVIO);
   releaseLogicalBlockLock(dataVIO);
-  releaseFlushGenerationLock(dataVIO);
+  release_flush_generation_lock(dataVIO);
   performCleanupStage(dataVIO, VIO_CLEANUP_DONE);
 }
 
@@ -1174,7 +1174,7 @@ static void continueWriteWithBlockMapSlot(struct vdo_completion *completion)
   }
 
   allocate_data_block(dataVIOAsAllocatingVIO(dataVIO),
-                      getAllocationSelector(dataVIO->logical.zone),
+                      get_allocation_selector(dataVIO->logical.zone),
                       VIO_WRITE_LOCK, continueWriteAfterAllocation);
 }
 
@@ -1187,7 +1187,7 @@ void launchWriteDataVIO(struct data_vio *dataVIO)
   }
 
   // Write requests join the current flush generation.
-  int result = acquireFlushGenerationLock(dataVIO);
+  int result = acquire_flush_generation_lock(dataVIO);
   if (abortOnError(result, dataVIO, NOT_READ_ONLY)) {
     return;
   }
@@ -1195,7 +1195,7 @@ void launchWriteDataVIO(struct data_vio *dataVIO)
   // Go find the block map slot for the LBN mapping.
   dataVIO->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
   findBlockMapSlotAsync(dataVIO, continueWriteWithBlockMapSlot,
-                        getLogicalZoneThreadID(dataVIO->logical.zone));
+                        get_logical_zone_thread_id(dataVIO->logical.zone));
 }
 
 /**********************************************************************/

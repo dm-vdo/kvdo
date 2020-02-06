@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#17 $
  */
 
 #include "dataVIO.h"
@@ -83,8 +83,8 @@ static void initializeLBNLock(struct data_vio *dataVIO, LogicalBlockNumber lbn)
   initializeWaitQueue(&lock->waiters);
 
   struct vdo *vdo = getVDOFromDataVIO(dataVIO);
-  lock->zone      = getLogicalZone(vdo->logicalZones,
-                                   computeLogicalZone(dataVIO));
+  lock->zone      = get_logical_zone(vdo->logicalZones,
+                                     computeLogicalZone(dataVIO));
 }
 
 /**********************************************************************/
@@ -242,8 +242,8 @@ void attemptLogicalBlockLock(struct vdo_completion *completion)
 
   struct data_vio *lockHolder;
   struct lbn_lock *lock = &dataVIO->logical;
-  int result = int_map_put(getLBNLockMap(lock->zone), lock->lbn, dataVIO, false,
-                           (void **) &lockHolder);
+  int result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn, dataVIO,
+                           false, (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     finishDataVIO(dataVIO, result);
     return;
@@ -300,7 +300,7 @@ void attemptLogicalBlockLock(struct vdo_completion *completion)
 static void releaseLock(struct data_vio *dataVIO)
 {
   struct lbn_lock *lock    = &dataVIO->logical;
-  struct int_map  *lockMap = getLBNLockMap(lock->zone);
+  struct int_map  *lockMap = get_lbn_lock_map(lock->zone);
   if (!lock->locked) {
     // The lock is not locked, so it had better not be registered in the lock
     // map.
@@ -339,8 +339,8 @@ void releaseLogicalBlockLock(struct data_vio *dataVIO)
   transferAllWaiters(&lock->waiters, &nextLockHolder->logical.waiters);
 
   struct data_vio *lockHolder;
-  int result = int_map_put(getLBNLockMap(lock->zone), lock->lbn, nextLockHolder,
-                           true, (void **) &lockHolder);
+  int result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
+                           nextLockHolder, true, (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     finishDataVIO(nextLockHolder, result);
     return;

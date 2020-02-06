@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#34 $
  */
 
 #include "blockMap.h"
@@ -677,7 +677,7 @@ static void setupMappedBlock(struct data_vio *dataVIO,
                              bool             modifiable,
                              VDOAction       *action)
 {
-  struct block_map_zone *zone = getBlockMapForZone(dataVIO->logical.zone);
+  struct block_map_zone *zone = get_block_map_for_zone(dataVIO->logical.zone);
   if (is_draining(&zone->state)) {
     finishDataVIO(dataVIO, VDO_SHUTTING_DOWN);
     return;
