@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#34 $
  */
 
 #include "blockMapTree.h"
@@ -645,12 +645,13 @@ static void finishLookup(struct data_vio *dataVIO, int result)
 {
   dataVIO->treeLock.height = 0;
 
-  struct block_map_tree_zone *zone       = getBlockMapTreeZone(dataVIO);
-  struct vdo_completion      *completion = dataVIOAsCompletion(dataVIO);
+  struct block_map_tree_zone *zone = getBlockMapTreeZone(dataVIO);
+  --zone->activeLookups;
+
+  struct vdo_completion *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
   launchCallback(completion, dataVIO->treeLock.callback,
                  dataVIO->treeLock.threadID);
-  --zone->activeLookups;
 }
 
 /**
