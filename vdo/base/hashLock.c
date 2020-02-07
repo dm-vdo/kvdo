@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#19 $
  */
 
 /**
@@ -398,9 +398,8 @@ static void waitOnHashLock(struct hash_lock *lock, struct data_vio *data_vio)
 		 * link isn't used for sending the message.
 		 */
 		data_vio->compression.lockHolder = lock->agent;
-		launchPackerCallback(
-			data_vio, removeLockHolderFromPacker,
-			THIS_LOCATION("$F;cb=removeLockHolderFromPacker"));
+		launchPackerCallback(data_vio, remove_lock_holder_from_packer,
+			THIS_LOCATION("$F;cb=remove_lock_holder_from_packer"));
 	}
 }
 

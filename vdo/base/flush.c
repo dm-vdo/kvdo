@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#14 $
  */
 
 #include "flush.h"
@@ -155,7 +155,7 @@ static void finish_notification(struct vdo_completion *completion)
 static void flush_packer_callback(struct vdo_completion *completion)
 {
 	struct flusher *flusher = as_flusher(completion);
-	incrementPackerFlushGeneration(flusher->vdo->packer);
+	increment_packer_flush_generation(flusher->vdo->packer);
 	launchCallback(completion, finish_notification, flusher->thread_id);
 }
 

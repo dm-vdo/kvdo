@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#7 $
  */
 
 #ifndef PACKER_H
@@ -29,8 +29,8 @@
 #include "types.h"
 
 enum {
-  DEFAULT_PACKER_INPUT_BINS  = 16,
-  DEFAULT_PACKER_OUTPUT_BINS = 256,
+	DEFAULT_PACKER_INPUT_BINS = 16,
+	DEFAULT_PACKER_OUTPUT_BINS = 256,
 };
 
 struct packer;
@@ -38,39 +38,36 @@ struct packer;
 /**
  * Make a new block packer.
  *
- * @param [in]  layer           The physical layer to which compressed blocks
- *                              will be written
- * @param [in]  inputBinCount   The number of partial bins to keep in memory
- * @param [in]  outputBinCount  The number of compressed blocks that can be
- *                              written concurrently
- * @param [in]  threadConfig    The thread configuration of the VDO
- * @param [out] packerPtr       A pointer to hold the new packer
+ * @param [in]  layer             The physical layer to which compressed blocks
+ *                                will be written
+ * @param [in]  input_bin_count   The number of partial bins to keep in memory
+ * @param [in]  output_bin_count  The number of compressed blocks that can be
+ *                                written concurrently
+ * @param [in]  thread_config     The thread configuration of the VDO
+ * @param [out] packer_ptr        A pointer to hold the new packer
  *
  * @return VDO_SUCCESS or an error
  **/
-int makePacker(PhysicalLayer       *layer,
-               BlockCount           inputBinCount,
-               BlockCount           outputBinCount,
-               const ThreadConfig  *threadConfig,
-               struct packer      **packerPtr)
-  __attribute__((warn_unused_result));
+int make_packer(PhysicalLayer *layer, BlockCount input_bin_count,
+		BlockCount output_bin_count, const ThreadConfig *thread_config,
+		struct packer **packer_ptr) __attribute__((warn_unused_result));
 
 /**
  * Free a block packer and null out the reference to it.
  *
- * @param packerPtr  A pointer to the packer to free
+ * @param packer_ptr  A pointer to the packer to free
  **/
-void freePacker(struct packer **packerPtr);
+void free_packer(struct packer **packer_ptr);
 
 /**
  * Check whether the compressed data in a data_vio will fit in a packer bin.
  *
- * @param dataVIO  The data_vio
+ * @param data_vio  The data_vio
  *
  * @return <code>true</code> if the data_vio will fit in a bin
  **/
-bool isSufficientlyCompressible(struct data_vio *dataVIO)
-  __attribute__((warn_unused_result));
+bool is_sufficiently_compressible(struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the thread ID of the packer's zone.
@@ -79,7 +76,7 @@ bool isSufficientlyCompressible(struct data_vio *dataVIO)
  *
  * @return The packer's thread ID
  **/
-ThreadID getPackerThreadID(struct packer *packer);
+ThreadID get_packer_thread_id(struct packer *packer);
 
 /**
  * Get the current statistics from the packer.
@@ -88,35 +85,35 @@ ThreadID getPackerThreadID(struct packer *packer);
  *
  * @return a copy of the current statistics for the packer
  **/
-PackerStatistics getPackerStatistics(const struct packer *packer)
-  __attribute__((warn_unused_result));
+PackerStatistics get_packer_statistics(const struct packer *packer)
+	__attribute__((warn_unused_result));
 
 /**
  * Attempt to rewrite the data in this data_vio as part of a compressed block.
  *
- * @param dataVIO  The data_vio to pack
+ * @param data_vio  The data_vio to pack
  **/
-void attemptPacking(struct data_vio *dataVIO);
+void attempt_packing(struct data_vio *data_vio);
 
 /**
  * Request that the packer flush asynchronously. All bins with at least two
  * compressed data blocks will be written out, and any solitary pending VIOs
  * will be released from the packer. While flushing is in progress, any VIOs
- * submitted to attemptPacking() will be continued immediately without
+ * submitted to attempt_packing() will be continued immediately without
  * attempting to pack them.
  *
  * @param packer  The packer to flush
  **/
-void flushPacker(struct packer *packer);
+void flush_packer(struct packer *packer);
 
 /**
  * Remove a lock holder from the packer.
  *
  * @param completion  The data_vio which needs a lock held by a data_vio in the
- *                    packer. The dataVIO's compressedVIO.lockHolder field will
+ *                    packer. The data_vio's compressedVIO.lockHolder field will
  *                    point to the data_vio to remove.
  **/
-void removeLockHolderFromPacker(struct vdo_completion *completion);
+void remove_lock_holder_from_packer(struct vdo_completion *completion);
 
 /**
  * Increment the flush generation in the packer. This will also cause the
@@ -125,7 +122,7 @@ void removeLockHolderFromPacker(struct vdo_completion *completion);
  *
  * @param packer  The packer
  **/
-void incrementPackerFlushGeneration(struct packer *packer);
+void increment_packer_flush_generation(struct packer *packer);
 
 /**
  * Drain the packer by preventing any more VIOs from entering the packer and
@@ -134,7 +131,7 @@ void incrementPackerFlushGeneration(struct packer *packer);
  * @param packer      The packer to drain
  * @param completion  The completion to finish when the packer has drained
  **/
-void drainPacker(struct packer *packer, struct vdo_completion *completion);
+void drain_packer(struct packer *packer, struct vdo_completion *completion);
 
 /**
  * Resume a packer which has been suspended.
@@ -144,13 +141,13 @@ void drainPacker(struct packer *packer, struct vdo_completion *completion);
  *
  * @return VDO_SUCCESS or an error
  **/
-void resumePacker(struct packer *packer, struct vdo_completion *parent);
+void resume_packer(struct packer *packer, struct vdo_completion *parent);
 
 /**
  * Dump the packer, in a thread-unsafe fashion.
  *
  * @param packer  The packer
  **/
-void dumpPacker(const struct packer *packer);
+void dump_packer(const struct packer *packer);
 
 #endif /* PACKER_H */
