@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#5 $
  */
 
 #include "pbnLockPool.h"
@@ -97,7 +97,7 @@ void freePBNLockPool(struct pbn_lock_pool **poolPtr)
 
 /**********************************************************************/
 int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
-                          PBNLockType            type,
+                          pbn_lock_type          type,
                           struct pbn_lock      **lockPtr)
 {
   if (pool->borrowed >= pool->capacity) {
@@ -113,7 +113,7 @@ int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
 
   STATIC_ASSERT(offsetof(IdlePBNLock, node) == offsetof(IdlePBNLock, lock));
   struct pbn_lock *lock = (struct pbn_lock *) idleNode;
-  initializePBNLock(lock, type);
+  initialize_pbn_lock(lock, type);
 
   *lockPtr = lock;
   return VDO_SUCCESS;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#13 $
  */
 
 #include "allocatingVIO.h"
@@ -56,18 +56,18 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 		return result;
 	}
 
-	if (lock->holderCount > 0) {
+	if (lock->holder_count > 0) {
 		// This block is already locked, which should be impossible.
 		return logErrorWithStringError(VDO_LOCK_ERROR,
-					       "Newly allocated block %llu was spuriously locked (holderCount=%u)",
+					       "Newly allocated block %llu was spuriously locked (holder_count=%u)",
 					       allocating_vio->allocation,
-					       lock->holderCount);
+					       lock->holder_count);
 	}
 
 	// We've successfully acquired a new lock, so mark it as ours.
-	lock->holderCount += 1;
+	lock->holder_count += 1;
 	allocating_vio->allocation_lock = lock;
-	assignProvisionalReference(lock);
+	assign_provisional_reference(lock);
 	return VDO_SUCCESS;
 }
 
@@ -215,7 +215,7 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 /**********************************************************************/
 void allocate_data_block(struct allocating_vio *allocating_vio,
 			 struct allocation_selector *selector,
-			 PBNLockType write_lock_type,
+			 pbn_lock_type write_lock_type,
 			 allocation_callback *callback)
 {
 	allocating_vio->write_lock_type = write_lock_type;
@@ -237,7 +237,7 @@ void release_allocation_lock(struct allocating_vio *allocating_vio)
 {
 	assertInPhysicalZone(allocating_vio);
 	PhysicalBlockNumber lockedPBN = allocating_vio->allocation;
-	if (hasProvisionalReference(allocating_vio->allocation_lock)) {
+	if (has_provisional_reference(allocating_vio->allocation_lock)) {
 		allocating_vio->allocation = ZERO_BLOCK;
 	}
 

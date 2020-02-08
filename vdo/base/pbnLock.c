@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLock.c#6 $
  */
 
 #include "pbnLock.h"
@@ -27,122 +27,126 @@
 #include "referenceBlock.h"
 
 struct pbn_lock_implementation {
-  PBNLockType  type;
-  const char  *name;
-  const char  *releaseReason;
+	pbn_lock_type type;
+	const char *name;
+	const char *release_reason;
 };
 
 /**
- * This array must have an entry for every PBNLockType value.
+ * This array must have an entry for every pbn_lock_type value.
  **/
 static const struct pbn_lock_implementation LOCK_IMPLEMENTATIONS[] = {
-  [VIO_READ_LOCK] = {
-    .type          = VIO_READ_LOCK,
-    .name          = "read",
-    .releaseReason = "candidate duplicate",
-  },
-  [VIO_WRITE_LOCK] = {
-    .type          = VIO_WRITE_LOCK,
-    .name          = "write",
-    .releaseReason = "newly allocated",
-  },
-  [VIO_COMPRESSED_WRITE_LOCK] = {
-    .type          = VIO_COMPRESSED_WRITE_LOCK,
-    .name          = "compressed write",
-    .releaseReason = "failed compression",
-  },
-  [VIO_BLOCK_MAP_WRITE_LOCK] = {
-    .type          = VIO_BLOCK_MAP_WRITE_LOCK,
-    .name          = "block map write",
-    .releaseReason = "block map write",
-  },
+	[VIO_READ_LOCK] = {
+		.type = VIO_READ_LOCK,
+		.name = "read",
+		.release_reason = "candidate duplicate",
+	},
+	[VIO_WRITE_LOCK] = {
+		.type = VIO_WRITE_LOCK,
+		.name = "write",
+		.release_reason = "newly allocated",
+	},
+	[VIO_COMPRESSED_WRITE_LOCK] = {
+		.type = VIO_COMPRESSED_WRITE_LOCK,
+		.name = "compressed write",
+		.release_reason = "failed compression",
+	},
+	[VIO_BLOCK_MAP_WRITE_LOCK] = {
+		.type = VIO_BLOCK_MAP_WRITE_LOCK,
+		.name = "block map write",
+		.release_reason = "block map write",
+	},
 };
 
 /**********************************************************************/
-static inline bool hasLockType(const struct pbn_lock *lock, PBNLockType type)
+static inline bool has_lock_type(const struct pbn_lock *lock,
+				 pbn_lock_type type)
 {
-  return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
+	return (lock->implementation == &LOCK_IMPLEMENTATIONS[type]);
 }
 
 /**********************************************************************/
-bool isPBNReadLock(const struct pbn_lock *lock)
+bool is_pbn_read_lock(const struct pbn_lock *lock)
 {
-  return hasLockType(lock, VIO_READ_LOCK);
+	return has_lock_type(lock, VIO_READ_LOCK);
 }
 
 /**********************************************************************/
-static inline void setPBNLockType(struct pbn_lock *lock, PBNLockType type)
+static inline void set_pbn_lock_type(struct pbn_lock *lock, pbn_lock_type type)
 {
-  lock->implementation = &LOCK_IMPLEMENTATIONS[type];
+	lock->implementation = &LOCK_IMPLEMENTATIONS[type];
 }
 
 /**********************************************************************/
-void initializePBNLock(struct pbn_lock *lock, PBNLockType type)
+void initialize_pbn_lock(struct pbn_lock *lock, pbn_lock_type type)
 {
-  lock->holderCount = 0;
-  setPBNLockType(lock, type);
+	lock->holder_count = 0;
+	set_pbn_lock_type(lock, type);
 }
 
 /**********************************************************************/
-void downgradePBNWriteLock(struct pbn_lock *lock)
+void downgrade_pbn_write_lock(struct pbn_lock *lock)
 {
-  ASSERT_LOG_ONLY(!isPBNReadLock(lock),
-                  "PBN lock must not already have been downgraded");
-  ASSERT_LOG_ONLY(!hasLockType(lock, VIO_BLOCK_MAP_WRITE_LOCK),
-                  "must not downgrade block map write locks");
-  ASSERT_LOG_ONLY(lock->holderCount == 1,
-                  "PBN write lock should have one holder but has %u",
-                  lock->holderCount);
-  if (hasLockType(lock, VIO_WRITE_LOCK)) {
-    // DataVIO write locks are downgraded in place--the writer retains the
-    // hold on the lock. They've already had a single incRef journaled.
-    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT - 1;
-  } else {
-    // Compressed block write locks are downgraded when they are shared with
-    // all their hash locks. The writer is releasing its hold on the lock.
-    lock->holderCount = 0;
-    lock->incrementLimit = MAXIMUM_REFERENCE_COUNT;
-  }
-  setPBNLockType(lock, VIO_READ_LOCK);
+	ASSERT_LOG_ONLY(!is_pbn_read_lock(lock),
+			"PBN lock must not already have been downgraded");
+	ASSERT_LOG_ONLY(!has_lock_type(lock, VIO_BLOCK_MAP_WRITE_LOCK),
+			"must not downgrade block map write locks");
+	ASSERT_LOG_ONLY(lock->holder_count == 1,
+			"PBN write lock should have one holder but has %u",
+			lock->holder_count);
+	if (has_lock_type(lock, VIO_WRITE_LOCK)) {
+		// DataVIO write locks are downgraded in place--the writer
+		// retains the hold on the lock. They've already had a single
+		// incRef journaled.
+		lock->increment_limit = MAXIMUM_REFERENCE_COUNT - 1;
+	} else {
+		// Compressed block write locks are downgraded when they are
+		// shared with all their hash locks. The writer is releasing its
+		// hold on the lock.
+		lock->holder_count = 0;
+		lock->increment_limit = MAXIMUM_REFERENCE_COUNT;
+	}
+	set_pbn_lock_type(lock, VIO_READ_LOCK);
 }
 
 /**********************************************************************/
-bool claimPBNLockIncrement(struct pbn_lock *lock)
+bool claim_pbn_lock_increment(struct pbn_lock *lock)
 {
-  /*
-   * Claim the next free reference atomically since hash locks from multiple
-   * hash zone threads might be concurrently deduplicating against a single
-   * PBN lock on compressed block. As long as hitting the increment limit will
-   * lead to the PBN lock being released in a sane time-frame, we won't
-   * overflow a 32-bit claim counter, allowing a simple add instead of a
-   * compare-and-swap.
-   */
-  uint32_t claimNumber = atomicAdd32(&lock->incrementsClaimed, 1);
-  return (claimNumber <= lock->incrementLimit);
+	/*
+	 * Claim the next free reference atomically since hash locks from
+	 * multiple hash zone threads might be concurrently deduplicating
+	 * against a single PBN lock on compressed block. As long as hitting the
+	 * increment limit will lead to the PBN lock being released in a sane
+	 * time-frame, we won't overflow a 32-bit claim counter, allowing a
+	 * simple add instead of a compare-and-swap.
+	 */
+	uint32_t claim_number = atomicAdd32(&lock->increments_claimed, 1);
+	return (claim_number <= lock->increment_limit);
 }
 
 /**********************************************************************/
-void assignProvisionalReference(struct pbn_lock *lock)
+void assign_provisional_reference(struct pbn_lock *lock)
 {
-  ASSERT_LOG_ONLY(!lock->hasProvisionalReference,
-                  "lock does not have a provisional reference");
-  lock->hasProvisionalReference = true;
+	ASSERT_LOG_ONLY(!lock->has_provisional_reference,
+			"lock does not have a provisional reference");
+	lock->has_provisional_reference = true;
 }
 
 /**********************************************************************/
-void unassignProvisionalReference(struct pbn_lock *lock)
+void unassign_provisional_reference(struct pbn_lock *lock)
 {
-  lock->hasProvisionalReference = false;
+	lock->has_provisional_reference = false;
 }
 
 /**********************************************************************/
-void releaseProvisionalReference(struct pbn_lock        *lock,
-                                 PhysicalBlockNumber     lockedPBN,
-                                 struct block_allocator *allocator)
+void release_provisional_reference(struct pbn_lock *lock,
+				   PhysicalBlockNumber locked_pbn,
+				   struct block_allocator *allocator)
 {
-  if (hasProvisionalReference(lock)) {
-    release_block_reference(allocator, lockedPBN,
-                            lock->implementation->releaseReason);
-    unassignProvisionalReference(lock);
-  }
+	if (has_provisional_reference(lock)) {
+		release_block_reference(allocator,
+					locked_pbn,
+					lock->implementation->release_reason);
+		unassign_provisional_reference(lock);
+	}
 }

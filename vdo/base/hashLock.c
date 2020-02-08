@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#20 $
  */
 
 /**
@@ -218,7 +218,7 @@ static void set_duplicate_lock(struct hash_lock *hash_lock,
 	ASSERT_LOG_ONLY((hash_lock->duplicate_lock == NULL),
 			"hash lock must not already hold a duplicate lock");
 
-	pbn_lock->holderCount += 1;
+	pbn_lock->holder_count += 1;
 	hash_lock->duplicate_lock = pbn_lock;
 }
 
@@ -800,7 +800,7 @@ static void forkHashLock(struct hash_lock *old_lock, struct data_vio *newAgent)
 static void launchDedupe(struct hash_lock *lock, struct data_vio *data_vio,
 			 bool hasClaim)
 {
-	if (!hasClaim && !claimPBNLockIncrement(lock->duplicate_lock)) {
+	if (!hasClaim && !claim_pbn_lock_increment(lock->duplicate_lock)) {
 		// Out of increments, so must roll over to a new lock.
 		forkHashLock(lock, data_vio);
 		return;
@@ -838,7 +838,7 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 		transfer_allocation_lock(agent);
 	}
 
-	ASSERT_LOG_ONLY(isPBNReadLock(lock->duplicate_lock),
+	ASSERT_LOG_ONLY(is_pbn_read_lock(lock->duplicate_lock),
 			"duplicate_lock must be a PBN read lock");
 
 	/*
@@ -909,7 +909,7 @@ static void finishVerifying(struct vdo_completion *completion)
 	// Even if the block is a verified duplicate, we can't start to
 	// deduplicate unless we can claim a reference count increment for the
 	// agent.
-	if (lock->verified && !claimPBNLockIncrement(lock->duplicate_lock)) {
+	if (lock->verified && !claim_pbn_lock_increment(lock->duplicate_lock)) {
 		agent->isDuplicate = false;
 		lock->verified = false;
 	}
@@ -1015,7 +1015,7 @@ static void finishLocking(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!claimPBNLockIncrement(lock->duplicate_lock)) {
+	if (!claim_pbn_lock_increment(lock->duplicate_lock)) {
 		/*
 		 * LOCKING -> UNLOCKING transition: The verified block was
 		 * re-locked, but has no available increments left. Must first
@@ -1079,7 +1079,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 		return;
 	}
 
-	if (!isPBNReadLock(lock)) {
+	if (!is_pbn_read_lock(lock)) {
 		/*
 		 * There are three cases of write locks: uncompressed data block
 		 * writes, compressed (packed) block writes, and block map page
@@ -1129,7 +1129,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 		return;
 	}
 
-	if (lock->holderCount == 0) {
+	if (lock->holder_count == 0) {
 		// Ensure that the newly-locked block is referenced.
 		struct vdo_slab *slab = getSlab(depot, agent->duplicate.pbn);
 		result = acquireProvisionalReference(slab, agent->duplicate.pbn,
@@ -1151,7 +1151,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 		 * Those rights will be claimed by hash locks sharing this read
 		 * lock.
 		 */
-		lock->incrementLimit = incrementLimit;
+		lock->increment_limit = incrementLimit;
 	}
 
 	// We've successfully acquired a read lock on behalf of the hash lock,
@@ -1650,7 +1650,7 @@ static void transfer_allocation_lock(struct data_vio *data_vio)
 	allocating_vio->allocation_lock = NULL;
 	allocating_vio->allocation = ZERO_BLOCK;
 
-	ASSERT_LOG_ONLY(isPBNReadLock(pbn_lock),
+	ASSERT_LOG_ONLY(is_pbn_read_lock(pbn_lock),
 			"must have downgraded the allocation lock before transfer");
 
 	struct hash_lock *hash_lock = data_vio->hashLock;
@@ -1673,8 +1673,8 @@ void share_compressed_write_lock(struct data_vio *data_vio,
 	assertInNewMappedZone(data_vio);
 
 	// First sharer downgrades the lock.
-	if (!isPBNReadLock(pbn_lock)) {
-		downgradePBNWriteLock(pbn_lock);
+	if (!is_pbn_read_lock(pbn_lock)) {
+		downgrade_pbn_write_lock(pbn_lock);
 	}
 
 	// Get a share of the PBN lock, ensuring it cannot be released until
@@ -1685,7 +1685,7 @@ void share_compressed_write_lock(struct data_vio *data_vio,
 
 	// Claim a reference for this data_vio, which is necessary since another
 	// hash_lock might start deduplicating against it before our incRef.
-	bool claimed = claimPBNLockIncrement(pbn_lock);
+	bool claimed = claim_pbn_lock_increment(pbn_lock);
 	ASSERT_LOG_ONLY(claimed,
 			"impossible to fail to claim an initial increment");
 }

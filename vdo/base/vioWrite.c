@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#20 $
  */
 
 /*
@@ -1046,7 +1046,7 @@ static void incrementForWrite(struct vdo_completion *completion)
    * block. Downgrade the allocation lock to a read lock so it can be used
    * later by the hash lock (which we don't have yet in sync mode).
    */
-  downgradePBNWriteLock(dataVIOAsAllocatingVIO(dataVIO)->allocation_lock);
+  downgrade_pbn_write_lock(dataVIOAsAllocatingVIO(dataVIO)->allocation_lock);
 
   dataVIO->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
   setLogicalCallback(dataVIO, getWriteIncrementCallback(dataVIO),

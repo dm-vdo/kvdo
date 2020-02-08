@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#24 $
  */
 
 #include "refCounts.h"
@@ -418,7 +418,7 @@ static int incrementForData(struct ref_counts      *refCounts,
   }
 
   if (lock != NULL) {
-    unassignProvisionalReference(lock);
+    unassign_provisional_reference(lock);
   }
   return VDO_SUCCESS;
 }
@@ -463,7 +463,7 @@ static int decrementForData(struct ref_counts      *refCounts,
       // unreferenced.
       *counterPtr        = PROVISIONAL_REFERENCE_COUNT;
       *freeStatusChanged = false;
-      assignProvisionalReference(lock);
+      assign_provisional_reference(lock);
     } else {
       *counterPtr = EMPTY_REFERENCE_COUNT;
       block->allocatedCount--;
@@ -543,7 +543,7 @@ static int incrementForBlockMap(struct ref_counts      *refCounts,
     *counterPtr        = MAXIMUM_REFERENCE_COUNT;
     *freeStatusChanged = false;
     if (lock != NULL) {
-      unassignProvisionalReference(lock);
+      unassign_provisional_reference(lock);
     }
     return VDO_SUCCESS;
 
@@ -976,7 +976,7 @@ int provisionallyReferenceBlock(struct ref_counts   *refCounts,
   if (refCounts->counters[slabBlockNumber] == EMPTY_REFERENCE_COUNT) {
     makeProvisionalReference(refCounts, slabBlockNumber);
     if (lock != NULL) {
-      assignProvisionalReference(lock);
+      assign_provisional_reference(lock);
     }
   }
 

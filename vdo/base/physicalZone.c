@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#11 $
  */
 
 #include "physicalZone.h"
@@ -127,7 +127,7 @@ struct pbn_lock *getPBNLock(struct physical_zone *zone, PhysicalBlockNumber pbn)
 /**********************************************************************/
 int attemptPBNLock(struct physical_zone  *zone,
                    PhysicalBlockNumber    pbn,
-                   PBNLockType            type,
+                   pbn_lock_type          type,
                    struct pbn_lock      **lockPtr)
 {
   // Borrow and prepare a lock from the pool so we don't have to do two int_map
@@ -151,7 +151,7 @@ int attemptPBNLock(struct physical_zone  *zone,
     // The lock is already held, so we don't need the borrowed lock.
     returnPBNLockToPool(zone->lockPool, &newLock);
 
-    result = ASSERT(lock->holderCount > 0,
+    result = ASSERT(lock->holder_count > 0,
                     "physical block %llu lock held", pbn);
     if (result != VDO_SUCCESS) {
       return result;
@@ -174,11 +174,11 @@ void releasePBNLock(struct physical_zone  *zone,
   }
   *lockPtr = NULL;
 
-  ASSERT_LOG_ONLY(lock->holderCount > 0,
+  ASSERT_LOG_ONLY(lock->holder_count > 0,
                   "should not be releasing a lock that is not held");
 
-  lock->holderCount -= 1;
-  if (lock->holderCount > 0) {
+  lock->holder_count -= 1;
+  if (lock->holder_count > 0) {
     // The lock was shared and is still referenced, so don't release it yet.
     return;
   }
@@ -188,7 +188,7 @@ void releasePBNLock(struct physical_zone  *zone,
                   "physical block lock mismatch for block %llu",
                   lockedPBN);
 
-  releaseProvisionalReference(lock, lockedPBN, zone->allocator);
+  release_provisional_reference(lock, lockedPBN, zone->allocator);
 
   returnPBNLockToPool(zone->lockPool, &lock);
 }
