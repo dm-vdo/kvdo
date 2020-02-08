@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#7 $
  */
 
 #include "vdoLayout.h"
@@ -203,7 +203,7 @@ void freeVDOLayout(struct vdo_layout **vdoLayoutPtr)
     return;
   }
 
-  freeCopyCompletion(&vdoLayout->copyCompletion);
+  free_copy_completion(&vdoLayout->copyCompletion);
   free_fixed_layout(&vdoLayout->nextLayout);
   free_fixed_layout(&vdoLayout->layout);
   free_fixed_layout(&vdoLayout->previousLayout);
@@ -283,7 +283,7 @@ int prepareToGrowVDOLayout(struct vdo_layout *vdoLayout,
 
   // Make a copy completion if there isn't one
   if (vdoLayout->copyCompletion == NULL) {
-    int result = makeCopyCompletion(layer, &vdoLayout->copyCompletion);
+    int result = make_copy_completion(layer, &vdoLayout->copyCompletion);
     if (result != VDO_SUCCESS) {
       return result;
     }
@@ -304,7 +304,7 @@ int prepareToGrowVDOLayout(struct vdo_layout *vdoLayout,
                                                    SLAB_SUMMARY_PARTITION),
                                   &vdoLayout->nextLayout);
   if (result != VDO_SUCCESS) {
-    freeCopyCompletion(&vdoLayout->copyCompletion);
+    free_copy_completion(&vdoLayout->copyCompletion);
     return result;
   }
 
@@ -320,7 +320,7 @@ int prepareToGrowVDOLayout(struct vdo_layout *vdoLayout,
   if (minNewSize > newPhysicalBlocks) {
     // Copying the journal and summary would destroy some old metadata.
     free_fixed_layout(&vdoLayout->nextLayout);
-    freeCopyCompletion(&vdoLayout->copyCompletion);
+    free_copy_completion(&vdoLayout->copyCompletion);
     return VDO_INCREMENT_TOO_SMALL;
   }
 
@@ -401,7 +401,7 @@ void finishVDOLayoutGrowth(struct vdo_layout *vdoLayout)
     free_fixed_layout(&vdoLayout->nextLayout);
   }
 
-  freeCopyCompletion(&vdoLayout->copyCompletion);
+  free_copy_completion(&vdoLayout->copyCompletion);
 }
 
 /**********************************************************************/
@@ -409,9 +409,9 @@ void copyPartition(struct vdo_layout     *layout,
                    PartitionID            partitionID,
                    struct vdo_completion *parent)
 {
-  copyPartitionAsync(layout->copyCompletion,
-                     getVDOPartition(layout, partitionID),
-                     getPartitionFromNextLayout(layout, partitionID), parent);
+  copy_partition_async(layout->copyCompletion,
+                       getVDOPartition(layout, partitionID),
+                       getPartitionFromNextLayout(layout, partitionID), parent);
 }
 
 /**********************************************************************/

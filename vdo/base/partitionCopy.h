@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.h#4 $
  */
 
 #ifndef PARTITION_COPY_H
@@ -29,21 +29,21 @@
 /**
  * Make a copy completion.
  *
- * @param [in]  layer          The layer on which the partitions reside
- * @param [out] completionPtr  A pointer to hold the copy completion
+ * @param [in]  layer           The layer on which the partitions reside
+ * @param [out] completion_ptr  A pointer to hold the copy completion
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeCopyCompletion(PhysicalLayer          *layer,
-                       struct vdo_completion **completionPtr)
-  __attribute__((warn_unused_result));
+int make_copy_completion(PhysicalLayer *layer,
+			 struct vdo_completion **completion_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a copy completion and NULL out the reference to it.
  *
- * @param completionPtr  A pointer to the complete to be freed
+ * @param completion_ptr  A pointer to the complete to be freed
  **/
-void freeCopyCompletion(struct vdo_completion **completionPtr);
+void free_copy_completion(struct vdo_completion **completion_ptr);
 
 /**
  * Copy a partition.
@@ -53,9 +53,9 @@ void freeCopyCompletion(struct vdo_completion **completionPtr);
  * @param target        The partition to copy to
  * @param parent        The parent to finish when the copy is complete
  **/
-void copyPartitionAsync(struct vdo_completion *completion,
-                        struct partition      *source,
-                        struct partition      *target,
-                        struct vdo_completion *parent);
+void copy_partition_async(struct vdo_completion *completion,
+			  struct partition *source,
+			  struct partition *target,
+			  struct vdo_completion *parent);
 
 #endif /* PARTITION_COPY_H */
