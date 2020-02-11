@@ -41,10 +41,6 @@ typedef struct {
   uint64_t bytesUsed;
   /** Maximum tracked bytes allocated. */
   uint64_t peakBytesUsed;
-  /** Bio structures currently allocated (size not tracked). */
-  uint64_t biosUsed;
-  /** Maximum number of bios allocated. */
-  uint64_t peakBioCount;
 } MemoryUsage;
 
 /** UDS index statistics */

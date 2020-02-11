@@ -27,25 +27,6 @@
 #include "vdo.h"
 
 /**********************************************************************/
-int write_string(char *prefix,
-                 char *value,
-                 char *suffix,
-                 char **buf,
-                 unsigned int *maxlen)
-{
-       int count = snprintf(*buf, *maxlen, "%s%s%s",
-                            prefix == NULL ? "" : prefix,
-                            value,
-                            suffix == NULL ? "" : suffix);
-       *buf += count;
-       *maxlen -= count;
-       if (count >= *maxlen) {
-               return VDO_UNEXPECTED_EOF;
-       }
-       return VDO_SUCCESS;
-}
-
-/**********************************************************************/
 int write_BlockCount(char *prefix,
                      BlockCount value,
                      char *suffix,
@@ -65,13 +46,32 @@ int write_BlockCount(char *prefix,
 }
 
 /**********************************************************************/
-int write_uint32_t(char *prefix,
-                   uint32_t value,
-                   char *suffix,
-                   char **buf,
-                   unsigned int *maxlen)
+int write_double(char *prefix,
+                 double value,
+                 char *suffix,
+                 char **buf,
+                 unsigned int *maxlen)
 {
-       int count = snprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
+       int count = snprintf(*buf, *maxlen, "%s%f%s",
+                            prefix == NULL ? "" : prefix,
+                            value,
+                            suffix == NULL ? "" : suffix);
+       *buf += count;
+       *maxlen -= count;
+       if (count >= *maxlen) {
+               return VDO_UNEXPECTED_EOF;
+       }
+       return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int write_string(char *prefix,
+                 char *value,
+                 char *suffix,
+                 char **buf,
+                 unsigned int *maxlen)
+{
+       int count = snprintf(*buf, *maxlen, "%s%s%s",
                             prefix == NULL ? "" : prefix,
                             value,
                             suffix == NULL ? "" : suffix);
@@ -122,13 +122,13 @@ int write_uint64_t(char *prefix,
 }
 
 /**********************************************************************/
-int write_double(char *prefix,
-                 double value,
-                 char *suffix,
-                 char **buf,
-                 unsigned int *maxlen)
+int write_uint32_t(char *prefix,
+                   uint32_t value,
+                   char *suffix,
+                   char **buf,
+                   unsigned int *maxlen)
 {
-       int count = snprintf(*buf, *maxlen, "%s%f%s",
+       int count = snprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
                             prefix == NULL ? "" : prefix,
                             value,
                             suffix == NULL ? "" : suffix);
@@ -1097,24 +1097,6 @@ int write_MemoryUsage(char *prefix,
        /** Maximum tracked bytes allocated. */
        result = write_uint64_t("peakBytesUsed : ",
                                stats->peakBytesUsed,
-                               ", ",
-                               buf,
-                               maxlen);
-       if (result != VDO_SUCCESS) {
-              return result;
-       }
-       /** Bio structures currently allocated (size not tracked). */
-       result = write_uint64_t("biosUsed : ",
-                               stats->biosUsed,
-                               ", ",
-                               buf,
-                               maxlen);
-       if (result != VDO_SUCCESS) {
-              return result;
-       }
-       /** Maximum number of bios allocated. */
-       result = write_uint64_t("peakBioCount : ",
-                               stats->peakBioCount,
                                ", ",
                                buf,
                                maxlen);

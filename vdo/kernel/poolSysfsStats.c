@@ -2331,40 +2331,6 @@ static struct pool_stats_attribute pool_stats_memory_usage_peak_bytes_used_attr 
 };
 
 /**********************************************************************/
-/** Bio structures currently allocated (size not tracked). */
-static ssize_t pool_stats_memory_usage_bios_used_show(struct kernel_layer *layer, char *buf)
-{
-	ssize_t retval;
-	mutex_lock(&layer->statsMutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.biosUsed);
-	mutex_unlock(&layer->statsMutex);
-	return retval;
-}
-
-static struct pool_stats_attribute pool_stats_memory_usage_bios_used_attr = {
-	.attr  = { .name = "memory_usage_bios_used", .mode = 0444, },
-	.show  = pool_stats_memory_usage_bios_used_show,
-};
-
-/**********************************************************************/
-/** Maximum number of bios allocated. */
-static ssize_t pool_stats_memory_usage_peak_bio_count_show(struct kernel_layer *layer, char *buf)
-{
-	ssize_t retval;
-	mutex_lock(&layer->statsMutex);
-	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.peakBioCount);
-	mutex_unlock(&layer->statsMutex);
-	return retval;
-}
-
-static struct pool_stats_attribute pool_stats_memory_usage_peak_bio_count_attr = {
-	.attr  = { .name = "memory_usage_peak_bio_count", .mode = 0444, },
-	.show  = pool_stats_memory_usage_peak_bio_count_show,
-};
-
-/**********************************************************************/
 /** Number of chunk names stored in the index */
 static ssize_t pool_stats_index_entries_indexed_show(struct kernel_layer *layer, char *buf)
 {
@@ -2652,8 +2618,6 @@ struct attribute *pool_stats_attrs[] = {
 	&pool_stats_bios_in_progress_fua_attr.attr,
 	&pool_stats_memory_usage_bytes_used_attr.attr,
 	&pool_stats_memory_usage_peak_bytes_used_attr.attr,
-	&pool_stats_memory_usage_bios_used_attr.attr,
-	&pool_stats_memory_usage_peak_bio_count_attr.attr,
 	&pool_stats_index_entries_indexed_attr.attr,
 	&pool_stats_index_posts_found_attr.attr,
 	&pool_stats_index_posts_not_found_attr.attr,

@@ -24,7 +24,7 @@
 #include "types.h"
 
 enum {
-  STATISTICS_VERSION = 30,
+  STATISTICS_VERSION = 31,
 };
 
 typedef struct {
