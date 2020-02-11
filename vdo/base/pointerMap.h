@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pointerMap.h#3 $
  */
 
 #ifndef POINTER_MAP_H
@@ -52,13 +52,13 @@ struct pointer_map;
  * for equality. If two keys are equal, then both keys must have the same the
  * hash code associated with them by the hasher function defined below.
 
- * @param thisKey  The first element to compare
- * @param thatKey  The second element to compare
+ * @param this_key  The first element to compare
+ * @param that_key  The second element to compare
  *
  * @return <code>true</code> if and only if the referents of the two
  *         key pointers are to be treated as the same key by the map
  **/
-typedef bool PointerKeyComparator(const void *thisKey, const void *thatKey);
+typedef bool pointer_key_comparator(const void *this_key, const void *that_key);
 
 /**
  * The prototype of functions that get or calculate a hash code associated
@@ -73,41 +73,41 @@ typedef bool PointerKeyComparator(const void *thisKey, const void *thatKey);
  *
  * @return the hash code for the key
  **/
-typedef uint32_t PointerKeyHasher(const void *key);
+typedef uint32_t pointer_key_hasher(const void *key);
 
 /**
  * Allocate and initialize a pointer_map.
  *
- * @param [in]  initialCapacity  The number of entries the map should
- *                               initially be capable of holding (zero tells
- *                               the map to use its own small default)
- * @param [in]  initialLoad      The load factor of the map, expressed as an
- *                               integer percentage (typically in the range
- *                               50 to 90, with zero telling the map to use
- *                               its own default)
- * @param [in]  comparator       The function to use to compare the referents
- *                               of two pointer keys for equality
- * @param [in]  hasher           The function to use obtain the hash code
- *                               associated with each pointer key
- * @param [out] mapPtr           A pointer to hold the new pointer_map
+ * @param [in]  initial_capacity  The number of entries the map should
+ *                                initially be capable of holding (zero tells
+ *                                the map to use its own small default)
+ * @param [in]  initial_load      The load factor of the map, expressed as an
+ *                                integer percentage (typically in the range
+ *                                50 to 90, with zero telling the map to use
+ *                                its own default)
+ * @param [in]  comparator        The function to use to compare the referents
+ *                                of two pointer keys for equality
+ * @param [in]  hasher            The function to use obtain the hash code
+ *                                associated with each pointer key
+ * @param [out] map_ptr           A pointer to hold the new pointer_map
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makePointerMap(size_t                 initialCapacity,
-                   unsigned int           initialLoad,
-                   PointerKeyComparator   comparator,
-                   PointerKeyHasher       hasher,
-                   struct pointer_map   **mapPtr)
-  __attribute__((warn_unused_result));
+int make_pointer_map(size_t initial_capacity,
+		     unsigned int initial_load,
+		     pointer_key_comparator comparator,
+		     pointer_key_hasher hasher,
+		     struct pointer_map **map_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a pointer_map and null out the reference to it. NOTE: The map does not
  * own the pointer keys and values stored in the map and they are not freed by
  * this call.
  *
- * @param [in,out] mapPtr  The reference to the pointer_map to free
+ * @param [in,out] map_ptr  The reference to the pointer_map to free
  **/
-void freePointerMap(struct pointer_map **mapPtr);
+void free_pointer_map(struct pointer_map **map_ptr);
 
 /**
  * Get the number of entries stored in a pointer_map.
@@ -116,7 +116,7 @@ void freePointerMap(struct pointer_map **mapPtr);
  *
  * @return the number of entries in the map
  **/
-size_t pointerMapSize(const struct pointer_map *map);
+size_t pointer_map_size(const struct pointer_map *map);
 
 /**
  * Retrieve the value associated with a given key from the pointer_map.
@@ -128,7 +128,7 @@ size_t pointerMapSize(const struct pointer_map *map);
  * @return the value associated with the given key, or <code>NULL</code>
  *         if the key is not mapped to any value
  **/
-void *pointerMapGet(struct pointer_map *map, const void *key);
+void *pointer_map_get(struct pointer_map *map, const void *key);
 
 /**
  * Try to associate a value (a pointer) with an integer in a pointer_map.
@@ -142,26 +142,26 @@ void *pointerMapGet(struct pointer_map *map, const void *key);
  * not be returned due to the memory managment assumptions described in the
  * interface header comment.
  *
- * @param [in]  map          The pointer_map to attempt to modify
- * @param [in]  key          The key with which to associate the new value
- *                           (may be <code>NULL</code> if the comparator and
- *                           hasher functions support it)
- * @param [in]  newValue     The value to be associated with the key
- * @param [in]  update       Whether to overwrite an existing value
- * @param [out] oldValuePtr  A pointer in which to store either the old value
- *                           (if the key was already mapped) or
- *                           <code>NULL</code> if the map did not contain the
- *                           key; <code>NULL</code> may be provided if the
- *                           caller does not need to know the old value
+ * @param [in]  map            The pointer_map to attempt to modify
+ * @param [in]  key            The key with which to associate the new value
+ *                             (may be <code>NULL</code> if the comparator and
+ *                             hasher functions support it)
+ * @param [in]  new_value      The value to be associated with the key
+ * @param [in]  update         Whether to overwrite an existing value
+ * @param [out] old_value_ptr  A pointer in which to store either the old value
+ *                             (if the key was already mapped) or
+ *                             <code>NULL</code> if the map did not contain the
+ *                             key; <code>NULL</code> may be provided if the
+ *                             caller does not need to know the old value
  *
  * @return UDS_SUCCESS or an error code
  **/
-int pointerMapPut(struct pointer_map  *map,
-                  const void          *key,
-                  void                *newValue,
-                  bool                 update,
-                  void               **oldValuePtr)
-  __attribute__((warn_unused_result));
+int pointer_map_put(struct pointer_map *map,
+		    const void *key,
+		    void *new_value,
+		    bool update,
+		    void **old_value_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Remove the mapping for a given key from the pointer_map.
@@ -173,6 +173,6 @@ int pointerMapPut(struct pointer_map  *map,
  * @return the value that was associated with the key, or
  *         <code>NULL</code> if it was not mapped
  **/
-void *pointerMapRemove(struct pointer_map *map, const void *key);
+void *pointer_map_remove(struct pointer_map *map, const void *key);
 
 #endif /* POINTER_MAP_H */

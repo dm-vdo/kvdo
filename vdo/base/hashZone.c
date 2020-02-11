@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#10 $
  */
 
 #include "hashZone.h"
@@ -119,8 +119,8 @@ int make_hash_zone(struct vdo *vdo, ZoneCount zone_number,
 		return result;
 	}
 
-	result = makePointerMap(LOCK_MAP_CAPACITY, 0, compare_keys, hash_key,
-				&zone->hash_lock_map);
+	result = make_pointer_map(LOCK_MAP_CAPACITY, 0, compare_keys, hash_key,
+				  &zone->hash_lock_map);
 	if (result != VDO_SUCCESS) {
 		free_hash_zone(&zone);
 		return result;
@@ -156,7 +156,7 @@ void free_hash_zone(struct hash_zone **zone_ptr)
 	}
 
 	struct hash_zone *zone = *zone_ptr;
-	freePointerMap(&zone->hash_lock_map);
+	free_pointer_map(&zone->hash_lock_map);
 	FREE(zone->lock_array);
 	FREE(zone);
 	*zone_ptr = NULL;
@@ -225,8 +225,8 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 	new_lock->hash = *hash;
 
 	struct hash_lock *lock;
-	result = pointerMapPut(zone->hash_lock_map, &new_lock->hash, new_lock,
-			       (replace_lock != NULL), (void **)&lock);
+	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
+				 (replace_lock != NULL), (void **)&lock);
 	if (result != VDO_SUCCESS) {
 		returnHashLockToPool(zone, &new_lock);
 		return result;
@@ -265,12 +265,12 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
 
 	if (lock->registered) {
 		struct hash_lock *removed =
-			pointerMapRemove(zone->hash_lock_map, &lock->hash);
+			pointer_map_remove(zone->hash_lock_map, &lock->hash);
 		ASSERT_LOG_ONLY(lock == removed,
 				"hash lock being released must have been mapped");
 	} else {
-		ASSERT_LOG_ONLY(lock != pointerMapGet(zone->hash_lock_map,
-						      &lock->hash),
+		ASSERT_LOG_ONLY(lock != pointer_map_get(zone->hash_lock_map,
+							&lock->hash),
 				"unregistered hash lock must not be in the lock map");
 	}
 
@@ -351,7 +351,7 @@ void dump_hash_zone(const struct hash_zone *zone)
 	}
 
 	logInfo("struct hash_zone %u: mapSize=%zu", zone->zone_number,
-		pointerMapSize(zone->hash_lock_map));
+		pointer_map_size(zone->hash_lock_map));
 	VIOCount i;
 	for (i = 0; i < LOCK_POOL_CAPACITY; i++) {
 		dump_hash_lock(&zone->lock_array[i]);
