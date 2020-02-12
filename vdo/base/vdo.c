@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#32 $
  */
 
 /*
@@ -165,7 +165,7 @@ void destroyVDO(struct vdo *vdo)
   vdo->physicalZones = NULL;
 
   uninitialize_admin_completion(&vdo->adminCompletion);
-  freeReadOnlyNotifier(&vdo->readOnlyNotifier);
+  free_read_only_notifier(&vdo->readOnlyNotifier);
   freeThreadConfig(&vdo->loadConfig.threadConfig);
 }
 
@@ -698,9 +698,9 @@ static void notifyVDOOfReadOnlyMode(void                  *listener,
 /**********************************************************************/
 int enableReadOnlyEntry(struct vdo *vdo)
 {
-  return registerReadOnlyListener(vdo->readOnlyNotifier, vdo,
-                                  notifyVDOOfReadOnlyMode,
-                                  getAdminThread(getThreadConfig(vdo)));
+  return register_read_only_listener(vdo->readOnlyNotifier, vdo,
+                                     notifyVDOOfReadOnlyMode,
+                                     getAdminThread(getThreadConfig(vdo)));
 }
 
 /**********************************************************************/
@@ -772,7 +772,7 @@ void enterRecoveryMode(struct vdo *vdo)
 /**********************************************************************/
 void makeVDOReadOnly(struct vdo *vdo, int errorCode)
 {
-  enterReadOnlyMode(vdo->readOnlyNotifier, errorCode);
+  enter_read_only_mode(vdo->readOnlyNotifier, errorCode);
 }
 
 /**********************************************************************/

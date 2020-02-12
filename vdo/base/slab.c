@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#22 $
  */
 
 #include "slab.h"
@@ -387,7 +387,7 @@ void checkIfSlabDrained(struct vdo_slab *slab)
       && !isSlabJournalActive(slab->journal)
       && ((slab->referenceCounts == NULL)
           || !areRefCountsActive(slab->referenceCounts))) {
-    int result = (isReadOnly(slab->allocator->read_only_notifier)
+    int result = (is_read_only(slab->allocator->read_only_notifier)
                   ? VDO_READ_ONLY : VDO_SUCCESS);
     finish_draining_with_result(&slab->state, result);
   }

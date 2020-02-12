@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#31 $
  */
 
 #include "recoveryJournal.h"
@@ -173,7 +173,7 @@ static void notifyCommitWaiters(struct recovery_journal *journal);
 static void checkForDrainComplete(struct recovery_journal *journal)
 {
   int result = VDO_SUCCESS;
-  if (isReadOnly(journal->readOnlyNotifier)) {
+  if (is_read_only(journal->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
     /*
      * Clean up any full active blocks which were not written due to being
@@ -237,7 +237,7 @@ static void notifyRecoveryJournalOfReadOnlyMode(void                  *listener,
 static void enterJournalReadOnlyMode(struct recovery_journal *journal,
                                      int                      errorCode)
 {
-  enterReadOnlyMode(journal->readOnlyNotifier, errorCode);
+  enter_read_only_mode(journal->readOnlyNotifier, errorCode);
   checkForDrainComplete(journal);
 }
 
@@ -477,9 +477,9 @@ int makeRecoveryJournal(Nonce                       nonce,
       return result;
     }
 
-    result = registerReadOnlyListener(readOnlyNotifier, journal,
-                                      notifyRecoveryJournalOfReadOnlyMode,
-                                      journal->threadID);
+    result = register_read_only_listener(readOnlyNotifier, journal,
+                                         notifyRecoveryJournalOfReadOnlyMode,
+                                         journal->threadID);
     if (result != VDO_SUCCESS) {
       freeRecoveryJournal(&journal);
       return result;
@@ -970,7 +970,7 @@ static void continueCommittedWaiter(struct waiter *waiter, void *context)
   journal->commitPoint = dataVIO->recoveryJournalPoint;
 
   int result
-    = (isReadOnly(journal->readOnlyNotifier) ? VDO_READ_ONLY : VDO_SUCCESS);
+    = (is_read_only(journal->readOnlyNotifier) ? VDO_READ_ONLY : VDO_SUCCESS);
   continueWaiter(waiter, &result);
 }
 
@@ -1000,7 +1000,7 @@ static void notifyCommitWaiters(struct recovery_journal *journal)
     }
 
     notifyAllWaiters(&block->commitWaiters, continueCommittedWaiter, journal);
-    if (isReadOnly(journal->readOnlyNotifier)) {
+    if (is_read_only(journal->readOnlyNotifier)) {
       notifyAllWaiters(&block->entryWaiters, continueCommittedWaiter, journal);
     } else if (isRecoveryBlockDirty(block) || !isRecoveryBlockFull(block)) {
       // Don't recycle partially-committed or partially-filled blocks.
@@ -1099,7 +1099,7 @@ void addRecoveryJournalEntry(struct recovery_journal *journal,
     return;
   }
 
-  if (isReadOnly(journal->readOnlyNotifier)) {
+  if (is_read_only(journal->readOnlyNotifier)) {
     continueDataVIO(dataVIO, VDO_READ_ONLY);
     return;
   }
@@ -1253,7 +1253,7 @@ void resumeRecoveryJournal(struct recovery_journal *journal,
   bool saved = is_saved(&journal->state);
   setCompletionResult(parent, resume_if_quiescent(&journal->state));
 
-  if (isReadOnly(journal->readOnlyNotifier)) {
+  if (is_read_only(journal->readOnlyNotifier)) {
     finishCompletion(parent, VDO_READ_ONLY);
     return;
   }

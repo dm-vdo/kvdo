@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#41 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -203,10 +203,10 @@ static int allocate_components(struct block_allocator *allocator,
 	}
 
 	int result =
-		registerReadOnlyListener(allocator->read_only_notifier,
-					 allocator,
-					 notify_block_allocator_of_read_only_mode,
-					 allocator->thread_id);
+		register_read_only_listener(allocator->read_only_notifier,
+					    allocator,
+					    notify_block_allocator_of_read_only_mode,
+					    allocator->thread_id);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -376,7 +376,7 @@ void queue_slab(struct vdo_slab *slab)
 		       free_blocks,
 		       allocator->depot->slabConfig.dataBlocks);
 	if (result != VDO_SUCCESS) {
-		enterReadOnlyMode(allocator->read_only_notifier, result);
+		enter_read_only_mode(allocator->read_only_notifier, result);
 		return;
 	}
 

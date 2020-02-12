@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#9 $
  */
 
 #include "upgrade.h"
@@ -261,8 +261,8 @@ int upgradePriorVDO(PhysicalLayer *layer)
   }
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  result = makeReadOnlyNotifier(inReadOnlyMode(vdo), threadConfig, vdo->layer,
-                                &vdo->readOnlyNotifier);
+  result = make_read_only_notifier(inReadOnlyMode(vdo), threadConfig,
+                                   vdo->layer, &vdo->readOnlyNotifier);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;

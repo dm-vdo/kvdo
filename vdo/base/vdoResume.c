@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#12 $
  */
 
 #include "vdoResume.h"
@@ -127,8 +127,8 @@ static void resumeCallback(struct vdo_completion *completion)
     return;
 
   case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
-    allowReadOnlyModeEntry(vdo->readOnlyNotifier,
-                           reset_admin_sub_task(completion));
+    allow_read_only_mode_entry(vdo->readOnlyNotifier,
+                               reset_admin_sub_task(completion));
     return;
 
   case RESUME_PHASE_DEPOT:

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#25 $
  */
 
 #include "vdoLoad.h"
@@ -107,7 +107,7 @@ static void abortLoad(struct vdo_completion *completion)
                                      getJournalZoneThread(getThreadConfig(vdo)));
   }
 
-  waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier, completion);
+  wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier, completion);
 }
 
 /**
@@ -120,7 +120,7 @@ static void waitForReadOnlyMode(struct vdo_completion *completion)
   prepareToFinishParent(completion, completion->parent);
   setCompletionResult(completion, VDO_READ_ONLY);
   struct vdo *vdo = vdoFromLoadSubTask(completion);
-  waitUntilNotEnteringReadOnlyMode(vdo->readOnlyNotifier, completion);
+  wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier, completion);
 }
 
 /**
@@ -135,7 +135,7 @@ static void continueLoadReadOnly(struct vdo_completion *completion)
   struct vdo *vdo = vdoFromLoadSubTask(completion);
   logErrorWithStringError(completion->result,
                           "Entering read-only mode due to load error");
-  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
+  enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
   waitForReadOnlyMode(completion);
 }
 
@@ -170,7 +170,7 @@ static void scrubSlabs(struct vdo_completion *completion)
 static void handleScrubbingError(struct vdo_completion *completion)
 {
   struct vdo *vdo = vdoFromLoadSubTask(completion);
-  enterReadOnlyMode(vdo->readOnlyNotifier, completion->result);
+  enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
   waitForReadOnlyMode(completion);
 }
 
@@ -206,7 +206,7 @@ static void prepareToComeOnline(struct vdo_completion *completion)
 static void makeDirty(struct vdo_completion *completion)
 {
   struct vdo *vdo = vdoFromLoadSubTask(completion);
-  if (isReadOnly(vdo->readOnlyNotifier)) {
+  if (is_read_only(vdo->readOnlyNotifier)) {
     finishCompletion(completion->parent, VDO_READ_ONLY);
     return;
   }
@@ -230,7 +230,7 @@ static void loadCallback(struct vdo_completion *completion)
   // Prepare the recovery journal for new entries.
   openRecoveryJournal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
   vdo->closeRequired = true;
-  if (isReadOnly(vdo->readOnlyNotifier)) {
+  if (is_read_only(vdo->readOnlyNotifier)) {
     // In read-only mode we don't use the allocator and it may not
     // even be readable, so use the default structure.
     finishCompletion(completion->parent, VDO_READ_ONLY);
@@ -354,8 +354,8 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
   }
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  result = makeReadOnlyNotifier(inReadOnlyMode(vdo), threadConfig, vdo->layer,
-                                &vdo->readOnlyNotifier);
+  result = make_read_only_notifier(inReadOnlyMode(vdo), threadConfig,
+                                   vdo->layer, &vdo->readOnlyNotifier);
   if (result != VDO_SUCCESS) {
     return result;
   }

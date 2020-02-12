@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#20 $
  */
 
 #include "slabScrubberInternals.h"
@@ -231,7 +231,7 @@ static void slabScrubbed(struct vdo_completion *completion)
  **/
 static void abortScrubbing(struct slab_scrubber *scrubber, int result)
 {
-  enterReadOnlyMode(scrubber->readOnlyNotifier, result);
+  enter_read_only_mode(scrubber->readOnlyNotifier, result);
   setCompletionResult(&scrubber->completion, result);
   scrubNextSlab(scrubber);
 }
@@ -404,7 +404,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber)
   // Note: this notify call is always safe only because scrubbing can only
   // be started when the VDO is quiescent.
   notifyAllWaiters(&scrubber->waiters, NULL, NULL);
-  if (isReadOnly(scrubber->readOnlyNotifier)) {
+  if (is_read_only(scrubber->readOnlyNotifier)) {
     setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
     finishScrubbing(scrubber);
     return;
@@ -501,7 +501,7 @@ void resumeScrubbing(struct slab_scrubber *scrubber,
 int enqueueCleanSlabWaiter(struct slab_scrubber *scrubber,
                            struct waiter        *waiter)
 {
-  if (isReadOnly(scrubber->readOnlyNotifier)) {
+  if (is_read_only(scrubber->readOnlyNotifier)) {
     return VDO_READ_ONLY;
   }
 

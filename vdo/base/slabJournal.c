@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#30 $
  */
 
 #include "slabJournalInternals.h"
@@ -137,7 +137,7 @@ static inline struct journal_lock *getLock(struct slab_journal *journal,
 __attribute__((warn_unused_result))
 static inline bool isVDOReadOnly(struct slab_journal *journal)
 {
-  return isReadOnly(journal->slab->allocator->read_only_notifier);
+  return is_read_only(journal->slab->allocator->read_only_notifier);
 }
 
 /**
@@ -373,7 +373,7 @@ void abortSlabJournalWaiters(struct slab_journal *journal)
 static void enterJournalReadOnlyMode(struct slab_journal *journal,
                                      int                  errorCode)
 {
-  enterReadOnlyMode(journal->slab->allocator->read_only_notifier, errorCode);
+  enter_read_only_mode(journal->slab->allocator->read_only_notifier, errorCode);
   abortSlabJournalWaiters(journal);
 }
 

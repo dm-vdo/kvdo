@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#21 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -594,10 +594,10 @@ static void setPersistentError(struct vdo_page_cache *cache,
 {
   // If we're already read-only, there's no need to log.
   struct read_only_notifier *notifier = cache->zone->readOnlyNotifier;
-  if ((result != VDO_READ_ONLY) && !isReadOnly(notifier)) {
+  if ((result != VDO_READ_ONLY) && !is_read_only(notifier)) {
     logErrorWithStringError(result, "VDO Page Cache persistent error: %s",
                             context);
-    enterReadOnlyMode(notifier, result);
+    enter_read_only_mode(notifier, result);
   }
 
   assertOnCacheThread(cache, __func__);
@@ -725,7 +725,7 @@ static void handleLoadError(struct vdo_completion *completion)
   struct vdo_page_cache *cache  = info->cache;
   assertOnCacheThread(cache, __func__);
 
-  enterReadOnlyMode(cache->zone->readOnlyNotifier, result);
+  enter_read_only_mode(cache->zone->readOnlyNotifier, result);
   relaxedAdd64(&cache->stats.failedReads, 1);
   setInfoState(info, PS_FAILED);
   distributeErrorOverQueue(result, &info->waiting);
@@ -1139,7 +1139,7 @@ static void writePages(struct vdo_completion *flushCompletion)
   while (pagesInFlush-- > 0) {
     struct page_info *info
       = pageInfoFromListNode(chopRingNode(&cache->outgoingList));
-    if (isReadOnly(info->cache->zone->readOnlyNotifier)) {
+    if (is_read_only(info->cache->zone->readOnlyNotifier)) {
       struct vdo_completion *completion = &info->vio->completion;
       resetCompletion(completion);
       completion->callback     = pageIsWrittenOut;
@@ -1223,7 +1223,7 @@ void getVDOPageAsync(struct vdo_completion *completion)
   struct vdo_page_cache      *cache       = vdoPageComp->cache;
   assertOnCacheThread(cache, __func__);
 
-  if (vdoPageComp->writable && isReadOnly(cache->zone->readOnlyNotifier)) {
+  if (vdoPageComp->writable && is_read_only(cache->zone->readOnlyNotifier)) {
     finishCompletion(completion, VDO_READ_ONLY);
     return;
   }

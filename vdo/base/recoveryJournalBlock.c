@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#12 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -269,7 +269,7 @@ static bool shouldCommit(struct recovery_journal_block *block)
   // Never commit in read-only mode, if already committing the block, or
   // if there are no entries to commit.
   if ((block == NULL) || block->committing || !hasWaiters(&block->entryWaiters)
-      || isReadOnly(block->journal->readOnlyNotifier)) {
+      || is_read_only(block->journal->readOnlyNotifier)) {
     return false;
   }
 

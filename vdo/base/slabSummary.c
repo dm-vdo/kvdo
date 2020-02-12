@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#22 $
  */
 
 #include "slabSummary.h"
@@ -315,7 +315,7 @@ static void checkForDrainComplete(struct slab_summary_zone *summaryZone)
   }
 
   finish_operation_with_result(&summaryZone->state,
-                               (isReadOnly(summaryZone->summary->readOnlyNotifier)
+                               (is_read_only(summaryZone->summary->readOnlyNotifier)
                                 ? VDO_READ_ONLY : VDO_SUCCESS));
 }
 
@@ -330,7 +330,7 @@ static void checkForDrainComplete(struct slab_summary_zone *summaryZone)
 static void notifyWaiters(struct slab_summary_zone *summaryZone,
                           struct wait_queue        *queue)
 {
-  int result = (isReadOnly(summaryZone->summary->readOnlyNotifier)
+  int result = (is_read_only(summaryZone->summary->readOnlyNotifier)
                 ? VDO_READ_ONLY : VDO_SUCCESS);
   notifyAllWaiters(queue, NULL, &result);
 }
@@ -373,8 +373,8 @@ static void finishUpdate(struct vdo_completion *completion)
 static void handleWriteError(struct vdo_completion *completion)
 {
   struct slab_summary_block *block = completion->parent;
-  enterReadOnlyMode(block->zone->summary->readOnlyNotifier,
-                    completion->result);
+  enter_read_only_mode(block->zone->summary->readOnlyNotifier,
+                       completion->result);
   finishUpdatingSlabSummaryBlock(block);
 }
 
@@ -395,7 +395,7 @@ static void launchWrite(struct slab_summary_block *block)
   block->writing = true;
 
   struct slab_summary *summary = zone->summary;
-  if (isReadOnly(summary->readOnlyNotifier)) {
+  if (is_read_only(summary->readOnlyNotifier)) {
     finishUpdatingSlabSummaryBlock(block);
     return;
   }
@@ -469,7 +469,7 @@ void updateSlabSummaryEntry(struct slab_summary_zone *summaryZone,
   struct slab_summary_block *block = getSummaryBlockForSlab(summaryZone,
                                                             slabNumber);
   int                        result;
-  if (isReadOnly(summaryZone->summary->readOnlyNotifier)) {
+  if (is_read_only(summaryZone->summary->readOnlyNotifier)) {
     result = VDO_READ_ONLY;
   } else if (is_draining(&summaryZone->state)
              || is_quiescent(&summaryZone->state)) {

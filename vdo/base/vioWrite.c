@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#21 $
  */
 
 /*
@@ -317,7 +317,7 @@ static void performCleanupStage(struct data_vio     *dataVIO,
 
   case VIO_RELEASE_RECOVERY_LOCKS:
     if ((dataVIO->recoverySequenceNumber > 0)
-        && !isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
+        && !is_read_only(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)
         && (dataVIOAsCompletion(dataVIO)->result != VDO_READ_ONLY)) {
       logWarning("VDO not read-only when cleaning data_vio with RJ lock");
     }
@@ -382,7 +382,7 @@ static bool abortOnError(int              result,
       || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
     struct read_only_notifier *notifier
       = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
-    if (!isReadOnly(notifier)) {
+    if (!is_read_only(notifier)) {
       if (result != VDO_READ_ONLY) {
         logErrorWithStringError(result, "Preparing to enter read-only mode:"
                                 " data_vio for LBN %llu (becoming mapped"
@@ -395,7 +395,7 @@ static bool abortOnError(int              result,
                                 getOperationName(dataVIO));
       }
 
-      enterReadOnlyMode(notifier, result);
+      enter_read_only_mode(notifier, result);
     }
   }
 
@@ -1181,7 +1181,7 @@ static void continueWriteWithBlockMapSlot(struct vdo_completion *completion)
 /**********************************************************************/
 void launchWriteDataVIO(struct data_vio *dataVIO)
 {
-  if (isReadOnly(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)) {
+  if (is_read_only(dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier)) {
     finishDataVIO(dataVIO, VDO_READ_ONLY);
     return;
   }
