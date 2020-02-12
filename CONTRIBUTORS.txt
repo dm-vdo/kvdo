@@ -35,6 +35,8 @@ Other Contributors:
     Getting correct size of partitions
   Achilles Gaikwad <agaikwad@redhat.com>
     Bash completion for the vdo and vdostats commands
+  Jin-young Kwon <gc757489@gmail.com>
+    Adding vdo --version command
 
 VDO was originally created at Permabit Technology Corporation, and was
 subsequently acquired and open-sourced by Red Hat.
