@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#30 $
  */
 
 #include "recoveryJournal.h"
@@ -932,6 +932,12 @@ static void recycleJournalBlock(struct recovery_journal_block *block)
 {
   struct recovery_journal *journal = block->journal;
   pushRingNode(&journal->freeTailBlocks, &block->ringNode);
+
+  // Release any unused entry locks.
+  BlockCount i;
+  for (i = block->entryCount; i < journal->entriesPerBlock; i++) {
+    releaseJournalBlockReference(block);
+  }
 
   // Release our own lock against reaping now that the block is completely
   // committed, or we're giving up because we're in read-only mode.
