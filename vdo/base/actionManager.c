@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#14 $
  */
 
 #include "actionManager.h"
@@ -312,6 +312,21 @@ static void launchCurrentAction(struct action_manager *manager)
 }
 
 /**
+ * Attempt to schedule a next action.
+ *
+ * @param manager  The action manager
+ *
+ * @return <code>true</code> if an action was scheduled.
+ **/
+static bool schedule_default_action(struct action_manager *manager)
+{
+        // Don't schedule a default action if we are operating or not in normal
+        // operation.
+        return ((manager->state.state == ADMIN_STATE_NORMAL_OPERATION)
+                && manager->scheduler(manager->context));
+}
+
+/**
  * Finish an action now that it has been applied to all zones. This
  * callback is registered in apply_to_zone().
  *
@@ -324,18 +339,20 @@ static void finish_action_callback(struct vdo_completion *completion)
 	manager->current_action->in_use = false;
 	manager->current_action = manager->current_action->next;
 
-	// We need to check this now to avoid use-after-free issues if running
-	// the conclusion or notifying the parent results in the manager being
-	// freed.
-	bool hasNextAction = (manager->current_action->in_use ||
-			      manager->scheduler(manager->context));
+	/*
+	 * We need to check this now to avoid use-after-free issues if running
+	 * the conclusion or notifying the parent results in the manager being
+	 * freed.
+	 */
+	bool has_next_action = (manager->current_action->in_use
+				|| schedule_default_action(manager));
 	int result = action.conclusion(manager->context);
 	finish_operation(&manager->state);
 	if (action.parent != NULL) {
 		finishCompletion(action.parent, result);
 	}
 
-	if (hasNextAction) {
+	if (has_next_action) {
 		launchCurrentAction(manager);
 	}
 }
