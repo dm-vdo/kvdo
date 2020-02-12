@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#13 $
  */
 
 #include "physicalZone.h"
@@ -37,164 +37,171 @@
 #include "vdoInternal.h"
 
 enum {
-  // Each user DataVIO needs a PBN read lock and write lock, and each packer
-  // output bin has an AllocatingVIO that needs a PBN write lock.
-  LOCK_POOL_CAPACITY = 2 * MAXIMUM_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
+	// Each user DataVIO needs a PBN read lock and write lock, and each
+	// packer output bin has an AllocatingVIO that needs a PBN write lock.
+	LOCK_POOL_CAPACITY = 2 * MAXIMUM_USER_VIOS + DEFAULT_PACKER_OUTPUT_BINS,
 };
 
 struct physical_zone {
-  /** Which physical zone this is */
-  ZoneCount               zoneNumber;
-  /** The thread ID for this zone */
-  ThreadID                threadID;
-  /** In progress operations keyed by PBN */
-  struct int_map         *pbnOperations;
-  /** Pool of unused pbn_lock instances */
-  struct pbn_lock_pool   *lockPool;
-  /** The block allocator for this zone */
-  struct block_allocator *allocator;
+	/** Which physical zone this is */
+	ZoneCount zone_number;
+	/** The thread ID for this zone */
+	ThreadID thread_id;
+	/** In progress operations keyed by PBN */
+	struct int_map *pbn_operations;
+	/** Pool of unused pbn_lock instances */
+	struct pbn_lock_pool *lock_pool;
+	/** The block allocator for this zone */
+	struct block_allocator *allocator;
 };
 
 /**********************************************************************/
-int makePhysicalZone(struct vdo            *vdo,
-                     ZoneCount              zoneNumber,
-                     struct physical_zone **zonePtr)
+int make_physical_zone(struct vdo *vdo,
+		       ZoneCount zone_number,
+		       struct physical_zone **zone_ptr)
 {
-  struct physical_zone *zone;
-  int result = ALLOCATE(1, struct physical_zone, __func__, &zone);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct physical_zone *zone;
+	int result = ALLOCATE(1, struct physical_zone, __func__, &zone);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->pbnOperations);
-  if (result != VDO_SUCCESS) {
-    freePhysicalZone(&zone);
-    return result;
-  }
+	result = make_int_map(LOCK_MAP_CAPACITY, 0, &zone->pbn_operations);
+	if (result != VDO_SUCCESS) {
+		free_physical_zone(&zone);
+		return result;
+	}
 
-  result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lockPool);
-  if (result != VDO_SUCCESS) {
-    freePhysicalZone(&zone);
-    return result;
-  }
+	result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lock_pool);
+	if (result != VDO_SUCCESS) {
+		free_physical_zone(&zone);
+		return result;
+	}
 
-  zone->zoneNumber = zoneNumber;
-  zone->threadID   = getPhysicalZoneThread(getThreadConfig(vdo), zoneNumber);
-  zone->allocator  = getBlockAllocatorForZone(vdo->depot, zoneNumber);
+	zone->zone_number = zone_number;
+	zone->thread_id =
+		getPhysicalZoneThread(getThreadConfig(vdo), zone_number);
+	zone->allocator = getBlockAllocatorForZone(vdo->depot, zone_number);
 
-  *zonePtr = zone;
-  return VDO_SUCCESS;
+	*zone_ptr = zone;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freePhysicalZone(struct physical_zone **zonePtr)
+void free_physical_zone(struct physical_zone **zone_ptr)
 {
-  if (*zonePtr == NULL) {
-    return;
-  }
+	if (*zone_ptr == NULL) {
+		return;
+	}
 
-  struct physical_zone *zone = *zonePtr;
-  free_pbn_lock_pool(&zone->lockPool);
-  free_int_map(&zone->pbnOperations);
-  FREE(zone);
-  *zonePtr = NULL;
+	struct physical_zone *zone = *zone_ptr;
+	free_pbn_lock_pool(&zone->lock_pool);
+	free_int_map(&zone->pbn_operations);
+	FREE(zone);
+	*zone_ptr = NULL;
 }
 
 /**********************************************************************/
-ZoneCount getPhysicalZoneNumber(const struct physical_zone *zone)
+ZoneCount get_physical_zone_number(const struct physical_zone *zone)
 {
-  return zone->zoneNumber;
+	return zone->zone_number;
 }
 
 /**********************************************************************/
-ThreadID getPhysicalZoneThreadID(const struct physical_zone *zone)
+ThreadID get_physical_zone_thread_id(const struct physical_zone *zone)
 {
-  return zone->threadID;
+	return zone->thread_id;
 }
 
 /**********************************************************************/
-struct block_allocator *getBlockAllocator(const struct physical_zone *zone)
+struct block_allocator *get_block_allocator(const struct physical_zone *zone)
 {
-  return zone->allocator;
+	return zone->allocator;
 }
 
 /**********************************************************************/
-struct pbn_lock *getPBNLock(struct physical_zone *zone, PhysicalBlockNumber pbn)
+struct pbn_lock *get_pbn_lock(struct physical_zone *zone,
+			      PhysicalBlockNumber pbn)
 {
-  return ((zone == NULL) ? NULL : int_map_get(zone->pbnOperations, pbn));
+	return ((zone == NULL) ? NULL : int_map_get(zone->pbn_operations, pbn));
 }
 
 /**********************************************************************/
-int attemptPBNLock(struct physical_zone  *zone,
-                   PhysicalBlockNumber    pbn,
-                   pbn_lock_type          type,
-                   struct pbn_lock      **lockPtr)
+int attempt_pbn_lock(struct physical_zone *zone,
+		     PhysicalBlockNumber pbn,
+		     pbn_lock_type type,
+		     struct pbn_lock **lock_ptr)
 {
-  // Borrow and prepare a lock from the pool so we don't have to do two int_map
-  // accesses in the common case of no lock contention.
-  struct pbn_lock *newLock;
-  int result = borrow_pbn_lock_from_pool(zone->lockPool, type, &newLock);
-  if (result != VDO_SUCCESS) {
-    ASSERT_LOG_ONLY(false, "must always be able to borrow a PBN lock");
-    return result;
-  }
+	// Borrow and prepare a lock from the pool so we don't have to do two
+	// int_map accesses in the common case of no lock contention.
+	struct pbn_lock *new_lock;
+	int result = borrow_pbn_lock_from_pool(zone->lock_pool, type,
+					       &new_lock);
+	if (result != VDO_SUCCESS) {
+		ASSERT_LOG_ONLY(false,
+				"must always be able to borrow a PBN lock");
+		return result;
+	}
 
-  struct pbn_lock *lock;
-  result = int_map_put(zone->pbnOperations, pbn, newLock, false,
-                       (void **) &lock);
-  if (result != VDO_SUCCESS) {
-    return_pbn_lock_to_pool(zone->lockPool, &newLock);
-    return result;
-  }
+	struct pbn_lock *lock;
+	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
+			     (void **)&lock);
+	if (result != VDO_SUCCESS) {
+		return_pbn_lock_to_pool(zone->lock_pool, &new_lock);
+		return result;
+	}
 
-  if (lock != NULL) {
-    // The lock is already held, so we don't need the borrowed lock.
-    return_pbn_lock_to_pool(zone->lockPool, &newLock);
+	if (lock != NULL) {
+		// The lock is already held, so we don't need the borrowed lock.
+		return_pbn_lock_to_pool(zone->lock_pool, &new_lock);
 
-    result = ASSERT(lock->holder_count > 0,
-                    "physical block %llu lock held", pbn);
-    if (result != VDO_SUCCESS) {
-      return result;
-    }
-    *lockPtr = lock;
-  } else {
-    *lockPtr = newLock;
-  }
-  return VDO_SUCCESS;
+		result = ASSERT(lock->holder_count > 0,
+				"physical block %llu lock held",
+				pbn);
+		if (result != VDO_SUCCESS) {
+			return result;
+		}
+		*lock_ptr = lock;
+	} else {
+		*lock_ptr = new_lock;
+	}
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void releasePBNLock(struct physical_zone  *zone,
-                    PhysicalBlockNumber    lockedPBN,
-                    struct pbn_lock      **lockPtr)
+void release_pbn_lock(struct physical_zone *zone,
+		      PhysicalBlockNumber locked_pbn,
+		      struct pbn_lock **lock_ptr)
 {
-  struct pbn_lock *lock = *lockPtr;
-  if (lock == NULL) {
-    return;
-  }
-  *lockPtr = NULL;
+	struct pbn_lock *lock = *lock_ptr;
+	if (lock == NULL) {
+		return;
+	}
+	*lock_ptr = NULL;
 
-  ASSERT_LOG_ONLY(lock->holder_count > 0,
-                  "should not be releasing a lock that is not held");
+	ASSERT_LOG_ONLY(lock->holder_count > 0,
+			"should not be releasing a lock that is not held");
 
-  lock->holder_count -= 1;
-  if (lock->holder_count > 0) {
-    // The lock was shared and is still referenced, so don't release it yet.
-    return;
-  }
+	lock->holder_count -= 1;
+	if (lock->holder_count > 0) {
+		// The lock was shared and is still referenced, so don't release
+		// it yet.
+		return;
+	}
 
-  struct pbn_lock *holder = int_map_remove(zone->pbnOperations, lockedPBN);
-  ASSERT_LOG_ONLY((lock == holder),
-                  "physical block lock mismatch for block %llu",
-                  lockedPBN);
+	struct pbn_lock *holder =
+		int_map_remove(zone->pbn_operations, locked_pbn);
+	ASSERT_LOG_ONLY((lock == holder),
+			"physical block lock mismatch for block %llu",
+			locked_pbn);
 
-  release_provisional_reference(lock, lockedPBN, zone->allocator);
+	release_provisional_reference(lock, locked_pbn, zone->allocator);
 
-  return_pbn_lock_to_pool(zone->lockPool, &lock);
+	return_pbn_lock_to_pool(zone->lock_pool, &lock);
 }
 
 /**********************************************************************/
-void dumpPhysicalZone(const struct physical_zone *zone)
+void dump_physical_zone(const struct physical_zone *zone)
 {
-  dump_block_allocator(zone->allocator);
+	dump_block_allocator(zone->allocator);
 }

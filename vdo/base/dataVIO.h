@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#21 $
  */
 
 #ifndef DATA_VIO_H
@@ -676,7 +676,7 @@ static inline void launchAllocatedZoneCallback(struct data_vio *dataVIO,
  **/
 static inline void assertInDuplicateZone(struct data_vio *dataVIO)
 {
-  ThreadID expected = getPhysicalZoneThreadID(dataVIO->duplicate.zone);
+  ThreadID expected = get_physical_zone_thread_id(dataVIO->duplicate.zone);
   ThreadID threadID = getCallbackThreadID();
   ASSERT_LOG_ONLY((expected == threadID),
                   "data_vio for duplicate physical block %" PRIu64
@@ -696,7 +696,7 @@ static inline void setDuplicateZoneCallback(struct data_vio *dataVIO,
                                             TraceLocation    location)
 {
   setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getPhysicalZoneThreadID(dataVIO->duplicate.zone));
+              get_physical_zone_thread_id(dataVIO->duplicate.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -723,7 +723,7 @@ static inline void launchDuplicateZoneCallback(struct data_vio *dataVIO,
  **/
 static inline void assertInMappedZone(struct data_vio *dataVIO)
 {
-  ThreadID expected = getPhysicalZoneThreadID(dataVIO->mapped.zone);
+  ThreadID expected = get_physical_zone_thread_id(dataVIO->mapped.zone);
   ThreadID threadID = getCallbackThreadID();
   ASSERT_LOG_ONLY((expected == threadID),
                   "data_vio for mapped physical block %" PRIu64
@@ -743,7 +743,7 @@ static inline void setMappedZoneCallback(struct data_vio *dataVIO,
                                          TraceLocation    location)
 {
   setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getPhysicalZoneThreadID(dataVIO->mapped.zone));
+              get_physical_zone_thread_id(dataVIO->mapped.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -755,7 +755,7 @@ static inline void setMappedZoneCallback(struct data_vio *dataVIO,
  **/
 static inline void assertInNewMappedZone(struct data_vio *dataVIO)
 {
-  ThreadID expected = getPhysicalZoneThreadID(dataVIO->newMapped.zone);
+  ThreadID expected = get_physical_zone_thread_id(dataVIO->newMapped.zone);
   ThreadID threadID = getCallbackThreadID();
   ASSERT_LOG_ONLY((expected == threadID),
                   "data_vio for newMapped physical block %" PRIu64
@@ -775,7 +775,7 @@ static inline void setNewMappedZoneCallback(struct data_vio *dataVIO,
                                             TraceLocation    location)
 {
   setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getPhysicalZoneThreadID(dataVIO->newMapped.zone));
+              get_physical_zone_thread_id(dataVIO->newMapped.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 

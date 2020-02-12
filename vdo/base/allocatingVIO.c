@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#14 $
  */
 
 #include "allocatingVIO.h"
@@ -48,10 +48,10 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 			"must not acquire a lock while already referencing one");
 
 	struct pbn_lock *lock;
-	int result = attemptPBNLock(allocating_vio->zone,
-				    allocating_vio->allocation,
-				    allocating_vio->write_lock_type,
-				    &lock);
+	int result = attempt_pbn_lock(allocating_vio->zone,
+				      allocating_vio->allocation,
+				      allocating_vio->write_lock_type,
+				      &lock);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -82,7 +82,7 @@ static int attempt_pbn_write_lock(struct allocating_vio *allocating_vio)
 static int allocate_and_lock_block(struct allocating_vio *allocating_vio)
 {
 	struct block_allocator *allocator =
-		getBlockAllocator(allocating_vio->zone);
+		get_block_allocator(allocating_vio->zone);
 	int result = allocate_block(allocator, &allocating_vio->allocation);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -132,7 +132,7 @@ static int wait_for_clean_slab(struct allocating_vio *allocating_vio)
 	waiter->callback = retryAllocateBlockForWrite;
 
 	struct block_allocator *allocator =
-		getBlockAllocator(allocating_vio->zone);
+		get_block_allocator(allocating_vio->zone);
 	int result = enqueue_for_clean_slab(allocator, waiter);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -183,7 +183,8 @@ static int allocateBlockInZone(struct allocating_vio *allocating_vio)
 	}
 
 	// Try the next zone
-	ZoneCount zoneNumber = getPhysicalZoneNumber(allocating_vio->zone) + 1;
+	ZoneCount zoneNumber =
+		get_physical_zone_number(allocating_vio->zone) + 1;
 	if (zoneNumber == threadConfig->physicalZoneCount) {
 		zoneNumber = 0;
 	}
@@ -241,9 +242,9 @@ void release_allocation_lock(struct allocating_vio *allocating_vio)
 		allocating_vio->allocation = ZERO_BLOCK;
 	}
 
-	releasePBNLock(allocating_vio->zone,
-		       lockedPBN,
-		       &allocating_vio->allocation_lock);
+	release_pbn_lock(allocating_vio->zone,
+			 lockedPBN,
+			 &allocating_vio->allocation_lock);
 }
 
 /**********************************************************************/
