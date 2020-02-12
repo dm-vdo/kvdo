@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#21 $
  */
 
 #include "slab.h"
@@ -318,19 +318,23 @@ bool shouldSaveFullyBuiltSlab(const struct vdo_slab *slab)
 static void initiateSlabAction(struct admin_state *state)
 {
   struct vdo_slab *slab = container_of(state, struct vdo_slab, state);
-  if (state->state == ADMIN_STATE_SCRUBBING) {
-    slab->status = SLAB_REBUILDING;
+  if (is_draining(state)) {
+    if (state->state == ADMIN_STATE_SCRUBBING) {
+      slab->status = SLAB_REBUILDING;
+    }
+
     drainSlabJournal(slab->journal);
+
+    if (slab->referenceCounts != NULL) {
+      drainRefCounts(slab->referenceCounts);
+    }
+
+    checkIfSlabDrained(slab);
     return;
   }
 
   if (is_loading(state)) {
     decodeSlabJournal(slab->journal);
-    return;
-  }
-
-  if (is_draining(state)) {
-    drainSlabJournal(slab->journal);
     return;
   }
 
@@ -374,6 +378,19 @@ bool isSlabOpen(struct vdo_slab *slab)
 bool isSlabDraining(struct vdo_slab *slab)
 {
   return is_draining(&slab->state);
+}
+
+/**********************************************************************/
+void checkIfSlabDrained(struct vdo_slab *slab)
+{
+  if (is_draining(&slab->state)
+      && !isSlabJournalActive(slab->journal)
+      && ((slab->referenceCounts == NULL)
+          || !areRefCountsActive(slab->referenceCounts))) {
+    int result = (isReadOnly(slab->allocator->read_only_notifier)
+                  ? VDO_READ_ONLY : VDO_SUCCESS);
+    finish_draining_with_result(&slab->state, result);
+  }
 }
 
 /**********************************************************************/

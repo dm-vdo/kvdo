@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#29 $
  */
 
 #include "slabJournalInternals.h"
@@ -168,26 +168,14 @@ static inline bool isReaping(struct slab_journal *journal)
   return (journal->head != journal->unreapable);
 }
 
-/**
- * Check whether the journal has drained (i.e. it has been told to drain,
- * and I/O is quiescent).
- *
- * @param journal  The journal
- **/
-static inline void checkForDrainComplete(struct slab_journal *journal)
+/**********************************************************************/
+bool isSlabJournalActive(struct slab_journal *journal)
 {
-  if (!isSlabDraining(journal->slab)
-      || mustMakeEntriesToFlush(journal)
-      || isReaping(journal)
-      || journal->waitingToCommit
-      || !isRingEmpty(&journal->uncommittedBlocks)
-      || journal->updatingSlabSummary) {
-    return;
-  }
-
-  notifySlabJournalIsDrained(journal->slab,
-                             (isVDOReadOnly(journal)
-                              ? VDO_READ_ONLY : VDO_SUCCESS));
+  return (mustMakeEntriesToFlush(journal)
+          || isReaping(journal)
+          || journal->waitingToCommit
+          || !isRingEmpty(&journal->uncommittedBlocks)
+          || journal->updatingSlabSummary);
 }
 
 /**
@@ -370,7 +358,7 @@ void abortSlabJournalWaiters(struct slab_journal *journal)
                    == journal->slab->allocator->thread_id),
                   "abortSlabJournalWaiters() called on correct thread");
   notifyAllWaiters(&journal->entryWaiters, abortWaiter, journal);
-  checkForDrainComplete(journal);
+  checkIfSlabDrained(journal->slab);
 }
 
 /**
@@ -399,7 +387,7 @@ static void finishReaping(struct slab_journal *journal)
 {
   journal->head = journal->unreapable;
   addEntries(journal);
-  checkForDrainComplete(journal);
+  checkIfSlabDrained(journal->slab);
 }
 
 /**********************************************************************/
@@ -586,7 +574,7 @@ static void updateTailBlockLocation(struct slab_journal *journal)
 {
   if (journal->updatingSlabSummary || isVDOReadOnly(journal)
       || (journal->lastSummarized >= journal->nextCommit)) {
-    checkForDrainComplete(journal);
+    checkIfSlabDrained(journal->slab);
     return;
   }
 
@@ -1208,8 +1196,6 @@ void drainSlabJournal(struct slab_journal *journal)
   default:
     commitSlabJournalTail(journal);
   }
-
-  checkForDrainComplete(journal);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#25 $
  */
 
 #include "refCounts.h"
@@ -237,43 +237,30 @@ void freeRefCounts(struct ref_counts **refCountsPtr)
  *         update in progress
  **/
 __attribute__((warn_unused_result))
-static bool isRefCountsActive(struct ref_counts *refCounts)
+static bool hasActiveIO(struct ref_counts *refCounts)
 {
   return ((refCounts->activeCount > 0) || refCounts->updatingSlabSummary);
 }
 
-/**
- * Check whether a drain is in progress and all I/O has completed.
- *
- * @param refCounts  The refCounts to check
- **/
-static void checkForDrainComplete(struct ref_counts *refCounts)
+/**********************************************************************/
+bool areRefCountsActive(struct ref_counts *refCounts)
 {
-  if (isRefCountsActive(refCounts)) {
-    return;
+  if (hasActiveIO(refCounts)) {
+    return true;
   }
 
-  AdminStateCode code = refCounts->slab->state.state;
-  if (!is_drain_operation(code)) {
-    return;
-  }
-
-  if (((code != ADMIN_STATE_SUSPENDING) && (code != ADMIN_STATE_RECOVERING))
-      && hasWaiters(&refCounts->dirtyBlocks)) {
     // When not suspending or recovering, the refCounts must be clean.
-    return;
-  }
-
-  notifyRefCountsAreDrained(refCounts->slab,
-                            (isReadOnly(refCounts->readOnlyNotifier)
-                             ? VDO_READ_ONLY : VDO_SUCCESS));
+  AdminStateCode code = refCounts->slab->state.state;
+  return (hasWaiters(&refCounts->dirtyBlocks)
+          && (code != ADMIN_STATE_SUSPENDING)
+          && (code != ADMIN_STATE_RECOVERING));
 }
 
 /**********************************************************************/
 static void enterRefCountsReadOnlyMode(struct ref_counts *refCounts, int result)
 {
   enterReadOnlyMode(refCounts->readOnlyNotifier, result);
-  checkForDrainComplete(refCounts);
+  checkIfSlabDrained(refCounts->slab);
 }
 
 /**
@@ -1065,7 +1052,7 @@ static void finishSummaryUpdate(struct waiter *waiter, void *context)
 
   int result = *((int *) context);
   if ((result == VDO_SUCCESS) || (result == VDO_READ_ONLY)) {
-    checkForDrainComplete(refCounts);
+    checkIfSlabDrained(refCounts->slab);
     return;
   }
 
@@ -1138,7 +1125,7 @@ static void finishReferenceBlockWrite(struct vdo_completion *completion)
   block->isWriting = false;
 
   if (isReadOnly(refCounts->readOnlyNotifier)) {
-    checkForDrainComplete(refCounts);
+    checkIfSlabDrained(refCounts->slab);
     return;
   }
 
@@ -1155,7 +1142,7 @@ static void finishReferenceBlockWrite(struct vdo_completion *completion)
 
   // Mark the ref_counts as clean in the slab summary if there are no dirty
   // or writing blocks and no summary update in progress.
-  if (!isRefCountsActive(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
+  if (!hasActiveIO(refCounts) && !hasWaiters(&refCounts->dirtyBlocks)) {
     updateSlabSummaryAsClean(refCounts);
   }
 }
@@ -1277,7 +1264,7 @@ void saveDirtyReferenceBlocks(struct ref_counts *refCounts)
 {
   notifyAllWaiters(&refCounts->dirtyBlocks, launchReferenceBlockWrite,
                    refCounts);
-  checkForDrainComplete(refCounts);
+  checkIfSlabDrained(refCounts->slab);
 }
 
 /**********************************************************************/
@@ -1364,7 +1351,7 @@ static void finishReferenceBlockLoad(struct vdo_completion *completion)
   clearProvisionalReferences(block);
 
   refCounts->freeBlocks -= block->allocatedCount;
-  checkForDrainComplete(block->refCounts);
+  checkIfSlabDrained(block->refCounts->slab);
 }
 
 /**
@@ -1456,8 +1443,6 @@ void drainRefCounts(struct ref_counts *refCounts)
   if (save) {
     saveDirtyReferenceBlocks(refCounts);
   }
-
-  checkForDrainComplete(refCounts);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.h#15 $
  */
 
 #ifndef SLAB_JOURNAL_H
@@ -99,6 +99,16 @@ bool isSlabJournalBlank(const struct slab_journal *journal)
  * @return <code>true</code> if the journal has been added to the dirty ring
  **/
 bool isSlabJournalDirty(const struct slab_journal *journal)
+  __attribute__((warn_unused_result));
+
+/**
+ * Check whether a slab journal is active.
+ *
+ * @param journal  The slab journal to check
+ *
+ * @return <code>true</code> if the journal is active
+ **/
+bool isSlabJournalActive(struct slab_journal *journal)
   __attribute__((warn_unused_result));
 
 /**
