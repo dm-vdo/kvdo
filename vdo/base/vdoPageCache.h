@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#10 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -184,6 +184,17 @@ void setVDOPageCacheInitialPeriod(struct vdo_page_cache *cache,
  *                    read-only rebuild mode, <code>false</code> otherwise
  **/
 void setVDOPageCacheRebuildMode(struct vdo_page_cache *cache, bool rebuilding);
+
+/**
+ * Check whether a page cache is active (i.e. has any active lookups,
+ * outstanding I/O, or pending I/O).
+ *
+ * @param cache  The cache to check
+ *
+ * @return <code>true</code> if the cache is active
+ **/
+bool isPageCacheActive(struct vdo_page_cache *cache)
+  __attribute__((warn_unused_result));
 
 /**
  * Advance the dirty period for a page cache.

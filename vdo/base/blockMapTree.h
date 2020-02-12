@@ -16,13 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#11 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
 #define BLOCK_MAP_TREE_H
 
-#include "adminState.h"
 #include "constants.h"
 #include "types.h"
 
@@ -60,6 +59,17 @@ void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
                               SequenceNumber              period);
 
 /**
+ * Check whether a tree zone is active (i.e. has any active lookups,
+ * outstanding I/O, or pending I/O).
+ *
+ * @param zone  The zone to check
+ *
+ * @return <code>true</code> if the zone is active
+ **/
+bool isTreeZoneActive(struct block_map_tree_zone *zone)
+  __attribute__((warn_unused_result));
+
+/**
  * Advance the dirty period for a tree zone.
  *
  * @param zone    The block_map_tree_zone to advance
@@ -73,9 +83,9 @@ void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
  * the drain type, all dirty block map trees will be written to disk. This
  * method must not be called when lookups are active.
  *
- * Implements AdminInitiator
+ * @param zone  The BlockMapTreeZone to drain
  **/
-void drainZoneTrees(struct admin_state *state);
+void drainZoneTrees(struct block_map_tree_zone *zone);
 
 /**
  * Look up the PBN of the block map page for a data_vio's LBN in the arboreal

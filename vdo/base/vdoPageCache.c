@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#20 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -683,19 +683,10 @@ validateCompletedPage(struct vdo_completion *completion,
   return vpc;
 }
 
-/**
- * Check if there are no outstanding I/O operations, and if so complete
- * any cache operation which is pending.
- *
- * @param cache   the VDO page cache
- **/
-static void checkForIOComplete(struct vdo_page_cache *cache)
+/**********************************************************************/
+bool isPageCacheActive(struct vdo_page_cache *cache)
 {
-  if ((cache->outstandingReads + cache->outstandingWrites) == 0) {
-    finish_draining_with_result(&cache->zone->state,
-                                (isReadOnly(cache->zone->readOnlyNotifier)
-                                 ? VDO_READ_ONLY : VDO_SUCCESS));
-  }
+  return ((cache->outstandingReads != 0) || (cache->outstandingWrites != 0));
 }
 
 /**
@@ -714,12 +705,12 @@ static void pageIsLoaded(struct vdo_completion *completion)
   distributePageOverQueue(info, &info->waiting);
 
   /*
-   * Don't decrement until right before calling checkForIOComplete() to ensure
-   * that the above work can't cause the page cache to be freed out from under
-   * us.
+   * Don't decrement until right before calling checkForDrainComplete() to
+   * ensure that the above work can't cause the page cache to be freed out from
+   * under us.
    */
   cache->outstandingReads--;
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -741,12 +732,12 @@ static void handleLoadError(struct vdo_completion *completion)
   resetPageInfo(info);
 
   /*
-   * Don't decrement until right before calling checkForIOComplete() to ensure
-   * that the above work can't cause the page cache to be freed out from under
-   * us.
+   * Don't decrement until right before calling checkForDrainComplete() to
+   * ensure that the above work can't cause the page cache to be freed out from
+   * under us.
    */
   cache->outstandingReads--;
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -1079,7 +1070,7 @@ static void handlePageWriteError(struct vdo_completion *completion)
     discardPageIfNeeded(cache);
   }
 
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -1122,7 +1113,7 @@ static void pageIsWrittenOut(struct vdo_completion *completion)
     allocateFreePage(info);
   }
 
-  checkForIOComplete(cache);
+  checkForDrainComplete(cache->zone);
 }
 
 /**
@@ -1355,8 +1346,6 @@ void drainVDOPageCache(struct vdo_page_cache *cache)
     flush_dirty_lists(cache->dirtyLists);
     savePages(cache);
   }
-
-  checkForIOComplete(cache);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#25 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -153,5 +153,14 @@ static inline SlotNumber computeSlot(LogicalBlockNumber lbn)
 {
   return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
 }
+
+/**
+ * Check whether a zone of the block map has drained, and if so, send a
+ * notification thereof.
+ *
+ * @param zone  The zone to check
+ **/
+void checkForDrainComplete(struct block_map_zone *zone);
+
 
 #endif // BLOCK_MAP_INTERNALS_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#36 $
  */
 
 #include "blockMap.h"
@@ -546,6 +546,32 @@ void advanceBlockMapEra(struct block_map *map,
   scheduleEraAdvance(map);
 }
 
+/**********************************************************************/
+void checkForDrainComplete(struct block_map_zone *zone)
+{
+  if (is_draining(&zone->state)
+      && !isTreeZoneActive(&zone->treeZone)
+      && !isPageCacheActive(zone->pageCache)) {
+    finish_draining_with_result(&zone->state,
+                                (isReadOnly(zone->readOnlyNotifier)
+                                 ? VDO_READ_ONLY : VDO_SUCCESS));
+  }
+}
+
+/**
+ * Initiate a drain of the trees and page cache of a block map zone.
+ *
+ * Implements AdminInitiator
+ **/
+static void initiateDrain(struct admin_state *state)
+{
+  struct block_map_zone *zone = container_of(state, struct block_map_zone,
+                                             state);
+  drainZoneTrees(&zone->treeZone);
+  drainVDOPageCache(zone->pageCache);
+  checkForDrainComplete(zone);
+}
+
 /**
  * Drain a zone of the block map.
  *
@@ -558,7 +584,7 @@ static void drainZone(void                  *context,
   struct block_map_zone *zone = getBlockMapZone(context, zoneNumber);
   start_draining(&zone->state,
                  get_current_manager_operation(zone->blockMap->actionManager),
-                 parent, drainZoneTrees);
+                 parent, initiateDrain);
 }
 
 /**********************************************************************/

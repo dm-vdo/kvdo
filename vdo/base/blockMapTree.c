@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#36 $
  */
 
 #include "blockMapTree.h"
@@ -204,18 +204,12 @@ bool copyValidPage(char                     *buffer,
   return false;
 }
 
-/**
- * Check whether the zone has any outstanding I/O, and if not, drain the page
- * cache.
- *
- * @param zone  The zone to check
- **/
-static void checkForIOComplete(struct block_map_tree_zone *zone)
+/**********************************************************************/
+bool isTreeZoneActive(struct block_map_tree_zone *zone)
 {
-  if (is_draining(&zone->mapZone->state) && (zone->activeLookups == 0)
-      && !hasWaiters(&zone->flushWaiters) && !isVIOPoolBusy(zone->vioPool)) {
-    drainVDOPageCache(zone->mapZone->pageCache);
-  }
+  return ((zone->activeLookups != 0)
+          || hasWaiters(&zone->flushWaiters)
+          || isVIOPoolBusy(zone->vioPool));
 }
 
 /**
@@ -234,7 +228,7 @@ static void enterZoneReadOnlyMode(struct block_map_tree_zone *zone, int result)
     dequeueNextWaiter(&zone->flushWaiters);
   }
 
-  checkForIOComplete(zone);
+  checkForDrainComplete(zone->mapZone);
 }
 
 /**
@@ -430,7 +424,7 @@ static void returnToPool(struct block_map_tree_zone *zone,
                          struct vio_pool_entry      *entry)
 {
   returnVIOToPool(zone->vioPool, entry);
-  checkForIOComplete(zone);
+  checkForDrainComplete(zone->mapZone);
 }
 
 /**
@@ -600,17 +594,13 @@ void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
 }
 
 /**********************************************************************/
-void drainZoneTrees(struct admin_state *state)
+void drainZoneTrees(struct block_map_tree_zone *zone)
 {
-  struct block_map_tree_zone *zone
-    = &(container_of(state, struct block_map_zone, state)->treeZone);
   ASSERT_LOG_ONLY((zone->activeLookups == 0),
                   "drainZoneTrees() called with no active lookups");
-  if (!is_suspending(state)) {
+  if (!is_suspending(&zone->mapZone->state)) {
     flush_dirty_lists(zone->dirtyLists);
   }
-
-  checkForIOComplete(zone);
 }
 
 /**
