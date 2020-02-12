@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.h#4 $
  */
 
 #ifndef PRIORITY_TABLE_H
@@ -51,22 +51,22 @@ struct priority_table;
 /**
  * Allocate and initialize a new priority_table.
  *
- * @param [in]  maxPriority  The maximum priority value for table entries
- * @param [out] tablePtr     A pointer to hold the new table
+ * @param [in]  max_priority  The maximum priority value for table entries
+ * @param [out] table_ptr     A pointer to hold the new table
  *
  * @return VDO_SUCCESS or an error code
  **/
-int makePriorityTable(unsigned int            maxPriority,
-                      struct priority_table **tablePtr)
+int make_priority_table(unsigned int max_priority,
+			struct priority_table **table_ptr)
   __attribute__((warn_unused_result));
 
 /**
  * Free a priority_table and null out the reference to it. NOTE: The table does
  * not own the entries stored in it and they are not freed by this call.
  *
- * @param [in,out] tablePtr  The reference to the table to free
+ * @param [in,out] table_ptr  The reference to the table to free
  **/
-void freePriorityTable(struct priority_table **tablePtr);
+void free_priority_table(struct priority_table **table_ptr);
 
 /**
  * Add a new entry to the priority table, appending it to the queue for
@@ -77,9 +77,9 @@ void freePriorityTable(struct priority_table **tablePtr);
  * @param entry     The RingNode embedded in the entry to store in the table
  *                  (the caller must have initialized it)
  **/
-void priorityTableEnqueue(struct priority_table *table,
-                          unsigned int           priority,
-                          RingNode              *entry);
+void priority_table_enqueue(struct priority_table *table,
+                          unsigned int priority,
+                          RingNode *entry);
 
 /**
  * Reset a priority table, leaving it in the same empty state as when newly
@@ -88,7 +88,7 @@ void priorityTableEnqueue(struct priority_table *table,
  *
  * @param table  The table to reset
  **/
-void resetPriorityTable(struct priority_table *table);
+void reset_priority_table(struct priority_table *table);
 
 /**
  * Find the highest-priority entry in the table, remove it from the table, and
@@ -99,7 +99,7 @@ void resetPriorityTable(struct priority_table *table);
  *
  * @return the dequeued entry, or NULL if the table is currently empty
  **/
-RingNode *priorityTableDequeue(struct priority_table *table)
+RingNode *priority_table_dequeue(struct priority_table *table)
   __attribute__((warn_unused_result));
 
 /**
@@ -108,7 +108,7 @@ RingNode *priorityTableDequeue(struct priority_table *table)
  * @param table   The table from which to remove the entry
  * @param entry   The entry to remove from the table
  **/
-void priorityTableRemove(struct priority_table *table, RingNode *entry);
+void priority_table_remove(struct priority_table *table, RingNode *entry);
 
 /**
  * Return whether the priority table is empty.
@@ -117,7 +117,7 @@ void priorityTableRemove(struct priority_table *table, RingNode *entry);
  *
  * @return <code>true</code> if the table is empty
  **/
-bool isPriorityTableEmpty(struct priority_table *table)
+bool is_priority_table_empty(struct priority_table *table)
   __attribute__((warn_unused_result));
 
 #endif /* PRIORITY_TABLE_H */
