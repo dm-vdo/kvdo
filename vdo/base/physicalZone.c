@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#12 $
  */
 
 #include "physicalZone.h"
@@ -72,7 +72,7 @@ int makePhysicalZone(struct vdo            *vdo,
     return result;
   }
 
-  result = makePBNLockPool(LOCK_POOL_CAPACITY, &zone->lockPool);
+  result = make_pbn_lock_pool(LOCK_POOL_CAPACITY, &zone->lockPool);
   if (result != VDO_SUCCESS) {
     freePhysicalZone(&zone);
     return result;
@@ -94,7 +94,7 @@ void freePhysicalZone(struct physical_zone **zonePtr)
   }
 
   struct physical_zone *zone = *zonePtr;
-  freePBNLockPool(&zone->lockPool);
+  free_pbn_lock_pool(&zone->lockPool);
   free_int_map(&zone->pbnOperations);
   FREE(zone);
   *zonePtr = NULL;
@@ -133,7 +133,7 @@ int attemptPBNLock(struct physical_zone  *zone,
   // Borrow and prepare a lock from the pool so we don't have to do two int_map
   // accesses in the common case of no lock contention.
   struct pbn_lock *newLock;
-  int result = borrowPBNLockFromPool(zone->lockPool, type, &newLock);
+  int result = borrow_pbn_lock_from_pool(zone->lockPool, type, &newLock);
   if (result != VDO_SUCCESS) {
     ASSERT_LOG_ONLY(false, "must always be able to borrow a PBN lock");
     return result;
@@ -143,13 +143,13 @@ int attemptPBNLock(struct physical_zone  *zone,
   result = int_map_put(zone->pbnOperations, pbn, newLock, false,
                        (void **) &lock);
   if (result != VDO_SUCCESS) {
-    returnPBNLockToPool(zone->lockPool, &newLock);
+    return_pbn_lock_to_pool(zone->lockPool, &newLock);
     return result;
   }
 
   if (lock != NULL) {
     // The lock is already held, so we don't need the borrowed lock.
-    returnPBNLockToPool(zone->lockPool, &newLock);
+    return_pbn_lock_to_pool(zone->lockPool, &newLock);
 
     result = ASSERT(lock->holder_count > 0,
                     "physical block %llu lock held", pbn);
@@ -190,7 +190,7 @@ void releasePBNLock(struct physical_zone  *zone,
 
   release_provisional_reference(lock, lockedPBN, zone->allocator);
 
-  returnPBNLockToPool(zone->lockPool, &lock);
+  return_pbn_lock_to_pool(zone->lockPool, &lock);
 }
 
 /**********************************************************************/

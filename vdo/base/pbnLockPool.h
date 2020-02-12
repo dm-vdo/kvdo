@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.h#5 $
  */
 
 #ifndef PBN_LOCK_POOL_H
@@ -30,22 +30,22 @@ struct pbn_lock_pool;
 /**
  * Create a new PBN lock pool and all the lock instances it can loan out.
  *
- * @param [in]  capacity   The number of PBN locks to allocate for the pool
- * @param [out] poolPtr    A pointer to receive the new pool
+ * @param [in]  capacity    The number of PBN locks to allocate for the pool
+ * @param [out] pool_ptr    A pointer to receive the new pool
  *
  * @return a VDO_SUCCESS or an error code
  **/
-int makePBNLockPool(size_t capacity, struct pbn_lock_pool **poolPtr)
-  __attribute__((warn_unused_result));
+int make_pbn_lock_pool(size_t capacity, struct pbn_lock_pool **pool_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a PBN lock pool null out the reference to it. This also frees all all
  * the PBN locks it allocated, so the caller must ensure that all locks have
  * been returned to the pool.
  *
- * @param [in,out] poolPtr  The reference to the lock pool to free
+ * @param [in,out] pool_ptr  The reference to the lock pool to free
  **/
-void freePBNLockPool(struct pbn_lock_pool **poolPtr);
+void free_pbn_lock_pool(struct pbn_lock_pool **pool_ptr);
 
 /**
  * Borrow a PBN lock from the pool and initialize it with the provided type.
@@ -53,25 +53,26 @@ void freePBNLockPool(struct pbn_lock_pool **poolPtr);
  * pool is empty. Borrowed locks are still associated with this pool and must
  * be returned to only this pool.
  *
- * @param [in]  pool     The pool from which to borrow
- * @param [in]  type     The type with which to initialize the lock
- * @param [out] lockPtr  A pointer to receive the borrowed lock
+ * @param [in]  pool      The pool from which to borrow
+ * @param [in]  type      The type with which to initialize the lock
+ * @param [out] lock_ptr  A pointer to receive the borrowed lock
  *
  * @return VDO_SUCCESS, or VDO_LOCK_ERROR if the pool is empty
  **/
-int borrowPBNLockFromPool(struct pbn_lock_pool  *pool,
-                          pbn_lock_type          type,
-                          struct pbn_lock      **lockPtr)
-  __attribute__((warn_unused_result));
+int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
+			      pbn_lock_type type,
+			      struct pbn_lock **lock_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Return to the pool a lock that was borrowed from it, and null out the
  * caller's reference to it. It must be the last live reference, as if the
  * memory were being freed (the lock memory will re-initialized or zeroed).
  *
- * @param [in]     pool     The pool from which the lock was borrowed
- * @param [in,out] lockPtr  The last reference to the lock being returned
+ * @param [in]     pool      The pool from which the lock was borrowed
+ * @param [in,out] lock_ptr  The last reference to the lock being returned
  **/
-void returnPBNLockToPool(struct pbn_lock_pool *pool, struct pbn_lock **lockPtr);
+void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
+			     struct pbn_lock **lock_ptr);
 
 #endif // PBN_LOCK_POOL_H
