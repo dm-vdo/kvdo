@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.h#4 $
  */
 
 #ifndef READ_ONLY_REBUILD_H
@@ -26,12 +26,13 @@
 #include "vdo.h"
 
 /**
- * Construct a ReadOnlyRebuildCompletion and launch it. Apply all valid journal
- * block entries to all vdo structures. Must be launched from logical zone 0.
+ * Construct a read_only_rebuild_completion and launch it. Apply all valid
+ * journal block entries to all vdo structures. Must be launched from logical
+ * zone 0.
  *
  * @param vdo           The vdo to rebuild
  * @param parent        The completion to notify when the rebuild is complete
  **/
-void launchRebuild(struct vdo *vdo, struct vdo_completion *parent);
+void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif // READ_ONLY_REBUILD_H
