@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#15 $
  */
 
 #include "actionManager.h"
@@ -320,10 +320,10 @@ static void launchCurrentAction(struct action_manager *manager)
  **/
 static bool schedule_default_action(struct action_manager *manager)
 {
-        // Don't schedule a default action if we are operating or not in normal
-        // operation.
-        return ((manager->state.state == ADMIN_STATE_NORMAL_OPERATION)
-                && manager->scheduler(manager->context));
+	// Don't schedule a default action if we are operating or not in normal
+	// operation.
+	return ((manager->state.state == ADMIN_STATE_NORMAL_OPERATION)
+		&& manager->scheduler(manager->context));
 }
 
 /**
