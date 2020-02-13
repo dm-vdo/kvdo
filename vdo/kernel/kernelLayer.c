@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#68 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#69 $
  */
 
 #include "kernelLayer.h"
@@ -903,7 +903,11 @@ int prepare_to_modify_kernel_layer(struct kernel_layer *layer,
 		int result = prepare_to_resize_physical(
 			layer, config->physical_blocks);
 		if (result != VDO_SUCCESS) {
-			*error_ptr = "Device prepare_to_grow_physical failed";
+			if (result == VDO_TOO_MANY_SLABS) {
+				*error_ptr = "Device prepare_to_grow_physical failed (specified physical size too big based on formatted slab size)";
+			} else {
+				*error_ptr = "Device prepare_to_grow_physical failed";
+			}
 			return result;
 		}
 	}
