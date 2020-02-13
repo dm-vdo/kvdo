@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#10 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -31,36 +31,40 @@
 #include "waitQueue.h"
 
 struct recovery_journal_block {
-  /** The doubly linked pointers for the free or active lists */
-  RingNode                      ringNode;
-  /** The journal to which this block belongs */
-  struct recovery_journal      *journal;
-  /** A pointer to a block-sized buffer holding the packed block data */
-  char                         *block;
-  /** A pointer to the current sector in the packed block buffer */
-  struct packed_journal_sector *sector;
-  /** The vio for writing this block */
-  struct vio                   *vio;
-  /** The sequence number for this block */
-  SequenceNumber                sequenceNumber;
-  /** The location of this block in the on-disk journal */
-  PhysicalBlockNumber           blockNumber;
-  /** Whether this block is being committed */
-  bool                          committing;
-  /** Whether this block has an uncommitted increment for a partial write */
-  bool                          hasPartialWriteEntry;
-  /** Whether this block has an uncommitted increment for a write with FUA */
-  bool                          hasFUAEntry;
-  /** The total number of entries in this block */
-  JournalEntryCount             entryCount;
-  /** The total number of uncommitted entries (queued or committing) */
-  JournalEntryCount             uncommittedEntryCount;
-  /** The number of new entries in the current commit */
-  JournalEntryCount             entriesInCommit;
-  /** The queue of vios which will make entries for the next commit */
-  struct wait_queue             entryWaiters;
-  /** The queue of vios waiting for the current commit */
-  struct wait_queue             commitWaiters;
+	/** The doubly linked pointers for the free or active lists */
+	RingNode ring_node;
+	/** The journal to which this block belongs */
+	struct recovery_journal *journal;
+	/** A pointer to a block-sized buffer holding the packed block data */
+	char *block;
+	/** A pointer to the current sector in the packed block buffer */
+	struct packed_journal_sector *sector;
+	/** The vio for writing this block */
+	struct vio *vio;
+	/** The sequence number for this block */
+	SequenceNumber sequence_number;
+	/** The location of this block in the on-disk journal */
+	PhysicalBlockNumber block_number;
+	/** Whether this block is being committed */
+	bool committing;
+	/**
+	 * Whether this block has an uncommitted increment for a partial write
+	 */
+	bool has_partial_write_entry;
+	/**
+	 * Whether this block has an uncommitted increment for a write with FUA
+	 */
+	bool has_fua_entry;
+	/** The total number of entries in this block */
+	JournalEntryCount entry_count;
+	/** The total number of uncommitted entries (queued or committing) */
+	JournalEntryCount uncommitted_entry_count;
+	/** The number of new entries in the current commit */
+	JournalEntryCount entries_in_commit;
+	/** The queue of vios which will make entries for the next commit */
+	struct wait_queue entry_waiters;
+	/** The queue of vios waiting for the current commit */
+	struct wait_queue commit_waiters;
 };
 
 /**
@@ -70,10 +74,11 @@ struct recovery_journal_block {
  *
  * @return The block
  **/
-static inline struct recovery_journal_block *blockFromRingNode(RingNode *node)
+static inline struct recovery_journal_block *
+block_from_ring_node(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(struct recovery_journal_block, ringNode) == 0);
-  return (struct recovery_journal_block *) node;
+	STATIC_ASSERT(offsetof(struct recovery_journal_block, ring_node) == 0);
+	return (struct recovery_journal_block *)node;
 }
 
 /**
@@ -85,11 +90,10 @@ static inline struct recovery_journal_block *blockFromRingNode(RingNode *node)
  *
  * @return <code>true</code> if the block has any uncommitted entries
  **/
-__attribute__((warn_unused_result))
-static inline bool
-isRecoveryBlockDirty(const struct recovery_journal_block *block)
+__attribute__((warn_unused_result)) static inline bool
+is_recovery_block_dirty(const struct recovery_journal_block *block)
 {
-  return (block->uncommittedEntryCount > 0);
+	return (block->uncommitted_entry_count > 0);
 }
 
 /**
@@ -99,11 +103,10 @@ isRecoveryBlockDirty(const struct recovery_journal_block *block)
  *
  * @return <code>true</code> if the block has no entries
  **/
-__attribute__((warn_unused_result))
-static inline bool
-isRecoveryBlockEmpty(const struct recovery_journal_block *block)
+__attribute__((warn_unused_result)) static inline bool
+is_recovery_block_empty(const struct recovery_journal_block *block)
 {
-  return (block->entryCount == 0);
+	return (block->entry_count == 0);
 }
 
 /**
@@ -113,41 +116,39 @@ isRecoveryBlockEmpty(const struct recovery_journal_block *block)
  *
  * @return <code>true</code> if the the block is full
  **/
-__attribute__((warn_unused_result))
-static inline bool
-isRecoveryBlockFull(const struct recovery_journal_block *block)
+__attribute__((warn_unused_result)) static inline bool
+is_recovery_block_full(const struct recovery_journal_block *block)
 {
-  return ((block == NULL)
-	  || (block->journal->entriesPerBlock == block->entryCount));
+	return ((block == NULL)
+		|| (block->journal->entriesPerBlock == block->entry_count));
 }
 
 /**
  * Construct a journal block.
  *
- * @param [in]  layer     The layer from which to construct vios
- * @param [in]  journal   The journal to which the block will belong
- * @param [out] blockPtr  A pointer to receive the new block
+ * @param [in]  layer      The layer from which to construct vios
+ * @param [in]  journal    The journal to which the block will belong
+ * @param [out] block_ptr  A pointer to receive the new block
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeRecoveryBlock(PhysicalLayer                  *layer,
-                      struct recovery_journal        *journal,
-                      struct recovery_journal_block **blockPtr)
-  __attribute__((warn_unused_result));
+int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
+			struct recovery_journal_block **block_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a tail block and null out the reference to it.
  *
- * @param blockPtr  The reference to the tail block to free
+ * @param block_ptr  The reference to the tail block to free
  **/
-void freeRecoveryBlock(struct recovery_journal_block **blockPtr);
+void free_recovery_block(struct recovery_journal_block **block_ptr);
 
 /**
  * Initialize the next active recovery journal block.
  *
  * @param block  The journal block to initialize
  **/
-void initializeRecoveryBlock(struct recovery_journal_block *block);
+void initialize_recovery_block(struct recovery_journal_block *block);
 
 /**
  * Enqueue a data_vio to asynchronously encode and commit its next recovery
@@ -155,36 +156,35 @@ void initializeRecoveryBlock(struct recovery_journal_block *block);
  * entry is committed to the on-disk journal. The caller is responsible for
  * ensuring the block is not already full.
  *
- * @param block    The journal block in which to make an entry
- * @param dataVIO  The data_vio to enqueue
+ * @param block     The journal block in which to make an entry
+ * @param data_vio  The data_vio to enqueue
  *
  * @return VDO_SUCCESS or an error code if the data_vio could not be enqueued
  **/
-int enqueueRecoveryBlockEntry(struct recovery_journal_block *block,
-                              struct data_vio               *dataVIO)
-  __attribute__((warn_unused_result));
+int enqueue_recovery_block_entry(struct recovery_journal_block *block,
+				 struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Attempt to commit a block. If the block is not the oldest block with
  * uncommitted entries or if it is already being committed, nothing will be
  * done.
  *
- * @param block         The block to write
- * @param callback      The function to call when the write completes
- * @param errorHandler  The handler for flush or write errors
+ * @param block          The block to write
+ * @param callback       The function to call when the write completes
+ * @param error_handler  The handler for flush or write errors
  *
  * @return VDO_SUCCESS, or an error if the write could not be launched
  **/
-int commitRecoveryBlock(struct recovery_journal_block *block,
-                        VDOAction                     *callback,
-                        VDOAction                     *errorHandler)
-  __attribute__((warn_unused_result));
+int commit_recovery_block(struct recovery_journal_block *block,
+			  VDOAction *callback, VDOAction *error_handler)
+	__attribute__((warn_unused_result));
 
 /**
  * Dump the contents of the recovery block to the log.
  *
  * @param block  The block to dump
  **/
-void dumpRecoveryBlock(const struct recovery_journal_block *block);
+void dump_recovery_block(const struct recovery_journal_block *block);
 
 #endif // RECOVERY_JOURNAL_BLOCK_H

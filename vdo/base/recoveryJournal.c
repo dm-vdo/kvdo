@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#32 $
  */
 
 #include "recoveryJournal.h"
@@ -96,7 +96,7 @@ const char *getJournalOperationName(JournalOperation operation)
 static struct recovery_journal_block *
 popFreeList(struct recovery_journal *journal)
 {
-  return blockFromRingNode(popRingNode(&journal->freeTailBlocks));
+  return block_from_ring_node(popRingNode(&journal->freeTailBlocks));
 }
 
 /**
@@ -109,7 +109,7 @@ popFreeList(struct recovery_journal *journal)
 static struct recovery_journal_block *
 popActiveList(struct recovery_journal *journal)
 {
-  return blockFromRingNode(popRingNode(&journal->activeTailBlocks));
+  return block_from_ring_node(popRingNode(&journal->activeTailBlocks));
 }
 
 /**
@@ -156,9 +156,9 @@ static inline bool hasBlockWaiters(struct recovery_journal *journal)
   }
 
   struct recovery_journal_block *block
-    = blockFromRingNode(journal->activeTailBlocks.next);
-  return (hasWaiters(&block->entryWaiters)
-          || hasWaiters(&block->commitWaiters));
+    = block_from_ring_node(journal->activeTailBlocks.next);
+  return (hasWaiters(&block->entry_waiters)
+          || hasWaiters(&block->commit_waiters));
 }
 
 /**********************************************************************/
@@ -198,7 +198,7 @@ static void checkForDrainComplete(struct recovery_journal *journal)
   if (is_saving(&journal->state)) {
     if (journal->activeBlock != NULL) {
       ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
-                       || !isRecoveryBlockDirty(journal->activeBlock)),
+                       || !is_recovery_block_dirty(journal->activeBlock)),
 		      "journal being saved has clean active block");
       recycleJournalBlock(journal->activeBlock);
     }
@@ -443,13 +443,13 @@ int makeRecoveryJournal(Nonce                       nonce,
     BlockCount i;
     for (i = 0; i < tailBufferSize; i++) {
       struct recovery_journal_block *block;
-      result = makeRecoveryBlock(layer, journal, &block);
+      result = make_recovery_block(layer, journal, &block);
       if (result != VDO_SUCCESS) {
         freeRecoveryJournal(&journal);
         return result;
       }
 
-      pushRingNode(&journal->freeTailBlocks, &block->ringNode);
+      pushRingNode(&journal->freeTailBlocks, &block->ring_node);
     }
 
     result = make_lock_counter(layer, journal, reapRecoveryJournalCallback,
@@ -516,11 +516,11 @@ void freeRecoveryJournal(struct recovery_journal **journalPtr)
 
   struct recovery_journal_block *block;
   while ((block = popActiveList(journal)) != NULL) {
-    freeRecoveryBlock(&block);
+    free_recovery_block(&block);
   }
 
   while ((block = popFreeList(journal)) != NULL) {
-    freeRecoveryBlock(&block);
+    free_recovery_block(&block);
   }
 
   FREE(journal);
@@ -732,8 +732,8 @@ static bool advanceTail(struct recovery_journal *journal)
     return false;
   }
 
-  pushRingNode(&journal->activeTailBlocks, &journal->activeBlock->ringNode);
-  initializeRecoveryBlock(journal->activeBlock);
+  pushRingNode(&journal->activeTailBlocks, &journal->activeBlock->ring_node);
+  initialize_recovery_block(journal->activeBlock);
   setJournalTail(journal, journal->tail + 1);
   advanceBlockMapEra(journal->blockMap, journal->tail);
   return true;
@@ -781,11 +781,11 @@ static bool prepareToAssignEntry(struct recovery_journal *journal,
     return false;
   }
 
-  if (isRecoveryBlockFull(journal->activeBlock) && !advanceTail(journal)) {
+  if (is_recovery_block_full(journal->activeBlock) && !advanceTail(journal)) {
     return false;
   }
 
-  if (!isRecoveryBlockEmpty(journal->activeBlock)) {
+  if (!is_recovery_block_empty(journal->activeBlock)) {
     return true;
   }
 
@@ -802,7 +802,7 @@ static bool prepareToAssignEntry(struct recovery_journal *journal,
    * slab journal entries have been made, the per-entry lock for the block map
    * entry serves to protect those as well.
    */
-  initialize_lock_count(journal->lockCounter, journal->activeBlock->blockNumber,
+  initialize_lock_count(journal->lockCounter, journal->activeBlock->block_number,
                         journal->entriesPerBlock + 1);
   return true;
 }
@@ -819,7 +819,7 @@ static void writeBlock(struct recovery_journal       *journal,
 static void releaseJournalBlockReference(struct recovery_journal_block *block)
 {
   release_journal_zone_reference(block->journal->lockCounter,
-                                 block->blockNumber);
+                                 block->block_number);
 }
 
 /**
@@ -834,8 +834,8 @@ static void assignEntry(struct waiter *waiter, void *context)
 
   // Record the point at which we will make the journal entry.
   dataVIO->recoveryJournalPoint = (struct journal_point) {
-    .sequence_number  = block->sequenceNumber,
-    .entry_count      = block->entryCount,
+    .sequence_number  = block->sequence_number,
+    .entry_count      = block->entry_count,
   };
 
   switch (dataVIO->operation.type) {
@@ -871,13 +871,13 @@ static void assignEntry(struct waiter *waiter, void *context)
   }
 
   journal->availableSpace--;
-  int result = enqueueRecoveryBlockEntry(block, dataVIO);
+  int result = enqueue_recovery_block_entry(block, dataVIO);
   if (result != VDO_SUCCESS) {
     enterJournalReadOnlyMode(journal, result);
     continueDataVIO(dataVIO, result);
   }
 
-  if (isRecoveryBlockFull(block)) {
+  if (is_recovery_block_full(block)) {
     // Only attempt to write the block once we've filled it. Commits of
     // partially filled journal blocks are handled outside the append loop.
     writeBlock(journal, block);
@@ -931,17 +931,17 @@ static void assignEntries(struct recovery_journal *journal)
 static void recycleJournalBlock(struct recovery_journal_block *block)
 {
   struct recovery_journal *journal = block->journal;
-  pushRingNode(&journal->freeTailBlocks, &block->ringNode);
+  pushRingNode(&journal->freeTailBlocks, &block->ring_node);
 
   // Release any unused entry locks.
   BlockCount i;
-  for (i = block->entryCount; i < journal->entriesPerBlock; i++) {
+  for (i = block->entry_count; i < journal->entriesPerBlock; i++) {
     releaseJournalBlockReference(block);
   }
 
   // Release our own lock against reaping now that the block is completely
   // committed, or we're giving up because we're in read-only mode.
-  if (block->entryCount > 0) {
+  if (block->entry_count > 0) {
     releaseJournalBlockReference(block);
   }
 
@@ -985,7 +985,7 @@ static void notifyCommitWaiters(struct recovery_journal *journal)
   struct recovery_journal_block *lastIterationBlock = NULL;
   while (!isRingEmpty(&journal->activeTailBlocks)) {
     struct recovery_journal_block *block
-      = blockFromRingNode(journal->activeTailBlocks.next);
+      = block_from_ring_node(journal->activeTailBlocks.next);
 
     int result = ASSERT(block != lastIterationBlock,
                         "Journal notification has entered an infinite loop");
@@ -999,10 +999,10 @@ static void notifyCommitWaiters(struct recovery_journal *journal)
       return;
     }
 
-    notifyAllWaiters(&block->commitWaiters, continueCommittedWaiter, journal);
+    notifyAllWaiters(&block->commit_waiters, continueCommittedWaiter, journal);
     if (is_read_only(journal->readOnlyNotifier)) {
-      notifyAllWaiters(&block->entryWaiters, continueCommittedWaiter, journal);
-    } else if (isRecoveryBlockDirty(block) || !isRecoveryBlockFull(block)) {
+      notifyAllWaiters(&block->entry_waiters, continueCommittedWaiter, journal);
+    } else if (is_recovery_block_dirty(block) || !is_recovery_block_full(block)) {
       // Don't recycle partially-committed or partially-filled blocks.
       return;
     }
@@ -1032,25 +1032,25 @@ static void completeWrite(struct vdo_completion *completion)
 
   journal->pendingWriteCount        -= 1;
   journal->events.blocks.committed  += 1;
-  journal->events.entries.committed += block->entriesInCommit;
-  block->uncommittedEntryCount      -= block->entriesInCommit;
-  block->entriesInCommit             = 0;
+  journal->events.entries.committed += block->entries_in_commit;
+  block->uncommitted_entry_count    -= block->entries_in_commit;
+  block->entries_in_commit           = 0;
   block->committing                  = false;
 
   // If this block is the latest block to be acknowledged, record that fact.
-  if (block->sequenceNumber > journal->lastWriteAcknowledged) {
-    journal->lastWriteAcknowledged = block->sequenceNumber;
+  if (block->sequence_number > journal->lastWriteAcknowledged) {
+    journal->lastWriteAcknowledged = block->sequence_number;
   }
 
   struct recovery_journal_block *lastActiveBlock
-    = blockFromRingNode(journal->activeTailBlocks.next);
-  ASSERT_LOG_ONLY((block->sequenceNumber >= lastActiveBlock->sequenceNumber),
+    = block_from_ring_node(journal->activeTailBlocks.next);
+  ASSERT_LOG_ONLY((block->sequence_number >= lastActiveBlock->sequence_number),
                   "completed journal write is still active");
 
   notifyCommitWaiters(journal);
 
   // Write out the entries (if any) which accumulated while we were writing.
-  if (hasWaiters(&block->entryWaiters)) {
+  if (hasWaiters(&block->entry_waiters)) {
     writeBlock(journal, block);
     return;
   }
@@ -1065,7 +1065,7 @@ static void handleWriteError(struct vdo_completion *completion)
   struct recovery_journal       *journal = block->journal;
   logErrorWithStringError(completion->result,
                           "cannot write recovery journal block %llu",
-                          block->sequenceNumber);
+                          block->sequence_number);
   enterJournalReadOnlyMode(journal, completion->result);
   completeWrite(completion);
 }
@@ -1082,7 +1082,7 @@ static void writeBlock(struct recovery_journal       *journal,
                        struct recovery_journal_block *block)
 {
   assertOnJournalThread(journal, __func__);
-  int result = commitRecoveryBlock(block, completeWrite, handleWriteError);
+  int result = commit_recovery_block(block, completeWrite, handleWriteError);
   if (result != VDO_SUCCESS) {
     enterJournalReadOnlyMode(journal, result);
     return;
@@ -1307,6 +1307,6 @@ void dumpRecoveryJournalStatistics(const struct recovery_journal *journal)
   const RingNode *head = &journal->activeTailBlocks;
   RingNode *node;
   for (node = head->next; node != head; node = node->next) {
-    dumpRecoveryBlock(blockFromRingNode(node));
+    dump_recovery_block(block_from_ring_node(node));
   }
 }
