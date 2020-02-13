@@ -5,7 +5,7 @@ The Red Hat VDO Team:
   Primary Authors:
     Joseph Chapman <jochapma@redhat.com>
     Sweet Tea Dorminy <sweettea@redhat.com>
-    *Thomas Jaskiewicz <tjaskiew@redhat.com>
+    *Thomas Jaskiewicz <tom@jaskiewicz.us>
     Bruce Johnston <bjohnsto@redhat.com>
     Ken Raeburn <raeburn@redhat.com>
     Michael Sclafani <sclafani@redhat.com>
