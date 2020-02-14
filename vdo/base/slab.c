@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#23 $
  */
 
 #include "slab.h"
@@ -52,7 +52,7 @@ int configureSlab(BlockCount  slabSize,
    * we'd gain at most one data block in each slab with more iteration.
    */
   BlockCount refBlocks
-    = getSavedReferenceCountSize(slabSize - slabJournalBlocks);
+    = get_saved_reference_count_size(slabSize - slabJournalBlocks);
   BlockCount metaBlocks = (refBlocks + slabJournalBlocks);
 
   // Make sure test code hasn't configured slabs to be too small.
@@ -181,8 +181,8 @@ int allocateRefCountsForSlab(struct vdo_slab *slab)
     return result;
   }
 
-  return makeRefCounts(slabConfig->dataBlocks, slab, slab->refCountsOrigin,
-                       allocator->read_only_notifier, &slab->referenceCounts);
+  return make_ref_counts(slabConfig->dataBlocks, slab, slab->refCountsOrigin,
+                         allocator->read_only_notifier, &slab->referenceCounts);
 }
 
 /**********************************************************************/
@@ -195,7 +195,7 @@ void freeSlab(struct vdo_slab **slabPtr)
 
   unspliceRingNode(&slab->ringNode);
   freeSlabJournal(&slab->journal);
-  freeRefCounts(&slab->referenceCounts);
+  free_ref_counts(&slab->referenceCounts);
   FREE(slab);
   *slabPtr = NULL;
 }
@@ -223,7 +223,7 @@ void markSlabUnrecovered(struct vdo_slab *slab)
 /**********************************************************************/
 BlockCount getSlabFreeBlockCount(const struct vdo_slab *slab)
 {
-  return getUnreferencedBlockCount(slab->referenceCounts);
+  return get_unreferenced_block_count(slab->referenceCounts);
 }
 
 /**********************************************************************/
@@ -247,8 +247,8 @@ int modifySlabReferenceCount(struct vdo_slab            *slab,
   }
 
   bool freeStatusChanged;
-  int result = adjustReferenceCount(slab->referenceCounts, operation,
-                                    journalPoint, &freeStatusChanged);
+  int result = adjust_reference_count(slab->referenceCounts, operation,
+                                      journalPoint, &freeStatusChanged);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -269,7 +269,7 @@ int acquireProvisionalReference(struct vdo_slab     *slab,
     return VDO_SUCCESS;
   }
 
-  int result = provisionallyReferenceBlock(slab->referenceCounts, pbn, lock);
+  int result = provisionally_reference_block(slab->referenceCounts, pbn, lock);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -326,7 +326,7 @@ static void initiateSlabAction(struct admin_state *state)
     drainSlabJournal(slab->journal);
 
     if (slab->referenceCounts != NULL) {
-      drainRefCounts(slab->referenceCounts);
+      drain_ref_counts(slab->referenceCounts);
     }
 
     checkIfSlabDrained(slab);
@@ -386,7 +386,7 @@ void checkIfSlabDrained(struct vdo_slab *slab)
   if (is_draining(&slab->state)
       && !isSlabJournalActive(slab->journal)
       && ((slab->referenceCounts == NULL)
-          || !areRefCountsActive(slab->referenceCounts))) {
+          || !are_ref_counts_active(slab->referenceCounts))) {
     int result = (is_read_only(slab->allocator->read_only_notifier)
                   ? VDO_READ_ONLY : VDO_SUCCESS);
     finish_draining_with_result(&slab->state, result);
@@ -404,7 +404,7 @@ void notifySlabJournalIsDrained(struct vdo_slab *slab, int result)
   }
 
   set_operation_result(&slab->state, result);
-  drainRefCounts(slab->referenceCounts);
+  drain_ref_counts(slab->referenceCounts);
 }
 
 /**********************************************************************/
@@ -461,7 +461,7 @@ void dumpSlab(const struct vdo_slab *slab)
   dumpSlabJournal(slab->journal);
 
   if (slab->referenceCounts != NULL) {
-    dumpRefCounts(slab->referenceCounts);
+    dump_ref_counts(slab->referenceCounts);
   } else {
     logInfo("refCounts is null");
   }

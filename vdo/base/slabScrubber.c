@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#21 $
  */
 
 #include "slabScrubberInternals.h"
@@ -280,8 +280,9 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                                      entry.sbn, maxSBN);
     }
 
-    int result = replayReferenceCountChange(slab->referenceCounts, &entryPoint,
-                                            entry);
+    int result = replay_reference_count_change(slab->referenceCounts,
+                                               &entryPoint,
+                                               entry);
     if (result != VDO_SUCCESS) {
       logErrorWithStringError(result, "vdo_slab journal entry (%llu, %u)"
                               " (%s of offset %" PRIu32 ") could not be"
@@ -321,7 +322,7 @@ static void applyJournalEntries(struct vdo_completion *completion)
   TailBlockOffset headIndex = getSlabJournalBlockOffset(journal, head);
   BlockCount      index     = headIndex;
 
-  struct journal_point refCountsPoint   = referenceCounts->slabJournalPoint;
+  struct journal_point refCountsPoint   = referenceCounts->slab_journal_point;
   struct journal_point lastEntryApplied = refCountsPoint;
   SequenceNumber sequence;
   for (sequence = head; sequence < tail; sequence++) {

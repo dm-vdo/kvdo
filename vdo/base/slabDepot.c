@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#38 $
  */
 
 #include "slabDepot.h"
@@ -784,7 +784,7 @@ uint8_t getIncrementLimit(struct slab_depot *depot, PhysicalBlockNumber pbn)
     return 0;
   }
 
-  return getAvailableReferences(slab->referenceCounts, pbn);
+  return get_available_references(slab->referenceCounts, pbn);
 }
 
 /**********************************************************************/
@@ -1086,8 +1086,8 @@ bool areEquivalentDepots(struct slab_depot *depotA, struct slab_depot *depotB)
     struct vdo_slab *slabB = depotB->slabs[i];
     if ((slabA->start  != slabB->start)
         || (slabA->end != slabB->end)
-        || !areEquivalentReferenceCounters(slabA->referenceCounts,
-                                           slabB->referenceCounts)) {
+        || !are_equivalent_reference_counters(slabA->referenceCounts,
+                                              slabB->referenceCounts)) {
       return false;
     }
   }

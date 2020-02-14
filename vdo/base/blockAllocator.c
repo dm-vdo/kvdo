@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#42 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -442,7 +442,7 @@ static int allocate_slab_block(struct vdo_slab *slab,
 			       PhysicalBlockNumber *block_number_ptr)
 {
 	PhysicalBlockNumber pbn;
-	int result = allocateUnreferencedBlock(slab->referenceCounts, &pbn);
+	int result = allocate_unreferenced_block(slab->referenceCounts, &pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -476,7 +476,7 @@ int allocate_block(struct block_allocator *allocator,
 
 	if (isSlabJournalBlank(allocator->open_slab->journal)) {
 		relaxedAdd64(&allocator->statistics.slabsOpened, 1);
-		dirtyAllReferenceBlocks(allocator->open_slab->referenceCounts);
+		dirty_all_reference_blocks(allocator->open_slab->referenceCounts);
 	} else {
 		relaxedAdd64(&allocator->statistics.slabsReopened, 1);
 	}

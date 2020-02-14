@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#31 $
  */
 
 #include "slabJournalInternals.h"
@@ -961,8 +961,8 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
       if (journalLength <= journal->flushingDeadline) {
         blocksToDeadline = journal->flushingDeadline - journalLength;
       }
-      saveSeveralReferenceBlocks(journal->slab->referenceCounts,
-                                 blocksToDeadline + 1);
+      save_several_reference_blocks(journal->slab->referenceCounts,
+                                    blocksToDeadline + 1);
     }
   }
 
@@ -1039,7 +1039,7 @@ static void addEntries(struct slab_journal *journal)
     // If the slab is over the blocking threshold, make the vio wait.
     if (requiresReaping(journal)) {
       relaxedAdd64(&journal->events->blockedCount, 1);
-      saveDirtyReferenceBlocks(journal->slab->referenceCounts);
+      save_dirty_reference_blocks(journal->slab->referenceCounts);
       break;
     }
 
@@ -1061,7 +1061,7 @@ static void addEntries(struct slab_journal *journal)
                         "threshold is at the end of the journal");
 
         relaxedAdd64(&journal->events->diskFullCount, 1);
-        saveDirtyReferenceBlocks(journal->slab->referenceCounts);
+        save_dirty_reference_blocks(journal->slab->referenceCounts);
         break;
       }
 
@@ -1081,7 +1081,7 @@ static void addEntries(struct slab_journal *journal)
          * be done by the RefCounts since here we don't know how many
          * reference blocks the RefCounts has.
          */
-        acquireDirtyBlockLocks(journal->slab->referenceCounts);
+        acquire_dirty_block_locks(journal->slab->referenceCounts);
       }
     }
 
