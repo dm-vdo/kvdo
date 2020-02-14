@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueHandle.h#5 $
  */
 
 #ifndef WORK_QUEUE_HANDLE_H
@@ -81,8 +81,9 @@ void initialize_work_queue_stack_handle(struct work_queue_stack_handle *handle,
 static inline struct simple_work_queue *get_current_thread_work_queue(void)
 {
 	struct work_queue_stack_handle *handle =
-		(struct work_queue_stack_handle *)(task_stack_page(current) +
-						   work_queue_stack_handle_globals.offset);
+		(struct work_queue_stack_handle *)
+			(task_stack_page(current) +
+			 work_queue_stack_handle_globals.offset);
 	if (likely(handle->nonce == work_queue_stack_handle_globals.nonce)) {
 		return handle->queue;
 	} else {

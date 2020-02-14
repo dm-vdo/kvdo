@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#6 $
  */
 
 #include "compressionStateInternals.h"
@@ -31,7 +31,7 @@ static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 struct vio_compression_state get_compression_state(struct data_vio *data_vio)
 {
 	uint32_t packedValue = atomicLoad32(&data_vio->compression.state);
-	return (struct vio_compression_state){
+	return (struct vio_compression_state) {
 		.status = packedValue & STATUS_MASK,
 		.may_not_compress = ((packedValue & MAY_NOT_COMPRESS_MASK) != 0),
 	};

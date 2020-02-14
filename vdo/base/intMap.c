@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/intMap.c#6 $
  */
 
 /**
@@ -155,7 +155,7 @@ static uint64_t hash_key(uint64_t key)
 		uint64_t u64;
 		uint32_t u32[2];
 	} pun = {.u64 = key};
-	return mix(sizeof(key) + (((uint64_t)pun.u32[0]) << 3), pun.u32[1]);
+	return mix(sizeof(key) + (((uint64_t) pun.u32[0]) << 3), pun.u32[1]);
 }
 
 /**

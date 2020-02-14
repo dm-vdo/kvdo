@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/heap.c#5 $
  */
 
 #include "heap.h"
@@ -41,7 +41,7 @@ void initialize_heap(struct heap *heap, heap_comparator *comparator,
 	if (array != NULL) {
 		// Calculating child indexes is simplified by pretending the
 		// element array is 1-based.
-		heap->array = ((byte *)array - element_size);
+		heap->array = ((byte *) array - element_size);
 	}
 }
 

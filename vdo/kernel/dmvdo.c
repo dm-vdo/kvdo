@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#39 $
  */
 
 #include "dmvdo.h"
@@ -76,7 +76,7 @@ struct kvdo_module_globals kvdoGlobals;
  **/
 static struct kernel_layer *get_kernel_layer_for_target(struct dm_target *ti)
 {
-	return ((struct device_config *)ti->private)->layer;
+	return ((struct device_config *) ti->private)->layer;
 }
 
 /**
@@ -208,7 +208,7 @@ static void vdo_status(struct dm_target *ti,
 	case STATUSTYPE_TABLE:
 		// Report the string actually specified in the beginning.
 		DMEMIT("%s",
-		       ((struct device_config *)ti->private)->original_string);
+		       ((struct device_config *) ti->private)->original_string);
 		break;
 	}
 
@@ -568,9 +568,9 @@ static int vdo_initialize(struct dm_target *ti,
 	BlockCount logical_blocks = logical_size / block_size;
 
 	logDebug("Logical block size     = %llu",
-		 (uint64_t)config->logical_block_size);
+		 (uint64_t) config->logical_block_size);
 	logDebug("Logical blocks         = %llu", logical_blocks);
-	logDebug("Physical block size    = %llu", (uint64_t)block_size);
+	logDebug("Physical block size    = %llu", (uint64_t) block_size);
 	logDebug("Physical blocks        = %llu", config->physical_blocks);
 	logDebug("Block map cache blocks = %u", config->cache_size);
 	logDebug("Block map maximum age  = %u", config->block_map_maximum_age);

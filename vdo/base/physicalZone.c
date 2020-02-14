@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalZone.c#14 $
  */
 
 #include "physicalZone.h"
@@ -145,7 +145,7 @@ int attempt_pbn_lock(struct physical_zone *zone,
 
 	struct pbn_lock *lock;
 	result = int_map_put(zone->pbn_operations, pbn, new_lock, false,
-			     (void **)&lock);
+			     (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		return_pbn_lock_to_pool(zone->lock_pool, &new_lock);
 		return result;

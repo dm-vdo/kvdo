@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#30 $
  */
 
 #include "packerInternals.h"
@@ -52,7 +52,7 @@ __attribute__((warn_unused_result)) static inline struct input_bin *
 input_bin_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct input_bin, ring) == 0);
-	return (struct input_bin *)node;
+	return (struct input_bin *) node;
 }
 
 /**********************************************************************/
@@ -60,7 +60,7 @@ __attribute__((warn_unused_result)) static inline struct output_bin *
 output_bin_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct output_bin, ring) == 0);
-	return (struct output_bin *)node;
+	return (struct output_bin *) node;
 }
 
 /**********************************************************************/
@@ -192,7 +192,7 @@ make_output_bin(struct packer *packer, PhysicalLayer *layer)
 	}
 
 	return layer->createCompressedWriteVIO(layer, output,
-					       (char *)output->block,
+					       (char *) output->block,
 					       &output->writer);
 }
 

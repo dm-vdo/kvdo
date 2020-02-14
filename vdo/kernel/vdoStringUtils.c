@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/vdoStringUtils.c#5 $
  */
 
 #include "vdoStringUtils.h"
@@ -36,7 +36,7 @@ char *v_append_to_buffer(char *buffer,
 {
 	size_t n = vsnprintf(buffer, buf_end - buffer, fmt, args);
 
-	if (n >= (size_t)(buf_end - buffer)) {
+	if (n >= (size_t) (buf_end - buffer)) {
 		buffer = buf_end;
 	} else {
 		buffer += n;

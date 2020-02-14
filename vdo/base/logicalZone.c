@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#23 $
  */
 
 #include "logicalZone.h"
@@ -94,7 +94,7 @@ static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
 	STATIC_ASSERT(offsetof(struct logical_zone, completion) == 0);
 	assertCompletionType(completion->type, GENERATION_FLUSHED_COMPLETION);
-	return (struct logical_zone *)completion;
+	return (struct logical_zone *) completion;
 }
 
 /**********************************************************************/
@@ -317,8 +317,7 @@ struct logical_zone *get_next_logical_zone(const struct logical_zone *zone)
  **/
 static inline struct data_vio *data_vio_from_ring_node(RingNode *ring_node)
 {
-	return (struct data_vio *)((byte *)ring_node
-				   - offsetof(struct data_vio, writeNode));
+	return container_of(ring_node, struct data_vio, writeNode);
 }
 
 /**
@@ -367,7 +366,7 @@ void increment_flush_generation(struct logical_zone *zone,
 /**********************************************************************/
 SequenceNumber get_oldest_locked_generation(const struct logical_zone *zone)
 {
-	return (SequenceNumber)atomicLoad64(&zone->oldest_locked_generation);
+	return (SequenceNumber) atomicLoad64(&zone->oldest_locked_generation);
 }
 
 /**********************************************************************/

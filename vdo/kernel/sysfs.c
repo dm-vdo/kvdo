@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/sysfs.c#8 $
  */
 
 #include "sysfs.h"
@@ -117,7 +117,7 @@ static ssize_t show_int(struct kvdo_module_globals *kvdo_globals,
 						      struct vdo_attribute,
 						      attr);
 
-	return sprintf(buf, "%d\n", *(int *)vdo_attr->value_ptr);
+	return sprintf(buf, "%d\n", *(int *) vdo_attr->value_ptr);
 }
 
 /**********************************************************************/
@@ -153,7 +153,7 @@ static ssize_t show_uint(struct kvdo_module_globals *kvdo_globals,
 						      struct vdo_attribute,
 						      attr);
 
-	return sprintf(buf, "%u\n", *(unsigned int *)vdo_attr->value_ptr);
+	return sprintf(buf, "%u\n", *(unsigned int *) vdo_attr->value_ptr);
 }
 
 /**********************************************************************/
@@ -177,7 +177,7 @@ static ssize_t show_bool(struct kvdo_module_globals *kvdo_globals,
 						      struct vdo_attribute,
 						      attr);
 
-	return sprintf(buf, "%u\n", *(bool *)vdo_attr->value_ptr ? 1 : 0);
+	return sprintf(buf, "%u\n", *(bool *) vdo_attr->value_ptr ? 1 : 0);
 }
 
 /**********************************************************************/

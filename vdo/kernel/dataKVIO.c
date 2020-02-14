@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#48 $
  */
 
 #include "dataKVIO.h"
@@ -64,7 +64,7 @@ static __always_inline void set_write_protect(void *address,
 					      size_t byte_count,
 					      bool mode __attribute__((unused)))
 {
-	BUG_ON((((long)address) % PAGE_SIZE) != 0);
+	BUG_ON((((long) address) % PAGE_SIZE) != 0);
 	BUG_ON((byte_count % PAGE_SIZE) != 0);
 	BUG(); // only works in internal code, sorry
 }
@@ -407,7 +407,7 @@ static void read_bio_callback(struct bio *bio)
 static void read_bio_callback(struct bio *bio, int result)
 #endif
 {
-	struct kvio *kvio = (struct kvio *)bio->bi_private;
+	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	struct data_kvio *data_kvio = kvio_as_data_kvio(kvio);
 
 	data_kvio->read_block.data = data_kvio->read_block.buffer;
@@ -548,7 +548,7 @@ static inline bool is_zero_block(struct data_kvio *data_kvio)
 	 * without getting into the more expensive (for one iteration) loop
 	 * below.
 	 */
-	if (get_unaligned((u64 *)buffer) != 0) {
+	if (get_unaligned((u64 *) buffer) != 0) {
 		return false;
 	}
 
@@ -559,21 +559,21 @@ static inline bool is_zero_block(struct data_kvio *data_kvio)
 	unsigned int chunk_count = word_count / 8;
 
 	while (chunk_count-- > 0) {
-		uint64_t word0 = get_unaligned((u64 *)buffer);
+		uint64_t word0 = get_unaligned((u64 *) buffer);
 		uint64_t word1 =
-			get_unaligned((u64 *)(buffer + 1 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 1 * sizeof(uint64_t)));
 		uint64_t word2 =
-			get_unaligned((u64 *)(buffer + 2 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 2 * sizeof(uint64_t)));
 		uint64_t word3 =
-			get_unaligned((u64 *)(buffer + 3 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 3 * sizeof(uint64_t)));
 		uint64_t word4 =
-			get_unaligned((u64 *)(buffer + 4 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 4 * sizeof(uint64_t)));
 		uint64_t word5 =
-			get_unaligned((u64 *)(buffer + 5 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 5 * sizeof(uint64_t)));
 		uint64_t word6 =
-			get_unaligned((u64 *)(buffer + 6 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 6 * sizeof(uint64_t)));
 		uint64_t word7 =
-			get_unaligned((u64 *)(buffer + 7 * sizeof(uint64_t)));
+			get_unaligned((u64 *) (buffer + 7 * sizeof(uint64_t)));
 		uint64_t or = (word0 | word1 | word2 | word3 | word4 | word5 |
 			       word6 | word7);
 		// Prevent compiler from using 8*(cmp;jne).
@@ -588,7 +588,7 @@ static inline bool is_zero_block(struct data_kvio *data_kvio)
 	// Unroll to process 8 bytes at a time.
 	// (Is this still worthwhile?)
 	while (word_count-- > 0) {
-		if (get_unaligned((u64 *)buffer) != 0) {
+		if (get_unaligned((u64 *) buffer) != 0) {
 			return false;
 		}
 		buffer += sizeof(uint64_t);
@@ -611,7 +611,7 @@ void applyPartialWrite(struct data_vio *data_vio)
 	} else {
 		memset(data_kvio->data_block + data_kvio->offset, '\0',
 		       min(data_kvio->remaining_discard,
-			   (DiscardSize)(VDO_BLOCK_SIZE - data_kvio->offset)));
+			   (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset)));
 	}
 
 	data_vio->isZeroBlock = is_zero_block(data_kvio);
@@ -710,7 +710,7 @@ make_data_kvio(struct kernel_layer *layer,
 {
 	struct data_kvio *data_kvio;
 	int result = alloc_buffer_from_pool(layer->data_kvio_pool,
-					    (void **)&data_kvio);
+					    (void **) &data_kvio);
 	if (result != VDO_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "data kvio allocation failure");
@@ -866,7 +866,7 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 
 	data_kvio->remaining_discard -=
 		min(data_kvio->remaining_discard,
-		    (DiscardSize)(VDO_BLOCK_SIZE - data_kvio->offset));
+		    (DiscardSize) (VDO_BLOCK_SIZE - data_kvio->offset));
 	if ((completion->result != VDO_SUCCESS) ||
 	    (data_kvio->remaining_discard == 0)) {
 		if (data_kvio->hasDiscardPermit) {
@@ -1047,8 +1047,8 @@ static void free_pooled_data_kvio(void *pool_data, void *data)
 		return;
 	}
 
-	struct data_kvio *data_kvio = (struct data_kvio *)data;
-	struct kernel_layer *layer = (struct kernel_layer *)pool_data;
+	struct data_kvio *data_kvio = (struct data_kvio *) data;
+	struct kernel_layer *layer = (struct kernel_layer *) pool_data;
 
 	if (WRITE_PROTECT_FREE_POOL) {
 		set_write_protect(data_kvio, WP_DATA_KVIO_SIZE, false);
@@ -1088,7 +1088,7 @@ static int allocate_pooled_data_kvio(struct kernel_layer *layer,
 		result = allocateMemory(WP_DATA_KVIO_SIZE, 0, __func__,
 					&data_kvio);
 		if (result == VDO_SUCCESS) {
-			BUG_ON((((size_t)data_kvio) & (PAGE_SIZE - 1)) != 0);
+			BUG_ON((((size_t) data_kvio) & (PAGE_SIZE - 1)) != 0);
 		}
 	} else {
 		result = ALLOCATE(1, struct data_kvio, __func__, &data_kvio);
@@ -1247,7 +1247,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 			       void *data)
 {
-	struct data_kvio *data_kvio = (struct data_kvio *)data;
+	struct data_kvio *data_kvio = (struct data_kvio *) data;
 	struct data_vio *data_vio = &data_kvio->data_vio;
 
 	/*
@@ -1270,7 +1270,7 @@ static void dump_pooled_data_kvio(void *pool_data __attribute__((unused)),
 				 sizeof(vio_work_item_dump_buffer));
 	// Another static buffer...
 	// log10(256) = 2.408+, round up:
-	enum { DECIMAL_DIGITS_PER_UINT64_T = (int)(1 + 2.41 * sizeof(uint64_t))
+	enum { DECIMAL_DIGITS_PER_UINT64_T = (int) (1 + 2.41 * sizeof(uint64_t))
 	};
 	static char vio_block_number_dump_buffer[sizeof("P L D") +
 						 3 *
@@ -1339,7 +1339,7 @@ struct data_location get_dedupe_advice(const struct dedupe_context *context)
 	struct data_kvio *data_kvio = container_of(context,
 						   struct data_kvio,
 						   dedupe_context);
-	return (struct data_location){
+	return (struct data_location) {
 		.state = data_kvio->data_vio.newMapped.state,
 		.pbn = data_kvio->data_vio.newMapped.pbn,
 	};

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#43 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -530,8 +530,8 @@ void release_block_reference(struct block_allocator *allocator,
  **/
 static int compare_slab_statuses(const void *item1, const void *item2)
 {
-	const struct slab_status *info1 = (const struct slab_status *)item1;
-	const struct slab_status *info2 = (const struct slab_status *)item2;
+	const struct slab_status *info1 = (const struct slab_status *) item1;
+	const struct slab_status *info2 = (const struct slab_status *) item2;
 
 	if (info1->isClean != info2->isClean) {
 		return (info1->isClean ? 1 : -1);
@@ -581,7 +581,7 @@ static void slab_action_callback(struct vdo_completion *completion)
 static void handle_operation_error(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator =
-		(struct block_allocator *)completion;
+		(struct block_allocator *) completion;
 	set_operation_result(&allocator->state, completion->result);
 	completion->callback(completion);
 }
@@ -609,7 +609,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 	allocator->open_slab = NULL;
 
 	// Ensure that we don't finish before we're done starting.
-	allocator->slab_actor = (struct slab_actor){
+	allocator->slab_actor = (struct slab_actor) {
 		.slab_action_count = 1,
 		.callback = callback,
 	};
@@ -635,7 +635,7 @@ static void apply_to_slabs(struct block_allocator *allocator,
 static void finish_loading_allocator(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator =
-		(struct block_allocator *)completion;
+		(struct block_allocator *) completion;
 	if (allocator->state.state == ADMIN_STATE_LOADING_FOR_RECOVERY) {
 		void *context =
 			get_current_action_context(allocator->depot->actionManager);
@@ -795,7 +795,7 @@ void register_new_slabs_for_allocator(void *context,
 static void do_drain_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator =
-		(struct block_allocator *)completion;
+		(struct block_allocator *) completion;
 	prepareForRequeue(&allocator->completion,
 			  do_drain_step,
 			  handle_operation_error,
@@ -863,7 +863,7 @@ void drain_block_allocator(void *context,
 static void do_resume_step(struct vdo_completion *completion)
 {
 	struct block_allocator *allocator =
-		(struct block_allocator *)completion;
+		(struct block_allocator *) completion;
 	prepareForRequeue(&allocator->completion,
 			  do_resume_step,
 			  handle_operation_error,
@@ -999,7 +999,7 @@ get_block_allocator_statistics(const struct block_allocator *allocator)
 {
 	const struct atomic_allocator_statistics *atoms =
 		&allocator->statistics;
-	return (BlockAllocatorStatistics){
+	return (BlockAllocatorStatistics) {
 		.slabCount = allocator->slab_count,
 		.slabsOpened = relaxedLoad64(&atoms->slabsOpened),
 		.slabsReopened = relaxedLoad64(&atoms->slabsReopened),
@@ -1012,7 +1012,7 @@ get_slab_journal_statistics(const struct block_allocator *allocator)
 {
 	const struct atomic_slab_journal_statistics *atoms =
 		&allocator->slab_journal_statistics;
-	return (SlabJournalStatistics){
+	return (SlabJournalStatistics) {
 		.diskFullCount = atomicLoad64(&atoms->diskFullCount),
 		.flushCount = atomicLoad64(&atoms->flushCount),
 		.blockedCount = atomicLoad64(&atoms->blockedCount),
@@ -1027,7 +1027,7 @@ get_ref_counts_statistics(const struct block_allocator *allocator)
 {
 	const struct atomic_ref_count_statistics *atoms =
 		&allocator->ref_count_statistics;
-	return (RefCountsStatistics){
+	return (RefCountsStatistics) {
 		.blocksWritten = atomicLoad64(&atoms->blocksWritten),
 	};
 }

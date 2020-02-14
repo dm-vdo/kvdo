@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/actionManager.c#16 $
  */
 
 #include "actionManager.h"
@@ -91,7 +91,7 @@ as_action_manager(struct vdo_completion *completion)
 {
 	STATIC_ASSERT(offsetof(struct action_manager, completion) == 0);
 	assertCompletionType(completion->type, ACTION_COMPLETION);
-	return (struct action_manager *)completion;
+	return (struct action_manager *) completion;
 }
 
 /**
@@ -140,7 +140,7 @@ int make_action_manager(ZoneCount zones,
 		return result;
 	}
 
-	*manager = (struct action_manager){
+	*manager = (struct action_manager) {
 		.zones = zones,
 		.scheduler =
 			((scheduler == NULL) ? no_default_action : scheduler),
@@ -413,7 +413,7 @@ bool schedule_operation_with_context(struct action_manager *manager,
 		return false;
 	}
 
-	*action = (struct action){
+	*action = (struct action) {
 		.in_use = true,
 		.operation = operation,
 		.preamble = (preamble == NULL) ? no_preamble : preamble,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#11 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -78,7 +78,7 @@ static inline struct recovery_journal_block *
 block_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct recovery_journal_block, ring_node) == 0);
-	return (struct recovery_journal_block *)node;
+	return (struct recovery_journal_block *) node;
 }
 
 /**

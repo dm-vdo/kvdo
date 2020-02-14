@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#18 $
  */
 
 #include "forest.h"
@@ -405,7 +405,7 @@ static void finishTraversalLoad(struct vdo_completion *completion)
 	struct tree_page *treePage =
 		&(cursor->tree->segments[0].levels[height][level->page_index]);
 	struct block_map_page *page =
-		(struct block_map_page *)treePage->pageBuffer;
+		(struct block_map_page *) treePage->pageBuffer;
 	copyValidPage(entry->buffer,
 		      cursor->parent->map->nonce,
 		      entry->vio->physical,
@@ -428,7 +428,7 @@ static void traverse(struct cursor *cursor)
 			&(cursor->tree->segments[0]
 				  .levels[height][level->page_index]);
 		struct block_map_page *page =
-			(struct block_map_page *)tree_page->pageBuffer;
+			(struct block_map_page *) tree_page->pageBuffer;
 		if (!isBlockMapPageInitialized(page)) {
 			continue;
 		}
@@ -512,8 +512,8 @@ static void traverse(struct cursor *cursor)
 static void launch_cursor(struct waiter *waiter, void *context)
 {
 	STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
-	struct cursor *cursor = (struct cursor *)waiter;
-	cursor->vio_pool_entry = (struct vio_pool_entry *)context;
+	struct cursor *cursor = (struct cursor *) waiter;
+	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
 	vioAsCompletion(cursor->vio_pool_entry->vio)->callbackThreadID =
 		cursor->parent->zone->mapZone->threadID;

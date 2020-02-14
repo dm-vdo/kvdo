@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#13 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -82,7 +82,7 @@ static inline struct allocating_vio *vio_as_allocating_vio(struct vio *vio)
 	ASSERT_LOG_ONLY(((vio->type == VIO_TYPE_DATA) ||
 			 (vio->type == VIO_TYPE_COMPRESSED_BLOCK)),
 			"vio is an allocating_vio");
-	return (struct allocating_vio *)vio;
+	return (struct allocating_vio *) vio;
 }
 
 /**
@@ -152,9 +152,7 @@ waiter_as_allocating_vio(struct waiter *waiter)
 		return NULL;
 	}
 
-	return (struct allocating_vio *)((uintptr_t)waiter -
-					 offsetof(struct allocating_vio,
-						  waiter));
+	return container_of(waiter, struct allocating_vio, waiter);
 }
 
 /**

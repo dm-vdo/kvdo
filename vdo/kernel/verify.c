@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/verify.c#12 $
  */
 
 #include "physicalLayer.h"
@@ -56,8 +56,8 @@ memory_equal(void *pointer_argument1,
 		 * treated the same as an aligned access.  (2) In this use case,
 		 * one or both of the inputs will almost(?) always be aligned.
 		 */
-		if (get_unaligned((u64 *)pointer1) !=
-		    get_unaligned((u64 *)pointer2)) {
+		if (get_unaligned((u64 *) pointer1) !=
+		    get_unaligned((u64 *) pointer2)) {
 			return false;
 		}
 		pointer1 += sizeof(uint64_t);

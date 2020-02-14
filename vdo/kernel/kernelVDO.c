@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#31 $
  */
 
 /*
@@ -316,7 +316,7 @@ static void set_compressing_work(struct kvdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
-	struct vdo_compress_data *data = (struct vdo_compress_data *)work->data;
+	struct vdo_compress_data *data = (struct vdo_compress_data *) work->data;
 
 	data->was_enabled =
 		setVDOCompressing(get_vdo(work->kvdo), data->enable);
@@ -375,7 +375,7 @@ static void get_vdo_statistics_work(struct kvdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
-	VDOStatistics *stats = (VDOStatistics *)work->data;
+	VDOStatistics *stats = (VDOStatistics *) work->data;
 
 	getVDOStatistics(get_vdo(work->kvdo), stats);
 	complete(work->completion);
@@ -415,7 +415,7 @@ static void initialize_vdo_action_data(struct vdo_action_data *data,
 				       VDOAction *action,
 				       struct vdo_completion *vdo_completion)
 {
-	*data = (struct vdo_action_data){
+	*data = (struct vdo_action_data) {
 		.action = action,
 		.vdo_completion = vdo_completion,
 	};
@@ -606,7 +606,7 @@ void kvdo_enqueue(Enqueueable *enqueueable)
 				  THIS_LOCATION("$F($cb)"));
 	}
 	setup_work_item(&kvdo_enqueueable->work_item, kvdo_enqueue_work,
-			(KvdoWorkFunction)enqueueable->completion->callback,
+			(KvdoWorkFunction) enqueueable->completion->callback,
 			REQ_Q_ACTION_COMPLETION);
 	enqueue_kvdo_thread_work(&layer->kvdo.threads[thread_id],
 				 &kvdo_enqueueable->work_item);

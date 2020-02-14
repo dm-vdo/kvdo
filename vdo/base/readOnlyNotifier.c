@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#10 $
  */
 
 #include "readOnlyNotifier.h"
@@ -119,7 +119,7 @@ as_notifier(struct vdo_completion *completion)
 {
 	STATIC_ASSERT(offsetof(struct read_only_notifier, completion) == 0);
 	assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
-	return (struct read_only_notifier *)completion;
+	return (struct read_only_notifier *) completion;
 }
 
 /**********************************************************************/
@@ -141,7 +141,7 @@ int make_read_only_notifier(bool is_read_only,
 	notifier->thread_config = thread_config;
 	if (is_read_only) {
 		atomicStore32(&notifier->read_only_error,
-			      (uint32_t)VDO_READ_ONLY);
+			      (uint32_t) VDO_READ_ONLY);
 		atomicStore32(&notifier->state, NOTIFIED);
 	} else {
 		atomicStore32(&notifier->state, MAY_NOTIFY);
@@ -276,7 +276,7 @@ static void make_thread_read_only(struct vdo_completion *completion)
 		if (thread_id == 0) {
 			// Note: This message must be recognizable by
 			// Permabit::UserMachine.
-			logErrorWithStringError((int)atomicLoad32(&notifier->read_only_error),
+			logErrorWithStringError((int) atomicLoad32(&notifier->read_only_error),
 						"Unrecoverable error, entering read-only mode");
 		}
 	} else {
@@ -330,7 +330,7 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 		return;
 	}
 
-	if ((int)atomicLoad32(&notifier->read_only_error) == VDO_SUCCESS) {
+	if ((int) atomicLoad32(&notifier->read_only_error) == VDO_SUCCESS) {
 		// We're done
 		completeCompletion(parent);
 		return;
@@ -366,8 +366,8 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int errorCode)
 	thread_data->is_read_only = true;
 
 	if (!compareAndSwap32(&notifier->read_only_error,
-			      (uint32_t)VDO_SUCCESS,
-			      (uint32_t)errorCode)) {
+			      (uint32_t) VDO_SUCCESS,
+			      (uint32_t) errorCode)) {
 		// The notifier is already aware of a read-only error
 		return;
 	}
@@ -401,7 +401,7 @@ int register_read_only_listener(struct read_only_notifier *notifier,
 	}
 
 	struct thread_data *thread_data = &notifier->thread_data[thread_id];
-	*read_only_listener = (struct read_only_listener){
+	*read_only_listener = (struct read_only_listener) {
 		     .listener = listener,
 		     .notify = notification,
 		     .next = thread_data->listeners,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#23 $
  */
 
 #include "workQueue.h"
@@ -716,7 +716,7 @@ static void process_delayed_work_items(unsigned long data)
 						     timer,
 						     delayed_items_timer);
 #else
-	struct simple_work_queue *queue = (struct simple_work_queue *)data;
+	struct simple_work_queue *queue = (struct simple_work_queue *) data;
 #endif
 
 	Jiffies next_execution_time = 0;
@@ -852,7 +852,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 #else
 	setup_timer(&queue->delayed_items_timer,
 		    process_delayed_work_items,
-		    (unsigned long)queue);
+		    (unsigned long) queue);
 #endif
 
 	kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
@@ -891,7 +891,7 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 
 	if (IS_ERR(thread)) {
 		free_simple_work_queue(queue);
-		return (int)PTR_ERR(thread);
+		return (int) PTR_ERR(thread);
 	}
 	queue->thread = thread;
 	atomic_set(&queue->thread_id, thread->pid);

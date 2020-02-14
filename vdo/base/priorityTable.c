@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/priorityTable.c#6 $
  */
 
 #include "priorityTable.h"
@@ -71,7 +71,7 @@ struct priority_table {
 static inline struct bucket *as_bucket(RingNode *head)
 {
 	STATIC_ASSERT(offsetof(struct bucket, queue) == 0);
-	return (struct bucket *)head;
+	return (struct bucket *) head;
 }
 
 /**********************************************************************/

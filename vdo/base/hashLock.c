@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#22 $
  */
 
 /**
@@ -172,7 +172,7 @@ static void set_hash_lock_state(struct hash_lock *lock,
 				hash_lock_state new_state)
 {
 	if (false) {
-		logWarning("XXX %" PRIptr " %s -> %s", (void *)lock,
+		logWarning("XXX %" PRIptr " %s -> %s", (void *) lock,
 			   get_hash_lock_state_name(lock->state),
 			   get_hash_lock_state_name(new_state));
 	}
@@ -232,8 +232,7 @@ static void set_duplicate_lock(struct hash_lock *hash_lock,
  **/
 static inline struct data_vio *data_vio_from_lock_node(RingNode *lock_node)
 {
-	return (struct data_vio *)((byte *)lock_node
-				   - offsetof(struct data_vio, hashLockNode));
+	return container_of(lock_node, struct data_vio, hashLockNode);
 }
 
 /**
@@ -747,7 +746,7 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
 static void enterForkedLock(struct waiter *waiter, void *context)
 {
 	struct data_vio *data_vio = waiterAsDataVIO(waiter);
-	struct hash_lock *new_lock = (struct hash_lock *)context;
+	struct hash_lock *new_lock = (struct hash_lock *) context;
 
 	setHashLock(data_vio, new_lock);
 	waitOnHashLock(new_lock, data_vio);

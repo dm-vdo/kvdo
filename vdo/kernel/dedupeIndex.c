@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#39 $
  */
 
 #include "dedupeIndex.h"
@@ -429,7 +429,7 @@ static void timeout_index_operations(unsigned long arg)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	struct dedupe_index *index = from_timer(index, t, pending_timer);
 #else
-	struct dedupe_index *index = (struct dedupe_index *)arg;
+	struct dedupe_index *index = (struct dedupe_index *) arg;
 #endif
 	LIST_HEAD(expiredHead);
 	uint64_t timeout_jiffies = msecs_to_jiffies(albireo_timeout_interval);
@@ -969,7 +969,7 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 		return result;
 	}
 	udsConfigurationSetNonce(index->configuration,
-				 (UdsNonce)layer->geometry.nonce);
+				 (UdsNonce) layer->geometry.nonce);
 
 	result = udsCreateIndexSession(&index->index_session);
 	if (result != UDS_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#26 $
  */
 
 #include "kvio.h"
@@ -51,7 +51,7 @@ void kvdo_enqueue_vio_callback(struct kvio *kvio)
 {
 	enqueue_kvio(kvio,
 		     kvdo_handle_vio_callback,
-		     (KvdoWorkFunction)vioAsCompletion(kvio->vio)->callback,
+		     (KvdoWorkFunction) vioAsCompletion(kvio->vio)->callback,
 		     REQ_Q_ACTION_VIO_CALLBACK);
 }
 
@@ -95,14 +95,14 @@ static void free_kvio(struct kvio **kvio_ptr)
 /**********************************************************************/
 void free_metadata_kvio(struct metadata_kvio **metadata_kvio_ptr)
 {
-	free_kvio((struct kvio **)metadata_kvio_ptr);
+	free_kvio((struct kvio **) metadata_kvio_ptr);
 }
 
 /**********************************************************************/
 void free_compressed_write_kvio(
 	struct compressed_write_kvio **compressed_write_kvio_ptr)
 {
-	free_kvio((struct kvio **)compressed_write_kvio_ptr);
+	free_kvio((struct kvio **) compressed_write_kvio_ptr);
 }
 
 /**********************************************************************/
@@ -195,7 +195,7 @@ static void complete_flush_bio(struct bio *bio)
 static void complete_flush_bio(struct bio *bio, int error)
 #endif
 {
-	struct kvio *kvio = (struct kvio *)bio->bi_private;
+	struct kvio *kvio = (struct kvio *) bio->bi_private;
 	// Restore the bio's notion of its own data.
 	reset_bio(bio, kvio->layer);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)

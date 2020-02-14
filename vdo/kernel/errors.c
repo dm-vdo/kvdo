@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#7 $
  */
 
 #include "errors.h"
@@ -138,7 +138,7 @@ void initialize_standard_error_blocks(void)
 
 
 	registered_errors.blocks[registered_errors.count++] =
-		(struct error_block){
+		(struct error_block) {
 			.name = "UDS Error",
 			.base = UDS_ERROR_CODE_BASE,
 			.last = UDS_ERROR_CODE_LAST,
@@ -147,7 +147,7 @@ void initialize_standard_error_blocks(void)
 		};
 
 	registered_errors.blocks[registered_errors.count++] =
-		(struct error_block){
+		(struct error_block) {
 			.name = "UDS Internal Error",
 			.base = UDS_INTERNAL_ERROR_CODE_BASE,
 			.last = UDS_INTERNAL_ERROR_CODE_LAST,
@@ -156,7 +156,7 @@ void initialize_standard_error_blocks(void)
 		};
 
 	registered_errors.blocks[registered_errors.count++] =
-		(struct error_block){
+		(struct error_block) {
 			.name = THIS_MODULE->name,
 			.base = VDO_BLOCK_START,
 			.last = VDO_STATUS_CODE_LAST,
@@ -260,7 +260,7 @@ int sans_unrecoverable(int result_code)
 /*****************************************************************************/
 bool is_unrecoverable(int result_code)
 {
-	return (bool)(result_code & UDS_UNRECOVERABLE);
+	return (bool) (result_code & UDS_UNRECOVERABLE);
 }
 
 /*****************************************************************************/
@@ -297,12 +297,13 @@ int register_error_block(const char *block_name,
 	}
 
 	registered_errors.blocks[registered_errors.count++] =
-		(struct error_block){ .name = block_name,
-				      .base = first_error,
-				      .last = first_error +
-					      (info_size / sizeof(ErrorInfo)),
-				      .max = last_reserved_error,
-				      .infos = infos };
+		(struct error_block) {
+			.name = block_name,
+			.base = first_error,
+			.last = first_error + (info_size / sizeof(ErrorInfo)),
+			.max = last_reserved_error,
+			.infos = infos
+		};
 
 	return UDS_SUCCESS;
 }

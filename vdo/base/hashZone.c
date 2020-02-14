@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#11 $
  */
 
 #include "hashZone.h"
@@ -106,7 +106,7 @@ static uint32_t hash_key(const void *key)
 static inline struct hash_lock *as_hash_lock(RingNode *pool_node)
 {
 	STATIC_ASSERT(offsetof(struct hash_lock, pool_node) == 0);
-	return (struct hash_lock *)pool_node;
+	return (struct hash_lock *) pool_node;
 }
 
 /**********************************************************************/
@@ -178,7 +178,7 @@ ThreadID get_hash_zone_thread_id(const struct hash_zone *zone)
 HashLockStatistics get_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
-	return (HashLockStatistics){
+	return (HashLockStatistics) {
 		.dedupeAdviceValid = relaxedLoad64(&atoms->dedupeAdviceValid),
 		.dedupeAdviceStale = relaxedLoad64(&atoms->dedupeAdviceStale),
 		.concurrentDataMatches =
@@ -226,7 +226,7 @@ int acquire_hash_lock_from_zone(struct hash_zone *zone,
 
 	struct hash_lock *lock;
 	result = pointer_map_put(zone->hash_lock_map, &new_lock->hash, new_lock,
-				 (replace_lock != NULL), (void **)&lock);
+				 (replace_lock != NULL), (void **) &lock);
 	if (result != VDO_SUCCESS) {
 		returnHashLockToPool(zone, &new_lock);
 		return result;
@@ -308,10 +308,10 @@ static void dump_hash_lock(const struct hash_lock *lock)
 	const char *state = get_hash_lock_state_name(lock->state);
 	logInfo("  hl %" PRIptr ": %3.3s %c%" PRIu64
 		"/%u rc=%u wc=%zu agt=%" PRIptr,
-		(const void *)lock, state, (lock->registered ? 'D' : 'U'),
+		(const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		lock->duplicate.pbn, lock->duplicate.state,
 		lock->reference_count, countWaiters(&lock->waiters),
-		(void *)lock->agent);
+		(void *) lock->agent);
 }
 
 /**********************************************************************/

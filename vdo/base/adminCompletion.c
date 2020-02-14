@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#9 $
  */
 
 #include "adminCompletion.h"
@@ -48,7 +48,7 @@ admin_completion_from_sub_task(struct vdo_completion *completion)
 	assertCompletionType(completion->type, SUB_TASK_COMPLETION);
 	struct vdo_completion *parent = completion->parent;
 	assertCompletionType(parent->type, ADMIN_COMPLETION);
-	return (struct admin_completion *)parent;
+	return (struct admin_completion *) parent;
 }
 
 /**********************************************************************/

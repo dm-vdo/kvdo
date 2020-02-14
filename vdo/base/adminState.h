@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#22 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -90,11 +90,11 @@ typedef enum {
  * The flags themselves.
  **/
 typedef enum {
-	ADMIN_FLAG_DRAINING = (uint32_t)(1 << ADMIN_FLAG_BIT_DRAINING),
-	ADMIN_FLAG_LOADING = (uint32_t)(1 << ADMIN_FLAG_BIT_LOADING),
-	ADMIN_FLAG_QUIESCING = (uint32_t)(1 << ADMIN_FLAG_BIT_QUIESCING),
-	ADMIN_FLAG_QUIESCENT = (uint32_t)(1 << ADMIN_FLAG_BIT_QUIESCENT),
-	ADMIN_FLAG_OPERATING = (uint32_t)(1 << ADMIN_FLAG_BIT_OPERATING),
+	ADMIN_FLAG_DRAINING = (uint32_t) (1 << ADMIN_FLAG_BIT_DRAINING),
+	ADMIN_FLAG_LOADING = (uint32_t) (1 << ADMIN_FLAG_BIT_LOADING),
+	ADMIN_FLAG_QUIESCING = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCING),
+	ADMIN_FLAG_QUIESCENT = (uint32_t) (1 << ADMIN_FLAG_BIT_QUIESCENT),
+	ADMIN_FLAG_OPERATING = (uint32_t) (1 << ADMIN_FLAG_BIT_OPERATING),
 } AdminFlag;
 
 /**

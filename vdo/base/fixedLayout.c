@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/fixedLayout.c#9 $
  */
 
 #include "fixedLayout.h"
@@ -28,7 +28,7 @@
 #include "header.h"
 #include "statusCodes.h"
 
-const BlockCount ALL_FREE_BLOCKS = (uint64_t)-1;
+const BlockCount ALL_FREE_BLOCKS = (uint64_t) -1;
 
 struct fixed_layout {
 	PhysicalBlockNumber first_free;
@@ -492,7 +492,7 @@ static int decodeLayout_3_0(Buffer *buffer, struct layout_3_0 *layout)
 		return result;
 	}
 
-	*layout = (struct layout_3_0){
+	*layout = (struct layout_3_0) {
 		.first_free = first_free,
 		.last_free = last_free,
 		.partition_count = partition_count,

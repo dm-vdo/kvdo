@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/pbnLockPool.c#7 $
  */
 
 #include "pbnLockPool.h"
@@ -112,7 +112,7 @@ int borrow_pbn_lock_from_pool(struct pbn_lock_pool *pool,
 
 	STATIC_ASSERT(offsetof(idle_pbn_lock, node) ==
 		      offsetof(idle_pbn_lock, lock));
-	struct pbn_lock *lock = (struct pbn_lock *)idle_node;
+	struct pbn_lock *lock = (struct pbn_lock *) idle_node;
 	initialize_pbn_lock(lock, type);
 
 	*lock_ptr = lock;
@@ -130,7 +130,7 @@ void return_pbn_lock_to_pool(struct pbn_lock_pool *pool,
 	// A bit expensive, but will promptly catch some use-after-free errors.
 	memset(lock, 0, sizeof(*lock));
 
-	RingNode *idle_node = (RingNode *)lock;
+	RingNode *idle_node = (RingNode *) lock;
 	initializeRing(idle_node);
 	pushRingNode(&pool->idle_ring, idle_node);
 

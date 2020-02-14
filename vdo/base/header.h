@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/header.h#4 $
  */
 
 #ifndef HEADER_H
@@ -218,7 +218,7 @@ pack_version_number(struct version_number version)
 static inline struct version_number
 unpack_version_number(struct packed_version_number version)
 {
-	return (struct version_number){
+	return (struct version_number) {
 		.major_version = getUInt32LE(version.major_version),
 		.minor_version = getUInt32LE(version.minor_version),
 	};

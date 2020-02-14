@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#9 $
  */
 
 #include <linux/kobject.h>
@@ -107,7 +107,7 @@ static const uint64_t bottom_value[1 + 10 * MAX_LOG_SIZE] = {
 	9,
 	10,
 	// 10 to 100 - From this point on, the Nth entry of the table is
-	//             floor(exp10((double)N/10.0)).
+	//             floor(exp10((double) N/10.0)).
 	12,
 	15,
 	19,
@@ -453,7 +453,7 @@ static ssize_t histogram_show_limit(struct histogram *h, char *buf)
 	// Display the limit in the reporting units
 	return sprintf(buf,
 		       "%u\n",
-		       (unsigned int)(h->conversion_factor * h->limit));
+		       (unsigned int) (h->conversion_factor * h->limit));
 }
 
 /***********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#9 $
  */
 
 #include "partitionCopy.h"
@@ -64,7 +64,7 @@ as_copy_completion(struct vdo_completion *completion)
 {
 	STATIC_ASSERT(offsetof(struct copy_completion, completion) == 0);
 	assertCompletionType(completion->type, PARTITION_COPY_COMPLETION);
-	return (struct copy_completion *)completion;
+	return (struct copy_completion *) completion;
 }
 
 /**********************************************************************/

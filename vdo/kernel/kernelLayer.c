@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#70 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#71 $
  */
 
 #include "kernelLayer.h"
@@ -835,7 +835,7 @@ int make_kernel_layer(uint64_t starting_sector,
 				 layer,
 				 &cpu_q_type,
 				 config->thread_counts.cpu_threads,
-				 (void **)layer->compressionContext,
+				 (void **) layer->compressionContext,
 				 &layer->cpu_queue);
 	if (result != VDO_SUCCESS) {
 		*reason = "CPU queue initialization failed";
