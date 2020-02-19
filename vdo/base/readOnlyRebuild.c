@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#18 $
  */
 
 #include "readOnlyRebuild.h"
@@ -247,10 +247,10 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 			  finishParentCallback,
 			  getAdminThread(getThreadConfig(vdo)),
 			  completion->parent);
-	rebuildReferenceCounts(vdo,
-			       completion,
-			       &rebuild->logical_blocks_used,
-			       &rebuild->block_map_data_blocks);
+	rebuild_reference_counts(vdo,
+				 completion,
+				 &rebuild->logical_blocks_used,
+				 &rebuild->block_map_data_blocks);
 }
 
 /**

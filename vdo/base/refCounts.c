@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#28 $
  */
 
 #include "refCounts.h"
@@ -216,7 +216,7 @@ int make_ref_counts(BlockCount block_count,
 	size_t index;
 	for (index = 0; index < ref_block_count; index++) {
 		ref_counts->blocks[index] = (struct reference_block) {
-			.refCounts = ref_counts,
+			.ref_counts = ref_counts,
 		};
 	}
 
@@ -282,10 +282,10 @@ static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
 static void enqueue_dirty_block(struct reference_block *block)
 {
 	int result =
-		enqueueWaiter(&block->refCounts->dirty_blocks, &block->waiter);
+		enqueueWaiter(&block->ref_counts->dirty_blocks, &block->waiter);
 	if (result != VDO_SUCCESS) {
 		// This should never happen.
-		enter_ref_counts_read_only_mode(block->refCounts, result);
+		enter_ref_counts_read_only_mode(block->ref_counts, result);
 	}
 }
 
@@ -297,12 +297,12 @@ static void enqueue_dirty_block(struct reference_block *block)
  **/
 static void dirty_block(struct reference_block *block)
 {
-	if (block->isDirty) {
+	if (block->is_dirty) {
 		return;
 	}
 
-	block->isDirty = true;
-	if (block->isWriting) {
+	block->is_dirty = true;
+	if (block->is_writing) {
 		// The conclusion of the current write will enqueue the block
 		// again.
 		return;
@@ -394,7 +394,7 @@ static int increment_for_data(struct ref_counts *ref_counts,
 	switch (old_status) {
 	case RS_FREE:
 		*counter_ptr = 1;
-		block->allocatedCount++;
+		block->allocated_count++;
 		ref_counts->free_blocks--;
 		*free_status_changed = true;
 		break;
@@ -466,7 +466,7 @@ static int decrement_for_data(struct ref_counts *ref_counts,
 			assign_provisional_reference(lock);
 		} else {
 			*counter_ptr = EMPTY_REFERENCE_COUNT;
-			block->allocatedCount--;
+			block->allocated_count--;
 			ref_counts->free_blocks++;
 			*free_status_changed = true;
 		}
@@ -524,7 +524,7 @@ static int increment_for_block_map(struct ref_counts *ref_counts,
 		}
 
 		*counter_ptr = MAXIMUM_REFERENCE_COUNT;
-		block->allocatedCount++;
+		block->allocated_count++;
 		ref_counts->free_blocks--;
 		*free_status_changed = true;
 		return VDO_SUCCESS;
@@ -587,7 +587,7 @@ update_reference_count(struct ref_counts *ref_counts,
 {
 	ReferenceCount *counter_ptr = &ref_counts->counters[slab_block_number];
 	reference_status old_status = reference_count_to_status(*counter_ptr);
-	struct pbn_lock *lock = getReferenceOperationPBNLock(operation);
+	struct pbn_lock *lock = get_reference_operation_pbn_lock(operation);
 	int result;
 
 	switch (operation.type) {
@@ -679,7 +679,7 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 		return result;
 	}
 
-	if (block->isDirty && (block->slabJournalLock > 0)) {
+	if (block->is_dirty && (block->slab_journal_lock > 0)) {
 		/*
 		 * This block is already dirty and a slab journal entry has been
 		 * made for it since the last time it was clean. We must release
@@ -706,9 +706,9 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 	 * uncommitted reference block lock, if there is a per-entry lock.
 	 */
 	if (is_valid_journal_point(slab_journal_point)) {
-		block->slabJournalLock = slab_journal_point->sequence_number;
+		block->slab_journal_lock = slab_journal_point->sequence_number;
 	} else {
-		block->slabJournalLock = 0;
+		block->slab_journal_lock = 0;
 	}
 
 	dirty_block(block);
@@ -758,7 +758,7 @@ int replay_reference_count_change(struct ref_counts *ref_counts,
 	struct reference_block *block =
 		get_reference_block(ref_counts, entry.sbn);
 	SectorCount sector = (entry.sbn % COUNTS_PER_BLOCK) / COUNTS_PER_SECTOR;
-	if (!before_journal_point(&block->commitPoints[sector], entry_point)) {
+	if (!before_journal_point(&block->commit_points[sector], entry_point)) {
 		// This entry is already reflected in the existing counts, so do
 		// nothing.
 		return VDO_SUCCESS;
@@ -813,7 +813,7 @@ bool are_equivalent_reference_counters(struct ref_counts *counter_a,
 	for (i = 0; i < counter_a->reference_block_count; i++) {
 		struct reference_block *block_a = &counter_a->blocks[i];
 		struct reference_block *block_b = &counter_b->blocks[i];
-		if (block_a->allocatedCount != block_b->allocatedCount) {
+		if (block_a->allocated_count != block_b->allocated_count) {
 			return false;
 		}
 	}
@@ -918,7 +918,7 @@ static bool search_current_reference_block(const struct ref_counts *ref_counts,
 					   SlabBlockNumber *free_index_ptr)
 {
 	// Don't bother searching if the current block is known to be full.
-	return ((ref_counts->search_cursor.block->allocatedCount <
+	return ((ref_counts->search_cursor.block->allocated_count <
 		 COUNTS_PER_BLOCK) &&
 		find_free_block(ref_counts,
 				ref_counts->search_cursor.index,
@@ -971,7 +971,7 @@ static void make_provisional_reference(struct ref_counts *ref_counts,
 	// Account for the allocation.
 	struct reference_block *block =
 		get_reference_block(ref_counts, slab_block_number);
-	block->allocatedCount++;
+	block->allocated_count++;
 	ref_counts->free_blocks--;
 }
 
@@ -1070,7 +1070,7 @@ waiter_as_reference_block(struct waiter *waiter)
 static void clear_dirty_reference_blocks(struct waiter *block_waiter,
 					 void *context __attribute__((unused)))
 {
-	waiter_as_reference_block(block_waiter)->isDirty = false;
+	waiter_as_reference_block(block_waiter)->is_dirty = false;
 }
 
 /**********************************************************************/
@@ -1088,7 +1088,7 @@ void reset_reference_counts(struct ref_counts *ref_counts)
 
 	size_t i;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		ref_counts->blocks[i].allocatedCount = 0;
+		ref_counts->blocks[i].allocated_count = 0;
 	}
 
 	notifyAllWaiters(&ref_counts->dirty_blocks,
@@ -1158,7 +1158,7 @@ static void handle_io_error(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vio_pool_entry *entry = completion->parent;
 	struct ref_counts *ref_counts =
-		((struct reference_block *)entry->parent)->refCounts;
+		((struct reference_block *)entry->parent)->ref_counts;
 	return_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	enter_ref_counts_read_only_mode(ref_counts, result);
@@ -1174,12 +1174,12 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 {
 	struct vio_pool_entry *entry = completion->parent;
 	struct reference_block *block = entry->parent;
-	struct ref_counts *ref_counts = block->refCounts;
+	struct ref_counts *ref_counts = block->ref_counts;
 	ref_counts->active_count--;
 
 	// Release the slab journal lock.
 	adjustSlabJournalBlockReference(ref_counts->slab->journal,
-					block->slabJournalLockToRelease,
+					block->slab_journal_lock_to_release,
 					-1);
 	return_vio(ref_counts->slab->allocator, entry);
 
@@ -1188,7 +1188,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	 * journal lock may cause us to be dirtied again, but we don't want to
 	 * double enqueue.
 	 */
-	block->isWriting = false;
+	block->is_writing = false;
 
 	if (is_read_only(ref_counts->read_only_notifier)) {
 		checkIfSlabDrained(ref_counts->slab);
@@ -1196,7 +1196,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	}
 
 	// Re-queue the block if it was re-dirtied while it was writing.
-	if (block->isDirty) {
+	if (block->is_dirty) {
 		enqueue_dirty_block(block);
 		if (isSlabDraining(ref_counts->slab)) {
 			// We must be saving, and this block will otherwise not
@@ -1217,22 +1217,22 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 /**********************************************************************/
 ReferenceCount *get_reference_counters_for_block(struct reference_block *block)
 {
-	size_t block_index = block - block->refCounts->blocks;
-	return &block->refCounts->counters[block_index * COUNTS_PER_BLOCK];
+	size_t block_index = block - block->ref_counts->blocks;
+	return &block->ref_counts->counters[block_index * COUNTS_PER_BLOCK];
 }
 
 /**********************************************************************/
 void pack_reference_block(struct reference_block *block, void *buffer)
 {
 	struct packed_journal_point commit_point;
-	pack_journal_point(&block->refCounts->slab_journal_point,
+	pack_journal_point(&block->ref_counts->slab_journal_point,
 			   &commit_point);
 
 	struct packed_reference_block *packed = buffer;
 	ReferenceCount *counters = get_reference_counters_for_block(block);
 	SectorCount i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
-		packed->sectors[i].commitPoint = commit_point;
+		packed->sectors[i].commit_point = commit_point;
 		memcpy(packed->sectors[i].counts,
 		       counters + (i * COUNTS_PER_SECTOR),
 		       (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
@@ -1253,9 +1253,9 @@ static void write_reference_block(struct waiter *block_waiter,
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
 	pack_reference_block(block, entry->buffer);
 
-	size_t block_offset = (block - block->refCounts->blocks);
-	PhysicalBlockNumber pbn = (block->refCounts->origin + block_offset);
-	block->slabJournalLockToRelease = block->slabJournalLock;
+	size_t block_offset = (block - block->ref_counts->blocks);
+	PhysicalBlockNumber pbn = (block->ref_counts->origin + block_offset);
+	block->slab_journal_lock_to_release = block->slab_journal_lock;
 	entry->parent = block;
 
 	/*
@@ -1263,14 +1263,14 @@ static void write_reference_block(struct waiter *block_waiter,
 	 * that happen after this moment. As long as VIO order is preserved, two
 	 * VIOs updating this block at once will not cause complications.
 	 */
-	block->isDirty = false;
+	block->is_dirty = false;
 
 	// Flush before writing to ensure that the recovery journal and slab
 	// journal entries which cover this reference update are stable
 	// (VDO-2331).
-	relaxedAdd64(&block->refCounts->statistics->blocksWritten, 1);
+	relaxedAdd64(&block->ref_counts->statistics->blocksWritten, 1);
 	entry->vio->completion.callbackThreadID =
-		block->refCounts->slab->allocator->thread_id;
+		block->ref_counts->slab->allocator->thread_id;
 	launchWriteMetadataVIOWithFlush(entry->vio,
 					pbn,
 					finish_reference_block_write,
@@ -1297,7 +1297,7 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 
 	ref_counts->active_count++;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
-	block->isWriting = true;
+	block->is_writing = true;
 	block_waiter->callback = write_reference_block;
 	int result = acquire_vio(ref_counts->slab->allocator, block_waiter);
 	if (result != VDO_SUCCESS) {
@@ -1366,7 +1366,7 @@ static void clear_provisional_references(struct reference_block *block)
 	for (j = 0; j < COUNTS_PER_BLOCK; j++) {
 		if (counters[j] == PROVISIONAL_REFERENCE_COUNT) {
 			counters[j] = EMPTY_REFERENCE_COUNT;
-			block->allocatedCount--;
+			block->allocated_count--;
 		}
 	}
 }
@@ -1380,39 +1380,40 @@ static void clear_provisional_references(struct reference_block *block)
 static void unpack_reference_block(struct packed_reference_block *packed,
 				   struct reference_block *block)
 {
-	struct ref_counts *ref_counts = block->refCounts;
+	struct ref_counts *ref_counts = block->ref_counts;
 	ReferenceCount *counters = get_reference_counters_for_block(block);
 	SectorCount i;
 	for (i = 0; i < SECTORS_PER_BLOCK; i++) {
 		struct packed_reference_sector *sector = &packed->sectors[i];
-		unpack_journal_point(&sector->commitPoint,
-				     &block->commitPoints[i]);
+		unpack_journal_point(&sector->commit_point,
+				     &block->commit_points[i]);
 		memcpy(counters + (i * COUNTS_PER_SECTOR),
 		       sector->counts,
 		       (sizeof(ReferenceCount) * COUNTS_PER_SECTOR));
 		// The slab_journal_point must be the latest point found in any
 		// sector.
 		if (before_journal_point(&ref_counts->slab_journal_point,
-					 &block->commitPoints[i])) {
-			ref_counts->slab_journal_point = block->commitPoints[i];
+					 &block->commit_points[i])) {
+			ref_counts->slab_journal_point =
+				block->commit_points[i];
 		}
 
 		if ((i > 0) &&
-		    !are_equivalent_journal_points(&block->commitPoints[0],
-						   &block->commitPoints[i])) {
-			size_t block_index = block - block->refCounts->blocks;
+		    !are_equivalent_journal_points(&block->commit_points[0],
+						   &block->commit_points[i])) {
+			size_t block_index = block - block->ref_counts->blocks;
 			logWarning("Torn write detected in sector %u of reference block %zu of slab %" PRIu16,
 				   i,
 				   block_index,
-				   block->refCounts->slab->slabNumber);
+				   block->ref_counts->slab->slabNumber);
 		}
 	}
 
-	block->allocatedCount = 0;
+	block->allocated_count = 0;
 	BlockCount index;
 	for (index = 0; index < COUNTS_PER_BLOCK; index++) {
 		if (counters[index] != EMPTY_REFERENCE_COUNT) {
-			block->allocatedCount++;
+			block->allocated_count++;
 		}
 	}
 }
@@ -1429,13 +1430,13 @@ static void finish_reference_block_load(struct vdo_completion *completion)
 	unpack_reference_block((struct packed_reference_block *)entry->buffer,
 			       block);
 
-	struct ref_counts *ref_counts = block->refCounts;
+	struct ref_counts *ref_counts = block->ref_counts;
 	return_vio(ref_counts->slab->allocator, entry);
 	ref_counts->active_count--;
 	clear_provisional_references(block);
 
-	ref_counts->free_blocks -= block->allocatedCount;
-	checkIfSlabDrained(block->refCounts->slab);
+	ref_counts->free_blocks -= block->allocated_count;
+	checkIfSlabDrained(block->ref_counts->slab);
 }
 
 /**
@@ -1448,12 +1449,12 @@ static void load_reference_block(struct waiter *block_waiter, void *vio_context)
 {
 	struct vio_pool_entry *entry = vio_context;
 	struct reference_block *block = waiter_as_reference_block(block_waiter);
-	size_t block_offset = (block - block->refCounts->blocks);
-	PhysicalBlockNumber pbn = (block->refCounts->origin + block_offset);
+	size_t block_offset = (block - block->ref_counts->blocks);
+	PhysicalBlockNumber pbn = (block->ref_counts->origin + block_offset);
 	entry->parent = block;
 
 	entry->vio->completion.callbackThreadID =
-		block->refCounts->slab->allocator->thread_id;
+		block->ref_counts->slab->allocator->thread_id;
 	launchReadMetadataVIO(entry->vio, pbn, finish_reference_block_load,
 			      handle_io_error);
 }
@@ -1540,7 +1541,7 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 	dirty_all_reference_blocks(ref_counts);
 	BlockCount i;
 	for (i = 0; i < ref_counts->reference_block_count; i++) {
-		ref_counts->blocks[i].slabJournalLock = 1;
+		ref_counts->blocks[i].slab_journal_lock = 1;
 	}
 
 	adjustSlabJournalBlockReference(ref_counts->slab->journal, 1,

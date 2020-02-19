@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.c#6 $
  */
 
 #include "referenceOperation.h"
@@ -25,46 +25,47 @@
 #include "types.h"
 
 /**********************************************************************/
-static struct pbn_lock *returnPBNLock(struct reference_operation operation)
+static struct pbn_lock *return_pbn_lock(struct reference_operation operation)
 {
-  return (struct pbn_lock *) operation.context;
+	return (struct pbn_lock *) operation.context;
 }
 
 /**********************************************************************/
-void setUpReferenceOperationWithLock(JournalOperation            type,
-                                     PhysicalBlockNumber         pbn,
-                                     BlockMappingState           state,
-                                     struct pbn_lock            *lock,
-                                     struct reference_operation *operation)
+void set_up_reference_operation_with_lock(JournalOperation type,
+					  PhysicalBlockNumber pbn,
+					  BlockMappingState state,
+					  struct pbn_lock *lock,
+					  struct reference_operation *operation)
 {
-  *operation = (struct reference_operation) {
-    .type       = type,
-    .pbn        = pbn,
-    .state      = state,
-    .lockGetter = returnPBNLock,
-    .context    = lock,
-  };
+	*operation = (struct reference_operation) {
+		.type = type,
+		.pbn = pbn,
+		.state = state,
+		.lock_getter = return_pbn_lock,
+		.context = lock,
+	};
 }
 
 /**********************************************************************/
-static struct pbn_lock *lookUpPBNLock(struct reference_operation operation)
+static struct pbn_lock *look_up_pbn_lock(struct reference_operation operation)
 {
-  return ((operation.context == NULL)
-          ? NULL : get_pbn_lock(operation.context, operation.pbn));
+	return ((operation.context == NULL)
+			? NULL
+			: get_pbn_lock(operation.context, operation.pbn));
 }
 
 /**********************************************************************/
-void setUpReferenceOperationWithZone(JournalOperation            type,
-                                     PhysicalBlockNumber         pbn,
-                                     BlockMappingState           state,
-                                     struct physical_zone       *zone,
-                                     struct reference_operation *operation)
+void set_up_reference_operation_with_zone(JournalOperation type,
+					  PhysicalBlockNumber pbn,
+					  BlockMappingState state,
+					  struct physical_zone *zone,
+					  struct reference_operation *operation)
 {
-  *operation = (struct reference_operation) {
-    .type       = type,
-    .pbn        = pbn,
-    .state      = state,
-    .lockGetter = lookUpPBNLock,
-    .context    = zone,
-  };
+	*operation = (struct reference_operation) {
+		.type = type,
+		.pbn = pbn,
+		.state = state,
+		.lock_getter = look_up_pbn_lock,
+		.context = zone,
+	};
 }

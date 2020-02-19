@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceBlock.h#6 $
  */
 
 #ifndef REFERENCE_BLOCK_H
@@ -36,27 +36,28 @@ typedef uint8_t ReferenceCount;
  * Special ReferenceCount values.
  **/
 enum {
-  EMPTY_REFERENCE_COUNT       = 0,
-  MAXIMUM_REFERENCE_COUNT     = 254,
-  PROVISIONAL_REFERENCE_COUNT = 255,
+	EMPTY_REFERENCE_COUNT = 0,
+	MAXIMUM_REFERENCE_COUNT = 254,
+	PROVISIONAL_REFERENCE_COUNT = 255,
 };
 
 enum {
-  COUNTS_PER_SECTOR = ((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point))
-                       / sizeof(ReferenceCount)),
-  COUNTS_PER_BLOCK  = COUNTS_PER_SECTOR * SECTORS_PER_BLOCK,
+	COUNTS_PER_SECTOR =
+		((VDO_SECTOR_SIZE - sizeof(struct packed_journal_point))
+		 / sizeof(ReferenceCount)),
+	COUNTS_PER_BLOCK = COUNTS_PER_SECTOR * SECTORS_PER_BLOCK,
 };
 
 /**
  * The format of a ReferenceSector on disk.
  **/
 struct packed_reference_sector {
-  struct packed_journal_point commitPoint;
-  ReferenceCount              counts[COUNTS_PER_SECTOR];
+	struct packed_journal_point commit_point;
+	ReferenceCount counts[COUNTS_PER_SECTOR];
 } __attribute__((packed));
 
 struct packed_reference_block {
-  struct packed_reference_sector sectors[SECTORS_PER_BLOCK];
+	struct packed_reference_sector sectors[SECTORS_PER_BLOCK];
 };
 
 /*
@@ -65,25 +66,25 @@ struct packed_reference_block {
  * Blocks are used as a proxy, permitting saves of partial refcounts.
  **/
 struct reference_block {
-  /** This block waits on the refCounts to tell it to write */
-  struct waiter         waiter;
-  /** The parent RefCount structure */
-  struct ref_counts    *refCounts;
-  /** The number of references in this block that represent allocations */
-  BlockSize             allocatedCount;
-  /** The slab journal block on which this block must hold a lock */
-  SequenceNumber        slabJournalLock;
-  /**
-   * The slab journal block which should be released when this block
-   * is committed
-   **/
-  SequenceNumber        slabJournalLockToRelease;
-  /** The point up to which each sector is accurate on disk */
-  struct journal_point  commitPoints[SECTORS_PER_BLOCK];
-  /** Whether this block has been modified since it was written to disk */
-  bool                  isDirty;
-  /** Whether this block is currently writing */
-  bool                  isWriting;
+	/** This block waits on the refCounts to tell it to write */
+	struct waiter waiter;
+	/** The parent RefCount structure */
+	struct ref_counts *ref_counts;
+	/** The number of references in this block that represent allocations */
+	BlockSize allocated_count;
+	/** The slab journal block on which this block must hold a lock */
+	SequenceNumber slab_journal_lock;
+	/**
+	 * The slab journal block which should be released when this block
+	 * is committed
+	 **/
+	SequenceNumber slab_journal_lock_to_release;
+	/** The point up to which each sector is accurate on disk */
+	struct journal_point commit_points[SECTORS_PER_BLOCK];
+	/** Whether this block has been modified since it was written to disk */
+	bool is_dirty;
+	/** Whether this block is currently writing */
+	bool is_writing;
 };
 
 #endif // REFERENCE_BLOCK_H

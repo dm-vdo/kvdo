@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceOperation.h#5 $
  */
 
 #ifndef REFERENCE_OPERATION_H
@@ -34,23 +34,25 @@ struct reference_operation;
  * @return The pbn_lock on the block of a reference_operation or NULL if there
  *         isn't one
  **/
-typedef struct pbn_lock *PBNLockGetter(struct reference_operation operation);
+typedef struct pbn_lock *pbn_lock_getter(struct reference_operation operation);
 
 /**
  * The current operation on a physical block (from the point of view of the
  * DataVIO doing the operation)
  **/
 struct reference_operation {
-  /** The operation being performed */
-  JournalOperation     type;
-  /** The PBN of the block being operated on */
-  PhysicalBlockNumber  pbn;
-  /** The mapping state of the block being operated on */
-  BlockMappingState    state;
-  /** A function to use to get any pbn_lock associated with this operation */
-  PBNLockGetter       *lockGetter;
-  /** The context to pass to the PBNLockGetter */
-  void                *context;
+	/** The operation being performed */
+	JournalOperation type;
+	/** The PBN of the block being operated on */
+	PhysicalBlockNumber pbn;
+	/** The mapping state of the block being operated on */
+	BlockMappingState state;
+	/**
+	 * A function to use to get any pbn_lock associated with this operation
+	 */
+	pbn_lock_getter *lock_getter;
+	/** The context to pass to the pbn_lock_getter */
+	void *context;
 };
 
 /**
@@ -61,12 +63,12 @@ struct reference_operation {
  * @return The pbn_lock on the block of the current operation or NULL if there
  *         isn't one
  **/
-__attribute__((warn_unused_result))
-static inline struct pbn_lock *
-getReferenceOperationPBNLock(struct reference_operation operation)
+__attribute__((warn_unused_result)) static inline struct pbn_lock *
+get_reference_operation_pbn_lock(struct reference_operation operation)
 {
-  return ((operation.lockGetter == NULL)
-          ? NULL : operation.lockGetter(operation));
+	return ((operation.lock_getter == NULL)
+			? NULL
+			: operation.lock_getter(operation));
 }
 
 /**
@@ -78,14 +80,15 @@ getReferenceOperationPBNLock(struct reference_operation operation)
  * @param lock       The pbn_lock to associate with the operation
  * @param operation  The reference_operation to set up
  **/
-void setUpReferenceOperationWithLock(JournalOperation            type,
-                                     PhysicalBlockNumber         pbn,
-                                     BlockMappingState           state,
-                                     struct pbn_lock            *lock,
-                                     struct reference_operation *operation);
+void set_up_reference_operation_with_lock(JournalOperation type,
+					  PhysicalBlockNumber pbn,
+					  BlockMappingState state,
+					  struct pbn_lock *lock,
+					  struct reference_operation *operation);
 
 /**
- * Set up a reference_operation for which we will need to look up the lock later.
+ * Set up a reference_operation for which we will need to look up the lock
+ *later.
  *
  * @param type       The type of operation
  * @param pbn        The PBN of the block on which to operate
@@ -94,10 +97,10 @@ void setUpReferenceOperationWithLock(JournalOperation            type,
  *                   when needed
  * @param operation  The reference_operation to set up
  **/
-void setUpReferenceOperationWithZone(JournalOperation            type,
-                                     PhysicalBlockNumber         pbn,
-                                     BlockMappingState           state,
-                                     struct physical_zone       *zone,
-                                     struct reference_operation *operation);
+void set_up_reference_operation_with_zone(JournalOperation type,
+					  PhysicalBlockNumber pbn,
+					  BlockMappingState state,
+					  struct physical_zone *zone,
+					  struct reference_operation *operation);
 
 #endif // REFERENCE_OPERATION_H

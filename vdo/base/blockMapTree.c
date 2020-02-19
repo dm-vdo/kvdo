@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#39 $
  */
 
 #include "blockMapTree.h"
@@ -1140,10 +1140,10 @@ static void continueBlockMapPageAllocation(struct allocating_vio *allocatingVIO)
   PhysicalBlockNumber  pbn  = allocatingVIO->allocation;
   struct tree_lock    *lock = &dataVIO->treeLock;
   lock->treeSlots[lock->height - 1].blockMapSlot.pbn = pbn;
-  setUpReferenceOperationWithLock(BLOCK_MAP_INCREMENT, pbn,
-                                  MAPPING_STATE_UNCOMPRESSED,
-                                  allocatingVIO->allocation_lock,
-                                  &dataVIO->operation);
+  set_up_reference_operation_with_lock(BLOCK_MAP_INCREMENT, pbn,
+                                       MAPPING_STATE_UNCOMPRESSED,
+                                       allocatingVIO->allocation_lock,
+                                       &dataVIO->operation);
   launchJournalCallback(dataVIO, journalBlockMapAllocation,
                         THIS_LOCATION("$F;cb=journalBlockMapAllocation"));
 }

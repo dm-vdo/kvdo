@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#23 $
  */
 
 /*
@@ -496,9 +496,9 @@ static void updateBlockMapForDedupe(struct vdo_completion *completion)
  **/
 static void journalIncrement(struct data_vio *dataVIO, struct pbn_lock *lock)
 {
-  setUpReferenceOperationWithLock(DATA_INCREMENT, dataVIO->newMapped.pbn,
-                                  dataVIO->newMapped.state, lock,
-                                  &dataVIO->operation);
+  set_up_reference_operation_with_lock(DATA_INCREMENT, dataVIO->newMapped.pbn,
+                                       dataVIO->newMapped.state, lock,
+                                       &dataVIO->operation);
   add_recovery_journal_entry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
                              dataVIO);
 }
@@ -510,9 +510,11 @@ static void journalIncrement(struct data_vio *dataVIO, struct pbn_lock *lock)
  **/
 static void journalDecrement(struct data_vio *dataVIO)
 {
-  setUpReferenceOperationWithZone(DATA_DECREMENT, dataVIO->mapped.pbn,
-                                  dataVIO->mapped.state, dataVIO->mapped.zone,
-                                  &dataVIO->operation);
+  set_up_reference_operation_with_zone(DATA_DECREMENT,
+                                       dataVIO->mapped.pbn,
+                                       dataVIO->mapped.state,
+                                       dataVIO->mapped.zone,
+                                       &dataVIO->operation);
   add_recovery_journal_entry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
                              dataVIO);
 }
