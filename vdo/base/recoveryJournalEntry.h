@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#5 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -38,61 +38,62 @@
  * logical block or for the block map tree itself.
  **/
 struct recovery_journal_entry {
-  struct block_map_slot slot;
-  struct data_location  mapping;
-  JournalOperation      operation;
+	struct block_map_slot slot;
+	struct data_location mapping;
+	JournalOperation operation;
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */
 typedef union __attribute__((packed)) {
-  struct __attribute__((packed)) {
-    /**
-     * In little-endian bit order:
-     * Bits 15..12:  The four highest bits of the 36-bit physical block number
-     *               of the block map tree page
-     * Bits 11..2:   The 10-bit block map page slot number
-     * Bits 1..0:    The 2-bit JournalOperation of the entry
-     **/
+	struct __attribute__((packed)) {
+		/**
+		 * In little-endian bit order:
+		 * Bits 15..12:  The four highest bits of the 36-bit physical
+		 * block number of the block map tree page Bits 11..2:   The
+		 * 10-bit block map page slot number Bits 1..0:    The 2-bit
+		 * JournalOperation of the entry
+		 **/
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    unsigned operation     : 2;
-    unsigned slotLow       : 6;
-    unsigned slotHigh      : 4;
-    unsigned pbnHighNibble : 4;
+		unsigned operation : 2;
+		unsigned slot_low : 6;
+		unsigned slot_high : 4;
+		unsigned pbn_high_nibble : 4;
 #else
-    unsigned slotLow       : 6;
-    unsigned operation     : 2;
-    unsigned pbnHighNibble : 4;
-    unsigned slotHigh      : 4;
+		unsigned slot_low : 6;
+		unsigned operation : 2;
+		unsigned pbn_high_nibble : 4;
+		unsigned slot_high : 4;
 #endif
 
-    /**
-     * Bits 47..16:  The 32 low-order bits of the block map page PBN,
-     *               in little-endian byte order
-     **/
-    byte pbnLowWord[4];
+		/**
+		 * Bits 47..16:  The 32 low-order bits of the block map page
+		 * PBN, in little-endian byte order
+		 **/
+		byte pbn_low_word[4];
 
-    /**
-     * Bits 87..48:  The five-byte block map entry encoding the location that
-     *               was or will be stored in the block map page slot
-     **/
-    BlockMapEntry blockMapEntry;
-  } fields;
+		/**
+		 * Bits 87..48:  The five-byte block map entry encoding the
+		 * location that was or will be stored in the block map page
+		 * slot
+		 **/
+		BlockMapEntry block_map_entry;
+	} fields;
 
-  // A raw view of the packed encoding.
-  uint8_t raw[11];
+	// A raw view of the packed encoding.
+	uint8_t raw[11];
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  // This view is only valid on little-endian machines and is only present for
-  // ease of directly examining packed entries in GDB.
-  struct __attribute__((packed)) {
-    unsigned      operation     : 2;
-    unsigned      slot          : 10;
-    unsigned      pbnHighNibble : 4;
-    uint32_t      pbnLowWord;
-    BlockMapEntry blockMapEntry;
-  } littleEndian;
+	// This view is only valid on little-endian machines and is only present
+	// for ease of directly examining packed entries in GDB.
+	struct __attribute__((packed)) {
+		unsigned operation : 2;
+		unsigned slot : 10;
+		unsigned pbn_high_nibble : 4;
+		uint32_t pbn_low_word;
+		BlockMapEntry block_map_entry;
+	} little_endian;
 #endif
-} PackedRecoveryJournalEntry;
+} packed_recovery_journal_entry;
 
 /**
  * Return the packed, on-disk representation of a recovery journal entry.
@@ -101,20 +102,20 @@ typedef union __attribute__((packed)) {
  *
  * @return  The packed representation of the journal entry
  **/
-static inline PackedRecoveryJournalEntry
-packRecoveryJournalEntry(const struct recovery_journal_entry *entry)
+static inline packed_recovery_journal_entry
+pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 {
-  PackedRecoveryJournalEntry packed = {
-    .fields = {
-      .operation     = entry->operation,
-      .slotLow       = entry->slot.slot & 0x3F,
-      .slotHigh      = (entry->slot.slot >> 6) & 0x0F,
-      .pbnHighNibble = (entry->slot.pbn >> 32) & 0x0F,
-      .blockMapEntry = packPBN(entry->mapping.pbn, entry->mapping.state),
-    }
-  };
-  storeUInt32LE(packed.fields.pbnLowWord, entry->slot.pbn & UINT_MAX);
-  return packed;
+	packed_recovery_journal_entry packed = {
+		.fields = {
+			.operation = entry->operation,
+			.slot_low = entry->slot.slot & 0x3F,
+			.slot_high = (entry->slot.slot >> 6) & 0x0F,
+			.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
+			.block_map_entry = packPBN(entry->mapping.pbn,
+						   entry->mapping.state),
+		}};
+	storeUInt32LE(packed.fields.pbn_low_word, entry->slot.pbn & UINT_MAX);
+	return packed;
 }
 
 /**
@@ -125,18 +126,20 @@ packRecoveryJournalEntry(const struct recovery_journal_entry *entry)
  * @return  The unpacked entry
  **/
 static inline struct recovery_journal_entry
-unpackRecoveryJournalEntry(const PackedRecoveryJournalEntry *entry)
+unpack_recovery_journal_entry(const packed_recovery_journal_entry *entry)
 {
-  PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbnLowWord);
-  PhysicalBlockNumber high4 = entry->fields.pbnHighNibble;
-  return (struct recovery_journal_entry) {
-    .operation = entry->fields.operation,
-    .slot      = {
-      .pbn  = ((high4 << 32) | low32),
-      .slot = (entry->fields.slotLow | (entry->fields.slotHigh << 6)),
-    },
-    .mapping = unpackBlockMapEntry(&entry->fields.blockMapEntry),
-  };
+	PhysicalBlockNumber low32 = getUInt32LE(entry->fields.pbn_low_word);
+	PhysicalBlockNumber high4 = entry->fields.pbn_high_nibble;
+	return (struct recovery_journal_entry) {
+		.operation = entry->fields.operation,
+		.slot =
+			{
+				.pbn = ((high4 << 32) | low32),
+				.slot = (entry->fields.slot_low
+					 | (entry->fields.slot_high << 6)),
+			},
+		.mapping = unpackBlockMapEntry(&entry->fields.block_map_entry),
+	};
 }
 
 #endif // RECOVERY_JOURNAL_ENTRY_H
