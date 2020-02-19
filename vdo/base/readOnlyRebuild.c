@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#17 $
  */
 
 #include "readOnlyRebuild.h"
@@ -164,11 +164,11 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
-	initializeRecoveryJournalPostRebuild(rebuild->vdo->recoveryJournal,
-					     rebuild->vdo->completeRecoveries,
-					     rebuild->tail,
-					     rebuild->logical_blocks_used,
-					     rebuild->block_map_data_blocks);
+	initialize_recovery_journal_post_rebuild(rebuild->vdo->recoveryJournal,
+						 rebuild->vdo->completeRecoveries,
+						 rebuild->tail,
+						 rebuild->logical_blocks_used,
+						 rebuild->block_map_data_blocks);
 	logInfo("Read-only rebuild complete");
 	complete_rebuild(completion);
 }
@@ -269,15 +269,16 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 	JournalEntryCount i;
 	for (i = 0; i < entry_count; i++) {
 		struct recovery_journal_entry entry =
-			unpackRecoveryJournalEntry(&sector->entries[i]);
-		int result = validateRecoveryJournalEntry(rebuild->vdo, &entry);
+			unpack_recovery_journal_entry(&sector->entries[i]);
+		int result = validate_recovery_journal_entry(rebuild->vdo,
+							     &entry);
 		if (result != VDO_SUCCESS) {
 			// When recovering from read-only mode, ignore damaged
 			// entries.
 			continue;
 		}
 
-		if (isIncrementOperation(entry.operation)) {
+		if (is_increment_operation(entry.operation)) {
 			rebuild->entries[rebuild->entry_count] =
 				(struct numbered_block_mapping) {
 					.blockMapSlot = entry.slot,
@@ -305,11 +306,11 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 	struct recovery_journal *journal = vdo->recoveryJournal;
 	SequenceNumber first = rebuild->head;
 	SequenceNumber last = rebuild->tail;
-	BlockCount max_count = ((last - first + 1) * journal->entriesPerBlock);
+	BlockCount max_count = ((last - first + 1) * journal->entries_per_block);
 
 	/*
 	 * Allocate an array of numbered_block_mapping structures large
-	 * enough to transcribe every PackedRecoveryJournalEntry from every
+	 * enough to transcribe every packed_recovery_journal_entry from every
 	 * valid journal block.
 	 */
 	int result = ALLOCATE(max_count,
@@ -323,13 +324,13 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 	SequenceNumber i;
 	for (i = first; i <= last; i++) {
 		PackedJournalHeader *packed_header =
-			getJournalBlockHeader(journal,
-					      rebuild->journal_data,
-					      i);
+			get_journal_block_header(journal,
+						 rebuild->journal_data,
+						 i);
 		struct recovery_block_header header;
 		unpackRecoveryBlockHeader(packed_header, &header);
 
-		if (!isExactRecoveryJournalBlock(journal, &header, i)) {
+		if (!is_exact_recovery_journal_block(journal, &header, i)) {
 			// This block is invalid, so skip it.
 			continue;
 		}
@@ -337,7 +338,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		// Don't extract more than the expected maximum entries per
 		// block.
 		JournalEntryCount block_entries =
-			minBlock(journal->entriesPerBlock, header.entryCount);
+			minBlock(journal->entries_per_block, header.entryCount);
 		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			// Stop when all entries counted in the header are
@@ -348,7 +349,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 
 			struct packed_journal_sector *sector =
 				getJournalBlockSector(packed_header, j);
-			if (!isValidRecoveryJournalSector(&header, sector)) {
+			if (!is_valid_recovery_journal_sector(&header, sector)) {
 				block_entries -= minBlock(block_entries,
 							  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 				continue;
@@ -391,11 +392,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	logInfo("Finished reading recovery journal");
 	assertOnLogicalZoneThread(vdo, 0, __func__);
 
-	bool found_entries = findHeadAndTail(vdo->recoveryJournal,
-					     rebuild->journal_data,
-					     &rebuild->tail,
-					     &rebuild->head,
-					     NULL);
+	bool found_entries = find_head_and_tail(vdo->recoveryJournal,
+						rebuild->journal_data,
+						&rebuild->tail,
+						&rebuild->head,
+						NULL);
 	if (found_entries) {
 		int result = extract_journal_entries(rebuild);
 		if (abort_rebuild_on_error(result, rebuild)) {
@@ -432,8 +433,8 @@ static void load_journal(struct vdo_completion *completion)
 			  finishParentCallback,
 			  completion->callbackThreadID,
 			  completion->parent);
-	loadJournalAsync(vdo->recoveryJournal, completion,
-			 &rebuild->journal_data);
+	load_journal_async(vdo->recoveryJournal, completion,
+			   &rebuild->journal_data);
 }
 
 /**********************************************************************/

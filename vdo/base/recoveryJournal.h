@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#13 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -57,20 +57,20 @@
  *
  * The journal also contains a set of in-memory blocks which are used
  * to buffer up entries until they can be committed. In general the
- * number of in-memory blocks ('tailBufferCount') will be less than
+ * number of in-memory blocks ('tail_buffer_count') will be less than
  * the on-disk size. Each in-memory block is also a vdo_completion.
  * Each in-memory block has a VDOExtent which is used to commit that
  * block to disk. The extent's data is a PackedJournalBlock (which is a
  * formatted journal block). In addition each in-memory block has a
  * buffer which is used to accumulate entries while a partial commit
  * of the block is in progress. In-memory blocks are kept on two
- * rings. Free blocks live on the 'freeTailBlocks' ring. When a block
- * becomes active (see below) it is moved to the 'activeTailBlocks'
+ * rings. Free blocks live on the 'free_tail_blocks' ring. When a block
+ * becomes active (see below) it is moved to the 'active_tail_blocks'
  * ring. When a block is fully committed, it is moved back to the
- * 'freeTailBlocks' ring.
+ * 'free_tail_blocks' ring.
  *
  * When entries are added to the journal, they are added to the active
- * in-memory block, as indicated by the 'activeBlock' field. If the
+ * in-memory block, as indicated by the 'active_block' field. If the
  * caller wishes to wait for the entry to be committed, the requesting
  * VIO will be attached to the in-memory block to which the caller's
  * entry was added. If the caller does wish to wait, or if the entry
@@ -108,10 +108,10 @@
  * reclaiming journal space on disk.
  *
  * If there is no in-memory space when a VIO attempts to add an entry,
- * the VIO will be attached to the 'commitCompletion' and will be
+ * the VIO will be attached to the 'commit_completion' and will be
  * woken the next time a full block has committed. If there is no
  * on-disk space when a VIO attempts to add an entry, the VIO will be
- * attached to the 'reapCompletion', and will be woken the next time a
+ * attached to the 'reap_completion', and will be woken the next time a
  * journal block is reaped.
  **/
 
@@ -122,9 +122,10 @@
  *
  * @return true if the type is an increment type
  **/
-static inline bool isIncrementOperation(JournalOperation operation)
+static inline bool is_increment_operation(JournalOperation operation)
 {
-  return ((operation == DATA_INCREMENT) || (operation == BLOCK_MAP_INCREMENT));
+	return ((operation == DATA_INCREMENT)
+		|| (operation == BLOCK_MAP_INCREMENT));
 }
 
 /**
@@ -134,41 +135,38 @@ static inline bool isIncrementOperation(JournalOperation operation)
  *
  * @return The name of the operation
  **/
-const char *getJournalOperationName(JournalOperation operation)
-  __attribute__((warn_unused_result));
+const char *get_journal_operation_name(JournalOperation operation)
+	__attribute__((warn_unused_result));
 
 /**
  * Create a recovery journal.
  *
- * @param [in]  nonce             the nonce of the VDO
- * @param [in]  layer             the physical layer for the journal
- * @param [in]  partition         the partition for the journal
- * @param [in]  recoveryCount     The VDO's number of completed recoveries
- * @param [in]  journalSize       the number of blocks in the journal on disk
- * @param [in]  tailBufferSize    the number of blocks for tail buffer
- * @param [in]  readOnlyNotifier  the read-only mode notifier
- * @param [in]  threadConfig      the thread configuration of the VDO
- * @param [out] journalPtr        the pointer to hold the new recovery journal
+ * @param [in]  nonce               the nonce of the VDO
+ * @param [in]  layer               the physical layer for the journal
+ * @param [in]  partition           the partition for the journal
+ * @param [in]  recovery_count      the VDO's number of completed recoveries
+ * @param [in]  journal_size        the number of blocks in the journal on disk
+ * @param [in]  tail_buffer_size    the number of blocks for tail buffer
+ * @param [in]  read_only_notifier  the read-only mode notifier
+ * @param [in]  thread_config       the thread configuration of the VDO
+ * @param [out] journal_ptr         the pointer to hold the new recovery journal
  *
  * @return a success or error code
  **/
-int makeRecoveryJournal(Nonce                       nonce,
-                        PhysicalLayer              *layer,
-                        struct partition           *partition,
-                        uint64_t                    recoveryCount,
-                        BlockCount                  journalSize,
-                        BlockCount                  tailBufferSize,
-                        struct read_only_notifier  *readOnlyNotifier,
-                        const ThreadConfig         *threadConfig,
-                        struct recovery_journal   **journalPtr)
-  __attribute__((warn_unused_result));
+int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
+			  struct partition *partition, uint64_t recovery_count,
+			  BlockCount journal_size, BlockCount tail_buffer_size,
+			  struct read_only_notifier *read_only_notifier,
+			  const ThreadConfig *thread_config,
+			  struct recovery_journal **journal_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a recovery journal and null out the reference to it.
  *
- * @param [in,out] journalPtr  The reference to the recovery journal to free
+ * @param [in,out] journal_ptr  The reference to the recovery journal to free
  **/
-void freeRecoveryJournal(struct recovery_journal **journalPtr);
+void free_recovery_journal(struct recovery_journal **journal_ptr);
 
 /**
  * Move the backing partition pointer of the recovery journal.
@@ -177,36 +175,34 @@ void freeRecoveryJournal(struct recovery_journal **journalPtr);
  * @param journal   the journal being moved
  * @param partition the new journal partition
  **/
-void setRecoveryJournalPartition(struct recovery_journal *journal,
-                                 struct partition        *partition);
+void set_recovery_journal_partition(struct recovery_journal *journal,
+				    struct partition *partition);
 
 /**
  * Initialize the journal after a recovery.
  *
- * @param journal        The journal in question
- * @param recoveryCount  The number of completed recoveries
- * @param tail           The new tail block sequence number
+ * @param journal         The journal in question
+ * @param recovery_count  The number of completed recoveries
+ * @param tail            The new tail block sequence number
  **/
-void
-initializeRecoveryJournalPostRecovery(struct recovery_journal *journal,
-                                      uint64_t                 recoveryCount,
-                                      SequenceNumber           tail);
+void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
+					       uint64_t recovery_count,
+					       SequenceNumber tail);
 
 /**
  * Initialize the journal after a rebuild.
  *
- * @param journal            The journal in question
- * @param recoveryCount      The number of completed recoveries
- * @param tail               The new tail block sequence number
- * @param logicalBlocksUsed  The new number of logical blocks used
- * @param blockMapDataBlocks The new number of block map data blocks
+ * @param journal               The journal in question
+ * @param recovery_count        The number of completed recoveries
+ * @param tail                  The new tail block sequence number
+ * @param logical_blocks_used   The new number of logical blocks used
+ * @param block_map_data_blocks The new number of block map data blocks
  **/
-void
-initializeRecoveryJournalPostRebuild(struct recovery_journal *journal,
-                                     uint64_t                 recoveryCount,
-                                     SequenceNumber           tail,
-                                     BlockCount               logicalBlocksUsed,
-                                     BlockCount               blockMapDataBlocks);
+void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
+					      uint64_t recovery_count,
+					      SequenceNumber tail,
+					      BlockCount logical_blocks_used,
+					      BlockCount block_map_data_blocks);
 
 /**
  * Get the number of block map pages, allocated from data blocks, currently
@@ -216,8 +212,9 @@ initializeRecoveryJournalPostRebuild(struct recovery_journal *journal,
  *
  * @return  The number of block map pages allocated from slabs
  **/
-BlockCount getJournalBlockMapDataBlocksUsed(struct recovery_journal *journal)
-  __attribute__((warn_unused_result));
+BlockCount
+get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
+	__attribute__((warn_unused_result));
 
 /**
  * Set the number of block map pages, allocated from data blocks, currently
@@ -226,8 +223,8 @@ BlockCount getJournalBlockMapDataBlocksUsed(struct recovery_journal *journal)
  * @param journal   The journal in question
  * @param pages     The number of block map pages allocated from slabs
  **/
-void setJournalBlockMapDataBlocksUsed(struct recovery_journal *journal,
-                                      BlockCount               pages);
+void set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
+					    BlockCount pages);
 
 /**
  * Get the ID of a recovery journal's thread.
@@ -236,19 +233,19 @@ void setJournalBlockMapDataBlocksUsed(struct recovery_journal *journal,
  *
  * @return The ID of the journal's thread.
  **/
-ThreadID getRecoveryJournalThreadID(struct recovery_journal *journal)
-  __attribute__((warn_unused_result));
+ThreadID get_recovery_journal_thread_id(struct recovery_journal *journal)
+	__attribute__((warn_unused_result));
 
 /**
  * Prepare the journal for new entries.
  *
- * @param journal   The journal in question
- * @param depot     The slab depot for this VDO
- * @param blockMap  The block map for this VDO
+ * @param journal    The journal in question
+ * @param depot      The slab depot for this VDO
+ * @param block_map  The block map for this VDO
  **/
-void openRecoveryJournal(struct recovery_journal *journal,
-                         struct slab_depot       *depot,
-                         struct block_map        *blockMap);
+void open_recovery_journal(struct recovery_journal *journal,
+			   struct slab_depot *depot,
+			   struct block_map *block_map);
 
 /**
  * Obtain the recovery journal's current sequence number. Exposed only so
@@ -259,25 +256,25 @@ void openRecoveryJournal(struct recovery_journal *journal,
  * @return the sequence number of the tail block
  **/
 SequenceNumber
-getCurrentJournalSequenceNumber(struct recovery_journal *journal);
+get_current_journal_sequence_number(struct recovery_journal *journal);
 
 /**
  * Get the number of usable recovery journal blocks.
  *
- * @param journalSize  The size of the recovery journal in blocks
+ * @param journal_size  The size of the recovery journal in blocks
  *
  * @return the number of recovery journal blocks usable for entries
  **/
-BlockCount getRecoveryJournalLength(BlockCount journalSize)
-  __attribute__((warn_unused_result));
+BlockCount get_recovery_journal_length(BlockCount journal_size)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the size of the encoded state of a recovery journal.
  *
  * @return the encoded size of the journal's state
  **/
-size_t getRecoveryJournalEncodedSize(void)
-  __attribute__((warn_unused_result));
+size_t get_recovery_journal_encoded_size(void)
+	__attribute__((warn_unused_result));
 
 /**
  * Encode the state of a recovery journal.
@@ -287,8 +284,8 @@ size_t getRecoveryJournalEncodedSize(void)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode the state of a recovery journal saved in a buffer.
@@ -298,8 +295,8 @@ int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode the state of a Sodium recovery journal saved in a buffer.
@@ -309,38 +306,37 @@ int decodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int decodeSodiumRecoveryJournal(struct recovery_journal *journal,
-                                Buffer                  *buffer)
-  __attribute__((warn_unused_result));
+int decode_sodium_recovery_journal(struct recovery_journal *journal,
+				   Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 /**
  * Add an entry to a recovery journal. This method is asynchronous. The data_vio
  * will not be called back until the entry is committed to the on-disk journal.
  *
- * @param journal  The journal in which to make an entry
- * @param dataVIO  The data_vio for which to add the entry. The entry will be
- *                 taken from the logical and newMapped fields of the
- *                 data_vio. The data_vio's recoverySequenceNumber field will
- *                 be set to the sequence number of the journal block in
- *                 which the entry was made.
+ * @param journal   The journal in which to make an entry
+ * @param data_vio  The data_vio for which to add the entry. The entry will be
+ *                  taken from the logical and newMapped fields of the
+ *                  data_vio. The data_vio's recoverySequenceNumber field will
+ *                  be set to the sequence number of the journal block in
+ *                  which the entry was made.
  **/
-void addRecoveryJournalEntry(struct recovery_journal *journal,
-                             struct data_vio         *dataVIO);
+void add_recovery_journal_entry(struct recovery_journal *journal,
+				struct data_vio *data_vio);
 
 /**
  * Acquire a reference to a recovery journal block from somewhere other than
  * the journal itself.
  *
- * @param journal         The recovery journal
- * @param sequenceNumber  The journal sequence number of the referenced block
- * @param zoneType        The type of the zone making the adjustment
- * @param zoneID          The ID of the zone making the adjustment
+ * @param journal          The recovery journal
+ * @param sequence_number  The journal sequence number of the referenced block
+ * @param zone_type        The type of the zone making the adjustment
+ * @param zone_id          The ID of the zone making the adjustment
  **/
-void
-acquireRecoveryJournalBlockReference(struct recovery_journal *journal,
-                                     SequenceNumber           sequenceNumber,
-                                     ZoneType                 zoneType,
-                                     ZoneCount                zoneID);
+void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
+					      SequenceNumber sequence_number,
+					      ZoneType zone_type,
+					      ZoneCount zone_id);
 
 
 /**
@@ -348,27 +344,26 @@ acquireRecoveryJournalBlockReference(struct recovery_journal *journal,
  * the journal itself. If this is the last reference for a given zone type,
  * an attempt will be made to reap the journal.
  *
- * @param journal         The recovery journal
- * @param sequenceNumber  The journal sequence number of the referenced block
- * @param zoneType        The type of the zone making the adjustment
- * @param zoneID          The ID of the zone making the adjustment
+ * @param journal          The recovery journal
+ * @param sequence_number  The journal sequence number of the referenced block
+ * @param zone_type        The type of the zone making the adjustment
+ * @param zone_id          The ID of the zone making the adjustment
  **/
-void
-releaseRecoveryJournalBlockReference(struct recovery_journal *journal,
-                                     SequenceNumber           sequenceNumber,
-                                     ZoneType                 zoneType,
-                                     ZoneCount                zoneID);
+void release_recovery_journal_block_reference(struct recovery_journal *journal,
+					      SequenceNumber sequence_number,
+					      ZoneType zone_type,
+					      ZoneCount zone_id);
 
 /**
  * Release a single per-entry reference count for a recovery journal block. This
  * method may be called from any zone (but shouldn't be called from the journal
  * zone as it would be inefficient).
  *
- * @param journal         The recovery journal
- * @param sequenceNumber  The journal sequence number of the referenced block
+ * @param journal          The recovery journal
+ * @param sequence_number  The journal sequence number of the referenced block
  **/
-void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
-                                      SequenceNumber           sequenceNumber);
+void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
+					    SequenceNumber sequence_number);
 
 /**
  * Drain recovery journal I/O. All uncommitted entries will be written out.
@@ -377,9 +372,9 @@ void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
  * @param operation  The drain operation (suspend or save)
  * @param parent     The completion to finish once the journal is drained
  **/
-void drainRecoveryJournal(struct recovery_journal *journal,
-                          AdminStateCode           operation,
-                          struct vdo_completion   *parent);
+void drain_recovery_journal(struct recovery_journal *journal,
+			    AdminStateCode operation,
+			    struct vdo_completion *parent);
 
 /**
  * Resume a recovery journal which has been drained.
@@ -389,8 +384,8 @@ void drainRecoveryJournal(struct recovery_journal *journal,
  *
  * @return VDO_SUCCESS or an error
  **/
-void resumeRecoveryJournal(struct recovery_journal *journal,
-                           struct vdo_completion   *parent);
+void resume_recovery_journal(struct recovery_journal *journal,
+			     struct vdo_completion *parent);
 
 /**
  * Get the number of logical blocks in use by the VDO
@@ -399,8 +394,9 @@ void resumeRecoveryJournal(struct recovery_journal *journal,
  *
  * @return the number of logical blocks in use by the VDO
  **/
-BlockCount getJournalLogicalBlocksUsed(const struct recovery_journal *journal)
-  __attribute__((warn_unused_result));
+BlockCount
+get_journal_logical_blocks_used(const struct recovery_journal *journal)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the current statistics from the recovery journal.
@@ -410,8 +406,8 @@ BlockCount getJournalLogicalBlocksUsed(const struct recovery_journal *journal)
  * @return a copy of the current statistics for the journal
  **/
 RecoveryJournalStatistics
-getRecoveryJournalStatistics(const struct recovery_journal *journal)
-  __attribute__((warn_unused_result));
+get_recovery_journal_statistics(const struct recovery_journal *journal)
+	__attribute__((warn_unused_result));
 
 /**
  * Dump some current statistics and other debug info from the recovery
@@ -419,6 +415,6 @@ getRecoveryJournalStatistics(const struct recovery_journal *journal)
  *
  * @param journal   The recovery journal to dump
  **/
-void dumpRecoveryJournalStatistics(const struct recovery_journal *journal);
+void dump_recovery_journal_statistics(const struct recovery_journal *journal);
 
 #endif // RECOVERY_JOURNAL_H

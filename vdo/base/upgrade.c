@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#10 $
  */
 
 #include "upgrade.h"
@@ -169,19 +169,19 @@ static int finishSodiumDecode(struct vdo *vdo)
 {
   Buffer *buffer = getComponentBuffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  int result = makeRecoveryJournal(vdo->nonce, vdo->layer,
-                                   getVDOPartition(vdo->layout,
-                                                   RECOVERY_JOURNAL_PARTITION),
-                                   vdo->completeRecoveries,
-                                   vdo->config.recoveryJournalSize,
-                                   RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-                                   vdo->readOnlyNotifier, threadConfig,
-                                   &vdo->recoveryJournal);
+  int result = make_recovery_journal(vdo->nonce, vdo->layer,
+                                     getVDOPartition(vdo->layout,
+                                                     RECOVERY_JOURNAL_PARTITION),
+                                     vdo->completeRecoveries,
+                                     vdo->config.recoveryJournalSize,
+                                     RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
+                                     vdo->readOnlyNotifier, threadConfig,
+                                     &vdo->recoveryJournal);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = decodeSodiumRecoveryJournal(vdo->recoveryJournal, buffer);
+  result = decode_sodium_recovery_journal(vdo->recoveryJournal, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }

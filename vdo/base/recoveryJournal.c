@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#33 $
  */
 
 #include "recoveryJournal.h"
@@ -39,51 +39,55 @@
 #include "waitQueue.h"
 
 struct recovery_journal_state_7_0 {
-  SequenceNumber journalStart;       // Sequence number to start the journal
-  BlockCount     logicalBlocksUsed;  // Number of logical blocks used by VDO
-  BlockCount     blockMapDataBlocks; // Number of block map pages allocated
+	/** Sequence number to start the journal */
+	SequenceNumber journal_start;
+	/** Number of logical blocks used by VDO */
+	BlockCount logical_blocks_used;
+	/** Number of block map pages allocated */
+	BlockCount block_map_data_blocks;
 } __attribute__((packed));
 
 static const struct header RECOVERY_JOURNAL_HEADER_7_0 = {
-  .id = RECOVERY_JOURNAL,
-  .version = {
-    .major_version = 7,
-    .minor_version = 0,
-  },
-  .size = sizeof(struct recovery_journal_state_7_0),
+	.id = RECOVERY_JOURNAL,
+	.version =
+		{
+			.major_version = 7,
+			.minor_version = 0,
+		},
+	.size = sizeof(struct recovery_journal_state_7_0),
 };
 
 static const uint64_t RECOVERY_COUNT_MASK = 0xff;
 
 enum {
-  /*
-   * The number of reserved blocks must be large enough to prevent a
-   * new recovery journal block write from overwriting a block which
-   * appears to still be a valid head block of the journal. Currently,
-   * that means reserving enough space for all 2048 VIOs, or 8 blocks.
-   */
-  RECOVERY_JOURNAL_RESERVED_BLOCKS = 8,
+	/*
+	 * The number of reserved blocks must be large enough to prevent a
+	 * new recovery journal block write from overwriting a block which
+	 * appears to still be a valid head block of the journal. Currently,
+	 * that means reserving enough space for all 2048 VIOs, or 8 blocks.
+	 */
+	RECOVERY_JOURNAL_RESERVED_BLOCKS = 8,
 };
 
 /**********************************************************************/
-const char *getJournalOperationName(JournalOperation operation)
+const char *get_journal_operation_name(JournalOperation operation)
 {
-  switch (operation) {
-  case DATA_DECREMENT:
-    return "data decrement";
+	switch (operation) {
+	case DATA_DECREMENT:
+		return "data decrement";
 
-  case DATA_INCREMENT:
-    return "data increment";
+	case DATA_INCREMENT:
+		return "data increment";
 
-  case BLOCK_MAP_DECREMENT:
-    return "block map decrement";
+	case BLOCK_MAP_DECREMENT:
+		return "block map decrement";
 
-  case BLOCK_MAP_INCREMENT:
-    return "block map increment";
+	case BLOCK_MAP_INCREMENT:
+		return "block map increment";
 
-  default:
-    return "unknown journal operation";
-  }
+	default:
+		return "unknown journal operation";
+	}
 }
 
 /**
@@ -94,9 +98,9 @@ const char *getJournalOperationName(JournalOperation operation)
  * @return The block or <code>NULL</code> if the list is empty
  **/
 static struct recovery_journal_block *
-popFreeList(struct recovery_journal *journal)
+pop_free_list(struct recovery_journal *journal)
 {
-  return block_from_ring_node(popRingNode(&journal->freeTailBlocks));
+	return block_from_ring_node(popRingNode(&journal->free_tail_blocks));
 }
 
 /**
@@ -107,22 +111,22 @@ popFreeList(struct recovery_journal *journal)
  * @return The block or <code>NULL</code> if the list is empty
  **/
 static struct recovery_journal_block *
-popActiveList(struct recovery_journal *journal)
+pop_active_list(struct recovery_journal *journal)
 {
-  return block_from_ring_node(popRingNode(&journal->activeTailBlocks));
+	return block_from_ring_node(popRingNode(&journal->active_tail_blocks));
 }
 
 /**
  * Assert that we are running on the journal thread.
  *
- * @param journal       The journal
- * @param functionName  The function doing the check (for logging)
+ * @param journal        The journal
+ * @param function_name  The function doing the check (for logging)
  **/
-static void assertOnJournalThread(struct recovery_journal *journal,
-                                  const char              *functionName)
+static void assert_on_journal_thread(struct recovery_journal *journal,
+				     const char *function_name)
 {
-  ASSERT_LOG_ONLY((getCallbackThreadID() == journal->threadID),
-                  "%s() called on journal thread", functionName);
+	ASSERT_LOG_ONLY((getCallbackThreadID() == journal->thread_id),
+			"%s() called on journal thread", function_name);
 }
 
 /**
@@ -130,14 +134,14 @@ static void assertOnJournalThread(struct recovery_journal *journal,
  * from the journal, either because its entry was committed to disk,
  * or because there was an error.
  **/
-static void continueWaiter(struct waiter *waiter, void *context)
+static void continue_waiter(struct waiter *waiter, void *context)
 {
-  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
-  dataVIOAddTraceRecord(dataVIO,
-                        THIS_LOCATION("$F($j-$js);"
-                                      "cb=continueJournalWaiter($j-$js)"));
-  int waitResult = *((int *) context);
-  continueDataVIO(dataVIO, waitResult);
+	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	dataVIOAddTraceRecord(data_vio,
+			      THIS_LOCATION("$F($j-$js);"
+					    "cb=continueJournalWaiter($j-$js)"));
+	int wait_result = *((int *)context);
+	continueDataVIO(data_vio, wait_result);
 }
 
 /**
@@ -147,67 +151,70 @@ static void continueWaiter(struct waiter *waiter, void *context)
  *
  * @return <code>true</code> if any block has a waiter
  **/
-static inline bool hasBlockWaiters(struct recovery_journal *journal)
+static inline bool has_block_waiters(struct recovery_journal *journal)
 {
-  // Either the first active tail block (if it exists) has waiters,
-  // or no active tail block has waiters.
-  if (isRingEmpty(&journal->activeTailBlocks)) {
-    return false;
-  }
+	// Either the first active tail block (if it exists) has waiters,
+	// or no active tail block has waiters.
+	if (isRingEmpty(&journal->active_tail_blocks)) {
+		return false;
+	}
 
-  struct recovery_journal_block *block
-    = block_from_ring_node(journal->activeTailBlocks.next);
-  return (hasWaiters(&block->entry_waiters)
-          || hasWaiters(&block->commit_waiters));
+	struct recovery_journal_block *block =
+		block_from_ring_node(journal->active_tail_blocks.next);
+	return (hasWaiters(&block->entry_waiters)
+		|| hasWaiters(&block->commit_waiters));
 }
 
 /**********************************************************************/
-static void recycleJournalBlock(struct recovery_journal_block *block);
-static void notifyCommitWaiters(struct recovery_journal *journal);
+static void recycle_journal_block(struct recovery_journal_block *block);
+static void notify_commit_waiters(struct recovery_journal *journal);
 
 /**
  * Check whether the journal has drained.
  *
  * @param journal The journal which may have just drained
  **/
-static void checkForDrainComplete(struct recovery_journal *journal)
+static void check_for_drain_complete(struct recovery_journal *journal)
 {
-  int result = VDO_SUCCESS;
-  if (is_read_only(journal->readOnlyNotifier)) {
-    result = VDO_READ_ONLY;
-    /*
-     * Clean up any full active blocks which were not written due to being
-     * in read-only mode.
-     *
-     * XXX: This would probably be better as a short-circuit in writeBlock().
-     */
-    notifyCommitWaiters(journal);
+	int result = VDO_SUCCESS;
+	if (is_read_only(journal->read_only_notifier)) {
+		result = VDO_READ_ONLY;
+		/*
+		 * Clean up any full active blocks which were not written due to
+		 * being in read-only mode.
+		 *
+		 * XXX: This would probably be better as a short-circuit in
+		 * write_block().
+		 */
+		notify_commit_waiters(journal);
 
-    // Release any DataVIOs waiting to be assigned entries.
-    notifyAllWaiters(&journal->decrementWaiters, continueWaiter, &result);
-    notifyAllWaiters(&journal->incrementWaiters, continueWaiter, &result);
-  }
+		// Release any DataVIOs waiting to be assigned entries.
+		notifyAllWaiters(&journal->decrement_waiters, continue_waiter,
+				 &result);
+		notifyAllWaiters(&journal->increment_waiters, continue_waiter,
+				 &result);
+	}
 
-  if (!is_draining(&journal->state)
-      || journal->reaping || hasBlockWaiters(journal)
-      || hasWaiters(&journal->incrementWaiters)
-      || hasWaiters(&journal->decrementWaiters)) {
-    return;
-  }
+	if (!is_draining(&journal->state) || journal->reaping
+	    || has_block_waiters(journal)
+	    || hasWaiters(&journal->increment_waiters)
+	    || hasWaiters(&journal->decrement_waiters)) {
+		return;
+	}
 
-  if (is_saving(&journal->state)) {
-    if (journal->activeBlock != NULL) {
-      ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
-                       || !is_recovery_block_dirty(journal->activeBlock)),
-		      "journal being saved has clean active block");
-      recycleJournalBlock(journal->activeBlock);
-    }
+	if (is_saving(&journal->state)) {
+		if (journal->active_block != NULL) {
+			ASSERT_LOG_ONLY(((result == VDO_READ_ONLY)
+					 || !is_recovery_block_dirty(journal->active_block)),
+					"journal being saved has clean active block");
+			recycle_journal_block(journal->active_block);
+		}
 
-    ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
-		    "all blocks in a journal being saved must be inactive");
-  }
+		ASSERT_LOG_ONLY(isRingEmpty(&journal->active_tail_blocks),
+				"all blocks in a journal being saved must be inactive");
+	}
 
-  finish_draining_with_result(&journal->state, result);
+	finish_draining_with_result(&journal->state, result);
 }
 
 /**
@@ -219,11 +226,12 @@ static void checkForDrainComplete(struct recovery_journal *journal)
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-static void notifyRecoveryJournalOfReadOnlyMode(void                  *listener,
-                                                struct vdo_completion *parent)
+static void
+notify_recovery_journal_of_read_only_mode(void *listener,
+					  struct vdo_completion *parent)
 {
-  checkForDrainComplete(listener);
-  completeCompletion(parent);
+	check_for_drain_complete(listener);
+	completeCompletion(parent);
 }
 
 /**
@@ -231,20 +239,21 @@ static void notifyRecoveryJournalOfReadOnlyMode(void                  *listener,
  * this function is called will fail. All VIOs waiting for commits will be
  * awakened with an error.
  *
- * @param journal    The journal which has failed
- * @param errorCode  The error result triggering this call
+ * @param journal     The journal which has failed
+ * @param error_code  The error result triggering this call
  **/
-static void enterJournalReadOnlyMode(struct recovery_journal *journal,
-                                     int                      errorCode)
+static void enter_journal_read_only_mode(struct recovery_journal *journal,
+					 int error_code)
 {
-  enter_read_only_mode(journal->readOnlyNotifier, errorCode);
-  checkForDrainComplete(journal);
+	enter_read_only_mode(journal->read_only_notifier, error_code);
+	check_for_drain_complete(journal);
 }
 
 /**********************************************************************/
-SequenceNumber getCurrentJournalSequenceNumber(struct recovery_journal *journal)
+SequenceNumber
+get_current_journal_sequence_number(struct recovery_journal *journal)
 {
-  return journal->tail;
+	return journal->tail;
 }
 
 /**
@@ -256,22 +265,23 @@ SequenceNumber getCurrentJournalSequenceNumber(struct recovery_journal *journal)
  * @return the head of the journal
  **/
 static inline SequenceNumber
-getRecoveryJournalHead(struct recovery_journal *journal)
+get_recovery_journal_head(struct recovery_journal *journal)
 {
-  return minSequenceNumber(journal->blockMapHead, journal->slabJournalHead);
+	return minSequenceNumber(journal->block_map_head,
+				 journal->slab_journal_head);
 }
 
 /**
  * Compute the recovery count byte for a given recovery count.
  *
- * @param recoveryCount  The recovery count
+ * @param recovery_count  The recovery count
  *
  * @return The byte corresponding to the recovery count
  **/
-__attribute__((warn_unused_result))
-static inline uint8_t computeRecoveryCountByte(uint64_t recoveryCount)
+__attribute__((warn_unused_result)) static inline uint8_t
+compute_recovery_count_byte(uint64_t recovery_count)
 {
-  return (uint8_t) (recoveryCount & RECOVERY_COUNT_MASK);
+	return (uint8_t)(recovery_count & RECOVERY_COUNT_MASK);
 }
 
 /**
@@ -280,51 +290,54 @@ static inline uint8_t computeRecoveryCountByte(uint64_t recoveryCount)
  *
  * @param journal    The journal
  **/
-static void checkSlabJournalCommitThreshold(struct recovery_journal *journal)
+static void
+check_slab_journal_commit_threshold(struct recovery_journal *journal)
 {
-  BlockCount currentLength = journal->tail - journal->slabJournalHead;
-  if (currentLength > journal->slabJournalCommitThreshold) {
-    journal->events.slabJournalCommitsRequested++;
-    commitOldestSlabJournalTailBlocks(journal->depot,
-                                      journal->slabJournalHead);
-  }
+	BlockCount current_length = journal->tail - journal->slab_journal_head;
+	if (current_length > journal->slab_journal_commit_threshold) {
+		journal->events.slabJournalCommitsRequested++;
+		commitOldestSlabJournalTailBlocks(journal->depot,
+						  journal->slab_journal_head);
+	}
 }
 
 /**********************************************************************/
-static void reapRecoveryJournal(struct recovery_journal *journal);
-static void assignEntries(struct recovery_journal *journal);
+static void reap_recovery_journal(struct recovery_journal *journal);
+static void assign_entries(struct recovery_journal *journal);
 
 /**
  * Finish reaping the journal.
  *
  * @param journal The journal being reaped
  **/
-static void finishReaping(struct recovery_journal *journal)
+static void finish_reaping(struct recovery_journal *journal)
 {
-  SequenceNumber oldHead    = getRecoveryJournalHead(journal);
-  journal->blockMapHead     = journal->blockMapReapHead;
-  journal->slabJournalHead  = journal->slabJournalReapHead;
-  BlockCount blocksReaped   = getRecoveryJournalHead(journal) - oldHead;
-  journal->availableSpace  += blocksReaped * journal->entriesPerBlock;
-  journal->reaping          = false;
-  checkSlabJournalCommitThreshold(journal);
-  assignEntries(journal);
-  checkForDrainComplete(journal);
+	SequenceNumber old_head = get_recovery_journal_head(journal);
+	journal->block_map_head = journal->block_map_reap_head;
+	journal->slab_journal_head = journal->slab_journal_reap_head;
+	BlockCount blocks_reaped =
+		get_recovery_journal_head(journal) - old_head;
+	journal->available_space += blocks_reaped * journal->entries_per_block;
+	journal->reaping = false;
+	check_slab_journal_commit_threshold(journal);
+	assign_entries(journal);
+	check_for_drain_complete(journal);
 }
 
 /**
  * Finish reaping the journal after flushing the lower layer. This is the
- * callback registered in reapRecoveryJournal().
+ * callback registered in reap_recovery_journal().
  *
  * @param completion  The journal's flush VIO
  **/
-static void completeReaping(struct vdo_completion *completion)
+static void complete_reaping(struct vdo_completion *completion)
 {
-  struct recovery_journal *journal = completion->parent;
-  finishReaping(journal);
+	struct recovery_journal *journal = completion->parent;
+	finish_reaping(journal);
 
-  // Try reaping again in case more locks were released while flush was out.
-  reapRecoveryJournal(journal);
+	// Try reaping again in case more locks were released while flush was
+	// out.
+	reap_recovery_journal(journal);
 }
 
 /**
@@ -332,11 +345,11 @@ static void completeReaping(struct vdo_completion *completion)
  *
  * @param completion  The journal's flush VIO
  **/
-static void handleFlushError(struct vdo_completion *completion)
+static void handle_flush_error(struct vdo_completion *completion)
 {
-  struct recovery_journal *journal = completion->parent;
-  journal->reaping = false;
-  enterJournalReadOnlyMode(journal, completion->result);
+	struct recovery_journal *journal = completion->parent;
+	journal->reaping = false;
+	enter_journal_read_only_mode(journal, completion->result);
 }
 
 /**
@@ -345,28 +358,30 @@ static void handleFlushError(struct vdo_completion *completion)
  *
  * @param journal  The journal to be reset based on its active block
  **/
-static void initializeJournalState(struct recovery_journal *journal)
+static void initialize_journal_state(struct recovery_journal *journal)
 {
-  journal->appendPoint.sequence_number = journal->tail;
-  journal->lastWriteAcknowledged       = journal->tail;
-  journal->blockMapHead                = journal->tail;
-  journal->slabJournalHead             = journal->tail;
-  journal->blockMapReapHead            = journal->tail;
-  journal->slabJournalReapHead         = journal->tail;
-  journal->blockMapHeadBlockNumber
-    = getRecoveryJournalBlockNumber(journal, journal->blockMapHead);
-  journal->slabJournalHeadBlockNumber
-    = getRecoveryJournalBlockNumber(journal, journal->slabJournalHead);
+	journal->append_point.sequence_number = journal->tail;
+	journal->last_write_acknowledged = journal->tail;
+	journal->block_map_head = journal->tail;
+	journal->slab_journal_head = journal->tail;
+	journal->block_map_reap_head = journal->tail;
+	journal->slab_journal_reap_head = journal->tail;
+	journal->block_map_head_block_number =
+		get_recovery_journal_block_number(journal,
+						  journal->block_map_head);
+	journal->slab_journal_head_block_number =
+		get_recovery_journal_block_number(journal,
+						  journal->slab_journal_head);
 }
 
 /**********************************************************************/
-BlockCount getRecoveryJournalLength(BlockCount journalSize)
+BlockCount get_recovery_journal_length(BlockCount journal_size)
 {
-  BlockCount reservedBlocks = journalSize / 4;
-  if (reservedBlocks > RECOVERY_JOURNAL_RESERVED_BLOCKS) {
-    reservedBlocks = RECOVERY_JOURNAL_RESERVED_BLOCKS;
-  }
-  return (journalSize - reservedBlocks);
+	BlockCount reserved_blocks = journal_size / 4;
+	if (reserved_blocks > RECOVERY_JOURNAL_RESERVED_BLOCKS) {
+		reserved_blocks = RECOVERY_JOURNAL_RESERVED_BLOCKS;
+	}
+	return (journal_size - reserved_blocks);
 }
 
 /**
@@ -375,15 +390,16 @@ BlockCount getRecoveryJournalLength(BlockCount journalSize)
  *
  * @param completion  The lock counter completion
  **/
-static void reapRecoveryJournalCallback(struct vdo_completion *completion)
+static void reap_recovery_journal_callback(struct vdo_completion *completion)
 {
-  struct recovery_journal *journal
-    = (struct recovery_journal *) completion->parent;
-  // The acknowledgement must be done before reaping so that there is no
-  // race between acknowledging the notification and unlocks wishing to notify.
-  acknowledge_unlock(journal->lockCounter);
-  reapRecoveryJournal(journal);
-  checkSlabJournalCommitThreshold(journal);
+	struct recovery_journal *journal =
+		(struct recovery_journal *)completion->parent;
+	// The acknowledgement must be done before reaping so that there is no
+	// race between acknowledging the notification and unlocks wishing to
+	// notify.
+	acknowledge_unlock(journal->lock_counter);
+	reap_recovery_journal(journal);
+	check_slab_journal_commit_threshold(journal);
 }
 
 /**********************************************************************
@@ -392,247 +408,250 @@ static void reapRecoveryJournalCallback(struct vdo_completion *completion)
  * @param journal The journal whose tail is to be set
  * @param tail    The new tail value
  **/
-static void setJournalTail(struct recovery_journal *journal,
-                           SequenceNumber           tail)
+static void set_journal_tail(struct recovery_journal *journal,
+			     SequenceNumber tail)
 {
-  // VDO does not support sequence numbers above 1 << 48 in the slab journal.
-  if (tail >= (1ULL << 48)) {
-    enterJournalReadOnlyMode(journal, VDO_JOURNAL_OVERFLOW);
-  }
+	// VDO does not support sequence numbers above 1 << 48 in the slab
+	// journal.
+	if (tail >= (1ULL << 48)) {
+		enter_journal_read_only_mode(journal, VDO_JOURNAL_OVERFLOW);
+	}
 
-  journal->tail = tail;
+	journal->tail = tail;
 }
 
 /**********************************************************************/
-int makeRecoveryJournal(Nonce                       nonce,
-                        PhysicalLayer              *layer,
-                        struct partition           *partition,
-                        uint64_t                    recoveryCount,
-                        BlockCount                  journalSize,
-                        BlockCount                  tailBufferSize,
-                        struct read_only_notifier  *readOnlyNotifier,
-                        const ThreadConfig         *threadConfig,
-                        struct recovery_journal   **journalPtr)
+int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
+			  struct partition *partition, uint64_t recovery_count,
+			  BlockCount journal_size, BlockCount tail_buffer_size,
+			  struct read_only_notifier *read_only_notifier,
+			  const ThreadConfig *thread_config,
+			  struct recovery_journal **journal_ptr)
 {
-  struct recovery_journal *journal;
-  int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct recovery_journal *journal;
+	int result = ALLOCATE(1, struct recovery_journal, __func__, &journal);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  initializeRing(&journal->freeTailBlocks);
-  initializeRing(&journal->activeTailBlocks);
+	initializeRing(&journal->free_tail_blocks);
+	initializeRing(&journal->active_tail_blocks);
 
-  journal->threadID         = getJournalZoneThread(threadConfig);
-  journal->partition        = partition;
-  journal->nonce            = nonce;
-  journal->recoveryCount    = computeRecoveryCountByte(recoveryCount);
-  journal->size             = journalSize;
-  journal->readOnlyNotifier = readOnlyNotifier;
-  journal->tail             = 1;
-  journal->slabJournalCommitThreshold = (journalSize * 2) / 3;
-  initializeJournalState(journal);
+	journal->thread_id = getJournalZoneThread(thread_config);
+	journal->partition = partition;
+	journal->nonce = nonce;
+	journal->recovery_count = compute_recovery_count_byte(recovery_count);
+	journal->size = journal_size;
+	journal->read_only_notifier = read_only_notifier;
+	journal->tail = 1;
+	journal->slab_journal_commit_threshold = (journal_size * 2) / 3;
+	initialize_journal_state(journal);
 
-  journal->entriesPerBlock = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
-  BlockCount journalLength = getRecoveryJournalLength(journalSize);
-  journal->availableSpace  = journal->entriesPerBlock * journalLength;
+	journal->entries_per_block = RECOVERY_JOURNAL_ENTRIES_PER_BLOCK;
+	BlockCount journal_length = get_recovery_journal_length(journal_size);
+	journal->available_space = journal->entries_per_block * journal_length;
 
-  // Only make the tail buffer and VIO in normal operation since the formatter
-  // doesn't need them.
-  if (layer->createMetadataVIO != NULL) {
-    BlockCount i;
-    for (i = 0; i < tailBufferSize; i++) {
-      struct recovery_journal_block *block;
-      result = make_recovery_block(layer, journal, &block);
-      if (result != VDO_SUCCESS) {
-        freeRecoveryJournal(&journal);
-        return result;
-      }
+	// Only make the tail buffer and VIO in normal operation since the
+	// formatter doesn't need them.
+	if (layer->createMetadataVIO != NULL) {
+		BlockCount i;
+		for (i = 0; i < tail_buffer_size; i++) {
+			struct recovery_journal_block *block;
+			result = make_recovery_block(layer, journal, &block);
+			if (result != VDO_SUCCESS) {
+				free_recovery_journal(&journal);
+				return result;
+			}
 
-      pushRingNode(&journal->freeTailBlocks, &block->ring_node);
-    }
+			pushRingNode(&journal->free_tail_blocks,
+				     &block->ring_node);
+		}
 
-    result = make_lock_counter(layer, journal, reapRecoveryJournalCallback,
-                               journal->threadID,
-                               threadConfig->logicalZoneCount,
-                               threadConfig->physicalZoneCount, journal->size,
-                               &journal->lockCounter);
-    if (result != VDO_SUCCESS) {
-      freeRecoveryJournal(&journal);
-      return result;
-    }
+		result = make_lock_counter(
+			layer, journal, reap_recovery_journal_callback,
+			journal->thread_id, thread_config->logicalZoneCount,
+			thread_config->physicalZoneCount, journal->size,
+			&journal->lock_counter);
+		if (result != VDO_SUCCESS) {
+			free_recovery_journal(&journal);
+			return result;
+		}
 
-    result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
-                      &journal->unusedFlushVIOData);
-    if (result != VDO_SUCCESS) {
-      freeRecoveryJournal(&journal);
-      return result;
-    }
+		result = ALLOCATE(VDO_BLOCK_SIZE, char, "journal flush data",
+				  &journal->unused_flush_vio_data);
+		if (result != VDO_SUCCESS) {
+			free_recovery_journal(&journal);
+			return result;
+		}
 
-    result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
-                       journal, journal->unusedFlushVIOData,
-                       &journal->flushVIO);
-    if (result != VDO_SUCCESS) {
-      freeRecoveryJournal(&journal);
-      return result;
-    }
+		result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL,
+				   VIO_PRIORITY_HIGH, journal,
+				   journal->unused_flush_vio_data,
+				   &journal->flush_vio);
+		if (result != VDO_SUCCESS) {
+			free_recovery_journal(&journal);
+			return result;
+		}
 
-    result = register_read_only_listener(readOnlyNotifier, journal,
-                                         notifyRecoveryJournalOfReadOnlyMode,
-                                         journal->threadID);
-    if (result != VDO_SUCCESS) {
-      freeRecoveryJournal(&journal);
-      return result;
-    }
+		result = register_read_only_listener(read_only_notifier,
+						     journal,
+						     notify_recovery_journal_of_read_only_mode,
+						     journal->thread_id);
+		if (result != VDO_SUCCESS) {
+			free_recovery_journal(&journal);
+			return result;
+		}
 
-    journal->flushVIO->completion.callbackThreadID = journal->threadID;
-  }
+		journal->flush_vio->completion.callbackThreadID =
+			journal->thread_id;
+	}
 
-  *journalPtr = journal;
-  return VDO_SUCCESS;
+	*journal_ptr = journal;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeRecoveryJournal(struct recovery_journal **journalPtr)
+void free_recovery_journal(struct recovery_journal **journal_ptr)
 {
-  struct recovery_journal *journal = *journalPtr;
-  if (journal == NULL) {
-    return;
-  }
+	struct recovery_journal *journal = *journal_ptr;
+	if (journal == NULL) {
+		return;
+	}
 
-  free_lock_counter(&journal->lockCounter);
-  freeVIO(&journal->flushVIO);
-  FREE(journal->unusedFlushVIOData);
+	free_lock_counter(&journal->lock_counter);
+	freeVIO(&journal->flush_vio);
+	FREE(journal->unused_flush_vio_data);
 
-  // XXX: eventually, the journal should be constructed in a quiescent state
-  //      which requires opening before use.
-  if (!is_quiescent(&journal->state)) {
-    ASSERT_LOG_ONLY(isRingEmpty(&journal->activeTailBlocks),
-                    "journal being freed has no active tail blocks");
-  } else if (!is_saved(&journal->state)
-             && !isRingEmpty(&journal->activeTailBlocks)) {
-    logWarning("journal being freed has uncommited entries");
-  }
+	// XXX: eventually, the journal should be constructed in a quiescent
+	// state
+	//      which requires opening before use.
+	if (!is_quiescent(&journal->state)) {
+		ASSERT_LOG_ONLY(isRingEmpty(&journal->active_tail_blocks),
+				"journal being freed has no active tail blocks");
+	} else if (!is_saved(&journal->state)
+		   && !isRingEmpty(&journal->active_tail_blocks)) {
+		logWarning("journal being freed has uncommited entries");
+	}
 
-  struct recovery_journal_block *block;
-  while ((block = popActiveList(journal)) != NULL) {
-    free_recovery_block(&block);
-  }
+	struct recovery_journal_block *block;
+	while ((block = pop_active_list(journal)) != NULL) {
+		free_recovery_block(&block);
+	}
 
-  while ((block = popFreeList(journal)) != NULL) {
-    free_recovery_block(&block);
-  }
+	while ((block = pop_free_list(journal)) != NULL) {
+		free_recovery_block(&block);
+	}
 
-  FREE(journal);
-  *journalPtr = NULL;
+	FREE(journal);
+	*journal_ptr = NULL;
 }
 
 /**********************************************************************/
-void setRecoveryJournalPartition(struct recovery_journal *journal,
-                                 struct partition        *partition)
+void set_recovery_journal_partition(struct recovery_journal *journal,
+				    struct partition *partition)
 {
-  journal->partition = partition;
+	journal->partition = partition;
 }
 
 /**********************************************************************/
-void
-initializeRecoveryJournalPostRecovery(struct recovery_journal *journal,
-                                      uint64_t                 recoveryCount,
-                                      SequenceNumber           tail)
+void initialize_recovery_journal_post_recovery(struct recovery_journal *journal,
+					       uint64_t recovery_count,
+					       SequenceNumber tail)
 {
-  setJournalTail(journal, tail + 1);
-  journal->recoveryCount = computeRecoveryCountByte(recoveryCount);
-  initializeJournalState(journal);
+	set_journal_tail(journal, tail + 1);
+	journal->recovery_count = compute_recovery_count_byte(recovery_count);
+	initialize_journal_state(journal);
 }
 
 /**********************************************************************/
-void
-initializeRecoveryJournalPostRebuild(struct recovery_journal *journal,
-                                     uint64_t                 recoveryCount,
-                                     SequenceNumber           tail,
-                                     BlockCount               logicalBlocksUsed,
-                                     BlockCount               blockMapDataBlocks)
+void initialize_recovery_journal_post_rebuild(struct recovery_journal *journal,
+					      uint64_t recovery_count,
+					      SequenceNumber tail,
+					      BlockCount logical_blocks_used,
+					      BlockCount block_map_data_blocks)
 {
-  initializeRecoveryJournalPostRecovery(journal, recoveryCount, tail);
-  journal->logicalBlocksUsed  = logicalBlocksUsed;
-  journal->blockMapDataBlocks = blockMapDataBlocks;
+	initialize_recovery_journal_post_recovery(journal, recovery_count,
+						  tail);
+	journal->logical_blocks_used = logical_blocks_used;
+	journal->block_map_data_blocks = block_map_data_blocks;
 }
 
 /**********************************************************************/
-BlockCount getJournalBlockMapDataBlocksUsed(struct recovery_journal *journal)
+BlockCount
+get_journal_block_map_data_blocks_used(struct recovery_journal *journal)
 {
-  return journal->blockMapDataBlocks;
+	return journal->block_map_data_blocks;
 }
 
 /**********************************************************************/
-void setJournalBlockMapDataBlocksUsed(struct recovery_journal *journal,
-                                      BlockCount               pages)
+void set_journal_block_map_data_blocks_used(struct recovery_journal *journal,
+					    BlockCount pages)
 {
-  journal->blockMapDataBlocks = pages;
+	journal->block_map_data_blocks = pages;
 }
 
 /**********************************************************************/
-ThreadID getRecoveryJournalThreadID(struct recovery_journal *journal)
+ThreadID get_recovery_journal_thread_id(struct recovery_journal *journal)
 {
-  return journal->threadID;
+	return journal->thread_id;
 }
 
 /**********************************************************************/
-void openRecoveryJournal(struct recovery_journal *journal,
-                         struct slab_depot       *depot,
-                         struct block_map        *blockMap)
+void open_recovery_journal(struct recovery_journal *journal,
+			   struct slab_depot *depot,
+			   struct block_map *block_map)
 {
-  journal->depot    = depot;
-  journal->blockMap = blockMap;
-  journal->state.state = ADMIN_STATE_NORMAL_OPERATION;
+	journal->depot = depot;
+	journal->block_map = block_map;
+	journal->state.state = ADMIN_STATE_NORMAL_OPERATION;
 }
 
 /**********************************************************************/
-size_t getRecoveryJournalEncodedSize(void)
+size_t get_recovery_journal_encoded_size(void)
 {
-  return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
+	return ENCODED_HEADER_SIZE + sizeof(struct recovery_journal_state_7_0);
 }
 
 /**********************************************************************/
-int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
+int encode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
 {
-  SequenceNumber journalStart;
-  if (is_saved(&journal->state)) {
-    // If the journal is saved, we should start one past the active block
-    // (since the active block is not guaranteed to be empty).
-    journalStart = journal->tail;
-  } else {
-    // When we're merely suspended or have gone read-only, we must record the
-    // first block that might have entries that need to be applied.
-    journalStart = getRecoveryJournalHead(journal);
-  }
+	SequenceNumber journal_start;
+	if (is_saved(&journal->state)) {
+		// If the journal is saved, we should start one past the active
+		// block (since the active block is not guaranteed to be empty).
+		journal_start = journal->tail;
+	} else {
+		// When we're merely suspended or have gone read-only, we must
+		// record the first block that might have entries that need to
+		// be applied.
+		journal_start = get_recovery_journal_head(journal);
+	}
 
-  int result = encode_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	int result = encode_header(&RECOVERY_JOURNAL_HEADER_7_0, buffer);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  size_t initialLength = contentLength(buffer);
+	size_t initial_length = contentLength(buffer);
 
-  result = putUInt64LEIntoBuffer(buffer, journalStart);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	result = putUInt64LEIntoBuffer(buffer, journal_start);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = putUInt64LEIntoBuffer(buffer, journal->logicalBlocksUsed);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	result = putUInt64LEIntoBuffer(buffer, journal->logical_blocks_used);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = putUInt64LEIntoBuffer(buffer, journal->blockMapDataBlocks);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	result = putUInt64LEIntoBuffer(buffer, journal->block_map_data_blocks);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  size_t encodedSize = contentLength(buffer) - initialLength;
-  return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encodedSize,
-                "encoded recovery journal component size"
-                " must match header size");
+	size_t encoded_size = contentLength(buffer) - initial_length;
+	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == encoded_size,
+		      "encoded recovery journal component size must match header size");
 }
 
 /**
@@ -644,78 +663,79 @@ int encodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
  * @return UDS_SUCCESS or an error code
  **/
 static int
-decodeRecoveryJournalState_7_0(Buffer                            *buffer,
-                               struct recovery_journal_state_7_0 *state)
+decodeRecoveryJournalState_7_0(Buffer *buffer,
+			       struct recovery_journal_state_7_0 *state)
 {
-  size_t initialLength = contentLength(buffer);
+	size_t initial_length = contentLength(buffer);
 
-  SequenceNumber journalStart;
-  int result = getUInt64LEFromBuffer(buffer, &journalStart);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	SequenceNumber journal_start;
+	int result = getUInt64LEFromBuffer(buffer, &journal_start);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  BlockCount logicalBlocksUsed;
-  result = getUInt64LEFromBuffer(buffer, &logicalBlocksUsed);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	BlockCount logical_blocks_used;
+	result = getUInt64LEFromBuffer(buffer, &logical_blocks_used);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  BlockCount blockMapDataBlocks;
-  result = getUInt64LEFromBuffer(buffer, &blockMapDataBlocks);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	BlockCount block_map_data_blocks;
+	result = getUInt64LEFromBuffer(buffer, &block_map_data_blocks);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  *state = (struct recovery_journal_state_7_0) {
-    .journalStart       = journalStart,
-    .logicalBlocksUsed  = logicalBlocksUsed,
-    .blockMapDataBlocks = blockMapDataBlocks,
-  };
+	*state = (struct recovery_journal_state_7_0) {
+		.journal_start = journal_start,
+		.logical_blocks_used = logical_blocks_used,
+		.block_map_data_blocks = block_map_data_blocks,
+	};
 
-  size_t decodedSize = initialLength - contentLength(buffer);
-  return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decodedSize,
-                "decoded slab depot component size must match header size");
+	size_t decoded_size = initial_length - contentLength(buffer);
+	return ASSERT(RECOVERY_JOURNAL_HEADER_7_0.size == decoded_size,
+		      "decoded slab depot component size must match header size");
 }
 
 /**********************************************************************/
-int decodeRecoveryJournal(struct recovery_journal *journal, Buffer *buffer)
+int decode_recovery_journal(struct recovery_journal *journal, Buffer *buffer)
 {
-  struct header header;
-  int result = decode_header(buffer, &header);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct header header;
+	int result = decode_header(buffer, &header);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = validate_header(&RECOVERY_JOURNAL_HEADER_7_0, &header,
-                           true, __func__);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	result = validate_header(&RECOVERY_JOURNAL_HEADER_7_0, &header, true,
+				 __func__);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  struct recovery_journal_state_7_0 state;
-  result = decodeRecoveryJournalState_7_0(buffer, &state);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	struct recovery_journal_state_7_0 state;
+	result = decodeRecoveryJournalState_7_0(buffer, &state);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  // Update recovery journal in-memory information.
-  setJournalTail(journal, state.journalStart);
-  journal->logicalBlocksUsed  = state.logicalBlocksUsed;
-  journal->blockMapDataBlocks = state.blockMapDataBlocks;
-  initializeJournalState(journal);
+	// Update recovery journal in-memory information.
+	set_journal_tail(journal, state.journal_start);
+	journal->logical_blocks_used = state.logical_blocks_used;
+	journal->block_map_data_blocks = state.block_map_data_blocks;
+	initialize_journal_state(journal);
 
-  // XXX: this is a hack until we make initial resume of a VDO a real resume
-  journal->state.state = ADMIN_STATE_SUSPENDED;
-  return VDO_SUCCESS;
+	// XXX: this is a hack until we make initial resume of a VDO a real
+	// resume
+	journal->state.state = ADMIN_STATE_SUSPENDED;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int decodeSodiumRecoveryJournal(struct recovery_journal *journal,
-                                Buffer                  *buffer)
+int decode_sodium_recovery_journal(struct recovery_journal *journal,
+				   Buffer *buffer)
 {
-  // Sodium uses version 7.0, same as head, currently.
-  return decodeRecoveryJournal(journal, buffer);
+	// Sodium uses version 7.0, same as head, currently.
+	return decode_recovery_journal(journal, buffer);
 }
 
 /**
@@ -725,18 +745,19 @@ int decodeSodiumRecoveryJournal(struct recovery_journal *journal,
  *
  * @return <code>true</code> if the tail was advanced
  **/
-static bool advanceTail(struct recovery_journal *journal)
+static bool advance_tail(struct recovery_journal *journal)
 {
-  journal->activeBlock = popFreeList(journal);
-  if (journal->activeBlock == NULL) {
-    return false;
-  }
+	journal->active_block = pop_free_list(journal);
+	if (journal->active_block == NULL) {
+		return false;
+	}
 
-  pushRingNode(&journal->activeTailBlocks, &journal->activeBlock->ring_node);
-  initialize_recovery_block(journal->activeBlock);
-  setJournalTail(journal, journal->tail + 1);
-  advanceBlockMapEra(journal->blockMap, journal->tail);
-  return true;
+	pushRingNode(&journal->active_tail_blocks,
+		     &journal->active_block->ring_node);
+	initialize_recovery_block(journal->active_block);
+	set_journal_tail(journal, journal->tail + 1);
+	advanceBlockMapEra(journal->block_map, journal->tail);
+	return true;
 }
 
 /**
@@ -749,13 +770,16 @@ static bool advanceTail(struct recovery_journal *journal)
  * @return <code>true</code> if there is space in the journal to make an
  *         entry of the specified type
  **/
-static bool checkForEntrySpace(struct recovery_journal *journal, bool increment)
+static bool check_for_entry_space(struct recovery_journal *journal,
+				  bool increment)
 {
-  if (increment) {
-    return ((journal->availableSpace - journal->pendingDecrementCount) > 1);
-  }
+	if (increment) {
+		return ((journal->available_space
+			 - journal->pending_decrement_count)
+			> 1);
+	}
 
-  return (journal->availableSpace > 0);
+	return (journal->available_space > 0);
 }
 
 /**
@@ -769,157 +793,165 @@ static bool checkForEntrySpace(struct recovery_journal *journal, bool increment)
  * @return <code>true</code> if there is space in the journal to store an
  *         entry of the specified type
  **/
-static bool prepareToAssignEntry(struct recovery_journal *journal,
-                                 bool                     increment)
+static bool prepare_to_assign_entry(struct recovery_journal *journal,
+				    bool increment)
 {
-  if (!checkForEntrySpace(journal, increment)) {
-    if (!increment) {
-      // There must always be room to make a decrement entry.
-      logError("No space for decrement entry in recovery journal");
-      enterJournalReadOnlyMode(journal, VDO_RECOVERY_JOURNAL_FULL);
-    }
-    return false;
-  }
+	if (!check_for_entry_space(journal, increment)) {
+		if (!increment) {
+			// There must always be room to make a decrement entry.
+			logError("No space for decrement entry in recovery journal");
+			enter_journal_read_only_mode(journal,
+						     VDO_RECOVERY_JOURNAL_FULL);
+		}
+		return false;
+	}
 
-  if (is_recovery_block_full(journal->activeBlock) && !advanceTail(journal)) {
-    return false;
-  }
+	if (is_recovery_block_full(journal->active_block)
+	    && !advance_tail(journal)) {
+		return false;
+	}
 
-  if (!is_recovery_block_empty(journal->activeBlock)) {
-    return true;
-  }
+	if (!is_recovery_block_empty(journal->active_block)) {
+		return true;
+	}
 
-  if ((journal->tail - getRecoveryJournalHead(journal)) > journal->size) {
-    // Cannot use this block since the journal is full.
-    journal->events.diskFull++;
-    return false;
-  }
+	if ((journal->tail - get_recovery_journal_head(journal)) >
+	    journal->size) {
+		// Cannot use this block since the journal is full.
+		journal->events.diskFull++;
+		return false;
+	}
 
-  /*
-   * Don't allow the new block to be reaped until all of its entries have been
-   * committed to the block map and until the journal block has been fully
-   * committed as well. Because the block map update is done only after any
-   * slab journal entries have been made, the per-entry lock for the block map
-   * entry serves to protect those as well.
-   */
-  initialize_lock_count(journal->lockCounter, journal->activeBlock->block_number,
-                        journal->entriesPerBlock + 1);
-  return true;
+	/*
+	 * Don't allow the new block to be reaped until all of its entries have
+	 * been committed to the block map and until the journal block has been
+	 * fully committed as well. Because the block map update is done only
+	 * after any slab journal entries have been made, the per-entry lock for
+	 * the block map entry serves to protect those as well.
+	 */
+	initialize_lock_count(journal->lock_counter,
+			      journal->active_block->block_number,
+			      journal->entries_per_block + 1);
+	return true;
 }
 
 /**********************************************************************/
-static void writeBlock(struct recovery_journal       *journal,
-                       struct recovery_journal_block *block);
+static void write_block(struct recovery_journal *journal,
+			struct recovery_journal_block *block);
 
 /**
  * Release a reference to a journal block.
  *
  * @param block  The journal block from which to release a reference
  **/
-static void releaseJournalBlockReference(struct recovery_journal_block *block)
+static void release_journal_block_reference(struct recovery_journal_block *block)
 {
-  release_journal_zone_reference(block->journal->lockCounter,
-                                 block->block_number);
+	release_journal_zone_reference(block->journal->lock_counter,
+				       block->block_number);
 }
 
 /**
  * Implements WaiterCallback. Assign an entry waiter to the active block.
  **/
-static void assignEntry(struct waiter *waiter, void *context)
+static void assign_entry(struct waiter *waiter, void *context)
 {
-  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
-  struct recovery_journal_block *block
-    = (struct recovery_journal_block *) context;
-  struct recovery_journal *journal = block->journal;
+	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct recovery_journal_block *block =
+		(struct recovery_journal_block *)context;
+	struct recovery_journal *journal = block->journal;
 
-  // Record the point at which we will make the journal entry.
-  dataVIO->recoveryJournalPoint = (struct journal_point) {
-    .sequence_number  = block->sequence_number,
-    .entry_count      = block->entry_count,
-  };
+	// Record the point at which we will make the journal entry.
+	data_vio->recoveryJournalPoint = (struct journal_point) {
+		.sequence_number = block->sequence_number,
+		.entry_count = block->entry_count,
+	};
 
-  switch (dataVIO->operation.type) {
-  case DATA_INCREMENT:
-    if (dataVIO->operation.state != MAPPING_STATE_UNMAPPED) {
-      journal->logicalBlocksUsed++;
-    }
-    journal->pendingDecrementCount++;
-    break;
+	switch (data_vio->operation.type) {
+	case DATA_INCREMENT:
+		if (data_vio->operation.state != MAPPING_STATE_UNMAPPED) {
+			journal->logical_blocks_used++;
+		}
+		journal->pending_decrement_count++;
+		break;
 
-  case DATA_DECREMENT:
-    if (dataVIO->operation.state != MAPPING_STATE_UNMAPPED) {
-      journal->logicalBlocksUsed--;
-    }
+	case DATA_DECREMENT:
+		if (data_vio->operation.state != MAPPING_STATE_UNMAPPED) {
+			journal->logical_blocks_used--;
+		}
 
-    // Per-entry locks need not be held for decrement entries since the lock
-    // held for the incref entry will protect this entry as well.
-    releaseJournalBlockReference(block);
-    ASSERT_LOG_ONLY((journal->pendingDecrementCount != 0),
-                    "decrement follows increment");
-    journal->pendingDecrementCount--;
-    break;
+		// Per-entry locks need not be held for decrement entries since
+		// the lock held for the incref entry will protect this entry as
+		// well.
+		release_journal_block_reference(block);
+		ASSERT_LOG_ONLY((journal->pending_decrement_count != 0),
+				"decrement follows increment");
+		journal->pending_decrement_count--;
+		break;
 
-  case BLOCK_MAP_INCREMENT:
-    journal->blockMapDataBlocks++;
-    break;
+	case BLOCK_MAP_INCREMENT:
+		journal->block_map_data_blocks++;
+		break;
 
-  default:
-    logError("Invalid journal operation %u", dataVIO->operation.type);
-    enterJournalReadOnlyMode(journal, VDO_NOT_IMPLEMENTED);
-    continueDataVIO(dataVIO, VDO_NOT_IMPLEMENTED);
-    return;
-  }
+	default:
+		logError("Invalid journal operation %u",
+			 data_vio->operation.type);
+		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
+		continueDataVIO(data_vio, VDO_NOT_IMPLEMENTED);
+		return;
+	}
 
-  journal->availableSpace--;
-  int result = enqueue_recovery_block_entry(block, dataVIO);
-  if (result != VDO_SUCCESS) {
-    enterJournalReadOnlyMode(journal, result);
-    continueDataVIO(dataVIO, result);
-  }
+	journal->available_space--;
+	int result = enqueue_recovery_block_entry(block, data_vio);
+	if (result != VDO_SUCCESS) {
+		enter_journal_read_only_mode(journal, result);
+		continueDataVIO(data_vio, result);
+	}
 
-  if (is_recovery_block_full(block)) {
-    // Only attempt to write the block once we've filled it. Commits of
-    // partially filled journal blocks are handled outside the append loop.
-    writeBlock(journal, block);
-  }
+	if (is_recovery_block_full(block)) {
+		// Only attempt to write the block once we've filled it. Commits
+		// of partially filled journal blocks are handled outside the
+		// append loop.
+		write_block(journal, block);
+	}
 
-  // Force out slab journal tail blocks when threshold is reached.
-  checkSlabJournalCommitThreshold(journal);
+	// Force out slab journal tail blocks when threshold is reached.
+	check_slab_journal_commit_threshold(journal);
 }
 
 /**********************************************************************/
-static bool assignEntriesFromQueue(struct recovery_journal *journal,
-                                   struct wait_queue       *queue,
-                                   bool                     increment)
+static bool assign_entries_from_queue(struct recovery_journal *journal,
+				      struct wait_queue *queue, bool increment)
 {
-  while (hasWaiters(queue)) {
-    if (!prepareToAssignEntry(journal, increment)) {
-      return false;
-    }
+	while (hasWaiters(queue)) {
+		if (!prepare_to_assign_entry(journal, increment)) {
+			return false;
+		}
 
-    notifyNextWaiter(queue, assignEntry, journal->activeBlock);
-  }
+		notifyNextWaiter(queue, assign_entry, journal->active_block);
+	}
 
-  return true;
+	return true;
 }
 
 /**********************************************************************/
-static void assignEntries(struct recovery_journal *journal)
+static void assign_entries(struct recovery_journal *journal)
 {
-  if (journal->addingEntries) {
-    // Protect against re-entrancy.
-    return;
-  }
+	if (journal->adding_entries) {
+		// Protect against re-entrancy.
+		return;
+	}
 
-  journal->addingEntries = true;
-  if (assignEntriesFromQueue(journal, &journal->decrementWaiters, false)) {
-    assignEntriesFromQueue(journal, &journal->incrementWaiters, true);
-  }
+	journal->adding_entries = true;
+	if (assign_entries_from_queue(journal, &journal->decrement_waiters,
+				      false)) {
+		assign_entries_from_queue(journal, &journal->increment_waiters,
+					  true);
+	}
 
-  // We might not have committed a partial block because there were still
-  // incoming entries, but they might have been increments with no room.
-  writeBlock(journal, journal->activeBlock);
-  journal->addingEntries = false;
+	// We might not have committed a partial block because there were still
+	// incoming entries, but they might have been increments with no room.
+	write_block(journal, journal->active_block);
+	journal->adding_entries = false;
 }
 
 /**
@@ -928,50 +960,51 @@ static void assignEntries(struct recovery_journal *journal)
  *
  * @param block  The block to be recycled
  **/
-static void recycleJournalBlock(struct recovery_journal_block *block)
+static void recycle_journal_block(struct recovery_journal_block *block)
 {
-  struct recovery_journal *journal = block->journal;
-  pushRingNode(&journal->freeTailBlocks, &block->ring_node);
+	struct recovery_journal *journal = block->journal;
+	pushRingNode(&journal->free_tail_blocks, &block->ring_node);
 
-  // Release any unused entry locks.
-  BlockCount i;
-  for (i = block->entry_count; i < journal->entriesPerBlock; i++) {
-    releaseJournalBlockReference(block);
-  }
+	// Release any unused entry locks.
+	BlockCount i;
+	for (i = block->entry_count; i < journal->entries_per_block; i++) {
+		release_journal_block_reference(block);
+	}
 
-  // Release our own lock against reaping now that the block is completely
-  // committed, or we're giving up because we're in read-only mode.
-  if (block->entry_count > 0) {
-    releaseJournalBlockReference(block);
-  }
+	// Release our own lock against reaping now that the block is completely
+	// committed, or we're giving up because we're in read-only mode.
+	if (block->entry_count > 0) {
+		release_journal_block_reference(block);
+	}
 
-  if (block == journal->activeBlock) {
-    journal->activeBlock = NULL;
-  }
+	if (block == journal->active_block) {
+		journal->active_block = NULL;
+	}
 }
 
 /**
  * WaiterCallback implementation invoked whenever a VIO is to be released
  * from the journal because its entry was committed to disk.
  **/
-static void continueCommittedWaiter(struct waiter *waiter, void *context)
+static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
-  struct data_vio *dataVIO = waiterAsDataVIO(waiter);
-  struct recovery_journal *journal = (struct recovery_journal *) context;
-  ASSERT_LOG_ONLY(before_journal_point(&journal->commitPoint,
-                                       &dataVIO->recoveryJournalPoint),
-                  "DataVIOs released from recovery journal in order. "
-                  "Recovery journal point is (%llu, %" PRIu16 "), "
-                  "but commit waiter point is (%llu, %" PRIu16 ")",
-                  journal->commitPoint.sequence_number,
-                  journal->commitPoint.entry_count,
-                  dataVIO->recoveryJournalPoint.sequence_number,
-                  dataVIO->recoveryJournalPoint.entry_count);
-  journal->commitPoint = dataVIO->recoveryJournalPoint;
+	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct recovery_journal *journal = (struct recovery_journal *)context;
+	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
+					     &data_vio->recoveryJournalPoint),
+			"DataVIOs released from recovery journal in order. "
+			"Recovery journal point is (%llu, %" PRIu16
+			"), "
+			"but commit waiter point is (%llu, %" PRIu16 ")",
+			journal->commit_point.sequence_number,
+			journal->commit_point.entry_count,
+			data_vio->recoveryJournalPoint.sequence_number,
+			data_vio->recoveryJournalPoint.entry_count);
+	journal->commit_point = data_vio->recoveryJournalPoint;
 
-  int result
-    = (is_read_only(journal->readOnlyNotifier) ? VDO_READ_ONLY : VDO_SUCCESS);
-  continueWaiter(waiter, &result);
+	int result = (is_read_only(journal->read_only_notifier) ? VDO_READ_ONLY
+							      : VDO_SUCCESS);
+	continue_waiter(waiter, &result);
 }
 
 /**
@@ -980,94 +1013,102 @@ static void continueCommittedWaiter(struct waiter *waiter, void *context)
  *
  * @param journal  The recovery journal to update
  **/
-static void notifyCommitWaiters(struct recovery_journal *journal)
+static void notify_commit_waiters(struct recovery_journal *journal)
 {
-  struct recovery_journal_block *lastIterationBlock = NULL;
-  while (!isRingEmpty(&journal->activeTailBlocks)) {
-    struct recovery_journal_block *block
-      = block_from_ring_node(journal->activeTailBlocks.next);
+	struct recovery_journal_block *last_iteration_block = NULL;
+	while (!isRingEmpty(&journal->active_tail_blocks)) {
+		struct recovery_journal_block *block =
+			block_from_ring_node(journal->active_tail_blocks.next);
 
-    int result = ASSERT(block != lastIterationBlock,
-                        "Journal notification has entered an infinite loop");
-    if (result != VDO_SUCCESS) {
-      enterJournalReadOnlyMode(journal, result);
-      return;
-    }
-    lastIterationBlock = block;
+		int result = ASSERT(block != last_iteration_block,
+				    "Journal notification has entered an infinite loop");
+		if (result != VDO_SUCCESS) {
+			enter_journal_read_only_mode(journal, result);
+			return;
+		}
+		last_iteration_block = block;
 
-    if (block->committing) {
-      return;
-    }
+		if (block->committing) {
+			return;
+		}
 
-    notifyAllWaiters(&block->commit_waiters, continueCommittedWaiter, journal);
-    if (is_read_only(journal->readOnlyNotifier)) {
-      notifyAllWaiters(&block->entry_waiters, continueCommittedWaiter, journal);
-    } else if (is_recovery_block_dirty(block) || !is_recovery_block_full(block)) {
-      // Don't recycle partially-committed or partially-filled blocks.
-      return;
-    }
+		notifyAllWaiters(&block->commit_waiters,
+				 continue_committed_waiter, journal);
+		if (is_read_only(journal->read_only_notifier)) {
+			notifyAllWaiters(&block->entry_waiters,
+					 continue_committed_waiter, journal);
+		} else if (is_recovery_block_dirty(block)
+			   || !is_recovery_block_full(block)) {
+			// Don't recycle partially-committed or partially-filled
+			// blocks.
+			return;
+		}
 
-    recycleJournalBlock(block);
+		recycle_journal_block(block);
 
-    /*
-     * We may have just completed the last outstanding block write. If the
-     * active block is partial and hasn't been written, we must trigger it now.
-     */
-    writeBlock(journal, journal->activeBlock);
-  }
+		/*
+		 * We may have just completed the last outstanding block write.
+		 * If the active block is partial and hasn't been written, we
+		 * must trigger it now.
+		 */
+		write_block(journal, journal->active_block);
+	}
 }
 
 /**
  * Handle post-commit processing. This is the callback registered by
- * writeBlock(). If more entries accumulated in the block being committed while
+ * write_block(). If more entries accumulated in the block being committed while
  * the commit was in progress, another commit will be initiated.
  *
  * @param completion  The completion of the VIO writing this block
  **/
-static void completeWrite(struct vdo_completion *completion)
+static void complete_write(struct vdo_completion *completion)
 {
-  struct recovery_journal_block *block   = completion->parent;
-  struct recovery_journal       *journal = block->journal;
-  assertOnJournalThread(journal, __func__);
+	struct recovery_journal_block *block = completion->parent;
+	struct recovery_journal *journal = block->journal;
+	assert_on_journal_thread(journal, __func__);
 
-  journal->pendingWriteCount        -= 1;
-  journal->events.blocks.committed  += 1;
-  journal->events.entries.committed += block->entries_in_commit;
-  block->uncommitted_entry_count    -= block->entries_in_commit;
-  block->entries_in_commit           = 0;
-  block->committing                  = false;
+	journal->pending_write_count -= 1;
+	journal->events.blocks.committed += 1;
+	journal->events.entries.committed += block->entries_in_commit;
+	block->uncommitted_entry_count -= block->entries_in_commit;
+	block->entries_in_commit = 0;
+	block->committing = false;
 
-  // If this block is the latest block to be acknowledged, record that fact.
-  if (block->sequence_number > journal->lastWriteAcknowledged) {
-    journal->lastWriteAcknowledged = block->sequence_number;
-  }
+	// If this block is the latest block to be acknowledged, record that
+	// fact.
+	if (block->sequence_number > journal->last_write_acknowledged) {
+		journal->last_write_acknowledged = block->sequence_number;
+	}
 
-  struct recovery_journal_block *lastActiveBlock
-    = block_from_ring_node(journal->activeTailBlocks.next);
-  ASSERT_LOG_ONLY((block->sequence_number >= lastActiveBlock->sequence_number),
-                  "completed journal write is still active");
+	struct recovery_journal_block *last_active_block =
+		block_from_ring_node(journal->active_tail_blocks.next);
+	ASSERT_LOG_ONLY((block->sequence_number >=
+			 last_active_block->sequence_number),
+			"completed journal write is still active");
 
-  notifyCommitWaiters(journal);
+	notify_commit_waiters(journal);
 
-  // Write out the entries (if any) which accumulated while we were writing.
-  if (hasWaiters(&block->entry_waiters)) {
-    writeBlock(journal, block);
-    return;
-  }
+	// Write out the entries (if any) which accumulated while we were
+	// writing.
+	if (hasWaiters(&block->entry_waiters)) {
+		write_block(journal, block);
+		return;
+	}
 
-  checkForDrainComplete(journal);
+	check_for_drain_complete(journal);
 }
 
 /**********************************************************************/
-static void handleWriteError(struct vdo_completion *completion)
+static void handle_write_error(struct vdo_completion *completion)
 {
-  struct recovery_journal_block *block   = completion->parent;
-  struct recovery_journal       *journal = block->journal;
-  logErrorWithStringError(completion->result,
-                          "cannot write recovery journal block %llu",
-                          block->sequence_number);
-  enterJournalReadOnlyMode(journal, completion->result);
-  completeWrite(completion);
+	struct recovery_journal_block *block = completion->parent;
+	struct recovery_journal *journal = block->journal;
+	logErrorWithStringError(completion->result,
+				"cannot write recovery journal block %llu",
+				block->sequence_number);
+	enter_journal_read_only_mode(journal, completion->result);
+	complete_write(completion);
 }
 
 /**
@@ -1078,48 +1119,50 @@ static void handleWriteError(struct vdo_completion *completion)
  * @param journal  The recovery journal
  * @param block    The block to write
  **/
-static void writeBlock(struct recovery_journal       *journal,
-                       struct recovery_journal_block *block)
+static void write_block(struct recovery_journal *journal,
+			struct recovery_journal_block *block)
 {
-  assertOnJournalThread(journal, __func__);
-  int result = commit_recovery_block(block, completeWrite, handleWriteError);
-  if (result != VDO_SUCCESS) {
-    enterJournalReadOnlyMode(journal, result);
-    return;
-  }
+	assert_on_journal_thread(journal, __func__);
+	int result =
+		commit_recovery_block(block, complete_write,
+				      handle_write_error);
+	if (result != VDO_SUCCESS) {
+		enter_journal_read_only_mode(journal, result);
+		return;
+	}
 }
 
 /**********************************************************************/
-void addRecoveryJournalEntry(struct recovery_journal *journal,
-                             struct data_vio         *dataVIO)
+void add_recovery_journal_entry(struct recovery_journal *journal,
+				struct data_vio *data_vio)
 {
-  assertOnJournalThread(journal, __func__);
-  if (!is_normal(&journal->state)) {
-    continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
-    return;
-  }
+	assert_on_journal_thread(journal, __func__);
+	if (!is_normal(&journal->state)) {
+		continueDataVIO(data_vio, VDO_INVALID_ADMIN_STATE);
+		return;
+	}
 
-  if (is_read_only(journal->readOnlyNotifier)) {
-    continueDataVIO(dataVIO, VDO_READ_ONLY);
-    return;
-  }
+	if (is_read_only(journal->read_only_notifier)) {
+		continueDataVIO(data_vio, VDO_READ_ONLY);
+		return;
+	}
 
-  bool increment = isIncrementOperation(dataVIO->operation.type);
-  ASSERT_LOG_ONLY((!increment || (dataVIO->recoverySequenceNumber == 0)),
-                  "journal lock not held for increment");
+	bool increment = is_increment_operation(data_vio->operation.type);
+	ASSERT_LOG_ONLY((!increment || (data_vio->recoverySequenceNumber == 0)),
+			"journal lock not held for increment");
 
-  advance_journal_point(&journal->appendPoint, journal->entriesPerBlock);
-  int result = enqueueDataVIO((increment
-                               ? &journal->incrementWaiters
-                               : &journal->decrementWaiters), dataVIO,
-                              THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
-  if (result != VDO_SUCCESS) {
-    enterJournalReadOnlyMode(journal, result);
-    continueDataVIO(dataVIO, result);
-    return;
-  }
+	advance_journal_point(&journal->append_point, journal->entries_per_block);
+	int result = enqueueDataVIO((increment ? &journal->increment_waiters
+				     : &journal->decrement_waiters),
+				    data_vio,
+				    THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
+	if (result != VDO_SUCCESS) {
+		enter_journal_read_only_mode(journal, result);
+		continueDataVIO(data_vio, result);
+		return;
+	}
 
-  assignEntries(journal);
+	assign_entries(journal);
 }
 
 /**
@@ -1127,103 +1170,104 @@ void addRecoveryJournalEntry(struct recovery_journal *journal,
  *
  * @param journal  The recovery journal
  **/
-static void reapRecoveryJournal(struct recovery_journal *journal)
+static void reap_recovery_journal(struct recovery_journal *journal)
 {
-  if (journal->reaping) {
-    // We already have an outstanding reap in progress. We need to wait for it
-    // to finish.
-    return;
-  }
+	if (journal->reaping) {
+		// We already have an outstanding reap in progress. We need to
+		// wait for it to finish.
+		return;
+	}
 
-  // Start reclaiming blocks only when the journal head has no references. Then
-  // stop when a block is referenced.
-  while ((journal->blockMapReapHead < journal->lastWriteAcknowledged)
-         && !is_locked(journal->lockCounter, journal->blockMapHeadBlockNumber,
-                       ZONE_TYPE_LOGICAL)) {
-    journal->blockMapReapHead++;
-    if (++journal->blockMapHeadBlockNumber == journal->size) {
-      journal->blockMapHeadBlockNumber = 0;
-    }
-  }
+	// Start reclaiming blocks only when the journal head has no references.
+	// Then stop when a block is referenced.
+	while ((journal->block_map_reap_head < journal->last_write_acknowledged)
+	       && !is_locked(journal->lock_counter,
+			     journal->block_map_head_block_number,
+			     ZONE_TYPE_LOGICAL)) {
+		journal->block_map_reap_head++;
+		if (++journal->block_map_head_block_number == journal->size) {
+			journal->block_map_head_block_number = 0;
+		}
+	}
 
-  while ((journal->slabJournalReapHead < journal->lastWriteAcknowledged)
-         && !is_locked(journal->lockCounter,
-                       journal->slabJournalHeadBlockNumber,
-                       ZONE_TYPE_PHYSICAL)) {
-    journal->slabJournalReapHead++;
-    if (++journal->slabJournalHeadBlockNumber == journal->size) {
-      journal->slabJournalHeadBlockNumber = 0;
-    }
-  }
+	while ((journal->slab_journal_reap_head < journal->last_write_acknowledged)
+	       && !is_locked(journal->lock_counter,
+			     journal->slab_journal_head_block_number,
+			     ZONE_TYPE_PHYSICAL)) {
+		journal->slab_journal_reap_head++;
+		if (++journal->slab_journal_head_block_number == journal->size) {
+			journal->slab_journal_head_block_number = 0;
+		}
+	}
 
-  if ((journal->blockMapReapHead == journal->blockMapHead)
-      && (journal->slabJournalReapHead == journal->slabJournalHead)) {
-    // Nothing happened.
-    return;
-  }
+	if ((journal->block_map_reap_head == journal->block_map_head)
+	    && (journal->slab_journal_reap_head == journal->slab_journal_head)) {
+		// Nothing happened.
+		return;
+	}
 
-  PhysicalLayer *layer = vioAsCompletion(journal->flushVIO)->layer;
-  if (layer->isFlushRequired(layer)) {
-    /*
-     * If the block map head will advance, we must flush any block map page
-     * modified by the entries we are reaping. If the slab journal head will
-     * advance, we must flush the slab summary update covering the slab journal
-     * that just released some lock.
-     */
-    journal->reaping = true;
-    launchFlush(journal->flushVIO, completeReaping, handleFlushError);
-    return;
-  }
+	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	if (layer->isFlushRequired(layer)) {
+		/*
+		 * If the block map head will advance, we must flush any block
+		 * map page modified by the entries we are reaping. If the slab
+		 * journal head will advance, we must flush the slab summary
+		 * update covering the slab journal that just released some
+		 * lock.
+		 */
+		journal->reaping = true;
+		launchFlush(journal->flush_vio, complete_reaping,
+			    handle_flush_error);
+		return;
+	}
 
-  finishReaping(journal);
+	finish_reaping(journal);
 }
 
 /**********************************************************************/
-void
-acquireRecoveryJournalBlockReference(struct recovery_journal *journal,
-                                     SequenceNumber           sequenceNumber,
-                                     ZoneType                 zoneType,
-                                     ZoneCount                zoneID)
+void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
+					      SequenceNumber sequence_number,
+					      ZoneType zone_type,
+					      ZoneCount zone_id)
 {
-  if (sequenceNumber == 0) {
-    return;
-  }
+	if (sequence_number == 0) {
+		return;
+	}
 
-  BlockCount blockNumber
-    = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  acquire_lock_count_reference(journal->lockCounter, blockNumber, zoneType,
-                               zoneID);
+	BlockCount block_number =
+		get_recovery_journal_block_number(journal, sequence_number);
+	acquire_lock_count_reference(journal->lock_counter, block_number,
+				     zone_type, zone_id);
 }
 
 /**********************************************************************/
-void
-releaseRecoveryJournalBlockReference(struct recovery_journal *journal,
-                                     SequenceNumber           sequenceNumber,
-                                     ZoneType                 zoneType,
-                                     ZoneCount                zoneID)
+void release_recovery_journal_block_reference(struct recovery_journal *journal,
+					      SequenceNumber sequence_number,
+					      ZoneType zone_type,
+					      ZoneCount zone_id)
 {
-  if (sequenceNumber == 0) {
-    return;
-  }
+	if (sequence_number == 0) {
+		return;
+	}
 
-  BlockCount blockNumber
-    = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  release_lock_count_reference(journal->lockCounter, blockNumber, zoneType,
-                               zoneID);
+	BlockCount block_number =
+		get_recovery_journal_block_number(journal, sequence_number);
+	release_lock_count_reference(journal->lock_counter, block_number,
+				     zone_type, zone_id);
 }
 
 /**********************************************************************/
-void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
-                                      SequenceNumber           sequenceNumber)
+void release_per_entry_lock_from_other_zone(struct recovery_journal *journal,
+					    SequenceNumber sequence_number)
 {
-  if (sequenceNumber == 0) {
-    return;
-  }
+	if (sequence_number == 0) {
+		return;
+	}
 
-  BlockCount blockNumber
-    = getRecoveryJournalBlockNumber(journal, sequenceNumber);
-  release_journal_zone_reference_from_other_zone(journal->lockCounter,
-                                                 blockNumber);
+	BlockCount block_number =
+		get_recovery_journal_block_number(journal, sequence_number);
+	release_journal_zone_reference_from_other_zone(journal->lock_counter,
+						       block_number);
 }
 
 /**
@@ -1231,82 +1275,87 @@ void releasePerEntryLockFromOtherZone(struct recovery_journal *journal,
  *
  * Implements AdminInitiator.
  **/
-static void initiateDrain(struct admin_state *state)
+static void initiate_drain(struct admin_state *state)
 {
-  checkForDrainComplete(container_of(state, struct recovery_journal, state));
+	check_for_drain_complete(container_of(state,
+					      struct recovery_journal,
+					      state));
 }
 
 /**********************************************************************/
-void drainRecoveryJournal(struct recovery_journal *journal,
-                          AdminStateCode           operation,
-                          struct vdo_completion   *parent)
+void drain_recovery_journal(struct recovery_journal *journal,
+			    AdminStateCode operation,
+			    struct vdo_completion *parent)
 {
-  assertOnJournalThread(journal, __func__);
-  start_draining(&journal->state, operation, parent, initiateDrain);
+	assert_on_journal_thread(journal, __func__);
+	start_draining(&journal->state, operation, parent, initiate_drain);
 }
 
 /**********************************************************************/
-void resumeRecoveryJournal(struct recovery_journal *journal,
-                           struct vdo_completion   *parent)
+void resume_recovery_journal(struct recovery_journal *journal,
+			     struct vdo_completion *parent)
 {
-  assertOnJournalThread(journal, __func__);
-  bool saved = is_saved(&journal->state);
-  setCompletionResult(parent, resume_if_quiescent(&journal->state));
+	assert_on_journal_thread(journal, __func__);
+	bool saved = is_saved(&journal->state);
+	setCompletionResult(parent, resume_if_quiescent(&journal->state));
 
-  if (is_read_only(journal->readOnlyNotifier)) {
-    finishCompletion(parent, VDO_READ_ONLY);
-    return;
-  }
+	if (is_read_only(journal->read_only_notifier)) {
+		finishCompletion(parent, VDO_READ_ONLY);
+		return;
+	}
 
-  if (saved) {
-    initializeJournalState(journal);
-  }
+	if (saved) {
+		initialize_journal_state(journal);
+	}
 
-  completeCompletion(parent);
+	completeCompletion(parent);
 }
 
 /**********************************************************************/
-BlockCount getJournalLogicalBlocksUsed(const struct recovery_journal *journal)
+BlockCount
+get_journal_logical_blocks_used(const struct recovery_journal *journal)
 {
-  return journal->logicalBlocksUsed;
+	return journal->logical_blocks_used;
 }
 
 /**********************************************************************/
 RecoveryJournalStatistics
-getRecoveryJournalStatistics(const struct recovery_journal *journal)
+get_recovery_journal_statistics(const struct recovery_journal *journal)
 {
-  return journal->events;
+	return journal->events;
 }
 
 /**********************************************************************/
-void dumpRecoveryJournalStatistics(const struct recovery_journal *journal)
+void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 {
-  RecoveryJournalStatistics stats = getRecoveryJournalStatistics(journal);
-  logInfo("Recovery Journal");
-  logInfo("  blockMapHead=%llu slabJournalHead=%" PRIu64
-          " lastWriteAcknowledged=%llu tail=%" PRIu64
-          " blockMapReapHead=%llu slabJournalReapHead=%" PRIu64
-          " diskFull=%llu slabJournalCommitsRequested=%" PRIu64
-          " incrementWaiters=%zu decrementWaiters=%zu",
-          journal->blockMapHead, journal->slabJournalHead,
-          journal->lastWriteAcknowledged, journal->tail,
-          journal->blockMapReapHead, journal->slabJournalReapHead,
-          stats.diskFull, stats.slabJournalCommitsRequested,
-          countWaiters(&journal->incrementWaiters),
-          countWaiters(&journal->decrementWaiters));
-  logInfo("  entries: started=%llu written=%llu committed=%"
-          PRIu64,
-          stats.entries.started, stats.entries.written,
-          stats.entries.committed);
-  logInfo("  blocks: started=%llu written=%llu committed=%"
-          PRIu64,
-          stats.blocks.started, stats.blocks.written,
-          stats.blocks.committed);
+	RecoveryJournalStatistics stats =
+		get_recovery_journal_statistics(journal);
+	logInfo("Recovery Journal");
+	logInfo("  block_map_head=%llu slab_journal_head=%" PRIu64
+		" last_write_acknowledged=%llu tail=%" PRIu64
+		" block_map_reap_head=%" PRIu64
+		" slab_journal_reap_head=%" PRIu64
+		" diskFull=%llu slabJournalCommitsRequested=%" PRIu64
+		" increment_waiters=%zu decrement_waiters=%zu",
+		journal->block_map_head, journal->slab_journal_head,
+		journal->last_write_acknowledged, journal->tail,
+		journal->block_map_reap_head, journal->slab_journal_reap_head,
+		stats.diskFull, stats.slabJournalCommitsRequested,
+		countWaiters(&journal->increment_waiters),
+		countWaiters(&journal->decrement_waiters));
+	logInfo("  entries: started=%llu written=%" PRIu64
+		" committed=%llu",
+		stats.entries.started, stats.entries.written,
+		stats.entries.committed);
+	logInfo("  blocks: started=%llu written=%" PRIu64
+		" committed=%llu",
+		stats.blocks.started, stats.blocks.written,
+		stats.blocks.committed);
 
-  logInfo("  active blocks:");
-  const RingNode *head = &journal->activeTailBlocks;
-  RingNode *node;
-  for (node = head->next; node != head; node = node->next) {
-    dump_recovery_block(block_from_ring_node(node));
-  }
+	logInfo("  active blocks:");
+	const RingNode *head = &journal->active_tail_blocks;
+	RingNode *node;
+	for (node = head->next; node != head; node = node->next) {
+		dump_recovery_block(block_from_ring_node(node));
+	}
 }

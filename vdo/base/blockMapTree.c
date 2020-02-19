@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#38 $
  */
 
 #include "blockMapTree.h"
@@ -438,10 +438,10 @@ static void finishPageWrite(struct vdo_completion *completion)
   struct vio_pool_entry               *entry = completion->parent;
   struct tree_page                    *page  = entry->parent;
   struct block_map_tree_zone          *zone  = entry->context;
-  releaseRecoveryJournalBlockReference(zone->mapZone->blockMap->journal,
-                                       page->writingRecoveryLock,
-                                       ZONE_TYPE_LOGICAL,
-                                       zone->mapZone->zoneNumber);
+  release_recovery_journal_block_reference(zone->mapZone->blockMap->journal,
+                                           page->writingRecoveryLock,
+                                           ZONE_TYPE_LOGICAL,
+                                           zone->mapZone->zoneNumber);
 
   bool dirty    = (page->writingGeneration != page->generation);
   releaseGeneration(zone, page->writingGeneration);
@@ -1117,8 +1117,8 @@ static void journalBlockMapAllocation(struct vdo_completion *completion)
 
   setAllocatedZoneCallback(dataVIO, setBlockMapPageReferenceCount,
                            THIS_LOCATION(NULL));
-  addRecoveryJournalEntry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
-                          dataVIO);
+  add_recovery_journal_entry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
+                             dataVIO);
 }
 
 /**

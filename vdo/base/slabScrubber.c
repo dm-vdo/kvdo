@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#22 $
  */
 
 #include "slabScrubberInternals.h"
@@ -288,7 +288,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                               " (%s of offset %" PRIu32 ") could not be"
                               " applied in slab %u",
                               blockNumber, entryPoint.entry_count,
-                              getJournalOperationName(entry.operation),
+                              get_journal_operation_name(entry.operation),
                               entry.sbn, slab->slabNumber);
       return result;
     }

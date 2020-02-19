@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#22 $
  */
 
 /*
@@ -499,8 +499,8 @@ static void journalIncrement(struct data_vio *dataVIO, struct pbn_lock *lock)
   setUpReferenceOperationWithLock(DATA_INCREMENT, dataVIO->newMapped.pbn,
                                   dataVIO->newMapped.state, lock,
                                   &dataVIO->operation);
-  addRecoveryJournalEntry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
-                          dataVIO);
+  add_recovery_journal_entry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
+                             dataVIO);
 }
 
 /**
@@ -513,8 +513,8 @@ static void journalDecrement(struct data_vio *dataVIO)
   setUpReferenceOperationWithZone(DATA_DECREMENT, dataVIO->mapped.pbn,
                                   dataVIO->mapped.state, dataVIO->mapped.zone,
                                   &dataVIO->operation);
-  addRecoveryJournalEntry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
-                          dataVIO);
+  add_recovery_journal_entry(getVDOFromDataVIO(dataVIO)->recoveryJournal,
+                             dataVIO);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#27 $
  */
 
 #include "vdoLoad.h"
@@ -78,7 +78,7 @@ static void closeRecoveryJournalForAbort(struct vdo_completion *completion)
 {
   struct vdo *vdo = vdoFromLoadSubTask(completion);
   prepare_admin_sub_task(vdo, finishAborting, finishAborting);
-  drainRecoveryJournal(vdo->recoveryJournal, ADMIN_STATE_SAVING, completion);
+  drain_recovery_journal(vdo->recoveryJournal, ADMIN_STATE_SAVING, completion);
 }
 
 /**
@@ -228,7 +228,7 @@ static void loadCallback(struct vdo_completion *completion)
   assertOnAdminThread(vdo, __func__);
 
   // Prepare the recovery journal for new entries.
-  openRecoveryJournal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
+  open_recovery_journal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
   vdo->closeRequired = true;
   if (is_read_only(vdo->readOnlyNotifier)) {
     // In read-only mode we don't use the allocator and it may not
@@ -296,19 +296,19 @@ static int finishVDODecode(struct vdo *vdo)
 {
   Buffer             *buffer       = getComponentBuffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  int result = makeRecoveryJournal(vdo->nonce, vdo->layer,
-                                   getVDOPartition(vdo->layout,
-                                                   RECOVERY_JOURNAL_PARTITION),
-                                   vdo->completeRecoveries,
-                                   vdo->config.recoveryJournalSize,
-                                   RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-                                   vdo->readOnlyNotifier, threadConfig,
-                                   &vdo->recoveryJournal);
+  int result = make_recovery_journal(vdo->nonce, vdo->layer,
+                                     getVDOPartition(vdo->layout,
+                                                     RECOVERY_JOURNAL_PARTITION),
+                                     vdo->completeRecoveries,
+                                     vdo->config.recoveryJournalSize,
+                                     RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
+                                     vdo->readOnlyNotifier, threadConfig,
+                                     &vdo->recoveryJournal);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = decodeRecoveryJournal(vdo->recoveryJournal, buffer);
+  result = decode_recovery_journal(vdo->recoveryJournal, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -382,7 +382,7 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
 
   BlockCount maximumAge = getConfiguredBlockMapMaximumAge(vdo);
   BlockCount journalLength
-    = getRecoveryJournalLength(vdo->config.recoveryJournalSize);
+    = get_recovery_journal_length(vdo->config.recoveryJournalSize);
   if ((maximumAge > (journalLength / 2)) || (maximumAge < 1)) {
     return VDO_BAD_CONFIGURATION;
   }

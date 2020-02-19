@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#15 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -41,7 +41,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
 		      <= ((VDO_BLOCK_SIZE - sizeof(PackedJournalHeader))
-			  / sizeof(PackedRecoveryJournalEntry)));
+			  / sizeof(packed_recovery_journal_entry)));
 
 	struct recovery_journal_block *block;
 	int result =
@@ -66,7 +66,7 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 		return result;
 	}
 
-	block->vio->completion.callbackThreadID = journal->threadID;
+	block->vio->completion.callbackThreadID = journal->thread_id;
 	initializeRing(&block->ring_node);
 	block->journal = journal;
 
@@ -112,7 +112,7 @@ static void set_active_sector(struct recovery_journal_block *block,
 {
 	block->sector = (struct packed_journal_sector *) sector;
 	block->sector->checkByte = get_block_header(block)->fields.checkByte;
-	block->sector->recoveryCount = block->journal->recoveryCount;
+	block->sector->recoveryCount = block->journal->recovery_count;
 	block->sector->entryCount = 0;
 }
 
@@ -127,16 +127,17 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 	block->uncommitted_entry_count = 0;
 
 	block->block_number =
-		getRecoveryJournalBlockNumber(journal, journal->tail);
+		get_recovery_journal_block_number(journal, journal->tail);
 
 	struct recovery_block_header unpacked = {
 		.metadataType = VDO_METADATA_RECOVERY_JOURNAL,
-		.blockMapDataBlocks = journal->blockMapDataBlocks,
-		.logicalBlocksUsed = journal->logicalBlocksUsed,
+		.blockMapDataBlocks = journal->block_map_data_blocks,
+		.logicalBlocksUsed = journal->logical_blocks_used,
 		.nonce = journal->nonce,
-		.recoveryCount = journal->recoveryCount,
+		.recoveryCount = journal->recovery_count,
 		.sequenceNumber = journal->tail,
-		.checkByte = computeRecoveryCheckByte(journal, journal->tail),
+		.checkByte = compute_recovery_check_byte(journal,
+							 journal->tail),
 	};
 	PackedJournalHeader *header = get_block_header(block);
 	packRecoveryBlockHeader(&unpacked, header);
@@ -216,7 +217,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Compose and encode the entry.
-		PackedRecoveryJournalEntry *packed_entry =
+		packed_recovery_journal_entry *packed_entry =
 			&block->sector->entries[block->sector->entryCount++];
 		struct tree_lock *lock = &data_vio->treeLock;
 		struct recovery_journal_entry new_entry = {
@@ -228,9 +229,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			.operation = data_vio->operation.type,
 			.slot = lock->treeSlots[lock->height].blockMapSlot,
 		};
-		*packed_entry = packRecoveryJournalEntry(&new_entry);
+		*packed_entry = pack_recovery_journal_entry(&new_entry);
 
-		if (isIncrementOperation(data_vio->operation.type)) {
+		if (is_increment_operation(data_vio->operation.type)) {
 			data_vio->recoverySequenceNumber =
 				block->sequence_number;
 		}
@@ -282,7 +283,7 @@ static bool should_commit(struct recovery_journal_block *block)
 	// if there are no entries to commit.
 	if ((block == NULL) || block->committing
 	    || !hasWaiters(&block->entry_waiters)
-	    || is_read_only(block->journal->readOnlyNotifier)) {
+	    || is_read_only(block->journal->read_only_notifier)) {
 		return false;
 	}
 
@@ -299,7 +300,7 @@ static bool should_commit(struct recovery_journal_block *block)
 	 * partial journal block until the last pending write completes, using
 	 * the last write's completion as a flush/wake-up.
 	 */
-	return (block->journal->pendingWriteCount == 0);
+	return (block->journal->pending_write_count == 0);
 }
 
 /**********************************************************************/
@@ -326,12 +327,13 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	PackedJournalHeader *header = get_block_header(block);
 
 	// Update stats to reflect the block and entries we're about to write.
-	journal->pendingWriteCount += 1;
+	journal->pending_write_count += 1;
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;
 
-	storeUInt64LE(header->fields.blockMapHead, journal->blockMapHead);
-	storeUInt64LE(header->fields.slabJournalHead, journal->slabJournalHead);
+	storeUInt64LE(header->fields.blockMapHead, journal->block_map_head);
+	storeUInt64LE(header->fields.slabJournalHead,
+		      journal->slab_journal_head);
 	storeUInt16LE(header->fields.entryCount, block->entry_count);
 
 	block->committing = true;

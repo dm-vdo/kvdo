@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#11 $
  */
 
 #include "blockMapPage.h"
@@ -106,20 +106,22 @@ void updateBlockMapPage(struct block_map_page *page,
 
   if ((oldLocked == 0) || (oldLocked > newLocked)) {
     // Acquire a lock on the newly referenced journal block.
-    acquireRecoveryJournalBlockReference(journal, newLocked, ZONE_TYPE_LOGICAL,
-                                         zone->zoneNumber);
+    acquire_recovery_journal_block_reference(journal,
+                                             newLocked,
+                                             ZONE_TYPE_LOGICAL,
+                                             zone->zoneNumber);
 
     // If the block originally held a newer lock, release it.
     if (oldLocked > 0) {
-      releaseRecoveryJournalBlockReference(journal, oldLocked,
-                                           ZONE_TYPE_LOGICAL,
-                                           zone->zoneNumber);
+      release_recovery_journal_block_reference(journal, oldLocked,
+                                               ZONE_TYPE_LOGICAL,
+                                               zone->zoneNumber);
     }
 
     *recoveryLock = newLocked;
   }
 
   // Release the transferred lock from the data_vio.
-  releasePerEntryLockFromOtherZone(journal, newLocked);
+  release_per_entry_lock_from_other_zone(journal, newLocked);
   dataVIO->recoverySequenceNumber = 0;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#7 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -31,21 +31,20 @@
 /**
  * Get the block header for a block at a position in the journal data.
  *
- * @param journal      The recovery journal
- * @param journalData  The recovery journal data
- * @param sequence     The sequence number
+ * @param journal       The recovery journal
+ * @param journal_data  The recovery journal data
+ * @param sequence      The sequence number
  *
- * @return A pointer to a packed recovery journal block header.
+ * @return A pointer to a packed recovery journal blokck header.
  **/
-__attribute__((warn_unused_result))
-static inline
-PackedJournalHeader *getJournalBlockHeader(struct recovery_journal *journal,
-                                           char                    *journalData,
-                                           SequenceNumber           sequence)
+__attribute__((warn_unused_result)) static inline PackedJournalHeader *
+get_journal_block_header(struct recovery_journal *journal, char *journal_data,
+			 SequenceNumber sequence)
 {
-  off_t blockOffset = (getRecoveryJournalBlockNumber(journal, sequence)
-                       * VDO_BLOCK_SIZE);
-  return (PackedJournalHeader *) &journalData[blockOffset];
+	off_t block_offset = (get_recovery_journal_block_number(journal,
+								sequence)
+			      * VDO_BLOCK_SIZE);
+	return (PackedJournalHeader *) &journal_data[block_offset];
 }
 
 /**
@@ -58,14 +57,13 @@ PackedJournalHeader *getJournalBlockHeader(struct recovery_journal *journal,
  *
  * @return <code>True</code> if the header is valid
  **/
-__attribute__((warn_unused_result))
-static inline
-bool isValidRecoveryJournalBlock(const struct recovery_journal      *journal,
-                                 const struct recovery_block_header *header)
+__attribute__((warn_unused_result)) static inline bool
+is_valid_recovery_journal_block(const struct recovery_journal *journal,
+				const struct recovery_block_header *header)
 {
-  return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
-          && (header->nonce == journal->nonce)
-          && (header->recoveryCount == journal->recoveryCount));
+	return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
+		&& (header->nonce == journal->nonce)
+		&& (header->recoveryCount == journal->recovery_count));
 }
 
 /**
@@ -77,14 +75,13 @@ bool isValidRecoveryJournalBlock(const struct recovery_journal      *journal,
  *
  * @return <code>True</code> if the block matches
  **/
-__attribute__((warn_unused_result))
-static inline
-bool isExactRecoveryJournalBlock(const struct recovery_journal      *journal,
-                                 const struct recovery_block_header *header,
-                                 SequenceNumber                      sequence)
+__attribute__((warn_unused_result)) static inline bool
+is_exact_recovery_journal_block(const struct recovery_journal *journal,
+				const struct recovery_block_header *header,
+				SequenceNumber sequence)
 {
-  return ((header->sequenceNumber == sequence)
-          && isValidRecoveryJournalBlock(journal, header));
+	return ((header->sequenceNumber == sequence)
+		&& is_valid_recovery_journal_block(journal, header));
 }
 
 /**
@@ -96,49 +93,48 @@ bool isExactRecoveryJournalBlock(const struct recovery_journal      *journal,
  *
  * @return <code>True</code> if the sector matches the block header
  **/
-__attribute__((warn_unused_result))
-static inline
-bool isValidRecoveryJournalSector(const struct recovery_block_header *header,
-                                  const struct packed_journal_sector *sector)
+__attribute__((warn_unused_result)) static inline bool
+is_valid_recovery_journal_sector(const struct recovery_block_header *header,
+				 const struct packed_journal_sector *sector)
 {
-  return ((header->checkByte == sector->checkByte)
-          && (header->recoveryCount == sector->recoveryCount));
+	return ((header->checkByte == sector->checkByte)
+		&& (header->recoveryCount == sector->recoveryCount));
 }
 
 /**
  * Load the journal data off the disk.
  *
- * @param [in]  journal         The recovery journal to load
- * @param [in]  parent          The completion to notify when the load is
- *                              complete
- * @param [out] journalDataPtr  A pointer to the journal data buffer (it is the
- *                              caller's responsibility to free this buffer)
+ * @param [in]  journal           The recovery journal to load
+ * @param [in]  parent            The completion to notify when the load is
+ *                                complete
+ * @param [out] journal_data_ptr  A pointer to the journal data buffer (it is
+ *                                the caller's responsibility to free this
+ *                                buffer)
  **/
-void loadJournalAsync(struct recovery_journal *journal,
-                      struct vdo_completion   *parent,
-                      char                   **journalDataPtr);
+void load_journal_async(struct recovery_journal *journal,
+			struct vdo_completion *parent,
+			char **journal_data_ptr);
 
 /**
  * Find the tail and the head of the journal by searching for the highest
  * sequence number in a block with a valid nonce, and the highest head value
  * among the blocks with valid nonces.
  *
- * @param [in]  journal             The recovery journal
- * @param [in]  journalData         The journal data read from disk
- * @param [out] tailPtr             A pointer to return the tail found, or if
- *                                  no higher block is found, the value
- *                                  currently in the journal
- * @param [out] blockMapHeadPtr     A pointer to return the block map head
- * @param [out] slabJournalHeadPtr  An optional pointer to return the slab
- *                                  journal head
+ * @param [in]  journal                The recovery journal
+ * @param [in]  journal_data           The journal data read from disk
+ * @param [out] tail_ptr               A pointer to return the tail found, or if
+ *                                     no higher block is found, the value
+ *                                     currently in the journal
+ * @param [out] block_map_head_ptr     A pointer to return the block map head
+ * @param [out] slab_journal_head_ptr  An optional pointer to return the slab
+ *                                     journal head
  *
  * @return  <code>True</code> if there were valid journal blocks
  **/
-bool findHeadAndTail(struct recovery_journal *journal,
-                     char                    *journalData,
-                     SequenceNumber          *tailPtr,
-                     SequenceNumber          *blockMapHeadPtr,
-                     SequenceNumber          *slabJournalHeadPtr);
+bool find_head_and_tail(struct recovery_journal *journal, char *journal_data,
+			SequenceNumber *tail_ptr,
+			SequenceNumber *block_map_head_ptr,
+			SequenceNumber *slab_journal_head_ptr);
 
 /**
  * Validate a recovery journal entry.
@@ -148,8 +144,8 @@ bool findHeadAndTail(struct recovery_journal *journal,
  *
  * @return VDO_SUCCESS or an error
  **/
-int validateRecoveryJournalEntry(const struct vdo                    *vdo,
-                                 const struct recovery_journal_entry *entry)
-  __attribute__((warn_unused_result));
+int validate_recovery_journal_entry(const struct vdo *vdo,
+				    const struct recovery_journal_entry *entry)
+	__attribute__((warn_unused_result));
 
 #endif // RECOVERY_UTILS_H

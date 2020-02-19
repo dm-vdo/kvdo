@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#32 $
  */
 
 #include "slabJournalInternals.h"
@@ -545,10 +545,10 @@ static void releaseJournalLocks(struct waiter *waiter, void *context)
     // (During replay, recoveryStart will always be 0.)
     if (journal->recoveryJournal != NULL) {
       ZoneCount zoneNumber = journal->slab->allocator->zone_number;
-      releaseRecoveryJournalBlockReference(journal->recoveryJournal,
-                                           getLock(journal, i)->recoveryStart,
-                                           ZONE_TYPE_PHYSICAL,
-                                           zoneNumber);
+      release_recovery_journal_block_reference(journal->recoveryJournal,
+                                               getLock(journal, i)->recoveryStart,
+                                               ZONE_TYPE_PHYSICAL,
+                                               zoneNumber);
 
     }
 
@@ -780,7 +780,7 @@ void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
   }
 
   packSlabJournalEntry(&payload->entries[entryNumber], sbn,
-                       isIncrementOperation(operation));
+                       is_increment_operation(operation));
 }
 
 /**********************************************************************/
@@ -946,9 +946,10 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
     getLock(journal, header->sequenceNumber)->recoveryStart = recoveryBlock;
     if (journal->recoveryJournal != NULL) {
       ZoneCount zoneNumber = journal->slab->allocator->zone_number;
-      acquireRecoveryJournalBlockReference(journal->recoveryJournal,
-                                           recoveryBlock, ZONE_TYPE_PHYSICAL,
-                                           zoneNumber);
+      acquire_recovery_journal_block_reference(journal->recoveryJournal,
+                                               recoveryBlock,
+                                               ZONE_TYPE_PHYSICAL,
+                                               zoneNumber);
     }
     markSlabJournalDirty(journal, recoveryBlock);
 

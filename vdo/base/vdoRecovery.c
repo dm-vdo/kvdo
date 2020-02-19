@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#37 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -368,8 +368,9 @@ static void finishRecovery(struct vdo_completion *completion)
   struct recovery_completion *recovery      = asRecoveryCompletion(completion);
   struct vdo                 *vdo           = recovery->vdo;
   uint64_t                    recoveryCount = ++vdo->completeRecoveries;
-  initializeRecoveryJournalPostRecovery(vdo->recoveryJournal,
-                                        recoveryCount, recovery->highestTail);
+  initialize_recovery_journal_post_recovery(vdo->recoveryJournal,
+                                            recoveryCount,
+                                            recovery->highestTail);
   freeRecoveryCompletion(&recovery);
   logInfo("Rebuild complete.");
 
@@ -428,12 +429,12 @@ getEntry(const struct recovery_completion *recovery,
 {
   struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   PhysicalBlockNumber blockNumber
-    = getRecoveryJournalBlockNumber(journal, point->sequenceNumber);
+    = get_recovery_journal_block_number(journal, point->sequenceNumber);
   off_t sectorOffset
     = (blockNumber * VDO_BLOCK_SIZE) + (point->sectorCount * VDO_SECTOR_SIZE);
   struct packed_journal_sector *sector
     = (struct packed_journal_sector *) &recovery->journalData[sectorOffset];
-  return unpackRecoveryJournalEntry(&sector->entries[point->entryCount]);
+  return unpack_recovery_journal_entry(&sector->entries[point->entryCount]);
 }
 
 /**
@@ -464,13 +465,13 @@ static int extractJournalEntries(struct recovery_completion *recovery)
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
     struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
-    result = validateRecoveryJournalEntry(recovery->vdo, &entry);
+    result = validate_recovery_journal_entry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
       enter_read_only_mode(recovery->vdo->readOnlyNotifier, result);
       return result;
     }
 
-    if (isIncrementOperation(entry.operation)) {
+    if (is_increment_operation(entry.operation)) {
       recovery->entries[recovery->entryCount] = (struct numbered_block_mapping) {
         .blockMapSlot  = entry.slot,
         .blockMapEntry = packPBN(entry.mapping.pbn, entry.mapping.state),
@@ -556,8 +557,8 @@ static void finishRecoveringDepot(struct vdo_completion *completion)
           recovery->entriesAddedToSlabJournals);
   logInfo("Synthesized %zu missing journal entries",
           recovery->missingDecrefCount);
-  vdo->recoveryJournal->logicalBlocksUsed  = recovery->logicalBlocksUsed;
-  vdo->recoveryJournal->blockMapDataBlocks = recovery->blockMapDataBlocks;
+  vdo->recoveryJournal->logical_blocks_used  = recovery->logicalBlocksUsed;
+  vdo->recoveryJournal->block_map_data_blocks = recovery->blockMapDataBlocks;
 
   prepareSubTask(recovery, startSuperBlockSave, finishParentCallback,
                  ZONE_TYPE_ADMIN);
@@ -624,7 +625,7 @@ static int computeUsages(struct recovery_completion *recovery)
 {
   struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   PackedJournalHeader *tailHeader
-    = getJournalBlockHeader(journal, recovery->journalData, recovery->tail);
+    = get_journal_block_header(journal, recovery->journalData, recovery->tail);
 
   struct recovery_block_header unpacked;
   unpackRecoveryBlockHeader(tailHeader, &unpacked);
@@ -706,11 +707,11 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
   struct recovery_point *recoveryPoint;
   for (recoveryPoint = &recovery->nextRecoveryPoint;
        beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
-       advancePoints(recovery, journal->entriesPerBlock)) {
+       advancePoints(recovery, journal->entries_per_block)) {
     struct recovery_journal_entry entry = getEntry(recovery, recoveryPoint);
-    int result = validateRecoveryJournalEntry(vdo, &entry);
+    int result = validate_recovery_journal_entry(vdo, &entry);
     if (result != VDO_SUCCESS) {
-      enter_read_only_mode(journal->readOnlyNotifier, result);
+      enter_read_only_mode(journal->read_only_notifier, result);
       finishCompletion(completion, result);
       return;
     }
@@ -890,7 +891,7 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
   // synthesized entry.
   recovery->nextSynthesizedJournalPoint = (struct journal_point) {
     .sequence_number = recovery->tail,
-    .entry_count     = recovery->vdo->recoveryJournal->entriesPerBlock,
+    .entry_count     = recovery->vdo->recoveryJournal->entries_per_block,
   };
 
   struct recovery_point recoveryPoint = recovery->tailRecoveryPoint;
@@ -898,7 +899,7 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
     decrementRecoveryPoint(&recoveryPoint);
     struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
 
-    if (!isIncrementOperation(entry.operation)) {
+    if (!is_increment_operation(entry.operation)) {
       // Observe that we've seen a decref before its incref, but only if
       // the int_map does not contain an unpaired incref for this lbn.
       int result = int_map_put(slotEntryMap, slotAsNumber(entry.slot),
@@ -1097,12 +1098,12 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     };
 
     PackedJournalHeader *packedHeader
-      = getJournalBlockHeader(journal, recovery->journalData, i);
+      = get_journal_block_header(journal, recovery->journalData, i);
     struct recovery_block_header header;
     unpackRecoveryBlockHeader(packedHeader, &header);
 
-    if (!isExactRecoveryJournalBlock(journal, &header, i)
-        || (header.entryCount > journal->entriesPerBlock)) {
+    if (!is_exact_recovery_journal_block(journal, &header, i)
+        || (header.entryCount > journal->entries_per_block)) {
       // A bad block header was found so this must be the end of the journal.
       break;
     }
@@ -1115,7 +1116,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
         = getJournalBlockSector(packedHeader, j);
 
       // A bad sector means that this block was torn.
-      if (!isValidRecoveryJournalSector(&header, sector)) {
+      if (!is_valid_recovery_journal_sector(&header, sector)) {
         break;
       }
 
@@ -1136,7 +1137,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     }
 
     // If this block was not filled, or if it tore, no later block can matter.
-    if ((header.entryCount != journal->entriesPerBlock)
+    if ((header.entryCount != journal->entries_per_block)
         || (blockEntries > 0)) {
       break;
     }
@@ -1164,12 +1165,12 @@ static int countIncrementEntries(struct recovery_completion *recovery)
   };
   while (beforeRecoveryPoint(&recoveryPoint, &recovery->tailRecoveryPoint)) {
     struct recovery_journal_entry entry = getEntry(recovery, &recoveryPoint);
-    int result = validateRecoveryJournalEntry(recovery->vdo, &entry);
+    int result = validate_recovery_journal_entry(recovery->vdo, &entry);
     if (result != VDO_SUCCESS) {
       enter_read_only_mode(recovery->vdo->readOnlyNotifier, result);
       return result;
     }
-    if (isIncrementOperation(entry.operation)) {
+    if (is_increment_operation(entry.operation)) {
       recovery->increfCount++;
     }
     incrementRecoveryPoint(&recoveryPoint);
@@ -1191,10 +1192,10 @@ static void prepareToApplyJournalEntries(struct vdo_completion *completion)
   struct vdo                 *vdo      = recovery->vdo;
   struct recovery_journal    *journal  = vdo->recoveryJournal;
   logInfo("Finished reading recovery journal");
-  bool foundEntries = findHeadAndTail(journal, recovery->journalData,
-                                      &recovery->highestTail,
-                                      &recovery->blockMapHead,
-                                      &recovery->slabJournalHead);
+  bool foundEntries = find_head_and_tail(journal, recovery->journalData,
+                                         &recovery->highestTail,
+                                         &recovery->blockMapHead,
+                                         &recovery->slabJournalHead);
   if (foundEntries) {
     foundEntries = findContiguousRange(recovery);
   }
@@ -1276,6 +1277,6 @@ void launchRecovery(struct vdo *vdo, struct vdo_completion *parent)
                     parent->callbackThreadID, parent);
   prepareSubTask(recovery, prepareToApplyJournalEntries, finishParentCallback,
                  ZONE_TYPE_ADMIN);
-  loadJournalAsync(vdo->recoveryJournal, &recovery->subTaskCompletion,
-                   &recovery->journalData);
+  load_journal_async(vdo->recoveryJournal, &recovery->subTaskCompletion,
+                     &recovery->journalData);
 }

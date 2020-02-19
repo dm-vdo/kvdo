@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#33 $
  */
 
 /*
@@ -137,7 +137,7 @@ void destroyVDO(struct vdo *vdo)
 {
   free_flusher(&vdo->flusher);
   free_packer(&vdo->packer);
-  freeRecoveryJournal(&vdo->recoveryJournal);
+  free_recovery_journal(&vdo->recoveryJournal);
   freeSlabDepot(&vdo->depot);
   freeVDOLayout(&vdo->layout);
   freeSuperBlock(&vdo->superBlock);
@@ -200,7 +200,7 @@ size_t getComponentDataSize(struct vdo *vdo)
           + sizeof(struct version_number)
           + sizeof(struct vdo_component_41_0)
           + getVDOLayoutEncodedSize(vdo->layout)
-          + getRecoveryJournalEncodedSize()
+          + get_recovery_journal_encoded_size()
           + getSlabDepotEncodedSize()
           + getBlockMapEncodedSize());
 }
@@ -324,7 +324,7 @@ static int encodeVDO(struct vdo *vdo)
     return result;
   }
 
-  result = encodeRecoveryJournal(vdo->recoveryJournal, buffer);
+  result = encode_recovery_journal(vdo->recoveryJournal, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -872,9 +872,9 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
   // The callees are responsible for thread-safety.
   stats->dataBlocksUsed     = getPhysicalBlocksAllocated(vdo);
   stats->overheadBlocksUsed = getPhysicalBlocksOverhead(vdo);
-  stats->logicalBlocksUsed  = getJournalLogicalBlocksUsed(journal);
+  stats->logicalBlocksUsed  = get_journal_logical_blocks_used(journal);
   stats->allocator          = getDepotBlockAllocatorStatistics(depot);
-  stats->journal            = getRecoveryJournalStatistics(journal);
+  stats->journal            = get_recovery_journal_statistics(journal);
   stats->packer             = get_packer_statistics(vdo->packer);
   stats->slabJournal        = getDepotSlabJournalStatistics(depot);
   stats->slabSummary        = getSlabSummaryStatistics(getSlabSummary(depot));
@@ -895,7 +895,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
 {
   return (getDepotAllocatedBlocks(vdo->depot)
-          - getJournalBlockMapDataBlocksUsed(vdo->recoveryJournal));
+          - get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
@@ -911,14 +911,14 @@ BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
   // packed structure, but resize runs on admin thread so we're usually OK.
   return (vdo->config.physicalBlocks
           - getDepotDataBlocks(vdo->depot)
-          + getJournalBlockMapDataBlocksUsed(vdo->recoveryJournal));
+          + get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
 BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
 {
   return (getNumberOfFixedBlockMapPages(vdo->blockMap)
-          + getJournalBlockMapDataBlocksUsed(vdo->recoveryJournal));
+          + get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
@@ -985,7 +985,7 @@ struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
 void dumpVDOStatus(const struct vdo *vdo)
 {
   dump_flusher(vdo->flusher);
-  dumpRecoveryJournalStatistics(vdo->recoveryJournal);
+  dump_recovery_journal_statistics(vdo->recoveryJournal);
   dump_packer(vdo->packer);
   dumpSlabDepot(vdo->depot);
 

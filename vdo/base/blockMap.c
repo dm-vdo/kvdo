@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#38 $
  */
 
 #include "blockMap.h"
@@ -117,9 +117,9 @@ static bool handlePageWrite(void                  *rawPage,
   }
 
   // Release the page's references on the recovery journal.
-  releaseRecoveryJournalBlockReference(zone->blockMap->journal,
-                                       context->recoveryLock,
-                                       ZONE_TYPE_LOGICAL, zone->zoneNumber);
+  release_recovery_journal_block_reference(zone->blockMap->journal,
+                                           context->recoveryLock,
+                                           ZONE_TYPE_LOGICAL, zone->zoneNumber);
   context->recoveryLock = 0;
   return false;
 }
@@ -393,7 +393,7 @@ int makeBlockMapCaches(struct block_map          *map,
   }
 
   return make_action_manager(map->zoneCount, getBlockMapZoneThreadID,
-                             getRecoveryJournalThreadID(journal), map,
+                             get_recovery_journal_thread_id(journal), map,
                              scheduleEraAdvance, layer,
                              &map->actionManager);
 }
@@ -475,7 +475,7 @@ int encodeBlockMap(const struct block_map *map, Buffer *buffer)
 void initializeBlockMapFromJournal(struct block_map        *map,
                                    struct recovery_journal *journal)
 {
-  map->currentEraPoint  = getCurrentJournalSequenceNumber(journal);
+  map->currentEraPoint  = get_current_journal_sequence_number(journal);
   map->pendingEraPoint  = map->currentEraPoint;
 
   ZoneCount zone = 0;
