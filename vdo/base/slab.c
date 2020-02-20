@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#25 $
  */
 
 #include "slab.h"
@@ -137,7 +137,7 @@ int makeSlab(PhysicalBlockNumber       slabOrigin,
     return result;
   }
 
-  const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
+  const SlabConfig *slabConfig = get_slab_config(allocator->depot);
 
   slab->allocator  = allocator;
   slab->start      = slabOrigin;
@@ -172,7 +172,7 @@ int makeSlab(PhysicalBlockNumber       slabOrigin,
 int allocateRefCountsForSlab(struct vdo_slab *slab)
 {
   struct block_allocator *allocator  = slab->allocator;
-  const SlabConfig       *slabConfig = getSlabConfig(allocator->depot);
+  const SlabConfig       *slabConfig = get_slab_config(allocator->depot);
 
   int result = ASSERT(slab->referenceCounts == NULL,
                       "vdo_slab %u doesn't allocate refcounts twice",
@@ -291,7 +291,7 @@ int slabBlockNumberFromPBN(struct vdo_slab     *slab,
   }
 
   uint64_t slabBlockNumber = physicalBlockNumber - slab->start;
-  if (slabBlockNumber >= getSlabConfig(slab->allocator->depot)->dataBlocks) {
+  if (slabBlockNumber >= get_slab_config(slab->allocator->depot)->dataBlocks) {
     return VDO_OUT_OF_RANGE;
   }
 
@@ -304,7 +304,7 @@ bool shouldSaveFullyBuiltSlab(const struct vdo_slab *slab)
 {
   // Write out the refCounts if the slab has written them before, or it has
   // any non-zero reference counts, or there are any slab journal blocks.
-  BlockCount dataBlocks = getSlabConfig(slab->allocator->depot)->dataBlocks;
+  BlockCount dataBlocks = get_slab_config(slab->allocator->depot)->dataBlocks;
   return (mustLoadRefCounts(slab->allocator->summary, slab->slabNumber)
           || (getSlabFreeBlockCount(slab) != dataBlocks)
           || !isSlabJournalBlank(slab->journal));

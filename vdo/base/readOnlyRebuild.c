@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#19 $
  */
 
 #include "readOnlyRebuild.h"
@@ -221,7 +221,7 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 
 	logInfo("Saving rebuilt state");
 	prepareToFinishParent(completion, &rebuild->completion);
-	drainSlabDepot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
+	drain_slab_depot(vdo->depot, ADMIN_STATE_REBUILDING, completion);
 }
 
 /**
@@ -237,7 +237,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 
 	// We must allocate RefCounts before we can rebuild them.
-	int result = allocateSlabRefCounts(vdo->depot);
+	int result = allocate_slab_ref_counts(vdo->depot);
 	if (abort_rebuild_on_error(result, rebuild)) {
 		return;
 	}
@@ -468,8 +468,8 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 			  finishParentCallback,
 			  getLogicalZoneThread(getThreadConfig(vdo), 0),
 			  completion);
-	loadSlabDepot(vdo->depot,
-		      ADMIN_STATE_LOADING_FOR_REBUILD,
-		      sub_task_completion,
-		      NULL);
+	load_slab_depot(vdo->depot,
+			ADMIN_STATE_LOADING_FOR_REBUILD,
+			sub_task_completion,
+			NULL);
 }

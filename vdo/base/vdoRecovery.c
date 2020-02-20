@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#38 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -376,7 +376,7 @@ static void finishRecovery(struct vdo_completion *completion)
 
   // Now that we've freed the recovery completion and its vast array of
   // journal entries, we can allocate refcounts.
-  int result = allocateSlabRefCounts(vdo->depot);
+  int result = allocate_slab_ref_counts(vdo->depot);
   finishCompletion(parent, result);
 }
 
@@ -562,7 +562,7 @@ static void finishRecoveringDepot(struct vdo_completion *completion)
 
   prepareSubTask(recovery, startSuperBlockSave, finishParentCallback,
                  ZONE_TYPE_ADMIN);
-  drainSlabDepot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
+  drain_slab_depot(vdo->depot, ADMIN_STATE_RECOVERING, completion);
 }
 
 /**
@@ -720,7 +720,7 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
       continue;
     }
 
-    struct vdo_slab *slab = getSlab(vdo->depot, entry.mapping.pbn);
+    struct vdo_slab *slab = get_slab(vdo->depot, entry.mapping.pbn);
     if (slab->allocator != recovery->allocator) {
       continue;
     }
@@ -791,8 +791,8 @@ static void queueOnPhysicalZone(struct waiter *waiter, void *context)
     return;
   }
 
-  decref->slabJournal = getSlabJournal((struct slab_depot *) context,
-                                       mapping.pbn);
+  decref->slabJournal = get_slab_journal((struct slab_depot *) context,
+                                         mapping.pbn);
   ZoneCount zoneNumber = decref->slabJournal->slab->allocator->zone_number;
   enqueueMissingDecref(&decref->recovery->missingDecrefs[zoneNumber], decref);
 }
@@ -818,7 +818,8 @@ static void applyToDepot(struct vdo_completion *completion)
     return;
   }
 
-  loadSlabDepot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion, recovery);
+  load_slab_depot(depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion,
+                  recovery);
 }
 
 /**
@@ -837,7 +838,7 @@ static int recordMissingDecref(struct missing_decref *decref,
   struct recovery_completion *recovery = decref->recovery;
   recovery->incompleteDecrefCount--;
   if (isValidLocation(&location)
-      && isPhysicalDataBlock(recovery->vdo->depot, location.pbn)) {
+      && is_physical_data_block(recovery->vdo->depot, location.pbn)) {
     decref->penultimateMapping = location;
     decref->complete           = true;
     return VDO_SUCCESS;
@@ -1223,8 +1224,8 @@ static void prepareToApplyJournalEntries(struct vdo_completion *completion)
     recovery->journalData = NULL;
     prepareSubTask(recovery, finishParentCallback, finishParentCallback,
                    ZONE_TYPE_ADMIN);
-    loadSlabDepot(getSlabDepot(vdo), ADMIN_STATE_LOADING_FOR_RECOVERY,
-                  completion, recovery);
+    load_slab_depot(getSlabDepot(vdo), ADMIN_STATE_LOADING_FOR_RECOVERY,
+                    completion, recovery);
     return;
   }
 
@@ -1244,8 +1245,8 @@ static void prepareToApplyJournalEntries(struct vdo_completion *completion)
     // We need to access the block map from a logical zone.
     prepareSubTask(recovery, launchBlockMapRecovery, finishParentCallback,
                    ZONE_TYPE_LOGICAL);
-    loadSlabDepot(vdo->depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion,
-                  recovery);
+    load_slab_depot(vdo->depot, ADMIN_STATE_LOADING_FOR_RECOVERY, completion,
+                    recovery);
     return;
   }
 

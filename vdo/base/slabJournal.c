@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#33 $
  */
 
 #include "slabJournalInternals.h"
@@ -233,7 +233,7 @@ int makeSlabJournal(struct block_allocator   *allocator,
                     struct slab_journal     **journalPtr)
 {
   struct slab_journal *journal;
-  const SlabConfig *slabConfig = getSlabConfig(allocator->depot);
+  const SlabConfig *slabConfig = get_slab_config(allocator->depot);
   int result = ALLOCATE_EXTENDED(struct slab_journal,
                                  slabConfig->slabJournalBlocks,
                                  struct journal_lock, __func__, &journal);

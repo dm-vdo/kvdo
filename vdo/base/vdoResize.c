@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#19 $
  */
 
 #include "vdoResize.h"
@@ -98,16 +98,16 @@ static void growPhysicalCallback(struct vdo_completion *completion)
 
   case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
     vdo->config.physicalBlocks = growVDOLayout(vdo->layout);
-    updateSlabDepotSize(vdo->depot);
+    update_slab_depot_size(vdo->depot);
     saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
     return;
 
   case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
-    useNewSlabs(vdo->depot, reset_admin_sub_task(completion));
+    use_new_slabs(vdo->depot, reset_admin_sub_task(completion));
     return;
 
   case GROW_PHYSICAL_PHASE_END:
-    setSlabSummaryOrigin(getSlabSummary(vdo->depot),
+    setSlabSummaryOrigin(get_slab_summary(vdo->depot),
                          getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
     set_recovery_journal_partition(vdo->recoveryJournal,
                                    getVDOPartition(vdo->layout,
@@ -154,13 +154,13 @@ int performGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
      * the call to this method is done under the dmsetup message lock.
      */
     finishVDOLayoutGrowth(vdo->layout);
-    abandonNewSlabs(vdo->depot);
+    abandon_new_slabs(vdo->depot);
     return VDO_PARAMETER_MISMATCH;
   }
 
   // Validate that we are prepared to grow appropriately.
   BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
-  BlockCount preparedDepotSize = getNewDepotSize(vdo->depot);
+  BlockCount preparedDepotSize = get_new_depot_size(vdo->depot);
   if (preparedDepotSize != newDepotSize) {
     return VDO_PARAMETER_MISMATCH;
   }
@@ -226,7 +226,7 @@ int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
                " not greater than %llu",
                newPhysicalBlocks, currentPhysicalBlocks);
     finishVDOLayoutGrowth(vdo->layout);
-    abandonNewSlabs(vdo->depot);
+    abandon_new_slabs(vdo->depot);
     return VDO_PARAMETER_MISMATCH;
   }
 
@@ -246,7 +246,7 @@ int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
   }
 
   BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
-  result = prepareToGrowSlabDepot(vdo->depot, newDepotSize);
+  result = prepare_to_grow_slab_depot(vdo->depot, newDepotSize);
   if (result != VDO_SUCCESS) {
     finishVDOLayoutGrowth(vdo->layout);
     return result;

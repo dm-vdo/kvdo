@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#24 $
  */
 
 /*
@@ -528,14 +528,14 @@ static void updateReferenceCount(struct data_vio *dataVIO)
 {
   struct slab_depot   *depot = getVDOFromDataVIO(dataVIO)->depot;
   PhysicalBlockNumber  pbn   = dataVIO->operation.pbn;
-  int result = ASSERT(isPhysicalDataBlock(depot, pbn),
+  int result = ASSERT(is_physical_data_block(depot, pbn),
                       "Adding slab journal entry for impossible PBN %" PRIu64
                       "for LBN %llu", pbn, dataVIO->logical.lbn);
   if (abortOnError(result, dataVIO, READ_ONLY)) {
     return;
   }
 
-  addSlabJournalEntry(getSlabJournal(depot, pbn), dataVIO);
+  addSlabJournalEntry(get_slab_journal(depot, pbn), dataVIO);
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#15 $
  */
 
 #include "vdoSuspend.h"
@@ -169,8 +169,8 @@ static void suspendCallback(struct vdo_completion *completion)
     return;
 
   case SUSPEND_PHASE_DEPOT:
-    drainSlabDepot(vdo->depot, vdo->adminState.state,
-                   reset_admin_sub_task(completion));
+    drain_slab_depot(vdo->depot, vdo->adminState.state,
+                     reset_admin_sub_task(completion));
     return;
 
   case SUSPEND_PHASE_WRITE_SUPER_BLOCK:

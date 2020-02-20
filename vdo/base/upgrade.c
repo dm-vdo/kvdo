@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#11 $
  */
 
 #include "upgrade.h"
@@ -186,11 +186,12 @@ static int finishSodiumDecode(struct vdo *vdo)
     return result;
   }
 
-  result = decodeSodiumSlabDepot(buffer, threadConfig, vdo->nonce, vdo->layer,
-                                 getVDOPartition(vdo->layout,
-                                                 SLAB_SUMMARY_PARTITION),
-                                 vdo->readOnlyNotifier, vdo->recoveryJournal,
-                                 &vdo->depot);
+  result = decode_sodium_slab_depot(buffer, threadConfig,
+                                    vdo->nonce, vdo->layer,
+                                    getVDOPartition(vdo->layout,
+                                                    SLAB_SUMMARY_PARTITION),
+                                    vdo->readOnlyNotifier, vdo->recoveryJournal,
+                                    &vdo->depot);
   if (result != VDO_SUCCESS) {
     return result;
   }

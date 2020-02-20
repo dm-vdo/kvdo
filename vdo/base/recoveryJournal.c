@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#34 $
  */
 
 #include "recoveryJournal.h"
@@ -296,8 +296,8 @@ check_slab_journal_commit_threshold(struct recovery_journal *journal)
 	BlockCount current_length = journal->tail - journal->slab_journal_head;
 	if (current_length > journal->slab_journal_commit_threshold) {
 		journal->events.slabJournalCommitsRequested++;
-		commitOldestSlabJournalTailBlocks(journal->depot,
-						  journal->slab_journal_head);
+		commit_oldest_slab_journal_tail_blocks(journal->depot,
+						       journal->slab_journal_head);
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#34 $
  */
 
 /*
@@ -138,7 +138,7 @@ void destroyVDO(struct vdo *vdo)
   free_flusher(&vdo->flusher);
   free_packer(&vdo->packer);
   free_recovery_journal(&vdo->recoveryJournal);
-  freeSlabDepot(&vdo->depot);
+  free_slab_depot(&vdo->depot);
   freeVDOLayout(&vdo->layout);
   freeSuperBlock(&vdo->superBlock);
   freeBlockMap(&vdo->blockMap);
@@ -201,7 +201,7 @@ size_t getComponentDataSize(struct vdo *vdo)
           + sizeof(struct vdo_component_41_0)
           + getVDOLayoutEncodedSize(vdo->layout)
           + get_recovery_journal_encoded_size()
-          + getSlabDepotEncodedSize()
+          + get_slab_depot_encoded_size()
           + getBlockMapEncodedSize());
 }
 
@@ -329,7 +329,7 @@ static int encodeVDO(struct vdo *vdo)
     return result;
   }
 
-  result = encodeSlabDepot(vdo->depot, buffer);
+  result = encode_slab_depot(vdo->depot, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -873,18 +873,18 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
   stats->dataBlocksUsed     = getPhysicalBlocksAllocated(vdo);
   stats->overheadBlocksUsed = getPhysicalBlocksOverhead(vdo);
   stats->logicalBlocksUsed  = get_journal_logical_blocks_used(journal);
-  stats->allocator          = getDepotBlockAllocatorStatistics(depot);
+  stats->allocator          = get_depot_block_allocator_statistics(depot);
   stats->journal            = get_recovery_journal_statistics(journal);
   stats->packer             = get_packer_statistics(vdo->packer);
-  stats->slabJournal        = getDepotSlabJournalStatistics(depot);
-  stats->slabSummary        = getSlabSummaryStatistics(getSlabSummary(depot));
-  stats->refCounts          = getDepotRefCountsStatistics(depot);
+  stats->slabJournal        = get_depot_slab_journal_statistics(depot);
+  stats->slabSummary        = getSlabSummaryStatistics(get_slab_summary(depot));
+  stats->refCounts          = get_depot_ref_counts_statistics(depot);
   stats->blockMap           = getBlockMapStatistics(vdo->blockMap);
   stats->hashLock           = getHashLockStatistics(vdo);
   stats->errors             = getVDOErrorStatistics(vdo);
-  SlabCount slabTotal       = getDepotSlabCount(depot);
+  SlabCount slabTotal       = get_depot_slab_count(depot);
   stats->recoveryPercentage
-    = (slabTotal - getDepotUnrecoveredSlabCount(depot)) * 100 / slabTotal;
+    = (slabTotal - get_depot_unrecovered_slab_count(depot)) * 100 / slabTotal;
 
   VDOState state        = getVDOState(vdo);
   stats->inRecoveryMode = (state == VDO_RECOVERING);
@@ -894,14 +894,14 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 /**********************************************************************/
 BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
 {
-  return (getDepotAllocatedBlocks(vdo->depot)
+  return (get_depot_allocated_blocks(vdo->depot)
           - get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 
 /**********************************************************************/
 BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
 {
-  return getDepotFreeBlocks(vdo->depot);
+  return get_depot_free_blocks(vdo->depot);
 }
 
 /**********************************************************************/
@@ -910,7 +910,7 @@ BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
   // XXX config.physicalBlocks is actually mutated during resize and is in a
   // packed structure, but resize runs on admin thread so we're usually OK.
   return (vdo->config.physicalBlocks
-          - getDepotDataBlocks(vdo->depot)
+          - get_depot_data_blocks(vdo->depot)
           + get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 
@@ -987,7 +987,7 @@ void dumpVDOStatus(const struct vdo *vdo)
   dump_flusher(vdo->flusher);
   dump_recovery_journal_statistics(vdo->recoveryJournal);
   dump_packer(vdo->packer);
-  dumpSlabDepot(vdo->depot);
+  dump_slab_depot(vdo->depot);
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   ZoneCount zone;
@@ -1078,15 +1078,15 @@ int getPhysicalZone(const struct vdo      *vdo,
     return VDO_SUCCESS;
   }
 
-  // Used because it does a more restrictive bounds check than getSlab(), and
+  // Used because it does a more restrictive bounds check than get_slab(), and
   // done first because it won't trigger read-only mode on an invalid PBN.
-  if (!isPhysicalDataBlock(vdo->depot, pbn)) {
+  if (!is_physical_data_block(vdo->depot, pbn)) {
     return VDO_OUT_OF_RANGE;
   }
 
   // With the PBN already checked, we should always succeed in finding a slab.
-  struct vdo_slab *slab = getSlab(vdo->depot, pbn);
-  int result = ASSERT(slab != NULL, "getSlab must succeed on all valid PBNs");
+  struct vdo_slab *slab = get_slab(vdo->depot, pbn);
+  int result = ASSERT(slab != NULL, "get_slab must succeed on all valid PBNs");
   if (result != VDO_SUCCESS) {
     return result;
   }

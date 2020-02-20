@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#21 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -29,53 +29,53 @@
 #include "actionManager.h"
 
 struct slab_depot {
-  ZoneCount                   zoneCount;
-  ZoneCount                   oldZoneCount;
-  SlabConfig                  slabConfig;
-  struct slab_summary        *slabSummary;
-  struct read_only_notifier  *readOnlyNotifier;
-  struct action_manager      *actionManager;
+	ZoneCount zone_count;
+	ZoneCount old_zone_count;
+	SlabConfig slab_config;
+	struct slab_summary *slab_summary;
+	struct read_only_notifier *read_only_notifier;
+	struct action_manager *action_manager;
 
-  PhysicalBlockNumber         firstBlock;
-  PhysicalBlockNumber         lastBlock;
-  PhysicalBlockNumber         origin;
+	PhysicalBlockNumber first_block;
+	PhysicalBlockNumber last_block;
+	PhysicalBlockNumber origin;
 
-  /** slabSize == (1 << slabSizeShift) */
-  unsigned int                slabSizeShift;
+	/** slabSize == (1 << slab_size_shift) */
+	unsigned int slab_size_shift;
 
-  /** Determines how slabs should be queued during load */
-  SlabDepotLoadType           loadType;
+	/** Determines how slabs should be queued during load */
+	slab_depot_load_type load_type;
 
-  /** The state for notifying slab journals to release recovery journal */
-  SequenceNumber              activeReleaseRequest;
-  SequenceNumber              newReleaseRequest;
+	/** The state for notifying slab journals to release recovery journal */
+	SequenceNumber active_release_request;
+	SequenceNumber new_release_request;
 
-  /** State variables for scrubbing complete handling */
-  Atomic32                   *vdoState;
-  Atomic32                    zonesToScrub;
+	/** State variables for scrubbing complete handling */
+	Atomic32 *vdo_state;
+	Atomic32 zones_to_scrub;
 
-  /** Cached journal pointer for slab creation */
-  struct recovery_journal    *journal;
+	/** Cached journal pointer for slab creation */
+	struct recovery_journal *journal;
 
-  /** Array of pointers to individually allocated slabs */
-  struct vdo_slab           **slabs;
-  /** The number of slabs currently allocated and stored in 'slabs' */
-  SlabCount                   slabCount;
+	/** Array of pointers to individually allocated slabs */
+	struct vdo_slab **slabs;
+	/** The number of slabs currently allocated and stored in 'slabs' */
+	SlabCount slab_count;
 
-  /** Array of pointers to a larger set of slabs (used during resize) */
-  struct vdo_slab           **newSlabs;
-  /** The number of slabs currently allocated and stored in 'newSlabs' */
-  SlabCount                   newSlabCount;
-  /** The size that 'newSlabs' was allocated for */
-  BlockCount                  newSize;
+	/** Array of pointers to a larger set of slabs (used during resize) */
+	struct vdo_slab **new_slabs;
+	/** The number of slabs currently allocated and stored in 'new_slabs' */
+	SlabCount new_slab_count;
+	/** The size that 'new_slabs' was allocated for */
+	BlockCount new_size;
 
-  /** The last block before resize, for rollback */
-  PhysicalBlockNumber         oldLastBlock;
-  /** The last block after resize, for resize */
-  PhysicalBlockNumber         newLastBlock;
+	/** The last block before resize, for rollback */
+	PhysicalBlockNumber old_last_block;
+	/** The last block after resize, for resize */
+	PhysicalBlockNumber new_last_block;
 
-  /** The block allocators for this depot */
-  struct block_allocator     *allocators[];
+	/** The block allocators for this depot */
+	struct block_allocator *allocators[];
 };
 
 /**
@@ -83,14 +83,14 @@ struct slab_depot {
  *
  * @param slab  The slab to destroy
  **/
-void destroySlab(struct vdo_slab *slab);
+void destroy_slab(struct vdo_slab *slab);
 
 /**
  * Inform a slab's depot that the slab has been created.
  *
  * @param slab  The slab to register
  **/
-void registerSlabWithDepot(struct vdo_slab *slab);
+void register_slab_with_depot(struct vdo_slab *slab);
 
 /**
  * Notify a slab depot that one of its allocators has finished scrubbing slabs.
@@ -100,26 +100,27 @@ void registerSlabWithDepot(struct vdo_slab *slab);
  *
  * @param completion  A completion whose parent must be a slab depot
  **/
-void notifyZoneFinishedScrubbing(struct vdo_completion *completion);
+void notify_zone_finished_scrubbing(struct vdo_completion *completion);
 
 /**
  * Check whether two depots are equivalent (i.e. represent the same
  * state and have the same reference counter). This method is used for unit
  * testing.
  *
- * @param depotA The first depot to compare
- * @param depotB The second depot to compare
+ * @param depot_a The first depot to compare
+ * @param depot_b The second depot to compare
  *
  * @return <code>true</code> if the two depots are equivalent
  **/
-bool areEquivalentDepots(struct slab_depot *depotA, struct slab_depot *depotB)
-  __attribute__((warn_unused_result));
+bool are_equivalent_depots(struct slab_depot *depot_a,
+			   struct slab_depot *depot_b)
+	__attribute__((warn_unused_result));
 
 /**
  * Start allocating from the highest numbered slab in each zone.
  *
  * @param depot   The depot
  **/
-void allocateFromLastSlab(struct slab_depot *depot);
+void allocate_from_last_slab(struct slab_depot *depot);
 
 #endif /* SLAB_DEPOT_INTERNALS_H */

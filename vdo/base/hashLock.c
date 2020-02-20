@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#23 $
  */
 
 /**
@@ -1059,7 +1059,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 	// duplicate.
 	struct slab_depot *depot = getSlabDepot(getVDOFromDataVIO(agent));
 	unsigned int incrementLimit =
-		getIncrementLimit(depot, agent->duplicate.pbn);
+		get_increment_limit(depot, agent->duplicate.pbn);
 	if (incrementLimit == 0) {
 		// We could deduplicate against it later if a reference happened
 		// to be released during verification, but it's probably better
@@ -1130,7 +1130,7 @@ static void lockDuplicatePBN(struct vdo_completion *completion)
 
 	if (lock->holder_count == 0) {
 		// Ensure that the newly-locked block is referenced.
-		struct vdo_slab *slab = getSlab(depot, agent->duplicate.pbn);
+		struct vdo_slab *slab = get_slab(depot, agent->duplicate.pbn);
 		result = acquireProvisionalReference(slab, agent->duplicate.pbn,
 						     lock);
 		if (result != VDO_SUCCESS) {

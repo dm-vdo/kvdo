@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#28 $
  */
 
 #include "vdoLoad.h"
@@ -148,7 +148,7 @@ static void continueLoadReadOnly(struct vdo_completion *completion)
 static void scrubSlabs(struct vdo_completion *completion)
 {
   struct vdo *vdo = vdoFromLoadSubTask(completion);
-  if (!hasUnrecoveredSlabs(vdo->depot)) {
+  if (!has_unrecovered_slabs(vdo->depot)) {
     finishParentCallback(completion);
     return;
   }
@@ -158,7 +158,7 @@ static void scrubSlabs(struct vdo_completion *completion)
   }
 
   prepare_admin_sub_task(vdo, finishParentCallback, continueLoadReadOnly);
-  scrubAllUnrecoveredSlabs(vdo->depot, completion);
+  scrub_all_unrecovered_slabs(vdo->depot, completion);
 }
 
 /**
@@ -183,8 +183,8 @@ static void handleScrubbingError(struct vdo_completion *completion)
  **/
 static void prepareToComeOnline(struct vdo_completion *completion)
 {
-  struct vdo        *vdo      = vdoFromLoadSubTask(completion);
-  SlabDepotLoadType  loadType = NORMAL_LOAD;
+  struct vdo           *vdo      = vdoFromLoadSubTask(completion);
+  slab_depot_load_type  loadType = NORMAL_LOAD;
   if (requiresReadOnlyRebuild(vdo)) {
     loadType = REBUILD_LOAD;
   } else if (requiresRecovery(vdo)) {
@@ -194,7 +194,7 @@ static void prepareToComeOnline(struct vdo_completion *completion)
   initializeBlockMapFromJournal(vdo->blockMap, vdo->recoveryJournal);
 
   prepare_admin_sub_task(vdo, scrubSlabs, handleScrubbingError);
-  prepareToAllocate(vdo->depot, loadType, completion);
+  prepare_to_allocate(vdo->depot, loadType, completion);
 }
 
 /**
@@ -250,9 +250,9 @@ static void loadCallback(struct vdo_completion *completion)
   }
 
   prepare_admin_sub_task(vdo, makeDirty, continueLoadReadOnly);
-  loadSlabDepot(vdo->depot,
-                (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
-                completion, NULL);
+  load_slab_depot(vdo->depot,
+                  (wasNew(vdo) ? ADMIN_STATE_FORMATTING : ADMIN_STATE_LOADING),
+                  completion, NULL);
 }
 
 /**********************************************************************/
@@ -313,11 +313,11 @@ static int finishVDODecode(struct vdo *vdo)
     return result;
   }
 
-  result = decodeSlabDepot(buffer, threadConfig, vdo->nonce, vdo->layer,
-                           getVDOPartition(vdo->layout,
-                                           SLAB_SUMMARY_PARTITION),
-                           vdo->readOnlyNotifier, vdo->recoveryJournal,
-                           &vdo->state, &vdo->depot);
+  result = decode_slab_depot(buffer, threadConfig, vdo->nonce, vdo->layer,
+                             getVDOPartition(vdo->layout,
+                                             SLAB_SUMMARY_PARTITION),
+                             vdo->readOnlyNotifier, vdo->recoveryJournal,
+                             &vdo->state, &vdo->depot);
   if (result != VDO_SUCCESS) {
     return result;
   }

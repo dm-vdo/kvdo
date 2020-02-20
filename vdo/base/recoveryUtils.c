@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#12 $
  */
 
 #include "recoveryUtils.h"
@@ -152,7 +152,7 @@ int validate_recovery_journal_entry(const struct vdo *vdo,
 	if ((entry->slot.pbn >= vdo->config.physicalBlocks)
 	    || (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE)
 	    || !isValidLocation(&entry->mapping)
-	    || !isPhysicalDataBlock(vdo->depot, entry->mapping.pbn)) {
+	    || !is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
 		return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
 					       "Invalid entry:"
 					       " (%llu, %" PRIu16 ") to %" PRIu64
