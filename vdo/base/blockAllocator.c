@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#45 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -67,7 +67,7 @@ static inline void assert_on_allocator_thread(ThreadID thread_id,
  **/
 static unsigned int calculateSlabPriority(struct vdo_slab *slab)
 {
-	BlockCount free_blocks = getSlabFreeBlockCount(slab);
+	BlockCount free_blocks = get_slab_free_block_count(slab);
 
 	// Slabs that are completely full must be the only ones with the lowest
 	// priority: zero.
@@ -121,7 +121,7 @@ void register_slab_with_allocator(struct block_allocator *allocator,
 				  struct vdo_slab *slab)
 {
 	allocator->slab_count++;
-	allocator->last_slab = slab->slabNumber;
+	allocator->last_slab = slab->slab_number;
 }
 
 /**
@@ -367,12 +367,12 @@ void queue_slab(struct vdo_slab *slab)
 	ASSERT_LOG_ONLY(isRingEmpty(&slab->ringNode),
 			"a requeued slab must not already be on a ring");
 	struct block_allocator *allocator = slab->allocator;
-	BlockCount free_blocks = getSlabFreeBlockCount(slab);
+	BlockCount free_blocks = get_slab_free_block_count(slab);
 	int result =
 		ASSERT((free_blocks <= allocator->depot->slab_config.dataBlocks),
 		       "rebuilt slab %u must have a valid free block count"
 		       " (has %llu, expected maximum %llu)",
-		       slab->slabNumber,
+		       slab->slab_number,
 		       free_blocks,
 		       allocator->depot->slab_config.dataBlocks);
 	if (result != VDO_SUCCESS) {
@@ -380,12 +380,12 @@ void queue_slab(struct vdo_slab *slab)
 		return;
 	}
 
-	if (isUnrecoveredSlab(slab)) {
+	if (is_unrecovered_slab(slab)) {
 		registerSlabForScrubbing(allocator->slab_scrubber, slab, false);
 		return;
 	}
 
-	if (!isSlabResuming(slab)) {
+	if (!is_slab_resuming(slab)) {
 		// If the slab is resuming, we've already accounted for it here,
 		// so don't do it again.
 		relaxedAdd64(&allocator->statistics.allocatedBlocks,
@@ -442,7 +442,7 @@ static int allocate_slab_block(struct vdo_slab *slab,
 			       PhysicalBlockNumber *block_number_ptr)
 {
 	PhysicalBlockNumber pbn;
-	int result = allocate_unreferenced_block(slab->referenceCounts, &pbn);
+	int result = allocate_unreferenced_block(slab->reference_counts, &pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -476,7 +476,7 @@ int allocate_block(struct block_allocator *allocator,
 
 	if (isSlabJournalBlank(allocator->open_slab->journal)) {
 		relaxedAdd64(&allocator->statistics.slabsOpened, 1);
-		dirty_all_reference_blocks(allocator->open_slab->referenceCounts);
+		dirty_all_reference_blocks(allocator->open_slab->reference_counts);
 	} else {
 		relaxedAdd64(&allocator->statistics.slabsReopened, 1);
 	}
@@ -500,7 +500,7 @@ void release_block_reference(struct block_allocator *allocator,
 		.type = DATA_DECREMENT,
 		.pbn  = pbn,
 	};
-	int result = modifySlabReferenceCount(slab, NULL, operation);
+	int result = modify_slab_reference_count(slab, NULL, operation);
 	if (result != VDO_SUCCESS) {
 		logErrorWithStringError(result,
 					"Failed to release reference to %s "
@@ -619,9 +619,9 @@ static void apply_to_slabs(struct block_allocator *allocator,
 		struct vdo_slab *slab = nextSlab(&iterator);
 		unspliceRingNode(&slab->ringNode);
 		allocator->slab_actor.slab_action_count++;
-		startSlabAction(slab,
-				allocator->state.state,
-				&allocator->completion);
+		start_slab_action(slab,
+				  allocator->state.state,
+				  &allocator->completion);
 	}
 
 	slab_action_callback(&allocator->completion);
@@ -730,13 +730,13 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 		}
 
 		if ((depot->load_type == REBUILD_LOAD) ||
-		    (!mustLoadRefCounts(allocator->summary, slab->slabNumber) &&
+		    (!mustLoadRefCounts(allocator->summary, slab->slab_number) &&
 		     current_slab_status.isClean)) {
 			queue_slab(slab);
 			continue;
 		}
 
-		markSlabUnrecovered(slab);
+		mark_slab_unrecovered(slab);
 		bool high_priority = ((current_slab_status.isClean &&
 				      (depot->load_type == NORMAL_LOAD)) ||
 				     requiresScrubbing(slab->journal));
@@ -1039,7 +1039,7 @@ void dump_block_allocator(const struct block_allocator *allocator)
 	logInfo("block_allocator zone %u", allocator->zone_number);
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 	while (hasNextSlab(&iterator)) {
-		dumpSlab(nextSlab(&iterator));
+		dump_slab(nextSlab(&iterator));
 
 		// Wait for a while after each batch of 32 slabs dumped,
 		// allowing the kernel log a chance to be flushed instead of

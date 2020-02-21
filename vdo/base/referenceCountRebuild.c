@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#19 $
  */
 
 #include "referenceCountRebuild.h"
@@ -340,7 +340,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 
 		struct vdo_slab *slab = get_slab(rebuild->depot, mapping.pbn);
 		int result = adjust_reference_count_for_rebuild(
-			slab->referenceCounts, mapping.pbn, DATA_INCREMENT);
+			slab->reference_counts, mapping.pbn, DATA_INCREMENT);
 		if (result != VDO_SUCCESS) {
 			logErrorWithStringError(result,
 						"Could not adjust reference count for PBN"
@@ -480,7 +480,7 @@ static int process_entry(PhysicalBlockNumber pbn,
 
 	struct vdo_slab *slab = get_slab(rebuild->depot, pbn);
 	int result = adjust_reference_count_for_rebuild(
-		slab->referenceCounts, pbn, BLOCK_MAP_INCREMENT);
+		slab->reference_counts, pbn, BLOCK_MAP_INCREMENT);
 	if (result != VDO_SUCCESS) {
 		return logErrorWithStringError(result,
 					       "Could not adjust reference count for "

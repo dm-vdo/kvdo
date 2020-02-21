@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#4 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -85,10 +85,10 @@ static inline struct vdo_slab *nextSlab(struct slab_iterator *iterator)
 {
   struct vdo_slab *slab = iterator->next;
   if ((slab == NULL)
-      || (slab->slabNumber < iterator->end + iterator->stride)) {
+      || (slab->slab_number < iterator->end + iterator->stride)) {
     iterator->next = NULL;
   } else {
-    iterator->next = iterator->slabs[slab->slabNumber - iterator->stride];
+    iterator->next = iterator->slabs[slab->slab_number - iterator->stride];
   }
   return slab;
 }

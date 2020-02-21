@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#23 $
  */
 
 #include "slabScrubberInternals.h"
@@ -159,9 +159,9 @@ void registerSlabForScrubbing(struct slab_scrubber *scrubber,
   }
 
   unspliceRingNode(&slab->ringNode);
-  if (!slab->wasQueuedForScrubbing) {
+  if (!slab->was_queued_for_scrubbing) {
     relaxedAdd64(&scrubber->slabCount, 1);
-    slab->wasQueuedForScrubbing = true;
+    slab->was_queued_for_scrubbing = true;
   }
 
   if (highPriority) {
@@ -218,7 +218,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber);
 static void slabScrubbed(struct vdo_completion *completion)
 {
   struct slab_scrubber *scrubber = completion->parent;
-  finishScrubbingSlab(scrubber->slab);
+  finish_scrubbing_slab(scrubber->slab);
   relaxedAdd64(&scrubber->slabCount, -1);
   scrubNextSlab(scrubber);
 }
@@ -266,7 +266,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
     .entry_count     = 0,
   };
 
-  SlabBlockNumber maxSBN = slab->end - slab->start;
+  slab_block_number maxSBN = slab->end - slab->start;
   while (entryPoint.entry_count < entryCount) {
     struct slab_journal_entry entry
       = decodeSlabJournalEntry(block, entryPoint.entry_count);
@@ -280,7 +280,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                                      entry.sbn, maxSBN);
     }
 
-    int result = replay_reference_count_change(slab->referenceCounts,
+    int result = replay_reference_count_change(slab->reference_counts,
                                                &entryPoint,
                                                entry);
     if (result != VDO_SUCCESS) {
@@ -289,7 +289,7 @@ static int applyBlockEntries(struct packed_slab_journal_block *block,
                               " applied in slab %u",
                               blockNumber, entryPoint.entry_count,
                               get_journal_operation_name(entry.operation),
-                              entry.sbn, slab->slabNumber);
+                              entry.sbn, slab->slab_number);
       return result;
     }
     entryPoint.entry_count++;
@@ -309,7 +309,7 @@ static void applyJournalEntries(struct vdo_completion *completion)
   struct slab_scrubber  *scrubber        = completion->parent;
   struct vdo_slab       *slab            = scrubber->slab;
   struct slab_journal   *journal         = slab->journal;
-  struct ref_counts     *referenceCounts = slab->referenceCounts;
+  struct ref_counts     *referenceCounts = slab->reference_counts;
 
   // Find the boundaries of the useful part of the journal.
   SequenceNumber  tail     = journal->tail;
@@ -340,7 +340,7 @@ static void applyJournalEntries(struct vdo_completion *completion)
             && (header.entryCount > journal->fullEntriesPerBlock))) {
       // The block is not what we expect it to be.
       logError("vdo_slab journal block for slab %u was invalid",
-               slab->slabNumber);
+               slab->slab_number);
       abortScrubbing(scrubber, VDO_CORRUPT_JOURNAL);
       return;
     }
@@ -371,7 +371,7 @@ static void applyJournalEntries(struct vdo_completion *completion)
   // Save out the rebuilt reference blocks.
   prepareCompletion(completion, slabScrubbed, handleScrubberError,
                     completion->callbackThreadID, scrubber);
-  startSlabAction(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
+  start_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
 
 /**
@@ -384,7 +384,7 @@ static void startScrubbing(struct vdo_completion *completion)
 {
   struct slab_scrubber    *scrubber = completion->parent;
   struct vdo_slab         *slab     = scrubber->slab;
-  if (getSummarizedCleanliness(slab->allocator->summary, slab->slabNumber)) {
+  if (getSummarizedCleanliness(slab->allocator->summary, slab->slab_number)) {
     slabScrubbed(completion);
     return;
   }
@@ -392,7 +392,7 @@ static void startScrubbing(struct vdo_completion *completion)
   prepareCompletion(&scrubber->extent->completion, applyJournalEntries,
                     handleScrubberError, completion->callbackThreadID,
                     completion->parent);
-  read_metadata_extent(scrubber->extent, slab->journalOrigin);
+  read_metadata_extent(scrubber->extent, slab->journal_origin);
 }
 
 /**
@@ -430,7 +430,7 @@ static void scrubNextSlab(struct slab_scrubber *scrubber)
   prepareCompletion(completion, startScrubbing,
                     handleScrubberError, scrubber->completion.callbackThreadID,
                     scrubber);
-  startSlabAction(slab, ADMIN_STATE_SCRUBBING, completion);
+  start_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#16 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -44,8 +44,8 @@
 
 /** A single slab journal entry */
 struct slab_journal_entry {
-  SlabBlockNumber  sbn;
-  JournalOperation operation;
+  slab_block_number  sbn;
+  JournalOperation   operation;
 };
 
 /** A single slab journal entry in its on-disk form */
@@ -282,7 +282,7 @@ getSlabJournalBlockOffset(struct slab_journal *journal, SequenceNumber sequence)
  **/
 void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
                             SlabJournalPayload               *payload,
-                            SlabBlockNumber                   sbn,
+                            slab_block_number                 sbn,
                             JournalOperation                  operation);
 
 /**
@@ -306,7 +306,7 @@ decodeSlabJournalEntry(struct packed_slab_journal_block *block,
  * @param isIncrement  The increment flag
  **/
 static inline void packSlabJournalEntry(PackedSlabJournalEntry *packed,
-                                        SlabBlockNumber         sbn,
+                                        slab_block_number       sbn,
                                         bool                    isIncrement)
 {
   packed->fields.offsetLow8  = (sbn & 0x0000FF);

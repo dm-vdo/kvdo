@@ -27,11 +27,11 @@
 #include "vdo.h"
 
 /**********************************************************************/
-int write_BlockCount(char *prefix,
-                     BlockCount value,
-                     char *suffix,
-                     char **buf,
-                     unsigned int *maxlen)
+int write_uint64_t(char *prefix,
+                   uint64_t value,
+                   char *suffix,
+                   char **buf,
+                   unsigned int *maxlen)
 {
        int count = snprintf(*buf, *maxlen, "%s%llu%s",
                             prefix == NULL ? "" : prefix,
@@ -46,13 +46,32 @@ int write_BlockCount(char *prefix,
 }
 
 /**********************************************************************/
-int write_double(char *prefix,
-                 double value,
-                 char *suffix,
-                 char **buf,
-                 unsigned int *maxlen)
+int write_uint32_t(char *prefix,
+                   uint32_t value,
+                   char *suffix,
+                   char **buf,
+                   unsigned int *maxlen)
 {
-       int count = snprintf(*buf, *maxlen, "%s%f%s",
+       int count = snprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
+                            prefix == NULL ? "" : prefix,
+                            value,
+                            suffix == NULL ? "" : suffix);
+       *buf += count;
+       *maxlen -= count;
+       if (count >= *maxlen) {
+               return VDO_UNEXPECTED_EOF;
+       }
+       return VDO_SUCCESS;
+}
+
+/**********************************************************************/
+int write_BlockCount(char *prefix,
+                     BlockCount value,
+                     char *suffix,
+                     char **buf,
+                     unsigned int *maxlen)
+{
+       int count = snprintf(*buf, *maxlen, "%s%llu%s",
                             prefix == NULL ? "" : prefix,
                             value,
                             suffix == NULL ? "" : suffix);
@@ -91,44 +110,6 @@ int write_bool(char *prefix,
                unsigned int *maxlen)
 {
        int count = snprintf(*buf, *maxlen, "%s%d%s",
-                            prefix == NULL ? "" : prefix,
-                            value,
-                            suffix == NULL ? "" : suffix);
-       *buf += count;
-       *maxlen -= count;
-       if (count >= *maxlen) {
-               return VDO_UNEXPECTED_EOF;
-       }
-       return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_uint64_t(char *prefix,
-                   uint64_t value,
-                   char *suffix,
-                   char **buf,
-                   unsigned int *maxlen)
-{
-       int count = snprintf(*buf, *maxlen, "%s%llu%s",
-                            prefix == NULL ? "" : prefix,
-                            value,
-                            suffix == NULL ? "" : suffix);
-       *buf += count;
-       *maxlen -= count;
-       if (count >= *maxlen) {
-               return VDO_UNEXPECTED_EOF;
-       }
-       return VDO_SUCCESS;
-}
-
-/**********************************************************************/
-int write_uint32_t(char *prefix,
-                   uint32_t value,
-                   char *suffix,
-                   char **buf,
-                   unsigned int *maxlen)
-{
-       int count = snprintf(*buf, *maxlen, "%s%" PRIu32 "%s",
                             prefix == NULL ? "" : prefix,
                             value,
                             suffix == NULL ? "" : suffix);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#35 $
  */
 
 /*
@@ -612,8 +612,8 @@ int validateVDOConfig(const VDOConfig *config,
   }
 
   SlabConfig slabConfig;
-  result = configureSlab(config->slabSize, config->slabJournalBlocks,
-                         &slabConfig);
+  result = configure_slab(config->slabSize, config->slabJournalBlocks,
+                          &slabConfig);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -1091,7 +1091,7 @@ int getPhysicalZone(const struct vdo      *vdo,
     return result;
   }
 
-  *zonePtr = vdo->physicalZones[getSlabZoneNumber(slab)];
+  *zonePtr = vdo->physicalZones[get_slab_zone_number(slab)];
   return VDO_SUCCESS;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#34 $
  */
 
 #include "slabJournalInternals.h"
@@ -108,7 +108,7 @@ getBlockNumber(struct slab_journal *journal,
                SequenceNumber       sequence)
 {
   TailBlockOffset offset = getSlabJournalBlockOffset(journal, sequence);
-  return (journal->slab->journalOrigin + offset);
+  return (journal->slab->journal_origin + offset);
 }
 
 /**
@@ -151,7 +151,7 @@ static inline bool isVDOReadOnly(struct slab_journal *journal)
 __attribute__((warn_unused_result))
 static inline bool mustMakeEntriesToFlush(struct slab_journal *journal)
 {
-  return (!slabIsRebuilding(journal->slab)
+  return (!slab_is_rebuilding(journal->slab)
           && hasWaiters(&journal->entryWaiters));
 }
 
@@ -358,7 +358,7 @@ void abortSlabJournalWaiters(struct slab_journal *journal)
                    == journal->slab->allocator->thread_id),
                   "abortSlabJournalWaiters() called on correct thread");
   notifyAllWaiters(&journal->entryWaiters, abortWaiter, journal);
-  checkIfSlabDrained(journal->slab);
+  check_if_slab_drained(journal->slab);
 }
 
 /**
@@ -387,7 +387,7 @@ static void finishReaping(struct slab_journal *journal)
 {
   journal->head = journal->unreapable;
   addEntries(journal);
-  checkIfSlabDrained(journal->slab);
+  check_if_slab_drained(journal->slab);
 }
 
 /**********************************************************************/
@@ -451,7 +451,7 @@ static void reapSlabJournal(struct slab_journal *journal)
     return;
   }
 
-  if (isUnrecoveredSlab(journal->slab) || !is_normal(&journal->slab->state)
+  if (is_unrecovered_slab(journal->slab) || !is_normal(&journal->slab->state)
       || isVDOReadOnly(journal)) {
     // We must not reap in the first two cases, and there's no point in
     // read-only mode.
@@ -574,16 +574,16 @@ static void updateTailBlockLocation(struct slab_journal *journal)
 {
   if (journal->updatingSlabSummary || isVDOReadOnly(journal)
       || (journal->lastSummarized >= journal->nextCommit)) {
-    checkIfSlabDrained(journal->slab);
+    check_if_slab_drained(journal->slab);
     return;
   }
 
   BlockCount freeBlockCount;
-  if (isUnrecoveredSlab(journal->slab)) {
+  if (is_unrecovered_slab(journal->slab)) {
     freeBlockCount = getSummarizedFreeBlockCount(journal->summary,
-                                                 journal->slab->slabNumber);
+                                                 journal->slab->slab_number);
   } else {
-    freeBlockCount = getSlabFreeBlockCount(journal->slab);
+    freeBlockCount = get_slab_free_block_count(journal->slab);
   }
 
   journal->summarized          = journal->nextCommit;
@@ -599,7 +599,7 @@ static void updateTailBlockLocation(struct slab_journal *journal)
   TailBlockOffset blockOffset
     = getSlabJournalBlockOffset(journal, journal->summarized);
   updateSlabSummaryEntry(journal->summary, &journal->slabSummaryWaiter,
-                         journal->slab->slabNumber, blockOffset,
+                         journal->slab->slab_number, blockOffset,
                          (journal->head > 1), false, freeBlockCount);
 }
 
@@ -764,7 +764,7 @@ void commitSlabJournalTail(struct slab_journal *journal)
 /**********************************************************************/
 void encodeSlabJournalEntry(struct slab_journal_block_header *tailHeader,
                             SlabJournalPayload               *payload,
-                            SlabBlockNumber                   sbn,
+                            slab_block_number                 sbn,
                             JournalOperation                  operation)
 {
   JournalEntryCount entryNumber = tailHeader->entryCount++;
@@ -884,7 +884,7 @@ bool attemptReplayIntoSlabJournal(struct slab_journal   *journal,
     journal->unreapable++;
   }
 
-  markSlabReplaying(journal->slab);
+  mark_slab_replaying(journal->slab);
   addEntry(journal, pbn, operation, recoveryPoint);
   return true;
 }
@@ -962,7 +962,7 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
       if (journalLength <= journal->flushingDeadline) {
         blocksToDeadline = journal->flushingDeadline - journalLength;
       }
-      save_several_reference_blocks(journal->slab->referenceCounts,
+      save_several_reference_blocks(journal->slab->reference_counts,
                                     blocksToDeadline + 1);
     }
   }
@@ -977,8 +977,8 @@ static void addEntryFromWaiter(struct waiter *waiter, void *context)
 
   // Now that an entry has been made in the slab journal, update the
   // reference counts.
-  int result = modifySlabReferenceCount(journal->slab, &slabJournalPoint,
-                                        dataVIO->operation);
+  int result = modify_slab_reference_count(journal->slab, &slabJournalPoint,
+                                           dataVIO->operation);
   continueDataVIO(dataVIO, result);
 }
 
@@ -1014,7 +1014,7 @@ static void addEntries(struct slab_journal *journal)
 
   journal->addingEntries = true;
   while (hasWaiters(&journal->entryWaiters)) {
-    if (journal->partialWriteInProgress || slabIsRebuilding(journal->slab)) {
+    if (journal->partialWriteInProgress || slab_is_rebuilding(journal->slab)) {
       // Don't add entries while rebuilding or while a partial write is
       // outstanding (VDO-2399).
       break;
@@ -1040,7 +1040,7 @@ static void addEntries(struct slab_journal *journal)
     // If the slab is over the blocking threshold, make the vio wait.
     if (requiresReaping(journal)) {
       relaxedAdd64(&journal->events->blockedCount, 1);
-      save_dirty_reference_blocks(journal->slab->referenceCounts);
+      save_dirty_reference_blocks(journal->slab->reference_counts);
       break;
     }
 
@@ -1062,7 +1062,7 @@ static void addEntries(struct slab_journal *journal)
                         "threshold is at the end of the journal");
 
         relaxedAdd64(&journal->events->diskFullCount, 1);
-        save_dirty_reference_blocks(journal->slab->referenceCounts);
+        save_dirty_reference_blocks(journal->slab->reference_counts);
         break;
       }
 
@@ -1082,7 +1082,7 @@ static void addEntries(struct slab_journal *journal)
          * be done by the RefCounts since here we don't know how many
          * reference blocks the RefCounts has.
          */
-        acquire_dirty_block_locks(journal->slab->referenceCounts);
+        acquire_dirty_block_locks(journal->slab->reference_counts);
       }
     }
 
@@ -1093,7 +1093,7 @@ static void addEntries(struct slab_journal *journal)
 
   // If there are no waiters, and we are flushing or saving, commit the
   // tail block.
-  if (isSlabDraining(journal->slab) && !is_suspending(&journal->slab->state)
+  if (is_slab_draining(journal->slab) && !is_suspending(&journal->slab->state)
       && !hasWaiters(&journal->entryWaiters)) {
     commitSlabJournalTail(journal);
   }
@@ -1102,7 +1102,7 @@ static void addEntries(struct slab_journal *journal)
 /**********************************************************************/
 void addSlabJournalEntry(struct slab_journal *journal, struct data_vio *dataVIO)
 {
-  if (!isSlabOpen(journal->slab)) {
+  if (!is_slab_open(journal->slab)) {
     continueDataVIO(dataVIO, VDO_INVALID_ADMIN_STATE);
     return;
   }
@@ -1119,7 +1119,7 @@ void addSlabJournalEntry(struct slab_journal *journal, struct data_vio *dataVIO)
     return;
   }
 
-  if (isUnrecoveredSlab(journal->slab) && requiresReaping(journal)) {
+  if (is_unrecovered_slab(journal->slab) && requiresReaping(journal)) {
     increase_scrubbing_priority(journal->slab);
   }
 
@@ -1135,7 +1135,7 @@ void adjustSlabJournalBlockReference(struct slab_journal *journal,
     return;
   }
 
-  if (isReplayingSlab(journal->slab)) {
+  if (is_replaying_slab(journal->slab)) {
     // Locks should not be used during offline replay.
     return;
   }
@@ -1183,7 +1183,7 @@ void drainSlabJournal(struct slab_journal *journal)
   if (is_quiescing(&journal->slab->state)) {
     // XXX: we should revisit this assertion since it is no longer clear what
     //      it is for.
-    ASSERT_LOG_ONLY((!(slabIsRebuilding(journal->slab)
+    ASSERT_LOG_ONLY((!(slab_is_rebuilding(journal->slab)
                        && hasWaiters(&journal->entryWaiters))),
                     "slab is recovered or has no waiters");
   }
@@ -1211,7 +1211,7 @@ static void finishDecodingJournal(struct vdo_completion *completion)
   struct vio_pool_entry *entry   = completion->parent;
   struct slab_journal   *journal = entry->parent;
   return_vio(journal->slab->allocator, entry);
-  notifySlabJournalIsLoaded(journal->slab, result);
+  notify_slab_journal_is_loaded(journal->slab, result);
 }
 
 /**
@@ -1239,7 +1239,7 @@ static void setDecodedState(struct vdo_completion *completion)
 
   // If the slab is clean, this implies the slab journal is empty, so advance
   // the head appropriately.
-  if (getSummarizedCleanliness(journal->summary, journal->slab->slabNumber)) {
+  if (getSummarizedCleanliness(journal->summary, journal->slab->slab_number)) {
     journal->head = journal->tail;
   } else {
     journal->head = header.head;
@@ -1264,7 +1264,7 @@ static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
   struct vdo_slab       *slab    = journal->slab;
   struct vio_pool_entry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
+    = getSummarizedTailBlockOffset(journal->summary, slab->slab_number);
   entry->parent = journal;
 
 
@@ -1274,7 +1274,7 @@ static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
                                ? (TailBlockOffset) (journal->size - 1)
                                : (lastCommitPoint - 1));
   entry->vio->completion.callbackThreadID = slab->allocator->thread_id;
-  launchReadMetadataVIO(entry->vio, slab->journalOrigin + tailBlock,
+  launchReadMetadataVIO(entry->vio, slab->journal_origin + tailBlock,
                         setDecodedState, finishDecodingJournal);
 }
 
@@ -1286,9 +1286,9 @@ void decodeSlabJournal(struct slab_journal *journal)
                   "decodeSlabJournal() called on correct thread");
   struct vdo_slab *slab = journal->slab;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary, slab->slabNumber);
+    = getSummarizedTailBlockOffset(journal->summary, slab->slab_number);
   if ((lastCommitPoint == 0)
-      && !mustLoadRefCounts(journal->summary, slab->slabNumber)) {
+      && !mustLoadRefCounts(journal->summary, slab->slab_number)) {
     /*
      * This slab claims that it has a tail block at (journal->size - 1), but
      * a head of 1. This is impossible, due to the scrubbing threshold, on
@@ -1298,14 +1298,14 @@ void decodeSlabJournal(struct slab_journal *journal)
                      || (journal->scrubbingThreshold < (journal->size - 1))),
                     "Scrubbing threshold protects against reads of unwritten"
                     "slab journal blocks");
-    notifySlabJournalIsLoaded(slab, VDO_SUCCESS);
+    notify_slab_journal_is_loaded(slab, VDO_SUCCESS);
     return;
   }
 
   journal->resourceWaiter.callback = readSlabJournalTail;
   int result = acquire_vio(slab->allocator, &journal->resourceWaiter);
   if (result != VDO_SUCCESS) {
-    notifySlabJournalIsLoaded(slab, result);
+    notify_slab_journal_is_loaded(slab, result);
   }
 }
 

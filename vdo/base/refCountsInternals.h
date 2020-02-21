@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCountsInternals.h#15 $
  */
 
 #ifndef REF_COUNTS_INTERNALS_H
@@ -49,11 +49,11 @@ struct search_cursor {
 	/**
 	 * The position at which to start searching for the next free counter
 	 */
-	SlabBlockNumber index;
+	slab_block_number index;
 	/**
 	 * The position just past the last valid counter in the current block
 	 */
-	SlabBlockNumber end_index;
+	slab_block_number end_index;
 
 	/** A pointer to the first reference block in the slab */
 	struct reference_block *first_block;
@@ -144,7 +144,7 @@ struct ref_counts *as_ref_counts(struct vdo_completion *completion)
  * @param index       The block index
  **/
 struct reference_block *get_reference_block(struct ref_counts *ref_counts,
-					    SlabBlockNumber index)
+					    slab_block_number index)
 	__attribute__((warn_unused_result));
 
 /**
@@ -195,9 +195,9 @@ int get_reference_status(struct ref_counts *ref_counts,
  * @return true if a free block was found in the specified range
  **/
 bool find_free_block(const struct ref_counts *ref_counts,
-		     SlabBlockNumber start_index,
-		     SlabBlockNumber end_index,
-		     SlabBlockNumber *index_ptr)
+		     slab_block_number start_index,
+		     slab_block_number end_index,
+		     slab_block_number *index_ptr)
 	__attribute__((warn_unused_result));
 
 /**
