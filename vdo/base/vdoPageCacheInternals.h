@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#14 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -168,8 +168,7 @@ static inline struct page_info *pageInfoFromListNode(PageInfoNode *node)
   if (node == NULL) {
     return NULL;
   }
-  return (struct page_info *)
-    ((uintptr_t) node - offsetof(struct page_info, listNode));
+  return container_of(node, struct page_info, listNode);
 }
 
 /**********************************************************************/
@@ -178,8 +177,7 @@ static inline struct page_info *pageInfoFromLRUNode(PageInfoNode *node)
   if (node == NULL) {
     return NULL;
   }
-  return (struct page_info *)
-    ((uintptr_t) node - offsetof(struct page_info, lruNode));
+  return container_of(node, struct page_info, lruNode);
 }
 
 // PAGE INFO STATE ACCESSOR FUNCTIONS
@@ -245,9 +243,7 @@ static inline struct vdo_page_completion *
 asVDOPageCompletion(struct vdo_completion *completion)
 {
   assertCompletionType(completion->type, VDO_PAGE_COMPLETION);
-  return (struct vdo_page_completion *) ((uintptr_t) completion
-                                         - offsetof(struct vdo_page_completion,
-                                                    completion));
+  return container_of(completion, struct vdo_page_completion, completion);
 }
 
 /**********************************************************************/
@@ -258,8 +254,8 @@ struct vdo_page_completion *pageCompletionFromWaiter(struct waiter *waiter)
     return NULL;
   }
 
-  struct vdo_page_completion *completion = (struct vdo_page_completion *)
-    ((uintptr_t) waiter - offsetof(struct vdo_page_completion, waiter));
+  struct vdo_page_completion *completion
+    = container_of(waiter, struct vdo_page_completion, waiter);
   assertCompletionType(completion->completion.type, VDO_PAGE_COMPLETION);
   return completion;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#41 $
  */
 
 #include "blockMapTree.h"
@@ -77,8 +77,7 @@ const PhysicalBlockNumber INVALID_PBN = 0xFFFFFFFFFFFFFFFF;
  **/
 static inline struct tree_page *treePageFromRingNode(RingNode *ringNode)
 {
-  return (struct tree_page *) ((byte *) ringNode
-                               - offsetof(struct tree_page, node));
+  return container_of(ringNode, struct tree_page, node);
 }
 
 /**********************************************************************/

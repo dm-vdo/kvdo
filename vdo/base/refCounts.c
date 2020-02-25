@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#30 $
  */
 
 #include "refCounts.h"
@@ -64,9 +64,7 @@ ref_counts_from_waiter(struct waiter *waiter)
 	if (waiter == NULL) {
 		return NULL;
 	}
-	return (struct ref_counts *)((uintptr_t)waiter -
-				     offsetof(struct ref_counts,
-					      slab_summary_waiter));
+	return container_of(waiter, struct ref_counts, slab_summary_waiter);
 }
 
 /**
@@ -1058,7 +1056,7 @@ static inline struct reference_block *
 waiter_as_reference_block(struct waiter *waiter)
 {
 	STATIC_ASSERT(offsetof(struct reference_block, waiter) == 0);
-	return (struct reference_block *)waiter;
+	return (struct reference_block *) waiter;
 }
 
 /**

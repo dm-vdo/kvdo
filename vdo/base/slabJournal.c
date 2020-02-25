@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#35 $
  */
 
 #include "slabJournalInternals.h"
@@ -62,8 +62,7 @@ slabJournalFromFlushWaiter(struct waiter *waiter)
   if (waiter == NULL) {
     return NULL;
   }
-  return (struct slab_journal *)
-    ((uintptr_t) waiter - offsetof(struct slab_journal, flushWaiter));
+  return container_of(waiter, struct slab_journal, flushWaiter);
 }
 
 /**********************************************************************/
@@ -72,8 +71,7 @@ struct slab_journal *slabJournalFromDirtyNode(RingNode *node)
   if (node == NULL) {
     return NULL;
   }
-  return (struct slab_journal *) ((uintptr_t) node
-                                  - offsetof(struct slab_journal, dirtyNode));
+  return container_of(node, struct slab_journal, dirtyNode);
 }
 
 /**
@@ -90,8 +88,7 @@ slabJournalFromSlabSummaryWaiter(struct waiter *waiter)
   if (waiter == NULL) {
     return NULL;
   }
-  return (struct slab_journal *)
-    ((uintptr_t) waiter - offsetof(struct slab_journal, slabSummaryWaiter));
+  return container_of(waiter, struct slab_journal, slabSummaryWaiter);
 }
 
 /**
@@ -818,7 +815,7 @@ static void addEntry(struct slab_journal        *journal,
                       "recovery point: %llu.%u, "
                       "block recovery point: %llu.%u",
                       recoveryPoint->sequence_number,
-		      recoveryPoint->entry_count,
+                      recoveryPoint->entry_count,
                       journal->tailHeader.recoveryPoint.sequence_number,
                       journal->tailHeader.recoveryPoint.entry_count);
   if (result != VDO_SUCCESS) {

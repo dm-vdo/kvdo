@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#6 $
  */
 
 #include "vdoDebug.h"
@@ -61,13 +61,11 @@ static inline struct vdo_command_completion *
 asVDOCommandCompletion(struct vdo_completion *completion)
 {
   if (completion->type == VDO_COMMAND_COMPLETION) {
-    return (struct vdo_command_completion *)
-      ((uintptr_t) completion - offsetof(struct vdo_command_completion,
-                                         completion));
+    return container_of(completion, struct vdo_command_completion,
+                        completion);
   } else if (completion->type == VDO_COMMAND_SUB_COMPLETION) {
-    return (struct vdo_command_completion *)
-      ((uintptr_t) completion - offsetof(struct vdo_command_completion,
-                                         subCompletion));
+    return container_of(completion, struct vdo_command_completion,
+                        subCompletion);
   } else {
     ASSERT_LOG_ONLY(((completion->type == VDO_COMMAND_COMPLETION) ||
                      (completion->type == VDO_COMMAND_SUB_COMPLETION)),

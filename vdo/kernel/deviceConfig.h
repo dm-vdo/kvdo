@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.h#8 $
  */
 #ifndef DEVICE_CONFIG_H
 #define DEVICE_CONFIG_H
@@ -76,8 +76,7 @@ static inline struct device_config *as_device_config(RingNode *node)
 	if (node == NULL) {
 		return NULL;
 	}
-	return (struct device_config *)
-		((byte *) node - offsetof(struct device_config, config_node));
+	return container_of(node, struct device_config, config_node);
 }
 
 /**
