@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#20 $
  */
 
 #include "vdoResize.h"
@@ -55,7 +55,7 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 __attribute__((warn_unused_result))
 static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
-  return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
+  return getAdminThread(getThreadConfig(adminCompletion->vdo));
 }
 
 /**
@@ -72,7 +72,7 @@ static void growPhysicalCallback(struct vdo_completion *completion)
                             __func__,
                             GROW_PHYSICAL_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->vdo;
   switch (adminCompletion->phase++) {
   case GROW_PHYSICAL_PHASE_START:
     if (is_read_only(vdo->readOnlyNotifier)) {
@@ -191,7 +191,7 @@ static void checkMayGrowPhysical(struct vdo_completion *completion)
   assert_admin_operation_type(adminCompletion,
                            ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 
-  struct vdo *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->vdo;
   assertOnAdminThread(vdo, __func__);
 
   reset_admin_sub_task(completion);

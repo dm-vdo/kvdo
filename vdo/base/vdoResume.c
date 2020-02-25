@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#15 $
  */
 
 #include "vdoResume.h"
@@ -61,8 +61,7 @@ static const char *RESUME_PHASE_NAMES[] = {
 __attribute__((warn_unused_result))
 static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
-  const ThreadConfig *threadConfig
-    = getThreadConfig(adminCompletion->completion.parent);
+  const ThreadConfig *threadConfig = getThreadConfig(adminCompletion->vdo);
   switch (adminCompletion->phase) {
   case RESUME_PHASE_JOURNAL:
     return getJournalZoneThread(threadConfig);
@@ -117,7 +116,7 @@ static void resumeCallback(struct vdo_completion *completion)
   assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_RESUME);
   assert_admin_phase_thread(adminCompletion, __func__, RESUME_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->vdo;
   switch (adminCompletion->phase++) {
   case RESUME_PHASE_START:
     if (start_resuming(&vdo->adminState, ADMIN_STATE_RESUMING,

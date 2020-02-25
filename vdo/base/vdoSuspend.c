@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#16 $
  */
 
 #include "vdoSuspend.h"
@@ -61,8 +61,7 @@ static const char *SUSPEND_PHASE_NAMES[] = {
 __attribute__((warn_unused_result))
 static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
-  const ThreadConfig *threadConfig
-    = getThreadConfig(adminCompletion->completion.parent);
+  const ThreadConfig *threadConfig = getThreadConfig(adminCompletion->vdo);
   switch (adminCompletion->phase) {
   case SUSPEND_PHASE_PACKER:
     return getPackerZoneThread(threadConfig);
@@ -120,7 +119,7 @@ static void suspendCallback(struct vdo_completion *completion)
                   "suspend nor save", adminCompletion->type);
   assert_admin_phase_thread(adminCompletion, __func__, SUSPEND_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->vdo;
   switch (adminCompletion->phase++) {
   case SUSPEND_PHASE_START:
     if (!start_draining(&vdo->adminState,

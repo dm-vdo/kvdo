@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#15 $
  */
 
 #include "vdoResizeLogical.h"
@@ -48,7 +48,7 @@ static const char *GROW_LOGICAL_PHASE_NAMES[] = {
 __attribute__((warn_unused_result))
 static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
 {
-  return getAdminThread(getThreadConfig(adminCompletion->completion.parent));
+  return getAdminThread(getThreadConfig(adminCompletion->vdo));
 }
 
 /**
@@ -63,7 +63,7 @@ static void growLogicalCallback(struct vdo_completion *completion)
   assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
   assert_admin_phase_thread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->completion.parent;
+  struct vdo *vdo = adminCompletion->vdo;
   switch (adminCompletion->phase++) {
   case GROW_LOGICAL_PHASE_START:
     if (is_read_only(vdo->readOnlyNotifier)) {
@@ -113,7 +113,7 @@ static void handleGrowthError(struct vdo_completion *completion)
   if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
     // We've failed to write the new size in the super block, so set our
     // in memory config back to the old size.
-    struct vdo       *vdo = adminCompletion->completion.parent;
+    struct vdo       *vdo = adminCompletion->vdo;
     struct block_map *map = getBlockMap(vdo);
     vdo->config.logicalBlocks = getNumberOfBlockMapEntries(map);
     abandonBlockMapGrowth(map);

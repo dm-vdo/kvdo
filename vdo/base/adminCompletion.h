@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#9 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -51,6 +51,9 @@ typedef ThreadID
 ThreadIDGetterForPhase(struct admin_completion *admin_completion);
 
 struct admin_completion {
+	// XXX should be replaced by container_of() when enqueuables go away
+	// and this becomes a field of struct vdo.
+	struct vdo *vdo;
 	/** The completion */
 	struct vdo_completion completion;
 	/** The sub-task completion */
