@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubberInternals.h#12 $
  */
 
 #ifndef SLAB_SCRUBBER_INTERNALS_H
@@ -30,30 +30,31 @@
 #include "ringNode.h"
 
 struct slab_scrubber {
-  struct vdo_completion      completion;
-  /** The queue of slabs to scrub first */
-  RingNode                   highPrioritySlabs;
-  /** The queue of slabs to scrub once there are no highPrioritySlabs */
-  RingNode                   slabs;
-  /** The queue of VIOs waiting for a slab to be scrubbed */
-  struct wait_queue          waiters;
+	struct vdo_completion completion;
+	/** The queue of slabs to scrub first */
+	RingNode high_priority_slabs;
+	/** The queue of slabs to scrub once there are no high_priority_slabs */
+	RingNode slabs;
+	/** The queue of VIOs waiting for a slab to be scrubbed */
+	struct wait_queue waiters;
 
-  // The number of slabs that are unrecovered or being scrubbed. This field is
-  // modified by the physical zone thread, but is queried by other threads.
-  Atomic64                   slabCount;
+	// The number of slabs that are unrecovered or being scrubbed. This
+	// field is modified by the physical zone thread, but is queried by
+	// other threads.
+	Atomic64 slab_count;
 
-  /** The administrative state of the scrubber */
-  struct admin_state         adminState;
-  /** Whether to only scrub high-priority slabs */
-  bool                       highPriorityOnly;
-  /** The context for entering read-only mode */
-  struct read_only_notifier *readOnlyNotifier;
-  /** The slab currently being scrubbed */
-  struct vdo_slab           *slab;
-  /** The extent for loading slab journal blocks */
-  struct vdo_extent         *extent;
-  /** A buffer to store the slab journal blocks */
-  char                      *journalData;
+	/** The administrative state of the scrubber */
+	struct admin_state admin_state;
+	/** Whether to only scrub high-priority slabs */
+	bool high_priority_only;
+	/** The context for entering read-only mode */
+	struct read_only_notifier *read_only_notifier;
+	/** The slab currently being scrubbed */
+	struct vdo_slab *slab;
+	/** The extent for loading slab journal blocks */
+	struct vdo_extent *extent;
+	/** A buffer to store the slab journal blocks */
+	char *journal_data;
 };
 
 #endif // SLAB_SCRUBBER_INTERNALS_H
