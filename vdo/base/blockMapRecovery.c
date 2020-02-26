@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#14 $
  */
 
 #include "blockMapRecovery.h"
@@ -143,29 +143,28 @@ __attribute__((warn_unused_result))
 static inline struct block_map_recovery_completion *
 asBlockMapRecoveryCompletion(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(struct block_map_recovery_completion, completion) == 0);
   assertCompletionType(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
-  return (struct block_map_recovery_completion *) completion;
+  return container_of(completion, struct block_map_recovery_completion,
+                      completion);
 }
 
 /**
  * Free a block_map_recovery_completion and null out the reference to it.
  *
- * @param completionPtr  a pointer to the completion to free
+ * @param recoveryPtr  a pointer to the completion to free
  **/
-static void freeRecoveryCompletion(struct vdo_completion **completionPtr)
+static void
+freeRecoveryCompletion(struct block_map_recovery_completion **recoveryPtr)
 {
-  struct vdo_completion *completion = *completionPtr;
-  if (completion == NULL) {
+  struct block_map_recovery_completion *recovery = *recoveryPtr;
+  if (recovery == NULL) {
     return;
   }
 
-  struct block_map_recovery_completion *recovery
-    = asBlockMapRecoveryCompletion(*completionPtr);
-  destroyEnqueueable(completion);
+  destroyEnqueueable(&recovery->completion);
   destroyEnqueueable(&recovery->subTaskCompletion);
   FREE(recovery);
-  *completionPtr = NULL;
+  *recoveryPtr = NULL;
 }
 
 /**
@@ -177,9 +176,11 @@ static void freeRecoveryCompletion(struct vdo_completion **completionPtr)
  **/
 static void finishBlockMapRecovery(struct vdo_completion *completion)
 {
-  int            result = completion->result;
+  int result = completion->result;
   struct vdo_completion *parent = completion->parent;
-  freeRecoveryCompletion(&completion);
+  struct block_map_recovery_completion *recovery
+    = asBlockMapRecoveryCompletion(completion);
+  freeRecoveryCompletion(&recovery);
   finishCompletion(parent, result);
 }
 
@@ -218,16 +219,14 @@ makeRecoveryCompletion(struct vdo                            *vdo,
                                            BLOCK_MAP_RECOVERY_COMPLETION,
                                            vdo->layer);
   if (result != VDO_SUCCESS) {
-    struct vdo_completion *completion = &recovery->completion;
-    freeRecoveryCompletion(&completion);
+    freeRecoveryCompletion(&recovery);
     return result;
   }
 
   result = initializeEnqueueableCompletion(&recovery->subTaskCompletion,
                                            SUB_TASK_COMPLETION, vdo->layer);
   if (result != VDO_SUCCESS) {
-    struct vdo_completion *completion = &recovery->completion;
-    freeRecoveryCompletion(&completion);
+    freeRecoveryCompletion(&recovery);
     return result;
   }
 

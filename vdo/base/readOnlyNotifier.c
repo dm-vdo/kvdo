@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#11 $
  */
 
 #include "readOnlyNotifier.h"
@@ -117,9 +117,8 @@ struct read_only_notifier {
 static inline struct read_only_notifier *
 as_notifier(struct vdo_completion *completion)
 {
-	STATIC_ASSERT(offsetof(struct read_only_notifier, completion) == 0);
 	assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
-	return (struct read_only_notifier *) completion;
+	return container_of(completion, struct read_only_notifier, completion);
 }
 
 /**********************************************************************/

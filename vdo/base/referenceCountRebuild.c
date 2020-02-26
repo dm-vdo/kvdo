@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#20 $
  */
 
 #include "referenceCountRebuild.h"
@@ -86,10 +86,9 @@ struct rebuild_completion {
 __attribute__((warn_unused_result)) static inline struct rebuild_completion *
 as_rebuild_completion(struct vdo_completion *completion)
 {
-	STATIC_ASSERT(offsetof(struct rebuild_completion, completion) == 0);
 	assertCompletionType(completion->type,
 			     REFERENCE_COUNT_REBUILD_COMPLETION);
-	return (struct rebuild_completion *) completion;
+	return container_of(completion, struct rebuild_completion, completion);
 }
 
 /**
@@ -237,7 +236,7 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 			  flush_block_map_updates,
 			  finishParentCallback,
 			  rebuild->admin_thread_id,
-			  rebuild);
+			  &rebuild->completion);
 	invokeCallback(&rebuild->sub_task_completion);
 	return true;
 }
@@ -519,6 +518,6 @@ void rebuild_reference_counts(struct vdo *vdo,
 	*rebuild->block_map_data_blocks = 0;
 	struct vdo_completion *completion = &rebuild->sub_task_completion;
 	prepareCompletion(completion, rebuild_from_leaves, finishParentCallback,
-			  rebuild->logical_thread_id, rebuild);
+			  rebuild->logical_thread_id, &rebuild->completion);
 	traverse_forest(rebuild->block_map, process_entry, completion);
 }

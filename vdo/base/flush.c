@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/flush.c#18 $
  */
 
 #include "flush.h"
@@ -61,9 +61,8 @@ struct flusher {
  **/
 static struct flusher *as_flusher(struct vdo_completion *completion)
 {
-	STATIC_ASSERT(offsetof(struct flusher, completion) == 0);
 	assertCompletionType(completion->type, FLUSH_NOTIFICATION_COMPLETION);
-	return (struct flusher *) completion;
+	return container_of(completion, struct flusher, completion);
 }
 
 /**

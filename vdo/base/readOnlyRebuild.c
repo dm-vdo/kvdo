@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#20 $
  */
 
 #include "readOnlyRebuild.h"
@@ -76,10 +76,9 @@ __attribute__((warn_unused_result))
 static inline struct read_only_rebuild_completion *
 as_read_only_rebuild_completion(struct vdo_completion *completion)
 {
-	STATIC_ASSERT(offsetof(struct read_only_rebuild_completion,
-			       completion) == 0);
 	assertCompletionType(completion->type, READ_ONLY_REBUILD_COMPLETION);
-	return (struct read_only_rebuild_completion *) completion;
+	return container_of(completion, struct read_only_rebuild_completion,
+			    completion);
 }
 
 /**
