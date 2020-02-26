@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#25 $
  */
 
 #include "slabScrubberInternals.h"
@@ -402,7 +402,7 @@ static void start_scrubbing(struct vdo_completion *completion)
 {
 	struct slab_scrubber *scrubber = completion->parent;
 	struct vdo_slab *slab = scrubber->slab;
-	if (getSummarizedCleanliness(slab->allocator->summary,
+	if (get_summarized_cleanliness(slab->allocator->summary,
 				     slab->slab_number)) {
 		slab_scrubbed(completion);
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#41 $
  */
 
 #include "slabDepot.h"
@@ -258,13 +258,13 @@ static int allocate_components(struct slab_depot *depot,
 
 	depot->origin = depot->first_block;
 
-	result = makeSlabSummary(layer,
-				 summary_partition,
-				 thread_config,
-				 depot->slab_size_shift,
-				 depot->slab_config.dataBlocks,
-				 depot->read_only_notifier,
-				 &depot->slab_summary);
+	result = make_slab_summary(layer,
+				   summary_partition,
+				   thread_config,
+				   depot->slab_size_shift,
+				   depot->slab_config.dataBlocks,
+				   depot->read_only_notifier,
+				   &depot->slab_summary);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -512,7 +512,7 @@ void free_slab_depot(struct slab_depot **depot_ptr)
 
 	FREE(depot->slabs);
 	free_action_manager(&depot->action_manager);
-	freeSlabSummary(&depot->slab_summary);
+	free_slab_summary(&depot->slab_summary);
 	FREE(depot);
 	*depot_ptr = NULL;
 }
@@ -935,10 +935,10 @@ SlabCount get_depot_unrecovered_slab_count(const struct slab_depot *depot)
 static void start_depot_load(void *context, struct vdo_completion *parent)
 {
 	struct slab_depot *depot = context;
-	loadSlabSummary(depot->slab_summary,
-			get_current_manager_operation(depot->action_manager),
-			depot->old_zone_count,
-			parent);
+	load_slab_summary(depot->slab_summary,
+			  get_current_manager_operation(depot->action_manager),
+			  depot->old_zone_count,
+			  parent);
 }
 
 /**********************************************************************/
@@ -1113,7 +1113,7 @@ get_slab_summary_for_zone(const struct slab_depot *depot, ZoneCount zone)
 		return NULL;
 	}
 
-	return getSummaryForZone(depot->slab_summary, zone);
+	return get_summary_for_zone(depot->slab_summary, zone);
 }
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#36 $
  */
 
 /*
@@ -877,7 +877,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
   stats->journal            = get_recovery_journal_statistics(journal);
   stats->packer             = get_packer_statistics(vdo->packer);
   stats->slabJournal        = get_depot_slab_journal_statistics(depot);
-  stats->slabSummary        = getSlabSummaryStatistics(get_slab_summary(depot));
+  stats->slabSummary        = get_slab_summary_statistics(get_slab_summary(depot));
   stats->refCounts          = get_depot_ref_counts_statistics(depot);
   stats->blockMap           = getBlockMapStatistics(vdo->blockMap);
   stats->hashLock           = getHashLockStatistics(vdo);

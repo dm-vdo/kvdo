@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#21 $
  */
 
 #include "vdoResize.h"
@@ -107,8 +107,9 @@ static void growPhysicalCallback(struct vdo_completion *completion)
     return;
 
   case GROW_PHYSICAL_PHASE_END:
-    setSlabSummaryOrigin(get_slab_summary(vdo->depot),
-                         getVDOPartition(vdo->layout, SLAB_SUMMARY_PARTITION));
+    set_slab_summary_origin(get_slab_summary(vdo->depot),
+                            getVDOPartition(vdo->layout,
+                                            SLAB_SUMMARY_PARTITION));
     set_recovery_journal_partition(vdo->recoveryJournal,
                                    getVDOPartition(vdo->layout,
                                                    RECOVERY_JOURNAL_PARTITION));

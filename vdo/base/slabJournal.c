@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#36 $
  */
 
 #include "slabJournalInternals.h"
@@ -577,8 +577,8 @@ static void updateTailBlockLocation(struct slab_journal *journal)
 
   BlockCount freeBlockCount;
   if (is_unrecovered_slab(journal->slab)) {
-    freeBlockCount = getSummarizedFreeBlockCount(journal->summary,
-                                                 journal->slab->slab_number);
+    freeBlockCount = get_summarized_free_block_count(journal->summary,
+                                                     journal->slab->slab_number);
   } else {
     freeBlockCount = get_slab_free_block_count(journal->slab);
   }
@@ -595,9 +595,9 @@ static void updateTailBlockLocation(struct slab_journal *journal)
    */
   TailBlockOffset blockOffset
     = getSlabJournalBlockOffset(journal, journal->summarized);
-  updateSlabSummaryEntry(journal->summary, &journal->slabSummaryWaiter,
-                         journal->slab->slab_number, blockOffset,
-                         (journal->head > 1), false, freeBlockCount);
+  update_slab_summary_entry(journal->summary, &journal->slabSummaryWaiter,
+                            journal->slab->slab_number, blockOffset,
+                            (journal->head > 1), false, freeBlockCount);
 }
 
 /**********************************************************************/
@@ -1236,7 +1236,7 @@ static void setDecodedState(struct vdo_completion *completion)
 
   // If the slab is clean, this implies the slab journal is empty, so advance
   // the head appropriately.
-  if (getSummarizedCleanliness(journal->summary, journal->slab->slab_number)) {
+  if (get_summarized_cleanliness(journal->summary, journal->slab->slab_number)) {
     journal->head = journal->tail;
   } else {
     journal->head = header.head;
@@ -1261,7 +1261,7 @@ static void readSlabJournalTail(struct waiter *waiter, void *vioContext)
   struct vdo_slab       *slab    = journal->slab;
   struct vio_pool_entry *entry   = vioContext;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary, slab->slab_number);
+    = get_summarized_tail_block_offset(journal->summary, slab->slab_number);
   entry->parent = journal;
 
 
@@ -1283,9 +1283,9 @@ void decodeSlabJournal(struct slab_journal *journal)
                   "decodeSlabJournal() called on correct thread");
   struct vdo_slab *slab = journal->slab;
   TailBlockOffset lastCommitPoint
-    = getSummarizedTailBlockOffset(journal->summary, slab->slab_number);
+    = get_summarized_tail_block_offset(journal->summary, slab->slab_number);
   if ((lastCommitPoint == 0)
-      && !mustLoadRefCounts(journal->summary, slab->slab_number)) {
+      && !must_load_ref_counts(journal->summary, slab->slab_number)) {
     /*
      * This slab claims that it has a tail block at (journal->size - 1), but
      * a head of 1. This is impossible, due to the scrubbing threshold, on
