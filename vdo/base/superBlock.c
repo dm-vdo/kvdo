@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#11 $
  */
 
 #include "superBlock.h"
@@ -34,7 +34,7 @@
 #include "types.h"
 #include "vio.h"
 
-struct super_block {
+struct vdo_super_block {
   /** The parent for asynchronous load and save operations */
   struct vdo_completion       *parent;
   /** The vio for reading and writing the super block to disk */
@@ -81,15 +81,15 @@ static const struct header SUPER_BLOCK_HEADER_12_0 = {
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int allocateSuperBlock(PhysicalLayer        *layer,
-                              struct super_block  **superBlockPtr)
+static int allocateSuperBlock(PhysicalLayer           *layer,
+                              struct vdo_super_block **superBlockPtr)
 {
-  int result = ALLOCATE(1, struct super_block, __func__, superBlockPtr);
+  int result = ALLOCATE(1, struct vdo_super_block, __func__, superBlockPtr);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
-  struct super_block *superBlock = *superBlockPtr;
+  struct vdo_super_block *superBlock = *superBlockPtr;
   result = makeBuffer(MAX_COMPONENT_DATA_SIZE, &superBlock->componentBuffer);
   if (result != UDS_SUCCESS) {
     return result;
@@ -120,9 +120,10 @@ static int allocateSuperBlock(PhysicalLayer        *layer,
 }
 
 /**********************************************************************/
-int makeSuperBlock(PhysicalLayer *layer, struct super_block **superBlockPtr)
+int makeSuperBlock(PhysicalLayer           *layer,
+                   struct vdo_super_block **superBlockPtr)
 {
-  struct super_block *superBlock;
+  struct vdo_super_block *superBlock;
   int         result = allocateSuperBlock(layer, &superBlock);
   if (result != VDO_SUCCESS) {
     freeSuperBlock(&superBlock);
@@ -136,13 +137,13 @@ int makeSuperBlock(PhysicalLayer *layer, struct super_block **superBlockPtr)
 }
 
 /**********************************************************************/
-void freeSuperBlock(struct super_block **superBlockPtr)
+void freeSuperBlock(struct vdo_super_block **superBlockPtr)
 {
   if (*superBlockPtr == NULL) {
     return;
   }
 
-  struct super_block *superBlock = *superBlockPtr;
+  struct vdo_super_block *superBlock = *superBlockPtr;
   freeBuffer(&superBlock->blockBuffer);
   freeBuffer(&superBlock->componentBuffer);
   freeVIO(&superBlock->vio);
@@ -159,7 +160,7 @@ void freeSuperBlock(struct super_block **superBlockPtr)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int encodeSuperBlock(struct super_block *superBlock)
+static int encodeSuperBlock(struct vdo_super_block *superBlock)
 {
   Buffer *buffer = superBlock->blockBuffer;
   int     result = resetBufferEnd(buffer, 0);
@@ -203,9 +204,9 @@ static int encodeSuperBlock(struct super_block *superBlock)
 }
 
 /**********************************************************************/
-int saveSuperBlock(PhysicalLayer       *layer,
-                   struct super_block  *superBlock,
-                   PhysicalBlockNumber  superBlockOffset)
+int saveSuperBlock(PhysicalLayer          *layer,
+                   struct vdo_super_block *superBlock,
+                   PhysicalBlockNumber     superBlockOffset)
 {
   int result = encodeSuperBlock(superBlock);
   if (result != VDO_SUCCESS) {
@@ -224,9 +225,9 @@ int saveSuperBlock(PhysicalLayer       *layer,
  **/
 static void finishSuperBlockParent(struct vdo_completion *completion)
 {
-  struct super_block    *superBlock = completion->parent;
-  struct vdo_completion *parent     = superBlock->parent;
-  superBlock->parent                = NULL;
+  struct vdo_super_block *superBlock = completion->parent;
+  struct vdo_completion  *parent     = superBlock->parent;
+  superBlock->parent                 = NULL;
   finishCompletion(parent, completion->result);
 }
 
@@ -248,14 +249,14 @@ static void handleSaveError(struct vdo_completion *completion)
    * rebuilding, but, after a read-only rebuild, the effects of those writes
    * would reappear.
    */
-  ((struct super_block *) completion->parent)->unwriteable = true;
+  ((struct vdo_super_block *) completion->parent)->unwriteable = true;
   completion->callback(completion);
 }
 
 /**********************************************************************/
-void saveSuperBlockAsync(struct super_block    *superBlock,
-                         PhysicalBlockNumber    superBlockOffset,
-                         struct vdo_completion *parent)
+void saveSuperBlockAsync(struct vdo_super_block *superBlock,
+                         PhysicalBlockNumber     superBlockOffset,
+                         struct vdo_completion  *parent)
 {
   if (superBlock->unwriteable) {
     finishCompletion(parent, VDO_READ_ONLY);
@@ -288,7 +289,7 @@ void saveSuperBlockAsync(struct super_block    *superBlock,
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result))
-static int decodeSuperBlock(struct super_block *superBlock)
+static int decodeSuperBlock(struct vdo_super_block *superBlock)
 {
   // Reset the block buffer to start decoding the entire first sector.
   Buffer *buffer = superBlock->blockBuffer;
@@ -356,11 +357,11 @@ static int decodeSuperBlock(struct super_block *superBlock)
 }
 
 /**********************************************************************/
-int loadSuperBlock(PhysicalLayer        *layer,
-                   PhysicalBlockNumber   superBlockOffset,
-                   struct super_block  **superBlockPtr)
+int loadSuperBlock(PhysicalLayer           *layer,
+                   PhysicalBlockNumber      superBlockOffset,
+                   struct vdo_super_block **superBlockPtr)
 {
-  struct super_block *superBlock = NULL;
+  struct vdo_super_block *superBlock = NULL;
   int                 result     = allocateSuperBlock(layer, &superBlock);
   if (result != VDO_SUCCESS) {
     freeSuperBlock(&superBlock);
@@ -392,20 +393,20 @@ int loadSuperBlock(PhysicalLayer        *layer,
  **/
 static void finishReadingSuperBlock(struct vdo_completion *completion)
 {
-  struct super_block    *superBlock = completion->parent;
-  struct vdo_completion *parent     = superBlock->parent;
-  superBlock->parent        = NULL;
+  struct vdo_super_block *superBlock = completion->parent;
+  struct vdo_completion  *parent     = superBlock->parent;
+  superBlock->parent                 = NULL;
   finishCompletion(parent, decodeSuperBlock(superBlock));
 }
 
 /**********************************************************************/
-void loadSuperBlockAsync(struct vdo_completion  *parent,
-                         PhysicalBlockNumber     superBlockOffset,
-                         struct super_block    **superBlockPtr)
+void loadSuperBlockAsync(struct vdo_completion   *parent,
+                         PhysicalBlockNumber      superBlockOffset,
+                         struct vdo_super_block **superBlockPtr)
 {
-  PhysicalLayer      *layer      = parent->layer;
-  struct super_block *superBlock = NULL;
-  int                 result     = allocateSuperBlock(layer, &superBlock);
+  PhysicalLayer          *layer      = parent->layer;
+  struct vdo_super_block *superBlock = NULL;
+  int                     result     = allocateSuperBlock(layer, &superBlock);
   if (result != VDO_SUCCESS) {
     freeSuperBlock(&superBlock);
     finishCompletion(parent, result);
@@ -421,14 +422,14 @@ void loadSuperBlockAsync(struct vdo_completion  *parent,
 }
 
 /**********************************************************************/
-Buffer *getComponentBuffer(struct super_block *superBlock)
+Buffer *getComponentBuffer(struct vdo_super_block *superBlock)
 {
   return superBlock->componentBuffer;
 }
 
 /**********************************************************************/
 ReleaseVersionNumber
-getLoadedReleaseVersion(const struct super_block *superBlock)
+getLoadedReleaseVersion(const struct vdo_super_block *superBlock)
 {
   return superBlock->loadedReleaseVersion;
 }

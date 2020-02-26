@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.h#4 $
  */
 
 #ifndef SUPER_BLOCK_H
@@ -27,7 +27,7 @@
 #include "completion.h"
 #include "types.h"
 
-struct super_block;
+struct vdo_super_block;
 
 /**
  * Make a new super block.
@@ -37,7 +37,8 @@ struct super_block;
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeSuperBlock(PhysicalLayer *layer, struct super_block **superBlockPtr)
+int makeSuperBlock(PhysicalLayer           *layer,
+                   struct vdo_super_block **superBlockPtr)
   __attribute__((warn_unused_result));
 
 /**
@@ -45,7 +46,7 @@ int makeSuperBlock(PhysicalLayer *layer, struct super_block **superBlockPtr)
  *
  * @param superBlockPtr the reference to the super block to free
  **/
-void freeSuperBlock(struct super_block **superBlockPtr);
+void freeSuperBlock(struct vdo_super_block **superBlockPtr);
 
 /**
  * Save a super block.
@@ -56,9 +57,9 @@ void freeSuperBlock(struct super_block **superBlockPtr);
  *
  * @return VDO_SUCCESS or an error
  **/
-int saveSuperBlock(PhysicalLayer       *layer,
-                   struct super_block  *superBlock,
-                   PhysicalBlockNumber  superBlockOffset)
+int saveSuperBlock(PhysicalLayer          *layer,
+                   struct vdo_super_block *superBlock,
+                   PhysicalBlockNumber     superBlockOffset)
   __attribute__((warn_unused_result));
 
 /**
@@ -68,9 +69,9 @@ int saveSuperBlock(PhysicalLayer       *layer,
  * @param superBlockOffset  The location at which to write the super block
  * @param parent            The object to notify when the save is complete
  **/
-void saveSuperBlockAsync(struct super_block    *superBlock,
-                         PhysicalBlockNumber    superBlockOffset,
-                         struct vdo_completion *parent);
+void saveSuperBlockAsync(struct vdo_super_block *superBlock,
+                         PhysicalBlockNumber     superBlockOffset,
+                         struct vdo_completion  *parent);
 
 /**
  * Allocate a super block and read its contents from storage.
@@ -82,15 +83,15 @@ void saveSuperBlockAsync(struct super_block    *superBlock,
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadSuperBlock(PhysicalLayer        *layer,
-                   PhysicalBlockNumber   superBlockOffset,
-                   struct super_block  **superBlockPtr)
+int loadSuperBlock(PhysicalLayer           *layer,
+                   PhysicalBlockNumber      superBlockOffset,
+                   struct vdo_super_block **superBlockPtr)
   __attribute__((warn_unused_result));
 
 /**
- * Allocate a super block and read its contents from storage asynchronously. If
- * a load error occurs before the super block's own completion can be allocated,
- * the parent will be finished with the error.
+ * Allocate a super block and read its contents from storage asynchronously. 
+ * If a load error occurs before the super block's own completion can be
+ * allocated, the parent will be finished with the error.
  *
  * @param [in]  parent            The completion to finish after loading the
  *                                super block
@@ -98,9 +99,9 @@ int loadSuperBlock(PhysicalLayer        *layer,
  *                                block
  * @param [out] superBlockPtr     A pointer to hold the super block
  **/
-void loadSuperBlockAsync(struct vdo_completion *parent,
-                         PhysicalBlockNumber    superBlockOffset,
-                         struct super_block   **superBlockPtr);
+void loadSuperBlockAsync(struct vdo_completion   *parent,
+                         PhysicalBlockNumber      superBlockOffset,
+                         struct vdo_super_block **superBlockPtr);
 
 /**
  * Get a buffer which contains the component data from a super block.
@@ -109,7 +110,7 @@ void loadSuperBlockAsync(struct vdo_completion *parent,
  *
  * @return the component data in a buffer
  **/
-Buffer *getComponentBuffer(struct super_block *superBlock)
+Buffer *getComponentBuffer(struct vdo_super_block *superBlock)
   __attribute__((warn_unused_result));
 
 /**
@@ -121,7 +122,7 @@ Buffer *getComponentBuffer(struct super_block *superBlock)
  * @return the release version number that was decoded from the volume
  **/
 ReleaseVersionNumber
-getLoadedReleaseVersion(const struct super_block *superBlock)
+getLoadedReleaseVersion(const struct vdo_super_block *superBlock)
   __attribute__((warn_unused_result));
 
 /**
