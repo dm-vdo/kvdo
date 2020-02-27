@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabIterator.h#5 $
  */
 
 #ifndef SLAB_ITERATOR_H
@@ -29,10 +29,10 @@
  * A slab_iterator is a structure for iterating over a set of slabs.
  **/
 struct slab_iterator {
-  struct vdo_slab **slabs;
-  struct vdo_slab  *next;
-  SlabCount         end;
-  SlabCount         stride;
+	struct vdo_slab **slabs;
+	struct vdo_slab *next;
+	SlabCount end;
+	SlabCount stride;
 };
 
 /**
@@ -47,17 +47,17 @@ struct slab_iterator {
  *
  * @return an initialized iterator structure
  **/
-static inline struct slab_iterator iterateSlabs(struct vdo_slab **slabs,
-                                                SlabCount         start,
-                                                SlabCount         end,
-                                                SlabCount         stride)
+static inline struct slab_iterator iterate_slabs(struct vdo_slab **slabs,
+						 SlabCount start, SlabCount end,
+						 SlabCount stride)
 {
-  return (struct slab_iterator) {
-    .slabs  = slabs,
-    .next   = (((slabs == NULL) || (start < end)) ? NULL : slabs[start]),
-    .end    = end,
-    .stride = stride,
-  };
+	return (struct slab_iterator) {
+		.slabs = slabs,
+		.next = (((slabs == NULL) || (start < end)) ? NULL
+							    : slabs[start]),
+		.end = end,
+		.stride = stride,
+	};
 }
 
 /**
@@ -65,12 +65,12 @@ static inline struct slab_iterator iterateSlabs(struct vdo_slab **slabs,
  *
  * @param iterator  The iterator to poll
  *
- * @return <code>true</code> if the next call to <code>nextSlab</code>
+ * @return <code>true</code> if the next call to <code>next_slab</code>
  *         will return a vdo_slab
  **/
-static inline bool hasNextSlab(const struct slab_iterator *iterator)
+static inline bool has_next_slab(const struct slab_iterator *iterator)
 {
-  return (iterator->next != NULL);
+	return (iterator->next != NULL);
 }
 
 /**
@@ -81,16 +81,17 @@ static inline bool hasNextSlab(const struct slab_iterator *iterator)
  * @return the next vdo_slab or <code>NULL</code> if the array of slabs is empty
  *         or if all the appropriate Slabs have been returned
  **/
-static inline struct vdo_slab *nextSlab(struct slab_iterator *iterator)
+static inline struct vdo_slab *next_slab(struct slab_iterator *iterator)
 {
-  struct vdo_slab *slab = iterator->next;
-  if ((slab == NULL)
-      || (slab->slab_number < iterator->end + iterator->stride)) {
-    iterator->next = NULL;
-  } else {
-    iterator->next = iterator->slabs[slab->slab_number - iterator->stride];
-  }
-  return slab;
+	struct vdo_slab *slab = iterator->next;
+	if ((slab == NULL)
+	    || (slab->slab_number < iterator->end + iterator->stride)) {
+		iterator->next = NULL;
+	} else {
+		iterator->next =
+			iterator->slabs[slab->slab_number - iterator->stride];
+	}
+	return slab;
 }
 
 #endif // SLAB_ITERATOR_H
