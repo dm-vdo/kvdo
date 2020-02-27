@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#42 $
  */
 
 #include "blockMapTree.h"
@@ -331,8 +331,8 @@ static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry);
  **/
 static void writePageCallback(struct waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
-  writePage((struct tree_page *) waiter, (struct vio_pool_entry *) context);
+  writePage(container_of(waiter, struct tree_page, waiter),
+            (struct vio_pool_entry *) context);
 }
 
 /**
@@ -402,8 +402,7 @@ static void enqueuePage(struct tree_page           *page,
  **/
 static void writePageIfNotDirtied(struct waiter *waiter, void *context)
 {
-  STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
-  struct tree_page *page = (struct tree_page *) waiter;
+  struct tree_page *page = container_of(waiter, struct tree_page, waiter);
   struct write_if_not_dirtied_context *writeContext = context;
   if (page->generation == writeContext->generation) {
     acquire_vio(waiter, writeContext->zone);
@@ -465,7 +464,8 @@ static void finishPageWrite(struct vdo_completion *completion)
   } else if ((zone->flusher == NULL)
              && hasWaiters(&zone->flushWaiters)
              && attemptIncrement(zone)) {
-    zone->flusher = (struct tree_page *) dequeueNextWaiter(&zone->flushWaiters);
+    zone->flusher = container_of(dequeueNextWaiter(&zone->flushWaiters),
+                                 struct tree_page, waiter);
     writePage(zone->flusher, entry);
     return;
   }

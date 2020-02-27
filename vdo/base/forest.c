@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#19 $
  */
 
 #include "forest.h"
@@ -274,8 +274,6 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 /**********************************************************************/
 int make_forest(struct block_map *map, BlockCount entries)
 {
-	STATIC_ASSERT(offsetof(struct tree_page, waiter) == 0);
-
 	struct forest *old_forest = map->forest;
 	struct boundary *oldBoundary = NULL;
 	if (old_forest != NULL) {
@@ -511,8 +509,7 @@ static void traverse(struct cursor *cursor)
  **/
 static void launch_cursor(struct waiter *waiter, void *context)
 {
-	STATIC_ASSERT(offsetof(struct cursor, waiter) == 0);
-	struct cursor *cursor = (struct cursor *) waiter;
+	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
 	vioAsCompletion(cursor->vio_pool_entry->vio)->callbackThreadID =
