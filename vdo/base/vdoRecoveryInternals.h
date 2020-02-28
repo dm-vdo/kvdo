@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#11 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -109,9 +109,8 @@ __attribute__((warn_unused_result))
 static inline struct recovery_completion *
 asRecoveryCompletion(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(struct recovery_completion, completion) == 0);
   assertCompletionType(completion->type, RECOVERY_COMPLETION);
-  return (struct recovery_completion *) completion;
+  return container_of(completion, struct recovery_completion, completion);
 }
 
 /**

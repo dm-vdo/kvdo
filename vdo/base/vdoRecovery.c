@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#39 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -277,7 +277,7 @@ static void prepareSubTask(struct recovery_completion *recovery,
   }
 
   prepareCompletion(&recovery->subTaskCompletion, callback, errorHandler,
-                    threadID, recovery);
+                    threadID, &recovery->completion);
 }
 
 /**********************************************************************/
@@ -592,7 +592,7 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
   // Get ready in case we need to enqueue again
   prepareCompletion(completion, addSynthesizedEntries,
                     handleAddSlabJournalEntryError,
-                    completion->callbackThreadID, recovery);
+                    completion->callbackThreadID, &recovery->completion);
   struct wait_queue *missingDecrefs
     = &recovery->missingDecrefs[recovery->allocator->zone_number];
   while (hasWaiters(missingDecrefs)) {
@@ -703,7 +703,7 @@ static void addSlabJournalEntries(struct vdo_completion *completion)
   // Get ready in case we need to enqueue again.
   prepareCompletion(completion, addSlabJournalEntries,
                     handleAddSlabJournalEntryError,
-                    completion->callbackThreadID, recovery);
+                    completion->callbackThreadID, &recovery->completion);
   struct recovery_point *recoveryPoint;
   for (recoveryPoint = &recovery->nextRecoveryPoint;
        beforeRecoveryPoint(recoveryPoint, &recovery->tailRecoveryPoint);
@@ -767,7 +767,7 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
 
   logInfo("Replaying entries into slab journals for zone %u",
           allocator->zone_number);
-  completion->parent = recovery;
+  completion->parent = &recovery->completion;
   addSlabJournalEntries(completion);
 }
 
@@ -1273,8 +1273,7 @@ void launchRecovery(struct vdo *vdo, struct vdo_completion *parent)
     return;
   }
 
-  struct vdo_completion *completion = &recovery->completion;
-  prepareCompletion(completion, finishRecovery, abortRecovery,
+  prepareCompletion(&recovery->completion, finishRecovery, abortRecovery,
                     parent->callbackThreadID, parent);
   prepareSubTask(recovery, prepareToApplyJournalEntries, finishParentCallback,
                  ZONE_TYPE_ADMIN);

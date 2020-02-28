@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#9 $
  */
 
 #ifndef VIO_H
@@ -69,9 +69,8 @@ struct vio {
  **/
 static inline struct vio *asVIO(struct vdo_completion *completion)
 {
-  STATIC_ASSERT(offsetof(struct vio, completion) == 0);
   assertCompletionType(completion->type, VIO_COMPLETION);
-  return (struct vio *) completion;
+  return container_of(completion, struct vio, completion);
 }
 
 /**
