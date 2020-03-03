@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#26 $
  */
 
 #include "slabScrubberInternals.h"
@@ -275,7 +275,8 @@ static int apply_block_entries(struct packed_slab_journal_block *block,
 	slab_block_number max_sbn = slab->end - slab->start;
 	while (entry_point.entry_count < entry_count) {
 		struct slab_journal_entry entry =
-			decodeSlabJournalEntry(block, entry_point.entry_count);
+			decode_slab_journal_entry(block,
+						  entry_point.entry_count);
 		if (entry.sbn > max_sbn) {
 			// This entry is out of bounds.
 			return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
@@ -324,13 +325,15 @@ static void apply_journal_entries(struct vdo_completion *completion)
 
 	// Find the boundaries of the useful part of the journal.
 	SequenceNumber tail = journal->tail;
-	TailBlockOffset end_index = getSlabJournalBlockOffset(journal, tail - 1);
+	TailBlockOffset end_index = get_slab_journal_block_offset(journal,
+								  tail - 1);
 	char *end_data = scrubber->journal_data + (end_index * VDO_BLOCK_SIZE);
 	struct packed_slab_journal_block *end_block =
 		(struct packed_slab_journal_block *) end_data;
 
 	SequenceNumber head = getUInt64LE(end_block->header.fields.head);
-	TailBlockOffset head_index = getSlabJournalBlockOffset(journal, head);
+	TailBlockOffset head_index = get_slab_journal_block_offset(journal,
+								   head);
 	BlockCount index = head_index;
 
 	struct journal_point ref_counts_point =
@@ -343,14 +346,14 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		struct packed_slab_journal_block *block =
 			(struct packed_slab_journal_block *) block_data;
 		struct slab_journal_block_header header;
-		unpackSlabJournalBlockHeader(&block->header, &header);
+		unpack_slab_journal_block_header(&block->header, &header);
 
 		if ((header.nonce != slab->allocator->nonce) ||
-		    (header.metadataType != VDO_METADATA_SLAB_JOURNAL) ||
-		    (header.sequenceNumber != sequence) ||
-		    (header.entryCount > journal->entriesPerBlock) ||
-		    (header.hasBlockMapIncrements &&
-		     (header.entryCount > journal->fullEntriesPerBlock))) {
+		    (header.metadata_type != VDO_METADATA_SLAB_JOURNAL) ||
+		    (header.sequence_number != sequence) ||
+		    (header.entry_count > journal->entries_per_block) ||
+		    (header.has_block_map_increments &&
+		     (header.entry_count > journal->full_entries_per_block))) {
 			// The block is not what we expect it to be.
 			logError("vdo_slab journal block for slab %u was invalid",
 				 slab->slab_number);
@@ -358,7 +361,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 			return;
 		}
 
-		int result = apply_block_entries(block, header.entryCount,
+		int result = apply_block_entries(block, header.entry_count,
 						 sequence, slab);
 		if (result != VDO_SUCCESS) {
 			abort_scrubbing(scrubber, result);
@@ -366,7 +369,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 		}
 
 		last_entry_applied.sequence_number = sequence;
-		last_entry_applied.entry_count = header.entryCount - 1;
+		last_entry_applied.entry_count = header.entry_count - 1;
 		index++;
 		if (index == journal->size) {
 			index = 0;

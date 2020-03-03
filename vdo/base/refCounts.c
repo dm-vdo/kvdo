@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#32 $
  */
 
 #include "refCounts.h"
@@ -691,9 +691,9 @@ int adjust_reference_count(struct ref_counts *ref_counts,
 		}
 
 		SequenceNumber entry_lock = slab_journal_point->sequence_number;
-		adjustSlabJournalBlockReference(ref_counts->slab->journal,
-						entry_lock,
-						-1);
+		adjust_slab_journal_block_reference(ref_counts->slab->journal,
+						    entry_lock,
+						    -1);
 		return VDO_SUCCESS;
 	}
 
@@ -1176,9 +1176,9 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 	ref_counts->active_count--;
 
 	// Release the slab journal lock.
-	adjustSlabJournalBlockReference(ref_counts->slab->journal,
-					block->slab_journal_lock_to_release,
-					-1);
+	adjust_slab_journal_block_reference(ref_counts->slab->journal,
+					    block->slab_journal_lock_to_release,
+					    -1);
 	return_vio(ref_counts->slab->allocator, entry);
 
 	/*
@@ -1542,8 +1542,8 @@ void acquire_dirty_block_locks(struct ref_counts *ref_counts)
 		ref_counts->blocks[i].slab_journal_lock = 1;
 	}
 
-	adjustSlabJournalBlockReference(ref_counts->slab->journal, 1,
-					ref_counts->reference_block_count);
+	adjust_slab_journal_block_reference(ref_counts->slab->journal, 1,
+					    ref_counts->reference_block_count);
 }
 
 /**********************************************************************/

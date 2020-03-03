@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#49 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -86,7 +86,7 @@ static unsigned int calculateSlabPriority(struct vdo_slab *slab)
 	 */
 	unsigned int unopened_slab_priority =
 		slab->allocator->unopened_slab_priority;
-	if (isSlabJournalBlank(slab->journal)) {
+	if (is_slab_journal_blank(slab->journal)) {
 		return unopened_slab_priority;
 	}
 
@@ -158,7 +158,7 @@ notify_block_allocator_of_read_only_mode(void *listener,
 	struct slab_iterator iterator = get_slab_iterator(allocator);
 	while (has_next_slab(&iterator)) {
 		struct vdo_slab *slab = next_slab(&iterator);
-		abortSlabJournalWaiters(slab->journal);
+		abort_slab_journal_waiters(slab->journal);
 	}
 
 	completeCompletion(parent);
@@ -391,7 +391,7 @@ void queue_slab(struct vdo_slab *slab)
 		// so don't do it again.
 		relaxedAdd64(&allocator->statistics.allocatedBlocks,
 			     -free_blocks);
-		if (!isSlabJournalBlank(slab->journal)) {
+		if (!is_slab_journal_blank(slab->journal)) {
 			relaxedAdd64(&allocator->statistics.slabsOpened, 1);
 		}
 	}
@@ -475,7 +475,7 @@ int allocate_block(struct block_allocator *allocator,
 	allocator->open_slab =
 		slabFromRingNode(priority_table_dequeue(allocator->prioritized_slabs));
 
-	if (isSlabJournalBlank(allocator->open_slab->journal)) {
+	if (is_slab_journal_blank(allocator->open_slab->journal)) {
 		relaxedAdd64(&allocator->statistics.slabsOpened, 1);
 		dirty_all_reference_blocks(allocator->open_slab->reference_counts);
 	} else {
@@ -742,7 +742,7 @@ int prepare_slabs_for_allocation(struct block_allocator *allocator)
 		mark_slab_unrecovered(slab);
 		bool high_priority = ((current_slab_status.isClean &&
 				      (depot->load_type == NORMAL_LOAD)) ||
-				     requiresScrubbing(slab->journal));
+				     requires_scrubbing(slab->journal));
 		register_slab_for_scrubbing(allocator->slab_scrubber,
 					    slab,
 					    high_priority);
@@ -930,8 +930,8 @@ void release_tail_block_locks(void *context,
 		get_block_allocator_for_zone(context, zone_number);
 	RingNode *ring = &allocator->dirty_slab_journals;
 	while (!isRingEmpty(ring)) {
-		if (!releaseRecoveryJournalLock(slabJournalFromDirtyNode(ring->next),
-						allocator->depot->active_release_request)) {
+		if (!release_recovery_journal_lock(slab_journal_from_dirty_node(ring->next),
+						   allocator->depot->active_release_request)) {
 			break;
 		}
 	}

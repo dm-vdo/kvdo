@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#43 $
  */
 
 #include "blockMapTree.h"
@@ -1095,8 +1095,9 @@ static void setBlockMapPageReferenceCount(struct vdo_completion *completion)
   struct tree_lock *lock = &dataVIO->treeLock;
   PhysicalBlockNumber pbn = lock->treeSlots[lock->height - 1].blockMapSlot.pbn;
   completion->callback = releaseBlockMapWriteLock;
-  addSlabJournalEntry(get_slab_journal(getVDOFromDataVIO(dataVIO)->depot, pbn),
-                      dataVIO);
+  add_slab_journal_entry(get_slab_journal(getVDOFromDataVIO(dataVIO)->depot,
+                                          pbn),
+                         dataVIO);
 }
 
 /**

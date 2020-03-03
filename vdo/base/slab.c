@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#28 $
  */
 
 #include "slab.h"
@@ -154,8 +154,8 @@ int make_slab(PhysicalBlockNumber slab_origin,
 		(get_slab_journal_start_block(slab_config, slab_origin)
 		 + translation);
 
-	result = makeSlabJournal(allocator, slab, recovery_journal,
-				 &slab->journal);
+	result = make_slab_journal(allocator, slab, recovery_journal,
+				   &slab->journal);
 	if (result != VDO_SUCCESS) {
 		free_slab(&slab);
 		return result;
@@ -203,7 +203,7 @@ void free_slab(struct vdo_slab **slab_ptr)
 	}
 
 	unspliceRingNode(&slab->ringNode);
-	freeSlabJournal(&slab->journal);
+	free_slab_journal(&slab->journal);
 	free_ref_counts(&slab->reference_counts);
 	FREE(slab);
 	*slab_ptr = NULL;
@@ -251,7 +251,9 @@ int modify_slab_reference_count(struct vdo_slab *slab,
 	 */
 	if (is_unrecovered_slab(slab)) {
 		SequenceNumber entryLock = journal_point->sequence_number;
-		adjustSlabJournalBlockReference(slab->journal, entryLock, -1);
+		adjust_slab_journal_block_reference(slab->journal,
+						    entryLock,
+						    -1);
 		return VDO_SUCCESS;
 	}
 
@@ -324,7 +326,7 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 	return (must_load_ref_counts(slab->allocator->summary,
 				     slab->slab_number)
 		|| (get_slab_free_block_count(slab) != data_blocks)
-		|| !isSlabJournalBlank(slab->journal));
+		|| !is_slab_journal_blank(slab->journal));
 }
 
 /**
@@ -340,7 +342,7 @@ static void initiate_slab_action(struct admin_state *state)
 			slab->status = SLAB_REBUILDING;
 		}
 
-		drainSlabJournal(slab->journal);
+		drain_slab_journal(slab->journal);
 
 		if (slab->reference_counts != NULL) {
 			drain_ref_counts(slab->reference_counts);
@@ -351,7 +353,7 @@ static void initiate_slab_action(struct admin_state *state)
 	}
 
 	if (is_loading(state)) {
-		decodeSlabJournal(slab->journal);
+		decode_slab_journal(slab->journal);
 		return;
 	}
 
@@ -400,7 +402,7 @@ bool is_slab_draining(struct vdo_slab *slab)
 /**********************************************************************/
 void check_if_slab_drained(struct vdo_slab *slab)
 {
-	if (is_draining(&slab->state) && !isSlabJournalActive(slab->journal)
+	if (is_draining(&slab->state) && !is_slab_journal_active(slab->journal)
 	    && ((slab->reference_counts == NULL)
 		|| !are_ref_counts_active(slab->reference_counts))) {
 		int result = (is_read_only(slab->allocator->read_only_notifier)
@@ -441,7 +443,7 @@ void finish_scrubbing_slab(struct vdo_slab *slab)
 {
 	slab->status = SLAB_REBUILT;
 	queue_slab(slab);
-	reopenSlabJournal(slab->journal);
+	reopen_slab_journal(slab->journal);
 }
 
 /**********************************************************************/
@@ -476,7 +478,7 @@ void dump_slab(const struct vdo_slab *slab)
 			status_to_string(slab->status));
 	}
 
-	dumpSlabJournal(slab->journal);
+	dump_slab_journal(slab->journal);
 
 	if (slab->reference_counts != NULL) {
 		dump_ref_counts(slab->reference_counts);
