@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#29 $
  */
 
 #include "vdoLoad.h"
@@ -294,7 +294,7 @@ static int startVDODecode(struct vdo *vdo, bool validateConfig)
 __attribute__((warn_unused_result))
 static int finishVDODecode(struct vdo *vdo)
 {
-  Buffer             *buffer       = getComponentBuffer(vdo->superBlock);
+  Buffer             *buffer       = get_component_buffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   int result = make_recovery_journal(vdo->nonce, vdo->layer,
                                      getVDOPartition(vdo->layout,
@@ -365,7 +365,7 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
     return result;
   }
 
-  result = decodeVDOLayout(getComponentBuffer(vdo->superBlock), &vdo->layout);
+  result = decodeVDOLayout(get_component_buffer(vdo->superBlock), &vdo->layout);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -455,7 +455,8 @@ static void preLoadCallback(struct vdo_completion *completion)
   struct vdo *vdo = vdoFromLoadSubTask(completion);
   assertOnAdminThread(vdo, __func__);
   prepare_admin_sub_task(vdo, loadVDOComponents, abortLoad);
-  loadSuperBlockAsync(completion, getFirstBlockOffset(vdo), &vdo->superBlock);
+  load_super_block_async(completion, getFirstBlockOffset(vdo),
+                         &vdo->superBlock);
 }
 
 /**********************************************************************/
@@ -475,7 +476,7 @@ static int decodeSynchronousVDO(struct vdo *vdo, bool validateConfig)
     return result;
   }
 
-  result = decodeVDOLayout(getComponentBuffer(vdo->superBlock), &vdo->layout);
+  result = decodeVDOLayout(get_component_buffer(vdo->superBlock), &vdo->layout);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -497,7 +498,7 @@ int loadVDOSuperblock(PhysicalLayer           *layer,
   }
 
   setLoadConfigFromGeometry(geometry, &vdo->loadConfig);
-  result = loadSuperBlock(layer, getFirstBlockOffset(vdo), &vdo->superBlock);
+  result = load_super_block(layer, getFirstBlockOffset(vdo), &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;

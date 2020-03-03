@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#12 $
  */
 
 #include "upgrade.h"
@@ -71,7 +71,7 @@ struct sodium_component_41_0 {
 static bool isCurrentReleaseVersion(struct vdo *vdo)
 {
   ReleaseVersionNumber loadedVersion
-    = getLoadedReleaseVersion(vdo->superBlock);
+    = get_loaded_release_version(vdo->superBlock);
 
   return (loadedVersion == CURRENT_RELEASE_VERSION_NUMBER);
 }
@@ -96,7 +96,7 @@ static int validateSodiumVersion(struct vdo *vdo)
   }
 
   ReleaseVersionNumber loadedVersion
-    = getLoadedReleaseVersion(vdo->superBlock);
+    = get_loaded_release_version(vdo->superBlock);
   return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
                                  "Release version %d, load version %d.%d"
                                  " cannot be upgraded", loadedVersion,
@@ -129,7 +129,7 @@ static int decodeSodium41_0Component(Buffer                       *buffer,
 __attribute__((warn_unused_result))
 static int decodeSodiumComponent(struct vdo *vdo)
 {
-  Buffer *buffer = getComponentBuffer(vdo->superBlock);
+  Buffer *buffer = get_component_buffer(vdo->superBlock);
   struct version_number version;
   int result = decode_version_number(buffer, &version);
   if (result != VDO_SUCCESS) {
@@ -167,7 +167,7 @@ static int decodeSodiumComponent(struct vdo *vdo)
 __attribute__((warn_unused_result))
 static int finishSodiumDecode(struct vdo *vdo)
 {
-  Buffer *buffer = getComponentBuffer(vdo->superBlock);
+  Buffer *buffer = get_component_buffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   int result = make_recovery_journal(vdo->nonce, vdo->layer,
                                      getVDOPartition(vdo->layout,
@@ -222,8 +222,8 @@ int upgradePriorVDO(PhysicalLayer *layer)
     return result;
   }
 
-  result = loadSuperBlock(vdo->layer, getDataRegionOffset(geometry),
-                          &vdo->superBlock);
+  result = load_super_block(vdo->layer, getDataRegionOffset(geometry),
+                            &vdo->superBlock);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return logErrorWithStringError(result, "Could not load VDO super block");
@@ -255,7 +255,7 @@ int upgradePriorVDO(PhysicalLayer *layer)
                                    "Cannot upgrade a dirty VDO.");
   }
 
-  result = decodeVDOLayout(getComponentBuffer(vdo->superBlock), &vdo->layout);
+  result = decodeVDOLayout(get_component_buffer(vdo->superBlock), &vdo->layout);
   if (result != VDO_SUCCESS) {
     freeVDO(&vdo);
     return result;

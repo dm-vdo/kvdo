@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#37 $
  */
 
 /*
@@ -140,7 +140,7 @@ void destroyVDO(struct vdo *vdo)
   free_recovery_journal(&vdo->recoveryJournal);
   free_slab_depot(&vdo->depot);
   freeVDOLayout(&vdo->layout);
-  freeSuperBlock(&vdo->superBlock);
+  free_super_block(&vdo->superBlock);
   freeBlockMap(&vdo->blockMap);
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
@@ -303,7 +303,7 @@ static int encodeVDOComponent(const struct vdo *vdo, Buffer *buffer)
 /**********************************************************************/
 static int encodeVDO(struct vdo *vdo)
 {
-  Buffer *buffer = getComponentBuffer(vdo->superBlock);
+  Buffer *buffer = get_component_buffer(vdo->superBlock);
   int result = resetBufferEnd(buffer, 0);
   if (result != VDO_SUCCESS) {
     return result;
@@ -352,7 +352,8 @@ int saveVDOComponents(struct vdo *vdo)
     return result;
   }
 
-  return saveSuperBlock(vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
+  return save_super_block(vdo->layer, vdo->superBlock,
+                          getFirstBlockOffset(vdo));
 }
 
 /**********************************************************************/
@@ -364,13 +365,13 @@ void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent)
     return;
   }
 
-  saveSuperBlockAsync(vdo->superBlock, getFirstBlockOffset(vdo), parent);
+  save_super_block_async(vdo->superBlock, getFirstBlockOffset(vdo), parent);
 }
 
 /**********************************************************************/
 int saveReconfiguredVDO(struct vdo *vdo)
 {
-  Buffer *buffer         = getComponentBuffer(vdo->superBlock);
+  Buffer *buffer         = get_component_buffer(vdo->superBlock);
   size_t  componentsSize = contentLength(buffer);
 
   byte *components;
@@ -403,13 +404,14 @@ int saveReconfiguredVDO(struct vdo *vdo)
     return result;
   }
 
-  return saveSuperBlock(vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
+  return save_super_block(vdo->layer, vdo->superBlock,
+                          getFirstBlockOffset(vdo));
 }
 
 /**********************************************************************/
 int decodeVDOVersion(struct vdo *vdo)
 {
-  return decode_version_number(getComponentBuffer(vdo->superBlock),
+  return decode_version_number(get_component_buffer(vdo->superBlock),
                                &vdo->loadVersion);
 }
 
@@ -422,7 +424,7 @@ int validateVDOVersion(struct vdo *vdo)
   }
 
   ReleaseVersionNumber loadedReleaseVersion
-    = getLoadedReleaseVersion(vdo->superBlock);
+    = get_loaded_release_version(vdo->superBlock);
   if (vdo->loadConfig.releaseVersion != loadedReleaseVersion) {
     return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
                                    "Geometry release version %" PRIu32 " does "
@@ -546,7 +548,7 @@ static int decodeVDOComponent_41_0(Buffer                    *buffer,
 /**********************************************************************/
 int decodeVDOComponent(struct vdo *vdo)
 {
-  Buffer *buffer = getComponentBuffer(vdo->superBlock);
+  Buffer *buffer = get_component_buffer(vdo->superBlock);
 
   struct version_number version;
   int result = decode_version_number(buffer, &version);
