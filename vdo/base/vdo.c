@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#40 $
  */
 
 /*
@@ -588,7 +588,7 @@ int validateVDOConfig(const VDOConfig *config,
     return result;
   }
 
-  result = ASSERT(isPowerOfTwo(config->slabSize),
+  result = ASSERT(is_power_of_two(config->slabSize),
                   "slab size must be a power of two");
   if (result != UDS_SUCCESS) {
     return result;
@@ -666,7 +666,7 @@ int validateVDOConfig(const VDOConfig *config,
     return result;
   }
 
-  result = ASSERT(isPowerOfTwo(config->recoveryJournalSize),
+  result = ASSERT(is_power_of_two(config->recoveryJournalSize),
                   "recovery journal size must be a power of two");
   if (result != UDS_SUCCESS) {
     return result;

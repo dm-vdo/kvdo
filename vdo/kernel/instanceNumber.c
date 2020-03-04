@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/instanceNumber.c#6 $
  */
 
 #include "instanceNumber.h"
@@ -66,7 +66,7 @@ static unsigned int next_instance;
 static size_t get_bit_array_size(unsigned int bit_count)
 {
 	// Round up to a multiple of the word size and convert to a byte count.
-	return (computeBucketCount(bit_count, BITS_PER_LONG) *
+	return (compute_bucket_count(bit_count, BITS_PER_LONG) *
 		sizeof(unsigned long));
 }
 

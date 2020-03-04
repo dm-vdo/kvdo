@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/histogram.c#10 $
  */
 
 #include <linux/kobject.h>
@@ -470,9 +470,9 @@ static ssize_t histogram_store_limit(struct histogram *h,
 	 * Convert input from reporting units (e.g., milliseconds) to internal
 	 * recording units (e.g., jiffies).
 	 *
-	 * computeBucketCount could also be called "divideRoundingUp".
+	 * compute_bucket_count could also be called "divide_rounding_up".
 	 */
-	h->limit = computeBucketCount(value, h->conversion_factor);
+	h->limit = compute_bucket_count(value, h->conversion_factor);
 	atomic64_set(&h->unacceptable, 0);
 	return length;
 }

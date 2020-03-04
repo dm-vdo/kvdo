@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#41 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -880,8 +880,8 @@ static int findMissingDecrefs(struct recovery_completion *recovery)
 
   // A buffer is allocated based on the number of incRef entries found, so use
   // the earliest head.
-  SequenceNumber head = minSequenceNumber(recovery->blockMapHead,
-                                          recovery->slabJournalHead);
+  SequenceNumber head = min_sequence_number(recovery->blockMapHead,
+                                            recovery->slabJournalHead);
   struct recovery_point headPoint = {
     .sequenceNumber = head,
     .sectorCount    = 1,
@@ -1086,7 +1086,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
 {
   struct recovery_journal *journal = recovery->vdo->recoveryJournal;
   SequenceNumber head
-    = minSequenceNumber(recovery->blockMapHead, recovery->slabJournalHead);
+    = min_sequence_number(recovery->blockMapHead, recovery->slabJournalHead);
 
   bool foundEntries = false;
   SequenceNumber i;
@@ -1121,8 +1121,8 @@ static bool findContiguousRange(struct recovery_completion *recovery)
         break;
       }
 
-      JournalEntryCount sectorEntries = minBlock(sector->entryCount,
-                                                 blockEntries);
+      JournalEntryCount sectorEntries = min_block(sector->entryCount,
+                                                  blockEntries);
       if (sectorEntries > 0) {
         foundEntries = true;
         recovery->tailRecoveryPoint.sectorCount++;

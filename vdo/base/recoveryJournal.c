@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#37 $
  */
 
 #include "recoveryJournal.h"
@@ -267,8 +267,8 @@ get_current_journal_sequence_number(struct recovery_journal *journal)
 static inline SequenceNumber
 get_recovery_journal_head(struct recovery_journal *journal)
 {
-	return minSequenceNumber(journal->block_map_head,
-				 journal->slab_journal_head);
+	return min_sequence_number(journal->block_map_head,
+				   journal->slab_journal_head);
 }
 
 /**

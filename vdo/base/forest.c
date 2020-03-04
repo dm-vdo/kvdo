@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#20 $
  */
 
 #include "forest.h"
@@ -129,14 +129,15 @@ static BlockCount compute_new_pages(RootCount root_count,
 				    BlockCount entries,
 				    struct boundary *new_sizes)
 {
-	PageCount leaf_pages = maxPageCount(computeBlockMapPageCount(entries) -
-					    flat_page_count, 1);
-	PageCount level_size = computeBucketCount(leaf_pages, root_count);
+	PageCount leaf_pages
+		= max_page_count(computeBlockMapPageCount(entries) -
+				 flat_page_count, 1);
+	PageCount level_size = compute_bucket_count(leaf_pages, root_count);
 	BlockCount total_pages = 0;
 	Height height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT; height++) {
-		level_size = computeBucketCount(level_size,
-					       BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_size = compute_bucket_count(level_size,
+						  BLOCK_MAP_ENTRIES_PER_PAGE);
 		new_sizes->levels[height] = level_size;
 		BlockCount new_pages = level_size;
 		if (old_sizes != NULL) {
@@ -541,10 +542,10 @@ static struct boundary compute_boundary(struct block_map *map,
 	PageCount last_tree_root = (leaf_pages - 1) % map->rootCount;
 
 	PageCount level_pages = tree_leaf_pages / map->rootCount;
-	if (inCyclicRange(first_tree_root,
-			  root_index,
-			  last_tree_root,
-			  map->rootCount)) {
+	if (in_cyclic_range(first_tree_root,
+			    root_index,
+			    last_tree_root,
+			    map->rootCount)) {
 		level_pages++;
 	}
 
@@ -552,8 +553,8 @@ static struct boundary compute_boundary(struct block_map *map,
 	Height height;
 	for (height = 0; height < BLOCK_MAP_TREE_HEIGHT - 1; height++) {
 		boundary.levels[height] = level_pages;
-		level_pages = computeBucketCount(level_pages,
-						 BLOCK_MAP_ENTRIES_PER_PAGE);
+		level_pages = compute_bucket_count(level_pages,
+						   BLOCK_MAP_ENTRIES_PER_PAGE);
 	}
 
 	// The root node always exists, even if the root is otherwise unused.

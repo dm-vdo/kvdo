@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#29 $
  */
 
 #include "slab.h"
@@ -74,8 +74,8 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 	 * tests every time the metadata size changes by one block.
 	 */
 	BlockCount data_blocks = slab_size - meta_blocks;
-	if ((slab_size < 1024) && !isPowerOfTwo(data_blocks)) {
-		data_blocks = ((BlockCount)1 << logBaseTwo(data_blocks));
+	if ((slab_size < 1024) && !is_power_of_two(data_blocks)) {
+		data_blocks = ((BlockCount)1 << log_base_two(data_blocks));
 	}
 
 	/*

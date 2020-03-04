@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/numUtils.h#2 $
  *
  * THIS FILE IS A CANDIDATE FOR THE EVENTUAL UTILITY LIBRARY.
  */
@@ -32,9 +32,9 @@
 /**
  * Return true if and only if a number is a power of two.
  **/
-static inline bool isPowerOfTwo(uint64_t n)
+static inline bool is_power_of_two(uint64_t n)
 {
-  return (n > 0) && ((n & (n - 1)) == 0);
+	return (n > 0) && ((n & (n - 1)) == 0);
 }
 
 /**
@@ -51,80 +51,78 @@ static inline bool isPowerOfTwo(uint64_t n)
  *
  * @return the integer log2 of the value, or -1 if the value is zero
  **/
-static inline int logBaseTwo(uint64_t n)
+static inline int log_base_two(uint64_t n)
 {
-  if (n == 0) {
-    return -1;
-  }
-  // Many CPUs, including x86, directly support this calculation, so use the
-  // GCC function for counting the number of leading high-order zero bits.
-  return 63 - __builtin_clzll(n);
+	if (n == 0) {
+		return -1;
+	}
+	// Many CPUs, including x86, directly support this calculation, so use
+	// the GCC function for counting the number of leading high-order zero
+	// bits.
+	return 63 - __builtin_clzll(n);
 }
 
 /**
  * Find the minimum of two physical block numbers.
  **/
-__attribute__((warn_unused_result))
-static inline PhysicalBlockNumber minBlock(PhysicalBlockNumber a,
-                                           PhysicalBlockNumber b)
+__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+min_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
 {
-  return (a < b) ? a : b;
+	return (a < b) ? a : b;
 }
 
 /**
  * Find the maximum of two physical block numbers.
  **/
-__attribute__((warn_unused_result))
-static inline PhysicalBlockNumber maxBlock(PhysicalBlockNumber a,
-                                           PhysicalBlockNumber b)
+__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+max_block(PhysicalBlockNumber a, PhysicalBlockNumber b)
 {
-  return (a > b) ? a : b;
+	return (a > b) ? a : b;
 }
 
 /**
  * Find the minimum of two block counts.
  **/
-__attribute__((warn_unused_result))
-static inline BlockCount minBlockCount(BlockCount a, BlockCount b)
+__attribute__((warn_unused_result)) static inline BlockCount
+min_block_count(BlockCount a, BlockCount b)
 {
-  return (a < b) ? a : b;
+	return (a < b) ? a : b;
 }
 
 /**
  * Find the maximum of two block counts.
  **/
-__attribute__((warn_unused_result))
-static inline BlockCount maxBlockCount(BlockCount a, BlockCount b)
+__attribute__((warn_unused_result)) static inline BlockCount
+max_block_count(BlockCount a, BlockCount b)
 {
-  return (a > b) ? a : b;
+	return (a > b) ? a : b;
 }
 
 /**
  * Find the minimum of two sequence numbers.
  **/
-__attribute__((warn_unused_result))
-static inline SequenceNumber minSequenceNumber(SequenceNumber a,
-                                               SequenceNumber b)
+__attribute__((warn_unused_result)) static inline SequenceNumber
+min_sequence_number(SequenceNumber a, SequenceNumber b)
 {
-  return (a < b) ? a : b;
+	return (a < b) ? a : b;
 }
 
 /**
  * Return the minimum of two page counts.
  **/
-__attribute__((warn_unused_result))
-static inline PageCount minPageCount(PageCount a, PageCount b)
+__attribute__((warn_unused_result)) static inline PageCount
+min_page_count(PageCount a, PageCount b)
 {
-  return (a < b) ? a : b;
+	return (a < b) ? a : b;
 }
 
 /**
  * Return the maximum of two page counts.
  **/
-__attribute__((warn_unused_result))
-static inline PageCount maxPageCount(PageCount a, PageCount b)
+__attribute__((warn_unused_result)) static inline PageCount
+max_page_count(PageCount a, PageCount b)
 {
-  return (a > b) ? a : b;
+	return (a > b) ? a : b;
 }
 
 /**
@@ -135,10 +133,10 @@ static inline PageCount maxPageCount(PageCount a, PageCount b)
  *
  * @return the least multiple of quantum not less than number
  **/
-__attribute__((warn_unused_result))
-static inline size_t roundUpToMultipleSizeT(size_t number, size_t quantum)
+__attribute__((warn_unused_result)) static inline size_t
+round_up_to_multiple_size_t(size_t number, size_t quantum)
 {
-  return number + quantum - 1 - ((number + quantum - 1) % quantum);
+	return number + quantum - 1 - ((number + quantum - 1) % quantum);
 }
 
 /**
@@ -149,11 +147,10 @@ static inline size_t roundUpToMultipleSizeT(size_t number, size_t quantum)
  *
  * @return the least multiple of quantum not less than number
  **/
-__attribute__((warn_unused_result))
-static inline uint64_t roundUpToMultipleUInt64T(uint64_t number,
-                                                uint64_t quantum)
+__attribute__((warn_unused_result)) static inline uint64_t
+round_up_to_multiple_u_int64_t(uint64_t number, uint64_t quantum)
 {
-  return number + quantum - 1 - ((number + quantum - 1) % quantum);
+	return number + quantum - 1 - ((number + quantum - 1) % quantum);
 }
 
 /**
@@ -168,37 +165,35 @@ static inline uint64_t roundUpToMultipleUInt64T(uint64_t number,
  *
  * @return <code>true</code> if the value is in range
  **/
-static inline bool inCyclicRange(uint16_t lower,
-                                 uint16_t value,
-                                 uint16_t upper,
-                                 uint16_t modulus)
+static inline bool in_cyclic_range(uint16_t lower, uint16_t value,
+				   uint16_t upper, uint16_t modulus)
 {
-  if (value < lower) {
-    value += modulus;
-  }
-  if (upper < lower) {
-    upper += modulus;
-  }
-  return (value <= upper);
+	if (value < lower) {
+		value += modulus;
+	}
+	if (upper < lower) {
+		upper += modulus;
+	}
+	return (value <= upper);
 }
 
 /**
  * Compute the number of buckets of a given size which are required to hold a
  * given number of objects.
  *
- * @param objectCount  The number of objects to hold
- * @param bucketSize   The size of a bucket
+ * @param object_count  The number of objects to hold
+ * @param bucket_size   The size of a bucket
  *
  * @return The number of buckets required
  **/
-static inline uint64_t computeBucketCount(uint64_t objectCount,
-                                          uint64_t bucketSize)
+static inline uint64_t compute_bucket_count(uint64_t object_count,
+					    uint64_t bucket_size)
 {
-  uint64_t quotient = objectCount / bucketSize;
-  if ((objectCount % bucketSize) > 0) {
-    ++quotient;
-  }
-  return quotient;
+	uint64_t quotient = object_count / bucket_size;
+	if ((object_count % bucket_size) > 0) {
+		++quotient;
+	}
+	return quotient;
 }
 
 #endif // NUM_UTILS_H

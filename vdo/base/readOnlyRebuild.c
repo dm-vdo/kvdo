@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#21 $
  */
 
 #include "readOnlyRebuild.h"
@@ -337,7 +337,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		// Don't extract more than the expected maximum entries per
 		// block.
 		JournalEntryCount block_entries =
-			minBlock(journal->entries_per_block, header.entryCount);
+			min_block(journal->entries_per_block, header.entryCount);
 		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			// Stop when all entries counted in the header are
@@ -349,26 +349,26 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			struct packed_journal_sector *sector =
 				getJournalBlockSector(packed_header, j);
 			if (!is_valid_recovery_journal_sector(&header, sector)) {
-				block_entries -= minBlock(block_entries,
-							  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				block_entries -= min_block(block_entries,
+							   RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 				continue;
 			}
 
 			// Don't extract more than the expected maximum entries
 			// per sector.
 			JournalEntryCount sector_entries =
-				minBlock(sector->entryCount,
-					 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				min_block(sector->entryCount,
+					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 			// Only extract as many as the block header calls for.
-			sector_entries = minBlock(sector_entries,
-						  block_entries);
+			sector_entries = min_block(sector_entries,
+						   block_entries);
 			append_sector_entries(rebuild, sector, sector_entries);
 			// Even if the sector wasn't full, count it as full when
 			// counting up to the entry count the block header
 			// claims.
 			block_entries -=
-				minBlock(block_entries,
-					 RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+				min_block(block_entries,
+					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 		}
 	}
 

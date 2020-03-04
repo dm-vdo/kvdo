@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#43 $
  */
 
 #include "slabDepot.h"
@@ -347,11 +347,11 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
 	BlockCount slab_size = state->slab_config.slabBlocks;
-	if (!isPowerOfTwo(slab_size)) {
+	if (!is_power_of_two(slab_size)) {
 		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
 					       "slab size must be a power of two");
 	}
-	unsigned int slab_size_shift = logBaseTwo(slab_size);
+	unsigned int slab_size_shift = log_base_two(slab_size);
 
 	struct slab_depot *depot;
 	int result = ALLOCATE_EXTENDED(struct slab_depot,

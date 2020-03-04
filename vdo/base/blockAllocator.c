@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#51 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -97,7 +97,7 @@ static unsigned int calculateSlabPriority(struct vdo_slab *slab)
 	 * will range from 1 to 25. The reserved unopened_slab_priority divides
 	 * the range and is skipped by the logarithmic mapping.
 	 */
-	unsigned int priority = (1 + logBaseTwo(free_blocks));
+	unsigned int priority = (1 + log_base_two(free_blocks));
 	return ((priority < unopened_slab_priority) ? priority : priority + 1);
 }
 
@@ -244,7 +244,7 @@ static int allocate_components(struct block_allocator *allocator,
 	// The number of data blocks is the maximum number of free blocks that
 	// could be used in calculateSlabPriority().
 	BlockCount max_free_blocks = depot->slab_config.dataBlocks;
-	unsigned int max_priority = (2 + logBaseTwo(max_free_blocks));
+	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	result = make_priority_table(max_priority,
 				     &allocator->prioritized_slabs);
 	if (result != VDO_SUCCESS) {
@@ -268,7 +268,7 @@ static int allocate_components(struct block_allocator *allocator,
 	 * blocks is artificially constrained to a power of two.
 	 */
 	allocator->unopened_slab_priority =
-		(1 + logBaseTwo((max_free_blocks * 3) / 4));
+		(1 + log_base_two((max_free_blocks * 3) / 4));
 
 	return VDO_SUCCESS;
 }

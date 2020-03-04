@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#44 $
  */
 
 #include "blockMapTree.h"
@@ -244,10 +244,10 @@ static void enterZoneReadOnlyMode(struct block_map_tree_zone *zone, int result)
 __attribute__((warn_unused_result))
 static bool isNotOlder(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 {
-  int result = ASSERT((inCyclicRange(zone->oldestGeneration, a,
-                                     zone->generation, 1 << 8)
-                       && inCyclicRange(zone->oldestGeneration, b,
-                                        zone->generation, 1 << 8)),
+  int result = ASSERT((in_cyclic_range(zone->oldestGeneration, a,
+                                       zone->generation, 1 << 8)
+                       && in_cyclic_range(zone->oldestGeneration, b,
+                                          zone->generation, 1 << 8)),
                       "generation(s) %u, %u are out of range [%u, %u]",
                       a, b, zone->oldestGeneration, zone->generation);
   if (result != VDO_SUCCESS) {
@@ -255,7 +255,7 @@ static bool isNotOlder(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
     return true;
   }
 
-  return inCyclicRange(b, a, zone->generation, 1 << 8);
+  return in_cyclic_range(b, a, zone->generation, 1 << 8);
 }
 
 /**
