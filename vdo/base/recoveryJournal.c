@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#38 $
  */
 
 #include "recoveryJournal.h"
@@ -756,7 +756,7 @@ static bool advance_tail(struct recovery_journal *journal)
 		     &journal->active_block->ring_node);
 	initialize_recovery_block(journal->active_block);
 	set_journal_tail(journal, journal->tail + 1);
-	advanceBlockMapEra(journal->block_map, journal->tail);
+	advance_block_map_era(journal->block_map, journal->tail);
 	return true;
 }
 

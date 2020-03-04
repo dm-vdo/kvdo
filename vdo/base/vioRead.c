@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#8 $
  */
 
 #include "vioRead.h"
@@ -97,7 +97,7 @@ static void readBlockMapping(struct vdo_completion *completion)
   assertInLogicalZone(dataVIO);
   setLogicalCallback(dataVIO, readBlock, THIS_LOCATION("$F;cb=readBlock"));
   dataVIO->lastAsyncOperation = GET_MAPPED_BLOCK;
-  getMappedBlockAsync(dataVIO);
+  get_mapped_block_async(dataVIO);
 }
 
 /**********************************************************************/
@@ -106,8 +106,8 @@ void launchReadDataVIO(struct data_vio *dataVIO)
   assertInLogicalZone(dataVIO);
   dataVIO->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
   // Go find the block map slot for the LBN mapping.
-  findBlockMapSlotAsync(dataVIO, readBlockMapping,
-                        get_logical_zone_thread_id(dataVIO->logical.zone));
+  find_block_map_slot_async(dataVIO, readBlockMapping,
+                            get_logical_zone_thread_id(dataVIO->logical.zone));
 }
 
 /**

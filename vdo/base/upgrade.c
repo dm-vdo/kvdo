@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#13 $
  */
 
 #include "upgrade.h"
@@ -196,8 +196,8 @@ static int finishSodiumDecode(struct vdo *vdo)
     return result;
   }
 
-  result = decodeSodiumBlockMap(buffer, vdo->config.logicalBlocks,
-                                threadConfig, &vdo->blockMap);
+  result = decode_sodium_block_map(buffer, vdo->config.logicalBlocks,
+                                   threadConfig, &vdo->blockMap);
   if (result != VDO_SUCCESS) {
     return result;
   }

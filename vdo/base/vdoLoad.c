@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#30 $
  */
 
 #include "vdoLoad.h"
@@ -191,7 +191,7 @@ static void prepareToComeOnline(struct vdo_completion *completion)
     loadType = RECOVERY_LOAD;
   }
 
-  initializeBlockMapFromJournal(vdo->blockMap, vdo->recoveryJournal);
+  initialize_block_map_from_journal(vdo->blockMap, vdo->recoveryJournal);
 
   prepare_admin_sub_task(vdo, scrubSlabs, handleScrubbingError);
   prepare_to_allocate(vdo->depot, loadType, completion);
@@ -322,8 +322,8 @@ static int finishVDODecode(struct vdo *vdo)
     return result;
   }
 
-  result = decodeBlockMap(buffer, vdo->config.logicalBlocks, threadConfig,
-                          &vdo->blockMap);
+  result = decode_block_map(buffer, vdo->config.logicalBlocks, threadConfig,
+                            &vdo->blockMap);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -386,10 +386,10 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
   if ((maximumAge > (journalLength / 2)) || (maximumAge < 1)) {
     return VDO_BAD_CONFIGURATION;
   }
-  result = makeBlockMapCaches(vdo->blockMap, vdo->layer,
-                              vdo->readOnlyNotifier, vdo->recoveryJournal,
-                              vdo->nonce, getConfiguredCacheSize(vdo),
-                              maximumAge);
+  result = make_block_map_caches(vdo->blockMap, vdo->layer,
+                                 vdo->readOnlyNotifier, vdo->recoveryJournal,
+                                 vdo->nonce, getConfiguredCacheSize(vdo),
+                                 maximumAge);
   if (result != VDO_SUCCESS) {
     return result;
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#41 $
  */
 
 /*
@@ -141,7 +141,7 @@ void destroyVDO(struct vdo *vdo)
   free_slab_depot(&vdo->depot);
   freeVDOLayout(&vdo->layout);
   free_super_block(&vdo->superBlock);
-  freeBlockMap(&vdo->blockMap);
+  free_block_map(&vdo->blockMap);
 
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   if (vdo->hashZones != NULL) {
@@ -202,7 +202,7 @@ size_t getComponentDataSize(struct vdo *vdo)
           + getVDOLayoutEncodedSize(vdo->layout)
           + get_recovery_journal_encoded_size()
           + get_slab_depot_encoded_size()
-          + getBlockMapEncodedSize());
+          + get_block_map_encoded_size());
 }
 
 /**
@@ -334,7 +334,7 @@ static int encodeVDO(struct vdo *vdo)
     return result;
   }
 
-  result = encodeBlockMap(vdo->blockMap, buffer);
+  result = encode_block_map(vdo->blockMap, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -896,7 +896,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
   stats->slabJournal        = get_depot_slab_journal_statistics(depot);
   stats->slabSummary        = get_slab_summary_statistics(get_slab_summary(depot));
   stats->refCounts          = get_depot_ref_counts_statistics(depot);
-  stats->blockMap           = getBlockMapStatistics(vdo->blockMap);
+  stats->blockMap           = get_block_map_statistics(vdo->blockMap);
   stats->hashLock           = getHashLockStatistics(vdo);
   stats->errors             = getVDOErrorStatistics(vdo);
   SlabCount slabTotal       = get_depot_slab_count(depot);
@@ -934,7 +934,7 @@ BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
 /**********************************************************************/
 BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
 {
-  return (getNumberOfFixedBlockMapPages(vdo->blockMap)
+  return (get_number_of_fixed_block_map_pages(vdo->blockMap)
           + get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
 }
 

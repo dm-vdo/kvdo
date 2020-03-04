@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#12 $
  */
 
 #include "blockMapPage.h"
@@ -99,7 +99,7 @@ void updateBlockMapPage(struct block_map_page *page,
   // Adjust references (locks) on the recovery journal blocks.
   struct block_map_zone *zone
     = get_block_map_for_zone(dataVIO->logical.zone);
-  struct block_map        *blockMap  = zone->blockMap;
+  struct block_map        *blockMap  = zone->block_map;
   struct recovery_journal *journal   = blockMap->journal;
   SequenceNumber           oldLocked = *recoveryLock;
   SequenceNumber           newLocked = dataVIO->recoverySequenceNumber;
@@ -109,13 +109,13 @@ void updateBlockMapPage(struct block_map_page *page,
     acquire_recovery_journal_block_reference(journal,
                                              newLocked,
                                              ZONE_TYPE_LOGICAL,
-                                             zone->zoneNumber);
+                                             zone->zone_number);
 
     // If the block originally held a newer lock, release it.
     if (oldLocked > 0) {
       release_recovery_journal_block_reference(journal, oldLocked,
                                                ZONE_TYPE_LOGICAL,
-                                               zone->zoneNumber);
+                                               zone->zone_number);
     }
 
     *recoveryLock = newLocked;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#27 $
  */
 
 /*
@@ -485,7 +485,7 @@ static void updateBlockMapForDedupe(struct vdo_completion *completion)
     completion->callback = completeDataVIO;
   }
   dataVIO->lastAsyncOperation = PUT_MAPPED_BLOCK_FOR_DEDUPE;
-  putMappedBlockAsync(dataVIO);
+  put_mapped_block_async(dataVIO);
 }
 
 /**
@@ -613,7 +613,7 @@ static void readOldBlockMappingForDedupe(struct vdo_completion *completion)
   dataVIO->lastAsyncOperation = GET_MAPPED_BLOCK_FOR_DEDUPE;
   setJournalCallback(dataVIO, journalUnmappingForDedupe,
                      THIS_LOCATION("$F;cb=journalUnmapDedupe"));
-  getMappedBlockAsync(dataVIO);
+  get_mapped_block_async(dataVIO);
 }
 
 /**
@@ -921,7 +921,7 @@ static void updateBlockMapForWrite(struct vdo_completion *completion)
   }
 
   dataVIO->lastAsyncOperation = PUT_MAPPED_BLOCK;
-  putMappedBlockAsync(dataVIO);
+  put_mapped_block_async(dataVIO);
 }
 
 /**
@@ -987,7 +987,7 @@ static void readOldBlockMappingForWrite(struct vdo_completion *completion)
   setJournalCallback(dataVIO, journalUnmappingForWrite,
                      THIS_LOCATION("$F;cb=journalUnmapWrite"));
   dataVIO->lastAsyncOperation = GET_MAPPED_BLOCK_FOR_WRITE;
-  getMappedBlockAsync(dataVIO);
+  get_mapped_block_async(dataVIO);
 }
 
 /**
@@ -1196,8 +1196,8 @@ void launchWriteDataVIO(struct data_vio *dataVIO)
 
   // Go find the block map slot for the LBN mapping.
   dataVIO->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
-  findBlockMapSlotAsync(dataVIO, continueWriteWithBlockMapSlot,
-                        get_logical_zone_thread_id(dataVIO->logical.zone));
+  find_block_map_slot_async(dataVIO, continueWriteWithBlockMapSlot,
+                            get_logical_zone_thread_id(dataVIO->logical.zone));
 }
 
 /**********************************************************************/

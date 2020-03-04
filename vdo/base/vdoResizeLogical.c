@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#16 $
  */
 
 #include "vdoResizeLogical.h"
@@ -77,14 +77,14 @@ static void growLogicalCallback(struct vdo_completion *completion)
                                     ADMIN_STATE_SUSPENDED_OPERATION,
                                     &adminCompletion->completion, NULL)) {
 
-      vdo->config.logicalBlocks = getNewEntryCount(getBlockMap(vdo));
+      vdo->config.logicalBlocks = get_new_entry_count(getBlockMap(vdo));
       saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
     }
 
     return;
 
   case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-    growBlockMap(getBlockMap(vdo), reset_admin_sub_task(completion));
+    grow_block_map(getBlockMap(vdo), reset_admin_sub_task(completion));
     return;
 
   case GROW_LOGICAL_PHASE_END:
@@ -115,8 +115,8 @@ static void handleGrowthError(struct vdo_completion *completion)
     // in memory config back to the old size.
     struct vdo       *vdo = adminCompletion->vdo;
     struct block_map *map = getBlockMap(vdo);
-    vdo->config.logicalBlocks = getNumberOfBlockMapEntries(map);
-    abandonBlockMapGrowth(map);
+    vdo->config.logicalBlocks = get_number_of_block_map_entries(map);
+    abandon_block_map_growth(map);
   }
 
   adminCompletion->phase = GROW_LOGICAL_PHASE_ERROR;
@@ -126,7 +126,7 @@ static void handleGrowthError(struct vdo_completion *completion)
 /**********************************************************************/
 int performGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
 {
-  if (getNewEntryCount(getBlockMap(vdo)) != newLogicalBlocks) {
+  if (get_new_entry_count(getBlockMap(vdo)) != newLogicalBlocks) {
     return VDO_PARAMETER_MISMATCH;
   }
 
@@ -152,5 +152,5 @@ int prepareToGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
                                    vdo->config.logicalBlocks);
   }
 
-  return prepareToGrowBlockMap(getBlockMap(vdo), newLogicalBlocks);
+  return prepare_to_grow_block_map(getBlockMap(vdo), newLogicalBlocks);
 }

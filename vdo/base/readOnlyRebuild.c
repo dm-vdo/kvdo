@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#22 $
  */
 
 #include "readOnlyRebuild.h"
@@ -149,7 +149,8 @@ static void complete_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
 	struct vdo *vdo = rebuild->vdo;
-	setVDOPageCacheRebuildMode(getBlockMap(vdo)->zones[0].pageCache, false);
+	setVDOPageCacheRebuildMode(getBlockMap(vdo)->zones[0].page_cache,
+				   false);
 	free_rebuild_completion(&rebuild);
 	finishCompletion(parent, result);
 }
@@ -404,7 +405,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	// Suppress block map errors.
-	setVDOPageCacheRebuildMode(getBlockMap(vdo)->zones[0].pageCache, true);
+	setVDOPageCacheRebuildMode(getBlockMap(vdo)->zones[0].page_cache, true);
 
 	// Play the recovery journal into the block map.
 	prepareCompletion(completion,

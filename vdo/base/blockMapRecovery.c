@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#16 $
  */
 
 #include "blockMapRecovery.h"
@@ -270,7 +270,7 @@ static void flushBlockMap(struct vdo_completion *completion)
                   "flushBlockMap() called on admin thread");
 
   prepareToFinishParent(completion, completion->parent);
-  drainBlockMap(recovery->blockMap, ADMIN_STATE_RECOVERING, completion);
+  drain_block_map(recovery->blockMap, ADMIN_STATE_RECOVERING, completion);
 }
 
 /**
@@ -438,7 +438,7 @@ static void fetchPage(struct block_map_recovery_completion *recovery,
     = findEntryStartingNextPage(recovery, recovery->currentUnfetchedEntry,
                                 true);
   initVDOPageCompletion(((struct vdo_page_completion *) completion),
-                        recovery->blockMap->zones[0].pageCache,
+                        recovery->blockMap->zones[0].page_cache,
                         newPBN, true, &recovery->completion,
                         pageLoaded, handlePageLoadError);
   recovery->outstanding++;

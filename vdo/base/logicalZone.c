@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#25 $
  */
 
 #include "logicalZone.h"
@@ -139,7 +139,7 @@ static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 	zone->zone_number = zone_number;
 	zone->thread_id = getLogicalZoneThread(getThreadConfig(vdo),
 					       zone_number);
-	zone->block_map_zone = getBlockMapZone(vdo->blockMap, zone_number);
+	zone->block_map_zone = get_block_map_zone(vdo->blockMap, zone_number);
 	initializeRing(&zone->write_vios);
 	atomicStore64(&zone->oldest_locked_generation, 0);
 
@@ -238,7 +238,9 @@ static void check_for_drain_complete(struct logical_zone *zone)
  **/
 static void initiate_drain(struct admin_state *state)
 {
-	check_for_drain_complete(container_of(state, struct logical_zone, state));
+	check_for_drain_complete(container_of(state,
+					      struct logical_zone,
+					      state));
 }
 
 /**

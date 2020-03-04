@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#22 $
  */
 
 #include "referenceCountRebuild.h"
@@ -178,7 +178,8 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->logical_blocks_used = logical_blocks_used;
 	rebuild->block_map_data_blocks = block_map_data_blocks;
 	rebuild->page_count = page_count;
-	rebuild->leaf_pages = computeBlockMapPageCount(block_map->entryCount);
+	rebuild->leaf_pages =
+		compute_block_map_page_count(block_map->entry_count);
 
 	const ThreadConfig *thread_config = getThreadConfig(vdo);
 	rebuild->logical_thread_id = getLogicalZoneThread(thread_config, 0);
@@ -205,8 +206,8 @@ static void flush_block_map_updates(struct vdo_completion *completion)
 {
 	logInfo("Flushing block map changes");
 	prepareToFinishParent(completion, completion->parent);
-	drainBlockMap(as_rebuild_completion(completion->parent)->block_map,
-		      ADMIN_STATE_RECOVERING, completion);
+	drain_block_map(as_rebuild_completion(completion->parent)->block_map,
+			ADMIN_STATE_RECOVERING, completion);
 }
 
 /**
@@ -411,7 +412,7 @@ static void fetch_page(struct rebuild_completion *rebuild,
 		}
 
 		initVDOPageCompletion(((struct vdo_page_completion *)completion),
-				      rebuild->block_map->zones[0].pageCache,
+				      rebuild->block_map->zones[0].page_cache,
 				      pbn, true,
 				      &rebuild->completion, page_loaded,
 				      handle_page_load_error);
@@ -438,7 +439,7 @@ static void rebuild_from_leaves(struct vdo_completion *completion)
 	// The PBN calculation doesn't work until the tree pages have been
 	// loaded, so we can't set this value at the start of rebuild.
 	rebuild->last_slot = (struct block_map_slot){
-		.slot = rebuild->block_map->entryCount
+		.slot = rebuild->block_map->entry_count
 			% BLOCK_MAP_ENTRIES_PER_PAGE,
 		.pbn = findBlockMapPagePBN(rebuild->block_map,
 					   rebuild->leaf_pages - 1),
@@ -508,7 +509,8 @@ void rebuild_reference_counts(struct vdo *vdo,
 
 	// Completion chaining from page cache hits can lead to stack overflow
 	// during the rebuild, so clear out the cache before this rebuild phase.
-	result = invalidateVDOPageCache(rebuild->block_map->zones[0].pageCache);
+	result =
+		invalidateVDOPageCache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
 		finishCompletion(parent, result);
 		return;

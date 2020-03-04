@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#42 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -1031,7 +1031,7 @@ static void launchFetch(struct waiter *waiter, void *context)
   }
 
   struct block_map_zone *zone = context;
-  initVDOPageCompletion(&decref->pageCompletion, zone->pageCache,
+  initVDOPageCompletion(&decref->pageCompletion, zone->page_cache,
                         decref->slot.pbn, false, decref, processFetchedPage,
                         handleFetchError);
   getVDOPageAsync(&decref->pageCompletion.completion);
@@ -1067,7 +1067,7 @@ static void findSlabJournalEntries(struct vdo_completion *completion)
   if (recovery->incompleteDecrefCount++ > 0) {
     // Fetch block map pages to fill in the incomplete missing decrefs.
     notifyAllWaiters(&recovery->missingDecrefs[0], launchFetch,
-                     getBlockMapZone(getBlockMap(vdo), 0));
+                     get_block_map_zone(getBlockMap(vdo), 0));
   }
 
   if (--recovery->incompleteDecrefCount == 0) {

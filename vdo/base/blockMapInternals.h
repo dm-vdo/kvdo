@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapInternals.h#26 $
  */
 
 #ifndef BLOCK_MAP_INTERNALS_H
@@ -38,81 +38,83 @@
  * The per-zone fields used by the block map tree.
  **/
 struct block_map_tree_zone {
-  /** The struct block_map_zone which owns this tree zone */
-  struct block_map_zone *mapZone;
-  /** The lists of dirty tree pages */
-  struct dirty_lists    *dirtyLists;
-  /** The number of tree lookups in progress */
-  VIOCount               activeLookups;
-  /** The map of pages currently being loaded */
-  struct int_map        *loadingPages;
-  /** The pool of vios for tree I/O */
-  struct vio_pool       *vioPool;
-  /** The tree page which has issued or will be issuing a flush */
-  struct tree_page      *flusher;
-  /** The queue of pages waiting for a flush so they can be written out */
-  struct wait_queue      flushWaiters;
-  /** The generation after the most recent flush */
-  uint8_t                generation;
-  /** The oldest active generation */
-  uint8_t                oldestGeneration;
-  /** The counts of dirty pages in each generation */
-  uint32_t               dirtyPageCounts[256];
+	/** The struct block_map_zone which owns this tree zone */
+	struct block_map_zone *map_zone;
+	/** The lists of dirty tree pages */
+	struct dirty_lists *dirty_lists;
+	/** The number of tree lookups in progress */
+	VIOCount active_lookups;
+	/** The map of pages currently being loaded */
+	struct int_map *loading_pages;
+	/** The pool of vios for tree I/O */
+	struct vio_pool *vio_pool;
+	/** The tree page which has issued or will be issuing a flush */
+	struct tree_page *flusher;
+	/** The queue of pages waiting for a flush so they can be written out */
+	struct wait_queue flush_waiters;
+	/** The generation after the most recent flush */
+	uint8_t generation;
+	/** The oldest active generation */
+	uint8_t oldest_generation;
+	/** The counts of dirty pages in each generation */
+	uint32_t dirty_page_counts[256];
 };
 
 /**
  * The per-zone fields of the block map.
  **/
 struct block_map_zone {
-  /** The number of the zone this is */
-  ZoneCount                   zoneNumber;
-  /** The ID of this zone's logical thread */
-  ThreadID                    threadID;
-  /** The block_map which owns this block_map_zone */
-  struct block_map           *blockMap;
-  /** The read_only_notifier of the VDO */
-  struct read_only_notifier  *readOnlyNotifier;
-  /** The page cache for this zone */
-  struct vdo_page_cache      *pageCache;
-  /** The per-zone portion of the tree for this zone */
-  struct block_map_tree_zone  treeZone;
-  /** The administrative state of the zone */
-  struct admin_state          state;
+	/** The number of the zone this is */
+	ZoneCount zone_number;
+	/** The ID of this zone's logical thread */
+	ThreadID thread_id;
+	/** The block_map which owns this block_map_zone */
+	struct block_map *block_map;
+	/** The read_only_notifier of the VDO */
+	struct read_only_notifier *read_only_notifier;
+	/** The page cache for this zone */
+	struct vdo_page_cache *page_cache;
+	/** The per-zone portion of the tree for this zone */
+	struct block_map_tree_zone tree_zone;
+	/** The administrative state of the zone */
+	struct admin_state state;
 };
 
 struct block_map {
-  /** The manager for block map actions */
-  struct action_manager    *actionManager;
-  /** The count of pages in the linear part of the block map */
-  BlockCount                flatPageCount;
-  /** The absolute PBN of the first root of the tree part of the block map */
-  PhysicalBlockNumber       rootOrigin;
-  /** The count of root pages of the tree part of the block map */
-  BlockCount                rootCount;
+	/** The manager for block map actions */
+	struct action_manager *action_manager;
+	/** The count of pages in the linear part of the block map */
+	BlockCount flat_page_count;
+	/**
+	 * The absolute PBN of the first root of the tree part of the block map
+	 */
+	PhysicalBlockNumber root_origin;
+	/** The count of root pages of the tree part of the block map */
+	BlockCount root_count;
 
-  /** The era point we are currently distributing to the zones */
-  SequenceNumber            currentEraPoint;
-  /** The next era point, not yet distributed to any zone */
-  SequenceNumber            pendingEraPoint;
+	/** The era point we are currently distributing to the zones */
+	SequenceNumber current_era_point;
+	/** The next era point, not yet distributed to any zone */
+	SequenceNumber pending_era_point;
 
-  /** The number of entries in block map */
-  BlockCount                entryCount;
-  /** The VDO's nonce, for the pages */
-  Nonce                     nonce;
-  /** The recovery journal for this map */
-  struct recovery_journal  *journal;
+	/** The number of entries in block map */
+	BlockCount entry_count;
+	/** The VDO's nonce, for the pages */
+	Nonce nonce;
+	/** The recovery journal for this map */
+	struct recovery_journal *journal;
 
-  /** The trees for finding block map pages */
-  struct forest            *forest;
-  /** The expanded trees awaiting growth */
-  struct forest            *nextForest;
-  /** The number of entries after growth */
-  BlockCount                nextEntryCount;
+	/** The trees for finding block map pages */
+	struct forest *forest;
+	/** The expanded trees awaiting growth */
+	struct forest *next_forest;
+	/** The number of entries after growth */
+	BlockCount next_entry_count;
 
-  /** The number of logical zones */
-  ZoneCount                 zoneCount;
-  /** The per zone block map structure */
-  struct block_map_zone     zones[];
+	/** The number of logical zones */
+	ZoneCount zone_count;
+	/** The per zone block map structure */
+	struct block_map_zone zones[];
 };
 
 /**
@@ -123,7 +125,7 @@ struct block_map {
  *
  * @return The number of pages required
  **/
-PageCount computeBlockMapPageCount(BlockCount entries);
+PageCount compute_block_map_page_count(BlockCount entries);
 
 /**
  * Compute the number of the block map page on which the entry for a given
@@ -134,10 +136,10 @@ PageCount computeBlockMapPageCount(BlockCount entries);
  * @return The number of the block map page containing the entry for
  *         the given logical block number
  **/
-__attribute__((warn_unused_result))
-static inline PageNumber computePageNumber(LogicalBlockNumber lbn)
+__attribute__((warn_unused_result)) static inline PageNumber
+compute_page_number(LogicalBlockNumber lbn)
 {
-  return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
+	return (lbn / BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**
@@ -148,10 +150,10 @@ static inline PageNumber computePageNumber(LogicalBlockNumber lbn)
  *
  * @return The slot containing the entry for the given logical block number
  **/
-__attribute__((warn_unused_result))
-static inline SlotNumber computeSlot(LogicalBlockNumber lbn)
+__attribute__((warn_unused_result)) static inline SlotNumber
+compute_slot(LogicalBlockNumber lbn)
 {
-  return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
+	return (lbn % BLOCK_MAP_ENTRIES_PER_PAGE);
 }
 
 /**
@@ -160,7 +162,6 @@ static inline SlotNumber computeSlot(LogicalBlockNumber lbn)
  *
  * @param zone  The zone to check
  **/
-void checkForDrainComplete(struct block_map_zone *zone);
-
+void check_for_drain_complete(struct block_map_zone *zone);
 
 #endif // BLOCK_MAP_INTERNALS_H

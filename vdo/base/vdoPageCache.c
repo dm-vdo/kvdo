@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#23 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -99,7 +99,7 @@ static int initializeInfo(struct vdo_page_cache *cache)
       }
 
       // The thread ID should never change.
-      info->vio->completion.callbackThreadID = cache->zone->threadID;
+      info->vio->completion.callbackThreadID = cache->zone->thread_id;
     }
 
     initializeRing(&info->listNode);
@@ -216,9 +216,9 @@ static inline void assertOnCacheThread(struct vdo_page_cache *cache,
                                        const char            *functionName)
 {
   ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((threadID == cache->zone->threadID),
+  ASSERT_LOG_ONLY((threadID == cache->zone->thread_id),
                   "%s() must only be called on cache thread %d, not thread %d",
-                  functionName, cache->zone->threadID, threadID);
+                  functionName, cache->zone->thread_id, threadID);
 }
 
 /**
@@ -593,7 +593,7 @@ static void setPersistentError(struct vdo_page_cache *cache,
                                int                    result)
 {
   // If we're already read-only, there's no need to log.
-  struct read_only_notifier *notifier = cache->zone->readOnlyNotifier;
+  struct read_only_notifier *notifier = cache->zone->read_only_notifier;
   if ((result != VDO_READ_ONLY) && !is_read_only(notifier)) {
     logErrorWithStringError(result, "VDO Page Cache persistent error: %s",
                             context);
@@ -631,7 +631,7 @@ void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
 
   struct vdo_completion *completion = &pageCompletion->completion;
   initializeCompletion(completion, VDO_PAGE_COMPLETION, cache->layer);
-  prepareCompletion(completion, callback, errorHandler, cache->zone->threadID,
+  prepareCompletion(completion, callback, errorHandler, cache->zone->thread_id,
                     parent);
 }
 
@@ -705,12 +705,12 @@ static void pageIsLoaded(struct vdo_completion *completion)
   distributePageOverQueue(info, &info->waiting);
 
   /*
-   * Don't decrement until right before calling checkForDrainComplete() to
+   * Don't decrement until right before calling check_for_drain_complete() to
    * ensure that the above work can't cause the page cache to be freed out from
    * under us.
    */
   cache->outstandingReads--;
-  checkForDrainComplete(cache->zone);
+  check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -725,19 +725,19 @@ static void handleLoadError(struct vdo_completion *completion)
   struct vdo_page_cache *cache  = info->cache;
   assertOnCacheThread(cache, __func__);
 
-  enter_read_only_mode(cache->zone->readOnlyNotifier, result);
+  enter_read_only_mode(cache->zone->read_only_notifier, result);
   relaxedAdd64(&cache->stats.failedReads, 1);
   setInfoState(info, PS_FAILED);
   distributeErrorOverQueue(result, &info->waiting);
   resetPageInfo(info);
 
   /*
-   * Don't decrement until right before calling checkForDrainComplete() to
+   * Don't decrement until right before calling check_for_drain_complete() to
    * ensure that the above work can't cause the page cache to be freed out from
    * under us.
    */
   cache->outstandingReads--;
-  checkForDrainComplete(cache->zone);
+  check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1078,7 +1078,7 @@ static void handlePageWriteError(struct vdo_completion *completion)
     discardPageIfNeeded(cache);
   }
 
-  checkForDrainComplete(cache->zone);
+  check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1121,7 +1121,7 @@ static void pageIsWrittenOut(struct vdo_completion *completion)
     allocateFreePage(info);
   }
 
-  checkForDrainComplete(cache->zone);
+  check_for_drain_complete(cache->zone);
 }
 
 /**
@@ -1147,7 +1147,7 @@ static void writePages(struct vdo_completion *flushCompletion)
   while (pagesInFlush-- > 0) {
     struct page_info *info
       = pageInfoFromListNode(chopRingNode(&cache->outgoingList));
-    if (is_read_only(info->cache->zone->readOnlyNotifier)) {
+    if (is_read_only(info->cache->zone->read_only_notifier)) {
       struct vdo_completion *completion = &info->vio->completion;
       resetCompletion(completion);
       completion->callback     = pageIsWrittenOut;
@@ -1231,7 +1231,7 @@ void getVDOPageAsync(struct vdo_completion *completion)
   struct vdo_page_cache      *cache       = vdoPageComp->cache;
   assertOnCacheThread(cache, __func__);
 
-  if (vdoPageComp->writable && is_read_only(cache->zone->readOnlyNotifier)) {
+  if (vdoPageComp->writable && is_read_only(cache->zone->read_only_notifier)) {
     finishCompletion(completion, VDO_READ_ONLY);
     return;
   }

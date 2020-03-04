@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#22 $
  */
 
 #include "forest.h"
@@ -130,7 +130,7 @@ static BlockCount compute_new_pages(RootCount root_count,
 				    struct boundary *new_sizes)
 {
 	PageCount leaf_pages
-		= max_page_count(computeBlockMapPageCount(entries) -
+		= max_page_count(compute_block_map_page_count(entries) -
 				 flat_page_count, 1);
 	PageCount level_size = compute_bucket_count(leaf_pages, root_count);
 	BlockCount total_pages = 0;
@@ -207,7 +207,7 @@ static int make_segment(struct forest *old_forest,
 
 	struct tree_page *page_ptr = forest->pages[index];
 	RootCount root;
-	for (root = 0; root < forest->map->rootCount; root++) {
+	for (root = 0; root < forest->map->root_count; root++) {
 		struct block_map_tree *tree = &(forest->trees[root]);
 		int result = ALLOCATE(forest->segments,
 				      struct block_map_tree_segment,
@@ -240,7 +240,7 @@ static int make_segment(struct forest *old_forest,
 							   INVALID_PBN,
 							   true);
 				page->entries[0] =
-					packPBN(forest->map->rootOrigin + root,
+					packPBN(forest->map->root_origin + root,
 						MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
@@ -263,7 +263,7 @@ static void deforest(struct forest *forest, size_t first_page_segment)
 	}
 
 	RootCount root;
-	for (root = 0; root < forest->map->rootCount; root++) {
+	for (root = 0; root < forest->map->root_count; root++) {
 		struct block_map_tree *tree = &(forest->trees[root]);
 		FREE(tree->segments);
 	}
@@ -283,19 +283,19 @@ int make_forest(struct block_map *map, BlockCount entries)
 	}
 
 	struct boundary new_boundary;
-	BlockCount new_pages = compute_new_pages(map->rootCount,
-						 map->flatPageCount,
+	BlockCount new_pages = compute_new_pages(map->root_count,
+						 map->flat_page_count,
 						 oldBoundary,
 						 entries,
 						 &new_boundary);
 	if (new_pages == 0) {
-		map->nextEntryCount = entries;
+		map->next_entry_count = entries;
 		return VDO_SUCCESS;
 	}
 
 	struct forest *forest;
 	int result = ALLOCATE_EXTENDED(struct forest,
-				       map->rootCount,
+				       map->root_count,
 				       struct block_map_tree,
 				       __func__,
 				       &forest);
@@ -310,8 +310,8 @@ int make_forest(struct block_map *map, BlockCount entries)
 		return result;
 	}
 
-	map->nextForest = forest;
-	map->nextEntryCount = entries;
+	map->next_forest = forest;
+	map->next_entry_count = entries;
 	return VDO_SUCCESS;
 }
 
@@ -330,28 +330,28 @@ void free_forest(struct forest **forestPtr)
 /**********************************************************************/
 void abandon_forest(struct block_map *map)
 {
-	struct forest *forest = map->nextForest;
-	map->nextForest = NULL;
+	struct forest *forest = map->next_forest;
+	map->next_forest = NULL;
 	if (forest != NULL) {
 		deforest(forest, forest->segments - 1);
 	}
 
-	map->nextEntryCount = 0;
+	map->next_entry_count = 0;
 }
 
 /**********************************************************************/
 void replace_forest(struct block_map *map)
 {
-	if (map->nextForest != NULL) {
+	if (map->next_forest != NULL) {
 		if (map->forest != NULL) {
 			deforest(map->forest, map->forest->segments);
 		}
-		map->forest = map->nextForest;
-		map->nextForest = NULL;
+		map->forest = map->next_forest;
+		map->next_forest = NULL;
 	}
 
-	map->entryCount = map->nextEntryCount;
-	map->nextEntryCount = 0;
+	map->entry_count = map->next_entry_count;
+	map->next_entry_count = 0;
 }
 
 /**
@@ -514,7 +514,7 @@ static void launch_cursor(struct waiter *waiter, void *context)
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
 	vioAsCompletion(cursor->vio_pool_entry->vio)->callbackThreadID =
-		cursor->parent->zone->mapZone->threadID;
+		cursor->parent->zone->map_zone->thread_id;
 	traverse(cursor);
 }
 
@@ -529,8 +529,8 @@ static void launch_cursor(struct waiter *waiter, void *context)
 static struct boundary compute_boundary(struct block_map *map,
 				       RootCount root_index)
 {
-	PageCount leaf_pages = computeBlockMapPageCount(map->entryCount);
-	PageCount tree_leaf_pages = leaf_pages - map->flatPageCount;
+	PageCount leaf_pages = compute_block_map_page_count(map->entry_count);
+	PageCount tree_leaf_pages = leaf_pages - map->flat_page_count;
 
 	/*
 	 * Compute the leaf pages for this root. If the number of leaf pages
@@ -538,14 +538,14 @@ static struct boundary compute_boundary(struct block_map *map,
 	 * extra page. Extra pages are assigned to roots starting at
 	 * first_tree_root and going up.
 	 */
-	PageCount first_tree_root = map->flatPageCount % map->rootCount;
-	PageCount last_tree_root = (leaf_pages - 1) % map->rootCount;
+	PageCount first_tree_root = map->flat_page_count % map->root_count;
+	PageCount last_tree_root = (leaf_pages - 1) % map->root_count;
 
-	PageCount level_pages = tree_leaf_pages / map->rootCount;
+	PageCount level_pages = tree_leaf_pages / map->root_count;
 	if (in_cyclic_range(first_tree_root,
 			    root_index,
 			    last_tree_root,
-			    map->rootCount)) {
+			    map->root_count)) {
 		level_pages++;
 	}
 
@@ -568,7 +568,8 @@ void traverse_forest(struct block_map *map,
 		     entry_callback *entry_callback,
 		     struct vdo_completion *parent)
 {
-	if (computeBlockMapPageCount(map->entryCount) <= map->flatPageCount) {
+	if (compute_block_map_page_count(map->entry_count) <=
+	    map->flat_page_count) {
 		// There are no tree pages, so there's nothing to do.
 		finishCompletion(parent, VDO_SUCCESS);
 		return;
@@ -576,7 +577,7 @@ void traverse_forest(struct block_map *map,
 
 	struct cursors *cursors;
 	int result = ALLOCATE_EXTENDED(struct cursors,
-				       map->rootCount,
+				       map->root_count,
 				       struct cursor,
 				       __func__,
 				       &cursors);
@@ -586,13 +587,13 @@ void traverse_forest(struct block_map *map,
 	}
 
 	cursors->map = map;
-	cursors->zone = &(getBlockMapZone(map, 0)->treeZone);
-	cursors->pool = cursors->zone->vioPool;
+	cursors->zone = &(get_block_map_zone(map, 0)->tree_zone);
+	cursors->pool = cursors->zone->vio_pool;
 	cursors->entry_callback = entry_callback;
 	cursors->parent = parent;
-	cursors->active_roots = map->rootCount;
+	cursors->active_roots = map->root_count;
 	RootCount root;
-	for (root = 0; root < map->rootCount; root++) {
+	for (root = 0; root < map->root_count; root++) {
 		struct cursor *cursor = &cursors->cursors[root];
 		*cursor = (struct cursor) {
 			.tree = &map->forest->trees[root],
@@ -624,8 +625,8 @@ BlockCount compute_forest_size(BlockCount logical_blocks, RootCount root_count)
 			      new_sizes.levels[BLOCK_MAP_TREE_HEIGHT - 1]);
 
 	BlockCount approximate_leaves =
-		computeBlockMapPageCount(logical_blocks -
-					 approximate_non_leaves);
+		compute_block_map_page_count(logical_blocks -
+					     approximate_non_leaves);
 
 	// This can be a slight over-estimate since the tree will never have to
 	// address these blocks, so it might be a tiny bit smaller.

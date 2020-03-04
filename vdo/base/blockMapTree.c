@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#46 $
  */
 
 #include "blockMapTree.h"
@@ -104,22 +104,22 @@ int initializeTreeZone(struct block_map_zone *zone,
                        BlockCount             eraLength)
 {
   STATIC_ASSERT_SIZEOF(struct page_descriptor, sizeof(uint64_t));
-  struct block_map_tree_zone *treeZone = &zone->treeZone;
-  treeZone->mapZone                    = zone;
+  struct block_map_tree_zone *treeZone = &zone->tree_zone;
+  treeZone->map_zone                   = zone;
 
   int result = make_dirty_lists(eraLength, writeDirtyPagesCallback, treeZone,
-                                &treeZone->dirtyLists);
+                                &treeZone->dirty_lists);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  result = make_int_map(LOCK_MAP_CAPACITY, 0, &treeZone->loadingPages);
+  result = make_int_map(LOCK_MAP_CAPACITY, 0, &treeZone->loading_pages);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  return make_vio_pool(layer, BLOCK_MAP_VIO_POOL_SIZE, zone->threadID,
-                       makeBlockMapVIOs, treeZone, &treeZone->vioPool);
+  return make_vio_pool(layer, BLOCK_MAP_VIO_POOL_SIZE, zone->thread_id,
+                       makeBlockMapVIOs, treeZone, &treeZone->vio_pool);
 }
 
 /**********************************************************************/
@@ -127,24 +127,24 @@ int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
                            PhysicalLayer              *layer,
                            size_t                      poolSize)
 {
-  free_vio_pool(&zone->vioPool);
-  return make_vio_pool(layer, poolSize, zone->mapZone->threadID,
-                       makeBlockMapVIOs, zone, &zone->vioPool);
+  free_vio_pool(&zone->vio_pool);
+  return make_vio_pool(layer, poolSize, zone->map_zone->thread_id,
+                       makeBlockMapVIOs, zone, &zone->vio_pool);
 }
 
 /**********************************************************************/
 void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone)
 {
-  free_dirty_lists(&treeZone->dirtyLists);
-  free_vio_pool(&treeZone->vioPool);
-  free_int_map(&treeZone->loadingPages);
+  free_dirty_lists(&treeZone->dirty_lists);
+  free_vio_pool(&treeZone->vio_pool);
+  free_int_map(&treeZone->loading_pages);
 }
 
 /**********************************************************************/
 void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
                               SequenceNumber              period)
 {
-  set_current_period(treeZone->dirtyLists, period);
+  set_current_period(treeZone->dirty_lists, period);
 }
 
 /**
@@ -158,7 +158,7 @@ __attribute__((warn_unused_result))
 static inline struct block_map_tree_zone *
 getBlockMapTreeZone(struct data_vio *dataVIO)
 {
-  return &(get_block_map_for_zone(dataVIO->logical.zone)->treeZone);
+  return &(get_block_map_for_zone(dataVIO->logical.zone)->tree_zone);
 }
 
 /**
@@ -174,7 +174,7 @@ static inline struct tree_page *
 getTreePage(const struct block_map_tree_zone *zone,
             const struct tree_lock           *lock)
 {
-  return get_tree_page_by_index(zone->mapZone->blockMap->forest,
+  return get_tree_page_by_index(zone->map_zone->block_map->forest,
                                 lock->rootIndex,
                                 lock->height,
                                 lock->treeSlots[lock->height].pageIndex);
@@ -206,9 +206,9 @@ bool copyValidPage(char                     *buffer,
 /**********************************************************************/
 bool isTreeZoneActive(struct block_map_tree_zone *zone)
 {
-  return ((zone->activeLookups != 0)
-          || hasWaiters(&zone->flushWaiters)
-          || is_vio_pool_busy(zone->vioPool));
+  return ((zone->active_lookups != 0)
+          || hasWaiters(&zone->flush_waiters)
+          || is_vio_pool_busy(zone->vio_pool));
 }
 
 /**
@@ -219,15 +219,15 @@ bool isTreeZoneActive(struct block_map_tree_zone *zone)
  **/
 static void enterZoneReadOnlyMode(struct block_map_tree_zone *zone, int result)
 {
-  enter_read_only_mode(zone->mapZone->readOnlyNotifier, result);
+  enter_read_only_mode(zone->map_zone->read_only_notifier, result);
 
   // We are in read-only mode, so we won't ever write any page out. Just take
   // all waiters off the queue so the tree zone can be closed.
-  while (hasWaiters(&zone->flushWaiters)) {
-    dequeueNextWaiter(&zone->flushWaiters);
+  while (hasWaiters(&zone->flush_waiters)) {
+    dequeueNextWaiter(&zone->flush_waiters);
   }
 
-  checkForDrainComplete(zone->mapZone);
+  check_for_drain_complete(zone->map_zone);
 }
 
 /**
@@ -244,12 +244,12 @@ static void enterZoneReadOnlyMode(struct block_map_tree_zone *zone, int result)
 __attribute__((warn_unused_result))
 static bool isNotOlder(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 {
-  int result = ASSERT((in_cyclic_range(zone->oldestGeneration, a,
+  int result = ASSERT((in_cyclic_range(zone->oldest_generation, a,
                                        zone->generation, 1 << 8)
-                       && in_cyclic_range(zone->oldestGeneration, b,
+                       && in_cyclic_range(zone->oldest_generation, b,
                                           zone->generation, 1 << 8)),
                       "generation(s) %u, %u are out of range [%u, %u]",
-                      a, b, zone->oldestGeneration, zone->generation);
+                      a, b, zone->oldest_generation, zone->generation);
   if (result != VDO_SUCCESS) {
     enterZoneReadOnlyMode(zone, result);
     return true;
@@ -268,7 +268,7 @@ static bool isNotOlder(struct block_map_tree_zone *zone, uint8_t a, uint8_t b)
 static void releaseGeneration(struct block_map_tree_zone *zone,
                               uint8_t                     generation)
 {
-  int result = ASSERT((zone->dirtyPageCounts[generation] > 0),
+  int result = ASSERT((zone->dirty_page_counts[generation] > 0),
                       "dirty page count underflow for generation %u",
                       generation);
   if (result != VDO_SUCCESS) {
@@ -276,10 +276,10 @@ static void releaseGeneration(struct block_map_tree_zone *zone,
     return;
   }
 
-  zone->dirtyPageCounts[generation]--;
-  while ((zone->dirtyPageCounts[zone->oldestGeneration] == 0)
-         && (zone->oldestGeneration != zone->generation)) {
-    zone->oldestGeneration++;
+  zone->dirty_page_counts[generation]--;
+  while ((zone->dirty_page_counts[zone->oldest_generation] == 0)
+         && (zone->oldest_generation != zone->generation)) {
+    zone->oldest_generation++;
   }
 }
 
@@ -303,7 +303,7 @@ static void setGeneration(struct block_map_tree_zone *zone,
   }
 
   page->generation = newGeneration;
-  uint32_t newCount = ++zone->dirtyPageCounts[newGeneration];
+  uint32_t newCount = ++zone->dirty_page_counts[newGeneration];
   int result = ASSERT((newCount != 0),
                       "dirty page count overflow for generation %u",
                       newGeneration);
@@ -344,7 +344,7 @@ static void writePageCallback(struct waiter *waiter, void *context)
 static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
   waiter->callback = writePageCallback;
-  int result = acquire_vio_from_pool(zone->vioPool, waiter);
+  int result = acquire_vio_from_pool(zone->vio_pool, waiter);
   if (result != VDO_SUCCESS) {
     enterZoneReadOnlyMode(zone, result);
   }
@@ -361,7 +361,7 @@ static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 static bool attemptIncrement(struct block_map_tree_zone *zone)
 {
   uint8_t generation = zone->generation + 1;
-  if (zone->oldestGeneration == generation) {
+  if (zone->oldest_generation == generation) {
     return false;
   }
 
@@ -385,7 +385,7 @@ static void enqueuePage(struct tree_page           *page,
     return;
   }
 
-  int result = enqueueWaiter(&zone->flushWaiters, &page->waiter);
+  int result = enqueueWaiter(&zone->flush_waiters, &page->waiter);
   if (result != VDO_SUCCESS) {
     enterZoneReadOnlyMode(zone, result);
   }
@@ -421,8 +421,8 @@ static void writePageIfNotDirtied(struct waiter *waiter, void *context)
 static void returnToPool(struct block_map_tree_zone *zone,
                          struct vio_pool_entry      *entry)
 {
-  return_vio_to_pool(zone->vioPool, entry);
-  checkForDrainComplete(zone->mapZone);
+  return_vio_to_pool(zone->vio_pool, entry);
+  check_for_drain_complete(zone->map_zone);
 }
 
 /**
@@ -436,10 +436,10 @@ static void finishPageWrite(struct vdo_completion *completion)
   struct vio_pool_entry               *entry = completion->parent;
   struct tree_page                    *page  = entry->parent;
   struct block_map_tree_zone          *zone  = entry->context;
-  release_recovery_journal_block_reference(zone->mapZone->blockMap->journal,
+  release_recovery_journal_block_reference(zone->map_zone->block_map->journal,
                                            page->writingRecoveryLock,
                                            ZONE_TYPE_LOGICAL,
-                                           zone->mapZone->zoneNumber);
+                                           zone->map_zone->zone_number);
 
   bool dirty    = (page->writingGeneration != page->generation);
   releaseGeneration(zone, page->writingGeneration);
@@ -450,7 +450,7 @@ static void finishPageWrite(struct vdo_completion *completion)
       .zone       = zone,
       .generation = page->writingGeneration,
     };
-    notifyAllWaiters(&zone->flushWaiters, writePageIfNotDirtied, &context);
+    notifyAllWaiters(&zone->flush_waiters, writePageIfNotDirtied, &context);
     if (dirty && attemptIncrement(zone)) {
       writePage(page, entry);
       return;
@@ -462,9 +462,9 @@ static void finishPageWrite(struct vdo_completion *completion)
   if (dirty) {
     enqueuePage(page, zone);
   } else if ((zone->flusher == NULL)
-             && hasWaiters(&zone->flushWaiters)
+             && hasWaiters(&zone->flush_waiters)
              && attemptIncrement(zone)) {
-    zone->flusher = container_of(dequeueNextWaiter(&zone->flushWaiters),
+    zone->flusher = container_of(dequeueNextWaiter(&zone->flush_waiters),
                                  struct tree_page, waiter);
     writePage(zone->flusher, entry);
     return;
@@ -536,7 +536,7 @@ static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry)
   memcpy(entry->buffer, treePage->pageBuffer, VDO_BLOCK_SIZE);
 
   struct vdo_completion *completion = vioAsCompletion(entry->vio);
-  completion->callbackThreadID      = zone->mapZone->threadID;
+  completion->callbackThreadID      = zone->map_zone->thread_id;
 
   treePage->writing             = true;
   treePage->writingGeneration   = treePage->generation;
@@ -589,16 +589,16 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
 void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
                            SequenceNumber              period)
 {
-  advance_period(zone->dirtyLists, period);
+  advance_period(zone->dirty_lists, period);
 }
 
 /**********************************************************************/
 void drainZoneTrees(struct block_map_tree_zone *zone)
 {
-  ASSERT_LOG_ONLY((zone->activeLookups == 0),
+  ASSERT_LOG_ONLY((zone->active_lookups == 0),
                   "drainZoneTrees() called with no active lookups");
-  if (!is_suspending(&zone->mapZone->state)) {
-    flush_dirty_lists(zone->dirtyLists);
+  if (!is_suspending(&zone->map_zone->state)) {
+    flush_dirty_lists(zone->dirty_lists);
   }
 }
 
@@ -616,7 +616,7 @@ static void releasePageLock(struct data_vio *dataVIO, char *what)
                   " in tree %u",
                   what, lock->key, lock->rootIndex);
   struct block_map_tree_zone *zone       = getBlockMapTreeZone(dataVIO);
-  struct tree_lock           *lockHolder = int_map_remove(zone->loadingPages,
+  struct tree_lock           *lockHolder = int_map_remove(zone->loading_pages,
                                                           lock->key);
   ASSERT_LOG_ONLY((lockHolder == lock),
                   "block map page %s mismatch for key %llu in tree %u",
@@ -635,7 +635,7 @@ static void finishLookup(struct data_vio *dataVIO, int result)
   dataVIO->treeLock.height = 0;
 
   struct block_map_tree_zone *zone = getBlockMapTreeZone(dataVIO);
-  --zone->activeLookups;
+  --zone->active_lookups;
 
   struct vdo_completion *completion = dataVIOAsCompletion(dataVIO);
   setCompletionResult(completion, result);
@@ -808,11 +808,11 @@ static void finishBlockMapPageLoad(struct vdo_completion *completion)
   struct tree_page *treePage = getTreePage(zone, treeLock);
   struct block_map_page *page
     = (struct block_map_page *) treePage->pageBuffer;
-  Nonce         nonce    = zone->mapZone->blockMap->nonce;
+  Nonce         nonce    = zone->map_zone->block_map->nonce;
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
     formatBlockMapPage(page, nonce, pbn, false);
   }
-  return_vio_to_pool(zone->vioPool, entry);
+  return_vio_to_pool(zone->vio_pool, entry);
 
   // Release our claim to the load and wake any waiters
   releasePageLock(dataVIO, "load");
@@ -832,7 +832,7 @@ static void handleIOError(struct vdo_completion *completion)
   struct data_vio           *dataVIO = entry->parent;
   struct block_map_tree_zone *zone
     = (struct block_map_tree_zone *) entry->context;
-  return_vio_to_pool(zone->vioPool, entry);
+  return_vio_to_pool(zone->vio_pool, entry);
   abortLoad(dataVIO, result);
 }
 
@@ -850,7 +850,7 @@ static void loadPage(struct waiter *waiter, void *context)
 
   entry->parent = dataVIO;
   entry->vio->completion.callbackThreadID
-    = get_block_map_for_zone(dataVIO->logical.zone)->threadID;
+    = get_block_map_for_zone(dataVIO->logical.zone)->thread_id;
 
   struct tree_lock *lock = &dataVIO->treeLock;
   launchReadMetadataVIO(entry->vio,
@@ -884,7 +884,7 @@ static int attemptPageLock(struct block_map_tree_zone *zone,
   lock->key = key.key;
 
   struct tree_lock *lockHolder;
-  int result = int_map_put(zone->loadingPages, lock->key, lock, false,
+  int result = int_map_put(zone->loading_pages, lock->key, lock, false,
                            (void **) &lockHolder);
   if (result != VDO_SUCCESS) {
     return result;
@@ -919,7 +919,7 @@ static void loadBlockMapPage(struct block_map_tree_zone *zone,
   if (dataVIO->treeLock.locked) {
     struct waiter *waiter = dataVIOAsWaiter(dataVIO);
     waiter->callback = loadPage;
-    result = acquire_vio_from_pool(zone->vioPool, waiter);
+    result = acquire_vio_from_pool(zone->vio_pool, waiter);
     if (result != VDO_SUCCESS) {
       abortLoad(dataVIO, result);
     }
@@ -1029,7 +1029,7 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
     if (oldLock == 0) {
       initializeRing(&treePage->node);
     }
-    add_to_dirty_lists(zone->dirtyLists, &treePage->node, oldLock,
+    add_to_dirty_lists(zone->dirty_lists, &treePage->node, oldLock,
                        treePage->recoveryLock);
   }
 
@@ -1037,7 +1037,7 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
   if (height > 1) {
     // Format the interior node we just allocated (in memory).
     treePage = getTreePage(zone, treeLock);
-    formatBlockMapPage(treePage->pageBuffer, zone->mapZone->blockMap->nonce,
+    formatBlockMapPage(treePage->pageBuffer, zone->map_zone->block_map->nonce,
                        pbn, false);
   }
 
@@ -1184,16 +1184,16 @@ static void allocateBlockMapPage(struct block_map_tree_zone *zone,
 void lookupBlockMapPBN(struct data_vio *dataVIO)
 {
   struct block_map_tree_zone *zone = getBlockMapTreeZone(dataVIO);
-  zone->activeLookups++;
-  if (is_draining(&zone->mapZone->state)) {
+  zone->active_lookups++;
+  if (is_draining(&zone->map_zone->state)) {
     finishLookup(dataVIO, VDO_SHUTTING_DOWN);
     return;
   }
 
   struct tree_lock *lock = &dataVIO->treeLock;
   PageNumber pageIndex
-    = ((lock->treeSlots[0].pageIndex - zone->mapZone->blockMap->flatPageCount)
-       / zone->mapZone->blockMap->rootCount);
+    = ((lock->treeSlots[0].pageIndex - zone->map_zone->block_map->flat_page_count)
+       / zone->map_zone->block_map->root_count);
   struct block_map_tree_slot treeSlot = {
     .pageIndex = pageIndex / BLOCK_MAP_ENTRIES_PER_PAGE,
     .blockMapSlot = {
@@ -1255,12 +1255,12 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
 PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
                                         PageNumber        pageNumber)
 {
-  if (pageNumber < map->flatPageCount) {
+  if (pageNumber < map->flat_page_count) {
     return (BLOCK_MAP_FLAT_PAGE_ORIGIN + pageNumber);
   }
 
-  RootCount  rootIndex = pageNumber % map->rootCount;
-  PageNumber pageIndex = ((pageNumber - map->flatPageCount) / map->rootCount);
+  RootCount  rootIndex = pageNumber % map->root_count;
+  PageNumber pageIndex = ((pageNumber - map->flat_page_count) / map->root_count);
   SlotNumber slot      = pageIndex % BLOCK_MAP_ENTRIES_PER_PAGE;
   pageIndex /= BLOCK_MAP_ENTRIES_PER_PAGE;
 
