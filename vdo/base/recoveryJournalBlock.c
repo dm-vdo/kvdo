@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#16 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -349,7 +349,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 * we are doing is stable, so we issue the write with FUA.
 	 */
 	PhysicalLayer *layer = vioAsCompletion(block->vio)->layer;
-	bool sync = !layer->isFlushRequired(layer);
+	bool sync = (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC);
 	bool fua = sync || block->has_fua_entry;
 	bool flushBefore = fua || block->has_partial_write_entry;
 	block->has_fua_entry = false;

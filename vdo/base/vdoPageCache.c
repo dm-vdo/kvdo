@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#22 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -849,7 +849,15 @@ static void savePages(struct vdo_page_cache *cache)
 
   struct vio    *vio   = info->vio;
   PhysicalLayer *layer = vio->completion.layer;
-  if (layer->isFlushRequired(layer)) {
+
+  /*
+   * We must make sure that the recovery journal entries that changed these
+   * pages were successfully persisted, and thus must issue a flush before
+   * each batch of pages is written to ensure this. However, in sync mode,
+   * every journal block is written with FUA, thus guaranteeing the journal
+   * persisted already.
+   */
+  if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
     launchFlush(vio, writePages, handleFlushError);
     return;
   }

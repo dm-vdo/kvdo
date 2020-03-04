@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#18 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -271,13 +271,13 @@ typedef AsyncDataOperation AlbireoUpdater;
 typedef void FlushComplete(struct vdo_flush **vdoFlush);
 
 /**
- * A function to query whether the layer requires flushes for persistence.
+ * A function to query the write policy of the layer.
  *
  * @param layer  The layer to query
  *
- * @return <code>true</code> if the layer requires flushes
+ * @return the write policy of the layer
  **/
-typedef bool FlushQuerier(PhysicalLayer *layer);
+typedef WritePolicy WritePolicyGetter(PhysicalLayer *layer);
 
 /**
  * A function to create an object that can be enqueued to run in a specified
@@ -335,7 +335,7 @@ struct physicalLayer {
   ExtentReader              *reader;
   ExtentWriter              *writer;
 
-  FlushQuerier              *isFlushRequired;
+  WritePolicyGetter         *getWritePolicy;
 
   // Synchronous interfaces (vio-based)
   MetadataVIOCreator        *createMetadataVIO;

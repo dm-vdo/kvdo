@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#71 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#72 $
  */
 
 #include "kernelLayer.h"
@@ -479,9 +479,10 @@ void destroy_vio(struct vio **vio_ptr)
 }
 
 /**********************************************************************/
-static bool is_flush_required(PhysicalLayer *common)
+static WritePolicy kvdoGetWritePolicy(PhysicalLayer *common)
 {
-	return should_process_flush(as_kernel_layer(common));
+	struct kernel_layer *layer = as_kernel_layer(common);
+	return get_kvdo_write_policy(&layer->kvdo);
 }
 
 /**
@@ -637,7 +638,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	initializeRing(&layer->device_config_ring);
 
 	layer->common.getBlockCount = kvdo_get_block_count;
-	layer->common.isFlushRequired = is_flush_required;
+  	layer->common.getWritePolicy = kvdoGetWritePolicy;
 	layer->common.createMetadataVIO = kvdo_create_metadata_vio;
 	layer->common.createCompressedWriteVIO =
 		kvdo_create_compressed_write_vio;
