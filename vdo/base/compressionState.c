@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#7 $
  */
 
 #include "compressionStateInternals.h"
@@ -102,7 +102,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 {
 	if (!hasAllocation(data_vio)
 	    || ((getWritePolicy(getVDOFromDataVIO(data_vio))
-		 == WRITE_POLICY_ASYNC)
+                 != WRITE_POLICY_SYNC)
 		&& vioRequiresFlushAfter(dataVIOAsVIO(data_vio)))
 	    || !getVDOCompressing(getVDOFromDataVIO(data_vio))) {
 		/*

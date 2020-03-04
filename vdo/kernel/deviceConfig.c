@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/deviceConfig.c#11 $
  */
 
 #include "deviceConfig.h"
@@ -799,11 +799,18 @@ void free_device_config(struct device_config **config_ptr)
 /**********************************************************************/
 const char *get_config_write_policy_string(struct device_config *config)
 {
-	if (config->write_policy == WRITE_POLICY_AUTO) {
+	switch (config->write_policy) {
+	case WRITE_POLICY_AUTO:
 		return "auto";
+	case WRITE_POLICY_ASYNC:
+		return "async";
+	case WRITE_POLICY_ASYNC_UNSAFE:
+		return "async-unsafe";
+	case WRITE_POLICY_SYNC:
+		return "sync";
+	default:
+		return "unknown";
 	}
-	return ((config->write_policy == WRITE_POLICY_ASYNC) ? "async" :
-							       "sync");
 }
 
 /**********************************************************************/

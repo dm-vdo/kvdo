@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#26 $
  */
 
 /*
@@ -237,7 +237,7 @@ static void writeBlock(struct data_vio *dataVIO);
  **/
 static inline bool isAsync(struct data_vio *dataVIO)
 {
-  return (getWritePolicy(getVDOFromDataVIO(dataVIO)) == WRITE_POLICY_ASYNC);
+  return (getWritePolicy(getVDOFromDataVIO(dataVIO)) != WRITE_POLICY_SYNC);
 }
 
 /**

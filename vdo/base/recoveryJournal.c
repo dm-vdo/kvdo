@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#36 $
  */
 
 #include "recoveryJournal.h"
@@ -1207,7 +1207,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 	}
 
 	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
-	if (layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC) {
+	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
 		/*
 		 * If the block map head will advance, we must flush any block
 		 * map page modified by the entries we are reaping. If the slab

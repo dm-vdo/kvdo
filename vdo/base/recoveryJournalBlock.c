@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#17 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -339,23 +339,25 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	block->committing = true;
 
 	/*
-	 * In sync mode, when we are writing an increment entry for a request
-	 * with FUA, or when making the increment entry for a partial write, we
-	 * need to make sure all the data being mapped to by this block is
-	 * stable on disk and also that the recovery journal is stable up to the
-	 * current block, so we must flush before writing.
+	 * In sync or async  mode, when we are writing an increment entry for a
+	 * request with FUA, or when making the increment entry for a partial
+	 * write, we need to make sure all the data being mapped to by this block
+	 * is stable on disk and also that the recovery journal is stable up to
+	 * the current block, so we must flush before writing.
 	 *
 	 * In sync mode, and for FUA, we also need to make sure that the write
 	 * we are doing is stable, so we issue the write with FUA.
 	 */
 	PhysicalLayer *layer = vioAsCompletion(block->vio)->layer;
-	bool sync = (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC);
-	bool fua = sync || block->has_fua_entry;
-	bool flushBefore = fua || block->has_partial_write_entry;
+	bool fua = (block->has_fua_entry
+       		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+	bool flush = (block->has_fua_entry
+                      || (layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC_UNSAFE)
+	       	      || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
 	launchWriteMetadataVIOWithFlush(block->vio, block_pbn, callback,
-					error_handler, flushBefore, fua);
+					error_handler, flush, fua);
 
 	return VDO_SUCCESS;
 }

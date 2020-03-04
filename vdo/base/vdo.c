@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#39 $
  */
 
 /*
@@ -852,6 +852,21 @@ static ErrorStatistics getVDOErrorStatistics(const struct vdo *vdo)
 }
 
 /**********************************************************************/
+static const char *describeWritePolicy(WritePolicy policy)
+{
+  switch (policy) {
+  case WRITE_POLICY_ASYNC:
+    return "async";
+  case WRITE_POLICY_ASYNC_UNSAFE:
+    return "async-unsafe";
+  case WRITE_POLICY_SYNC:
+    return "sync";
+  default:
+    return "unknown";
+  }
+}
+
+/**********************************************************************/
 void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 {
   // These are immutable properties of the vdo object, so it is safe to
@@ -869,7 +884,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
   stats->readOnlyRecoveries         = vdo->readOnlyRecoveries;
   stats->blockMapCacheSize          = getBlockMapCacheSize(vdo);
   snprintf(stats->writePolicy, sizeof(stats->writePolicy), "%s",
-           ((getWritePolicy(vdo) == WRITE_POLICY_ASYNC) ? "async" : "sync"));
+           describeWritePolicy(getWritePolicy(vdo)));
 
   // The callees are responsible for thread-safety.
   stats->dataBlocksUsed     = getPhysicalBlocksAllocated(vdo);
