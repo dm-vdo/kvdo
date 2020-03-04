@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/errors.c#8 $
  */
 
 #include "errors.h"
@@ -161,7 +161,7 @@ void initialize_standard_error_blocks(void)
 			.base = VDO_BLOCK_START,
 			.last = VDO_STATUS_CODE_LAST,
 			.max = VDO_BLOCK_END,
-			.infos = vdoStatusList,
+			.infos = vdo_status_list,
 		};
 }
 
