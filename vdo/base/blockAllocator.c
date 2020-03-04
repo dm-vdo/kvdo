@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#52 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -222,12 +222,12 @@ static int allocate_components(struct block_allocator *allocator,
 	allocator->summary =
 		get_slab_summary_for_zone(depot, allocator->zone_number);
 
-	result = makeVIOPool(layer,
-			     vio_pool_size,
-			     allocator->thread_id,
-			     make_allocator_pool_vios,
-			     NULL,
-			     &allocator->vio_pool);
+	result = make_vio_pool(layer,
+			       vio_pool_size,
+			       allocator->thread_id,
+			       make_allocator_pool_vios,
+			       NULL,
+			       &allocator->vio_pool);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -315,7 +315,7 @@ void free_block_allocator(struct block_allocator **block_allocator_ptr)
 	}
 
 	free_slab_scrubber(&allocator->slab_scrubber);
-	freeVIOPool(&allocator->vio_pool);
+	free_vio_pool(&allocator->vio_pool);
 	free_priority_table(&allocator->prioritized_slabs);
 	destroyEnqueueable(&allocator->completion);
 	FREE(allocator);
@@ -327,13 +327,13 @@ int replace_vio_pool(struct block_allocator *allocator,
 		     size_t size,
 		     PhysicalLayer *layer)
 {
-	freeVIOPool(&allocator->vio_pool);
-	return makeVIOPool(layer,
-			   size,
-			   allocator->thread_id,
-			   make_allocator_pool_vios,
-			   NULL,
-			   &allocator->vio_pool);
+	free_vio_pool(&allocator->vio_pool);
+	return make_vio_pool(layer,
+			     size,
+			     allocator->thread_id,
+			     make_allocator_pool_vios,
+			     NULL,
+			     &allocator->vio_pool);
 }
 
 /**
@@ -819,7 +819,7 @@ static void do_drain_step(struct vdo_completion *completion)
 		return;
 
 	case DRAIN_ALLOCATOR_STEP_FINISHED:
-		ASSERT_LOG_ONLY(!isVIOPoolBusy(allocator->vio_pool),
+		ASSERT_LOG_ONLY(!is_vio_pool_busy(allocator->vio_pool),
 				"vio pool not busy");
 		finish_draining_with_result(&allocator->state,
 					    completion->result);
@@ -948,13 +948,13 @@ get_slab_summary_zone(const struct block_allocator *allocator)
 /**********************************************************************/
 int acquire_vio(struct block_allocator *allocator, struct waiter *waiter)
 {
-	return acquireVIOFromPool(allocator->vio_pool, waiter);
+	return acquire_vio_from_pool(allocator->vio_pool, waiter);
 }
 
 /**********************************************************************/
 void return_vio(struct block_allocator *allocator, struct vio_pool_entry *entry)
 {
-	returnVIOToPool(allocator->vio_pool, entry);
+	return_vio_to_pool(allocator->vio_pool, entry);
 }
 
 /**********************************************************************/

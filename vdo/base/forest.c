@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#21 $
  */
 
 #include "forest.h"
@@ -363,7 +363,7 @@ void replace_forest(struct block_map *map)
 static void finish_cursor(struct cursor *cursor)
 {
 	struct cursors *cursors = cursor->parent;
-	returnVIOToPool(cursors->pool, cursor->vio_pool_entry);
+	return_vio_to_pool(cursors->pool, cursor->vio_pool_entry);
 	if (--cursors->active_roots > 0) {
 		return;
 	}
@@ -602,7 +602,7 @@ void traverse_forest(struct block_map *map,
 		};
 
 		cursor->waiter.callback = launch_cursor;
-		acquireVIOFromPool(cursors->pool, &cursor->waiter);
+		acquire_vio_from_pool(cursors->pool, &cursor->waiter);
 	};
 }
 

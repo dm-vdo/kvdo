@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#39 $
  */
 
 #include "slabJournalInternals.h"
@@ -682,7 +682,7 @@ static void complete_write(struct vdo_completion *completion)
 		// The commit point is always the beginning of the oldest
 		// incomplete block.
 		struct vio_pool_entry *oldest =
-			asVIOPoolEntry(journal->uncommitted_blocks.next);
+			as_vio_pool_entry(journal->uncommitted_blocks.next);
 		journal->next_commit = get_committing_sequence_number(oldest);
 	}
 

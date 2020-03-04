@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#45 $
  */
 
 #include "blockMapTree.h"
@@ -118,8 +118,8 @@ int initializeTreeZone(struct block_map_zone *zone,
     return result;
   }
 
-  return makeVIOPool(layer, BLOCK_MAP_VIO_POOL_SIZE, zone->threadID,
-                     makeBlockMapVIOs, treeZone, &treeZone->vioPool);
+  return make_vio_pool(layer, BLOCK_MAP_VIO_POOL_SIZE, zone->threadID,
+                       makeBlockMapVIOs, treeZone, &treeZone->vioPool);
 }
 
 /**********************************************************************/
@@ -127,16 +127,16 @@ int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
                            PhysicalLayer              *layer,
                            size_t                      poolSize)
 {
-  freeVIOPool(&zone->vioPool);
-  return makeVIOPool(layer, poolSize, zone->mapZone->threadID,
-                     makeBlockMapVIOs, zone, &zone->vioPool);
+  free_vio_pool(&zone->vioPool);
+  return make_vio_pool(layer, poolSize, zone->mapZone->threadID,
+                       makeBlockMapVIOs, zone, &zone->vioPool);
 }
 
 /**********************************************************************/
 void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone)
 {
   free_dirty_lists(&treeZone->dirtyLists);
-  freeVIOPool(&treeZone->vioPool);
+  free_vio_pool(&treeZone->vioPool);
   free_int_map(&treeZone->loadingPages);
 }
 
@@ -208,7 +208,7 @@ bool isTreeZoneActive(struct block_map_tree_zone *zone)
 {
   return ((zone->activeLookups != 0)
           || hasWaiters(&zone->flushWaiters)
-          || isVIOPoolBusy(zone->vioPool));
+          || is_vio_pool_busy(zone->vioPool));
 }
 
 /**
@@ -344,7 +344,7 @@ static void writePageCallback(struct waiter *waiter, void *context)
 static void acquire_vio(struct waiter *waiter, struct block_map_tree_zone *zone)
 {
   waiter->callback = writePageCallback;
-  int result = acquireVIOFromPool(zone->vioPool, waiter);
+  int result = acquire_vio_from_pool(zone->vioPool, waiter);
   if (result != VDO_SUCCESS) {
     enterZoneReadOnlyMode(zone, result);
   }
@@ -421,7 +421,7 @@ static void writePageIfNotDirtied(struct waiter *waiter, void *context)
 static void returnToPool(struct block_map_tree_zone *zone,
                          struct vio_pool_entry      *entry)
 {
-  returnVIOToPool(zone->vioPool, entry);
+  return_vio_to_pool(zone->vioPool, entry);
   checkForDrainComplete(zone->mapZone);
 }
 
@@ -812,7 +812,7 @@ static void finishBlockMapPageLoad(struct vdo_completion *completion)
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
     formatBlockMapPage(page, nonce, pbn, false);
   }
-  returnVIOToPool(zone->vioPool, entry);
+  return_vio_to_pool(zone->vioPool, entry);
 
   // Release our claim to the load and wake any waiters
   releasePageLock(dataVIO, "load");
@@ -832,7 +832,7 @@ static void handleIOError(struct vdo_completion *completion)
   struct data_vio           *dataVIO = entry->parent;
   struct block_map_tree_zone *zone
     = (struct block_map_tree_zone *) entry->context;
-  returnVIOToPool(zone->vioPool, entry);
+  return_vio_to_pool(zone->vioPool, entry);
   abortLoad(dataVIO, result);
 }
 
@@ -919,7 +919,7 @@ static void loadBlockMapPage(struct block_map_tree_zone *zone,
   if (dataVIO->treeLock.locked) {
     struct waiter *waiter = dataVIOAsWaiter(dataVIO);
     waiter->callback = loadPage;
-    result = acquireVIOFromPool(zone->vioPool, waiter);
+    result = acquire_vio_from_pool(zone->vioPool, waiter);
     if (result != VDO_SUCCESS) {
       abortLoad(dataVIO, result);
     }

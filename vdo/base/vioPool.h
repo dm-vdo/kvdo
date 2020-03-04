@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.h#7 $
  */
 
 #ifndef VIO_POOL_H
@@ -37,60 +37,55 @@
  * A vio_pool_entry is the pair of vio and buffer whether in use or not.
  **/
 struct vio_pool_entry {
-  RingNode    node;
-  struct vio *vio;
-  void       *buffer;
-  void       *parent;
-  void       *context;
+	RingNode node;
+	struct vio *vio;
+	void *buffer;
+	void *parent;
+	void *context;
 };
 
 /**
  * A function which constructs a vio for a pool.
  *
- * @param [in]  layer   The physical layer in which the vio will operate
- * @param [in]  parent  The parent of the vio
- * @param [in]  buffer  The data buffer for the vio
- * @param [out] vioPtr  A pointer to hold the new vio
+ * @param [in]  layer    The physical layer in which the vio will operate
+ * @param [in]  parent   The parent of the vio
+ * @param [in]  buffer   The data buffer for the vio
+ * @param [out] vio_ptr  A pointer to hold the new vio
  **/
-typedef int VIOConstructor(PhysicalLayer  *layer,
-                           void           *parent,
-                           void           *buffer,
-                           struct vio    **vioPtr);
+typedef int vio_constructor(PhysicalLayer *layer, void *parent, void *buffer,
+			    struct vio **vio_ptr);
 
 /**
  * Create a new vio pool.
  *
- * @param [in]  layer           the physical layer to write to and read from
- * @param [in]  poolSize        the number of vios in the pool
- * @param [in]  threadID        the ID of the thread using this pool
- * @param [in]  vioConstructor  the constructor for vios in the pool
- * @param [in]  context         the context that each entry will have
- * @param [out] poolPtr         the resulting pool
+ * @param [in]  layer            the physical layer to write to and read from
+ * @param [in]  pool_size        the number of vios in the pool
+ * @param [in]  thread_id        the ID of the thread using this pool
+ * @param [in]  vio_constructor  the constructor for vios in the pool
+ * @param [in]  context          the context that each entry will have
+ * @param [out] pool_ptr         the resulting pool
  *
  * @return a success or error code
  **/
-int makeVIOPool(PhysicalLayer    *layer,
-                size_t            poolSize,
-                ThreadID          threadID,
-                VIOConstructor   *vioConstructor,
-                void             *context,
-                struct vio_pool **poolPtr)
-  __attribute__((warn_unused_result));
+int make_vio_pool(PhysicalLayer *layer, size_t pool_size, ThreadID thread_id,
+		  vio_constructor *vio_constructor, void *context,
+		  struct vio_pool **pool_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Destroy a vio pool
  *
- * @param poolPtr  the pointer holding the pool, which will be nulled out
+ * @param pool_ptr  the pointer holding the pool, which will be nulled out
  **/
-void freeVIOPool(struct vio_pool **poolPtr);
+void free_vio_pool(struct vio_pool **pool_ptr);
 
 /**
  * Check whether an vio pool has outstanding entries.
  *
  * @return <code>true</code> if the pool is busy
  **/
-bool isVIOPoolBusy(struct vio_pool *pool)
-  __attribute__((warn_unused_result));
+bool is_vio_pool_busy(struct vio_pool *pool)
+	__attribute__((warn_unused_result));
 
 /**
  * Acquire a vio and buffer from the pool (asynchronous).
@@ -100,7 +95,7 @@ bool isVIOPoolBusy(struct vio_pool *pool)
  *
  * @return VDO_SUCCESS or an error
  **/
-int acquireVIOFromPool(struct vio_pool *pool, struct waiter *waiter);
+int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter);
 
 /**
  * Return a vio and its buffer to the pool.
@@ -108,7 +103,7 @@ int acquireVIOFromPool(struct vio_pool *pool, struct waiter *waiter);
  * @param pool   the vio pool
  * @param entry  a vio pool entry
  **/
-void returnVIOToPool(struct vio_pool *pool, struct vio_pool_entry *entry);
+void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry);
 
 /**
  * Convert a RingNode to the vio_pool_entry that contains it.
@@ -117,10 +112,10 @@ void returnVIOToPool(struct vio_pool *pool, struct vio_pool_entry *entry);
  *
  * @return The vio_pool_entry wrapping the RingNode
  **/
-static inline struct vio_pool_entry *asVIOPoolEntry(RingNode *node)
+static inline struct vio_pool_entry *as_vio_pool_entry(RingNode *node)
 {
-  STATIC_ASSERT(offsetof(struct vio_pool_entry, node) == 0);
-  return (struct vio_pool_entry *) node;
+	STATIC_ASSERT(offsetof(struct vio_pool_entry, node) == 0);
+	return (struct vio_pool_entry *)node;
 }
 
 /**
@@ -130,7 +125,7 @@ static inline struct vio_pool_entry *asVIOPoolEntry(RingNode *node)
  *
  * @return the number of times an acquisition request had to wait
  **/
-uint64_t getVIOPoolOutageCount(struct vio_pool *pool)
-  __attribute__((warn_unused_result));
+uint64_t get_vio_pool_outage_count(struct vio_pool *pool)
+	__attribute__((warn_unused_result));
 
 #endif // VIO_POOL_H
