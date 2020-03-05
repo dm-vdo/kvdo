@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#24 $
  */
 
 #include "slabSummary.h"
@@ -344,7 +344,7 @@ static void notify_waiters(struct slab_summary_zone *summary_zone,
 	int result = (is_read_only(summary_zone->summary->read_only_notifier)
 		      ? VDO_READ_ONLY
 		      : VDO_SUCCESS);
-	notifyAllWaiters(queue, NULL, &result);
+	notify_all_waiters(queue, NULL, &result);
 }
 
 /**
@@ -358,7 +358,7 @@ static void finish_updating_slab_summary_block(struct slab_summary_block *block)
 	notify_waiters(block->zone, &block->current_update_waiters);
 	block->writing = false;
 	block->zone->write_count--;
-	if (hasWaiters(&block->next_update_waiters)) {
+	if (has_waiters(&block->next_update_waiters)) {
 		launch_write(block);
 	} else {
 		check_for_drain_complete(block->zone);
@@ -403,8 +403,8 @@ static void launch_write(struct slab_summary_block *block)
 
 	struct slab_summary_zone *zone = block->zone;
 	zone->write_count++;
-	transferAllWaiters(&block->next_update_waiters,
-			   &block->current_update_waiters);
+	transfer_all_waiters(&block->next_update_waiters,
+			     &block->current_update_waiters);
 	block->writing = true;
 
 	struct slab_summary *summary = zone->summary;
@@ -500,7 +500,7 @@ void update_slab_summary_entry(struct slab_summary_zone *summary_zone,
 			.is_dirty = !is_clean,
 			.fullness_hint = hint,
 		};
-		result = enqueueWaiter(&block->next_update_waiters, waiter);
+		result = enqueue_waiter(&block->next_update_waiters, waiter);
 	}
 
 	if (result != VDO_SUCCESS) {

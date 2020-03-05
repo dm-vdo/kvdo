@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#18 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -152,7 +152,7 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
 	// First queued entry indicates this is a journal block we've just
 	// opened or a committing block we're extending and will have to write
 	// again.
-	bool new_batch = !hasWaiters(&block->entry_waiters);
+	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	// Enqueue the data_vio to wait for its entry to commit.
 	int result = enqueueDataVIO(&block->entry_waiters, data_vio,
@@ -197,8 +197,9 @@ is_sector_full(const struct recovery_journal_block *block)
 __attribute__((warn_unused_result)) static int
 add_queued_recovery_entries(struct recovery_journal_block *block)
 {
-	while (hasWaiters(&block->entry_waiters)) {
-		struct data_vio *data_vio = waiterAsDataVIO(dequeueNextWaiter(&block->entry_waiters));
+	while (has_waiters(&block->entry_waiters)) {
+		struct data_vio *data_vio =
+			waiterAsDataVIO(dequeue_next_waiter(&block->entry_waiters));
 		if (data_vio->operation.type == DATA_INCREMENT) {
 			// In order to not lose committed sectors of this
 			// partial write, we must flush before the partial write
@@ -282,7 +283,7 @@ static bool should_commit(struct recovery_journal_block *block)
 	// Never commit in read-only mode, if already committing the block, or
 	// if there are no entries to commit.
 	if ((block == NULL) || block->committing
-	    || !hasWaiters(&block->entry_waiters)
+	    || !has_waiters(&block->entry_waiters)
 	    || is_read_only(block->journal->read_only_notifier)) {
 		return false;
 	}
@@ -317,7 +318,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 		return result;
 	}
 
-	block->entries_in_commit = countWaiters(&block->entry_waiters);
+	block->entries_in_commit = count_waiters(&block->entry_waiters);
 	result = add_queued_recovery_entries(block);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -369,6 +370,6 @@ void dump_recovery_block(const struct recovery_journal_block *block)
 		"; %s; %zu entry waiters; %zu commit waiters",
 		block->sequence_number, block->entry_count,
 		(block->committing ? "committing" : "waiting"),
-		countWaiters(&block->entry_waiters),
-		countWaiters(&block->commit_waiters));
+		count_waiters(&block->entry_waiters),
+		count_waiters(&block->commit_waiters));
 }

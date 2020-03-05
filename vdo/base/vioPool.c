@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#11 $
  */
 
 #include "vioPool.h"
@@ -107,7 +107,7 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 
 	// Remove all available entries from the object pool.
 	struct vio_pool *pool = *pool_ptr;
-	ASSERT_LOG_ONLY(!hasWaiters(&pool->waiting),
+	ASSERT_LOG_ONLY(!has_waiters(&pool->waiting),
 			"VIO pool must not have any waiters when being freed");
 	ASSERT_LOG_ONLY((pool->busy_count == 0),
 			"VIO pool must not have %zu busy entries when being freed",
@@ -151,7 +151,7 @@ int acquire_vio_from_pool(struct vio_pool *pool, struct waiter *waiter)
 
 	if (isRingEmpty(&pool->available)) {
 		pool->outage_count++;
-		return enqueueWaiter(&pool->waiting, waiter);
+		return enqueue_waiter(&pool->waiting, waiter);
 	}
 
 	pool->busy_count++;
@@ -167,8 +167,8 @@ void return_vio_to_pool(struct vio_pool *pool, struct vio_pool_entry *entry)
 	ASSERT_LOG_ONLY((pool->thread_id == getCallbackThreadID()),
 			"vio pool entry returned on same thread as it was acquired");
 	entry->vio->completion.errorHandler = NULL;
-	if (hasWaiters(&pool->waiting)) {
-		notifyNextWaiter(&pool->waiting, NULL, entry);
+	if (has_waiters(&pool->waiting)) {
+		notify_next_waiter(&pool->waiting, NULL, entry);
 		return;
 	}
 

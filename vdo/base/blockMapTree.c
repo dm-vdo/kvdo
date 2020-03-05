@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#47 $
  */
 
 #include "blockMapTree.h"
@@ -207,7 +207,7 @@ bool copyValidPage(char                     *buffer,
 bool isTreeZoneActive(struct block_map_tree_zone *zone)
 {
   return ((zone->active_lookups != 0)
-          || hasWaiters(&zone->flush_waiters)
+          || has_waiters(&zone->flush_waiters)
           || is_vio_pool_busy(zone->vio_pool));
 }
 
@@ -223,8 +223,8 @@ static void enterZoneReadOnlyMode(struct block_map_tree_zone *zone, int result)
 
   // We are in read-only mode, so we won't ever write any page out. Just take
   // all waiters off the queue so the tree zone can be closed.
-  while (hasWaiters(&zone->flush_waiters)) {
-    dequeueNextWaiter(&zone->flush_waiters);
+  while (has_waiters(&zone->flush_waiters)) {
+    dequeue_next_waiter(&zone->flush_waiters);
   }
 
   check_for_drain_complete(zone->map_zone);
@@ -385,7 +385,7 @@ static void enqueuePage(struct tree_page           *page,
     return;
   }
 
-  int result = enqueueWaiter(&zone->flush_waiters, &page->waiter);
+  int result = enqueue_waiter(&zone->flush_waiters, &page->waiter);
   if (result != VDO_SUCCESS) {
     enterZoneReadOnlyMode(zone, result);
   }
@@ -450,7 +450,7 @@ static void finishPageWrite(struct vdo_completion *completion)
       .zone       = zone,
       .generation = page->writingGeneration,
     };
-    notifyAllWaiters(&zone->flush_waiters, writePageIfNotDirtied, &context);
+    notify_all_waiters(&zone->flush_waiters, writePageIfNotDirtied, &context);
     if (dirty && attemptIncrement(zone)) {
       writePage(page, entry);
       return;
@@ -462,9 +462,9 @@ static void finishPageWrite(struct vdo_completion *completion)
   if (dirty) {
     enqueuePage(page, zone);
   } else if ((zone->flusher == NULL)
-             && hasWaiters(&zone->flush_waiters)
+             && has_waiters(&zone->flush_waiters)
              && attemptIncrement(zone)) {
-    zone->flusher = container_of(dequeueNextWaiter(&zone->flush_waiters),
+    zone->flusher = container_of(dequeue_next_waiter(&zone->flush_waiters),
                                  struct tree_page, waiter);
     writePage(zone->flusher, entry);
     return;
@@ -571,7 +571,7 @@ static void writeDirtyPagesCallback(RingNode *expired, void *context)
   while (!isRingEmpty(expired)) {
     struct tree_page *page = treePageFromRingNode(chopRingNode(expired));
 
-    int result = ASSERT(!isWaiting(&page->waiter),
+    int result = ASSERT(!is_waiting(&page->waiter),
                         "Newly expired page not already waiting to write");
     if (result != VDO_SUCCESS) {
       enterZoneReadOnlyMode(zone, result);
@@ -680,8 +680,8 @@ static void abortLookup(struct data_vio *dataVIO, int result, char *what)
 
   if (dataVIO->treeLock.locked) {
     releasePageLock(dataVIO, what);
-    notifyAllWaiters(&dataVIO->treeLock.waiters, abortLookupForWaiter,
-                     &result);
+    notify_all_waiters(&dataVIO->treeLock.waiters, abortLookupForWaiter,
+                       &result);
   }
 
   finishLookup(dataVIO, result);
@@ -816,7 +816,7 @@ static void finishBlockMapPageLoad(struct vdo_completion *completion)
 
   // Release our claim to the load and wake any waiters
   releasePageLock(dataVIO, "load");
-  notifyAllWaiters(&treeLock->waiters, continueLoadForWaiter, page);
+  notify_all_waiters(&treeLock->waiters, continueLoadForWaiter, page);
   continueWithLoadedPage(dataVIO, page);
 }
 
@@ -1017,7 +1017,7 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
   updateBlockMapPage(page, dataVIO, pbn, MAPPING_STATE_UNCOMPRESSED,
                      &treePage->recoveryLock);
 
-  if (isWaiting(&treePage->waiter)) {
+  if (is_waiting(&treePage->waiter)) {
     // This page is waiting to be written out.
     if (zone->flusher != treePage) {
       // The outstanding flush won't cover the update we just made, so mark
@@ -1043,7 +1043,7 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
 
   // Release our claim to the allocation and wake any waiters
   releasePageLock(dataVIO, "allocation");
-  notifyAllWaiters(&treeLock->waiters, continueAllocationForWaiter, &pbn);
+  notify_all_waiters(&treeLock->waiters, continueAllocationForWaiter, &pbn);
   if (treeLock->height == 0) {
     finishLookup(dataVIO, VDO_SUCCESS);
     return;
@@ -1281,7 +1281,7 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
 /**********************************************************************/
 void writeTreePage(struct tree_page *page, struct block_map_tree_zone *zone)
 {
-  bool waiting = isWaiting(&page->waiter);
+  bool waiting = is_waiting(&page->waiter);
   if (waiting && (zone->flusher == page)) {
     return;
   }

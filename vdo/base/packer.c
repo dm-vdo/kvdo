@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#31 $
  */
 
 #include "packerInternals.h"
@@ -134,7 +134,7 @@ make_input_bin(struct packer *packer)
  **/
 static void push_output_bin(struct packer *packer, struct output_bin *bin)
 {
-	ASSERT_LOG_ONLY(!hasWaiters(&bin->outgoing),
+	ASSERT_LOG_ONLY(!has_waiters(&bin->outgoing),
 			"idle output bin has no waiters");
 	packer->idle_output_bins[packer->idle_output_bin_count++] = bin;
 }
@@ -366,7 +366,7 @@ static void abort_packing(struct data_vio *data_vio)
  *
  * @param waiter  The wait queue entry of the vio to continue
  * @param unused  An argument required so this function may be called
- *                from notifyAllWaiters
+ *                from notify_all_waiters
  **/
 static void continue_vio_without_packing(struct waiter *waiter,
 					 void *unused __attribute__((unused)))
@@ -421,9 +421,9 @@ switch_to_packer_thread(struct vdo_completion *completion)
  **/
 static void finish_output_bin(struct packer *packer, struct output_bin *bin)
 {
-	if (hasWaiters(&bin->outgoing)) {
-		notifyAllWaiters(&bin->outgoing, continue_vio_without_packing,
-				 NULL);
+	if (has_waiters(&bin->outgoing)) {
+		notify_all_waiters(&bin->outgoing, continue_vio_without_packing,
+				   NULL);
 	} else {
 		// No waiters implies no error, so the compressed block was
 		// written.
@@ -491,10 +491,10 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 	share_compressed_write_lock(data_vio, bin->writer->allocation_lock);
 
 	// Wait again for all the waiters to get a share.
-	int result = enqueueWaiter(&bin->outgoing, waiter);
+	int result = enqueue_waiter(&bin->outgoing, waiter);
 	// Cannot fail since this waiter was just dequeued.
 	ASSERT_LOG_ONLY(result == VDO_SUCCESS,
-			"impossible enqueueWaiter error");
+			"impossible enqueue_waiter error");
 }
 
 /**
@@ -518,13 +518,13 @@ static void finish_compressed_write(struct vdo_completion *completion)
 
 	// First give every data_vio/HashLock a share of the PBN lock to ensure
 	// it can't be released until they've all done their incRefs.
-	notifyAllWaiters(&bin->outgoing, share_compressed_block, bin);
+	notify_all_waiters(&bin->outgoing, share_compressed_block, bin);
 
 	// The waiters now hold the (downgraded) PBN lock.
 	bin->writer->allocation_lock = NULL;
 
 	// Invokes the callbacks registered before entering the packer.
-	notifyAllWaiters(&bin->outgoing, continue_waiter, NULL);
+	notify_all_waiters(&bin->outgoing, continue_waiter, NULL);
 
 	// Invokes complete_output_bin() on the packer thread.
 	vioDoneCallback(completion);
@@ -593,7 +593,7 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 
 	struct data_vio *data_vio;
 	while ((data_vio =
-		waiterAsDataVIO(getFirstWaiter(&packer->batched_data_vios)))
+		waiterAsDataVIO(get_first_waiter(&packer->batched_data_vios)))
 	       != NULL) {
 		// If there's not enough space for the next data_vio, the batch
 		// is done.
@@ -604,7 +604,7 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 
 		// Remove the next data_vio from the queue and put it in the
 		// output batch.
-		dequeueNextWaiter(&packer->batched_data_vios);
+		dequeue_next_waiter(&packer->batched_data_vios);
 		batch->slots[batch->slots_used++] = data_vio;
 		space_remaining -= data_vio->compression.size;
 	}
@@ -776,7 +776,7 @@ static void write_pending_batches(struct packer *packer)
 	packer->writing_batches = true;
 
 	struct output_bin *output;
-	while (hasWaiters(&packer->batched_data_vios)
+	while (has_waiters(&packer->batched_data_vios)
 	       && ((output = pop_output_bin(packer)) != NULL)) {
 		if (!write_next_batch(packer, output)) {
 			// We didn't use the output bin to write, so push it
@@ -1016,7 +1016,7 @@ static void dump_input_bin(const struct input_bin *bin, bool canceled)
 /**********************************************************************/
 static void dump_output_bin(const struct output_bin *bin)
 {
-	size_t count = countWaiters(&bin->outgoing);
+	size_t count = count_waiters(&bin->outgoing);
 	if (bin->slots_used == 0) {
 		// Don't dump empty output bins.
 		return;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#24 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -403,7 +403,7 @@ static int resetPageInfo(struct page_info *info)
     return result;
   }
 
-  result = ASSERT(!hasWaiters(&info->waiting),
+  result = ASSERT(!has_waiters(&info->waiting),
                   "VDO Page must not have waiters");
   if (result != UDS_SUCCESS) {
     return result;
@@ -533,7 +533,7 @@ static void completeWaiterWithError(struct waiter *waiter, void *resultPtr)
  **/
 static void distributeErrorOverQueue(int result, struct wait_queue *queue)
 {
-  notifyAllWaiters(queue, completeWaiterWithError, &result);
+  notify_all_waiters(queue, completeWaiterWithError, &result);
 }
 
 /**
@@ -565,7 +565,7 @@ static unsigned int distributePageOverQueue(struct page_info  *info,
 {
   updateLru(info);
 
-  size_t pages = countWaiters(queue);
+  size_t pages = count_waiters(queue);
 
   /*
    * Increment the busy count once for each pending completion so that
@@ -574,7 +574,7 @@ static unsigned int distributePageOverQueue(struct page_info  *info,
    */
   info->busy += pages;
 
-  notifyAllWaiters(queue, completeWaiterWithPage, info);
+  notify_all_waiters(queue, completeWaiterWithPage, info);
   return pages;
 }
 
@@ -620,7 +620,7 @@ void initVDOPageCompletion(struct vdo_page_completion *pageCompletion,
                            VDOAction                  *callback,
                            VDOAction                  *errorHandler)
 {
-  ASSERT_LOG_ONLY((pageCompletion->waiter.nextWaiter == NULL),
+  ASSERT_LOG_ONLY((pageCompletion->waiter.next_waiter == NULL),
                   "New page completion was not already on a wait queue");
 
   *pageCompletion = (struct vdo_page_completion) {
@@ -929,7 +929,7 @@ static void allocateFreePage(struct page_info *info)
   struct vdo_page_cache *cache = info->cache;
   assertOnCacheThread(cache, __func__);
 
-  if (!hasWaiters(&cache->freeWaiters)) {
+  if (!has_waiters(&cache->freeWaiters)) {
     if (relaxedLoad64(&cache->stats.cachePressure) > 0) {
       logInfo("page cache pressure relieved");
       relaxedStore64(&cache->stats.cachePressure, 0);
@@ -943,14 +943,14 @@ static void allocateFreePage(struct page_info *info)
     return;
   }
 
-  struct waiter *oldestWaiter = getFirstWaiter(&cache->freeWaiters);
+  struct waiter *oldestWaiter = get_first_waiter(&cache->freeWaiters);
   PhysicalBlockNumber pbn = pageCompletionFromWaiter(oldestWaiter)->pbn;
 
   // Remove all entries which match the page number in question
   // and push them onto the page info's wait queue.
-  dequeueMatchingWaiters(&cache->freeWaiters, completionNeedsPage,
-                         &pbn, &info->waiting);
-  cache->waiterCount -= countWaiters(&info->waiting);
+  dequeue_matching_waiters(&cache->freeWaiters, completionNeedsPage,
+                           &pbn, &info->waiting);
+  cache->waiterCount -= count_waiters(&info->waiting);
 
   result = launchPageLoad(info, pbn);
   if (result != VDO_SUCCESS) {
@@ -1004,7 +1004,7 @@ static void discardPageForCompletion(struct vdo_page_completion *vdoPageComp)
 
   ++cache->waiterCount;
 
-  int result = enqueueWaiter(&cache->freeWaiters, &vdoPageComp->waiter);
+  int result = enqueue_waiter(&cache->freeWaiters, &vdoPageComp->waiter);
   if (result != VDO_SUCCESS) {
     setPersistentError(cache, "cannot enqueue waiter", result);
   }
@@ -1104,7 +1104,7 @@ static void pageIsWrittenOut(struct vdo_completion *completion)
 
   bool wasDiscard = writeHasFinished(info);
   bool reclaimed  = (!wasDiscard || (info->busy > 0)
-                     || hasWaiters(&info->waiting));
+                     || has_waiters(&info->waiting));
 
   setInfoState(info, PS_RESIDENT);
 
@@ -1185,7 +1185,7 @@ void releaseVDOPageCompletion(struct vdo_completion *completion)
     // Do not check for errors if the completion was not successful.
     pageCompletion = asVDOPageCompletion(completion);
   }
-  ASSERT_LOG_ONLY((pageCompletion->waiter.nextWaiter == NULL),
+  ASSERT_LOG_ONLY((pageCompletion->waiter.next_waiter == NULL),
                   "Page being released after leaving all queues");
 
   struct vdo_page_cache *cache = pageCompletion->cache;
@@ -1212,7 +1212,7 @@ void releaseVDOPageCompletion(struct vdo_completion *completion)
 static void loadPageForCompletion(struct page_info           *info,
                                   struct vdo_page_completion *vdoPageComp)
 {
-  int result = enqueueWaiter(&info->waiting, &vdoPageComp->waiter);
+  int result = enqueue_waiter(&info->waiting, &vdoPageComp->waiter);
   if (result != VDO_SUCCESS) {
     finishCompletion(&vdoPageComp->completion, result);
     return;
@@ -1249,7 +1249,7 @@ void getVDOPageAsync(struct vdo_completion *completion)
         || (isOutgoing(info) && vdoPageComp->writable)) {
       // The page is unusable until it has finished I/O.
       relaxedAdd64(&cache->stats.waitForPage, 1);
-      int result = enqueueWaiter(&info->waiting, &vdoPageComp->waiter);
+      int result = enqueue_waiter(&info->waiting, &vdoPageComp->waiter);
       if (result != VDO_SUCCESS) {
         finishCompletion(&vdoPageComp->completion, result);
       }

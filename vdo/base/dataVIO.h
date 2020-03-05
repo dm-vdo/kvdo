@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#22 $
  */
 
 #ifndef DATA_VIO_H
@@ -527,7 +527,7 @@ static inline int enqueueDataVIO(struct wait_queue *queue,
                                  TraceLocation      location)
 {
   dataVIOAddTraceRecord(waiter, location);
-  return enqueueWaiter(queue, dataVIOAsWaiter(waiter));
+  return enqueue_waiter(queue, dataVIOAsWaiter(waiter));
 }
 
 /**

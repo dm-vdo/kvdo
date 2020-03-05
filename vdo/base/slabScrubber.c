@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#27 $
  */
 
 #include "slabScrubberInternals.h"
@@ -194,7 +194,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	// Inform whoever is waiting that scrubbing has completed.
 	completeCompletion(&scrubber->completion);
 
-	bool notify = hasWaiters(&scrubber->waiters);
+	bool notify = has_waiters(&scrubber->waiters);
 
 	// Note that the scrubber has stopped, and inform anyone who might be
 	// waiting for that to happen.
@@ -208,7 +208,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	 * have been freed yet.
 	 */
 	if (notify) {
-		notifyAllWaiters(&scrubber->waiters, NULL, NULL);
+		notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	}
 }
 
@@ -428,7 +428,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 {
 	// Note: this notify call is always safe only because scrubbing can only
 	// be started when the VDO is quiescent.
-	notifyAllWaiters(&scrubber->waiters, NULL, NULL);
+	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (is_read_only(scrubber->read_only_notifier)) {
 		setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
 		finish_scrubbing(scrubber);
@@ -542,7 +542,7 @@ int enqueue_clean_slab_waiter(struct slab_scrubber *scrubber,
 		return VDO_NO_SPACE;
 	}
 
-	return enqueueWaiter(&scrubber->waiters, waiter);
+	return enqueue_waiter(&scrubber->waiters, waiter);
 }
 
 /**********************************************************************/
@@ -550,7 +550,7 @@ void dump_slab_scrubber(const struct slab_scrubber *scrubber)
 {
 	logInfo("slab_scrubber slab_count %u waiters %zu %s%s",
 		get_scrubber_slab_count(scrubber),
-		countWaiters(&scrubber->waiters),
+		count_waiters(&scrubber->waiters),
 		get_admin_state_name(&scrubber->admin_state),
 		scrubber->high_priority_only ? ", high_priority_only " : "");
 }

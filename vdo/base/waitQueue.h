@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/waitQueue.h#4 $
  */
 
 #ifndef WAIT_QUEUE_H
@@ -44,37 +44,39 @@
 struct waiter;
 
 struct wait_queue {
-  /** The tail of the queue, the last (most recently added) entry */
-  struct waiter *lastWaiter;
-  /** The number of waiters currently in the queue */
-  size_t         queueLength;
+	/** The tail of the queue, the last (most recently added) entry */
+	struct waiter *last_waiter;
+	/** The number of waiters currently in the queue */
+	size_t queue_length;
 };
 
 /**
  * Callback type for functions which will be called to resume processing of a
  * waiter after it has been removed from its wait queue.
  **/
-typedef void WaiterCallback(struct waiter *waiter, void *context);
+typedef void waiter_callback(struct waiter *waiter, void *context);
 
 /**
  * Method type for waiter matching methods.
  *
- * A WaiterMatch method returns false if the waiter does not match.
+ * A waiter_match method returns false if the waiter does not match.
  **/
-typedef bool WaiterMatch(struct waiter *waiter, void *context);
+typedef bool waiter_match(struct waiter *waiter, void *context);
 
 /**
  * The queue entry structure for entries in a wait_queue.
  **/
 struct waiter {
-  /**
-   * The next waiter in the queue. If this entry is the last waiter, then this
-   * is actually a pointer back to the head of the queue.
-   **/
-  struct waiter  *nextWaiter;
+	/**
+	 * The next waiter in the queue. If this entry is the last waiter, then
+	 * this is actually a pointer back to the head of the queue.
+	 **/
+	struct waiter *next_waiter;
 
-  /** Optional waiter-specific callback to invoke when waking this waiter. */
-  WaiterCallback *callback;
+	/**
+	 * Optional waiter-specific callback to invoke when waking this waiter.
+	 */
+	waiter_callback *callback;
 };
 
 /**
@@ -84,9 +86,9 @@ struct waiter {
  *
  * @return <code>true</code> if the waiter is on some wait_queue
  **/
-static inline bool isWaiting(struct waiter *waiter)
+static inline bool is_waiting(struct waiter *waiter)
 {
-  return (waiter->nextWaiter != NULL);
+	return (waiter->next_waiter != NULL);
 }
 
 /**
@@ -94,12 +96,12 @@ static inline bool isWaiting(struct waiter *waiter)
  *
  * @param queue  The queue to initialize
  **/
-static inline void initializeWaitQueue(struct wait_queue *queue)
+static inline void initialize_wait_queue(struct wait_queue *queue)
 {
-  *queue = (struct wait_queue) {
-    .lastWaiter  = NULL,
-    .queueLength = 0,
-  };
+	*queue = (struct wait_queue) {
+		.last_waiter = NULL,
+		.queue_length = 0,
+	};
 }
 
 /**
@@ -109,10 +111,10 @@ static inline void initializeWaitQueue(struct wait_queue *queue)
  *
  * @return <code>true</code> if there are any waiters in the queue
  **/
-__attribute__((warn_unused_result))
-static inline bool hasWaiters(const struct wait_queue *queue)
+__attribute__((warn_unused_result)) static inline bool
+has_waiters(const struct wait_queue *queue)
 {
-  return (queue->lastWaiter != NULL);
+	return (queue->last_waiter != NULL);
 }
 
 /**
@@ -124,8 +126,8 @@ static inline bool hasWaiters(const struct wait_queue *queue)
  *
  * @return VDO_SUCCESS or an error code
  **/
-int enqueueWaiter(struct wait_queue *queue, struct waiter *waiter)
-  __attribute__((warn_unused_result));
+int enqueue_waiter(struct wait_queue *queue, struct waiter *waiter)
+	__attribute__((warn_unused_result));
 
 /**
  * Notify all the entries waiting in a queue to continue execution by invoking
@@ -138,9 +140,8 @@ int enqueueWaiter(struct wait_queue *queue, struct waiter *waiter)
  *                  to invoke the callback field registered in each waiter
  * @param context   The context to pass to the callback function
  **/
-void notifyAllWaiters(struct wait_queue *queue,
-                      WaiterCallback    *callback,
-                      void              *context);
+void notify_all_waiters(struct wait_queue *queue, waiter_callback *callback,
+			void *context);
 
 /**
  * Notify the next entry waiting in a queue to continue execution by invoking
@@ -153,20 +154,19 @@ void notifyAllWaiters(struct wait_queue *queue,
  *
  * @return <code>true</code> if there was a waiter in the queue
  **/
-bool notifyNextWaiter(struct wait_queue *queue,
-                      WaiterCallback    *callback,
-                      void              *context);
+bool notify_next_waiter(struct wait_queue *queue, waiter_callback *callback,
+			void *context);
 
 /**
  * Transfer all waiters from one wait queue to a second queue, emptying the
  * first queue.
  *
- * @param fromQueue  The queue containing the waiters to move
- * @param toQueue    The queue that will receive the waiters from the
- *                   the first queue
+ * @param from_queue  The queue containing the waiters to move
+ * @param to_queue    The queue that will receive the waiters from the
+ *                    the first queue
  **/
-void transferAllWaiters(struct wait_queue *fromQueue,
-                        struct wait_queue *toQueue);
+void transfer_all_waiters(struct wait_queue *from_queue,
+			  struct wait_queue *to_queue);
 
 /**
  * Return the waiter that is at the head end of a wait queue.
@@ -176,23 +176,23 @@ void transferAllWaiters(struct wait_queue *fromQueue,
  * @return The first (oldest) waiter in the queue, or <code>NULL</code> if
  *         the queue is empty
  **/
-struct waiter *getFirstWaiter(const struct wait_queue *queue);
+struct waiter *get_first_waiter(const struct wait_queue *queue);
 
 /**
  * Remove all waiters that match based on the specified matching method and
  * append them to a wait_queue.
  *
- * @param queue         The wait queue to process
- * @param matchMethod   The method to determine matching
- * @param matchContext  Contextual info for the match method
- * @param matchedQueue  A wait_queue to store matches
+ * @param queue          The wait queue to process
+ * @param match_method   The method to determine matching
+ * @param match_context  Contextual info for the match method
+ * @param matched_queue  A wait_queue to store matches
  *
  * @return VDO_SUCCESS or an error code
  **/
-int dequeueMatchingWaiters(struct wait_queue   *queue,
-                           WaiterMatch         *matchMethod,
-                           void                *matchContext,
-                           struct wait_queue   *matchedQueue);
+int dequeue_matching_waiters(struct wait_queue *queue,
+			     waiter_match *match_method,
+			     void *match_context,
+			     struct wait_queue *matched_queue);
 
 /**
  * Remove the first waiter from the head end of a wait queue. The caller will
@@ -204,7 +204,7 @@ int dequeueMatchingWaiters(struct wait_queue   *queue,
  * @return The first (oldest) waiter in the queue, or <code>NULL</code> if
  *         the queue is empty
  **/
-struct waiter *dequeueNextWaiter(struct wait_queue *queue);
+struct waiter *dequeue_next_waiter(struct wait_queue *queue);
 
 /**
  * Count the number of waiters in a wait queue.
@@ -213,10 +213,10 @@ struct waiter *dequeueNextWaiter(struct wait_queue *queue);
  *
  * @return the number of waiters in the queue
  **/
-__attribute__((warn_unused_result))
-static inline size_t countWaiters(const struct wait_queue *queue)
+__attribute__((warn_unused_result)) static inline size_t
+count_waiters(const struct wait_queue *queue)
 {
-  return queue->queueLength;
+	return queue->queue_length;
 }
 
 /**
@@ -227,8 +227,8 @@ static inline size_t countWaiters(const struct wait_queue *queue)
  *
  * @return the next waiter, or NULL
  **/
-const struct waiter *getNextWaiter(const struct wait_queue *queue,
-                                   const struct waiter     *waiter)
-  __attribute__((warn_unused_result));
+const struct waiter *get_next_waiter(const struct wait_queue *queue,
+				     const struct waiter *waiter)
+	__attribute__((warn_unused_result));
 
 #endif // WAIT_QUEUE_H

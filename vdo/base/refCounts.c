@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/refCounts.c#34 $
  */
 
 #include "refCounts.h"
@@ -260,7 +260,7 @@ bool are_ref_counts_active(struct ref_counts *ref_counts)
 
 	// When not suspending or recovering, the ref_counts must be clean.
 	AdminStateCode code = ref_counts->slab->state.state;
-	return (hasWaiters(&ref_counts->dirty_blocks) &&
+	return (has_waiters(&ref_counts->dirty_blocks) &&
 		(code != ADMIN_STATE_SUSPENDING) &&
 		(code != ADMIN_STATE_RECOVERING));
 }
@@ -280,8 +280,8 @@ static void enter_ref_counts_read_only_mode(struct ref_counts *ref_counts,
  **/
 static void enqueue_dirty_block(struct reference_block *block)
 {
-	int result =
-		enqueueWaiter(&block->ref_counts->dirty_blocks, &block->waiter);
+	int result = enqueue_waiter(&block->ref_counts->dirty_blocks,
+				    &block->waiter);
 	if (result != VDO_SUCCESS) {
 		// This should never happen.
 		enter_ref_counts_read_only_mode(block->ref_counts, result);
@@ -1090,9 +1090,9 @@ void reset_reference_counts(struct ref_counts *ref_counts)
 		ref_counts->blocks[i].allocated_count = 0;
 	}
 
-	notifyAllWaiters(&ref_counts->dirty_blocks,
-			 clear_dirty_reference_blocks,
-			 NULL);
+	notify_all_waiters(&ref_counts->dirty_blocks,
+			   clear_dirty_reference_blocks,
+			   NULL);
 }
 
 /**********************************************************************/
@@ -1208,7 +1208,7 @@ static void finish_reference_block_write(struct vdo_completion *completion)
 
 	// Mark the ref_counts as clean in the slab summary if there are no
 	// dirty or writing blocks and no summary update in progress.
-	if (!has_active_io(ref_counts) && !hasWaiters(&ref_counts->dirty_blocks)) {
+	if (!has_active_io(ref_counts) && !has_waiters(&ref_counts->dirty_blocks)) {
 		update_slab_summary_as_clean(ref_counts);
 	}
 }
@@ -1309,16 +1309,16 @@ static void launch_reference_block_write(struct waiter *block_waiter,
 /**********************************************************************/
 void save_oldest_reference_block(struct ref_counts *ref_counts)
 {
-	notifyNextWaiter(&ref_counts->dirty_blocks,
-			 launch_reference_block_write,
-			 ref_counts);
+	notify_next_waiter(&ref_counts->dirty_blocks,
+			   launch_reference_block_write,
+			   ref_counts);
 }
 
 /**********************************************************************/
 void save_several_reference_blocks(struct ref_counts *ref_counts,
 				   size_t flush_divisor)
 {
-	BlockCount dirty_block_count = countWaiters(&ref_counts->dirty_blocks);
+	BlockCount dirty_block_count = count_waiters(&ref_counts->dirty_blocks);
 	if (dirty_block_count == 0) {
 		return;
 	}
@@ -1338,9 +1338,9 @@ void save_several_reference_blocks(struct ref_counts *ref_counts,
 /**********************************************************************/
 void save_dirty_reference_blocks(struct ref_counts *ref_counts)
 {
-	notifyAllWaiters(&ref_counts->dirty_blocks,
-			 launch_reference_block_write,
-			 ref_counts);
+	notify_all_waiters(&ref_counts->dirty_blocks,
+			   launch_reference_block_write,
+			   ref_counts);
 	check_if_slab_drained(ref_counts->slab);
 }
 
@@ -1556,7 +1556,7 @@ void dump_ref_counts(const struct ref_counts *ref_counts)
 		ref_counts->free_blocks,
 		ref_counts->block_count,
 		ref_counts->reference_block_count,
-		countWaiters(&ref_counts->dirty_blocks),
+		count_waiters(&ref_counts->dirty_blocks),
 		ref_counts->active_count,
 		ref_counts->slab_journal_point.sequence_number,
 		ref_counts->slab_journal_point.entry_count,

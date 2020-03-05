@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#12 $
  */
 
 #include "hashZone.h"
@@ -274,7 +274,7 @@ void return_hash_lock_to_zone(struct hash_zone *zone,
 				"unregistered hash lock must not be in the lock map");
 	}
 
-	ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
+	ASSERT_LOG_ONLY(!has_waiters(&lock->waiters),
 			"hash lock returned to zone must have no waiters");
 	ASSERT_LOG_ONLY((lock->duplicate_lock == NULL),
 			"hash lock returned to zone must not reference a PBN lock");
@@ -310,7 +310,7 @@ static void dump_hash_lock(const struct hash_lock *lock)
 		"/%u rc=%u wc=%zu agt=%" PRIptr,
 		(const void *) lock, state, (lock->registered ? 'D' : 'U'),
 		lock->duplicate.pbn, lock->duplicate.state,
-		lock->reference_count, countWaiters(&lock->waiters),
+		lock->reference_count, count_waiters(&lock->waiters),
 		(void *) lock->agent);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#20 $
  */
 
 #include "dataVIO.h"
@@ -80,7 +80,7 @@ static void initializeLBNLock(struct data_vio *dataVIO, LogicalBlockNumber lbn)
   struct lbn_lock *lock = &dataVIO->logical;
   lock->lbn     = lbn;
   lock->locked  = false;
-  initializeWaitQueue(&lock->waiters);
+  initialize_wait_queue(&lock->waiters);
 
   struct vdo *vdo = getVDOFromDataVIO(dataVIO);
   lock->zone      = get_logical_zone(vdo->logicalZones,
@@ -323,7 +323,7 @@ static void releaseLock(struct data_vio *dataVIO)
 void releaseLogicalBlockLock(struct data_vio *dataVIO)
 {
   assertInLogicalZone(dataVIO);
-  if (!hasWaiters(&dataVIO->logical.waiters)) {
+  if (!has_waiters(&dataVIO->logical.waiters)) {
     releaseLock(dataVIO);
     return;
   }
@@ -333,10 +333,11 @@ void releaseLogicalBlockLock(struct data_vio *dataVIO)
 
   // Another data_vio is waiting for the lock, so just transfer it in a single
   // lock map operation
-  struct data_vio *nextLockHolder = waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
+  struct data_vio *nextLockHolder
+    = waiterAsDataVIO(dequeue_next_waiter(&lock->waiters));
 
   // Transfer the remaining lock waiters to the next lock holder.
-  transferAllWaiters(&lock->waiters, &nextLockHolder->logical.waiters);
+  transfer_all_waiters(&lock->waiters, &nextLockHolder->logical.waiters);
 
   struct data_vio *lockHolder;
   int result = int_map_put(get_lbn_lock_map(lock->zone), lock->lbn,
@@ -355,7 +356,7 @@ void releaseLogicalBlockLock(struct data_vio *dataVIO)
    * we just transferred. We must ensure that the new lock holder doesn't block
    * in the packer.
    */
-  if (hasWaiters(&nextLockHolder->logical.waiters)) {
+  if (has_waiters(&nextLockHolder->logical.waiters)) {
     cancel_compression(nextLockHolder);
   }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLockInternals.h#8 $
  */
 
 #ifndef HASH_LOCK_INTERNALS_H
@@ -128,7 +128,7 @@ static inline void initialize_hash_lock(struct hash_lock *lock)
 {
 	initializeRing(&lock->pool_node);
 	initializeRing(&lock->duplicate_ring);
-	initializeWaitQueue(&lock->waiters);
+	initialize_wait_queue(&lock->waiters);
 }
 
 /**

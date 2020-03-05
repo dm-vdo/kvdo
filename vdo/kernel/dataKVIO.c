@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#49 $
  */
 
 #include "dataKVIO.h"
@@ -1173,7 +1173,7 @@ static int make_pooled_data_kvio(void *pool_data, void **data_ptr)
  **/
 static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 {
-	struct waiter *first = getFirstWaiter(queue);
+	struct waiter *first = get_first_waiter(queue);
 
 	if (first == NULL) {
 		return;
@@ -1189,8 +1189,8 @@ static void dump_vio_waiters(struct wait_queue *queue, char *wait_on)
 
 	struct waiter *waiter;
 
-	for (waiter = first->nextWaiter; waiter != first;
-	     waiter = waiter->nextWaiter) {
+	for (waiter = first->next_waiter; waiter != first;
+	     waiter = waiter->next_waiter) {
 		data_vio = waiterAsDataVIO(waiter);
 		logInfo("     ... and : VIO %" PRIptr " pbn %" PRIu64
 			" lbn %llu d-pbn %llu lastOp %s",
@@ -1223,7 +1223,7 @@ static void encode_vio_dump_flags(struct data_vio *data_vio, char buffer[8])
 	if (dataVIOAsCompletion(data_vio)->result != VDO_SUCCESS) {
 		*p_flag++ = 'R';
 	}
-	if (dataVIOAsAllocatingVIO(data_vio)->waiter.nextWaiter != NULL) {
+	if (dataVIOAsAllocatingVIO(data_vio)->waiter.next_waiter != NULL) {
 		*p_flag++ = 'W';
 	}
 	if (data_vio->isDuplicate) {

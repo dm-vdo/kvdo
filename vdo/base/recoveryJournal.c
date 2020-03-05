@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#39 $
  */
 
 #include "recoveryJournal.h"
@@ -130,7 +130,7 @@ static void assert_on_journal_thread(struct recovery_journal *journal,
 }
 
 /**
- * WaiterCallback implementation invoked whenever a data_vio is to be released
+ * waiter_callback implementation invoked whenever a data_vio is to be released
  * from the journal, either because its entry was committed to disk,
  * or because there was an error.
  **/
@@ -161,8 +161,8 @@ static inline bool has_block_waiters(struct recovery_journal *journal)
 
 	struct recovery_journal_block *block =
 		block_from_ring_node(journal->active_tail_blocks.next);
-	return (hasWaiters(&block->entry_waiters)
-		|| hasWaiters(&block->commit_waiters));
+	return (has_waiters(&block->entry_waiters)
+		|| has_waiters(&block->commit_waiters));
 }
 
 /**********************************************************************/
@@ -189,16 +189,16 @@ static void check_for_drain_complete(struct recovery_journal *journal)
 		notify_commit_waiters(journal);
 
 		// Release any DataVIOs waiting to be assigned entries.
-		notifyAllWaiters(&journal->decrement_waiters, continue_waiter,
-				 &result);
-		notifyAllWaiters(&journal->increment_waiters, continue_waiter,
-				 &result);
+		notify_all_waiters(&journal->decrement_waiters, continue_waiter,
+				   &result);
+		notify_all_waiters(&journal->increment_waiters, continue_waiter,
+				   &result);
 	}
 
 	if (!is_draining(&journal->state) || journal->reaping
 	    || has_block_waiters(journal)
-	    || hasWaiters(&journal->increment_waiters)
-	    || hasWaiters(&journal->decrement_waiters)) {
+	    || has_waiters(&journal->increment_waiters)
+	    || has_waiters(&journal->decrement_waiters)) {
 		return;
 	}
 
@@ -851,7 +851,7 @@ static void release_journal_block_reference(struct recovery_journal_block *block
 }
 
 /**
- * Implements WaiterCallback. Assign an entry waiter to the active block.
+ * Implements waiter_callback. Assign an entry waiter to the active block.
  **/
 static void assign_entry(struct waiter *waiter, void *context)
 {
@@ -922,12 +922,12 @@ static void assign_entry(struct waiter *waiter, void *context)
 static bool assign_entries_from_queue(struct recovery_journal *journal,
 				      struct wait_queue *queue, bool increment)
 {
-	while (hasWaiters(queue)) {
+	while (has_waiters(queue)) {
 		if (!prepare_to_assign_entry(journal, increment)) {
 			return false;
 		}
 
-		notifyNextWaiter(queue, assign_entry, journal->active_block);
+		notify_next_waiter(queue, assign_entry, journal->active_block);
 	}
 
 	return true;
@@ -983,7 +983,7 @@ static void recycle_journal_block(struct recovery_journal_block *block)
 }
 
 /**
- * WaiterCallback implementation invoked whenever a VIO is to be released
+ * waiter_callback implementation invoked whenever a VIO is to be released
  * from the journal because its entry was committed to disk.
  **/
 static void continue_committed_waiter(struct waiter *waiter, void *context)
@@ -1032,11 +1032,11 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 			return;
 		}
 
-		notifyAllWaiters(&block->commit_waiters,
-				 continue_committed_waiter, journal);
+		notify_all_waiters(&block->commit_waiters,
+				   continue_committed_waiter, journal);
 		if (is_read_only(journal->read_only_notifier)) {
-			notifyAllWaiters(&block->entry_waiters,
-					 continue_committed_waiter, journal);
+			notify_all_waiters(&block->entry_waiters,
+					   continue_committed_waiter, journal);
 		} else if (is_recovery_block_dirty(block)
 			   || !is_recovery_block_full(block)) {
 			// Don't recycle partially-committed or partially-filled
@@ -1091,7 +1091,7 @@ static void complete_write(struct vdo_completion *completion)
 
 	// Write out the entries (if any) which accumulated while we were
 	// writing.
-	if (hasWaiters(&block->entry_waiters)) {
+	if (has_waiters(&block->entry_waiters)) {
 		write_block(journal, block);
 		return;
 	}
@@ -1347,8 +1347,8 @@ void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 		journal->last_write_acknowledged, journal->tail,
 		journal->block_map_reap_head, journal->slab_journal_reap_head,
 		stats.diskFull, stats.slabJournalCommitsRequested,
-		countWaiters(&journal->increment_waiters),
-		countWaiters(&journal->decrement_waiters));
+		count_waiters(&journal->increment_waiters),
+		count_waiters(&journal->decrement_waiters));
 	logInfo("  entries: started=%llu written=%" PRIu64
 		" committed=%llu",
 		stats.entries.started, stats.entries.written,

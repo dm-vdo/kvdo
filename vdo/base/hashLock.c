@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#25 $
  */
 
 /**
@@ -245,7 +245,7 @@ static inline struct data_vio *data_vio_from_lock_node(RingNode *lock_node)
  **/
 static inline struct data_vio *dequeue_lock_waiter(struct hash_lock *lock)
 {
-	return waiterAsDataVIO(dequeueNextWaiter(&lock->waiters));
+	return waiterAsDataVIO(dequeue_next_waiter(&lock->waiters));
 }
 
 /**
@@ -403,7 +403,7 @@ static void waitOnHashLock(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
- * WaiterCallback function that calls compressData on the data_vio waiter.
+ * waiter_callback function that calls compressData on the data_vio waiter.
  *
  * @param waiter   The data_vio's waiter link
  * @param context  Not used
@@ -449,9 +449,9 @@ static void startBypassing(struct hash_lock *lock, struct data_vio *agent)
 	// Ensure we don't attempt to update advice when cleaning up.
 	lock->update_advice = false;
 
-	ASSERT_LOG_ONLY(((agent != NULL) || !hasWaiters(&lock->waiters)),
+	ASSERT_LOG_ONLY(((agent != NULL) || !has_waiters(&lock->waiters)),
 			"should not have waiters without an agent");
-	notifyAllWaiters(&lock->waiters, compress_waiter, NULL);
+	notify_all_waiters(&lock->waiters, compress_waiter, NULL);
 
 	if (lock->duplicate_lock != NULL) {
 		if (agent != NULL) {
@@ -549,7 +549,7 @@ static void finishUnlocking(struct vdo_completion *completion)
 	// changed and will need to be re-verified if a waiter arrived.
 	lock->verified = false;
 
-	if (hasWaiters(&lock->waiters)) {
+	if (has_waiters(&lock->waiters)) {
 		/*
 		 * UNLOCKING -> LOCKING transition: A new data_vio entered the
 		 * hash lock while the agent was releasing the PBN lock. The
@@ -642,7 +642,7 @@ static void finishUpdating(struct vdo_completion *completion)
 	// duplicate location changes due to rollover.
 	lock->update_advice = false;
 
-	if (hasWaiters(&lock->waiters)) {
+	if (has_waiters(&lock->waiters)) {
 		/*
 		 * UPDATING -> DEDUPING transition: A new data_vio arrived
 		 * during the UDS update. Send it on the verified dedupe path.
@@ -705,7 +705,7 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
 {
 	ASSERT_LOG_ONLY(lock->agent == NULL,
 			"shouldn't have an agent in DEDUPING");
-	ASSERT_LOG_ONLY(!hasWaiters(&lock->waiters),
+	ASSERT_LOG_ONLY(!has_waiters(&lock->waiters),
 			"shouldn't have any lock waiters in DEDUPING");
 
 	// Just release the lock reference if other data_vios are still deduping.
@@ -740,7 +740,7 @@ static void finishDeduping(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
- * Implements WaiterCallback. Binds the data_vio that was waiting to a new hash
+ * Implements waiter_callback. Binds the data_vio that was waiting to a new hash
  * lock and waits on that lock.
  **/
 static void enterForkedLock(struct waiter *waiter, void *context)
@@ -780,7 +780,7 @@ static void forkHashLock(struct hash_lock *old_lock, struct data_vio *newAgent)
 	setHashLock(newAgent, new_lock);
 	set_agent(new_lock, newAgent);
 
-	notifyAllWaiters(&old_lock->waiters, enterForkedLock, new_lock);
+	notify_all_waiters(&old_lock->waiters, enterForkedLock, new_lock);
 
 	newAgent->isDuplicate = false;
 	start_writing(new_lock, newAgent);
@@ -857,7 +857,7 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 		launchDedupe(lock, agent, true);
 		agent = NULL;
 	}
-	while (hasWaiters(&lock->waiters)) {
+	while (has_waiters(&lock->waiters)) {
 		launchDedupe(lock, dequeue_lock_waiter(lock), false);
 	}
 
@@ -1222,7 +1222,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
 	}
 
 	// If there are any waiters, we need to start deduping them.
-	if (hasWaiters(&lock->waiters)) {
+	if (has_waiters(&lock->waiters)) {
 		/*
 		 * WRITING -> DEDUPING transition: an asynchronously-written
 		 * block failed to compress, so the PBN lock on the written copy
@@ -1277,14 +1277,14 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 	// This should-be-impossible condition is the only cause for
 	// enqueueDataVIO() to fail later on, where it would be a pain to
 	// handle.
-	int result = ASSERT(!isWaiting(dataVIOAsWaiter(lock->agent)),
+	int result = ASSERT(!is_waiting(dataVIOAsWaiter(lock->agent)),
 			    "agent must not be waiting");
 	if (result != VDO_SUCCESS) {
 		return lock->agent;
 	}
 
 	struct wait_queue tempQueue;
-	initializeWaitQueue(&tempQueue);
+	initialize_wait_queue(&tempQueue);
 
 	// Move waiters to the temp queue one-by-one until we find an
 	// allocation. Not ideal to search, but it only happens when nearly out
@@ -1295,18 +1295,18 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 		// Use the lower-level enqueue since we're just moving waiters
 		// around.
 		int result =
-			enqueueWaiter(&tempQueue, dataVIOAsWaiter(data_vio));
+			enqueue_waiter(&tempQueue, dataVIOAsWaiter(data_vio));
 		// The only error is the data_vio already being on a wait queue,
 		// and since we just dequeued it, that could only happen due to
 		// a memory smash or concurrent use of that data_vio.
 		ASSERT_LOG_ONLY(result == VDO_SUCCESS,
-				"impossible enqueueWaiter error");
+				"impossible enqueue_waiter error");
 	}
 
 	if (data_vio != NULL) {
 		// Move the rest of the waiters over to the temp queue,
 		// preserving the order they arrived at the lock.
-		transferAllWaiters(&lock->waiters, &tempQueue);
+		transfer_all_waiters(&lock->waiters, &tempQueue);
 
 		// The current agent is being replaced and will have to wait to
 		// dedupe; make it the first waiter since it was the first to
@@ -1315,7 +1315,7 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 					    THIS_LOCATION(NULL));
 		ASSERT_LOG_ONLY(
 			result == VDO_SUCCESS,
-			"impossible enqueueDataVIO error after isWaiting checked");
+			"impossible enqueueDataVIO error after is_waiting checked");
 		set_agent(lock, data_vio);
 	} else {
 		// No one has an allocation, so keep the current agent.
@@ -1323,7 +1323,7 @@ static struct data_vio *selectWritingAgent(struct hash_lock *lock)
 	}
 
 	// Swap all the waiters back onto the lock's queue.
-	transferAllWaiters(&tempQueue, &lock->waiters);
+	transfer_all_waiters(&tempQueue, &lock->waiters);
 	return data_vio;
 }
 
@@ -1362,7 +1362,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 
 	// If the agent compresses, it might wait indefinitely in the packer,
 	// which would be bad if there are any other data_vios waiting.
-	if (hasWaiters(&lock->waiters)) {
+	if (has_waiters(&lock->waiters)) {
 		// XXX in sync mode, transition directly to LOCKING to start
 		// dedupe?
 		cancel_compression(agent);

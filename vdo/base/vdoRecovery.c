@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#43 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -92,7 +92,7 @@ static inline struct missing_decref *asMissingDecref(struct waiter *waiter)
 static int enqueueMissingDecref(struct wait_queue *queue,
                                 struct missing_decref *decref)
 {
-  int result = enqueueWaiter(queue, &decref->waiter);
+  int result = enqueue_waiter(queue, &decref->waiter);
   if (result != VDO_SUCCESS) {
     enter_read_only_mode(decref->recovery->vdo->readOnlyNotifier, result);
     setCompletionResult(&decref->recovery->completion, result);
@@ -296,7 +296,7 @@ int makeRecoveryCompletion(struct vdo                  *vdo,
   recovery->vdo = vdo;
   ZoneCount z;
   for (z = 0; z < threadConfig->physicalZoneCount; z++) {
-    initializeWaitQueue(&recovery->missingDecrefs[z]);
+    initialize_wait_queue(&recovery->missingDecrefs[z]);
   }
 
   result = initializeEnqueueableCompletion(&recovery->completion,
@@ -326,7 +326,7 @@ int makeRecoveryCompletion(struct vdo                  *vdo,
 /**
  * A waiter callback to free missing_decrefs.
  *
- * Implements WaiterCallback.
+ * Implements waiter_callback.
  **/
 static void freeMissingDecref(struct waiter *waiter,
                               void          *context __attribute__((unused)))
@@ -346,7 +346,7 @@ void freeRecoveryCompletion(struct recovery_completion **recoveryPtr)
   const ThreadConfig *threadConfig = getThreadConfig(recovery->vdo);
   ZoneCount z;
   for (z = 0; z < threadConfig->physicalZoneCount; z++) {
-    notifyAllWaiters(&recovery->missingDecrefs[z], freeMissingDecref, NULL);
+    notify_all_waiters(&recovery->missingDecrefs[z], freeMissingDecref, NULL);
   }
 
   FREE(recovery->journalData);
@@ -595,9 +595,9 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
                     completion->callbackThreadID, &recovery->completion);
   struct wait_queue *missingDecrefs
     = &recovery->missingDecrefs[recovery->allocator->zone_number];
-  while (hasWaiters(missingDecrefs)) {
+  while (has_waiters(missingDecrefs)) {
     struct missing_decref *decref
-      = asMissingDecref(getFirstWaiter(missingDecrefs));
+      = asMissingDecref(get_first_waiter(missingDecrefs));
     if (!attempt_replay_into_slab_journal(decref->slabJournal,
                                           decref->penultimateMapping.pbn,
                                           DATA_DECREMENT, &decref->journalPoint,
@@ -605,7 +605,7 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
       return;
     }
 
-    dequeueNextWaiter(missingDecrefs);
+    dequeue_next_waiter(missingDecrefs);
     FREE(decref);
   }
 
@@ -775,7 +775,7 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
  * A waiter callback to enqueue a missing_decref on the queue for the physical
  * zone in which it will be applied.
  *
- * Implements WaiterCallback.
+ * Implements waiter_callback.
  **/
 static void queueOnPhysicalZone(struct waiter *waiter, void *context)
 {
@@ -813,7 +813,7 @@ static void applyToDepot(struct vdo_completion *completion)
                  ZONE_TYPE_ADMIN);
 
   struct slab_depot *depot = getSlabDepot(recovery->vdo);
-  notifyAllWaiters(&recovery->missingDecrefs[0], queueOnPhysicalZone, depot);
+  notify_all_waiters(&recovery->missingDecrefs[0], queueOnPhysicalZone, depot);
   if (abortRecoveryOnError(recovery->completion.result, recovery)) {
     return;
   }
@@ -1014,7 +1014,7 @@ static void handleFetchError(struct vdo_completion *completion)
 /**
  * The waiter callback to requeue a missing decref and launch its page fetch.
  *
- * Implements WaiterCallback.
+ * Implements waiter_callback.
  **/
 static void launchFetch(struct waiter *waiter, void *context)
 {
@@ -1066,8 +1066,8 @@ static void findSlabJournalEntries(struct vdo_completion *completion)
    */
   if (recovery->incompleteDecrefCount++ > 0) {
     // Fetch block map pages to fill in the incomplete missing decrefs.
-    notifyAllWaiters(&recovery->missingDecrefs[0], launchFetch,
-                     get_block_map_zone(getBlockMap(vdo), 0));
+    notify_all_waiters(&recovery->missingDecrefs[0], launchFetch,
+                       get_block_map_zone(getBlockMap(vdo), 0));
   }
 
   if (--recovery->incompleteDecrefCount == 0) {

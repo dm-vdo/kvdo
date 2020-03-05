@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#40 $
  */
 
 #include "slabJournalInternals.h"
@@ -145,7 +145,7 @@ __attribute__((warn_unused_result)) static inline bool
 must_make_entries_to_flush(struct slab_journal *journal)
 {
 	return (!slab_is_rebuilding(journal->slab) &&
-		hasWaiters(&journal->entry_waiters));
+		has_waiters(&journal->entry_waiters));
 }
 
 /**
@@ -354,7 +354,7 @@ void abort_slab_journal_waiters(struct slab_journal *journal)
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==
 			 journal->slab->allocator->thread_id),
 			"abort_slab_journal_waiters() called on correct thread");
-	notifyAllWaiters(&journal->entry_waiters, abort_waiter, journal);
+	notify_all_waiters(&journal->entry_waiters, abort_waiter, journal);
 	check_if_slab_drained(journal->slab);
 }
 
@@ -1032,7 +1032,7 @@ static inline bool
 is_next_entry_a_block_map_increment(struct slab_journal *journal)
 {
 	struct data_vio *data_vio =
-		waiterAsDataVIO(getFirstWaiter(&journal->entry_waiters));
+		waiterAsDataVIO(get_first_waiter(&journal->entry_waiters));
 	return (data_vio->operation.type == BLOCK_MAP_INCREMENT);
 }
 
@@ -1052,7 +1052,7 @@ static void add_entries(struct slab_journal *journal)
 	}
 
 	journal->adding_entries = true;
-	while (hasWaiters(&journal->entry_waiters)) {
+	while (has_waiters(&journal->entry_waiters)) {
 		if (journal->partial_write_in_progress ||
 		    slab_is_rebuilding(journal->slab)) {
 			// Don't add entries while rebuilding or while a partial
@@ -1138,9 +1138,9 @@ static void add_entries(struct slab_journal *journal)
 			}
 		}
 
-		notifyNextWaiter(&journal->entry_waiters,
-				 add_entry_from_waiter,
-				 journal);
+		notify_next_waiter(&journal->entry_waiters,
+				   add_entry_from_waiter,
+				   journal);
 	}
 
 	journal->adding_entries = false;
@@ -1149,7 +1149,7 @@ static void add_entries(struct slab_journal *journal)
 	// tail block.
 	if (is_slab_draining(journal->slab) &&
 	    !is_suspending(&journal->slab->state) &&
-	    !hasWaiters(&journal->entry_waiters)) {
+	    !has_waiters(&journal->entry_waiters)) {
 		commit_slab_journal_tail(journal);
 	}
 }
@@ -1241,7 +1241,7 @@ void drain_slab_journal(struct slab_journal *journal)
 		// XXX: we should revisit this assertion since it is no longer
 		// clear what it is for.
 		ASSERT_LOG_ONLY((!(slab_is_rebuilding(journal->slab) &&
-				   hasWaiters(&journal->entry_waiters))),
+				   has_waiters(&journal->entry_waiters))),
 				"slab is recovered or has no waiters");
 	}
 
@@ -1379,7 +1379,7 @@ void dump_slab_journal(const struct slab_journal *journal)
 		" tail=%llu nextCommit=%llu summarized=%" PRIu64
 		" lastSummarized=%llu recoveryJournalLock=%" PRIu64
 		" dirty=%s",
-		countWaiters(&journal->entry_waiters),
+		count_waiters(&journal->entry_waiters),
 		boolToString(journal->waiting_to_commit),
 		boolToString(journal->updating_slab_summary),
 		journal->head,
