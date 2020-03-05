@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalInternals.h#16 $
  */
 
 #ifndef RECOVERY_JOURNAL_INTERNALS_H
@@ -90,8 +90,11 @@ struct recovery_journal {
 	RingNode free_tail_blocks;
 	/** In-memory journal blocks with records */
 	RingNode active_tail_blocks;
-	/** A pointer to the active block (the one we are writing to now) */
+	/** A pointer to the active block (the one we are adding entries to now)
+	 */
 	struct recovery_journal_block *active_block;
+	/** Journal blocks that need writing */
+	struct wait_queue pending_writes;
 	/** The new block map reap head after reaping */
 	SequenceNumber block_map_reap_head;
 	/** The head block number for the block map rebuild range */

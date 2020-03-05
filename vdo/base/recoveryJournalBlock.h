@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#13 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -33,6 +33,8 @@
 struct recovery_journal_block {
 	/** The doubly linked pointers for the free or active lists */
 	RingNode ring_node;
+	/** The waiter for the pending full block list */
+	struct waiter write_waiter;
 	/** The journal to which this block belongs */
 	struct recovery_journal *journal;
 	/** A pointer to a block-sized buffer holding the packed block data */
@@ -79,6 +81,21 @@ block_from_ring_node(RingNode *node)
 {
 	STATIC_ASSERT(offsetof(struct recovery_journal_block, ring_node) == 0);
 	return (struct recovery_journal_block *) node;
+}
+
+/**
+ * Return the block associated with a waiter
+ *
+ * @param waiter  The waiter to recast as a block
+ *
+ * @return The block
+ **/
+static inline struct recovery_journal_block *
+block_from_waiter(struct waiter *waiter)
+{
+	return (struct recovery_journal_block *)
+		((uintptr_t) waiter - offsetof(struct recovery_journal_block,
+					       write_waiter));
 }
 
 /**
@@ -186,5 +203,15 @@ int commit_recovery_block(struct recovery_journal_block *block,
  * @param block  The block to dump
  **/
 void dump_recovery_block(const struct recovery_journal_block *block);
+
+/**
+ * Check whether a journal block can be committed.
+ *
+ * @param block  The journal block in question
+ *
+ * @return <code>true</code> if the block can be committed now
+ **/
+bool can_commit_recovery_block(struct recovery_journal_block *block)
+	__attribute__((warn_unused_result));
 
 #endif // RECOVERY_JOURNAL_BLOCK_H

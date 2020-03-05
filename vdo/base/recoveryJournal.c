@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#40 $
  */
 
 #include "recoveryJournal.h"
@@ -436,6 +436,7 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 
 	initializeRing(&journal->free_tail_blocks);
 	initializeRing(&journal->active_tail_blocks);
+	initialize_wait_queue(&journal->pending_writes);
 
 	journal->thread_id = getJournalZoneThread(thread_config);
 	journal->partition = partition;
@@ -835,9 +836,42 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	return true;
 }
 
-/**********************************************************************/
-static void write_block(struct recovery_journal *journal,
-			struct recovery_journal_block *block);
+static void write_blocks(struct recovery_journal *journal);
+
+/**
+ * Queue a block for writing. The block is expected to be full. If the block
+ * is currently writing, this is a noop as the block will be queued for
+ * writing when the write finishes. The block must not currently be queued
+ * for writing.
+ *
+ * @param journal  The journal in question
+ * @param block    The block which is now ready to write
+ **/
+static void schedule_block_write(struct recovery_journal *journal,
+                                 struct recovery_journal_block *block)
+{
+	if (block->committing) {
+		return;
+	}
+
+	int result = enqueue_waiter(&journal->pending_writes,
+				    &block->write_waiter);
+	if (result != VDO_SUCCESS) {
+		enter_journal_read_only_mode(journal, result);
+		return;
+	}
+
+	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	if ((layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC)) {
+		/*
+		 * At the end of adding entries, or discovering this partial
+		 * block is now full and ready to rewrite, we will call
+		 * write_blocks() and write a whole batch.
+		 */
+		return;
+	}
+	write_blocks(journal);
+}
 
 /**
  * Release a reference to a journal block.
@@ -908,10 +942,10 @@ static void assign_entry(struct waiter *waiter, void *context)
 	}
 
 	if (is_recovery_block_full(block)) {
-		// Only attempt to write the block once we've filled it. Commits
-		// of partially filled journal blocks are handled outside the
-		// append loop.
-		write_block(journal, block);
+		// The block is full, so we can write it anytime henceforth. If
+		// it is already committing, we'll queue it for writing when it
+		// comes back.
+		schedule_block_write(journal, block);
 	}
 
 	// Force out slab journal tail blocks when threshold is reached.
@@ -948,9 +982,9 @@ static void assign_entries(struct recovery_journal *journal)
 					  true);
 	}
 
-	// We might not have committed a partial block because there were still
-	// incoming entries, but they might have been increments with no room.
-	write_block(journal, journal->active_block);
+	// Now that we've finished with entries, see if we have a batch of
+	// blocks to write.
+	write_blocks(journal);
 	journal->adding_entries = false;
 }
 
@@ -1045,13 +1079,6 @@ static void notify_commit_waiters(struct recovery_journal *journal)
 		}
 
 		recycle_journal_block(block);
-
-		/*
-		 * We may have just completed the last outstanding block write.
-		 * If the active block is partial and hasn't been written, we
-		 * must trigger it now.
-		 */
-		write_block(journal, journal->active_block);
 	}
 }
 
@@ -1089,13 +1116,14 @@ static void complete_write(struct vdo_completion *completion)
 
 	notify_commit_waiters(journal);
 
-	// Write out the entries (if any) which accumulated while we were
-	// writing.
-	if (has_waiters(&block->entry_waiters)) {
-		write_block(journal, block);
-		return;
+	// Is this block now full? Reaping, and adding entries, might have
+	// already sent it off for rewriting; else, queue it for rewrite.
+	if (is_recovery_block_dirty(block) && is_recovery_block_full(block)) {
+		schedule_block_write(journal, block);
 	}
 
+	write_blocks(journal);
+	
 	check_for_drain_complete(journal);
 }
 
@@ -1112,23 +1140,61 @@ static void handle_write_error(struct vdo_completion *completion)
 }
 
 /**
- * Attempt to commit a block. If the block is not the oldest block
- * with uncommitted entries or if it is already being committed,
- * nothing will be done.
- *
- * @param journal  The recovery journal
- * @param block    The block to write
+ * Issue a block for writing. Implements waiter_callback.
  **/
-static void write_block(struct recovery_journal *journal,
-			struct recovery_journal_block *block)
+static void write_block(struct waiter *waiter,
+			void *context __attribute__((unused)))
+{
+	struct recovery_journal_block *block = block_from_waiter(waiter);
+	if (is_read_only(block->journal->read_only_notifier)) {
+		return;
+	}
+
+	int result = commit_recovery_block(block,
+					   complete_write,
+					   handle_write_error);
+	if (result != VDO_SUCCESS) {
+		enter_journal_read_only_mode(block->journal, result);
+	}
+}
+
+/**
+ * Attempt to commit blocks, according to write policy.
+ *
+ * @param journal     The recovery journal
+ **/
+static void write_blocks(struct recovery_journal *journal)
 {
 	assert_on_journal_thread(journal, __func__);
-	int result =
-		commit_recovery_block(block, complete_write,
-				      handle_write_error);
-	if (result != VDO_SUCCESS) {
-		enter_journal_read_only_mode(journal, result);
-		return;
+	/*
+	 * In sync and async-unsafe modes, we call this function each time we
+	 * queue a full block on pending writes; in addition, in all cases we
+	 * call this function after adding entries to the journal and finishing
+	 * a block write. Thus, when this function terminates we must either
+	 * have no VIOs waiting in the journal or have some outstanding IO to
+	 * provide a future wakeup.
+	 *
+	 * In all modes, if there are no outstanding writes and some unwritten
+	 * entries, we must issue a block, even if it's the active block and it
+	 * isn't full. Otherwise, in sync/async-unsafe modes, we want to issue
+	 * all full blocks every time; since we call it each time we fill a
+	 * block, this is equivalent to issuing every full block as soon as its
+	 * full. In async mode, we want to only issue full blocks if there are
+	 * no pending writes.
+	 */
+
+	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	if ((layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC)
+	    || (journal->pending_write_count == 0)) {
+		// Write all the full blocks.
+		notify_all_waiters(&journal->pending_writes, write_block, NULL);
+	}
+
+	// Do we need to write the active block? Only if we have no outstanding
+	// writes, even after issuing all of the full writes.
+	if ((journal->pending_write_count == 0)
+	    && can_commit_recovery_block(journal->active_block)) {
+		write_block(&journal->active_block->write_waiter, NULL);
 	}
 }
 

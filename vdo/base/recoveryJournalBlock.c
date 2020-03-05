@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#19 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -271,49 +271,30 @@ get_recovery_block_pbn(struct recovery_journal_block *block,
 	return result;
 }
 
-/**
- * Check whether a journal block should be committed.
- *
- * @param block  The journal block in question
- *
- * @return <code>true</code> if the block should be committed now
- **/
-static bool should_commit(struct recovery_journal_block *block)
+/**********************************************************************/
+bool can_commit_recovery_block(struct recovery_journal_block *block)
 {
-	// Never commit in read-only mode, if already committing the block, or
-	// if there are no entries to commit.
-	if ((block == NULL) || block->committing
-	    || !has_waiters(&block->entry_waiters)
-	    || is_read_only(block->journal->read_only_notifier)) {
-		return false;
-	}
-
-	// Always commit filled journal blocks.
-	if (is_recovery_block_full(block)) {
-		return true;
-	}
-
-	/*
-	 * We want to commit any journal blocks that have VIOs waiting on them,
-	 * but we'd also like to accumulate entries instead of always writing a
-	 * journal block immediately after the first entry is added. If there
-	 * are any pending journal writes, we can safely defer committing this
-	 * partial journal block until the last pending write completes, using
-	 * the last write's completion as a flush/wake-up.
-	 */
-	return (block->journal->pending_write_count == 0);
+	// Cannot commit in read-only mode, if already committing the block,
+	// or if there are no entries to commit.
+	return ((block != NULL)
+		&& !block->committing
+		&& has_waiters(&block->entry_waiters)
+		&& !is_read_only(block->journal->read_only_notifier));
 }
 
 /**********************************************************************/
 int commit_recovery_block(struct recovery_journal_block *block,
 			  VDOAction *callback, VDOAction *error_handler)
 {
-	if (!should_commit(block)) {
-		return VDO_SUCCESS;
+	int result = ASSERT(can_commit_recovery_block(block),
+	 		    "should never call %s when the block can't be committed",
+			    __func__);
+	if (result != VDO_SUCCESS) {
+		return result;
 	}
 
 	PhysicalBlockNumber block_pbn;
-	int result = get_recovery_block_pbn(block, &block_pbn);
+	result = get_recovery_block_pbn(block, &block_pbn);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -351,9 +332,9 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 */
 	PhysicalLayer *layer = vioAsCompletion(block->vio)->layer;
 	bool fua = (block->has_fua_entry
-       		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
+ 		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
 	bool flush = (block->has_fua_entry
-                      || (layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC_UNSAFE)
+		      || (layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC_UNSAFE)
 	       	      || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
