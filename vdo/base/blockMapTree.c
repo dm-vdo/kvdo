@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#49 $
  */
 
 #include "blockMapTree.h"
@@ -713,9 +713,9 @@ static bool isInvalidTreeEntry(const struct vdo           *vdo,
                                const struct data_location *mapping,
                                Height                      height)
 {
-  if (!isValidLocation(mapping)
+  if (!is_valid_location(mapping)
       || isCompressed(mapping->state)
-      || (isMappedLocation(mapping) && (mapping->pbn == ZERO_BLOCK))) {
+      || (is_mapped_location(mapping) && (mapping->pbn == ZERO_BLOCK))) {
     return true;
   }
 
@@ -747,7 +747,7 @@ static void continueWithLoadedPage(struct data_vio       *dataVIO,
   struct tree_lock *lock = &dataVIO->treeLock;
   struct block_map_tree_slot  slot = lock->treeSlots[lock->height];
   struct data_location mapping
-    = unpackBlockMapEntry(&page->entries[slot.blockMapSlot.slot]);
+    = unpack_block_map_entry(&page->entries[slot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %llu with "
@@ -759,7 +759,7 @@ static void continueWithLoadedPage(struct data_vio       *dataVIO,
     return;
   }
 
-  if (!isMappedLocation(&mapping)) {
+  if (!is_mapped_location(&mapping)) {
     // The page we need is unallocated
     allocateBlockMapPage(getBlockMapTreeZone(dataVIO), dataVIO);
     return;
@@ -1224,7 +1224,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
 
   // The page at this height has been allocated and loaded.
   struct data_location mapping
-    = unpackBlockMapEntry(&page->entries[treeSlot.blockMapSlot.slot]);
+    = unpack_block_map_entry(&page->entries[treeSlot.blockMapSlot.slot]);
   if (isInvalidTreeEntry(getVDOFromDataVIO(dataVIO), &mapping, lock->height)) {
     logErrorWithStringError(VDO_BAD_MAPPING,
                             "Invalid block map tree PBN: %llu with "
@@ -1236,7 +1236,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
     return;
   }
 
-  if (!isMappedLocation(&mapping)) {
+  if (!is_mapped_location(&mapping)) {
     // The page we want one level down has not been allocated, so allocate it.
     allocateBlockMapPage(zone, dataVIO);
     return;
@@ -1273,8 +1273,8 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
     return ZERO_BLOCK;
   }
 
-  struct data_location mapping = unpackBlockMapEntry(&page->entries[slot]);
-  if (!isValidLocation(&mapping) || isCompressed(mapping.state)) {
+  struct data_location mapping = unpack_block_map_entry(&page->entries[slot]);
+  if (!is_valid_location(&mapping) || isCompressed(mapping.state)) {
     return ZERO_BLOCK;
   }
   return mapping.pbn;

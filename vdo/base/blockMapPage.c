@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#14 $
  */
 
 #include "blockMapPage.h"
@@ -97,7 +97,7 @@ void update_block_map_page(struct block_map_page *page,
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 	SlotNumber slot =
 		tree_lock->treeSlots[tree_lock->height].blockMapSlot.slot;
-	page->entries[slot] = packPBN(pbn, mapping_state);
+	page->entries[slot] = pack_pbn(pbn, mapping_state);
 
 	// Adjust references (locks) on the recovery journal blocks.
 	struct block_map_zone *zone =

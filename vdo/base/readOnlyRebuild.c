@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#23 $
  */
 
 #include "readOnlyRebuild.h"
@@ -283,8 +283,8 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 				(struct numbered_block_mapping) {
 					.blockMapSlot = entry.slot,
 					.blockMapEntry =
-						packPBN(entry.mapping.pbn,
-							entry.mapping.state),
+						pack_pbn(entry.mapping.pbn,
+							 entry.mapping.state),
 					.number = rebuild->entry_count,
 				};
 			rebuild->entry_count++;

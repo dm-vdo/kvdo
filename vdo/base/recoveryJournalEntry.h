@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#6 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -76,7 +76,7 @@ typedef union __attribute__((packed)) {
 		 * location that was or will be stored in the block map page
 		 * slot
 		 **/
-		BlockMapEntry block_map_entry;
+		block_map_entry block_map_entry;
 	} fields;
 
 	// A raw view of the packed encoding.
@@ -90,7 +90,7 @@ typedef union __attribute__((packed)) {
 		unsigned slot : 10;
 		unsigned pbn_high_nibble : 4;
 		uint32_t pbn_low_word;
-		BlockMapEntry block_map_entry;
+		block_map_entry block_map_entry;
 	} little_endian;
 #endif
 } packed_recovery_journal_entry;
@@ -111,8 +111,8 @@ pack_recovery_journal_entry(const struct recovery_journal_entry *entry)
 			.slot_low = entry->slot.slot & 0x3F,
 			.slot_high = (entry->slot.slot >> 6) & 0x0F,
 			.pbn_high_nibble = (entry->slot.pbn >> 32) & 0x0F,
-			.block_map_entry = packPBN(entry->mapping.pbn,
-						   entry->mapping.state),
+			.block_map_entry = pack_pbn(entry->mapping.pbn,
+						    entry->mapping.state),
 		}};
 	storeUInt32LE(packed.fields.pbn_low_word, entry->slot.pbn & UINT_MAX);
 	return packed;
@@ -138,7 +138,7 @@ unpack_recovery_journal_entry(const packed_recovery_journal_entry *entry)
 				.slot = (entry->fields.slot_low
 					 | (entry->fields.slot_high << 6)),
 			},
-		.mapping = unpackBlockMapEntry(&entry->fields.block_map_entry),
+		.mapping = unpack_block_map_entry(&entry->fields.block_map_entry),
 	};
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#6 $
  */
 
 #ifndef BLOCK_MAP_RECOVERY_H
@@ -33,7 +33,7 @@
  **/
 struct numbered_block_mapping {
   struct block_map_slot blockMapSlot;  // Block map slot to map
-  BlockMapEntry         blockMapEntry; // The encoded block map entry for
+  block_map_entry       blockMapEntry; // The encoded block map entry for
                                        // the LBN
   uint32_t              number;        // The serial number to use during replay
 } __attribute__((packed));

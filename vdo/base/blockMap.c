@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#42 $
  */
 
 #include "blockMap.h"
@@ -145,7 +145,7 @@ int make_block_map(BlockCount logical_blocks,
 {
 	STATIC_ASSERT(BLOCK_MAP_ENTRIES_PER_PAGE ==
 		      ((VDO_BLOCK_SIZE - sizeof(struct block_map_page)) /
-		       sizeof(BlockMapEntry)));
+		       sizeof(block_map_entry)));
 
 	struct block_map *map;
 	int result = ALLOCATE_EXTENDED(struct block_map,
@@ -774,12 +774,12 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
  *         or an error code for any other failure
  **/
 __attribute__((warn_unused_result)) static int
-set_mapped_entry(struct data_vio *data_vio, const BlockMapEntry *entry)
+set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
 {
 	// Unpack the PBN for logging purposes even if the entry is invalid.
-	struct data_location mapped = unpackBlockMapEntry(entry);
+	struct data_location mapped = unpack_block_map_entry(entry);
 
-	if (isValidLocation(&mapped)) {
+	if (is_valid_location(&mapped)) {
 		int result =
 			setMappedLocation(data_vio, mapped.pbn, mapped.state);
 		/*
@@ -833,7 +833,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 	struct data_vio *data_vio = asDataVIO(completion->parent);
 	struct block_map_tree_slot *tree_slot =
 		&data_vio->treeLock.treeSlots[0];
-	const BlockMapEntry *entry =
+	const block_map_entry *entry =
 		&page->entries[tree_slot->blockMapSlot.slot];
 
 	result = set_mapped_entry(data_vio, entry);

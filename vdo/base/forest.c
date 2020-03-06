@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#24 $
  */
 
 #include "forest.h"
@@ -240,7 +240,7 @@ static int make_segment(struct forest *old_forest,
 							      INVALID_PBN,
 							      true);
 				page->entries[0] =
-					packPBN(forest->map->root_origin + root,
+					pack_pbn(forest->map->root_origin + root,
 						MAPPING_STATE_UNCOMPRESSED);
 			}
 			page_ptr += segment_sizes[height];
@@ -435,18 +435,18 @@ static void traverse(struct cursor *cursor)
 		for (; level->slot < BLOCK_MAP_ENTRIES_PER_PAGE;
 		     level->slot++) {
 			struct data_location location =
-				unpackBlockMapEntry(&page->entries[level->slot]);
-			if (!isValidLocation(&location)) {
+				unpack_block_map_entry(&page->entries[level->slot]);
+			if (!is_valid_location(&location)) {
 				// This entry is invalid, so remove it from the
 				// page.
 				page->entries[level->slot] =
-					packPBN(ZERO_BLOCK,
-						MAPPING_STATE_UNMAPPED);
+					pack_pbn(ZERO_BLOCK,
+						 MAPPING_STATE_UNMAPPED);
 				writeTreePage(tree_page, cursor->parent->zone);
 				continue;
 			}
 
-			if (!isMappedLocation(&location)) {
+			if (!is_mapped_location(&location)) {
 				continue;
 			}
 
@@ -458,8 +458,8 @@ static void traverse(struct cursor *cursor)
 			// space.
 			if (entry_index >= cursor->boundary.levels[height]) {
 				page->entries[level->slot] =
-					packPBN(ZERO_BLOCK,
-						MAPPING_STATE_UNMAPPED);
+					pack_pbn(ZERO_BLOCK,
+						 MAPPING_STATE_UNMAPPED);
 				writeTreePage(tree_page, cursor->parent->zone);
 				continue;
 			}
@@ -470,8 +470,8 @@ static void traverse(struct cursor *cursor)
 								       cursor->parent->parent);
 				if (result != VDO_SUCCESS) {
 					page->entries[level->slot] =
-						packPBN(ZERO_BLOCK,
-							MAPPING_STATE_UNMAPPED);
+						pack_pbn(ZERO_BLOCK,
+							 MAPPING_STATE_UNMAPPED);
 					writeTreePage(tree_page,
 						      cursor->parent->zone);
 					continue;

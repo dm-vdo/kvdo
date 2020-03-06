@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#24 $
  */
 
 #include "referenceCountRebuild.h"
@@ -298,10 +298,11 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		for (slot = rebuild->last_slot.slot;
 		     slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 			struct data_location mapping =
-				unpackBlockMapEntry(&page->entries[slot]);
-			if (isMappedLocation(&mapping)) {
-				page->entries[slot] = packPBN(
-					ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+				unpack_block_map_entry(&page->entries[slot]);
+			if (is_mapped_location(&mapping)) {
+				page->entries[slot] =
+					pack_pbn(ZERO_BLOCK,
+						 MAPPING_STATE_UNMAPPED);
 				requestVDOPageWrite(completion);
 			}
 		}
@@ -311,16 +312,16 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 	SlotNumber slot;
 	for (slot = 0; slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
 		struct data_location mapping =
-			unpackBlockMapEntry(&page->entries[slot]);
-		if (!isValidLocation(&mapping)) {
+			unpack_block_map_entry(&page->entries[slot]);
+		if (!is_valid_location(&mapping)) {
 			// This entry is invalid, so remove it from the page.
 			page->entries[slot] =
-				packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
 			requestVDOPageWrite(completion);
 			continue;
 		}
 
-		if (!isMappedLocation(&mapping)) {
+		if (!is_mapped_location(&mapping)) {
 			continue;
 		}
 
@@ -333,7 +334,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			// This is a nonsense mapping. Remove it from the map so
 			// we're at least consistent and mark the page dirty.
 			page->entries[slot] =
-				packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
 			requestVDOPageWrite(completion);
 			continue;
 		}
@@ -349,7 +350,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 						slot,
 						mapping.pbn);
 			page->entries[slot] =
-				packPBN(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
+				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
 			requestVDOPageWrite(completion);
 		}
 	}
