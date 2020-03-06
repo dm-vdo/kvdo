@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapEntry.h#4 $
  */
 
 #ifndef BLOCK_MAP_ENTRY_H
@@ -107,9 +107,9 @@ static inline bool is_valid_location(const struct data_location *location)
 /**
  * Pack a PhysicalBlockNumber into a block_map_entry.
  *
- * @param pbn            The physical block number to convert to its
- *                       packed five-byte representation
- * @param mappingState   The mapping state of the block
+ * @param pbn             The physical block number to convert to its
+ *                        packed five-byte representation
+ * @param mapping_state   The mapping state of the block
  *
  * @return the packed representation of the block number and mapping state
  *
