@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#23 $
  */
 
 #include "forest.h"
@@ -235,10 +235,10 @@ static int make_segment(struct forest *old_forest,
 			if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
 				// Record the root.
 				struct block_map_page *page =
-					formatBlockMapPage(page_ptr->pageBuffer,
-							   forest->map->nonce,
-							   INVALID_PBN,
-							   true);
+					format_block_map_page(page_ptr->pageBuffer,
+							      forest->map->nonce,
+							      INVALID_PBN,
+							      true);
 				page->entries[0] =
 					packPBN(forest->map->root_origin + root,
 						MAPPING_STATE_UNCOMPRESSED);
@@ -428,7 +428,7 @@ static void traverse(struct cursor *cursor)
 				  .levels[height][level->page_index]);
 		struct block_map_page *page =
 			(struct block_map_page *) tree_page->pageBuffer;
-		if (!isBlockMapPageInitialized(page)) {
+		if (!is_block_map_page_initialized(page)) {
 			continue;
 		}
 

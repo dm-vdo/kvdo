@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapPage.c#13 $
  */
 
 #include "blockMapPage.h"
@@ -33,95 +33,99 @@
 #include "types.h"
 
 enum {
-  PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
+	PAGE_HEADER_4_1_SIZE = 8 + 8 + 8 + 1 + 1 + 1 + 1,
 };
 
 static const struct version_number BLOCK_MAP_4_1 = {
-  .major_version = 4,
-  .minor_version = 1,
+	.major_version = 4,
+	.minor_version = 1,
 };
 
 /**********************************************************************/
-bool isCurrentBlockMapPage(const struct block_map_page *page)
+bool is_current_block_map_page(const struct block_map_page *page)
 {
-  return are_same_version(BLOCK_MAP_4_1, unpack_version_number(page->version));
+	return are_same_version(BLOCK_MAP_4_1,
+				unpack_version_number(page->version));
 }
 
 /**********************************************************************/
-struct block_map_page *formatBlockMapPage(void                *buffer,
-                                          Nonce                nonce,
-                                          PhysicalBlockNumber  pbn,
-                                          bool                 initialized)
+struct block_map_page *format_block_map_page(void *buffer,
+					     Nonce nonce,
+					     PhysicalBlockNumber pbn,
+					     bool initialized)
 {
-  memset(buffer, 0, VDO_BLOCK_SIZE);
-  struct block_map_page *page = (struct block_map_page *) buffer;
-  page->version = pack_version_number(BLOCK_MAP_4_1);
-  storeUInt64LE(page->header.fields.nonce, nonce);
-  storeUInt64LE(page->header.fields.pbn, pbn);
-  page->header.fields.initialized = initialized;
-  return page;
+	memset(buffer, 0, VDO_BLOCK_SIZE);
+	struct block_map_page *page = (struct block_map_page *)buffer;
+	page->version = pack_version_number(BLOCK_MAP_4_1);
+	storeUInt64LE(page->header.fields.nonce, nonce);
+	storeUInt64LE(page->header.fields.pbn, pbn);
+	page->header.fields.initialized = initialized;
+	return page;
 }
 
 /**********************************************************************/
-BlockMapPageValidity validateBlockMapPage(struct block_map_page *page,
-                                          Nonce                  nonce,
-                                          PhysicalBlockNumber    pbn)
+block_map_page_validity validate_block_map_page(struct block_map_page *page,
+						Nonce nonce,
+						PhysicalBlockNumber pbn)
 {
-  // Make sure the page layout isn't accidentally changed by changing the
-  // length of the page header.
-  STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_1_SIZE);
+	// Make sure the page layout isn't accidentally changed by changing the
+	// length of the page header.
+	STATIC_ASSERT_SIZEOF(PageHeader, PAGE_HEADER_4_1_SIZE);
 
-  if (!are_same_version(BLOCK_MAP_4_1, unpack_version_number(page->version))
-      || !isBlockMapPageInitialized(page)
-      || (nonce != getUInt64LE(page->header.fields.nonce))) {
-    return BLOCK_MAP_PAGE_INVALID;
-  }
+	if (!are_same_version(BLOCK_MAP_4_1,
+			      unpack_version_number(page->version)) ||
+	    !is_block_map_page_initialized(page) ||
+	    (nonce != getUInt64LE(page->header.fields.nonce))) {
+		return BLOCK_MAP_PAGE_INVALID;
+	}
 
-  if (pbn != getBlockMapPagePBN(page)) {
-    return BLOCK_MAP_PAGE_BAD;
-  }
+	if (pbn != get_block_map_page_pbn(page)) {
+		return BLOCK_MAP_PAGE_BAD;
+	}
 
-  return BLOCK_MAP_PAGE_VALID;
+	return BLOCK_MAP_PAGE_VALID;
 }
 
 /**********************************************************************/
-void updateBlockMapPage(struct block_map_page *page,
-                        struct data_vio       *dataVIO,
-                        PhysicalBlockNumber    pbn,
-                        BlockMappingState      mappingState,
-                        SequenceNumber        *recoveryLock)
+void update_block_map_page(struct block_map_page *page,
+			   struct data_vio *data_vio,
+			   PhysicalBlockNumber pbn,
+			   BlockMappingState mapping_state,
+			   SequenceNumber *recovery_lock)
 {
-  // Encode the new mapping.
-  struct tree_lock *treeLock = &dataVIO->treeLock;
-  SlotNumber slot = treeLock->treeSlots[treeLock->height].blockMapSlot.slot;
-  page->entries[slot] = packPBN(pbn, mappingState);
+	// Encode the new mapping.
+	struct tree_lock *tree_lock = &data_vio->treeLock;
+	SlotNumber slot =
+		tree_lock->treeSlots[tree_lock->height].blockMapSlot.slot;
+	page->entries[slot] = packPBN(pbn, mapping_state);
 
-  // Adjust references (locks) on the recovery journal blocks.
-  struct block_map_zone *zone
-    = get_block_map_for_zone(dataVIO->logical.zone);
-  struct block_map        *blockMap  = zone->block_map;
-  struct recovery_journal *journal   = blockMap->journal;
-  SequenceNumber           oldLocked = *recoveryLock;
-  SequenceNumber           newLocked = dataVIO->recoverySequenceNumber;
+	// Adjust references (locks) on the recovery journal blocks.
+	struct block_map_zone *zone =
+		get_block_map_for_zone(data_vio->logical.zone);
+	struct block_map *block_map = zone->block_map;
+	struct recovery_journal *journal = block_map->journal;
+	SequenceNumber old_locked = *recovery_lock;
+	SequenceNumber new_locked = data_vio->recoverySequenceNumber;
 
-  if ((oldLocked == 0) || (oldLocked > newLocked)) {
-    // Acquire a lock on the newly referenced journal block.
-    acquire_recovery_journal_block_reference(journal,
-                                             newLocked,
-                                             ZONE_TYPE_LOGICAL,
-                                             zone->zone_number);
+	if ((old_locked == 0) || (old_locked > new_locked)) {
+		// Acquire a lock on the newly referenced journal block.
+		acquire_recovery_journal_block_reference(journal,
+							 new_locked,
+							 ZONE_TYPE_LOGICAL,
+							 zone->zone_number);
 
-    // If the block originally held a newer lock, release it.
-    if (oldLocked > 0) {
-      release_recovery_journal_block_reference(journal, oldLocked,
-                                               ZONE_TYPE_LOGICAL,
-                                               zone->zone_number);
-    }
+		// If the block originally held a newer lock, release it.
+		if (old_locked > 0) {
+			release_recovery_journal_block_reference(journal,
+								 old_locked,
+								 ZONE_TYPE_LOGICAL,
+								 zone->zone_number);
+		}
 
-    *recoveryLock = newLocked;
-  }
+		*recovery_lock = new_locked;
+	}
 
-  // Release the transferred lock from the data_vio.
-  release_per_entry_lock_from_other_zone(journal, newLocked);
-  dataVIO->recoverySequenceNumber = 0;
+	// Release the transferred lock from the data_vio.
+	release_per_entry_lock_from_other_zone(journal, new_locked);
+	data_vio->recoverySequenceNumber = 0;
 }

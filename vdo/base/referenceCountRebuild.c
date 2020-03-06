@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#23 $
  */
 
 #include "referenceCountRebuild.h"
@@ -287,13 +287,13 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 		return result;
 	}
 
-	if (!isBlockMapPageInitialized(page)) {
+	if (!is_block_map_page_initialized(page)) {
 		return VDO_SUCCESS;
 	}
 
 	// Remove any bogus entries which exist beyond the end of the logical
 	// space.
-	if (getBlockMapPagePBN(page) == rebuild->last_slot.pbn) {
+	if (get_block_map_page_pbn(page) == rebuild->last_slot.pbn) {
 		SlotNumber slot;
 		for (slot = rebuild->last_slot.slot;
 		     slot < BLOCK_MAP_ENTRIES_PER_PAGE; slot++) {
@@ -345,7 +345,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			logErrorWithStringError(result,
 						"Could not adjust reference count for PBN"
 						" %llu, slot %u mapped to PBN %llu",
-						getBlockMapPagePBN(page),
+						get_block_map_page_pbn(page),
 						slot,
 						mapping.pbn);
 			page->entries[slot] =

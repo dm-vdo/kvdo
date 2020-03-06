@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#41 $
  */
 
 #include "blockMap.h"
@@ -83,18 +83,20 @@ static int validate_page_on_read(void *buffer,
 	struct block_map_page_context *context = page_context;
 	Nonce nonce = zone->block_map->nonce;
 
-	BlockMapPageValidity validity = validateBlockMapPage(page, nonce, pbn);
+	block_map_page_validity validity = validate_block_map_page(page,
+								   nonce,
+								   pbn);
 	if (validity == BLOCK_MAP_PAGE_BAD) {
 		return logErrorWithStringError(VDO_BAD_PAGE,
 					       "Expected page %" PRIu64
 					       " but got page %" PRIu64
 					       " instead",
 					       pbn,
-					       getBlockMapPagePBN(page));
+					       get_block_map_page_pbn(page));
 	}
 
 	if (validity == BLOCK_MAP_PAGE_INVALID) {
-		formatBlockMapPage(page, nonce, pbn, false);
+		format_block_map_page(page, nonce, pbn, false);
 	}
 
 	context->recovery_lock = 0;
@@ -113,7 +115,7 @@ static bool handle_page_write(void *raw_page,
 	struct block_map_page *page = raw_page;
 	struct block_map_page_context *context = page_context;
 
-	if (markBlockMapPageInitialized(page, true)) {
+	if (mark_block_map_page_initialized(page, true)) {
 		// Cause the page to be re-written.
 		return true;
 	}
@@ -859,11 +861,11 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 	struct block_map_page_context *context =
 		getVDOPageCompletionContext(completion);
 	SequenceNumber oldLock = context->recovery_lock;
-	updateBlockMapPage(page,
-			   data_vio,
-			   data_vio->newMapped.pbn,
-			   data_vio->newMapped.state,
-			   &context->recovery_lock);
+	update_block_map_page(page,
+			      data_vio,
+			      data_vio->newMapped.pbn,
+			      data_vio->newMapped.state,
+			      &context->recovery_lock);
 	markCompletedVDOPageDirty(completion, oldLock, context->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }

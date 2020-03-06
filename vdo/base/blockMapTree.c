@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#48 $
  */
 
 #include "blockMapTree.h"
@@ -186,8 +186,9 @@ bool copyValidPage(char                     *buffer,
                    PhysicalBlockNumber       pbn,
                    struct block_map_page    *page)
 {
-  struct block_map_page *loaded   = (struct block_map_page *) buffer;
-  BlockMapPageValidity   validity = validateBlockMapPage(loaded, nonce, pbn);
+  struct block_map_page *loaded = (struct block_map_page *) buffer;
+  block_map_page_validity validity
+    = validate_block_map_page(loaded, nonce, pbn);
   if (validity == BLOCK_MAP_PAGE_VALID) {
     memcpy(page, loaded, VDO_BLOCK_SIZE);
     return true;
@@ -197,7 +198,7 @@ bool copyValidPage(char                     *buffer,
     logErrorWithStringError(VDO_BAD_PAGE,
                             "Expected page %" PRIu64
                             " but got page %llu instead",
-                            pbn, getBlockMapPagePBN(loaded));
+                            pbn, get_block_map_page_pbn(loaded));
   }
 
   return false;
@@ -507,8 +508,8 @@ static void writeInitializedPage(struct vdo_completion *completion)
    * write succeeds.
    */
   struct block_map_page *page = (struct block_map_page *) entry->buffer;
-  markBlockMapPageInitialized(page, true);
-  launchWriteMetadataVIOWithFlush(entry->vio, getBlockMapPagePBN(page),
+  mark_block_map_page_initialized(page, true);
+  launchWriteMetadataVIOWithFlush(entry->vio, get_block_map_page_pbn(page),
                                   finishPageWrite, handleWriteError,
                                   (zone->flusher == treePage), false);
 }
@@ -546,12 +547,12 @@ static void writePage(struct tree_page *treePage, struct vio_pool_entry *entry)
   treePage->recoveryLock = 0;
 
   struct block_map_page *page = asBlockMapPage(treePage);
-  if (!markBlockMapPageInitialized(page, true)) {
+  if (!mark_block_map_page_initialized(page, true)) {
     writeInitializedPage(completion);
     return;
   }
 
-  launchWriteMetadataVIO(entry->vio, getBlockMapPagePBN(page),
+  launchWriteMetadataVIO(entry->vio, get_block_map_page_pbn(page),
                          writeInitializedPage, handleWriteError);
 }
 
@@ -810,7 +811,7 @@ static void finishBlockMapPageLoad(struct vdo_completion *completion)
     = (struct block_map_page *) treePage->pageBuffer;
   Nonce         nonce    = zone->map_zone->block_map->nonce;
   if (!copyValidPage(entry->buffer, nonce, pbn, page)) {
-    formatBlockMapPage(page, nonce, pbn, false);
+    format_block_map_page(page, nonce, pbn, false);
   }
   return_vio_to_pool(zone->vio_pool, entry);
 
@@ -1014,8 +1015,8 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
   struct block_map_page *page
     = (struct block_map_page *) treePage->pageBuffer;
   SequenceNumber oldLock = treePage->recoveryLock;
-  updateBlockMapPage(page, dataVIO, pbn, MAPPING_STATE_UNCOMPRESSED,
-                     &treePage->recoveryLock);
+  update_block_map_page(page, dataVIO, pbn, MAPPING_STATE_UNCOMPRESSED,
+                        &treePage->recoveryLock);
 
   if (is_waiting(&treePage->waiter)) {
     // This page is waiting to be written out.
@@ -1037,8 +1038,9 @@ static void finishBlockMapAllocation(struct vdo_completion *completion)
   if (height > 1) {
     // Format the interior node we just allocated (in memory).
     treePage = getTreePage(zone, treeLock);
-    formatBlockMapPage(treePage->pageBuffer, zone->map_zone->block_map->nonce,
-                       pbn, false);
+    format_block_map_page(treePage->pageBuffer,
+                          zone->map_zone->block_map->nonce,
+                          pbn, false);
   }
 
   // Release our claim to the allocation and wake any waiters
@@ -1207,7 +1209,7 @@ void lookupBlockMapPBN(struct data_vio *dataVIO)
        lock->height++) {
     lock->treeSlots[lock->height] = treeSlot;
     page = (struct block_map_page *) (getTreePage(zone, lock)->pageBuffer);
-    PhysicalBlockNumber pbn = getBlockMapPagePBN(page);
+    PhysicalBlockNumber pbn = get_block_map_page_pbn(page);
     if (pbn != ZERO_BLOCK) {
       lock->treeSlots[lock->height].blockMapSlot.pbn = pbn;
       break;
@@ -1267,7 +1269,7 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
   struct tree_page *treePage
     = get_tree_page_by_index(map->forest, rootIndex, 1, pageIndex);
   struct block_map_page *page = (struct block_map_page *) treePage->pageBuffer;
-  if (!isBlockMapPageInitialized(page)) {
+  if (!is_block_map_page_initialized(page)) {
     return ZERO_BLOCK;
   }
 
