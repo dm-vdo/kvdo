@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#23 $
  */
 
 #ifndef DATA_VIO_H
@@ -235,10 +235,9 @@ struct data_vio {
 static inline struct data_vio *
 allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
 {
-  STATIC_ASSERT(offsetof(struct data_vio, allocatingVIO) == 0);
   ASSERT_LOG_ONLY((allocating_vio_as_vio(allocatingVIO)->type == VIO_TYPE_DATA),
                   "allocating_vio is a struct data_vio");
-  return (struct data_vio *) allocatingVIO;
+  return container_of(allocatingVIO, struct data_vio, allocatingVIO);
 }
 
 /**
@@ -250,10 +249,9 @@ allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
  **/
 static inline struct data_vio *vioAsDataVIO(struct vio *vio)
 {
-  STATIC_ASSERT(offsetof(struct data_vio, allocatingVIO) == 0);
-  STATIC_ASSERT(offsetof(struct allocating_vio, vio) == 0);
   ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
-  return (struct data_vio *) vio;
+  return container_of(container_of(vio, struct allocating_vio, vio),
+                      struct data_vio, allocatingVIO);
 }
 
 /**

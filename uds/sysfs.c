@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/sysfs.c#2 $
  */
 
 #include "sysfs.h"
@@ -130,18 +130,16 @@ static ssize_t parameterStore(struct kobject   *kobj,
                               size_t            length)
 {
   ParameterAttribute *pa = container_of(attr, ParameterAttribute, attr);
+  if (pa->storeString == NULL) {
+    return -EINVAL;
+  }
   char *string = bufferToString(buf, length);
   if (string == NULL) {
     return -ENOMEM;
   }
-  int result = UDS_SUCCESS;
-  if (pa->storeString != NULL) {
-    pa->storeString(string);
-  } else {
-    return -EINVAL;
-  }
+  pa->storeString(string);
   FREE(string);
-  return result == UDS_SUCCESS ? length : result;
+  return length;
 }
 
 /**********************************************************************/
