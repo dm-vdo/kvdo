@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#12 $
  */
 
 #include "volumeGeometry.h"
@@ -438,11 +438,10 @@ int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
 
   uint64_t indexBytes;
   result = udsComputeIndexSize(udsConfiguration, 0, &indexBytes);
+  udsFreeConfiguration(udsConfiguration);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "error computing index size");
   }
-
-  udsFreeConfiguration(udsConfiguration);
 
   BlockCount indexBlocks = indexBytes / VDO_BLOCK_SIZE;
   if ((((uint64_t) indexBlocks) * VDO_BLOCK_SIZE) != indexBytes) {
