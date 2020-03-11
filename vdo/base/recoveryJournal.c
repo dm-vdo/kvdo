@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#41 $
  */
 
 #include "recoveryJournal.h"
@@ -848,7 +848,7 @@ static void write_blocks(struct recovery_journal *journal);
  * @param block    The block which is now ready to write
  **/
 static void schedule_block_write(struct recovery_journal *journal,
-                                 struct recovery_journal_block *block)
+				 struct recovery_journal_block *block)
 {
 	if (block->committing) {
 		return;
