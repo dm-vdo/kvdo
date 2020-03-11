@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.h#2 $
  */
 
 #ifndef UPGRADE_H
@@ -31,7 +31,6 @@
  *
  * @return VDO_SUCCESS or an error
  **/
-int upgradePriorVDO(PhysicalLayer *layer)
-  __attribute__((warn_unused_result));
+int upgrade_prior_vdo(PhysicalLayer *layer) __attribute__((warn_unused_result));
 
 #endif /* UPGRADE_H */
