@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#31 $
  */
 
 #include "vdoLoad.h"
@@ -523,7 +523,7 @@ int loadVDO(PhysicalLayer  *layer,
             struct vdo    **vdoPtr)
 {
   struct volume_geometry geometry;
-  int result = loadVolumeGeometry(layer, &geometry);
+  int result = load_volume_geometry(layer, &geometry);
   if (result != VDO_SUCCESS) {
     return result;
   }

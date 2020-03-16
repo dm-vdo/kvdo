@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#35 $
  */
 
 #ifndef TYPES_H
@@ -366,7 +366,7 @@ struct flusher;
 struct forest;
 struct hash_lock;
 struct hash_zone;
-typedef struct indexConfig         IndexConfig;
+struct index_config;
 struct input_bin;
 struct lbn_lock;
 struct lock_counter;

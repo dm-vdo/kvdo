@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.h#6 $
  */
 
 #ifndef VOLUME_GEOMETRY_H
@@ -26,42 +26,42 @@
 
 #include "types.h"
 
-struct indexConfig {
-  uint32_t mem;
-  uint32_t checkpointFrequency;
-  bool     sparse;
+struct index_config {
+	uint32_t mem;
+	uint32_t checkpoint_frequency;
+	bool sparse;
 } __attribute__((packed));
 
 typedef enum {
-  INDEX_REGION = 0,
-  DATA_REGION  = 1,
-  VOLUME_REGION_COUNT,
-} VolumeRegionID;
+	INDEX_REGION = 0,
+	DATA_REGION = 1,
+	VOLUME_REGION_COUNT,
+} volume_region_id;
 
 struct volume_region {
-  /** The ID of the region */
-  VolumeRegionID      id;
-  /**
-   * The absolute starting offset on the device. The region continues until
-   * the next region begins.
-   */
-  PhysicalBlockNumber startBlock;
+	/** The ID of the region */
+	volume_region_id id;
+	/**
+	 * The absolute starting offset on the device. The region continues
+	 * until the next region begins.
+	 */
+	PhysicalBlockNumber start_block;
 } __attribute__((packed));
 
 /** A binary UUID is 16 bytes. */
 typedef unsigned char UUID[16];
 
 struct volume_geometry {
-  /** The release version number of this volume */
-  ReleaseVersionNumber releaseVersion;
-  /** The nonce of this volume */
-  Nonce                nonce;
-  /** The UUID of this volume */
-  UUID                 uuid;
-  /** The regions in ID order */
-  struct volume_region regions[VOLUME_REGION_COUNT];
-  /** The index config */
-  IndexConfig          indexConfig;
+	/** The release version number of this volume */
+	ReleaseVersionNumber release_version;
+	/** The nonce of this volume */
+	Nonce nonce;
+	/** The UUID of this volume */
+	UUID uuid;
+	/** The regions in ID order */
+	struct volume_region regions[VOLUME_REGION_COUNT];
+	/** The index config */
+	struct index_config index_config;
 } __attribute__((packed));
 
 /**
@@ -71,11 +71,10 @@ struct volume_geometry {
  *
  * @return The start of the index region
  **/
-__attribute__((warn_unused_result))
-static inline PhysicalBlockNumber
-getIndexRegionOffset(struct volume_geometry geometry)
+__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+get_index_region_offset(struct volume_geometry geometry)
 {
-  return geometry.regions[INDEX_REGION].startBlock;
+	return geometry.regions[INDEX_REGION].start_block;
 }
 
 /**
@@ -85,11 +84,10 @@ getIndexRegionOffset(struct volume_geometry geometry)
  *
  * @return The start of the data region
  **/
-__attribute__((warn_unused_result))
-static inline PhysicalBlockNumber
-getDataRegionOffset(struct volume_geometry geometry)
+__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+get_data_region_offset(struct volume_geometry geometry)
 {
-  return geometry.regions[DATA_REGION].startBlock;
+	return geometry.regions[DATA_REGION].start_block;
 }
 
 /**
@@ -99,11 +97,11 @@ getDataRegionOffset(struct volume_geometry geometry)
  *
  * @return the size of the index region
  **/
-__attribute__((warn_unused_result))
-static inline PhysicalBlockNumber
-getIndexRegionSize(struct volume_geometry geometry)
+__attribute__((warn_unused_result)) static inline PhysicalBlockNumber
+get_index_region_size(struct volume_geometry geometry)
 {
-  return getDataRegionOffset(geometry) - getIndexRegionOffset(geometry);
+	return get_data_region_offset(geometry) -
+		get_index_region_offset(geometry);
 }
 
 /**
@@ -112,24 +110,24 @@ getIndexRegionSize(struct volume_geometry geometry)
  * @param layer     The layer to read and parse the geometry from
  * @param geometry  The geometry to be loaded
  **/
-int loadVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
-__attribute__((warn_unused_result));
+int load_volume_geometry(PhysicalLayer *layer, struct volume_geometry *geometry)
+	__attribute__((warn_unused_result));
 
 /**
  * Initialize a volume_geometry for a VDO.
  *
- * @param nonce        The nonce for the VDO
- * @param uuid         The uuid for the VDO
- * @param indexConfig  The index config of the VDO.
- * @param geometry     The geometry being initialized
+ * @param nonce         The nonce for the VDO
+ * @param uuid          The uuid for the VDO
+ * @param index_config  The index config of the VDO.
+ * @param geometry      The geometry being initialized
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeVolumeGeometry(Nonce                   nonce,
-                             UUID                    uuid,
-                             IndexConfig            *indexConfig,
-                             struct volume_geometry *geometry)
-  __attribute__((warn_unused_result));
+int initialize_volume_geometry(Nonce nonce,
+			       UUID uuid,
+			       struct index_config *index_config,
+			       struct volume_geometry *geometry)
+	__attribute__((warn_unused_result));
 
 /**
  * Zero out the geometry on a layer.
@@ -138,8 +136,8 @@ int initializeVolumeGeometry(Nonce                   nonce,
  *
  * @return VDO_SUCCESS or an error
  **/
-int clearVolumeGeometry(PhysicalLayer *layer)
-  __attribute__((warn_unused_result));
+int clear_volume_geometry(PhysicalLayer *layer)
+	__attribute__((warn_unused_result));
 
 /**
  * Write a geometry block for a VDO.
@@ -149,40 +147,42 @@ int clearVolumeGeometry(PhysicalLayer *layer)
  *
  * @return VDO_SUCCESS or an error
  **/
-int writeVolumeGeometry(PhysicalLayer *layer, struct volume_geometry *geometry)
-__attribute__((warn_unused_result));
+int write_volume_geometry(PhysicalLayer *layer,
+			  struct volume_geometry *geometry)
+	__attribute__((warn_unused_result));
 
 /**
  * Convert an index config to a UDS configuration, which can be used by UDS.
  *
- * @param indexConfig   The index config to convert
- * @param udsConfigPtr  A pointer to return the UDS configuration
+ * @param index_config    The index config to convert
+ * @param uds_config_ptr  A pointer to return the UDS configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int indexConfigToUdsConfiguration(IndexConfig      *indexConfig,
-                                  UdsConfiguration *udsConfigPtr)
-__attribute__((warn_unused_result));
+int index_config_to_uds_configuration(struct index_config *index_config,
+				      UdsConfiguration *uds_config_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Modify the uds_parameters to match the requested index config.
  *
- * @param indexConfig  The index config to convert
- * @param userParams   The uds_parameters to modify
+ * @param index_config  The index config to convert
+ * @param user_params   The uds_parameters to modify
  **/
-void indexConfigToUdsParameters(IndexConfig           *indexConfig,
-                                struct uds_parameters *userParams);
+void index_config_to_uds_parameters(struct index_config *index_config,
+				    struct uds_parameters *user_params);
 
 /**
- * Compute the index size in blocks from the IndexConfig.
+ * Compute the index size in blocks from the index_config.
  *
- * @param indexConfig     The index config
- * @param indexBlocksPtr  A pointer to return the index size in blocks
+ * @param index_config      The index config
+ * @param index_blocks_ptr  A pointer to return the index size in blocks
  *
  * @return VDO_SUCCESS or an error
  **/
-int computeIndexBlocks(IndexConfig *indexConfig, BlockCount *indexBlocksPtr)
-__attribute__((warn_unused_result));
+int compute_index_blocks(struct index_config *index_config,
+			 BlockCount *index_blocks_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Set load config fields from a volume geometry.
@@ -191,11 +191,11 @@ __attribute__((warn_unused_result));
  * @param loadConfig  The load config to set
  **/
 static inline void setLoadConfigFromGeometry(struct volume_geometry *geometry,
-                                             VDOLoadConfig          *loadConfig)
+					     VDOLoadConfig *loadConfig)
 {
-  loadConfig->firstBlockOffset = getDataRegionOffset(*geometry);
-  loadConfig->releaseVersion   = geometry->releaseVersion;
-  loadConfig->nonce            = geometry->nonce;
+	loadConfig->firstBlockOffset = get_data_region_offset(*geometry);
+	loadConfig->releaseVersion = geometry->release_version;
+	loadConfig->nonce = geometry->nonce;
 }
 
 #endif // VOLUME_GEOMETRY_H

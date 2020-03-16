@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#72 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#73 $
  */
 
 #include "kernelLayer.h"
@@ -705,7 +705,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	// Read the geometry block so we know how to set up the index. Allow it
 	// to do synchronous reads.
 	layer->common.reader = kvdo_synchronous_read;
-	result = loadVolumeGeometry(&layer->common, &layer->geometry);
+	result = load_volume_geometry(&layer->common, &layer->geometry);
 	layer->common.reader = NULL;
 	if (result != VDO_SUCCESS) {
 		*reason = "Could not load geometry block";
