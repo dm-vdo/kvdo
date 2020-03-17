@@ -744,8 +744,8 @@ int write_ErrorStatistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_VDOStatistics(char *prefix,
-                        VDOStatistics *stats,
+int write_vdoStatistics(char *prefix,
+                        struct vdoStatistics *stats,
                         char *suffix,
                         char **buf,
                         unsigned int *maxlen)
@@ -987,17 +987,17 @@ int write_vdo_statistics(struct kernel_layer *layer,
        }
 
        get_kvdo_statistics(&layer->kvdo, stats);
-       result = write_VDOStatistics(NULL, stats, NULL, &buf, &maxlen);
+       result = write_vdoStatistics(NULL, stats, NULL, &buf, &maxlen);
        FREE(stats);
        return result;
 }
 
 /**********************************************************************/
-int write_BioStats(char *prefix,
-                   BioStats *stats,
-                   char *suffix,
-                   char **buf,
-                   unsigned int *maxlen)
+int write_bio_stats(char *prefix,
+                    struct bio_stats *stats,
+                    char *suffix,
+                    char **buf,
+                    unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -1272,110 +1272,110 @@ int write_KernelStatistics(char *prefix,
               return result;
        }
        /** Bios submitted into VDO from above */
-       result = write_BioStats("biosIn : ",
-                               &stats->biosIn,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosIn : ",
+                                &stats->biosIn,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosInPartial : ",
-                               &stats->biosInPartial,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosInPartial : ",
+                                &stats->biosInPartial,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** Bios submitted onward for user data */
-       result = write_BioStats("biosOut : ",
-                               &stats->biosOut,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosOut : ",
+                                &stats->biosOut,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** Bios submitted onward for metadata */
-       result = write_BioStats("biosMeta : ",
-                               &stats->biosMeta,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosMeta : ",
+                                &stats->biosMeta,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosJournal : ",
-                               &stats->biosJournal,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosJournal : ",
+                                &stats->biosJournal,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosPageCache : ",
-                               &stats->biosPageCache,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosPageCache : ",
+                                &stats->biosPageCache,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosOutCompleted : ",
-                               &stats->biosOutCompleted,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosOutCompleted : ",
+                                &stats->biosOutCompleted,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosMetaCompleted : ",
-                               &stats->biosMetaCompleted,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosMetaCompleted : ",
+                                &stats->biosMetaCompleted,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosJournalCompleted : ",
-                               &stats->biosJournalCompleted,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosJournalCompleted : ",
+                                &stats->biosJournalCompleted,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosPageCacheCompleted : ",
-                               &stats->biosPageCacheCompleted,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosPageCacheCompleted : ",
+                                &stats->biosPageCacheCompleted,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosAcknowledged : ",
-                               &stats->biosAcknowledged,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosAcknowledged : ",
+                                &stats->biosAcknowledged,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
-       result = write_BioStats("biosAcknowledgedPartial : ",
-                               &stats->biosAcknowledgedPartial,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosAcknowledgedPartial : ",
+                                &stats->biosAcknowledgedPartial,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** Current number of bios in progress */
-       result = write_BioStats("biosInProgress : ",
-                               &stats->biosInProgress,
-                               ", ",
-                               buf,
-                               maxlen);
+       result = write_bio_stats("biosInProgress : ",
+                                &stats->biosInProgress,
+                                ", ",
+                                buf,
+                                maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

@@ -23,7 +23,7 @@
 #include "header.h"
 #include "types.h"
 
-typedef struct {
+struct bio_stats {
   /** Number of not REQ_WRITE bios */
   uint64_t read;
   /** Number of REQ_WRITE bios */
@@ -34,7 +34,7 @@ typedef struct {
   uint64_t flush;
   /** Number of REQ_FUA bios */
   uint64_t fua;
-} BioStats;
+};
 
 typedef struct {
   /** Tracked bytes currently allocated. */
@@ -81,22 +81,22 @@ typedef struct {
   /** Logical block size */
   uint64_t logicalBlockSize;
   /** Bios submitted into VDO from above */
-  BioStats biosIn;
-  BioStats biosInPartial;
+  struct bio_stats biosIn;
+  struct bio_stats biosInPartial;
   /** Bios submitted onward for user data */
-  BioStats biosOut;
+  struct bio_stats biosOut;
   /** Bios submitted onward for metadata */
-  BioStats biosMeta;
-  BioStats biosJournal;
-  BioStats biosPageCache;
-  BioStats biosOutCompleted;
-  BioStats biosMetaCompleted;
-  BioStats biosJournalCompleted;
-  BioStats biosPageCacheCompleted;
-  BioStats biosAcknowledged;
-  BioStats biosAcknowledgedPartial;
+  struct bio_stats biosMeta;
+  struct bio_stats biosJournal;
+  struct bio_stats biosPageCache;
+  struct bio_stats biosOutCompleted;
+  struct bio_stats biosMetaCompleted;
+  struct bio_stats biosJournalCompleted;
+  struct bio_stats biosPageCacheCompleted;
+  struct bio_stats biosAcknowledged;
+  struct bio_stats biosAcknowledgedPartial;
   /** Current number of bios in progress */
-  BioStats biosInProgress;
+  struct bio_stats biosInProgress;
   /** Memory usage stats. */
   MemoryUsage memoryUsage;
   /** The statistics for the UDS index */

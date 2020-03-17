@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#3 $
  *
  * Common stat functions
  *
@@ -34,7 +34,8 @@
 #include "vdoCommon.h"
 
 /**********************************************************************/
-static void copy_bio_stat(BioStats *b, const struct atomic_bio_stats *a)
+static void copy_bio_stat(struct bio_stats *b,
+			  const struct atomic_bio_stats *a)
 {
 	b->read = atomic64_read(&a->read);
 	b->write = atomic64_read(&a->write);
@@ -44,9 +45,10 @@ static void copy_bio_stat(BioStats *b, const struct atomic_bio_stats *a)
 }
 
 /**********************************************************************/
-static BioStats subtract_bio_stats(BioStats minuend, BioStats subtrahend)
+static struct bio_stats subtract_bio_stats(struct bio_stats minuend,
+					   struct bio_stats subtrahend)
 {
-	return (BioStats) {
+	return (struct bio_stats) {
 		.read = minuend.read - subtrahend.read,
 		.write = minuend.write - subtrahend.write,
 		.discard = minuend.discard - subtrahend.discard,
