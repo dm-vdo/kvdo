@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#25 $
  */
 
 #include "forest.h"
@@ -235,7 +235,7 @@ static int make_segment(struct forest *old_forest,
 			if (height == (BLOCK_MAP_TREE_HEIGHT - 1)) {
 				// Record the root.
 				struct block_map_page *page =
-					format_block_map_page(page_ptr->pageBuffer,
+					format_block_map_page(page_ptr->page_buffer,
 							      forest->map->nonce,
 							      INVALID_PBN,
 							      true);
@@ -404,11 +404,11 @@ static void finishTraversalLoad(struct vdo_completion *completion)
 	struct tree_page *treePage =
 		&(cursor->tree->segments[0].levels[height][level->page_index]);
 	struct block_map_page *page =
-		(struct block_map_page *) treePage->pageBuffer;
-	copyValidPage(entry->buffer,
-		      cursor->parent->map->nonce,
-		      entry->vio->physical,
-		      page);
+		(struct block_map_page *) treePage->page_buffer;
+	copy_valid_page(entry->buffer,
+			cursor->parent->map->nonce,
+			entry->vio->physical,
+			page);
 	traverse(cursor);
 }
 
@@ -427,7 +427,7 @@ static void traverse(struct cursor *cursor)
 			&(cursor->tree->segments[0]
 				  .levels[height][level->page_index]);
 		struct block_map_page *page =
-			(struct block_map_page *) tree_page->pageBuffer;
+			(struct block_map_page *) tree_page->page_buffer;
 		if (!is_block_map_page_initialized(page)) {
 			continue;
 		}
@@ -442,7 +442,8 @@ static void traverse(struct cursor *cursor)
 				page->entries[level->slot] =
 					pack_pbn(ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
-				writeTreePage(tree_page, cursor->parent->zone);
+				write_tree_page(tree_page,
+						cursor->parent->zone);
 				continue;
 			}
 
@@ -460,7 +461,8 @@ static void traverse(struct cursor *cursor)
 				page->entries[level->slot] =
 					pack_pbn(ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
-				writeTreePage(tree_page, cursor->parent->zone);
+				write_tree_page(tree_page,
+						cursor->parent->zone);
 				continue;
 			}
 
@@ -472,8 +474,8 @@ static void traverse(struct cursor *cursor)
 					page->entries[level->slot] =
 						pack_pbn(ZERO_BLOCK,
 							 MAPPING_STATE_UNMAPPED);
-					writeTreePage(tree_page,
-						      cursor->parent->zone);
+					write_tree_page(tree_page,
+							cursor->parent->zone);
 					continue;
 				}
 			}

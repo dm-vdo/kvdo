@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.h#12 $
  */
 
 #ifndef BLOCK_MAP_TREE_H
@@ -30,33 +30,32 @@ struct tree_page;
 /**
  * Intialize a block_map_tree_zone.
  *
- * @param zone              The block_map_zone of the tree zone to intialize
- * @param layer             The physical layer
- * @param maximumAge        The number of journal blocks before a dirtied page
- *                          is considered old and may be written out
+ * @param zone               The block_map_zone of the tree zone to intialize
+ * @param layer              The physical layer
+ * @param maximum_age        The number of journal blocks before a dirtied page
+ *                           is considered old and may be written out
  *
  * @return VDO_SUCCESS or an error
  **/
-int initializeTreeZone(struct block_map_zone *zone,
-                       PhysicalLayer         *layer,
-                       BlockCount             maximumAge)
-  __attribute__((warn_unused_result));
+int initialize_tree_zone(struct block_map_zone *zone, PhysicalLayer *layer,
+			 BlockCount maximum_age)
+	__attribute__((warn_unused_result));
 
 /**
  * Clean up a block_map_tree_zone.
  *
- * @param treeZone  The zone to clean up
+ * @param tree_zone  The zone to clean up
  **/
-void uninitializeBlockMapTreeZone(struct block_map_tree_zone *treeZone);
+void uninitialize_block_map_tree_zone(struct block_map_tree_zone *tree_zone);
 
 /**
  * Set the initial dirty period for a tree zone.
  *
- * @param treeZone  The tree zone
- * @param period    The initial dirty period to set
+ * @param tree_zone  The tree zone
+ * @param period     The initial dirty period to set
  **/
-void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
-                              SequenceNumber              period);
+void set_tree_zone_initial_period(struct block_map_tree_zone *tree_zone,
+				  SequenceNumber period);
 
 /**
  * Check whether a tree zone is active (i.e. has any active lookups,
@@ -66,8 +65,8 @@ void setTreeZoneInitialPeriod(struct block_map_tree_zone *treeZone,
  *
  * @return <code>true</code> if the zone is active
  **/
-bool isTreeZoneActive(struct block_map_tree_zone *zone)
-  __attribute__((warn_unused_result));
+bool is_tree_zone_active(struct block_map_tree_zone *zone)
+	__attribute__((warn_unused_result));
 
 /**
  * Advance the dirty period for a tree zone.
@@ -75,8 +74,8 @@ bool isTreeZoneActive(struct block_map_tree_zone *zone)
  * @param zone    The block_map_tree_zone to advance
  * @param period  The new dirty period
  **/
-void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
-                           SequenceNumber              period);
+void advance_zone_tree_period(struct block_map_tree_zone *zone,
+			      SequenceNumber period);
 
 /**
  * Drain the zone trees, i.e. ensure that all I/O is quiesced. If required by
@@ -85,29 +84,29 @@ void advanceZoneTreePeriod(struct block_map_tree_zone *zone,
  *
  * @param zone  The BlockMapTreeZone to drain
  **/
-void drainZoneTrees(struct block_map_tree_zone *zone);
+void drain_zone_trees(struct block_map_tree_zone *zone);
 
 /**
  * Look up the PBN of the block map page for a data_vio's LBN in the arboreal
  * block map. If necessary, the block map page will be allocated. Also, the
  * ancestors of the block map page will be allocated or loaded if necessary.
  *
- * @param dataVIO  The data_vio requesting the lookup
+ * @param data_vio  The data_vio requesting the lookup
  **/
-void lookupBlockMapPBN(struct data_vio *dataVIO);
+void lookup_block_map_pbn(struct data_vio *data_vio);
 
 /**
  * Find the PBN of a leaf block map page. This method may only be used after
  * all allocated tree pages have been loaded, otherwise, it may give the wrong
  * answer (0).
  *
- * @param map         The block map containing the forest
- * @param pageNumber  The page number of the desired block map page
+ * @param map          The block map containing the forest
+ * @param page_number  The page number of the desired block map page
  *
  * @return The PBN of the page
  **/
-PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
-                                        PageNumber        pageNumber);
+PhysicalBlockNumber find_block_map_page_pbn(struct block_map *map,
+					    PageNumber page_number);
 
 /**
  * Write a tree page or indicate that it has been re-dirtied if it is already
@@ -117,6 +116,6 @@ PhysicalBlockNumber findBlockMapPagePBN(struct block_map *map,
  * @param page  The page to write
  * @param zone  The tree zone managing the page
  **/
-void writeTreePage(struct tree_page *page, struct block_map_tree_zone *zone);
+void write_tree_page(struct tree_page *page, struct block_map_tree_zone *zone);
 
 #endif // BLOCK_MAP_TREE_H

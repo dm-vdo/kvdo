@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTreeInternals.h#7 $
  */
 
 #ifndef BLOCK_MAP_TREE_INTERNALS_H
@@ -29,39 +29,44 @@
 
 /** A single page of a block map tree */
 struct tree_page {
-  /** struct waiter for a VIO to write out this page */
-  struct waiter  waiter;
+	/** struct waiter for a VIO to write out this page */
+	struct waiter waiter;
 
-  /** Dirty list node */
-  RingNode       node;
+	/** Dirty list node */
+	RingNode node;
 
-  /**
-   * If this is a dirty tree page, the tree zone flush generation in which it
-   * was last dirtied.
-   */
-  uint8_t        generation;
+	/**
+	 * If this is a dirty tree page, the tree zone flush generation in which
+	 * it was last dirtied.
+	 */
+	uint8_t generation;
 
-  /** Whether this page is an interior tree page being written out. */
-  bool           writing;
+	/** Whether this page is an interior tree page being written out. */
+	bool writing;
 
-  /**
-   * If this page is being written, the tree zone flush generation of the
-   * copy of the page being written.
-   **/
-  uint8_t        writingGeneration;
+	/**
+	 * If this page is being written, the tree zone flush generation of the
+	 * copy of the page being written.
+	 **/
+	uint8_t writing_generation;
 
-  /** The earliest journal block containing uncommitted updates to this page */
-  SequenceNumber recoveryLock;
+	/**
+	 * The earliest journal block containing uncommitted updates to this
+	 * page
+	 */
+	SequenceNumber recovery_lock;
 
-  /** The value of recoveryLock when the this page last started writing */
-  SequenceNumber writingRecoveryLock;
+	/**
+	 * The value of recovery_lock when the this page last started writing
+	 */
+	SequenceNumber writing_recovery_lock;
 
-  /** The buffer to hold the on-disk representation of this page */
-  char           pageBuffer[VDO_BLOCK_SIZE];
+	/** The buffer to hold the on-disk representation of this page */
+	char page_buffer[VDO_BLOCK_SIZE];
 };
 
 struct boundary {
-  PageNumber levels[BLOCK_MAP_TREE_HEIGHT];
+	PageNumber levels[BLOCK_MAP_TREE_HEIGHT];
 };
 
 /**
@@ -73,29 +78,28 @@ extern const PhysicalBlockNumber INVALID_PBN;
 /**
  * Extract the block_map_page from a tree_page.
  *
- * @param treePage  The tree_page
+ * @param tree_page  The tree_page
  *
  * @return The block_map_page of the tree_page
  **/
-__attribute__((warn_unused_result))
-static inline struct block_map_page *asBlockMapPage(struct tree_page *treePage)
+__attribute__((warn_unused_result)) static inline struct block_map_page *
+as_block_map_page(struct tree_page *tree_page)
 {
-  return (struct block_map_page *) treePage->pageBuffer;
+	return (struct block_map_page *) tree_page->page_buffer;
 }
 
 /**
  * Replace the VIOPool in a tree zone. This method is used by unit tests.
  *
- * @param zone      The zone whose pool is to be replaced
- * @param layer     The physical layer from which to make VIOs
- * @param poolSize  The size of the new pool
+ * @param zone       The zone whose pool is to be replaced
+ * @param layer      The physical layer from which to make VIOs
+ * @param pool_size  The size of the new pool
  *
  * @return VDO_SUCCESS or an error
  **/
-int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
-                           PhysicalLayer              *layer,
-                           size_t                      poolSize)
-  __attribute__((warn_unused_result));
+int replace_tree_zone_vio_pool(struct block_map_tree_zone *zone,
+			       PhysicalLayer *layer, size_t pool_size)
+	__attribute__((warn_unused_result));
 
 /**
  * Check whether a buffer contains a valid page. If the page is bad, log an
@@ -108,9 +112,7 @@ int replaceTreeZoneVIOPool(struct block_map_tree_zone *zone,
  *
  * @return <code>true</code> if the page was copied (valid)
  **/
-bool copyValidPage(char                         *buffer,
-                   Nonce                         nonce,
-                   PhysicalBlockNumber           pbn,
-                   struct block_map_page        *page);
+bool copy_valid_page(char *buffer, Nonce nonce, PhysicalBlockNumber pbn,
+		     struct block_map_page *page);
 
 #endif // BLOCK_MAP_TREE_INTERNALS_H

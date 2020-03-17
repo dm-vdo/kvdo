@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#43 $
  */
 
 #include "blockMap.h"
@@ -303,7 +303,7 @@ initialize_block_map_zone(struct block_map_zone *zone,
 		       BlockCount maximum_age)
 {
 	zone->read_only_notifier = read_only_notifier;
-	int result = initializeTreeZone(zone, layer, maximum_age);
+	int result = initialize_tree_zone(zone, layer, maximum_age);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -361,7 +361,8 @@ static void advance_block_map_zone_era(void *context,
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
 	advanceVDOPageCachePeriod(zone->page_cache,
 				  zone->block_map->current_era_point);
-	advanceZoneTreePeriod(&zone->tree_zone, zone->block_map->current_era_point);
+	advance_zone_tree_period(&zone->tree_zone,
+				 zone->block_map->current_era_point);
 	finishCompletion(parent, VDO_SUCCESS);
 }
 
@@ -436,7 +437,7 @@ int make_block_map_caches(struct block_map *map,
  **/
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
-	uninitializeBlockMapTreeZone(&zone->tree_zone);
+	uninitialize_block_map_tree_zone(&zone->tree_zone);
 	freeVDOPageCache(&zone->page_cache);
 }
 
@@ -511,8 +512,8 @@ void initialize_block_map_from_journal(struct block_map *map,
 
 	ZoneCount zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
-		setTreeZoneInitialPeriod(&map->zones[zone].tree_zone,
-					 map->current_era_point);
+		set_tree_zone_initial_period(&map->zones[zone].tree_zone,
+					     map->current_era_point);
 		setVDOPageCacheInitialPeriod(map->zones[zone].page_cache,
 					     map->current_era_point);
 	}
@@ -554,7 +555,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 
 	tree_lock->callback = callback;
 	tree_lock->threadID = thread_id;
-	lookupBlockMapPBN(data_vio);
+	lookup_block_map_pbn(data_vio);
 }
 
 /**********************************************************************/
@@ -584,7 +585,8 @@ void advance_block_map_era(struct block_map *map,
 /**********************************************************************/
 void check_for_drain_complete(struct block_map_zone *zone)
 {
-	if (is_draining(&zone->state) && !isTreeZoneActive(&zone->tree_zone) &&
+	if (is_draining(&zone->state) &&
+	    !is_tree_zone_active(&zone->tree_zone) &&
 	    !isPageCacheActive(zone->page_cache)) {
 		finish_draining_with_result(&zone->state,
 					    (is_read_only(zone->read_only_notifier) ?
@@ -601,7 +603,7 @@ static void initiate_drain(struct admin_state *state)
 {
 	struct block_map_zone *zone =
 		container_of(state, struct block_map_zone, state);
-	drainZoneTrees(&zone->tree_zone);
+	drain_zone_trees(&zone->tree_zone);
 	drainVDOPageCache(zone->page_cache);
 	check_for_drain_complete(zone);
 }
