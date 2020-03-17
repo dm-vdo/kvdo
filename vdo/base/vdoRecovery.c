@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#45 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -473,9 +473,9 @@ static int extractJournalEntries(struct recovery_completion *recovery)
 
     if (is_increment_operation(entry.operation)) {
       recovery->entries[recovery->entryCount] = (struct numbered_block_mapping) {
-        .blockMapSlot  = entry.slot,
-        .blockMapEntry = pack_pbn(entry.mapping.pbn, entry.mapping.state),
-        .number        = recovery->entryCount,
+        .block_map_slot  = entry.slot,
+        .block_map_entry = pack_pbn(entry.mapping.pbn, entry.mapping.state),
+        .number          = recovery->entryCount,
       };
       recovery->entryCount++;
     }
@@ -512,7 +512,7 @@ static void launchBlockMapRecovery(struct vdo_completion *completion)
   }
 
   prepareToFinishParent(completion, &recovery->completion);
-  recoverBlockMap(vdo, recovery->entryCount, recovery->entries, completion);
+  recover_block_map(vdo, recovery->entryCount, recovery->entries, completion);
 }
 
 /**

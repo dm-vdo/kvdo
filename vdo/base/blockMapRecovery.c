@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#17 $
  */
 
 #include "blockMapRecovery.h"
@@ -41,51 +41,51 @@
  * until the recovery frees them.
  **/
 struct block_map_recovery_completion {
-  /** completion header */
-  struct vdo_completion          completion;
-  /** the completion for flushing the block map */
-  struct vdo_completion          subTaskCompletion;
-  /** the thread from which the block map may be flushed */
-  ThreadID                       adminThread;
-  /** the thread on which all block map operations must be done */
-  ThreadID                       logicalThreadID;
-  /** the block map */
-  struct block_map              *blockMap;
-  /** whether this recovery has been aborted */
-  bool                           aborted;
-  /** whether we are currently launching the initial round of requests */
-  bool                           launching;
+	/** completion header */
+	struct vdo_completion completion;
+	/** the completion for flushing the block map */
+	struct vdo_completion sub_task_completion;
+	/** the thread from which the block map may be flushed */
+	ThreadID admin_thread;
+	/** the thread on which all block map operations must be done */
+	ThreadID logical_thread_id;
+	/** the block map */
+	struct block_map *block_map;
+	/** whether this recovery has been aborted */
+	bool aborted;
+	/** whether we are currently launching the initial round of requests */
+	bool launching;
 
-  // Fields for the journal entries.
-  /** the journal entries to apply */
-  struct numbered_block_mapping *journalEntries;
-  /**
-   * a heap wrapping journalEntries. It re-orders and sorts journal entries in
-   * ascending LBN               order, then original journal order. This permits efficient
-   * iteration over the journal entries in order.
-   **/
-  struct heap                    replayHeap;
+	// Fields for the journal entries.
+	/** the journal entries to apply */
+	struct numbered_block_mapping *journal_entries;
+	/**
+	 * a heap wrapping journal_entries. It re-orders and sorts journal
+	 * entries in ascending LBN order, then original journal order. This
+	 * permits efficient iteration over the journal entries in order.
+	 **/
+	struct heap replay_heap;
 
-  // Fields tracking progress through the journal entries.
-  /** a pointer to the next journal entry to apply */
-  struct numbered_block_mapping *currentEntry;
-  /** the next entry for which the block map page has not been requested */
-  struct numbered_block_mapping *currentUnfetchedEntry;
+	// Fields tracking progress through the journal entries.
+	/** a pointer to the next journal entry to apply */
+	struct numbered_block_mapping *current_entry;
+	/** next entry for which the block map page has not been requested */
+	struct numbered_block_mapping *current_unfetched_entry;
 
-  // Fields tracking requested pages.
-  /** the absolute PBN of the current page being processed */
-  PhysicalBlockNumber            pbn;
-  /** number of pending (non-ready) requests */
-  PageCount                      outstanding;
-  /** number of page completions */
-  PageCount                      pageCount;
-  /** array of requested, potentially ready page completions */
-  struct vdo_page_completion     pageCompletions[];
+	// Fields tracking requested pages.
+	/** the absolute PBN of the current page being processed */
+	PhysicalBlockNumber pbn;
+	/** number of pending (non-ready) requests */
+	PageCount outstanding;
+	/** number of page completions */
+	PageCount page_count;
+	/** array of requested, potentially ready page completions */
+	struct vdo_page_completion page_completions[];
 };
 
 /**
  * This is a HeapComparator function that orders NumberedBlockMappings using
- * the 'blockMapSlot' field as the primary key and the mapping 'number' field
+ * the 'block_map_slot' field as the primary key and the mapping 'number' field
  * as the secondary key. Using the mapping number preserves the journal order
  * of entries for the same slot, allowing us to sort by slot while still
  * ensuring we replay all entries with the same slot in the exact order as they
@@ -96,40 +96,40 @@ struct block_map_recovery_completion {
  * smaller ones, but we want to pop entries off the heap in ascending
  * LBN order.
  **/
-static int compareMappings(const void *item1, const void *item2)
+static int compare_mappings(const void *item1, const void *item2)
 {
-  const struct numbered_block_mapping *mapping1
-    = (const struct numbered_block_mapping *) item1;
-  const struct numbered_block_mapping *mapping2
-    = (const struct numbered_block_mapping *) item2;
+	const struct numbered_block_mapping *mapping1 =
+		(const struct numbered_block_mapping *) item1;
+	const struct numbered_block_mapping *mapping2 =
+		(const struct numbered_block_mapping *) item2;
 
-  if (mapping1->blockMapSlot.pbn != mapping2->blockMapSlot.pbn) {
-    return
-      ((mapping1->blockMapSlot.pbn < mapping2->blockMapSlot.pbn) ? 1 : -1);
-  }
+	if (mapping1->block_map_slot.pbn != mapping2->block_map_slot.pbn) {
+		return ((mapping1->block_map_slot.pbn <
+			 mapping2->block_map_slot.pbn) ? 1 : -1);
+	}
 
-  if (mapping1->blockMapSlot.slot != mapping2->blockMapSlot.slot) {
-    return
-      ((mapping1->blockMapSlot.slot < mapping2->blockMapSlot.slot) ? 1 : -1);
-  }
+	if (mapping1->block_map_slot.slot != mapping2->block_map_slot.slot) {
+		return ((mapping1->block_map_slot.slot <
+			 mapping2->block_map_slot.slot) ? 1 : -1);
+	}
 
-  if (mapping1->number != mapping2->number) {
-    return ((mapping1->number < mapping2->number) ? 1 : -1);
-  }
+	if (mapping1->number != mapping2->number) {
+		return ((mapping1->number < mapping2->number) ? 1 : -1);
+	}
 
-  return 0;
+	return 0;
 }
 
 /**
  * Swap two numbered_block_mapping structures. Implements HeapSwapper.
  **/
-static void swapMappings(void *item1, void *item2)
+static void swap_mappings(void *item1, void *item2)
 {
-  struct numbered_block_mapping *mapping1 = item1;
-  struct numbered_block_mapping *mapping2 = item2;
-  struct numbered_block_mapping temp = *mapping1;
-  *mapping1 = *mapping2;
-  *mapping2 = temp;
+	struct numbered_block_mapping *mapping1 = item1;
+	struct numbered_block_mapping *mapping2 = item2;
+	struct numbered_block_mapping temp = *mapping1;
+	*mapping1 = *mapping2;
+	*mapping2 = temp;
 }
 
 /**
@@ -141,136 +141,151 @@ static void swapMappings(void *item1, void *item2)
  **/
 __attribute__((warn_unused_result))
 static inline struct block_map_recovery_completion *
-asBlockMapRecoveryCompletion(struct vdo_completion *completion)
+as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-  assertCompletionType(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
-  return container_of(completion, struct block_map_recovery_completion,
-                      completion);
+	assertCompletionType(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
+	return container_of(completion,
+			    struct block_map_recovery_completion,
+			    completion);
 }
 
 /**
  * Free a block_map_recovery_completion and null out the reference to it.
  *
- * @param recoveryPtr  a pointer to the completion to free
+ * @param recovery_ptr  a pointer to the completion to free
  **/
 static void
-freeRecoveryCompletion(struct block_map_recovery_completion **recoveryPtr)
+free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
 {
-  struct block_map_recovery_completion *recovery = *recoveryPtr;
-  if (recovery == NULL) {
-    return;
-  }
+	struct block_map_recovery_completion *recovery = *recovery_ptr;
+	if (recovery == NULL) {
+		return;
+	}
 
-  destroyEnqueueable(&recovery->completion);
-  destroyEnqueueable(&recovery->subTaskCompletion);
-  FREE(recovery);
-  *recoveryPtr = NULL;
+	destroyEnqueueable(&recovery->completion);
+	destroyEnqueueable(&recovery->sub_task_completion);
+	FREE(recovery);
+	*recovery_ptr = NULL;
 }
 
 /**
  * Free the block_map_recovery_completion and notify the parent that the
  * block map recovery is done. This callback is registered in
- * makeRecoveryCompletion().
+ * make_recovery_completion().
  *
  * @param completion  The block_map_recovery_completion
  **/
-static void finishBlockMapRecovery(struct vdo_completion *completion)
+static void finish_block_map_recovery(struct vdo_completion *completion)
 {
-  int result = completion->result;
-  struct vdo_completion *parent = completion->parent;
-  struct block_map_recovery_completion *recovery
-    = asBlockMapRecoveryCompletion(completion);
-  freeRecoveryCompletion(&recovery);
-  finishCompletion(parent, result);
+	int result = completion->result;
+	struct vdo_completion *parent = completion->parent;
+	struct block_map_recovery_completion *recovery =
+		as_block_map_recovery_completion(completion);
+	free_recovery_completion(&recovery);
+	finishCompletion(parent, result);
 }
 
 /**
  * Make a new block map recovery completion.
  *
- * @param [in]  vdo             The vdo
- * @param [in]  entryCount      The number of journal entries
- * @param [in]  journalEntries  An array of journal entries to process
- * @param [in]  parent          The parent of the recovery completion
- * @param [out] recoveryPtr     The new block map recovery completion
+ * @param [in]  vdo              The vdo
+ * @param [in]  entry_count      The number of journal entries
+ * @param [in]  journal_entries  An array of journal entries to process
+ * @param [in]  parent           The parent of the recovery completion
+ * @param [out] recovery_ptr     The new block map recovery completion
  *
  * @return a success or error code
  **/
 static int
-makeRecoveryCompletion(struct vdo                            *vdo,
-                       BlockCount                             entryCount,
-                       struct numbered_block_mapping         *journalEntries,
-                       struct vdo_completion                 *parent,
-                       struct block_map_recovery_completion **recoveryPtr)
+make_recovery_completion(struct vdo *vdo,
+			 BlockCount entry_count,
+			 struct numbered_block_mapping *journal_entries,
+			 struct vdo_completion *parent,
+			 struct block_map_recovery_completion **recovery_ptr)
 {
-  struct block_map *blockMap = getBlockMap(vdo);
-  PageCount pageCount
-    = min_page_count(getConfiguredCacheSize(vdo) >> 1,
-                     MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
+	struct block_map *block_map = getBlockMap(vdo);
+	PageCount page_count =
+		min_page_count(getConfiguredCacheSize(vdo) >> 1,
+			       MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
-  struct block_map_recovery_completion *recovery;
-  int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
-                                 pageCount, struct vdo_page_completion,
-                                 __func__, &recovery);
-  if (result != UDS_SUCCESS) {
-    return result;
-  }
+	struct block_map_recovery_completion *recovery;
+	int result = ALLOCATE_EXTENDED(struct block_map_recovery_completion,
+				       page_count,
+				       struct vdo_page_completion,
+				       __func__,
+				       &recovery);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
 
-  result = initializeEnqueueableCompletion(&recovery->completion,
-                                           BLOCK_MAP_RECOVERY_COMPLETION,
-                                           vdo->layer);
-  if (result != VDO_SUCCESS) {
-    freeRecoveryCompletion(&recovery);
-    return result;
-  }
+	result = initializeEnqueueableCompletion(&recovery->completion,
+						 BLOCK_MAP_RECOVERY_COMPLETION,
+						 vdo->layer);
+	if (result != VDO_SUCCESS) {
+		free_recovery_completion(&recovery);
+		return result;
+	}
 
-  result = initializeEnqueueableCompletion(&recovery->subTaskCompletion,
-                                           SUB_TASK_COMPLETION, vdo->layer);
-  if (result != VDO_SUCCESS) {
-    freeRecoveryCompletion(&recovery);
-    return result;
-  }
+	result = initializeEnqueueableCompletion(&recovery->sub_task_completion,
+						 SUB_TASK_COMPLETION,
+						 vdo->layer);
+	if (result != VDO_SUCCESS) {
+		free_recovery_completion(&recovery);
+		return result;
+	}
 
-  recovery->blockMap       = blockMap;
-  recovery->journalEntries = journalEntries;
-  recovery->pageCount      = pageCount;
-  recovery->currentEntry   = &recovery->journalEntries[entryCount - 1];
+	recovery->block_map = block_map;
+	recovery->journal_entries = journal_entries;
+	recovery->page_count = page_count;
+	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-  const ThreadConfig *threadConfig = getThreadConfig(vdo);
-  recovery->adminThread     = getAdminThread(threadConfig);
-  recovery->logicalThreadID = getLogicalZoneThread(threadConfig, 0);
+	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	recovery->admin_thread = getAdminThread(threadConfig);
+	recovery->logical_thread_id = getLogicalZoneThread(threadConfig, 0);
 
-  // Organize the journal entries into a binary heap so we can iterate over
-  // them in sorted order incrementally, avoiding an expensive sort call.
-  initialize_heap(&recovery->replayHeap, compareMappings, swapMappings,
-                  journalEntries, entryCount,
-                  sizeof(struct numbered_block_mapping));
-  build_heap(&recovery->replayHeap, entryCount);
+	// Organize the journal entries into a binary heap so we can iterate
+	// over them in sorted order incrementally, avoiding an expensive sort
+	// call.
+	initialize_heap(&recovery->replay_heap,
+			compare_mappings,
+			swap_mappings,
+			journal_entries,
+			entry_count,
+			sizeof(struct numbered_block_mapping));
+	build_heap(&recovery->replay_heap, entry_count);
 
-  ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logicalThreadID),
-                  "%s must be called on logical thread %u (not %u)", __func__,
-                  recovery->logicalThreadID, getCallbackThreadID());
-  prepareCompletion(&recovery->completion, finishBlockMapRecovery,
-                    finishBlockMapRecovery, recovery->logicalThreadID, parent);
+	ASSERT_LOG_ONLY((getCallbackThreadID() == recovery->logical_thread_id),
+			"%s must be called on logical thread %u (not %u)",
+			__func__,
+			recovery->logical_thread_id,
+			getCallbackThreadID());
+	prepareCompletion(&recovery->completion,
+			  finish_block_map_recovery,
+			  finish_block_map_recovery,
+			  recovery->logical_thread_id,
+			  parent);
 
-  // This message must be recognizable by VDOTest::RebuildBase.
-  logInfo("Replaying %zu recovery entries into block map",
-          recovery->replayHeap.count);
+	// This message must be recognizable by VDOTest::RebuildBase.
+	logInfo("Replaying %zu recovery entries into block map",
+		recovery->replay_heap.count);
 
-  *recoveryPtr = recovery;
-  return VDO_SUCCESS;
+	*recovery_ptr = recovery;
+	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-static void flushBlockMap(struct vdo_completion *completion)
+static void flush_block_map(struct vdo_completion *completion)
 {
-  logInfo("Flushing block map changes");
-  struct block_map_recovery_completion *recovery
-    = asBlockMapRecoveryCompletion(completion->parent);
-  ASSERT_LOG_ONLY((completion->callbackThreadID == recovery->adminThread),
-                  "flushBlockMap() called on admin thread");
+	logInfo("Flushing block map changes");
+	struct block_map_recovery_completion *recovery =
+		as_block_map_recovery_completion(completion->parent);
+	ASSERT_LOG_ONLY((completion->callbackThreadID == recovery->admin_thread),
+			"flush_block_map() called on admin thread");
 
-  prepareToFinishParent(completion, completion->parent);
-  drain_block_map(recovery->blockMap, ADMIN_STATE_RECOVERING, completion);
+	prepareToFinishParent(completion, completion->parent);
+	drain_block_map(recovery->block_map,
+			ADMIN_STATE_RECOVERING,
+			completion);
 }
 
 /**
@@ -282,34 +297,38 @@ static void flushBlockMap(struct vdo_completion *completion)
  *
  * @return <code>true</code> if the recovery or recovery is complete
  **/
-static bool finishIfDone(struct block_map_recovery_completion *recovery)
+static bool finish_if_done(struct block_map_recovery_completion *recovery)
 {
-  // Pages are still being launched or there is still work to do
-  if (recovery->launching || (recovery->outstanding > 0)
-      || (!recovery->aborted
-          && (recovery->currentEntry >= recovery->journalEntries))) {
-    return false;
-  }
+	// Pages are still being launched or there is still work to do
+	if (recovery->launching || (recovery->outstanding > 0) ||
+	    (!recovery->aborted &&
+	     (recovery->current_entry >= recovery->journal_entries))) {
+		return false;
+	}
 
-  if (recovery->aborted) {
-    /*
-     * We need to be careful here to only free completions that exist. But
-     * since we know none are outstanding, we just go through the ready ones.
-     */
-    size_t i;
-    for (i = 0; i < recovery->pageCount; i++) {
-      struct vdo_page_completion *pageCompletion = &recovery->pageCompletions[i];
-      if (recovery->pageCompletions[i].ready) {
-        releaseVDOPageCompletion(&pageCompletion->completion);
-      }
-    }
-    completeCompletion(&recovery->completion);
-  } else {
-    launchCallbackWithParent(&recovery->subTaskCompletion, flushBlockMap,
-                             recovery->adminThread, &recovery->completion);
-  }
+	if (recovery->aborted) {
+		/*
+		 * We need to be careful here to only free completions that
+		 * exist. But since we know none are outstanding, we just go
+		 * through the ready ones.
+		 */
+		size_t i;
+		for (i = 0; i < recovery->page_count; i++) {
+			struct vdo_page_completion *pageCompletion =
+				&recovery->page_completions[i];
+			if (recovery->page_completions[i].ready) {
+				releaseVDOPageCompletion(&pageCompletion->completion);
+			}
+		}
+		completeCompletion(&recovery->completion);
+	} else {
+		launchCallbackWithParent(&recovery->sub_task_completion,
+					 flush_block_map,
+					 recovery->admin_thread,
+					 &recovery->completion);
+	}
 
-  return true;
+	return true;
 }
 
 /**
@@ -319,89 +338,90 @@ static bool finishIfDone(struct block_map_recovery_completion *recovery)
  * @param recovery  The block_map_recovery_completion
  * @param result    The error result to use, if one is not already saved
  **/
-static void abortRecovery(struct block_map_recovery_completion *recovery,
-                          int result)
+static void abort_recovery(struct block_map_recovery_completion *recovery,
+			   int result)
 {
-  recovery->aborted = true;
-  setCompletionResult(&recovery->completion, result);
-  finishIfDone(recovery);
+	recovery->aborted = true;
+	setCompletionResult(&recovery->completion, result);
+	finish_if_done(recovery);
 }
 
 /**
  * Find the first journal entry after a given entry which is not on the same
  * block map page.
  *
- * @param recovery      the block_map_recovery_completion
- * @param currentEntry  the entry to search from
- * @param needsSort     Whether sorting is needed to proceed
+ * @param recovery       the block_map_recovery_completion
+ * @param current_entry  the entry to search from
+ * @param needs_sort     Whether sorting is needed to proceed
  *
  * @return Pointer to the first later journal entry on a different block map
  *         page, or a pointer to just before the journal entries if no
  *         subsequent entry is on a different block map page.
  **/
 static struct numbered_block_mapping *
-findEntryStartingNextPage(struct block_map_recovery_completion *recovery,
-                          struct numbered_block_mapping        *currentEntry,
-                          bool                                  needsSort)
+find_entry_starting_next_page(struct block_map_recovery_completion *recovery,
+			      struct numbered_block_mapping *current_entry,
+			      bool needs_sort)
 {
-  // If currentEntry is invalid, return immediately.
-  if (currentEntry < recovery->journalEntries) {
-    return currentEntry;
-  }
-  size_t currentPage = currentEntry->blockMapSlot.pbn;
+	// If current_entry is invalid, return immediately.
+	if (current_entry < recovery->journal_entries) {
+		return current_entry;
+	}
+	size_t current_page = current_entry->block_map_slot.pbn;
 
-  // Decrement currentEntry until it's out of bounds or on a different page.
-  while ((currentEntry >= recovery->journalEntries)
-         && (currentEntry->blockMapSlot.pbn == currentPage)) {
-    if (needsSort) {
-      struct numbered_block_mapping *justSortedEntry
-        = sort_next_heap_element(&recovery->replayHeap);
-      ASSERT_LOG_ONLY(justSortedEntry < currentEntry,
-                      "heap is returning elements in an unexpected order");
-    }
-    currentEntry--;
-  }
-  return currentEntry;
+	// Decrement current_entry until it's out of bounds or on a different
+	// page.
+	while ((current_entry >= recovery->journal_entries) &&
+	       (current_entry->block_map_slot.pbn == current_page)) {
+		if (needs_sort) {
+			struct numbered_block_mapping *just_sorted_entry =
+				sort_next_heap_element(&recovery->replay_heap);
+			ASSERT_LOG_ONLY(just_sorted_entry < current_entry,
+					"heap is returning elements in an unexpected order");
+		}
+		current_entry--;
+	}
+	return current_entry;
 }
 
 /**
  * Apply a range of journal entries to a block map page.
  *
- * @param page           The block map page being modified
- * @param startingEntry  The first journal entry to apply
- * @param endingEntry    The entry just past the last journal entry to apply
+ * @param page            The block map page being modified
+ * @param starting_entry  The first journal entry to apply
+ * @param ending_entry    The entry just past the last journal entry to apply
  **/
 static void
-applyJournalEntriesToPage(struct block_map_page             *page,
-                          struct numbered_block_mapping     *startingEntry,
-                          struct numbered_block_mapping     *endingEntry)
+apply_journal_entries_to_page(struct block_map_page *page,
+			      struct numbered_block_mapping *starting_entry,
+			      struct numbered_block_mapping *ending_entry)
 {
-  struct numbered_block_mapping *currentEntry  = startingEntry;
-  while (currentEntry != endingEntry) {
-    page->entries[currentEntry->blockMapSlot.slot]
-      = currentEntry->blockMapEntry;
-    currentEntry--;
-  }
+	struct numbered_block_mapping *current_entry = starting_entry;
+	while (current_entry != ending_entry) {
+		page->entries[current_entry->block_map_slot.slot] =
+			current_entry->block_map_entry;
+		current_entry--;
+	}
 }
 
 /**********************************************************************/
-static void recoverReadyPages(struct block_map_recovery_completion *recovery,
-                              struct vdo_completion                *completion);
+static void recover_ready_pages(struct block_map_recovery_completion *recovery,
+				struct vdo_completion *completion);
 
 /**
  * Note that a page is now ready and attempt to process pages. This callback is
- * registered in fetchPage().
+ * registered in fetch_page().
  *
  * @param completion  The vdo_page_completion for the fetched page
  **/
-static void pageLoaded(struct vdo_completion *completion)
+static void page_loaded(struct vdo_completion *completion)
 {
-  struct block_map_recovery_completion *recovery
-    = asBlockMapRecoveryCompletion(completion->parent);
-  recovery->outstanding--;
-  if (!recovery->launching) {
-    recoverReadyPages(recovery, completion);
-  }
+	struct block_map_recovery_completion *recovery =
+		as_block_map_recovery_completion(completion->parent);
+	recovery->outstanding--;
+	if (!recovery->launching) {
+		recover_ready_pages(recovery, completion);
+	}
 }
 
 /**
@@ -409,12 +429,12 @@ static void pageLoaded(struct vdo_completion *completion)
  *
  * @param completion  The vdo_page_completion
  **/
-static void handlePageLoadError(struct vdo_completion *completion)
+static void handle_page_load_error(struct vdo_completion *completion)
 {
-  struct block_map_recovery_completion *recovery
-    = asBlockMapRecoveryCompletion(completion->parent);
-  recovery->outstanding--;
-  abortRecovery(recovery, completion->result);
+	struct block_map_recovery_completion *recovery =
+		as_block_map_recovery_completion(completion->parent);
+	recovery->outstanding--;
+	abort_recovery(recovery, completion->result);
 }
 
 /**
@@ -423,26 +443,30 @@ static void handlePageLoadError(struct vdo_completion *completion)
  * @param recovery    the block_map_recovery_completion
  * @param completion  the page completion to use
  **/
-static void fetchPage(struct block_map_recovery_completion *recovery,
-                      struct vdo_completion                *completion)
+static void fetch_page(struct block_map_recovery_completion *recovery,
+		       struct vdo_completion *completion)
 {
-  if (recovery->currentUnfetchedEntry < recovery->journalEntries) {
-    // Nothing left to fetch.
-    return;
-  }
+	if (recovery->current_unfetched_entry < recovery->journal_entries) {
+		// Nothing left to fetch.
+		return;
+	}
 
-  // Fetch the next page we haven't yet requested.
-  PhysicalBlockNumber newPBN
-    = recovery->currentUnfetchedEntry->blockMapSlot.pbn;
-  recovery->currentUnfetchedEntry
-    = findEntryStartingNextPage(recovery, recovery->currentUnfetchedEntry,
-                                true);
-  initVDOPageCompletion(((struct vdo_page_completion *) completion),
-                        recovery->blockMap->zones[0].page_cache,
-                        newPBN, true, &recovery->completion,
-                        pageLoaded, handlePageLoadError);
-  recovery->outstanding++;
-  getVDOPageAsync(completion);
+	// Fetch the next page we haven't yet requested.
+	PhysicalBlockNumber new_pbn =
+		recovery->current_unfetched_entry->block_map_slot.pbn;
+	recovery->current_unfetched_entry =
+		find_entry_starting_next_page(recovery,
+					      recovery->current_unfetched_entry,
+					      true);
+	initVDOPageCompletion(((struct vdo_page_completion *) completion),
+			      recovery->block_map->zones[0].page_cache,
+			      new_pbn,
+			      true,
+			      &recovery->completion,
+			      page_loaded,
+			      handle_page_load_error);
+	recovery->outstanding++;
+	getVDOPageAsync(completion);
 }
 
 /**
@@ -455,14 +479,14 @@ static void fetchPage(struct block_map_recovery_completion *recovery,
  * @return The next page completion to process
  **/
 static struct vdo_page_completion *
-getNextPageCompletion(struct block_map_recovery_completion *recovery,
-                      struct vdo_page_completion           *completion)
+get_next_page_completion(struct block_map_recovery_completion *recovery,
+			 struct vdo_page_completion *completion)
 {
-  completion++;
-  if (completion == (&recovery->pageCompletions[recovery->pageCount])) {
-    completion = &recovery->pageCompletions[0];
-  }
-  return completion;
+	completion++;
+	if (completion == (&recovery->page_completions[recovery->page_count])) {
+		completion = &recovery->page_completions[0];
+	}
+	return completion;
 }
 
 /**
@@ -471,83 +495,92 @@ getNextPageCompletion(struct block_map_recovery_completion *recovery,
  * @param recovery    The recovery completion
  * @param completion  The first page completion to process
  **/
-static void recoverReadyPages(struct block_map_recovery_completion *recovery,
-                              struct vdo_completion                *completion)
+static void recover_ready_pages(struct block_map_recovery_completion *recovery,
+				struct vdo_completion *completion)
 {
-  if (finishIfDone(recovery)) {
-    return;
-  }
+	if (finish_if_done(recovery)) {
+		return;
+	}
 
-  struct vdo_page_completion *pageCompletion
-    = (struct vdo_page_completion *) completion;
-  if (recovery->pbn != pageCompletion->pbn) {
-    return;
-  }
+	struct vdo_page_completion *page_completion =
+		(struct vdo_page_completion *) completion;
+	if (recovery->pbn != page_completion->pbn) {
+		return;
+	}
 
-  while (pageCompletion->ready) {
-    struct block_map_page *page   = dereferenceWritableVDOPage(completion);
-    int           result = ASSERT(page != NULL, "page available");
-    if (result != VDO_SUCCESS) {
-      abortRecovery(recovery, result);
-      return;
-    }
+	while (page_completion->ready) {
+		struct block_map_page *page =
+			dereferenceWritableVDOPage(completion);
+		int result = ASSERT(page != NULL, "page available");
+		if (result != VDO_SUCCESS) {
+			abort_recovery(recovery, result);
+			return;
+		}
 
-    struct numbered_block_mapping *startOfNextPage
-      = findEntryStartingNextPage(recovery, recovery->currentEntry, false);
-    applyJournalEntriesToPage(page, recovery->currentEntry, startOfNextPage);
-    recovery->currentEntry = startOfNextPage;
-    requestVDOPageWrite(completion);
-    releaseVDOPageCompletion(completion);
+		struct numbered_block_mapping *start_of_next_page =
+			find_entry_starting_next_page(recovery,
+						      recovery->current_entry,
+						      false);
+		apply_journal_entries_to_page(page,
+					      recovery->current_entry,
+					      start_of_next_page);
+		recovery->current_entry = start_of_next_page;
+		requestVDOPageWrite(completion);
+		releaseVDOPageCompletion(completion);
 
-    if (finishIfDone(recovery)) {
-      return;
-    }
+		if (finish_if_done(recovery)) {
+			return;
+		}
 
-    recovery->pbn = recovery->currentEntry->blockMapSlot.pbn;
-    fetchPage(recovery, completion);
-    pageCompletion = getNextPageCompletion(recovery, pageCompletion);
-    completion     = &pageCompletion->completion;
-  }
+		recovery->pbn = recovery->current_entry->block_map_slot.pbn;
+		fetch_page(recovery, completion);
+		page_completion =
+			get_next_page_completion(recovery, page_completion);
+		completion = &page_completion->completion;
+	}
 }
 
 /**********************************************************************/
-void recoverBlockMap(struct vdo                    *vdo,
-                     BlockCount                     entryCount,
-                     struct numbered_block_mapping *journalEntries,
-                     struct vdo_completion         *parent)
+void recover_block_map(struct vdo *vdo,
+		       BlockCount entry_count,
+		       struct numbered_block_mapping *journal_entries,
+		       struct vdo_completion *parent)
 {
-  struct block_map_recovery_completion *recovery;
-  int result = makeRecoveryCompletion(vdo, entryCount, journalEntries, parent,
-                                      &recovery);
-  if (result != VDO_SUCCESS) {
-    finishCompletion(parent, result);
-    return;
-  }
+	struct block_map_recovery_completion *recovery;
+	int result = make_recovery_completion(vdo, entry_count,
+					      journal_entries, parent,
+					      &recovery);
+	if (result != VDO_SUCCESS) {
+		finishCompletion(parent, result);
+		return;
+	}
 
-  if (is_heap_empty(&recovery->replayHeap)) {
-    finishCompletion(&recovery->completion, VDO_SUCCESS);
-    return;
-  }
+	if (is_heap_empty(&recovery->replay_heap)) {
+		finishCompletion(&recovery->completion, VDO_SUCCESS);
+		return;
+	}
 
-  struct numbered_block_mapping *firstSortedEntry
-    = sort_next_heap_element(&recovery->replayHeap);
-  ASSERT_LOG_ONLY(firstSortedEntry == recovery->currentEntry,
-                  "heap is returning elements in an unexpected order");
+	struct numbered_block_mapping *first_sorted_entry =
+		sort_next_heap_element(&recovery->replay_heap);
+	ASSERT_LOG_ONLY(first_sorted_entry == recovery->current_entry,
+			"heap is returning elements in an unexpected order");
 
-  // Prevent any page from being processed until all pages have been launched.
-  recovery->launching = true;
-  recovery->pbn       = recovery->currentEntry->blockMapSlot.pbn;
-  recovery->currentUnfetchedEntry = recovery->currentEntry;
-  PageCount i;
-  for (i = 0; i < recovery->pageCount; i++) {
-    if (recovery->currentUnfetchedEntry < recovery->journalEntries) {
-      break;
-    }
+	// Prevent any page from being processed until all pages have been
+	// launched.
+	recovery->launching = true;
+	recovery->pbn = recovery->current_entry->block_map_slot.pbn;
+	recovery->current_unfetched_entry = recovery->current_entry;
+	PageCount i;
+	for (i = 0; i < recovery->page_count; i++) {
+		if (recovery->current_unfetched_entry <
+		    recovery->journal_entries) {
+			break;
+		}
 
-    fetchPage(recovery, &recovery->pageCompletions[i].completion);
-  }
-  recovery->launching = false;
+		fetch_page(recovery, &recovery->page_completions[i].completion);
+	}
+	recovery->launching = false;
 
-  // Process any ready pages.
-  recoverReadyPages(recovery, &recovery->pageCompletions[0].completion);
+	// Process any ready pages.
+	recover_ready_pages(recovery, &recovery->page_completions[0].completion);
 }

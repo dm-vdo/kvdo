@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.h#7 $
  */
 
 #ifndef BLOCK_MAP_RECOVERY_H
@@ -32,23 +32,25 @@
  * the relative order of journal entries with the same logical block number.
  **/
 struct numbered_block_mapping {
-  struct block_map_slot blockMapSlot;  // Block map slot to map
-  block_map_entry       blockMapEntry; // The encoded block map entry for
-                                       // the LBN
-  uint32_t              number;        // The serial number to use during replay
+	// Block map slot to map
+	struct block_map_slot block_map_slot;
+	// The encoded block map entry for the LBN
+	block_map_entry block_map_entry;
+	// The serial number to use during replay
+	uint32_t number;
 } __attribute__((packed));
 
 /**
  * Recover the block map (normal rebuild).
  *
- * @param vdo             The vdo
- * @param entryCount      The number of journal entries
- * @param journalEntries  An array of journal entries to process
- * @param parent          The completion to notify when the rebuild is complete
+ * @param vdo              The vdo
+ * @param entry_count      The number of journal entries
+ * @param journal_entries  An array of journal entries to process
+ * @param parent           The completion to notify when the rebuild is complete
  **/
-void recoverBlockMap(struct vdo                    *vdo,
-                     BlockCount                     entryCount,
-                     struct numbered_block_mapping *journalEntries,
-                     struct vdo_completion         *parent);
+void recover_block_map(struct vdo *vdo,
+		       BlockCount entry_count,
+		       struct numbered_block_mapping *journal_entries,
+		       struct vdo_completion *parent);
 
 #endif // BLOCK_MAP_RECOVERY_H
