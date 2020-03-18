@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#42 $
  */
 
 /*
@@ -139,7 +139,7 @@ void destroyVDO(struct vdo *vdo)
   free_packer(&vdo->packer);
   free_recovery_journal(&vdo->recoveryJournal);
   free_slab_depot(&vdo->depot);
-  freeVDOLayout(&vdo->layout);
+  free_vdo_layout(&vdo->layout);
   free_super_block(&vdo->superBlock);
   free_block_map(&vdo->blockMap);
 
@@ -199,7 +199,7 @@ size_t getComponentDataSize(struct vdo *vdo)
   return (sizeof(struct version_number)
           + sizeof(struct version_number)
           + sizeof(struct vdo_component_41_0)
-          + getVDOLayoutEncodedSize(vdo->layout)
+          + get_vdo_layout_encoded_size(vdo->layout)
           + get_recovery_journal_encoded_size()
           + get_slab_depot_encoded_size()
           + get_block_map_encoded_size());
@@ -319,7 +319,7 @@ static int encodeVDO(struct vdo *vdo)
     return result;
   }
 
-  result = encodeVDOLayout(vdo->layout, buffer);
+  result = encode_vdo_layout(vdo->layout, buffer);
   if (result != VDO_SUCCESS) {
     return result;
   }

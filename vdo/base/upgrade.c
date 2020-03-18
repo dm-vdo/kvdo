@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#16 $
  */
 
 #include "upgrade.h"
@@ -173,8 +173,8 @@ finish_sodium_decode(struct vdo *vdo)
 	int result =
 		make_recovery_journal(vdo->nonce,
 				      vdo->layer,
-				      getVDOPartition(vdo->layout,
-						      RECOVERY_JOURNAL_PARTITION),
+				      get_vdo_partition(vdo->layout,
+							RECOVERY_JOURNAL_PARTITION),
 				      vdo->completeRecoveries,
 				      vdo->config.recoveryJournalSize,
 				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
@@ -194,8 +194,8 @@ finish_sodium_decode(struct vdo *vdo)
 					  threadConfig,
 					  vdo->nonce,
 					  vdo->layer,
-					  getVDOPartition(vdo->layout,
-							  SLAB_SUMMARY_PARTITION),
+					  get_vdo_partition(vdo->layout,
+							    SLAB_SUMMARY_PARTITION),
 					  vdo->readOnlyNotifier,
 					  vdo->recoveryJournal,
 					  &vdo->depot);
@@ -266,8 +266,8 @@ int upgrade_prior_vdo(PhysicalLayer *layer)
 					       "Cannot upgrade a dirty VDO.");
 	}
 
-	result = decodeVDOLayout(get_component_buffer(vdo->superBlock),
-				 &vdo->layout);
+	result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+				   &vdo->layout);
 	if (result != VDO_SUCCESS) {
 		freeVDO(&vdo);
 		return result;

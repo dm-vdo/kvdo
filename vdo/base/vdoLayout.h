@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.h#5 $
  */
 
 /**
@@ -27,8 +27,8 @@
  * subsequent error checking when other modules need to get partitions from the
  * layout.
  *
- * The vdo_layout also manages the preparation and growth of the layout for grow
- * physical operations.
+ * The vdo_layout also manages the preparation and growth of the layout for
+ * grow physical operations.
  **/
 
 #ifndef VDO_LAYOUT_H
@@ -40,149 +40,151 @@
 /**
  * Make a VDO layout with the specified parameters.
  *
- * @param [in]  physicalBlocks  The number of physical blocks in the VDO
- * @param [in]  startingOffset  The starting offset of the layout
- * @param [in]  blockMapBlocks  The size of the block map partition
- * @param [in]  journalBlocks   The size of the journal partition
- * @param [in]  summaryBlocks   The size of the slab summary partition
- * @param [out] vdoLayoutPtr    A pointer to hold the new vdo_layout
+ * @param [in]  physical_blocks   The number of physical blocks in the VDO
+ * @param [in]  starting_offset   The starting offset of the layout
+ * @param [in]  block_map_blocks  The size of the block map partition
+ * @param [in]  journal_blocks    The size of the journal partition
+ * @param [in]  summary_blocks    The size of the slab summary partition
+ * @param [out] vdo_layout_ptr    A pointer to hold the new vdo_layout
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeVDOLayout(BlockCount            physicalBlocks,
-                  PhysicalBlockNumber   startingOffset,
-                  BlockCount            blockMapBlocks,
-                  BlockCount            journalBlocks,
-                  BlockCount            summaryBlocks,
-                  struct vdo_layout   **vdoLayoutPtr)
-  __attribute__((warn_unused_result));
+int make_vdo_layout(BlockCount physical_blocks,
+		    PhysicalBlockNumber starting_offset,
+		    BlockCount block_map_blocks,
+		    BlockCount journal_blocks,
+		    BlockCount summary_blocks,
+		    struct vdo_layout **vdo_layout_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Decode a vdo_layout from a buffer.
  *
- * @param [in]  buffer        The buffer from which to decode
- * @param [out] vdoLayoutPtr  A pointer to hold the vdo_layout
+ * @param [in]  buffer          The buffer from which to decode
+ * @param [out] vdo_layout_ptr  A pointer to hold the vdo_layout
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeVDOLayout(Buffer *buffer, struct vdo_layout **vdoLayoutPtr)
-  __attribute__((warn_unused_result));
+int decode_vdo_layout(Buffer *buffer, struct vdo_layout **vdo_layout_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a vdo_layout and NULL out the reference to it.
  *
- * @param vdoLayoutPtr  The pointer to a vdo_layout to free
+ * @param vdo_layout_ptr  The pointer to a vdo_layout to free
  **/
-void freeVDOLayout(struct vdo_layout **vdoLayoutPtr);
+void free_vdo_layout(struct vdo_layout **vdo_layout_ptr);
 
 /**
  * Get a partition from a vdo_layout. Because the layout's FixedLayout has
  * already been validated, this can not fail.
  *
- * @param vdoLayout  The vdo_layout from which to get the partition
- * @param id         The ID of the desired partition
+ * @param vdo_layout  The vdo_layout from which to get the partition
+ * @param id          The ID of the desired partition
  *
  * @return The requested partition
  **/
-struct partition *getVDOPartition(struct vdo_layout *vdoLayout, PartitionID id)
-  __attribute__((warn_unused_result));
+struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
+				    PartitionID id)
+	__attribute__((warn_unused_result));
 
 /**
  * Prepare the layout to be grown.
  *
- * @param vdoLayout          The layout to grow
- * @param oldPhysicalBlocks  The current size of the VDO
- * @param newPhysicalBlocks  The size to which the VDO will be grown
- * @param layer              The layer being grown
+ * @param vdo_layout           The layout to grow
+ * @param old_physical_blocks  The current size of the VDO
+ * @param new_physical_blocks  The size to which the VDO will be grown
+ * @param layer                The layer being grown
  *
  * @return VDO_SUCCESS or an error code
  **/
-int prepareToGrowVDOLayout(struct vdo_layout *vdoLayout,
-                           BlockCount         oldPhysicalBlocks,
-                           BlockCount         newPhysicalBlocks,
-                           PhysicalLayer     *layer)
-  __attribute__((warn_unused_result));
+int prepare_to_grow_vdo_layout(struct vdo_layout *vdo_layout,
+			       BlockCount old_physical_blocks,
+			       BlockCount new_physical_blocks,
+			       PhysicalLayer *layer)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the size of the next layout.
  *
- * @param vdoLayout  The layout to check
+ * @param vdo_layout  The layout to check
  *
  * @return The size which was specified when the layout was prepared for growth
  *         or 0 if the layout is not prepared to grow
  **/
-BlockCount getNextVDOLayoutSize(struct vdo_layout *vdoLayout)
-  __attribute__((warn_unused_result));
+BlockCount get_next_vdo_layout_size(struct vdo_layout *vdo_layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Get the size of the next block allocator partition.
  *
- * @param vdoLayout  The vdo_layout which has been prepared to grow
+ * @param vdo_layout  The vdo_layout which has been prepared to grow
  *
  * @return The size of the block allocator partition in the next layout or 0
  *         if the layout is not prepared to grow
  **/
-BlockCount getNextBlockAllocatorPartitionSize(struct vdo_layout *vdoLayout)
-  __attribute__((warn_unused_result));
+BlockCount
+get_next_block_allocator_partition_size(struct vdo_layout *vdo_layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Grow the layout by swapping in the prepared layout.
  *
- * @param vdoLayout  The layout to grow
+ * @param vdo_layout  The layout to grow
  *
  * @return The new size of the VDO
  **/
-BlockCount growVDOLayout(struct vdo_layout *vdoLayout)
-  __attribute__((warn_unused_result));
+BlockCount grow_vdo_layout(struct vdo_layout *vdo_layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Revert the last growth attempt.
  *
- * @param vdoLayout  The layout to revert
+ * @param vdo_layout  The layout to revert
  *
  * @return The reverted size (in blocks) of the VDO
  **/
-BlockCount revertVDOLayout(struct vdo_layout *vdoLayout)
-  __attribute__((warn_unused_result));
+BlockCount revert_vdo_layout(struct vdo_layout *vdo_layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Clean up any unused resources once an attempt to grow has completed.
  *
- * @param vdoLayout  The layout
+ * @param vdo_layout  The layout
  **/
-void finishVDOLayoutGrowth(struct vdo_layout *vdoLayout);
+void finish_vdo_layout_growth(struct vdo_layout *vdo_layout);
 
 /**
  * Copy a partition from the location specified in the current layout to that in
  * the next layout.
  *
- * @param layout       The vdo_layout which is prepared to grow
- * @param partitionID  The ID of the partition to copy
- * @param parent       The completion to notify when the copy is complete
+ * @param layout        The vdo_layout which is prepared to grow
+ * @param partition_id  The ID of the partition to copy
+ * @param parent        The completion to notify when the copy is complete
  **/
-void copyPartition(struct vdo_layout     *layout,
-                   PartitionID            partitionID,
-                   struct vdo_completion *parent);
+void copy_partition(struct vdo_layout *layout,
+		    PartitionID partition_id,
+		    struct vdo_completion *parent);
 
 /**
  * Get the size of an encoded vdo_layout.
  *
- * @param vdoLayout  The vdo_layout
+ * @param vdo_layout  The vdo_layout
  *
  * @return The encoded size of the vdo_layout
  **/
-size_t getVDOLayoutEncodedSize(const struct vdo_layout *vdoLayout)
-  __attribute__((warn_unused_result));
+size_t get_vdo_layout_encoded_size(const struct vdo_layout *vdo_layout)
+	__attribute__((warn_unused_result));
 
 /**
  * Encode a vdo_layout into a buffer.
  *
- * @param vdoLayout  The vdo_layout to encode
+ * @param vdo_layout  The vdo_layout to encode
  * @param buffer     The buffer to encode into
  *
  * @return UDS_SUCCESS or an error
  **/
-int encodeVDOLayout(const struct vdo_layout *vdoLayout, Buffer *buffer)
-  __attribute__((warn_unused_result));
+int encode_vdo_layout(const struct vdo_layout *vdo_layout, Buffer *buffer)
+	__attribute__((warn_unused_result));
 
 #endif // VDO_LAYOUT_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#32 $
  */
 
 #include "vdoLoad.h"
@@ -297,8 +297,8 @@ static int finishVDODecode(struct vdo *vdo)
   Buffer             *buffer       = get_component_buffer(vdo->superBlock);
   const ThreadConfig *threadConfig = getThreadConfig(vdo);
   int result = make_recovery_journal(vdo->nonce, vdo->layer,
-                                     getVDOPartition(vdo->layout,
-                                                     RECOVERY_JOURNAL_PARTITION),
+                                     get_vdo_partition(vdo->layout,
+                                                       RECOVERY_JOURNAL_PARTITION),
                                      vdo->completeRecoveries,
                                      vdo->config.recoveryJournalSize,
                                      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
@@ -314,8 +314,8 @@ static int finishVDODecode(struct vdo *vdo)
   }
 
   result = decode_slab_depot(buffer, threadConfig, vdo->nonce, vdo->layer,
-                             getVDOPartition(vdo->layout,
-                                             SLAB_SUMMARY_PARTITION),
+                             get_vdo_partition(vdo->layout,
+                                               SLAB_SUMMARY_PARTITION),
                              vdo->readOnlyNotifier, vdo->recoveryJournal,
                              &vdo->state, &vdo->depot);
   if (result != VDO_SUCCESS) {
@@ -365,7 +365,8 @@ static int decodeVDO(struct vdo *vdo, bool validateConfig)
     return result;
   }
 
-  result = decodeVDOLayout(get_component_buffer(vdo->superBlock), &vdo->layout);
+  result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+                             &vdo->layout);
   if (result != VDO_SUCCESS) {
     return result;
   }
@@ -476,7 +477,8 @@ static int decodeSynchronousVDO(struct vdo *vdo, bool validateConfig)
     return result;
   }
 
-  result = decodeVDOLayout(get_component_buffer(vdo->superBlock), &vdo->layout);
+  result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+                             &vdo->layout);
   if (result != VDO_SUCCESS) {
     return result;
   }

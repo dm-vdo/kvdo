@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayoutInternals.h#5 $
  */
 
 #ifndef VDO_LAYOUT_INTERNALS_H
@@ -26,16 +26,16 @@
 #include "types.h"
 
 struct vdo_layout {
-  // The current layout of the VDO
-  struct fixed_layout   *layout;
-  // The next layout of the VDO
-  struct fixed_layout   *nextLayout;
-  // The previous layout of the VDO
-  struct fixed_layout   *previousLayout;
-  // The first block in the layouts
-  PhysicalBlockNumber    startingOffset;
-  // A pointer to the copy completion (if there is one)
-  struct vdo_completion *copyCompletion;
+	// The current layout of the VDO
+	struct fixed_layout *layout;
+	// The next layout of the VDO
+	struct fixed_layout *next_layout;
+	// The previous layout of the VDO
+	struct fixed_layout *previous_layout;
+	// The first block in the layouts
+	PhysicalBlockNumber starting_offset;
+	// A pointer to the copy completion (if there is one)
+	struct vdo_completion *copy_completion;
 };
 
 #endif // VDO_LAYOUT_INTERNALS_H

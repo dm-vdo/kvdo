@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#22 $
  */
 
 #include "vdoResize.h"
@@ -86,18 +86,18 @@ static void growPhysicalCallback(struct vdo_completion *completion)
                                     ADMIN_STATE_SUSPENDED_OPERATION,
                                     &adminCompletion->completion, NULL)) {
       // Copy the journal into the new layout.
-      copyPartition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
-                    reset_admin_sub_task(completion));
+      copy_partition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
+                     reset_admin_sub_task(completion));
     }
     return;
 
   case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
-    copyPartition(vdo->layout, SLAB_SUMMARY_PARTITION,
-                  reset_admin_sub_task(completion));
+    copy_partition(vdo->layout, SLAB_SUMMARY_PARTITION,
+                   reset_admin_sub_task(completion));
     return;
 
   case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
-    vdo->config.physicalBlocks = growVDOLayout(vdo->layout);
+    vdo->config.physicalBlocks = grow_vdo_layout(vdo->layout);
     update_slab_depot_size(vdo->depot);
     saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
     return;
@@ -108,11 +108,11 @@ static void growPhysicalCallback(struct vdo_completion *completion)
 
   case GROW_PHYSICAL_PHASE_END:
     set_slab_summary_origin(get_slab_summary(vdo->depot),
-                            getVDOPartition(vdo->layout,
-                                            SLAB_SUMMARY_PARTITION));
+                            get_vdo_partition(vdo->layout,
+                                              SLAB_SUMMARY_PARTITION));
     set_recovery_journal_partition(vdo->recoveryJournal,
-                                   getVDOPartition(vdo->layout,
-                                                   RECOVERY_JOURNAL_PARTITION));
+                                   get_vdo_partition(vdo->layout,
+                                                     RECOVERY_JOURNAL_PARTITION));
     break;
 
   case GROW_PHYSICAL_PHASE_ERROR:
@@ -123,7 +123,7 @@ static void growPhysicalCallback(struct vdo_completion *completion)
     setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
   }
 
-  finishVDOLayoutGrowth(vdo->layout);
+  finish_vdo_layout_growth(vdo->layout);
   finish_operation_with_result(&vdo->adminState, completion->result);
 }
 
@@ -148,19 +148,20 @@ int performGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
     return VDO_SUCCESS;
   }
 
-  if (newPhysicalBlocks != getNextVDOLayoutSize(vdo->layout)) {
+  if (newPhysicalBlocks != get_next_vdo_layout_size(vdo->layout)) {
     /*
      * Either the VDO isn't prepared to grow, or it was prepared to grow
      * to a different size. Doing this check here relies on the fact that
      * the call to this method is done under the dmsetup message lock.
      */
-    finishVDOLayoutGrowth(vdo->layout);
+    finish_vdo_layout_growth(vdo->layout);
     abandon_new_slabs(vdo->depot);
     return VDO_PARAMETER_MISMATCH;
   }
 
   // Validate that we are prepared to grow appropriately.
-  BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
+  BlockCount newDepotSize
+    = get_next_block_allocator_partition_size(vdo->layout);
   BlockCount preparedDepotSize = get_new_depot_size(vdo->depot);
   if (preparedDepotSize != newDepotSize) {
     return VDO_PARAMETER_MISMATCH;
@@ -226,7 +227,7 @@ int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
     logWarning("Requested physical block count %" PRIu64
                " not greater than %llu",
                newPhysicalBlocks, currentPhysicalBlocks);
-    finishVDOLayoutGrowth(vdo->layout);
+    finish_vdo_layout_growth(vdo->layout);
     abandon_new_slabs(vdo->depot);
     return VDO_PARAMETER_MISMATCH;
   }
@@ -240,16 +241,17 @@ int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
     return result;
   }
 
-  result = prepareToGrowVDOLayout(vdo->layout, currentPhysicalBlocks,
-                                  newPhysicalBlocks, vdo->layer);
+  result = prepare_to_grow_vdo_layout(vdo->layout, currentPhysicalBlocks,
+                                      newPhysicalBlocks, vdo->layer);
   if (result != VDO_SUCCESS) {
     return result;
   }
 
-  BlockCount newDepotSize = getNextBlockAllocatorPartitionSize(vdo->layout);
+  BlockCount newDepotSize
+    = get_next_block_allocator_partition_size(vdo->layout);
   result = prepare_to_grow_slab_depot(vdo->depot, newDepotSize);
   if (result != VDO_SUCCESS) {
-    finishVDOLayoutGrowth(vdo->layout);
+    finish_vdo_layout_growth(vdo->layout);
     return result;
   }
 
