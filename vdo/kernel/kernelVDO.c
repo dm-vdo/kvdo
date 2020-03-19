@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#32 $
  */
 
 /*
@@ -498,7 +498,7 @@ int kvdo_prepare_to_grow_physical(struct kvdo *kvdo, BlockCount physical_count)
 {
 	struct vdo *vdo = kvdo->vdo;
 
-	return prepareToGrowPhysical(vdo, physical_count);
+	return prepare_to_grow_physical(vdo, physical_count);
 }
 
 /**********************************************************************/
@@ -508,7 +508,7 @@ int kvdo_resize_physical(struct kvdo *kvdo, BlockCount physical_count)
 						  struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	int result = performGrowPhysical(kvdo->vdo, physical_count);
+	int result = perform_grow_physical(kvdo->vdo, physical_count);
 
 	if (result != VDO_SUCCESS) {
 		logError("resize operation failed, result = %d", result);

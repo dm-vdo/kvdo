@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#23 $
  */
 
 #include "vdoResize.h"
@@ -32,99 +32,104 @@
 #include "vdoLayout.h"
 
 typedef enum {
-  GROW_PHYSICAL_PHASE_START = 0,
-  GROW_PHYSICAL_PHASE_COPY_SUMMARY,
-  GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS,
-  GROW_PHYSICAL_PHASE_USE_NEW_SLABS,
-  GROW_PHYSICAL_PHASE_END,
-  GROW_PHYSICAL_PHASE_ERROR,
+	GROW_PHYSICAL_PHASE_START = 0,
+	GROW_PHYSICAL_PHASE_COPY_SUMMARY,
+	GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS,
+	GROW_PHYSICAL_PHASE_USE_NEW_SLABS,
+	GROW_PHYSICAL_PHASE_END,
+	GROW_PHYSICAL_PHASE_ERROR,
 } GrowPhysicalPhase;
 
 static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
-  "GROW_PHYSICAL_PHASE_START",
-  "GROW_PHYSICAL_PHASE_COPY_SUMMARY",
-  "GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS",
-  "GROW_PHYSICAL_PHASE_USE_NEW_SLABS",
-  "GROW_PHYSICAL_PHASE_END",
-  "GROW_PHYSICAL_PHASE_ERROR",
+	"GROW_PHYSICAL_PHASE_START",
+	"GROW_PHYSICAL_PHASE_COPY_SUMMARY",
+	"GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS",
+	"GROW_PHYSICAL_PHASE_USE_NEW_SLABS",
+	"GROW_PHYSICAL_PHASE_END",
+	"GROW_PHYSICAL_PHASE_ERROR",
 };
 
 /**
  * Implements ThreadIDGetterForPhase.
  **/
-__attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
+__attribute__((warn_unused_result)) static ThreadID
+get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
-  return getAdminThread(getThreadConfig(adminCompletion->vdo));
+	return getAdminThread(getThreadConfig(admin_completion->vdo));
 }
 
 /**
- * Callback to initiate a grow physical, registered in performGrowPhysical().
+ * Callback to initiate a grow physical, registered in perform_grow_physical().
  *
  * @param completion  The sub-task completion
  **/
-static void growPhysicalCallback(struct vdo_completion *completion)
+static void grow_physical_callback(struct vdo_completion *completion)
 {
-  struct admin_completion *adminCompletion
-    = admin_completion_from_sub_task(completion);
-  assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_GROW_PHYSICAL);
-  assert_admin_phase_thread(adminCompletion,
-                            __func__,
-                            GROW_PHYSICAL_PHASE_NAMES);
+	struct admin_completion *admin_completion =
+		admin_completion_from_sub_task(completion);
+	assert_admin_operation_type(admin_completion,
+				    ADMIN_OPERATION_GROW_PHYSICAL);
+	assert_admin_phase_thread(admin_completion, __func__,
+	                          GROW_PHYSICAL_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->vdo;
-  switch (adminCompletion->phase++) {
-  case GROW_PHYSICAL_PHASE_START:
-    if (is_read_only(vdo->readOnlyNotifier)) {
-      logErrorWithStringError(VDO_READ_ONLY,
-                              "Can't grow physical size of a read-only VDO");
-      setCompletionResult(reset_admin_sub_task(completion), VDO_READ_ONLY);
-      break;
-    }
+	struct vdo *vdo = admin_completion->vdo;
+	switch (admin_completion->phase++) {
+	case GROW_PHYSICAL_PHASE_START:
+		if (is_read_only(vdo->readOnlyNotifier)) {
+			logErrorWithStringError(VDO_READ_ONLY,
+				                "Can't grow physical size of a read-only VDO");
+			setCompletionResult(reset_admin_sub_task(completion),
+					    VDO_READ_ONLY);
+			break;
+		}
 
-    if (start_operation_with_waiter(&vdo->adminState,
-                                    ADMIN_STATE_SUSPENDED_OPERATION,
-                                    &adminCompletion->completion, NULL)) {
-      // Copy the journal into the new layout.
-      copy_partition(vdo->layout, RECOVERY_JOURNAL_PARTITION,
-                     reset_admin_sub_task(completion));
-    }
-    return;
+		if (start_operation_with_waiter(&vdo->adminState,
+						ADMIN_STATE_SUSPENDED_OPERATION,
+						&admin_completion->completion,
+						NULL)) {
+			// Copy the journal into the new layout.
+			copy_partition(vdo->layout,
+				       RECOVERY_JOURNAL_PARTITION,
+				       reset_admin_sub_task(completion));
+		}
+		return;
 
-  case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
-    copy_partition(vdo->layout, SLAB_SUMMARY_PARTITION,
-                   reset_admin_sub_task(completion));
-    return;
+	case GROW_PHYSICAL_PHASE_COPY_SUMMARY:
+		copy_partition(vdo->layout,
+			       SLAB_SUMMARY_PARTITION,
+			       reset_admin_sub_task(completion));
+		return;
 
-  case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
-    vdo->config.physicalBlocks = grow_vdo_layout(vdo->layout);
-    update_slab_depot_size(vdo->depot);
-    saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
-    return;
+	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
+		vdo->config.physicalBlocks = grow_vdo_layout(vdo->layout);
+		update_slab_depot_size(vdo->depot);
+		saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
+		return;
 
-  case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
-    use_new_slabs(vdo->depot, reset_admin_sub_task(completion));
-    return;
+	case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
+		use_new_slabs(vdo->depot, reset_admin_sub_task(completion));
+		return;
 
-  case GROW_PHYSICAL_PHASE_END:
-    set_slab_summary_origin(get_slab_summary(vdo->depot),
-                            get_vdo_partition(vdo->layout,
-                                              SLAB_SUMMARY_PARTITION));
-    set_recovery_journal_partition(vdo->recoveryJournal,
-                                   get_vdo_partition(vdo->layout,
-                                                     RECOVERY_JOURNAL_PARTITION));
-    break;
+	case GROW_PHYSICAL_PHASE_END:
+		set_slab_summary_origin(get_slab_summary(vdo->depot),
+					get_vdo_partition(vdo->layout,
+							  SLAB_SUMMARY_PARTITION));
+		set_recovery_journal_partition(vdo->recoveryJournal,
+					       get_vdo_partition(vdo->layout,
+								 RECOVERY_JOURNAL_PARTITION));
+		break;
 
-  case GROW_PHYSICAL_PHASE_ERROR:
-    enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
-    break;
+	case GROW_PHYSICAL_PHASE_ERROR:
+		enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
+		break;
 
-  default:
-    setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
-  }
+	default:
+		setCompletionResult(reset_admin_sub_task(completion),
+				    UDS_BAD_STATE);
+	}
 
-  finish_vdo_layout_growth(vdo->layout);
-  finish_operation_with_result(&vdo->adminState, completion->result);
+	finish_vdo_layout_growth(vdo->layout);
+	finish_operation_with_result(&vdo->adminState, completion->result);
 }
 
 /**
@@ -132,128 +137,135 @@ static void growPhysicalCallback(struct vdo_completion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void handleGrowthError(struct vdo_completion *completion)
+static void handle_growth_error(struct vdo_completion *completion)
 {
-  admin_completion_from_sub_task(completion)->phase = GROW_PHYSICAL_PHASE_ERROR;
-  growPhysicalCallback(completion);
+	admin_completion_from_sub_task(completion)->phase =
+		GROW_PHYSICAL_PHASE_ERROR;
+	grow_physical_callback(completion);
 }
 
 /**********************************************************************/
-int performGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
+int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 {
-  BlockCount oldPhysicalBlocks = vdo->config.physicalBlocks;
+	BlockCount old_physical_blocks = vdo->config.physicalBlocks;
 
-  // Skip any noop grows.
-  if (oldPhysicalBlocks == newPhysicalBlocks) {
-    return VDO_SUCCESS;
-  }
+	// Skip any noop grows.
+	if (old_physical_blocks == new_physical_blocks) {
+		return VDO_SUCCESS;
+	}
 
-  if (newPhysicalBlocks != get_next_vdo_layout_size(vdo->layout)) {
-    /*
-     * Either the VDO isn't prepared to grow, or it was prepared to grow
-     * to a different size. Doing this check here relies on the fact that
-     * the call to this method is done under the dmsetup message lock.
-     */
-    finish_vdo_layout_growth(vdo->layout);
-    abandon_new_slabs(vdo->depot);
-    return VDO_PARAMETER_MISMATCH;
-  }
+	if (new_physical_blocks != get_next_vdo_layout_size(vdo->layout)) {
+		/*
+		 * Either the VDO isn't prepared to grow, or it was prepared to
+		 * grow to a different size. Doing this check here relies on
+		 * the fact that the call to this method is done under the
+		 * dmsetup message lock.
+		 */
+		finish_vdo_layout_growth(vdo->layout);
+		abandon_new_slabs(vdo->depot);
+		return VDO_PARAMETER_MISMATCH;
+	}
 
-  // Validate that we are prepared to grow appropriately.
-  BlockCount newDepotSize
-    = get_next_block_allocator_partition_size(vdo->layout);
-  BlockCount preparedDepotSize = get_new_depot_size(vdo->depot);
-  if (preparedDepotSize != newDepotSize) {
-    return VDO_PARAMETER_MISMATCH;
-  }
+	// Validate that we are prepared to grow appropriately.
+	BlockCount new_depot_size =
+		get_next_block_allocator_partition_size(vdo->layout);
+	BlockCount prepared_depot_size = get_new_depot_size(vdo->depot);
+	if (prepared_depot_size != new_depot_size) {
+		return VDO_PARAMETER_MISMATCH;
+	}
 
-  int result = perform_admin_operation(vdo, ADMIN_OPERATION_GROW_PHYSICAL,
-                                       getThreadIDForPhase,
-                                       growPhysicalCallback,
-                                       handleGrowthError);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	int result = perform_admin_operation(vdo,
+					     ADMIN_OPERATION_GROW_PHYSICAL,
+					     get_thread_id_for_phase,
+					     grow_physical_callback,
+					     handle_growth_error);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  logInfo("Physical block count was %llu, now %llu",
-          oldPhysicalBlocks, newPhysicalBlocks);
-  return VDO_SUCCESS;
+	logInfo("Physical block count was %llu, now %llu",
+		old_physical_blocks,
+		new_physical_blocks);
+	return VDO_SUCCESS;
 }
 
 /**
  * Callback to check that we're not in recovery mode, used in
- * prepareToGrowPhysical().
+ * prepare_to_grow_physical().
  *
  * @param completion  The sub-task completion
  **/
-static void checkMayGrowPhysical(struct vdo_completion *completion)
+static void check_may_grow_physical(struct vdo_completion *completion)
 {
-  struct admin_completion *adminCompletion
-    = admin_completion_from_sub_task(completion);
-  assert_admin_operation_type(adminCompletion,
-                           ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
+	struct admin_completion *admin_completion =
+		admin_completion_from_sub_task(completion);
+	assert_admin_operation_type(admin_completion,
+				    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 
-  struct vdo *vdo = adminCompletion->vdo;
-  assertOnAdminThread(vdo, __func__);
+	struct vdo *vdo = admin_completion->vdo;
+	assertOnAdminThread(vdo, __func__);
 
-  reset_admin_sub_task(completion);
+	reset_admin_sub_task(completion);
 
-  // This check can only be done from a base code thread.
-  if (is_read_only(vdo->readOnlyNotifier)) {
-    finishCompletion(completion->parent, VDO_READ_ONLY);
-    return;
-  }
+	// This check can only be done from a base code thread.
+	if (is_read_only(vdo->readOnlyNotifier)) {
+		finishCompletion(completion->parent, VDO_READ_ONLY);
+		return;
+	}
 
-  // This check should only be done from a base code thread.
-  if (inRecoveryMode(vdo)) {
-    finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
-    return;
-  }
+	// This check should only be done from a base code thread.
+	if (inRecoveryMode(vdo)) {
+		finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
+		return;
+	}
 
-  completeCompletion(completion->parent);
+	completeCompletion(completion->parent);
 }
 
 /**********************************************************************/
-int prepareToGrowPhysical(struct vdo *vdo, BlockCount newPhysicalBlocks)
+int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 {
-  BlockCount currentPhysicalBlocks = vdo->config.physicalBlocks;
-  if (newPhysicalBlocks < currentPhysicalBlocks) {
-    return logErrorWithStringError(VDO_NOT_IMPLEMENTED,
-                                   "Removing physical storage from a VDO is "
-                                   "not supported");
-  }
+	BlockCount current_physical_blocks = vdo->config.physicalBlocks;
+	if (new_physical_blocks < current_physical_blocks) {
+		return logErrorWithStringError(VDO_NOT_IMPLEMENTED,
+					       "Removing physical storage from a VDO is not supported");
+	}
 
-  if (newPhysicalBlocks == currentPhysicalBlocks) {
-    logWarning("Requested physical block count %" PRIu64
-               " not greater than %llu",
-               newPhysicalBlocks, currentPhysicalBlocks);
-    finish_vdo_layout_growth(vdo->layout);
-    abandon_new_slabs(vdo->depot);
-    return VDO_PARAMETER_MISMATCH;
-  }
+	if (new_physical_blocks == current_physical_blocks) {
+		logWarning("Requested physical block count %" PRIu64
+			   " not greater than %llu",
+			   new_physical_blocks,
+			   current_physical_blocks);
+		finish_vdo_layout_growth(vdo->layout);
+		abandon_new_slabs(vdo->depot);
+		return VDO_PARAMETER_MISMATCH;
+	}
 
-  int result = perform_admin_operation(vdo,
-                                       ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
-                                       getThreadIDForPhase,
-                                       checkMayGrowPhysical,
-                                       finishParentCallback);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	int result =
+		perform_admin_operation(vdo,
+					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
+					get_thread_id_for_phase,
+					check_may_grow_physical,
+					finishParentCallback);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  result = prepare_to_grow_vdo_layout(vdo->layout, currentPhysicalBlocks,
-                                      newPhysicalBlocks, vdo->layer);
-  if (result != VDO_SUCCESS) {
-    return result;
-  }
+	result = prepare_to_grow_vdo_layout(vdo->layout,
+					    current_physical_blocks,
+					    new_physical_blocks,
+					    vdo->layer);
+	if (result != VDO_SUCCESS) {
+		return result;
+	}
 
-  BlockCount newDepotSize
-    = get_next_block_allocator_partition_size(vdo->layout);
-  result = prepare_to_grow_slab_depot(vdo->depot, newDepotSize);
-  if (result != VDO_SUCCESS) {
-    finish_vdo_layout_growth(vdo->layout);
-    return result;
-  }
+	BlockCount new_depot_size =
+		get_next_block_allocator_partition_size(vdo->layout);
+	result = prepare_to_grow_slab_depot(vdo->depot, new_depot_size);
+	if (result != VDO_SUCCESS) {
+		finish_vdo_layout_growth(vdo->layout);
+		return result;
+	}
 
-  return VDO_SUCCESS;
+	return VDO_SUCCESS;
 }

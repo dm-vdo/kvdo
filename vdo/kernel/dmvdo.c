@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#40 $
  */
 
 #include "dmvdo.h"
@@ -300,10 +300,9 @@ static int process_vdo_message_locked(struct kernel_layer *layer,
 			return 0;
 		}
 
-		if (strcasecmp(argv[0], "prepareToGrowPhysical") == 0) {
-			return prepare_to_resize_physical(
-				layer,
-				get_underlying_device_block_count(layer));
+		if (strcasecmp(argv[0], "prepare_to_grow_physical") == 0) {
+			return prepare_to_resize_physical(layer,
+							  get_underlying_device_block_count(layer));
 		}
 
 		if (strcasecmp(argv[0], "growPhysical") == 0) {
@@ -598,10 +597,9 @@ static int vdo_initialize(struct dm_target *ti,
 				       &failure_reason,
 				       &layer);
 	if (result != VDO_SUCCESS) {
-		logError(
-			"Could not create kernel physical layer. (VDO error %d, message %s)",
-			result,
-			failure_reason);
+		logError("Could not create kernel physical layer. (VDO error %d, message %s)",
+			 result,
+			 failure_reason);
 		cleanup_initialize(ti,
 				   load_config.threadConfig,
 				   NULL,
