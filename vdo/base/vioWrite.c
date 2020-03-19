@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#28 $
  */
 
 /*
@@ -377,9 +377,8 @@ static bool abortOnError(int              result,
     return false;
   }
 
-  if ((result == VDO_READ_ONLY)
-      || (readOnlyAction == READ_ONLY)
-      || ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
+  if ((result == VDO_READ_ONLY) || (readOnlyAction == READ_ONLY) ||
+      ((readOnlyAction == READ_ONLY_IF_ASYNC) && isAsync(dataVIO))) {
     struct read_only_notifier *notifier
       = dataVIOAsVIO(dataVIO)->vdo->readOnlyNotifier;
     if (!is_read_only(notifier)) {
@@ -630,7 +629,7 @@ static void incrementForCompression(struct vdo_completion *completion)
     return;
   }
 
-  ASSERT_LOG_ONLY(isCompressed(dataVIO->newMapped.state),
+  ASSERT_LOG_ONLY(is_compressed(dataVIO->newMapped.state),
                   "Impossible attempt to update reference counts for a block "
                   "which was not compressed (logical block %llu)",
                   dataVIO->logical.lbn);
@@ -665,7 +664,7 @@ addRecoveryJournalEntryForCompression(struct vdo_completion *completion)
     return;
   }
 
-  if (!isCompressed(dataVIO->newMapped.state)) {
+  if (!is_compressed(dataVIO->newMapped.state)) {
     abortDeduplication(dataVIO);
     return;
   }

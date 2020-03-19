@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#32 $
  */
 
 #include "packerInternals.h"
@@ -484,7 +484,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 	data_vio->newMapped = (struct zoned_pbn) {
 		.pbn = bin->writer->allocation,
 		.zone = bin->writer->zone,
-		.state = getStateForSlot(data_vio->compression.slot),
+		.state = get_state_for_slot(data_vio->compression.slot),
 	};
 	dataVIOAsVIO(data_vio)->physical = data_vio->newMapped.pbn;
 
@@ -597,8 +597,8 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 	       != NULL) {
 		// If there's not enough space for the next data_vio, the batch
 		// is done.
-		if ((data_vio->compression.size > space_remaining)
-		    || (batch->slots_used == packer->max_slots)) {
+		if ((data_vio->compression.size > space_remaining) ||
+		    (batch->slots_used == packer->max_slots)) {
 			break;
 		}
 
@@ -853,8 +853,8 @@ void attempt_packing(struct data_vio *data_vio)
 
 	// If packing of this data_vio is disallowed for administrative reasons,
 	// give up before making any state changes.
-	if (!is_normal(&packer->state)
-	    || (data_vio->flushGeneration < packer->flush_generation)) {
+	if (!is_normal(&packer->state) ||
+	    (data_vio->flushGeneration < packer->flush_generation)) {
 		abort_packing(data_vio);
 		return;
 	}

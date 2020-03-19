@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#26 $
  */
 
 /**
@@ -830,7 +830,7 @@ static void start_deduping(struct hash_lock *lock, struct data_vio *agent,
 	// We don't take the downgraded allocation lock from the agent unless we
 	// actually need to deduplicate against it.
 	if (lock->duplicate_lock == NULL) {
-		ASSERT_LOG_ONLY(!isCompressed(agent->newMapped.state),
+		ASSERT_LOG_ONLY(!is_compressed(agent->newMapped.state),
 				"compression must have shared a lock");
 		ASSERT_LOG_ONLY(agent_is_done,
 				"agent must have written the new duplicate");
@@ -1215,7 +1215,7 @@ static void finishWriting(struct hash_lock *lock, struct data_vio *agent)
 	lock->duplicate = agent->newMapped;
 	lock->verified = true;
 
-	if (isCompressed(lock->duplicate.state) && lock->registered) {
+	if (is_compressed(lock->duplicate.state) && lock->registered) {
 		// Compression means the location we gave in the UDS query is
 		// not the location we're using to deduplicate.
 		lock->update_advice = true;
@@ -1668,7 +1668,7 @@ void share_compressed_write_lock(struct data_vio *data_vio,
 {
 	ASSERT_LOG_ONLY(get_duplicate_lock(data_vio) == NULL,
 			"a duplicate PBN lock should not exist when writing");
-	ASSERT_LOG_ONLY(isCompressed(data_vio->newMapped.state),
+	ASSERT_LOG_ONLY(is_compressed(data_vio->newMapped.state),
 			"lock transfer must be for a compressed write");
 	assertInNewMappedZone(data_vio);
 

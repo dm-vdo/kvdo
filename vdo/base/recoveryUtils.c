@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#14 $
  */
 
 #include "recoveryUtils.h"
@@ -149,10 +149,10 @@ bool find_head_and_tail(struct recovery_journal *journal,
 int validate_recovery_journal_entry(const struct vdo *vdo,
 				    const struct recovery_journal_entry *entry)
 {
-	if ((entry->slot.pbn >= vdo->config.physicalBlocks)
-	    || (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE)
-	    || !is_valid_location(&entry->mapping)
-	    || !is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
+	if ((entry->slot.pbn >= vdo->config.physicalBlocks) ||
+ 	    (entry->slot.slot >= BLOCK_MAP_ENTRIES_PER_PAGE) ||
+ 	    !is_valid_location(&entry->mapping) ||
+ 	    !is_physical_data_block(vdo->depot, entry->mapping.pbn)) {
 		return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
 					       "Invalid entry:"
 					       " (%llu, %" PRIu16 ") to %" PRIu64
@@ -161,9 +161,9 @@ int validate_recovery_journal_entry(const struct vdo *vdo,
 					       get_journal_operation_name(entry->operation));
 	}
 
-	if ((entry->operation == BLOCK_MAP_INCREMENT)
-	    && (isCompressed(entry->mapping.state)
-		|| (entry->mapping.pbn == ZERO_BLOCK))) {
+	if ((entry->operation == BLOCK_MAP_INCREMENT) &&
+	    (is_compressed(entry->mapping.state) ||
+	    (entry->mapping.pbn == ZERO_BLOCK))) {
 		return logErrorWithStringError(VDO_CORRUPT_JOURNAL,
 					       "Invalid entry:"
 					       " (%llu, %" PRIu16 ") to %" PRIu64
