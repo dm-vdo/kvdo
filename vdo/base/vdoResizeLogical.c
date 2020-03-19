@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResizeLogical.c#17 $
  */
 
 #include "vdoResizeLogical.h"
@@ -29,76 +29,83 @@
 #include "vdoInternal.h"
 
 typedef enum {
-  GROW_LOGICAL_PHASE_START = 0,
-  GROW_LOGICAL_PHASE_GROW_BLOCK_MAP,
-  GROW_LOGICAL_PHASE_END,
-  GROW_LOGICAL_PHASE_ERROR,
+	GROW_LOGICAL_PHASE_START = 0,
+	GROW_LOGICAL_PHASE_GROW_BLOCK_MAP,
+	GROW_LOGICAL_PHASE_END,
+	GROW_LOGICAL_PHASE_ERROR,
 } GrowLogicalPhase;
 
 static const char *GROW_LOGICAL_PHASE_NAMES[] = {
-  "GROW_LOGICAL_PHASE_START",
-  "GROW_LOGICAL_PHASE_GROW_BLOCK_MAP",
-  "GROW_LOGICAL_PHASE_END",
-  "GROW_LOGICAL_PHASE_ERROR",
+	"GROW_LOGICAL_PHASE_START",
+	"GROW_LOGICAL_PHASE_GROW_BLOCK_MAP",
+	"GROW_LOGICAL_PHASE_END",
+	"GROW_LOGICAL_PHASE_ERROR",
 };
 
 /**
  * Implements ThreadIDGetterForPhase.
  **/
-__attribute__((warn_unused_result))
-static ThreadID getThreadIDForPhase(struct admin_completion *adminCompletion)
+__attribute__((warn_unused_result)) static ThreadID
+get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
-  return getAdminThread(getThreadConfig(adminCompletion->vdo));
+	return getAdminThread(getThreadConfig(admin_completion->vdo));
 }
 
 /**
- * Callback to initiate a grow logical, registered in performGrowLogical().
+ * Callback to initiate a grow logical, registered in perform_grow_logical().
  *
  * @param completion  The sub-task completion
  **/
-static void growLogicalCallback(struct vdo_completion *completion)
+static void grow_logical_callback(struct vdo_completion *completion)
 {
-  struct admin_completion *adminCompletion
-    = admin_completion_from_sub_task(completion);
-  assert_admin_operation_type(adminCompletion, ADMIN_OPERATION_GROW_LOGICAL);
-  assert_admin_phase_thread(adminCompletion, __func__, GROW_LOGICAL_PHASE_NAMES);
+	struct admin_completion *admin_completion =
+		admin_completion_from_sub_task(completion);
+	assert_admin_operation_type(admin_completion,
+				    ADMIN_OPERATION_GROW_LOGICAL);
+	assert_admin_phase_thread(admin_completion, __func__,
+				  GROW_LOGICAL_PHASE_NAMES);
 
-  struct vdo *vdo = adminCompletion->vdo;
-  switch (adminCompletion->phase++) {
-  case GROW_LOGICAL_PHASE_START:
-    if (is_read_only(vdo->readOnlyNotifier)) {
-      logErrorWithStringError(VDO_READ_ONLY,
-                              "Can't grow logical size of a read-only VDO");
-      finishCompletion(reset_admin_sub_task(completion), VDO_READ_ONLY);
-      return;
-    }
+	struct vdo *vdo = admin_completion->vdo;
+	switch (admin_completion->phase++) {
+	case GROW_LOGICAL_PHASE_START:
+		if (is_read_only(vdo->readOnlyNotifier)) {
+			logErrorWithStringError(VDO_READ_ONLY,
+						"Can't grow logical size of a read-only VDO");
+			finishCompletion(reset_admin_sub_task(completion),
+					 VDO_READ_ONLY);
+			return;
+		}
 
-    if (start_operation_with_waiter(&vdo->adminState,
-                                    ADMIN_STATE_SUSPENDED_OPERATION,
-                                    &adminCompletion->completion, NULL)) {
+		if (start_operation_with_waiter(&vdo->adminState,
+						ADMIN_STATE_SUSPENDED_OPERATION,
+						&admin_completion->completion,
+						NULL)) {
+			vdo->config.logicalBlocks =
+				get_new_entry_count(getBlockMap(vdo));
+			saveVDOComponentsAsync(vdo,
+					       reset_admin_sub_task(completion));
+		}
 
-      vdo->config.logicalBlocks = get_new_entry_count(getBlockMap(vdo));
-      saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
-    }
+		return;
 
-    return;
+	case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
+		grow_block_map(getBlockMap(vdo),
+			       reset_admin_sub_task(completion));
+		return;
 
-  case GROW_LOGICAL_PHASE_GROW_BLOCK_MAP:
-    grow_block_map(getBlockMap(vdo), reset_admin_sub_task(completion));
-    return;
+	case GROW_LOGICAL_PHASE_END:
+		break;
 
-  case GROW_LOGICAL_PHASE_END:
-    break;
+	case GROW_LOGICAL_PHASE_ERROR:
+		enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
+		break;
 
-  case GROW_LOGICAL_PHASE_ERROR:
-    enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
-    break;
+	default:
+		setCompletionResult(reset_admin_sub_task(completion),
+				    UDS_BAD_STATE);
+	}
 
-  default:
-    setCompletionResult(reset_admin_sub_task(completion), UDS_BAD_STATE);
-  }
-
-  finish_operation_with_result(&vdo->adminState, completion->result);
+	finish_operation_with_result(&vdo->adminState, completion->result);
 }
 
 /**
@@ -106,51 +113,52 @@ static void growLogicalCallback(struct vdo_completion *completion)
  *
  * @param completion  The sub-task completion
  **/
-static void handleGrowthError(struct vdo_completion *completion)
+static void handle_growth_error(struct vdo_completion *completion)
 {
-  struct admin_completion *adminCompletion
-    = admin_completion_from_sub_task(completion);
-  if (adminCompletion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
-    // We've failed to write the new size in the super block, so set our
-    // in memory config back to the old size.
-    struct vdo       *vdo = adminCompletion->vdo;
-    struct block_map *map = getBlockMap(vdo);
-    vdo->config.logicalBlocks = get_number_of_block_map_entries(map);
-    abandon_block_map_growth(map);
-  }
+	struct admin_completion *admin_completion =
+		admin_completion_from_sub_task(completion);
+	if (admin_completion->phase == GROW_LOGICAL_PHASE_GROW_BLOCK_MAP) {
+		// We've failed to write the new size in the super block, so set
+		// our in memory config back to the old size.
+		struct vdo *vdo = admin_completion->vdo;
+		struct block_map *map = getBlockMap(vdo);
+		vdo->config.logicalBlocks =
+			get_number_of_block_map_entries(map);
+		abandon_block_map_growth(map);
+	}
 
-  adminCompletion->phase = GROW_LOGICAL_PHASE_ERROR;
-  growLogicalCallback(completion);
+	admin_completion->phase = GROW_LOGICAL_PHASE_ERROR;
+	grow_logical_callback(completion);
 }
 
 /**********************************************************************/
-int performGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
+int perform_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks)
 {
-  if (get_new_entry_count(getBlockMap(vdo)) != newLogicalBlocks) {
-    return VDO_PARAMETER_MISMATCH;
-  }
+	if (get_new_entry_count(getBlockMap(vdo)) != new_logical_blocks) {
+		return VDO_PARAMETER_MISMATCH;
+	}
 
-  return perform_admin_operation(vdo, ADMIN_OPERATION_GROW_LOGICAL,
-                                 getThreadIDForPhase, growLogicalCallback,
-                                 handleGrowthError);
+	return perform_admin_operation(vdo,
+				       ADMIN_OPERATION_GROW_LOGICAL,
+				       get_thread_id_for_phase,
+				       grow_logical_callback,
+				       handle_growth_error);
 }
 
 /**********************************************************************/
-int prepareToGrowLogical(struct vdo *vdo, BlockCount newLogicalBlocks)
+int prepare_to_grow_logical(struct vdo *vdo, BlockCount new_logical_blocks)
 {
-  if (newLogicalBlocks < vdo->config.logicalBlocks) {
-    return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
-                                   "Can't shrink VDO logical size from its "
-                                   "current value of %llu",
-                                   vdo->config.logicalBlocks);
-  }
+	if (new_logical_blocks < vdo->config.logicalBlocks) {
+		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
+					       "Can't shrink VDO logical size from its current value of %llu",
+					       vdo->config.logicalBlocks);
+	}
 
-  if (newLogicalBlocks == vdo->config.logicalBlocks) {
-    return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
-                                   "Can't grow VDO logical size to its "
-                                   "current value of %llu",
-                                   vdo->config.logicalBlocks);
-  }
+	if (new_logical_blocks == vdo->config.logicalBlocks) {
+		return logErrorWithStringError(VDO_PARAMETER_MISMATCH,
+					       "Can't grow VDO logical size to its current value of %llu",
+					       vdo->config.logicalBlocks);
+	}
 
-  return prepare_to_grow_block_map(getBlockMap(vdo), newLogicalBlocks);
+	return prepare_to_grow_block_map(getBlockMap(vdo), new_logical_blocks);
 }

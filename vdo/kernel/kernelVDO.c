@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#33 $
  */
 
 /*
@@ -523,7 +523,7 @@ int kvdo_prepare_to_grow_logical(struct kvdo *kvdo, BlockCount logical_count)
 {
 	struct vdo *vdo = kvdo->vdo;
 
-	return prepareToGrowLogical(vdo, logical_count);
+	return prepare_to_grow_logical(vdo, logical_count);
 }
 
 /**********************************************************************/
@@ -533,7 +533,7 @@ int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count)
 						  struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	int result = performGrowLogical(kvdo->vdo, logical_count);
+	int result = perform_grow_logical(kvdo->vdo, logical_count);
 
 	if (result != VDO_SUCCESS) {
 		logError("grow logical operation failed, result = %d", result);
