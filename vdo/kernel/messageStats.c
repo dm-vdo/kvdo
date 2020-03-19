@@ -1056,11 +1056,11 @@ int write_bio_stats(char *prefix,
 }
 
 /**********************************************************************/
-int write_MemoryUsage(char *prefix,
-                      MemoryUsage *stats,
-                      char *suffix,
-                      char **buf,
-                      unsigned int *maxlen)
+int write_memory_usage(char *prefix,
+                       struct memory_usage *stats,
+                       char *suffix,
+                       char **buf,
+                       unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -1380,11 +1380,11 @@ int write_KernelStatistics(char *prefix,
               return result;
        }
        /** Memory usage stats. */
-       result = write_MemoryUsage("memoryUsage : ",
-                                  &stats->memoryUsage,
-                                  ", ",
-                                  buf,
-                                  maxlen);
+       result = write_memory_usage("memoryUsage : ",
+                                   &stats->memoryUsage,
+                                   ", ",
+                                   buf,
+                                   maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

@@ -36,12 +36,12 @@ struct bio_stats {
   uint64_t fua;
 };
 
-typedef struct {
+struct memory_usage {
   /** Tracked bytes currently allocated. */
   uint64_t bytesUsed;
   /** Maximum tracked bytes allocated. */
   uint64_t peakBytesUsed;
-} MemoryUsage;
+};
 
 /** UDS index statistics */
 typedef struct {
@@ -98,7 +98,7 @@ typedef struct {
   /** Current number of bios in progress */
   struct bio_stats biosInProgress;
   /** Memory usage stats. */
-  MemoryUsage memoryUsage;
+  struct memory_usage memoryUsage;
   /** The statistics for the UDS index */
   IndexStatistics index;
 } KernelStatistics;
