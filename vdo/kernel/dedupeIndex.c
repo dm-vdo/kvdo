@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#41 $
  */
 
 #include "dedupeIndex.h"
@@ -767,7 +767,8 @@ const char *get_dedupe_state_name(struct dedupe_index *index)
 }
 
 /*****************************************************************************/
-void get_index_statistics(struct dedupe_index *index, IndexStatistics *stats)
+void get_index_statistics(struct dedupe_index *index,
+			  struct index_statistics *stats)
 {
 	spin_lock(&index->state_lock);
 	index_state index_state = index->index_state;

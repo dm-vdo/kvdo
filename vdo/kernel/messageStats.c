@@ -1092,11 +1092,11 @@ int write_memory_usage(char *prefix,
 }
 
 /**********************************************************************/
-int write_IndexStatistics(char *prefix,
-                          IndexStatistics *stats,
-                          char *suffix,
-                          char **buf,
-                          unsigned int *maxlen)
+int write_index_statistics(char *prefix,
+                           struct index_statistics *stats,
+                           char *suffix,
+                           char **buf,
+                           unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -1389,11 +1389,11 @@ int write_KernelStatistics(char *prefix,
               return result;
        }
        /** The statistics for the UDS index */
-       result = write_IndexStatistics("index : ",
-                                      &stats->index,
-                                      ", ",
-                                      buf,
-                                      maxlen);
+       result = write_index_statistics("index : ",
+                                       &stats->index,
+                                       ", ",
+                                       buf,
+                                       maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

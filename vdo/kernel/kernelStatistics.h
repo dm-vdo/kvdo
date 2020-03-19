@@ -44,7 +44,7 @@ struct memory_usage {
 };
 
 /** UDS index statistics */
-typedef struct {
+struct index_statistics {
   /** Number of chunk names stored in the index */
   uint64_t entriesIndexed;
   /** Number of post calls that found an existing entry */
@@ -63,7 +63,7 @@ typedef struct {
   uint32_t currDedupeQueries;
   /** Maximum number of dedupe queries that have been in flight */
   uint32_t maxDedupeQueries;
-} IndexStatistics;
+};
 
 typedef struct {
   uint32_t version;
@@ -100,7 +100,7 @@ typedef struct {
   /** Memory usage stats. */
   struct memory_usage memoryUsage;
   /** The statistics for the UDS index */
-  IndexStatistics index;
+  struct index_statistics index;
 } KernelStatistics;
 
 #endif /* not KERNEL_STATISTICS_H */

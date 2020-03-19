@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.h#17 $
  */
 
 #ifndef DEDUPE_INDEX_H
@@ -76,7 +76,8 @@ uint64_t get_dedupe_timeout_count(struct dedupe_index *index);
  * @param index  The dedupe index
  * @param stats  The index statistics
  **/
-void get_index_statistics(struct dedupe_index *index, IndexStatistics *stats);
+void get_index_statistics(struct dedupe_index *index,
+			  struct index_statistics *stats);
 
 /**
  * Return from a dedupe operation by invoking the callback function
