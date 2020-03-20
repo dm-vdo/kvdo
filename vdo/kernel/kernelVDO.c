@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#36 $
  */
 
 /*
@@ -222,7 +222,7 @@ int resume_kvdo(struct kvdo *kvdo)
 	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	return performVDOResume(kvdo->vdo);
+	return perform_vdo_resume(kvdo->vdo);
 }
 
 /**********************************************************************/
