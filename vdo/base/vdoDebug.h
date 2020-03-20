@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.h#5 $
  */
 
 #ifndef VDO_DEBUG_H
@@ -37,11 +37,11 @@
  * info level.
  **/
 struct vdo_command_completion {
-  struct vdo_completion   completion;
-  struct vdo_completion   subCompletion;
-  struct vdo             *vdo;
-  int                     argc;
-  char                  **argv;
+	struct vdo_completion completion;
+	struct vdo_completion sub_completion;
+	struct vdo *vdo;
+	int argc;
+	char **argv;
 };
 
 /**
@@ -54,10 +54,10 @@ struct vdo_command_completion {
  *
  * @return VDO_SUCCESS or an error code
  **/
-int initializeVDOCommandCompletion(struct vdo_command_completion *command,
-                                   struct vdo                    *vdo,
-                                   int                            argc,
-                                   char                         **argv);
+int initialize_vdo_command_completion(struct vdo_command_completion *command,
+				      struct vdo *vdo,
+				      int argc,
+				      char **argv);
 
 /**
  * Destroy a vdo command completion.
@@ -66,13 +66,13 @@ int initializeVDOCommandCompletion(struct vdo_command_completion *command,
  *
  * @return the completion result
  **/
-int destroyVDOCommandCompletion(struct vdo_command_completion *command);
+int destroy_vdo_command_completion(struct vdo_command_completion *command);
 
 /**
  * Perform an asynchronous extended command (usually debugging related).
  *
  * @param completion    The completion embedded in vdo_command_completion.
  **/
-void executeVDOExtendedCommand(struct vdo_completion *completion);
+void execute_vdo_extended_command(struct vdo_completion *completion);
 
 #endif // VDO_DEBUG_H
