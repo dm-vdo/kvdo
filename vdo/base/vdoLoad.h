@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.h#5 $
  */
 
 #ifndef VDO_LOAD_H
@@ -28,14 +28,14 @@
 /**
  * A function which decodes a vdo from a super block.
  *
- * @param vdo             The vdo to be decoded (its super block must already
- *                        be loaded)
- * @param validateConfig  If <code>true</code>, the vdo's configuration will
- *                        be validated before the decode is attempted
+ * @param vdo              The vdo to be decoded (its super block must already
+ *                         be loaded)
+ * @param validate_config  If <code>true</code>, the vdo's configuration will
+ *                         be validated before the decode is attempted
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int VDODecoder(struct vdo *vdo, bool validateConfig);
+typedef int VDODecoder(struct vdo *vdo, bool validate_config);
 
 /**
  * Load a vdo for normal operation. This method must not be called from a base
@@ -45,53 +45,53 @@ typedef int VDODecoder(struct vdo *vdo, bool validateConfig);
  *
  * @return VDO_SUCCESS or an error
  **/
-int performVDOLoad(struct vdo *vdo)
-  __attribute__((warn_unused_result));
+int perform_vdo_load(struct vdo *vdo)
+	__attribute__((warn_unused_result));
 
 /**
  * Perpare a vdo for loading by reading structures off disk. This method does
  * not alter the on-disk state. It should be called from the vdo constructor,
- * whereas performVDOLoad() will be called during pre-resume if the vdo has
+ * whereas perform_vdo_load() will be called during pre-resume if the vdo has
  * not been resumed before.
  **/
-int prepareToLoadVDO(struct vdo *vdo, const VDOLoadConfig *loadConfig)
-  __attribute__((warn_unused_result));
+int prepare_to_load_vdo(struct vdo *vdo, const VDOLoadConfig *load_config)
+	__attribute__((warn_unused_result));
 
 /**
  * Synchronously load a vdo from a specified super block location for use by
  * user-space tools.
  *
- * @param [in]  layer           The physical layer the vdo sits on
- * @param [in]  geometry        A pointer to the geometry for the volume
- * @param [in]  validateConfig  Whether to validate the vdo against the layer
- * @param [in]  decoder         The vdo decoder to use, if NULL, the default
- *                              decoder will be used
- * @param [out] vdoPtr          A pointer to hold the decoded vdo
+ * @param [in]  layer            The physical layer the vdo sits on
+ * @param [in]  geometry         A pointer to the geometry for the volume
+ * @param [in]  validate_config  Whether to validate the vdo against the layer
+ * @param [in]  decoder          The vdo decoder to use, if NULL, the default
+ *                               decoder will be used
+ * @param [out] vdo_ptr          A pointer to hold the decoded vdo
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadVDOSuperblock(PhysicalLayer           *layer,
-                      struct volume_geometry  *geometry,
-                      bool                     validateConfig,
-                      VDODecoder              *decoder,
-                      struct vdo             **vdoPtr)
-  __attribute__((warn_unused_result));
+int load_vdo_superblock(PhysicalLayer *layer,
+			struct volume_geometry *geometry,
+			bool validate_config,
+			VDODecoder *decoder,
+			struct vdo **vdo_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Synchronously load a vdo volume for use by user-space tools.
  *
- * @param [in]  layer           The physical layer the vdo sits on
- * @param [in]  validateConfig  Whether to validate the vdo against the layer
- * @param [in]  decoder         The vdo decoder to use, if NULL, the default
- *                              decoder will be used
- * @param [out] vdoPtr          A pointer to hold the decoded vdo
+ * @param [in]  layer            The physical layer the vdo sits on
+ * @param [in]  validate_config  Whether to validate the vdo against the layer
+ * @param [in]  decoder          The vdo decoder to use, if NULL, the default
+ *                               decoder will be used
+ * @param [out] vdo_ptr          A pointer to hold the decoded vdo
  *
  * @return VDO_SUCCESS or an error
  **/
-int loadVDO(PhysicalLayer  *layer,
-            bool            validateConfig,
-            VDODecoder     *decoder,
-            struct vdo    **vdoPtr)
-  __attribute__((warn_unused_result));
+int load_vdo(PhysicalLayer *layer,
+	     bool validate_config,
+	     VDODecoder *decoder,
+	     struct vdo **vdo_ptr)
+	__attribute__((warn_unused_result));
 
 #endif /* VDO_LOAD_H */

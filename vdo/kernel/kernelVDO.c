@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#35 $
  */
 
 /*
@@ -155,7 +155,7 @@ int preload_kvdo(struct kvdo *kvdo,
 	struct kernel_layer *layer = as_kernel_layer(common);
 
 	init_completion(&layer->callbackSync);
-	int result = prepareToLoadVDO(kvdo->vdo, load_config);
+	int result = prepare_to_load_vdo(kvdo->vdo, load_config);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
@@ -172,7 +172,7 @@ int start_kvdo(struct kvdo *kvdo, PhysicalLayer *common, char **reason)
 	struct kernel_layer *layer = as_kernel_layer(common);
 
 	init_completion(&layer->callbackSync);
-	int result = performVDOLoad(kvdo->vdo);
+	int result = perform_vdo_load(kvdo->vdo);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		*reason = "Cannot load metadata from device";
