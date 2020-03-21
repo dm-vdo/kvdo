@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#37 $
  */
 
 /*
@@ -192,7 +192,7 @@ int suspend_kvdo(struct kvdo *kvdo)
 	struct kernel_layer *layer = container_of(kvdo, struct kernel_layer,
 						  kvdo);
 	init_completion(&layer->callbackSync);
-	int result = performVDOSuspend(kvdo->vdo, !layer->no_flush_suspend);
+	int result = perform_vdo_suspend(kvdo->vdo, !layer->no_flush_suspend);
 
 	if ((result != VDO_SUCCESS) && (result != VDO_READ_ONLY)) {
 		char error_name[80] = "";
