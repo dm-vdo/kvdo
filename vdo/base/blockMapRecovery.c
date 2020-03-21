@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#18 $
  */
 
 #include "blockMapRecovery.h"
@@ -317,7 +317,7 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 			struct vdo_page_completion *pageCompletion =
 				&recovery->page_completions[i];
 			if (recovery->page_completions[i].ready) {
-				releaseVDOPageCompletion(&pageCompletion->completion);
+				release_vdo_page_completion(&pageCompletion->completion);
 			}
 		}
 		completeCompletion(&recovery->completion);
@@ -458,15 +458,15 @@ static void fetch_page(struct block_map_recovery_completion *recovery,
 		find_entry_starting_next_page(recovery,
 					      recovery->current_unfetched_entry,
 					      true);
-	initVDOPageCompletion(((struct vdo_page_completion *) completion),
-			      recovery->block_map->zones[0].page_cache,
-			      new_pbn,
-			      true,
-			      &recovery->completion,
-			      page_loaded,
-			      handle_page_load_error);
+	init_vdo_page_completion(((struct vdo_page_completion *) completion),
+				 recovery->block_map->zones[0].page_cache,
+				 new_pbn,
+				 true,
+				 &recovery->completion,
+				 page_loaded,
+				 handle_page_load_error);
 	recovery->outstanding++;
-	getVDOPageAsync(completion);
+	get_vdo_page_async(completion);
 }
 
 /**
@@ -510,7 +510,7 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 
 	while (page_completion->ready) {
 		struct block_map_page *page =
-			dereferenceWritableVDOPage(completion);
+			dereference_writable_vdo_page(completion);
 		int result = ASSERT(page != NULL, "page available");
 		if (result != VDO_SUCCESS) {
 			abort_recovery(recovery, result);
@@ -525,8 +525,8 @@ static void recover_ready_pages(struct block_map_recovery_completion *recovery,
 					      recovery->current_entry,
 					      start_of_next_page);
 		recovery->current_entry = start_of_next_page;
-		requestVDOPageWrite(completion);
-		releaseVDOPageCompletion(completion);
+		request_vdo_page_write(completion);
+		release_vdo_page_completion(completion);
 
 		if (finish_if_done(recovery)) {
 			return;

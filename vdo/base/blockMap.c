@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#44 $
  */
 
 #include "blockMap.h"
@@ -308,14 +308,14 @@ initialize_block_map_zone(struct block_map_zone *zone,
 		return result;
 	}
 
-	return makeVDOPageCache(layer,
-				cache_size,
-				validate_page_on_read,
-				handle_page_write,
-				sizeof(struct block_map_page_context),
-				maximum_age,
-				zone,
-				&zone->page_cache);
+	return make_vdo_page_cache(layer,
+				   cache_size,
+				   validate_page_on_read,
+				   handle_page_write,
+				   sizeof(struct block_map_page_context),
+				   maximum_age,
+				   zone,
+				   &zone->page_cache);
 }
 
 /**********************************************************************/
@@ -359,8 +359,8 @@ static void advance_block_map_zone_era(void *context,
 				       struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
-	advanceVDOPageCachePeriod(zone->page_cache,
-				  zone->block_map->current_era_point);
+	advance_vdo_page_cache_period(zone->page_cache,
+				      zone->block_map->current_era_point);
 	advance_zone_tree_period(&zone->tree_zone,
 				 zone->block_map->current_era_point);
 	finishCompletion(parent, VDO_SUCCESS);
@@ -438,7 +438,7 @@ int make_block_map_caches(struct block_map *map,
 static void uninitialize_block_map_zone(struct block_map_zone *zone)
 {
 	uninitialize_block_map_tree_zone(&zone->tree_zone);
-	freeVDOPageCache(&zone->page_cache);
+	free_vdo_page_cache(&zone->page_cache);
 }
 
 /**********************************************************************/
@@ -514,8 +514,8 @@ void initialize_block_map_from_journal(struct block_map *map,
 	for (zone = 0; zone < map->zone_count; zone++) {
 		set_tree_zone_initial_period(&map->zones[zone].tree_zone,
 					     map->current_era_point);
-		setVDOPageCacheInitialPeriod(map->zones[zone].page_cache,
-					     map->current_era_point);
+		set_vdo_page_cache_initial_period(map->zones[zone].page_cache,
+						  map->current_era_point);
 	}
 }
 
@@ -587,7 +587,7 @@ void check_for_drain_complete(struct block_map_zone *zone)
 {
 	if (is_draining(&zone->state) &&
 	    !is_tree_zone_active(&zone->tree_zone) &&
-	    !isPageCacheActive(zone->page_cache)) {
+	    !is_page_cache_active(zone->page_cache)) {
 		finish_draining_with_result(&zone->state,
 					    (is_read_only(zone->read_only_notifier) ?
 					     VDO_READ_ONLY : VDO_SUCCESS));
@@ -604,7 +604,7 @@ static void initiate_drain(struct admin_state *state)
 	struct block_map_zone *zone =
 		container_of(state, struct block_map_zone, state);
 	drain_zone_trees(&zone->tree_zone);
-	drainVDOPageCache(zone->page_cache);
+	drain_vdo_page_cache(zone->page_cache);
 	check_for_drain_complete(zone);
 }
 
@@ -721,7 +721,7 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 					  int result)
 {
 	struct vdo_completion *parent = completion->parent;
-	releaseVDOPageCompletion(completion);
+	release_vdo_page_completion(completion);
 	continueCompletion(parent, result);
 }
 
@@ -755,14 +755,14 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 		return;
 	}
 
-	initVDOPageCompletion(&data_vio->pageCompletion,
-			      zone->page_cache,
-			      data_vio->treeLock.treeSlots[0].blockMapSlot.pbn,
-			      modifiable,
-			      dataVIOAsCompletion(data_vio),
-			      action,
-			      handle_page_error);
-	getVDOPageAsync(&data_vio->pageCompletion.completion);
+	init_vdo_page_completion(&data_vio->pageCompletion,
+				 zone->page_cache,
+				 data_vio->treeLock.treeSlots[0].blockMapSlot.pbn,
+				 modifiable,
+				 dataVIOAsCompletion(data_vio),
+				 action,
+				 handle_page_error);
+	get_vdo_page_async(&data_vio->pageCompletion.completion);
 }
 
 /**
@@ -825,7 +825,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 	}
 
 	const struct block_map_page *page =
-		dereferenceReadableVDOPage(completion);
+		dereference_readable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		finish_processing_page(completion, result);
@@ -852,7 +852,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	struct block_map_page *page = dereferenceWritableVDOPage(completion);
+	struct block_map_page *page = dereference_writable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		finish_processing_page(completion, result);
@@ -861,14 +861,15 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 
 	struct data_vio *data_vio = asDataVIO(completion->parent);
 	struct block_map_page_context *context =
-		getVDOPageCompletionContext(completion);
+		get_vdo_page_completion_context(completion);
 	SequenceNumber oldLock = context->recovery_lock;
 	update_block_map_page(page,
 			      data_vio,
 			      data_vio->newMapped.pbn,
 			      data_vio->newMapped.state,
 			      &context->recovery_lock);
-	markCompletedVDOPageDirty(completion, oldLock, context->recovery_lock);
+	mark_completed_vdo_page_dirty(completion, oldLock,
+				      context->recovery_lock);
 	finish_processing_page(completion, VDO_SUCCESS);
 }
 
@@ -901,7 +902,7 @@ BlockMapStatistics get_block_map_statistics(struct block_map *map)
 	ZoneCount zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {
 		const struct atomic_page_cache_statistics *atoms =
-			getVDOPageCacheStatistics(map->zones[zone].page_cache);
+			get_vdo_page_cache_statistics(map->zones[zone].page_cache);
 		stats.dirtyPages += atomicLoad64(&atoms->counts.dirtyPages);
 		stats.cleanPages += atomicLoad64(&atoms->counts.cleanPages);
 		stats.freePages += atomicLoad64(&atoms->counts.freePages);

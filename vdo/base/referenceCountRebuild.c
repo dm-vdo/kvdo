@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#26 $
  */
 
 #include "referenceCountRebuild.h"
@@ -265,7 +265,7 @@ static void handle_page_load_error(struct vdo_completion *completion)
 		as_rebuild_completion(completion->parent);
 	rebuild->outstanding--;
 	abort_rebuild(rebuild, completion->result);
-	releaseVDOPageCompletion(completion);
+	release_vdo_page_completion(completion);
 	finish_if_done(rebuild);
 }
 
@@ -281,7 +281,7 @@ static int
 rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 				   struct vdo_completion *completion)
 {
-	struct block_map_page *page = dereferenceWritableVDOPage(completion);
+	struct block_map_page *page = dereference_writable_vdo_page(completion);
 	int result = ASSERT(page != NULL, "page available");
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -303,7 +303,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 				page->entries[slot] =
 					pack_pbn(ZERO_BLOCK,
 						 MAPPING_STATE_UNMAPPED);
-				requestVDOPageWrite(completion);
+				request_vdo_page_write(completion);
 			}
 		}
 	}
@@ -317,7 +317,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			// This entry is invalid, so remove it from the page.
 			page->entries[slot] =
 				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-			requestVDOPageWrite(completion);
+			request_vdo_page_write(completion);
 			continue;
 		}
 
@@ -335,7 +335,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 			// we're at least consistent and mark the page dirty.
 			page->entries[slot] =
 				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-			requestVDOPageWrite(completion);
+			request_vdo_page_write(completion);
 			continue;
 		}
 
@@ -351,7 +351,7 @@ rebuild_reference_counts_from_page(struct rebuild_completion *rebuild,
 						mapping.pbn);
 			page->entries[slot] =
 				pack_pbn(ZERO_BLOCK, MAPPING_STATE_UNMAPPED);
-			requestVDOPageWrite(completion);
+			request_vdo_page_write(completion);
 		}
 	}
 	return VDO_SUCCESS;
@@ -378,7 +378,7 @@ static void page_loaded(struct vdo_completion *completion)
 		abort_rebuild(rebuild, result);
 	}
 
-	releaseVDOPageCompletion(completion);
+	release_vdo_page_completion(completion);
 	if (finish_if_done(rebuild)) {
 		return;
 	}
@@ -413,13 +413,13 @@ static void fetch_page(struct rebuild_completion *rebuild,
 			continue;
 		}
 
-		initVDOPageCompletion(((struct vdo_page_completion *)completion),
-				      rebuild->block_map->zones[0].page_cache,
-				      pbn, true,
-				      &rebuild->completion, page_loaded,
-				      handle_page_load_error);
+		init_vdo_page_completion(((struct vdo_page_completion *) completion),
+					 rebuild->block_map->zones[0].page_cache,
+					 pbn, true,
+					 &rebuild->completion, page_loaded,
+					 handle_page_load_error);
 		rebuild->outstanding++;
-		getVDOPageAsync(completion);
+		get_vdo_page_async(completion);
 		return;
 	}
 }
@@ -512,7 +512,7 @@ void rebuild_reference_counts(struct vdo *vdo,
 	// Completion chaining from page cache hits can lead to stack overflow
 	// during the rebuild, so clear out the cache before this rebuild phase.
 	result =
-		invalidateVDOPageCache(rebuild->block_map->zones[0].page_cache);
+		invalidate_vdo_page_cache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
 		finishCompletion(parent, result);
 		return;

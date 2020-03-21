@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#46 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -978,10 +978,10 @@ static void processFetchedPage(struct vdo_completion *completion)
   struct recovery_completion    *recovery      = currentDecref->recovery;
   assertOnLogicalZoneThread(recovery->vdo, 0, __func__);
 
-  const struct block_map_page *page = dereferenceReadableVDOPage(completion);
+  const struct block_map_page *page = dereference_readable_vdo_page(completion);
   struct data_location location
     = unpack_block_map_entry(&page->entries[currentDecref->slot.slot]);
-  releaseVDOPageCompletion(completion);
+  release_vdo_page_completion(completion);
   recordMissingDecref(currentDecref, location, VDO_BAD_MAPPING);
   if (recovery->incompleteDecrefCount == 0) {
     completeCompletion(&recovery->subTaskCompletion);
@@ -1005,7 +1005,7 @@ static void handleFetchError(struct vdo_completion *completion)
   setCompletionResult(&recovery->subTaskCompletion,
                       ((completion->result == VDO_OUT_OF_RANGE)
                        ? VDO_CORRUPT_JOURNAL : completion->result));
-  releaseVDOPageCompletion(completion);
+  release_vdo_page_completion(completion);
   if (--recovery->incompleteDecrefCount == 0) {
     completeCompletion(&recovery->subTaskCompletion);
   }
@@ -1031,10 +1031,10 @@ static void launchFetch(struct waiter *waiter, void *context)
   }
 
   struct block_map_zone *zone = context;
-  initVDOPageCompletion(&decref->pageCompletion, zone->page_cache,
-                        decref->slot.pbn, false, decref, processFetchedPage,
-                        handleFetchError);
-  getVDOPageAsync(&decref->pageCompletion.completion);
+  init_vdo_page_completion(&decref->pageCompletion, zone->page_cache,
+                           decref->slot.pbn, false, decref, processFetchedPage,
+                           handleFetchError);
+  get_vdo_page_async(&decref->pageCompletion.completion);
 }
 
 /**
