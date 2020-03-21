@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.c#5 $
  */
 
 #include "lockCounter.h"
@@ -65,7 +65,7 @@ struct lock_counter {
 };
 
 /**********************************************************************/
-int make_lock_counter(PhysicalLayer *layer, void *parent, VDOAction callback,
+int make_lock_counter(PhysicalLayer *layer, void *parent, vdo_action callback,
 		      ThreadID threadID, ZoneCount logical_zones,
 		      ZoneCount physical_zones, BlockCount locks,
 		      struct lock_counter **lock_counter_ptr)
@@ -119,16 +119,16 @@ int make_lock_counter(PhysicalLayer *layer, void *parent, VDOAction callback,
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&lock_counter->completion,
-						 LOCK_COUNTER_COMPLETION,
-						 layer);
+	result = initialize_enqueueable_completion(&lock_counter->completion,
+						   LOCK_COUNTER_COMPLETION,
+						   layer);
 	if (result != VDO_SUCCESS) {
 		free_lock_counter(&lock_counter);
 		return result;
 	}
 
-	setCallbackWithParent(&lock_counter->completion, callback, threadID,
-			      parent);
+	set_callback_with_parent(&lock_counter->completion, callback, threadID,
+			         parent);
 	lock_counter->logical_zones = logical_zones;
 	lock_counter->physical_zones = physical_zones;
 	lock_counter->locks = locks;
@@ -144,7 +144,7 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr)
 	}
 
 	struct lock_counter *lock_counter = *lock_counter_ptr;
-	destroyEnqueueable(&lock_counter->completion);
+	destroy_enqueueable(&lock_counter->completion);
 	freeVolatile(lock_counter->physical_zone_counts);
 	freeVolatile(lock_counter->logical_zone_counts);
 	freeVolatile(lock_counter->journal_decrement_counts);
@@ -316,8 +316,8 @@ static uint16_t release_reference(struct lock_counter *counter,
 static void attempt_notification(struct lock_counter *counter)
 {
 	if (compareAndSwapBool(&counter->notifying, false, true)) {
-		resetCompletion(&counter->completion);
-		invokeCallback(&counter->completion);
+		reset_completion(&counter->completion);
+		invoke_callback(&counter->completion);
 	}
 }
 

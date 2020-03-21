@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCacheInternals.h#16 $
  */
 
 #ifndef VDO_PAGE_CACHE_INTERNALS_H
@@ -242,7 +242,7 @@ static inline bool is_valid(const struct page_info *info)
 static inline struct vdo_page_completion *
 as_vdo_page_completion(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type, VDO_PAGE_COMPLETION);
+	assert_completion_type(completion->type, VDO_PAGE_COMPLETION);
 	return container_of(completion, struct vdo_page_completion, completion);
 }
 
@@ -256,7 +256,8 @@ page_completion_from_waiter(struct waiter *waiter)
 
 	struct vdo_page_completion *completion =
 		container_of(waiter, struct vdo_page_completion, waiter);
-	assertCompletionType(completion->completion.type, VDO_PAGE_COMPLETION);
+	assert_completion_type(completion->completion.type,
+			       VDO_PAGE_COMPLETION);
 	return completion;
 }
 

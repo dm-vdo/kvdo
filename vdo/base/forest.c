@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#26 $
  */
 
 #include "forest.h"
@@ -371,7 +371,7 @@ static void finish_cursor(struct cursor *cursor)
 	struct vdo_completion *parent = cursors->parent;
 	FREE(cursors);
 
-	finishCompletion(parent, VDO_SUCCESS);
+	finish_completion(parent, VDO_SUCCESS);
 }
 
 /**********************************************************************/
@@ -573,7 +573,7 @@ void traverse_forest(struct block_map *map,
 	if (compute_block_map_page_count(map->entry_count) <=
 	    map->flat_page_count) {
 		// There are no tree pages, so there's nothing to do.
-		finishCompletion(parent, VDO_SUCCESS);
+		finish_completion(parent, VDO_SUCCESS);
 		return;
 	}
 
@@ -584,7 +584,7 @@ void traverse_forest(struct block_map *map,
 				       __func__,
 				       &cursors);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 

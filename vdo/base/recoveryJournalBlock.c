@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#20 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -284,7 +284,7 @@ bool can_commit_recovery_block(struct recovery_journal_block *block)
 
 /**********************************************************************/
 int commit_recovery_block(struct recovery_journal_block *block,
-			  VDOAction *callback, VDOAction *error_handler)
+			  vdo_action *callback, vdo_action *error_handler)
 {
 	int result = ASSERT(can_commit_recovery_block(block),
 	 		    "should never call %s when the block can't be committed",

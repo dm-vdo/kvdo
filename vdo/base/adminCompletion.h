@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.h#10 $
  */
 
 #ifndef ADMIN_COMPLETION_H
@@ -149,8 +149,8 @@ struct vdo_completion *reset_admin_sub_task(struct vdo_completion *completion);
  * @param thread_id      The ID of the thread on which to run the callback
  **/
 void prepare_admin_sub_task_on_thread(struct vdo *vdo,
-				      VDOAction *callback,
-				      VDOAction *error_handler,
+				      vdo_action *callback,
+				      vdo_action *error_handler,
 				      ThreadID thread_id);
 
 /**
@@ -162,8 +162,8 @@ void prepare_admin_sub_task_on_thread(struct vdo *vdo,
  * @param error_handler  The error handler for the sub-task
  **/
 void prepare_admin_sub_task(struct vdo *vdo,
-			    VDOAction *callback,
-			    VDOAction *error_handler);
+			    vdo_action *callback,
+			    vdo_action *error_handler);
 
 /**
  * Perform an administrative operation (load, suspend, grow logical, or grow
@@ -183,8 +183,8 @@ void prepare_admin_sub_task(struct vdo *vdo,
 int perform_admin_operation(struct vdo *vdo,
 			    AdminOperationType type,
 			    ThreadIDGetterForPhase *thread_id_getter,
-			    VDOAction *action,
-			    VDOAction *error_handler)
+			    vdo_action *action,
+			    vdo_action *error_handler)
 	__attribute__((warn_unused_result));
 
 #endif /* ADMIN_COMPLETION_H */

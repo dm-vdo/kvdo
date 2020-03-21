@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#38 $
  */
 
 /*
@@ -398,7 +398,7 @@ void get_kvdo_statistics(struct kvdo *kvdo, VDOStatistics *stats)
  * A structure to invoke an arbitrary VDO action.
  **/
 struct vdo_action_data {
-	VDOAction *action;
+	vdo_action *action;
 	struct vdo_completion *vdo_completion;
 	struct completion waiter;
 };
@@ -408,11 +408,11 @@ struct vdo_action_data {
  * action can be invoked on the specified completion.
  *
  * @param data               A vdo_action_data structure.
- * @param action             The VDOAction to execute.
+ * @param action             The vdo_action to execute.
  * @param vdo_completion     The VDO completion upon which the action acts.
  **/
 static void initialize_vdo_action_data(struct vdo_action_data *data,
-				       VDOAction *action,
+				       vdo_action *action,
 				       struct vdo_completion *vdo_completion)
 {
 	*data = (struct vdo_action_data) {
@@ -450,10 +450,10 @@ static void perform_vdo_action_work(struct kvdo_work_item *item)
 	struct vdo_action_data *data = work->data;
 	ThreadID id = getCallbackThreadID();
 
-	setCallbackWithParent(data->vdo_completion,
-			      finish_vdo_action,
-			      id,
-			      work);
+	set_callback_with_parent(data->vdo_completion,
+			        finish_vdo_action,
+			        id,
+			        work);
 	data->action(data->vdo_completion);
 }
 
@@ -582,7 +582,7 @@ static void kvdo_enqueue_work(struct kvdo_work_item *work_item)
 {
 	struct kvdo_enqueueable *kvdo_enqueueable =
 		container_of(work_item, struct kvdo_enqueueable, work_item);
-	runCallback(kvdo_enqueueable->enqueueable.completion);
+	run_callback(kvdo_enqueueable->enqueueable.completion);
 }
 
 /**********************************************************************/

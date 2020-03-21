@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/completion.c#13 $
  */
 
 #include "completion.h"
@@ -25,64 +25,65 @@
 #include "statusCodes.h"
 
 static const char *VDO_COMPLETION_TYPE_NAMES[] = {
-  // Keep UNSET_COMPLETION_TYPE at the top.
-  "UNSET_COMPLETION_TYPE",
+	// Keep UNSET_COMPLETION_TYPE at the top.
+	"UNSET_COMPLETION_TYPE",
 
-  // Keep the rest of these in sorted order. If you add or remove an entry,
-  // be sure to update the corresponding list in completion.h.
-  "ACTION_COMPLETION",
-  "ADMIN_COMPLETION",
-  "ASYNC_ACTION_CONTEXT",
-  "BLOCK_ALLOCATOR_COMPLETION",
-  "BLOCK_MAP_RECOVERY_COMPLETION",
-  "CHECK_IDENTIFIER_COMPLETION",
-  "EXTERNAL_COMPLETION",
-  "FLUSH_NOTIFICATION_COMPLETION",
-  "GENERATION_FLUSHED_COMPLETION",
-  "HEARTBEAT_COMPLETION",
-  "LOCK_COUNTER_COMPLETION",
-  "PARTITION_COPY_COMPLETION",
-  "READ_ONLY_MODE_COMPLETION",
-  "READ_ONLY_REBUILD_COMPLETION",
-  "RECOVERY_COMPLETION",
-  "REFERENCE_COUNT_REBUILD_COMPLETION",
-  "SLAB_SCRUBBER_COMPLETION",
-  "SUB_TASK_COMPLETION",
-  "TEST_COMPLETION",
-  "VDO_COMMAND_COMPLETION",
-  "VDO_COMMAND_SUB_COMPLETION",
-  "VDO_EXTENT_COMPLETION",
-  "VDO_PAGE_COMPLETION",
-  "VIO_COMPLETION",
-  "WRAPPING_COMPLETION",
+	// Keep the rest of these in sorted order. If you add or remove an
+	// entry, be sure to update the corresponding list in completion.h.
+	"ACTION_COMPLETION",
+	"ADMIN_COMPLETION",
+	"ASYNC_ACTION_CONTEXT",
+	"BLOCK_ALLOCATOR_COMPLETION",
+	"BLOCK_MAP_RECOVERY_COMPLETION",
+	"CHECK_IDENTIFIER_COMPLETION",
+	"EXTERNAL_COMPLETION",
+	"FLUSH_NOTIFICATION_COMPLETION",
+	"GENERATION_FLUSHED_COMPLETION",
+	"HEARTBEAT_COMPLETION",
+	"LOCK_COUNTER_COMPLETION",
+	"PARTITION_COPY_COMPLETION",
+	"READ_ONLY_MODE_COMPLETION",
+	"READ_ONLY_REBUILD_COMPLETION",
+	"RECOVERY_COMPLETION",
+	"REFERENCE_COUNT_REBUILD_COMPLETION",
+	"SLAB_SCRUBBER_COMPLETION",
+	"SUB_TASK_COMPLETION",
+	"TEST_COMPLETION",
+	"VDO_COMMAND_COMPLETION",
+	"VDO_COMMAND_SUB_COMPLETION",
+	"VDO_EXTENT_COMPLETION",
+	"VDO_PAGE_COMPLETION",
+	"VIO_COMPLETION",
+	"WRAPPING_COMPLETION",
 };
 
 /**********************************************************************/
-void initializeCompletion(struct vdo_completion *completion,
-                          VDOCompletionType      type,
-                          PhysicalLayer         *layer)
+void initialize_completion(struct vdo_completion *completion,
+			   VDOCompletionType type,
+			   PhysicalLayer *layer)
 {
-  memset(completion, 0, sizeof(*completion));
-  completion->layer = layer;
-  completion->type  = type;
-  resetCompletion(completion);
+	memset(completion, 0, sizeof(*completion));
+	completion->layer = layer;
+	completion->type = type;
+	reset_completion(completion);
 }
 
 /**********************************************************************/
-int initializeEnqueueableCompletion(struct vdo_completion *completion,
-                                    VDOCompletionType      type,
-                                    PhysicalLayer         *layer)
+int initialize_enqueueable_completion(struct vdo_completion *completion,
+				      VDOCompletionType type,
+				      PhysicalLayer *layer)
 {
-  initializeCompletion(completion, type, layer);
-  return ((layer->createEnqueueable == NULL)
-          ? VDO_SUCCESS : layer->createEnqueueable(completion));
+	initialize_completion(completion, type, layer);
+	return ((layer->createEnqueueable == NULL) ?
+			VDO_SUCCESS :
+			layer->createEnqueueable(completion));
 }
 
 /**********************************************************************/
-void resetCompletion(struct vdo_completion *completion)
+void reset_completion(struct vdo_completion *completion)
 {
-  completion->result   = VDO_SUCCESS;
-  completion->complete = false;
+	completion->result = VDO_SUCCESS;
+	completion->complete = false;
 }
 
 /**
@@ -90,18 +91,18 @@ void resetCompletion(struct vdo_completion *completion)
  *
  * @param completion The completion to check
  **/
-static inline void assertIncomplete(struct vdo_completion *completion)
+static inline void assert_incomplete(struct vdo_completion *completion)
 {
-  ASSERT_LOG_ONLY(!completion->complete, "completion is not complete");
+	ASSERT_LOG_ONLY(!completion->complete, "completion is not complete");
 }
 
 /**********************************************************************/
-void setCompletionResult(struct vdo_completion *completion, int result)
+void set_completion_result(struct vdo_completion *completion, int result)
 {
-  assertIncomplete(completion);
-  if (completion->result == VDO_SUCCESS) {
-    completion->result = result;
-  }
+	assert_incomplete(completion);
+	if (completion->result == VDO_SUCCESS) {
+		completion->result = result;
+	}
 }
 
 /**
@@ -115,124 +116,130 @@ void setCompletionResult(struct vdo_completion *completion, int result)
  *         <code>true</code>  if the callback must be enqueued
  **/
 __attribute__((warn_unused_result))
-static inline bool requiresEnqueue(struct vdo_completion *completion)
+static inline bool requires_enqueue(struct vdo_completion *completion)
 {
-  if (completion->requeue) {
-    completion->requeue = false;
-    return true;
-  }
+	if (completion->requeue) {
+		completion->requeue = false;
+		return true;
+	}
 
-  ThreadID callbackThread = completion->callbackThreadID;
-  return (callbackThread != getCallbackThreadID());
+	ThreadID callback_thread = completion->callbackThreadID;
+	return (callback_thread != getCallbackThreadID());
 }
 
 /**********************************************************************/
-void invokeCallback(struct vdo_completion *completion)
+void invoke_callback(struct vdo_completion *completion)
 {
-  if (requiresEnqueue(completion)) {
-    if (completion->enqueueable != NULL) {
-      completion->layer->enqueue(completion->enqueueable);
-      return;
-    }
-    ASSERT_LOG_ONLY(false,
-                    "non-enqueueable completion (type %s) on correct thread",
-                    getCompletionTypeName(completion->type));
-  }
+	if (requires_enqueue(completion)) {
+		if (completion->enqueueable != NULL) {
+			completion->layer->enqueue(completion->enqueueable);
+			return;
+		}
+		ASSERT_LOG_ONLY(false,
+				"non-enqueueable completion (type %s) on correct thread",
+				get_completion_type_name(completion->type));
+	}
 
-  runCallback(completion);
+	run_callback(completion);
 }
 
 /**********************************************************************/
-void continueCompletion(struct vdo_completion *completion, int result)
+void continue_completion(struct vdo_completion *completion, int result)
 {
-  setCompletionResult(completion, result);
-  invokeCallback(completion);
+	set_completion_result(completion, result);
+	invoke_callback(completion);
 }
 
 /**********************************************************************/
-void completeCompletion(struct vdo_completion *completion)
+void complete_completion(struct vdo_completion *completion)
 {
-  assertIncomplete(completion);
-  completion->complete = true;
-  if (completion->callback != NULL) {
-    invokeCallback(completion);
-  }
+	assert_incomplete(completion);
+	completion->complete = true;
+	if (completion->callback != NULL) {
+		invoke_callback(completion);
+	}
 }
 
 /**********************************************************************/
-void releaseCompletion(struct vdo_completion **completionPtr)
+void release_completion(struct vdo_completion **completion_ptr)
 {
-  struct vdo_completion *completion = *completionPtr;
-  if (completion == NULL) {
-    return;
-  }
+	struct vdo_completion *completion = *completion_ptr;
+	if (completion == NULL) {
+		return;
+	}
 
-  *completionPtr = NULL;
-  completeCompletion(completion);
+	*completion_ptr = NULL;
+	complete_completion(completion);
 }
 
 /**********************************************************************/
-void releaseCompletionWithResult(struct vdo_completion **completionPtr,
-                                 int                     result)
+void release_completion_with_result(struct vdo_completion **completion_ptr,
+				    int result)
 {
-  if (*completionPtr == NULL) {
-    return;
-  }
+	if (*completion_ptr == NULL) {
+		return;
+	}
 
-  setCompletionResult(*completionPtr, result);
-  releaseCompletion(completionPtr);
+	set_completion_result(*completion_ptr, result);
+	release_completion(completion_ptr);
 }
 
 /**********************************************************************/
-void finishParentCallback(struct vdo_completion *completion)
+void finish_parent_callback(struct vdo_completion *completion)
 {
-  finishCompletion((struct vdo_completion *) completion->parent, completion->result);
+	finish_completion((struct vdo_completion *) completion->parent,
+			  completion->result);
 }
 
 /**********************************************************************/
-void preserveErrorAndContinue(struct vdo_completion *completion)
+void preserve_error_and_continue(struct vdo_completion *completion)
 {
-  if (completion->parent != NULL) {
-    setCompletionResult(completion->parent, completion->result);
-  }
+	if (completion->parent != NULL) {
+		set_completion_result(completion->parent, completion->result);
+	}
 
-  resetCompletion(completion);
-  invokeCallback(completion);
+	reset_completion(completion);
+	invoke_callback(completion);
 }
 
 /**********************************************************************/
-const char *getCompletionTypeName(VDOCompletionType completionType)
+const char *get_completion_type_name(VDOCompletionType completion_type)
 {
-  // Try to catch failures to update the array when the enum values change.
-  STATIC_ASSERT(COUNT_OF(VDO_COMPLETION_TYPE_NAMES)
-                == (MAX_COMPLETION_TYPE - UNSET_COMPLETION_TYPE));
+	// Try to catch failures to update the array when the enum values
+	// change.
+	STATIC_ASSERT(COUNT_OF(VDO_COMPLETION_TYPE_NAMES) ==
+		      (MAX_COMPLETION_TYPE - UNSET_COMPLETION_TYPE));
 
-  if (completionType >= MAX_COMPLETION_TYPE) {
-    static char numeric[100];
-    snprintf(numeric, 99, "%d (%#x)", completionType, completionType);
-    return numeric;
-  }
+	if (completion_type >= MAX_COMPLETION_TYPE) {
+		static char numeric[100];
+		snprintf(numeric,
+			 99,
+			 "%d (%#x)",
+			 completion_type,
+			 completion_type);
+		return numeric;
+	}
 
-  return VDO_COMPLETION_TYPE_NAMES[completionType];
+	return VDO_COMPLETION_TYPE_NAMES[completion_type];
 }
 
 /**********************************************************************/
-void destroyEnqueueable(struct vdo_completion *completion)
+void destroy_enqueueable(struct vdo_completion *completion)
 {
-  if ((completion == NULL) || (completion->layer == NULL)
-      || (completion->layer->destroyEnqueueable == NULL)) {
-    return;
-  }
+	if ((completion == NULL) || (completion->layer == NULL) ||
+	    (completion->layer->destroy_enqueueable == NULL)) {
+		return;
+	}
 
-  completion->layer->destroyEnqueueable(&completion->enqueueable);
+	completion->layer->destroy_enqueueable(&completion->enqueueable);
 }
 
 /**********************************************************************/
-int assertCompletionType(VDOCompletionType actual,
-                         VDOCompletionType expected)
+int assert_completion_type(VDOCompletionType actual,
+			   VDOCompletionType expected)
 {
-  return ASSERT((expected == actual),
-                "completion type is %s instead of %s",
-                getCompletionTypeName(actual),
-                getCompletionTypeName(expected));
+	return ASSERT((expected == actual),
+		      "completion type is %s instead of %s",
+		      get_completion_type_name(actual),
+		      get_completion_type_name(expected));
 }

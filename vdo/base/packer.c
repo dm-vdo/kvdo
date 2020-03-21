@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#33 $
  */
 
 #include "packerInternals.h"
@@ -408,7 +408,7 @@ switch_to_packer_thread(struct vdo_completion *completion)
 	}
 
 	completion->callbackThreadID = thread_id;
-	invokeCallback(completion);
+	invoke_callback(completion);
 	return false;
 }
 
@@ -544,7 +544,7 @@ static void continue_after_allocation(struct allocating_vio *allocating_vio)
 	struct vdo_completion *completion = vioAsCompletion(vio);
 	if (allocating_vio->allocation == ZERO_BLOCK) {
 		completion->requeue = true;
-		setCompletionResult(completion, VDO_NO_SPACE);
+		set_completion_result(completion, VDO_NO_SPACE);
 		vioDoneCallback(completion);
 		return;
 	}
@@ -570,7 +570,7 @@ static void launch_compressed_write(struct packer *packer,
 	}
 
 	struct vio *vio = allocating_vio_as_vio(bin->writer);
-	resetCompletion(vioAsCompletion(vio));
+	reset_completion(vioAsCompletion(vio));
 	vio->callback = complete_output_bin;
 	vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
 	allocate_data_block(bin->writer, packer->selector,
@@ -983,7 +983,7 @@ void drain_packer(struct packer *packer, struct vdo_completion *completion)
 void resume_packer(struct packer *packer, struct vdo_completion *parent)
 {
 	assert_on_packer_thread(packer, __func__);
-	finishCompletion(parent, resume_if_quiescent(&packer->state));
+	finish_completion(parent, resume_if_quiescent(&packer->state));
 }
 
 /**********************************************************************/

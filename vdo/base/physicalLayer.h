@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#19 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -362,7 +362,7 @@ struct physicalLayer {
   // Asynchronous interface (other)
   FlushComplete             *completeFlush;
   EnqueueableCreator        *createEnqueueable;
-  EnqueueableDestructor     *destroyEnqueueable;
+  EnqueueableDestructor     *destroy_enqueueable;
   Enqueuer                  *enqueue;
   OperationWaiter           *waitForAdminOperation;
   OperationComplete         *completeAdminOperation;

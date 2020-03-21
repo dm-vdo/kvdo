@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#42 $
  */
 
 #include "recoveryJournal.h"
@@ -231,7 +231,7 @@ notify_recovery_journal_of_read_only_mode(void *listener,
 					  struct vdo_completion *parent)
 {
 	check_for_drain_complete(listener);
-	completeCompletion(parent);
+	complete_completion(parent);
 }
 
 /**
@@ -1369,10 +1369,10 @@ void resume_recovery_journal(struct recovery_journal *journal,
 {
 	assert_on_journal_thread(journal, __func__);
 	bool saved = is_saved(&journal->state);
-	setCompletionResult(parent, resume_if_quiescent(&journal->state));
+	set_completion_result(parent, resume_if_quiescent(&journal->state));
 
 	if (is_read_only(journal->read_only_notifier)) {
-		finishCompletion(parent, VDO_READ_ONLY);
+		finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1380,7 +1380,7 @@ void resume_recovery_journal(struct recovery_journal *journal,
 		initialize_journal_state(journal);
 	}
 
-	completeCompletion(parent);
+	complete_completion(parent);
 }
 
 /**********************************************************************/

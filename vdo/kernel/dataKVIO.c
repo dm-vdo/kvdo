@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#51 $
  */
 
 #include "dataKVIO.h"
@@ -279,8 +279,8 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 static void read_data_kvio_read_block_callback(struct data_kvio *data_kvio)
 {
 	if (data_kvio->read_block.status != VDO_SUCCESS) {
-		setCompletionResult(dataVIOAsCompletion(&data_kvio->data_vio),
-				    data_kvio->read_block.status);
+		set_completion_result(dataVIOAsCompletion(&data_kvio->data_vio),
+				      data_kvio->read_block.status);
 		kvdo_enqueue_data_vio_callback(data_kvio);
 		return;
 	}
@@ -498,7 +498,7 @@ void acknowledgeDataVIO(struct data_vio *data_vio)
 	if (is_discard_bio(data_kvio->external_io_request.bio) &&
 	    (data_kvio->remaining_discard >
 	     (VDO_BLOCK_SIZE - data_kvio->offset))) {
-		invokeCallback(dataVIOAsCompletion(data_vio));
+		invoke_callback(dataVIOAsCompletion(data_vio));
 		return;
 	}
 
@@ -846,7 +846,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 /**********************************************************************/
 static void launchDataKVIOWork(struct kvdo_work_item *item)
 {
-	runCallback(vioAsCompletion(work_item_as_kvio(item)->vio));
+	run_callback(vioAsCompletion(work_item_as_kvio(item)->vio));
 }
 
 /**
@@ -945,7 +945,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	 * and with various sector offsets within a block.
 	 */
 	struct kvio *kvio = &data_kvio->kvio;
-	VDOAction *callback = kvdo_complete_data_kvio;
+	vdo_action *callback = kvdo_complete_data_kvio;
 	VIOOperation operation = VIO_WRITE;
 	bool is_trim = false;
 

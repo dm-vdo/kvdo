@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#10 $
  */
 
 #ifndef VIO_H
@@ -38,8 +38,8 @@ struct vio {
   struct vdo_completion  completion;
 
   /* The functions to call when this vio's operation is complete */
-  VDOAction             *callback;
-  VDOAction             *errorHandler;
+  vdo_action            *callback;
+  vdo_action            *errorHandler;
 
   /* The vdo handling this vio */
   struct vdo            *vdo;
@@ -69,7 +69,7 @@ struct vio {
  **/
 static inline struct vio *asVIO(struct vdo_completion *completion)
 {
-  assertCompletionType(completion->type, VIO_COMPLETION);
+  assert_completion_type(completion->type, VIO_COMPLETION);
   return container_of(completion, struct vio, completion);
 }
 
@@ -274,8 +274,8 @@ static inline bool vioRequiresFlushAfter(const struct vio *vio)
  **/
 void launchMetadataVIO(struct vio          *vio,
                        PhysicalBlockNumber  physical,
-                       VDOAction           *callback,
-                       VDOAction           *errorHandler,
+                       vdo_action          *callback,
+                       vdo_action          *errorHandler,
                        VIOOperation         operation);
 
 /**
@@ -288,8 +288,8 @@ void launchMetadataVIO(struct vio          *vio,
  **/
 static inline void launchReadMetadataVIO(struct vio          *vio,
                                          PhysicalBlockNumber  physical,
-                                         VDOAction           *callback,
-                                         VDOAction           *errorHandler)
+                                         vdo_action          *callback,
+                                         vdo_action          *errorHandler)
 {
   launchMetadataVIO(vio, physical, callback, errorHandler, VIO_READ);
 }
@@ -304,8 +304,8 @@ static inline void launchReadMetadataVIO(struct vio          *vio,
  **/
 static inline void launchWriteMetadataVIO(struct vio          *vio,
                                           PhysicalBlockNumber  physical,
-                                          VDOAction           *callback,
-                                          VDOAction           *errorHandler)
+                                          vdo_action          *callback,
+                                          vdo_action          *errorHandler)
 {
   launchMetadataVIO(vio, physical, callback, errorHandler, VIO_WRITE);
 }
@@ -325,8 +325,8 @@ static inline void launchWriteMetadataVIO(struct vio          *vio,
 static inline
 void launchWriteMetadataVIOWithFlush(struct vio          *vio,
                                      PhysicalBlockNumber  physical,
-                                     VDOAction           *callback,
-                                     VDOAction           *errorHandler,
+                                     vdo_action          *callback,
+                                     vdo_action          *errorHandler,
                                      bool                 flushBefore,
                                      bool                 flushAfter)
 {
@@ -344,6 +344,6 @@ void launchWriteMetadataVIOWithFlush(struct vio          *vio,
  * @param callback      The function to call when the flush is complete
  * @param errorHandler  The handler for flush errors
  **/
-void launchFlush(struct vio *vio, VDOAction *callback, VDOAction *errorHandler);
+void launchFlush(struct vio *vio, vdo_action *callback, vdo_action *errorHandler);
 
 #endif // VIO_H

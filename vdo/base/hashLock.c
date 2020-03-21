@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#27 $
  */
 
 /**
@@ -258,7 +258,7 @@ static inline struct data_vio *dequeue_lock_waiter(struct hash_lock *lock)
  **/
 static void continue_data_vio_in(struct data_vio *data_vio,
 				 int result,
-				 VDOAction *callback)
+				 vdo_action *callback)
 {
 	dataVIOAsCompletion(data_vio)->callback = callback;
 	continueDataVIO(data_vio, result);

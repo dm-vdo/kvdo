@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/partitionCopy.c#12 $
  */
 
 #include "partitionCopy.h"
@@ -62,7 +62,7 @@ struct copy_completion {
 __attribute__((warn_unused_result)) static inline struct copy_completion *
 as_copy_completion(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type, PARTITION_COPY_COMPLETION);
+	assert_completion_type(completion->type, PARTITION_COPY_COMPLETION);
 	return container_of(completion, struct copy_completion, completion);
 }
 
@@ -75,8 +75,8 @@ int make_copy_completion(PhysicalLayer *layer,
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
-	initializeCompletion(&copy->completion, PARTITION_COPY_COMPLETION,
-			     layer);
+	initialize_completion(&copy->completion, PARTITION_COPY_COMPLETION,
+			      layer);
 
 	result = ALLOCATE((VDO_BLOCK_SIZE * STRIDE_LENGTH),
 			  char,
@@ -145,7 +145,7 @@ static void complete_write_for_copy(struct vdo_completion *completion)
 	copy->current_index += get_stride_size(copy);
 	if (copy->current_index >= copy->ending_index) {
 		// We're done.
-		finishCompletion(completion->parent, VDO_SUCCESS);
+		finish_completion(completion->parent, VDO_SUCCESS);
 		return;
 	}
 	copy_partition_stride(copy);
@@ -164,7 +164,7 @@ static void completeReadForCopy(struct vdo_completion *completion)
 	int result = translate_to_pbn(copy->target, copy->current_index,
 				      &layer_start_block);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(completion->parent, result);
+		finish_completion(completion->parent, result);
 		return;
 	}
 
@@ -185,15 +185,15 @@ static void copy_partition_stride(struct copy_completion *copy)
 	int result = translate_to_pbn(copy->source, copy->current_index,
 				      &layer_start_block);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(&copy->completion, result);
+		finish_completion(&copy->completion, result);
 		return;
 	}
 
-	prepareCompletion(&copy->extent->completion,
-			  completeReadForCopy,
-			  finishParentCallback,
-			  copy->completion.callbackThreadID,
-			  &copy->completion);
+	prepare_completion(&copy->extent->completion,
+			   completeReadForCopy,
+			   finish_parent_callback,
+			   copy->completion.callbackThreadID,
+			   &copy->completion);
 	read_partial_metadata_extent(copy->extent, layer_start_block,
 				     get_stride_size(copy));
 }
@@ -238,12 +238,12 @@ void copy_partition_async(struct vdo_completion *completion,
 {
 	int result = validate_partition_copy(source, target);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
 	struct copy_completion *copy = as_copy_completion(completion);
-	prepareToFinishParent(&copy->completion, parent);
+	prepare_to_finish_parent(&copy->completion, parent);
 	copy->source = source;
 	copy->target = target;
 	copy->current_index = 0;

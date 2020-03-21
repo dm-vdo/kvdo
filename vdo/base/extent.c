@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#8 $
  */
 
 #include "extent.h"
@@ -50,8 +50,8 @@ int create_extent(PhysicalLayer *layer, VIOType vio_type, VIOPriority priority,
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&extent->completion,
-						 VDO_EXTENT_COMPLETION, layer);
+	result = initialize_enqueueable_completion(&extent->completion,
+						   VDO_EXTENT_COMPLETION, layer);
 	if (result != VDO_SUCCESS) {
 		FREE(extent);
 		return result;
@@ -86,7 +86,7 @@ void free_extent(struct vdo_extent **extent_ptr)
 		freeVIO(&extent->vios[i]);
 	}
 
-	destroyEnqueueable(&extent->completion);
+	destroy_enqueueable(&extent->completion);
 	FREE(extent);
 	*extent_ptr = NULL;
 }
@@ -104,9 +104,9 @@ static void launchMetadataExtent(struct vdo_extent *extent,
 				 PhysicalBlockNumber start_block,
 				 BlockCount count, VIOOperation operation)
 {
-	resetCompletion(&extent->completion);
+	reset_completion(&extent->completion);
 	if (count > extent->count) {
-		finishCompletion(&extent->completion, VDO_OUT_OF_RANGE);
+		finish_completion(&extent->completion, VDO_OUT_OF_RANGE);
 		return;
 	}
 
@@ -142,10 +142,10 @@ void handle_vio_completion(struct vdo_completion *completion)
 {
 	struct vdo_extent *extent = as_vdo_extent(completion->parent);
 	if (++extent->complete_count != extent->count) {
-		setCompletionResult(extent_as_completion(extent),
-				    completion->result);
+		set_completion_result(extent_as_completion(extent),
+				      completion->result);
 		return;
 	}
 
-	finishCompletion(extent_as_completion(extent), completion->result);
+	finish_completion(extent_as_completion(extent), completion->result);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocatorInternals.h#21 $
  */
 
 #ifndef BLOCK_ALLOCATOR_INTERNALS_H
@@ -55,7 +55,7 @@ struct slab_actor {
 	SlabCount slab_action_count;
 	/** The method to call when a slab action has been completed by all
 	 * slabs */
-	VDOAction *callback;
+	vdo_action *callback;
 };
 
 /**

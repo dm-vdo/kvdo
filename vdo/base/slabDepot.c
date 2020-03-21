@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#44 $
  */
 
 #include "slabDepot.h"
@@ -193,7 +193,7 @@ static void prepare_for_tail_block_commit(void *context,
 {
 	struct slab_depot *depot = context;
 	depot->active_release_request = depot->new_release_request;
-	completeCompletion(parent);
+	complete_completion(parent);
 }
 
 /**
@@ -1068,7 +1068,7 @@ void drain_slab_depot(struct slab_depot *depot,
 void resume_slab_depot(struct slab_depot *depot, struct vdo_completion *parent)
 {
 	if (is_read_only(depot->read_only_notifier)) {
-		finishCompletion(parent, VDO_READ_ONLY);
+		finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 

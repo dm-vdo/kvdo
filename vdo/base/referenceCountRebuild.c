@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#27 $
  */
 
 #include "referenceCountRebuild.h"
@@ -86,8 +86,8 @@ struct rebuild_completion {
 __attribute__((warn_unused_result)) static inline struct rebuild_completion *
 as_rebuild_completion(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type,
-			     REFERENCE_COUNT_REBUILD_COMPLETION);
+	assert_completion_type(completion->type,
+			       REFERENCE_COUNT_REBUILD_COMPLETION);
 	return container_of(completion, struct rebuild_completion, completion);
 }
 
@@ -104,8 +104,8 @@ static void free_rebuild_completion(struct vdo_completion **completion_ptr)
 	}
 
 	struct rebuild_completion *rebuild = as_rebuild_completion(completion);
-	destroyEnqueueable(&rebuild->sub_task_completion);
-	destroyEnqueueable(completion);
+	destroy_enqueueable(&rebuild->sub_task_completion);
+	destroy_enqueueable(completion);
 	FREE(rebuild);
 	*completion_ptr = NULL;
 }
@@ -121,7 +121,7 @@ static void finish_rebuild(struct vdo_completion *completion)
 	int result = completion->result;
 	struct vdo_completion *parent = completion->parent;
 	free_rebuild_completion(&completion);
-	finishCompletion(parent, result);
+	finish_completion(parent, result);
 }
 
 /**
@@ -155,18 +155,18 @@ static int make_rebuild_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&rebuild->completion,
-						 REFERENCE_COUNT_REBUILD_COMPLETION,
-						 vdo->layer);
+	result = initialize_enqueueable_completion(&rebuild->completion,
+						   REFERENCE_COUNT_REBUILD_COMPLETION,
+						   vdo->layer);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &rebuild->completion;
 		free_rebuild_completion(&completion);
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&rebuild->sub_task_completion,
-						 SUB_TASK_COMPLETION,
-						 vdo->layer);
+	result = initialize_enqueueable_completion(&rebuild->sub_task_completion,
+						   SUB_TASK_COMPLETION,
+						   vdo->layer);
 	if (result != VDO_SUCCESS) {
 		struct vdo_completion *completion = &rebuild->completion;
 		free_rebuild_completion(&completion);
@@ -189,8 +189,8 @@ static int make_rebuild_completion(struct vdo *vdo,
 			"%s must be called on logical thread %u (not %u)",
 			__func__, rebuild->logical_thread_id,
 			getCallbackThreadID());
-	prepareCompletion(&rebuild->completion, finish_rebuild, finish_rebuild,
-			  rebuild->logical_thread_id, parent);
+	prepare_completion(&rebuild->completion, finish_rebuild, finish_rebuild,
+			   rebuild->logical_thread_id, parent);
 
 	*rebuild_ptr = rebuild;
 	return VDO_SUCCESS;
@@ -205,7 +205,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 static void flush_block_map_updates(struct vdo_completion *completion)
 {
 	logInfo("Flushing block map changes");
-	prepareToFinishParent(completion, completion->parent);
+	prepare_to_finish_parent(completion, completion->parent);
 	drain_block_map(as_rebuild_completion(completion->parent)->block_map,
 			ADMIN_STATE_RECOVERING, completion);
 }
@@ -225,7 +225,7 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 	}
 
 	if (rebuild->aborted) {
-		completeCompletion(&rebuild->completion);
+		complete_completion(&rebuild->completion);
 		return true;
 	}
 
@@ -233,12 +233,12 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 		return false;
 	}
 
-	prepareCompletion(&rebuild->sub_task_completion,
-			  flush_block_map_updates,
-			  finishParentCallback,
-			  rebuild->admin_thread_id,
-			  &rebuild->completion);
-	invokeCallback(&rebuild->sub_task_completion);
+	prepare_completion(&rebuild->sub_task_completion,
+			   flush_block_map_updates,
+			   finish_parent_callback,
+			   rebuild->admin_thread_id,
+			   &rebuild->completion);
+	invoke_callback(&rebuild->sub_task_completion);
 	return true;
 }
 
@@ -251,7 +251,7 @@ static bool finish_if_done(struct rebuild_completion *rebuild)
 static void abort_rebuild(struct rebuild_completion *rebuild, int result)
 {
 	rebuild->aborted = true;
-	setCompletionResult(&rebuild->completion, result);
+	set_completion_result(&rebuild->completion, result);
 }
 
 /**
@@ -505,7 +505,7 @@ void rebuild_reference_counts(struct vdo *vdo,
 					     block_map_data_blocks, parent,
 					     &rebuild);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
@@ -514,14 +514,14 @@ void rebuild_reference_counts(struct vdo *vdo,
 	result =
 		invalidate_vdo_page_cache(rebuild->block_map->zones[0].page_cache);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
 	// First traverse the block map trees.
 	*rebuild->block_map_data_blocks = 0;
 	struct vdo_completion *completion = &rebuild->sub_task_completion;
-	prepareCompletion(completion, rebuild_from_leaves, finishParentCallback,
-			  rebuild->logical_thread_id, &rebuild->completion);
+	prepare_completion(completion, rebuild_from_leaves, finish_parent_callback,
+			   rebuild->logical_thread_id, &rebuild->completion);
 	traverse_forest(rebuild->block_map, process_entry, completion);
 }

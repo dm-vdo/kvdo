@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#24 $
  */
 
 #ifndef DATA_VIO_H
@@ -105,7 +105,7 @@ struct tree_lock {
   /* The thread on which to run the callback */
   ThreadID                    threadID;
   /* The function to call after looking up a block map slot */
-  VDOAction                  *callback;
+  vdo_action                 *callback;
   /* The key for the lock map */
   uint64_t                    key;
   /* The queue of waiters for the page this vio is allocating or loading */
@@ -457,7 +457,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
                     LogicalBlockNumber  lbn,
                     VIOOperation        operation,
                     bool                isTrim,
-                    VDOAction          *callback);
+                    vdo_action         *callback);
 
 /**
  * Complete the processing of a data_vio.
@@ -484,7 +484,7 @@ void finishDataVIO(struct data_vio *dataVIO, int result);
  **/
 static inline void continueDataVIO(struct data_vio *dataVIO, int result)
 {
-  continueCompletion(dataVIOAsCompletion(dataVIO), result);
+  continue_completion(dataVIOAsCompletion(dataVIO), result);
 }
 
 /**
@@ -554,11 +554,11 @@ static inline void assertInHashZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setHashZoneCallback(struct data_vio *dataVIO,
-                                       VDOAction       *callback,
+                                       vdo_action      *callback,
                                        TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              get_hash_zone_thread_id(dataVIO->hashZone));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               get_hash_zone_thread_id(dataVIO->hashZone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -570,11 +570,11 @@ static inline void setHashZoneCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchHashZoneCallback(struct data_vio *dataVIO,
-                                          VDOAction       *callback,
+                                          vdo_action      *callback,
                                           TraceLocation    location)
 {
   setHashZoneCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
@@ -601,11 +601,11 @@ static inline void assertInLogicalZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setLogicalCallback(struct data_vio *dataVIO,
-                                      VDOAction       *callback,
+                                      vdo_action      *callback,
                                       TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              get_logical_zone_thread_id(dataVIO->logical.zone));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               get_logical_zone_thread_id(dataVIO->logical.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -617,11 +617,11 @@ static inline void setLogicalCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchLogicalCallback(struct data_vio *dataVIO,
-                                         VDOAction       *callback,
+                                         vdo_action      *callback,
                                          TraceLocation    location)
 {
   setLogicalCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
@@ -643,7 +643,7 @@ static inline void assertInAllocatedZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setAllocatedZoneCallback(struct data_vio *dataVIO,
-                                            VDOAction       *callback,
+                                            vdo_action      *callback,
                                             TraceLocation    location)
 {
   set_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
@@ -659,7 +659,7 @@ static inline void setAllocatedZoneCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchAllocatedZoneCallback(struct data_vio *dataVIO,
-                                               VDOAction       *callback,
+                                               vdo_action      *callback,
                                                TraceLocation    location)
 {
   launch_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
@@ -690,11 +690,11 @@ static inline void assertInDuplicateZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setDuplicateZoneCallback(struct data_vio *dataVIO,
-                                            VDOAction       *callback,
+                                            vdo_action      *callback,
                                             TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              get_physical_zone_thread_id(dataVIO->duplicate.zone));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               get_physical_zone_thread_id(dataVIO->duplicate.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -707,11 +707,11 @@ static inline void setDuplicateZoneCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchDuplicateZoneCallback(struct data_vio *dataVIO,
-                                               VDOAction       *callback,
+                                               vdo_action      *callback,
                                                TraceLocation    location)
 {
   setDuplicateZoneCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
@@ -737,11 +737,11 @@ static inline void assertInMappedZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setMappedZoneCallback(struct data_vio *dataVIO,
-                                         VDOAction       *callback,
+                                         vdo_action      *callback,
                                          TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              get_physical_zone_thread_id(dataVIO->mapped.zone));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               get_physical_zone_thread_id(dataVIO->mapped.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -769,11 +769,11 @@ static inline void assertInNewMappedZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setNewMappedZoneCallback(struct data_vio *dataVIO,
-                                            VDOAction       *callback,
+                                            vdo_action      *callback,
                                             TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              get_physical_zone_thread_id(dataVIO->newMapped.zone));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               get_physical_zone_thread_id(dataVIO->newMapped.zone));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -786,11 +786,11 @@ static inline void setNewMappedZoneCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchNewMappedZoneCallback(struct data_vio *dataVIO,
-                                               VDOAction       *callback,
+                                               vdo_action      *callback,
                                                TraceLocation    location)
 {
   setNewMappedZoneCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
@@ -817,11 +817,11 @@ static inline void assertInJournalZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setJournalCallback(struct data_vio *dataVIO,
-                                      VDOAction       *callback,
+                                      vdo_action      *callback,
                                       TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getJournalZoneThread(getThreadConfigFromDataVIO(dataVIO)));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               getJournalZoneThread(getThreadConfigFromDataVIO(dataVIO)));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -833,11 +833,11 @@ static inline void setJournalCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchJournalCallback(struct data_vio *dataVIO,
-                                         VDOAction       *callback,
+                                         vdo_action      *callback,
                                          TraceLocation    location)
 {
   setJournalCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**
@@ -863,11 +863,11 @@ static inline void assertInPackerZone(struct data_vio *dataVIO)
  * @param location  The tracing info for the call site
  **/
 static inline void setPackerCallback(struct data_vio *dataVIO,
-                                     VDOAction       *callback,
+                                     vdo_action      *callback,
                                      TraceLocation    location)
 {
-  setCallback(dataVIOAsCompletion(dataVIO), callback,
-              getPackerZoneThread(getThreadConfigFromDataVIO(dataVIO)));
+  set_callback(dataVIOAsCompletion(dataVIO), callback,
+               getPackerZoneThread(getThreadConfigFromDataVIO(dataVIO)));
   dataVIOAddTraceRecord(dataVIO, location);
 }
 
@@ -879,11 +879,11 @@ static inline void setPackerCallback(struct data_vio *dataVIO,
  * @param location  The tracing info for the call site
  **/
 static inline void launchPackerCallback(struct data_vio *dataVIO,
-                                        VDOAction       *callback,
+                                        vdo_action      *callback,
                                         TraceLocation    location)
 {
   setPackerCallback(dataVIO, callback, location);
-  invokeCallback(dataVIOAsCompletion(dataVIO));
+  invoke_callback(dataVIOAsCompletion(dataVIO));
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#26 $
  */
 
 #include "logicalZone.h"
@@ -92,7 +92,7 @@ struct logical_zones {
  **/
 static struct logical_zone *as_logical_zone(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type, GENERATION_FLUSHED_COMPLETION);
+	assert_completion_type(completion->type, GENERATION_FLUSHED_COMPLETION);
 	return container_of(completion, struct logical_zone, completion);
 }
 
@@ -129,9 +129,9 @@ static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 	}
 
 	struct vdo *vdo = zones->vdo;
-	result = initializeEnqueueableCompletion(&zone->completion,
-						 GENERATION_FLUSHED_COMPLETION,
-						 vdo->layer);
+	result = initialize_enqueueable_completion(&zone->completion,
+						   GENERATION_FLUSHED_COMPLETION,
+						   vdo->layer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -200,7 +200,7 @@ void free_logical_zones(struct logical_zones **zones_ptr)
 	for (index = 0; index < zones->zone_count; index++) {
 		struct logical_zone *zone = &zones->zones[index];
 		free_allocation_selector(&zone->selector);
-		destroyEnqueueable(&zone->completion);
+		destroy_enqueueable(&zone->completion);
 		free_int_map(&zone->lbn_operations);
 	}
 
@@ -274,7 +274,7 @@ static void resume_logical_zone(void *context, ZoneCount zone_number,
 				struct vdo_completion *parent)
 {
 	struct logical_zone *zone = get_logical_zone(context, zone_number);
-	finishCompletion(parent, resume_if_quiescent(&zone->state));
+	finish_completion(parent, resume_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -400,8 +400,8 @@ static void notify_flusher(struct vdo_completion *completion)
 {
 	struct logical_zone *zone = as_logical_zone(completion);
 	complete_flushes(zone->zones->vdo->flusher);
-	launchCallback(completion, attempt_generation_complete_notification,
-		       zone->thread_id);
+	launch_callback(completion, attempt_generation_complete_notification,
+		        zone->thread_id);
 }
 
 /**
@@ -422,8 +422,8 @@ attempt_generation_complete_notification(struct vdo_completion *completion)
 
 	zone->notifying = true;
 	zone->notification_generation = zone->oldest_active_generation;
-	launchCallback(&zone->completion, notify_flusher,
-		       get_flusher_thread_id(zone->zones->vdo->flusher));
+	launch_callback(&zone->completion, notify_flusher,
+		        get_flusher_thread_id(zone->zones->vdo->flusher));
 }
 
 /**********************************************************************/

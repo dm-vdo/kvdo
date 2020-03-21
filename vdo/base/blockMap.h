@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#12 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -230,7 +230,7 @@ ZoneCount compute_logical_zone(struct data_vio *data_vio);
  * @param thread_id The thread on which to run the callback
  **/
 void find_block_map_slot_async(struct data_vio *data_vio,
-			       VDOAction *callback,
+			       vdo_action *callback,
 			       ThreadID thread_id);
 
 /**

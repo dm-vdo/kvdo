@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#29 $
  */
 
 /*
@@ -1022,7 +1022,7 @@ static void acknowledgeWriteCallback(struct vdo_completion *completion)
 }
 
 /**********************************************************************/
-static VDOAction *getWriteIncrementCallback(struct data_vio *dataVIO)
+static vdo_action *getWriteIncrementCallback(struct data_vio *dataVIO)
 {
   return (isAsync(dataVIO)
           ? readOldBlockMappingForWrite : acknowledgeWriteCallback);
@@ -1131,7 +1131,7 @@ static void continueWriteAfterAllocation(struct allocating_vio *allocatingVIO)
   // running the callback on the kernel thread would save a thread switch.
   setAllocatedZoneCallback(dataVIO, prepareForDedupe, THIS_LOCATION(NULL));
   if (vioRequiresFlushAfter(allocating_vio_as_vio(allocatingVIO))) {
-    invokeCallback(dataVIOAsCompletion(dataVIO));
+    invoke_callback(dataVIOAsCompletion(dataVIO));
     return;
   }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#13 $
  */
 
 #include "superBlock.h"
@@ -238,7 +238,7 @@ static void finish_super_block_parent(struct vdo_completion *completion)
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
 	super_block->parent = NULL;
-	finishCompletion(parent, completion->result);
+	finish_completion(parent, completion->result);
 }
 
 /**
@@ -269,18 +269,18 @@ void save_super_block_async(struct vdo_super_block *super_block,
 			    struct vdo_completion *parent)
 {
 	if (super_block->unwriteable) {
-		finishCompletion(parent, VDO_READ_ONLY);
+		finish_completion(parent, VDO_READ_ONLY);
 		return;
 	}
 
 	if (super_block->parent != NULL) {
-		finishCompletion(parent, VDO_COMPONENT_BUSY);
+		finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
 	int result = encode_super_block(super_block);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
@@ -416,7 +416,7 @@ static void finish_reading_super_block(struct vdo_completion *completion)
 	struct vdo_super_block *super_block = completion->parent;
 	struct vdo_completion *parent = super_block->parent;
 	super_block->parent = NULL;
-	finishCompletion(parent, decode_super_block(super_block));
+	finish_completion(parent, decode_super_block(super_block));
 }
 
 /**********************************************************************/
@@ -429,7 +429,7 @@ void load_super_block_async(struct vdo_completion *parent,
 	int result = allocate_super_block(layer, &super_block);
 	if (result != VDO_SUCCESS) {
 		free_super_block(&super_block);
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 

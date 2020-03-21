@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#12 $
  */
 
 #include "readOnlyNotifier.h"
@@ -117,7 +117,7 @@ struct read_only_notifier {
 static inline struct read_only_notifier *
 as_notifier(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type, READ_ONLY_MODE_COMPLETION);
+	assert_completion_type(completion->type, READ_ONLY_MODE_COMPLETION);
 	return container_of(completion, struct read_only_notifier, completion);
 }
 
@@ -145,9 +145,9 @@ int make_read_only_notifier(bool is_read_only,
 	} else {
 		atomicStore32(&notifier->state, MAY_NOTIFY);
 	}
-	result = initializeEnqueueableCompletion(&notifier->completion,
-						 READ_ONLY_MODE_COMPLETION,
-						 layer);
+	result = initialize_enqueueable_completion(&notifier->completion,
+						   READ_ONLY_MODE_COMPLETION,
+						   layer);
 	if (result != VDO_SUCCESS) {
 		free_read_only_notifier(&notifier);
 		return result;
@@ -181,7 +181,7 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 		}
 	}
 
-	destroyEnqueueable(&notifier->completion);
+	destroy_enqueueable(&notifier->completion);
 	FREE(notifier);
 	*notifier_ptr = NULL;
 }
@@ -206,27 +206,27 @@ void wait_until_not_entering_read_only_mode(struct read_only_notifier *notifier,
 					    struct vdo_completion *parent)
 {
 	if (notifier == NULL) {
-		finishCompletion(parent, VDO_SUCCESS);
+		finish_completion(parent, VDO_SUCCESS);
 		return;
 	}
 
 	assert_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		finishCompletion(parent, VDO_COMPONENT_BUSY);
+		finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
 	uint32_t state = atomicLoad32(&notifier->state);
 	if ((state == MAY_NOT_NOTIFY) || (state == NOTIFIED)) {
 		// Notifications are already done or disallowed.
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
 	if (compareAndSwap32(&notifier->state, MAY_NOTIFY, MAY_NOT_NOTIFY)) {
 		// A notification was not in progress, and now they are
 		// disallowed.
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
@@ -252,7 +252,7 @@ static void finish_entering_read_only_mode(struct vdo_completion *completion)
 	struct vdo_completion *waiter = notifier->waiter;
 	if (waiter != NULL) {
 		notifier->waiter = NULL;
-		finishCompletion(waiter, completion->result);
+		finish_completion(waiter, completion->result);
 	}
 }
 
@@ -285,11 +285,11 @@ static void make_thread_read_only(struct vdo_completion *completion)
 
 	if (listener != NULL) {
 		// We have a listener to notify
-		prepareCompletion(completion,
-				  make_thread_read_only,
-				  make_thread_read_only,
-				  thread_id,
-				  listener);
+		prepare_completion(completion,
+				   make_thread_read_only,
+				   make_thread_read_only,
+				   thread_id,
+				   listener);
 		listener->notify(listener->listener, completion);
 		return;
 	}
@@ -297,20 +297,20 @@ static void make_thread_read_only(struct vdo_completion *completion)
 	// We're done with this thread
 	if (++thread_id >= notifier->thread_config->baseThreadCount) {
 		// There are no more threads
-		prepareCompletion(completion,
-				  finish_entering_read_only_mode,
-				  finish_entering_read_only_mode,
-				  getAdminThread(notifier->thread_config),
-				  NULL);
+		prepare_completion(completion,
+				   finish_entering_read_only_mode,
+				   finish_entering_read_only_mode,
+				   getAdminThread(notifier->thread_config),
+				   NULL);
 	} else {
-		prepareCompletion(completion,
-				  make_thread_read_only,
-				  make_thread_read_only,
-				  thread_id,
-				  NULL);
+		prepare_completion(completion,
+				   make_thread_read_only,
+				   make_thread_read_only,
+				   thread_id,
+				   NULL);
 	}
 
-	invokeCallback(completion);
+	invoke_callback(completion);
 }
 
 /**********************************************************************/
@@ -319,19 +319,19 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 {
 	assert_on_admin_thread(notifier, __func__);
 	if (notifier->waiter != NULL) {
-		finishCompletion(parent, VDO_COMPONENT_BUSY);
+		finish_completion(parent, VDO_COMPONENT_BUSY);
 		return;
 	}
 
 	if (!compareAndSwap32(&notifier->state, MAY_NOT_NOTIFY, MAY_NOTIFY)) {
 		// Notifications were already allowed or complete
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
 	if ((int) atomicLoad32(&notifier->read_only_error) == VDO_SUCCESS) {
 		// We're done
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
@@ -342,7 +342,7 @@ void allow_read_only_mode_entry(struct read_only_notifier *notifier,
 		 * enter_read_only_mode() after we set the state to MAY_NOTIFY.
 		 * It has already started the notification.
 		 */
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
@@ -374,7 +374,7 @@ void enter_read_only_mode(struct read_only_notifier *notifier, int errorCode)
 	if (compareAndSwap32(&notifier->state, MAY_NOTIFY, NOTIFYING)) {
 		// Initiate a notification starting on the lowest numbered
 		// thread.
-		launchCallback(&notifier->completion, make_thread_read_only, 0);
+		launch_callback(&notifier->completion, make_thread_read_only, 0);
 	}
 }
 

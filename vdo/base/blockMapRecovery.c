@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#19 $
  */
 
 #include "blockMapRecovery.h"
@@ -143,7 +143,7 @@ __attribute__((warn_unused_result))
 static inline struct block_map_recovery_completion *
 as_block_map_recovery_completion(struct vdo_completion *completion)
 {
-	assertCompletionType(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
+	assert_completion_type(completion->type, BLOCK_MAP_RECOVERY_COMPLETION);
 	return container_of(completion,
 			    struct block_map_recovery_completion,
 			    completion);
@@ -162,8 +162,8 @@ free_recovery_completion(struct block_map_recovery_completion **recovery_ptr)
 		return;
 	}
 
-	destroyEnqueueable(&recovery->completion);
-	destroyEnqueueable(&recovery->sub_task_completion);
+	destroy_enqueueable(&recovery->completion);
+	destroy_enqueueable(&recovery->sub_task_completion);
 	FREE(recovery);
 	*recovery_ptr = NULL;
 }
@@ -182,7 +182,7 @@ static void finish_block_map_recovery(struct vdo_completion *completion)
 	struct block_map_recovery_completion *recovery =
 		as_block_map_recovery_completion(completion);
 	free_recovery_completion(&recovery);
-	finishCompletion(parent, result);
+	finish_completion(parent, result);
 }
 
 /**
@@ -218,17 +218,17 @@ make_recovery_completion(struct vdo *vdo,
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&recovery->completion,
-						 BLOCK_MAP_RECOVERY_COMPLETION,
-						 vdo->layer);
+	result = initialize_enqueueable_completion(&recovery->completion,
+						   BLOCK_MAP_RECOVERY_COMPLETION,
+						   vdo->layer);
 	if (result != VDO_SUCCESS) {
 		free_recovery_completion(&recovery);
 		return result;
 	}
 
-	result = initializeEnqueueableCompletion(&recovery->sub_task_completion,
-						 SUB_TASK_COMPLETION,
-						 vdo->layer);
+	result = initialize_enqueueable_completion(&recovery->sub_task_completion,
+						   SUB_TASK_COMPLETION,
+						   vdo->layer);
 	if (result != VDO_SUCCESS) {
 		free_recovery_completion(&recovery);
 		return result;
@@ -259,11 +259,11 @@ make_recovery_completion(struct vdo *vdo,
 			__func__,
 			recovery->logical_thread_id,
 			getCallbackThreadID());
-	prepareCompletion(&recovery->completion,
-			  finish_block_map_recovery,
-			  finish_block_map_recovery,
-			  recovery->logical_thread_id,
-			  parent);
+	prepare_completion(&recovery->completion,
+			   finish_block_map_recovery,
+			   finish_block_map_recovery,
+			   recovery->logical_thread_id,
+			   parent);
 
 	// This message must be recognizable by VDOTest::RebuildBase.
 	logInfo("Replaying %zu recovery entries into block map",
@@ -282,7 +282,7 @@ static void flush_block_map(struct vdo_completion *completion)
 	ASSERT_LOG_ONLY((completion->callbackThreadID == recovery->admin_thread),
 			"flush_block_map() called on admin thread");
 
-	prepareToFinishParent(completion, completion->parent);
+	prepare_to_finish_parent(completion, completion->parent);
 	drain_block_map(recovery->block_map,
 			ADMIN_STATE_RECOVERING,
 			completion);
@@ -320,12 +320,12 @@ static bool finish_if_done(struct block_map_recovery_completion *recovery)
 				release_vdo_page_completion(&pageCompletion->completion);
 			}
 		}
-		completeCompletion(&recovery->completion);
+		complete_completion(&recovery->completion);
 	} else {
-		launchCallbackWithParent(&recovery->sub_task_completion,
-					 flush_block_map,
-					 recovery->admin_thread,
-					 &recovery->completion);
+		launch_callback_with_parent(&recovery->sub_task_completion,
+					    flush_block_map,
+					    recovery->admin_thread,
+					    &recovery->completion);
 	}
 
 	return true;
@@ -342,7 +342,7 @@ static void abort_recovery(struct block_map_recovery_completion *recovery,
 			   int result)
 {
 	recovery->aborted = true;
-	setCompletionResult(&recovery->completion, result);
+	set_completion_result(&recovery->completion, result);
 	finish_if_done(recovery);
 }
 
@@ -551,12 +551,12 @@ void recover_block_map(struct vdo *vdo,
 					      journal_entries, parent,
 					      &recovery);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
 	if (is_heap_empty(&recovery->replay_heap)) {
-		finishCompletion(&recovery->completion, VDO_SUCCESS);
+		finish_completion(&recovery->completion, VDO_SUCCESS);
 		return;
 	}
 

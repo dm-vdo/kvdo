@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#25 $
  */
 
 #include "slabSummary.h"
@@ -450,7 +450,7 @@ void drain_slab_summary_zone(struct slab_summary_zone *summary_zone,
 void resume_slab_summary_zone(struct slab_summary_zone *summary_zone,
 			      struct vdo_completion *parent)
 {
-	finishCompletion(parent, resume_if_quiescent(&summary_zone->state));
+	finish_completion(parent, resume_if_quiescent(&summary_zone->state));
 }
 
 // READ/UPDATE FUNCTIONS
@@ -667,15 +667,15 @@ void load_slab_summary(struct slab_summary *summary,
 
 	if ((operation == ADMIN_STATE_FORMATTING)
 	    || (operation == ADMIN_STATE_LOADING_FOR_REBUILD)) {
-		prepareCompletion(&extent->completion, finish_combining_zones,
-				  finish_combining_zones, 0, summary);
+		prepare_completion(&extent->completion, finish_combining_zones,
+				   finish_combining_zones, 0, summary);
 		write_metadata_extent(extent, summary->origin);
 		return;
 	}
 
 	summary->zones_to_combine = zones_to_combine;
-	prepareCompletion(&extent->completion, finish_loading_summary,
-			  finish_combining_zones, 0, summary);
+	prepare_completion(&extent->completion, finish_loading_summary,
+			   finish_combining_zones, 0, summary);
 	read_metadata_extent(extent, summary->origin);
 }
 

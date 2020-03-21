@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#73 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#74 $
  */
 
 #include "kernelLayer.h"
@@ -106,7 +106,7 @@ static BlockCount kvdo_get_block_count(PhysicalLayer *header)
 /**********************************************************************/
 bool layer_is_named(struct kernel_layer *layer, void *context)
 {
-  return (strcmp(layer->device_config->pool_name, (char *) context) == 0);
+	return (strcmp(layer->device_config->pool_name, (char *) context) == 0);
 }
 
 /**
@@ -573,7 +573,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	// enqueuables as part of its allocation.
 	layer->common.allocateIOBuffer = kvdo_allocate_io_buffer;
 	layer->common.createEnqueueable = kvdo_create_enqueueable;
-	layer->common.destroyEnqueueable = kvdo_destroy_enqueueable;
+	layer->common.destroy_enqueueable = kvdo_destroy_enqueueable;
 
 	struct kernel_layer *old_layer = find_layer_matching(layer_uses_device,
 							     config);
@@ -584,7 +584,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		*reason = "Cannot share storage device with already-running VDO";
 		return VDO_BAD_CONFIGURATION;
 	}
-	
+
 	result = allocateVDO(&layer->common, &layer->kvdo.vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate VDO";
@@ -638,7 +638,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	initializeRing(&layer->device_config_ring);
 
 	layer->common.getBlockCount = kvdo_get_block_count;
-  	layer->common.getWritePolicy = kvdoGetWritePolicy;
+	layer->common.getWritePolicy = kvdoGetWritePolicy;
 	layer->common.createMetadataVIO = kvdo_create_metadata_vio;
 	layer->common.createCompressedWriteVIO =
 		kvdo_create_compressed_write_vio;

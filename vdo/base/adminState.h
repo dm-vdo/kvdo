@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.h#23 $
  */
 
 #ifndef ADMIN_STATE_H
@@ -645,7 +645,7 @@ bool finish_operation_with_result(struct admin_state *state, int result);
 static inline void set_operation_result(struct admin_state *state, int result)
 {
 	if (state->waiter != NULL) {
-		setCompletionResult(state->waiter, result);
+		set_completion_result(state->waiter, result);
 	}
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoDebug.c#8 $
  */
 
 #include "vdoDebug.h"
@@ -38,11 +38,11 @@ int initialize_vdo_command_completion(struct vdo_command_completion *command,
 		.argc = argc,
 		.argv = argv,
 	};
-	initializeCompletion(&command->completion, VDO_COMMAND_COMPLETION,
-			     vdo->layer);
-	return initializeEnqueueableCompletion(&command->sub_completion,
-					       VDO_COMMAND_SUB_COMPLETION,
-					       vdo->layer);
+	initialize_completion(&command->completion, VDO_COMMAND_COMPLETION,
+			      vdo->layer);
+	return initialize_enqueueable_completion(&command->sub_completion,
+					         VDO_COMMAND_SUB_COMPLETION,
+					         vdo->layer);
 }
 
 /**********************************************************************/
@@ -52,7 +52,7 @@ int destroy_vdo_command_completion(struct vdo_command_completion *command)
 		return VDO_SUCCESS;
 	}
 
-	destroyEnqueueable(&command->sub_completion);
+	destroy_enqueueable(&command->sub_completion);
 	return command->completion.result;
 }
 
@@ -71,7 +71,7 @@ as_vdo_command_completion(struct vdo_completion *completion)
 		ASSERT_LOG_ONLY(((completion->type == VDO_COMMAND_COMPLETION) ||
 				 (completion->type == VDO_COMMAND_SUB_COMPLETION)),
 				"completion type is %s instead of VDO_COMMAND_COMPLETION or VDO_COMMAND_SUB_COMPLETION",
-				getCompletionTypeName(completion->type));
+				get_completion_type_name(completion->type));
 		return NULL;
 	}
 }
@@ -92,7 +92,7 @@ static void log_debug_message(struct vdo_command_completion *cmd)
 		strcpy(buf - 4, "...");
 	}
 	logInfo("debug message:%s", buffer);
-	finishCompletion(&cmd->completion, VDO_SUCCESS);
+	finish_completion(&cmd->completion, VDO_SUCCESS);
 }
 
 /**********************************************************************/
@@ -102,12 +102,12 @@ void execute_vdo_extended_command(struct vdo_completion *completion)
 		as_vdo_command_completion(completion);
 
 	if ((cmd->vdo == NULL) || (cmd->argc == 0)) {
-		finishCompletion(&cmd->completion, VDO_COMMAND_ERROR);
+		finish_completion(&cmd->completion, VDO_COMMAND_ERROR);
 		return;
 	}
 	if (strcmp(cmd->argv[0], x_log_debug_message) == 0) {
 		log_debug_message(cmd);
 	} else {
-		finishCompletion(&cmd->completion, VDO_UNKNOWN_COMMAND);
+		finish_completion(&cmd->completion, VDO_UNKNOWN_COMMAND);
 	}
 }

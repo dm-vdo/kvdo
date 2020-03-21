@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#34 $
  */
 
 #include "vdoLoad.h"
@@ -67,7 +67,7 @@ static void finish_aborting(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	vdo->closeRequired = false;
-	finishParentCallback(completion);
+	finish_parent_callback(completion);
 }
 
 /**
@@ -95,12 +95,12 @@ static void abort_load(struct vdo_completion *completion)
 	logErrorWithStringError(completion->result, "aborting load");
 	if (vdo->readOnlyNotifier == NULL) {
 		// There are no threads, so we're done
-		finishParentCallback(completion);
+		finish_parent_callback(completion);
 		return;
 	}
 
 	// Preserve the error.
-	setCompletionResult(completion->parent, completion->result);
+	set_completion_result(completion->parent, completion->result);
 	if (vdo->recoveryJournal == NULL) {
 		prepare_admin_sub_task(vdo, finish_aborting, finish_aborting);
 	} else {
@@ -121,8 +121,8 @@ static void abort_load(struct vdo_completion *completion)
  **/
 static void wait_for_read_only_mode(struct vdo_completion *completion)
 {
-	prepareToFinishParent(completion, completion->parent);
-	setCompletionResult(completion, VDO_READ_ONLY);
+	prepare_to_finish_parent(completion, completion->parent);
+	set_completion_result(completion, VDO_READ_ONLY);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier,
 					       completion);
@@ -154,7 +154,7 @@ static void scrub_slabs(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (!has_unrecovered_slabs(vdo->depot)) {
-		finishParentCallback(completion);
+		finish_parent_callback(completion);
 		return;
 	}
 
@@ -162,7 +162,7 @@ static void scrub_slabs(struct vdo_completion *completion)
 		enterRecoveryMode(vdo);
 	}
 
-	prepare_admin_sub_task(vdo, finishParentCallback,
+	prepare_admin_sub_task(vdo, finish_parent_callback,
 			       continue_load_read_only);
 	scrub_all_unrecovered_slabs(vdo->depot, completion);
 }
@@ -213,7 +213,7 @@ static void make_dirty(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	if (is_read_only(vdo->readOnlyNotifier)) {
-		finishCompletion(completion->parent, VDO_READ_ONLY);
+		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
@@ -240,7 +240,7 @@ static void load_callback(struct vdo_completion *completion)
 	if (is_read_only(vdo->readOnlyNotifier)) {
 		// In read-only mode we don't use the allocator and it may not
 		// even be readable, so use the default structure.
-		finishCompletion(completion->parent, VDO_READ_ONLY);
+		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
@@ -474,12 +474,12 @@ static void load_vdo_components(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 
-	prepareCompletion(completion,
-			  finishParentCallback,
-			  abort_load,
-			  completion->callbackThreadID,
-			  completion->parent);
-	finishCompletion(completion, decode_vdo(vdo, true));
+	prepare_completion(completion,
+			   finish_parent_callback,
+			   abort_load,
+			   completion->callbackThreadID,
+			   completion->parent);
+	finish_completion(completion, decode_vdo(vdo, true));
 }
 
 /**

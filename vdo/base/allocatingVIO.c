@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#15 $
  */
 
 #include "allocatingVIO.h"
@@ -208,7 +208,7 @@ static void allocate_block_for_write(struct vdo_completion *completion)
 	allocating_vio_add_trace_record(allocating_vio, THIS_LOCATION(NULL));
 	int result = allocateBlockInZone(allocating_vio);
 	if (result != VDO_SUCCESS) {
-		setCompletionResult(completion, result);
+		set_completion_result(completion, result);
 		allocating_vio->allocation_callback(allocating_vio);
 	}
 }

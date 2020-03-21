@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminState.c#19 $
  */
 
 #include "adminState.h"
@@ -130,12 +130,12 @@ static bool end_operation(struct admin_state *state, int result)
 	if (state->starting) {
 		state->complete = true;
 		if (state->waiter != NULL) {
-			setCompletionResult(state->waiter, result);
+			set_completion_result(state->waiter, result);
 		}
 	} else {
 		state->complete = false;
 		state->state = state->next_state;
-		releaseCompletionWithResult(&state->waiter, result);
+		release_completion_with_result(&state->waiter, result);
 	}
 
 	return true;
@@ -187,7 +187,7 @@ begin_operation(struct admin_state *state,
 	}
 
 	if (waiter != NULL) {
-		finishCompletion(waiter, result);
+		finish_completion(waiter, result);
 	}
 
 	return result;
@@ -218,7 +218,7 @@ static bool check_code(bool valid,
 					     get_admin_state_code_name(code),
 					     what);
 	if (waiter != NULL) {
-		finishCompletion(waiter, result);
+		finish_completion(waiter, result);
 	}
 
 	return false;

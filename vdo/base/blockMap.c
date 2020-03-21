@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#45 $
  */
 
 #include "blockMap.h"
@@ -346,7 +346,7 @@ static void prepare_for_era_advance(void *context,
 {
 	struct block_map *map = context;
 	map->current_era_point = map->pending_era_point;
-	completeCompletion(parent);
+	complete_completion(parent);
 }
 
 /**
@@ -363,7 +363,7 @@ static void advance_block_map_zone_era(void *context,
 				      zone->block_map->current_era_point);
 	advance_zone_tree_period(&zone->tree_zone,
 				 zone->block_map->current_era_point);
-	finishCompletion(parent, VDO_SUCCESS);
+	finish_completion(parent, VDO_SUCCESS);
 }
 
 /**
@@ -532,7 +532,7 @@ ZoneCount compute_logical_zone(struct data_vio *data_vio)
 
 /**********************************************************************/
 void find_block_map_slot_async(struct data_vio *data_vio,
-			       VDOAction *callback,
+			       vdo_action *callback,
 			       ThreadID thread_id)
 {
 	struct block_map *map = getBlockMap(getVDOFromDataVIO(data_vio));
@@ -547,9 +547,9 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 	if (slot->pageIndex < map->flat_page_count) {
 		slot->blockMapSlot.pbn =
 			slot->pageIndex + BLOCK_MAP_FLAT_PAGE_ORIGIN;
-		launchCallback(dataVIOAsCompletion(data_vio),
-			       callback,
-			       thread_id);
+		launch_callback(dataVIOAsCompletion(data_vio),
+			        callback,
+			        thread_id);
 		return;
 	}
 
@@ -642,7 +642,7 @@ static void resume_block_map_zone(void *context,
 				  struct vdo_completion *parent)
 {
 	struct block_map_zone *zone = get_block_map_zone(context, zone_number);
-	finishCompletion(parent, resume_if_quiescent(&zone->state));
+	finish_completion(parent, resume_if_quiescent(&zone->state));
 }
 
 /**********************************************************************/
@@ -690,7 +690,7 @@ BlockCount get_new_entry_count(struct block_map *map)
 static void grow_forest(void *context, struct vdo_completion *completion)
 {
 	replace_forest(context);
-	completeCompletion(completion);
+	complete_completion(completion);
 }
 
 /**********************************************************************/
@@ -722,7 +722,7 @@ static inline void finish_processing_page(struct vdo_completion *completion,
 {
 	struct vdo_completion *parent = completion->parent;
 	release_vdo_page_completion(completion);
-	continueCompletion(parent, result);
+	continue_completion(parent, result);
 }
 
 /**
@@ -746,7 +746,7 @@ static void handle_page_error(struct vdo_completion *completion)
  **/
 static void
 setup_mapped_block(struct data_vio *data_vio, bool modifiable,
-		   VDOAction *action)
+		   vdo_action *action)
 {
 	struct block_map_zone *zone =
 		get_block_map_for_zone(data_vio->logical.zone);

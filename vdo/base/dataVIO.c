@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#21 $
  */
 
 #include "dataVIO.h"
@@ -92,7 +92,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
                     LogicalBlockNumber  lbn,
                     VIOOperation        operation,
                     bool                isTrim,
-                    VDOAction          *callback)
+                    vdo_action         *callback)
 {
   // Clearing the tree lock must happen before initializing the LBN lock,
   // which also adds information to the tree lock.
@@ -117,7 +117,7 @@ void prepareDataVIO(struct data_vio    *dataVIO,
   dataVIO->mapped.state = MAPPING_STATE_UNCOMPRESSED;
   dataVIO->newMapped.state
     = (isTrim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
-  resetCompletion(vioAsCompletion(vio));
+  reset_completion(vioAsCompletion(vio));
   setLogicalCallback(dataVIO, attemptLogicalBlockLock,
                      THIS_LOCATION("$F;cb=acquireLogicalBlockLock"));
 }
@@ -147,7 +147,7 @@ void completeDataVIO(struct vdo_completion *completion)
 void finishDataVIO(struct data_vio *dataVIO, int result)
 {
   struct vdo_completion *completion = dataVIOAsCompletion(dataVIO);
-  setCompletionResult(completion, result);
+  set_completion_result(completion, result);
   completeDataVIO(completion);
 }
 

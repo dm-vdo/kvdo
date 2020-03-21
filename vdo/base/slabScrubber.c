@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.c#28 $
  */
 
 #include "slabScrubberInternals.h"
@@ -82,9 +82,9 @@ int make_slab_scrubber(PhysicalLayer *layer,
 		return result;
 	}
 
-	initializeCompletion(&scrubber->completion,
-			     SLAB_SCRUBBER_COMPLETION,
-			     layer);
+	initialize_completion(&scrubber->completion,
+			      SLAB_SCRUBBER_COMPLETION,
+			      layer);
 	initializeRing(&scrubber->high_priority_slabs);
 	initializeRing(&scrubber->slabs);
 	scrubber->read_only_notifier = read_only_notifier;
@@ -192,7 +192,7 @@ static void finish_scrubbing(struct slab_scrubber *scrubber)
 	}
 
 	// Inform whoever is waiting that scrubbing has completed.
-	completeCompletion(&scrubber->completion);
+	complete_completion(&scrubber->completion);
 
 	bool notify = has_waiters(&scrubber->waiters);
 
@@ -238,7 +238,7 @@ static void slab_scrubbed(struct vdo_completion *completion)
 static void abort_scrubbing(struct slab_scrubber *scrubber, int result)
 {
 	enter_read_only_mode(scrubber->read_only_notifier, result);
-	setCompletionResult(&scrubber->completion, result);
+	set_completion_result(&scrubber->completion, result);
 	scrub_next_slab(scrubber);
 }
 
@@ -387,11 +387,11 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	// Save out the rebuilt reference blocks.
-	prepareCompletion(completion,
-			  slab_scrubbed,
-			  handle_scrubber_error,
-			  completion->callbackThreadID,
-			  scrubber);
+	prepare_completion(completion,
+			   slab_scrubbed,
+			   handle_scrubber_error,
+			   completion->callbackThreadID,
+			   scrubber);
 	start_slab_action(slab, ADMIN_STATE_SAVE_FOR_SCRUBBING, completion);
 }
 
@@ -411,11 +411,11 @@ static void start_scrubbing(struct vdo_completion *completion)
 		return;
 	}
 
-	prepareCompletion(&scrubber->extent->completion,
-			  apply_journal_entries,
-			  handle_scrubber_error,
-			  completion->callbackThreadID,
-			  completion->parent);
+	prepare_completion(&scrubber->extent->completion,
+			   apply_journal_entries,
+			   handle_scrubber_error,
+			   completion->callbackThreadID,
+			   completion->parent);
 	read_metadata_extent(scrubber->extent, slab->journal_origin);
 }
 
@@ -430,7 +430,7 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	// be started when the VDO is quiescent.
 	notify_all_waiters(&scrubber->waiters, NULL, NULL);
 	if (is_read_only(scrubber->read_only_notifier)) {
-		setCompletionResult(&scrubber->completion, VDO_READ_ONLY);
+		set_completion_result(&scrubber->completion, VDO_READ_ONLY);
 		finish_scrubbing(scrubber);
 		return;
 	}
@@ -451,27 +451,27 @@ static void scrub_next_slab(struct slab_scrubber *scrubber)
 	scrubber->slab = slab;
 	struct vdo_completion *completion =
 		extent_as_completion(scrubber->extent);
-	prepareCompletion(completion,
-			  start_scrubbing,
-			  handle_scrubber_error,
-			  scrubber->completion.callbackThreadID,
-			  scrubber);
+	prepare_completion(completion,
+			   start_scrubbing,
+			   handle_scrubber_error,
+			   scrubber->completion.callbackThreadID,
+			   scrubber);
 	start_slab_action(slab, ADMIN_STATE_SCRUBBING, completion);
 }
 
 /**********************************************************************/
 void scrub_slabs(struct slab_scrubber *scrubber,
 		 void *parent,
-		 VDOAction *callback,
-		 VDOAction *error_handler)
+		 vdo_action *callback,
+		 vdo_action *error_handler)
 {
 	resume_if_quiescent(&scrubber->admin_state);
 	ThreadID threadID = getCallbackThreadID();
-	prepareCompletion(&scrubber->completion,
-			  callback,
-			  error_handler,
-			  threadID,
-			  parent);
+	prepare_completion(&scrubber->completion,
+			   callback,
+			   error_handler,
+			   threadID,
+			   parent);
 	if (!has_slabs_to_scrub(scrubber)) {
 		finish_scrubbing(scrubber);
 		return;
@@ -484,8 +484,8 @@ void scrub_slabs(struct slab_scrubber *scrubber,
 void scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 			       bool scrub_at_least_one,
 			       struct vdo_completion *parent,
-			       VDOAction *callback,
-			       VDOAction *error_handler)
+			       vdo_action *callback,
+			       vdo_action *error_handler)
 {
 	if (scrub_at_least_one && isRingEmpty(&scrubber->high_priority_slabs)) {
 		struct vdo_slab *slab = get_next_slab(scrubber);
@@ -502,7 +502,7 @@ void stop_scrubbing(struct slab_scrubber *scrubber,
 		    struct vdo_completion *parent)
 {
 	if (is_quiescent(&scrubber->admin_state)) {
-		completeCompletion(parent);
+		complete_completion(parent);
 	} else {
 		start_draining(&scrubber->admin_state,
 			       ADMIN_STATE_SUSPENDING,
@@ -516,18 +516,18 @@ void resume_scrubbing(struct slab_scrubber *scrubber,
 		      struct vdo_completion *parent)
 {
 	if (!has_slabs_to_scrub(scrubber)) {
-		completeCompletion(parent);
+		complete_completion(parent);
 		return;
 	}
 
 	int result = resume_if_quiescent(&scrubber->admin_state);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(parent, result);
+		finish_completion(parent, result);
 		return;
 	}
 
 	scrub_next_slab(scrubber);
-	completeCompletion(parent);
+	complete_completion(parent);
 }
 
 /**********************************************************************/

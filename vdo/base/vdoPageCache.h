@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.h#12 $
  */
 
 #ifndef VDO_PAGE_CACHE_H
@@ -275,8 +275,8 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 			      PhysicalBlockNumber pbn,
 			      bool writable,
 			      void *parent,
-			      VDOAction *callback,
-			      VDOAction *error_handler);
+			      vdo_action *callback,
+			      vdo_action *error_handler);
 
 /**
  * Release a VDO Page Completion.

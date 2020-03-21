@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#24 $
  */
 
 #include "vdoResize.h"
@@ -78,8 +78,8 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		if (is_read_only(vdo->readOnlyNotifier)) {
 			logErrorWithStringError(VDO_READ_ONLY,
 				                "Can't grow physical size of a read-only VDO");
-			setCompletionResult(reset_admin_sub_task(completion),
-					    VDO_READ_ONLY);
+			set_completion_result(reset_admin_sub_task(completion),
+					      VDO_READ_ONLY);
 			break;
 		}
 
@@ -124,8 +124,8 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		break;
 
 	default:
-		setCompletionResult(reset_admin_sub_task(completion),
-				    UDS_BAD_STATE);
+		set_completion_result(reset_admin_sub_task(completion),
+				      UDS_BAD_STATE);
 	}
 
 	finish_vdo_layout_growth(vdo->layout);
@@ -209,17 +209,17 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 
 	// This check can only be done from a base code thread.
 	if (is_read_only(vdo->readOnlyNotifier)) {
-		finishCompletion(completion->parent, VDO_READ_ONLY);
+		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
 	// This check should only be done from a base code thread.
 	if (inRecoveryMode(vdo)) {
-		finishCompletion(completion->parent, VDO_RETRY_AFTER_REBUILD);
+		finish_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
 		return;
 	}
 
-	completeCompletion(completion->parent);
+	complete_completion(completion->parent);
 }
 
 /**********************************************************************/
@@ -246,7 +246,7 @@ int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 					ADMIN_OPERATION_PREPARE_GROW_PHYSICAL,
 					get_thread_id_for_phase,
 					check_may_grow_physical,
-					finishParentCallback);
+					finish_parent_callback);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

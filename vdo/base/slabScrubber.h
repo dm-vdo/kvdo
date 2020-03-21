@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabScrubber.h#11 $
  */
 
 #ifndef SLAB_SCRUBBER_H
@@ -81,8 +81,8 @@ void register_slab_for_scrubbing(struct slab_scrubber *scrubber,
  **/
 void scrub_slabs(struct slab_scrubber *scrubber,
 		 void *parent,
-		 VDOAction *callback,
-		 VDOAction *error_handler);
+		 vdo_action *callback,
+		 vdo_action *error_handler);
 
 /**
  * Scrub any slabs which have been registered at high priority with a slab
@@ -100,8 +100,8 @@ void scrub_slabs(struct slab_scrubber *scrubber,
 void scrub_high_priority_slabs(struct slab_scrubber *scrubber,
 			       bool scrub_at_least_one,
 			       struct vdo_completion *parent,
-			       VDOAction *callback,
-			       VDOAction *error_handler);
+			       vdo_action *callback,
+			       vdo_action *error_handler);
 
 /**
  * Tell the scrubber to stop scrubbing after it finishes the slab it is

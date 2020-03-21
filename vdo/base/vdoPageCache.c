@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#26 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -511,13 +511,13 @@ static void complete_with_page(struct page_info *info,
 					vpc_page_state_name(info->state),
 					vdo_page_comp->writable ? "present" :
 								  "valid");
-		finishCompletion(&vdo_page_comp->completion, VDO_BAD_PAGE);
+		finish_completion(&vdo_page_comp->completion, VDO_BAD_PAGE);
 		return;
 	}
 
 	vdo_page_comp->info = info;
 	vdo_page_comp->ready = true;
-	finishCompletion(&vdo_page_comp->completion, VDO_SUCCESS);
+	finish_completion(&vdo_page_comp->completion, VDO_SUCCESS);
 }
 
 /**
@@ -531,7 +531,7 @@ static void complete_waiter_with_error(struct waiter *waiter, void *result_ptr)
 	int *result = result_ptr;
 	struct vdo_page_completion *completion =
 		page_completion_from_waiter(waiter);
-	finishCompletion(&completion->completion, *result);
+	finish_completion(&completion->completion, *result);
 }
 
 /**
@@ -631,8 +631,8 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 			      PhysicalBlockNumber pbn,
 			      bool writable,
 			      void *parent,
-			      VDOAction *callback,
-			      VDOAction *error_handler)
+			      vdo_action *callback,
+			      vdo_action *error_handler)
 {
 	ASSERT_LOG_ONLY((page_completion->waiter.next_waiter == NULL),
 			"New page completion was not already on a wait queue");
@@ -644,12 +644,12 @@ void init_vdo_page_completion(struct vdo_page_completion *page_completion,
 	};
 
 	struct vdo_completion *completion = &page_completion->completion;
-	initializeCompletion(completion, VDO_PAGE_COMPLETION, cache->layer);
-	prepareCompletion(completion,
-			  callback,
-			  error_handler,
-			  cache->zone->thread_id,
-			  parent);
+	initialize_completion(completion, VDO_PAGE_COMPLETION, cache->layer);
+	prepare_completion(completion,
+			   callback,
+			   error_handler,
+			   cache->zone->thread_id,
+			   parent);
 }
 
 /**
@@ -768,12 +768,12 @@ static void run_read_hook(struct vdo_completion *completion)
 {
 	struct page_info *info = completion->parent;
 	completion->callback = page_is_loaded;
-	resetCompletion(completion);
+	reset_completion(completion);
 	int result = info->cache->read_hook(get_page_buffer(info),
 					   info->pbn,
 					   info->cache->zone,
 					   info->context);
-	continueCompletion(completion, result);
+	continue_completion(completion, result);
 }
 
 /**
@@ -791,7 +791,7 @@ static void handle_rebuild_read_error(struct vdo_completion *completion)
 	// of an uninitialized page.
 	relaxedAdd64(&cache->stats.failedReads, 1);
 	memset(get_page_buffer(info), 0, VDO_BLOCK_SIZE);
-	resetCompletion(completion);
+	reset_completion(completion);
 	if (cache->read_hook != NULL) {
 		run_read_hook(completion);
 	} else {
@@ -1182,10 +1182,10 @@ static void write_pages(struct vdo_completion *flush_completion)
 		if (is_read_only(info->cache->zone->read_only_notifier)) {
 			struct vdo_completion *completion =
 				&info->vio->completion;
-			resetCompletion(completion);
+			reset_completion(completion);
 			completion->callback = page_is_written_out;
 			completion->errorHandler = handle_page_write_error;
-			finishCompletion(completion, VDO_READ_ONLY);
+			finish_completion(completion, VDO_READ_ONLY);
 			continue;
 		}
 		relaxedAdd64(&info->cache->stats.pagesSaved, 1);
@@ -1250,7 +1250,7 @@ static void load_page_for_completion(struct page_info *info,
 {
 	int result = enqueue_waiter(&info->waiting, &vdo_page_comp->waiter);
 	if (result != VDO_SUCCESS) {
-		finishCompletion(&vdo_page_comp->completion, result);
+		finish_completion(&vdo_page_comp->completion, result);
 		return;
 	}
 
@@ -1270,7 +1270,7 @@ void get_vdo_page_async(struct vdo_completion *completion)
 
 	if (vdo_page_comp->writable &&
 	    is_read_only(cache->zone->read_only_notifier)) {
-		finishCompletion(completion, VDO_READ_ONLY);
+		finish_completion(completion, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1291,8 +1291,8 @@ void get_vdo_page_async(struct vdo_completion *completion)
 			int result = enqueue_waiter(&info->waiting,
 						    &vdo_page_comp->waiter);
 			if (result != VDO_SUCCESS) {
-				finishCompletion(&vdo_page_comp->completion,
-						 result);
+				finish_completion(&vdo_page_comp->completion,
+						  result);
 			}
 
 			return;

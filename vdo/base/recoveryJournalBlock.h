@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.h#14 $
  */
 
 #ifndef RECOVERY_JOURNAL_BLOCK_H
@@ -194,7 +194,7 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
  * @return VDO_SUCCESS, or an error if the write could not be launched
  **/
 int commit_recovery_block(struct recovery_journal_block *block,
-			  VDOAction *callback, VDOAction *error_handler)
+			  vdo_action *callback, vdo_action *error_handler)
 	__attribute__((warn_unused_result));
 
 /**
