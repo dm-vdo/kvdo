@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#5 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -29,16 +29,16 @@
 #include "types.h"
 
 struct recovery_block_header {
-  SequenceNumber    blockMapHead;       // Block map head sequence number
-  SequenceNumber    slabJournalHead;    // Slab journal head sequence number
-  SequenceNumber    sequenceNumber;     // Sequence number for this block
-  Nonce             nonce;              // A given VDO instance's nonce
-  BlockCount        logicalBlocksUsed;  // Count of logical blocks in use
-  BlockCount        blockMapDataBlocks; // Count of allocated block map pages
-  JournalEntryCount entryCount;         // Number of entries written
-  uint8_t           checkByte;          // The protection check byte
-  uint8_t           recoveryCount;      // The number of recoveries completed
-  VDOMetadataType   metadataType;       // Metadata type
+  SequenceNumber    block_map_head;         // Block map head sequence number
+  SequenceNumber    slab_journal_head;      // Slab journal head seq. number
+  SequenceNumber    sequence_number;        // Sequence number for this block
+  Nonce             nonce;                  // A given VDO instance's nonce
+  BlockCount        logical_blocks_used;    // Logical blocks in use
+  BlockCount        block_map_data_blocks;  // Allocated block map pages
+  JournalEntryCount entry_count;            // Number of entries written
+  uint8_t           check_byte;             // The protection check byte
+  uint8_t           recovery_count;         // Number of recoveries completed
+  VDOMetadataType   metadata_type;          // Metadata type
 };
 
 /**
@@ -48,34 +48,34 @@ struct recovery_block_header {
 union packed_journal_header {
   struct __attribute__((packed)) {
     /** Block map head 64-bit sequence number */
-    byte    blockMapHead[8];
+    byte    block_map_head[8];
 
     /** Slab journal head 64-bit sequence number */
-    byte    slabJournalHead[8];
+    byte    slab_journal_head[8];
 
     /** The 64-bit sequence number for this block */
-    byte    sequenceNumber[8];
+    byte    sequence_number[8];
 
     /** A given VDO instance's 64-bit nonce */
     byte    nonce[8];
 
     /** 8-bit metadata type (should always be one for the recovery journal) */
-    uint8_t metadataType;
+    uint8_t metadata_type;
 
     /** 16-bit count of the entries encoded in the block */
-    byte    entryCount[2];
+    byte    entry_count[2];
 
     /** 64-bit count of the logical blocks used when this block was opened */
-    byte    logicalBlocksUsed[8];
+    byte    logical_blocks_used[8];
 
     /** 64-bit count of the block map blocks used when this block was opened */
-    byte    blockMapDataBlocks[8];
+    byte    block_map_data_blocks[8];
 
     /** The protection check byte */
-    uint8_t checkByte;
+    uint8_t check_byte;
 
     /** The number of recoveries completed */
-    uint8_t recoveryCount;
+    uint8_t recovery_count;
   } fields;
 
   // A raw view of the packed encoding.
@@ -85,29 +85,29 @@ union packed_journal_header {
   // This view is only valid on little-endian machines and is only present for
   // ease of directly examining packed entries in GDB.
   struct __attribute__((packed)) {
-    SequenceNumber    blockMapHead;
-    SequenceNumber    slabJournalHead;
-    SequenceNumber    sequenceNumber;
+    SequenceNumber    block_map_head;
+    SequenceNumber    slab_journal_head;
+    SequenceNumber    sequence_number;
     Nonce             nonce;
-    VDOMetadataType   metadataType;
-    JournalEntryCount entryCount;
-    BlockCount        logicalBlocksUsed;
-    BlockCount        blockMapDataBlocks;
-    uint8_t           checkByte;
-    uint8_t           recoveryCount;
+    VDOMetadataType   metadata_type;
+    JournalEntryCount entry_count;
+    BlockCount        logical_blocks_used;
+    BlockCount        block_map_data_blocks;
+    uint8_t           check_byte;
+    uint8_t           recovery_count;
   } littleEndian;
 #endif
 } __attribute__((packed));
 
 struct packed_journal_sector {
   /** The protection check byte */
-  uint8_t checkByte;
+  uint8_t check_byte;
 
   /** The number of recoveries completed */
-  uint8_t recoveryCount;
+  uint8_t recovery_count;
 
   /** The number of entries in this sector */
-  uint8_t entryCount;
+  uint8_t entry_count;
 
   /** Journal entries for this sector */
   packed_recovery_journal_entry entries[];
@@ -155,17 +155,19 @@ static inline void
 packRecoveryBlockHeader(const struct recovery_block_header *header,
                         union packed_journal_header        *packed)
 {
-  storeUInt64LE(packed->fields.blockMapHead,       header->blockMapHead);
-  storeUInt64LE(packed->fields.slabJournalHead,    header->slabJournalHead);
-  storeUInt64LE(packed->fields.sequenceNumber,     header->sequenceNumber);
-  storeUInt64LE(packed->fields.nonce,              header->nonce);
-  storeUInt64LE(packed->fields.logicalBlocksUsed,  header->logicalBlocksUsed);
-  storeUInt64LE(packed->fields.blockMapDataBlocks, header->blockMapDataBlocks);
-  storeUInt16LE(packed->fields.entryCount,         header->entryCount);
+  storeUInt64LE(packed->fields.block_map_head, header->block_map_head);
+  storeUInt64LE(packed->fields.slab_journal_head, header->slab_journal_head);
+  storeUInt64LE(packed->fields.sequence_number, header->sequence_number);
+  storeUInt64LE(packed->fields.nonce, header->nonce);
+  storeUInt64LE(packed->fields.logical_blocks_used,
+                header->logical_blocks_used);
+  storeUInt64LE(packed->fields.block_map_data_blocks,
+                header->block_map_data_blocks);
+  storeUInt16LE(packed->fields.entry_count, header->entry_count);
 
-  packed->fields.checkByte = header->checkByte;
-  packed->fields.recoveryCount = header->recoveryCount;
-  packed->fields.metadataType = header->metadataType;
+  packed->fields.check_byte = header->check_byte;
+  packed->fields.recovery_count = header->recovery_count;
+  packed->fields.metadata_type = header->metadata_type;
 }
 
 /**
@@ -179,16 +181,16 @@ unpackRecoveryBlockHeader(const union packed_journal_header *packed,
                           struct recovery_block_header      *header)
 {
   *header = (struct recovery_block_header) {
-    .blockMapHead       = getUInt64LE(packed->fields.blockMapHead),
-    .slabJournalHead    = getUInt64LE(packed->fields.slabJournalHead),
-    .sequenceNumber     = getUInt64LE(packed->fields.sequenceNumber),
-    .nonce              = getUInt64LE(packed->fields.nonce),
-    .logicalBlocksUsed  = getUInt64LE(packed->fields.logicalBlocksUsed),
-    .blockMapDataBlocks = getUInt64LE(packed->fields.blockMapDataBlocks),
-    .entryCount         = getUInt16LE(packed->fields.entryCount),
-    .checkByte          = packed->fields.checkByte,
-    .recoveryCount      = packed->fields.recoveryCount,
-    .metadataType       = packed->fields.metadataType,
+    .block_map_head        = getUInt64LE(packed->fields.block_map_head),
+    .slab_journal_head     = getUInt64LE(packed->fields.slab_journal_head),
+    .sequence_number       = getUInt64LE(packed->fields.sequence_number),
+    .nonce                 = getUInt64LE(packed->fields.nonce),
+    .logical_blocks_used   = getUInt64LE(packed->fields.logical_blocks_used),
+    .block_map_data_blocks = getUInt64LE(packed->fields.block_map_data_blocks),
+    .entry_count           = getUInt16LE(packed->fields.entry_count),
+    .check_byte            = packed->fields.check_byte,
+    .recovery_count        = packed->fields.recovery_count,
+    .metadata_type         = packed->fields.metadata_type,
   };
 }
 

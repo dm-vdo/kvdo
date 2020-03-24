@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#49 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -629,8 +629,8 @@ static int computeUsages(struct recovery_completion *recovery)
 
   struct recovery_block_header unpacked;
   unpackRecoveryBlockHeader(tailHeader, &unpacked);
-  recovery->logicalBlocksUsed  = unpacked.logicalBlocksUsed;
-  recovery->blockMapDataBlocks = unpacked.blockMapDataBlocks;
+  recovery->logicalBlocksUsed  = unpacked.logical_blocks_used;
+  recovery->blockMapDataBlocks = unpacked.block_map_data_blocks;
 
   struct recovery_point recoveryPoint = {
     .sequenceNumber = recovery->tail,
@@ -1104,12 +1104,12 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     unpackRecoveryBlockHeader(packedHeader, &header);
 
     if (!is_exact_recovery_journal_block(journal, &header, i)
-        || (header.entryCount > journal->entries_per_block)) {
+        || (header.entry_count > journal->entries_per_block)) {
       // A bad block header was found so this must be the end of the journal.
       break;
     }
 
-    JournalEntryCount blockEntries = header.entryCount;
+    JournalEntryCount blockEntries = header.entry_count;
     // Examine each sector in turn to determine the last valid sector.
     uint8_t j;
     for (j = 1; j < SECTORS_PER_BLOCK; j++) {
@@ -1121,7 +1121,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
         break;
       }
 
-      JournalEntryCount sectorEntries = min_block(sector->entryCount,
+      JournalEntryCount sectorEntries = min_block(sector->entry_count,
                                                   blockEntries);
       if (sectorEntries > 0) {
         foundEntries = true;
@@ -1138,7 +1138,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     }
 
     // If this block was not filled, or if it tore, no later block can matter.
-    if ((header.entryCount != journal->entries_per_block)
+    if ((header.entry_count != journal->entries_per_block)
         || (blockEntries > 0)) {
       break;
     }

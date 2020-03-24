@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.c#17 $
  */
 
 #include "recoveryUtils.h"
@@ -92,7 +92,7 @@ is_congruent_recovery_journal_block(struct recovery_journal *journal,
 {
 	PhysicalBlockNumber expected_offset =
 		get_recovery_journal_block_number(journal,
-						  header->sequenceNumber);
+						  header->sequence_number);
 	return ((expected_offset == offset)
 		&& is_valid_recovery_journal_block(journal, header));
 }
@@ -121,15 +121,15 @@ bool find_head_and_tail(struct recovery_journal *journal,
 			continue;
 		}
 
-		if (header.sequenceNumber >= highest_tail) {
+		if (header.sequence_number >= highest_tail) {
 			found_entries = true;
-			highest_tail = header.sequenceNumber;
+			highest_tail = header.sequence_number;
 		}
-		if (header.blockMapHead > block_map_head_max) {
-			block_map_head_max = header.blockMapHead;
+		if (header.block_map_head > block_map_head_max) {
+			block_map_head_max = header.block_map_head;
 		}
-		if (header.slabJournalHead > slab_journal_head_max) {
-			slab_journal_head_max = header.slabJournalHead;
+		if (header.slab_journal_head > slab_journal_head_max) {
+			slab_journal_head_max = header.slab_journal_head;
 		}
 	}
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#28 $
  */
 
 #include "readOnlyRebuild.h"
@@ -338,7 +338,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 		// Don't extract more than the expected maximum entries per
 		// block.
 		JournalEntryCount block_entries =
-			min_block(journal->entries_per_block, header.entryCount);
+			min_block(journal->entries_per_block, header.entry_count);
 		uint8_t j;
 		for (j = 1; j < SECTORS_PER_BLOCK; j++) {
 			// Stop when all entries counted in the header are
@@ -358,7 +358,7 @@ static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 			// Don't extract more than the expected maximum entries
 			// per sector.
 			JournalEntryCount sector_entries =
-				min_block(sector->entryCount,
+				min_block(sector->entry_count,
 					  RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 			// Only extract as many as the block header calls for.
 			sector_entries = min_block(sector_entries,

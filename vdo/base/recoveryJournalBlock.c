@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#22 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -112,9 +112,9 @@ static void set_active_sector(struct recovery_journal_block *block,
 			      void *sector)
 {
 	block->sector = (struct packed_journal_sector *) sector;
-	block->sector->checkByte = get_block_header(block)->fields.checkByte;
-	block->sector->recoveryCount = block->journal->recovery_count;
-	block->sector->entryCount = 0;
+	block->sector->check_byte = get_block_header(block)->fields.check_byte;
+	block->sector->recovery_count = block->journal->recovery_count;
+	block->sector->entry_count = 0;
 }
 
 /**********************************************************************/
@@ -131,14 +131,14 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 		get_recovery_journal_block_number(journal, journal->tail);
 
 	struct recovery_block_header unpacked = {
-		.metadataType = VDO_METADATA_RECOVERY_JOURNAL,
-		.blockMapDataBlocks = journal->block_map_data_blocks,
-		.logicalBlocksUsed = journal->logical_blocks_used,
+		.metadata_type = VDO_METADATA_RECOVERY_JOURNAL,
+		.block_map_data_blocks = journal->block_map_data_blocks,
+		.logical_blocks_used = journal->logical_blocks_used,
 		.nonce = journal->nonce,
-		.recoveryCount = journal->recovery_count,
-		.sequenceNumber = journal->tail,
-		.checkByte = compute_recovery_check_byte(journal,
-							 journal->tail),
+		.recovery_count = journal->recovery_count,
+		.sequence_number = journal->tail,
+		.check_byte = compute_recovery_check_byte(journal,
+							  journal->tail),
 	};
 	union packed_journal_header *header = get_block_header(block);
 	packRecoveryBlockHeader(&unpacked, header);
@@ -184,8 +184,8 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
 __attribute__((warn_unused_result)) static bool
 is_sector_full(const struct recovery_journal_block *block)
 {
-	return (block->sector->entryCount
-		== RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
+	return (block->sector->entry_count ==
+		RECOVERY_JOURNAL_ENTRIES_PER_SECTOR);
 }
 
 /**
@@ -220,7 +220,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 
 		// Compose and encode the entry.
 		packed_recovery_journal_entry *packed_entry =
-			&block->sector->entries[block->sector->entryCount++];
+			&block->sector->entries[block->sector->entry_count++];
 		struct tree_lock *lock = &data_vio->treeLock;
 		struct recovery_journal_entry new_entry = {
 			.mapping =
@@ -314,10 +314,10 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	journal->events.blocks.written += 1;
 	journal->events.entries.written += block->entries_in_commit;
 
-	storeUInt64LE(header->fields.blockMapHead, journal->block_map_head);
-	storeUInt64LE(header->fields.slabJournalHead,
+	storeUInt64LE(header->fields.block_map_head, journal->block_map_head);
+	storeUInt64LE(header->fields.slab_journal_head,
 		      journal->slab_journal_head);
-	storeUInt16LE(header->fields.entryCount, block->entry_count);
+	storeUInt16LE(header->fields.entry_count, block->entry_count);
 
 	block->committing = true;
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#9 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -62,9 +62,9 @@ __attribute__((warn_unused_result)) static inline bool
 is_valid_recovery_journal_block(const struct recovery_journal *journal,
 				const struct recovery_block_header *header)
 {
-	return ((header->metadataType == VDO_METADATA_RECOVERY_JOURNAL)
+	return ((header->metadata_type == VDO_METADATA_RECOVERY_JOURNAL)
 		&& (header->nonce == journal->nonce)
-		&& (header->recoveryCount == journal->recovery_count));
+		&& (header->recovery_count == journal->recovery_count));
 }
 
 /**
@@ -81,7 +81,7 @@ is_exact_recovery_journal_block(const struct recovery_journal *journal,
 				const struct recovery_block_header *header,
 				SequenceNumber sequence)
 {
-	return ((header->sequenceNumber == sequence)
+	return ((header->sequence_number == sequence)
 		&& is_valid_recovery_journal_block(journal, header));
 }
 
@@ -98,8 +98,8 @@ __attribute__((warn_unused_result)) static inline bool
 is_valid_recovery_journal_sector(const struct recovery_block_header *header,
 				 const struct packed_journal_sector *sector)
 {
-	return ((header->checkByte == sector->checkByte)
-		&& (header->recoveryCount == sector->recoveryCount));
+	return ((header->check_byte == sector->check_byte)
+		&& (header->recovery_count == sector->recovery_count));
 }
 
 /**
