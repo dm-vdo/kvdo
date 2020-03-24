@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#21 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -40,7 +40,8 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 	// Ensure that a block is large enough to store
 	// RECOVERY_JOURNAL_ENTRIES_PER_BLOCK entries.
 	STATIC_ASSERT(RECOVERY_JOURNAL_ENTRIES_PER_BLOCK
-		      <= ((VDO_BLOCK_SIZE - sizeof(PackedJournalHeader))
+		      <= ((VDO_BLOCK_SIZE
+		      	    - sizeof(union packed_journal_header))
 			  / sizeof(packed_recovery_journal_entry)));
 
 	struct recovery_journal_block *block;
@@ -95,10 +96,10 @@ void free_recovery_block(struct recovery_journal_block **block_ptr)
  *
  * @return The block's header
  **/
-static inline PackedJournalHeader *
+static inline union packed_journal_header *
 get_block_header(const struct recovery_journal_block *block)
 {
-	return (PackedJournalHeader *) block->block;
+	return (union packed_journal_header *) block->block;
 }
 
 /**
@@ -139,7 +140,7 @@ void initialize_recovery_block(struct recovery_journal_block *block)
 		.checkByte = compute_recovery_check_byte(journal,
 							 journal->tail),
 	};
-	PackedJournalHeader *header = get_block_header(block);
+	union packed_journal_header *header = get_block_header(block);
 	packRecoveryBlockHeader(&unpacked, header);
 
 	set_active_sector(block, getJournalBlockSector(header, 1));
@@ -306,7 +307,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	}
 
 	struct recovery_journal *journal = block->journal;
-	PackedJournalHeader *header = get_block_header(block);
+	union packed_journal_header *header = get_block_header(block);
 
 	// Update stats to reflect the block and entries we're about to write.
 	journal->pending_write_count += 1;

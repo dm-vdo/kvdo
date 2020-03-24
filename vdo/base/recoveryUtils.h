@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryUtils.h#8 $
  */
 
 #ifndef RECOVERY_UTILS_H
@@ -37,14 +37,15 @@
  *
  * @return A pointer to a packed recovery journal blokck header.
  **/
-__attribute__((warn_unused_result)) static inline PackedJournalHeader *
+__attribute__((warn_unused_result))
+static inline union packed_journal_header *
 get_journal_block_header(struct recovery_journal *journal, char *journal_data,
 			 SequenceNumber sequence)
 {
 	off_t block_offset = (get_recovery_journal_block_number(journal,
 								sequence)
 			      * VDO_BLOCK_SIZE);
-	return (PackedJournalHeader *) &journal_data[block_offset];
+	return (union packed_journal_header *) &journal_data[block_offset];
 }
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#48 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -624,7 +624,7 @@ static void addSynthesizedEntries(struct vdo_completion *completion)
 static int computeUsages(struct recovery_completion *recovery)
 {
   struct recovery_journal *journal = recovery->vdo->recoveryJournal;
-  PackedJournalHeader *tailHeader
+  union packed_journal_header *tailHeader
     = get_journal_block_header(journal, recovery->journalData, recovery->tail);
 
   struct recovery_block_header unpacked;
@@ -1098,7 +1098,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
       .entryCount     = 0,
     };
 
-    PackedJournalHeader *packedHeader
+    union packed_journal_header *packedHeader
       = get_journal_block_header(journal, recovery->journalData, i);
     struct recovery_block_header header;
     unpackRecoveryBlockHeader(packedHeader, &header);

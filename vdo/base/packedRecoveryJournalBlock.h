@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#4 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -45,7 +45,7 @@ struct recovery_block_header {
  * The packed, on-disk representation of a recovery journal block header.
  * All fields are kept in little-endian byte order.
  **/
-typedef union __attribute__((packed)) {
+union packed_journal_header {
   struct __attribute__((packed)) {
     /** Block map head 64-bit sequence number */
     byte    blockMapHead[8];
@@ -97,7 +97,7 @@ typedef union __attribute__((packed)) {
     uint8_t           recoveryCount;
   } littleEndian;
 #endif
-} PackedJournalHeader;
+} __attribute__((packed));
 
 struct packed_journal_sector {
   /** The protection check byte */
@@ -137,8 +137,9 @@ enum {
  **/
 __attribute__((warn_unused_result))
 static inline
-struct packed_journal_sector *getJournalBlockSector(PackedJournalHeader *header,
-                                                    int sectorNumber)
+struct packed_journal_sector *getJournalBlockSector(
+                                    union packed_journal_header *header,
+                                    int                          sectorNumber)
 {
   char *sectorData = ((char *) header) + (VDO_SECTOR_SIZE * sectorNumber);
   return (struct packed_journal_sector *) sectorData;
@@ -151,8 +152,8 @@ struct packed_journal_sector *getJournalBlockSector(PackedJournalHeader *header,
  * @param packed  The header into which to pack the values
  **/
 static inline void
-packRecoveryBlockHeader(const struct recovery_block_header     *header,
-                                           PackedJournalHeader *packed)
+packRecoveryBlockHeader(const struct recovery_block_header *header,
+                        union packed_journal_header        *packed)
 {
   storeUInt64LE(packed->fields.blockMapHead,       header->blockMapHead);
   storeUInt64LE(packed->fields.slabJournalHead,    header->slabJournalHead);
@@ -174,8 +175,8 @@ packRecoveryBlockHeader(const struct recovery_block_header     *header,
  * @param header  The header into which to unpack the values
  **/
 static inline void
-unpackRecoveryBlockHeader(const PackedJournalHeader     *packed,
-                          struct recovery_block_header  *header)
+unpackRecoveryBlockHeader(const union packed_journal_header *packed,
+                          struct recovery_block_header      *header)
 {
   *header = (struct recovery_block_header) {
     .blockMapHead       = getUInt64LE(packed->fields.blockMapHead),
