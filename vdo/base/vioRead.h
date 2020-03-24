@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.h#3 $
  */
 
 #ifndef VIO_READ_H
@@ -29,15 +29,15 @@
  * read-modify-write request which has acquired a lock on its logical block.
  * The first step is to perform a block map lookup.
  *
- * @param dataVIO  The data_vio doing the read
+ * @param data_vio  The data_vio doing the read
  **/
-void launchReadDataVIO(struct data_vio *dataVIO);
+void launch_read_data_vio(struct data_vio *data_vio);
 
 /**
  * Clean up a data_vio which has finished processing a read.
  *
- * @param dataVIO  The data_vio to clean up
+ * @param data_vio  The data_vio to clean up
  **/
-void cleanupReadDataVIO(struct data_vio *dataVIO);
+void cleanup_read_data_vio(struct data_vio *data_vio);
 
 #endif /* VIO_READ_H */

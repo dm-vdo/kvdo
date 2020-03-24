@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#9 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#10 $
  */
 
 #include "vioRead.h"
@@ -30,84 +30,86 @@
 
 /**
  * Do the modify-write part of a read-modify-write cycle. This callback is
- * registered in readBlock().
+ * registered in read_block().
  *
  * @param completion  The data_vio which has just finished its read
  **/
-static void modifyForPartialWrite(struct vdo_completion *completion)
+static void modify_for_partial_write(struct vdo_completion *completion)
 {
-  struct data_vio *dataVIO = asDataVIO(completion);
-  assertInLogicalZone(dataVIO);
+	struct data_vio *data_vio = asDataVIO(completion);
+	assertInLogicalZone(data_vio);
 
-  if (completion->result != VDO_SUCCESS) {
-    completeDataVIO(completion);
-    return;
-  }
+	if (completion->result != VDO_SUCCESS) {
+		completeDataVIO(completion);
+		return;
+	}
 
-  applyPartialWrite(dataVIO);
-  struct vio *vio = dataVIOAsVIO(dataVIO);
-  vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
-  dataVIO->isPartialWrite  = true;
-  launchWriteDataVIO(dataVIO);
+	applyPartialWrite(data_vio);
+	struct vio *vio = dataVIOAsVIO(data_vio);
+	vio->operation = VIO_WRITE | (vio->operation & ~VIO_READ_WRITE_MASK);
+	data_vio->isPartialWrite = true;
+	launchWriteDataVIO(data_vio);
 }
 
 /**
  * Read a block asynchronously. This is the callback registered in
- * readBlockMapping().
+ * read_block_mapping().
  *
  * @param completion  The data_vio to read
  **/
-static void readBlock(struct vdo_completion *completion)
+static void read_block(struct vdo_completion *completion)
 {
-  if (completion->result != VDO_SUCCESS) {
-    completeDataVIO(completion);
-    return;
-  }
+	if (completion->result != VDO_SUCCESS) {
+		completeDataVIO(completion);
+		return;
+	}
 
-  struct data_vio *dataVIO = asDataVIO(completion);
-  struct vio      *vio     = asVIO(completion);
-  completion->callback
-    = (isReadVIO(vio) ? completeDataVIO : modifyForPartialWrite);
+	struct data_vio *data_vio = asDataVIO(completion);
+	struct vio *vio = asVIO(completion);
+	completion->callback =
+		(isReadVIO(vio) ? completeDataVIO : modify_for_partial_write);
 
-  if (dataVIO->mapped.pbn == ZERO_BLOCK) {
-    zeroDataVIO(dataVIO);
-    invoke_callback(completion);
-    return;
-  }
+	if (data_vio->mapped.pbn == ZERO_BLOCK) {
+		zeroDataVIO(data_vio);
+		invoke_callback(completion);
+		return;
+	}
 
-  vio->physical = dataVIO->mapped.pbn;
-  dataVIO->lastAsyncOperation = READ_DATA;
-  readDataVIO(dataVIO);
+	vio->physical = data_vio->mapped.pbn;
+	data_vio->lastAsyncOperation = READ_DATA;
+	readDataVIO(data_vio);
 }
 
 /**
  * Read the data_vio's mapping from the block map. This callback is registered
- * in launchReadDataVIO().
+ * in launch_read_data_vio().
  *
  * @param completion  The data_vio to be read
  **/
-static void readBlockMapping(struct vdo_completion *completion)
+static void read_block_mapping(struct vdo_completion *completion)
 {
-  if (completion->result != VDO_SUCCESS) {
-    completeDataVIO(completion);
-    return;
-  }
+	if (completion->result != VDO_SUCCESS) {
+		completeDataVIO(completion);
+		return;
+	}
 
-  struct data_vio *dataVIO = asDataVIO(completion);
-  assertInLogicalZone(dataVIO);
-  setLogicalCallback(dataVIO, readBlock, THIS_LOCATION("$F;cb=readBlock"));
-  dataVIO->lastAsyncOperation = GET_MAPPED_BLOCK;
-  get_mapped_block_async(dataVIO);
+	struct data_vio *data_vio = asDataVIO(completion);
+	assertInLogicalZone(data_vio);
+	setLogicalCallback(data_vio, read_block,
+			   THIS_LOCATION("$F;cb=read_block"));
+	data_vio->lastAsyncOperation = GET_MAPPED_BLOCK;
+	get_mapped_block_async(data_vio);
 }
 
 /**********************************************************************/
-void launchReadDataVIO(struct data_vio *dataVIO)
+void launch_read_data_vio(struct data_vio *data_vio)
 {
-  assertInLogicalZone(dataVIO);
-  dataVIO->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
-  // Go find the block map slot for the LBN mapping.
-  find_block_map_slot_async(dataVIO, readBlockMapping,
-                            get_logical_zone_thread_id(dataVIO->logical.zone));
+	assertInLogicalZone(data_vio);
+	data_vio->lastAsyncOperation = FIND_BLOCK_MAP_SLOT;
+	// Go find the block map slot for the LBN mapping.
+	find_block_map_slot_async(data_vio,
+				  read_block_mapping,
+				  get_logical_zone_thread_id(data_vio->logical.zone));
 }
 
 /**
@@ -116,21 +118,21 @@ void launchReadDataVIO(struct data_vio *dataVIO)
  *
  * @param completion  The data_vio
  **/
-static void releaseLogicalLock(struct vdo_completion *completion)
+static void release_logical_lock(struct vdo_completion *completion)
 {
-  struct data_vio *dataVIO = asDataVIO(completion);
-  assertInLogicalZone(dataVIO);
-  releaseLogicalBlockLock(dataVIO);
-  vioDoneCallback(completion);
+	struct data_vio *data_vio = asDataVIO(completion);
+	assertInLogicalZone(data_vio);
+	releaseLogicalBlockLock(data_vio);
+	vioDoneCallback(completion);
 }
 
 /**
  * Clean up a data_vio which has finished processing a read.
  *
- * @param dataVIO  The data_vio to clean up
+ * @param data_vio  The data_vio to clean up
  **/
-void cleanupReadDataVIO(struct data_vio *dataVIO)
+void cleanup_read_data_vio(struct data_vio *data_vio)
 {
-  launchLogicalCallback(dataVIO, releaseLogicalLock,
-                        THIS_LOCATION("$F;cb=releaseLL"));
+	launchLogicalCallback(data_vio, release_logical_lock,
+			      THIS_LOCATION("$F;cb=releaseLL"));
 }

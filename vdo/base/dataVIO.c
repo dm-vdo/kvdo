@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#22 $
  */
 
 #include "dataVIO.h"
@@ -137,7 +137,7 @@ void completeDataVIO(struct vdo_completion *completion)
 
   dataVIOAddTraceRecord(dataVIO, THIS_LOCATION("$F($io)"));
   if (isReadDataVIO(dataVIO)) {
-    cleanupReadDataVIO(dataVIO);
+    cleanup_read_data_vio(dataVIO);
   } else {
     cleanupWriteDataVIO(dataVIO);
   }
@@ -224,7 +224,7 @@ static void launchLockedRequest(struct data_vio *dataVIO)
   if (isWriteDataVIO(dataVIO)) {
     launchWriteDataVIO(dataVIO);
   } else {
-    launchReadDataVIO(dataVIO);
+    launch_read_data_vio(dataVIO);
   }
 }
 
