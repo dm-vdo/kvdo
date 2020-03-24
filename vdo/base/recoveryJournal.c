@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#43 $
  */
 
 #include "recoveryJournal.h"
@@ -1123,7 +1123,7 @@ static void complete_write(struct vdo_completion *completion)
 	}
 
 	write_blocks(journal);
-	
+
 	check_for_drain_complete(journal);
 }
 
@@ -1391,7 +1391,7 @@ get_journal_logical_blocks_used(const struct recovery_journal *journal)
 }
 
 /**********************************************************************/
-RecoveryJournalStatistics
+struct recovery_journal_statistics
 get_recovery_journal_statistics(const struct recovery_journal *journal)
 {
 	return journal->events;
@@ -1400,7 +1400,7 @@ get_recovery_journal_statistics(const struct recovery_journal *journal)
 /**********************************************************************/
 void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 {
-	RecoveryJournalStatistics stats =
+	struct recovery_journal_statistics stats =
 		get_recovery_journal_statistics(journal);
 	logInfo("Recovery Journal");
 	logInfo("  block_map_head=%llu slab_journal_head=%" PRIu64

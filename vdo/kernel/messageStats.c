@@ -186,11 +186,11 @@ int write_block_allocator_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_CommitStatistics(char *prefix,
-                           CommitStatistics *stats,
-                           char *suffix,
-                           char **buf,
-                           unsigned int *maxlen)
+int write_commit_statistics(char *prefix,
+                            struct commit_statistics *stats,
+                            char *suffix,
+                            char **buf,
+                            unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -231,11 +231,11 @@ int write_CommitStatistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_RecoveryJournalStatistics(char *prefix,
-                                    RecoveryJournalStatistics *stats,
-                                    char *suffix,
-                                    char **buf,
-                                    unsigned int *maxlen)
+int write_recovery_journal_statistics(char *prefix,
+                                      struct recovery_journal_statistics *stats,
+                                      char *suffix,
+                                      char **buf,
+                                      unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -260,20 +260,20 @@ int write_RecoveryJournalStatistics(char *prefix,
               return result;
        }
        /** Write/Commit totals for individual journal entries */
-       result = write_CommitStatistics("entries : ",
-                                       &stats->entries,
-                                       ", ",
-                                       buf,
-                                       maxlen);
+       result = write_commit_statistics("entries : ",
+                                        &stats->entries,
+                                        ", ",
+                                        buf,
+                                        maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** Write/Commit totals for journal blocks */
-       result = write_CommitStatistics("blocks : ",
-                                       &stats->blocks,
-                                       ", ",
-                                       buf,
-                                       maxlen);
+       result = write_commit_statistics("blocks : ",
+                                        &stats->blocks,
+                                        ", ",
+                                        buf,
+                                        maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
@@ -906,11 +906,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** Counters for events in the recovery journal */
-       result = write_RecoveryJournalStatistics("journal : ",
-                                                &stats->journal,
-                                                ", ",
-                                                buf,
-                                                maxlen);
+       result = write_recovery_journal_statistics("journal : ",
+                                                  &stats->journal,
+                                                  ", ",
+                                                  buf,
+                                                  maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

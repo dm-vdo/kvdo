@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#14 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -405,7 +405,7 @@ get_journal_logical_blocks_used(const struct recovery_journal *journal)
  *
  * @return a copy of the current statistics for the journal
  **/
-RecoveryJournalStatistics
+struct recovery_journal_statistics
 get_recovery_journal_statistics(const struct recovery_journal *journal)
 	__attribute__((warn_unused_result));
 

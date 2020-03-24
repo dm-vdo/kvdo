@@ -43,26 +43,26 @@ struct block_allocator_statistics {
  * unacknowledged writes to be derived, while still tracking totals for
  * reporting purposes
  **/
-typedef struct {
+struct commit_statistics {
   /** The total number of items on which processing has started */
   uint64_t started;
   /** The total number of items for which a write operation has been issued */
   uint64_t written;
   /** The total number of items for which a write operation has completed */
   uint64_t committed;
-} CommitStatistics;
+};
 
 /** Counters for events in the recovery journal */
-typedef struct {
+struct recovery_journal_statistics {
   /** Number of times the on-disk journal was full */
   uint64_t diskFull;
   /** Number of times the recovery journal requested slab journal commits. */
   uint64_t slabJournalCommitsRequested;
   /** Write/Commit totals for individual journal entries */
-  CommitStatistics entries;
+  struct commit_statistics entries;
   /** Write/Commit totals for journal blocks */
-  CommitStatistics blocks;
-} RecoveryJournalStatistics;
+  struct commit_statistics blocks;
+};
 
 /** The statistics for the compressed block packer. */
 typedef struct {
@@ -201,7 +201,7 @@ struct vdoStatistics {
   /** Counters for events in the block allocator */
   struct block_allocator_statistics allocator;
   /** Counters for events in the recovery journal */
-  RecoveryJournalStatistics journal;
+  struct recovery_journal_statistics journal;
   /** The statistics for the slab journals */
   SlabJournalStatistics slabJournal;
   /** The statistics for the slab summary */
