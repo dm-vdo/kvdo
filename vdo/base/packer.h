@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.h#8 $
  */
 
 #ifndef PACKER_H
@@ -85,7 +85,7 @@ ThreadID get_packer_thread_id(struct packer *packer);
  *
  * @return a copy of the current statistics for the packer
  **/
-PackerStatistics get_packer_statistics(const struct packer *packer)
+struct packer_statistics get_packer_statistics(const struct packer *packer)
 	__attribute__((warn_unused_result));
 
 /**

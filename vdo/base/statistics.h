@@ -65,14 +65,14 @@ struct recovery_journal_statistics {
 };
 
 /** The statistics for the compressed block packer. */
-typedef struct {
+struct packer_statistics {
   /** Number of compressed data items written since startup */
   uint64_t compressedFragmentsWritten;
   /** Number of blocks containing compressed items written since startup */
   uint64_t compressedBlocksWritten;
   /** Number of VIOs that are pending in the packer */
   uint64_t compressedFragmentsInPacker;
-} PackerStatistics;
+};
 
 /** The statistics for the slab journals. */
 typedef struct {
@@ -197,7 +197,7 @@ struct vdoStatistics {
   /** What percentage of recovery mode work has been completed */
   uint8_t recoveryPercentage;
   /** The statistics for the compressed block packer */
-  PackerStatistics packer;
+  struct packer_statistics packer;
   /** Counters for events in the block allocator */
   struct block_allocator_statistics allocator;
   /** Counters for events in the recovery journal */

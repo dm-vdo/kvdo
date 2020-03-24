@@ -285,11 +285,11 @@ int write_recovery_journal_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_PackerStatistics(char *prefix,
-                           PackerStatistics *stats,
-                           char *suffix,
-                           char **buf,
-                           unsigned int *maxlen)
+int write_packer_statistics(char *prefix,
+                            struct packer_statistics *stats,
+                            char *suffix,
+                            char **buf,
+                            unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -888,11 +888,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** The statistics for the compressed block packer */
-       result = write_PackerStatistics("packer : ",
-                                       &stats->packer,
-                                       ", ",
-                                       buf,
-                                       maxlen);
+       result = write_packer_statistics("packer : ",
+                                        &stats->packer,
+                                        ", ",
+                                        buf,
+                                        maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#34 $
  */
 
 #include "packerInternals.h"
@@ -330,14 +330,14 @@ ThreadID get_packer_thread_id(struct packer *packer)
 }
 
 /**********************************************************************/
-PackerStatistics get_packer_statistics(const struct packer *packer)
+struct packer_statistics get_packer_statistics(const struct packer *packer)
 {
 	/*
 	 * This is called from getVDOStatistics(), which is called from outside
 	 * the packer thread. These are just statistics with no semantics that
 	 * could rely on memory order, so unfenced reads are sufficient.
 	 */
-	return (PackerStatistics) {
+	return (struct packer_statistics) {
 		.compressedFragmentsWritten =
 			relaxedLoad64(&packer->fragments_written),
 		.compressedBlocksWritten =
