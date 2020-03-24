@@ -976,12 +976,12 @@ int write_vdoStatistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_vdo_statistics(struct kernel_layer *layer,
-                          char *buf,
-                          unsigned int maxlen)
+int write_vdo_stats(struct kernel_layer *layer,
+                     char *buf,
+                     unsigned int maxlen)
 {
-       VDOStatistics *stats;
-       int result = ALLOCATE(1, VDOStatistics, __func__, &stats);
+       struct vdoStatistics *stats;
+       int result = ALLOCATE(1, struct vdoStatistics, __func__, &stats);
        if (result != VDO_SUCCESS) {
               return result;
        }
@@ -1191,11 +1191,11 @@ int write_index_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_KernelStatistics(char *prefix,
-                           KernelStatistics *stats,
-                           char *suffix,
-                           char **buf,
-                           unsigned int *maxlen)
+int write_kernel_statistics(char *prefix,
+                            struct kernel_statistics *stats,
+                            char *suffix,
+                            char **buf,
+                            unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -1405,18 +1405,18 @@ int write_KernelStatistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_kernel_statistics(struct kernel_layer *layer,
-                             char *buf,
-                             unsigned int maxlen)
+int write_kernel_stats(struct kernel_layer *layer,
+                        char *buf,
+                        unsigned int maxlen)
 {
-       KernelStatistics *stats;
-       int result = ALLOCATE(1, KernelStatistics, __func__, &stats);
+       struct kernel_statistics *stats;
+       int result = ALLOCATE(1, struct kernel_statistics, __func__, &stats);
        if (result != VDO_SUCCESS) {
               return result;
        }
 
        get_kernel_statistics(layer, stats);
-       result = write_KernelStatistics(NULL, stats, NULL, &buf, &maxlen);
+       result = write_kernel_statistics(NULL, stats, NULL, &buf, &maxlen);
        FREE(stats);
        return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#42 $
  */
 
 #include "dmvdo.h"
@@ -461,14 +461,14 @@ static int vdo_message(struct dm_target *ti,
 	// and see if it is full or not.
 	if (argc == 1) {
 		if (strcasecmp(argv[0], "dedupe_stats") == 0) {
-			write_vdo_statistics(layer, result_buffer, maxlen);
+			write_vdo_stats(layer, result_buffer, maxlen);
 			unregister_thread_device_id();
 			unregisterAllocatingThread();
 			return 1;
 		}
 
 		if (strcasecmp(argv[0], "kernel_stats") == 0) {
-			write_kernel_statistics(layer, result_buffer, maxlen);
+			write_kernel_stats(layer, result_buffer, maxlen);
 			unregister_thread_device_id();
 			unregisterAllocatingThread();
 			return 1;

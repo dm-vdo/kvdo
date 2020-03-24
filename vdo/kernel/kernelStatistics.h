@@ -65,7 +65,7 @@ struct index_statistics {
   uint32_t maxDedupeQueries;
 };
 
-typedef struct {
+struct kernel_statistics {
   uint32_t version;
   uint32_t releaseVersion;
   /** The VDO instance */
@@ -101,6 +101,6 @@ typedef struct {
   struct memory_usage memoryUsage;
   /** The statistics for the UDS index */
   struct index_statistics index;
-} KernelStatistics;
+};
 
 #endif /* not KERNEL_STATISTICS_H */
