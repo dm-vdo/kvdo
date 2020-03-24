@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#54 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -997,12 +997,12 @@ void allocate_from_allocator_last_slab(struct block_allocator *allocator)
 }
 
 /**********************************************************************/
-BlockAllocatorStatistics
+struct block_allocator_statistics
 get_block_allocator_statistics(const struct block_allocator *allocator)
 {
 	const struct atomic_allocator_statistics *atoms =
 		&allocator->statistics;
-	return (BlockAllocatorStatistics) {
+	return (struct block_allocator_statistics) {
 		.slabCount = allocator->slab_count,
 		.slabsOpened = relaxedLoad64(&atoms->slabsOpened),
 		.slabsReopened = relaxedLoad64(&atoms->slabsReopened),

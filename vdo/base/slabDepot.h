@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#22 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -280,7 +280,7 @@ BlockCount get_depot_allocated_blocks(const struct slab_depot *depot)
  *
  * @return The statistics from all block allocators in the depot
  **/
-BlockAllocatorStatistics
+struct block_allocator_statistics
 get_depot_block_allocator_statistics(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 

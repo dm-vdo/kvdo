@@ -141,11 +141,11 @@ int write_uint8_t(char *prefix,
 }
 
 /**********************************************************************/
-int write_BlockAllocatorStatistics(char *prefix,
-                                   BlockAllocatorStatistics *stats,
-                                   char *suffix,
-                                   char **buf,
-                                   unsigned int *maxlen)
+int write_block_allocator_statistics(char *prefix,
+                                     struct block_allocator_statistics *stats,
+                                     char *suffix,
+                                     char **buf,
+                                     unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -897,11 +897,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** Counters for events in the block allocator */
-       result = write_BlockAllocatorStatistics("allocator : ",
-                                               &stats->allocator,
-                                               ", ",
-                                               buf,
-                                               maxlen);
+       result = write_block_allocator_statistics("allocator : ",
+                                                 &stats->allocator,
+                                                 ", ",
+                                                 buf,
+                                                 maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

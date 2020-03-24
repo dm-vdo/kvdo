@@ -27,14 +27,14 @@ enum {
   STATISTICS_VERSION = 31,
 };
 
-typedef struct {
+struct block_allocator_statistics {
   /** The total number of slabs from which blocks may be allocated */
   uint64_t slabCount;
   /** The total number of slabs from which blocks have ever been allocated */
   uint64_t slabsOpened;
   /** The number of times since loading that a slab has been re-opened */
   uint64_t slabsReopened;
-} BlockAllocatorStatistics;
+};
 
 /**
  * Counters for tracking the number of items written (blocks, requests, etc.)
@@ -199,7 +199,7 @@ struct vdoStatistics {
   /** The statistics for the compressed block packer */
   PackerStatistics packer;
   /** Counters for events in the block allocator */
-  BlockAllocatorStatistics allocator;
+  struct block_allocator_statistics allocator;
   /** Counters for events in the recovery journal */
   RecoveryJournalStatistics journal;
   /** The statistics for the slab journals */

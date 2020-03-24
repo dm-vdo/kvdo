@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#45 $
  */
 
 #include "slabDepot.h"
@@ -1201,16 +1201,16 @@ void allocate_from_last_slab(struct slab_depot *depot)
 }
 
 /**********************************************************************/
-BlockAllocatorStatistics
+struct block_allocator_statistics
 get_depot_block_allocator_statistics(const struct slab_depot *depot)
 {
-	BlockAllocatorStatistics totals;
+	struct block_allocator_statistics totals;
 	memset(&totals, 0, sizeof(totals));
 
 	ZoneCount zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
 		struct block_allocator *allocator = depot->allocators[zone];
-		BlockAllocatorStatistics stats =
+		struct block_allocator_statistics stats =
 			get_block_allocator_statistics(allocator);
 		totals.slabCount += stats.slabCount;
 		totals.slabsOpened += stats.slabsOpened;
