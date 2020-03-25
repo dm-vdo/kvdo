@@ -75,7 +75,7 @@ struct packer_statistics {
 };
 
 /** The statistics for the slab journals. */
-typedef struct {
+struct slab_journal_statistics {
   /** Number of times the on-disk journal was full */
   uint64_t diskFullCount;
   /** Number of times an entry was added over the flush threshold */
@@ -86,7 +86,7 @@ typedef struct {
   uint64_t blocksWritten;
   /** Number of times we had to wait for the tail to write */
   uint64_t tailBusyCount;
-} SlabJournalStatistics;
+};
 
 /** The statistics for the slab summary. */
 typedef struct {
@@ -203,7 +203,7 @@ struct vdoStatistics {
   /** Counters for events in the recovery journal */
   struct recovery_journal_statistics journal;
   /** The statistics for the slab journals */
-  SlabJournalStatistics slabJournal;
+  struct slab_journal_statistics slabJournal;
   /** The statistics for the slab summary */
   SlabSummaryStatistics slabSummary;
   /** The statistics for the reference counts */

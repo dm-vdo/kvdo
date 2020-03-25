@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#23 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -336,7 +336,7 @@ SlabCount get_depot_unrecovered_slab_count(const struct slab_depot *depot)
  *
  * @return The aggregated statistics for all slab journals in the depot
  **/
-SlabJournalStatistics
+struct slab_journal_statistics
 get_depot_slab_journal_statistics(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 

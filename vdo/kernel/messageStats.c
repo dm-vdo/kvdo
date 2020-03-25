@@ -330,11 +330,11 @@ int write_packer_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_SlabJournalStatistics(char *prefix,
-                                SlabJournalStatistics *stats,
-                                char *suffix,
-                                char **buf,
-                                unsigned int *maxlen)
+int write_slab_journal_statistics(char *prefix,
+                                  struct slab_journal_statistics *stats,
+                                  char *suffix,
+                                  char **buf,
+                                  unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -915,11 +915,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** The statistics for the slab journals */
-       result = write_SlabJournalStatistics("slabJournal : ",
-                                            &stats->slabJournal,
-                                            ", ",
-                                            buf,
-                                            maxlen);
+       result = write_slab_journal_statistics("slabJournal : ",
+                                              &stats->slabJournal,
+                                              ", ",
+                                              buf,
+                                              maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
