@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#44 $
  */
 
 #include "recoveryJournal.h"
@@ -136,12 +136,11 @@ static void assert_on_journal_thread(struct recovery_journal *journal,
  **/
 static void continue_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
-	dataVIOAddTraceRecord(data_vio,
-			      THIS_LOCATION("$F($j-$js);"
-					    "cb=continueJournalWaiter($j-$js)"));
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+	data_vio_add_trace_record(data_vio,
+			          THIS_LOCATION("$F($j-$js);cb=continueJournalWaiter($j-$js)"));
 	int wait_result = *((int *)context);
-	continueDataVIO(data_vio, wait_result);
+	continue_data_vio(data_vio, wait_result);
 }
 
 /**
@@ -468,11 +467,13 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 				     &block->ring_node);
 		}
 
-		result = make_lock_counter(
-			layer, journal, reap_recovery_journal_callback,
-			journal->thread_id, thread_config->logicalZoneCount,
-			thread_config->physicalZoneCount, journal->size,
-			&journal->lock_counter);
+		result = make_lock_counter(layer, journal,
+					   reap_recovery_journal_callback,
+					   journal->thread_id,
+					   thread_config->logicalZoneCount,
+					   thread_config->physicalZoneCount,
+					   journal->size,
+					   &journal->lock_counter);
 		if (result != VDO_SUCCESS) {
 			free_recovery_journal(&journal);
 			return result;
@@ -889,7 +890,7 @@ static void release_journal_block_reference(struct recovery_journal_block *block
  **/
 static void assign_entry(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal_block *block =
 		(struct recovery_journal_block *)context;
 	struct recovery_journal *journal = block->journal;
@@ -930,7 +931,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 		logError("Invalid journal operation %u",
 			 data_vio->operation.type);
 		enter_journal_read_only_mode(journal, VDO_NOT_IMPLEMENTED);
-		continueDataVIO(data_vio, VDO_NOT_IMPLEMENTED);
+		continue_data_vio(data_vio, VDO_NOT_IMPLEMENTED);
 		return;
 	}
 
@@ -938,7 +939,7 @@ static void assign_entry(struct waiter *waiter, void *context)
 	int result = enqueue_recovery_block_entry(block, data_vio);
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
-		continueDataVIO(data_vio, result);
+		continue_data_vio(data_vio, result);
 	}
 
 	if (is_recovery_block_full(block)) {
@@ -1022,7 +1023,7 @@ static void recycle_journal_block(struct recovery_journal_block *block)
  **/
 static void continue_committed_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct recovery_journal *journal = (struct recovery_journal *)context;
 	ASSERT_LOG_ONLY(before_journal_point(&journal->commit_point,
 					     &data_vio->recoveryJournalPoint),
@@ -1204,12 +1205,12 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 {
 	assert_on_journal_thread(journal, __func__);
 	if (!is_normal(&journal->state)) {
-		continueDataVIO(data_vio, VDO_INVALID_ADMIN_STATE);
+		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
 
 	if (is_read_only(journal->read_only_notifier)) {
-		continueDataVIO(data_vio, VDO_READ_ONLY);
+		continue_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
 
@@ -1218,13 +1219,13 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
 			"journal lock not held for increment");
 
 	advance_journal_point(&journal->append_point, journal->entries_per_block);
-	int result = enqueueDataVIO((increment ? &journal->increment_waiters
-				     : &journal->decrement_waiters),
-				    data_vio,
-				    THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
+	int result = enqueue_data_vio((increment ? &journal->increment_waiters
+				     	: &journal->decrement_waiters),
+				      data_vio,
+				      THIS_LOCATION("$F($j-$js);io=journal($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		enter_journal_read_only_mode(journal, result);
-		continueDataVIO(data_vio, result);
+		continue_data_vio(data_vio, result);
 		return;
 	}
 

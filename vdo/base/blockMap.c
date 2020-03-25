@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#46 $
  */
 
 #include "blockMap.h"
@@ -522,7 +522,7 @@ void initialize_block_map_from_journal(struct block_map *map,
 /**********************************************************************/
 ZoneCount compute_logical_zone(struct data_vio *data_vio)
 {
-	struct block_map *map = getBlockMap(getVDOFromDataVIO(data_vio));
+	struct block_map *map = getBlockMap(get_vdo_from_data_vio(data_vio));
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 	PageNumber page_number = compute_page_number(data_vio->logical.lbn);
 	tree_lock->treeSlots[0].pageIndex = page_number;
@@ -535,9 +535,9 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 			       vdo_action *callback,
 			       ThreadID thread_id)
 {
-	struct block_map *map = getBlockMap(getVDOFromDataVIO(data_vio));
+	struct block_map *map = getBlockMap(get_vdo_from_data_vio(data_vio));
 	if (data_vio->logical.lbn >= map->entry_count) {
-		finishDataVIO(data_vio, VDO_OUT_OF_RANGE);
+		finish_data_vio(data_vio, VDO_OUT_OF_RANGE);
 		return;
 	}
 
@@ -547,7 +547,7 @@ void find_block_map_slot_async(struct data_vio *data_vio,
 	if (slot->pageIndex < map->flat_page_count) {
 		slot->blockMapSlot.pbn =
 			slot->pageIndex + BLOCK_MAP_FLAT_PAGE_ORIGIN;
-		launch_callback(dataVIOAsCompletion(data_vio),
+		launch_callback(data_vio_as_completion(data_vio),
 			        callback,
 			        thread_id);
 		return;
@@ -751,7 +751,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 	struct block_map_zone *zone =
 		get_block_map_for_zone(data_vio->logical.zone);
 	if (is_draining(&zone->state)) {
-		finishDataVIO(data_vio, VDO_SHUTTING_DOWN);
+		finish_data_vio(data_vio, VDO_SHUTTING_DOWN);
 		return;
 	}
 
@@ -759,7 +759,7 @@ setup_mapped_block(struct data_vio *data_vio, bool modifiable,
 				 zone->page_cache,
 				 data_vio->treeLock.treeSlots[0].blockMapSlot.pbn,
 				 modifiable,
-				 dataVIOAsCompletion(data_vio),
+				 data_vio_as_completion(data_vio),
 				 action,
 				 handle_page_error);
 	get_vdo_page_async(&data_vio->pageCompletion.completion);
@@ -783,7 +783,7 @@ set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
 
 	if (is_valid_location(&mapped)) {
 		int result =
-			setMappedLocation(data_vio, mapped.pbn, mapped.state);
+			set_mapped_location(data_vio, mapped.pbn, mapped.state);
 		/*
 		 * Return success and all errors not specifically known to be
 		 * errors from validating the location. Yes, this expression is
@@ -804,13 +804,13 @@ set_mapped_entry(struct data_vio *data_vio, const block_map_entry *entry)
 
 	// A read VIO has no option but to report the bad mapping--reading
 	// zeros would be hiding known data loss.
-	if (isReadDataVIO(data_vio)) {
+	if (is_read_data_vio(data_vio)) {
 		return VDO_BAD_MAPPING;
 	}
 
 	// A write VIO only reads this mapping to decref the old block. Treat
 	// this as an unmapped entry rather than fail the write.
-	clearMappedLocation(data_vio);
+	clear_mapped_location(data_vio);
 	return VDO_SUCCESS;
 }
 
@@ -832,7 +832,7 @@ static void get_mapping_from_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	struct data_vio *data_vio = asDataVIO(completion->parent);
+	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_tree_slot *tree_slot =
 		&data_vio->treeLock.treeSlots[0];
 	const block_map_entry *entry =
@@ -859,7 +859,7 @@ static void put_mapping_in_fetched_page(struct vdo_completion *completion)
 		return;
 	}
 
-	struct data_vio *data_vio = asDataVIO(completion->parent);
+	struct data_vio *data_vio = as_data_vio(completion->parent);
 	struct block_map_page_context *context =
 		get_vdo_page_completion_context(completion);
 	SequenceNumber oldLock = context->recovery_lock;
@@ -879,8 +879,8 @@ void get_mapped_block_async(struct data_vio *data_vio)
 	if (data_vio->treeLock.treeSlots[0].blockMapSlot.pbn == ZERO_BLOCK) {
 		// We know that the block map page for this LBN has not been
 		// allocated, so the block must be unmapped.
-		clearMappedLocation(data_vio);
-		continueDataVIO(data_vio, VDO_SUCCESS);
+		clear_mapped_location(data_vio);
+		continue_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
 

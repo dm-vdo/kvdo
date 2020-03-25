@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#24 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -156,8 +156,8 @@ int enqueue_recovery_block_entry(struct recovery_journal_block *block,
 	bool new_batch = !has_waiters(&block->entry_waiters);
 
 	// Enqueue the data_vio to wait for its entry to commit.
-	int result = enqueueDataVIO(&block->entry_waiters, data_vio,
-				    THIS_LOCATION("$F($j-$js)"));
+	int result = enqueue_data_vio(&block->entry_waiters, data_vio,
+				      THIS_LOCATION("$F($j-$js)"));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -200,7 +200,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 {
 	while (has_waiters(&block->entry_waiters)) {
 		struct data_vio *data_vio =
-			waiterAsDataVIO(dequeue_next_waiter(&block->entry_waiters));
+			waiter_as_data_vio(dequeue_next_waiter(&block->entry_waiters));
 		if (data_vio->operation.type == DATA_INCREMENT) {
 			// In order to not lose committed sectors of this
 			// partial write, we must flush before the partial write
@@ -214,8 +214,9 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			 * write and also all previous journal writes, and we
 			 * must issue a FUA on the journal write.
 			 */
-			block->has_fua_entry = (block->has_fua_entry
-						|| vioRequiresFlushAfter(dataVIOAsVIO(data_vio)));
+			block->has_fua_entry =
+				(block->has_fua_entry ||
+				  vioRequiresFlushAfter(data_vio_as_vio(data_vio)));
 		}
 
 		// Compose and encode the entry.
@@ -239,10 +240,10 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 		}
 
 		// Enqueue the data_vio to wait for its entry to commit.
-		int result = enqueueDataVIO(&block->commit_waiters, data_vio,
-					    THIS_LOCATION("$F($j-$js)"));
+		int result = enqueue_data_vio(&block->commit_waiters, data_vio,
+					      THIS_LOCATION("$F($j-$js)"));
 		if (result != VDO_SUCCESS) {
-			continueDataVIO(data_vio, result);
+			continue_data_vio(data_vio, result);
 			return result;
 		}
 

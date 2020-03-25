@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#53 $
  */
 
 #include "blockMapTree.h"
@@ -638,7 +638,7 @@ static void finish_lookup(struct data_vio *data_vio, int result)
 	struct block_map_tree_zone *zone = get_block_map_tree_zone(data_vio);
 	--zone->active_lookups;
 
-	struct vdo_completion *completion = dataVIOAsCompletion(data_vio);
+	struct vdo_completion *completion = data_vio_as_completion(data_vio);
 	set_completion_result(completion, result);
 	launch_callback(completion, data_vio->treeLock.callback,
 		        data_vio->treeLock.threadID);
@@ -653,9 +653,9 @@ static void finish_lookup(struct data_vio *data_vio, int result)
  **/
 static void abort_lookup_for_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	int result = *((int *) context);
-	if (isReadDataVIO(data_vio)) {
+	if (is_read_data_vio(data_vio)) {
 		if (result == VDO_NO_SPACE) {
 			result = VDO_SUCCESS;
 		}
@@ -748,8 +748,8 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
 	struct block_map_tree_slot slot = lock->treeSlots[lock->height];
 	struct data_location mapping =
 		unpack_block_map_entry(&page->entries[slot.blockMapSlot.slot]);
-	if (is_invalid_tree_entry(getVDOFromDataVIO(data_vio), &mapping,
-			       lock->height)) {
+	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
+			          lock->height)) {
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",
 					mapping.pbn, mapping.state,
@@ -785,7 +785,7 @@ static void continue_with_loaded_page(struct data_vio *data_vio,
  **/
 static void continue_load_for_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	data_vio->treeLock.height--;
 	continue_with_loaded_page(data_vio, (struct block_map_page *) context);
 }
@@ -848,7 +848,7 @@ static void handle_io_error(struct vdo_completion *completion)
 static void load_page(struct waiter *waiter, void *context)
 {
 	struct vio_pool_entry *entry = context;
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 
 	entry->parent = data_vio;
 	entry->vio->completion.callbackThreadID =
@@ -900,8 +900,8 @@ static int attempt_page_lock(struct block_map_tree_zone *zone,
 	}
 
 	// Someone else is loading or allocating the page we need
-	return enqueueDataVIO(&lock_holder->waiters, data_vio,
-			      THIS_LOCATION("$F;cb=blockMapTreePage"));
+	return enqueue_data_vio(&lock_holder->waiters, data_vio,
+			        THIS_LOCATION("$F;cb=blockMapTreePage"));
 }
 
 /**
@@ -920,7 +920,7 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
 	}
 
 	if (data_vio->treeLock.locked) {
-		struct waiter *waiter = dataVIOAsWaiter(data_vio);
+		struct waiter *waiter = data_vio_as_waiter(data_vio);
 		waiter->callback = load_page;
 		result = acquire_vio_from_pool(zone->vio_pool, waiter);
 		if (result != VDO_SUCCESS) {
@@ -936,7 +936,8 @@ static void load_block_map_page(struct block_map_tree_zone *zone,
  **/
 static void set_post_allocation_callback(struct data_vio *data_vio)
 {
-	set_callback(dataVIOAsCompletion(data_vio), data_vio->treeLock.callback,
+	set_callback(data_vio_as_completion(data_vio),
+		     data_vio->treeLock.callback,
 		     data_vio->treeLock.threadID);
 }
 
@@ -961,8 +962,8 @@ static void abort_allocation(struct data_vio *data_vio, int result)
  **/
 static void allocation_failure(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
 	abort_allocation(data_vio, completion->result);
 }
 
@@ -975,7 +976,7 @@ static void allocation_failure(struct vdo_completion *completion)
  **/
 static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct tree_lock *tree_lock = &data_vio->treeLock;
 	PhysicalBlockNumber pbn = *((PhysicalBlockNumber *) context);
 
@@ -999,8 +1000,8 @@ static void continue_allocation_for_waiter(struct waiter *waiter, void *context)
  **/
 static void finish_block_map_allocation(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
 		allocation_failure(completion);
 		return;
@@ -1069,20 +1070,20 @@ static void finish_block_map_allocation(struct vdo_completion *completion)
  **/
 static void release_block_map_write_lock(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	struct allocating_vio *allocating_vio =
-		dataVIOAsAllocatingVIO(data_vio);
-	assertInAllocatedZone(data_vio);
+		data_vio_as_allocating_vio(data_vio);
+	assert_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launchLogicalCallback(data_vio, allocation_failure,
-				      THIS_LOCATION(NULL));
+		launch_logical_callback(data_vio, allocation_failure,
+				        THIS_LOCATION(NULL));
 		return;
 	}
 
 	release_allocation_lock(allocating_vio);
 	reset_allocation(allocating_vio);
-	launchLogicalCallback(data_vio, finish_block_map_allocation,
-			      THIS_LOCATION("$F;cb=finish_block_map_allocation"));
+	launch_logical_callback(data_vio, finish_block_map_allocation,
+			        THIS_LOCATION("$F;cb=finish_block_map_allocation"));
 }
 
 /**
@@ -1096,11 +1097,11 @@ static void release_block_map_write_lock(struct vdo_completion *completion)
 static void
 set_block_map_page_reference_count(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInAllocatedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_allocated_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launchLogicalCallback(data_vio, allocation_failure,
-				      THIS_LOCATION(NULL));
+		launch_logical_callback(data_vio, allocation_failure,
+				        THIS_LOCATION(NULL));
 		return;
 	}
 
@@ -1108,7 +1109,7 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
 	PhysicalBlockNumber pbn =
 		lock->treeSlots[lock->height - 1].blockMapSlot.pbn;
 	completion->callback = release_block_map_write_lock;
-	add_slab_journal_entry(get_slab_journal(getVDOFromDataVIO(data_vio)->depot,
+	add_slab_journal_entry(get_slab_journal(get_vdo_from_data_vio(data_vio)->depot,
 						pbn),
 			       data_vio);
 }
@@ -1121,17 +1122,17 @@ set_block_map_page_reference_count(struct vdo_completion *completion)
  **/
 static void journal_block_map_allocation(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (completion->result != VDO_SUCCESS) {
-		launchLogicalCallback(data_vio, allocation_failure,
-				      THIS_LOCATION(NULL));
+		launch_logical_callback(data_vio, allocation_failure,
+				        THIS_LOCATION(NULL));
 		return;
 	}
 
-	setAllocatedZoneCallback(data_vio, set_block_map_page_reference_count,
-				 THIS_LOCATION(NULL));
-	add_recovery_journal_entry(getVDOFromDataVIO(data_vio)->recoveryJournal,
+	set_allocated_zone_callback(data_vio, set_block_map_page_reference_count,
+				    THIS_LOCATION(NULL));
+	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recoveryJournal,
 				   data_vio);
 }
 
@@ -1145,11 +1146,11 @@ static void journal_block_map_allocation(struct vdo_completion *completion)
 static void
 continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 {
-	struct data_vio *data_vio = allocatingVIOAsDataVIO(allocating_vio);
-	if (!hasAllocation(data_vio)) {
-		setLogicalCallback(data_vio, allocation_failure,
-				   THIS_LOCATION(NULL));
-		continueDataVIO(data_vio, VDO_NO_SPACE);
+	struct data_vio *data_vio = allocating_vio_as_data_vio(allocating_vio);
+	if (!has_allocation(data_vio)) {
+		set_logical_callback(data_vio, allocation_failure,
+				     THIS_LOCATION(NULL));
+		continue_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
 
@@ -1161,8 +1162,8 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 					     MAPPING_STATE_UNCOMPRESSED,
 					     allocating_vio->allocation_lock,
 					     &data_vio->operation);
-	launchJournalCallback(data_vio, journal_block_map_allocation,
-			      THIS_LOCATION("$F;cb=journal_block_map_allocation"));
+	launch_journal_callback(data_vio, journal_block_map_allocation,
+			        THIS_LOCATION("$F;cb=journal_block_map_allocation"));
 }
 
 /**
@@ -1174,7 +1175,7 @@ continue_block_map_page_allocation(struct allocating_vio *allocating_vio)
 static void allocate_block_map_page(struct block_map_tree_zone *zone,
 				    struct data_vio *data_vio)
 {
-	if (!isWriteDataVIO(data_vio) || isTrimDataVIO(data_vio)) {
+	if (!is_write_data_vio(data_vio) || is_trim_data_vio(data_vio)) {
 		// This is a pure read, the read phase of a read-modify-write,
 		// or a trim, so there's nothing left to do here.
 		finish_lookup(data_vio, VDO_SUCCESS);
@@ -1191,7 +1192,7 @@ static void allocate_block_map_page(struct block_map_tree_zone *zone,
 		return;
 	}
 
-	allocate_data_block(dataVIOAsAllocatingVIO(data_vio),
+	allocate_data_block(data_vio_as_allocating_vio(data_vio),
 			    get_allocation_selector(data_vio->logical.zone),
 			    VIO_BLOCK_MAP_WRITE_LOCK,
 			    continue_block_map_page_allocation);
@@ -1240,7 +1241,7 @@ void lookup_block_map_pbn(struct data_vio *data_vio)
 	// The page at this height has been allocated and loaded.
 	struct data_location mapping =
 		unpack_block_map_entry(&page->entries[tree_slot.blockMapSlot.slot]);
-	if (is_invalid_tree_entry(getVDOFromDataVIO(data_vio), &mapping,
+	if (is_invalid_tree_entry(get_vdo_from_data_vio(data_vio), &mapping,
 				  lock->height)) {
 		logErrorWithStringError(VDO_BAD_MAPPING,
 					"Invalid block map tree PBN: %llu with state %u for page index %u at height %u",

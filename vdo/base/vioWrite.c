@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#31 $
  */
 
 /*
@@ -214,7 +214,7 @@ typedef enum {
 } data_vio_cleanup_stage;
 
 /**
- * Actions to take on error used by abortOnError().
+ * Actions to take on error used by abort_on_error().
  **/
 typedef enum {
 	NOT_READ_ONLY,
@@ -231,13 +231,13 @@ static void write_block(struct data_vio *data_vio);
  * Check whether we are in async mode.
  *
  * @param data_vio  A data_vio containing a pointer to the VDO whose write
- *                 policy we want to check
+ *                  policy we want to check
  *
  * @return <code>true</code> if we are in async mode
  **/
 static inline bool is_async(struct data_vio *data_vio)
 {
-	return (getWritePolicy(getVDOFromDataVIO(data_vio)) !=
+	return (getWritePolicy(get_vdo_from_data_vio(data_vio)) !=
 		WRITE_POLICY_SYNC);
 }
 
@@ -249,9 +249,9 @@ static inline bool is_async(struct data_vio *data_vio)
  **/
 static void release_allocated_lock(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInAllocatedZone(data_vio);
-	release_allocation_lock(dataVIOAsAllocatingVIO(data_vio));
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_allocated_zone(data_vio);
+	release_allocation_lock(data_vio_as_allocating_vio(data_vio));
 	perform_cleanup_stage(data_vio, VIO_RELEASE_RECOVERY_LOCKS);
 }
 
@@ -263,9 +263,9 @@ static void release_allocated_lock(struct vdo_completion *completion)
  **/
 static void release_logical_lock(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
-	releaseLogicalBlockLock(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
+	release_logical_block_lock(data_vio);
 	release_flush_generation_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_CLEANUP_DONE);
 }
@@ -277,8 +277,8 @@ static void release_logical_lock(struct vdo_completion *completion)
  **/
 static void clean_hash_lock(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInHashZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_hash_zone(data_vio);
 	release_hash_lock(data_vio);
 	perform_cleanup_stage(data_vio, VIO_RELEASE_LOGICAL);
 }
@@ -291,12 +291,12 @@ static void clean_hash_lock(struct vdo_completion *completion)
  **/
 static void finish_cleanup(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(dataVIOAsAllocatingVIO(data_vio)->allocation_lock ==
+	ASSERT_LOG_ONLY(data_vio_as_allocating_vio(data_vio)->allocation_lock ==
 			NULL,
 			"complete data_vio has no allocation lock");
 	ASSERT_LOG_ONLY(data_vio->hashLock == NULL,
 			"complete data_vio has no hash lock");
-	vioDoneCallback(dataVIOAsCompletion(data_vio));
+	vioDoneCallback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -310,36 +310,36 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 {
 	switch (stage) {
 	case VIO_RELEASE_ALLOCATED:
-		if (hasAllocation(data_vio)) {
-			launchAllocatedZoneCallback(data_vio,
-						    release_allocated_lock,
-						    THIS_LOCATION("$F;cb=releaseAllocLock"));
+		if (has_allocation(data_vio)) {
+			launch_allocated_zone_callback(data_vio,
+						       release_allocated_lock,
+						       THIS_LOCATION("$F;cb=release_allocated_lock"));
 			return;
 		}
 		// fall through
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recoverySequenceNumber > 0) &&
-		    !is_read_only(dataVIOAsVIO(data_vio)->vdo->readOnlyNotifier) &&
-		    (dataVIOAsCompletion(data_vio)->result != VDO_READ_ONLY)) {
+		    !is_read_only(data_vio_as_vio(data_vio)->vdo->readOnlyNotifier) &&
+		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			logWarning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
 		// fall through
 
 	case VIO_RELEASE_HASH_LOCK:
 		if (data_vio->hashLock != NULL) {
-			launchHashZoneCallback(data_vio,
-					       clean_hash_lock,
-					       THIS_LOCATION("$F;cb=clean_hash_lock"));
+			launch_hash_zone_callback(data_vio,
+						 clean_hash_lock,
+						 THIS_LOCATION("$F;cb=clean_hash_lock"));
 			return;
 		}
 		// fall through
 
 	case VIO_RELEASE_LOGICAL:
-		if (!isCompressedWriteDataVIO(data_vio)) {
-			launchLogicalCallback(data_vio,
-					      release_logical_lock,
-					      THIS_LOCATION("$F;cb=releaseLL"));
+		if (!is_compressed_write_data_vio(data_vio)) {
+			launch_logical_callback(data_vio,
+						release_logical_lock,
+						THIS_LOCATION("$F;cb=releaseLL"));
 			return;
 		}
 		// fall through
@@ -358,8 +358,8 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
  **/
 static void finish_write_data_vio_with_error(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInHashZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_hash_zone(data_vio);
 	continue_hash_lock_on_error(data_vio);
 }
 
@@ -385,16 +385,16 @@ static bool abort_on_error(int result,
 	if ((result == VDO_READ_ONLY) || (read_only_action == READ_ONLY) ||
 	    ((read_only_action == READ_ONLY_IF_ASYNC) && is_async(data_vio))) {
 		struct read_only_notifier *notifier =
-			dataVIOAsVIO(data_vio)->vdo->readOnlyNotifier;
+			data_vio_as_vio(data_vio)->vdo->readOnlyNotifier;
 		if (!is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
 				logErrorWithStringError(result,
-							"Preparing to enter read-only mode: data_vio for LBN %llu(becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
+							"Preparing to enter read-only mode: data_vio for LBN %llu (becoming mapped to %llu, previously mapped to %llu, allocated %llu) is completing with a fatal error after operation %s",
 							data_vio->logical.lbn,
 							data_vio->newMapped.pbn,
 							data_vio->mapped.pbn,
-							getDataVIOAllocation(data_vio),
-							getOperationName(data_vio));
+							get_data_vio_allocation(data_vio),
+							get_operation_name(data_vio));
 			}
 
 			enter_read_only_mode(notifier, result);
@@ -402,11 +402,11 @@ static bool abort_on_error(int result,
 	}
 
 	if (data_vio->hashLock != NULL) {
-		launchHashZoneCallback(data_vio,
-				       finish_write_data_vio_with_error,
-				       THIS_LOCATION(NULL));
+		launch_hash_zone_callback(data_vio,
+					  finish_write_data_vio_with_error,
+					  THIS_LOCATION(NULL));
 	} else {
-		finishDataVIO(data_vio, result);
+		finish_data_vio(data_vio, result);
 	}
 	return true;
 }
@@ -423,8 +423,8 @@ static bool abort_on_error(int result,
  **/
 static void finish_write_data_vio(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInHashZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_hash_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
@@ -438,10 +438,10 @@ static void finish_write_data_vio(struct vdo_completion *completion)
  **/
 static void abort_deduplication(struct data_vio *data_vio)
 {
-	if (!hasAllocation(data_vio)) {
+	if (!has_allocation(data_vio)) {
 		// There was no space to write this block and we failed to
 		// deduplicate or compress it.
-		finishDataVIO(data_vio, VDO_NO_SPACE);
+		finish_data_vio(data_vio, VDO_NO_SPACE);
 		return;
 	}
 
@@ -453,10 +453,10 @@ static void abort_deduplication(struct data_vio *data_vio)
 	}
 
 	if (data_vio->hashLock == NULL) {
-		// We failed to compress a synchronous data_vio that is a hash
-		// collision, which means it can't dedupe or be used for dedupe,
-		// so it's done now.
-		finishDataVIO(data_vio, VDO_SUCCESS);
+		// We failed to compress a synchronous data_vio that is a
+		// hash collision, which means it can't dedupe or be used
+		// for dedupe, so it's done now.
+		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
 
@@ -465,8 +465,8 @@ static void abort_deduplication(struct data_vio *data_vio)
 	 * must now return to its hash lock so other data VIOs with the same
 	 * data can deduplicate against the uncompressed block it wrote.
 	 */
-	launchHashZoneCallback(data_vio, finish_write_data_vio,
-			       THIS_LOCATION(NULL));
+	launch_hash_zone_callback(data_vio, finish_write_data_vio,
+				  THIS_LOCATION(NULL));
 }
 
 /**
@@ -478,17 +478,17 @@ static void abort_deduplication(struct data_vio *data_vio)
  **/
 static void update_block_map_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	if (data_vio->hashLock != NULL) {
-		setHashZoneCallback(data_vio, finish_write_data_vio,
-				    THIS_LOCATION(NULL));
+		set_hash_zone_callback(data_vio, finish_write_data_vio,
+				       THIS_LOCATION(NULL));
 	} else {
-		completion->callback = completeDataVIO;
+		completion->callback = complete_data_vio;
 	}
 	data_vio->lastAsyncOperation = PUT_MAPPED_BLOCK_FOR_DEDUPE;
 	put_mapped_block_async(data_vio);
@@ -507,7 +507,7 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 					     data_vio->newMapped.state,
 					     lock,
 					     &data_vio->operation);
-	add_recovery_journal_entry(getVDOFromDataVIO(data_vio)->recoveryJournal,
+	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recoveryJournal,
 				   data_vio);
 }
 
@@ -523,7 +523,7 @@ static void journal_decrement(struct data_vio *data_vio)
 					     data_vio->mapped.state,
 					     data_vio->mapped.zone,
 					     &data_vio->operation);
-	add_recovery_journal_entry(getVDOFromDataVIO(data_vio)->recoveryJournal,
+	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recoveryJournal,
 				   data_vio);
 }
 
@@ -534,8 +534,8 @@ static void journal_decrement(struct data_vio *data_vio)
  **/
 static void update_reference_count(struct data_vio *data_vio)
 {
-	struct slab_depot *depot = getVDOFromDataVIO(data_vio)->depot;
-	PhysicalBlockNumber pbn = data_vio->operation.pbn;
+	struct slab_depot   *depot = get_vdo_from_data_vio(data_vio)->depot;
+	PhysicalBlockNumber  pbn   = data_vio->operation.pbn;
 	int result =
 		ASSERT(is_physical_data_block(depot, pbn),
 		       "Adding slab journal entry for impossible PBN %llufor LBN %llu",
@@ -556,24 +556,25 @@ static void update_reference_count(struct data_vio *data_vio)
  **/
 static void decrement_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInMappedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	struct allocating_vio *allocatingVIO = dataVIOAsAllocatingVIO(data_vio);
-	if (allocatingVIO->allocation == data_vio->mapped.pbn) {
+	struct allocating_vio *allocating_vio =
+		data_vio_as_allocating_vio(data_vio);
+	if (allocating_vio->allocation == data_vio->mapped.pbn) {
 		/*
 		 * If we are about to release the reference on the allocated
 		 * block, we must release the PBN lock on it first so that the
 		 * allocator will not allocate a write-locked block.
 		 */
-		release_allocation_lock(allocatingVIO);
+		release_allocation_lock(allocating_vio);
 	}
 
-	setLogicalCallback(data_vio, update_block_map_for_dedupe,
-			   THIS_LOCATION("$F;js=dec"));
+	set_logical_callback(data_vio, update_block_map_for_dedupe,
+			     THIS_LOCATION("$F;js=dec"));
 	data_vio->lastAsyncOperation = JOURNAL_DECREMENT_FOR_DEDUPE;
 	update_reference_count(data_vio);
 }
@@ -587,18 +588,18 @@ static void decrement_for_dedupe(struct vdo_completion *completion)
  **/
 static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	if (data_vio->mapped.pbn == ZERO_BLOCK) {
-		setLogicalCallback(data_vio, update_block_map_for_dedupe,
-				   THIS_LOCATION("$F;j=dedupe;js=unmap;cb=updateBM"));
+		set_logical_callback(data_vio, update_block_map_for_dedupe,
+				     THIS_LOCATION("$F;j=dedupe;js=unmap;cb=updateBM"));
 	} else {
-		setMappedZoneCallback(data_vio, decrement_for_dedupe,
-				      THIS_LOCATION("$F;j=dedupe;js=unmap;cb=decDedupe"));
+		set_mapped_zone_callback(data_vio, decrement_for_dedupe,
+					 THIS_LOCATION("$F;j=dedupe;js=unmap;cb=decDedupe"));
 	}
 	data_vio->lastAsyncOperation = JOURNAL_UNMAPPING_FOR_DEDUPE;
 	journal_decrement(data_vio);
@@ -614,16 +615,15 @@ static void journal_unmapping_for_dedupe(struct vdo_completion *completion)
  **/
 static void read_old_block_mapping_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	data_vio->lastAsyncOperation = GET_MAPPED_BLOCK_FOR_DEDUPE;
-	setJournalCallback(data_vio,
-			   journal_unmapping_for_dedupe,
-			   THIS_LOCATION("$F;cb=journalUnmapDedupe"));
+	set_journal_callback(data_vio, journal_unmapping_for_dedupe,
+			     THIS_LOCATION("$F;cb=journalUnmapDedupe"));
 	get_mapped_block_async(data_vio);
 }
 
@@ -635,8 +635,8 @@ static void read_old_block_mapping_for_dedupe(struct vdo_completion *completion)
  **/
 static void increment_for_compression(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInNewMappedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_new_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -650,12 +650,12 @@ static void increment_for_compression(struct vdo_completion *completion)
 	 * allocated is the block we need to decrement, so there is no need
 	 * to look in the block map.
 	 */
-	if (is_async(data_vio) || !hasAllocation(data_vio)) {
-		setLogicalCallback(data_vio, read_old_block_mapping_for_dedupe,
-				   THIS_LOCATION("$F;cb=read_old_block_mapping_for_dedupe"));
+	if (is_async(data_vio) || !has_allocation(data_vio)) {
+		  set_logical_callback(data_vio, read_old_block_mapping_for_dedupe,
+				       THIS_LOCATION("$F;cb=read_old_block_mapping_for_dedupe"));
 	} else {
-		setJournalCallback(data_vio, journal_unmapping_for_dedupe,
-				   THIS_LOCATION("$F;cb=journal_unmapping_for_dedupe"));
+		  set_journal_callback(data_vio, journal_unmapping_for_dedupe,
+				       THIS_LOCATION("$F;cb=journal_unmapping_for_dedupe"));
 	}
 	data_vio->lastAsyncOperation = JOURNAL_INCREMENT_FOR_COMPRESSION;
 	update_reference_count(data_vio);
@@ -669,8 +669,8 @@ static void increment_for_compression(struct vdo_completion *completion)
 static void
 add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
@@ -680,10 +680,9 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
 		return;
 	}
 
-	setNewMappedZoneCallback(data_vio,
-				 increment_for_compression,
-				 THIS_LOCATION("$F($dup);js=map/$dup;"
-					       "cb=incCompress($dup)"));
+	set_new_mapped_zone_callback(data_vio, increment_for_compression,
+				     THIS_LOCATION("$F($dup);js=map/$dup;"
+						   "cb=incCompress($dup)"));
 	data_vio->lastAsyncOperation = JOURNAL_MAPPING_FOR_COMPRESSION;
 	journal_increment(data_vio, get_duplicate_lock(data_vio));
 }
@@ -696,8 +695,8 @@ add_recovery_journal_entry_for_compression(struct vdo_completion *completion)
  **/
 static void pack_compressed_data(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInPackerZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_packer_zone(data_vio);
 
 	// XXX this is a callback, so there should probably be an error check
 	// here even if we think compression can't currently return one.
@@ -707,9 +706,9 @@ static void pack_compressed_data(struct vdo_completion *completion)
 		return;
 	}
 
-	setJournalCallback(data_vio,
-			   add_recovery_journal_entry_for_compression,
-			   THIS_LOCATION("$F;cb=update(compress)"));
+	set_journal_callback(data_vio,
+			     add_recovery_journal_entry_for_compression,
+			     THIS_LOCATION("$F;cb=update(compress)"));
 	data_vio->lastAsyncOperation = PACK_COMPRESSED_BLOCK;
 	attempt_packing(data_vio);
 }
@@ -725,8 +724,8 @@ void compress_data(struct data_vio *data_vio)
 	}
 
 	data_vio->lastAsyncOperation = COMPRESS_DATA;
-	setPackerCallback(data_vio, pack_compressed_data,
-			  THIS_LOCATION("$F;cb=pack"));
+	set_packer_callback(data_vio, pack_compressed_data,
+			    THIS_LOCATION("$F;cb=pack"));
 	compressDataVIO(data_vio);
 }
 
@@ -738,8 +737,8 @@ void compress_data(struct data_vio *data_vio)
  **/
 static void increment_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInNewMappedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_new_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -753,12 +752,13 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 	 * allocated is the block we need to decrement, so there is no need
 	 * to look in the block map.
 	 */
-	if (is_async(data_vio) || !hasAllocation(data_vio)) {
-		setLogicalCallback(data_vio, read_old_block_mapping_for_dedupe,
-				   THIS_LOCATION("$F;cb=read_old_block_mapping_for_dedupe"));
+	if (is_async(data_vio) || !has_allocation(data_vio)) {
+		set_logical_callback(data_vio,
+				     read_old_block_mapping_for_dedupe,
+				     THIS_LOCATION("$F;cb=read_old_block_mapping_for_dedupe"));
 	} else {
-		setJournalCallback(data_vio, journal_unmapping_for_dedupe,
-				   THIS_LOCATION("$F;cb=journal_unmapping_for_dedupe"));
+		set_journal_callback(data_vio, journal_unmapping_for_dedupe,
+				     THIS_LOCATION("$F;cb=journal_unmapping_for_dedupe"));
 	}
 	data_vio->lastAsyncOperation = JOURNAL_INCREMENT_FOR_DEDUPE;
 	update_reference_count(data_vio);
@@ -773,16 +773,15 @@ static void increment_for_dedupe(struct vdo_completion *completion)
 static void
 add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
 
-	setNewMappedZoneCallback(data_vio,
-				 increment_for_dedupe,
-				 THIS_LOCATION("$F($dup);js=map/$dup;"
-					       "cb=incDedupe($dup)"));
+	set_new_mapped_zone_callback(data_vio, increment_for_dedupe,
+				     THIS_LOCATION("$F($dup);js=map/$dup;"
+						   "cb=incDedupe($dup)"));
 	data_vio->lastAsyncOperation = JOURNAL_MAPPING_FOR_DEDUPE;
 	journal_increment(data_vio, get_duplicate_lock(data_vio));
 }
@@ -796,8 +795,8 @@ add_recovery_journal_entry_for_dedupe(struct vdo_completion *completion)
  **/
 void share_block(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInDuplicateZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_duplicate_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
@@ -808,9 +807,9 @@ void share_block(struct vdo_completion *completion)
 	}
 
 	data_vio->newMapped = data_vio->duplicate;
-	launchJournalCallback(data_vio,
-			      add_recovery_journal_entry_for_dedupe,
-			      THIS_LOCATION("$F;cb=addJournalEntryDup"));
+	launch_journal_callback(data_vio,
+				add_recovery_journal_entry_for_dedupe,
+				THIS_LOCATION("$F;cb=addJournalEntryDup"));
 }
 
 /**
@@ -823,8 +822,8 @@ void share_block(struct vdo_completion *completion)
  **/
 static void lock_hash_in_zone(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInHashZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_hash_zone(data_vio);
 	// Shouldn't have had any errors since all we did was switch threads.
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -852,11 +851,11 @@ static void lock_hash_in_zone(struct vdo_completion *completion)
  * callback registered by prepare_for_dedupe().
  *
  * @param completion The data_vio whose chunk name was just generated, as a
- *                   completion
+ *                    completion
  **/
 static void resolve_hash_zone(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	// We don't care what thread we are on.
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
@@ -866,9 +865,9 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 			"zero blocks should not be hashed");
 
 	data_vio->hashZone =
-		selectHashZone(getVDOFromDataVIO(data_vio), &data_vio->chunkName);
+		selectHashZone(get_vdo_from_data_vio(data_vio), &data_vio->chunkName);
 	data_vio->lastAsyncOperation = ACQUIRE_HASH_LOCK;
-	launchHashZoneCallback(data_vio, lock_hash_in_zone, THIS_LOCATION(NULL));
+	launch_hash_zone_callback(data_vio, lock_hash_in_zone, THIS_LOCATION(NULL));
 }
 
 /**
@@ -881,9 +880,9 @@ static void resolve_hash_zone(struct vdo_completion *completion)
  **/
 static void prepare_for_dedupe(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	// We don't care what thread we are on
-	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
@@ -904,8 +903,8 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
 	// XXX this is the wrong thread to run this callback, but we don't yet
 	// have a mechanism for running it on the CPU thread immediately after
 	// hashing.
-	setAllocatedZoneCallback(data_vio, resolve_hash_zone,
-				 THIS_LOCATION(NULL));
+	set_allocated_zone_callback(data_vio, resolve_hash_zone,
+				    THIS_LOCATION(NULL));
 	hashDataVIO(data_vio);
 }
 
@@ -918,15 +917,15 @@ static void prepare_for_dedupe(struct vdo_completion *completion)
  **/
 static void update_block_map_for_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
-	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	if (data_vio->isZeroBlock || isTrimDataVIO(data_vio)) {
-		completion->callback = completeDataVIO;
+	if (data_vio->isZeroBlock || is_trim_data_vio(data_vio)) {
+		completion->callback = complete_data_vio;
 	} else if (!is_async(data_vio)) {
 		// Synchronous data VIOs branch off to the hash/dedupe path
 		// after finishing the uncompressed write of their data.
@@ -935,12 +934,12 @@ static void update_block_map_for_write(struct vdo_completion *completion)
 		// Async writes will be finished, but must return to the hash
 		// lock to allow other data VIOs with the same data to dedupe
 		// against the write.
-		setHashZoneCallback(data_vio, finish_write_data_vio,
-				    THIS_LOCATION(NULL));
+		set_hash_zone_callback(data_vio, finish_write_data_vio,
+				       THIS_LOCATION(NULL));
 	} else {
 		// Async writes without a hash lock (hash collisions) will be
 		// finished.
-		completion->callback = completeDataVIO;
+		completion->callback = complete_data_vio;
 	}
 
 	data_vio->lastAsyncOperation = PUT_MAPPED_BLOCK;
@@ -955,15 +954,15 @@ static void update_block_map_for_write(struct vdo_completion *completion)
  **/
 static void decrement_for_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInMappedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_mapped_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	data_vio->lastAsyncOperation = JOURNAL_DECREMENT_FOR_WRITE;
-	setLogicalCallback(data_vio, update_block_map_for_write,
-			   THIS_LOCATION(NULL));
+	set_logical_callback(data_vio, update_block_map_for_write,
+			     THIS_LOCATION(NULL));
 	update_reference_count(data_vio);
 }
 
@@ -975,18 +974,18 @@ static void decrement_for_write(struct vdo_completion *completion)
  **/
 static void journal_unmapping_for_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
 	if (data_vio->mapped.pbn == ZERO_BLOCK) {
-		setLogicalCallback(data_vio, update_block_map_for_write,
-				   THIS_LOCATION("$F;js=unmap;cb=updateBMwrite"));
+		set_logical_callback(data_vio, update_block_map_for_write,
+				     THIS_LOCATION("$F;js=unmap;cb=updateBMwrite"));
 	} else {
-		setMappedZoneCallback(data_vio, decrement_for_write,
-				      THIS_LOCATION("$F;js=unmap;cb=decWrite"));
+		set_mapped_zone_callback(data_vio, decrement_for_write,
+					 THIS_LOCATION("$F;js=unmap;cb=decWrite"));
 	}
 	data_vio->lastAsyncOperation = JOURNAL_UNMAPPING_FOR_WRITE;
 	journal_decrement(data_vio);
@@ -1002,15 +1001,14 @@ static void journal_unmapping_for_write(struct vdo_completion *completion)
  **/
 static void read_old_block_mapping_for_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInLogicalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_logical_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	setJournalCallback(data_vio,
-			   journal_unmapping_for_write,
-			   THIS_LOCATION("$F;cb=journalUnmapWrite"));
+	set_journal_callback(data_vio, journal_unmapping_for_write,
+			     THIS_LOCATION("$F;cb=journalUnmapWrite"));
 	data_vio->lastAsyncOperation = GET_MAPPED_BLOCK_FOR_WRITE;
 	get_mapped_block_async(data_vio);
 }
@@ -1037,13 +1035,13 @@ static void acknowledge_write(struct data_vio *data_vio)
  **/
 static void acknowledge_write_callback(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY)) {
 		return;
 	}
 
-	setLogicalCallback(data_vio, read_old_block_mapping_for_write,
-			   THIS_LOCATION(NULL));
+	set_logical_callback(data_vio, read_old_block_mapping_for_write,
+			     THIS_LOCATION(NULL));
 	acknowledge_write(data_vio);
 }
 
@@ -1062,22 +1060,22 @@ static vdo_action *get_write_increment_callback(struct data_vio *data_vio)
  **/
 static void increment_for_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInAllocatedZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_allocated_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
 
 	/*
-	 * Now that the data has been written, it's safe to deduplicate against
-	 * the block. Downgrade the allocation lock to a read lock so it can be
-	 * used later by the hash lock (which we don't have yet in sync mode).
+	 * Now that the data has been written, it's safe to deduplicate against the
+	 * block. Downgrade the allocation lock to a read lock so it can be used
+	 * later by the hash lock (which we don't have yet in sync mode).
 	 */
-	downgrade_pbn_write_lock(dataVIOAsAllocatingVIO(data_vio)->allocation_lock);
+	downgrade_pbn_write_lock(data_vio_as_allocating_vio(data_vio)->allocation_lock);
 
 	data_vio->lastAsyncOperation = JOURNAL_INCREMENT_FOR_WRITE;
-	setLogicalCallback(data_vio, get_write_increment_callback(data_vio),
-			   THIS_LOCATION(NULL));
+	set_logical_callback(data_vio, get_write_increment_callback(data_vio),
+			     THIS_LOCATION(NULL));
 	update_reference_count(data_vio);
 }
 
@@ -1090,24 +1088,23 @@ static void increment_for_write(struct vdo_completion *completion)
  **/
 static void finish_block_write(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInJournalZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_journal_zone(data_vio);
 	if (abort_on_error(completion->result, data_vio, READ_ONLY_IF_ASYNC)) {
 		return;
 	}
 
 	if (data_vio->newMapped.pbn == ZERO_BLOCK) {
-		setLogicalCallback(data_vio,
-				   get_write_increment_callback(data_vio),
-				   THIS_LOCATION("$F;js=writeZero"));
+		set_logical_callback(data_vio,
+				     get_write_increment_callback(data_vio),
+				     THIS_LOCATION("$F;js=writeZero"));
 	} else {
-		setAllocatedZoneCallback(data_vio,
-					 increment_for_write,
-					 THIS_LOCATION("$F;js=mapWrite"));
+	set_allocated_zone_callback(data_vio, increment_for_write,
+				    THIS_LOCATION("$F;js=mapWrite"));
 	}
 	data_vio->lastAsyncOperation = JOURNAL_MAPPING_FOR_WRITE;
 	journal_increment(data_vio,
-			 dataVIOAsAllocatingVIO(data_vio)->allocation_lock);
+			  data_vio_as_allocating_vio(data_vio)->allocation_lock);
 }
 
 /**
@@ -1118,9 +1115,8 @@ static void finish_block_write(struct vdo_completion *completion)
 static void write_block(struct data_vio *data_vio)
 {
 	data_vio->lastAsyncOperation = WRITE_DATA;
-	setJournalCallback(data_vio,
-			   finish_block_write,
-			   THIS_LOCATION("$F(data);cb=finishWrite"));
+	set_journal_callback(data_vio, finish_block_write,
+			     THIS_LOCATION("$F(data);cb=finishWrite"));
 	writeDataVIO(data_vio);
 }
 
@@ -1130,27 +1126,27 @@ static void write_block(struct data_vio *data_vio)
  * callback is registered in continueWriteWithBlockMapSlot().
  *
  * @param allocating_vio  The data_vio which has finished the allocation process
- *                       (as an allocating_vio)
+ *                         (as an allocating_vio)
  **/
 static void
 continue_write_after_allocation(struct allocating_vio *allocating_vio)
 {
-	struct data_vio *data_vio = allocatingVIOAsDataVIO(allocating_vio);
-	if (abort_on_error(dataVIOAsCompletion(data_vio)->result,
+	struct data_vio *data_vio = allocating_vio_as_data_vio(allocating_vio);
+	if (abort_on_error(data_vio_as_completion(data_vio)->result,
 			   data_vio,
 			   NOT_READ_ONLY)) {
 		return;
 	}
 
-	if (!hasAllocation(data_vio)) {
-		prepare_for_dedupe(dataVIOAsCompletion(data_vio));
+	if (!has_allocation(data_vio)) {
+		prepare_for_dedupe(data_vio_as_completion(data_vio));
 		return;
 	}
 
-	atomicStoreBool(&data_vio->hasAllocation, true);
+	atomicStoreBool(&data_vio->has_allocation, true);
 	data_vio->newMapped = (struct zoned_pbn) {
-		.zone = allocating_vio->zone,
-		.pbn = allocating_vio->allocation,
+		.zone  = allocating_vio->zone,
+		.pbn   = allocating_vio->allocation,
 		.state = MAPPING_STATE_UNCOMPRESSED,
 	};
 
@@ -1162,10 +1158,10 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 	// XXX prepare_for_dedupe can run from any thread, so this is a place
 	// where running the callback on the kernel thread would save a thread
 	// switch.
-	setAllocatedZoneCallback(data_vio, prepare_for_dedupe,
-				 THIS_LOCATION(NULL));
+	set_allocated_zone_callback(data_vio, prepare_for_dedupe,
+				    THIS_LOCATION(NULL));
 	if (vioRequiresFlushAfter(allocating_vio_as_vio(allocating_vio))) {
-		invoke_callback(dataVIOAsCompletion(data_vio));
+		invoke_callback(data_vio_as_completion(data_vio));
 		return;
 	}
 
@@ -1181,46 +1177,45 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 static void
 continue_write_with_block_map_slot(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
+	struct data_vio *data_vio = as_data_vio(completion);
 	// We don't care what thread we're on.
 	if (abort_on_error(completion->result, data_vio, NOT_READ_ONLY)) {
 		return;
 	}
 
 	if (data_vio->treeLock.treeSlots[0].blockMapSlot.pbn == ZERO_BLOCK) {
-		int result = ASSERT(isTrimDataVIO(data_vio),
-				    "data_vio with no block map page is a trim");
+		int result =
+			ASSERT(is_trim_data_vio(data_vio),
+			       "data_vio with no block map page is a trim");
 		if (abort_on_error(result, data_vio, READ_ONLY)) {
 			return;
 		}
 
 		// This is a trim for a block on a block map page which has not
 		// been allocated, so there's nothing more we need to do.
-		finishDataVIO(data_vio, VDO_SUCCESS);
+		finish_data_vio(data_vio, VDO_SUCCESS);
 		return;
 	}
 
-	if (data_vio->isZeroBlock || isTrimDataVIO(data_vio)) {
+	if (data_vio->isZeroBlock || is_trim_data_vio(data_vio)) {
 		// We don't need to write any data, so skip allocation and just
 		// update the block map and reference counts (via the journal).
 		data_vio->newMapped.pbn = ZERO_BLOCK;
-		launchJournalCallback(data_vio,
-				      finish_block_write,
-				      THIS_LOCATION("$F;cb=finishWrite"));
+		launch_journal_callback(data_vio, finish_block_write,
+					THIS_LOCATION("$F;cb=finishWrite"));
 		return;
 	}
 
-	allocate_data_block(dataVIOAsAllocatingVIO(data_vio),
-			    get_allocation_selector(data_vio->logical.zone),
-			    VIO_WRITE_LOCK,
-			    continue_write_after_allocation);
+	  allocate_data_block(data_vio_as_allocating_vio(data_vio),
+			      get_allocation_selector(data_vio->logical.zone),
+			      VIO_WRITE_LOCK, continue_write_after_allocation);
 }
 
 /**********************************************************************/
 void launch_write_data_vio(struct data_vio *data_vio)
 {
-	if (is_read_only(dataVIOAsVIO(data_vio)->vdo->readOnlyNotifier)) {
-		finishDataVIO(data_vio, VDO_READ_ONLY);
+	if (is_read_only(data_vio_as_vio(data_vio)->vdo->readOnlyNotifier)) {
+		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
 

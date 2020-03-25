@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#9 $
  */
 
 #include "compressionStateInternals.h"
@@ -100,11 +100,11 @@ static vio_compression_status advance_status(struct data_vio *data_vio)
 /**********************************************************************/
 bool may_compress_data_vio(struct data_vio *data_vio)
 {
-	if (!hasAllocation(data_vio)
-	    || ((getWritePolicy(getVDOFromDataVIO(data_vio))
-		 != WRITE_POLICY_SYNC)
-		&& vioRequiresFlushAfter(dataVIOAsVIO(data_vio)))
-	    || !getVDOCompressing(getVDOFromDataVIO(data_vio))) {
+	if (!has_allocation(data_vio) ||
+	    ((getWritePolicy(get_vdo_from_data_vio(data_vio)) !=
+	    	WRITE_POLICY_SYNC) &&
+	        vioRequiresFlushAfter(data_vio_as_vio(data_vio))) ||
+	    !getVDOCompressing(get_vdo_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write
 		 * probably won't either, so don't try compressing it. Also, if
@@ -127,9 +127,9 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 /**********************************************************************/
 bool may_pack_data_vio(struct data_vio *data_vio)
 {
-	if (!is_sufficiently_compressible(data_vio)
-	    || !getVDOCompressing(getVDOFromDataVIO(data_vio))
-	    || get_compression_state(data_vio).may_not_compress) {
+	if (!is_sufficiently_compressible(data_vio) ||
+	    !getVDOCompressing(get_vdo_from_data_vio(data_vio)) ||
+	    get_compression_state(data_vio).may_not_compress) {
 		// If the data in this VIO doesn't compress, or compression is
 		// off, or compression for this VIO has been canceled, don't
 		// send it to the packer.

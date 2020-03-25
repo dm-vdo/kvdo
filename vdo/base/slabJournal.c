@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#41 $
  */
 
 #include "slabJournalInternals.h"
@@ -345,7 +345,7 @@ static void mark_slab_journal_clean(struct slab_journal *journal)
 static void abort_waiter(struct waiter *waiter,
 			 void *context __attribute__((unused)))
 {
-	continueDataVIO(waiterAsDataVIO(waiter), VDO_READ_ONLY);
+	continue_data_vio(waiter_as_data_vio(waiter), VDO_READ_ONLY);
 }
 
 /**********************************************************************/
@@ -962,7 +962,7 @@ bool requires_scrubbing(const struct slab_journal *journal)
  **/
 static void add_entry_from_waiter(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct slab_journal *journal = (struct slab_journal *)context;
 	struct slab_journal_block_header *header = &journal->tail_header;
 	SequenceNumber recovery_block =
@@ -1017,7 +1017,7 @@ static void add_entry_from_waiter(struct waiter *waiter, void *context)
 	int result = modify_slab_reference_count(journal->slab,
 						 &slab_journal_point,
 						 data_vio->operation);
-	continueDataVIO(data_vio, result);
+	continue_data_vio(data_vio, result);
 }
 
 /**
@@ -1032,7 +1032,7 @@ static inline bool
 is_next_entry_a_block_map_increment(struct slab_journal *journal)
 {
 	struct data_vio *data_vio =
-		waiterAsDataVIO(get_first_waiter(&journal->entry_waiters));
+		waiter_as_data_vio(get_first_waiter(&journal->entry_waiters));
 	return (data_vio->operation.type == BLOCK_MAP_INCREMENT);
 }
 
@@ -1159,19 +1159,19 @@ void add_slab_journal_entry(struct slab_journal *journal,
 			    struct data_vio *data_vio)
 {
 	if (!is_slab_open(journal->slab)) {
-		continueDataVIO(data_vio, VDO_INVALID_ADMIN_STATE);
+		continue_data_vio(data_vio, VDO_INVALID_ADMIN_STATE);
 		return;
 	}
 
 	if (is_vdo_read_only(journal)) {
-		continueDataVIO(data_vio, VDO_READ_ONLY);
+		continue_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}
 
-	int result = enqueueDataVIO(&journal->entry_waiters, data_vio,
+	int result = enqueue_data_vio(&journal->entry_waiters, data_vio,
 				    THIS_LOCATION("$F($j-$js)"));
 	if (result != VDO_SUCCESS) {
-		continueDataVIO(data_vio, result);
+		continue_data_vio(data_vio, result);
 		return;
 	}
 

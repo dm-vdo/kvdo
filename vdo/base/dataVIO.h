@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#25 $
  */
 
 #ifndef DATA_VIO_H
@@ -43,186 +43,210 @@
  * Codes for describing the last asynchronous operation performed on a vio.
  **/
 typedef enum __attribute__((packed)) {
-  MIN_ASYNC_OPERATION_NUMBER = 0,
-  LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
-  ACKNOWLEDGE_WRITE,
-  ACQUIRE_HASH_LOCK,
-  ACQUIRE_LOGICAL_BLOCK_LOCK,
-  ACQUIRE_PBN_READ_LOCK,
-  CHECK_FOR_DEDUPE_FOR_ROLLOVER,
-  CHECK_FOR_DEDUPLICATION,
-  COMPRESS_DATA,
-  CONTINUE_VIO_ASYNC,
-  FIND_BLOCK_MAP_SLOT,
-  GET_MAPPED_BLOCK,
-  GET_MAPPED_BLOCK_FOR_DEDUPE,
-  GET_MAPPED_BLOCK_FOR_WRITE,
-  HASH_DATA,
-  JOURNAL_DECREMENT_FOR_DEDUPE,
-  JOURNAL_DECREMENT_FOR_WRITE,
-  JOURNAL_INCREMENT_FOR_COMPRESSION,
-  JOURNAL_INCREMENT_FOR_DEDUPE,
-  JOURNAL_INCREMENT_FOR_WRITE,
-  JOURNAL_MAPPING_FOR_COMPRESSION,
-  JOURNAL_MAPPING_FOR_DEDUPE,
-  JOURNAL_MAPPING_FOR_WRITE,
-  JOURNAL_UNMAPPING_FOR_DEDUPE,
-  JOURNAL_UNMAPPING_FOR_WRITE,
-  PACK_COMPRESSED_BLOCK,
-  PUT_MAPPED_BLOCK,
-  PUT_MAPPED_BLOCK_FOR_DEDUPE,
-  READ_DATA,
-  UPDATE_INDEX,
-  VERIFY_DEDUPLICATION,
-  WRITE_DATA,
-  MAX_ASYNC_OPERATION_NUMBER,
+	MIN_ASYNC_OPERATION_NUMBER = 0,
+	LAUNCH = MIN_ASYNC_OPERATION_NUMBER,
+	ACKNOWLEDGE_WRITE,
+	ACQUIRE_HASH_LOCK,
+	ACQUIRE_LOGICAL_BLOCK_LOCK,
+	ACQUIRE_PBN_READ_LOCK,
+	CHECK_FOR_DEDUPE_FOR_ROLLOVER,
+	CHECK_FOR_DEDUPLICATION,
+	COMPRESS_DATA,
+	CONTINUE_VIO_ASYNC,
+	FIND_BLOCK_MAP_SLOT,
+	GET_MAPPED_BLOCK,
+	GET_MAPPED_BLOCK_FOR_DEDUPE,
+	GET_MAPPED_BLOCK_FOR_WRITE,
+	HASH_DATA,
+	JOURNAL_DECREMENT_FOR_DEDUPE,
+	JOURNAL_DECREMENT_FOR_WRITE,
+	JOURNAL_INCREMENT_FOR_COMPRESSION,
+	JOURNAL_INCREMENT_FOR_DEDUPE,
+	JOURNAL_INCREMENT_FOR_WRITE,
+	JOURNAL_MAPPING_FOR_COMPRESSION,
+	JOURNAL_MAPPING_FOR_DEDUPE,
+	JOURNAL_MAPPING_FOR_WRITE,
+	JOURNAL_UNMAPPING_FOR_DEDUPE,
+	JOURNAL_UNMAPPING_FOR_WRITE,
+	PACK_COMPRESSED_BLOCK,
+	PUT_MAPPED_BLOCK,
+	PUT_MAPPED_BLOCK_FOR_DEDUPE,
+	READ_DATA,
+	UPDATE_INDEX,
+	VERIFY_DEDUPLICATION,
+	WRITE_DATA,
+	MAX_ASYNC_OPERATION_NUMBER,
 } AsyncOperationNumber;
 
 /*
  * An LBN lock.
  */
 struct lbn_lock {
-  /* The LBN being locked */
-  LogicalBlockNumber   lbn;
-  /* Whether the lock is locked */
-  bool                 locked;
-  /* The queue of waiters for the lock */
-  struct wait_queue    waiters;
-  /* The logical zone of the LBN */
-  struct logical_zone *zone;
+	/* The LBN being locked */
+	LogicalBlockNumber lbn;
+	/* Whether the lock is locked */
+	bool locked;
+	/* The queue of waiters for the lock */
+	struct wait_queue waiters;
+	/* The logical zone of the LBN */
+	struct logical_zone *zone;
 };
 
 /*
  * Fields for using the arboreal block map.
  */
 struct tree_lock {
-  /* The current height at which this data_vio is operating */
-  Height                      height;
-  /* The block map tree for this LBN */
-  RootCount                   rootIndex;
-  /* Whether we hold a page lock */
-  bool                        locked;
-  /* The thread on which to run the callback */
-  ThreadID                    threadID;
-  /* The function to call after looking up a block map slot */
-  vdo_action                 *callback;
-  /* The key for the lock map */
-  uint64_t                    key;
-  /* The queue of waiters for the page this vio is allocating or loading */
-  struct wait_queue           waiters;
-  /* The block map tree slots for this LBN */
-  struct block_map_tree_slot  treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
+	/* The current height at which this data_vio is operating */
+	Height height;
+	/* The block map tree for this LBN */
+	RootCount rootIndex;
+	/* Whether we hold a page lock */
+	bool locked;
+	/* The thread on which to run the callback */
+	ThreadID threadID;
+	/* The function to call after looking up a block map slot */
+	vdo_action *callback;
+	/* The key for the lock map */
+	uint64_t key;
+	/* The queue of waiters for the page this vio is allocating or loading
+	 */
+	struct wait_queue waiters;
+	/* The block map tree slots for this LBN */
+	struct block_map_tree_slot treeSlots[BLOCK_MAP_TREE_HEIGHT + 1];
 };
 
 struct compression_state {
-  /*
-   * The current compression state of this vio. This field contains a value
-   * which consists of a VIOCompressionState possibly ORed with a flag
-   * indicating that a request has been made to cancel (or prevent) compression
-   * for this vio.
-   *
-   * This field should be accessed through the getCompressionState() and
-   * setCompressionState() methods. It should not be accessed directly.
-   */
-  Atomic32          state;
+	/*
+	 * The current compression state of this vio. This field contains a
+	 * value which consists of a VIOCompressionState possibly ORed with a
+	 * flag indicating that a request has been made to cancel (or prevent)
+	 * compression for this vio.
+	 *
+	 * This field should be accessed through the getCompressionState() and
+	 * setCompressionState() methods. It should not be accessed directly.
+	 */
+	Atomic32 state;
 
-  /* The compressed size of this block */
-  uint16_t          size;
+	/* The compressed size of this block */
+	uint16_t size;
 
-  /* The packer input or output bin slot which holds the enclosing data_vio */
-  SlotNumber        slot;
+	/*
+	 * The packer input or output bin slot which holds the enclosing
+	 * data_vio
+	 */
+	SlotNumber slot;
 
-  /* The packer input bin to which the enclosing data_vio has been assigned */
-  struct input_bin *bin;
+	/*
+	 * The packer input bin to which the enclosing data_vio has been
+	 * assigned
+	 */
+	struct input_bin *bin;
 
-  /* A pointer to the compressed form of this block */
-  char             *data;
+	/* A pointer to the compressed form of this block */
+	char *data;
 
-  /*
-   * A vio which is blocked in the packer while holding a lock this vio needs.
-   */
-  struct data_vio  *lockHolder;
-
+	/*
+	 * A vio which is blocked in the packer while holding a lock this vio
+	 * needs.
+	 */
+	struct data_vio *lockHolder;
 };
 
 /**
  * A vio for processing user data requests.
  **/
 struct data_vio {
-  /* The underlying struct allocating_vio */
-  struct allocating_vio       allocatingVIO;
+	/* The underlying struct allocating_vio */
+	struct allocating_vio allocatingVIO;
 
-  /* The logical block of this request */
-  struct lbn_lock             logical;
+	/* The logical block of this request */
+	struct lbn_lock logical;
 
-  /* The state for traversing the block map tree */
-  struct tree_lock            treeLock;
+	/* The state for traversing the block map tree */
+	struct tree_lock treeLock;
 
-  /* The current partition address of this block */
-  struct zoned_pbn            mapped;
+	/* The current partition address of this block */
+	struct zoned_pbn mapped;
 
-  /** The hash of this vio (if not zero) */
-  UdsChunkName                chunkName;
+	/** The hash of this vio (if not zero) */
+	UdsChunkName chunkName;
 
-  /* Used for logging and debugging */
-  AsyncOperationNumber        lastAsyncOperation;
+	/* Used for logging and debugging */
+	AsyncOperationNumber lastAsyncOperation;
 
-  /* The operation to record in the recovery and slab journals */
-  struct reference_operation  operation;
+	/* The operation to record in the recovery and slab journals */
+	struct reference_operation operation;
 
-  /* Whether this vio is a read-and-write vio */
-  bool                        isPartialWrite;
+	/* Whether this vio is a read-and-write vio */
+	bool isPartialWrite;
 
-  /* Whether this vio contains all zeros */
-  bool                        isZeroBlock;
+	/* Whether this vio contains all zeros */
+	bool isZeroBlock;
 
-  /* Whether this vio write is a duplicate */
-  bool                        isDuplicate;
+	/* Whether this vio write is a duplicate */
+	bool isDuplicate;
 
-  /*
-   * Whether this vio has received an allocation (needs to be atomic so it can
-   * be examined from threads not in the allocation zone).
-   */
-  AtomicBool                  hasAllocation;
+	/*
+	 * Whether this vio has received an allocation (needs to be atomic so
+	 * it can be examined from threads not in the allocation zone).
+	 */
+	AtomicBool has_allocation;
 
-  /* The new partition address of this block after the vio write completes */
-  struct zoned_pbn            newMapped;
+	/*
+	 * The new partition address of this block after the vio write
+	 * completes
+	 */
+	struct zoned_pbn newMapped;
 
-  /* The hash zone responsible for the chunk name (NULL if isZeroBlock) */
-  struct hash_zone           *hashZone;
+	/*
+	 * The hash zone responsible for the chunk name (NULL if isZeroBlock)
+	 */
+	struct hash_zone *hashZone;
 
-  /* The lock this vio holds or shares with other vios with the same data */
-  struct hash_lock           *hashLock;
+	/*
+	 * The lock this vio holds or shares with other vios with the same data
+	 */
+	struct hash_lock *hashLock;
 
-  /* All DataVIOs sharing a hash lock are kept in a ring linking these nodes */
-  RingNode                    hashLockNode;
+	/*
+	 * All DataVIOs sharing a hash lock are kept in a ring linking these
+	 * nodes
+	 */
+	RingNode hashLockNode;
 
-  /* The block number in the partition of the albireo deduplication advice */
-  struct zoned_pbn            duplicate;
+	/*
+	* The block number in the partition of the albireo deduplication advice
+	 */
+	struct zoned_pbn duplicate;
 
-  /*
-   * The sequence number of the recovery journal block containing the increment
-   * entry for this vio.
-   */
-  SequenceNumber              recoverySequenceNumber;
+	/*
+	 * The sequence number of the recovery journal block containing the
+	 * increment entry for this vio.
+	 */
+	SequenceNumber recoverySequenceNumber;
 
-  /* The point in the recovery journal where this write last made an entry */
-  struct journal_point        recoveryJournalPoint;
+	/*
+	 * The point in the recovery journal where this write last made an
+	 * entry
+	 */
+	struct journal_point recoveryJournalPoint;
 
-  /* The RingNode of vios in user initiated write requests */
-  RingNode                    writeNode;
+	/* The RingNode of vios in user initiated write requests */
+	RingNode writeNode;
 
-  /* A flag indicating that a data write vio has a flush generation lock */
-  bool                        hasFlushGenerationLock;
+	/*
+	 * A flag indicating that a data write vio has a flush generation lock
+	 */
+	bool hasFlushGenerationLock;
 
-  /* The generation number of the VDO that this vio belongs to */
-  SequenceNumber              flushGeneration;
+	/* The generation number of the VDO that this vio belongs to */
+	SequenceNumber flushGeneration;
 
-  /* The completion to use for fetching block map pages for this vio */
-  struct vdo_page_completion  pageCompletion;
+	/* The completion to use for fetching block map pages for this vio */
+	struct vdo_page_completion pageCompletion;
 
-  /* All of the fields necessary for the compression path */
-  struct compression_state    compression;
+	/* All of the fields necessary for the compression path */
+	struct compression_state compression;
 };
 
 /**
@@ -233,11 +257,12 @@ struct data_vio {
  * @return The allocating_vio as a data_vio
  **/
 static inline struct data_vio *
-allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
+allocating_vio_as_data_vio(struct allocating_vio *allocating_vio)
 {
-  ASSERT_LOG_ONLY((allocating_vio_as_vio(allocatingVIO)->type == VIO_TYPE_DATA),
-                  "allocating_vio is a struct data_vio");
-  return container_of(allocatingVIO, struct data_vio, allocatingVIO);
+	ASSERT_LOG_ONLY((allocating_vio_as_vio(allocating_vio)->type ==
+			 VIO_TYPE_DATA),
+			"allocating_vio is a struct data_vio");
+	return container_of(allocating_vio, struct data_vio, allocatingVIO);
 }
 
 /**
@@ -247,35 +272,37 @@ allocatingVIOAsDataVIO(struct allocating_vio *allocatingVIO)
  *
  * @return The vio as a data_vio
  **/
-static inline struct data_vio *vioAsDataVIO(struct vio *vio)
+static inline struct data_vio *vio_as_data_vio(struct vio *vio)
 {
-  ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
-  return container_of(container_of(vio, struct allocating_vio, vio),
-                      struct data_vio, allocatingVIO);
+	ASSERT_LOG_ONLY((vio->type == VIO_TYPE_DATA), "vio is a data_vio");
+	return container_of(container_of(vio, struct allocating_vio, vio),
+			    struct data_vio,
+			    allocatingVIO);
 }
 
 /**
  * Convert a data_vio to an allocating_vio.
  *
- * @param dataVIO  The data_vio to convert
+ * @param data_vio  The data_vio to convert
  *
  * @return The data_vio as an allocating_vio
  **/
-static inline struct allocating_vio *dataVIOAsAllocatingVIO(struct data_vio *dataVIO)
+static inline
+struct allocating_vio *data_vio_as_allocating_vio(struct data_vio *data_vio)
 {
-  return &dataVIO->allocatingVIO;
+	return &data_vio->allocatingVIO;
 }
 
 /**
  * Convert a data_vio to a vio.
  *
- * @param dataVIO  The data_vio to convert
+ * @param data_vio  The data_vio to convert
  *
  * @return The data_vio as a vio
  **/
-static inline struct vio *dataVIOAsVIO(struct data_vio *dataVIO)
+static inline struct vio *data_vio_as_vio(struct data_vio *data_vio)
 {
-  return allocating_vio_as_vio(dataVIOAsAllocatingVIO(dataVIO));
+	return allocating_vio_as_vio(data_vio_as_allocating_vio(data_vio));
 }
 
 /**
@@ -285,34 +312,34 @@ static inline struct vio *dataVIOAsVIO(struct data_vio *dataVIO)
  *
  * @return The completion as a data_vio
  **/
-static inline struct data_vio *asDataVIO(struct vdo_completion *completion)
+static inline struct data_vio *as_data_vio(struct vdo_completion *completion)
 {
-  return vioAsDataVIO(asVIO(completion));
+	return vio_as_data_vio(asVIO(completion));
 }
 
 /**
  * Convert a data_vio to a generic completion.
  *
- * @param dataVIO  The data_vio to convert
+ * @param data_vio  The data_vio to convert
  *
  * @return The data_vio as a completion
  **/
 static inline struct vdo_completion *
-dataVIOAsCompletion(struct data_vio *dataVIO)
+data_vio_as_completion(struct data_vio *data_vio)
 {
-  return allocating_vio_as_completion(dataVIOAsAllocatingVIO(dataVIO));
+	return allocating_vio_as_completion(data_vio_as_allocating_vio(data_vio));
 }
 
 /**
  * Convert a data_vio to a generic wait queue entry.
  *
- * @param dataVIO  The data_vio to convert
+ * @param data_vio  The data_vio to convert
  *
  * @return The data_vio as a wait queue entry
  **/
-static inline struct waiter *dataVIOAsWaiter(struct data_vio *dataVIO)
+static inline struct waiter *data_vio_as_waiter(struct data_vio *data_vio)
 {
-  return allocating_vio_as_waiter(dataVIOAsAllocatingVIO(dataVIO));
+	return allocating_vio_as_waiter(data_vio_as_allocating_vio(data_vio));
 }
 
 /**
@@ -322,123 +349,124 @@ static inline struct waiter *dataVIOAsWaiter(struct data_vio *dataVIO)
  *
  * @return The wait queue entry as a data_vio
  **/
-static inline struct data_vio *waiterAsDataVIO(struct waiter *waiter)
+static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
 {
-  if (waiter == NULL) {
-    return NULL;
-  }
+	if (waiter == NULL) {
+		return NULL;
+	}
 
-  return allocatingVIOAsDataVIO(waiter_as_allocating_vio(waiter));
+	return allocating_vio_as_data_vio(waiter_as_allocating_vio(waiter));
 }
 
 /**
  * Check whether a data_vio is a read.
  *
- * @param dataVIO  The data_vio to check
+ * @param data_vio  The data_vio to check
  **/
-static inline bool isReadDataVIO(struct data_vio *dataVIO)
+static inline bool is_read_data_vio(struct data_vio *data_vio)
 {
-  return isReadVIO(dataVIOAsVIO(dataVIO));
+	return isReadVIO(data_vio_as_vio(data_vio));
 }
 
 /**
  * Check whether a data_vio is a write.
  *
- * @param dataVIO  The data_vio to check
+ * @param data_vio  The data_vio to check
  **/
-static inline bool isWriteDataVIO(struct data_vio *dataVIO)
+static inline bool is_write_data_vio(struct data_vio *data_vio)
 {
-  return isWriteVIO(dataVIOAsVIO(dataVIO));
+	return isWriteVIO(data_vio_as_vio(data_vio));
 }
 
 /**
  * Check whether a data_vio is a compressed block write.
  *
- * @param dataVIO  The data_vio to check
+ * @param data_vio  The data_vio to check
  *
  * @return <code>true</code> if the data_vio is a compressed block write
  **/
-static inline bool isCompressedWriteDataVIO(struct data_vio *dataVIO)
+static inline bool is_compressed_write_data_vio(struct data_vio *data_vio)
 {
-  return isCompressedWriteVIO(dataVIOAsVIO(dataVIO));
+	return isCompressedWriteVIO(data_vio_as_vio(data_vio));
 }
 
 /**
  * Check whether a data_vio is a trim.
  *
- * @param dataVIO  The data_vio to check
+ * @param data_vio  The data_vio to check
  *
  * @return <code>true</code> if the data_vio is a trim
  **/
-static inline bool isTrimDataVIO(struct data_vio *dataVIO)
+static inline bool is_trim_data_vio(struct data_vio *data_vio)
 {
-  return (dataVIO->newMapped.state == MAPPING_STATE_UNMAPPED);
+	return (data_vio->newMapped.state == MAPPING_STATE_UNMAPPED);
 }
 
 /**
  * Get the location that should passed Albireo as the new advice for where to
  * find the data written by this data_vio.
  *
- * @param dataVIO  The write data_vio that is ready to update Albireo
+ * @param data_vio  The write data_vio that is ready to update Albireo
  *
  * @return a data_location containing the advice to store in Albireo
  **/
 static inline struct data_location
-getDataVIONewAdvice(const struct data_vio *dataVIO)
+get_data_vio_new_advice(const struct data_vio *data_vio)
 {
-  return (struct data_location) {
-    .pbn   = dataVIO->newMapped.pbn,
-    .state = dataVIO->newMapped.state,
-  };
+	return (struct data_location){
+		.pbn = data_vio->newMapped.pbn,
+		.state = data_vio->newMapped.state,
+	};
 }
 
 /**
  * Get the vdo from a data_vio.
  *
- * @param dataVIO  The data_vio from which to get the vdo
+ * @param data_vio  The data_vio from which to get the vdo
  *
  * @return The vdo to which a data_vio belongs
  **/
-static inline struct vdo *getVDOFromDataVIO(struct data_vio *dataVIO)
+static inline struct vdo *get_vdo_from_data_vio(struct data_vio *data_vio)
 {
-  return dataVIOAsVIO(dataVIO)->vdo;
+	return data_vio_as_vio(data_vio)->vdo;
 }
 
 /**
  * Get the ThreadConfig from a data_vio.
  *
- * @param dataVIO  The data_vio from which to get the ThreadConfig
+ * @param data_vio  The data_vio from which to get the ThreadConfig
  *
  * @return The ThreadConfig of the vdo to which a data_vio belongs
  **/
 static inline const ThreadConfig *
-getThreadConfigFromDataVIO(struct data_vio *dataVIO)
+get_thread_config_from_data_vio(struct data_vio *data_vio)
 {
-  return getThreadConfig(getVDOFromDataVIO(dataVIO));
+	return getThreadConfig(get_vdo_from_data_vio(data_vio));
 }
 
 /**
  * Get the allocation of a data_vio.
  *
- * @param dataVIO  The data_vio
+ * @param data_vio  The data_vio
  *
  * @return The allocation of the data_vio
  **/
-static inline PhysicalBlockNumber getDataVIOAllocation(struct data_vio *dataVIO)
+static inline
+PhysicalBlockNumber get_data_vio_allocation(struct data_vio *data_vio)
 {
-  return dataVIOAsAllocatingVIO(dataVIO)->allocation;
+	return data_vio_as_allocating_vio(data_vio)->allocation;
 }
 
 /**
  * Check whether a data_vio has an allocation.
  *
- * @param dataVIO  The data_vio to check
+ * @param data_vio  The data_vio to check
  *
  * @return <code>true</code> if the data_vio has an allocated block
  **/
-static inline bool hasAllocation(struct data_vio *dataVIO)
+static inline bool has_allocation(struct data_vio *data_vio)
 {
-  return (getDataVIOAllocation(dataVIO) != ZERO_BLOCK);
+	return (get_data_vio_allocation(data_vio) != ZERO_BLOCK);
 }
 
 /**
@@ -446,67 +474,67 @@ static inline bool hasAllocation(struct data_vio *dataVIO)
  * same parent and other state. This method must be called before using a
  * data_vio.
  *
- * @param dataVIO    The data_vio to initialize
+ * @param data_vio   The data_vio to initialize
  * @param lbn        The logical block number of the data_vio
  * @param operation  The operation this data_vio will perform
  * @param isTrim     <code>true</code> if this data_vio is for a trim request
  * @param callback   The function to call once the vio has completed its
  *                   operation
  **/
-void prepareDataVIO(struct data_vio    *dataVIO,
-                    LogicalBlockNumber  lbn,
-                    VIOOperation        operation,
-                    bool                isTrim,
-                    vdo_action         *callback);
+void prepare_data_vio(struct data_vio *data_vio,
+		      LogicalBlockNumber lbn,
+		      VIOOperation operation,
+		      bool isTrim,
+		      vdo_action *callback);
 
 /**
  * Complete the processing of a data_vio.
  *
  * @param completion The completion of the vio to complete
  **/
-void completeDataVIO(struct vdo_completion *completion);
+void complete_data_vio(struct vdo_completion *completion);
 
 /**
  * Finish processing a data_vio, possibly due to an error. This function will
  * set any error, and then initiate data_vio clean up.
  *
- * @param dataVIO  The data_vio to abort
- * @param result   The result of processing the data_vio
+ * @param data_vio  The data_vio to abort
+ * @param result    The result of processing the data_vio
  **/
-void finishDataVIO(struct data_vio *dataVIO, int result);
+void finish_data_vio(struct data_vio *data_vio, int result);
 
 /**
  * Continue processing a data_vio that has been waiting for an event, setting
  * the result from the event and calling the current callback.
  *
- * @param dataVIO  The data_vio to continue
- * @param result   The current result (will not mask older errors)
+ * @param data_vio  The data_vio to continue
+ * @param result    The current result (will not mask older errors)
  **/
-static inline void continueDataVIO(struct data_vio *dataVIO, int result)
+static inline void continue_data_vio(struct data_vio *data_vio, int result)
 {
-  continue_completion(dataVIOAsCompletion(dataVIO), result);
+	continue_completion(data_vio_as_completion(data_vio), result);
 }
 
 /**
  * Get the name of the last asynchronous operation performed on a data_vio.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  *
  * @return The name of the last operation performed on the data_vio
  **/
-const char *getOperationName(struct data_vio *dataVIO)
-  __attribute__((warn_unused_result));
+const char *get_operation_name(struct data_vio *data_vio)
+	__attribute__((warn_unused_result));
 
 /**
  * Add a trace record for the current source location.
  *
- * @param dataVIO   The data_vio structure to be updated
+ * @param data_vio  The data_vio structure to be updated
  * @param location  The source-location descriptor to be recorded
  **/
-static inline void dataVIOAddTraceRecord(struct data_vio *dataVIO,
-                                         TraceLocation    location)
+static inline void data_vio_add_trace_record(struct data_vio *data_vio,
+					     TraceLocation location)
 {
-  vioAddTraceRecord(dataVIOAsVIO(dataVIO), location);
+	vioAddTraceRecord(data_vio_as_vio(data_vio), location);
 }
 
 /**
@@ -520,370 +548,395 @@ static inline void dataVIOAddTraceRecord(struct data_vio *dataVIO,
  * @return VDO_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result))
-static inline int enqueueDataVIO(struct wait_queue *queue,
-                                 struct data_vio   *waiter,
-                                 TraceLocation      location)
+static inline int enqueue_data_vio(struct wait_queue *queue,
+	       			   struct data_vio *waiter,
+	       			   TraceLocation location)
 {
-  dataVIOAddTraceRecord(waiter, location);
-  return enqueue_waiter(queue, dataVIOAsWaiter(waiter));
+	data_vio_add_trace_record(waiter, location);
+	return enqueue_waiter(queue, data_vio_as_waiter(waiter));
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its hash zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  **/
-static inline void assertInHashZone(struct data_vio *dataVIO)
+static inline void assert_in_hash_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = get_hash_zone_thread_id(dataVIO->hashZone);
-  ThreadID threadID = getCallbackThreadID();
-  // It's odd to use the LBN, but converting the chunk name to hex is a bit
-  // clunky for an inline, and the LBN better than nothing as an identifier.
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for logical block %" PRIu64
-                  " on thread %u, should be on hash zone thread %u",
-                  dataVIO->logical.lbn, threadID, expected);
+	ThreadID expected = get_hash_zone_thread_id(data_vio->hashZone);
+	ThreadID threadID = getCallbackThreadID();
+	// It's odd to use the LBN, but converting the chunk name to hex is a
+	// bit clunky for an inline, and the LBN better than nothing as an
+	// identifier.
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for logical block %" PRIu64
+			" on thread %u, should be on hash zone thread %u",
+			data_vio->logical.lbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a hash zone operation. This function presumes that the
  * hashZone field of the data_vio has already been set.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setHashZoneCallback(struct data_vio *dataVIO,
-                                       vdo_action      *callback,
-                                       TraceLocation    location)
+static inline void set_hash_zone_callback(struct data_vio *data_vio,
+				          vdo_action *callback,
+				          TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               get_hash_zone_thread_id(dataVIO->hashZone));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     get_hash_zone_thread_id(data_vio->hashZone));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a hash zone operation and invoke it immediately.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launchHashZoneCallback(struct data_vio *dataVIO,
-                                          vdo_action      *callback,
-                                          TraceLocation    location)
+static inline void launch_hash_zone_callback(struct data_vio *data_vio,
+					     vdo_action *callback,
+					     TraceLocation location)
 {
-  setHashZoneCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_hash_zone_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its logical zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  **/
-static inline void assertInLogicalZone(struct data_vio *dataVIO)
+static inline void assert_in_logical_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = get_logical_zone_thread_id(dataVIO->logical.zone);
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for logical block %" PRIu64
-                  " on thread %u, should be on thread %u",
-                  dataVIO->logical.lbn, threadID, expected);
+	ThreadID expected = get_logical_zone_thread_id(data_vio->logical.zone);
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for logical block %" PRIu64
+			" on thread %u, should be on thread %u",
+			data_vio->logical.lbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a logical block operation. This function presumes that the
  * logicalZone field of the data_vio has already been set.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setLogicalCallback(struct data_vio *dataVIO,
-                                      vdo_action      *callback,
-                                      TraceLocation    location)
+static inline void set_logical_callback(struct data_vio *data_vio,
+				        vdo_action *callback,
+				        TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               get_logical_zone_thread_id(dataVIO->logical.zone));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     get_logical_zone_thread_id(data_vio->logical.zone));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a logical block operation and invoke it immediately.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launchLogicalCallback(struct data_vio *dataVIO,
-                                         vdo_action      *callback,
-                                         TraceLocation    location)
+static inline void launch_logical_callback(struct data_vio *data_vio,
+					   vdo_action *callback,
+					   TraceLocation location)
 {
-  setLogicalCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_logical_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its allocated
  * zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  **/
-static inline void assertInAllocatedZone(struct data_vio *dataVIO)
+static inline void assert_in_allocated_zone(struct data_vio *data_vio)
 {
-  assertInPhysicalZone(dataVIOAsAllocatingVIO(dataVIO));
+	assertInPhysicalZone(data_vio_as_allocating_vio(data_vio));
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's allocated zone.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setAllocatedZoneCallback(struct data_vio *dataVIO,
-                                            vdo_action      *callback,
-                                            TraceLocation    location)
+static inline void set_allocated_zone_callback(struct data_vio *data_vio,
+					       vdo_action *callback,
+					       TraceLocation location)
 {
-  set_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
-                             location);
+	set_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
+				   callback, location);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's allocated zone
  * and queue the data_vio and invoke it immediately.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launchAllocatedZoneCallback(struct data_vio *dataVIO,
-                                               vdo_action      *callback,
-                                               TraceLocation    location)
+static inline void launch_allocated_zone_callback(struct data_vio *data_vio,
+					          vdo_action *callback,
+					          TraceLocation location)
 {
-  launch_physical_zone_callback(dataVIOAsAllocatingVIO(dataVIO), callback,
-                                location);
+	launch_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
+				      callback, location);
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its duplicate
  * zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  **/
-static inline void assertInDuplicateZone(struct data_vio *dataVIO)
+static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = get_physical_zone_thread_id(dataVIO->duplicate.zone);
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for duplicate physical block %" PRIu64
-                  " on thread %u, should be on thread %u",
-                  dataVIO->duplicate.pbn, threadID, expected);
+	ThreadID expected =
+		get_physical_zone_thread_id(data_vio->duplicate.zone);
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for duplicate physical block %" PRIu64
+			" on thread %u, should be on thread %u",
+			data_vio->duplicate.pbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's duplicate zone.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setDuplicateZoneCallback(struct data_vio *dataVIO,
-                                            vdo_action      *callback,
-                                            TraceLocation    location)
+static inline void set_duplicate_zone_callback(struct data_vio *data_vio,
+					       vdo_action *callback,
+					       TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               get_physical_zone_thread_id(dataVIO->duplicate.zone));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     get_physical_zone_thread_id(data_vio->duplicate.zone));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's duplicate zone
  * and queue the data_vio and invoke it immediately.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launchDuplicateZoneCallback(struct data_vio *dataVIO,
-                                               vdo_action      *callback,
-                                               TraceLocation    location)
+static inline void launch_duplicate_zone_callback(struct data_vio *data_vio,
+					          vdo_action *callback,
+					          TraceLocation location)
 {
-  setDuplicateZoneCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_duplicate_zone_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its mapped zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio  The data_vio in question
  **/
-static inline void assertInMappedZone(struct data_vio *dataVIO)
+static inline void assert_in_mapped_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = get_physical_zone_thread_id(dataVIO->mapped.zone);
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for mapped physical block %" PRIu64
-                  " on thread %u, should be on thread %u",
-                  dataVIO->mapped.pbn, threadID, expected);
+	ThreadID expected = get_physical_zone_thread_id(data_vio->mapped.zone);
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for mapped physical block %" PRIu64
+			" on thread %u, should be on thread %u",
+			data_vio->mapped.pbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's mapped zone.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setMappedZoneCallback(struct data_vio *dataVIO,
-                                         vdo_action      *callback,
-                                         TraceLocation    location)
+static inline void set_mapped_zone_callback(struct data_vio *data_vio,
+					    vdo_action *callback,
+					    TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               get_physical_zone_thread_id(dataVIO->mapped.zone));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     get_physical_zone_thread_id(data_vio->mapped.zone));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Check that a data_vio is running on the correct thread for its newMapped
  * zone.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio The data_vio in question
  **/
-static inline void assertInNewMappedZone(struct data_vio *dataVIO)
+static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = get_physical_zone_thread_id(dataVIO->newMapped.zone);
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for newMapped physical block %" PRIu64
-                  " on thread %u, should be on thread %u",
-                  dataVIO->newMapped.pbn, threadID, expected);
+	ThreadID expected =
+		get_physical_zone_thread_id(data_vio->newMapped.zone);
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for newMapped physical block %" PRIu64
+			" on thread %u, should be on thread %u",
+			data_vio->newMapped.pbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's newMapped zone.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setNewMappedZoneCallback(struct data_vio *dataVIO,
-                                            vdo_action      *callback,
-                                            TraceLocation    location)
+static inline void set_new_mapped_zone_callback(struct data_vio *data_vio,
+					        vdo_action *callback,
+					        TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               get_physical_zone_thread_id(dataVIO->newMapped.zone));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     get_physical_zone_thread_id(data_vio->newMapped.zone));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a physical block operation in a data_vio's newMapped zone
  * and queue the data_vio and invoke it immediately.
  *
- * @param dataVIO   The data_vio
+ * @param data_vio  The data_vio
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launchNewMappedZoneCallback(struct data_vio *dataVIO,
-                                               vdo_action      *callback,
-                                               TraceLocation    location)
+static inline void launch_new_mapped_zone_callback(struct data_vio *data_vio,
+						   vdo_action *callback,
+					       	   TraceLocation location)
 {
-  setNewMappedZoneCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_new_mapped_zone_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
  * Check that a data_vio is running on the journal thread.
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio The data_vio in question
  **/
-static inline void assertInJournalZone(struct data_vio *dataVIO)
+static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
-  ThreadID expected
-    = getJournalZoneThread(getThreadConfigFromDataVIO(dataVIO));
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for logical block %" PRIu64
-                  " on thread %u, should be on journal thread %u",
-                  dataVIO->logical.lbn, threadID, expected);
+	ThreadID expected =
+		getJournalZoneThread(get_thread_config_from_data_vio(data_vio));
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for logical block %" PRIu64
+			" on thread %u, should be on journal thread %u",
+			data_vio->logical.lbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a journal operation.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setJournalCallback(struct data_vio *dataVIO,
-                                      vdo_action      *callback,
-                                      TraceLocation    location)
+static inline void set_journal_callback(struct data_vio *data_vio,
+				        vdo_action *callback,
+				        TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               getJournalZoneThread(getThreadConfigFromDataVIO(dataVIO)));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     getJournalZoneThread(get_thread_config_from_data_vio(data_vio)));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a journal operation and invoke it immediately.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launchJournalCallback(struct data_vio *dataVIO,
-                                         vdo_action      *callback,
-                                         TraceLocation    location)
+static inline void launch_journal_callback(struct data_vio *data_vio,
+					   vdo_action *callback,
+					   TraceLocation location)
 {
-  setJournalCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_journal_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
  * Check that a data_vio is running on the packer thread
  *
- * @param dataVIO  The data_vio in question
+ * @param data_vio The data_vio in question
  **/
-static inline void assertInPackerZone(struct data_vio *dataVIO)
+static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
-  ThreadID expected = getPackerZoneThread(getThreadConfigFromDataVIO(dataVIO));
-  ThreadID threadID = getCallbackThreadID();
-  ASSERT_LOG_ONLY((expected == threadID),
-                  "data_vio for logical block %" PRIu64
-                  " on thread %u, should be on packer thread %u",
-                  dataVIO->logical.lbn, threadID, expected);
+	ThreadID expected =
+		getPackerZoneThread(get_thread_config_from_data_vio(data_vio));
+	ThreadID threadID = getCallbackThreadID();
+	ASSERT_LOG_ONLY((expected == threadID),
+			"data_vio for logical block %" PRIu64
+			" on thread %u, should be on packer thread %u",
+			data_vio->logical.lbn,
+			threadID,
+			expected);
 }
 
 /**
  * Set a callback as a packer operation.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void setPackerCallback(struct data_vio *dataVIO,
-                                     vdo_action      *callback,
-                                     TraceLocation    location)
+static inline void set_packer_callback(struct data_vio *data_vio,
+				       vdo_action *callback,
+				       TraceLocation location)
 {
-  set_callback(dataVIOAsCompletion(dataVIO), callback,
-               getPackerZoneThread(getThreadConfigFromDataVIO(dataVIO)));
-  dataVIOAddTraceRecord(dataVIO, location);
+	set_callback(data_vio_as_completion(data_vio),
+		     callback,
+		     getPackerZoneThread(get_thread_config_from_data_vio(data_vio)));
+	data_vio_add_trace_record(data_vio, location);
 }
 
 /**
  * Set a callback as a packer operation and invoke it immediately.
  *
- * @param dataVIO   The data_vio with which to set the callback
+ * @param data_vio  The data_vio with which to set the callback
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launchPackerCallback(struct data_vio *dataVIO,
-                                        vdo_action      *callback,
-                                        TraceLocation    location)
+static inline void launch_packer_callback(struct data_vio *data_vio,
+					  vdo_action *callback,
+					  TraceLocation location)
 {
-  setPackerCallback(dataVIO, callback, location);
-  invoke_callback(dataVIOAsCompletion(dataVIO));
+	set_packer_callback(data_vio, callback, location);
+	invoke_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -891,59 +944,59 @@ static inline void launchPackerCallback(struct data_vio *dataVIO,
  * and if it is, accept it as the location of a potential duplicate of the
  * data_vio.
  *
- * @param dataVIO  The data_vio that queried Albireo
+ * @param data_vio The data_vio that queried Albireo
  * @param advice   A potential location of the data, or NULL for no advice
  **/
-void receiveDedupeAdvice(struct data_vio            *dataVIO,
-                         const struct data_location *advice);
+void receive_dedupe_advice(struct data_vio *data_vio,
+			   const struct data_location *advice);
 
 /**
  * Set the location of the duplicate block for a data_vio, updating the
  * isDuplicate and duplicate fields from a zoned_pbn.
  *
- * @param dataVIO  The data_vio to modify
+ * @param data_vio The data_vio to modify
  * @param source   The location of the duplicate
  **/
-void setDuplicateLocation(struct data_vio        *dataVIO,
-                          const struct zoned_pbn  source);
+void set_duplicate_location(struct data_vio *data_vio,
+			    const struct zoned_pbn source);
 
 /**
  * Clear a data_vio's mapped block location, setting it to be unmapped. This
  * indicates the block map entry for the logical block is either unmapped or
  * corrupted.
  *
- * @param dataVIO  The data_vio whose mapped block location is to be reset
+ * @param data_vio The data_vio whose mapped block location is to be reset
  **/
-void clearMappedLocation(struct data_vio *dataVIO);
+void clear_mapped_location(struct data_vio *data_vio);
 
 /**
  * Set a data_vio's mapped field to the physical location recorded in the block
  * map for the logical block in the vio.
  *
- * @param dataVIO  The data_vio whose field is to be set
+ * @param data_vio The data_vio whose field is to be set
  * @param pbn      The physical block number to set
  * @param state    The mapping state to set
  *
  * @return VDO_SUCCESS or an error code if the mapping is unusable
  **/
-int setMappedLocation(struct data_vio     *dataVIO,
-                      PhysicalBlockNumber  pbn,
-                      BlockMappingState    state)
-  __attribute__((warn_unused_result));
+int set_mapped_location(struct data_vio *data_vio,
+			PhysicalBlockNumber pbn,
+			BlockMappingState state)
+	__attribute__((warn_unused_result));
 
 /**
  * Attempt to acquire the lock on a logical block. This is the start of the
- * path for all external requests. It is registered in prepareDataVIO().
+ * path for all external requests. It is registered in prepare_data_vio().
  *
  * @param completion  The data_vio for an external data request as a completion
  **/
-void attemptLogicalBlockLock(struct vdo_completion *completion);
+void attempt_logical_block_lock(struct vdo_completion *completion);
 
 /**
  * Release the lock on the logical block, if any, that a data_vio has acquired.
  *
- * @param dataVIO  The data_vio releasing its logical block lock
+ * @param data_vio The data_vio releasing its logical block lock
  **/
-void releaseLogicalBlockLock(struct data_vio *dataVIO);
+void release_logical_block_lock(struct data_vio *data_vio);
 
 #endif // DATA_VIO_H

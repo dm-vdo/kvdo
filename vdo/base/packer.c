@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#34 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#35 $
  */
 
 #include "packerInternals.h"
@@ -313,7 +313,7 @@ void free_packer(struct packer **packer_ptr)
  **/
 static inline struct packer *get_packer_from_data_vio(struct data_vio *data_vio)
 {
-	return getVDOFromDataVIO(data_vio)->packer;
+	return get_vdo_from_data_vio(data_vio)->packer;
 }
 
 /**********************************************************************/
@@ -357,8 +357,8 @@ static void abort_packing(struct data_vio *data_vio)
 	set_compression_done(data_vio);
 	relaxedAdd64(&get_packer_from_data_vio(data_vio)->fragments_pending,
 		     -1);
-	dataVIOAddTraceRecord(data_vio, THIS_LOCATION(NULL));
-	continueDataVIO(data_vio, VDO_SUCCESS);
+	data_vio_add_trace_record(data_vio, THIS_LOCATION(NULL));
+	continue_data_vio(data_vio, VDO_SUCCESS);
 }
 
 /**
@@ -371,7 +371,7 @@ static void abort_packing(struct data_vio *data_vio)
 static void continue_vio_without_packing(struct waiter *waiter,
 					 void *unused __attribute__((unused)))
 {
-	abort_packing(waiterAsDataVIO(waiter));
+	abort_packing(waiter_as_data_vio(waiter));
 }
 
 /**
@@ -467,8 +467,8 @@ static void complete_output_bin(struct vdo_completion *completion)
 static void continue_waiter(struct waiter *waiter,
 			    void *context __attribute__((unused)))
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
-	continueDataVIO(data_vio, VDO_SUCCESS);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
+	continue_data_vio(data_vio, VDO_SUCCESS);
 }
 
 /**
@@ -478,7 +478,7 @@ static void continue_waiter(struct waiter *waiter,
  **/
 static void share_compressed_block(struct waiter *waiter, void *context)
 {
-	struct data_vio *data_vio = waiterAsDataVIO(waiter);
+	struct data_vio *data_vio = waiter_as_data_vio(waiter);
 	struct output_bin *bin = context;
 
 	data_vio->newMapped = (struct zoned_pbn) {
@@ -486,7 +486,7 @@ static void share_compressed_block(struct waiter *waiter, void *context)
 		.zone = bin->writer->zone,
 		.state = get_state_for_slot(data_vio->compression.slot),
 	};
-	dataVIOAsVIO(data_vio)->physical = data_vio->newMapped.pbn;
+	data_vio_as_vio(data_vio)->physical = data_vio->newMapped.pbn;
 
 	share_compressed_write_lock(data_vio, bin->writer->allocation_lock);
 
@@ -593,7 +593,7 @@ static void get_next_batch(struct packer *packer, struct output_batch *batch)
 
 	struct data_vio *data_vio;
 	while ((data_vio =
-		waiterAsDataVIO(get_first_waiter(&packer->batched_data_vios)))
+		waiter_as_data_vio(get_first_waiter(&packer->batched_data_vios)))
 	       != NULL) {
 		// If there's not enough space for the next data_vio, the batch
 		// is done.
@@ -651,8 +651,8 @@ write_next_batch(struct packer *packer, struct output_bin *output)
 					      data_vio->compression.size);
 		space_used += data_vio->compression.size;
 
-		int result = enqueueDataVIO(&output->outgoing, data_vio,
-					    THIS_LOCATION(NULL));
+		int result = enqueue_data_vio(&output->outgoing, data_vio,
+					      THIS_LOCATION(NULL));
 		if (result != VDO_SUCCESS) {
 			abort_packing(data_vio);
 			continue;
@@ -704,9 +704,9 @@ static void start_new_batch(struct packer *packer, struct input_bin *bin)
 			continue;
 		}
 
-		int result = enqueueDataVIO(&packer->batched_data_vios,
-					    data_vio,
-					    THIS_LOCATION(NULL));
+		int result = enqueue_data_vio(&packer->batched_data_vios,
+					      data_vio,
+					      THIS_LOCATION(NULL));
 		if (result != VDO_SUCCESS) {
 			// Impossible but we're required to check the result
 			// from enqueue.
@@ -943,8 +943,8 @@ void remove_from_packer(struct data_vio *data_vio)
 /**********************************************************************/
 void remove_lock_holder_from_packer(struct vdo_completion *completion)
 {
-	struct data_vio *data_vio = asDataVIO(completion);
-	assertInPackerZone(data_vio);
+	struct data_vio *data_vio = as_data_vio(completion);
+	assert_in_packer_zone(data_vio);
 
 	struct data_vio *lock_holder = data_vio->compression.lockHolder;
 	data_vio->compression.lockHolder = NULL;
