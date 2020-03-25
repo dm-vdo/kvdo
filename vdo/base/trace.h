@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#2 $
  */
 
 #ifndef TRACE_H
@@ -77,9 +77,9 @@
  *   js=mapWrite,writeZero,unmap  which step of journaling we're doing
  */
 typedef const struct __attribute__((aligned(16))) traceLocationRecord {
-  const char *function;
-  int         line;
-  const char *description;
+	const char *function;
+	int line;
+	const char *description;
 } TraceLocationRecord;
 
 /*
@@ -111,36 +111,34 @@ typedef TraceLocationRecord *TraceLocation;
  * for a PIC library but not for a kernel module.
  */
 
-#define TRACE_LOCATION_SECTION \
-  __attribute__((section(".kvdo_trace_locations")))
+#define TRACE_LOCATION_SECTION __attribute__((section(".kvdo_trace_locations")))
 
 extern TRACE_LOCATION_SECTION TraceLocationRecord baseTraceLocation[];
 
-#define TRACE_JOIN2(a,b) a##b
-#define TRACE_JOIN(a,b) TRACE_JOIN2(a,b)
-#define THIS_LOCATION(DESCRIPTION)                                      \
-  __extension__                                                         \
-  ({                                                                    \
-    static TRACE_LOCATION_SECTION                                       \
-      TraceLocationRecord TRACE_JOIN(loc,__LINE__) = {                  \
-      .function    = __func__,                                          \
-      .line        = __LINE__,                                          \
-      .description = DESCRIPTION,                                       \
-    };                                                                  \
-    &TRACE_JOIN(loc,__LINE__);                                          \
-  })
+#define TRACE_JOIN2(a, b) a##b
+#define TRACE_JOIN(a, b) TRACE_JOIN2(a, b)
+#define THIS_LOCATION(DESCRIPTION)                                            \
+	__extension__({                                                       \
+		static TRACE_LOCATION_SECTION TraceLocationRecord TRACE_JOIN( \
+			loc, __LINE__) = {                                    \
+			.function = __func__,                                 \
+			.line = __LINE__,                                     \
+			.description = DESCRIPTION,                           \
+		};                                                            \
+		&TRACE_JOIN(loc, __LINE__);                                   \
+	})
 
 typedef struct traceRecord {
-  uint64_t            when;     // counted in usec
-  pid_t               tid;
-  TraceLocationNumber location;
+	uint64_t when; // counted in usec
+	pid_t tid;
+	TraceLocationNumber location;
 } TraceRecord;
 
 enum { NUM_TRACE_RECORDS = 71 };
 
 typedef struct trace {
-  unsigned int used;
-  TraceRecord  records[NUM_TRACE_RECORDS];
+	unsigned int used;
+	TraceRecord records[NUM_TRACE_RECORDS];
 } Trace;
 
 /**
@@ -159,9 +157,9 @@ void addTraceRecord(Trace *trace, TraceLocation location);
  * @param [in]  bufferLength  Length of the buffer
  * @param [out] msgLen        Length of the formatted string
  **/
-void formatTrace(Trace  *trace,
-                 char   *buffer,
-                 size_t  bufferLength,
-                 size_t *msgLen);
+void formatTrace(Trace *trace,
+		 char *buffer,
+		 size_t bufferLength,
+		 size_t *msgLen);
 
 #endif /* TRACE_H */

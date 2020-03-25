@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#3 $
  */
 
 #include "trace.h"
@@ -26,23 +26,23 @@
 #include "timeUtils.h"
 
 TRACE_LOCATION_SECTION TraceLocationRecord baseTraceLocation[] = {
-  {
-    .function = "<none>",
-    .line     = 0,
-  },
+	{
+		.function = "<none>",
+		.line = 0,
+	},
 };
 
 /**********************************************************************/
 void addTraceRecord(Trace *trace, TraceLocation location)
 {
-  if (trace->used < NUM_TRACE_RECORDS) {
-    TraceRecord *record = &trace->records[trace->used];
-    trace->used++;
+	if (trace->used < NUM_TRACE_RECORDS) {
+		TraceRecord *record = &trace->records[trace->used];
+		trace->used++;
 
-    record->when     = nowUsec();
-    record->tid      = getThreadId();
-    record->location = location - baseTraceLocation;
-  }
+		record->when = nowUsec();
+		record->tid = getThreadId();
+		record->location = location - baseTraceLocation;
+	}
 }
 
 /*
@@ -53,47 +53,54 @@ void addTraceRecord(Trace *trace, TraceLocation location)
  *
  * If the buffer's too small, it'll end with an ellipsis.
  */
-void formatTrace(Trace  *trace,
-                 char   *buffer,
-                 size_t  bufferLength,
-                 size_t *msgLen)
+void formatTrace(Trace *trace,
+		 char *buffer,
+		 size_t bufferLength,
+		 size_t *msgLen)
 {
-  if (trace == NULL) {
-    return;
-  }
-  memset(buffer, 0, bufferLength);
-  char *buf = buffer;
-  char *bufferEnd = buffer + bufferLength - 1;
-  if (trace->used > 0) {
-    TraceRecord *record = &trace->records[0];
-    TraceLocationRecord *location = baseTraceLocation + record->location;
-    snprintf(buf, bufferEnd - buf, "Trace[%s@%llu.%06llu",
-             location->function, record->when / 1000000,
-             record->when % 1000000);
-    buf += strlen(buf);
+	if (trace == NULL) {
+		return;
+	}
+	memset(buffer, 0, bufferLength);
+	char *buf = buffer;
+	char *bufferEnd = buffer + bufferLength - 1;
+	if (trace->used > 0) {
+		TraceRecord *record = &trace->records[0];
+		TraceLocationRecord *location =
+			baseTraceLocation + record->location;
+		snprintf(buf,
+			 bufferEnd - buf,
+			 "Trace[%s@%llu.%06llu",
+			 location->function,
+			 record->when / 1000000,
+			 record->when % 1000000);
+		buf += strlen(buf);
 
-    unsigned int i;
-    for (i = 1; i < trace->used; i++) {
-      TraceRecord *prev = record;
-      record++;
+		unsigned int i;
+		for (i = 1; i < trace->used; i++) {
+			TraceRecord *prev = record;
+			record++;
 
-      snprintf(buf, bufferEnd - buf, ",");
-      buf += strlen(buf);
+			snprintf(buf, bufferEnd - buf, ",");
+			buf += strlen(buf);
 
-      location = baseTraceLocation + record->location;
-      unsigned long timeDiff = record->when - prev->when;
-      snprintf(buf, bufferEnd - buf, "%s+%lu",
-               location->function, timeDiff);
-      buf += strlen(buf);
-    }
-    if (bufferLength > 7) {
-      if (buffer[bufferLength-5] != '\0') {
-        // too long
-        strcpy(buffer+bufferLength-5, "...]");
-      } else {
-        strcpy(buf, "]");
-      }
-    }
-  }
-  *msgLen = (buf - buffer);
+			location = baseTraceLocation + record->location;
+			unsigned long timeDiff = record->when - prev->when;
+			snprintf(buf,
+				 bufferEnd - buf,
+				 "%s+%lu",
+				 location->function,
+				 timeDiff);
+			buf += strlen(buf);
+		}
+		if (bufferLength > 7) {
+			if (buffer[bufferLength - 5] != '\0') {
+				// too long
+				strcpy(buffer + bufferLength - 5, "...]");
+			} else {
+				strcpy(buf, "]");
+			}
+		}
+	}
+	*msgLen = (buf - buffer);
 }
