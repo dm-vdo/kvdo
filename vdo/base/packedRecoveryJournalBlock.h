@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#7 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -141,8 +141,8 @@ enum {
 /**
  * Find the recovery journal sector from the block header and sector number.
  *
- * @param header        The header of the recovery journal block
- * @param sectorNumber  The index of the sector (1-based)
+ * @param header         The header of the recovery journal block
+ * @param sector_number  The index of the sector (1-based)
  *
  * @return A packed recovery journal sector
  **/
