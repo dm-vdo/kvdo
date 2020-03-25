@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#50 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -628,7 +628,7 @@ static int computeUsages(struct recovery_completion *recovery)
     = get_journal_block_header(journal, recovery->journalData, recovery->tail);
 
   struct recovery_block_header unpacked;
-  unpackRecoveryBlockHeader(tailHeader, &unpacked);
+  unpack_recovery_block_header(tailHeader, &unpacked);
   recovery->logicalBlocksUsed  = unpacked.logical_blocks_used;
   recovery->blockMapDataBlocks = unpacked.block_map_data_blocks;
 
@@ -1101,7 +1101,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     union packed_journal_header *packedHeader
       = get_journal_block_header(journal, recovery->journalData, i);
     struct recovery_block_header header;
-    unpackRecoveryBlockHeader(packedHeader, &header);
+    unpack_recovery_block_header(packedHeader, &header);
 
     if (!is_exact_recovery_journal_block(journal, &header, i)
         || (header.entry_count > journal->entries_per_block)) {
@@ -1114,7 +1114,7 @@ static bool findContiguousRange(struct recovery_completion *recovery)
     uint8_t j;
     for (j = 1; j < SECTORS_PER_BLOCK; j++) {
       struct packed_journal_sector *sector
-        = getJournalBlockSector(packedHeader, j);
+        = get_journal_block_sector(packedHeader, j);
 
       // A bad sector means that this block was torn.
       if (!is_valid_recovery_journal_sector(&header, sector)) {
