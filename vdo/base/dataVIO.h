@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#26 $
  */
 
 #ifndef DATA_VIO_H
@@ -252,7 +252,7 @@ struct data_vio {
 /**
  * Convert an allocating_vio to a data_vio.
  *
- * @param allocatingVIO  The allocating_vio to convert
+ * @param allocating_vio  The allocating_vio to convert
  *
  * @return The allocating_vio as a data_vio
  **/
