@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#26 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -396,6 +396,6 @@ int getPhysicalZone(const struct vdo      *vdo,
 /**********************************************************************/
 // Asynchronous callback to share a duplicate block. This is only public so
 // test code may compare it against the current callback in the completion.
-void shareBlock(struct vdo_completion *completion);
+void share_block(struct vdo_completion *completion);
 
 #endif /* VDO_INTERNAL_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#23 $
  */
 
 #include "dataVIO.h"
@@ -41,7 +41,7 @@ static const char *ASYNC_OPERATION_NAMES[] = {
   "acquirePBNReadLock",
   "checkForDedupeForRollover",
   "checkForDeduplication",
-  "compressData",
+  "compress_data",
   "continueVIOAsync",
   "findBlockMapSlot",
   "getMappedBlock",
@@ -139,7 +139,7 @@ void completeDataVIO(struct vdo_completion *completion)
   if (isReadDataVIO(dataVIO)) {
     cleanup_read_data_vio(dataVIO);
   } else {
-    cleanupWriteDataVIO(dataVIO);
+    cleanup_write_data_vio(dataVIO);
   }
 }
 
@@ -222,7 +222,7 @@ static void launchLockedRequest(struct data_vio *dataVIO)
   dataVIO->logical.locked = true;
 
   if (isWriteDataVIO(dataVIO)) {
-    launchWriteDataVIO(dataVIO);
+    launch_write_data_vio(dataVIO);
   } else {
     launch_read_data_vio(dataVIO);
   }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashLock.c#28 $
  */
 
 /**
@@ -355,15 +355,15 @@ static struct data_vio *retire_lock_agent(struct hash_lock *lock)
 }
 
 /**
- * Callback to call compressData(), putting a data_vio back on the write path.
+ * Callback to call compress_data(), putting a data_vio back on the write path.
  *
  * @param completion  The data_vio
  **/
 static void compress_data_callback(struct vdo_completion *completion)
 {
-	// XXX VDOSTORY-190 need an error check since compressData doesn't have
+	// XXX VDOSTORY-190 need an error check since compress_data doesn't have
 	// one.
-	compressData(asDataVIO(completion));
+	compress_data(asDataVIO(completion));
 }
 
 /**
@@ -403,7 +403,7 @@ static void waitOnHashLock(struct hash_lock *lock, struct data_vio *data_vio)
 }
 
 /**
- * waiter_callback function that calls compressData on the data_vio waiter.
+ * waiter_callback function that calls compress_data on the data_vio waiter.
  *
  * @param waiter   The data_vio's waiter link
  * @param context  Not used
@@ -413,7 +413,7 @@ static void compress_waiter(struct waiter *waiter,
 {
 	struct data_vio *data_vio = waiterAsDataVIO(waiter);
 	data_vio->isDuplicate = false;
-	compressData(data_vio);
+	compress_data(data_vio);
 }
 
 /**
@@ -473,7 +473,7 @@ static void startBypassing(struct hash_lock *lock, struct data_vio *agent)
 
 	set_agent(lock, NULL);
 	agent->isDuplicate = false;
-	compressData(agent);
+	compress_data(agent);
 }
 
 /**
@@ -807,8 +807,8 @@ static void launchDedupe(struct hash_lock *lock, struct data_vio *data_vio,
 
 	// Deduplicate against the lock's verified location.
 	setDuplicateLocation(data_vio, lock->duplicate);
-	launchDuplicateZoneCallback(data_vio, shareBlock,
-				    THIS_LOCATION("$F;cb=shareBlock"));
+	launchDuplicateZoneCallback(data_vio, share_block,
+				    THIS_LOCATION("$F;cb=share_block"));
 }
 
 /**
@@ -1373,7 +1373,7 @@ static void start_writing(struct hash_lock *lock, struct data_vio *agent)
 	 * it succeeds, it will return to the hash lock via continue_hash_lock()
 	 * and call finishWriting().
 	 */
-	compressData(agent);
+	compress_data(agent);
 }
 
 /**
@@ -1470,7 +1470,7 @@ void enter_hash_lock(struct data_vio *data_vio)
 
 	case HASH_LOCK_BYPASSING:
 		// Bypass dedupe entirely.
-		compressData(data_vio);
+		compress_data(data_vio);
 		break;
 
 	case HASH_LOCK_DEDUPING:
