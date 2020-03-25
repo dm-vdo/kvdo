@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#2 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -27,16 +27,16 @@
 #include "types.h"
 
 struct threadConfig {
-  ZoneCount    logicalZoneCount;
-  ZoneCount    physicalZoneCount;
-  ZoneCount    hashZoneCount;
-  ThreadCount  baseThreadCount;
-  ThreadID     adminThread;
-  ThreadID     journalThread;
-  ThreadID     packerThread;
-  ThreadID    *logicalThreads;
-  ThreadID    *physicalThreads;
-  ThreadID    *hashZoneThreads;
+	ZoneCount logicalZoneCount;
+	ZoneCount physicalZoneCount;
+	ZoneCount hashZoneCount;
+	ThreadCount baseThreadCount;
+	ThreadID adminThread;
+	ThreadID journalThread;
+	ThreadID packerThread;
+	ThreadID *logicalThreads;
+	ThreadID *physicalThreads;
+	ThreadID *hashZoneThreads;
 };
 
 /**
@@ -52,11 +52,11 @@ struct threadConfig {
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeThreadConfig(ZoneCount      logicalZoneCount,
-                     ZoneCount      physicalZoneCount,
-                     ZoneCount      hashZoneCount,
-                     ThreadConfig **configPtr)
-  __attribute__((warn_unused_result));
+int makeThreadConfig(ZoneCount logicalZoneCount,
+		     ZoneCount physicalZoneCount,
+		     ZoneCount hashZoneCount,
+		     ThreadConfig **configPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Make a thread configuration that uses no threads. This is the configuration
@@ -77,7 +77,7 @@ int makeZeroThreadConfig(ThreadConfig **configPtr);
  * @return VDO_SUCCESS or an error
  **/
 int makeOneThreadConfig(ThreadConfig **configPtr)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Make a new thread config which is a copy of an existing one.
@@ -88,7 +88,7 @@ int makeOneThreadConfig(ThreadConfig **configPtr)
  * @return VDO_SUCCESS or an error
  **/
 int copyThreadConfig(const ThreadConfig *oldConfig, ThreadConfig **configPtr)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Destroy a thread configuration and null out the reference to it.
@@ -106,12 +106,12 @@ void freeThreadConfig(ThreadConfig **configPtr);
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID getLogicalZoneThread(const ThreadConfig *threadConfig,
-                                            ZoneCount           logicalZone)
+static inline ThreadID
+getLogicalZoneThread(const ThreadConfig *threadConfig, ZoneCount logicalZone)
 {
-  ASSERT_LOG_ONLY((logicalZone <= threadConfig->logicalZoneCount),
-                  "logical zone valid");
-  return threadConfig->logicalThreads[logicalZone];
+	ASSERT_LOG_ONLY((logicalZone <= threadConfig->logicalZoneCount),
+			"logical zone valid");
+	return threadConfig->logicalThreads[logicalZone];
 }
 
 /**
@@ -123,12 +123,12 @@ static inline ThreadID getLogicalZoneThread(const ThreadConfig *threadConfig,
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID getPhysicalZoneThread(const ThreadConfig *threadConfig,
-                                             ZoneCount           physicalZone)
+static inline ThreadID
+getPhysicalZoneThread(const ThreadConfig *threadConfig, ZoneCount physicalZone)
 {
-  ASSERT_LOG_ONLY((physicalZone <= threadConfig->physicalZoneCount),
-                  "physical zone valid");
-  return threadConfig->physicalThreads[physicalZone];
+	ASSERT_LOG_ONLY((physicalZone <= threadConfig->physicalZoneCount),
+			"physical zone valid");
+	return threadConfig->physicalThreads[physicalZone];
 }
 
 /**
@@ -140,12 +140,12 @@ static inline ThreadID getPhysicalZoneThread(const ThreadConfig *threadConfig,
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID getHashZoneThread(const ThreadConfig *threadConfig,
-                                         ZoneCount           hashZone)
+static inline ThreadID
+getHashZoneThread(const ThreadConfig *threadConfig, ZoneCount hashZone)
 {
-  ASSERT_LOG_ONLY((hashZone <= threadConfig->hashZoneCount),
-                  "hash zone valid");
-  return threadConfig->hashZoneThreads[hashZone];
+	ASSERT_LOG_ONLY((hashZone <= threadConfig->hashZoneCount),
+			"hash zone valid");
+	return threadConfig->hashZoneThreads[hashZone];
 }
 
 /**
@@ -158,7 +158,7 @@ static inline ThreadID getHashZoneThread(const ThreadConfig *threadConfig,
 __attribute__((warn_unused_result))
 static inline ThreadID getJournalZoneThread(const ThreadConfig *threadConfig)
 {
-  return threadConfig->journalThread;
+	return threadConfig->journalThread;
 }
 
 /**
@@ -171,7 +171,7 @@ static inline ThreadID getJournalZoneThread(const ThreadConfig *threadConfig)
 __attribute__((warn_unused_result))
 static inline ThreadID getPackerZoneThread(const ThreadConfig *threadConfig)
 {
-  return threadConfig->packerThread;
+	return threadConfig->packerThread;
 }
 
 /**
@@ -184,7 +184,7 @@ static inline ThreadID getPackerZoneThread(const ThreadConfig *threadConfig)
 __attribute__((warn_unused_result))
 static inline ThreadID getAdminThread(const ThreadConfig *threadConfig)
 {
-  return threadConfig->adminThread;
+	return threadConfig->adminThread;
 }
 
 /**
@@ -199,8 +199,8 @@ static inline ThreadID getAdminThread(const ThreadConfig *threadConfig)
  * @param bufferLength  Size of the output buffer
  **/
 void getVDOThreadName(const ThreadConfig *threadConfig,
-                      ThreadID            threadID,
-                      char               *buffer,
-                      size_t              bufferLength);
+		      ThreadID threadID,
+		      char *buffer,
+		      size_t bufferLength);
 
 #endif /* THREAD_CONFIG_H */
