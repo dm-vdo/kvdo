@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#3 $
  */
 
 #ifndef VDO_STATE_H
@@ -27,17 +27,17 @@
  * so the values must not change.
  **/
 typedef enum {
-  VDO_DIRTY               = 0,
-  VDO_NEW                 = 1,
-  VDO_CLEAN               = 2,
-  VDO_READ_ONLY_MODE      = 3,
-  VDO_FORCE_REBUILD       = 4,
-  VDO_RECOVERING          = 5,
-  VDO_REPLAYING           = 6,
-  VDO_REBUILD_FOR_UPGRADE = 7,
+	VDO_DIRTY = 0,
+	VDO_NEW = 1,
+	VDO_CLEAN = 2,
+	VDO_READ_ONLY_MODE = 3,
+	VDO_FORCE_REBUILD = 4,
+	VDO_RECOVERING = 5,
+	VDO_REPLAYING = 6,
+	VDO_REBUILD_FOR_UPGRADE = 7,
 
-  // Keep VDO_STATE_COUNT at the bottom.
-  VDO_STATE_COUNT
+	// Keep VDO_STATE_COUNT at the bottom.
+	VDO_STATE_COUNT
 } VDOState;
 
 /**
@@ -48,7 +48,7 @@ typedef enum {
  * @return The name of the state code
  **/
 const char *getVDOStateName(VDOState state)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Return a user-visible string describing the current VDO state.
@@ -58,6 +58,6 @@ const char *getVDOStateName(VDOState state)
  * @return A string constant describing the state
  **/
 const char *describeVDOState(VDOState state)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 #endif // VDO_STATE_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#2 $
  */
 
 #include "vdoState.h"
@@ -24,43 +24,44 @@
 #include "permassert.h"
 
 static const char *VDO_STATE_NAMES[] = {
-  [VDO_CLEAN]               = "CLEAN",
-  [VDO_DIRTY]               = "DIRTY",
-  [VDO_FORCE_REBUILD]       = "FORCE_REBUILD",
-  [VDO_NEW]                 = "NEW",
-  [VDO_READ_ONLY_MODE]      = "READ_ONLY_MODE",
-  [VDO_REBUILD_FOR_UPGRADE] = "REBUILD_FOR_UPGRADE",
-  [VDO_RECOVERING]          = "RECOVERING",
-  [VDO_REPLAYING]           = "REPLAYING",
+	[VDO_CLEAN] = "CLEAN",
+	[VDO_DIRTY] = "DIRTY",
+	[VDO_FORCE_REBUILD] = "FORCE_REBUILD",
+	[VDO_NEW] = "NEW",
+	[VDO_READ_ONLY_MODE] = "READ_ONLY_MODE",
+	[VDO_REBUILD_FOR_UPGRADE] = "REBUILD_FOR_UPGRADE",
+	[VDO_RECOVERING] = "RECOVERING",
+	[VDO_REPLAYING] = "REPLAYING",
 };
 
 /**********************************************************************/
 const char *getVDOStateName(VDOState state)
 {
-  // Catch if a state has been added without updating the name array.
-  STATIC_ASSERT(COUNT_OF(VDO_STATE_NAMES) == VDO_STATE_COUNT);
+	// Catch if a state has been added without updating the name array.
+	STATIC_ASSERT(COUNT_OF(VDO_STATE_NAMES) == VDO_STATE_COUNT);
 
-  int result = ASSERT(state < COUNT_OF(VDO_STATE_NAMES),
-                      "VDOState value %u must have a registered name", state);
-  if (result != UDS_SUCCESS) {
-    return "INVALID VDO STATE CODE";
-  }
+	int result = ASSERT(state < COUNT_OF(VDO_STATE_NAMES),
+			    "VDOState value %u must have a registered name",
+			    state);
+	if (result != UDS_SUCCESS) {
+		return "INVALID VDO STATE CODE";
+	}
 
-  return VDO_STATE_NAMES[state];
+	return VDO_STATE_NAMES[state];
 }
 
 /**********************************************************************/
 const char *describeVDOState(VDOState state)
 {
-  // These strings should all fit in the 15 chars of VDOStatistics.mode.
-  switch (state) {
-  case VDO_RECOVERING:
-    return "recovering";
+	// These strings should all fit in the 15 chars of VDOStatistics.mode.
+	switch (state) {
+	case VDO_RECOVERING:
+		return "recovering";
 
-  case VDO_READ_ONLY_MODE:
-    return "read-only";
+	case VDO_READ_ONLY_MODE:
+		return "read-only";
 
-  default:
-    return "normal";
-  }
+	default:
+		return "normal";
+	}
 }
