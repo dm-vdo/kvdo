@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/ringNode.h#1 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/ringNode.h#2 $
  */
 
 #ifndef RING_NODE_H
@@ -43,8 +43,8 @@
 typedef struct ringNode RingNode;
 
 struct ringNode {
-  RingNode *next;
-  RingNode *prev;
+	RingNode *next;
+	RingNode *prev;
 };
 
 /**
@@ -54,7 +54,7 @@ struct ringNode {
  **/
 static inline void initializeRing(RingNode *head)
 {
-  head->next = head->prev = head;
+	head->next = head->prev = head;
 }
 
 /**
@@ -66,7 +66,7 @@ static inline void initializeRing(RingNode *head)
  **/
 static inline bool isRingEmpty(const RingNode *head)
 {
-  return (head->next == head);
+	return (head->next == head);
 }
 
 /**
@@ -78,7 +78,7 @@ static inline bool isRingEmpty(const RingNode *head)
  **/
 static inline bool isRingSingleton(const RingNode *head)
 {
-  return (!isRingEmpty(head) && (head->prev == head->next));
+	return (!isRingEmpty(head) && (head->prev == head->next));
 }
 
 /**
@@ -91,13 +91,12 @@ static inline bool isRingSingleton(const RingNode *head)
  * The effect of this is to create two rings, the one designated
  * by first through last, and the other consisting of anything remaining.
  **/
-static inline void unspliceRingChain(RingNode *first,
-                                     RingNode *last)
+static inline void unspliceRingChain(RingNode *first, RingNode *last)
 {
-  first->prev->next = last->next;
-  last->next->prev = first->prev;
-  first->prev = last;
-  last->next = first;
+	first->prev->next = last->next;
+	last->next->prev = first->prev;
+	first->prev = last;
+	last->next = first;
 }
 
 /**
@@ -109,8 +108,8 @@ static inline void unspliceRingChain(RingNode *first,
  **/
 static inline RingNode *unspliceRingNode(RingNode *node)
 {
-  unspliceRingChain(node, node);
-  return node;
+	unspliceRingChain(node, node);
+	return node;
 }
 
 /**
@@ -127,17 +126,16 @@ static inline RingNode *unspliceRingNode(RingNode *node)
  * insert them after ``where`` so that the previous nodes after ``where``
  * now appear after ``last``.
  **/
-static inline void spliceRingChainAfter(RingNode *first,
-                                        RingNode *last,
-                                        RingNode *where)
+static inline
+void spliceRingChainAfter(RingNode *first, RingNode *last, RingNode *where)
 {
-  if (last->next != first) {
-    unspliceRingChain(first, last);
-  }
-  last->next = where->next;
-  first->prev = where;
-  where->next->prev = last;
-  where->next = first;
+	if (last->next != first) {
+		unspliceRingChain(first, last);
+	}
+	last->next = where->next;
+	first->prev = where;
+	where->next->prev = last;
+	where->next = first;
 }
 
 /**
@@ -154,17 +152,16 @@ static inline void spliceRingChainAfter(RingNode *first,
  * insert them before ``where`` so that the previous nodes before ``where``
  * now appear before ``first``.
  **/
-static inline void spliceRingChainBefore(RingNode *first,
-                                         RingNode *last,
-                                         RingNode *where)
+static inline
+void spliceRingChainBefore(RingNode *first, RingNode *last, RingNode *where)
 {
-  if (last->next != first) {
-    unspliceRingChain(first, last);
-  }
-  first->prev = where->prev;
-  last->next = where;
-  where->prev->next = first;
-  where->prev = last;
+	if (last->next != first) {
+		unspliceRingChain(first, last);
+	}
+	first->prev = where->prev;
+	last->next = where;
+	where->prev->next = first;
+	where->prev = last;
 }
 
 /**
@@ -175,7 +172,7 @@ static inline void spliceRingChainBefore(RingNode *first,
  **/
 static inline void pushRingNode(RingNode *head, RingNode *node)
 {
-  spliceRingChainBefore(node, node, head);
+	spliceRingChainBefore(node, node, head);
 }
 
 /**
@@ -188,7 +185,7 @@ static inline void pushRingNode(RingNode *head, RingNode *node)
  **/
 static inline RingNode *popRingNode(RingNode *head)
 {
-  return (isRingEmpty(head) ? NULL : unspliceRingNode(head->prev));
+	return (isRingEmpty(head) ? NULL : unspliceRingNode(head->prev));
 }
 
 /**
@@ -196,7 +193,7 @@ static inline RingNode *popRingNode(RingNode *head)
  **/
 static inline RingNode *chopRingNode(RingNode *head)
 {
-  return (isRingEmpty(head) ? NULL : unspliceRingNode(head->next));
+	return (isRingEmpty(head) ? NULL : unspliceRingNode(head->next));
 }
 
 #endif // RING_NODE_H
