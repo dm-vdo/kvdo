@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#13 $
  */
 
 #include "readOnlyNotifier.h"
@@ -102,7 +102,7 @@ struct read_only_notifier {
 	/** The current state of the notifier (values described above) */
 	Atomic32 state;
 	/** The thread config of the VDO */
-	const ThreadConfig *thread_config;
+	const struct thread_config *thread_config;
 	/** The array of per-thread data */
 	struct thread_data thread_data[];
 };
@@ -123,7 +123,7 @@ as_notifier(struct vdo_completion *completion)
 
 /**********************************************************************/
 int make_read_only_notifier(bool is_read_only,
-			    const ThreadConfig *thread_config,
+			    const struct thread_config *thread_config,
 			    PhysicalLayer *layer,
 			    struct read_only_notifier **notifier_ptr)
 {

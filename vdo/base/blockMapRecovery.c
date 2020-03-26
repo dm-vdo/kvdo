@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapRecovery.c#20 $
  */
 
 #include "blockMapRecovery.h"
@@ -239,7 +239,7 @@ make_recovery_completion(struct vdo *vdo,
 	recovery->page_count = page_count;
 	recovery->current_entry = &recovery->journal_entries[entry_count - 1];
 
-	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *threadConfig = getThreadConfig(vdo);
 	recovery->admin_thread = getAdminThread(threadConfig);
 	recovery->logical_thread_id = getLogicalZoneThread(threadConfig, 0);
 

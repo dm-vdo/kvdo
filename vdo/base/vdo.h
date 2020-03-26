@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#6 $
  */
 
 #ifndef VDO_H
@@ -171,7 +171,7 @@ const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
  *
  * @return The thread config
  **/
-const ThreadConfig *getThreadConfig(const struct vdo *vdo)
+const struct thread_config *getThreadConfig(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**

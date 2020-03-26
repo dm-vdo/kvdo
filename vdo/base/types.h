@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#36 $
  */
 
 #ifndef TYPES_H
@@ -124,7 +124,7 @@ typedef uint16_t VIOCount;
 /**
  * A VDO thread configuration.
  **/
-typedef struct threadConfig ThreadConfig;
+struct thread_config;
 
 /**
  * A thread counter
@@ -342,7 +342,7 @@ typedef struct vdoLoadConfig {
   /** the expected nonce of the VDO */
   Nonce                 nonce;
   /** the thread configuration of the VDO */
-  ThreadConfig         *threadConfig;
+  struct thread_config *threadConfig;
   /** the page cache size, in pages */
   PageCount             cacheSize;
   /** whether writes are synchronous */

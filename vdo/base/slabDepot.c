@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#48 $
  */
 
 #include "slabDepot.h"
@@ -230,7 +230,7 @@ static bool scheduleTailBlockCommit(void *context)
  **/
 static int allocate_components(struct slab_depot *depot,
 			       Nonce nonce,
-			       const ThreadConfig *thread_config,
+			       const struct thread_config *thread_config,
 			       BlockCount vio_pool_size,
 			       PhysicalLayer *layer,
 			       struct partition *summary_partition)
@@ -334,7 +334,7 @@ static int allocate_components(struct slab_depot *depot,
  **/
 __attribute__((warn_unused_result)) static int
 allocate_depot(const struct slab_depot_state_2_0 *state,
-	       const ThreadConfig *thread_config,
+	       const struct thread_config *thread_config,
 	       Nonce nonce,
 	       BlockCount vio_pool_size,
 	       PhysicalLayer *layer,
@@ -451,7 +451,7 @@ static int configure_state(BlockCount block_count,
 int make_slab_depot(BlockCount block_count,
 		    PhysicalBlockNumber first_block,
 		    SlabConfig slab_config,
-		    const ThreadConfig *thread_config,
+		    const struct thread_config *thread_config,
 		    Nonce nonce,
 		    BlockCount vio_pool_size,
 		    PhysicalLayer *layer,
@@ -715,7 +715,7 @@ static int decode_slab_depot_state_2_0(Buffer *buffer,
 
 /**********************************************************************/
 int decode_slab_depot(Buffer *buffer,
-		      const ThreadConfig *thread_config,
+		      const struct thread_config *thread_config,
 		      Nonce nonce,
 		      PhysicalLayer *layer,
 		      struct partition *summary_partition,
@@ -756,7 +756,7 @@ int decode_slab_depot(Buffer *buffer,
 
 /**********************************************************************/
 int decode_sodium_slab_depot(Buffer *buffer,
-			     const ThreadConfig *thread_config,
+			     const struct thread_config *thread_config,
 			     Nonce nonce,
 			     PhysicalLayer *layer,
 			     struct partition *summary_partition,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#15 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -62,7 +62,7 @@ typedef enum reqQAction {
  * @return  VDO_SUCCESS or an error code
  **/
 int initialize_kvdo(struct kvdo *kvdo,
-		    const ThreadConfig *thread_config,
+		    const struct thread_config *thread_config,
 		    char **reason);
 
 /**

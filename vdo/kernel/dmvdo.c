@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#43 $
  */
 
 #include "dmvdo.h"
@@ -526,7 +526,7 @@ static void configure_target_capabilities(struct dm_target *ti,
  * @param why            The reason for failure
  **/
 static void cleanup_initialize(struct dm_target *ti,
-			       ThreadConfig *thread_config,
+			       struct thread_config *thread_config,
 			       struct kernel_layer *layer,
 			       unsigned int instance,
 			       char *why)
@@ -624,7 +624,7 @@ static int vdo_initialize(struct dm_target *ti,
 	}
 
 	// Henceforth it is the kernel layer's responsibility to clean up the
-	// ThreadConfig.
+	// struct thread_config.
 	result = preload_kernel_layer(layer, &load_config, &failure_reason);
 	if (result != VDO_SUCCESS) {
 		logError("Could not start kernel physical layer. (VDO error %d, message %s)",

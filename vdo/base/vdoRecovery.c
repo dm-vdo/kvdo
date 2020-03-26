@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#52 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -263,7 +263,8 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 			     vdo_action error_handler,
 			     ZoneType zone_type)
 {
-	const ThreadConfig *thread_config = getThreadConfig(recovery->vdo);
+	const struct thread_config *thread_config =
+		getThreadConfig(recovery->vdo);
 	ThreadID thread_id;
 	switch (zone_type) {
 	case ZONE_TYPE_LOGICAL:
@@ -292,7 +293,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 int make_recovery_completion(struct vdo *vdo,
 			     struct recovery_completion **recovery_ptr)
 {
-	const ThreadConfig *thread_config = getThreadConfig(vdo);
+	const struct thread_config *thread_config = getThreadConfig(vdo);
 	struct recovery_completion *recovery;
 	int result = ALLOCATE_EXTENDED(struct recovery_completion,
 				       thread_config->physicalZoneCount,
@@ -356,7 +357,8 @@ void free_recovery_completion(struct recovery_completion **recovery_ptr)
 	}
 
 	free_int_map(&recovery->slot_entry_map);
-	const ThreadConfig *thread_config = getThreadConfig(recovery->vdo);
+	const struct thread_config *thread_config =
+		getThreadConfig(recovery->vdo);
 	ZoneCount z;
 	for (z = 0; z < thread_config->physicalZoneCount; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],

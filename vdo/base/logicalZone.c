@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#27 $
  */
 
 #include "logicalZone.h"
@@ -150,7 +150,7 @@ static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 /**********************************************************************/
 int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
-	const ThreadConfig *thread_config = getThreadConfig(vdo);
+	const struct thread_config *thread_config = getThreadConfig(vdo);
 	if (thread_config->logicalZoneCount == 0) {
 		return VDO_SUCCESS;
 	}

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/udsModule.c#2 $
  */
 
 #include <linux/module.h>
@@ -36,14 +36,14 @@ static int __init dedupeInit(void)
 {
   memoryInit();
   logInfo("loaded version %s", UDS_VERSION);
-  initSysfs();
+  init_sysfs();
   return 0;
 }
 
 /**********************************************************************/
 static void __exit dedupeExit(void)
 {
-  putSysfs();
+  put_sysfs();
   memoryExit();
   logInfo("unloaded version %s", UDS_VERSION);
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#17 $
  */
 
 #include "upgrade.h"
@@ -169,7 +169,7 @@ __attribute__((warn_unused_result)) static int
 finish_sodium_decode(struct vdo *vdo)
 {
 	Buffer *buffer = get_component_buffer(vdo->superBlock);
-	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *threadConfig = getThreadConfig(vdo);
 	int result =
 		make_recovery_journal(vdo->nonce,
 				      vdo->layer,
@@ -273,7 +273,7 @@ int upgrade_prior_vdo(PhysicalLayer *layer)
 		return result;
 	}
 
-	const ThreadConfig *thread_config = getThreadConfig(vdo);
+	const struct thread_config *thread_config = getThreadConfig(vdo);
 	result = make_read_only_notifier(inReadOnlyMode(vdo),
 					 thread_config,
 					 vdo->layer,

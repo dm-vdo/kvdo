@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#4 $
  */
 
 #include "threadConfig.h"
@@ -32,10 +32,11 @@ static int allocateThreadConfig(ZoneCount logicalZoneCount,
 				ZoneCount physicalZoneCount,
 				ZoneCount hashZoneCount,
 				ZoneCount baseThreadCount,
-				ThreadConfig **configPtr)
+				struct thread_config **configPtr)
 {
-	ThreadConfig *config;
-	int result = ALLOCATE(1, ThreadConfig, "thread config", &config);
+	struct thread_config *config;
+	int result =
+		ALLOCATE(1, struct thread_config, "thread config", &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -90,7 +91,7 @@ assignThreadIDs(ThreadID threadIDs[], ZoneCount count, ThreadID *idPtr)
 int makeThreadConfig(ZoneCount logicalZoneCount,
 		     ZoneCount physicalZoneCount,
 		     ZoneCount hashZoneCount,
-		     ThreadConfig **configPtr)
+		     struct thread_config **configPtr)
 {
 	if ((logicalZoneCount == 0) && (physicalZoneCount == 0) &&
 	    (hashZoneCount == 0)) {
@@ -115,7 +116,7 @@ int makeThreadConfig(ZoneCount logicalZoneCount,
 			MAX_LOGICAL_ZONES);
 	}
 
-	ThreadConfig *config;
+	struct thread_config *config;
 	ThreadCount total =
 		logicalZoneCount + physicalZoneCount + hashZoneCount + 2;
 	int result = allocateThreadConfig(logicalZoneCount,
@@ -142,10 +143,10 @@ int makeThreadConfig(ZoneCount logicalZoneCount,
 }
 
 /**********************************************************************/
-int makeZeroThreadConfig(ThreadConfig **configPtr)
+int makeZeroThreadConfig(struct thread_config **configPtr)
 {
-	ThreadConfig *config;
-	int result = ALLOCATE(1, ThreadConfig, __func__, &config);
+	struct thread_config *config;
+	int result = ALLOCATE(1, struct thread_config, __func__, &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -159,9 +160,9 @@ int makeZeroThreadConfig(ThreadConfig **configPtr)
 }
 
 /**********************************************************************/
-int makeOneThreadConfig(ThreadConfig **configPtr)
+int makeOneThreadConfig(struct thread_config **configPtr)
 {
-	ThreadConfig *config;
+	struct thread_config *config;
 	int result = allocateThreadConfig(1, 1, 1, 1, &config);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -175,9 +176,10 @@ int makeOneThreadConfig(ThreadConfig **configPtr)
 }
 
 /**********************************************************************/
-int copyThreadConfig(const ThreadConfig *oldConfig, ThreadConfig **configPtr)
+int copyThreadConfig(const struct thread_config *oldConfig,
+		     struct thread_config **configPtr)
 {
-	ThreadConfig *config;
+	struct thread_config *config;
 	int result = allocateThreadConfig(oldConfig->logicalZoneCount,
 					  oldConfig->physicalZoneCount,
 					  oldConfig->hashZoneCount,
@@ -206,13 +208,13 @@ int copyThreadConfig(const ThreadConfig *oldConfig, ThreadConfig **configPtr)
 }
 
 /**********************************************************************/
-void freeThreadConfig(ThreadConfig **configPtr)
+void freeThreadConfig(struct thread_config **configPtr)
 {
 	if (*configPtr == NULL) {
 		return;
 	}
 
-	ThreadConfig *config = *configPtr;
+	struct thread_config *config = *configPtr;
 	*configPtr = NULL;
 
 	FREE(config->logicalThreads);
@@ -240,7 +242,7 @@ static bool getZoneThreadName(const ThreadID threadIDs[],
 }
 
 /**********************************************************************/
-void getVDOThreadName(const ThreadConfig *threadConfig,
+void getVDOThreadName(const struct thread_config *threadConfig,
 		      ThreadID threadID,
 		      char *buffer,
 		      size_t bufferLength)

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#47 $
  */
 
 #include "blockMap.h"
@@ -137,7 +137,7 @@ PageCount compute_block_map_page_count(BlockCount entries)
 
 /**********************************************************************/
 int make_block_map(BlockCount logical_blocks,
-		   const ThreadConfig *thread_config,
+		   const struct thread_config *thread_config,
 		   BlockCount flat_page_count,
 		   PhysicalBlockNumber root_origin,
 		   BlockCount root_count,
@@ -229,7 +229,7 @@ static int decode_block_map_state_2_0(Buffer *buffer,
 /**********************************************************************/
 int decode_block_map(Buffer *buffer,
 		     BlockCount logical_blocks,
-		     const ThreadConfig *thread_config,
+		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
 {
 	struct header header;
@@ -276,7 +276,7 @@ int decode_block_map(Buffer *buffer,
 /**********************************************************************/
 int decode_sodium_block_map(Buffer *buffer,
 			    BlockCount logical_blocks,
-			    const ThreadConfig *thread_config,
+			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
 {
 	// Sodium uses state version 2.0.

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.h#6 $
  */
 
 /*
@@ -55,7 +55,7 @@ typedef void read_only_notification(void *listener,
  * @return VDO_SUCCESS or an error
  **/
 int make_read_only_notifier(bool is_read_only,
-			    const ThreadConfig *thread_config,
+			    const struct thread_config *thread_config,
 			    PhysicalLayer *layer,
 			    struct read_only_notifier **notifier_ptr)
 	__attribute__((warn_unused_result));

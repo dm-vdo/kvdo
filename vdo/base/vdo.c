@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#46 $
  */
 
 /*
@@ -144,7 +144,7 @@ void destroyVDO(struct vdo *vdo)
 	free_super_block(&vdo->superBlock);
 	free_block_map(&vdo->blockMap);
 
-	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *threadConfig = getThreadConfig(vdo);
 	if (vdo->hashZones != NULL) {
 		ZoneCount zone;
 		for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
@@ -825,7 +825,7 @@ static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
 	HashLockStatistics totals;
 	memset(&totals, 0, sizeof(totals));
 
-	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *threadConfig = getThreadConfig(vdo);
 	ZoneCount zone;
 	for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
 		HashLockStatistics stats =
@@ -978,7 +978,7 @@ const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-const ThreadConfig *getThreadConfig(const struct vdo *vdo)
+const struct thread_config *getThreadConfig(const struct vdo *vdo)
 {
 	return vdo->loadConfig.threadConfig;
 }
@@ -1027,7 +1027,7 @@ void dumpVDOStatus(const struct vdo *vdo)
 	dump_packer(vdo->packer);
 	dump_slab_depot(vdo->depot);
 
-	const ThreadConfig *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *threadConfig = getThreadConfig(vdo);
 	ZoneCount zone;
 	for (zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
 		dump_logical_zone(get_logical_zone(vdo->logicalZones, zone));

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#36 $
  */
 
 #include "packerInternals.h"
@@ -218,8 +218,10 @@ static void free_output_bin(struct output_bin **bin_ptr)
 }
 
 /**********************************************************************/
-int make_packer(PhysicalLayer *layer, BlockCount input_bin_count,
-		BlockCount output_bin_count, const ThreadConfig *thread_config,
+int make_packer(PhysicalLayer *layer,
+		BlockCount input_bin_count,
+		BlockCount output_bin_count,
+		const struct thread_config *thread_config,
 		struct packer **packer_ptr)
 {
 	struct packer *packer;

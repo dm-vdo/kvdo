@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#39 $
  */
 
 /*
@@ -91,7 +91,8 @@ static const struct kvdo_work_queue_type request_queue_type = {
 };
 
 /**********************************************************************/
-int initialize_kvdo(struct kvdo *kvdo, const ThreadConfig *thread_config,
+int initialize_kvdo(struct kvdo *kvdo,
+		    const struct thread_config *thread_config,
 		    char **reason)
 {
 	unsigned int base_threads = thread_config->baseThreadCount;

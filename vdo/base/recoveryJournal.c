@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#45 $
  */
 
 #include "recoveryJournal.h"
@@ -424,7 +424,7 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 			  struct partition *partition, uint64_t recovery_count,
 			  BlockCount journal_size, BlockCount tail_buffer_size,
 			  struct read_only_notifier *read_only_notifier,
-			  const ThreadConfig *thread_config,
+			  const struct thread_config *thread_config,
 			  struct recovery_journal **journal_ptr)
 {
 	struct recovery_journal *journal;

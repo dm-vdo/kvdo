@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#32 $
  */
 
 #ifndef KERNELLAYER_H
@@ -237,7 +237,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		      unsigned int instance,
 		      struct device_config *config,
 		      struct kobject *parent_kobject,
-		      ThreadConfig **thread_config_pointer,
+		      struct thread_config **thread_config_pointer,
 		      char **reason,
 		      struct kernel_layer **layer_ptr)
 	__attribute__((warn_unused_result));

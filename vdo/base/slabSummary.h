@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.h#14 $
  */
 
 #ifndef SLAB_SUMMARY_H
@@ -94,7 +94,7 @@ BlockCount get_slab_summary_size(BlockSize block_size)
  **/
 int make_slab_summary(PhysicalLayer *layer,
 		      struct partition *partition,
-		      const ThreadConfig *thread_config,
+		      const struct thread_config *thread_config,
 		      unsigned int slab_size_shift,
 		      BlockCount maximum_free_blocks_per_slab,
 		      struct read_only_notifier *read_only_notifier,

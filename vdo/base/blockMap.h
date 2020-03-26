@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#13 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -42,7 +42,7 @@
  * @return VDO_SUCCESS or an error code
  **/
 int make_block_map(BlockCount logical_blocks,
-		   const ThreadConfig *thread_config,
+		   const struct thread_config *thread_config,
 		   BlockCount flat_page_count,
 		   PhysicalBlockNumber root_origin,
 		   BlockCount root_count,
@@ -120,7 +120,7 @@ void abandon_block_map_growth(struct block_map *map);
  **/
 int decode_block_map(Buffer *buffer,
 		     BlockCount logical_blocks,
-		     const ThreadConfig *thread_config,
+		     const struct thread_config *thread_config,
 		     struct block_map **map_ptr)
 	__attribute__((warn_unused_result));
 
@@ -137,7 +137,7 @@ int decode_block_map(Buffer *buffer,
  **/
 int decode_sodium_block_map(Buffer *buffer,
 			    BlockCount logical_blocks,
-			    const ThreadConfig *thread_config,
+			    const struct thread_config *thread_config,
 			    struct block_map **map_ptr)
 	__attribute__((warn_unused_result));
 
