@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#37 $
  */
 
 #ifndef TYPES_H
@@ -390,7 +390,7 @@ struct vdo_completion;
 struct vdo_extent;
 struct vdo_flush;
 struct vdo_layout;
-typedef struct vdoStatistics       VDOStatistics;
+struct vdo_statistics;
 struct vio;
 struct vio_pool;
 

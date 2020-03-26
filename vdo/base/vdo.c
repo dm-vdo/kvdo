@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#51 $
  */
 
 /*
@@ -876,7 +876,8 @@ static const char *describe_write_policy(WritePolicy policy)
 }
 
 /**********************************************************************/
-void get_vdo_statistics(const struct vdo *vdo, VDOStatistics *stats)
+void get_vdo_statistics(const struct vdo *vdo,
+			struct vdo_statistics *stats)
 {
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.

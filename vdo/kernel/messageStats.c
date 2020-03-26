@@ -744,11 +744,11 @@ int write_error_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_vdoStatistics(char *prefix,
-                        struct vdoStatistics *stats,
-                        char *suffix,
-                        char **buf,
-                        unsigned int *maxlen)
+int write_vdo_statistics(char *prefix,
+                         struct vdo_statistics *stats,
+                         char *suffix,
+                         char **buf,
+                         unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -980,14 +980,14 @@ int write_vdo_stats(struct kernel_layer *layer,
                      char *buf,
                      unsigned int maxlen)
 {
-       struct vdoStatistics *stats;
-       int result = ALLOCATE(1, struct vdoStatistics, __func__, &stats);
+       struct vdo_statistics *stats;
+       int result = ALLOCATE(1, struct vdo_statistics, __func__, &stats);
        if (result != VDO_SUCCESS) {
               return result;
        }
 
        get_kvdo_statistics(&layer->kvdo, stats);
-       result = write_vdoStatistics(NULL, stats, NULL, &buf, &maxlen);
+       result = write_vdo_statistics(NULL, stats, NULL, &buf, &maxlen);
        FREE(stats);
        return result;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#43 $
  */
 
 /*
@@ -376,18 +376,18 @@ static void get_vdo_statistics_work(struct kvdo_work_item *item)
 {
 	struct sync_queue_work *work =
 		container_of(item, struct sync_queue_work, work_item);
-	VDOStatistics *stats = (VDOStatistics *) work->data;
+	struct vdo_statistics *stats = (struct vdo_statistics *) work->data;
 
 	get_vdo_statistics(get_vdo(work->kvdo), stats);
 	complete(work->completion);
 }
 
 /***********************************************************************/
-void get_kvdo_statistics(struct kvdo *kvdo, VDOStatistics *stats)
+void get_kvdo_statistics(struct kvdo *kvdo, struct vdo_statistics *stats)
 {
 	struct completion stats_wait;
 
-	memset(stats, 0, sizeof(VDOStatistics));
+	memset(stats, 0, sizeof(struct vdo_statistics));
 	performKVDOOperation(kvdo,
 			     get_vdo_statistics_work,
 			     stats,

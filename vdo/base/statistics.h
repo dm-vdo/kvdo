@@ -167,7 +167,7 @@ struct error_statistics {
 };
 
 /** The statistics of the vdo service. */
-struct vdoStatistics {
+struct vdo_statistics {
   uint32_t version;
   uint32_t releaseVersion;
   /** Number of blocks used for data */
