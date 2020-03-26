@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyRebuild.c#30 $
  */
 
 #include "readOnlyRebuild.h"
@@ -149,7 +149,7 @@ static void complete_rebuild(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
 	struct vdo *vdo = rebuild->vdo;
-	set_vdo_page_cache_rebuild_mode(getBlockMap(vdo)->zones[0].page_cache,
+	set_vdo_page_cache_rebuild_mode(get_block_map(vdo)->zones[0].page_cache,
 					false);
 	free_rebuild_completion(&rebuild);
 	finish_completion(parent, result);
@@ -164,8 +164,8 @@ static void finish_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion);
-	initialize_recovery_journal_post_rebuild(rebuild->vdo->recoveryJournal,
-						 rebuild->vdo->completeRecoveries,
+	initialize_recovery_journal_post_rebuild(rebuild->vdo->recovery_journal,
+						 rebuild->vdo->complete_recoveries,
 						 rebuild->tail,
 						 rebuild->logical_blocks_used,
 						 rebuild->block_map_data_blocks);
@@ -213,10 +213,10 @@ static void finish_reference_count_rebuild(struct vdo_completion *completion)
 {
 	struct read_only_rebuild_completion *rebuild = completion->parent;
 	struct vdo *vdo = rebuild->vdo;
-	assertOnAdminThread(vdo, __func__);
-	if (vdo->loadState != VDO_REBUILD_FOR_UPGRADE) {
+	assert_on_admin_thread(vdo, __func__);
+	if (vdo->load_state != VDO_REBUILD_FOR_UPGRADE) {
 		// A "rebuild" for upgrade should not increment this count.
-		vdo->completeRecoveries++;
+		vdo->complete_recoveries++;
 	}
 
 	logInfo("Saving rebuilt state");
@@ -245,7 +245,7 @@ static void launch_reference_count_rebuild(struct vdo_completion *completion)
 	prepare_completion(completion,
 			   finish_reference_count_rebuild,
 			   finish_parent_callback,
-			   getAdminThread(getThreadConfig(vdo)),
+			   getAdminThread(get_thread_config(vdo)),
 			   completion->parent);
 	rebuild_reference_counts(vdo,
 				 completion,
@@ -303,7 +303,7 @@ static void append_sector_entries(struct read_only_rebuild_completion *rebuild,
 static int extract_journal_entries(struct read_only_rebuild_completion *rebuild)
 {
 	struct vdo *vdo = rebuild->vdo;
-	struct recovery_journal *journal = vdo->recoveryJournal;
+	struct recovery_journal *journal = vdo->recovery_journal;
 	SequenceNumber first = rebuild->head;
 	SequenceNumber last = rebuild->tail;
 	BlockCount max_count = ((last - first + 1) * journal->entries_per_block);
@@ -390,9 +390,9 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	struct vdo *vdo = rebuild->vdo;
 
 	logInfo("Finished reading recovery journal");
-	assertOnLogicalZoneThread(vdo, 0, __func__);
+	assert_on_logical_zone_thread(vdo, 0, __func__);
 
-	bool found_entries = find_head_and_tail(vdo->recoveryJournal,
+	bool found_entries = find_head_and_tail(vdo->recovery_journal,
 						rebuild->journal_data,
 						&rebuild->tail,
 						&rebuild->head,
@@ -405,7 +405,7 @@ static void apply_journal_entries(struct vdo_completion *completion)
 	}
 
 	// Suppress block map errors.
-	set_vdo_page_cache_rebuild_mode(getBlockMap(vdo)->zones[0].page_cache,
+	set_vdo_page_cache_rebuild_mode(get_block_map(vdo)->zones[0].page_cache,
 					true);
 
 	// Play the recovery journal into the block map.
@@ -428,14 +428,14 @@ static void load_journal(struct vdo_completion *completion)
 	struct read_only_rebuild_completion *rebuild =
 		as_read_only_rebuild_completion(completion->parent);
 	struct vdo *vdo = rebuild->vdo;
-	assertOnLogicalZoneThread(vdo, 0, __func__);
+	assert_on_logical_zone_thread(vdo, 0, __func__);
 
 	prepare_completion(completion,
 			   apply_journal_entries,
 			   finish_parent_callback,
 			   completion->callbackThreadID,
 			   completion->parent);
-	load_journal_async(vdo->recoveryJournal, completion,
+	load_journal_async(vdo->recovery_journal, completion,
 			   &rebuild->journal_data);
 }
 
@@ -443,11 +443,11 @@ static void load_journal(struct vdo_completion *completion)
 void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 {
 	// Note: These messages must be recognizable by Permabit::VDODeviceBase.
-	if (vdo->loadState == VDO_REBUILD_FOR_UPGRADE) {
+	if (vdo->load_state == VDO_REBUILD_FOR_UPGRADE) {
 		logWarning("Rebuilding reference counts for upgrade");
 	} else {
 		logWarning("Rebuilding reference counts to clear read-only mode");
-		vdo->readOnlyRecoveries++;
+		vdo->read_only_recoveries++;
 	}
 
 	struct read_only_rebuild_completion *rebuild;
@@ -468,7 +468,7 @@ void launch_rebuild(struct vdo *vdo, struct vdo_completion *parent)
 	prepare_completion(sub_task_completion,
 			   load_journal,
 			   finish_parent_callback,
-			   getLogicalZoneThread(getThreadConfig(vdo), 0),
+			   getLogicalZoneThread(get_thread_config(vdo), 0),
 			   completion);
 	load_slab_depot(vdo->depot,
 			ADMIN_STATE_LOADING_FOR_REBUILD,

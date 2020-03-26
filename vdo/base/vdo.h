@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#7 $
  */
 
 #ifndef VDO_H
@@ -27,23 +27,23 @@
 /**
  * Allocate a vdo structure and associate it with its physical layer.
  *
- * @param [in]  layer       The physical layer the vdo sits on
- * @param [out] vdoPtr      A pointer to hold the allocated vdo
+ * @param [in]  layer        The physical layer the vdo sits on
+ * @param [out] vdo_ptr      A pointer to hold the allocated vdo
  *
  * @return VDO_SUCCESS or an error
  **/
-int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
+int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 	__attribute__((warn_unused_result));
 
 /**
  * Construct a vdo structure for use in user space with a synchronous layer.
  *
- * @param [in]  layer   The physical layer the vdo sits on
- * @param [out] vdoPtr  A pointer to hold the allocated vdo
+ * @param [in]  layer    The physical layer the vdo sits on
+ * @param [out] vdo_ptr  A pointer to hold the allocated vdo
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
+int make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -51,34 +51,34 @@ int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
  *
  * @param vdo  The vdo to destroy
  **/
-void destroyVDO(struct vdo *vdo);
+void destroy_vdo(struct vdo *vdo);
 
 /**
  * Destroy a vdo instance, free it, and null out the reference to it.
  *
- * @param vdoPtr  A reference to the vdo to free
+ * @param vdo_ptr  A reference to the vdo to free
  **/
-void freeVDO(struct vdo **vdoPtr);
+void free_vdo(struct vdo **vdo_ptr);
 
 /**
  * Put a vdo into read-only mode and save the read-only state in the super
  * block.
  *
- * @param vdo             The vdo to put into read-only mode
- * @param errorCode       The error which caused the vdo to enter read-only
- *                        mode
+ * @param vdo              The vdo to put into read-only mode
+ * @param error_code       The error which caused the vdo to enter read-only
+ *                         mode
  **/
-void makeVDOReadOnly(struct vdo *vdo, int errorCode);
+void make_vdo_read_only(struct vdo *vdo, int error_code);
 
 /**
  * Set whether compression is enabled in a vdo.
  *
- * @param vdo                The vdo
- * @param enableCompression  Whether to enable compression in vdo
+ * @param vdo                 The vdo
+ * @param enable_compression  Whether to enable compression in vdo
  *
  * @return State of compression before new value is set
  **/
-bool setVDOCompressing(struct vdo *vdo, bool enableCompression);
+bool set_vdo_compressing(struct vdo *vdo, bool enable_compression);
 
 /**
  * Get whether compression is enabled in a vdo.
@@ -87,7 +87,7 @@ bool setVDOCompressing(struct vdo *vdo, bool enableCompression);
  *
  * @return State of compression
  **/
-bool getVDOCompressing(struct vdo *vdo);
+bool get_vdo_compressing(struct vdo *vdo);
 
 /**
  * Get the vdo statistics.
@@ -95,7 +95,7 @@ bool getVDOCompressing(struct vdo *vdo);
  * @param [in]  vdo    The vdo
  * @param [out] stats  The vdo statistics are returned here
  **/
-void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats);
+void get_vdo_statistics(const struct vdo *vdo, VDOStatistics *stats);
 
 /**
  * Get the number of physical blocks in use by user data.
@@ -104,7 +104,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats);
  *
  * @return The number of blocks allocated for user data
  **/
-BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
+BlockCount get_physical_blocks_allocated(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -114,7 +114,7 @@ BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
  *
  * @return The number of free blocks
  **/
-BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
+BlockCount get_physical_blocks_free(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -124,7 +124,7 @@ BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
  *
  * @return The number of overhead blocks
  **/
-BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
+BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -134,7 +134,7 @@ BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
  *
  * @return The number of block map blocks
  **/
-BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
+BlockCount get_total_block_map_blocks(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -144,7 +144,7 @@ BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
  *
  * @return The write policy
  **/
-WritePolicy getWritePolicy(const struct vdo *vdo);
+WritePolicy get_write_policy(const struct vdo *vdo);
 
 /**
  * Set the vdo write policy.
@@ -152,7 +152,7 @@ WritePolicy getWritePolicy(const struct vdo *vdo);
  * @param vdo  The vdo
  * @param new  The new write policy
  **/
-void setWritePolicy(struct vdo *vdo, WritePolicy new);
+void set_write_policy(struct vdo *vdo, WritePolicy new);
 
 /**
  * Get a copy of the load-time configuration of the vdo.
@@ -161,7 +161,7 @@ void setWritePolicy(struct vdo *vdo, WritePolicy new);
  *
  * @return The load-time configuration of the vdo
  **/
-const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
+const VDOLoadConfig *get_vdo_load_config(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -171,7 +171,7 @@ const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
  *
  * @return The thread config
  **/
-const struct thread_config *getThreadConfig(const struct vdo *vdo)
+const struct thread_config *get_thread_config(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -181,7 +181,7 @@ const struct thread_config *getThreadConfig(const struct vdo *vdo)
  *
  * @return The block map era length
  **/
-BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
+BlockCount get_configured_block_map_maximum_age(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -191,7 +191,7 @@ BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
  *
  * @return The number of pages for the page cache
  **/
-PageCount getConfiguredCacheSize(const struct vdo *vdo)
+PageCount get_configured_cache_size(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -201,7 +201,7 @@ PageCount getConfiguredCacheSize(const struct vdo *vdo)
  *
  * @return The location of the first block managed by the vdo
  **/
-PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
+PhysicalBlockNumber get_first_block_offset(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -211,7 +211,7 @@ PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo was new
  **/
-bool wasNew(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool was_new(const struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Check whether a data_location containing potential dedupe advice is
@@ -228,9 +228,9 @@ bool wasNew(const struct vdo *vdo) __attribute__((warn_unused_result));
  * @return The zoned_pbn representing the advice, if valid, otherwise an
  *         unmapped zoned_pbn if the advice was invalid or NULL
  **/
-struct zoned_pbn validateDedupeAdvice(struct vdo *vdo,
-				      const struct data_location *advice,
-				      LogicalBlockNumber lbn)
+struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
+					const struct data_location *advice,
+					LogicalBlockNumber lbn)
 	__attribute__((warn_unused_result));
 
 // TEST SUPPORT ONLY BEYOND THIS POINT
@@ -240,15 +240,15 @@ struct zoned_pbn validateDedupeAdvice(struct vdo *vdo,
  *
  * @param vdo  The vdo to dump
  **/
-void dumpVDOStatus(const struct vdo *vdo);
+void dump_vdo_status(const struct vdo *vdo);
 
 /**
  * Set the VIO tracing flag.
  *
- * @param vdo         The vdo
- * @param vioTracing  Whether VIO tracing is enabled for this device
+ * @param vdo          The vdo
+ * @param vio_tracing  Whether VIO tracing is enabled for this device
  **/
-void setVDOTracingFlags(struct vdo *vdo, bool vioTracing);
+void set_vdo_tracing_flags(struct vdo *vdo, bool vio_tracing);
 
 /**
  * Indicate whether VIO tracing is enabled.
@@ -257,7 +257,7 @@ void setVDOTracingFlags(struct vdo *vdo, bool vioTracing);
  *
  * @return Whether VIO tracing is enabled
  **/
-bool vdoVIOTracingEnabled(const struct vdo *vdo);
+bool vdo_vio_tracing_enabled(const struct vdo *vdo);
 
 /**
  * Indicate whether extent tracing is enabled.
@@ -266,6 +266,6 @@ bool vdoVIOTracingEnabled(const struct vdo *vdo);
  *
  * @return Whether extent tracing is enabled
  **/
-bool vdoExtentTracingEnabled(const struct vdo *vdo);
+bool vdo_extent_tracing_enabled(const struct vdo *vdo);
 
 #endif /* VDO_H */

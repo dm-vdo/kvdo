@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoSuspend.c#21 $
  */
 
 #include "vdoSuspend.h"
@@ -62,7 +62,7 @@ __attribute__((warn_unused_result)) static ThreadID
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =
-		getThreadConfig(admin_completion->vdo);
+		get_thread_config(admin_completion->vdo);
 	switch (admin_completion->phase) {
 	case SUSPEND_PHASE_PACKER:
 		return getPackerZoneThread(thread_config);
@@ -84,10 +84,10 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
-	switch (getVDOState(vdo)) {
+	switch (get_vdo_state(vdo)) {
 	case VDO_DIRTY:
 	case VDO_NEW:
-		setVDOState(vdo, VDO_CLEAN);
+		set_vdo_state(vdo, VDO_CLEAN);
 		break;
 
 	case VDO_CLEAN:
@@ -103,7 +103,7 @@ static void write_super_block(struct vdo *vdo,
 		return;
 	}
 
-	saveVDOComponentsAsync(vdo, completion);
+	save_vdo_components_async(vdo, completion);
 }
 
 /**
@@ -126,7 +126,7 @@ static void suspend_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case SUSPEND_PHASE_START:
-		if (!start_draining(&vdo->adminState,
+		if (!start_draining(&vdo->admin_state,
 				    ((admin_completion->type ==
 				      ADMIN_OPERATION_SUSPEND) ?
 					     ADMIN_STATE_SUSPENDING :
@@ -136,12 +136,12 @@ static void suspend_callback(struct vdo_completion *completion)
 			return;
 		}
 
-		if (!vdo->closeRequired) {
+		if (!vdo->close_required) {
 			// There's nothing to do.
 			break;
 		}
 
-		wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier,
+		wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 						       reset_admin_sub_task(completion));
 		return;
 
@@ -153,7 +153,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		 * result of this suspend will be VDO_READ_ONLY and not
 		 * VDO_INVALID_ADMIN_STATE in that case.
 		 */
-		if (inReadOnlyMode(vdo)) {
+		if (in_read_only_mode(vdo)) {
 			set_completion_result(&admin_completion->completion,
 					      VDO_READ_ONLY);
 		}
@@ -162,31 +162,31 @@ static void suspend_callback(struct vdo_completion *completion)
 		return;
 
 	case SUSPEND_PHASE_LOGICAL_ZONES:
-		drain_logical_zones(vdo->logicalZones,
-				    vdo->adminState.state,
+		drain_logical_zones(vdo->logical_zones,
+				    vdo->admin_state.state,
 				    reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_BLOCK_MAP:
-		drain_block_map(vdo->blockMap,
-				vdo->adminState.state,
+		drain_block_map(vdo->block_map,
+				vdo->admin_state.state,
 				reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_JOURNAL:
-		drain_recovery_journal(vdo->recoveryJournal,
-				       vdo->adminState.state,
+		drain_recovery_journal(vdo->recovery_journal,
+				       vdo->admin_state.state,
 				       reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_DEPOT:
 		drain_slab_depot(vdo->depot,
-				 vdo->adminState.state,
+				 vdo->admin_state.state,
 				 reset_admin_sub_task(completion));
 		return;
 
 	case SUSPEND_PHASE_WRITE_SUPER_BLOCK:
-		if (is_suspending(&vdo->adminState) ||
+		if (is_suspending(&vdo->admin_state) ||
 		    (admin_completion->completion.result != VDO_SUCCESS)) {
 			// If we didn't save the VDO or there was an error,
 			// we're done.
@@ -203,7 +203,7 @@ static void suspend_callback(struct vdo_completion *completion)
 		set_completion_result(completion, UDS_BAD_STATE);
 	}
 
-	finish_draining_with_result(&vdo->adminState, completion->result);
+	finish_draining_with_result(&vdo->admin_state, completion->result);
 }
 
 /**********************************************************************/

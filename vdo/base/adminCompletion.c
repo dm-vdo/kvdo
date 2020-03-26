@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/adminCompletion.c#12 $
  */
 
 #include "adminCompletion.h"
@@ -121,11 +121,11 @@ void prepare_admin_sub_task_on_thread(struct vdo *vdo,
 				      vdo_action *error_handler,
 				      ThreadID thread_id)
 {
-	prepare_for_requeue(&vdo->adminCompletion.sub_task_completion,
+	prepare_for_requeue(&vdo->admin_completion.sub_task_completion,
 			    callback,
 			    error_handler,
 			    thread_id,
-			    &vdo->adminCompletion.completion);
+			    &vdo->admin_completion.completion);
 }
 
 /**********************************************************************/
@@ -133,7 +133,7 @@ void prepare_admin_sub_task(struct vdo *vdo,
 			    vdo_action *callback,
 			    vdo_action *error_handler)
 {
-	struct admin_completion *admin_completion = &vdo->adminCompletion;
+	struct admin_completion *admin_completion = &vdo->admin_completion;
 	prepare_admin_sub_task_on_thread(vdo,
 					 callback,
 					 error_handler,
@@ -158,7 +158,7 @@ int perform_admin_operation(struct vdo *vdo,
 			    vdo_action *action,
 			    vdo_action *error_handler)
 {
-	struct admin_completion *admin_completion = &vdo->adminCompletion;
+	struct admin_completion *admin_completion = &vdo->admin_completion;
 	if (!compareAndSwapBool(&admin_completion->busy, false, true)) {
 		return logErrorWithStringError(VDO_COMPONENT_BUSY,
 					       "Can't start admin operation of type %u, "
@@ -169,7 +169,7 @@ int perform_admin_operation(struct vdo *vdo,
 	prepare_completion(&admin_completion->completion,
 			   admin_operation_callback,
 			   admin_operation_callback,
-			   getAdminThread(getThreadConfig(vdo)),
+			   getAdminThread(get_thread_config(vdo)),
 			   NULL);
 	admin_completion->type = type;
 	admin_completion->get_thread_id = thread_id_getter;

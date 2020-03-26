@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/poolSysfs.c#8 $
  */
 
 #include "poolSysfs.h"
@@ -142,7 +142,7 @@ static void vdo_pool_release(struct kobject *kobj)
 	struct kernel_layer *layer = container_of(kobj,
 						  struct kernel_layer,
 						  kobj);
-	freeVDO(&layer->kvdo.vdo);
+	free_vdo(&layer->kvdo.vdo);
 	FREE(layer);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#25 $
  */
 
 #include "dataVIO.h"
@@ -84,7 +84,7 @@ static void initialize_lbn_lock(struct data_vio *data_vio,
 	initialize_wait_queue(&lock->waiters);
 
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
-	lock->zone = get_logical_zone(vdo->logicalZones,
+	lock->zone = get_logical_zone(vdo->logical_zones,
 				      compute_logical_zone(data_vio));
 }
 
@@ -179,7 +179,7 @@ void receive_dedupe_advice(struct data_vio *data_vio,
 
 	struct vdo *vdo = get_vdo_from_data_vio(data_vio);
 	struct zoned_pbn duplicate =
-		validateDedupeAdvice(vdo, advice, data_vio->logical.lbn);
+		validate_dedupe_advice(vdo, advice, data_vio->logical.lbn);
 	set_duplicate_location(data_vio, duplicate);
 }
 
@@ -205,7 +205,8 @@ int set_mapped_location(struct data_vio *data_vio,
 			BlockMappingState state)
 {
 	struct physical_zone *zone;
-	int result = getPhysicalZone(get_vdo_from_data_vio(data_vio), pbn, &zone);
+	int result = get_physical_zone(get_vdo_from_data_vio(data_vio), pbn,
+				       &zone);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}

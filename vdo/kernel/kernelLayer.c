@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#75 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#76 $
  */
 
 #include "kernelLayer.h"
@@ -585,7 +585,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		return VDO_BAD_CONFIGURATION;
 	}
 
-	result = allocateVDO(&layer->common, &layer->kvdo.vdo);
+	result = allocate_vdo(&layer->common, &layer->kvdo.vdo);
 	if (result != VDO_SUCCESS) {
 		*reason = "Cannot allocate VDO";
 		FREE(layer);
@@ -969,7 +969,7 @@ int modify_kernel_layer(struct kernel_layer *layer,
 			config->pool_name,
 			get_config_write_policy_string(extant_config),
 			get_config_write_policy_string(config));
-		setWritePolicy(layer->kvdo.vdo, config->write_policy);
+		set_write_policy(layer->kvdo.vdo, config->write_policy);
 	}
 
 	if (config->owning_target->len != extant_config->owning_target->len) {
@@ -1173,7 +1173,7 @@ int start_kernel_layer(struct kernel_layer *layer, char **reason)
 
 	// Don't try to load or rebuild the index first (and log scary error
 	// messages) if this is known to be a newly-formatted volume.
-	start_dedupe_index(layer->dedupe_index, wasNew(layer->kvdo.vdo));
+	start_dedupe_index(layer->dedupe_index, was_new(layer->kvdo.vdo));
 
 	layer->allocations_allowed = false;
 

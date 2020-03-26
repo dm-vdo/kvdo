@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#20 $
  */
 
 #include "vdoResume.h"
@@ -62,7 +62,7 @@ __attribute__((warn_unused_result)) static ThreadID
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
 	const struct thread_config *thread_config =
-		getThreadConfig(admin_completion->vdo);
+		get_thread_config(admin_completion->vdo);
 	switch (admin_completion->phase) {
 	case RESUME_PHASE_JOURNAL:
 		return getJournalZoneThread(thread_config);
@@ -84,11 +84,11 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 static void write_super_block(struct vdo *vdo,
 			      struct vdo_completion *completion)
 {
-	switch (getVDOState(vdo)) {
+	switch (get_vdo_state(vdo)) {
 	case VDO_CLEAN:
 	case VDO_NEW:
-		setVDOState(vdo, VDO_DIRTY);
-		saveVDOComponentsAsync(vdo, completion);
+		set_vdo_state(vdo, VDO_DIRTY);
+		save_vdo_components_async(vdo, completion);
 		return;
 
 	case VDO_DIRTY:
@@ -122,7 +122,7 @@ static void resume_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case RESUME_PHASE_START:
-		if (start_resuming(&vdo->adminState,
+		if (start_resuming(&vdo->admin_state,
 				   ADMIN_STATE_RESUMING,
 				   &admin_completion->completion,
 				   NULL)) {
@@ -131,7 +131,7 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_ALLOW_READ_ONLY_MODE:
-		allow_read_only_mode_entry(vdo->readOnlyNotifier,
+		allow_read_only_mode_entry(vdo->read_only_notifier,
 					   reset_admin_sub_task(completion));
 		return;
 
@@ -140,17 +140,17 @@ static void resume_callback(struct vdo_completion *completion)
 		return;
 
 	case RESUME_PHASE_JOURNAL:
-		resume_recovery_journal(vdo->recoveryJournal,
+		resume_recovery_journal(vdo->recovery_journal,
 					reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_BLOCK_MAP:
-		resume_block_map(vdo->blockMap,
+		resume_block_map(vdo->block_map,
 				 reset_admin_sub_task(completion));
 		return;
 
 	case RESUME_PHASE_LOGICAL_ZONES:
-		resume_logical_zones(vdo->logicalZones,
+		resume_logical_zones(vdo->logical_zones,
 				     reset_admin_sub_task(completion));
 		return;
 
@@ -166,7 +166,7 @@ static void resume_callback(struct vdo_completion *completion)
 				      UDS_BAD_STATE);
 	}
 
-	finish_resuming_with_result(&vdo->adminState, completion->result);
+	finish_resuming_with_result(&vdo->admin_state, completion->result);
 }
 
 /**********************************************************************/

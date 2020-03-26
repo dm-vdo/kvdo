@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/logicalZone.c#28 $
  */
 
 #include "logicalZone.h"
@@ -137,20 +137,20 @@ static int initialize_zone(struct logical_zones *zones, ZoneCount zone_number)
 	}
 
 	zone->zone_number = zone_number;
-	zone->thread_id = getLogicalZoneThread(getThreadConfig(vdo),
+	zone->thread_id = getLogicalZoneThread(get_thread_config(vdo),
 					       zone_number);
-	zone->block_map_zone = get_block_map_zone(vdo->blockMap, zone_number);
+	zone->block_map_zone = get_block_map_zone(vdo->block_map, zone_number);
 	initializeRing(&zone->write_vios);
 	atomicStore64(&zone->oldest_locked_generation, 0);
 
-	return make_allocation_selector(getThreadConfig(vdo)->physicalZoneCount,
+	return make_allocation_selector(get_thread_config(vdo)->physicalZoneCount,
 					zone->thread_id, &zone->selector);
 }
 
 /**********************************************************************/
 int make_logical_zones(struct vdo *vdo, struct logical_zones **zones_ptr)
 {
-	const struct thread_config *thread_config = getThreadConfig(vdo);
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	if (thread_config->logicalZoneCount == 0) {
 		return VDO_SUCCESS;
 	}

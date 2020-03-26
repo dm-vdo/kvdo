@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#28 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -52,20 +52,20 @@ struct vdo {
 	/* The state of this vdo */
 	Atomic32 state;
 	/* The read-only notifier */
-	struct read_only_notifier *readOnlyNotifier;
+	struct read_only_notifier *read_only_notifier;
 	/* The number of times this vdo has recovered from a dirty state */
-	uint64_t completeRecoveries;
+	uint64_t complete_recoveries;
 	/* The number of times this vdo has recovered from a read-only state */
-	uint64_t readOnlyRecoveries;
+	uint64_t read_only_recoveries;
 	/* The format-time configuration of this vdo */
 	VDOConfig config;
 	/* The load-time configuration of this vdo */
-	VDOLoadConfig loadConfig;
+	VDOLoadConfig load_config;
 	/* The nonce for this vdo */
 	Nonce nonce;
 
 	/* The super block */
-	struct vdo_super_block *superBlock;
+	struct vdo_super_block *super_block;
 
 	/* The physical storage below us */
 	PhysicalLayer *layer;
@@ -74,10 +74,10 @@ struct vdo {
 	struct vdo_layout *layout;
 
 	/* The block map */
-	struct block_map *blockMap;
+	struct block_map *block_map;
 
 	/* The journal for block map recovery */
-	struct recovery_journal *recoveryJournal;
+	struct recovery_journal *recovery_journal;
 
 	/* The slab depot */
 	struct slab_depot *depot;
@@ -91,32 +91,32 @@ struct vdo {
 	struct flusher *flusher;
 
 	/* The master version of the vdo when loaded (for upgrading) */
-	struct version_number loadVersion;
+	struct version_number load_version;
 	/* The state the vdo was in when loaded (primarily for unit tests) */
-	VDOState loadState;
+	VDOState load_state;
 	/* Whether VIO tracing is enabled */
-	bool vioTraceRecording;
+	bool vio_trace_recording;
 
 	/* The logical zones of this vdo */
-	struct logical_zones *logicalZones;
+	struct logical_zones *logical_zones;
 
 	/* The physical zones of this vdo */
-	struct physical_zone **physicalZones;
+	struct physical_zone **physical_zones;
 
 	/* The hash lock zones of this vdo */
-	struct hash_zone **hashZones;
+	struct hash_zone **hash_zones;
 
 	/* The completion for administrative operations */
-	struct admin_completion adminCompletion;
+	struct admin_completion admin_completion;
 
 	/* The administrative state of the vdo */
-	struct admin_state adminState;
+	struct admin_state admin_state;
 
 	/* Whether a close is required */
-	bool closeRequired;
+	bool close_required;
 
 	/* Atomic global counts of error events */
-	struct atomic_error_statistics errorStats;
+	struct atomic_error_statistics error_stats;
 };
 
 /**
@@ -126,7 +126,8 @@ struct vdo {
  *
  * @return the current state of the vdo
  **/
-VDOState getVDOState(const struct vdo *vdo) __attribute__((warn_unused_result));
+VDOState get_vdo_state(const struct vdo *vdo)
+	__attribute__((warn_unused_result));
 
 /**
  * Set the current state of the vdo. This method may be called from any thread.
@@ -134,7 +135,7 @@ VDOState getVDOState(const struct vdo *vdo) __attribute__((warn_unused_result));
  * @param vdo    The vdo whose state is to be set
  * @param state  The new state of the vdo
  **/
-void setVDOState(struct vdo *vdo, VDOState state);
+void set_vdo_state(struct vdo *vdo, VDOState state);
 
 /**
  * Get the component data size of a vdo.
@@ -143,7 +144,7 @@ void setVDOState(struct vdo *vdo, VDOState state);
  *
  * @return the component data size of the vdo
  **/
-size_t getComponentDataSize(struct vdo *vdo)
+size_t get_component_data_size(struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -153,7 +154,7 @@ size_t getComponentDataSize(struct vdo *vdo)
  *
  * @return VDO_SUCCESS or an error
  **/
-int saveVDOComponents(struct vdo *vdo) __attribute__((warn_unused_result));
+int save_vdo_components(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Encode the vdo and save the super block asynchronously. All non-user mode
@@ -163,7 +164,7 @@ int saveVDOComponents(struct vdo *vdo) __attribute__((warn_unused_result));
  * @param vdo     The vdo whose state is being saved
  * @param parent  The completion to notify when the save is complete
  **/
-void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent);
+void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent);
 
 /**
  * Re-encode the vdo component after a reconfiguration and save the super
@@ -174,13 +175,13 @@ void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int saveReconfiguredVDO(struct vdo *vdo) __attribute__((warn_unused_result));
+int save_reconfigured_vdo(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Decode the vdo master version from the component data buffer in the super
  * block and store it in the vdo's loadVersion field.
  **/
-int decodeVDOVersion(struct vdo *vdo) __attribute__((warn_unused_result));
+int decode_vdo_version(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Loads the vdo master version into the vdo and checks that the version
@@ -190,7 +191,7 @@ int decodeVDOVersion(struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return VDO_SUCCESS or an error if the loaded version is not supported
  **/
-int validateVDOVersion(struct vdo *vdo) __attribute__((warn_unused_result));
+int validate_vdo_version(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Decode the component data for the vdo itself from the component data buffer
@@ -200,21 +201,22 @@ int validateVDOVersion(struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return VDO_SUCCESS or an error
  **/
-int decodeVDOComponent(struct vdo *vdo) __attribute__((warn_unused_result));
+int decode_vdo_component(struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Validate constraints on a VDO config.
  *
- * @param config          The VDO config
- * @param blockCount      The block count of the VDO
- * @param requireLogical  Set to <code>true</code> if the number logical blocks
- *                        must be configured (otherwise, it may be zero)
+ * @param config           The VDO config
+ * @param block_count      The block count of the VDO
+ * @param require_logical  Set to <code>true</code> if the number logical blocks
+ *                         must be configured (otherwise, it may be zero)
  *
  * @return a success or error code
  **/
-int validateVDOConfig(const VDOConfig *config,
-		      BlockCount blockCount,
-		      bool requireLogical) __attribute__((warn_unused_result));
+int validate_vdo_config(const VDOConfig *config,
+			BlockCount block_count,
+			bool require_logical)
+	__attribute__((warn_unused_result));
 
 /**
  * Enable a vdo to enter read-only mode on errors.
@@ -223,7 +225,7 @@ int validateVDOConfig(const VDOConfig *config,
  *
  * @return VDO_SUCCESS or an error
  **/
-int enableReadOnlyEntry(struct vdo *vdo);
+int enable_read_only_entry(struct vdo *vdo);
 
 /**
  * Get the block map.
@@ -232,7 +234,7 @@ int enableReadOnlyEntry(struct vdo *vdo);
  *
  * @return the block map from the vdo
  **/
-struct block_map *getBlockMap(const struct vdo *vdo)
+struct block_map *get_block_map(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -242,7 +244,7 @@ struct block_map *getBlockMap(const struct vdo *vdo)
  *
  * @return the slab depot from the vdo
  **/
-struct slab_depot *getSlabDepot(struct vdo *vdo)
+struct slab_depot *get_slab_depot(struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -252,7 +254,7 @@ struct slab_depot *getSlabDepot(struct vdo *vdo)
  *
  * @return the recovery journal from the vdo
  **/
-struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
+struct recovery_journal *get_recovery_journal(struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -262,7 +264,8 @@ struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo is in read-only mode
  **/
-bool inReadOnlyMode(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool in_read_only_mode(const struct vdo *vdo)
+	__attribute__((warn_unused_result));
 
 /**
  * Check whether the vdo requires a read-only mode rebuild.
@@ -271,7 +274,7 @@ bool inReadOnlyMode(const struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return <code>true</code> if the vdo requires a read-only rebuild
  **/
-bool requiresReadOnlyRebuild(const struct vdo *vdo)
+bool requires_read_only_rebuild(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -281,7 +284,8 @@ bool requiresReadOnlyRebuild(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo must be rebuilt
  **/
-bool requiresRebuild(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool requires_rebuild(const struct vdo *vdo)
+	__attribute__((warn_unused_result));
 
 /**
  * Check whether a vdo should enter recovery mode.
@@ -290,7 +294,7 @@ bool requiresRebuild(const struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return <code>true</code> if the vdo requires recovery
  **/
-bool requiresRecovery(const struct vdo *vdo)
+bool requires_recovery(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**
@@ -302,7 +306,7 @@ bool requiresRecovery(const struct vdo *vdo)
  * @return <code>true</code> if the vdo crashed while reconstructing the
  *         block map
  **/
-bool isReplaying(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool is_replaying(const struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Check whether the vdo is in recovery mode.
@@ -311,14 +315,15 @@ bool isReplaying(const struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return <code>true</code> if the vdo is in recovery mode
  **/
-bool inRecoveryMode(const struct vdo *vdo) __attribute__((warn_unused_result));
+bool in_recovery_mode(const struct vdo *vdo)
+	__attribute__((warn_unused_result));
 
 /**
  * Put the vdo into recovery mode
  *
  * @param vdo  The vdo
  **/
-void enterRecoveryMode(struct vdo *vdo);
+void enter_recovery_mode(struct vdo *vdo);
 
 /**
  * Assert that we are running on the admin thread.
@@ -327,29 +332,29 @@ void enterRecoveryMode(struct vdo *vdo);
  * @param name  The name of the function which should be running on the admin
  *              thread (for logging).
  **/
-void assertOnAdminThread(struct vdo *vdo, const char *name);
+void assert_on_admin_thread(struct vdo *vdo, const char *name);
 
 /**
  * Assert that this function was called on the specified logical zone thread.
  *
- * @param vdo          The vdo
- * @param logicalZone  The number of the logical zone
- * @param name         The name of the calling function
+ * @param vdo           The vdo
+ * @param logical_zone  The number of the logical zone
+ * @param name          The name of the calling function
  **/
-void assertOnLogicalZoneThread(const struct vdo *vdo,
-			       ZoneCount logicalZone,
-			       const char *name);
+void assert_on_logical_zone_thread(const struct vdo *vdo,
+				   ZoneCount logical_zone,
+				   const char *name);
 
 /**
  * Assert that this function was called on the specified physical zone thread.
  *
- * @param vdo           The vdo
- * @param physicalZone  The number of the physical zone
- * @param name          The name of the calling function
+ * @param vdo            The vdo
+ * @param physical_zone  The number of the physical zone
+ * @param name           The name of the calling function
  **/
-void assertOnPhysicalZoneThread(const struct vdo *vdo,
-				ZoneCount physicalZone,
-				const char *name);
+void assert_on_physical_zone_thread(const struct vdo *vdo,
+				    ZoneCount physical_zone,
+				    const char *name);
 
 /**
  * Select the hash zone responsible for locking a given chunk name.
@@ -359,8 +364,8 @@ void assertOnPhysicalZoneThread(const struct vdo *vdo,
  *
  * @return  The hash zone responsible for the chunk name
  **/
-struct hash_zone *selectHashZone(const struct vdo *vdo,
-				 const UdsChunkName *name)
+struct hash_zone *select_hash_zone(const struct vdo *vdo,
+				   const UdsChunkName *name)
 	__attribute__((warn_unused_result));
 
 /**
@@ -371,16 +376,16 @@ struct hash_zone *selectHashZone(const struct vdo *vdo,
  * function is safe to call on invalid block numbers; it will not put the vdo
  * into read-only mode.
  *
- * @param [in]  vdo      The vdo containing the physical zones
- * @param [in]  pbn      The PBN of the data block
- * @param [out] zonePtr  A pointer to return the physical zone
+ * @param [in]  vdo       The vdo containing the physical zones
+ * @param [in]  pbn       The PBN of the data block
+ * @param [out] zone_ptr  A pointer to return the physical zone
  *
  * @return VDO_SUCCESS or VDO_OUT_OF_RANGE if the block number is invalid
  *         or an error code for any other failure
  **/
-int getPhysicalZone(const struct vdo *vdo,
-		    PhysicalBlockNumber pbn,
-		    struct physical_zone **zonePtr)
+int get_physical_zone(const struct vdo *vdo,
+		      PhysicalBlockNumber pbn,
+		      struct physical_zone **zone_ptr)
 	__attribute__((warn_unused_result));
 
 /**********************************************************************/

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#15 $
  */
 
 #include "vio.h"
@@ -81,11 +81,11 @@ void updateVIOErrorStats(struct vio *vio, const char *format, ...)
   int result = vioAsCompletion(vio)->result;
   switch (result) {
   case VDO_READ_ONLY:
-    atomicAdd64(&vio->vdo->errorStats.readOnlyErrorCount, 1);
+    atomicAdd64(&vio->vdo->error_stats.readOnlyErrorCount, 1);
     return;
 
   case VDO_NO_SPACE:
-    atomicAdd64(&vio->vdo->errorStats.noSpaceErrorCount, 1);
+    atomicAdd64(&vio->vdo->error_stats.noSpaceErrorCount, 1);
     priority = LOG_DEBUG;
     break;
 
@@ -156,7 +156,7 @@ static void handleFlushError(struct vdo_completion *completion)
 /**********************************************************************/
 void launchFlush(struct vio *vio, vdo_action *callback, vdo_action *errorHandler)
 {
-  ASSERT_LOG_ONLY(getWritePolicy(vio->vdo) == WRITE_POLICY_ASYNC,
+  ASSERT_LOG_ONLY(get_write_policy(vio->vdo) == WRITE_POLICY_ASYNC,
                   "pure flushes should not currently be issued in sync mode");
 
   struct vdo_completion *completion = vioAsCompletion(vio);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#25 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -336,7 +336,8 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	bool fua = (block->has_fua_entry
  		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
 	bool flush = (block->has_fua_entry
-		      || (layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC_UNSAFE)
+		      || (layer->getWritePolicy(layer) !=
+			  WRITE_POLICY_ASYNC_UNSAFE)
 	       	      || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;

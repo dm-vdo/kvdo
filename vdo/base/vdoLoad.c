@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#36 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#37 $
  */
 
 #include "vdoLoad.h"
@@ -66,7 +66,7 @@ vdo_from_load_sub_task(struct vdo_completion *completion)
 static void finish_aborting(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	vdo->closeRequired = false;
+	vdo->close_required = false;
 	finish_parent_callback(completion);
 }
 
@@ -79,7 +79,7 @@ static void close_recovery_journal_for_abort(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	prepare_admin_sub_task(vdo, finish_aborting, finish_aborting);
-	drain_recovery_journal(vdo->recoveryJournal, ADMIN_STATE_SAVING,
+	drain_recovery_journal(vdo->recovery_journal, ADMIN_STATE_SAVING,
 			       completion);
 }
 
@@ -93,7 +93,7 @@ static void abort_load(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	logErrorWithStringError(completion->result, "aborting load");
-	if (vdo->readOnlyNotifier == NULL) {
+	if (vdo->read_only_notifier == NULL) {
 		// There are no threads, so we're done
 		finish_parent_callback(completion);
 		return;
@@ -101,16 +101,16 @@ static void abort_load(struct vdo_completion *completion)
 
 	// Preserve the error.
 	set_completion_result(completion->parent, completion->result);
-	if (vdo->recoveryJournal == NULL) {
+	if (vdo->recovery_journal == NULL) {
 		prepare_admin_sub_task(vdo, finish_aborting, finish_aborting);
 	} else {
 		prepare_admin_sub_task_on_thread(vdo,
 						 close_recovery_journal_for_abort,
 						 close_recovery_journal_for_abort,
-						 getJournalZoneThread(getThreadConfig(vdo)));
+						 getJournalZoneThread(get_thread_config(vdo)));
 	}
 
-	wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier,
+	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 					       completion);
 }
 
@@ -124,7 +124,7 @@ static void wait_for_read_only_mode(struct vdo_completion *completion)
 	prepare_to_finish_parent(completion, completion->parent);
 	set_completion_result(completion, VDO_READ_ONLY);
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	wait_until_not_entering_read_only_mode(vdo->readOnlyNotifier,
+	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
 					       completion);
 }
 
@@ -140,7 +140,7 @@ static void continue_load_read_only(struct vdo_completion *completion)
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	logErrorWithStringError(completion->result,
 				"Entering read-only mode due to load error");
-	enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
+	enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	wait_for_read_only_mode(completion);
 }
 
@@ -158,8 +158,8 @@ static void scrub_slabs(struct vdo_completion *completion)
 		return;
 	}
 
-	if (requiresRecovery(vdo)) {
-		enterRecoveryMode(vdo);
+	if (requires_recovery(vdo)) {
+		enter_recovery_mode(vdo);
 	}
 
 	prepare_admin_sub_task(vdo, finish_parent_callback,
@@ -176,7 +176,7 @@ static void scrub_slabs(struct vdo_completion *completion)
 static void handle_scrubbing_error(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
+	enter_read_only_mode(vdo->read_only_notifier, completion->result);
 	wait_for_read_only_mode(completion);
 }
 
@@ -191,13 +191,14 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
 	slab_depot_load_type loadType = NORMAL_LOAD;
-	if (requiresReadOnlyRebuild(vdo)) {
+	if (requires_read_only_rebuild(vdo)) {
 		loadType = REBUILD_LOAD;
-	} else if (requiresRecovery(vdo)) {
+	} else if (requires_recovery(vdo)) {
 		loadType = RECOVERY_LOAD;
 	}
 
-	initialize_block_map_from_journal(vdo->blockMap, vdo->recoveryJournal);
+	initialize_block_map_from_journal(vdo->block_map,
+					  vdo->recovery_journal);
 
 	prepare_admin_sub_task(vdo, scrub_slabs, handle_scrubbing_error);
 	prepare_to_allocate(vdo->depot, loadType, completion);
@@ -212,15 +213,15 @@ static void prepare_to_come_online(struct vdo_completion *completion)
 static void make_dirty(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	if (is_read_only(vdo->readOnlyNotifier)) {
+	if (is_read_only(vdo->read_only_notifier)) {
 		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
-	setVDOState(vdo, VDO_DIRTY);
+	set_vdo_state(vdo, VDO_DIRTY);
 	prepare_admin_sub_task(vdo, prepare_to_come_online,
 			       continue_load_read_only);
-	saveVDOComponentsAsync(vdo, completion);
+	save_vdo_components_async(vdo, completion);
 }
 
 /**
@@ -232,25 +233,26 @@ static void make_dirty(struct vdo_completion *completion)
 static void load_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	assertOnAdminThread(vdo, __func__);
+	assert_on_admin_thread(vdo, __func__);
 
 	// Prepare the recovery journal for new entries.
-	open_recovery_journal(vdo->recoveryJournal, vdo->depot, vdo->blockMap);
-	vdo->closeRequired = true;
-	if (is_read_only(vdo->readOnlyNotifier)) {
+	open_recovery_journal(vdo->recovery_journal, vdo->depot,
+			      vdo->block_map);
+	vdo->close_required = true;
+	if (is_read_only(vdo->read_only_notifier)) {
 		// In read-only mode we don't use the allocator and it may not
 		// even be readable, so use the default structure.
 		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
-	if (requiresReadOnlyRebuild(vdo)) {
+	if (requires_read_only_rebuild(vdo)) {
 		prepare_admin_sub_task(vdo, make_dirty, abort_load);
 		launch_rebuild(vdo, completion);
 		return;
 	}
 
-	if (requiresRebuild(vdo)) {
+	if (requires_rebuild(vdo)) {
 		prepare_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 		launch_recovery(vdo, completion);
 		return;
@@ -258,8 +260,8 @@ static void load_callback(struct vdo_completion *completion)
 
 	prepare_admin_sub_task(vdo, make_dirty, continue_load_read_only);
 	load_slab_depot(vdo->depot,
-			(wasNew(vdo) ? ADMIN_STATE_FORMATTING :
-				       ADMIN_STATE_LOADING),
+			(was_new(vdo) ? ADMIN_STATE_FORMATTING :
+					ADMIN_STATE_LOADING),
 			completion,
 			NULL);
 }
@@ -275,12 +277,12 @@ int perform_vdo_load(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 start_vdo_decode(struct vdo *vdo, bool validate_config)
 {
-	int result = validateVDOVersion(vdo);
+	int result = validate_vdo_version(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decodeVDOComponent(vdo);
+	result = decode_vdo_component(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -289,39 +291,39 @@ start_vdo_decode(struct vdo *vdo, bool validate_config)
 		return VDO_SUCCESS;
 	}
 
-	if (vdo->loadConfig.nonce != vdo->nonce) {
+	if (vdo->load_config.nonce != vdo->nonce) {
 		return logErrorWithStringError(VDO_BAD_NONCE,
 					       "Geometry nonce %llu does not match superblock nonce %llu",
-					       vdo->loadConfig.nonce,
+					       vdo->load_config.nonce,
 					       vdo->nonce);
 	}
 
 	BlockCount block_count = vdo->layer->getBlockCount(vdo->layer);
-	return validateVDOConfig(&vdo->config, block_count, true);
+	return validate_vdo_config(&vdo->config, block_count, true);
 }
 
 /**********************************************************************/
 __attribute__((warn_unused_result)) static int
 finish_vdo_decode(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
-	const struct thread_config *thread_config = getThreadConfig(vdo);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	int result =
 		make_recovery_journal(vdo->nonce,
 				      vdo->layer,
 				      get_vdo_partition(vdo->layout,
 							RECOVERY_JOURNAL_PARTITION),
-				      vdo->completeRecoveries,
+				      vdo->complete_recoveries,
 				      vdo->config.recoveryJournalSize,
 				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-				      vdo->readOnlyNotifier,
+				      vdo->read_only_notifier,
 				      thread_config,
-				      &vdo->recoveryJournal);
+				      &vdo->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_recovery_journal(vdo->recoveryJournal, buffer);
+	result = decode_recovery_journal(vdo->recovery_journal, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -332,8 +334,8 @@ finish_vdo_decode(struct vdo *vdo)
 				   vdo->layer,
 				   get_vdo_partition(vdo->layout,
 						     SLAB_SUMMARY_PARTITION),
-				   vdo->readOnlyNotifier,
-				   vdo->recoveryJournal,
+				   vdo->read_only_notifier,
+				   vdo->recovery_journal,
 				   &vdo->state,
 				   &vdo->depot);
 	if (result != VDO_SUCCESS) {
@@ -343,7 +345,7 @@ finish_vdo_decode(struct vdo *vdo)
 	result = decode_block_map(buffer,
 				  vdo->config.logicalBlocks,
 				  thread_config,
-				  &vdo->blockMap);
+				  &vdo->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -373,21 +375,21 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	const struct thread_config *thread_config = getThreadConfig(vdo);
-	result = make_read_only_notifier(inReadOnlyMode(vdo),
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	result = make_read_only_notifier(in_read_only_mode(vdo),
 					 thread_config,
 					 vdo->layer,
-					 &vdo->readOnlyNotifier);
+					 &vdo->read_only_notifier);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = enableReadOnlyEntry(vdo);
+	result = enable_read_only_entry(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+	result = decode_vdo_layout(get_component_buffer(vdo->super_block),
 				   &vdo->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -403,18 +405,18 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	BlockCount maximum_age = getConfiguredBlockMapMaximumAge(vdo);
+	BlockCount maximum_age = get_configured_block_map_maximum_age(vdo);
 	BlockCount journal_length =
 		get_recovery_journal_length(vdo->config.recoveryJournalSize);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}
-	result = make_block_map_caches(vdo->blockMap,
+	result = make_block_map_caches(vdo->block_map,
 				       vdo->layer,
-				       vdo->readOnlyNotifier,
-				       vdo->recoveryJournal,
+				       vdo->read_only_notifier,
+				       vdo->recovery_journal,
 				       vdo->nonce,
-				       getConfiguredCacheSize(vdo),
+				       get_configured_cache_size(vdo),
 				       maximum_age);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -423,20 +425,20 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 	result = ALLOCATE(thread_config->hashZoneCount,
 			  struct hash_zone *,
 			  __func__,
-			  &vdo->hashZones);
+			  &vdo->hash_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	ZoneCount zone;
 	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
-		result = make_hash_zone(vdo, zone, &vdo->hashZones[zone]);
+		result = make_hash_zone(vdo, zone, &vdo->hash_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
 	}
 
-	result = make_logical_zones(vdo, &vdo->logicalZones);
+	result = make_logical_zones(vdo, &vdo->logical_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -444,14 +446,14 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 	result = ALLOCATE(thread_config->physicalZoneCount,
 			  struct physical_zone *,
 			  __func__,
-			  &vdo->physicalZones);
+			  &vdo->physical_zones);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
 		result = make_physical_zone(vdo, zone,
-					    &vdo->physicalZones[zone]);
+					    &vdo->physical_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
 		}
@@ -490,16 +492,16 @@ static void load_vdo_components(struct vdo_completion *completion)
 static void pre_load_callback(struct vdo_completion *completion)
 {
 	struct vdo *vdo = vdo_from_load_sub_task(completion);
-	assertOnAdminThread(vdo, __func__);
+	assert_on_admin_thread(vdo, __func__);
 	prepare_admin_sub_task(vdo, load_vdo_components, abort_load);
-	load_super_block_async(completion, getFirstBlockOffset(vdo),
-			       &vdo->superBlock);
+	load_super_block_async(completion, get_first_block_offset(vdo),
+			       &vdo->super_block);
 }
 
 /**********************************************************************/
 int prepare_to_load_vdo(struct vdo *vdo, const VDOLoadConfig *load_config)
 {
-	vdo->loadConfig = *load_config;
+	vdo->load_config = *load_config;
 	return perform_admin_operation(vdo,
 				       ADMIN_OPERATION_LOAD,
 				       NULL,
@@ -516,7 +518,7 @@ decode_synchronous_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+	result = decode_vdo_layout(get_component_buffer(vdo->super_block),
 				   &vdo->layout);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -533,16 +535,16 @@ int load_vdo_superblock(PhysicalLayer *layer,
 			struct vdo **vdo_ptr)
 {
 	struct vdo *vdo;
-	int result = makeVDO(layer, &vdo);
+	int result = make_vdo(layer, &vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	setLoadConfigFromGeometry(geometry, &vdo->loadConfig);
-	result = load_super_block(layer, getFirstBlockOffset(vdo),
-				  &vdo->superBlock);
+	setLoadConfigFromGeometry(geometry, &vdo->load_config);
+	result = load_super_block(layer, get_first_block_offset(vdo),
+				  &vdo->super_block);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
@@ -551,7 +553,7 @@ int load_vdo_superblock(PhysicalLayer *layer,
 							    validate_config) :
 				     decoder(vdo, validate_config));
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 

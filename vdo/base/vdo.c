@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#47 $
  */
 
 /*
@@ -80,14 +80,14 @@ static const struct version_number VDO_COMPONENT_DATA_41_0 = {
  **/
 struct vdo_component_41_0 {
 	VDOState state;
-	uint64_t completeRecoveries;
-	uint64_t readOnlyRecoveries;
+	uint64_t complete_recoveries;
+	uint64_t read_only_recoveries;
 	VDOConfig config;
 	Nonce nonce;
 } __attribute__((packed));
 
 /**********************************************************************/
-int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
+int allocate_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 {
 	int result = register_status_codes();
 	if (result != VDO_SUCCESS) {
@@ -102,100 +102,100 @@ int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
 
 	vdo->layer = layer;
 	if (layer->createEnqueueable != NULL) {
-		result =
-			initialize_admin_completion(vdo, &vdo->adminCompletion);
+		result = initialize_admin_completion(vdo,
+						     &vdo->admin_completion);
 		if (result != VDO_SUCCESS) {
-			freeVDO(&vdo);
+			free_vdo(&vdo);
 			return result;
 		}
 	}
 
-	*vdoPtr = vdo;
+	*vdo_ptr = vdo;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
+int make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 {
 	struct vdo *vdo;
-	int result = allocateVDO(layer, &vdo);
+	int result = allocate_vdo(layer, &vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = makeZeroThreadConfig(&vdo->loadConfig.threadConfig);
+	result = makeZeroThreadConfig(&vdo->load_config.threadConfig);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
-	*vdoPtr = vdo;
+	*vdo_ptr = vdo;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void destroyVDO(struct vdo *vdo)
+void destroy_vdo(struct vdo *vdo)
 {
 	free_flusher(&vdo->flusher);
 	free_packer(&vdo->packer);
-	free_recovery_journal(&vdo->recoveryJournal);
+	free_recovery_journal(&vdo->recovery_journal);
 	free_slab_depot(&vdo->depot);
 	free_vdo_layout(&vdo->layout);
-	free_super_block(&vdo->superBlock);
-	free_block_map(&vdo->blockMap);
+	free_super_block(&vdo->super_block);
+	free_block_map(&vdo->block_map);
 
-	const struct thread_config *threadConfig = getThreadConfig(vdo);
-	if (vdo->hashZones != NULL) {
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	if (vdo->hash_zones != NULL) {
 		ZoneCount zone;
-		for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-			free_hash_zone(&vdo->hashZones[zone]);
+		for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+			free_hash_zone(&vdo->hash_zones[zone]);
 		}
 	}
-	FREE(vdo->hashZones);
-	vdo->hashZones = NULL;
+	FREE(vdo->hash_zones);
+	vdo->hash_zones = NULL;
 
-	free_logical_zones(&vdo->logicalZones);
+	free_logical_zones(&vdo->logical_zones);
 
-	if (vdo->physicalZones != NULL) {
+	if (vdo->physical_zones != NULL) {
 		ZoneCount zone;
-		for (zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
-			free_physical_zone(&vdo->physicalZones[zone]);
+		for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
+			free_physical_zone(&vdo->physical_zones[zone]);
 		}
 	}
-	FREE(vdo->physicalZones);
-	vdo->physicalZones = NULL;
+	FREE(vdo->physical_zones);
+	vdo->physical_zones = NULL;
 
-	uninitialize_admin_completion(&vdo->adminCompletion);
-	free_read_only_notifier(&vdo->readOnlyNotifier);
-	freeThreadConfig(&vdo->loadConfig.threadConfig);
+	uninitialize_admin_completion(&vdo->admin_completion);
+	free_read_only_notifier(&vdo->read_only_notifier);
+	freeThreadConfig(&vdo->load_config.threadConfig);
 }
 
 /**********************************************************************/
-void freeVDO(struct vdo **vdoPtr)
+void free_vdo(struct vdo **vdo_ptr)
 {
-	if (*vdoPtr == NULL) {
+	if (*vdo_ptr == NULL) {
 		return;
 	}
 
-	destroyVDO(*vdoPtr);
-	FREE(*vdoPtr);
-	*vdoPtr = NULL;
+	destroy_vdo(*vdo_ptr);
+	FREE(*vdo_ptr);
+	*vdo_ptr = NULL;
 }
 
 /**********************************************************************/
-VDOState getVDOState(const struct vdo *vdo)
+VDOState get_vdo_state(const struct vdo *vdo)
 {
 	return atomicLoad32(&vdo->state);
 }
 
 /**********************************************************************/
-void setVDOState(struct vdo *vdo, VDOState state)
+void set_vdo_state(struct vdo *vdo, VDOState state)
 {
 	atomicStore32(&vdo->state, state);
 }
 
 /**********************************************************************/
-size_t getComponentDataSize(struct vdo *vdo)
+size_t get_component_data_size(struct vdo *vdo)
 {
 	return (sizeof(struct version_number) + sizeof(struct version_number) +
 		sizeof(struct vdo_component_41_0) +
@@ -212,7 +212,7 @@ size_t getComponentDataSize(struct vdo *vdo)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encodeMasterVersion(Buffer *buffer)
+encode_master_version(Buffer *buffer)
 {
 	return encode_version_number(VDO_MASTER_VERSION_67_0, buffer);
 }
@@ -226,7 +226,7 @@ encodeMasterVersion(Buffer *buffer)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encodeVDOConfig(const VDOConfig *config, Buffer *buffer)
+encode_vdo_config(const VDOConfig *config, Buffer *buffer)
 {
 	int result = putUInt64LEIntoBuffer(buffer, config->logicalBlocks);
 	if (result != VDO_SUCCESS) {
@@ -260,31 +260,31 @@ encodeVDOConfig(const VDOConfig *config, Buffer *buffer)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encodeVDOComponent(const struct vdo *vdo, Buffer *buffer)
+encode_vdo_component(const struct vdo *vdo, Buffer *buffer)
 {
 	int result = encode_version_number(VDO_COMPONENT_DATA_41_0, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	size_t initialLength = contentLength(buffer);
+	size_t initial_length = contentLength(buffer);
 
-	result = putUInt32LEIntoBuffer(buffer, getVDOState(vdo));
+	result = putUInt32LEIntoBuffer(buffer, get_vdo_state(vdo));
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, vdo->completeRecoveries);
+	result = putUInt64LEIntoBuffer(buffer, vdo->complete_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, vdo->readOnlyRecoveries);
+	result = putUInt64LEIntoBuffer(buffer, vdo->read_only_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encodeVDOConfig(&vdo->config, buffer);
+	result = encode_vdo_config(&vdo->config, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -294,26 +294,26 @@ encodeVDOComponent(const struct vdo *vdo, Buffer *buffer)
 		return result;
 	}
 
-	size_t encodedSize = contentLength(buffer) - initialLength;
-	return ASSERT(encodedSize == sizeof(struct vdo_component_41_0),
+	size_t encoded_size = contentLength(buffer) - initial_length;
+	return ASSERT(encoded_size == sizeof(struct vdo_component_41_0),
 		      "encoded VDO component size must match structure size");
 }
 
 /**********************************************************************/
-static int encodeVDO(struct vdo *vdo)
+static int encode_vdo(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
 	int result = resetBufferEnd(buffer, 0);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encodeMasterVersion(buffer);
+	result = encode_master_version(buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = encodeVDOComponent(vdo, buffer);
+	result = encode_vdo_component(vdo, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -323,7 +323,7 @@ static int encodeVDO(struct vdo *vdo)
 		return result;
 	}
 
-	result = encode_recovery_journal(vdo->recoveryJournal, buffer);
+	result = encode_recovery_journal(vdo->recovery_journal, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -333,49 +333,49 @@ static int encodeVDO(struct vdo *vdo)
 		return result;
 	}
 
-	result = encode_block_map(vdo->blockMap, buffer);
+	result = encode_block_map(vdo->block_map, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	ASSERT_LOG_ONLY((contentLength(buffer) == getComponentDataSize(vdo)),
+	ASSERT_LOG_ONLY((contentLength(buffer) == get_component_data_size(vdo)),
 			"All super block component data was encoded");
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int saveVDOComponents(struct vdo *vdo)
+int save_vdo_components(struct vdo *vdo)
 {
-	int result = encodeVDO(vdo);
+	int result = encode_vdo(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return save_super_block(
-		vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
+	return save_super_block(vdo->layer, vdo->super_block,
+				get_first_block_offset(vdo));
 }
 
 /**********************************************************************/
-void saveVDOComponentsAsync(struct vdo *vdo, struct vdo_completion *parent)
+void save_vdo_components_async(struct vdo *vdo, struct vdo_completion *parent)
 {
-	int result = encodeVDO(vdo);
+	int result = encode_vdo(vdo);
 	if (result != VDO_SUCCESS) {
 		finish_completion(parent, result);
 		return;
 	}
 
-	save_super_block_async(
-		vdo->superBlock, getFirstBlockOffset(vdo), parent);
+	save_super_block_async(vdo->super_block, get_first_block_offset(vdo),
+			       parent);
 }
 
 /**********************************************************************/
-int saveReconfiguredVDO(struct vdo *vdo)
+int save_reconfigured_vdo(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
-	size_t componentsSize = contentLength(buffer);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
+	size_t components_size = contentLength(buffer);
 
 	byte *components;
-	int result = copyBytes(buffer, componentsSize, &components);
+	int result = copyBytes(buffer, components_size, &components);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -386,56 +386,54 @@ int saveReconfiguredVDO(struct vdo *vdo)
 		return result;
 	}
 
-	result = encodeMasterVersion(buffer);
+	result = encode_master_version(buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(components);
 		return result;
 	}
 
-	result = encodeVDOComponent(vdo, buffer);
+	result = encode_vdo_component(vdo, buffer);
 	if (result != VDO_SUCCESS) {
 		FREE(components);
 		return result;
 	}
 
-	result = putBytes(buffer, componentsSize, components);
+	result = putBytes(buffer, components_size, components);
 	FREE(components);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return save_super_block(
-		vdo->layer, vdo->superBlock, getFirstBlockOffset(vdo));
+	return save_super_block(vdo->layer, vdo->super_block,
+				get_first_block_offset(vdo));
 }
 
 /**********************************************************************/
-int decodeVDOVersion(struct vdo *vdo)
+int decode_vdo_version(struct vdo *vdo)
 {
-	return decode_version_number(get_component_buffer(vdo->superBlock),
-				     &vdo->loadVersion);
+	return decode_version_number(get_component_buffer(vdo->super_block),
+				     &vdo->load_version);
 }
 
 /**********************************************************************/
-int validateVDOVersion(struct vdo *vdo)
+int validate_vdo_version(struct vdo *vdo)
 {
-	int result = decodeVDOVersion(vdo);
+	int result = decode_vdo_version(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	ReleaseVersionNumber loadedReleaseVersion =
-		get_loaded_release_version(vdo->superBlock);
-	if (vdo->loadConfig.releaseVersion != loadedReleaseVersion) {
-		return logErrorWithStringError(
-			VDO_UNSUPPORTED_VERSION,
-			"Geometry release version %" PRIu32 " does "
-			"not match super block release version %" PRIu32,
-			vdo->loadConfig.releaseVersion,
-			loadedReleaseVersion);
+	ReleaseVersionNumber loaded_release_version =
+		get_loaded_release_version(vdo->super_block);
+	if (vdo->load_config.releaseVersion != loaded_release_version) {
+		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
+					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
+					       vdo->load_config.releaseVersion,
+					       loaded_release_version);
 	}
 
-	return validate_version(
-		VDO_MASTER_VERSION_67_0, vdo->loadVersion, "master");
+	return validate_version(VDO_MASTER_VERSION_67_0, vdo->load_version,
+				"master");
 }
 
 /**
@@ -447,44 +445,44 @@ int validateVDOVersion(struct vdo *vdo)
  * @return UDS_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result)) static int
-decodeVDOConfig(Buffer *buffer, VDOConfig *config)
+decode_vdo_config(Buffer *buffer, VDOConfig *config)
 {
-	BlockCount logicalBlocks;
-	int result = getUInt64LEFromBuffer(buffer, &logicalBlocks);
+	BlockCount logical_blocks;
+	int result = getUInt64LEFromBuffer(buffer, &logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount physicalBlocks;
-	result = getUInt64LEFromBuffer(buffer, &physicalBlocks);
+	BlockCount physical_blocks;
+	result = getUInt64LEFromBuffer(buffer, &physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount slabSize;
-	result = getUInt64LEFromBuffer(buffer, &slabSize);
+	BlockCount slab_size;
+	result = getUInt64LEFromBuffer(buffer, &slab_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount recoveryJournalSize;
-	result = getUInt64LEFromBuffer(buffer, &recoveryJournalSize);
+	BlockCount recovery_journal_size;
+	result = getUInt64LEFromBuffer(buffer, &recovery_journal_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	BlockCount slabJournalBlocks;
-	result = getUInt64LEFromBuffer(buffer, &slabJournalBlocks);
+	BlockCount slab_journal_blocks;
+	result = getUInt64LEFromBuffer(buffer, &slab_journal_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	*config = (VDOConfig){
-		.logicalBlocks = logicalBlocks,
-		.physicalBlocks = physicalBlocks,
-		.slabSize = slabSize,
-		.recoveryJournalSize = recoveryJournalSize,
-		.slabJournalBlocks = slabJournalBlocks,
+	*config = (VDOConfig) {
+		.logicalBlocks = logical_blocks,
+		.physicalBlocks = physical_blocks,
+		.slabSize = slab_size,
+		.recoveryJournalSize = recovery_journal_size,
+		.slabJournalBlocks = slab_journal_blocks,
 	};
 	return VDO_SUCCESS;
 }
@@ -498,30 +496,30 @@ decodeVDOConfig(Buffer *buffer, VDOConfig *config)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-decodeVDOComponent_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
+decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 {
-	size_t initialLength = contentLength(buffer);
+	size_t initial_length = contentLength(buffer);
 
-	VDOState vdoState;
-	int result = getUInt32LEFromBuffer(buffer, &vdoState);
+	VDOState vdo_state;
+	int result = getUInt32LEFromBuffer(buffer, &vdo_state);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	uint64_t completeRecoveries;
-	result = getUInt64LEFromBuffer(buffer, &completeRecoveries);
+	uint64_t complete_recoveries;
+	result = getUInt64LEFromBuffer(buffer, &complete_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	uint64_t readOnlyRecoveries;
-	result = getUInt64LEFromBuffer(buffer, &readOnlyRecoveries);
+	uint64_t read_only_recoveries;
+	result = getUInt64LEFromBuffer(buffer, &read_only_recoveries);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	VDOConfig config;
-	result = decodeVDOConfig(buffer, &config);
+	result = decode_vdo_config(buffer, &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -532,23 +530,23 @@ decodeVDOComponent_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 		return result;
 	}
 
-	*state = (struct vdo_component_41_0){
-		.state = vdoState,
-		.completeRecoveries = completeRecoveries,
-		.readOnlyRecoveries = readOnlyRecoveries,
+	*state = (struct vdo_component_41_0) {
+		.state = vdo_state,
+		.complete_recoveries = complete_recoveries,
+		.read_only_recoveries = read_only_recoveries,
 		.config = config,
 		.nonce = nonce,
 	};
 
-	size_t decodedSize = initialLength - contentLength(buffer);
-	return ASSERT(decodedSize == sizeof(struct vdo_component_41_0),
+	size_t decoded_size = initial_length - contentLength(buffer);
+	return ASSERT(decoded_size == sizeof(struct vdo_component_41_0),
 		      "decoded VDO component size must match structure size");
 }
 
 /**********************************************************************/
-int decodeVDOComponent(struct vdo *vdo)
+int decode_vdo_component(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
 
 	struct version_number version;
 	int result = decode_version_number(buffer, &version);
@@ -556,32 +554,32 @@ int decodeVDOComponent(struct vdo *vdo)
 		return result;
 	}
 
-	result = validate_version(
-		version, VDO_COMPONENT_DATA_41_0, "VDO component data");
+	result = validate_version(version, VDO_COMPONENT_DATA_41_0,
+				  "VDO component data");
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	struct vdo_component_41_0 component;
-	result = decodeVDOComponent_41_0(buffer, &component);
+	result = decode_vdo_component_41_0(buffer, &component);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	// Copy the decoded component into the vdo structure.
-	setVDOState(vdo, component.state);
-	vdo->loadState = component.state;
-	vdo->completeRecoveries = component.completeRecoveries;
-	vdo->readOnlyRecoveries = component.readOnlyRecoveries;
+	set_vdo_state(vdo, component.state);
+	vdo->load_state = component.state;
+	vdo->complete_recoveries = component.complete_recoveries;
+	vdo->read_only_recoveries = component.read_only_recoveries;
 	vdo->config = component.config;
 	vdo->nonce = component.nonce;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int validateVDOConfig(const VDOConfig *config,
-		      BlockCount blockCount,
-		      bool requireLogical)
+int validate_vdo_config(const VDOConfig *config,
+			BlockCount block_count,
+			bool require_logical)
 {
 	int result = ASSERT(config->slabSize > 0, "slab size unspecified");
 	if (result != UDS_SUCCESS) {
@@ -614,14 +612,14 @@ int validateVDOConfig(const VDOConfig *config,
 		return result;
 	}
 
-	SlabConfig slabConfig;
-	result = configure_slab(
-		config->slabSize, config->slabJournalBlocks, &slabConfig);
+	SlabConfig slab_config;
+	result = configure_slab(config->slabSize, config->slabJournalBlocks,
+				&slab_config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT((slabConfig.dataBlocks >= 1),
+	result = ASSERT((slab_config.dataBlocks >= 1),
 			"slab must be able to hold at least one block");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -634,8 +632,7 @@ int validateVDOConfig(const VDOConfig *config,
 	}
 
 	result = ASSERT(config->physicalBlocks <= MAXIMUM_PHYSICAL_BLOCKS,
-			"physical block count %" PRIu64
-			" exceeds maximum %llu",
+			"physical block count %llu exceeds maximum %llu",
 			config->physicalBlocks,
 			MAXIMUM_PHYSICAL_BLOCKS);
 	if (result != UDS_SUCCESS) {
@@ -644,16 +641,14 @@ int validateVDOConfig(const VDOConfig *config,
 
 	// This can't check equality because FileLayer et al can only known
 	// about the storage size, which may not match the super block size.
-	if (blockCount < config->physicalBlocks) {
-		logError("A physical size of %llu blocks was specified,"
-			 " but that is smaller than the %llu blocks"
-			 " configured in the vdo super block",
-			 blockCount,
+	if (block_count < config->physicalBlocks) {
+		logError("A physical size of %llu blocks was specified, but that is smaller than the %llu blocks configured in the vdo super block",
+			 block_count,
 			 config->physicalBlocks);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result = ASSERT(!requireLogical || (config->logicalBlocks > 0),
+	result = ASSERT(!require_logical || (config->logicalBlocks > 0),
 			"logical blocks unspecified");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -690,51 +685,50 @@ int validateVDOConfig(const VDOConfig *config,
  * @param parent    The completion to notify in order to acknowledge the
  *                  notification
  **/
-static void notifyVDOOfReadOnlyMode(void *listener,
+static void notify_vdo_of_read_only_mode(void *listener,
 				    struct vdo_completion *parent)
 {
 	struct vdo *vdo = listener;
-	if (inReadOnlyMode(vdo)) {
+	if (in_read_only_mode(vdo)) {
 		complete_completion(parent);
 	}
 
-	setVDOState(vdo, VDO_READ_ONLY_MODE);
-	saveVDOComponentsAsync(vdo, parent);
+	set_vdo_state(vdo, VDO_READ_ONLY_MODE);
+	save_vdo_components_async(vdo, parent);
 }
 
 /**********************************************************************/
-int enableReadOnlyEntry(struct vdo *vdo)
+int enable_read_only_entry(struct vdo *vdo)
 {
-	return register_read_only_listener(
-		vdo->readOnlyNotifier,
-		vdo,
-		notifyVDOOfReadOnlyMode,
-		getAdminThread(getThreadConfig(vdo)));
+	return register_read_only_listener(vdo->read_only_notifier,
+					   vdo,
+					   notify_vdo_of_read_only_mode,
+					   getAdminThread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/
-bool inReadOnlyMode(const struct vdo *vdo)
+bool in_read_only_mode(const struct vdo *vdo)
 {
-	return (getVDOState(vdo) == VDO_READ_ONLY_MODE);
+	return (get_vdo_state(vdo) == VDO_READ_ONLY_MODE);
 }
 
 /**********************************************************************/
-bool wasNew(const struct vdo *vdo)
+bool was_new(const struct vdo *vdo)
 {
-	return (vdo->loadState == VDO_NEW);
+	return (vdo->load_state == VDO_NEW);
 }
 
 /**********************************************************************/
-bool requiresReadOnlyRebuild(const struct vdo *vdo)
+bool requires_read_only_rebuild(const struct vdo *vdo)
 {
-	return ((vdo->loadState == VDO_FORCE_REBUILD) ||
-		(vdo->loadState == VDO_REBUILD_FOR_UPGRADE));
+	return ((vdo->load_state == VDO_FORCE_REBUILD) ||
+		(vdo->load_state == VDO_REBUILD_FOR_UPGRADE));
 }
 
 /**********************************************************************/
-bool requiresRebuild(const struct vdo *vdo)
+bool requires_rebuild(const struct vdo *vdo)
 {
-	switch (getVDOState(vdo)) {
+	switch (get_vdo_state(vdo)) {
 	case VDO_DIRTY:
 	case VDO_FORCE_REBUILD:
 	case VDO_REPLAYING:
@@ -747,70 +741,71 @@ bool requiresRebuild(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-bool requiresRecovery(const struct vdo *vdo)
+bool requires_recovery(const struct vdo *vdo)
 {
-	return ((vdo->loadState == VDO_DIRTY) ||
-		(vdo->loadState == VDO_REPLAYING) ||
-		(vdo->loadState == VDO_RECOVERING));
+	return ((vdo->load_state == VDO_DIRTY) ||
+		(vdo->load_state == VDO_REPLAYING) ||
+		(vdo->load_state == VDO_RECOVERING));
 }
 
 /**********************************************************************/
-bool isReplaying(const struct vdo *vdo)
+bool is_replaying(const struct vdo *vdo)
 {
-	return (getVDOState(vdo) == VDO_REPLAYING);
+	return (get_vdo_state(vdo) == VDO_REPLAYING);
 }
 
 /**********************************************************************/
-bool inRecoveryMode(const struct vdo *vdo)
+bool in_recovery_mode(const struct vdo *vdo)
 {
-	return (getVDOState(vdo) == VDO_RECOVERING);
+	return (get_vdo_state(vdo) == VDO_RECOVERING);
 }
 
 /**********************************************************************/
-void enterRecoveryMode(struct vdo *vdo)
+void enter_recovery_mode(struct vdo *vdo)
 {
-	assertOnAdminThread(vdo, __func__);
+	assert_on_admin_thread(vdo, __func__);
 
-	if (inReadOnlyMode(vdo)) {
+	if (in_read_only_mode(vdo)) {
 		return;
 	}
 
 	logInfo("Entering recovery mode");
-	setVDOState(vdo, VDO_RECOVERING);
+	set_vdo_state(vdo, VDO_RECOVERING);
 }
 
 /**********************************************************************/
-void makeVDOReadOnly(struct vdo *vdo, int errorCode)
+void make_vdo_read_only(struct vdo *vdo, int error_code)
 {
-	enter_read_only_mode(vdo->readOnlyNotifier, errorCode);
+	enter_read_only_mode(vdo->read_only_notifier, error_code);
 }
 
 /**********************************************************************/
-bool setVDOCompressing(struct vdo *vdo, bool enableCompression)
+bool set_vdo_compressing(struct vdo *vdo, bool enable_compression)
 {
-	bool stateChanged = compareAndSwapBool(
-		&vdo->compressing, !enableCompression, enableCompression);
-	if (stateChanged && !enableCompression) {
+	bool state_changed = compareAndSwapBool(&vdo->compressing,
+						!enable_compression,
+						enable_compression);
+	if (state_changed && !enable_compression) {
 		// Flushing the packer is asynchronous, but we don't care when
 		// it finishes.
 		flush_packer(vdo->packer);
 	}
 
 	logInfo("compression is %s",
-		(enableCompression ? "enabled" : "disabled"));
-	return (stateChanged ? !enableCompression : enableCompression);
+		(enable_compression ? "enabled" : "disabled"));
+	return (state_changed ? !enable_compression : enable_compression);
 }
 
 /**********************************************************************/
-bool getVDOCompressing(struct vdo *vdo)
+bool get_vdo_compressing(struct vdo *vdo)
 {
 	return atomicLoadBool(&vdo->compressing);
 }
 
 /**********************************************************************/
-static size_t getBlockMapCacheSize(const struct vdo *vdo)
+static size_t get_block_map_cache_size(const struct vdo *vdo)
 {
-	return ((size_t) vdo->loadConfig.cacheSize) * VDO_BLOCK_SIZE;
+	return ((size_t) vdo->load_config.cacheSize) * VDO_BLOCK_SIZE;
 }
 
 /**
@@ -820,16 +815,16 @@ static size_t getBlockMapCacheSize(const struct vdo *vdo)
  *
  * @return The sum of the hash lock statistics from all hash zones
  **/
-static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
+static HashLockStatistics get_hash_lock_statistics(const struct vdo *vdo)
 {
 	HashLockStatistics totals;
 	memset(&totals, 0, sizeof(totals));
 
-	const struct thread_config *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	ZoneCount zone;
-	for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
 		HashLockStatistics stats =
-			get_hash_zone_statistics(vdo->hashZones[zone]);
+			get_hash_zone_statistics(vdo->hash_zones[zone]);
 		totals.dedupeAdviceValid += stats.dedupeAdviceValid;
 		totals.dedupeAdviceStale += stats.dedupeAdviceStale;
 		totals.concurrentDataMatches += stats.concurrentDataMatches;
@@ -847,7 +842,7 @@ static HashLockStatistics getHashLockStatistics(const struct vdo *vdo)
  *
  * @return a copy of the current vdo error counters
  **/
-static ErrorStatistics getVDOErrorStatistics(const struct vdo *vdo)
+static ErrorStatistics get_vdo_error_statistics(const struct vdo *vdo)
 {
 	/*
 	 * The error counts can be incremented from arbitrary threads and so
@@ -855,8 +850,8 @@ static ErrorStatistics getVDOErrorStatistics(const struct vdo *vdo)
 	 * semantics that could rely on memory order, so unfenced reads are
 	 * sufficient.
 	 */
-	const struct atomic_error_statistics *atoms = &vdo->errorStats;
-	return (ErrorStatistics){
+	const struct atomic_error_statistics *atoms = &vdo->error_stats;
+	return (ErrorStatistics) {
 		.invalidAdvicePBNCount =
 			relaxedLoad64(&atoms->invalidAdvicePBNCount),
 		.noSpaceErrorCount = relaxedLoad64(&atoms->noSpaceErrorCount),
@@ -865,7 +860,7 @@ static ErrorStatistics getVDOErrorStatistics(const struct vdo *vdo)
 }
 
 /**********************************************************************/
-static const char *describeWritePolicy(WritePolicy policy)
+static const char *describe_write_policy(WritePolicy policy)
 {
 	switch (policy) {
 	case WRITE_POLICY_ASYNC:
@@ -880,11 +875,11 @@ static const char *describeWritePolicy(WritePolicy policy)
 }
 
 /**********************************************************************/
-void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
+void get_vdo_statistics(const struct vdo *vdo, VDOStatistics *stats)
 {
 	// These are immutable properties of the vdo object, so it is safe to
 	// query them from any thread.
-	struct recovery_journal *journal = vdo->recoveryJournal;
+	struct recovery_journal *journal = vdo->recovery_journal;
 	struct slab_depot *depot = vdo->depot;
 	// XXX config.physicalBlocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on the admin thread so we're
@@ -894,17 +889,17 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 	stats->logicalBlocks = vdo->config.logicalBlocks;
 	stats->physicalBlocks = vdo->config.physicalBlocks;
 	stats->blockSize = VDO_BLOCK_SIZE;
-	stats->completeRecoveries = vdo->completeRecoveries;
-	stats->readOnlyRecoveries = vdo->readOnlyRecoveries;
-	stats->blockMapCacheSize = getBlockMapCacheSize(vdo);
+	stats->completeRecoveries = vdo->complete_recoveries;
+	stats->readOnlyRecoveries = vdo->read_only_recoveries;
+	stats->blockMapCacheSize = get_block_map_cache_size(vdo);
 	snprintf(stats->writePolicy,
 		 sizeof(stats->writePolicy),
 		 "%s",
-		 describeWritePolicy(getWritePolicy(vdo)));
+		 describe_write_policy(get_write_policy(vdo)));
 
 	// The callees are responsible for thread-safety.
-	stats->dataBlocksUsed = getPhysicalBlocksAllocated(vdo);
-	stats->overheadBlocksUsed = getPhysicalBlocksOverhead(vdo);
+	stats->dataBlocksUsed = get_physical_blocks_allocated(vdo);
+	stats->overheadBlocksUsed = get_physical_blocks_overhead(vdo);
 	stats->logicalBlocksUsed = get_journal_logical_blocks_used(journal);
 	stats->allocator = get_depot_block_allocator_statistics(depot);
 	stats->journal = get_recovery_journal_statistics(journal);
@@ -913,15 +908,15 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 	stats->slabSummary =
 		get_slab_summary_statistics(get_slab_summary(depot));
 	stats->refCounts = get_depot_ref_counts_statistics(depot);
-	stats->blockMap = get_block_map_statistics(vdo->blockMap);
-	stats->hashLock = getHashLockStatistics(vdo);
-	stats->errors = getVDOErrorStatistics(vdo);
-	SlabCount slabTotal = get_depot_slab_count(depot);
+	stats->blockMap = get_block_map_statistics(vdo->block_map);
+	stats->hashLock = get_hash_lock_statistics(vdo);
+	stats->errors = get_vdo_error_statistics(vdo);
+	SlabCount slab_total = get_depot_slab_count(depot);
 	stats->recoveryPercentage =
-		(slabTotal - get_depot_unrecovered_slab_count(depot)) * 100 /
-		slabTotal;
+		(slab_total - get_depot_unrecovered_slab_count(depot)) * 100 /
+		slab_total;
 
-	VDOState state = getVDOState(vdo);
+	VDOState state = get_vdo_state(vdo);
 	stats->inRecoveryMode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
 		 sizeof(stats->mode),
@@ -930,166 +925,166 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
+BlockCount get_physical_blocks_allocated(const struct vdo *vdo)
 {
 	return (get_depot_allocated_blocks(vdo->depot) -
-		get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
+		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
+BlockCount get_physical_blocks_free(const struct vdo *vdo)
 {
 	return get_depot_free_blocks(vdo->depot);
 }
 
 /**********************************************************************/
-BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
+BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
 {
 	// XXX config.physicalBlocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on admin thread so we're usually
 	// OK.
 	return (vdo->config.physicalBlocks - get_depot_data_blocks(vdo->depot) +
-		get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
+		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
-BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
+BlockCount get_total_block_map_blocks(const struct vdo *vdo)
 {
-	return (get_number_of_fixed_block_map_pages(vdo->blockMap) +
-		get_journal_block_map_data_blocks_used(vdo->recoveryJournal));
+	return (get_number_of_fixed_block_map_pages(vdo->block_map) +
+		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
 /**********************************************************************/
-WritePolicy getWritePolicy(const struct vdo *vdo)
+WritePolicy get_write_policy(const struct vdo *vdo)
 {
-	return vdo->loadConfig.writePolicy;
+	return vdo->load_config.writePolicy;
 }
 
 /**********************************************************************/
-void setWritePolicy(struct vdo *vdo, WritePolicy new)
+void set_write_policy(struct vdo *vdo, WritePolicy new)
 {
-	vdo->loadConfig.writePolicy = new;
+	vdo->load_config.writePolicy = new;
 }
 
 /**********************************************************************/
-const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
+const VDOLoadConfig *get_vdo_load_config(const struct vdo *vdo)
 {
-	return &vdo->loadConfig;
+	return &vdo->load_config;
 }
 
 /**********************************************************************/
-const struct thread_config *getThreadConfig(const struct vdo *vdo)
+const struct thread_config *get_thread_config(const struct vdo *vdo)
 {
-	return vdo->loadConfig.threadConfig;
+	return vdo->load_config.threadConfig;
 }
 
 /**********************************************************************/
-BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
+BlockCount get_configured_block_map_maximum_age(const struct vdo *vdo)
 {
-	return vdo->loadConfig.maximumAge;
+	return vdo->load_config.maximumAge;
 }
 
 /**********************************************************************/
-PageCount getConfiguredCacheSize(const struct vdo *vdo)
+PageCount get_configured_cache_size(const struct vdo *vdo)
 {
-	return vdo->loadConfig.cacheSize;
+	return vdo->load_config.cacheSize;
 }
 
 /**********************************************************************/
-PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
+PhysicalBlockNumber get_first_block_offset(const struct vdo *vdo)
 {
-	return vdo->loadConfig.firstBlockOffset;
+	return vdo->load_config.firstBlockOffset;
 }
 
 /**********************************************************************/
-struct block_map *getBlockMap(const struct vdo *vdo)
+struct block_map *get_block_map(const struct vdo *vdo)
 {
-	return vdo->blockMap;
+	return vdo->block_map;
 }
 
 /**********************************************************************/
-struct slab_depot *getSlabDepot(struct vdo *vdo)
+struct slab_depot *get_slab_depot(struct vdo *vdo)
 {
 	return vdo->depot;
 }
 
 /**********************************************************************/
-struct recovery_journal *getRecoveryJournal(struct vdo *vdo)
+struct recovery_journal *get_recovery_journal(struct vdo *vdo)
 {
-	return vdo->recoveryJournal;
+	return vdo->recovery_journal;
 }
 
 /**********************************************************************/
-void dumpVDOStatus(const struct vdo *vdo)
+void dump_vdo_status(const struct vdo *vdo)
 {
 	dump_flusher(vdo->flusher);
-	dump_recovery_journal_statistics(vdo->recoveryJournal);
+	dump_recovery_journal_statistics(vdo->recovery_journal);
 	dump_packer(vdo->packer);
 	dump_slab_depot(vdo->depot);
 
-	const struct thread_config *threadConfig = getThreadConfig(vdo);
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	ZoneCount zone;
-	for (zone = 0; zone < threadConfig->logicalZoneCount; zone++) {
-		dump_logical_zone(get_logical_zone(vdo->logicalZones, zone));
+	for (zone = 0; zone < thread_config->logicalZoneCount; zone++) {
+		dump_logical_zone(get_logical_zone(vdo->logical_zones, zone));
 	}
 
-	for (zone = 0; zone < threadConfig->physicalZoneCount; zone++) {
-		dump_physical_zone(vdo->physicalZones[zone]);
+	for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
+		dump_physical_zone(vdo->physical_zones[zone]);
 	}
 
-	for (zone = 0; zone < threadConfig->hashZoneCount; zone++) {
-		dump_hash_zone(vdo->hashZones[zone]);
+	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+		dump_hash_zone(vdo->hash_zones[zone]);
 	}
 }
 
 /**********************************************************************/
-void setVDOTracingFlags(struct vdo *vdo, bool vioTracing)
+void set_vdo_tracing_flags(struct vdo *vdo, bool vioTracing)
 {
-	vdo->vioTraceRecording = vioTracing;
+	vdo->vio_trace_recording = vioTracing;
 }
 
 /**********************************************************************/
-bool vdoVIOTracingEnabled(const struct vdo *vdo)
+bool vdo_vio_tracing_enabled(const struct vdo *vdo)
 {
-	return ((vdo != NULL) && vdo->vioTraceRecording);
+	return ((vdo != NULL) && vdo->vio_trace_recording);
 }
 
 /**********************************************************************/
-void assertOnAdminThread(struct vdo *vdo, const char *name)
+void assert_on_admin_thread(struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==
-			 getAdminThread(getThreadConfig(vdo))),
+			 getAdminThread(get_thread_config(vdo))),
 			"%s called on admin thread",
 			name);
 }
 
 /**********************************************************************/
-void assertOnLogicalZoneThread(const struct vdo *vdo,
-			       ZoneCount logicalZone,
-			       const char *name)
+void assert_on_logical_zone_thread(const struct vdo *vdo,
+				   ZoneCount logical_zone,
+				   const char *name)
 {
-	ASSERT_LOG_ONLY(
-		(getCallbackThreadID() ==
-		 getLogicalZoneThread(getThreadConfig(vdo), logicalZone)),
-		"%s called on logical thread",
-		name);
+	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+			 getLogicalZoneThread(get_thread_config(vdo),
+					      logical_zone)),
+			"%s called on logical thread",
+			name);
 }
 
 /**********************************************************************/
-void assertOnPhysicalZoneThread(const struct vdo *vdo,
-				ZoneCount physicalZone,
-				const char *name)
+void assert_on_physical_zone_thread(const struct vdo *vdo,
+				    ZoneCount physical_zone,
+				    const char *name)
 {
-	ASSERT_LOG_ONLY(
-		(getCallbackThreadID() ==
-		 getPhysicalZoneThread(getThreadConfig(vdo), physicalZone)),
-		"%s called on physical thread",
-		name);
+	ASSERT_LOG_ONLY((getCallbackThreadID() ==
+			 getPhysicalZoneThread(get_thread_config(vdo),
+					       physical_zone)),
+			"%s called on physical thread",
+			name);
 }
 
 /**********************************************************************/
-struct hash_zone *selectHashZone(const struct vdo *vdo,
-				 const UdsChunkName *name)
+struct hash_zone *select_hash_zone(const struct vdo *vdo,
+				   const UdsChunkName *name)
 {
 	/*
 	 * Use a fragment of the chunk name as a hash code. To ensure uniform
@@ -1108,16 +1103,17 @@ struct hash_zone *selectHashZone(const struct vdo *vdo,
 	 * should be uniformly distributed over [0 .. count-1]. The multiply and
 	 * shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	return vdo->hashZones[(hash * getThreadConfig(vdo)->hashZoneCount) >> 8];
+	return vdo->hash_zones[(hash * get_thread_config(vdo)->hashZoneCount) >>
+			       8];
 }
 
 /**********************************************************************/
-int getPhysicalZone(const struct vdo *vdo,
-		    PhysicalBlockNumber pbn,
-		    struct physical_zone **zonePtr)
+int get_physical_zone(const struct vdo *vdo,
+		      PhysicalBlockNumber pbn,
+		      struct physical_zone **zone_ptr)
 {
 	if (pbn == ZERO_BLOCK) {
-		*zonePtr = NULL;
+		*zone_ptr = NULL;
 		return VDO_SUCCESS;
 	}
 
@@ -1137,47 +1133,43 @@ int getPhysicalZone(const struct vdo *vdo,
 		return result;
 	}
 
-	*zonePtr = vdo->physicalZones[get_slab_zone_number(slab)];
+	*zone_ptr = vdo->physical_zones[get_slab_zone_number(slab)];
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-struct zoned_pbn validateDedupeAdvice(struct vdo *vdo,
-				      const struct data_location *advice,
-				      LogicalBlockNumber lbn)
+struct zoned_pbn validate_dedupe_advice(struct vdo *vdo,
+					const struct data_location *advice,
+					LogicalBlockNumber lbn)
 {
-	struct zoned_pbn noAdvice = { .pbn = ZERO_BLOCK };
+	struct zoned_pbn no_advice = { .pbn = ZERO_BLOCK };
 	if (advice == NULL) {
-		return noAdvice;
+		return no_advice;
 	}
 
 	// Don't use advice that's clearly meaningless.
 	if ((advice->state == MAPPING_STATE_UNMAPPED) ||
 	    (advice->pbn == ZERO_BLOCK)) {
-		logDebug(
-			"Invalid advice from deduplication server: pbn %" PRIu64
-			", "
-			"state %u. Giving up on deduplication of logical block %llu",
-			advice->pbn,
-			advice->state,
-			lbn);
-		atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
-		return noAdvice;
+		logDebug("Invalid advice from deduplication server: pbn %" PRIu64
+ ", state %u. Giving up on deduplication of logical block %llu",
+			 advice->pbn,
+			 advice->state,
+			 lbn);
+		atomicAdd64(&vdo->error_stats.invalidAdvicePBNCount, 1);
+		return no_advice;
 	}
 
 	struct physical_zone *zone;
-	int result = getPhysicalZone(vdo, advice->pbn, &zone);
+	int result = get_physical_zone(vdo, advice->pbn, &zone);
 	if ((result != VDO_SUCCESS) || (zone == NULL)) {
-		logDebug(
-			"Invalid physical block number from deduplication server: %" PRIu64
-			", giving up on deduplication of logical block %llu",
-			advice->pbn,
-			lbn);
-		atomicAdd64(&vdo->errorStats.invalidAdvicePBNCount, 1);
-		return noAdvice;
+		logDebug("Invalid physical block number from deduplication server: %llu, giving up on deduplication of logical block %llu",
+			 advice->pbn,
+			 lbn);
+		atomicAdd64(&vdo->error_stats.invalidAdvicePBNCount, 1);
+		return no_advice;
 	}
 
-	return (struct zoned_pbn){
+	return (struct zoned_pbn) {
 		.pbn = advice->pbn,
 		.state = advice->state,
 		.zone = zone,

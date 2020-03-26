@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#32 $
  */
 
 /*
@@ -237,7 +237,7 @@ static void write_block(struct data_vio *data_vio);
  **/
 static inline bool is_async(struct data_vio *data_vio)
 {
-	return (getWritePolicy(get_vdo_from_data_vio(data_vio)) !=
+	return (get_write_policy(get_vdo_from_data_vio(data_vio)) !=
 		WRITE_POLICY_SYNC);
 }
 
@@ -320,7 +320,7 @@ static void perform_cleanup_stage(struct data_vio *data_vio,
 
 	case VIO_RELEASE_RECOVERY_LOCKS:
 		if ((data_vio->recoverySequenceNumber > 0) &&
-		    !is_read_only(data_vio_as_vio(data_vio)->vdo->readOnlyNotifier) &&
+		    !is_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier) &&
 		    (data_vio_as_completion(data_vio)->result != VDO_READ_ONLY)) {
 			logWarning("VDO not read-only when cleaning data_vio with RJ lock");
 		}
@@ -385,7 +385,7 @@ static bool abort_on_error(int result,
 	if ((result == VDO_READ_ONLY) || (read_only_action == READ_ONLY) ||
 	    ((read_only_action == READ_ONLY_IF_ASYNC) && is_async(data_vio))) {
 		struct read_only_notifier *notifier =
-			data_vio_as_vio(data_vio)->vdo->readOnlyNotifier;
+			data_vio_as_vio(data_vio)->vdo->read_only_notifier;
 		if (!is_read_only(notifier)) {
 			if (result != VDO_READ_ONLY) {
 				logErrorWithStringError(result,
@@ -507,7 +507,7 @@ static void journal_increment(struct data_vio *data_vio, struct pbn_lock *lock)
 					     data_vio->newMapped.state,
 					     lock,
 					     &data_vio->operation);
-	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recoveryJournal,
+	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				   data_vio);
 }
 
@@ -523,7 +523,7 @@ static void journal_decrement(struct data_vio *data_vio)
 					     data_vio->mapped.state,
 					     data_vio->mapped.zone,
 					     &data_vio->operation);
-	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recoveryJournal,
+	add_recovery_journal_entry(get_vdo_from_data_vio(data_vio)->recovery_journal,
 				   data_vio);
 }
 
@@ -865,9 +865,11 @@ static void resolve_hash_zone(struct vdo_completion *completion)
 			"zero blocks should not be hashed");
 
 	data_vio->hashZone =
-		selectHashZone(get_vdo_from_data_vio(data_vio), &data_vio->chunkName);
+		select_hash_zone(get_vdo_from_data_vio(data_vio),
+				 &data_vio->chunkName);
 	data_vio->lastAsyncOperation = ACQUIRE_HASH_LOCK;
-	launch_hash_zone_callback(data_vio, lock_hash_in_zone, THIS_LOCATION(NULL));
+	launch_hash_zone_callback(data_vio, lock_hash_in_zone,
+				  THIS_LOCATION(NULL));
 }
 
 /**
@@ -1214,7 +1216,7 @@ continue_write_with_block_map_slot(struct vdo_completion *completion)
 /**********************************************************************/
 void launch_write_data_vio(struct data_vio *data_vio)
 {
-	if (is_read_only(data_vio_as_vio(data_vio)->vdo->readOnlyNotifier)) {
+	if (is_read_only(data_vio_as_vio(data_vio)->vdo->read_only_notifier)) {
 		finish_data_vio(data_vio, VDO_READ_ONLY);
 		return;
 	}

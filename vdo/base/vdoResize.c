@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#24 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#25 $
  */
 
 #include "vdoResize.h"
@@ -55,7 +55,7 @@ static const char *GROW_PHYSICAL_PHASE_NAMES[] = {
 __attribute__((warn_unused_result)) static ThreadID
 get_thread_id_for_phase(struct admin_completion *admin_completion)
 {
-	return getAdminThread(getThreadConfig(admin_completion->vdo));
+	return getAdminThread(get_thread_config(admin_completion->vdo));
 }
 
 /**
@@ -75,7 +75,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	struct vdo *vdo = admin_completion->vdo;
 	switch (admin_completion->phase++) {
 	case GROW_PHYSICAL_PHASE_START:
-		if (is_read_only(vdo->readOnlyNotifier)) {
+		if (is_read_only(vdo->read_only_notifier)) {
 			logErrorWithStringError(VDO_READ_ONLY,
 				                "Can't grow physical size of a read-only VDO");
 			set_completion_result(reset_admin_sub_task(completion),
@@ -83,7 +83,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 			break;
 		}
 
-		if (start_operation_with_waiter(&vdo->adminState,
+		if (start_operation_with_waiter(&vdo->admin_state,
 						ADMIN_STATE_SUSPENDED_OPERATION,
 						&admin_completion->completion,
 						NULL)) {
@@ -103,7 +103,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
 		vdo->config.physicalBlocks = grow_vdo_layout(vdo->layout);
 		update_slab_depot_size(vdo->depot);
-		saveVDOComponentsAsync(vdo, reset_admin_sub_task(completion));
+		save_vdo_components_async(vdo, reset_admin_sub_task(completion));
 		return;
 
 	case GROW_PHYSICAL_PHASE_USE_NEW_SLABS:
@@ -114,13 +114,13 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		set_slab_summary_origin(get_slab_summary(vdo->depot),
 					get_vdo_partition(vdo->layout,
 							  SLAB_SUMMARY_PARTITION));
-		set_recovery_journal_partition(vdo->recoveryJournal,
+		set_recovery_journal_partition(vdo->recovery_journal,
 					       get_vdo_partition(vdo->layout,
 								 RECOVERY_JOURNAL_PARTITION));
 		break;
 
 	case GROW_PHYSICAL_PHASE_ERROR:
-		enter_read_only_mode(vdo->readOnlyNotifier, completion->result);
+		enter_read_only_mode(vdo->read_only_notifier, completion->result);
 		break;
 
 	default:
@@ -129,7 +129,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 	}
 
 	finish_vdo_layout_growth(vdo->layout);
-	finish_operation_with_result(&vdo->adminState, completion->result);
+	finish_operation_with_result(&vdo->admin_state, completion->result);
 }
 
 /**
@@ -203,18 +203,18 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 				    ADMIN_OPERATION_PREPARE_GROW_PHYSICAL);
 
 	struct vdo *vdo = admin_completion->vdo;
-	assertOnAdminThread(vdo, __func__);
+	assert_on_admin_thread(vdo, __func__);
 
 	reset_admin_sub_task(completion);
 
 	// This check can only be done from a base code thread.
-	if (is_read_only(vdo->readOnlyNotifier)) {
+	if (is_read_only(vdo->read_only_notifier)) {
 		finish_completion(completion->parent, VDO_READ_ONLY);
 		return;
 	}
 
 	// This check should only be done from a base code thread.
-	if (inRecoveryMode(vdo)) {
+	if (in_recovery_mode(vdo)) {
 		finish_completion(completion->parent, VDO_RETRY_AFTER_REBUILD);
 		return;
 	}

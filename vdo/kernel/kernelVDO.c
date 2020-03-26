@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#40 $
  */
 
 /*
@@ -163,7 +163,7 @@ int preload_kvdo(struct kvdo *kvdo,
 		return result;
 	}
 
-	setVDOTracingFlags(kvdo->vdo, vio_trace_recording);
+	set_vdo_tracing_flags(kvdo->vdo, vio_trace_recording);
 	return VDO_SUCCESS;
 }
 
@@ -239,7 +239,7 @@ void finish_kvdo(struct kvdo *kvdo)
 /**********************************************************************/
 void destroy_kvdo(struct kvdo *kvdo)
 {
-	destroyVDO(kvdo->vdo);
+	destroy_vdo(kvdo->vdo);
 	int i;
 
 	for (i = 0; i < kvdo->initialized_thread_count; i++) {
@@ -320,7 +320,7 @@ static void set_compressing_work(struct kvdo_work_item *item)
 	struct vdo_compress_data *data = (struct vdo_compress_data *) work->data;
 
 	data->was_enabled =
-		setVDOCompressing(get_vdo(work->kvdo), data->enable);
+		set_vdo_compressing(get_vdo(work->kvdo), data->enable);
 	complete(work->completion);
 }
 
@@ -334,7 +334,7 @@ bool set_kvdo_compressing(struct kvdo *kvdo, bool enable_compression)
 	performKVDOOperation(kvdo,
 			     set_compressing_work,
 			     &data,
-			     getPackerZoneThread(getThreadConfig(kvdo->vdo)),
+			     getPackerZoneThread(get_thread_config(kvdo->vdo)),
 			     &compress_wait);
 	return data.was_enabled;
 }
@@ -351,7 +351,7 @@ static void enter_read_only_mode_work(struct kvdo_work_item *item)
 		container_of(item, struct sync_queue_work, work_item);
 	struct vdo_read_only_data *data = work->data;
 
-	makeVDOReadOnly(get_vdo(work->kvdo), data->result);
+	make_vdo_read_only(get_vdo(work->kvdo), data->result);
 	complete(work->completion);
 }
 
@@ -363,7 +363,7 @@ void set_kvdo_read_only(struct kvdo *kvdo, int result)
 
 	data.result = result;
 	performKVDOOperation(kvdo, enter_read_only_mode_work, &data,
-			     getAdminThread(getThreadConfig(kvdo->vdo)),
+			     getAdminThread(get_thread_config(kvdo->vdo)),
 			     &read_only_wait);
 }
 
@@ -378,7 +378,7 @@ static void get_vdo_statistics_work(struct kvdo_work_item *item)
 		container_of(item, struct sync_queue_work, work_item);
 	VDOStatistics *stats = (VDOStatistics *) work->data;
 
-	getVDOStatistics(get_vdo(work->kvdo), stats);
+	get_vdo_statistics(get_vdo(work->kvdo), stats);
 	complete(work->completion);
 }
 
@@ -391,7 +391,7 @@ void get_kvdo_statistics(struct kvdo *kvdo, VDOStatistics *stats)
 	performKVDOOperation(kvdo,
 			     get_vdo_statistics_work,
 			     stats,
-			     getAdminThread(getThreadConfig(kvdo->vdo)),
+			     getAdminThread(get_thread_config(kvdo->vdo)),
 			     &stats_wait);
 }
 
@@ -477,7 +477,7 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv)
 	performKVDOOperation(kvdo,
 			     perform_vdo_action_work,
 			     &data,
-			     getAdminThread(getThreadConfig(kvdo->vdo)),
+			     getAdminThread(get_thread_config(kvdo->vdo)),
 			     &data.waiter);
 
 	return destroy_vdo_command_completion(&cmd);
@@ -486,13 +486,13 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv)
 /**********************************************************************/
 void dump_kvdo_status(struct kvdo *kvdo)
 {
-	dumpVDOStatus(kvdo->vdo);
+	dump_vdo_status(kvdo->vdo);
 }
 
 /**********************************************************************/
 bool get_kvdo_compressing(struct kvdo *kvdo)
 {
-	return getVDOCompressing(kvdo->vdo);
+	return get_vdo_compressing(kvdo->vdo);
 }
 
 /**********************************************************************/
@@ -547,7 +547,7 @@ int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count)
 /**********************************************************************/
 WritePolicy get_kvdo_write_policy(struct kvdo *kvdo)
 {
-	return getWritePolicy(kvdo->vdo);
+	return get_write_policy(kvdo->vdo);
 }
 
 /**********************************************************************/

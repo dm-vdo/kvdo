@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#18 $
  */
 
 #include "upgrade.h"
@@ -71,7 +71,7 @@ struct sodium_component_41_0 {
 static bool is_current_release_version(struct vdo *vdo)
 {
 	ReleaseVersionNumber loaded_version =
-		get_loaded_release_version(vdo->superBlock);
+		get_loaded_release_version(vdo->super_block);
 
 	return (loaded_version == CURRENT_RELEASE_VERSION_NUMBER);
 }
@@ -86,7 +86,7 @@ static bool is_current_release_version(struct vdo *vdo)
  **/
 static int validate_sodium_version(struct vdo *vdo)
 {
-	int result = decodeVDOVersion(vdo);
+	int result = decode_vdo_version(vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -96,13 +96,13 @@ static int validate_sodium_version(struct vdo *vdo)
 	}
 
 	ReleaseVersionNumber loaded_version =
-		get_loaded_release_version(vdo->superBlock);
+		get_loaded_release_version(vdo->super_block);
 	return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
 				       "Release version %d, load version %d.%d"
 				       " cannot be upgraded",
 				       loaded_version,
-				       vdo->loadVersion.major_version,
-				       vdo->loadVersion.minor_version);
+				       vdo->load_version.major_version,
+				       vdo->load_version.minor_version);
 }
 
 /**
@@ -130,7 +130,7 @@ static int decode_sodium_41_0_component(Buffer *buffer,
 __attribute__((warn_unused_result)) static int
 decode_sodium_component(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
 	struct version_number version;
 	int result = decode_version_number(buffer, &version);
 	if (result != VDO_SUCCESS) {
@@ -151,10 +151,10 @@ decode_sodium_component(struct vdo *vdo)
 	}
 
 	// Copy the decoded component into the vdo structure.
-	setVDOState(vdo, component.state);
-	vdo->loadState = component.state;
-	vdo->completeRecoveries = component.complete_recoveries;
-	vdo->readOnlyRecoveries = component.read_only_recoveries;
+	set_vdo_state(vdo, component.state);
+	vdo->load_state = component.state;
+	vdo->complete_recoveries = component.complete_recoveries;
+	vdo->read_only_recoveries = component.read_only_recoveries;
 	vdo->config = component.config;
 	vdo->nonce = component.nonce;
 
@@ -168,24 +168,24 @@ decode_sodium_component(struct vdo *vdo)
 __attribute__((warn_unused_result)) static int
 finish_sodium_decode(struct vdo *vdo)
 {
-	Buffer *buffer = get_component_buffer(vdo->superBlock);
-	const struct thread_config *threadConfig = getThreadConfig(vdo);
+	Buffer *buffer = get_component_buffer(vdo->super_block);
+	const struct thread_config *threadConfig = get_thread_config(vdo);
 	int result =
 		make_recovery_journal(vdo->nonce,
 				      vdo->layer,
 				      get_vdo_partition(vdo->layout,
 							RECOVERY_JOURNAL_PARTITION),
-				      vdo->completeRecoveries,
+				      vdo->complete_recoveries,
 				      vdo->config.recoveryJournalSize,
 				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
-				      vdo->readOnlyNotifier,
+				      vdo->read_only_notifier,
 				      threadConfig,
-				      &vdo->recoveryJournal);
+				      &vdo->recovery_journal);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = decode_sodium_recovery_journal(vdo->recoveryJournal, buffer);
+	result = decode_sodium_recovery_journal(vdo->recovery_journal, buffer);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -196,8 +196,8 @@ finish_sodium_decode(struct vdo *vdo)
 					  vdo->layer,
 					  get_vdo_partition(vdo->layout,
 							    SLAB_SUMMARY_PARTITION),
-					  vdo->readOnlyNotifier,
-					  vdo->recoveryJournal,
+					  vdo->read_only_notifier,
+					  vdo->recovery_journal,
 					  &vdo->depot);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -206,7 +206,7 @@ finish_sodium_decode(struct vdo *vdo)
 	result = decode_sodium_block_map(buffer,
 					 vdo->config.logicalBlocks,
 					 threadConfig,
-					 &vdo->blockMap);
+					 &vdo->block_map);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -226,16 +226,16 @@ int upgrade_prior_vdo(PhysicalLayer *layer)
 	}
 
 	struct vdo *vdo;
-	result = makeVDO(layer, &vdo);
+	result = make_vdo(layer, &vdo);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	result = load_super_block(vdo->layer,
 				  get_data_region_offset(geometry),
-				  &vdo->superBlock);
+				  &vdo->super_block);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return logErrorWithStringError(result,
 					       "Could not load VDO super block");
 	}
@@ -243,61 +243,61 @@ int upgrade_prior_vdo(PhysicalLayer *layer)
 	// Load the necessary pieces to save again.
 	result = validate_sodium_version(vdo);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
 	if (is_current_release_version(vdo)) {
 		logInfo("VDO already up-to-date");
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return VDO_SUCCESS;
 	}
 
 	result = decode_sodium_component(vdo);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
-	if (requiresRebuild(vdo)) {
+	if (requires_rebuild(vdo)) {
 		// Do not attempt to upgrade a dirty prior version.
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
 					       "Cannot upgrade a dirty VDO.");
 	}
 
-	result = decode_vdo_layout(get_component_buffer(vdo->superBlock),
+	result = decode_vdo_layout(get_component_buffer(vdo->super_block),
 				   &vdo->layout);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
-	const struct thread_config *thread_config = getThreadConfig(vdo);
-	result = make_read_only_notifier(inReadOnlyMode(vdo),
+	const struct thread_config *thread_config = get_thread_config(vdo);
+	result = make_read_only_notifier(in_read_only_mode(vdo),
 					 thread_config,
 					 vdo->layer,
-					 &vdo->readOnlyNotifier);
+					 &vdo->read_only_notifier);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
 	result = finish_sodium_decode(vdo);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
 	// Saving will automatically change the release version to current.
-	result = saveVDOComponents(vdo);
+	result = save_vdo_components(vdo);
 	if (result != VDO_SUCCESS) {
-		freeVDO(&vdo);
+		free_vdo(&vdo);
 		return result;
 	}
 
 	logInfo("Successfully saved upgraded VDO");
-	freeVDO(&vdo);
+	free_vdo(&vdo);
 
 	return result;
 }

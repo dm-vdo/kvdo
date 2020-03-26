@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#29 $
  */
 
 #include "referenceCountRebuild.h"
@@ -142,9 +142,9 @@ static int make_rebuild_completion(struct vdo *vdo,
 				   struct vdo_completion *parent,
 				   struct rebuild_completion **rebuild_ptr)
 {
-	struct block_map *block_map = getBlockMap(vdo);
+	struct block_map *block_map = get_block_map(vdo);
 	PageCount page_count =
-		min_page_count(getConfiguredCacheSize(vdo) >> 1,
+		min_page_count(get_configured_cache_size(vdo) >> 1,
 			       MAXIMUM_SIMULTANEOUS_BLOCK_MAP_RESTORATION_READS);
 
 	struct rebuild_completion *rebuild;
@@ -181,7 +181,7 @@ static int make_rebuild_completion(struct vdo *vdo,
 	rebuild->leaf_pages =
 		compute_block_map_page_count(block_map->entry_count);
 
-	const struct thread_config *thread_config = getThreadConfig(vdo);
+	const struct thread_config *thread_config = get_thread_config(vdo);
 	rebuild->logical_thread_id = getLogicalZoneThread(thread_config, 0);
 	rebuild->admin_thread_id = getAdminThread(thread_config);
 
