@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#76 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#77 $
  */
 
 #include "kernelLayer.h"
@@ -668,7 +668,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		 THIS_MODULE->name,
 		 instance);
 
-	result = makeThreadConfig(config->thread_counts.logical_zones,
+	result = make_thread_config(config->thread_counts.logical_zones,
 				  config->thread_counts.physical_zones,
 				  config->thread_counts.hash_zones,
 				  thread_config_pointer);
@@ -682,7 +682,7 @@ int make_kernel_layer(uint64_t starting_sector,
 		config->thread_counts.logical_zones,
 		config->thread_counts.physical_zones,
 		config->thread_counts.hash_zones,
-		(*thread_config_pointer)->baseThreadCount);
+		(*thread_config_pointer)->base_thread_count);
 
 	result = make_batch_processor(layer,
 				      return_data_kvio_batch_to_pool,

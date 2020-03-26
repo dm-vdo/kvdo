@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#50 $
  */
 
 #include "blockMap.h"
@@ -149,7 +149,7 @@ int make_block_map(BlockCount logical_blocks,
 
 	struct block_map *map;
 	int result = ALLOCATE_EXTENDED(struct block_map,
-				       thread_config->logicalZoneCount,
+				       thread_config->logical_zone_count,
 				       struct block_map_zone,
 				       __func__,
 				       &map);
@@ -162,13 +162,13 @@ int make_block_map(BlockCount logical_blocks,
 	map->root_count = root_count;
 	map->entry_count = logical_blocks;
 
-	ZoneCount zone_count = thread_config->logicalZoneCount;
+	ZoneCount zone_count = thread_config->logical_zone_count;
 	ZoneCount zone = 0;
 	for (zone = 0; zone < zone_count; zone++) {
 		struct block_map_zone *block_map_zone = &map->zones[zone];
 		block_map_zone->zone_number = zone;
 		block_map_zone->thread_id =
-			getLogicalZoneThread(thread_config, zone);
+			get_logical_zone_thread(thread_config, zone);
 		block_map_zone->block_map = map;
 		map->zone_count++;
 	}

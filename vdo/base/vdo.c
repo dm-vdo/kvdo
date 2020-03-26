@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#48 $
  */
 
 /*
@@ -123,7 +123,7 @@ int make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 		return result;
 	}
 
-	result = makeZeroThreadConfig(&vdo->load_config.threadConfig);
+	result = make_zero_thread_config(&vdo->load_config.threadConfig);
 	if (result != VDO_SUCCESS) {
 		free_vdo(&vdo);
 		return result;
@@ -147,7 +147,7 @@ void destroy_vdo(struct vdo *vdo)
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	if (vdo->hash_zones != NULL) {
 		ZoneCount zone;
-		for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+		for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 			free_hash_zone(&vdo->hash_zones[zone]);
 		}
 	}
@@ -158,7 +158,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	if (vdo->physical_zones != NULL) {
 		ZoneCount zone;
-		for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
+		for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
 			free_physical_zone(&vdo->physical_zones[zone]);
 		}
 	}
@@ -167,7 +167,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	uninitialize_admin_completion(&vdo->admin_completion);
 	free_read_only_notifier(&vdo->read_only_notifier);
-	freeThreadConfig(&vdo->load_config.threadConfig);
+	free_thread_config(&vdo->load_config.threadConfig);
 }
 
 /**********************************************************************/
@@ -701,9 +701,9 @@ static void notify_vdo_of_read_only_mode(void *listener,
 int enable_read_only_entry(struct vdo *vdo)
 {
 	return register_read_only_listener(vdo->read_only_notifier,
-					   vdo,
-					   notify_vdo_of_read_only_mode,
-					   getAdminThread(get_thread_config(vdo)));
+		vdo,
+		notify_vdo_of_read_only_mode,
+		get_admin_thread(get_thread_config(vdo)));
 }
 
 /**********************************************************************/
@@ -822,7 +822,7 @@ static HashLockStatistics get_hash_lock_statistics(const struct vdo *vdo)
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	ZoneCount zone;
-	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		HashLockStatistics stats =
 			get_hash_zone_statistics(vdo->hash_zones[zone]);
 		totals.dedupeAdviceValid += stats.dedupeAdviceValid;
@@ -1024,15 +1024,15 @@ void dump_vdo_status(const struct vdo *vdo)
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	ZoneCount zone;
-	for (zone = 0; zone < thread_config->logicalZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->logical_zone_count; zone++) {
 		dump_logical_zone(get_logical_zone(vdo->logical_zones, zone));
 	}
 
-	for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
 		dump_physical_zone(vdo->physical_zones[zone]);
 	}
 
-	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		dump_hash_zone(vdo->hash_zones[zone]);
 	}
 }
@@ -1053,7 +1053,7 @@ bool vdo_vio_tracing_enabled(const struct vdo *vdo)
 void assert_on_admin_thread(struct vdo *vdo, const char *name)
 {
 	ASSERT_LOG_ONLY((getCallbackThreadID() ==
-			 getAdminThread(get_thread_config(vdo))),
+			 get_admin_thread(get_thread_config(vdo))),
 			"%s called on admin thread",
 			name);
 }
@@ -1063,11 +1063,12 @@ void assert_on_logical_zone_thread(const struct vdo *vdo,
 				   ZoneCount logical_zone,
 				   const char *name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
-			 getLogicalZoneThread(get_thread_config(vdo),
-					      logical_zone)),
-			"%s called on logical thread",
-			name);
+	ASSERT_LOG_ONLY(
+		(getCallbackThreadID() ==
+		 get_logical_zone_thread(get_thread_config(vdo),
+		 			 logical_zone)),
+		"%s called on logical thread",
+		name);
 }
 
 /**********************************************************************/
@@ -1075,11 +1076,12 @@ void assert_on_physical_zone_thread(const struct vdo *vdo,
 				    ZoneCount physical_zone,
 				    const char *name)
 {
-	ASSERT_LOG_ONLY((getCallbackThreadID() ==
-			 getPhysicalZoneThread(get_thread_config(vdo),
-					       physical_zone)),
-			"%s called on physical thread",
-			name);
+	ASSERT_LOG_ONLY(
+		(getCallbackThreadID() ==
+		 get_physical_zone_thread(get_thread_config(vdo),
+		 			  physical_zone)),
+		"%s called on physical thread",
+		name);
 }
 
 /**********************************************************************/
@@ -1103,8 +1105,7 @@ struct hash_zone *select_hash_zone(const struct vdo *vdo,
 	 * should be uniformly distributed over [0 .. count-1]. The multiply and
 	 * shift is much faster than a divide (modulus) on X86 CPUs.
 	 */
-	return vdo->hash_zones[(hash * get_thread_config(vdo)->hashZoneCount) >>
-			       8];
+	return vdo->hash_zones[(hash * get_thread_config(vdo)->hash_zone_count) >> 8];
 }
 
 /**********************************************************************/

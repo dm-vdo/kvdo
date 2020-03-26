@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#27 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#28 $
  */
 
 #include "slabSummary.h"
@@ -220,7 +220,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 
 	struct slab_summary *summary;
 	result = ALLOCATE_EXTENDED(struct slab_summary,
-				   thread_config->physicalZoneCount,
+				   thread_config->physical_zone_count,
 				   struct slab_summary_zone *,
 				   __func__,
 				   &summary);
@@ -228,7 +228,7 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 		return result;
 	}
 
-	summary->zone_count = thread_config->physicalZoneCount;
+	summary->zone_count = thread_config->physical_zone_count;
 	summary->read_only_notifier = read_only_notifier;
 	summary->hint_shift = (slab_size_shift > 6) ? (slab_size_shift - 6) : 0;
 	summary->blocks_per_zone = blocks_per_zone;
@@ -263,8 +263,8 @@ int make_slab_summary(PhysicalLayer *layer, struct partition *partition,
 	for (zone = 0; zone < summary->zone_count; zone++) {
 		result =
 			make_slab_summary_zone(summary, layer, zone,
-					       getPhysicalZoneThread(thread_config,
-								     zone),
+					       get_physical_zone_thread(thread_config,
+								        zone),
 					       summary->entries +
 					       (MAX_SLABS * zone));
 		if (result != VDO_SUCCESS) {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/readOnlyNotifier.c#14 $
  */
 
 #include "readOnlyNotifier.h"
@@ -129,7 +129,7 @@ int make_read_only_notifier(bool is_read_only,
 {
 	struct read_only_notifier *notifier;
 	int result = ALLOCATE_EXTENDED(struct read_only_notifier,
-				       thread_config->baseThreadCount,
+				       thread_config->base_thread_count,
 				       struct thread_data,
 				       __func__,
 				       &notifier);
@@ -154,7 +154,7 @@ int make_read_only_notifier(bool is_read_only,
 	}
 
 	ThreadCount id;
-	for (id = 0; id < thread_config->baseThreadCount; id++) {
+	for (id = 0; id < thread_config->base_thread_count; id++) {
 		notifier->thread_data[id].is_read_only = is_read_only;
 	}
 
@@ -171,7 +171,7 @@ void free_read_only_notifier(struct read_only_notifier **notifier_ptr)
 	}
 
 	ThreadCount id;
-	for (id = 0; id < notifier->thread_config->baseThreadCount; id++) {
+	for (id = 0; id < notifier->thread_config->base_thread_count; id++) {
 		struct thread_data *thread_data = &notifier->thread_data[id];
 		struct read_only_listener *listener = thread_data->listeners;
 		while (listener != NULL) {
@@ -196,7 +196,7 @@ static void assert_on_admin_thread(struct read_only_notifier *notifier,
 				   const char *caller)
 {
 	ThreadID threadID = getCallbackThreadID();
-	ASSERT_LOG_ONLY((getAdminThread(notifier->thread_config) == threadID),
+	ASSERT_LOG_ONLY((get_admin_thread(notifier->thread_config) == threadID),
 			"%s called on admin thread",
 			caller);
 }
@@ -295,12 +295,12 @@ static void make_thread_read_only(struct vdo_completion *completion)
 	}
 
 	// We're done with this thread
-	if (++thread_id >= notifier->thread_config->baseThreadCount) {
+	if (++thread_id >= notifier->thread_config->base_thread_count) {
 		// There are no more threads
 		prepare_completion(completion,
 				   finish_entering_read_only_mode,
 				   finish_entering_read_only_mode,
-				   getAdminThread(notifier->thread_config),
+				   get_admin_thread(notifier->thread_config),
 				   NULL);
 	} else {
 		prepare_completion(completion,

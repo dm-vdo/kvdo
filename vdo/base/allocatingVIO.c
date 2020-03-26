@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.c#18 $
  */
 
 #include "allocatingVIO.h"
@@ -170,7 +170,7 @@ static int allocateBlockInZone(struct allocating_vio *allocating_vio)
 	struct vdo *vdo = get_vdo_from_allocating_vio(allocating_vio);
 	const struct thread_config *threadConfig = get_thread_config(vdo);
 	if (allocating_vio->allocation_attempts >=
-	    threadConfig->physicalZoneCount) {
+	    threadConfig->physical_zone_count) {
 		if (allocating_vio->wait_for_clean_slab) {
 			// There were no free blocks in any zone, and no zone
 			// had slabs to scrub.
@@ -185,7 +185,7 @@ static int allocateBlockInZone(struct allocating_vio *allocating_vio)
 	// Try the next zone
 	ZoneCount zoneNumber =
 		get_physical_zone_number(allocating_vio->zone) + 1;
-	if (zoneNumber == threadConfig->physicalZoneCount) {
+	if (zoneNumber == threadConfig->physical_zone_count) {
 		zoneNumber = 0;
 	}
 	allocating_vio->zone = vdo->physical_zones[zoneNumber];

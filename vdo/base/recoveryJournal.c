@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#46 $
  */
 
 #include "recoveryJournal.h"
@@ -437,7 +437,7 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 	initializeRing(&journal->active_tail_blocks);
 	initialize_wait_queue(&journal->pending_writes);
 
-	journal->thread_id = getJournalZoneThread(thread_config);
+	journal->thread_id = get_journal_zone_thread(thread_config);
 	journal->partition = partition;
 	journal->nonce = nonce;
 	journal->recovery_count = compute_recovery_count_byte(recovery_count);
@@ -470,8 +470,8 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 		result = make_lock_counter(layer, journal,
 					   reap_recovery_journal_callback,
 					   journal->thread_id,
-					   thread_config->logicalZoneCount,
-					   thread_config->physicalZoneCount,
+					   thread_config->logical_zone_count,
+					   thread_config->physical_zone_count,
 					   journal->size,
 					   &journal->lock_counter);
 		if (result != VDO_SUCCESS) {

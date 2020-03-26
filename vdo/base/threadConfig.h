@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.h#4 $
  */
 
 #ifndef THREAD_CONFIG_H
@@ -27,16 +27,16 @@
 #include "types.h"
 
 struct thread_config {
-	ZoneCount logicalZoneCount;
-	ZoneCount physicalZoneCount;
-	ZoneCount hashZoneCount;
-	ThreadCount baseThreadCount;
-	ThreadID adminThread;
-	ThreadID journalThread;
-	ThreadID packerThread;
-	ThreadID *logicalThreads;
-	ThreadID *physicalThreads;
-	ThreadID *hashZoneThreads;
+	ZoneCount logical_zone_count;
+	ZoneCount physical_zone_count;
+	ZoneCount hash_zone_count;
+	ThreadCount base_thread_count;
+	ThreadID admin_thread;
+	ThreadID journal_thread;
+	ThreadID packer_thread;
+	ThreadID *logical_threads;
+	ThreadID *physical_threads;
+	ThreadID *hash_zone_threads;
 };
 
 /**
@@ -44,18 +44,18 @@ struct thread_config {
  * physical zone count are set to 0, a one thread configuration will be
  * made.
  *
- * @param [in]  logicalZoneCount    The number of logical zones
- * @param [in]  physicalZoneCount   The number of physical zones
- * @param [in]  hashZoneCount       The number of hash zones
- * @param [out] configPtr           A pointer to hold the new thread
- *                                  configuration
+ * @param [in]  logical_zone_count    The number of logical zones
+ * @param [in]  physical_zone_count   The number of physical zones
+ * @param [in]  hash_zone_count       The number of hash zones
+ * @param [out] config_ptr            A pointer to hold the new thread
+ *                                    configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeThreadConfig(ZoneCount logicalZoneCount,
-		     ZoneCount physicalZoneCount,
-		     ZoneCount hashZoneCount,
-		     struct thread_config **configPtr)
+int make_thread_config(ZoneCount logical_zone_count,
+		       ZoneCount physical_zone_count,
+		       ZoneCount hash_zone_count,
+		       struct thread_config **config_ptr)
 	__attribute__((warn_unused_result));
 
 /**
@@ -63,133 +63,135 @@ int makeThreadConfig(ZoneCount logicalZoneCount,
  * for VDOs which are constructed from user mode that have only a synchronous
  * layer.
  *
- * @param [out] configPtr   A pointer to hold the new thread configuration
+ * @param [out] config_ptr   A pointer to hold the new thread configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeZeroThreadConfig(struct thread_config **configPtr);
+int make_zero_thread_config(struct thread_config **config_ptr);
 
 /**
  * Make a thread configuration that uses only one thread.
  *
- * @param [out] configPtr      A pointer to hold the new thread configuration
+ * @param [out] config_ptr      A pointer to hold the new thread configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int makeOneThreadConfig(struct thread_config **configPtr)
+int make_one_thread_config(struct thread_config **config_ptr)
 	__attribute__((warn_unused_result));
 
 /**
  * Make a new thread config which is a copy of an existing one.
  *
- * @param [in]  oldConfig       The thread configuration to copy
- * @param [out] configPtr       A pointer to hold the new thread configuration
+ * @param [in]  old_config       The thread configuration to copy
+ * @param [out] config_ptr       A pointer to hold the new thread configuration
  *
  * @return VDO_SUCCESS or an error
  **/
-int copyThreadConfig(const struct thread_config *oldConfig,
-		     struct thread_config **configPtr)
+int copy_thread_config(const struct thread_config *old_config,
+		       struct thread_config **config_ptr)
 	__attribute__((warn_unused_result));
 
 /**
  * Destroy a thread configuration and null out the reference to it.
  *
- * @param configPtr  The reference to the thread configuration to destroy
+ * @param config_ptr  The reference to the thread configuration to destroy
  **/
-void freeThreadConfig(struct thread_config **configPtr);
+void free_thread_config(struct thread_config **config_ptr);
 
 /**
  * Get the thread id for a given logical zone.
  *
- * @param threadConfig  the thread config
- * @param logicalZone   the number of the logical zone
+ * @param thread_config  the thread config
+ * @param logical_zone   the number of the logical zone
  *
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
 static inline ThreadID
-getLogicalZoneThread(const struct thread_config *threadConfig,
-		     ZoneCount logicalZone)
+get_logical_zone_thread(const struct thread_config *thread_config,
+			ZoneCount logical_zone)
 {
-	ASSERT_LOG_ONLY((logicalZone <= threadConfig->logicalZoneCount),
+	ASSERT_LOG_ONLY((logical_zone <= thread_config->logical_zone_count),
 			"logical zone valid");
-	return threadConfig->logicalThreads[logicalZone];
+	return thread_config->logical_threads[logical_zone];
 }
 
 /**
  * Get the thread id for a given physical zone.
  *
- * @param threadConfig  the thread config
- * @param physicalZone  the number of the physical zone
+ * @param thread_config  the thread config
+ * @param physical_zone  the number of the physical zone
  *
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
 static inline ThreadID
-getPhysicalZoneThread(const struct thread_config *threadConfig,
-		      ZoneCount physicalZone)
+get_physical_zone_thread(const struct thread_config *thread_config,
+			 ZoneCount physical_zone)
 {
-	ASSERT_LOG_ONLY((physicalZone <= threadConfig->physicalZoneCount),
+	ASSERT_LOG_ONLY((physical_zone <= thread_config->physical_zone_count),
 			"physical zone valid");
-	return threadConfig->physicalThreads[physicalZone];
+	return thread_config->physical_threads[physical_zone];
 }
 
 /**
  * Get the thread id for a given hash zone.
  *
- * @param threadConfig  the thread config
- * @param hashZone      the number of the hash zone
+ * @param thread_config  the thread config
+ * @param hash_zone      the number of the hash zone
  *
  * @return the thread id for the given zone
  **/
 __attribute__((warn_unused_result))
 static inline ThreadID
-getHashZoneThread(const struct thread_config *threadConfig, ZoneCount hashZone)
+get_hash_zone_thread(const struct thread_config *thread_config,
+		     ZoneCount hash_zone)
 {
-	ASSERT_LOG_ONLY((hashZone <= threadConfig->hashZoneCount),
+	ASSERT_LOG_ONLY((hash_zone <= thread_config->hash_zone_count),
 			"hash zone valid");
-	return threadConfig->hashZoneThreads[hashZone];
+	return thread_config->hash_zone_threads[hash_zone];
 }
 
 /**
  * Get the thread id for the journal zone.
  *
- * @param threadConfig  the thread config
+ * @param thread_config  the thread config
  *
  * @return the thread id for the journal zone
  **/
 __attribute__((warn_unused_result))
 static inline
-ThreadID getJournalZoneThread(const struct thread_config *threadConfig)
+ThreadID get_journal_zone_thread(const struct thread_config *thread_config)
 {
-	return threadConfig->journalThread;
+	return thread_config->journal_thread;
 }
 
 /**
  * Get the thread id for the packer zone.
  *
- * @param threadConfig  the thread config
+ * @param thread_config  the thread config
  *
  * @return the thread id for the packer zone
  **/
 __attribute__((warn_unused_result))
 static inline
-ThreadID getPackerZoneThread(const struct thread_config *threadConfig)
+ThreadID get_packer_zone_thread(const struct thread_config *thread_config)
 {
-	return threadConfig->packerThread;
+	return thread_config->packer_thread;
 }
 
 /**
  * Get the thread ID for admin requests.
  *
- * @param threadConfig  The thread config
+ * @param thread_config  The thread config
  *
  * @return the thread id to use for admin requests
  **/
 __attribute__((warn_unused_result))
-static inline ThreadID getAdminThread(const struct thread_config *threadConfig)
+static inline
+ThreadID get_admin_thread(const struct thread_config *thread_config)
 {
-	return threadConfig->adminThread;
+	return thread_config->admin_thread;
 }
 
 /**
@@ -198,14 +200,14 @@ static inline ThreadID getAdminThread(const struct thread_config *threadConfig)
  * product; the output from this function should just identify the
  * thread.
  *
- * @param threadConfig  The thread configuration
- * @param threadID      The thread id
- * @param buffer        Where to put the formatted name
- * @param bufferLength  Size of the output buffer
+ * @param thread_config  The thread configuration
+ * @param thread_id      The thread id
+ * @param buffer         Where to put the formatted name
+ * @param buffer_length  Size of the output buffer
  **/
-void getVDOThreadName(const struct thread_config *threadConfig,
-		      ThreadID threadID,
-		      char *buffer,
-		      size_t bufferLength);
+void get_vdo_thread_name(const struct thread_config *thread_config,
+			 ThreadID thread_id,
+			 char *buffer,
+			 size_t buffer_length);
 
 #endif /* THREAD_CONFIG_H */

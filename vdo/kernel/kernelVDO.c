@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#41 $
  */
 
 /*
@@ -95,7 +95,7 @@ int initialize_kvdo(struct kvdo *kvdo,
 		    const struct thread_config *thread_config,
 		    char **reason)
 {
-	unsigned int base_threads = thread_config->baseThreadCount;
+	unsigned int base_threads = thread_config->base_thread_count;
 	int result = ALLOCATE(base_threads,
 			      struct kvdo_thread,
 			      "request processing work queue",
@@ -118,7 +118,7 @@ int initialize_kvdo(struct kvdo *kvdo,
 
 		char queue_name[MAX_QUEUE_NAME_LEN];
 		// Copy only LEN - 1 bytes and ensure NULL termination.
-		getVDOThreadName(thread_config, kvdo->initialized_thread_count,
+		get_vdo_thread_name(thread_config, kvdo->initialized_thread_count,
 				 queue_name, sizeof(queue_name));
 		int result = make_work_queue(layer->thread_name_prefix,
 					     queue_name,
@@ -334,7 +334,7 @@ bool set_kvdo_compressing(struct kvdo *kvdo, bool enable_compression)
 	performKVDOOperation(kvdo,
 			     set_compressing_work,
 			     &data,
-			     getPackerZoneThread(get_thread_config(kvdo->vdo)),
+			     get_packer_zone_thread(get_thread_config(kvdo->vdo)),
 			     &compress_wait);
 	return data.was_enabled;
 }
@@ -363,7 +363,7 @@ void set_kvdo_read_only(struct kvdo *kvdo, int result)
 
 	data.result = result;
 	performKVDOOperation(kvdo, enter_read_only_mode_work, &data,
-			     getAdminThread(get_thread_config(kvdo->vdo)),
+			     get_admin_thread(get_thread_config(kvdo->vdo)),
 			     &read_only_wait);
 }
 
@@ -391,7 +391,7 @@ void get_kvdo_statistics(struct kvdo *kvdo, VDOStatistics *stats)
 	performKVDOOperation(kvdo,
 			     get_vdo_statistics_work,
 			     stats,
-			     getAdminThread(get_thread_config(kvdo->vdo)),
+			     get_admin_thread(get_thread_config(kvdo->vdo)),
 			     &stats_wait);
 }
 
@@ -477,7 +477,7 @@ int perform_kvdo_extended_command(struct kvdo *kvdo, int argc, char **argv)
 	performKVDOOperation(kvdo,
 			     perform_vdo_action_work,
 			     &data,
-			     getAdminThread(get_thread_config(kvdo->vdo)),
+			     get_admin_thread(get_thread_config(kvdo->vdo)),
 			     &data.waiter);
 
 	return destroy_vdo_command_completion(&cmd);

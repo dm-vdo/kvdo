@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#37 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#38 $
  */
 
 #include "vdoLoad.h"
@@ -107,7 +107,7 @@ static void abort_load(struct vdo_completion *completion)
 		prepare_admin_sub_task_on_thread(vdo,
 						 close_recovery_journal_for_abort,
 						 close_recovery_journal_for_abort,
-						 getJournalZoneThread(get_thread_config(vdo)));
+						 get_journal_zone_thread(get_thread_config(vdo)));
 	}
 
 	wait_until_not_entering_read_only_mode(vdo->read_only_notifier,
@@ -422,7 +422,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = ALLOCATE(thread_config->hashZoneCount,
+	result = ALLOCATE(thread_config->hash_zone_count,
 			  struct hash_zone *,
 			  __func__,
 			  &vdo->hash_zones);
@@ -431,7 +431,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 	}
 
 	ZoneCount zone;
-	for (zone = 0; zone < thread_config->hashZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		result = make_hash_zone(vdo, zone, &vdo->hash_zones[zone]);
 		if (result != VDO_SUCCESS) {
 			return result;
@@ -443,7 +443,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	result = ALLOCATE(thread_config->physicalZoneCount,
+	result = ALLOCATE(thread_config->physical_zone_count,
 			  struct physical_zone *,
 			  __func__,
 			  &vdo->physical_zones);
@@ -451,7 +451,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 		return result;
 	}
 
-	for (zone = 0; zone < thread_config->physicalZoneCount; zone++) {
+	for (zone = 0; zone < thread_config->physical_zone_count; zone++) {
 		result = make_physical_zone(vdo, zone,
 					    &vdo->physical_zones[zone]);
 		if (result != VDO_SUCCESS) {

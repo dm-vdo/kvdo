@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/threadConfig.c#5 $
  */
 
 #include "threadConfig.h"
@@ -28,11 +28,11 @@
 #include "types.h"
 
 /**********************************************************************/
-static int allocateThreadConfig(ZoneCount logicalZoneCount,
-				ZoneCount physicalZoneCount,
-				ZoneCount hashZoneCount,
-				ZoneCount baseThreadCount,
-				struct thread_config **configPtr)
+static int allocate_thread_config(ZoneCount logical_zone_count,
+				  ZoneCount physical_zone_count,
+				  ZoneCount hash_zone_count,
+				  ZoneCount base_thread_count,
+				  struct thread_config **config_ptr)
 {
 	struct thread_config *config;
 	int result =
@@ -41,109 +41,109 @@ static int allocateThreadConfig(ZoneCount logicalZoneCount,
 		return result;
 	}
 
-	result = ALLOCATE(logicalZoneCount,
+	result = ALLOCATE(logical_zone_count,
 			  ThreadID,
 			  "logical thread array",
-			  &config->logicalThreads);
+			  &config->logical_threads);
 	if (result != VDO_SUCCESS) {
-		freeThreadConfig(&config);
+		free_thread_config(&config);
 		return result;
 	}
 
-	result = ALLOCATE(physicalZoneCount,
+	result = ALLOCATE(physical_zone_count,
 			  ThreadID,
 			  "physical thread array",
-			  &config->physicalThreads);
+			  &config->physical_threads);
 	if (result != VDO_SUCCESS) {
-		freeThreadConfig(&config);
+		free_thread_config(&config);
 		return result;
 	}
 
-	result = ALLOCATE(hashZoneCount,
+	result = ALLOCATE(hash_zone_count,
 			  ThreadID,
 			  "hash thread array",
-			  &config->hashZoneThreads);
+			  &config->hash_zone_threads);
 	if (result != VDO_SUCCESS) {
-		freeThreadConfig(&config);
+		free_thread_config(&config);
 		return result;
 	}
 
-	config->logicalZoneCount = logicalZoneCount;
-	config->physicalZoneCount = physicalZoneCount;
-	config->hashZoneCount = hashZoneCount;
-	config->baseThreadCount = baseThreadCount;
+	config->logical_zone_count = logical_zone_count;
+	config->physical_zone_count = physical_zone_count;
+	config->hash_zone_count = hash_zone_count;
+	config->base_thread_count = base_thread_count;
 
-	*configPtr = config;
+	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
 static void
-assignThreadIDs(ThreadID threadIDs[], ZoneCount count, ThreadID *idPtr)
+assign_thread_ids(ThreadID thread_ids[], ZoneCount count, ThreadID *id_ptr)
 {
 	ZoneCount zone;
 	for (zone = 0; zone < count; zone++) {
-		threadIDs[zone] = (*idPtr)++;
+		thread_ids[zone] = (*id_ptr)++;
 	}
 }
 
 /**********************************************************************/
-int makeThreadConfig(ZoneCount logicalZoneCount,
-		     ZoneCount physicalZoneCount,
-		     ZoneCount hashZoneCount,
-		     struct thread_config **configPtr)
+int make_thread_config(ZoneCount logical_zone_count,
+		       ZoneCount physical_zone_count,
+		       ZoneCount hash_zone_count,
+		       struct thread_config **config_ptr)
 {
-	if ((logicalZoneCount == 0) && (physicalZoneCount == 0) &&
-	    (hashZoneCount == 0)) {
-		return makeOneThreadConfig(configPtr);
+	if ((logical_zone_count == 0) && (physical_zone_count == 0) &&
+	    (hash_zone_count == 0)) {
+		return make_one_thread_config(config_ptr);
 	}
 
-	if (physicalZoneCount > MAX_PHYSICAL_ZONES) {
+	if (physical_zone_count > MAX_PHYSICAL_ZONES) {
 		return logErrorWithStringError(
 			VDO_BAD_CONFIGURATION,
 			"Physical zone count %u exceeds maximum "
 			"(%u)",
-			physicalZoneCount,
+			physical_zone_count,
 			MAX_PHYSICAL_ZONES);
 	}
 
-	if (logicalZoneCount > MAX_LOGICAL_ZONES) {
+	if (logical_zone_count > MAX_LOGICAL_ZONES) {
 		return logErrorWithStringError(
 			VDO_BAD_CONFIGURATION,
 			"Logical zone count %u exceeds maximum "
 			"(%u)",
-			logicalZoneCount,
+			logical_zone_count,
 			MAX_LOGICAL_ZONES);
 	}
 
 	struct thread_config *config;
 	ThreadCount total =
-		logicalZoneCount + physicalZoneCount + hashZoneCount + 2;
-	int result = allocateThreadConfig(logicalZoneCount,
-					  physicalZoneCount,
-					  hashZoneCount,
-					  total,
-					  &config);
+		logical_zone_count + physical_zone_count + hash_zone_count + 2;
+	int result = allocate_thread_config(logical_zone_count,
+					    physical_zone_count,
+					    hash_zone_count,
+					    total,
+					    &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
 	ThreadID id = 0;
-	config->adminThread = id;
-	config->journalThread = id++;
-	config->packerThread = id++;
-	assignThreadIDs(config->logicalThreads, logicalZoneCount, &id);
-	assignThreadIDs(config->physicalThreads, physicalZoneCount, &id);
-	assignThreadIDs(config->hashZoneThreads, hashZoneCount, &id);
+	config->admin_thread = id;
+	config->journal_thread = id++;
+	config->packer_thread = id++;
+	assign_thread_ids(config->logical_threads, logical_zone_count, &id);
+	assign_thread_ids(config->physical_threads, physical_zone_count, &id);
+	assign_thread_ids(config->hash_zone_threads, hash_zone_count, &id);
 
 	ASSERT_LOG_ONLY(id == total, "correct number of thread IDs assigned");
 
-	*configPtr = config;
+	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int makeZeroThreadConfig(struct thread_config **configPtr)
+int make_zero_thread_config(struct thread_config **config_ptr)
 {
 	struct thread_config *config;
 	int result = ALLOCATE(1, struct thread_config, __func__, &config);
@@ -151,90 +151,90 @@ int makeZeroThreadConfig(struct thread_config **configPtr)
 		return result;
 	}
 
-	config->logicalZoneCount = 0;
-	config->physicalZoneCount = 0;
-	config->hashZoneCount = 0;
-	config->baseThreadCount = 0;
-	*configPtr = config;
+	config->logical_zone_count = 0;
+	config->physical_zone_count = 0;
+	config->hash_zone_count = 0;
+	config->base_thread_count = 0;
+	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int makeOneThreadConfig(struct thread_config **configPtr)
+int make_one_thread_config(struct thread_config **config_ptr)
 {
 	struct thread_config *config;
-	int result = allocateThreadConfig(1, 1, 1, 1, &config);
+	int result = allocate_thread_config(1, 1, 1, 1, &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	config->logicalThreads[0] = 0;
-	config->physicalThreads[0] = 0;
-	config->hashZoneThreads[0] = 0;
-	*configPtr = config;
+	config->logical_threads[0] = 0;
+	config->physical_threads[0] = 0;
+	config->hash_zone_threads[0] = 0;
+	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-int copyThreadConfig(const struct thread_config *oldConfig,
-		     struct thread_config **configPtr)
+int copy_thread_config(const struct thread_config *old_config,
+		       struct thread_config **config_ptr)
 {
 	struct thread_config *config;
-	int result = allocateThreadConfig(oldConfig->logicalZoneCount,
-					  oldConfig->physicalZoneCount,
-					  oldConfig->hashZoneCount,
-					  oldConfig->baseThreadCount,
-					  &config);
+	int result = allocate_thread_config(old_config->logical_zone_count,
+					    old_config->physical_zone_count,
+					    old_config->hash_zone_count,
+					    old_config->base_thread_count,
+					    &config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	config->adminThread = oldConfig->adminThread;
-	config->journalThread = oldConfig->journalThread;
-	config->packerThread = oldConfig->packerThread;
+	config->admin_thread = old_config->admin_thread;
+	config->journal_thread = old_config->journal_thread;
+	config->packer_thread = old_config->packer_thread;
 	ZoneCount i;
-	for (i = 0; i < config->logicalZoneCount; i++) {
-		config->logicalThreads[i] = oldConfig->logicalThreads[i];
+	for (i = 0; i < config->logical_zone_count; i++) {
+		config->logical_threads[i] = old_config->logical_threads[i];
 	}
-	for (i = 0; i < config->physicalZoneCount; i++) {
-		config->physicalThreads[i] = oldConfig->physicalThreads[i];
+	for (i = 0; i < config->physical_zone_count; i++) {
+		config->physical_threads[i] = old_config->physical_threads[i];
 	}
-	for (i = 0; i < config->hashZoneCount; i++) {
-		config->hashZoneThreads[i] = oldConfig->hashZoneThreads[i];
+	for (i = 0; i < config->hash_zone_count; i++) {
+		config->hash_zone_threads[i] = old_config->hash_zone_threads[i];
 	}
 
-	*configPtr = config;
+	*config_ptr = config;
 	return VDO_SUCCESS;
 }
 
 /**********************************************************************/
-void freeThreadConfig(struct thread_config **configPtr)
+void free_thread_config(struct thread_config **config_ptr)
 {
-	if (*configPtr == NULL) {
+	if (*config_ptr == NULL) {
 		return;
 	}
 
-	struct thread_config *config = *configPtr;
-	*configPtr = NULL;
+	struct thread_config *config = *config_ptr;
+	*config_ptr = NULL;
 
-	FREE(config->logicalThreads);
-	FREE(config->physicalThreads);
-	FREE(config->hashZoneThreads);
+	FREE(config->logical_threads);
+	FREE(config->physical_threads);
+	FREE(config->hash_zone_threads);
 	FREE(config);
 }
 
 /**********************************************************************/
-static bool getZoneThreadName(const ThreadID threadIDs[],
-			      ZoneCount count,
-			      ThreadID id,
-			      const char *prefix,
-			      char *buffer,
-			      size_t bufferLength)
+static bool get_zone_thread_name(const ThreadID thread_ids[],
+				 ZoneCount count,
+				 ThreadID id,
+				 const char *prefix,
+				 char *buffer,
+				 size_t buffer_length)
 {
-	if (id >= threadIDs[0]) {
-		ThreadID index = id - threadIDs[0];
+	if (id >= thread_ids[0]) {
+		ThreadID index = id - thread_ids[0];
 		if (index < count) {
-			snprintf(buffer, bufferLength, "%s%d", prefix, index);
+			snprintf(buffer, buffer_length, "%s%d", prefix, index);
 			return true;
 		}
 	}
@@ -242,53 +242,53 @@ static bool getZoneThreadName(const ThreadID threadIDs[],
 }
 
 /**********************************************************************/
-void getVDOThreadName(const struct thread_config *threadConfig,
-		      ThreadID threadID,
-		      char *buffer,
-		      size_t bufferLength)
+void get_vdo_thread_name(const struct thread_config *thread_config,
+			 ThreadID thread_id,
+			 char *buffer,
+			 size_t buffer_length)
 {
-	if (threadConfig->baseThreadCount == 1) {
+	if (thread_config->base_thread_count == 1) {
 		// Historically this was the "request queue" thread.
-		snprintf(buffer, bufferLength, "reqQ");
+		snprintf(buffer, buffer_length, "reqQ");
 		return;
 	}
-	if (threadID == threadConfig->journalThread) {
-		snprintf(buffer, bufferLength, "journalQ");
+	if (thread_id == thread_config->journal_thread) {
+		snprintf(buffer, buffer_length, "journalQ");
 		return;
-	} else if (threadID == threadConfig->adminThread) {
+	} else if (thread_id == thread_config->admin_thread) {
 		// Theoretically this could be different from the journal
 		// thread.
-		snprintf(buffer, bufferLength, "adminQ");
+		snprintf(buffer, buffer_length, "adminQ");
 		return;
-	} else if (threadID == threadConfig->packerThread) {
-		snprintf(buffer, bufferLength, "packerQ");
-		return;
-	}
-	if (getZoneThreadName(threadConfig->logicalThreads,
-			      threadConfig->logicalZoneCount,
-			      threadID,
-			      "logQ",
-			      buffer,
-			      bufferLength)) {
+	} else if (thread_id == thread_config->packer_thread) {
+		snprintf(buffer, buffer_length, "packerQ");
 		return;
 	}
-	if (getZoneThreadName(threadConfig->physicalThreads,
-			      threadConfig->physicalZoneCount,
-			      threadID,
-			      "physQ",
-			      buffer,
-			      bufferLength)) {
+	if (get_zone_thread_name(thread_config->logical_threads,
+				 thread_config->logical_zone_count,
+				 thread_id,
+				 "logQ",
+				 buffer,
+				 buffer_length)) {
 		return;
 	}
-	if (getZoneThreadName(threadConfig->hashZoneThreads,
-			      threadConfig->hashZoneCount,
-			      threadID,
-			      "hashQ",
-			      buffer,
-			      bufferLength)) {
+	if (get_zone_thread_name(thread_config->physical_threads,
+				 thread_config->physical_zone_count,
+				 thread_id,
+				 "physQ",
+				 buffer,
+				 buffer_length)) {
+		return;
+	}
+	if (get_zone_thread_name(thread_config->hash_zone_threads,
+				 thread_config->hash_zone_count,
+				 thread_id,
+				 "hashQ",
+				 buffer,
+				 buffer_length)) {
 		return;
 	}
 
 	// Some sort of misconfiguration?
-	snprintf(buffer, bufferLength, "reqQ%d", threadID);
+	snprintf(buffer, buffer_length, "reqQ%d", thread_id);
 }

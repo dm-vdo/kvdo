@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#44 $
  */
 
 #include "dmvdo.h"
@@ -532,7 +532,7 @@ static void cleanup_initialize(struct dm_target *ti,
 			       char *why)
 {
 	if (thread_config != NULL) {
-		freeThreadConfig(&thread_config);
+		free_thread_config(&thread_config);
 	}
 	if (layer != NULL) {
 		// This releases the instance number too.
@@ -613,7 +613,7 @@ static int vdo_initialize(struct dm_target *ti,
 	setLoadConfigFromGeometry(&layer->geometry, &load_config);
 
 	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *
-				  load_config.threadConfig->logicalZoneCount)) {
+				  load_config.threadConfig->logical_zone_count)) {
 		logWarning("Insufficient block map cache for logical zones");
 		cleanup_initialize(ti,
 				   load_config.threadConfig,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#49 $
  */
 
 #include "slabDepot.h"
@@ -247,7 +247,7 @@ static int allocate_components(struct slab_depot *depot,
 
 	int result = make_action_manager(depot->zone_count,
 					 get_allocator_thread_id,
-					 getJournalZoneThread(thread_config),
+					 get_journal_zone_thread(thread_config),
 					 depot,
 					 scheduleTailBlockCommit,
 					 layer,
@@ -270,17 +270,17 @@ static int allocate_components(struct slab_depot *depot,
 	}
 
 	SlabCount slab_count = calculate_slab_count(depot);
-	if (thread_config->physicalZoneCount > slab_count) {
+	if (thread_config->physical_zone_count > slab_count) {
 		return logErrorWithStringError(VDO_BAD_CONFIGURATION,
 					       "%u physical zones exceeds slab count %u",
-					       thread_config->physicalZoneCount,
+					       thread_config->physical_zone_count,
 					       slab_count);
 	}
 
 	// Allocate the block allocators.
 	ZoneCount zone;
 	for (zone = 0; zone < depot->zone_count; zone++) {
-		ThreadID threadID = getPhysicalZoneThread(thread_config, zone);
+		ThreadID threadID = get_physical_zone_thread(thread_config, zone);
 		result = make_block_allocator(depot,
 					      zone,
 					      threadID,
@@ -355,7 +355,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 
 	struct slab_depot *depot;
 	int result = ALLOCATE_EXTENDED(struct slab_depot,
-				       thread_config->physicalZoneCount,
+				       thread_config->physical_zone_count,
 				       struct block_allocator *,
 				       __func__,
 				       &depot);
@@ -364,7 +364,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 	}
 
 	depot->old_zone_count = state->zone_count;
-	depot->zone_count = thread_config->physicalZoneCount;
+	depot->zone_count = thread_config->physical_zone_count;
 	depot->slab_config = state->slab_config;
 	depot->read_only_notifier = read_only_notifier;
 	depot->first_block = state->first_block;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#54 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -270,7 +270,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 	case ZONE_TYPE_LOGICAL:
 		// All blockmap access is done on single thread, so use logical
 		// zone 0.
-		thread_id = getLogicalZoneThread(thread_config, 0);
+		thread_id = get_logical_zone_thread(thread_config, 0);
 		break;
 
 	case ZONE_TYPE_PHYSICAL:
@@ -279,7 +279,7 @@ static void prepare_sub_task(struct recovery_completion *recovery,
 
 	case ZONE_TYPE_ADMIN:
 	default:
-		thread_id = getAdminThread(thread_config);
+		thread_id = get_admin_thread(thread_config);
 	}
 
 	prepare_completion(&recovery->sub_task_completion,
@@ -296,7 +296,7 @@ int make_recovery_completion(struct vdo *vdo,
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	struct recovery_completion *recovery;
 	int result = ALLOCATE_EXTENDED(struct recovery_completion,
-				       thread_config->physicalZoneCount,
+				       thread_config->physical_zone_count,
 				       RingNode,
 				       __func__,
 				       &recovery);
@@ -306,7 +306,7 @@ int make_recovery_completion(struct vdo *vdo,
 
 	recovery->vdo = vdo;
 	ZoneCount z;
-	for (z = 0; z < thread_config->physicalZoneCount; z++) {
+	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		initialize_wait_queue(&recovery->missing_decrefs[z]);
 	}
 
@@ -360,7 +360,7 @@ void free_recovery_completion(struct recovery_completion **recovery_ptr)
 	const struct thread_config *thread_config =
 		get_thread_config(recovery->vdo);
 	ZoneCount z;
-	for (z = 0; z < thread_config->physicalZoneCount; z++) {
+	for (z = 0; z < thread_config->physical_zone_count; z++) {
 		notify_all_waiters(&recovery->missing_decrefs[z],
 				   free_missing_decref, NULL);
 	}

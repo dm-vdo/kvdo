@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/referenceCountRebuild.c#30 $
  */
 
 #include "referenceCountRebuild.h"
@@ -182,8 +182,8 @@ static int make_rebuild_completion(struct vdo *vdo,
 		compute_block_map_page_count(block_map->entry_count);
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
-	rebuild->logical_thread_id = getLogicalZoneThread(thread_config, 0);
-	rebuild->admin_thread_id = getAdminThread(thread_config);
+	rebuild->logical_thread_id = get_logical_zone_thread(thread_config, 0);
+	rebuild->admin_thread_id = get_admin_thread(thread_config);
 
 	ASSERT_LOG_ONLY((getCallbackThreadID() == rebuild->logical_thread_id),
 			"%s must be called on logical thread %u (not %u)",

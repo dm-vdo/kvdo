@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResume.c#21 $
  */
 
 #include "vdoResume.h"
@@ -65,13 +65,13 @@ get_thread_id_for_phase(struct admin_completion *admin_completion)
 		get_thread_config(admin_completion->vdo);
 	switch (admin_completion->phase) {
 	case RESUME_PHASE_JOURNAL:
-		return getJournalZoneThread(thread_config);
+		return get_journal_zone_thread(thread_config);
 
 	case RESUME_PHASE_PACKER:
-		return getPackerZoneThread(thread_config);
+		return get_packer_zone_thread(thread_config);
 
 	default:
-		return getAdminThread(thread_config);
+		return get_admin_thread(thread_config);
 	}
 }
 

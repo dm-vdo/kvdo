@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#29 $
  */
 
 #ifndef DATA_VIO_H
@@ -847,7 +847,7 @@ static inline void launch_new_mapped_zone_callback(struct data_vio *data_vio,
 static inline void assert_in_journal_zone(struct data_vio *data_vio)
 {
 	ThreadID expected =
-		getJournalZoneThread(get_thread_config_from_data_vio(data_vio));
+		get_journal_zone_thread(get_thread_config_from_data_vio(data_vio));
 	ThreadID threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for logical block %" PRIu64
@@ -870,7 +870,7 @@ static inline void set_journal_callback(struct data_vio *data_vio,
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
-		     getJournalZoneThread(get_thread_config_from_data_vio(data_vio)));
+		     get_journal_zone_thread(get_thread_config_from_data_vio(data_vio)));
 	data_vio_add_trace_record(data_vio, location);
 }
 
@@ -897,7 +897,7 @@ static inline void launch_journal_callback(struct data_vio *data_vio,
 static inline void assert_in_packer_zone(struct data_vio *data_vio)
 {
 	ThreadID expected =
-		getPackerZoneThread(get_thread_config_from_data_vio(data_vio));
+		get_packer_zone_thread(get_thread_config_from_data_vio(data_vio));
 	ThreadID threadID = getCallbackThreadID();
 	ASSERT_LOG_ONLY((expected == threadID),
 			"data_vio for logical block %" PRIu64
@@ -920,7 +920,7 @@ static inline void set_packer_callback(struct data_vio *data_vio,
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
-		     getPackerZoneThread(get_thread_config_from_data_vio(data_vio)));
+		     get_packer_zone_thread(get_thread_config_from_data_vio(data_vio)));
 	data_vio_add_trace_record(data_vio, location);
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#14 $
  */
 
 #include "hashZone.h"
@@ -127,8 +127,8 @@ int make_hash_zone(struct vdo *vdo, ZoneCount zone_number,
 	}
 
 	zone->zone_number = zone_number;
-	zone->thread_id = getHashZoneThread(get_thread_config(vdo),
-					    zone_number);
+	zone->thread_id = get_hash_zone_thread(get_thread_config(vdo),
+					       zone_number);
 	initializeRing(&zone->lock_pool);
 
 	result = ALLOCATE(LOCK_POOL_CAPACITY, struct hash_lock,

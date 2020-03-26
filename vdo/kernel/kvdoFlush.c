@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvdoFlush.c#20 $
  */
 
 #include "kvdoFlush.h"
@@ -104,7 +104,7 @@ static void enqueue_kvdo_flush(struct kvdo_flush *kvdo_flush)
 
 	enqueue_kvdo_work(kvdo,
 			  &kvdo_flush->work_item,
-			  getPackerZoneThread(get_thread_config(kvdo->vdo)));
+			  get_packer_zone_thread(get_thread_config(kvdo->vdo)));
 }
 
 /**********************************************************************/
