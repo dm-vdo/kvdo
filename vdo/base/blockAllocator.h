@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.h#23 $
  */
 
 #ifndef BLOCK_ALLOCATOR_H
@@ -292,7 +292,7 @@ get_slab_journal_statistics(const struct block_allocator *allocator)
  *
  * @return A copy of the current statistics for the allocator
  **/
-RefCountsStatistics
+struct ref_counts_statistics
 get_ref_counts_statistics(const struct block_allocator *allocator)
 	__attribute__((warn_unused_result));
 

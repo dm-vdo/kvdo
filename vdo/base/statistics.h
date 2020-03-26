@@ -89,16 +89,16 @@ struct slab_journal_statistics {
 };
 
 /** The statistics for the slab summary. */
-typedef struct {
+struct slab_summary_statistics {
   /** Number of blocks written */
   uint64_t blocksWritten;
-} SlabSummaryStatistics;
+};
 
 /** The statistics for the reference counts. */
-typedef struct {
+struct ref_counts_statistics {
   /** Number of reference blocks written */
   uint64_t blocksWritten;
-} RefCountsStatistics;
+};
 
 /** The statistics for the block map. */
 typedef struct {
@@ -205,9 +205,9 @@ struct vdoStatistics {
   /** The statistics for the slab journals */
   struct slab_journal_statistics slabJournal;
   /** The statistics for the slab summary */
-  SlabSummaryStatistics slabSummary;
+  struct slab_summary_statistics slabSummary;
   /** The statistics for the reference counts */
-  RefCountsStatistics refCounts;
+  struct ref_counts_statistics refCounts;
   /** The statistics for the block map */
   BlockMapStatistics blockMap;
   /** The dedupe statistics from hash locks */

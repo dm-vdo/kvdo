@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#26 $
  */
 
 #include "slabSummary.h"
@@ -680,12 +680,12 @@ void load_slab_summary(struct slab_summary *summary,
 }
 
 /**********************************************************************/
-SlabSummaryStatistics
+struct slab_summary_statistics
 get_slab_summary_statistics(const struct slab_summary *summary)
 {
 	const struct atomic_slab_summary_statistics *atoms =
 		&summary->statistics;
-	return (SlabSummaryStatistics) {
+	return (struct slab_summary_statistics) {
 		.blocksWritten = atomicLoad64(&atoms->blocksWritten),
 	};
 }

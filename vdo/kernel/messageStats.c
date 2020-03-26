@@ -393,11 +393,11 @@ int write_slab_journal_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_SlabSummaryStatistics(char *prefix,
-                                SlabSummaryStatistics *stats,
-                                char *suffix,
-                                char **buf,
-                                unsigned int *maxlen)
+int write_slab_summary_statistics(char *prefix,
+                                  struct slab_summary_statistics *stats,
+                                  char *suffix,
+                                  char **buf,
+                                  unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -420,11 +420,11 @@ int write_SlabSummaryStatistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_RefCountsStatistics(char *prefix,
-                              RefCountsStatistics *stats,
-                              char *suffix,
-                              char **buf,
-                              unsigned int *maxlen)
+int write_ref_counts_statistics(char *prefix,
+                                struct ref_counts_statistics *stats,
+                                char *suffix,
+                                char **buf,
+                                unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -924,20 +924,20 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** The statistics for the slab summary */
-       result = write_SlabSummaryStatistics("slabSummary : ",
-                                            &stats->slabSummary,
-                                            ", ",
-                                            buf,
-                                            maxlen);
+       result = write_slab_summary_statistics("slabSummary : ",
+                                              &stats->slabSummary,
+                                              ", ",
+                                              buf,
+                                              maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
        /** The statistics for the reference counts */
-       result = write_RefCountsStatistics("refCounts : ",
-                                          &stats->refCounts,
-                                          ", ",
-                                          buf,
-                                          maxlen);
+       result = write_ref_counts_statistics("refCounts : ",
+                                            &stats->refCounts,
+                                            ", ",
+                                            buf,
+                                            maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

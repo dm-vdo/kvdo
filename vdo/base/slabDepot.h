@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#24 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -347,7 +347,7 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
  *
  * @return The cumulative statistics for all RefCounts in the depot
  **/
-RefCountsStatistics
+struct ref_counts_statistics
 get_depot_ref_counts_statistics(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
