@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#4 $
  */
 
 #include "trace.h"
@@ -38,9 +38,8 @@ void addTraceRecord(Trace *trace, TraceLocation location)
 	if (trace->used < NUM_TRACE_RECORDS) {
 		TraceRecord *record = &trace->records[trace->used];
 		trace->used++;
-
 		record->when = nowUsec();
-		record->tid = getThreadId();
+		record->tid = get_thread_id();
 		record->location = location - baseTraceLocation;
 	}
 }

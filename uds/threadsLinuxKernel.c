@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#1 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/threadsLinuxKernel.c#2 $
  */
 
 #include <linux/completion.h>
@@ -154,7 +154,7 @@ void exitThread(void)
 }
 
 /**********************************************************************/
-ThreadId getThreadId(void)
+pid_t get_thread_id(void)
 {
   return current->pid;
 }
