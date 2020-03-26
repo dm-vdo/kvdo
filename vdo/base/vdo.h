@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#5 $
  */
 
 #ifndef VDO_H
@@ -33,7 +33,7 @@
  * @return VDO_SUCCESS or an error
  **/
 int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Construct a vdo structure for use in user space with a synchronous layer.
@@ -44,7 +44,7 @@ int allocateVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
  * @return VDO_SUCCESS or an error
  **/
 int makeVDO(PhysicalLayer *layer, struct vdo **vdoPtr)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Destroy a vdo instance.
@@ -105,7 +105,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats);
  * @return The number of blocks allocated for user data
  **/
 BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the number of unallocated physical blocks.
@@ -115,7 +115,7 @@ BlockCount getPhysicalBlocksAllocated(const struct vdo *vdo)
  * @return The number of free blocks
  **/
 BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the number of physical blocks used by vdo metadata.
@@ -125,7 +125,7 @@ BlockCount getPhysicalBlocksFree(const struct vdo *vdo)
  * @return The number of overhead blocks
  **/
 BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the total number of blocks used for the block map.
@@ -135,7 +135,7 @@ BlockCount getPhysicalBlocksOverhead(const struct vdo *vdo)
  * @return The number of block map blocks
  **/
 BlockCount getTotalBlockMapBlocks(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the vdo write policy.
@@ -162,7 +162,7 @@ void setWritePolicy(struct vdo *vdo, WritePolicy new);
  * @return The load-time configuration of the vdo
  **/
 const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the thread config of the vdo.
@@ -172,7 +172,7 @@ const VDOLoadConfig *getVDOLoadConfig(const struct vdo *vdo)
  * @return The thread config
  **/
 const ThreadConfig *getThreadConfig(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the configured maximum age of a dirty block map page.
@@ -182,7 +182,7 @@ const ThreadConfig *getThreadConfig(const struct vdo *vdo)
  * @return The block map era length
  **/
 BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the configured page cache size of the vdo.
@@ -192,7 +192,7 @@ BlockCount getConfiguredBlockMapMaximumAge(const struct vdo *vdo)
  * @return The number of pages for the page cache
  **/
 PageCount getConfiguredCacheSize(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the location of the first block of the vdo.
@@ -202,7 +202,7 @@ PageCount getConfiguredCacheSize(const struct vdo *vdo)
  * @return The location of the first block managed by the vdo
  **/
 PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Check whether the vdo was new when it was loaded.
@@ -211,8 +211,7 @@ PhysicalBlockNumber getFirstBlockOffset(const struct vdo *vdo)
  *
  * @return <code>true</code> if the vdo was new
  **/
-bool wasNew(const struct vdo *vdo)
-  __attribute__((warn_unused_result));
+bool wasNew(const struct vdo *vdo) __attribute__((warn_unused_result));
 
 /**
  * Check whether a data_location containing potential dedupe advice is
@@ -229,10 +228,10 @@ bool wasNew(const struct vdo *vdo)
  * @return The zoned_pbn representing the advice, if valid, otherwise an
  *         unmapped zoned_pbn if the advice was invalid or NULL
  **/
-struct zoned_pbn validateDedupeAdvice(struct vdo                 *vdo,
-                                      const struct data_location *advice,
-                                      LogicalBlockNumber          lbn)
-  __attribute__((warn_unused_result));
+struct zoned_pbn validateDedupeAdvice(struct vdo *vdo,
+				      const struct data_location *advice,
+				      LogicalBlockNumber lbn)
+	__attribute__((warn_unused_result));
 
 // TEST SUPPORT ONLY BEYOND THIS POINT
 
