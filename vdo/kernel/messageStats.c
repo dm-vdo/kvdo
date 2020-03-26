@@ -447,11 +447,11 @@ int write_ref_counts_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_BlockMapStatistics(char *prefix,
-                             BlockMapStatistics *stats,
-                             char *suffix,
-                             char **buf,
-                             unsigned int *maxlen)
+int write_block_map_statistics(char *prefix,
+                               struct block_map_statistics *stats,
+                               char *suffix,
+                               char **buf,
+                               unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -942,11 +942,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** The statistics for the block map */
-       result = write_BlockMapStatistics("blockMap : ",
-                                         &stats->blockMap,
-                                         ", ",
-                                         buf,
-                                         maxlen);
+       result = write_block_map_statistics("blockMap : ",
+                                           &stats->blockMap,
+                                           ", ",
+                                           buf,
+                                           maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.h#14 $
  */
 
 #ifndef BLOCK_MAP_H
@@ -288,7 +288,7 @@ void put_mapped_block_async(struct data_vio *data_vio);
  *
  * @return The block map statistics
  **/
-BlockMapStatistics get_block_map_statistics(struct block_map *map)
+struct block_map_statistics get_block_map_statistics(struct block_map *map)
 	__attribute__((warn_unused_result));
 
 #endif // BLOCK_MAP_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMap.c#48 $
  */
 
 #include "blockMap.h"
@@ -894,10 +894,10 @@ void put_mapped_block_async(struct data_vio *data_vio)
 }
 
 /**********************************************************************/
-BlockMapStatistics get_block_map_statistics(struct block_map *map)
+struct block_map_statistics get_block_map_statistics(struct block_map *map)
 {
-	BlockMapStatistics stats;
-	memset(&stats, 0, sizeof(BlockMapStatistics));
+	struct block_map_statistics stats;
+	memset(&stats, 0, sizeof(struct block_map_statistics));
 
 	ZoneCount zone = 0;
 	for (zone = 0; zone < map->zone_count; zone++) {

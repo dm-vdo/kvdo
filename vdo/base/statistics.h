@@ -101,7 +101,7 @@ struct ref_counts_statistics {
 };
 
 /** The statistics for the block map. */
-typedef struct {
+struct block_map_statistics {
   /** number of dirty (resident) pages */
   uint32_t dirtyPages;
   /** number of clean (resident) pages */
@@ -142,7 +142,7 @@ typedef struct {
   uint64_t pagesSaved;
   /** the number of flushes issued */
   uint64_t flushCount;
-} BlockMapStatistics;
+};
 
 /** The dedupe statistics from hash locks */
 typedef struct {
@@ -209,7 +209,7 @@ struct vdoStatistics {
   /** The statistics for the reference counts */
   struct ref_counts_statistics refCounts;
   /** The statistics for the block map */
-  BlockMapStatistics blockMap;
+  struct block_map_statistics blockMap;
   /** The dedupe statistics from hash locks */
   HashLockStatistics hashLock;
   /** Counts of error conditions */
