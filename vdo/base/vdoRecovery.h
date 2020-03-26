@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#5 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.h#6 $
  */
 
 #ifndef VDO_RECOVERY_H
@@ -34,9 +34,9 @@
  * @param context     The slab depot load context supplied by a recovery when
  *                    it loads the depot
  **/
-void replayIntoSlabJournals(struct block_allocator *allocator,
-                            struct vdo_completion  *completion,
-                            void                   *context);
+void replay_into_slab_journals(struct block_allocator *allocator,
+			       struct vdo_completion *completion,
+			       void *context);
 
 /**
  * Construct a recovery completion and launch it. Apply all valid journal block
@@ -47,6 +47,6 @@ void replayIntoSlabJournals(struct block_allocator *allocator,
  * @param parent  The completion to notify when the offline portion of the
  *                recovery is complete
  **/
-void launchRecovery(struct vdo *vdo, struct vdo_completion *parent);
+void launch_recovery(struct vdo *vdo, struct vdo_completion *parent);
 
 #endif // VDO_RECOVERY_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecoveryInternals.h#13 $
  */
 
 #ifndef VDO_RECOVERY_INTERNALS_H
@@ -36,66 +36,73 @@
  * the sector number and the entry number within the sector.
  **/
 struct recovery_point {
-  SequenceNumber    sequenceNumber; // Block sequence number
-  uint8_t           sectorCount;    // Sector number
-  JournalEntryCount entryCount;     // Entry number
+	SequenceNumber sequence_number; // Block sequence number
+	uint8_t sector_count; // Sector number
+	JournalEntryCount entry_count; // Entry number
 };
 
 struct recovery_completion {
-  /** The completion header */
-  struct vdo_completion                  completion;
-  /** The sub-task completion */
-  struct vdo_completion                  subTaskCompletion;
-  /** The struct vdo in question */
-  struct vdo                            *vdo;
-  /** The struct block_allocator whose journals are being recovered */
-  struct block_allocator                *allocator;
-  /** A buffer to hold the data read off disk */
-  char                                  *journalData;
-  /** The number of increfs */
-  size_t                                 increfCount;
+	/** The completion header */
+	struct vdo_completion completion;
+	/** The sub-task completion */
+	struct vdo_completion sub_task_completion;
+	/** The struct vdo in question */
+	struct vdo *vdo;
+	/** The struct block_allocator whose journals are being recovered */
+	struct block_allocator *allocator;
+	/** A buffer to hold the data read off disk */
+	char *journal_data;
+	/** The number of increfs */
+	size_t incref_count;
 
-  /** The entry data for the block map recovery */
-  struct numbered_block_mapping         *entries;
-  /** The number of entries in the entry array */
-  size_t                                 entryCount;
-  /** The sequence number of the first valid block for block map recovery */
-  SequenceNumber                         blockMapHead;
-  /** The sequence number of the first valid block for slab journal replay */
-  SequenceNumber                         slabJournalHead;
-  /** The sequence number of the last valid block of the journal (if known) */
-  SequenceNumber                         tail;
-  /**
-   * The highest sequence number of the journal, not the same as the tail,
-   * since the tail ignores blocks after the first hole.
-   */
-  SequenceNumber                         highestTail;
+	/** The entry data for the block map recovery */
+	struct numbered_block_mapping *entries;
+	/** The number of entries in the entry array */
+	size_t entry_count;
+	/**
+	 * The sequence number of the first valid block for block map recovery
+	 */
+	SequenceNumber block_map_head;
+	/**
+	 * The sequence number of the first valid block for slab journal replay
+	 */
+	SequenceNumber slab_journal_head;
+	/**
+	 * The sequence number of the last valid block of the journal (if
+	 * known)
+	 */
+	SequenceNumber tail;
+	/**
+	 * The highest sequence number of the journal, not the same as the tail,
+	 * since the tail ignores blocks after the first hole.
+	 */
+	SequenceNumber highest_tail;
 
-  /** A location just beyond the last valid entry of the journal */
-  struct recovery_point                  tailRecoveryPoint;
-  /** The location of the next recovery journal entry to apply */
-  struct recovery_point                  nextRecoveryPoint;
-  /** The number of logical blocks currently known to be in use */
-  BlockCount                             logicalBlocksUsed;
-  /** The number of block map data blocks known to be allocated */
-  BlockCount                             blockMapDataBlocks;
-  /** The journal point to give to the next synthesized decref */
-  struct journal_point                   nextJournalPoint;
-  /** The number of entries played into slab journals */
-  size_t                                 entriesAddedToSlabJournals;
+	/** A location just beyond the last valid entry of the journal */
+	struct recovery_point tail_recovery_point;
+	/** The location of the next recovery journal entry to apply */
+	struct recovery_point next_recovery_point;
+	/** The number of logical blocks currently known to be in use */
+	BlockCount logical_blocks_used;
+	/** The number of block map data blocks known to be allocated */
+	BlockCount block_map_data_blocks;
+	/** The journal point to give to the next synthesized decref */
+	struct journal_point next_journal_point;
+	/** The number of entries played into slab journals */
+	size_t entries_added_to_slab_journals;
 
-  // Decref synthesis fields
+	// Decref synthesis fields
 
-  /** An intMap for use in finding which slots are missing decrefs */
-  struct int_map                        *slotEntryMap;
-  /** The number of synthesized decrefs */
-  size_t                                 missingDecrefCount;
-  /** The number of incomplete decrefs */
-  size_t                                 incompleteDecrefCount;
-  /** The fake journal point of the next missing decref */
-  struct journal_point                   nextSynthesizedJournalPoint;
-  /** The queue of missing decrefs */
-  struct wait_queue                      missingDecrefs[];
+	/** An int_map for use in finding which slots are missing decrefs */
+	struct int_map *slot_entry_map;
+	/** The number of synthesized decrefs */
+	size_t missing_decref_count;
+	/** The number of incomplete decrefs */
+	size_t incomplete_decref_count;
+	/** The fake journal point of the next missing decref */
+	struct journal_point next_synthesized_journal_point;
+	/** The queue of missing decrefs */
+	struct wait_queue missing_decrefs[];
 };
 
 /**
@@ -105,31 +112,30 @@ struct recovery_completion {
  *
  * @return The recovery_completion
  **/
-__attribute__((warn_unused_result))
-static inline struct recovery_completion *
-asRecoveryCompletion(struct vdo_completion *completion)
+__attribute__((warn_unused_result)) static inline struct recovery_completion *
+as_recovery_completion(struct vdo_completion *completion)
 {
-  assert_completion_type(completion->type, RECOVERY_COMPLETION);
-  return container_of(completion, struct recovery_completion, completion);
+	assert_completion_type(completion->type, RECOVERY_COMPLETION);
+	return container_of(completion, struct recovery_completion, completion);
 }
 
 /**
  * Allocate and initialize a recovery_completion.
  *
- * @param vdo          The vdo in question
- * @param recoveryPtr  A pointer to hold the new recovery_completion
+ * @param vdo           The vdo in question
+ * @param recovery_ptr  A pointer to hold the new recovery_completion
  *
  * @return VDO_SUCCESS or a status code
  **/
-int makeRecoveryCompletion(struct vdo                  *vdo,
-                           struct recovery_completion **recoveryPtr)
-  __attribute__((warn_unused_result));
+int make_recovery_completion(struct vdo *vdo,
+			     struct recovery_completion **recovery_ptr)
+	__attribute__((warn_unused_result));
 
 /**
  * Free a recovery_completion and all underlying structures.
  *
- * @param recoveryPtr  A pointer to the recovery completion to free
+ * @param recovery_ptr  A pointer to the recovery completion to free
  **/
-void freeRecoveryCompletion(struct recovery_completion **recoveryPtr);
+void free_recovery_completion(struct recovery_completion **recovery_ptr);
 
 #endif // VDO_RECOVERY_INTERNALS_H
