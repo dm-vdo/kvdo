@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#20 $
  */
 
 #ifndef KVIO_H
@@ -281,7 +281,7 @@ free_compressed_write_kvio(struct compressed_write_kvio **compressed_write_kvio_
 /**
  * Create a new vio (and its enclosing kvio) for metadata operations.
  *
- * <p>Implements MetadataVIOCreator.
+ * <p>Implements metadata_vio_creator.
  *
  * @param [in]  layer      The physical layer
  * @param [in]  vio_type   The type of vio to create
@@ -303,7 +303,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 /**
  * Create a new allocating_vio (and its enclosing kvio) for compressed writes.
  *
- * <p>Implements CompressedWriteVIOCreator.
+ * <p>Implements compressed_write_vio_creator.
  *
  * @param [in]  layer              The physical layer
  * @param [in]  parent             The parent to assign to the allocating_vio's
@@ -322,7 +322,7 @@ int kvdo_create_compressed_write_vio(PhysicalLayer *layer,
 /**
  * Issue an empty flush to the lower layer using the bio in a metadata vio.
  *
- * <p>Implements MetadataWriter.
+ * <p>Implements metadata_writer.
  *
  * @param vio  The vio to flush
  **/

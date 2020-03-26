@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#21 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -36,7 +36,7 @@ enum {
  *
  * @param layerPtr  A pointer to the layer to destroy
  **/
-typedef void LayerDestructor(PhysicalLayer **layerPtr);
+typedef void layer_destructor(PhysicalLayer **layerPtr);
 
 /**
  * A function to report the block count of a physicalLayer.
@@ -45,11 +45,11 @@ typedef void LayerDestructor(PhysicalLayer **layerPtr);
  *
  * @return The block count of the layer
  **/
-typedef BlockCount BlockCountGetter(PhysicalLayer *layer);
+typedef BlockCount block_count_getter(PhysicalLayer *layer);
 
 /**
  * A function which can allocate a buffer suitable for use in an
- * ExtentReader or ExtentWriter.
+ * extent_reader or extent_writer.
  *
  * @param [in]  layer      The physical layer in question
  * @param [in]  bytes      The size of the buffer, in bytes.
@@ -58,10 +58,10 @@ typedef BlockCount BlockCountGetter(PhysicalLayer *layer);
  *
  * @return a success or error code
  **/
-typedef int BufferAllocator(PhysicalLayer *layer,
-			    size_t bytes,
-			    const char *why,
-			    char **bufferPtr);
+typedef int buffer_allocator(PhysicalLayer *layer,
+			     size_t bytes,
+			     const char *why,
+			     char **bufferPtr);
 
 /**
  * A function which can read an extent from a physicalLayer.
@@ -76,11 +76,11 @@ typedef int BufferAllocator(PhysicalLayer *layer,
  *
  * @return a success or error code
  **/
-typedef int ExtentReader(PhysicalLayer *layer,
-			 PhysicalBlockNumber startBlock,
-			 size_t blockCount,
-			 char *buffer,
-			 size_t *blocksRead);
+typedef int extent_reader(PhysicalLayer *layer,
+			  PhysicalBlockNumber startBlock,
+			  size_t blockCount,
+			  char *buffer,
+			  size_t *blocksRead);
 
 /**
  * A function which can write an extent to a physicalLayer.
@@ -95,11 +95,11 @@ typedef int ExtentReader(PhysicalLayer *layer,
  *
  * @return a success or error code
  **/
-typedef int ExtentWriter(PhysicalLayer *layer,
-			 PhysicalBlockNumber startBlock,
-			 size_t blockCount,
-			 char *buffer,
-			 size_t *blocksWritten);
+typedef int extent_writer(PhysicalLayer *layer,
+			  PhysicalBlockNumber startBlock,
+			  size_t blockCount,
+			  char *buffer,
+			  size_t *blocksWritten);
 
 /**
  * A function to allocate a metadata vio.
@@ -113,12 +113,12 @@ typedef int ExtentWriter(PhysicalLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int MetadataVIOCreator(PhysicalLayer *layer,
-			       VIOType vioType,
-			       VIOPriority priority,
-			       void *parent,
-			       char *data,
-			       struct vio **vioPtr);
+typedef int metadata_vio_creator(PhysicalLayer *layer,
+			         VIOType vioType,
+			         VIOPriority priority,
+			         void *parent,
+			         char *data,
+			         struct vio **vioPtr);
 
 /**
  * A function to allocate an allocating_vio for compressed writes.
@@ -130,24 +130,24 @@ typedef int MetadataVIOCreator(PhysicalLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int CompressedWriteVIOCreator(PhysicalLayer *layer,
-				      void *parent,
-				      char *data,
-				      struct allocating_vio **allocatingVIOPtr);
+typedef int compressed_write_vio_creator(PhysicalLayer *layer,
+				         void *parent,
+				         char *data,
+				         struct allocating_vio **allocatingVIOPtr);
 
 /**
  * A function to destroy a vio. The pointer to the vio will be nulled out.
  *
  * @param vioPtr  A pointer to the vio to destroy
  **/
-typedef void VIODestructor(struct vio **vioPtr);
+typedef void vio_destructor(struct vio **vioPtr);
 
 /**
  * A function to zero the contents of a data_vio.
  *
  * @param dataVIO  The data_vio to zero
  **/
-typedef AsyncDataOperation DataVIOZeroer;
+typedef AsyncDataOperation data_vio_zeroer;
 
 /**
  * A function to copy the contents of a data_vio into another data_vio.
@@ -155,7 +155,8 @@ typedef AsyncDataOperation DataVIOZeroer;
  * @param source       The dataVIO to copy from
  * @param destination  The dataVIO to copy to
  **/
-typedef void DataCopier(struct data_vio *source, struct data_vio *destination);
+typedef void data_copier(struct data_vio *source,
+			 struct data_vio *destination);
 
 /**
  * A function to apply a partial write to a data_vio which has completed the
@@ -163,7 +164,7 @@ typedef void DataCopier(struct data_vio *source, struct data_vio *destination);
  *
  * @param dataVIO  The dataVIO to modify
  **/
-typedef AsyncDataOperation DataModifier;
+typedef AsyncDataOperation data_modifier;
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
@@ -172,7 +173,7 @@ typedef AsyncDataOperation DataModifier;
  *
  * @param dataVIO  The data_vio to hash
  **/
-typedef AsyncDataOperation DataHasher;
+typedef AsyncDataOperation data_hasher;
 
 /**
  * A function to determine whether a block is a duplicate. This function
@@ -184,7 +185,7 @@ typedef AsyncDataOperation DataHasher;
  *
  * @param dataVIO  The data_vio containing the block to check.
  **/
-typedef AsyncDataOperation DuplicationChecker;
+typedef AsyncDataOperation duplication_checker;
 
 /**
  * A function to verify the duplication advice by examining an already-stored
@@ -196,7 +197,7 @@ typedef AsyncDataOperation DuplicationChecker;
  *
  * @param dataVIO  The dataVIO containing the block to check.
  **/
-typedef AsyncDataOperation DuplicationVerifier;
+typedef AsyncDataOperation duplication_verifier;
 
 /**
  * A function to read a single data_vio from the layer.
@@ -207,28 +208,28 @@ typedef AsyncDataOperation DuplicationVerifier;
  *
  * @param dataVIO  The data_vio to read
  **/
-typedef AsyncDataOperation DataReader;
+typedef AsyncDataOperation data_reader;
 
 /**
  * A function to read a single metadata vio from the layer.
  *
  * @param vio  The vio to read
  **/
-typedef AsyncOperation MetadataReader;
+typedef AsyncOperation metadata_reader;
 
 /**
  * A function to write a single data_vio to the layer
  *
  * @param dataVIO  The data_vio to write
  **/
-typedef AsyncDataOperation DataWriter;
+typedef AsyncDataOperation data_writer;
 
 /**
  * A function to write a single metadata vio from the layer.
  *
  * @param vio  The vio to write
  **/
-typedef AsyncOperation MetadataWriter;
+typedef AsyncOperation metadata_writer;
 
 /**
  * A function to inform the layer that a data_vio's related I/O request can be
@@ -237,7 +238,7 @@ typedef AsyncOperation MetadataWriter;
  *
  * @param dataVIO  The data_vio to acknowledge
  **/
-typedef AsyncDataOperation DataAcknowledger;
+typedef AsyncDataOperation data_acknowledger;
 
 /**
  * A function to compare the contents of a data_vio to another data_vio.
@@ -247,28 +248,29 @@ typedef AsyncDataOperation DataAcknowledger;
  *
  * @return <code>true</code> if the contents of the two DataVIOs are the same
  **/
-typedef bool DataVIOComparator(struct data_vio *first, struct data_vio *second);
+typedef bool data_vio_comparator(struct data_vio *first,
+				 struct data_vio *second);
 
 /**
  * A function to compress the data in a data_vio.
  *
  * @param dataVIO  The data_vio to compress
  **/
-typedef AsyncDataOperation DataCompressor;
+typedef AsyncDataOperation data_compressor;
 
 /**
  * Update albireo.
  *
  * @param dataVIO  The data_vio which needs to change the entry for its data
  **/
-typedef AsyncDataOperation AlbireoUpdater;
+typedef AsyncDataOperation albireo_updater;
 
 /**
  * A function to finish flush requests
  *
  * @param vdoFlush  The flush requests
  **/
-typedef void FlushComplete(struct vdo_flush **vdoFlush);
+typedef void flush_complete(struct vdo_flush **vdoFlush);
 
 /**
  * A function to query the write policy of the layer.
@@ -277,7 +279,7 @@ typedef void FlushComplete(struct vdo_flush **vdoFlush);
  *
  * @return the write policy of the layer
  **/
-typedef WritePolicy WritePolicyGetter(PhysicalLayer *layer);
+typedef WritePolicy write_policy_getter(PhysicalLayer *layer);
 
 /**
  * A function to create an object that can be enqueued to run in a specified
@@ -288,14 +290,14 @@ typedef WritePolicy WritePolicyGetter(PhysicalLayer *layer);
  *
  * @return VDO_SUCCESS or an error code
  **/
-typedef int EnqueueableCreator(struct vdo_completion *completion);
+typedef int enqueueable_creator(struct vdo_completion *completion);
 
 /**
  * A function to destroy and deallocate an Enqueueable object.
  *
  * @param enqueueablePtr  Pointer to the object pointer to be destroyed
  **/
-typedef void EnqueueableDestructor(Enqueueable **enqueueablePtr);
+typedef void enqueueable_destructor(Enqueueable **enqueueablePtr);
 
 /**
  * A function to enqueue the Enqueueable object to run on the thread specified
@@ -303,7 +305,7 @@ typedef void EnqueueableDestructor(Enqueueable **enqueueablePtr);
  *
  * @param enqueueable  The object to be enqueued
  **/
-typedef void Enqueuer(Enqueueable *enqueueable);
+typedef void enqueuer(Enqueueable *enqueueable);
 
 /**
  * A function to wait for an admin operation to complete. This function should
@@ -311,61 +313,61 @@ typedef void Enqueuer(Enqueueable *enqueueable);
  *
  * @param layer  The layer on which to wait
  **/
-typedef void OperationWaiter(PhysicalLayer *layer);
+typedef void operation_waiter(PhysicalLayer *layer);
 
 /**
  * A function to inform the layer of the result of an admin operation.
  *
  * @param layer  The layer to inform
  **/
-typedef void OperationComplete(PhysicalLayer *layer);
+typedef void operation_complete(PhysicalLayer *layer);
 
 /**
  * An abstraction representing the underlying physical layer.
  **/
 struct physicalLayer {
 	// Management interface
-	LayerDestructor *destroy;
+	layer_destructor *destroy;
 
 	// Synchronous interface
-	BlockCountGetter *getBlockCount;
+	block_count_getter *getBlockCount;
 
 	// Synchronous IO interface
-	BufferAllocator *allocateIOBuffer;
-	ExtentReader *reader;
-	ExtentWriter *writer;
+	buffer_allocator *allocateIOBuffer;
+	extent_reader *reader;
+	extent_writer *writer;
 
-	WritePolicyGetter *getWritePolicy;
+	write_policy_getter *getWritePolicy;
 
 	// Synchronous interfaces (vio-based)
-	MetadataVIOCreator *createMetadataVIO;
-	CompressedWriteVIOCreator *createCompressedWriteVIO;
-	DataVIOZeroer *zeroDataVIO;
-	DataCopier *copyData;
-	DataModifier *applyPartialWrite;
+	metadata_vio_creator *createMetadataVIO;
+	compressed_write_vio_creator *createCompressedWriteVIO;
+	data_vio_zeroer *zeroDataVIO;
+	data_copier *copyData;
+	data_modifier *applyPartialWrite;
 
 	// Asynchronous interface (vio-based)
-	DataHasher *hashData;
-	DuplicationChecker *checkForDuplication;
-	DuplicationVerifier *verifyDuplication;
-	DataReader *readData;
-	DataWriter *writeData;
+	data_hasher *hashData;
+	duplication_checker *checkForDuplication;
+	duplication_verifier *verifyDuplication;
+	data_reader *readData;
+	data_writer *writeData;
 	CompressedWriter *writeCompressedBlock;
-	MetadataReader *readMetadata;
-	MetadataWriter *writeMetadata;
-	MetadataWriter *flush;
-	DataAcknowledger *acknowledgeDataVIO;
-	DataVIOComparator *compareDataVIOs;
-	DataCompressor *compressDataVIO;
-	AlbireoUpdater *updateAlbireo;
+	metadata_reader *readMetadata;
+	metadata_writer *writeMetadata;
+	metadata_writer *flush;
+	data_acknowledger *acknowledgeDataVIO;
+	data_vio_comparator *compareDataVIOs;
+	data_compressor *compressDataVIO;
+	albireo_updater *updateAlbireo;
 
 	// Asynchronous interface (other)
-	FlushComplete *completeFlush;
-	EnqueueableCreator *createEnqueueable;
-	EnqueueableDestructor *destroy_enqueueable;
-	Enqueuer *enqueue;
-	OperationWaiter *waitForAdminOperation;
-	OperationComplete *completeAdminOperation;
+	flush_complete *completeFlush;
+	enqueueable_creator *createEnqueueable;
+	enqueueable_destructor *destroy_enqueueable;
+	enqueuer *enqueue;
+	operation_waiter *waitForAdminOperation;
+	operation_complete *completeAdminOperation;
 };
 
 /**

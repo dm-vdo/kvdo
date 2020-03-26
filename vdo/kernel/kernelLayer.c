@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#78 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#79 $
  */
 
 #include "kernelLayer.h"
@@ -403,7 +403,7 @@ static void kvdo_destroy_enqueueable(Enqueueable **enqueueable_ptr)
 }
 
 /**
- * Implements BufferAllocator.
+ * Implements buffer_allocator.
  **/
 static int kvdo_allocate_io_buffer(PhysicalLayer *layer __attribute__((unused)),
 				   size_t bytes,
@@ -414,7 +414,7 @@ static int kvdo_allocate_io_buffer(PhysicalLayer *layer __attribute__((unused)),
 }
 
 /**
- * Implements ExtentReader. Exists only for the geometry block; is unset after
+ * Implements extent_reader. Exists only for the geometry block; is unset after
  * it is read.
  **/
 static int kvdo_synchronous_read(PhysicalLayer *layer,
@@ -489,7 +489,7 @@ static WritePolicy kvdoGetWritePolicy(PhysicalLayer *common)
  * Function that is called when a synchronous operation is completed. We let
  * the waiting thread know it can continue.
  *
- * <p>Implements OperationComplete.
+ * <p>Implements operation_complete.
  *
  * @param common  The kernel layer
  **/
@@ -503,7 +503,7 @@ static void kvdo_complete_sync_operation(PhysicalLayer *common)
 /**
  * Wait for a synchronous operation to complete.
  *
- * <p>Implements OperationWaiter.
+ * <p>Implements operation_waiter.
  *
  * @param common  The kernel layer
  **/
