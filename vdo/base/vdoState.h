@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.h#4 $
  */
 
 #ifndef VDO_STATE_H
@@ -47,7 +47,7 @@ typedef enum {
  *
  * @return The name of the state code
  **/
-const char *getVDOStateName(VDOState state)
+const char *get_vdo_state_name(VDOState state)
 	__attribute__((warn_unused_result));
 
 /**
@@ -57,7 +57,7 @@ const char *getVDOStateName(VDOState state)
  *
  * @return A string constant describing the state
  **/
-const char *describeVDOState(VDOState state)
+const char *describe_vdo_state(VDOState state)
 	__attribute__((warn_unused_result));
 
 #endif // VDO_STATE_H

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#43 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#44 $
  */
 
 /*
@@ -905,7 +905,7 @@ void getVDOStatistics(const struct vdo *vdo, VDOStatistics *stats)
 
   VDOState state        = getVDOState(vdo);
   stats->inRecoveryMode = (state == VDO_RECOVERING);
-  snprintf(stats->mode, sizeof(stats->mode), "%s", describeVDOState(state));
+  snprintf(stats->mode, sizeof(stats->mode), "%s", describe_vdo_state(state));
 }
 
 /**********************************************************************/

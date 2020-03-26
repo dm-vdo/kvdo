@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoState.c#3 $
  */
 
 #include "vdoState.h"
@@ -35,7 +35,7 @@ static const char *VDO_STATE_NAMES[] = {
 };
 
 /**********************************************************************/
-const char *getVDOStateName(VDOState state)
+const char *get_vdo_state_name(VDOState state)
 {
 	// Catch if a state has been added without updating the name array.
 	STATIC_ASSERT(COUNT_OF(VDO_STATE_NAMES) == VDO_STATE_COUNT);
@@ -51,7 +51,7 @@ const char *getVDOStateName(VDOState state)
 }
 
 /**********************************************************************/
-const char *describeVDOState(VDOState state)
+const char *describe_vdo_state(VDOState state)
 {
 	// These strings should all fit in the 15 chars of VDOStatistics.mode.
 	switch (state) {
