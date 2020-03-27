@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#20 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -27,8 +27,8 @@
 static const CRC32Checksum INITIAL_CHECKSUM = 0xffffffff;
 
 enum {
-  /* The size of a CRC-32 checksum */
-  CHECKSUM_SIZE = sizeof(CRC32Checksum),
+	/* The size of a CRC-32 checksum */
+	CHECKSUM_SIZE = sizeof(CRC32Checksum),
 };
 
 /**
@@ -58,10 +58,10 @@ typedef BlockCount BlockCountGetter(PhysicalLayer *layer);
  *
  * @return a success or error code
  **/
-typedef int BufferAllocator(PhysicalLayer  *layer,
-                            size_t          bytes,
-                            const char     *why,
-                            char          **bufferPtr);
+typedef int BufferAllocator(PhysicalLayer *layer,
+			    size_t bytes,
+			    const char *why,
+			    char **bufferPtr);
 
 /**
  * A function which can read an extent from a physicalLayer.
@@ -76,11 +76,11 @@ typedef int BufferAllocator(PhysicalLayer  *layer,
  *
  * @return a success or error code
  **/
-typedef int ExtentReader(PhysicalLayer       *layer,
-                         PhysicalBlockNumber  startBlock,
-                         size_t               blockCount,
-                         char                *buffer,
-                         size_t              *blocksRead);
+typedef int ExtentReader(PhysicalLayer *layer,
+			 PhysicalBlockNumber startBlock,
+			 size_t blockCount,
+			 char *buffer,
+			 size_t *blocksRead);
 
 /**
  * A function which can write an extent to a physicalLayer.
@@ -95,11 +95,11 @@ typedef int ExtentReader(PhysicalLayer       *layer,
  *
  * @return a success or error code
  **/
-typedef int ExtentWriter(PhysicalLayer       *layer,
-                         PhysicalBlockNumber  startBlock,
-                         size_t               blockCount,
-                         char                *buffer,
-                         size_t              *blocksWritten);
+typedef int ExtentWriter(PhysicalLayer *layer,
+			 PhysicalBlockNumber startBlock,
+			 size_t blockCount,
+			 char *buffer,
+			 size_t *blocksWritten);
 
 /**
  * A function to allocate a metadata vio.
@@ -114,11 +114,11 @@ typedef int ExtentWriter(PhysicalLayer       *layer,
  * @return VDO_SUCCESS or an error
  **/
 typedef int MetadataVIOCreator(PhysicalLayer *layer,
-                               VIOType        vioType,
-                               VIOPriority    priority,
-                               void          *parent,
-                               char          *data,
-                               struct vio   **vioPtr);
+			       VIOType vioType,
+			       VIOPriority priority,
+			       void *parent,
+			       char *data,
+			       struct vio **vioPtr);
 
 /**
  * A function to allocate an allocating_vio for compressed writes.
@@ -130,10 +130,10 @@ typedef int MetadataVIOCreator(PhysicalLayer *layer,
  *
  * @return VDO_SUCCESS or an error
  **/
-typedef int CompressedWriteVIOCreator(PhysicalLayer          *layer,
-                                      void                   *parent,
-                                      char                   *data,
-                                      struct allocating_vio **allocatingVIOPtr);
+typedef int CompressedWriteVIOCreator(PhysicalLayer *layer,
+				      void *parent,
+				      char *data,
+				      struct allocating_vio **allocatingVIOPtr);
 
 /**
  * A function to destroy a vio. The pointer to the vio will be nulled out.
@@ -324,48 +324,48 @@ typedef void OperationComplete(PhysicalLayer *layer);
  * An abstraction representing the underlying physical layer.
  **/
 struct physicalLayer {
-  // Management interface
-  LayerDestructor           *destroy;
+	// Management interface
+	LayerDestructor *destroy;
 
-  // Synchronous interface
-  BlockCountGetter          *getBlockCount;
+	// Synchronous interface
+	BlockCountGetter *getBlockCount;
 
-  // Synchronous IO interface
-  BufferAllocator           *allocateIOBuffer;
-  ExtentReader              *reader;
-  ExtentWriter              *writer;
+	// Synchronous IO interface
+	BufferAllocator *allocateIOBuffer;
+	ExtentReader *reader;
+	ExtentWriter *writer;
 
-  WritePolicyGetter         *getWritePolicy;
+	WritePolicyGetter *getWritePolicy;
 
-  // Synchronous interfaces (vio-based)
-  MetadataVIOCreator        *createMetadataVIO;
-  CompressedWriteVIOCreator *createCompressedWriteVIO;
-  DataVIOZeroer             *zeroDataVIO;
-  DataCopier                *copyData;
-  DataModifier              *applyPartialWrite;
+	// Synchronous interfaces (vio-based)
+	MetadataVIOCreator *createMetadataVIO;
+	CompressedWriteVIOCreator *createCompressedWriteVIO;
+	DataVIOZeroer *zeroDataVIO;
+	DataCopier *copyData;
+	DataModifier *applyPartialWrite;
 
-  // Asynchronous interface (vio-based)
-  DataHasher                *hashData;
-  DuplicationChecker        *checkForDuplication;
-  DuplicationVerifier       *verifyDuplication;
-  DataReader                *readData;
-  DataWriter                *writeData;
-  CompressedWriter          *writeCompressedBlock;
-  MetadataReader            *readMetadata;
-  MetadataWriter            *writeMetadata;
-  MetadataWriter            *flush;
-  DataAcknowledger          *acknowledgeDataVIO;
-  DataVIOComparator         *compareDataVIOs;
-  DataCompressor            *compressDataVIO;
-  AlbireoUpdater            *updateAlbireo;
+	// Asynchronous interface (vio-based)
+	DataHasher *hashData;
+	DuplicationChecker *checkForDuplication;
+	DuplicationVerifier *verifyDuplication;
+	DataReader *readData;
+	DataWriter *writeData;
+	CompressedWriter *writeCompressedBlock;
+	MetadataReader *readMetadata;
+	MetadataWriter *writeMetadata;
+	MetadataWriter *flush;
+	DataAcknowledger *acknowledgeDataVIO;
+	DataVIOComparator *compareDataVIOs;
+	DataCompressor *compressDataVIO;
+	AlbireoUpdater *updateAlbireo;
 
-  // Asynchronous interface (other)
-  FlushComplete             *completeFlush;
-  EnqueueableCreator        *createEnqueueable;
-  EnqueueableDestructor     *destroy_enqueueable;
-  Enqueuer                  *enqueue;
-  OperationWaiter           *waitForAdminOperation;
-  OperationComplete         *completeAdminOperation;
+	// Asynchronous interface (other)
+	FlushComplete *completeFlush;
+	EnqueueableCreator *createEnqueueable;
+	EnqueueableDestructor *destroy_enqueueable;
+	Enqueuer *enqueue;
+	OperationWaiter *waitForAdminOperation;
+	OperationComplete *completeAdminOperation;
 };
 
 /**
@@ -385,9 +385,8 @@ ThreadID getCallbackThreadID(void);
  *
  * @return The updated value of the checksum
  **/
-CRC32Checksum update_crc32(CRC32Checksum  crc,
-                           const byte    *buffer,
-                           size_t         length);
+CRC32Checksum
+update_crc32(CRC32Checksum crc, const byte *buffer, size_t length);
 
 /**
  * Destroy a vio. The pointer to the vio will be nulled out.
