@@ -71,34 +71,34 @@ struct kernel_statistics {
   /** The VDO instance */
   uint32_t instance;
   /** Current number of active VIOs */
-  uint32_t currentVIOsInProgress;
+  uint32_t current_vios_in_progress;
   /** Maximum number of active VIOs */
-  uint32_t maxVIOs;
+  uint32_t max_vios;
   /** Number of times the UDS index was too slow in responding */
-  uint64_t dedupeAdviceTimeouts;
+  uint64_t dedupe_advice_timeouts;
   /** Number of flush requests submitted to the storage device */
-  uint64_t flushOut;
+  uint64_t flush_out;
   /** Logical block size */
-  uint64_t logicalBlockSize;
+  uint64_t logical_block_size;
   /** Bios submitted into VDO from above */
-  struct bio_stats biosIn;
-  struct bio_stats biosInPartial;
+  struct bio_stats bios_in;
+  struct bio_stats bios_in_partial;
   /** Bios submitted onward for user data */
-  struct bio_stats biosOut;
+  struct bio_stats bios_out;
   /** Bios submitted onward for metadata */
-  struct bio_stats biosMeta;
-  struct bio_stats biosJournal;
-  struct bio_stats biosPageCache;
-  struct bio_stats biosOutCompleted;
-  struct bio_stats biosMetaCompleted;
-  struct bio_stats biosJournalCompleted;
-  struct bio_stats biosPageCacheCompleted;
-  struct bio_stats biosAcknowledged;
-  struct bio_stats biosAcknowledgedPartial;
+  struct bio_stats bios_meta;
+  struct bio_stats bios_journal;
+  struct bio_stats bios_page_cache;
+  struct bio_stats bios_out_completed;
+  struct bio_stats bios_meta_completed;
+  struct bio_stats bios_journal_completed;
+  struct bio_stats bios_page_cache_completed;
+  struct bio_stats bios_acknowledged;
+  struct bio_stats bios_acknowledged_partial;
   /** Current number of bios in progress */
-  struct bio_stats biosInProgress;
+  struct bio_stats bios_in_progress;
   /** Memory usage stats. */
-  struct memory_usage memoryUsage;
+  struct memory_usage memory_usage;
   /** The statistics for the UDS index */
   struct index_statistics index;
 };

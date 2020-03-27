@@ -1113,7 +1113,7 @@ static ssize_t pool_stats_currentVIOs_in_progress_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.currentVIOsInProgress);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.current_vios_in_progress);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1130,7 +1130,7 @@ static ssize_t pool_stats_maxVIOs_show(struct kernel_layer *layer, char *buf)
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.maxVIOs);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.max_vios);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1147,7 +1147,7 @@ static ssize_t pool_stats_dedupe_advice_timeouts_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.dedupeAdviceTimeouts);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.dedupe_advice_timeouts);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1164,7 +1164,7 @@ static ssize_t pool_stats_flush_out_show(struct kernel_layer *layer, char *buf)
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.flushOut);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.flush_out);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1181,7 +1181,7 @@ static ssize_t pool_stats_logical_block_size_show(struct kernel_layer *layer, ch
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.logicalBlockSize);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.logical_block_size);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1198,7 +1198,7 @@ static ssize_t pool_stats_bios_in_read_show(struct kernel_layer *layer, char *bu
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosIn.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1215,7 +1215,7 @@ static ssize_t pool_stats_bios_in_write_show(struct kernel_layer *layer, char *b
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosIn.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1232,7 +1232,7 @@ static ssize_t pool_stats_bios_in_discard_show(struct kernel_layer *layer, char 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosIn.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1249,7 +1249,7 @@ static ssize_t pool_stats_bios_in_flush_show(struct kernel_layer *layer, char *b
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosIn.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1266,7 +1266,7 @@ static ssize_t pool_stats_bios_in_fua_show(struct kernel_layer *layer, char *buf
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosIn.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1283,7 +1283,7 @@ static ssize_t pool_stats_bios_in_partial_read_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInPartial.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1300,7 +1300,7 @@ static ssize_t pool_stats_bios_in_partial_write_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInPartial.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1317,7 +1317,7 @@ static ssize_t pool_stats_bios_in_partial_discard_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInPartial.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1334,7 +1334,7 @@ static ssize_t pool_stats_bios_in_partial_flush_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInPartial.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1351,7 +1351,7 @@ static ssize_t pool_stats_bios_in_partial_fua_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInPartial.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_partial.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1368,7 +1368,7 @@ static ssize_t pool_stats_bios_out_read_show(struct kernel_layer *layer, char *b
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOut.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1385,7 +1385,7 @@ static ssize_t pool_stats_bios_out_write_show(struct kernel_layer *layer, char *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOut.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1402,7 +1402,7 @@ static ssize_t pool_stats_bios_out_discard_show(struct kernel_layer *layer, char
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOut.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1419,7 +1419,7 @@ static ssize_t pool_stats_bios_out_flush_show(struct kernel_layer *layer, char *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOut.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1436,7 +1436,7 @@ static ssize_t pool_stats_bios_out_fua_show(struct kernel_layer *layer, char *bu
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOut.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1453,7 +1453,7 @@ static ssize_t pool_stats_bios_meta_read_show(struct kernel_layer *layer, char *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMeta.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1470,7 +1470,7 @@ static ssize_t pool_stats_bios_meta_write_show(struct kernel_layer *layer, char 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMeta.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1487,7 +1487,7 @@ static ssize_t pool_stats_bios_meta_discard_show(struct kernel_layer *layer, cha
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMeta.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1504,7 +1504,7 @@ static ssize_t pool_stats_bios_meta_flush_show(struct kernel_layer *layer, char 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMeta.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1521,7 +1521,7 @@ static ssize_t pool_stats_bios_meta_fua_show(struct kernel_layer *layer, char *b
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMeta.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1538,7 +1538,7 @@ static ssize_t pool_stats_bios_journal_read_show(struct kernel_layer *layer, cha
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournal.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1555,7 +1555,7 @@ static ssize_t pool_stats_bios_journal_write_show(struct kernel_layer *layer, ch
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournal.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1572,7 +1572,7 @@ static ssize_t pool_stats_bios_journal_discard_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournal.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1589,7 +1589,7 @@ static ssize_t pool_stats_bios_journal_flush_show(struct kernel_layer *layer, ch
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournal.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1606,7 +1606,7 @@ static ssize_t pool_stats_bios_journal_fua_show(struct kernel_layer *layer, char
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournal.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1623,7 +1623,7 @@ static ssize_t pool_stats_bios_page_cache_read_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCache.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1640,7 +1640,7 @@ static ssize_t pool_stats_bios_page_cache_write_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCache.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1657,7 +1657,7 @@ static ssize_t pool_stats_bios_page_cache_discard_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCache.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1674,7 +1674,7 @@ static ssize_t pool_stats_bios_page_cache_flush_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCache.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1691,7 +1691,7 @@ static ssize_t pool_stats_bios_page_cache_fua_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCache.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1708,7 +1708,7 @@ static ssize_t pool_stats_bios_out_completed_read_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOutCompleted.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1725,7 +1725,7 @@ static ssize_t pool_stats_bios_out_completed_write_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOutCompleted.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1742,7 +1742,7 @@ static ssize_t pool_stats_bios_out_completed_discard_show(struct kernel_layer *l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOutCompleted.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1759,7 +1759,7 @@ static ssize_t pool_stats_bios_out_completed_flush_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOutCompleted.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1776,7 +1776,7 @@ static ssize_t pool_stats_bios_out_completed_fua_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosOutCompleted.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_out_completed.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1793,7 +1793,7 @@ static ssize_t pool_stats_bios_meta_completed_read_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMetaCompleted.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1810,7 +1810,7 @@ static ssize_t pool_stats_bios_meta_completed_write_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMetaCompleted.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1827,7 +1827,7 @@ static ssize_t pool_stats_bios_meta_completed_discard_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMetaCompleted.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1844,7 +1844,7 @@ static ssize_t pool_stats_bios_meta_completed_flush_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMetaCompleted.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1861,7 +1861,7 @@ static ssize_t pool_stats_bios_meta_completed_fua_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosMetaCompleted.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_meta_completed.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1878,7 +1878,7 @@ static ssize_t pool_stats_bios_journal_completed_read_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournalCompleted.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1895,7 +1895,7 @@ static ssize_t pool_stats_bios_journal_completed_write_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournalCompleted.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1912,7 +1912,7 @@ static ssize_t pool_stats_bios_journal_completed_discard_show(struct kernel_laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournalCompleted.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1929,7 +1929,7 @@ static ssize_t pool_stats_bios_journal_completed_flush_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournalCompleted.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1946,7 +1946,7 @@ static ssize_t pool_stats_bios_journal_completed_fua_show(struct kernel_layer *l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosJournalCompleted.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_journal_completed.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1963,7 +1963,7 @@ static ssize_t pool_stats_bios_page_cache_completed_read_show(struct kernel_laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCacheCompleted.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1980,7 +1980,7 @@ static ssize_t pool_stats_bios_page_cache_completed_write_show(struct kernel_lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCacheCompleted.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1997,7 +1997,7 @@ static ssize_t pool_stats_bios_page_cache_completed_discard_show(struct kernel_l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCacheCompleted.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2014,7 +2014,7 @@ static ssize_t pool_stats_bios_page_cache_completed_flush_show(struct kernel_lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCacheCompleted.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2031,7 +2031,7 @@ static ssize_t pool_stats_bios_page_cache_completed_fua_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosPageCacheCompleted.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_page_cache_completed.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2048,7 +2048,7 @@ static ssize_t pool_stats_bios_acknowledged_read_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledged.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2065,7 +2065,7 @@ static ssize_t pool_stats_bios_acknowledged_write_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledged.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2082,7 +2082,7 @@ static ssize_t pool_stats_bios_acknowledged_discard_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledged.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2099,7 +2099,7 @@ static ssize_t pool_stats_bios_acknowledged_flush_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledged.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2116,7 +2116,7 @@ static ssize_t pool_stats_bios_acknowledged_fua_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledged.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2133,7 +2133,7 @@ static ssize_t pool_stats_bios_acknowledged_partial_read_show(struct kernel_laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledgedPartial.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2150,7 +2150,7 @@ static ssize_t pool_stats_bios_acknowledged_partial_write_show(struct kernel_lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledgedPartial.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2167,7 +2167,7 @@ static ssize_t pool_stats_bios_acknowledged_partial_discard_show(struct kernel_l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledgedPartial.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2184,7 +2184,7 @@ static ssize_t pool_stats_bios_acknowledged_partial_flush_show(struct kernel_lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledgedPartial.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2201,7 +2201,7 @@ static ssize_t pool_stats_bios_acknowledged_partial_fua_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosAcknowledgedPartial.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_acknowledged_partial.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2218,7 +2218,7 @@ static ssize_t pool_stats_bios_in_progress_read_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInProgress.read);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.read);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2235,7 +2235,7 @@ static ssize_t pool_stats_bios_in_progress_write_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInProgress.write);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.write);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2252,7 +2252,7 @@ static ssize_t pool_stats_bios_in_progress_discard_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInProgress.discard);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.discard);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2269,7 +2269,7 @@ static ssize_t pool_stats_bios_in_progress_flush_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInProgress.flush);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.flush);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2286,7 +2286,7 @@ static ssize_t pool_stats_bios_in_progress_fua_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.biosInProgress.fua);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.bios_in_progress.fua);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2303,7 +2303,7 @@ static ssize_t pool_stats_memory_usage_bytes_used_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.bytes_used);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.bytes_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2320,7 +2320,7 @@ static ssize_t pool_stats_memory_usage_peak_bytes_used_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.peak_bytes_used);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memory_usage.peak_bytes_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/commonStats.c#5 $
  *
  * Common stat functions
  *
@@ -65,33 +65,33 @@ void get_kernel_statistics(struct kernel_layer *layer,
 	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
 	stats->instance = layer->instance;
 	get_limiter_values_atomically(&layer->request_limiter,
-				      &stats->currentVIOsInProgress,
-				      &stats->maxVIOs);
+				      &stats->current_vios_in_progress,
+				      &stats->max_vios);
 	// albireoTimeoutReport gives the number of timeouts, and
 	// dedupeContextBusy gives the number of queries not made because of
 	// earlier timeouts.
-	stats->dedupeAdviceTimeouts =
+	stats->dedupe_advice_timeouts =
 		(get_dedupe_timeout_count(layer->dedupe_index) +
 		 atomic64_read(&layer->dedupeContextBusy));
-	stats->flushOut = atomic64_read(&layer->flushOut);
-	stats->logicalBlockSize = layer->device_config->logical_block_size;
-	copy_bio_stat(&stats->biosIn, &layer->biosIn);
-	copy_bio_stat(&stats->biosInPartial, &layer->biosInPartial);
-	copy_bio_stat(&stats->biosOut, &layer->biosOut);
-	copy_bio_stat(&stats->biosMeta, &layer->biosMeta);
-	copy_bio_stat(&stats->biosJournal, &layer->biosJournal);
-	copy_bio_stat(&stats->biosPageCache, &layer->biosPageCache);
-	copy_bio_stat(&stats->biosOutCompleted, &layer->biosOutCompleted);
-	copy_bio_stat(&stats->biosMetaCompleted, &layer->biosMetaCompleted);
-	copy_bio_stat(&stats->biosJournalCompleted,
+	stats->flush_out = atomic64_read(&layer->flushOut);
+	stats->logical_block_size = layer->device_config->logical_block_size;
+	copy_bio_stat(&stats->bios_in, &layer->biosIn);
+	copy_bio_stat(&stats->bios_in_partial, &layer->biosInPartial);
+	copy_bio_stat(&stats->bios_out, &layer->biosOut);
+	copy_bio_stat(&stats->bios_meta, &layer->biosMeta);
+	copy_bio_stat(&stats->bios_journal, &layer->biosJournal);
+	copy_bio_stat(&stats->bios_page_cache, &layer->biosPageCache);
+	copy_bio_stat(&stats->bios_out_completed, &layer->biosOutCompleted);
+	copy_bio_stat(&stats->bios_meta_completed, &layer->biosMetaCompleted);
+	copy_bio_stat(&stats->bios_journal_completed,
 		      &layer->biosJournalCompleted);
-	copy_bio_stat(&stats->biosPageCacheCompleted,
+	copy_bio_stat(&stats->bios_page_cache_completed,
 		      &layer->biosPageCacheCompleted);
-	copy_bio_stat(&stats->biosAcknowledged, &layer->biosAcknowledged);
-	copy_bio_stat(&stats->biosAcknowledgedPartial,
+	copy_bio_stat(&stats->bios_acknowledged, &layer->biosAcknowledged);
+	copy_bio_stat(&stats->bios_acknowledged_partial,
 		      &layer->biosAcknowledgedPartial);
-	stats->biosInProgress =
-		subtract_bio_stats(stats->biosIn, stats->biosAcknowledged);
-	stats->memoryUsage = get_memory_usage();
+	stats->bios_in_progress =
+		subtract_bio_stats(stats->bios_in, stats->bios_acknowledged);
+	stats->memory_usage = get_memory_usage();
 	get_index_statistics(layer->dedupe_index, &stats->index);
 }

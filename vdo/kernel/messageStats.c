@@ -1228,7 +1228,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Current number of active VIOs */
        result = write_uint32_t("currentVIOsInProgress : ",
-                               stats->currentVIOsInProgress,
+                               stats->current_vios_in_progress,
                                ", ",
                                buf,
                                maxlen);
@@ -1237,7 +1237,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Maximum number of active VIOs */
        result = write_uint32_t("maxVIOs : ",
-                               stats->maxVIOs,
+                               stats->max_vios,
                                ", ",
                                buf,
                                maxlen);
@@ -1246,7 +1246,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Number of times the UDS index was too slow in responding */
        result = write_uint64_t("dedupeAdviceTimeouts : ",
-                               stats->dedupeAdviceTimeouts,
+                               stats->dedupe_advice_timeouts,
                                ", ",
                                buf,
                                maxlen);
@@ -1255,7 +1255,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Number of flush requests submitted to the storage device */
        result = write_uint64_t("flushOut : ",
-                               stats->flushOut,
+                               stats->flush_out,
                                ", ",
                                buf,
                                maxlen);
@@ -1264,7 +1264,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Logical block size */
        result = write_uint64_t("logicalBlockSize : ",
-                               stats->logicalBlockSize,
+                               stats->logical_block_size,
                                ", ",
                                buf,
                                maxlen);
@@ -1273,7 +1273,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Bios submitted into VDO from above */
        result = write_bio_stats("biosIn : ",
-                                &stats->biosIn,
+                                &stats->bios_in,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1281,7 +1281,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosInPartial : ",
-                                &stats->biosInPartial,
+                                &stats->bios_in_partial,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1290,7 +1290,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Bios submitted onward for user data */
        result = write_bio_stats("biosOut : ",
-                                &stats->biosOut,
+                                &stats->bios_out,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1299,7 +1299,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Bios submitted onward for metadata */
        result = write_bio_stats("biosMeta : ",
-                                &stats->biosMeta,
+                                &stats->bios_meta,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1307,7 +1307,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosJournal : ",
-                                &stats->biosJournal,
+                                &stats->bios_journal,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1315,7 +1315,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosPageCache : ",
-                                &stats->biosPageCache,
+                                &stats->bios_page_cache,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1323,7 +1323,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosOutCompleted : ",
-                                &stats->biosOutCompleted,
+                                &stats->bios_out_completed,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1331,7 +1331,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosMetaCompleted : ",
-                                &stats->biosMetaCompleted,
+                                &stats->bios_meta_completed,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1339,7 +1339,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosJournalCompleted : ",
-                                &stats->biosJournalCompleted,
+                                &stats->bios_journal_completed,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1347,7 +1347,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosPageCacheCompleted : ",
-                                &stats->biosPageCacheCompleted,
+                                &stats->bios_page_cache_completed,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1355,7 +1355,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosAcknowledged : ",
-                                &stats->biosAcknowledged,
+                                &stats->bios_acknowledged,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1363,7 +1363,7 @@ int write_kernel_statistics(char *prefix,
               return result;
        }
        result = write_bio_stats("biosAcknowledgedPartial : ",
-                                &stats->biosAcknowledgedPartial,
+                                &stats->bios_acknowledged_partial,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1372,7 +1372,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Current number of bios in progress */
        result = write_bio_stats("biosInProgress : ",
-                                &stats->biosInProgress,
+                                &stats->bios_in_progress,
                                 ", ",
                                 buf,
                                 maxlen);
@@ -1381,7 +1381,7 @@ int write_kernel_statistics(char *prefix,
        }
        /** Memory usage stats. */
        result = write_memory_usage("memoryUsage : ",
-                                   &stats->memoryUsage,
+                                   &stats->memory_usage,
                                    ", ",
                                    buf,
                                    maxlen);
