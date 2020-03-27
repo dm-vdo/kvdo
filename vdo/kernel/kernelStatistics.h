@@ -38,9 +38,9 @@ struct bio_stats {
 
 struct memory_usage {
   /** Tracked bytes currently allocated. */
-  uint64_t bytesUsed;
+  uint64_t bytes_used;
   /** Maximum tracked bytes allocated. */
-  uint64_t peakBytesUsed;
+  uint64_t peak_bytes_used;
 };
 
 /** UDS index statistics */

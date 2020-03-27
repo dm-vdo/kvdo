@@ -2303,7 +2303,7 @@ static ssize_t pool_stats_memory_usage_bytes_used_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.bytesUsed);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.bytes_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2320,7 +2320,7 @@ static ssize_t pool_stats_memory_usage_peak_bytes_used_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.peakBytesUsed);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.memoryUsage.peak_bytes_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

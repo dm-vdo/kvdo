@@ -1068,7 +1068,7 @@ int write_memory_usage(char *prefix,
        }
        /** Tracked bytes currently allocated. */
        result = write_uint64_t("bytesUsed : ",
-                               stats->bytesUsed,
+                               stats->bytes_used,
                                ", ",
                                buf,
                                maxlen);
@@ -1077,7 +1077,7 @@ int write_memory_usage(char *prefix,
        }
        /** Maximum tracked bytes allocated. */
        result = write_uint64_t("peakBytesUsed : ",
-                               stats->peakBytesUsed,
+                               stats->peak_bytes_used,
                                ", ",
                                buf,
                                maxlen);
