@@ -1104,7 +1104,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of chunk names stored in the index */
        result = write_uint64_t("entriesIndexed : ",
-                               stats->entriesIndexed,
+                               stats->entries_indexed,
                                ", ",
                                buf,
                                maxlen);
@@ -1113,7 +1113,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of post calls that found an existing entry */
        result = write_uint64_t("postsFound : ",
-                               stats->postsFound,
+                               stats->posts_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1122,7 +1122,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of post calls that added a new entry */
        result = write_uint64_t("postsNotFound : ",
-                               stats->postsNotFound,
+                               stats->posts_not_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1131,7 +1131,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of query calls that found an existing entry */
        result = write_uint64_t("queriesFound : ",
-                               stats->queriesFound,
+                               stats->queries_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1140,7 +1140,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of query calls that added a new entry */
        result = write_uint64_t("queriesNotFound : ",
-                               stats->queriesNotFound,
+                               stats->queries_not_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1149,7 +1149,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of update calls that found an existing entry */
        result = write_uint64_t("updatesFound : ",
-                               stats->updatesFound,
+                               stats->updates_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1158,7 +1158,7 @@ int write_index_statistics(char *prefix,
        }
        /** Number of update calls that added a new entry */
        result = write_uint64_t("updatesNotFound : ",
-                               stats->updatesNotFound,
+                               stats->updates_not_found,
                                ", ",
                                buf,
                                maxlen);
@@ -1167,7 +1167,7 @@ int write_index_statistics(char *prefix,
        }
        /** Current number of dedupe queries that are in flight */
        result = write_uint32_t("currDedupeQueries : ",
-                               stats->currDedupeQueries,
+                               stats->curr_dedupe_queries,
                                ", ",
                                buf,
                                maxlen);
@@ -1176,7 +1176,7 @@ int write_index_statistics(char *prefix,
        }
        /** Maximum number of dedupe queries that have been in flight */
        result = write_uint32_t("maxDedupeQueries : ",
-                               stats->maxDedupeQueries,
+                               stats->max_dedupe_queries,
                                ", ",
                                buf,
                                maxlen);

@@ -2337,7 +2337,7 @@ static ssize_t pool_stats_index_entries_indexed_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.entriesIndexed);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.entries_indexed);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2354,7 +2354,7 @@ static ssize_t pool_stats_index_posts_found_show(struct kernel_layer *layer, cha
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.postsFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2371,7 +2371,7 @@ static ssize_t pool_stats_index_posts_not_found_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.postsNotFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.posts_not_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2388,7 +2388,7 @@ static ssize_t pool_stats_index_queries_found_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queriesFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2405,7 +2405,7 @@ static ssize_t pool_stats_index_queries_not_found_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queriesNotFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.queries_not_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2422,7 +2422,7 @@ static ssize_t pool_stats_index_updates_found_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updatesFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2439,7 +2439,7 @@ static ssize_t pool_stats_index_updates_not_found_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updatesNotFound);
+	retval = sprintf(buf, "%llu\n", layer->kernel_stats_storage.index.updates_not_found);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2456,7 +2456,7 @@ static ssize_t pool_stats_index_curr_dedupe_queries_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.currDedupeQueries);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.curr_dedupe_queries);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -2473,7 +2473,7 @@ static ssize_t pool_stats_index_max_dedupe_queries_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kernel_statistics(layer, &layer->kernel_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.maxDedupeQueries);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->kernel_stats_storage.index.max_dedupe_queries);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

@@ -46,23 +46,23 @@ struct memory_usage {
 /** UDS index statistics */
 struct index_statistics {
   /** Number of chunk names stored in the index */
-  uint64_t entriesIndexed;
+  uint64_t entries_indexed;
   /** Number of post calls that found an existing entry */
-  uint64_t postsFound;
+  uint64_t posts_found;
   /** Number of post calls that added a new entry */
-  uint64_t postsNotFound;
+  uint64_t posts_not_found;
   /** Number of query calls that found an existing entry */
-  uint64_t queriesFound;
+  uint64_t queries_found;
   /** Number of query calls that added a new entry */
-  uint64_t queriesNotFound;
+  uint64_t queries_not_found;
   /** Number of update calls that found an existing entry */
-  uint64_t updatesFound;
+  uint64_t updates_found;
   /** Number of update calls that added a new entry */
-  uint64_t updatesNotFound;
+  uint64_t updates_not_found;
   /** Current number of dedupe queries that are in flight */
-  uint32_t currDedupeQueries;
+  uint32_t curr_dedupe_queries;
   /** Maximum number of dedupe queries that have been in flight */
-  uint32_t maxDedupeQueries;
+  uint32_t max_dedupe_queries;
 };
 
 struct kernel_statistics {
