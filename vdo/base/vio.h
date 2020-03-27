@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#11 $
  */
 
 #ifndef VIO_H
@@ -34,30 +34,31 @@
  * and the physical layer.
  **/
 struct vio {
-  /* The completion for this vio */
-  struct vdo_completion  completion;
+	/* The completion for this vio */
+	struct vdo_completion completion;
 
-  /* The functions to call when this vio's operation is complete */
-  vdo_action            *callback;
-  vdo_action            *errorHandler;
+	/* The functions to call when this vio's operation is complete */
+	vdo_action *callback;
+	vdo_action *errorHandler;
 
-  /* The vdo handling this vio */
-  struct vdo            *vdo;
+	/* The vdo handling this vio */
+	struct vdo *vdo;
 
-  /* The address on the underlying device of the block to be read/written */
-  PhysicalBlockNumber    physical;
+	/* The address on the underlying device of the block to be read/written
+	 */
+	PhysicalBlockNumber physical;
 
-  /* The type of request this vio is servicing */
-  VIOOperation           operation;
+	/* The type of request this vio is servicing */
+	VIOOperation operation;
 
-  /* The queueing priority of the vio operation */
-  VIOPriority            priority;
+	/* The queueing priority of the vio operation */
+	VIOPriority priority;
 
-  /* The vio type is used for statistics and instrumentation. */
-  VIOType                type;
+	/* The vio type is used for statistics and instrumentation. */
+	VIOType type;
 
-  /* Used for logging and debugging */
-  Trace                 *trace;
+	/* Used for logging and debugging */
+	Trace *trace;
 };
 
 /**
@@ -69,8 +70,8 @@ struct vio {
  **/
 static inline struct vio *asVIO(struct vdo_completion *completion)
 {
-  assert_completion_type(completion->type, VIO_COMPLETION);
-  return container_of(completion, struct vio, completion);
+	assert_completion_type(completion->type, VIO_COMPLETION);
+	return container_of(completion, struct vio, completion);
 }
 
 /**
@@ -82,7 +83,7 @@ static inline struct vio *asVIO(struct vdo_completion *completion)
  **/
 static inline struct vdo_completion *vioAsCompletion(struct vio *vio)
 {
-  return &vio->completion;
+	return &vio->completion;
 }
 
 /**
@@ -97,15 +98,15 @@ static inline struct vdo_completion *vioAsCompletion(struct vio *vio)
  *
  * @return VDO_SUCCESS or an error
  **/
-static inline int createVIO(PhysicalLayer  *layer,
-                            VIOType         vioType,
-                            VIOPriority     priority,
-                            void           *parent,
-                            char           *data,
-                            struct vio    **vioPtr)
+static inline int createVIO(PhysicalLayer *layer,
+			    VIOType vioType,
+			    VIOPriority priority,
+			    void *parent,
+			    char *data,
+			    struct vio **vioPtr)
 {
-  return layer->createMetadataVIO(layer, vioType, priority, parent, data,
-                                  vioPtr);
+	return layer->createMetadataVIO(
+		layer, vioType, priority, parent, data, vioPtr);
 }
 
 /**
@@ -126,12 +127,12 @@ void freeVIO(struct vio **vioPtr);
  * @param vdo       The vdo for this vio
  * @param layer     The layer for this vio
  **/
-void initializeVIO(struct vio            *vio,
-                   VIOType                type,
-                   VIOPriority            priority,
-                   struct vdo_completion *parent,
-                   struct vdo            *vdo,
-                   PhysicalLayer         *layer);
+void initializeVIO(struct vio *vio,
+		   VIOType type,
+		   VIOPriority priority,
+		   struct vdo_completion *parent,
+		   struct vdo *vdo,
+		   PhysicalLayer *layer);
 
 /**
  * The very last step in processing a vio. Set the vio's completion's callback
@@ -158,7 +159,7 @@ const char *getVIOReadWriteFlavor(const struct vio *vio);
  * @param format  The format of the message to log (a printf style format)
  **/
 void updateVIOErrorStats(struct vio *vio, const char *format, ...)
-  __attribute__((format(printf, 2, 3)));
+	__attribute__((format(printf, 2, 3)));
 
 /**
  * Add a trace record for the current source location.
@@ -168,9 +169,9 @@ void updateVIOErrorStats(struct vio *vio, const char *format, ...)
  **/
 static inline void vioAddTraceRecord(struct vio *vio, TraceLocation location)
 {
-  if (unlikely(vio->trace != NULL)) {
-    addTraceRecord(vio->trace, location);
-  }
+	if (unlikely(vio->trace != NULL)) {
+		addTraceRecord(vio->trace, location);
+	}
 }
 
 /**
@@ -180,7 +181,7 @@ static inline void vioAddTraceRecord(struct vio *vio, TraceLocation location)
  **/
 static inline bool isDataVIO(struct vio *vio)
 {
-  return isDataVIOType(vio->type);
+	return isDataVIOType(vio->type);
 }
 
 /**
@@ -190,7 +191,7 @@ static inline bool isDataVIO(struct vio *vio)
  **/
 static inline bool isCompressedWriteVIO(struct vio *vio)
 {
-  return isCompressedWriteVIOType(vio->type);
+	return isCompressedWriteVIOType(vio->type);
 }
 
 /**
@@ -200,7 +201,7 @@ static inline bool isCompressedWriteVIO(struct vio *vio)
  **/
 static inline bool isMetadataVIO(struct vio *vio)
 {
-  return isMetadataVIOType(vio->type);
+	return isMetadataVIOType(vio->type);
 }
 
 /**
@@ -212,7 +213,7 @@ static inline bool isMetadataVIO(struct vio *vio)
  **/
 static inline bool isReadVIO(const struct vio *vio)
 {
-  return ((vio->operation & VIO_READ_WRITE_MASK) == VIO_READ);
+	return ((vio->operation & VIO_READ_WRITE_MASK) == VIO_READ);
 }
 
 /**
@@ -224,7 +225,8 @@ static inline bool isReadVIO(const struct vio *vio)
  **/
 static inline bool isReadModifyWriteVIO(const struct vio *vio)
 {
-  return ((vio->operation & VIO_READ_WRITE_MASK) == VIO_READ_MODIFY_WRITE);
+	return ((vio->operation & VIO_READ_WRITE_MASK) ==
+		VIO_READ_MODIFY_WRITE);
 }
 
 /**
@@ -236,7 +238,7 @@ static inline bool isReadModifyWriteVIO(const struct vio *vio)
  **/
 static inline bool isWriteVIO(const struct vio *vio)
 {
-  return ((vio->operation & VIO_READ_WRITE_MASK) == VIO_WRITE);
+	return ((vio->operation & VIO_READ_WRITE_MASK) == VIO_WRITE);
 }
 
 /**
@@ -248,7 +250,7 @@ static inline bool isWriteVIO(const struct vio *vio)
  **/
 static inline bool vioRequiresFlushBefore(const struct vio *vio)
 {
-  return ((vio->operation & VIO_FLUSH_BEFORE) == VIO_FLUSH_BEFORE);
+	return ((vio->operation & VIO_FLUSH_BEFORE) == VIO_FLUSH_BEFORE);
 }
 
 /**
@@ -260,7 +262,7 @@ static inline bool vioRequiresFlushBefore(const struct vio *vio)
  **/
 static inline bool vioRequiresFlushAfter(const struct vio *vio)
 {
-  return ((vio->operation & VIO_FLUSH_AFTER) == VIO_FLUSH_AFTER);
+	return ((vio->operation & VIO_FLUSH_AFTER) == VIO_FLUSH_AFTER);
 }
 
 /**
@@ -272,11 +274,11 @@ static inline bool vioRequiresFlushAfter(const struct vio *vio)
  * @param errorHandler  The handler for write errors
  * @param operation     The operation to perform (read or write)
  **/
-void launchMetadataVIO(struct vio          *vio,
-                       PhysicalBlockNumber  physical,
-                       vdo_action          *callback,
-                       vdo_action          *errorHandler,
-                       VIOOperation         operation);
+void launchMetadataVIO(struct vio *vio,
+		       PhysicalBlockNumber physical,
+		       vdo_action *callback,
+		       vdo_action *errorHandler,
+		       VIOOperation operation);
 
 /**
  * Launch a metadata read vio.
@@ -286,12 +288,12 @@ void launchMetadataVIO(struct vio          *vio,
  * @param callback      The function to call when the vio completes its read
  * @param errorHandler  The handler for write errors
  **/
-static inline void launchReadMetadataVIO(struct vio          *vio,
-                                         PhysicalBlockNumber  physical,
-                                         vdo_action          *callback,
-                                         vdo_action          *errorHandler)
+static inline void launchReadMetadataVIO(struct vio *vio,
+					 PhysicalBlockNumber physical,
+					 vdo_action *callback,
+					 vdo_action *errorHandler)
 {
-  launchMetadataVIO(vio, physical, callback, errorHandler, VIO_READ);
+	launchMetadataVIO(vio, physical, callback, errorHandler, VIO_READ);
 }
 
 /**
@@ -302,12 +304,12 @@ static inline void launchReadMetadataVIO(struct vio          *vio,
  * @param callback      The function to call when the vio completes its write
  * @param errorHandler  The handler for write errors
  **/
-static inline void launchWriteMetadataVIO(struct vio          *vio,
-                                          PhysicalBlockNumber  physical,
-                                          vdo_action          *callback,
-                                          vdo_action          *errorHandler)
+static inline void launchWriteMetadataVIO(struct vio *vio,
+					  PhysicalBlockNumber physical,
+					  vdo_action *callback,
+					  vdo_action *errorHandler)
 {
-  launchMetadataVIO(vio, physical, callback, errorHandler, VIO_WRITE);
+	launchMetadataVIO(vio, physical, callback, errorHandler, VIO_WRITE);
 }
 
 /**
@@ -322,18 +324,19 @@ static inline void launchWriteMetadataVIO(struct vio          *vio,
  * @param flushBefore  Whether or not to flush before writing
  * @param flushAfter   Whether or not to flush after writing
  **/
-static inline
-void launchWriteMetadataVIOWithFlush(struct vio          *vio,
-                                     PhysicalBlockNumber  physical,
-                                     vdo_action          *callback,
-                                     vdo_action          *errorHandler,
-                                     bool                 flushBefore,
-                                     bool                 flushAfter)
+static inline void launchWriteMetadataVIOWithFlush(struct vio *vio,
+						   PhysicalBlockNumber physical,
+						   vdo_action *callback,
+						   vdo_action *errorHandler,
+						   bool flushBefore,
+						   bool flushAfter)
 {
-  launchMetadataVIO(vio, physical, callback, errorHandler,
-                    (VIO_WRITE
-                     | (flushBefore ? VIO_FLUSH_BEFORE : 0)
-                     | (flushAfter ? VIO_FLUSH_AFTER : 0)));
+	launchMetadataVIO(vio,
+			  physical,
+			  callback,
+			  errorHandler,
+			  (VIO_WRITE | (flushBefore ? VIO_FLUSH_BEFORE : 0) |
+			   (flushAfter ? VIO_FLUSH_AFTER : 0)));
 }
 
 /**
@@ -344,6 +347,8 @@ void launchWriteMetadataVIOWithFlush(struct vio          *vio,
  * @param callback      The function to call when the flush is complete
  * @param errorHandler  The handler for flush errors
  **/
-void launchFlush(struct vio *vio, vdo_action *callback, vdo_action *errorHandler);
+void launchFlush(struct vio *vio,
+		 vdo_action *callback,
+		 vdo_action *errorHandler);
 
 #endif // VIO_H
