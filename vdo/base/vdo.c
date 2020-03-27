@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#50 $
  */
 
 /*
@@ -843,7 +843,7 @@ get_hash_lock_statistics(const struct vdo *vdo)
  *
  * @return a copy of the current vdo error counters
  **/
-static ErrorStatistics get_vdo_error_statistics(const struct vdo *vdo)
+static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
 {
 	/*
 	 * The error counts can be incremented from arbitrary threads and so
@@ -852,7 +852,7 @@ static ErrorStatistics get_vdo_error_statistics(const struct vdo *vdo)
 	 * sufficient.
 	 */
 	const struct atomic_error_statistics *atoms = &vdo->error_stats;
-	return (ErrorStatistics) {
+	return (struct error_statistics) {
 		.invalidAdvicePBNCount =
 			relaxedLoad64(&atoms->invalidAdvicePBNCount),
 		.noSpaceErrorCount = relaxedLoad64(&atoms->noSpaceErrorCount),

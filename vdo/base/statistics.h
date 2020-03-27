@@ -157,14 +157,14 @@ struct hash_lock_statistics {
 };
 
 /** Counts of error conditions in VDO. */
-typedef struct {
+struct error_statistics {
   /** number of times VDO got an invalid dedupe advice PBN from UDS */
   uint64_t invalidAdvicePBNCount;
   /** number of times a VIO completed with a VDO_NO_SPACE error */
   uint64_t noSpaceErrorCount;
   /** number of times a VIO completed with a VDO_READ_ONLY error */
   uint64_t readOnlyErrorCount;
-} ErrorStatistics;
+};
 
 /** The statistics of the vdo service. */
 struct vdoStatistics {
@@ -213,7 +213,7 @@ struct vdoStatistics {
   /** The dedupe statistics from hash locks */
   struct hash_lock_statistics hashLock;
   /** Counts of error conditions */
-  ErrorStatistics errors;
+  struct error_statistics errors;
 };
 
 #endif /* not STATISTICS_H */
