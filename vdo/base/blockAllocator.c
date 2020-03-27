@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#58 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#59 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -232,7 +232,7 @@ static int allocate_components(struct block_allocator *allocator,
 		return result;
 	}
 
-	BlockCount slab_journal_size = depot->slab_config.slabJournalBlocks;
+	BlockCount slab_journal_size = depot->slab_config.slab_journal_blocks;
 	result = make_slab_scrubber(layer,
 				    slab_journal_size,
 				    allocator->read_only_notifier,
@@ -243,7 +243,7 @@ static int allocate_components(struct block_allocator *allocator,
 
 	// The number of data blocks is the maximum number of free blocks that
 	// could be used in calculateSlabPriority().
-	BlockCount max_free_blocks = depot->slab_config.dataBlocks;
+	BlockCount max_free_blocks = depot->slab_config.data_blocks;
 	unsigned int max_priority = (2 + log_base_two(max_free_blocks));
 	result = make_priority_table(max_priority,
 				     &allocator->prioritized_slabs);
@@ -346,7 +346,8 @@ int replace_vio_pool(struct block_allocator *allocator,
 __attribute__((warn_unused_result)) static inline BlockCount
 get_data_block_count(const struct block_allocator *allocator)
 {
-	return (allocator->slab_count * allocator->depot->slab_config.dataBlocks);
+	return (allocator->slab_count *
+		allocator->depot->slab_config.data_blocks);
 }
 
 /**********************************************************************/
@@ -369,12 +370,13 @@ void queue_slab(struct vdo_slab *slab)
 	struct block_allocator *allocator = slab->allocator;
 	BlockCount free_blocks = get_slab_free_block_count(slab);
 	int result =
-		ASSERT((free_blocks <= allocator->depot->slab_config.dataBlocks),
+		ASSERT((free_blocks <=
+			allocator->depot->slab_config.data_blocks),
 		       "rebuilt slab %u must have a valid free block count"
 		       " (has %llu, expected maximum %llu)",
 		       slab->slab_number,
 		       free_blocks,
-		       allocator->depot->slab_config.dataBlocks);
+		       allocator->depot->slab_config.data_blocks);
 	if (result != VDO_SUCCESS) {
 		enter_read_only_mode(allocator->read_only_notifier, result);
 		return;

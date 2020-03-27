@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#43 $
  */
 
 #include "slabJournalInternals.h"
@@ -227,7 +227,7 @@ int make_slab_journal(struct block_allocator *allocator,
 	struct slab_journal *journal;
 	const SlabConfig *slab_config = get_slab_config(allocator->depot);
 	int result = ALLOCATE_EXTENDED(struct slab_journal,
-				       slab_config->slabJournalBlocks,
+				       slab_config->slab_journal_blocks,
 				       struct journal_lock,
 				       __func__,
 				       &journal);
@@ -236,10 +236,12 @@ int make_slab_journal(struct block_allocator *allocator,
 	}
 
 	journal->slab = slab;
-	journal->size = slab_config->slabJournalBlocks;
-	journal->flushing_threshold = slab_config->slabJournalFlushingThreshold;
-	journal->blockingThreshold = slab_config->slabJournalBlockingThreshold;
-	journal->scrubbing_threshold = slab_config->slabJournalScrubbingThreshold;
+	journal->size = slab_config->slab_journal_blocks;
+	journal->flushing_threshold =
+		slab_config->slab_journal_flushing_threshold;
+	journal->blockingThreshold =
+		slab_config->slab_journal_blocking_threshold;
+	journal->scrubbing_threshold = slab_config->slab_journal_scrubbing_threshold;
 	journal->entries_per_block = SLAB_JOURNAL_ENTRIES_PER_BLOCK;
 	journal->full_entries_per_block = SLAB_JOURNAL_FULL_ENTRIES_PER_BLOCK;
 	journal->events = &allocator->slab_journal_statistics;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#52 $
  */
 
 /*
@@ -123,7 +123,7 @@ int make_vdo(PhysicalLayer *layer, struct vdo **vdo_ptr)
 		return result;
 	}
 
-	result = make_zero_thread_config(&vdo->load_config.threadConfig);
+	result = make_zero_thread_config(&vdo->load_config.thread_config);
 	if (result != VDO_SUCCESS) {
 		free_vdo(&vdo);
 		return result;
@@ -167,7 +167,7 @@ void destroy_vdo(struct vdo *vdo)
 
 	uninitialize_admin_completion(&vdo->admin_completion);
 	free_read_only_notifier(&vdo->read_only_notifier);
-	free_thread_config(&vdo->load_config.threadConfig);
+	free_thread_config(&vdo->load_config.thread_config);
 }
 
 /**********************************************************************/
@@ -228,27 +228,27 @@ encode_master_version(Buffer *buffer)
 __attribute__((warn_unused_result)) static int
 encode_vdo_config(const VDOConfig *config, Buffer *buffer)
 {
-	int result = putUInt64LEIntoBuffer(buffer, config->logicalBlocks);
+	int result = putUInt64LEIntoBuffer(buffer, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->physicalBlocks);
+	result = putUInt64LEIntoBuffer(buffer, config->physical_blocks);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->slabSize);
+	result = putUInt64LEIntoBuffer(buffer, config->slab_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->recoveryJournalSize);
+	result = putUInt64LEIntoBuffer(buffer, config->recovery_journal_size);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	return putUInt64LEIntoBuffer(buffer, config->slabJournalBlocks);
+	return putUInt64LEIntoBuffer(buffer, config->slab_journal_blocks);
 }
 
 /**
@@ -425,10 +425,10 @@ int validate_vdo_version(struct vdo *vdo)
 
 	ReleaseVersionNumber loaded_release_version =
 		get_loaded_release_version(vdo->super_block);
-	if (vdo->load_config.releaseVersion != loaded_release_version) {
+	if (vdo->load_config.release_version != loaded_release_version) {
 		return logErrorWithStringError(VDO_UNSUPPORTED_VERSION,
 					       "Geometry release version %" PRIu32 " does not match super block release version %" PRIu32,
-					       vdo->load_config.releaseVersion,
+					       vdo->load_config.release_version,
 					       loaded_release_version);
 	}
 
@@ -478,11 +478,11 @@ decode_vdo_config(Buffer *buffer, VDOConfig *config)
 	}
 
 	*config = (VDOConfig) {
-		.logicalBlocks = logical_blocks,
-		.physicalBlocks = physical_blocks,
-		.slabSize = slab_size,
-		.recoveryJournalSize = recovery_journal_size,
-		.slabJournalBlocks = slab_journal_blocks,
+		.logical_blocks = logical_blocks,
+		.physical_blocks = physical_blocks,
+		.slab_size = slab_size,
+		.recovery_journal_size = recovery_journal_size,
+		.slab_journal_blocks = slab_journal_blocks,
 	};
 	return VDO_SUCCESS;
 }
@@ -581,18 +581,18 @@ int validate_vdo_config(const VDOConfig *config,
 			BlockCount block_count,
 			bool require_logical)
 {
-	int result = ASSERT(config->slabSize > 0, "slab size unspecified");
+	int result = ASSERT(config->slab_size > 0, "slab size unspecified");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(is_power_of_two(config->slabSize),
+	result = ASSERT(is_power_of_two(config->slab_size),
 			"slab size must be a power of two");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->slabSize <= (1 << MAX_SLAB_BITS),
+	result = ASSERT(config->slab_size <= (1 << MAX_SLAB_BITS),
 			"slab size must be less than or equal to 2^%d",
 			MAX_SLAB_BITS);
 	if (result != VDO_SUCCESS) {
@@ -600,40 +600,40 @@ int validate_vdo_config(const VDOConfig *config,
 	}
 
 	result =
-		ASSERT(config->slabJournalBlocks >= MINIMUM_SLAB_JOURNAL_BLOCKS,
+		ASSERT(config->slab_journal_blocks >= MINIMUM_SLAB_JOURNAL_BLOCKS,
 		       "slab journal size meets minimum size");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->slabJournalBlocks <= config->slabSize,
+	result = ASSERT(config->slab_journal_blocks <= config->slab_size,
 			"slab journal size is within expected bound");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	SlabConfig slab_config;
-	result = configure_slab(config->slabSize, config->slabJournalBlocks,
+	result = configure_slab(config->slab_size, config->slab_journal_blocks,
 				&slab_config);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT((slab_config.dataBlocks >= 1),
+	result = ASSERT((slab_config.data_blocks >= 1),
 			"slab must be able to hold at least one block");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->physicalBlocks > 0,
+	result = ASSERT(config->physical_blocks > 0,
 			"physical blocks unspecified");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->physicalBlocks <= MAXIMUM_PHYSICAL_BLOCKS,
+	result = ASSERT(config->physical_blocks <= MAXIMUM_PHYSICAL_BLOCKS,
 			"physical block count %llu exceeds maximum %llu",
-			config->physicalBlocks,
+			config->physical_blocks,
 			MAXIMUM_PHYSICAL_BLOCKS);
 	if (result != UDS_SUCCESS) {
 		return VDO_OUT_OF_RANGE;
@@ -641,32 +641,32 @@ int validate_vdo_config(const VDOConfig *config,
 
 	// This can't check equality because FileLayer et al can only known
 	// about the storage size, which may not match the super block size.
-	if (block_count < config->physicalBlocks) {
+	if (block_count < config->physical_blocks) {
 		logError("A physical size of %llu blocks was specified, but that is smaller than the %llu blocks configured in the vdo super block",
 			 block_count,
-			 config->physicalBlocks);
+			 config->physical_blocks);
 		return VDO_PARAMETER_MISMATCH;
 	}
 
-	result = ASSERT(!require_logical || (config->logicalBlocks > 0),
+	result = ASSERT(!require_logical || (config->logical_blocks > 0),
 			"logical blocks unspecified");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->logicalBlocks <= MAXIMUM_LOGICAL_BLOCKS,
+	result = ASSERT(config->logical_blocks <= MAXIMUM_LOGICAL_BLOCKS,
 			"logical blocks too large");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(config->recoveryJournalSize > 0,
+	result = ASSERT(config->recovery_journal_size > 0,
 			"recovery journal size unspecified");
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = ASSERT(is_power_of_two(config->recoveryJournalSize),
+	result = ASSERT(is_power_of_two(config->recovery_journal_size),
 			"recovery journal size must be a power of two");
 	if (result != UDS_SUCCESS) {
 		return result;
@@ -805,7 +805,7 @@ bool get_vdo_compressing(struct vdo *vdo)
 /**********************************************************************/
 static size_t get_block_map_cache_size(const struct vdo *vdo)
 {
-	return ((size_t) vdo->load_config.cacheSize) * VDO_BLOCK_SIZE;
+	return ((size_t) vdo->load_config.cache_size) * VDO_BLOCK_SIZE;
 }
 
 /**
@@ -883,13 +883,13 @@ void get_vdo_statistics(const struct vdo *vdo,
 	// query them from any thread.
 	struct recovery_journal *journal = vdo->recovery_journal;
 	struct slab_depot *depot = vdo->depot;
-	// XXX config.physicalBlocks is actually mutated during resize and is in
+	// XXX config.physical_blocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on the admin thread so we're
 	// usually OK.
 	stats->version = STATISTICS_VERSION;
 	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
-	stats->logicalBlocks = vdo->config.logicalBlocks;
-	stats->physicalBlocks = vdo->config.physicalBlocks;
+	stats->logicalBlocks = vdo->config.logical_blocks;
+	stats->physicalBlocks = vdo->config.physical_blocks;
 	stats->blockSize = VDO_BLOCK_SIZE;
 	stats->completeRecoveries = vdo->complete_recoveries;
 	stats->readOnlyRecoveries = vdo->read_only_recoveries;
@@ -942,10 +942,10 @@ BlockCount get_physical_blocks_free(const struct vdo *vdo)
 /**********************************************************************/
 BlockCount get_physical_blocks_overhead(const struct vdo *vdo)
 {
-	// XXX config.physicalBlocks is actually mutated during resize and is in
+	// XXX config.physical_blocks is actually mutated during resize and is in
 	// a packed structure, but resize runs on admin thread so we're usually
 	// OK.
-	return (vdo->config.physicalBlocks - get_depot_data_blocks(vdo->depot) +
+	return (vdo->config.physical_blocks - get_depot_data_blocks(vdo->depot) +
 		get_journal_block_map_data_blocks_used(vdo->recovery_journal));
 }
 
@@ -959,13 +959,13 @@ BlockCount get_total_block_map_blocks(const struct vdo *vdo)
 /**********************************************************************/
 WritePolicy get_write_policy(const struct vdo *vdo)
 {
-	return vdo->load_config.writePolicy;
+	return vdo->load_config.write_policy;
 }
 
 /**********************************************************************/
 void set_write_policy(struct vdo *vdo, WritePolicy new)
 {
-	vdo->load_config.writePolicy = new;
+	vdo->load_config.write_policy = new;
 }
 
 /**********************************************************************/
@@ -977,25 +977,25 @@ const VDOLoadConfig *get_vdo_load_config(const struct vdo *vdo)
 /**********************************************************************/
 const struct thread_config *get_thread_config(const struct vdo *vdo)
 {
-	return vdo->load_config.threadConfig;
+	return vdo->load_config.thread_config;
 }
 
 /**********************************************************************/
 BlockCount get_configured_block_map_maximum_age(const struct vdo *vdo)
 {
-	return vdo->load_config.maximumAge;
+	return vdo->load_config.maximum_age;
 }
 
 /**********************************************************************/
 PageCount get_configured_cache_size(const struct vdo *vdo)
 {
-	return vdo->load_config.cacheSize;
+	return vdo->load_config.cache_size;
 }
 
 /**********************************************************************/
 PhysicalBlockNumber get_first_block_offset(const struct vdo *vdo)
 {
-	return vdo->load_config.firstBlockOffset;
+	return vdo->load_config.first_block_offset;
 }
 
 /**********************************************************************/

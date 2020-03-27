@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLoad.c#39 $
  */
 
 #include "vdoLoad.h"
@@ -314,7 +314,7 @@ finish_vdo_decode(struct vdo *vdo)
 				      get_vdo_partition(vdo->layout,
 							RECOVERY_JOURNAL_PARTITION),
 				      vdo->complete_recoveries,
-				      vdo->config.recoveryJournalSize,
+				      vdo->config.recovery_journal_size,
 				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
 				      vdo->read_only_notifier,
 				      thread_config,
@@ -343,7 +343,7 @@ finish_vdo_decode(struct vdo *vdo)
 	}
 
 	result = decode_block_map(buffer,
-				  vdo->config.logicalBlocks,
+				  vdo->config.logical_blocks,
 				  thread_config,
 				  &vdo->block_map);
 	if (result != VDO_SUCCESS) {
@@ -407,7 +407,7 @@ decode_vdo(struct vdo *vdo, bool validate_config)
 
 	BlockCount maximum_age = get_configured_block_map_maximum_age(vdo);
 	BlockCount journal_length =
-		get_recovery_journal_length(vdo->config.recoveryJournalSize);
+		get_recovery_journal_length(vdo->config.recovery_journal_size);
 	if ((maximum_age > (journal_length / 2)) || (maximum_age < 1)) {
 		return VDO_BAD_CONFIGURATION;
 	}

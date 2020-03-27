@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#39 $
  */
 
 #ifndef TYPES_H
@@ -298,57 +298,57 @@ struct block_map_tree_slot {
  * The configuration of a single slab derived from the configured block size
  * and slab size.
  **/
-typedef struct slabConfig {
-  BlockCount slabBlocks;             ///< total number of blocks in the slab
-  BlockCount dataBlocks;             ///< number of blocks available for data
-  BlockCount referenceCountBlocks;   ///< number of blocks for refCounts
-  BlockCount slabJournalBlocks;      ///< number of blocks for the slab journal
+typedef struct slab_config {
+  BlockCount slab_blocks;             ///< total number of blocks in the slab
+  BlockCount data_blocks;             ///< number of blocks available for data
+  BlockCount reference_count_blocks;  ///< number of blocks for refCounts
+  BlockCount slab_journal_blocks;     ///< number of blocks for the slab journal
   /**
    * Number of blocks after which the slab journal starts pushing out a
    * ReferenceBlock for each new entry it receives.
    **/
-  BlockCount slabJournalFlushingThreshold;
+  BlockCount slab_journal_flushing_threshold;
   /**
    * Number of blocks after which the slab journal pushes out all
    * ReferenceBlocks and makes all vios wait.
    **/
-  BlockCount slabJournalBlockingThreshold;
+  BlockCount slab_journal_blocking_threshold;
   /**
    * Number of blocks after which the slab must be scrubbed before coming
    * online.
    **/
-  BlockCount slabJournalScrubbingThreshold;
+  BlockCount slab_journal_scrubbing_threshold;
 } __attribute__((packed)) SlabConfig;
 
 /**
  * The configuration of the VDO service.
  **/
-typedef struct vdoConfig {
-  BlockCount    logicalBlocks;       ///< number of logical blocks
-  BlockCount    physicalBlocks;      ///< number of physical blocks
-  BlockCount    slabSize;            ///< number of blocks in a slab
-  BlockCount    recoveryJournalSize; ///< number of recovery journal blocks
-  BlockCount    slabJournalBlocks;   ///< number of slab journal blocks
+typedef struct vdo_config {
+  BlockCount    logical_blocks;        ///< number of logical blocks
+  BlockCount    physical_blocks;       ///< number of physical blocks
+  BlockCount    slab_size;             ///< number of blocks in a slab
+  BlockCount    recovery_journal_size; ///< number of recovery journal blocks
+  BlockCount    slab_journal_blocks;   ///< number of slab journal blocks
 } __attribute__((packed)) VDOConfig;
 
 /**
  * The configuration parameters of the vdo service specified at load time.
  **/
-typedef struct vdoLoadConfig {
+typedef struct vdo_load_config {
   /** the offset on the physical layer where the VDO begins */
-  PhysicalBlockNumber   firstBlockOffset;
+  PhysicalBlockNumber   first_block_offset;
   /** the expected release version number of the VDO */
-  ReleaseVersionNumber  releaseVersion;
+  ReleaseVersionNumber  release_version;
   /** the expected nonce of the VDO */
   Nonce                 nonce;
   /** the thread configuration of the VDO */
-  struct thread_config *threadConfig;
+  struct thread_config *thread_config;
   /** the page cache size, in pages */
-  PageCount             cacheSize;
+  PageCount             cache_size;
   /** whether writes are synchronous */
-  WritePolicy           writePolicy;
+  WritePolicy           write_policy;
   /** the maximum age of a dirty block map page in recovery journal blocks */
-  BlockCount            maximumAge;
+  BlockCount            maximum_age;
 } VDOLoadConfig;
 
 /**

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#19 $
  */
 
 #include "upgrade.h"
@@ -176,7 +176,7 @@ finish_sodium_decode(struct vdo *vdo)
 				      get_vdo_partition(vdo->layout,
 							RECOVERY_JOURNAL_PARTITION),
 				      vdo->complete_recoveries,
-				      vdo->config.recoveryJournalSize,
+				      vdo->config.recovery_journal_size,
 				      RECOVERY_JOURNAL_TAIL_BUFFER_SIZE,
 				      vdo->read_only_notifier,
 				      threadConfig,
@@ -204,7 +204,7 @@ finish_sodium_decode(struct vdo *vdo)
 	}
 
 	result = decode_sodium_block_map(buffer,
-					 vdo->config.logicalBlocks,
+					 vdo->config.logical_blocks,
 					 threadConfig,
 					 &vdo->block_map);
 	if (result != VDO_SUCCESS) {

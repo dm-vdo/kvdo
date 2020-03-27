@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoResize.c#27 $
  */
 
 #include "vdoResize.h"
@@ -101,7 +101,7 @@ static void grow_physical_callback(struct vdo_completion *completion)
 		return;
 
 	case GROW_PHYSICAL_PHASE_UPDATE_COMPONENTS:
-		vdo->config.physicalBlocks = grow_vdo_layout(vdo->layout);
+		vdo->config.physical_blocks = grow_vdo_layout(vdo->layout);
 		update_slab_depot_size(vdo->depot);
 		save_vdo_components_async(vdo, reset_admin_sub_task(completion));
 		return;
@@ -147,7 +147,7 @@ static void handle_growth_error(struct vdo_completion *completion)
 /**********************************************************************/
 int perform_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 {
-	BlockCount old_physical_blocks = vdo->config.physicalBlocks;
+	BlockCount old_physical_blocks = vdo->config.physical_blocks;
 
 	// Skip any noop grows.
 	if (old_physical_blocks == new_physical_blocks) {
@@ -225,7 +225,7 @@ static void check_may_grow_physical(struct vdo_completion *completion)
 /**********************************************************************/
 int prepare_to_grow_physical(struct vdo *vdo, BlockCount new_physical_blocks)
 {
-	BlockCount current_physical_blocks = vdo->config.physicalBlocks;
+	BlockCount current_physical_blocks = vdo->config.physical_blocks;
 	if (new_physical_blocks < current_physical_blocks) {
 		return logErrorWithStringError(VDO_NOT_IMPLEMENTED,
 					       "Removing physical storage from a VDO is not supported");

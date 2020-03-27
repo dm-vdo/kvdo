@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#46 $
  */
 
 #include "dmvdo.h"
@@ -581,10 +581,10 @@ static int vdo_initialize(struct dm_target *ti,
 	// The thread_config will be copied by the VDO if it's successfully
 	// created.
 	VDOLoadConfig load_config = {
-		.cacheSize = config->cache_size,
-		.threadConfig = NULL,
-		.writePolicy = config->write_policy,
-		.maximumAge = config->block_map_maximum_age,
+		.cache_size = config->cache_size,
+		.thread_config = NULL,
+		.write_policy = config->write_policy,
+		.maximum_age = config->block_map_maximum_age,
 	};
 
 	char *failure_reason;
@@ -593,7 +593,7 @@ static int vdo_initialize(struct dm_target *ti,
 				       instance,
 				       config,
 				       &kvdoGlobals.kobj,
-				       &load_config.threadConfig,
+				       &load_config.thread_config,
 				       &failure_reason,
 				       &layer);
 	if (result != VDO_SUCCESS) {
@@ -601,7 +601,7 @@ static int vdo_initialize(struct dm_target *ti,
 			 result,
 			 failure_reason);
 		cleanup_initialize(ti,
-				   load_config.threadConfig,
+				   load_config.thread_config,
 				   NULL,
 				   instance,
 				   failure_reason);
@@ -613,10 +613,10 @@ static int vdo_initialize(struct dm_target *ti,
 	setLoadConfigFromGeometry(&layer->geometry, &load_config);
 
 	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *
-				  load_config.threadConfig->logical_zone_count)) {
+				  load_config.thread_config->logical_zone_count)) {
 		logWarning("Insufficient block map cache for logical zones");
 		cleanup_initialize(ti,
-				   load_config.threadConfig,
+				   load_config.thread_config,
 				   layer,
 				   instance,
 				   "Insufficient block map cache for logical zones");

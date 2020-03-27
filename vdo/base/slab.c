@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#30 $
  */
 
 #include "slab.h"
@@ -63,7 +63,7 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 	/*
 	 * If the slab size is very small, assume this must be a unit test and
 	 * override the number of data blocks to be a power of two (wasting
-	 * blocks in the slab). Many tests need their dataBlocks fields to be
+	 * blocks in the slab). Many tests need their data_blocks fields to be
 	 * the exact capacity of the configured volume, and that used to fall
 	 * out since they use a power of two for the number of data blocks, the
 	 * slab size was a power of two, and every block in a slab was a data
@@ -106,14 +106,14 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 		blocking_threshold = scrubbing_threshold;
 	}
 
-	*slab_config = (SlabConfig){
-		.slabBlocks = slab_size,
-		.dataBlocks = data_blocks,
-		.referenceCountBlocks = ref_blocks,
-		.slabJournalBlocks = slab_journal_blocks,
-		.slabJournalFlushingThreshold = flushing_threshold,
-		.slabJournalBlockingThreshold = blocking_threshold,
-		.slabJournalScrubbingThreshold = scrubbing_threshold};
+	*slab_config = (SlabConfig) {
+		.slab_blocks = slab_size,
+		.data_blocks = data_blocks,
+		.reference_count_blocks = ref_blocks,
+		.slab_journal_blocks = slab_journal_blocks,
+		.slab_journal_flushing_threshold = flushing_threshold,
+		.slab_journal_blocking_threshold = blocking_threshold,
+		.slab_journal_scrubbing_threshold = scrubbing_threshold};
 	return VDO_SUCCESS;
 }
 
@@ -121,8 +121,8 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 PhysicalBlockNumber get_slab_journal_start_block(const SlabConfig *slab_config,
 						 PhysicalBlockNumber origin)
 {
-	return origin + slab_config->dataBlocks
-	       + slab_config->referenceCountBlocks;
+	return origin + slab_config->data_blocks
+	       + slab_config->reference_count_blocks;
 }
 
 /**********************************************************************/
@@ -144,12 +144,12 @@ int make_slab(PhysicalBlockNumber slab_origin,
 
 	slab->allocator = allocator;
 	slab->start = slab_origin;
-	slab->end = slab->start + slab_config->slabBlocks;
+	slab->end = slab->start + slab_config->slab_blocks;
 	slab->slab_number = slab_number;
 	initializeRing(&slab->ringNode);
 
 	slab->ref_counts_origin =
-		slab_origin + slab_config->dataBlocks + translation;
+		slab_origin + slab_config->data_blocks + translation;
 	slab->journal_origin =
 		(get_slab_journal_start_block(slab_config, slab_origin)
 		 + translation);
@@ -187,7 +187,7 @@ int allocate_ref_counts_for_slab(struct vdo_slab *slab)
 		return result;
 	}
 
-	return make_ref_counts(slab_config->dataBlocks,
+	return make_ref_counts(slab_config->data_blocks,
 			       slab,
 			       slab->ref_counts_origin,
 			       allocator->read_only_notifier,
@@ -307,7 +307,7 @@ int slab_block_number_from_pbn(struct vdo_slab *slab,
 
 	uint64_t slab_block_number = physical_block_number - slab->start;
 	if (slab_block_number
-	    >= get_slab_config(slab->allocator->depot)->dataBlocks) {
+	    >= get_slab_config(slab->allocator->depot)->data_blocks) {
 		return VDO_OUT_OF_RANGE;
 	}
 
@@ -322,7 +322,7 @@ bool should_save_fully_built_slab(const struct vdo_slab *slab)
 	// has any non-zero reference counts, or there are any slab journal
 	// blocks.
 	BlockCount data_blocks =
-		get_slab_config(slab->allocator->depot)->dataBlocks;
+		get_slab_config(slab->allocator->depot)->data_blocks;
 	return (must_load_ref_counts(slab->allocator->summary,
 				     slab->slab_number)
 		|| (get_slab_free_block_count(slab) != data_blocks)

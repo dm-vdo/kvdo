@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#49 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#50 $
  */
 
 #include "slabDepot.h"
@@ -124,7 +124,7 @@ static int allocate_slabs(struct slab_depot *depot, SlabCount slab_count)
 		resizing = true;
 	}
 
-	BlockCount slab_size = get_slab_config(depot)->slabBlocks;
+	BlockCount slab_size = get_slab_config(depot)->slab_blocks;
 	PhysicalBlockNumber slab_origin =
 		depot->first_block + (depot->slab_count * slab_size);
 
@@ -262,7 +262,7 @@ static int allocate_components(struct slab_depot *depot,
 				   summary_partition,
 				   thread_config,
 				   depot->slab_size_shift,
-				   depot->slab_config.dataBlocks,
+				   depot->slab_config.data_blocks,
 				   depot->read_only_notifier,
 				   &depot->slab_summary);
 	if (result != VDO_SUCCESS) {
@@ -346,7 +346,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
 {
 	// Calculate the bit shift for efficiently mapping block numbers to
 	// slabs. Using a shift requires that the slab size be a power of two.
-	BlockCount slab_size = state->slab_config.slabBlocks;
+	BlockCount slab_size = state->slab_config.slab_blocks;
 	if (!is_power_of_two(slab_size)) {
 		return logErrorWithStringError(UDS_INVALID_ARGUMENT,
 					       "slab size must be a power of two");
@@ -407,7 +407,7 @@ static int configure_state(BlockCount block_count,
 			   ZoneCount zone_count,
 			   struct slab_depot_state_2_0 *state)
 {
-	BlockCount slab_size = slab_config.slabBlocks;
+	BlockCount slab_size = slab_config.slab_blocks;
 	logDebug("slabDepot configure_state(block_count=%" PRIu64
 		 ", first_block=%llu, slab_size=%" PRIu64
 		 ", zone_count=%u)",
@@ -426,8 +426,8 @@ static int configure_state(BlockCount block_count,
 		return VDO_TOO_MANY_SLABS;
 	}
 
-	BlockCount total_slab_blocks = slab_count * slab_config.slabBlocks;
-	BlockCount total_data_blocks = slab_count * slab_config.dataBlocks;
+	BlockCount total_slab_blocks = slab_count * slab_config.slab_blocks;
+	BlockCount total_data_blocks = slab_count * slab_config.data_blocks;
 	PhysicalBlockNumber last_block = first_block + total_slab_blocks;
 
 	*state = (struct slab_depot_state_2_0) {
@@ -538,43 +538,43 @@ static int decode_slab_config(Buffer *buffer, SlabConfig *config)
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->slabBlocks = count;
+	config->slab_blocks = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->dataBlocks = count;
+	config->data_blocks = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->referenceCountBlocks = count;
+	config->reference_count_blocks = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->slabJournalBlocks = count;
+	config->slab_journal_blocks = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->slabJournalFlushingThreshold = count;
+	config->slab_journal_flushing_threshold = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->slabJournalBlockingThreshold = count;
+	config->slab_journal_blocking_threshold = count;
 
 	result = getUInt64LEFromBuffer(buffer, &count);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	config->slabJournalScrubbingThreshold = count;
+	config->slab_journal_scrubbing_threshold = count;
 
 	return UDS_SUCCESS;
 }
@@ -589,40 +589,40 @@ static int decode_slab_config(Buffer *buffer, SlabConfig *config)
  **/
 static int encode_slab_config(const SlabConfig *config, Buffer *buffer)
 {
-	int result = putUInt64LEIntoBuffer(buffer, config->slabBlocks);
+	int result = putUInt64LEIntoBuffer(buffer, config->slab_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->dataBlocks);
+	result = putUInt64LEIntoBuffer(buffer, config->data_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->referenceCountBlocks);
+	result = putUInt64LEIntoBuffer(buffer, config->reference_count_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
-	result = putUInt64LEIntoBuffer(buffer, config->slabJournalBlocks);
-	if (result != UDS_SUCCESS) {
-		return result;
-	}
-
-	result = putUInt64LEIntoBuffer(buffer,
-				       config->slabJournalFlushingThreshold);
+	result = putUInt64LEIntoBuffer(buffer, config->slab_journal_blocks);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	result = putUInt64LEIntoBuffer(buffer,
-				       config->slabJournalBlockingThreshold);
+				       config->slab_journal_flushing_threshold);
+	if (result != UDS_SUCCESS) {
+		return result;
+	}
+
+	result = putUInt64LEIntoBuffer(buffer,
+				       config->slab_journal_blocking_threshold);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	return putUInt64LEIntoBuffer(buffer,
-				     config->slabJournalScrubbingThreshold);
+				     config->slab_journal_scrubbing_threshold);
 }
 
 /**********************************************************************/
@@ -890,7 +890,7 @@ BlockCount get_depot_data_blocks(const struct slab_depot *depot)
 	// XXX This needs to be thread safe, but resize changes the slab count.
 	// It does so on the admin thread (our usual caller), so it's usually
 	// safe.
-	return (depot->slab_count * depot->slab_config.dataBlocks);
+	return (depot->slab_count * depot->slab_config.data_blocks);
 }
 
 /**********************************************************************/
