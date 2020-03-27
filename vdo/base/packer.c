@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#38 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#39 $
  */
 
 #include "packerInternals.h"
@@ -211,7 +211,7 @@ static void free_output_bin(struct output_bin **bin_ptr)
 	unspliceRingNode(&bin->ring);
 
 	struct vio *vio = allocating_vio_as_vio(bin->writer);
-	freeVIO(&vio);
+	free_vio(&vio);
 	FREE(bin->block);
 	FREE(bin);
 	*bin_ptr = NULL;
@@ -403,7 +403,7 @@ static void write_pending_batches(struct packer *packer);
 __attribute__((warn_unused_result)) static bool
 switch_to_packer_thread(struct vdo_completion *completion)
 {
-	struct vio *vio = asVIO(completion);
+	struct vio *vio = as_vio(completion);
 	ThreadID thread_id = vio->vdo->packer->thread_id;
 	if (completion->callbackThreadID == thread_id) {
 		return true;
@@ -450,11 +450,11 @@ static void complete_output_bin(struct vdo_completion *completion)
 		return;
 	}
 
-	struct vio *vio = asVIO(completion);
+	struct vio *vio = as_vio(completion);
 	if (completion->result != VDO_SUCCESS) {
-		updateVIOErrorStats(vio,
-				    "Completing compressed write vio for physical block %llu with error",
-				    vio->physical);
+		update_vio_error_stats(vio,
+				       "Completing compressed write vio for physical block %llu with error",
+				       vio->physical);
 	}
 
 	struct packer *packer = vio->vdo->packer;
@@ -514,7 +514,7 @@ static void finish_compressed_write(struct vdo_completion *completion)
 		release_allocation_lock(bin->writer);
 		// Invokes complete_output_bin() on the packer thread, which will
 		// deal with the waiters.
-		vioDoneCallback(completion);
+		vio_done_callback(completion);
 		return;
 	}
 
@@ -529,7 +529,7 @@ static void finish_compressed_write(struct vdo_completion *completion)
 	notify_all_waiters(&bin->outgoing, continue_waiter, NULL);
 
 	// Invokes complete_output_bin() on the packer thread.
-	vioDoneCallback(completion);
+	vio_done_callback(completion);
 }
 
 /**
@@ -543,11 +543,11 @@ static void finish_compressed_write(struct vdo_completion *completion)
 static void continue_after_allocation(struct allocating_vio *allocating_vio)
 {
 	struct vio *vio = allocating_vio_as_vio(allocating_vio);
-	struct vdo_completion *completion = vioAsCompletion(vio);
+	struct vdo_completion *completion = vio_as_completion(vio);
 	if (allocating_vio->allocation == ZERO_BLOCK) {
 		completion->requeue = true;
 		set_completion_result(completion, VDO_NO_SPACE);
-		vioDoneCallback(completion);
+		vio_done_callback(completion);
 		return;
 	}
 
@@ -572,7 +572,7 @@ static void launch_compressed_write(struct packer *packer,
 	}
 
 	struct vio *vio = allocating_vio_as_vio(bin->writer);
-	reset_completion(vioAsCompletion(vio));
+	reset_completion(vio_as_completion(vio));
 	vio->callback = complete_output_bin;
 	vio->priority = VIO_PRIORITY_COMPRESSED_DATA;
 	allocate_data_block(bin->writer, packer->selector,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#30 $
  */
 
 #ifndef DATA_VIO_H
@@ -314,7 +314,7 @@ static inline struct vio *data_vio_as_vio(struct data_vio *data_vio)
  **/
 static inline struct data_vio *as_data_vio(struct vdo_completion *completion)
 {
-	return vio_as_data_vio(asVIO(completion));
+	return vio_as_data_vio(as_vio(completion));
 }
 
 /**
@@ -365,7 +365,7 @@ static inline struct data_vio *waiter_as_data_vio(struct waiter *waiter)
  **/
 static inline bool is_read_data_vio(struct data_vio *data_vio)
 {
-	return isReadVIO(data_vio_as_vio(data_vio));
+	return is_read_vio(data_vio_as_vio(data_vio));
 }
 
 /**
@@ -375,7 +375,7 @@ static inline bool is_read_data_vio(struct data_vio *data_vio)
  **/
 static inline bool is_write_data_vio(struct data_vio *data_vio)
 {
-	return isWriteVIO(data_vio_as_vio(data_vio));
+	return is_write_vio(data_vio_as_vio(data_vio));
 }
 
 /**
@@ -387,7 +387,7 @@ static inline bool is_write_data_vio(struct data_vio *data_vio)
  **/
 static inline bool is_compressed_write_data_vio(struct data_vio *data_vio)
 {
-	return isCompressedWriteVIO(data_vio_as_vio(data_vio));
+	return is_compressed_write_vio(data_vio_as_vio(data_vio));
 }
 
 /**
@@ -534,7 +534,7 @@ const char *get_operation_name(struct data_vio *data_vio)
 static inline void data_vio_add_trace_record(struct data_vio *data_vio,
 					     TraceLocation location)
 {
-	vioAddTraceRecord(data_vio_as_vio(data_vio), location);
+	vio_add_trace_record(data_vio_as_vio(data_vio), location);
 }
 
 /**

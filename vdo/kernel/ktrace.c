@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#14 $
  */
 
 #include "ktrace.h"
@@ -165,7 +165,7 @@ void log_kvio_trace(struct kvio *kvio)
 
 		if (is_metadata(kvio)) {
 			logInfo("finishing kvio %s meta @%" PRIptr " %s",
-				(isWriteVIO(kvio->vio) ? "read" : "write"),
+				(is_write_vio(kvio->vio) ? "read" : "write"),
 				kvio, trace_logging_state.buffer);
 		} else if (is_compressed_writer(kvio)) {
 			logInfo("finishing kvio write comp @%" PRIptr " %s",
@@ -173,7 +173,7 @@ void log_kvio_trace(struct kvio *kvio)
 		} else {
 			const char *dupe_label = "";
 
-			if (isWriteVIO(kvio->vio)) {
+			if (is_write_vio(kvio->vio)) {
 				struct data_vio *data_vio
 				  = vio_as_data_vio(kvio->vio);
 				if (is_trim_data_vio(data_vio)) {
@@ -188,7 +188,7 @@ void log_kvio_trace(struct kvio *kvio)
 			}
 
 			logInfo("finishing kvio %s data %s@%" PRIptr " %.*s",
-				(isWriteVIO(kvio->vio) ? "read" : "write"),
+				(is_write_vio(kvio->vio) ? "read" : "write"),
 				dupe_label,
 				kvio,
 				TRACE_LOG_MAX,

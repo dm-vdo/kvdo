@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#42 $
  */
 
 /*
@@ -568,7 +568,7 @@ void enqueue_kvdo_work(struct kvdo *kvdo, struct kvdo_work_item *item,
 void enqueue_kvio(struct kvio *kvio, KvdoWorkFunction work,
 		  void *stats_function, unsigned int action)
 {
-	ThreadID thread_id = vioAsCompletion(kvio->vio)->callbackThreadID;
+	ThreadID thread_id = vio_as_completion(kvio->vio)->callbackThreadID;
 
 	BUG_ON(thread_id >= kvio->layer->kvdo.initialized_thread_count);
 	launch_kvio(kvio,
@@ -604,8 +604,8 @@ void kvdo_enqueue(Enqueueable *enqueueable)
 	}
 
 	if (enqueueable->completion->type == VIO_COMPLETION) {
-		vioAddTraceRecord(asVIO(enqueueable->completion),
-				  THIS_LOCATION("$F($cb)"));
+		vio_add_trace_record(as_vio(enqueueable->completion),
+				     THIS_LOCATION("$F($cb)"));
 	}
 	setup_work_item(&kvdo_enqueueable->work_item, kvdo_enqueue_work,
 			(KvdoWorkFunction) enqueueable->completion->callback,

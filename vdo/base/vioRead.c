@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioRead.c#13 $
  */
 
 #include "vioRead.h"
@@ -65,9 +65,10 @@ static void read_block(struct vdo_completion *completion)
 	}
 
 	struct data_vio *data_vio = as_data_vio(completion);
-	struct vio      *vio     = asVIO(completion);
+	struct vio      *vio      = as_vio(completion);
 	completion->callback =
-		(isReadVIO(vio) ? complete_data_vio : modify_for_partial_write);
+		(is_read_vio(vio) ? complete_data_vio
+				  : modify_for_partial_write);
 
 	if (data_vio->mapped.pbn == ZERO_BLOCK) {
 		zeroDataVIO(data_vio);
@@ -123,7 +124,7 @@ static void release_logical_lock(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	assert_in_logical_zone(data_vio);
 	release_logical_block_lock(data_vio);
-	vioDoneCallback(completion);
+	vio_done_callback(completion);
 }
 
 /**

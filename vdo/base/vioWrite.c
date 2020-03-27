@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioWrite.c#33 $
  */
 
 /*
@@ -296,7 +296,7 @@ static void finish_cleanup(struct data_vio *data_vio)
 			"complete data_vio has no allocation lock");
 	ASSERT_LOG_ONLY(data_vio->hashLock == NULL,
 			"complete data_vio has no hash lock");
-	vioDoneCallback(data_vio_as_completion(data_vio));
+	vio_done_callback(data_vio_as_completion(data_vio));
 }
 
 /**
@@ -1162,7 +1162,7 @@ continue_write_after_allocation(struct allocating_vio *allocating_vio)
 	// switch.
 	set_allocated_zone_callback(data_vio, prepare_for_dedupe,
 				    THIS_LOCATION(NULL));
-	if (vioRequiresFlushAfter(allocating_vio_as_vio(allocating_vio))) {
+	if (vio_requires_flush_after(allocating_vio_as_vio(allocating_vio))) {
 		invoke_callback(data_vio_as_completion(data_vio));
 		return;
 	}

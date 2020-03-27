@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#42 $
  */
 
 #include "slabJournalInternals.h"
@@ -434,7 +434,7 @@ static void flush_for_reaping(struct waiter *waiter, void *vio_context)
 
 	entry->parent = journal;
 	vio->completion.callbackThreadID = journal->slab->allocator->thread_id;
-	launchFlush(vio, complete_reaping, handle_flush_error);
+	launch_flush(vio, complete_reaping, handle_flush_error);
 }
 
 /**
@@ -731,8 +731,8 @@ static void write_slab_journal_block(struct waiter *waiter, void *vio_context)
 	 * updated to refer to it. The slab summary update does a flush which is
 	 * sufficient to protect us from VDO-2331.
 	 */
-	launchWriteMetadataVIO(entry->vio, block_number, complete_write,
-			       complete_write);
+	launch_write_metadata_vio(entry->vio, block_number, complete_write,
+				  complete_write);
 
 	// Since the write is submitted, the tail block structure can be reused.
 	journal->tail++;
@@ -1333,10 +1333,10 @@ static void read_slab_journal_tail(struct waiter *waiter, void *vio_context)
 		((last_commit_point == 0) ? (TailBlockOffset)(journal->size - 1) :
 		 (last_commit_point - 1));
 	entry->vio->completion.callbackThreadID = slab->allocator->thread_id;
-	launchReadMetadataVIO(entry->vio,
-			      slab->journal_origin + tail_block,
-			      set_decoded_state,
-			      finish_decoding_journal);
+	launch_read_metadata_vio(entry->vio,
+				 slab->journal_origin + tail_block,
+				 set_decoded_state,
+				 finish_decoding_journal);
 }
 
 /**********************************************************************/

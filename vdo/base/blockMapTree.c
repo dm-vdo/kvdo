@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockMapTree.c#55 $
  */
 
 #include "blockMapTree.h"
@@ -92,8 +92,8 @@ __attribute__((warn_unused_result)) static int
 make_block_map_vios(PhysicalLayer *layer, void *parent, void *buffer,
 		     struct vio **vio_ptr)
 {
-	return createVIO(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
-			 VIO_PRIORITY_METADATA, parent, buffer, vio_ptr);
+	return create_vio(layer, VIO_TYPE_BLOCK_MAP_INTERIOR,
+			  VIO_PRIORITY_METADATA, parent, buffer, vio_ptr);
 }
 
 /**********************************************************************/
@@ -505,12 +505,12 @@ static void write_initialized_page(struct vdo_completion *completion)
 	 */
 	struct block_map_page *page = (struct block_map_page *) entry->buffer;
 	mark_block_map_page_initialized(page, true);
-	launchWriteMetadataVIOWithFlush(entry->vio,
-					get_block_map_page_pbn(page),
-					finish_page_write,
-					handle_write_error,
-					(zone->flusher == tree_page),
-					false);
+	launch_write_metadata_vio_with_flush(entry->vio,
+					     get_block_map_page_pbn(page),
+					     finish_page_write,
+					     handle_write_error,
+					     (zone->flusher == tree_page),
+					     false);
 }
 
 /**
@@ -536,7 +536,7 @@ static void write_page(struct tree_page *tree_page,
 	entry->parent = tree_page;
 	memcpy(entry->buffer, tree_page->page_buffer, VDO_BLOCK_SIZE);
 
-	struct vdo_completion *completion = vioAsCompletion(entry->vio);
+	struct vdo_completion *completion = vio_as_completion(entry->vio);
 	completion->callbackThreadID = zone->map_zone->thread_id;
 
 	tree_page->writing = true;
@@ -552,8 +552,8 @@ static void write_page(struct tree_page *tree_page,
 		return;
 	}
 
-	launchWriteMetadataVIO(entry->vio, get_block_map_page_pbn(page),
-			       write_initialized_page, handle_write_error);
+	launch_write_metadata_vio(entry->vio, get_block_map_page_pbn(page),
+				  write_initialized_page, handle_write_error);
 }
 
 /**
@@ -855,10 +855,10 @@ static void load_page(struct waiter *waiter, void *context)
 		get_block_map_for_zone(data_vio->logical.zone)->thread_id;
 
 	struct tree_lock *lock = &data_vio->treeLock;
-	launchReadMetadataVIO(entry->vio,
-			      lock->treeSlots[lock->height - 1].blockMapSlot.pbn,
-			      finish_block_map_page_load,
-			      handle_io_error);
+	launch_read_metadata_vio(entry->vio,
+				 lock->treeSlots[lock->height - 1].blockMapSlot.pbn,
+				 finish_block_map_page_load,
+				 handle_io_error);
 }
 
 /**

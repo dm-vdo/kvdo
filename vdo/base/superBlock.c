@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/superBlock.c#14 $
  */
 
 #include "superBlock.h"
@@ -122,9 +122,10 @@ allocate_super_block(PhysicalLayer *layer,
 		return VDO_SUCCESS;
 	}
 
-	return createVIO(layer, VIO_TYPE_SUPER_BLOCK, VIO_PRIORITY_METADATA,
-			 super_block, (char *) super_block->encoded_super_block,
-			 &super_block->vio);
+	return create_vio(layer, VIO_TYPE_SUPER_BLOCK, VIO_PRIORITY_METADATA,
+			  super_block,
+			  (char *) super_block->encoded_super_block,
+			  &super_block->vio);
 }
 
 /**********************************************************************/
@@ -154,7 +155,7 @@ void free_super_block(struct vdo_super_block **super_block_ptr)
 	struct vdo_super_block *super_block = *super_block_ptr;
 	freeBuffer(&super_block->block_buffer);
 	freeBuffer(&super_block->component_buffer);
-	freeVIO(&super_block->vio);
+	free_vio(&super_block->vio);
 	FREE(super_block->encoded_super_block);
 	FREE(super_block);
 	*super_block_ptr = NULL;
@@ -286,11 +287,11 @@ void save_super_block_async(struct vdo_super_block *super_block,
 
 	super_block->parent = parent;
 	super_block->vio->completion.callbackThreadID = parent->callbackThreadID;
-	launchWriteMetadataVIOWithFlush(super_block->vio,
-					super_block_offset,
-					finish_super_block_parent,
-					handle_save_error,
-					true, true);
+	launch_write_metadata_vio_with_flush(super_block->vio,
+					     super_block_offset,
+					     finish_super_block_parent,
+					     handle_save_error,
+					     true, true);
 }
 
 /**
@@ -437,10 +438,10 @@ void load_super_block_async(struct vdo_completion *parent,
 
 	super_block->parent = parent;
 	super_block->vio->completion.callbackThreadID = parent->callbackThreadID;
-	launchReadMetadataVIO(super_block->vio,
-			      super_block_offset,
-			      finish_reading_super_block,
-			      finish_super_block_parent);
+	launch_read_metadata_vio(super_block->vio,
+				 super_block_offset,
+				 finish_reading_super_block,
+				 finish_super_block_parent);
 }
 
 /**********************************************************************/

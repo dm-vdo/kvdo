@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#57 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#58 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -170,12 +170,12 @@ int make_allocator_pool_vios(PhysicalLayer *layer,
 			     void *buffer,
 			     struct vio **vio_ptr)
 {
-	return createVIO(layer,
-			 VIO_TYPE_SLAB_JOURNAL,
-			 VIO_PRIORITY_METADATA,
-			 parent,
-			 buffer,
-			 vio_ptr);
+	return create_vio(layer,
+			  VIO_TYPE_SLAB_JOURNAL,
+			  VIO_PRIORITY_METADATA,
+			  parent,
+			  buffer,
+			  vio_ptr);
 }
 
 /**
@@ -193,7 +193,7 @@ static int allocate_components(struct block_allocator *allocator,
 			       BlockCount vio_pool_size)
 {
 	/*
-	 * If createVIO is NULL, the block allocator is only being used to
+	 * If create_vio is NULL, the block allocator is only being used to
 	 * format or audit the VDO. These only require the SuperBlock component,
 	 * so we can just skip allocating all the memory needed for runtime
 	 * components.

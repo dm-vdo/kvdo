@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabSummary.c#29 $
  */
 
 #include "slabSummary.h"
@@ -132,9 +132,10 @@ initialize_slab_summary_block(PhysicalLayer *layer,
 		return result;
 	}
 
-	result = createVIO(layer, VIO_TYPE_SLAB_SUMMARY, VIO_PRIORITY_METADATA,
-			   slab_summary_block, slab_summary_block->outgoing_entries,
-			   &slab_summary_block->vio);
+	result = create_vio(layer, VIO_TYPE_SLAB_SUMMARY, VIO_PRIORITY_METADATA,
+			    slab_summary_block,
+			    slab_summary_block->outgoing_entries,
+			    &slab_summary_block->vio);
 	if (result != VDO_SUCCESS) {
 		return result;
 	}
@@ -176,7 +177,7 @@ static int make_slab_summary_zone(struct slab_summary *summary,
 	summary_zone->entries = entries;
 
 	if (layer->createMetadataVIO == NULL) {
-		// Blocks are only used for writing, and without a createVIO()
+		// Blocks are only used for writing, and without a create_vio()
 		// call, we'll never be writing anything.
 		return VDO_SUCCESS;
 	}
@@ -291,7 +292,7 @@ void free_slab_summary(struct slab_summary **slab_summary_ptr)
 		if (summary_zone != NULL) {
 			BlockCount i;
 			for (i = 0; i < summary->blocks_per_zone; i++) {
-				freeVIO(&summary_zone->summary_blocks[i].vio);
+				free_vio(&summary_zone->summary_blocks[i].vio);
 				FREE(summary_zone->summary_blocks[i]
 					     .outgoing_entries);
 			}
@@ -422,8 +423,8 @@ static void launch_write(struct slab_summary_block *block)
 	PhysicalBlockNumber pbn =
 		(summary->origin + (summary->blocks_per_zone * zone->zone_number)
 		 + block->index);
-	launchWriteMetadataVIOWithFlush(block->vio, pbn, finish_update,
-					handle_write_error, true, false);
+	launch_write_metadata_vio_with_flush(block->vio, pbn, finish_update,
+					     handle_write_error, true, false);
 }
 
 /**

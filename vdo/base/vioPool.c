@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vioPool.c#12 $
  */
 
 #include "vioPool.h"
@@ -118,7 +118,7 @@ void free_vio_pool(struct vio_pool **pool_ptr)
 	struct vio_pool_entry *entry;
 	while ((entry = as_vio_pool_entry(chopRingNode(&pool->available)))
 	       != NULL) {
-		freeVIO(&entry->vio);
+		free_vio(&entry->vio);
 	}
 
 	// Make sure every vio_pool_entry has been removed.

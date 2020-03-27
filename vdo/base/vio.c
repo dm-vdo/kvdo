@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#17 $
  */
 
 #include "vio.h"
@@ -29,56 +29,56 @@
 #include <linux/ratelimit.h>
 
 /**********************************************************************/
-void freeVIO(struct vio **vioPtr)
+void free_vio(struct vio **vio_ptr)
 {
-	struct vio *vio = *vioPtr;
+	struct vio *vio = *vio_ptr;
 	if (vio == NULL) {
 		return;
 	}
 
-	destroy_vio(vioPtr);
+	destroy_vio(vio_ptr);
 }
 
 /**********************************************************************/
-void initializeVIO(struct vio *vio,
-		   VIOType type,
-		   VIOPriority priority,
-		   struct vdo_completion *parent,
-		   struct vdo *vdo,
-		   PhysicalLayer *layer)
+void initialize_vio(struct vio *vio,
+		    VIOType type,
+		    VIOPriority priority,
+		    struct vdo_completion *parent,
+		    struct vdo *vdo,
+		    PhysicalLayer *layer)
 {
 	vio->vdo = vdo;
 	vio->type = type;
 	vio->priority = priority;
 
-	struct vdo_completion *completion = vioAsCompletion(vio);
+	struct vdo_completion *completion = vio_as_completion(vio);
 	initialize_completion(completion, VIO_COMPLETION, layer);
 	completion->parent = parent;
 }
 
 /**********************************************************************/
-void vioDoneCallback(struct vdo_completion *completion)
+void vio_done_callback(struct vdo_completion *completion)
 {
-	struct vio *vio = asVIO(completion);
+	struct vio *vio = as_vio(completion);
 	completion->callback = vio->callback;
-	completion->errorHandler = vio->errorHandler;
+	completion->errorHandler = vio->error_handler;
 	complete_completion(completion);
 }
 
 /**********************************************************************/
-const char *getVIOReadWriteFlavor(const struct vio *vio)
+const char *get_vio_read_write_flavor(const struct vio *vio)
 {
-	if (isReadVIO(vio)) {
+	if (is_read_vio(vio)) {
 		return "read";
 	}
-	return (isWriteVIO(vio) ? "write" : "read-modify-write");
+	return (is_write_vio(vio) ? "write" : "read-modify-write");
 }
 
 /**********************************************************************/
-void updateVIOErrorStats(struct vio *vio, const char *format, ...)
+void update_vio_error_stats(struct vio *vio, const char *format, ...)
 {
 	int priority;
-	int result = vioAsCompletion(vio)->result;
+	int result = vio_as_completion(vio)->result;
 	switch (result) {
 	case VDO_READ_ONLY:
 		atomicAdd64(&vio->vdo->error_stats.readOnlyErrorCount, 1);
@@ -112,35 +112,33 @@ void updateVIOErrorStats(struct vio *vio, const char *format, ...)
  *
  * @param completion  The vio
  **/
-static void handleMetadataIOError(struct vdo_completion *completion)
+static void handle_metadata_io_error(struct vdo_completion *completion)
 {
-	struct vio *vio = asVIO(completion);
-	updateVIOErrorStats(
-		vio,
-		"Completing %s vio of type %u for physical block %" PRIu64
-		" with error",
-		getVIOReadWriteFlavor(vio),
-		vio->type,
-		vio->physical);
-	vioDoneCallback(completion);
+	struct vio *vio = as_vio(completion);
+	update_vio_error_stats(vio,
+			       "Completing %s vio of type %u for physical block %llu with error",
+			       get_vio_read_write_flavor(vio),
+			       vio->type,
+			       vio->physical);
+	vio_done_callback(completion);
 }
 
 /**********************************************************************/
-void launchMetadataVIO(struct vio *vio,
-		       PhysicalBlockNumber physical,
-		       vdo_action *callback,
-		       vdo_action *errorHandler,
-		       VIOOperation operation)
+void launch_metadata_vio(struct vio *vio,
+			 PhysicalBlockNumber physical,
+			 vdo_action *callback,
+			 vdo_action *error_handler,
+			 VIOOperation operation)
 {
 	vio->operation = operation;
 	vio->physical = physical;
 	vio->callback = callback;
-	vio->errorHandler = errorHandler;
+	vio->error_handler = error_handler;
 
-	struct vdo_completion *completion = vioAsCompletion(vio);
+	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
-	completion->callback = vioDoneCallback;
-	completion->errorHandler = handleMetadataIOError;
+	completion->callback = vio_done_callback;
+	completion->errorHandler = handle_metadata_io_error;
 
 	submitMetadataVIO(vio);
 }
@@ -150,27 +148,26 @@ void launchMetadataVIO(struct vio *vio,
  *
  * @param completion  The flush vio
  **/
-static void handleFlushError(struct vdo_completion *completion)
+static void handle_flush_error(struct vdo_completion *completion)
 {
 	logErrorWithStringError(completion->result, "Error flushing layer");
-	completion->errorHandler = asVIO(completion)->errorHandler;
+	completion->errorHandler = as_vio(completion)->error_handler;
 	complete_completion(completion);
 }
 
 /**********************************************************************/
-void launchFlush(struct vio *vio,
-		 vdo_action *callback,
-		 vdo_action *errorHandler)
+void launch_flush(struct vio *vio,
+		  vdo_action *callback,
+		  vdo_action *error_handler)
 {
-	ASSERT_LOG_ONLY(
-		get_write_policy(vio->vdo) == WRITE_POLICY_ASYNC,
-		"pure flushes should not currently be issued in sync mode");
+	ASSERT_LOG_ONLY(get_write_policy(vio->vdo) == WRITE_POLICY_ASYNC,
+			"pure flushes should not currently be issued in sync mode");
 
-	struct vdo_completion *completion = vioAsCompletion(vio);
+	struct vdo_completion *completion = vio_as_completion(vio);
 	reset_completion(completion);
 	completion->callback = callback;
-	completion->errorHandler = handleFlushError;
-	vio->errorHandler = errorHandler;
+	completion->errorHandler = handle_flush_error;
+	vio->error_handler = error_handler;
 	vio->operation = VIO_FLUSH_BEFORE;
 	vio->physical = ZERO_BLOCK;
 

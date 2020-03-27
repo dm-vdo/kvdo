@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#18 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#19 $
  */
 
 #ifndef KVIO_H
@@ -73,7 +73,7 @@ struct compressed_write_kvio {
  */
 static inline bool is_data(struct kvio *kvio)
 {
-	return isDataVIO(kvio->vio);
+	return is_data_vio(kvio->vio);
 }
 
 /**
@@ -85,7 +85,7 @@ static inline bool is_data(struct kvio *kvio)
  */
 static inline bool is_compressed_writer(struct kvio *kvio)
 {
-	return isCompressedWriteVIO(kvio->vio);
+	return is_compressed_write_vio(kvio->vio);
 }
 
 /**
@@ -97,7 +97,7 @@ static inline bool is_compressed_writer(struct kvio *kvio)
  */
 static inline bool is_metadata(struct kvio *kvio)
 {
-	return isMetadataVIO(kvio->vio);
+	return is_metadata_vio(kvio->vio);
 }
 
 /**
@@ -109,7 +109,7 @@ static inline bool is_metadata(struct kvio *kvio)
  **/
 static inline struct metadata_kvio *vio_as_metadata_kvio(struct vio *vio)
 {
-	ASSERT_LOG_ONLY(isMetadataVIO(vio), "vio is a metadata vio");
+	ASSERT_LOG_ONLY(is_metadata_vio(vio), "vio is a metadata vio");
 	return container_of(vio, struct metadata_kvio, vio);
 }
 
@@ -189,7 +189,7 @@ static inline void enqueue_kvio_work(struct kvdo_work_queue *queue,
 static inline void kvio_add_trace_record(struct kvio *kvio,
 					 TraceLocation location)
 {
-	vioAddTraceRecord(kvio->vio, location);
+	vio_add_trace_record(kvio->vio, location);
 }
 
 /**

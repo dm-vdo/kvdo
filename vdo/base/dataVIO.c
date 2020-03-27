@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.c#26 $
  */
 
 #include "dataVIO.h"
@@ -113,12 +113,12 @@ void prepare_data_vio(struct data_vio *data_vio,
 	vio->operation = operation;
 	vio->callback = callback;
 	data_vio->pageCompletion.completion.enqueueable =
-		vioAsCompletion(vio)->enqueueable;
+		vio_as_completion(vio)->enqueueable;
 
 	data_vio->mapped.state = MAPPING_STATE_UNCOMPRESSED;
 	data_vio->newMapped.state =
 		(is_trim ? MAPPING_STATE_UNMAPPED : MAPPING_STATE_UNCOMPRESSED);
-	reset_completion(vioAsCompletion(vio));
+	reset_completion(vio_as_completion(vio));
 	set_logical_callback(data_vio,
 			     attempt_logical_block_lock,
 			     THIS_LOCATION("$F;cb=acquireLogicalBlockLock"));
@@ -130,12 +130,11 @@ void complete_data_vio(struct vdo_completion *completion)
 	struct data_vio *data_vio = as_data_vio(completion);
 	if (completion->result != VDO_SUCCESS) {
 		struct vio *vio = data_vio_as_vio(data_vio);
-		updateVIOErrorStats(vio,
-				    "Completing %s vio for LBN %" PRIu64
-				    " with error after %s",
-				    getVIOReadWriteFlavor(vio),
-				    data_vio->logical.lbn,
-				    get_operation_name(data_vio));
+		update_vio_error_stats(vio,
+				       "Completing %s vio for LBN %llu with error after %s",
+				       get_vio_read_write_flavor(vio),
+				       data_vio->logical.lbn,
+				       get_operation_name(data_vio));
 	}
 
 	data_vio_add_trace_record(data_vio, THIS_LOCATION("$F($io)"));

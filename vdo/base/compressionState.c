@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#11 $
  */
 
 #include "compressionStateInternals.h"
@@ -103,7 +103,7 @@ bool may_compress_data_vio(struct data_vio *data_vio)
 	if (!has_allocation(data_vio) ||
 	    ((get_write_policy(get_vdo_from_data_vio(data_vio)) !=
 	    	WRITE_POLICY_SYNC) &&
-	        vioRequiresFlushAfter(data_vio_as_vio(data_vio))) ||
+	        vio_requires_flush_after(data_vio_as_vio(data_vio))) ||
 	    !get_vdo_compressing(get_vdo_from_data_vio(data_vio))) {
 		/*
 		 * If this VIO didn't get an allocation, the compressed write

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#47 $
  */
 
 #include "recoveryJournal.h"
@@ -486,10 +486,10 @@ int make_recovery_journal(Nonce nonce, PhysicalLayer *layer,
 			return result;
 		}
 
-		result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL,
-				   VIO_PRIORITY_HIGH, journal,
-				   journal->unused_flush_vio_data,
-				   &journal->flush_vio);
+		result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL,
+				    VIO_PRIORITY_HIGH, journal,
+				    journal->unused_flush_vio_data,
+				    &journal->flush_vio);
 		if (result != VDO_SUCCESS) {
 			free_recovery_journal(&journal);
 			return result;
@@ -521,7 +521,7 @@ void free_recovery_journal(struct recovery_journal **journal_ptr)
 	}
 
 	free_lock_counter(&journal->lock_counter);
-	freeVIO(&journal->flush_vio);
+	free_vio(&journal->flush_vio);
 	FREE(journal->unused_flush_vio_data);
 
 	// XXX: eventually, the journal should be constructed in a quiescent
@@ -862,7 +862,7 @@ static void schedule_block_write(struct recovery_journal *journal,
 		return;
 	}
 
-	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if ((layer->getWritePolicy(layer) == WRITE_POLICY_ASYNC)) {
 		/*
 		 * At the end of adding entries, or discovering this partial
@@ -1184,7 +1184,7 @@ static void write_blocks(struct recovery_journal *journal)
 	 * no pending writes.
 	 */
 
-	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if ((layer->getWritePolicy(layer) != WRITE_POLICY_ASYNC)
 	    || (journal->pending_write_count == 0)) {
 		// Write all the full blocks.
@@ -1273,7 +1273,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		return;
 	}
 
-	PhysicalLayer *layer = vioAsCompletion(journal->flush_vio)->layer;
+	PhysicalLayer *layer = vio_as_completion(journal->flush_vio)->layer;
 	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
 		/*
 		 * If the block map head will advance, we must flush any block
@@ -1289,8 +1289,8 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 		 * update flushing itself.
 		 */
 		journal->reaping = true;
-		launchFlush(journal->flush_vio, complete_reaping,
-			    handle_flush_error);
+		launch_flush(journal->flush_vio, complete_reaping,
+			     handle_flush_error);
 		return;
 	}
 

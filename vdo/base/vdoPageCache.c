@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoPageCache.c#27 $
  */
 
 #include "vdoPageCacheInternals.h"
@@ -95,12 +95,12 @@ static int initialize_info(struct vdo_page_cache *cache)
 		info->pbn = NO_PAGE;
 
 		if (cache->layer->createMetadataVIO != NULL) {
-			int result = createVIO(cache->layer,
-					       VIO_TYPE_BLOCK_MAP,
-					       VIO_PRIORITY_METADATA,
-					       info,
-					       get_page_buffer(info),
-					       &info->vio);
+			int result = create_vio(cache->layer,
+						VIO_TYPE_BLOCK_MAP,
+						VIO_PRIORITY_METADATA,
+						info,
+						get_page_buffer(info),
+						&info->vio);
 			if (result != VDO_SUCCESS) {
 				return result;
 			}
@@ -192,7 +192,7 @@ void free_vdo_page_cache(struct vdo_page_cache **cache_ptr)
 		for (info = cache->infos;
 		     info < cache->infos + cache->page_count;
 		     ++info) {
-			freeVIO(&info->vio);
+			free_vio(&info->vio);
 		}
 	}
 
@@ -826,12 +826,13 @@ launch_page_load(struct page_info *info, PhysicalBlockNumber pbn)
 	set_info_state(info, PS_INCOMING);
 	cache->outstanding_reads++;
 	relaxedAdd64(&cache->stats.pagesLoaded, 1);
-	launchReadMetadataVIO(info->vio,
-			      pbn,
-			      (cache->read_hook != NULL) ?
-			       run_read_hook : page_is_loaded,
-			      (cache->rebuilding ?
-			       handle_rebuild_read_error : handle_load_error));
+	launch_read_metadata_vio(info->vio,
+				 pbn,
+				 (cache->read_hook != NULL) ?
+				 run_read_hook : page_is_loaded,
+				 (cache->rebuilding ?
+				  handle_rebuild_read_error
+				  : handle_load_error));
 	return VDO_SUCCESS;
 }
 
@@ -881,7 +882,7 @@ static void save_pages(struct vdo_page_cache *cache)
 	 * the journal persisted already.
 	 */
 	if (layer->getWritePolicy(layer) != WRITE_POLICY_SYNC) {
-		launchFlush(vio, write_pages, handle_flush_error);
+		launch_flush(vio, write_pages, handle_flush_error);
 		return;
 	}
 
@@ -1123,12 +1124,12 @@ static void page_is_written_out(struct vdo_completion *completion)
 		bool rewrite = cache->write_hook(get_page_buffer(info),
 						cache->zone, info->context);
 		if (rewrite) {
-			launchWriteMetadataVIOWithFlush(info->vio,
-							info->pbn,
-							page_is_written_out,
-							handle_page_write_error,
-							true,
-							false);
+			launch_write_metadata_vio_with_flush(info->vio,
+							     info->pbn,
+							     page_is_written_out,
+							     handle_page_write_error,
+							     true,
+							     false);
 			return;
 		}
 	}
@@ -1189,10 +1190,10 @@ static void write_pages(struct vdo_completion *flush_completion)
 			continue;
 		}
 		relaxedAdd64(&info->cache->stats.pagesSaved, 1);
-		launchWriteMetadataVIO(info->vio,
-				       info->pbn,
-				       page_is_written_out,
-				       handle_page_write_error);
+		launch_write_metadata_vio(info->vio,
+					  info->pbn,
+					  page_is_written_out,
+					  handle_page_write_error);
 	}
 
 	if (has_unflushed_pages) {

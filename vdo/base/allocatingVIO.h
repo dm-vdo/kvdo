@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#16 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -107,7 +107,7 @@ allocating_vio_as_vio(struct allocating_vio *allocating_vio)
 static inline struct allocating_vio *
 as_allocating_vio(struct vdo_completion *completion)
 {
-	return vio_as_allocating_vio(asVIO(completion));
+	return vio_as_allocating_vio(as_vio(completion));
 }
 
 /**
@@ -120,7 +120,7 @@ as_allocating_vio(struct vdo_completion *completion)
 static inline struct vdo_completion *
 allocating_vio_as_completion(struct allocating_vio *allocating_vio)
 {
-	return vioAsCompletion(allocating_vio_as_vio(allocating_vio));
+	return vio_as_completion(allocating_vio_as_vio(allocating_vio));
 }
 
 /**
@@ -164,7 +164,7 @@ waiter_as_allocating_vio(struct waiter *waiter)
 static inline bool
 is_compressed_write_allocating_vio(struct allocating_vio *allocating_vio)
 {
-	return isCompressedWriteVIO(allocating_vio_as_vio(allocating_vio));
+	return is_compressed_write_vio(allocating_vio_as_vio(allocating_vio));
 }
 
 /**
@@ -177,7 +177,7 @@ static inline void
 allocating_vio_add_trace_record(struct allocating_vio *allocating_vio,
 				TraceLocation location)
 {
-	vioAddTraceRecord(allocating_vio_as_vio(allocating_vio), location);
+	vio_add_trace_record(allocating_vio_as_vio(allocating_vio), location);
 }
 
 /**

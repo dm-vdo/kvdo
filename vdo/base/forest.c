@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#26 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/forest.c#27 $
  */
 
 #include "forest.h"
@@ -490,10 +490,10 @@ static void traverse(struct cursor *cursor)
 			nextLevel->page_index = entry_index;
 			nextLevel->slot = 0;
 			level->slot++;
-			launchReadMetadataVIO(cursor->vio_pool_entry->vio,
-					      location.pbn,
-					      finishTraversalLoad,
-					      continueTraversal);
+			launch_read_metadata_vio(cursor->vio_pool_entry->vio,
+						 location.pbn,
+						 finishTraversalLoad,
+						 continueTraversal);
 			return;
 		}
 	}
@@ -515,7 +515,7 @@ static void launch_cursor(struct waiter *waiter, void *context)
 	struct cursor *cursor = container_of(waiter, struct cursor, waiter);
 	cursor->vio_pool_entry = (struct vio_pool_entry *) context;
 	cursor->vio_pool_entry->parent = cursor;
-	vioAsCompletion(cursor->vio_pool_entry->vio)->callbackThreadID =
+	vio_as_completion(cursor->vio_pool_entry->vio)->callbackThreadID =
 		cursor->parent->zone->map_zone->thread_id;
 	traverse(cursor);
 }

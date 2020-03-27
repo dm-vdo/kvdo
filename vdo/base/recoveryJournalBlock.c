@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalBlock.c#26 $
  */
 
 #include "recoveryJournalBlock.h"
@@ -60,8 +60,8 @@ int make_recovery_block(PhysicalLayer *layer, struct recovery_journal *journal,
 		return result;
 	}
 
-	result = createVIO(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
-			   block, block->block, &block->vio);
+	result = create_vio(layer, VIO_TYPE_RECOVERY_JOURNAL, VIO_PRIORITY_HIGH,
+			    block, block->block, &block->vio);
 	if (result != VDO_SUCCESS) {
 		free_recovery_block(&block);
 		return result;
@@ -84,7 +84,7 @@ void free_recovery_block(struct recovery_journal_block **block_ptr)
 	}
 
 	FREE(block->block);
-	freeVIO(&block->vio);
+	free_vio(&block->vio);
 	FREE(block);
 	*block_ptr = NULL;
 }
@@ -216,7 +216,7 @@ add_queued_recovery_entries(struct recovery_journal_block *block)
 			 */
 			block->has_fua_entry =
 				(block->has_fua_entry ||
-				  vioRequiresFlushAfter(data_vio_as_vio(data_vio)));
+				  vio_requires_flush_after(data_vio_as_vio(data_vio)));
 		}
 
 		// Compose and encode the entry.
@@ -332,7 +332,7 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	 * In sync mode, and for FUA, we also need to make sure that the write
 	 * we are doing is stable, so we issue the write with FUA.
 	 */
-	PhysicalLayer *layer = vioAsCompletion(block->vio)->layer;
+	PhysicalLayer *layer = vio_as_completion(block->vio)->layer;
 	bool fua = (block->has_fua_entry
  		    || (layer->getWritePolicy(layer) == WRITE_POLICY_SYNC));
 	bool flush = (block->has_fua_entry
@@ -341,8 +341,8 @@ int commit_recovery_block(struct recovery_journal_block *block,
 	       	      || block->has_partial_write_entry);
 	block->has_fua_entry = false;
 	block->has_partial_write_entry = false;
-	launchWriteMetadataVIOWithFlush(block->vio, block_pbn, callback,
-					error_handler, flush, fua);
+	launch_write_metadata_vio_with_flush(block->vio, block_pbn, callback,
+					     error_handler, flush, fua);
 
 	return VDO_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#53 $
  */
 
 #include "dataKVIO.h"
@@ -251,7 +251,7 @@ static void copy_read_block_data(struct kvdo_work_item *work_item)
 
 	// For a read-modify-write, copy the data into the data_block buffer so
 	// it will be set up for the write phase.
-	if (isReadModifyWriteVIO(data_kvio->kvio.vio)) {
+	if (is_read_modify_write_vio(data_kvio->kvio.vio)) {
 		bio_copy_data_out(get_bio_from_data_kvio(data_kvio),
 				  data_kvio->read_block.data);
 		kvdo_enqueue_data_vio_callback(data_kvio);
@@ -453,7 +453,7 @@ void kvdo_read_block(struct data_vio *data_vio,
 /**********************************************************************/
 void readDataVIO(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(!isWriteVIO(data_vio_as_vio(data_vio)),
+	ASSERT_LOG_ONLY(!is_write_vio(data_vio_as_vio(data_vio)),
 			"operation set correctly for data read");
 	data_vio_add_trace_record(data_vio, THIS_LOCATION("$F;io=readData"));
 
@@ -520,7 +520,7 @@ void acknowledgeDataVIO(struct data_vio *data_vio)
 /**********************************************************************/
 void writeDataVIO(struct data_vio *data_vio)
 {
-	ASSERT_LOG_ONLY(isWriteVIO(data_vio_as_vio(data_vio)),
+	ASSERT_LOG_ONLY(is_write_vio(data_vio_as_vio(data_vio)),
 			"kvdoWriteDataVIO() called on write data_vio");
 	data_vio_add_trace_record(data_vio,
 			          THIS_LOCATION("$F;io=writeData;j=normal"));
@@ -846,7 +846,7 @@ static int kvdo_create_kvio_from_bio(struct kernel_layer *layer,
 /**********************************************************************/
 static void launchDataKVIOWork(struct kvdo_work_item *item)
 {
-	run_callback(vioAsCompletion(work_item_as_kvio(item)->vio));
+	run_callback(vio_as_completion(work_item_as_kvio(item)->vio));
 }
 
 /**
@@ -977,7 +977,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 		get_bio_sector(bio) - layer->starting_sector_offset);
 	prepare_data_vio(&data_kvio->data_vio, lbn, operation, is_trim, callback);
 	enqueue_kvio(kvio, launchDataKVIOWork,
-		     vioAsCompletion(kvio->vio)->callback,
+		     vio_as_completion(kvio->vio)->callback,
 		     REQ_Q_ACTION_MAP_BIO);
 	return VDO_SUCCESS;
 }
