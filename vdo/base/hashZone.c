@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#15 $
  */
 
 #include "hashZone.h"
@@ -176,10 +176,11 @@ ThreadID get_hash_zone_thread_id(const struct hash_zone *zone)
 }
 
 /**********************************************************************/
-HashLockStatistics get_hash_zone_statistics(const struct hash_zone *zone)
+struct hash_lock_statistics
+get_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
-	return (HashLockStatistics) {
+	return (struct hash_lock_statistics) {
 		.dedupeAdviceValid = relaxedLoad64(&atoms->dedupeAdviceValid),
 		.dedupeAdviceStale = relaxedLoad64(&atoms->dedupeAdviceStale),
 		.concurrentDataMatches =

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#49 $
  */
 
 /*
@@ -815,15 +815,16 @@ static size_t get_block_map_cache_size(const struct vdo *vdo)
  *
  * @return The sum of the hash lock statistics from all hash zones
  **/
-static HashLockStatistics get_hash_lock_statistics(const struct vdo *vdo)
+static struct hash_lock_statistics
+get_hash_lock_statistics(const struct vdo *vdo)
 {
-	HashLockStatistics totals;
+	struct hash_lock_statistics totals;
 	memset(&totals, 0, sizeof(totals));
 
 	const struct thread_config *thread_config = get_thread_config(vdo);
 	ZoneCount zone;
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
-		HashLockStatistics stats =
+		struct hash_lock_statistics stats =
 			get_hash_zone_statistics(vdo->hash_zones[zone]);
 		totals.dedupeAdviceValid += stats.dedupeAdviceValid;
 		totals.dedupeAdviceStale += stats.dedupeAdviceStale;

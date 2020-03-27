@@ -145,7 +145,7 @@ struct block_map_statistics {
 };
 
 /** The dedupe statistics from hash locks */
-typedef struct {
+struct hash_lock_statistics {
   /** Number of times the UDS advice proved correct */
   uint64_t dedupeAdviceValid;
   /** Number of times the UDS advice proved incorrect */
@@ -154,7 +154,7 @@ typedef struct {
   uint64_t concurrentDataMatches;
   /** Number of writes whose hash collided with an in-flight write */
   uint64_t concurrentHashCollisions;
-} HashLockStatistics;
+};
 
 /** Counts of error conditions in VDO. */
 typedef struct {
@@ -211,7 +211,7 @@ struct vdoStatistics {
   /** The statistics for the block map */
   struct block_map_statistics blockMap;
   /** The dedupe statistics from hash locks */
-  HashLockStatistics hashLock;
+  struct hash_lock_statistics hashLock;
   /** Counts of error conditions */
   ErrorStatistics errors;
 };

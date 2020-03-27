@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.h#5 $
  */
 
 #ifndef HASH_ZONE_H
@@ -74,7 +74,8 @@ ThreadID get_hash_zone_thread_id(const struct hash_zone *zone)
  *
  * @return A copy of the current statistics for the hash zone
  **/
-HashLockStatistics get_hash_zone_statistics(const struct hash_zone *zone)
+struct hash_lock_statistics
+get_hash_zone_statistics(const struct hash_zone *zone)
 	__attribute__((warn_unused_result));
 
 /**

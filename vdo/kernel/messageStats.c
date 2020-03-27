@@ -645,11 +645,11 @@ int write_block_map_statistics(char *prefix,
 }
 
 /**********************************************************************/
-int write_HashLockStatistics(char *prefix,
-                             HashLockStatistics *stats,
-                             char *suffix,
-                             char **buf,
-                             unsigned int *maxlen)
+int write_hash_lock_statistics(char *prefix,
+                               struct hash_lock_statistics *stats,
+                               char *suffix,
+                               char **buf,
+                               unsigned int *maxlen)
 {
        int result = write_string(prefix, "{ ", NULL, buf, maxlen);
        if (result != VDO_SUCCESS) {
@@ -951,11 +951,11 @@ int write_vdoStatistics(char *prefix,
               return result;
        }
        /** The dedupe statistics from hash locks */
-       result = write_HashLockStatistics("hashLock : ",
-                                         &stats->hashLock,
-                                         ", ",
-                                         buf,
-                                         maxlen);
+       result = write_hash_lock_statistics("hashLock : ",
+                                           &stats->hashLock,
+                                           ", ",
+                                           buf,
+                                           maxlen);
        if (result != VDO_SUCCESS) {
               return result;
        }
