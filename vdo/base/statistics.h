@@ -67,11 +67,11 @@ struct recovery_journal_statistics {
 /** The statistics for the compressed block packer. */
 struct packer_statistics {
   /** Number of compressed data items written since startup */
-  uint64_t compressedFragmentsWritten;
+  uint64_t compressed_fragments_written;
   /** Number of blocks containing compressed items written since startup */
-  uint64_t compressedBlocksWritten;
+  uint64_t compressed_blocks_written;
   /** Number of VIOs that are pending in the packer */
-  uint64_t compressedFragmentsInPacker;
+  uint64_t compressed_fragments_in_packer;
 };
 
 /** The statistics for the slab journals. */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packer.c#41 $
  */
 
 #include "packerInternals.h"
@@ -341,11 +341,11 @@ struct packer_statistics get_packer_statistics(const struct packer *packer)
 	 * sufficient.
 	 */
 	return (struct packer_statistics) {
-		.compressedFragmentsWritten =
+		.compressed_fragments_written =
 			relaxedLoad64(&packer->fragments_written),
-		.compressedBlocksWritten =
+		.compressed_blocks_written =
 			relaxedLoad64(&packer->blocks_written),
-		.compressedFragmentsInPacker =
+		.compressed_fragments_in_packer =
 			relaxedLoad64(&packer->fragments_pending),
 	};
 }

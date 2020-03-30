@@ -297,7 +297,7 @@ int write_packer_statistics(char *prefix,
        }
        /** Number of compressed data items written since startup */
        result = write_uint64_t("compressedFragmentsWritten : ",
-                               stats->compressedFragmentsWritten,
+                               stats->compressed_fragments_written,
                                ", ",
                                buf,
                                maxlen);
@@ -306,7 +306,7 @@ int write_packer_statistics(char *prefix,
        }
        /** Number of blocks containing compressed items written since startup */
        result = write_uint64_t("compressedBlocksWritten : ",
-                               stats->compressedBlocksWritten,
+                               stats->compressed_blocks_written,
                                ", ",
                                buf,
                                maxlen);
@@ -315,7 +315,7 @@ int write_packer_statistics(char *prefix,
        }
        /** Number of VIOs that are pending in the packer */
        result = write_uint64_t("compressedFragmentsInPacker : ",
-                               stats->compressedFragmentsInPacker,
+                               stats->compressed_fragments_in_packer,
                                ", ",
                                buf,
                                maxlen);

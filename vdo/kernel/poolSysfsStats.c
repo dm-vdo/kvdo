@@ -280,7 +280,7 @@ static ssize_t pool_stats_packer_compressed_fragments_written_show(struct kernel
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressedFragmentsWritten);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -297,7 +297,7 @@ static ssize_t pool_stats_packer_compressed_blocks_written_show(struct kernel_la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressedBlocksWritten);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -314,7 +314,7 @@ static ssize_t pool_stats_packer_compressed_fragments_in_packer_show(struct kern
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressedFragmentsInPacker);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.packer.compressed_fragments_in_packer);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
