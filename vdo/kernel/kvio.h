@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.h#21 $
  */
 
 #ifndef KVIO_H
@@ -187,7 +187,7 @@ static inline void enqueue_kvio_work(struct kvdo_work_queue *queue,
  * @param location  The source-location descriptor to be recorded
  **/
 static inline void kvio_add_trace_record(struct kvio *kvio,
-					 TraceLocation location)
+					 TraceLocation *location)
 {
 	vio_add_trace_record(kvio->vio, location);
 }

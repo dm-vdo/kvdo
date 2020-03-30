@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#12 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#13 $
  */
 
 #ifndef VIO_H
@@ -167,7 +167,8 @@ void update_vio_error_stats(struct vio *vio, const char *format, ...)
  * @param vio      The vio structure to be updated
  * @param location The source-location descriptor to be recorded
  **/
-static inline void vio_add_trace_record(struct vio *vio, TraceLocation location)
+static inline void vio_add_trace_record(struct vio *vio,
+					TraceLocation *location)
 {
 	if (unlikely(vio->trace != NULL)) {
 		addTraceRecord(vio->trace, location);

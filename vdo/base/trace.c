@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#5 $
  */
 
 #include "trace.h"
@@ -25,7 +25,7 @@
 #include "stringUtils.h"
 #include "timeUtils.h"
 
-TRACE_LOCATION_SECTION TraceLocationRecord baseTraceLocation[] = {
+TRACE_LOCATION_SECTION TraceLocation baseTraceLocation[] = {
 	{
 		.function = "<none>",
 		.line = 0,
@@ -33,7 +33,7 @@ TRACE_LOCATION_SECTION TraceLocationRecord baseTraceLocation[] = {
 };
 
 /**********************************************************************/
-void addTraceRecord(Trace *trace, TraceLocation location)
+void addTraceRecord(Trace *trace, TraceLocation *location)
 {
 	if (trace->used < NUM_TRACE_RECORDS) {
 		TraceRecord *record = &trace->records[trace->used];
@@ -65,7 +65,7 @@ void formatTrace(Trace *trace,
 	char *bufferEnd = buffer + bufferLength - 1;
 	if (trace->used > 0) {
 		TraceRecord *record = &trace->records[0];
-		TraceLocationRecord *location =
+		TraceLocation *location =
 			baseTraceLocation + record->location;
 		snprintf(buf,
 			 bufferEnd - buf,

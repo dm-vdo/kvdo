@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#2 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#3 $
  */
 
 #ifndef TRACE_H
@@ -76,11 +76,11 @@
  *   j=normal,dedupe   kind of journal update being done
  *   js=mapWrite,writeZero,unmap  which step of journaling we're doing
  */
-typedef const struct __attribute__((aligned(16))) traceLocationRecord {
+typedef const struct __attribute__((aligned(16))) traceLocation {
 	const char *function;
 	int line;
 	const char *description;
-} TraceLocationRecord;
+} TraceLocation;
 
 /*
  * With well under 100 locations defined at the moment, even with no
@@ -88,9 +88,6 @@ typedef const struct __attribute__((aligned(16))) traceLocationRecord {
  * only need to support a range of -100..+100.
  */
 typedef int32_t TraceLocationNumber;
-
-/* The type to pass around */
-typedef TraceLocationRecord *TraceLocation;
 
 /*
  * N.B.: This code uses GCC extensions to create static, initialized
@@ -113,13 +110,13 @@ typedef TraceLocationRecord *TraceLocation;
 
 #define TRACE_LOCATION_SECTION __attribute__((section(".kvdo_trace_locations")))
 
-extern TRACE_LOCATION_SECTION TraceLocationRecord baseTraceLocation[];
+extern TRACE_LOCATION_SECTION TraceLocation baseTraceLocation[];
 
 #define TRACE_JOIN2(a, b) a##b
 #define TRACE_JOIN(a, b) TRACE_JOIN2(a, b)
 #define THIS_LOCATION(DESCRIPTION)                                            \
 	__extension__({                                                       \
-		static TRACE_LOCATION_SECTION TraceLocationRecord TRACE_JOIN( \
+		static TRACE_LOCATION_SECTION TraceLocation TRACE_JOIN(       \
 			loc, __LINE__) = {                                    \
 			.function = __func__,                                 \
 			.line = __LINE__,                                     \
@@ -147,7 +144,7 @@ typedef struct trace {
  * @param trace    The trace data to be updated
  * @param location The source-location descriptor to be recorded
  **/
-void addTraceRecord(Trace *trace, TraceLocation location);
+void addTraceRecord(Trace *trace, TraceLocation *location);
 
 /**
  * Format trace data into a string for logging.

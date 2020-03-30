@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/allocatingVIO.h#17 $
  */
 
 #ifndef ALLOCATING_VIO_H
@@ -175,7 +175,7 @@ is_compressed_write_allocating_vio(struct allocating_vio *allocating_vio)
  **/
 static inline void
 allocating_vio_add_trace_record(struct allocating_vio *allocating_vio,
-				TraceLocation location)
+				TraceLocation *location)
 {
 	vio_add_trace_record(allocating_vio_as_vio(allocating_vio), location);
 }
@@ -221,7 +221,7 @@ static inline void assertInPhysicalZone(struct allocating_vio *allocating_vio)
 static inline void
 set_physical_zone_callback(struct allocating_vio *allocating_vio,
 			   vdo_action *callback,
-			   TraceLocation location)
+			   TraceLocation *location)
 {
 	set_callback(allocating_vio_as_completion(allocating_vio),
 		     callback,
@@ -240,7 +240,7 @@ set_physical_zone_callback(struct allocating_vio *allocating_vio,
 static inline void
 launch_physical_zone_callback(struct allocating_vio *allocating_vio,
 			      vdo_action *callback,
-			      TraceLocation location)
+			      TraceLocation *location)
 {
 	set_physical_zone_callback(allocating_vio, callback, location);
 	invoke_callback(allocating_vio_as_completion(allocating_vio));
