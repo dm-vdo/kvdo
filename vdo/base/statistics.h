@@ -55,9 +55,9 @@ struct commit_statistics {
 /** Counters for events in the recovery journal */
 struct recovery_journal_statistics {
   /** Number of times the on-disk journal was full */
-  uint64_t diskFull;
+  uint64_t disk_full;
   /** Number of times the recovery journal requested slab journal commits. */
-  uint64_t slabJournalCommitsRequested;
+  uint64_t slab_journal_commits_requested;
   /** Write/Commit totals for individual journal entries */
   struct commit_statistics entries;
   /** Write/Commit totals for journal blocks */

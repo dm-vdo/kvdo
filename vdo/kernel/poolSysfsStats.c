@@ -382,7 +382,7 @@ static ssize_t pool_stats_journal_disk_full_show(struct kernel_layer *layer, cha
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.diskFull);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.disk_full);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -399,7 +399,7 @@ static ssize_t pool_stats_journal_slab_journal_commits_requested_show(struct ker
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.slabJournalCommitsRequested);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.journal.slab_journal_commits_requested);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

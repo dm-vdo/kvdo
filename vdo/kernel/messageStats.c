@@ -243,7 +243,7 @@ int write_recovery_journal_statistics(char *prefix,
        }
        /** Number of times the on-disk journal was full */
        result = write_uint64_t("diskFull : ",
-                               stats->diskFull,
+                               stats->disk_full,
                                ", ",
                                buf,
                                maxlen);
@@ -252,7 +252,7 @@ int write_recovery_journal_statistics(char *prefix,
        }
        /** Number of times the recovery journal requested slab journal commits. */
        result = write_uint64_t("slabJournalCommitsRequested : ",
-                               stats->slabJournalCommitsRequested,
+                               stats->slab_journal_commits_requested,
                                ", ",
                                buf,
                                maxlen);

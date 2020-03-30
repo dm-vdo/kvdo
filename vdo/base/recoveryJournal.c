@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#48 $
  */
 
 #include "recoveryJournal.h"
@@ -294,7 +294,7 @@ check_slab_journal_commit_threshold(struct recovery_journal *journal)
 {
 	BlockCount current_length = journal->tail - journal->slab_journal_head;
 	if (current_length > journal->slab_journal_commit_threshold) {
-		journal->events.slabJournalCommitsRequested++;
+		journal->events.slab_journal_commits_requested++;
 		commit_oldest_slab_journal_tail_blocks(journal->depot,
 						       journal->slab_journal_head);
 	}
@@ -820,7 +820,7 @@ static bool prepare_to_assign_entry(struct recovery_journal *journal,
 	if ((journal->tail - get_recovery_journal_head(journal)) >
 	    journal->size) {
 		// Cannot use this block since the journal is full.
-		journal->events.diskFull++;
+		journal->events.disk_full++;
 		return false;
 	}
 
@@ -1413,7 +1413,7 @@ void dump_recovery_journal_statistics(const struct recovery_journal *journal)
 		journal->block_map_head, journal->slab_journal_head,
 		journal->last_write_acknowledged, journal->tail,
 		journal->block_map_reap_head, journal->slab_journal_reap_head,
-		stats.diskFull, stats.slabJournalCommitsRequested,
+		stats.disk_full, stats.slab_journal_commits_requested,
 		count_waiters(&journal->increment_waiters),
 		count_waiters(&journal->decrement_waiters));
 	logInfo("  entries: started=%llu written=%" PRIu64
