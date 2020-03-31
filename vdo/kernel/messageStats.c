@@ -405,7 +405,7 @@ int write_slab_summary_statistics(char *prefix,
        }
        /** Number of blocks written */
        result = write_uint64_t("blocksWritten : ",
-                               stats->blocksWritten,
+                               stats->blocks_written,
                                ", ",
                                buf,
                                maxlen);

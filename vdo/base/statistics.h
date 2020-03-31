@@ -91,7 +91,7 @@ struct slab_journal_statistics {
 /** The statistics for the slab summary. */
 struct slab_summary_statistics {
   /** Number of blocks written */
-  uint64_t blocksWritten;
+  uint64_t blocks_written;
 };
 
 /** The statistics for the reference counts. */

@@ -603,7 +603,7 @@ static ssize_t pool_stats_slab_summary_blocks_written_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabSummary.blocksWritten);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabSummary.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
