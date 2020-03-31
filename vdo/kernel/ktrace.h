@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.h#5 $
  */
 
 #ifndef KTRACE_H
@@ -74,7 +74,8 @@ void initialize_trace_logging_once(void);
  *
  * @return VDO_SUCCESS or an error code
  **/
-int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer);
+int alloc_trace_from_pool(struct kernel_layer *layer,
+			  struct trace **trace_pointer);
 
 /**
  * Free a trace buffer
@@ -82,7 +83,7 @@ int alloc_trace_from_pool(struct kernel_layer *layer, Trace **trace_pointer);
  * @param layer  The KernelLayer
  * @param trace  The trace buffer
  **/
-void free_trace_to_pool(struct kernel_layer *layer, Trace *trace);
+void free_trace_to_pool(struct kernel_layer *layer, struct trace *trace);
 
 /**
  * Log the trace at kvio freeing time

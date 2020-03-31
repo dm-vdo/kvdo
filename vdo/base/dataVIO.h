@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#31 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#32 $
  */
 
 #ifndef DATA_VIO_H
@@ -531,8 +531,9 @@ const char *get_operation_name(struct data_vio *data_vio)
  * @param data_vio  The data_vio structure to be updated
  * @param location  The source-location descriptor to be recorded
  **/
-static inline void data_vio_add_trace_record(struct data_vio *data_vio,
-					     TraceLocation *location)
+static inline void
+data_vio_add_trace_record(struct data_vio *data_vio,
+			  const struct trace_location *location)
 {
 	vio_add_trace_record(data_vio_as_vio(data_vio), location);
 }
@@ -547,10 +548,10 @@ static inline void data_vio_add_trace_record(struct data_vio *data_vio,
  *
  * @return VDO_SUCCESS or an error code
  **/
-__attribute__((warn_unused_result))
-static inline int enqueue_data_vio(struct wait_queue *queue,
-	       			   struct data_vio *waiter,
-	       			   TraceLocation *location)
+__attribute__((warn_unused_result)) static inline int
+enqueue_data_vio(struct wait_queue *queue,
+	         struct data_vio *waiter,
+	         const struct trace_location *location)
 {
 	data_vio_add_trace_record(waiter, location);
 	return enqueue_waiter(queue, data_vio_as_waiter(waiter));
@@ -584,9 +585,10 @@ static inline void assert_in_hash_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void set_hash_zone_callback(struct data_vio *data_vio,
-				          vdo_action *callback,
-				          TraceLocation *location)
+static inline void
+set_hash_zone_callback(struct data_vio *data_vio,
+		       vdo_action *callback,
+		       const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -601,9 +603,10 @@ static inline void set_hash_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launch_hash_zone_callback(struct data_vio *data_vio,
-					     vdo_action *callback,
-					     TraceLocation *location)
+static inline void
+launch_hash_zone_callback(struct data_vio *data_vio,
+		          vdo_action *callback,
+		          const struct trace_location *location)
 {
 	set_hash_zone_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));
@@ -636,7 +639,7 @@ static inline void assert_in_logical_zone(struct data_vio *data_vio)
  **/
 static inline void set_logical_callback(struct data_vio *data_vio,
 				        vdo_action *callback,
-				        TraceLocation *location)
+				        const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -651,9 +654,10 @@ static inline void set_logical_callback(struct data_vio *data_vio,
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launch_logical_callback(struct data_vio *data_vio,
-					   vdo_action *callback,
-					   TraceLocation *location)
+static inline void
+launch_logical_callback(struct data_vio *data_vio,
+			vdo_action *callback,
+			const struct trace_location *location)
 {
 	set_logical_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));
@@ -677,9 +681,10 @@ static inline void assert_in_allocated_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void set_allocated_zone_callback(struct data_vio *data_vio,
-					       vdo_action *callback,
-					       TraceLocation *location)
+static inline void
+set_allocated_zone_callback(struct data_vio *data_vio,
+			    vdo_action *callback,
+			    const struct trace_location *location)
 {
 	set_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
 				   callback, location);
@@ -693,9 +698,10 @@ static inline void set_allocated_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launch_allocated_zone_callback(struct data_vio *data_vio,
-					          vdo_action *callback,
-					          TraceLocation *location)
+static inline void
+launch_allocated_zone_callback(struct data_vio *data_vio,
+			       vdo_action *callback,
+			       const struct trace_location *location)
 {
 	launch_physical_zone_callback(data_vio_as_allocating_vio(data_vio),
 				      callback, location);
@@ -727,9 +733,10 @@ static inline void assert_in_duplicate_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void set_duplicate_zone_callback(struct data_vio *data_vio,
-					       vdo_action *callback,
-					       TraceLocation *location)
+static inline void
+set_duplicate_zone_callback(struct data_vio *data_vio,
+			    vdo_action *callback,
+			    const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -745,9 +752,10 @@ static inline void set_duplicate_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launch_duplicate_zone_callback(struct data_vio *data_vio,
-					          vdo_action *callback,
-					          TraceLocation *location)
+static inline void
+launch_duplicate_zone_callback(struct data_vio *data_vio,
+			       vdo_action *callback,
+			       const struct trace_location *location)
 {
 	set_duplicate_zone_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));
@@ -777,9 +785,10 @@ static inline void assert_in_mapped_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void set_mapped_zone_callback(struct data_vio *data_vio,
-					    vdo_action *callback,
-					    TraceLocation *location)
+static inline void
+set_mapped_zone_callback(struct data_vio *data_vio,
+			 vdo_action *callback,
+			 const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -813,9 +822,10 @@ static inline void assert_in_new_mapped_zone(struct data_vio *data_vio)
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void set_new_mapped_zone_callback(struct data_vio *data_vio,
-					        vdo_action *callback,
-					        TraceLocation *location)
+static inline void
+set_new_mapped_zone_callback(struct data_vio *data_vio,
+			     vdo_action *callback,
+			     const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -831,9 +841,10 @@ static inline void set_new_mapped_zone_callback(struct data_vio *data_vio,
  * @param callback  The callback to invoke
  * @param location  The tracing info for the call site
  **/
-static inline void launch_new_mapped_zone_callback(struct data_vio *data_vio,
-						   vdo_action *callback,
-					       	   TraceLocation *location)
+static inline void
+launch_new_mapped_zone_callback(struct data_vio *data_vio,
+				vdo_action *callback,
+				const struct trace_location *location)
 {
 	set_new_mapped_zone_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));
@@ -866,7 +877,7 @@ static inline void assert_in_journal_zone(struct data_vio *data_vio)
  **/
 static inline void set_journal_callback(struct data_vio *data_vio,
 				        vdo_action *callback,
-				        TraceLocation *location)
+				        const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -881,9 +892,10 @@ static inline void set_journal_callback(struct data_vio *data_vio,
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launch_journal_callback(struct data_vio *data_vio,
-					   vdo_action *callback,
-					   TraceLocation *location)
+static inline void
+launch_journal_callback(struct data_vio *data_vio,
+			vdo_action *callback,
+			const struct trace_location *location)
 {
 	set_journal_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));
@@ -916,7 +928,7 @@ static inline void assert_in_packer_zone(struct data_vio *data_vio)
  **/
 static inline void set_packer_callback(struct data_vio *data_vio,
 				       vdo_action *callback,
-				       TraceLocation *location)
+				       const struct trace_location *location)
 {
 	set_callback(data_vio_as_completion(data_vio),
 		     callback,
@@ -931,9 +943,10 @@ static inline void set_packer_callback(struct data_vio *data_vio,
  * @param callback  The callback to set
  * @param location  The tracing info for the call site
  **/
-static inline void launch_packer_callback(struct data_vio *data_vio,
-					  vdo_action *callback,
-					  TraceLocation *location)
+static inline void
+launch_packer_callback(struct data_vio *data_vio,
+		       vdo_action *callback,
+		       const struct trace_location *location)
 {
 	set_packer_callback(data_vio, callback, location);
 	invoke_callback(data_vio_as_completion(data_vio));

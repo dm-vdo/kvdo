@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#35 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ioSubmitter.c#36 $
  */
 
 #include "ioSubmitter.h"
@@ -298,7 +298,7 @@ static void count_all_bios(struct kvio *kvio, struct bio *bio)
  **/
 static void send_bio_to_device(struct kvio *kvio,
 			       struct bio *bio,
-			       TraceLocation *location)
+			       const struct trace_location *location)
 {
 	assert_running_in_bio_queue_for_pbn(kvio->vio->physical);
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#3 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#4 $
  */
 
 #ifndef TRACE_H
@@ -76,11 +76,11 @@
  *   j=normal,dedupe   kind of journal update being done
  *   js=mapWrite,writeZero,unmap  which step of journaling we're doing
  */
-typedef const struct __attribute__((aligned(16))) traceLocation {
+struct trace_location {
 	const char *function;
 	int line;
 	const char *description;
-} TraceLocation;
+} __attribute__((aligned(16)));
 
 /*
  * With well under 100 locations defined at the moment, even with no
@@ -110,33 +110,33 @@ typedef int32_t TraceLocationNumber;
 
 #define TRACE_LOCATION_SECTION __attribute__((section(".kvdo_trace_locations")))
 
-extern TRACE_LOCATION_SECTION TraceLocation baseTraceLocation[];
+extern TRACE_LOCATION_SECTION const struct trace_location baseTraceLocation[];
 
 #define TRACE_JOIN2(a, b) a##b
 #define TRACE_JOIN(a, b) TRACE_JOIN2(a, b)
 #define THIS_LOCATION(DESCRIPTION)                                            \
 	__extension__({                                                       \
-		static TRACE_LOCATION_SECTION TraceLocation TRACE_JOIN(       \
-			loc, __LINE__) = {                                    \
-			.function = __func__,                                 \
-			.line = __LINE__,                                     \
-			.description = DESCRIPTION,                           \
-		};                                                            \
+		static TRACE_LOCATION_SECTION const struct trace_location     \
+			TRACE_JOIN(loc, __LINE__) = {                         \
+				.function = __func__,                         \
+				.line = __LINE__,                             \
+				.description = DESCRIPTION,                   \
+			};                                                    \
 		&TRACE_JOIN(loc, __LINE__);                                   \
 	})
 
-typedef struct traceRecord {
+struct trace_record {
 	uint64_t when; // counted in usec
 	pid_t tid;
 	TraceLocationNumber location;
-} TraceRecord;
+};
 
 enum { NUM_TRACE_RECORDS = 71 };
 
-typedef struct trace {
+struct trace {
 	unsigned int used;
-	TraceRecord records[NUM_TRACE_RECORDS];
-} Trace;
+	struct trace_record records[NUM_TRACE_RECORDS];
+};
 
 /**
  * Store a new record in the trace data.
@@ -144,7 +144,8 @@ typedef struct trace {
  * @param trace    The trace data to be updated
  * @param location The source-location descriptor to be recorded
  **/
-void addTraceRecord(Trace *trace, TraceLocation *location);
+void addTraceRecord(struct trace *trace,
+		    const struct trace_location *location);
 
 /**
  * Format trace data into a string for logging.
@@ -154,7 +155,7 @@ void addTraceRecord(Trace *trace, TraceLocation *location);
  * @param [in]  bufferLength  Length of the buffer
  * @param [out] msgLen        Length of the formatted string
  **/
-void formatTrace(Trace *trace,
+void formatTrace(struct trace *trace,
 		 char *buffer,
 		 size_t bufferLength,
 		 size_t *msgLen);
