@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#20 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.h#21 $
  */
 
 #ifndef VDO_SLAB_H
@@ -94,7 +94,8 @@ struct vdo_slab {
  * @return VDO_SUCCESS or an error code
  **/
 int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
-		   SlabConfig *slab_config) __attribute__((warn_unused_result));
+		   struct slab_config *slab_config)
+	__attribute__((warn_unused_result));
 
 /**
  * Convert a vdo_slab's ringNode back to the vdo_slab.
@@ -117,7 +118,7 @@ static inline struct vdo_slab *slabFromRingNode(RingNode *ringNode)
  * @param origin       The first block of the slab
  **/
 __attribute__((warn_unused_result)) PhysicalBlockNumber
-get_slab_journal_start_block(const SlabConfig *slab_config,
+get_slab_journal_start_block(const struct slab_config *slab_config,
 			     PhysicalBlockNumber origin);
 
 /**

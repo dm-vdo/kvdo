@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#46 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#47 $
  */
 
 #include "dmvdo.h"
@@ -580,7 +580,7 @@ static int vdo_initialize(struct dm_target *ti,
 
 	// The thread_config will be copied by the VDO if it's successfully
 	// created.
-	VDOLoadConfig load_config = {
+	struct vdo_load_config load_config = {
 		.cache_size = config->cache_size,
 		.thread_config = NULL,
 		.write_policy = config->write_policy,
@@ -609,7 +609,7 @@ static int vdo_initialize(struct dm_target *ti,
 	}
 
 	// Now that we have read the geometry, we can finish setting up the
-	// VDOLoadConfig.
+	// vdo_load_config.
 	setLoadConfigFromGeometry(&layer->geometry, &load_config);
 
 	if (config->cache_size < (2 * MAXIMUM_USER_VIOS *

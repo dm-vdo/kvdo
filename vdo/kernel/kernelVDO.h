@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#17 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -78,7 +78,7 @@ int initialize_kvdo(struct kvdo *kvdo,
  **/
 int preload_kvdo(struct kvdo *kvdo,
 		 PhysicalLayer *common,
-		 const VDOLoadConfig *load_config,
+		 const struct vdo_load_config *load_config,
 		 bool vio_trace_recording,
 		 char **reason);
 

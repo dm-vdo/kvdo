@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.h#26 $
  */
 
 #ifndef SLAB_DEPOT_H
@@ -84,7 +84,7 @@ SlabCount calculate_slab_count(struct slab_depot *depot)
  **/
 int make_slab_depot(BlockCount block_count,
 		    PhysicalBlockNumber first_block,
-		    SlabConfig slab_config,
+		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    Nonce nonce,
 		    BlockCount vio_pool_size,
@@ -447,13 +447,13 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 				       SequenceNumber recovery_block_number);
 
 /**
- * Get the SlabConfig of a depot.
+ * Get the slab_config of a depot.
  *
  * @param depot  The slab depot
  *
  * @return The slab configuration of the specified depot
  **/
-const SlabConfig *get_slab_config(const struct slab_depot *depot)
+const struct slab_config *get_slab_config(const struct slab_depot *depot)
 	__attribute__((warn_unused_result));
 
 /**

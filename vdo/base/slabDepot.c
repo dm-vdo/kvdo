@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#51 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#52 $
  */
 
 #include "slabDepot.h"
@@ -42,7 +42,7 @@
 #include "vdoState.h"
 
 struct slab_depot_state_2_0 {
-	SlabConfig slab_config;
+	struct slab_config slab_config;
 	PhysicalBlockNumber first_block;
 	PhysicalBlockNumber last_block;
 	ZoneCount zone_count;
@@ -403,7 +403,7 @@ allocate_depot(const struct slab_depot_state_2_0 *state,
  **/
 static int configure_state(BlockCount block_count,
 			   PhysicalBlockNumber first_block,
-			   SlabConfig slab_config,
+			   struct slab_config slab_config,
 			   ZoneCount zone_count,
 			   struct slab_depot_state_2_0 *state)
 {
@@ -450,7 +450,7 @@ static int configure_state(BlockCount block_count,
 /**********************************************************************/
 int make_slab_depot(BlockCount block_count,
 		    PhysicalBlockNumber first_block,
-		    SlabConfig slab_config,
+		    struct slab_config slab_config,
 		    const struct thread_config *thread_config,
 		    Nonce nonce,
 		    BlockCount vio_pool_size,
@@ -531,7 +531,7 @@ size_t get_slab_depot_encoded_size(void)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int decode_slab_config(Buffer *buffer, SlabConfig *config)
+static int decode_slab_config(Buffer *buffer, struct slab_config *config)
 {
 	BlockCount count;
 	int result = getUInt64LEFromBuffer(buffer, &count);
@@ -587,7 +587,7 @@ static int decode_slab_config(Buffer *buffer, SlabConfig *config)
  *
  * @return UDS_SUCCESS or an error code
  **/
-static int encode_slab_config(const SlabConfig *config, Buffer *buffer)
+static int encode_slab_config(const struct slab_config *config, Buffer *buffer)
 {
 	int result = putUInt64LEIntoBuffer(buffer, config->slab_blocks);
 	if (result != UDS_SUCCESS) {
@@ -1094,7 +1094,7 @@ commit_oldest_slab_journal_tail_blocks(struct slab_depot *depot,
 }
 
 /**********************************************************************/
-const SlabConfig *get_slab_config(const struct slab_depot *depot)
+const struct slab_config *get_slab_config(const struct slab_depot *depot)
 {
 	return &depot->slab_config;
 }

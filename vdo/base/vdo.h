@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.h#9 $
  */
 
 #ifndef VDO_H
@@ -162,7 +162,7 @@ void set_write_policy(struct vdo *vdo, WritePolicy new);
  *
  * @return The load-time configuration of the vdo
  **/
-const VDOLoadConfig *get_vdo_load_config(const struct vdo *vdo)
+const struct vdo_load_config *get_vdo_load_config(const struct vdo *vdo)
 	__attribute__((warn_unused_result));
 
 /**

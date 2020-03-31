@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slab.c#31 $
  */
 
 #include "slab.h"
@@ -39,7 +39,7 @@
 
 /**********************************************************************/
 int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
-		   SlabConfig *slab_config)
+		   struct slab_config *slab_config)
 {
 	if (slab_journal_blocks >= slab_size) {
 		return VDO_BAD_CONFIGURATION;
@@ -106,7 +106,7 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 		blocking_threshold = scrubbing_threshold;
 	}
 
-	*slab_config = (SlabConfig) {
+	*slab_config = (struct slab_config) {
 		.slab_blocks = slab_size,
 		.data_blocks = data_blocks,
 		.reference_count_blocks = ref_blocks,
@@ -118,8 +118,9 @@ int configure_slab(BlockCount slab_size, BlockCount slab_journal_blocks,
 }
 
 /**********************************************************************/
-PhysicalBlockNumber get_slab_journal_start_block(const SlabConfig *slab_config,
-						 PhysicalBlockNumber origin)
+PhysicalBlockNumber
+get_slab_journal_start_block(const struct slab_config *slab_config,
+			     PhysicalBlockNumber origin)
 {
 	return origin + slab_config->data_blocks
 	       + slab_config->reference_count_blocks;
@@ -140,7 +141,8 @@ int make_slab(PhysicalBlockNumber slab_origin,
 		return result;
 	}
 
-	const SlabConfig *slab_config = get_slab_config(allocator->depot);
+	const struct slab_config *slab_config =
+		get_slab_config(allocator->depot);
 
 	slab->allocator = allocator;
 	slab->start = slab_origin;
@@ -178,7 +180,8 @@ int make_slab(PhysicalBlockNumber slab_origin,
 int allocate_ref_counts_for_slab(struct vdo_slab *slab)
 {
 	struct block_allocator *allocator = slab->allocator;
-	const SlabConfig *slab_config = get_slab_config(allocator->depot);
+	const struct slab_config *slab_config
+		= get_slab_config(allocator->depot);
 
 	int result = ASSERT(slab->reference_counts == NULL,
 			    "vdo_slab %u doesn't allocate refcounts twice",

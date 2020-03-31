@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#19 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/upgrade.c#20 $
  */
 
 #include "upgrade.h"
@@ -56,7 +56,7 @@ struct sodium_component_41_0 {
 	VDOState state;
 	uint64_t complete_recoveries;
 	uint64_t read_only_recoveries;
-	VDOConfig config;
+	struct vdo_config config;
 	Nonce nonce;
 } __attribute__((packed));
 

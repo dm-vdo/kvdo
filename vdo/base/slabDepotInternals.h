@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepotInternals.h#22 $
  */
 
 #ifndef SLAB_DEPOT_INTERNALS_H
@@ -31,7 +31,7 @@
 struct slab_depot {
 	ZoneCount zone_count;
 	ZoneCount old_zone_count;
-	SlabConfig slab_config;
+	struct slab_config slab_config;
 	struct slab_summary *slab_summary;
 	struct read_only_notifier *read_only_notifier;
 	struct action_manager *action_manager;

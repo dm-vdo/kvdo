@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#28 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#29 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -58,9 +58,9 @@ struct vdo {
 	/* The number of times this vdo has recovered from a read-only state */
 	uint64_t read_only_recoveries;
 	/* The format-time configuration of this vdo */
-	VDOConfig config;
+	struct vdo_config config;
 	/* The load-time configuration of this vdo */
-	VDOLoadConfig load_config;
+	struct vdo_load_config load_config;
 	/* The nonce for this vdo */
 	Nonce nonce;
 
@@ -213,7 +213,7 @@ int decode_vdo_component(struct vdo *vdo) __attribute__((warn_unused_result));
  *
  * @return a success or error code
  **/
-int validate_vdo_config(const VDOConfig *config,
+int validate_vdo_config(const struct vdo_config *config,
 			BlockCount block_count,
 			bool require_logical)
 	__attribute__((warn_unused_result));

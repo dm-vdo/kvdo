@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#80 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#81 $
  */
 
 #include "kernelLayer.h"
@@ -1116,7 +1116,7 @@ static void pool_stats_release(struct kobject *kobj)
 
 /**********************************************************************/
 int preload_kernel_layer(struct kernel_layer *layer,
-			 const VDOLoadConfig *load_config,
+			 const struct vdo_load_config *load_config,
 			 char **reason)
 {
 	if (get_kernel_layer_state(layer) != LAYER_CPU_QUEUE_INITIALIZED) {

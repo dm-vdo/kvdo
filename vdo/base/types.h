@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#39 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#40 $
  */
 
 #ifndef TYPES_H
@@ -298,7 +298,7 @@ struct block_map_tree_slot {
  * The configuration of a single slab derived from the configured block size
  * and slab size.
  **/
-typedef struct slab_config {
+struct slab_config {
   BlockCount slab_blocks;             ///< total number of blocks in the slab
   BlockCount data_blocks;             ///< number of blocks available for data
   BlockCount reference_count_blocks;  ///< number of blocks for refCounts
@@ -318,23 +318,23 @@ typedef struct slab_config {
    * online.
    **/
   BlockCount slab_journal_scrubbing_threshold;
-} __attribute__((packed)) SlabConfig;
+} __attribute__((packed));
 
 /**
  * The configuration of the VDO service.
  **/
-typedef struct vdo_config {
+struct vdo_config {
   BlockCount    logical_blocks;        ///< number of logical blocks
   BlockCount    physical_blocks;       ///< number of physical blocks
   BlockCount    slab_size;             ///< number of blocks in a slab
   BlockCount    recovery_journal_size; ///< number of recovery journal blocks
   BlockCount    slab_journal_blocks;   ///< number of slab journal blocks
-} __attribute__((packed)) VDOConfig;
+} __attribute__((packed));
 
 /**
  * The configuration parameters of the vdo service specified at load time.
  **/
-typedef struct vdo_load_config {
+struct vdo_load_config {
   /** the offset on the physical layer where the VDO begins */
   PhysicalBlockNumber   first_block_offset;
   /** the expected release version number of the VDO */
@@ -349,7 +349,7 @@ typedef struct vdo_load_config {
   WritePolicy           write_policy;
   /** the maximum age of a dirty block map page in recovery journal blocks */
   BlockCount            maximum_age;
-} VDOLoadConfig;
+};
 
 /**
  * Forward declarations of abstract types

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.h#34 $
  */
 
 #ifndef KERNELLAYER_H
@@ -290,7 +290,7 @@ void free_kernel_layer(struct kernel_layer *layer);
  * @note redundant starts are silently ignored
  **/
 int preload_kernel_layer(struct kernel_layer *layer,
-			 const VDOLoadConfig *load_config,
+			 const struct vdo_load_config *load_config,
 			 char **reason);
 
 /**

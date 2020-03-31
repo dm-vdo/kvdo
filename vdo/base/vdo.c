@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#52 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#53 $
  */
 
 /*
@@ -82,7 +82,7 @@ struct vdo_component_41_0 {
 	VDOState state;
 	uint64_t complete_recoveries;
 	uint64_t read_only_recoveries;
-	VDOConfig config;
+	struct vdo_config config;
 	Nonce nonce;
 } __attribute__((packed));
 
@@ -218,7 +218,7 @@ encode_master_version(Buffer *buffer)
 }
 
 /**
- * Encode a VDOConfig structure into a buffer.
+ * Encode a vdo_config structure into a buffer.
  *
  * @param config  The config structure to encode
  * @param buffer  A buffer positioned at the start of the encoding
@@ -226,7 +226,7 @@ encode_master_version(Buffer *buffer)
  * @return VDO_SUCCESS or an error
  **/
 __attribute__((warn_unused_result)) static int
-encode_vdo_config(const VDOConfig *config, Buffer *buffer)
+encode_vdo_config(const struct vdo_config *config, Buffer *buffer)
 {
 	int result = putUInt64LEIntoBuffer(buffer, config->logical_blocks);
 	if (result != VDO_SUCCESS) {
@@ -437,7 +437,7 @@ int validate_vdo_version(struct vdo *vdo)
 }
 
 /**
- * Decode a VDOConfig structure from a buffer.
+ * Decode a vdo_config structure from a buffer.
  *
  * @param buffer  A buffer positioned at the start of the encoding
  * @param config  The config structure to receive the decoded values
@@ -445,7 +445,7 @@ int validate_vdo_version(struct vdo *vdo)
  * @return UDS_SUCCESS or an error code
  **/
 __attribute__((warn_unused_result)) static int
-decode_vdo_config(Buffer *buffer, VDOConfig *config)
+decode_vdo_config(Buffer *buffer, struct vdo_config *config)
 {
 	BlockCount logical_blocks;
 	int result = getUInt64LEFromBuffer(buffer, &logical_blocks);
@@ -477,7 +477,7 @@ decode_vdo_config(Buffer *buffer, VDOConfig *config)
 		return result;
 	}
 
-	*config = (VDOConfig) {
+	*config = (struct vdo_config) {
 		.logical_blocks = logical_blocks,
 		.physical_blocks = physical_blocks,
 		.slab_size = slab_size,
@@ -518,7 +518,7 @@ decode_vdo_component_41_0(Buffer *buffer, struct vdo_component_41_0 *state)
 		return result;
 	}
 
-	VDOConfig config;
+	struct vdo_config config;
 	result = decode_vdo_config(buffer, &config);
 	if (result != VDO_SUCCESS) {
 		return result;
@@ -577,7 +577,7 @@ int decode_vdo_component(struct vdo *vdo)
 }
 
 /**********************************************************************/
-int validate_vdo_config(const VDOConfig *config,
+int validate_vdo_config(const struct vdo_config *config,
 			BlockCount block_count,
 			bool require_logical)
 {
@@ -612,7 +612,7 @@ int validate_vdo_config(const VDOConfig *config,
 		return result;
 	}
 
-	SlabConfig slab_config;
+	struct slab_config slab_config;
 	result = configure_slab(config->slab_size, config->slab_journal_blocks,
 				&slab_config);
 	if (result != VDO_SUCCESS) {
@@ -969,7 +969,7 @@ void set_write_policy(struct vdo *vdo, WritePolicy new)
 }
 
 /**********************************************************************/
-const VDOLoadConfig *get_vdo_load_config(const struct vdo *vdo)
+const struct vdo_load_config *get_vdo_load_config(const struct vdo *vdo)
 {
 	return &vdo->load_config;
 }
