@@ -342,7 +342,7 @@ int write_slab_journal_statistics(char *prefix,
        }
        /** Number of times the on-disk journal was full */
        result = write_uint64_t("diskFullCount : ",
-                               stats->diskFullCount,
+                               stats->disk_full_count,
                                ", ",
                                buf,
                                maxlen);
@@ -351,7 +351,7 @@ int write_slab_journal_statistics(char *prefix,
        }
        /** Number of times an entry was added over the flush threshold */
        result = write_uint64_t("flushCount : ",
-                               stats->flushCount,
+                               stats->flush_count,
                                ", ",
                                buf,
                                maxlen);
@@ -360,7 +360,7 @@ int write_slab_journal_statistics(char *prefix,
        }
        /** Number of times an entry was added over the block threshold */
        result = write_uint64_t("blockedCount : ",
-                               stats->blockedCount,
+                               stats->blocked_count,
                                ", ",
                                buf,
                                maxlen);
@@ -369,7 +369,7 @@ int write_slab_journal_statistics(char *prefix,
        }
        /** Number of times a tail block was written */
        result = write_uint64_t("blocksWritten : ",
-                               stats->blocksWritten,
+                               stats->blocks_written,
                                ", ",
                                buf,
                                maxlen);
@@ -378,7 +378,7 @@ int write_slab_journal_statistics(char *prefix,
        }
        /** Number of times we had to wait for the tail to write */
        result = write_uint64_t("tailBusyCount : ",
-                               stats->tailBusyCount,
+                               stats->tail_busy_count,
                                ", ",
                                buf,
                                maxlen);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#59 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/blockAllocator.c#60 $
  */
 
 #include "blockAllocatorInternals.h"
@@ -1018,11 +1018,11 @@ get_slab_journal_statistics(const struct block_allocator *allocator)
 	const struct atomic_slab_journal_statistics *atoms =
 		&allocator->slab_journal_statistics;
 	return (struct slab_journal_statistics) {
-		.diskFullCount = atomicLoad64(&atoms->diskFullCount),
-		.flushCount = atomicLoad64(&atoms->flushCount),
-		.blockedCount = atomicLoad64(&atoms->blockedCount),
-		.blocksWritten = atomicLoad64(&atoms->blocksWritten),
-		.tailBusyCount = atomicLoad64(&atoms->tailBusyCount),
+		.disk_full_count = atomicLoad64(&atoms->diskFullCount),
+		.flush_count = atomicLoad64(&atoms->flushCount),
+		.blocked_count = atomicLoad64(&atoms->blockedCount),
+		.blocks_written = atomicLoad64(&atoms->blocksWritten),
+		.tail_busy_count = atomicLoad64(&atoms->tailBusyCount),
 	};
 }
 

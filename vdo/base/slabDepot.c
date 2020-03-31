@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#50 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabDepot.c#51 $
  */
 
 #include "slabDepot.h"
@@ -1250,11 +1250,11 @@ get_depot_slab_journal_statistics(const struct slab_depot *depot)
 		struct block_allocator *allocator = depot->allocators[zone];
 		struct slab_journal_statistics stats =
 			get_slab_journal_statistics(allocator);
-		depot_stats.diskFullCount += stats.diskFullCount;
-		depot_stats.flushCount += stats.flushCount;
-		depot_stats.blockedCount += stats.blockedCount;
-		depot_stats.blocksWritten += stats.blocksWritten;
-		depot_stats.tailBusyCount += stats.tailBusyCount;
+		depot_stats.disk_full_count += stats.disk_full_count;
+		depot_stats.flush_count += stats.flush_count;
+		depot_stats.blocked_count += stats.blocked_count;
+		depot_stats.blocks_written += stats.blocks_written;
+		depot_stats.tail_busy_count += stats.tail_busy_count;
 	}
 
 	return depot_stats;

@@ -518,7 +518,7 @@ static ssize_t pool_stats_slab_journal_disk_full_count_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.diskFullCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.disk_full_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -535,7 +535,7 @@ static ssize_t pool_stats_slab_journal_flush_count_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.flushCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.flush_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -552,7 +552,7 @@ static ssize_t pool_stats_slab_journal_blocked_count_show(struct kernel_layer *l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blockedCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blocked_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -569,7 +569,7 @@ static ssize_t pool_stats_slab_journal_blocks_written_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blocksWritten);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -586,7 +586,7 @@ static ssize_t pool_stats_slab_journal_tail_busy_count_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.tailBusyCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.tail_busy_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

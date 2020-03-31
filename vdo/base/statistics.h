@@ -77,15 +77,15 @@ struct packer_statistics {
 /** The statistics for the slab journals. */
 struct slab_journal_statistics {
   /** Number of times the on-disk journal was full */
-  uint64_t diskFullCount;
+  uint64_t disk_full_count;
   /** Number of times an entry was added over the flush threshold */
-  uint64_t flushCount;
+  uint64_t flush_count;
   /** Number of times an entry was added over the block threshold */
-  uint64_t blockedCount;
+  uint64_t blocked_count;
   /** Number of times a tail block was written */
-  uint64_t blocksWritten;
+  uint64_t blocks_written;
   /** Number of times we had to wait for the tail to write */
-  uint64_t tailBusyCount;
+  uint64_t tail_busy_count;
 };
 
 /** The statistics for the slab summary. */
