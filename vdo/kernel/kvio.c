@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#30 $
  */
 
 #include "kvio.h"
@@ -263,10 +263,9 @@ void initialize_kvio(struct kvio *kvio,
 	if (layer->vioTraceRecording && sample_this_vio(kvio, layer, bio) &&
 	    sample_this_one(&layer->trace_sample_counter)) {
 		int result =
-			(isDataVIOType(vio_type) ?
-				 alloc_trace_from_pool(layer, &kvio->vio->trace) :
-				 ALLOCATE(1, struct trace, "trace",
-					  &kvio->vio->trace));
+			(is_data_vio_type(vio_type) ?
+			 alloc_trace_from_pool(layer, &kvio->vio->trace) :
+			 ALLOCATE(1, struct trace, "trace", &kvio->vio->trace));
 		if (result != VDO_SUCCESS) {
 			logError("trace record allocation failure %d", result);
 		}
@@ -390,7 +389,7 @@ int kvdo_create_metadata_vio(PhysicalLayer *layer,
 			     char *data,
 			     struct vio **vio_ptr)
 {
-	int result = ASSERT(isMetadataVIOType(vio_type),
+	int result = ASSERT(is_metadata_vio_type(vio_type),
 			    "%d is a metadata type",
 			    vio_type);
 	if (result != VDO_SUCCESS) {

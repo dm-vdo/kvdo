@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#40 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#41 $
  */
 
 #ifndef TYPES_H
@@ -152,32 +152,32 @@ typedef uint8_t ZoneCount;
 /**
  * The type of request a vio is performing
  **/
-typedef enum __attribute__((packed)) vioOperation {
-  VIO_UNSPECIFIED_OPERATION = 0,
-  VIO_READ                  = 1,
-  VIO_WRITE                 = 2,
-  VIO_READ_MODIFY_WRITE     = VIO_READ | VIO_WRITE,
-  VIO_READ_WRITE_MASK       = VIO_READ_MODIFY_WRITE,
-  VIO_FLUSH_BEFORE          = 4,
-  VIO_FLUSH_AFTER           = 8,
+typedef enum __attribute__((packed)) {
+	VIO_UNSPECIFIED_OPERATION = 0,
+	VIO_READ = 1,
+	VIO_WRITE = 2,
+	VIO_READ_MODIFY_WRITE = VIO_READ | VIO_WRITE,
+	VIO_READ_WRITE_MASK = VIO_READ_MODIFY_WRITE,
+	VIO_FLUSH_BEFORE = 4,
+	VIO_FLUSH_AFTER = 8,
 } VIOOperation;
 
 /**
  * vio types for statistics and instrumentation.
  **/
 typedef enum __attribute__((packed)) {
-  VIO_TYPE_UNINITIALIZED = 0,
-  VIO_TYPE_DATA,
-  VIO_TYPE_BLOCK_ALLOCATOR,
-  VIO_TYPE_BLOCK_MAP,
-  VIO_TYPE_BLOCK_MAP_INTERIOR,
-  VIO_TYPE_COMPRESSED_BLOCK,
-  VIO_TYPE_PARTITION_COPY,
-  VIO_TYPE_RECOVERY_JOURNAL,
-  VIO_TYPE_SLAB_JOURNAL,
-  VIO_TYPE_SLAB_SUMMARY,
-  VIO_TYPE_SUPER_BLOCK,
-  VIO_TYPE_TEST,
+	VIO_TYPE_UNINITIALIZED = 0,
+	VIO_TYPE_DATA,
+	VIO_TYPE_BLOCK_ALLOCATOR,
+	VIO_TYPE_BLOCK_MAP,
+	VIO_TYPE_BLOCK_MAP_INTERIOR,
+	VIO_TYPE_COMPRESSED_BLOCK,
+	VIO_TYPE_PARTITION_COPY,
+	VIO_TYPE_RECOVERY_JOURNAL,
+	VIO_TYPE_SLAB_JOURNAL,
+	VIO_TYPE_SLAB_SUMMARY,
+	VIO_TYPE_SUPER_BLOCK,
+	VIO_TYPE_TEST,
 } VIOType;
 
 /**
@@ -185,113 +185,122 @@ typedef enum __attribute__((packed)) {
  * recovery journal, slab journals, and reference counts.
  **/
 typedef enum __attribute__((packed)) {
-  DATA_DECREMENT      = 0,
-  DATA_INCREMENT      = 1,
-  BLOCK_MAP_DECREMENT = 2,
-  BLOCK_MAP_INCREMENT = 3,
+	DATA_DECREMENT = 0,
+	DATA_INCREMENT = 1,
+	BLOCK_MAP_DECREMENT = 2,
+	BLOCK_MAP_INCREMENT = 3,
 } JournalOperation;
 
 /**
  * Partition IDs are encoded in the volume layout in the super block.
  **/
 typedef enum __attribute__((packed)) {
-  BLOCK_MAP_PARTITION        = 0,
-  BLOCK_ALLOCATOR_PARTITION  = 1,
-  RECOVERY_JOURNAL_PARTITION = 2,
-  SLAB_SUMMARY_PARTITION     = 3,
+	BLOCK_MAP_PARTITION = 0,
+	BLOCK_ALLOCATOR_PARTITION = 1,
+	RECOVERY_JOURNAL_PARTITION = 2,
+	SLAB_SUMMARY_PARTITION = 3,
 } PartitionID;
 
 /**
  * Check whether a VIOType is for servicing an external data request.
  *
- * @param vioType  The VIOType to check
+ * @param vio_type  The VIOType to check
  **/
-static inline bool isDataVIOType(VIOType vioType)
+static inline bool is_data_vio_type(VIOType vio_type)
 {
-  return (vioType == VIO_TYPE_DATA);
+	return (vio_type == VIO_TYPE_DATA);
 }
 
 /**
  * Check whether a VIOType is for compressed block writes
  *
- * @param vioType  The VIOType to check
+ * @param vio_type  The VIOType to check
  **/
-static inline bool isCompressedWriteVIOType(VIOType vioType)
+static inline bool is_compressed_write_vio_type(VIOType vio_type)
 {
-  return (vioType == VIO_TYPE_COMPRESSED_BLOCK);
+	return (vio_type == VIO_TYPE_COMPRESSED_BLOCK);
 }
 
 /**
  * Check whether a VIOType is for metadata
  *
- * @param vioType  The VIOType to check
+ * @param vio_type  The VIOType to check
  **/
-static inline bool isMetadataVIOType(VIOType vioType)
+static inline bool is_metadata_vio_type(VIOType vio_type)
 {
-  return ((vioType != VIO_TYPE_UNINITIALIZED)
-          && !isDataVIOType(vioType)
-          && !isCompressedWriteVIOType(vioType));
+	return ((vio_type != VIO_TYPE_UNINITIALIZED) &&
+		!is_data_vio_type(vio_type) &&
+		!is_compressed_write_vio_type(vio_type));
 }
 
 /**
  * Priority levels for asynchronous I/O operations performed on a vio.
  **/
-typedef enum __attribute__((packed)) vioPriority {
-  VIO_PRIORITY_LOW             = 0,
-  VIO_PRIORITY_DATA            = VIO_PRIORITY_LOW,
-  VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
-  VIO_PRIORITY_METADATA,
-  VIO_PRIORITY_HIGH,
+typedef enum __attribute__((packed)) {
+	VIO_PRIORITY_LOW = 0,
+	VIO_PRIORITY_DATA = VIO_PRIORITY_LOW,
+	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
+	VIO_PRIORITY_METADATA,
+	VIO_PRIORITY_HIGH,
 } VIOPriority;
 
 /**
  * Metadata types for the vdo.
  **/
 typedef enum __attribute__((packed)) {
-  VDO_METADATA_RECOVERY_JOURNAL = 1,
-  VDO_METADATA_SLAB_JOURNAL,
+	VDO_METADATA_RECOVERY_JOURNAL = 1,
+	VDO_METADATA_SLAB_JOURNAL,
 } VDOMetadataType;
 
 /**
  * The possible write policy values.
  **/
 typedef enum {
-  WRITE_POLICY_SYNC,           ///< All writes are synchronous, i. e., they
-                               ///< are acknowledged only when the data is
-                               ///< written to stable storage.
-  WRITE_POLICY_ASYNC,          ///< Writes are acknowledged when the data is
-                               ///< cached for writing to stable storage, subject
-                               ///< to resiliency guarantees specified elsewhere.
-			       ///< After a crash, the data will be either old or
-			       ///< new value for unflushed writes, never garbage.
-  WRITE_POLICY_ASYNC_UNSAFE,   ///< Writes are acknowledged when the data is
-                               ///< cached for writing to stable storage, subject
-                               ///< to resiliency guarantees specified elsewhere.
-  WRITE_POLICY_AUTO,           ///< The appropriate policy is chosen based on the
-                               ///< underlying device
+	/**
+	 * All writes are synchronous, i. e., they are acknowledged
+	 * only when the data is written to stable storage.
+	 */
+	WRITE_POLICY_SYNC,
+	/**
+	 * Writes are acknowledged when the data is cached for writing
+	 * to stable storage, subject to resiliency guarantees
+	 * specified elsewhere. After a crash, the data will be either
+	 * old or new value for unflushed writes, never garbage.
+	 */
+	WRITE_POLICY_ASYNC,
+	/**
+	 * Writes are acknowledged when the data is cached for writing
+	 * to stable storage, subject to resiliency guarantees
+	 * specified elsewhere.
+	 */
+	WRITE_POLICY_ASYNC_UNSAFE,
+	/**
+	 * The appropriate policy is chosen based on the underlying device.
+	 */
+	WRITE_POLICY_AUTO,
 } WritePolicy;
 
 typedef enum {
-  ZONE_TYPE_ADMIN,
-  ZONE_TYPE_JOURNAL,
-  ZONE_TYPE_LOGICAL,
-  ZONE_TYPE_PHYSICAL,
+	ZONE_TYPE_ADMIN,
+	ZONE_TYPE_JOURNAL,
+	ZONE_TYPE_LOGICAL,
+	ZONE_TYPE_PHYSICAL,
 } ZoneType;
 
 /**
  * A position in the block map where a block map entry is stored.
  **/
 struct block_map_slot {
-  PhysicalBlockNumber pbn;
-  SlotNumber          slot;
+	PhysicalBlockNumber pbn;
+	SlotNumber slot;
 };
 
 /**
  * A position in the arboreal block map at a specific level.
  **/
 struct block_map_tree_slot {
-  PageNumber   pageIndex;
-  struct block_map_slot blockMapSlot;
+	PageNumber pageIndex;
+	struct block_map_slot blockMapSlot;
 };
 
 /**
@@ -299,56 +308,62 @@ struct block_map_tree_slot {
  * and slab size.
  **/
 struct slab_config {
-  BlockCount slab_blocks;             ///< total number of blocks in the slab
-  BlockCount data_blocks;             ///< number of blocks available for data
-  BlockCount reference_count_blocks;  ///< number of blocks for refCounts
-  BlockCount slab_journal_blocks;     ///< number of blocks for the slab journal
-  /**
-   * Number of blocks after which the slab journal starts pushing out a
-   * ReferenceBlock for each new entry it receives.
-   **/
-  BlockCount slab_journal_flushing_threshold;
-  /**
-   * Number of blocks after which the slab journal pushes out all
-   * ReferenceBlocks and makes all vios wait.
-   **/
-  BlockCount slab_journal_blocking_threshold;
-  /**
-   * Number of blocks after which the slab must be scrubbed before coming
-   * online.
-   **/
-  BlockCount slab_journal_scrubbing_threshold;
+	/** total number of blocks in the slab */
+	BlockCount slab_blocks;
+	/** number of blocks available for data */
+	BlockCount data_blocks;
+	/** number of blocks for reference counts */
+	BlockCount reference_count_blocks;
+	/** number of blocks for the slab journal */
+	BlockCount slab_journal_blocks;
+	/**
+	 * Number of blocks after which the slab journal starts pushing out a
+	 * ReferenceBlock for each new entry it receives.
+	 **/
+	BlockCount slab_journal_flushing_threshold;
+	/**
+	 * Number of blocks after which the slab journal pushes out all
+	 * ReferenceBlocks and makes all vios wait.
+	 **/
+	BlockCount slab_journal_blocking_threshold;
+	/**
+	 * Number of blocks after which the slab must be scrubbed before coming
+	 * online.
+	 **/
+	BlockCount slab_journal_scrubbing_threshold;
 } __attribute__((packed));
 
 /**
  * The configuration of the VDO service.
  **/
 struct vdo_config {
-  BlockCount    logical_blocks;        ///< number of logical blocks
-  BlockCount    physical_blocks;       ///< number of physical blocks
-  BlockCount    slab_size;             ///< number of blocks in a slab
-  BlockCount    recovery_journal_size; ///< number of recovery journal blocks
-  BlockCount    slab_journal_blocks;   ///< number of slab journal blocks
+	BlockCount logical_blocks; ///< number of logical blocks
+	BlockCount physical_blocks; ///< number of physical blocks
+	BlockCount slab_size; ///< number of blocks in a slab
+	BlockCount recovery_journal_size; ///< number of recovery journal blocks
+	BlockCount slab_journal_blocks; ///< number of slab journal blocks
 } __attribute__((packed));
 
 /**
  * The configuration parameters of the vdo service specified at load time.
  **/
 struct vdo_load_config {
-  /** the offset on the physical layer where the VDO begins */
-  PhysicalBlockNumber   first_block_offset;
-  /** the expected release version number of the VDO */
-  ReleaseVersionNumber  release_version;
-  /** the expected nonce of the VDO */
-  Nonce                 nonce;
-  /** the thread configuration of the VDO */
-  struct thread_config *thread_config;
-  /** the page cache size, in pages */
-  PageCount             cache_size;
-  /** whether writes are synchronous */
-  WritePolicy           write_policy;
-  /** the maximum age of a dirty block map page in recovery journal blocks */
-  BlockCount            maximum_age;
+	/** the offset on the physical layer where the VDO begins */
+	PhysicalBlockNumber first_block_offset;
+	/** the expected release version number of the VDO */
+	ReleaseVersionNumber release_version;
+	/** the expected nonce of the VDO */
+	Nonce nonce;
+	/** the thread configuration of the VDO */
+	struct thread_config *thread_config;
+	/** the page cache size, in pages */
+	PageCount cache_size;
+	/** whether writes are synchronous */
+	WritePolicy write_policy;
+	/**
+	 * the maximum age of a dirty block map page in recovery journal blocks
+	 */
+	BlockCount maximum_age;
 };
 
 /**
@@ -373,7 +388,7 @@ struct lock_counter;
 struct logical_zone;
 struct logical_zones;
 struct pbn_lock;
-typedef struct physicalLayer       PhysicalLayer;
+typedef struct physicalLayer PhysicalLayer;
 struct physical_zone;
 struct recovery_journal;
 struct read_only_notifier;
@@ -395,14 +410,14 @@ struct vio;
 struct vio_pool;
 
 struct data_location {
-  PhysicalBlockNumber pbn;
-  BlockMappingState   state;
+	PhysicalBlockNumber pbn;
+	BlockMappingState state;
 };
 
 struct zoned_pbn {
-  PhysicalBlockNumber   pbn;
-  BlockMappingState     state;
-  struct physical_zone *zone;
+	PhysicalBlockNumber pbn;
+	BlockMappingState state;
+	struct physical_zone *zone;
 };
 
 /**
@@ -439,7 +454,7 @@ typedef void AsyncDataOperation(struct data_vio *dataVIO);
  * for completion on a specified thread.
  **/
 typedef struct enqueueable {
-  struct vdo_completion *completion;
+	struct vdo_completion *completion;
 } Enqueueable;
 
 #endif // TYPES_H
