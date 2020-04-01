@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#14 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#15 $
  */
 
 #ifndef VIO_H
@@ -171,7 +171,7 @@ static inline void vio_add_trace_record(struct vio *vio,
 					const struct trace_location *location)
 {
 	if (unlikely(vio->trace != NULL)) {
-		addTraceRecord(vio->trace, location);
+		add_trace_record(vio->trace, location);
 	}
 }
 

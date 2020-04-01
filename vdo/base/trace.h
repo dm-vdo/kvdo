@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.h#5 $
  */
 
 #ifndef TRACE_H
@@ -84,7 +84,7 @@ struct trace_location {
 
 /*
  * With well under 100 locations defined at the moment, even with no
- * idea where &baseTraceLocation will fall relative to the others, we
+ * idea where &base_trace_location will fall relative to the others, we
  * only need to support a range of -100..+100.
  */
 typedef int32_t TraceLocationNumber;
@@ -93,9 +93,9 @@ typedef int32_t TraceLocationNumber;
  * N.B.: This code uses GCC extensions to create static, initialized
  * objects inline, describing the current function and line number.
  * The objects are collected into a table we can index with small
- * signed integers relative to &baseTraceLocation.
+ * signed integers relative to &base_trace_location.
  *
- * We need baseTraceLocation because there's no standard way to get
+ * We need base_trace_location because there's no standard way to get
  * the address of the start of this array we're defining.  And because
  * we're not playing any (additional) special linker tricks to ensure
  * ordering of the object files, the offsets may be signed, and we
@@ -110,7 +110,7 @@ typedef int32_t TraceLocationNumber;
 
 #define TRACE_LOCATION_SECTION __attribute__((section(".kvdo_trace_locations")))
 
-extern TRACE_LOCATION_SECTION const struct trace_location baseTraceLocation[];
+extern TRACE_LOCATION_SECTION const struct trace_location base_trace_location[];
 
 #define TRACE_JOIN2(a, b) a##b
 #define TRACE_JOIN(a, b) TRACE_JOIN2(a, b)
@@ -144,20 +144,20 @@ struct trace {
  * @param trace    The trace data to be updated
  * @param location The source-location descriptor to be recorded
  **/
-void addTraceRecord(struct trace *trace,
-		    const struct trace_location *location);
+void add_trace_record(struct trace *trace,
+		      const struct trace_location *location);
 
 /**
  * Format trace data into a string for logging.
  *
- * @param [in]  trace         The trace data to be logged
- * @param [in]  buffer        The buffer in which to store the string
- * @param [in]  bufferLength  Length of the buffer
- * @param [out] msgLen        Length of the formatted string
+ * @param [in]  trace          The trace data to be logged
+ * @param [in]  buffer         The buffer in which to store the string
+ * @param [in]  buffer_length  Length of the buffer
+ * @param [out] msg_len        Length of the formatted string
  **/
-void formatTrace(struct trace *trace,
-		 char *buffer,
-		 size_t bufferLength,
-		 size_t *msgLen);
+void format_trace(struct trace *trace,
+		  char *buffer,
+		  size_t buffer_length,
+		  size_t *msg_len);
 
 #endif /* TRACE_H */

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/ktrace.c#16 $
  */
 
 #include "ktrace.h"
@@ -161,7 +161,7 @@ void log_kvio_trace(struct kvio *kvio)
 		kvio_add_trace_record(kvio, THIS_LOCATION(NULL));
 		size_t trace_len = 0;
 
-		formatTrace(kvio->vio->trace, trace_logging_state.buffer,
+		format_trace(kvio->vio->trace, trace_logging_state.buffer,
 			    sizeof(trace_logging_state.buffer), &trace_len);
 
 		if (is_metadata(kvio)) {

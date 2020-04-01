@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/trace.c#7 $
  */
 
 #include "trace.h"
@@ -25,7 +25,7 @@
 #include "stringUtils.h"
 #include "timeUtils.h"
 
-TRACE_LOCATION_SECTION const struct trace_location baseTraceLocation[] = {
+TRACE_LOCATION_SECTION const struct trace_location base_trace_location[] = {
 	{
 		.function = "<none>",
 		.line = 0,
@@ -33,15 +33,15 @@ TRACE_LOCATION_SECTION const struct trace_location baseTraceLocation[] = {
 };
 
 /**********************************************************************/
-void addTraceRecord(struct trace *trace,
-		    const struct trace_location *location)
+void add_trace_record(struct trace *trace,
+		      const struct trace_location *location)
 {
 	if (trace->used < NUM_TRACE_RECORDS) {
 		struct trace_record *record = &trace->records[trace->used];
 		trace->used++;
 		record->when = nowUsec();
 		record->tid = get_thread_id();
-		record->location = location - baseTraceLocation;
+		record->location = location - base_trace_location;
 	}
 }
 
@@ -53,23 +53,23 @@ void addTraceRecord(struct trace *trace,
  *
  * If the buffer's too small, it'll end with an ellipsis.
  */
-void formatTrace(struct trace *trace,
-		 char *buffer,
-		 size_t bufferLength,
-		 size_t *msgLen)
+void format_trace(struct trace *trace,
+		  char *buffer,
+		  size_t buffer_length,
+		  size_t *msg_len)
 {
 	if (trace == NULL) {
 		return;
 	}
-	memset(buffer, 0, bufferLength);
+	memset(buffer, 0, buffer_length);
 	char *buf = buffer;
-	char *bufferEnd = buffer + bufferLength - 1;
+	char *buffer_end = buffer + buffer_length - 1;
 	if (trace->used > 0) {
 		struct trace_record *record = &trace->records[0];
 		const struct trace_location *location =
-			baseTraceLocation + record->location;
+			base_trace_location + record->location;
 		snprintf(buf,
-			 bufferEnd - buf,
+			 buffer_end - buf,
 			 "trace[%s@%llu.%06llu",
 			 location->function,
 			 record->when / 1000000,
@@ -81,26 +81,26 @@ void formatTrace(struct trace *trace,
 			struct trace_record *prev = record;
 			record++;
 
-			snprintf(buf, bufferEnd - buf, ",");
+			snprintf(buf, buffer_end - buf, ",");
 			buf += strlen(buf);
 
-			location = baseTraceLocation + record->location;
-			unsigned long timeDiff = record->when - prev->when;
+			location = base_trace_location + record->location;
+			unsigned long time_diff = record->when - prev->when;
 			snprintf(buf,
-				 bufferEnd - buf,
+				 buffer_end - buf,
 				 "%s+%lu",
 				 location->function,
-				 timeDiff);
+				 time_diff);
 			buf += strlen(buf);
 		}
-		if (bufferLength > 7) {
-			if (buffer[bufferLength - 5] != '\0') {
+		if (buffer_length > 7) {
+			if (buffer[buffer_length - 5] != '\0') {
 				// too long
-				strcpy(buffer + bufferLength - 5, "...]");
+				strcpy(buffer + buffer_length - 5, "...]");
 			} else {
 				strcpy(buf, "]");
 			}
 		}
 	}
-	*msgLen = (buf - buffer);
+	*msg_len = (buf - buffer);
 }

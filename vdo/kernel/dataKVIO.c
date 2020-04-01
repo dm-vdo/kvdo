@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#54 $
  */
 
 #include "dataKVIO.h"
@@ -91,7 +91,7 @@ static void kvio_completion_tap1(struct data_kvio *data_kvio)
 	/*
 	 * Ensure that data_kvio doesn't get optimized out, even under inline
 	 * expansion. Also, make sure the compiler has to emit debug info
-	 * for baseTraceLocation, which some of our SystemTap scripts will
+	 * for base_trace_location, which some of our SystemTap scripts will
 	 * use here.
 	 *
 	 * First, make it look as though all memory could be clobbered; then
@@ -103,7 +103,7 @@ static void kvio_completion_tap1(struct data_kvio *data_kvio)
 	barrier();
 	__asm__ __volatile__(""
 			     :
-			     : "m"(data_kvio), "m"(baseTraceLocation),
+			     : "m"(data_kvio), "m"(base_trace_location),
 			       "r"(data_kvio->kvio.layer));
 }
 
