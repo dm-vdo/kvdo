@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#41 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#42 $
  */
 
 #ifndef TYPES_H
@@ -426,28 +426,28 @@ struct zoned_pbn {
  *
  * @param extent The extent which is complete
  **/
-typedef void VDOExtentCallback(struct vdo_extent *extent);
+typedef void vdo_extent_callback(struct vdo_extent *extent);
 
 /**
  * An asynchronous operation.
  *
  * @param vio The vio on which to operate
  **/
-typedef void AsyncOperation(struct vio *vio);
+typedef void async_operation(struct vio *vio);
 
 /**
  * An asynchronous compressed write operation.
  *
  * @param allocatingVIO  The allocating_vio to write
  **/
-typedef void CompressedWriter(struct allocating_vio *allocatingVIO);
+typedef void compressed_writer(struct allocating_vio *allocatingVIO);
 
 /**
  * An asynchronous data operation.
  *
  * @param dataVIO  The data_vio on which to operate
  **/
-typedef void AsyncDataOperation(struct data_vio *dataVIO);
+typedef void async_data_operation(struct data_vio *dataVIO);
 
 /**
  * A reference to a completion which (the reference) can be enqueued

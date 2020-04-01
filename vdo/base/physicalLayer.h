@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#21 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#22 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -147,7 +147,7 @@ typedef void vio_destructor(struct vio **vioPtr);
  *
  * @param dataVIO  The data_vio to zero
  **/
-typedef AsyncDataOperation data_vio_zeroer;
+typedef async_data_operation data_vio_zeroer;
 
 /**
  * A function to copy the contents of a data_vio into another data_vio.
@@ -164,7 +164,7 @@ typedef void data_copier(struct data_vio *source,
  *
  * @param dataVIO  The dataVIO to modify
  **/
-typedef AsyncDataOperation data_modifier;
+typedef async_data_operation data_modifier;
 
 /**
  * A function to asynchronously hash the block data, setting the chunk name of
@@ -173,7 +173,7 @@ typedef AsyncDataOperation data_modifier;
  *
  * @param dataVIO  The data_vio to hash
  **/
-typedef AsyncDataOperation data_hasher;
+typedef async_data_operation data_hasher;
 
 /**
  * A function to determine whether a block is a duplicate. This function
@@ -185,7 +185,7 @@ typedef AsyncDataOperation data_hasher;
  *
  * @param dataVIO  The data_vio containing the block to check.
  **/
-typedef AsyncDataOperation duplication_checker;
+typedef async_data_operation duplication_checker;
 
 /**
  * A function to verify the duplication advice by examining an already-stored
@@ -197,7 +197,7 @@ typedef AsyncDataOperation duplication_checker;
  *
  * @param dataVIO  The dataVIO containing the block to check.
  **/
-typedef AsyncDataOperation duplication_verifier;
+typedef async_data_operation duplication_verifier;
 
 /**
  * A function to read a single data_vio from the layer.
@@ -208,28 +208,28 @@ typedef AsyncDataOperation duplication_verifier;
  *
  * @param dataVIO  The data_vio to read
  **/
-typedef AsyncDataOperation data_reader;
+typedef async_data_operation data_reader;
 
 /**
  * A function to read a single metadata vio from the layer.
  *
  * @param vio  The vio to read
  **/
-typedef AsyncOperation metadata_reader;
+typedef async_operation metadata_reader;
 
 /**
  * A function to write a single data_vio to the layer
  *
  * @param dataVIO  The data_vio to write
  **/
-typedef AsyncDataOperation data_writer;
+typedef async_data_operation data_writer;
 
 /**
  * A function to write a single metadata vio from the layer.
  *
  * @param vio  The vio to write
  **/
-typedef AsyncOperation metadata_writer;
+typedef async_operation metadata_writer;
 
 /**
  * A function to inform the layer that a data_vio's related I/O request can be
@@ -238,7 +238,7 @@ typedef AsyncOperation metadata_writer;
  *
  * @param dataVIO  The data_vio to acknowledge
  **/
-typedef AsyncDataOperation data_acknowledger;
+typedef async_data_operation data_acknowledger;
 
 /**
  * A function to compare the contents of a data_vio to another data_vio.
@@ -256,14 +256,14 @@ typedef bool data_vio_comparator(struct data_vio *first,
  *
  * @param dataVIO  The data_vio to compress
  **/
-typedef AsyncDataOperation data_compressor;
+typedef async_data_operation data_compressor;
 
 /**
  * Update albireo.
  *
  * @param dataVIO  The data_vio which needs to change the entry for its data
  **/
-typedef AsyncDataOperation albireo_updater;
+typedef async_data_operation albireo_updater;
 
 /**
  * A function to finish flush requests
@@ -352,7 +352,7 @@ struct physicalLayer {
 	duplication_verifier *verifyDuplication;
 	data_reader *readData;
 	data_writer *writeData;
-	CompressedWriter *writeCompressedBlock;
+	compressed_writer *writeCompressedBlock;
 	metadata_reader *readMetadata;
 	metadata_writer *writeMetadata;
 	metadata_writer *flush;
