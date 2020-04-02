@@ -459,7 +459,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of dirty (resident) pages */
        result = write_uint32_t("dirtyPages : ",
-                               stats->dirtyPages,
+                               stats->dirty_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -468,7 +468,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of clean (resident) pages */
        result = write_uint32_t("cleanPages : ",
-                               stats->cleanPages,
+                               stats->clean_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -477,7 +477,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of free pages */
        result = write_uint32_t("freePages : ",
-                               stats->freePages,
+                               stats->free_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -486,7 +486,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of pages in failed state */
        result = write_uint32_t("failedPages : ",
-                               stats->failedPages,
+                               stats->failed_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -495,7 +495,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of pages incoming */
        result = write_uint32_t("incomingPages : ",
-                               stats->incomingPages,
+                               stats->incoming_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -504,7 +504,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of pages outgoing */
        result = write_uint32_t("outgoingPages : ",
-                               stats->outgoingPages,
+                               stats->outgoing_pages,
                                ", ",
                                buf,
                                maxlen);
@@ -513,7 +513,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** how many times free page not avail */
        result = write_uint32_t("cachePressure : ",
-                               stats->cachePressure,
+                               stats->cache_pressure,
                                ", ",
                                buf,
                                maxlen);
@@ -522,7 +522,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of getVDOPageAsync() for read */
        result = write_uint64_t("readCount : ",
-                               stats->readCount,
+                               stats->read_count,
                                ", ",
                                buf,
                                maxlen);
@@ -531,7 +531,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number or getVDOPageAsync() for write */
        result = write_uint64_t("writeCount : ",
-                               stats->writeCount,
+                               stats->write_count,
                                ", ",
                                buf,
                                maxlen);
@@ -540,7 +540,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of times pages failed to read */
        result = write_uint64_t("failedReads : ",
-                               stats->failedReads,
+                               stats->failed_reads,
                                ", ",
                                buf,
                                maxlen);
@@ -549,7 +549,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of times pages failed to write */
        result = write_uint64_t("failedWrites : ",
-                               stats->failedWrites,
+                               stats->failed_writes,
                                ", ",
                                buf,
                                maxlen);
@@ -567,7 +567,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of gets for outgoing pages */
        result = write_uint64_t("readOutgoing : ",
-                               stats->readOutgoing,
+                               stats->read_outgoing,
                                ", ",
                                buf,
                                maxlen);
@@ -576,7 +576,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of gets that were already there */
        result = write_uint64_t("foundInCache : ",
-                               stats->foundInCache,
+                               stats->found_in_cache,
                                ", ",
                                buf,
                                maxlen);
@@ -585,7 +585,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of gets requiring discard */
        result = write_uint64_t("discardRequired : ",
-                               stats->discardRequired,
+                               stats->discard_required,
                                ", ",
                                buf,
                                maxlen);
@@ -594,7 +594,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of gets enqueued for their page */
        result = write_uint64_t("waitForPage : ",
-                               stats->waitForPage,
+                               stats->wait_for_page,
                                ", ",
                                buf,
                                maxlen);
@@ -603,7 +603,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of gets that have to fetch */
        result = write_uint64_t("fetchRequired : ",
-                               stats->fetchRequired,
+                               stats->fetch_required,
                                ", ",
                                buf,
                                maxlen);
@@ -612,7 +612,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of page fetches */
        result = write_uint64_t("pagesLoaded : ",
-                               stats->pagesLoaded,
+                               stats->pages_loaded,
                                ", ",
                                buf,
                                maxlen);
@@ -621,7 +621,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** number of page saves */
        result = write_uint64_t("pagesSaved : ",
-                               stats->pagesSaved,
+                               stats->pages_saved,
                                ", ",
                                buf,
                                maxlen);
@@ -630,7 +630,7 @@ int write_block_map_statistics(char *prefix,
        }
        /** the number of flushes issued */
        result = write_uint64_t("flushCount : ",
-                               stats->flushCount,
+                               stats->flush_count,
                                ", ",
                                buf,
                                maxlen);

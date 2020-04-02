@@ -103,45 +103,45 @@ struct ref_counts_statistics {
 /** The statistics for the block map. */
 struct block_map_statistics {
   /** number of dirty (resident) pages */
-  uint32_t dirtyPages;
+  uint32_t dirty_pages;
   /** number of clean (resident) pages */
-  uint32_t cleanPages;
+  uint32_t clean_pages;
   /** number of free pages */
-  uint32_t freePages;
+  uint32_t free_pages;
   /** number of pages in failed state */
-  uint32_t failedPages;
+  uint32_t failed_pages;
   /** number of pages incoming */
-  uint32_t incomingPages;
+  uint32_t incoming_pages;
   /** number of pages outgoing */
-  uint32_t outgoingPages;
+  uint32_t outgoing_pages;
   /** how many times free page not avail */
-  uint32_t cachePressure;
+  uint32_t cache_pressure;
   /** number of getVDOPageAsync() for read */
-  uint64_t readCount;
+  uint64_t read_count;
   /** number or getVDOPageAsync() for write */
-  uint64_t writeCount;
+  uint64_t write_count;
   /** number of times pages failed to read */
-  uint64_t failedReads;
+  uint64_t failed_reads;
   /** number of times pages failed to write */
-  uint64_t failedWrites;
+  uint64_t failed_writes;
   /** number of gets that are reclaimed */
   uint64_t reclaimed;
   /** number of gets for outgoing pages */
-  uint64_t readOutgoing;
+  uint64_t read_outgoing;
   /** number of gets that were already there */
-  uint64_t foundInCache;
+  uint64_t found_in_cache;
   /** number of gets requiring discard */
-  uint64_t discardRequired;
+  uint64_t discard_required;
   /** number of gets enqueued for their page */
-  uint64_t waitForPage;
+  uint64_t wait_for_page;
   /** number of gets that have to fetch */
-  uint64_t fetchRequired;
+  uint64_t fetch_required;
   /** number of page fetches */
-  uint64_t pagesLoaded;
+  uint64_t pages_loaded;
   /** number of page saves */
-  uint64_t pagesSaved;
+  uint64_t pages_saved;
   /** the number of flushes issued */
-  uint64_t flushCount;
+  uint64_t flush_count;
 };
 
 /** The dedupe statistics from hash locks */
