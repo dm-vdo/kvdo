@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#81 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#82 $
  */
 
 #include "kernelLayer.h"
@@ -25,12 +25,12 @@
 #include <linux/blkdev.h>
 #include <linux/module.h>
 #include <linux/backing-dev.h>
+#include <linux/lz4.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
 
-#include "lz4.h"
 #include "releaseVersions.h"
 #include "volumeGeometry.h"
 #include "statistics.h"
@@ -736,7 +736,7 @@ int make_kernel_layer(uint64_t starting_sector,
 	int i;
 
 	for (i = 0; i < config->thread_counts.cpu_threads; i++) {
-		result = ALLOCATE(LZ4_context_size(),
+		result = ALLOCATE(LZ4_MEM_COMPRESS,
 				  char,
 				  "LZ4 context",
 				  &layer->compressionContext[i]);

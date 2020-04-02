@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#55 $
  */
 
 #include "dataKVIO.h"
 
 #include <asm/unaligned.h>
+#include <linux/lz4.h>
 
 #include "logger.h"
 #include "memoryAlloc.h"
@@ -30,7 +31,6 @@
 #include "compressedBlock.h"
 #include "dataVIO.h"
 #include "hashLock.h"
-#include "lz4.h"
 #include "physicalLayer.h"
 
 #include "bio.h"
@@ -332,7 +332,6 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 {
 	struct data_kvio *data_kvio = work_item_as_data_kvio(work_item);
 	struct read_block *read_block = &data_kvio->read_block;
-	BlockSize block_size = VDO_BLOCK_SIZE;
 
 	// The data_kvio's scratch block will be used to contain the
 	// uncompressed data.
@@ -340,7 +339,7 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 	char *compressed_data = read_block->data;
 	int result = get_compressed_block_fragment(read_block->mapping_state,
 						   compressed_data,
-						   block_size,
+						   VDO_BLOCK_SIZE,
 						   &fragment_offset,
 						   &fragment_size);
 	if (result != VDO_SUCCESS) {
@@ -352,11 +351,11 @@ static void uncompress_read_block(struct kvdo_work_item *work_item)
 
 	char *fragment = compressed_data + fragment_offset;
 	int size =
-		LZ4_uncompress_unknownOutputSize(fragment,
-						 data_kvio->scratch_block,
-						 fragment_size,
-						 block_size);
-	if (size == block_size) {
+		LZ4_decompress_safe(fragment,
+				    data_kvio->scratch_block,
+				    fragment_size,
+				    VDO_BLOCK_SIZE);
+	if (size == VDO_BLOCK_SIZE) {
 		read_block->data = data_kvio->scratch_block;
 	} else {
 		logDebug("%s: lz4 error", __func__);
@@ -647,11 +646,11 @@ static void kvdo_compress_work(struct kvdo_work_item *item)
 
 	char *context = get_work_queue_private_data();
 	int size =
-		LZ4_compress_ctx_limitedOutput(context,
-					       data_kvio->data_block,
-					       data_kvio->scratch_block,
-					       VDO_BLOCK_SIZE,
-					       VDO_BLOCK_SIZE);
+		LZ4_compress_default(data_kvio->data_block,
+				     data_kvio->scratch_block,
+				     VDO_BLOCK_SIZE,
+				     VDO_BLOCK_SIZE,
+				     context);
 	struct data_vio *data_vio = &data_kvio->data_vio;
 
 	if (size > 0) {
