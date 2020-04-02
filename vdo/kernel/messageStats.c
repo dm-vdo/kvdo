@@ -432,7 +432,7 @@ int write_ref_counts_statistics(char *prefix,
        }
        /** Number of reference blocks written */
        result = write_uint64_t("blocksWritten : ",
-                               stats->blocksWritten,
+                               stats->blocks_written,
                                ", ",
                                buf,
                                maxlen);

@@ -97,7 +97,7 @@ struct slab_summary_statistics {
 /** The statistics for the reference counts. */
 struct ref_counts_statistics {
   /** Number of reference blocks written */
-  uint64_t blocksWritten;
+  uint64_t blocks_written;
 };
 
 /** The statistics for the block map. */

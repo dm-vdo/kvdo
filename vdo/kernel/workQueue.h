@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#11 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -130,9 +130,6 @@ struct kvdo_work_queue_type {
 
 	/** A function to call in the new thread when shutting down */
 	kvdo_work_queue_function finish;
-
-	/** A function to call in the new thread after running out of work */
-	kvdo_work_queue_function suspend;
 
 	/** Table of actions for this work queue */
 	struct kvdo_work_queue_action action_table[WORK_QUEUE_ACTION_COUNT];

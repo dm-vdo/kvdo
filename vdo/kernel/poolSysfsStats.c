@@ -620,7 +620,7 @@ static ssize_t pool_stats_ref_counts_blocks_written_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.refCounts.blocksWritten);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.refCounts.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

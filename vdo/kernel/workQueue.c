@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#23 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#25 $
  */
 
 #include "workQueue.h"
@@ -29,10 +29,10 @@
 #include "atomic.h"
 #include "logger.h"
 #include "memoryAlloc.h"
+#include "numeric.h"
 #include "permassert.h"
 #include "stringUtils.h"
 
-#include "numeric.h"
 #include "workItemStats.h"
 #include "workQueueHandle.h"
 #include "workQueueInternals.h"
@@ -331,28 +331,6 @@ static void run_finish_hook(struct simple_work_queue *queue)
 }
 
 /**
- * If the work queue has a suspend hook, invoke it, and when it finishes, check
- * again for any pending work items.
- *
- * We assume a check for pending work items has just been done and turned up
- * empty; so, if no suspend hook exists, we can just return NULL without doing
- * another check.
- *
- * @param [in]     queue  The work queue preparing to suspend
- *
- * @return  the newly found work item, if any
- **/
-static struct kvdo_work_item *run_suspend_hook(struct simple_work_queue *queue)
-{
-	if (queue->type->suspend == NULL) {
-		return NULL;
-	}
-
-	queue->type->suspend(queue->private);
-	return poll_for_work_item(queue);
-}
-
-/**
  * Check whether a work queue has delayed work items pending.
  *
  * @param queue  The work queue
@@ -388,7 +366,7 @@ static struct kvdo_work_item *
 wait_for_next_work_item(struct simple_work_queue *queue,
 			TimeoutJiffies timeout_interval)
 {
-	struct kvdo_work_item *item = run_suspend_hook(queue);
+	struct kvdo_work_item *item = poll_for_work_item(queue);
 
 	if (item != NULL) {
 		return item;
