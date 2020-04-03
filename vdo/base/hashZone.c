@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/hashZone.c#16 $
  */
 
 #include "hashZone.h"
@@ -181,11 +181,11 @@ get_hash_zone_statistics(const struct hash_zone *zone)
 {
 	const struct atomic_hash_lock_statistics *atoms = &zone->statistics;
 	return (struct hash_lock_statistics) {
-		.dedupeAdviceValid = relaxedLoad64(&atoms->dedupeAdviceValid),
-		.dedupeAdviceStale = relaxedLoad64(&atoms->dedupeAdviceStale),
-		.concurrentDataMatches =
+		.dedupe_advice_valid = relaxedLoad64(&atoms->dedupeAdviceValid),
+		.dedupe_advice_stale = relaxedLoad64(&atoms->dedupeAdviceStale),
+		.concurrent_data_matches =
 			relaxedLoad64(&atoms->concurrentDataMatches),
-		.concurrentHashCollisions =
+		.concurrent_hash_collisions =
 			relaxedLoad64(&atoms->concurrentHashCollisions),
 	};
 }

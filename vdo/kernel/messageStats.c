@@ -657,7 +657,7 @@ int write_hash_lock_statistics(char *prefix,
        }
        /** Number of times the UDS advice proved correct */
        result = write_uint64_t("dedupeAdviceValid : ",
-                               stats->dedupeAdviceValid,
+                               stats->dedupe_advice_valid,
                                ", ",
                                buf,
                                maxlen);
@@ -666,7 +666,7 @@ int write_hash_lock_statistics(char *prefix,
        }
        /** Number of times the UDS advice proved incorrect */
        result = write_uint64_t("dedupeAdviceStale : ",
-                               stats->dedupeAdviceStale,
+                               stats->dedupe_advice_stale,
                                ", ",
                                buf,
                                maxlen);
@@ -675,7 +675,7 @@ int write_hash_lock_statistics(char *prefix,
        }
        /** Number of writes with the same data as another in-flight write */
        result = write_uint64_t("concurrentDataMatches : ",
-                               stats->concurrentDataMatches,
+                               stats->concurrent_data_matches,
                                ", ",
                                buf,
                                maxlen);
@@ -684,7 +684,7 @@ int write_hash_lock_statistics(char *prefix,
        }
        /** Number of writes whose hash collided with an in-flight write */
        result = write_uint64_t("concurrentHashCollisions : ",
-                               stats->concurrentHashCollisions,
+                               stats->concurrent_hash_collisions,
                                ", ",
                                buf,
                                maxlen);

@@ -147,13 +147,13 @@ struct block_map_statistics {
 /** The dedupe statistics from hash locks */
 struct hash_lock_statistics {
   /** Number of times the UDS advice proved correct */
-  uint64_t dedupeAdviceValid;
+  uint64_t dedupe_advice_valid;
   /** Number of times the UDS advice proved incorrect */
-  uint64_t dedupeAdviceStale;
+  uint64_t dedupe_advice_stale;
   /** Number of writes with the same data as another in-flight write */
-  uint64_t concurrentDataMatches;
+  uint64_t concurrent_data_matches;
   /** Number of writes whose hash collided with an in-flight write */
-  uint64_t concurrentHashCollisions;
+  uint64_t concurrent_hash_collisions;
 };
 
 /** Counts of error conditions in VDO. */

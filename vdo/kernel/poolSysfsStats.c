@@ -977,7 +977,7 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_valid_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupeAdviceValid);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupe_advice_valid);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -994,7 +994,7 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_stale_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupeAdviceStale);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupe_advice_stale);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1011,7 +1011,7 @@ static ssize_t pool_stats_hash_lock_concurrent_data_matches_show(struct kernel_l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrentDataMatches);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrent_data_matches);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1028,7 +1028,7 @@ static ssize_t pool_stats_hash_lock_concurrent_hash_collisions_show(struct kerne
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrentHashCollisions);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrent_hash_collisions);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

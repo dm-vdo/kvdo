@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#53 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#54 $
  */
 
 /*
@@ -826,11 +826,12 @@ get_hash_lock_statistics(const struct vdo *vdo)
 	for (zone = 0; zone < thread_config->hash_zone_count; zone++) {
 		struct hash_lock_statistics stats =
 			get_hash_zone_statistics(vdo->hash_zones[zone]);
-		totals.dedupeAdviceValid += stats.dedupeAdviceValid;
-		totals.dedupeAdviceStale += stats.dedupeAdviceStale;
-		totals.concurrentDataMatches += stats.concurrentDataMatches;
-		totals.concurrentHashCollisions +=
-			stats.concurrentHashCollisions;
+		totals.dedupe_advice_valid += stats.dedupe_advice_valid;
+		totals.dedupe_advice_stale += stats.dedupe_advice_stale;
+		totals.concurrent_data_matches +=
+			stats.concurrent_data_matches;
+		totals.concurrent_hash_collisions +=
+			stats.concurrent_hash_collisions;
 	}
 
 	return totals;
