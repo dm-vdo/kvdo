@@ -5,11 +5,10 @@ SOURCES += $(addprefix util/,$(notdir $(wildcard $(src)/util/*.c)))
 OBJECTS = $(SOURCES:%.c=%.o)
 INCLUDES = -I$(src)
 
-EXTRA_CFLAGS =	-fno-builtin-memset			\
-		-Werror					\
-		-Wframe-larger-than=400			\
-		-Wno-declaration-after-statement	\
-		-DUDS_VERSION=\"$(UDS_VERSION)\"	\
+EXTRA_CFLAGS =	-fno-builtin-memset				\
+		$(if $(CONFIG_KASAN),,-Wframe-larger-than=400)	\
+		-Wno-declaration-after-statement		\
+		-DUDS_VERSION=\"$(UDS_VERSION)\"		\
 		$(INCLUDES)
 
 obj-m += uds.o
