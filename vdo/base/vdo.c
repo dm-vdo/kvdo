@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#56 $
  */
 
 /*
@@ -891,38 +891,38 @@ void get_vdo_statistics(const struct vdo *vdo,
 	// usually OK.
 	stats->version = STATISTICS_VERSION;
 	stats->releaseVersion = CURRENT_RELEASE_VERSION_NUMBER;
-	stats->logicalBlocks = vdo->config.logical_blocks;
-	stats->physicalBlocks = vdo->config.physical_blocks;
-	stats->blockSize = VDO_BLOCK_SIZE;
-	stats->completeRecoveries = vdo->complete_recoveries;
-	stats->readOnlyRecoveries = vdo->read_only_recoveries;
-	stats->blockMapCacheSize = get_block_map_cache_size(vdo);
-	snprintf(stats->writePolicy,
-		 sizeof(stats->writePolicy),
+	stats->logical_blocks = vdo->config.logical_blocks;
+	stats->physical_blocks = vdo->config.physical_blocks;
+	stats->block_size = VDO_BLOCK_SIZE;
+	stats->complete_recoveries = vdo->complete_recoveries;
+	stats->read_only_recoveries = vdo->read_only_recoveries;
+	stats->block_map_cache_size = get_block_map_cache_size(vdo);
+	snprintf(stats->write_policy,
+		 sizeof(stats->write_policy),
 		 "%s",
 		 describe_write_policy(get_write_policy(vdo)));
 
 	// The callees are responsible for thread-safety.
-	stats->dataBlocksUsed = get_physical_blocks_allocated(vdo);
-	stats->overheadBlocksUsed = get_physical_blocks_overhead(vdo);
-	stats->logicalBlocksUsed = get_journal_logical_blocks_used(journal);
+	stats->data_blocks_used = get_physical_blocks_allocated(vdo);
+	stats->overhead_blocks_used = get_physical_blocks_overhead(vdo);
+	stats->logical_blocks_used = get_journal_logical_blocks_used(journal);
 	stats->allocator = get_depot_block_allocator_statistics(depot);
 	stats->journal = get_recovery_journal_statistics(journal);
 	stats->packer = get_packer_statistics(vdo->packer);
-	stats->slabJournal = get_depot_slab_journal_statistics(depot);
-	stats->slabSummary =
+	stats->slab_journal = get_depot_slab_journal_statistics(depot);
+	stats->slab_summary =
 		get_slab_summary_statistics(get_slab_summary(depot));
-	stats->refCounts = get_depot_ref_counts_statistics(depot);
-	stats->blockMap = get_block_map_statistics(vdo->block_map);
-	stats->hashLock = get_hash_lock_statistics(vdo);
+	stats->ref_counts = get_depot_ref_counts_statistics(depot);
+	stats->block_map = get_block_map_statistics(vdo->block_map);
+	stats->hash_lock = get_hash_lock_statistics(vdo);
 	stats->errors = get_vdo_error_statistics(vdo);
 	SlabCount slab_total = get_depot_slab_count(depot);
-	stats->recoveryPercentage =
+	stats->recovery_percentage =
 		(slab_total - get_depot_unrecovered_slab_count(depot)) * 100 /
 		slab_total;
 
 	VDOState state = get_vdo_state(vdo);
-	stats->inRecoveryMode = (state == VDO_RECOVERING);
+	stats->in_recovery_mode = (state == VDO_RECOVERING);
 	snprintf(stats->mode,
 		 sizeof(stats->mode),
 		 "%s",

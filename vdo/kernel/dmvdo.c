@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#47 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dmvdo.c#48 $
  */
 
 #include "dmvdo.h"
@@ -196,12 +196,12 @@ static void vdo_status(struct dm_target *ti,
 		DMEMIT("/dev/%s %s %s %s %s %llu %llu",
 		       bdevname(get_kernel_layer_bdev(layer), name_buffer),
 		       stats->mode,
-		       stats->inRecoveryMode ? "recovering" : "-",
+		       stats->in_recovery_mode ? "recovering" : "-",
 		       get_dedupe_state_name(layer->dedupe_index),
 		       get_kvdo_compressing(&layer->kvdo) ? "online" :
 							    "offline",
-		       stats->dataBlocksUsed + stats->overheadBlocksUsed,
-		       stats->physicalBlocks);
+		       stats->data_blocks_used + stats->overhead_blocks_used,
+		       stats->physical_blocks);
 		mutex_unlock(&layer->statsMutex);
 		break;
 

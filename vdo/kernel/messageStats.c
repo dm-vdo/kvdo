@@ -772,7 +772,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Number of blocks used for data */
        result = write_uint64_t("dataBlocksUsed : ",
-                               stats->dataBlocksUsed,
+                               stats->data_blocks_used,
                                ", ",
                                buf,
                                maxlen);
@@ -781,7 +781,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Number of blocks used for VDO metadata */
        result = write_uint64_t("overheadBlocksUsed : ",
-                               stats->overheadBlocksUsed,
+                               stats->overhead_blocks_used,
                                ", ",
                                buf,
                                maxlen);
@@ -790,7 +790,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Number of logical blocks that are currently mapped to physical blocks */
        result = write_uint64_t("logicalBlocksUsed : ",
-                               stats->logicalBlocksUsed,
+                               stats->logical_blocks_used,
                                ", ",
                                buf,
                                maxlen);
@@ -799,7 +799,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** number of physical blocks */
        result = write_BlockCount("physicalBlocks : ",
-                                 stats->physicalBlocks,
+                                 stats->physical_blocks,
                                  ", ",
                                  buf,
                                  maxlen);
@@ -808,7 +808,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** number of logical blocks */
        result = write_BlockCount("logicalBlocks : ",
-                                 stats->logicalBlocks,
+                                 stats->logical_blocks,
                                  ", ",
                                  buf,
                                  maxlen);
@@ -817,7 +817,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Size of the block map page cache, in bytes */
        result = write_uint64_t("blockMapCacheSize : ",
-                               stats->blockMapCacheSize,
+                               stats->block_map_cache_size,
                                ", ",
                                buf,
                                maxlen);
@@ -826,7 +826,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** String describing the active write policy of the VDO */
        result = write_string("writePolicy : ",
-                             stats->writePolicy,
+                             stats->write_policy,
                              ", ",
                              buf,
                              maxlen);
@@ -835,7 +835,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The physical block size */
        result = write_uint64_t("blockSize : ",
-                               stats->blockSize,
+                               stats->block_size,
                                ", ",
                                buf,
                                maxlen);
@@ -844,7 +844,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Number of times the VDO has successfully recovered */
        result = write_uint64_t("completeRecoveries : ",
-                               stats->completeRecoveries,
+                               stats->complete_recoveries,
                                ", ",
                                buf,
                                maxlen);
@@ -853,7 +853,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Number of times the VDO has recovered from read-only mode */
        result = write_uint64_t("readOnlyRecoveries : ",
-                               stats->readOnlyRecoveries,
+                               stats->read_only_recoveries,
                                ", ",
                                buf,
                                maxlen);
@@ -871,7 +871,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** Whether the VDO is in recovery mode */
        result = write_bool("inRecoveryMode : ",
-                           stats->inRecoveryMode,
+                           stats->in_recovery_mode,
                            ", ",
                            buf,
                            maxlen);
@@ -880,7 +880,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** What percentage of recovery mode work has been completed */
        result = write_uint8_t("recoveryPercentage : ",
-                              stats->recoveryPercentage,
+                              stats->recovery_percentage,
                               ", ",
                               buf,
                               maxlen);
@@ -916,7 +916,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The statistics for the slab journals */
        result = write_slab_journal_statistics("slabJournal : ",
-                                              &stats->slabJournal,
+                                              &stats->slab_journal,
                                               ", ",
                                               buf,
                                               maxlen);
@@ -925,7 +925,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The statistics for the slab summary */
        result = write_slab_summary_statistics("slabSummary : ",
-                                              &stats->slabSummary,
+                                              &stats->slab_summary,
                                               ", ",
                                               buf,
                                               maxlen);
@@ -934,7 +934,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The statistics for the reference counts */
        result = write_ref_counts_statistics("refCounts : ",
-                                            &stats->refCounts,
+                                            &stats->ref_counts,
                                             ", ",
                                             buf,
                                             maxlen);
@@ -943,7 +943,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The statistics for the block map */
        result = write_block_map_statistics("blockMap : ",
-                                           &stats->blockMap,
+                                           &stats->block_map,
                                            ", ",
                                            buf,
                                            maxlen);
@@ -952,7 +952,7 @@ int write_vdo_statistics(char *prefix,
        }
        /** The dedupe statistics from hash locks */
        result = write_hash_lock_statistics("hashLock : ",
-                                           &stats->hashLock,
+                                           &stats->hash_lock,
                                            ", ",
                                            buf,
                                            maxlen);

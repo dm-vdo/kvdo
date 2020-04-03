@@ -171,31 +171,31 @@ struct vdo_statistics {
   uint32_t version;
   uint32_t releaseVersion;
   /** Number of blocks used for data */
-  uint64_t dataBlocksUsed;
+  uint64_t data_blocks_used;
   /** Number of blocks used for VDO metadata */
-  uint64_t overheadBlocksUsed;
+  uint64_t overhead_blocks_used;
   /** Number of logical blocks that are currently mapped to physical blocks */
-  uint64_t logicalBlocksUsed;
+  uint64_t logical_blocks_used;
   /** number of physical blocks */
-  BlockCount physicalBlocks;
+  BlockCount physical_blocks;
   /** number of logical blocks */
-  BlockCount logicalBlocks;
+  BlockCount logical_blocks;
   /** Size of the block map page cache, in bytes */
-  uint64_t blockMapCacheSize;
+  uint64_t block_map_cache_size;
   /** String describing the active write policy of the VDO */
-  char writePolicy[15];
+  char write_policy[15];
   /** The physical block size */
-  uint64_t blockSize;
+  uint64_t block_size;
   /** Number of times the VDO has successfully recovered */
-  uint64_t completeRecoveries;
+  uint64_t complete_recoveries;
   /** Number of times the VDO has recovered from read-only mode */
-  uint64_t readOnlyRecoveries;
+  uint64_t read_only_recoveries;
   /** String describing the operating mode of the VDO */
   char mode[15];
   /** Whether the VDO is in recovery mode */
-  bool inRecoveryMode;
+  bool in_recovery_mode;
   /** What percentage of recovery mode work has been completed */
-  uint8_t recoveryPercentage;
+  uint8_t recovery_percentage;
   /** The statistics for the compressed block packer */
   struct packer_statistics packer;
   /** Counters for events in the block allocator */
@@ -203,15 +203,15 @@ struct vdo_statistics {
   /** Counters for events in the recovery journal */
   struct recovery_journal_statistics journal;
   /** The statistics for the slab journals */
-  struct slab_journal_statistics slabJournal;
+  struct slab_journal_statistics slab_journal;
   /** The statistics for the slab summary */
-  struct slab_summary_statistics slabSummary;
+  struct slab_summary_statistics slab_summary;
   /** The statistics for the reference counts */
-  struct ref_counts_statistics refCounts;
+  struct ref_counts_statistics ref_counts;
   /** The statistics for the block map */
-  struct block_map_statistics blockMap;
+  struct block_map_statistics block_map;
   /** The dedupe statistics from hash locks */
-  struct hash_lock_statistics hashLock;
+  struct hash_lock_statistics hash_lock;
   /** Counts of error conditions */
   struct error_statistics errors;
 };

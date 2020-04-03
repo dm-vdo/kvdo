@@ -59,7 +59,7 @@ static ssize_t pool_stats_data_blocks_used_show(struct kernel_layer *layer, char
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.dataBlocksUsed);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.data_blocks_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -76,7 +76,7 @@ static ssize_t pool_stats_overhead_blocks_used_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.overheadBlocksUsed);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.overhead_blocks_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -93,7 +93,7 @@ static ssize_t pool_stats_logical_blocks_used_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logicalBlocksUsed);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks_used);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -110,7 +110,7 @@ static ssize_t pool_stats_physical_blocks_show(struct kernel_layer *layer, char 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.physicalBlocks);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.physical_blocks);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -127,7 +127,7 @@ static ssize_t pool_stats_logical_blocks_show(struct kernel_layer *layer, char *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logicalBlocks);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.logical_blocks);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -144,7 +144,7 @@ static ssize_t pool_stats_block_map_cache_size_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMapCacheSize);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map_cache_size);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -161,7 +161,7 @@ static ssize_t pool_stats_write_policy_show(struct kernel_layer *layer, char *bu
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%s\n", layer->vdo_stats_storage.writePolicy);
+	retval = sprintf(buf, "%s\n", layer->vdo_stats_storage.write_policy);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -178,7 +178,7 @@ static ssize_t pool_stats_block_size_show(struct kernel_layer *layer, char *buf)
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockSize);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_size);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -195,7 +195,7 @@ static ssize_t pool_stats_complete_recoveries_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.completeRecoveries);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.complete_recoveries);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -212,7 +212,7 @@ static ssize_t pool_stats_read_only_recoveries_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.readOnlyRecoveries);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.read_only_recoveries);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -246,7 +246,7 @@ static ssize_t pool_stats_in_recovery_mode_show(struct kernel_layer *layer, char
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%d\n", layer->vdo_stats_storage.inRecoveryMode);
+	retval = sprintf(buf, "%d\n", layer->vdo_stats_storage.in_recovery_mode);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -263,7 +263,7 @@ static ssize_t pool_stats_recovery_percentage_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%u\n", layer->vdo_stats_storage.recoveryPercentage);
+	retval = sprintf(buf, "%u\n", layer->vdo_stats_storage.recovery_percentage);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -518,7 +518,7 @@ static ssize_t pool_stats_slab_journal_disk_full_count_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.disk_full_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.disk_full_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -535,7 +535,7 @@ static ssize_t pool_stats_slab_journal_flush_count_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.flush_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.flush_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -552,7 +552,7 @@ static ssize_t pool_stats_slab_journal_blocked_count_show(struct kernel_layer *l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blocked_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocked_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -569,7 +569,7 @@ static ssize_t pool_stats_slab_journal_blocks_written_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.blocks_written);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -586,7 +586,7 @@ static ssize_t pool_stats_slab_journal_tail_busy_count_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabJournal.tail_busy_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_journal.tail_busy_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -603,7 +603,7 @@ static ssize_t pool_stats_slab_summary_blocks_written_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slabSummary.blocks_written);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.slab_summary.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -620,7 +620,7 @@ static ssize_t pool_stats_ref_counts_blocks_written_show(struct kernel_layer *la
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.refCounts.blocks_written);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.ref_counts.blocks_written);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -637,7 +637,7 @@ static ssize_t pool_stats_block_map_dirty_pages_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.dirty_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.dirty_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -654,7 +654,7 @@ static ssize_t pool_stats_block_map_clean_pages_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.clean_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.clean_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -671,7 +671,7 @@ static ssize_t pool_stats_block_map_free_pages_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.free_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.free_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -688,7 +688,7 @@ static ssize_t pool_stats_block_map_failed_pages_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.failed_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.failed_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -705,7 +705,7 @@ static ssize_t pool_stats_block_map_incoming_pages_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.incoming_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.incoming_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -722,7 +722,7 @@ static ssize_t pool_stats_block_map_outgoing_pages_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.outgoing_pages);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.outgoing_pages);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -739,7 +739,7 @@ static ssize_t pool_stats_block_map_cache_pressure_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.blockMap.cache_pressure);
+	retval = sprintf(buf, "%" PRIu32 "\n", layer->vdo_stats_storage.block_map.cache_pressure);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -756,7 +756,7 @@ static ssize_t pool_stats_block_map_read_count_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.read_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -773,7 +773,7 @@ static ssize_t pool_stats_block_map_write_count_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.write_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.write_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -790,7 +790,7 @@ static ssize_t pool_stats_block_map_failed_reads_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.failed_reads);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_reads);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -807,7 +807,7 @@ static ssize_t pool_stats_block_map_failed_writes_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.failed_writes);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.failed_writes);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -824,7 +824,7 @@ static ssize_t pool_stats_block_map_reclaimed_show(struct kernel_layer *layer, c
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.reclaimed);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.reclaimed);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -841,7 +841,7 @@ static ssize_t pool_stats_block_map_read_outgoing_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.read_outgoing);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.read_outgoing);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -858,7 +858,7 @@ static ssize_t pool_stats_block_map_found_in_cache_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.found_in_cache);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.found_in_cache);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -875,7 +875,7 @@ static ssize_t pool_stats_block_map_discard_required_show(struct kernel_layer *l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.discard_required);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.discard_required);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -892,7 +892,7 @@ static ssize_t pool_stats_block_map_wait_for_page_show(struct kernel_layer *laye
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.wait_for_page);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.wait_for_page);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -909,7 +909,7 @@ static ssize_t pool_stats_block_map_fetch_required_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.fetch_required);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.fetch_required);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -926,7 +926,7 @@ static ssize_t pool_stats_block_map_pages_loaded_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.pages_loaded);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_loaded);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -943,7 +943,7 @@ static ssize_t pool_stats_block_map_pages_saved_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.pages_saved);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.pages_saved);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -960,7 +960,7 @@ static ssize_t pool_stats_block_map_flush_count_show(struct kernel_layer *layer,
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.blockMap.flush_count);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.block_map.flush_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -977,7 +977,7 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_valid_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupe_advice_valid);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_valid);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -994,7 +994,7 @@ static ssize_t pool_stats_hash_lock_dedupe_advice_stale_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.dedupe_advice_stale);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.dedupe_advice_stale);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1011,7 +1011,7 @@ static ssize_t pool_stats_hash_lock_concurrent_data_matches_show(struct kernel_l
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrent_data_matches);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_data_matches);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1028,7 +1028,7 @@ static ssize_t pool_stats_hash_lock_concurrent_hash_collisions_show(struct kerne
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hashLock.concurrent_hash_collisions);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.hash_lock.concurrent_hash_collisions);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
