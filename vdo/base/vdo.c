@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdo.c#55 $
  */
 
 /*
@@ -854,10 +854,12 @@ static struct error_statistics get_vdo_error_statistics(const struct vdo *vdo)
 	 */
 	const struct atomic_error_statistics *atoms = &vdo->error_stats;
 	return (struct error_statistics) {
-		.invalidAdvicePBNCount =
+		.invalid_advice_pbn_count =
 			relaxedLoad64(&atoms->invalidAdvicePBNCount),
-		.noSpaceErrorCount = relaxedLoad64(&atoms->noSpaceErrorCount),
-		.readOnlyErrorCount = relaxedLoad64(&atoms->readOnlyErrorCount),
+		.no_space_error_count =
+			relaxedLoad64(&atoms->noSpaceErrorCount),
+		.read_only_error_count =
+			relaxedLoad64(&atoms->readOnlyErrorCount),
 	};
 }
 

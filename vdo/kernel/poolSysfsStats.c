@@ -1045,7 +1045,7 @@ static ssize_t pool_stats_errors_invalid_advicePBNCount_show(struct kernel_layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.invalidAdvicePBNCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.invalid_advice_pbn_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1062,7 +1062,7 @@ static ssize_t pool_stats_errors_no_space_error_count_show(struct kernel_layer *
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.noSpaceErrorCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.no_space_error_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -1079,7 +1079,7 @@ static ssize_t pool_stats_errors_read_only_error_count_show(struct kernel_layer 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.readOnlyErrorCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.errors.read_only_error_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }

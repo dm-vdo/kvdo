@@ -711,7 +711,7 @@ int write_error_statistics(char *prefix,
        }
        /** number of times VDO got an invalid dedupe advice PBN from UDS */
        result = write_uint64_t("invalidAdvicePBNCount : ",
-                               stats->invalidAdvicePBNCount,
+                               stats->invalid_advice_pbn_count,
                                ", ",
                                buf,
                                maxlen);
@@ -720,7 +720,7 @@ int write_error_statistics(char *prefix,
        }
        /** number of times a VIO completed with a VDO_NO_SPACE error */
        result = write_uint64_t("noSpaceErrorCount : ",
-                               stats->noSpaceErrorCount,
+                               stats->no_space_error_count,
                                ", ",
                                buf,
                                maxlen);
@@ -729,7 +729,7 @@ int write_error_statistics(char *prefix,
        }
        /** number of times a VIO completed with a VDO_READ_ONLY error */
        result = write_uint64_t("readOnlyErrorCount : ",
-                               stats->readOnlyErrorCount,
+                               stats->read_only_error_count,
                                ", ",
                                buf,
                                maxlen);

@@ -159,11 +159,11 @@ struct hash_lock_statistics {
 /** Counts of error conditions in VDO. */
 struct error_statistics {
   /** number of times VDO got an invalid dedupe advice PBN from UDS */
-  uint64_t invalidAdvicePBNCount;
+  uint64_t invalid_advice_pbn_count;
   /** number of times a VIO completed with a VDO_NO_SPACE error */
-  uint64_t noSpaceErrorCount;
+  uint64_t no_space_error_count;
   /** number of times a VIO completed with a VDO_READ_ONLY error */
-  uint64_t readOnlyErrorCount;
+  uint64_t read_only_error_count;
 };
 
 /** The statistics of the vdo service. */
