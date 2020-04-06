@@ -16,12 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#25 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.c#26 $
  */
 
 #include "workQueue.h"
 
-#include <linux/delay.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
 #include <linux/version.h>
@@ -61,65 +60,6 @@ static DEFINE_PER_CPU(unsigned int, service_queue_rotor);
 
 static void free_simple_work_queue(struct simple_work_queue *queue);
 static void finish_simple_work_queue(struct simple_work_queue *queue);
-
-// work item lists (used for delayed work items)
-
-/**********************************************************************/
-static void initialize_work_item_list(struct kvdo_work_item_list *list)
-{
-	list->tail = NULL;
-}
-
-/**********************************************************************/
-static void add_to_work_item_list(struct kvdo_work_item_list *list,
-				  struct kvdo_work_item *item)
-{
-	if (list->tail == NULL) {
-		item->next = item;
-	} else {
-		struct kvdo_work_item *head = list->tail->next;
-
-		list->tail->next = item;
-		item->next = head;
-	}
-	list->tail = item;
-}
-
-/**********************************************************************/
-static bool is_work_item_list_empty(struct kvdo_work_item_list *list)
-{
-	return list->tail == NULL;
-}
-
-/**********************************************************************/
-static struct kvdo_work_item *
-work_item_list_poll(struct kvdo_work_item_list *list)
-{
-	struct kvdo_work_item *tail = list->tail;
-
-	if (tail == NULL) {
-		return NULL;
-	}
-	// Extract and return head of list.
-	struct kvdo_work_item *head = tail->next;
-	// Only one entry?
-	if (head == tail) {
-		list->tail = NULL;
-	} else {
-		tail->next = head->next;
-	}
-	head->next = NULL;
-	return head;
-}
-
-/**********************************************************************/
-static struct kvdo_work_item *
-work_item_list_peek(struct kvdo_work_item_list *list)
-{
-	struct kvdo_work_item *tail = list->tail;
-
-	return tail ? tail->next : NULL;
-}
 
 // Finding the simple_work_queue to actually operate on.
 
@@ -331,24 +271,6 @@ static void run_finish_hook(struct simple_work_queue *queue)
 }
 
 /**
- * Check whether a work queue has delayed work items pending.
- *
- * @param queue  The work queue
- *
- * @return true iff delayed work items are pending
- **/
-static bool has_delayed_work_items(struct simple_work_queue *queue)
-{
-	bool result;
-	unsigned long flags;
-
-	spin_lock_irqsave(&queue->lock, flags);
-	result = !is_work_item_list_empty(&queue->delayed_items);
-	spin_unlock_irqrestore(&queue->lock, flags);
-	return result;
-}
-
-/**
  * Wait for the next work item to process, or until kthread_should_stop
  * indicates that it's time for us to shut down.
  *
@@ -403,34 +325,8 @@ wait_for_next_work_item(struct simple_work_queue *queue,
 		 * TASK_INTERRUPTIBLE state up above. Otherwise, schedule() will
 		 * put the thread to sleep and might miss a wakeup from
 		 * kthread_stop() call in finish_work_queue().
-		 *
-		 * If there are delayed work items, we need to wait for them to
-		 * get run. Then, when we check kthread_should_stop again, we'll
-		 * finally exit.
 		 */
-		if (kthread_should_stop() && !has_delayed_work_items(queue)) {
-			/*
-			 * Recheck once again in case we *just* converted a
-			 * delayed work item to a regular enqueued work item.
-			 *
-			 * It's important that processDelayedWorkItems holds the
-			 * spin lock until it finishes enqueueing the work item
-			 * to run.
-			 *
-			 * Funnel queues aren't synchronized between producers
-			 * and consumer. Normally a producer interrupted
-			 * mid-update can hide a later producer's entry until
-			 * the first completes. This would be a problem, except
-			 * that when kthread_stop is called, we should already
-			 * have ceased adding new work items and have waited for
-			 * all the regular work items to finish; (recurring)
-			 * delayed work items should be the only exception.
-			 *
-			 * Worker thread shutdown would be simpler if even the
-			 * delayed work items were required to be completed and
-			 * not re-queued before shutting down a work queue.
-			 */
-			item = poll_for_work_item(queue);
+		if (kthread_should_stop()) {
 			break;
 		}
 
@@ -656,8 +552,6 @@ void setup_work_item(struct kvdo_work_item *item,
 	item->stat_table_index = 0;
 	item->action = action;
 	item->my_queue = NULL;
-	item->execution_time = 0;
-	item->next = NULL;
 }
 
 // Thread management
@@ -669,61 +563,6 @@ static inline void wake_worker_thread(struct simple_work_queue *queue)
 	atomic64_cmpxchg(&queue->first_wakeup, 0, ktime_get_ns());
 	// Despite the name, there's a maximum of one thread in this list.
 	wake_up(&queue->waiting_worker_threads);
-}
-
-// Delayed work items
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-/**
- * Timer function invoked when a delayed work item is ready to run.
- *
- * @param timer  The timer which has just finished
- **/
-static void process_delayed_work_items(struct timer_list *timer)
-#else
-/**
- * Timer function invoked when a delayed work item is ready to run.
- *
- * @param data  The queue pointer, as an unsigned long
- **/
-static void process_delayed_work_items(unsigned long data)
-#endif
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	struct simple_work_queue *queue = from_timer(queue,
-						     timer,
-						     delayed_items_timer);
-#else
-	struct simple_work_queue *queue = (struct simple_work_queue *) data;
-#endif
-
-	Jiffies next_execution_time = 0;
-	bool reschedule = false;
-	bool needs_wakeup = false;
-
-	unsigned long flags;
-
-	spin_lock_irqsave(&queue->lock, flags);
-	while (!is_work_item_list_empty(&queue->delayed_items)) {
-		struct kvdo_work_item *item =
-			work_item_list_peek(&queue->delayed_items);
-		if (item->execution_time > jiffies) {
-			next_execution_time = item->execution_time;
-			reschedule = true;
-			break;
-		}
-		work_item_list_poll(&queue->delayed_items);
-		item->execution_time = 0; // not actually looked at...
-		item->my_queue = NULL;
-		needs_wakeup |= enqueue_work_queue_item(queue, item);
-	}
-	spin_unlock_irqrestore(&queue->lock, flags);
-	if (reschedule) {
-		mod_timer(&queue->delayed_items_timer, next_execution_time);
-	}
-	if (needs_wakeup) {
-		wake_worker_thread(queue);
-	}
 }
 
 // Creation & teardown
@@ -821,17 +660,6 @@ static int make_simple_work_queue(const char *thread_name_prefix,
 	init_waitqueue_head(&queue->waiting_worker_threads);
 	init_waitqueue_head(&queue->start_waiters);
 	spin_lock_init(&queue->lock);
-
-	initialize_work_item_list(&queue->delayed_items);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-	timer_setup(&queue->delayed_items_timer,
-		    process_delayed_work_items,
-		    0);
-#else
-	setup_timer(&queue->delayed_items_timer,
-		    process_delayed_work_items,
-		    (unsigned long) queue);
-#endif
 
 	kobject_init(&queue->common.kobj, &simple_work_queue_kobj_type);
 	result = kobject_add(&queue->common.kobj,
@@ -1184,47 +1012,8 @@ void enqueue_work_queue(struct kvdo_work_queue *kvdoWorkQueue,
 {
 	struct simple_work_queue *queue = pick_simple_queue(kvdoWorkQueue);
 
-	item->execution_time = 0;
-
 	if (enqueue_work_queue_item(queue, item)) {
 		wake_worker_thread(queue);
-	}
-}
-
-/**********************************************************************/
-void enqueue_work_queue_delayed(struct kvdo_work_queue *kvdo_work_queue,
-				struct kvdo_work_item *item,
-				Jiffies execution_time)
-{
-	if (execution_time <= jiffies) {
-		enqueue_work_queue(kvdo_work_queue, item);
-		return;
-	}
-
-	struct simple_work_queue *queue = pick_simple_queue(kvdo_work_queue);
-	bool reschedule_timer = false;
-	unsigned long flags;
-
-	item->execution_time = execution_time;
-
-	// Lock if the work item is delayed. All delayed items are handled via a
-	// single linked list.
-	spin_lock_irqsave(&queue->lock, flags);
-
-	if (is_work_item_list_empty(&queue->delayed_items)) {
-		reschedule_timer = true;
-	}
-	/*
-	 * XXX We should keep the list sorted, but at the moment the list won't
-	 * grow above a single entry anyway.
-	 */
-	item->my_queue = &queue->common;
-	add_to_work_item_list(&queue->delayed_items, item);
-
-	spin_unlock_irqrestore(&queue->lock, flags);
-
-	if (reschedule_timer) {
-		mod_timer(&queue->delayed_items_timer, execution_time);
 	}
 }
 

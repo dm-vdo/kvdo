@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueueInternals.h#9 $
  */
 
 #ifndef WORK_QUEUE_INTERNALS_H
@@ -89,8 +89,7 @@ struct simple_work_queue {
 	/** Padding for cache line separation */
 	char pad[CACHE_LINE_BYTES - sizeof(struct kvdo_work_queue *)];
 	/**
-	 * Lock protecting delayed_items, priority_map, num_priority_lists,
-	 * started
+	 * Lock protecting priority_map, num_priority_lists, started
 	 */
 	spinlock_t lock;
 	/** Any worker threads (zero or one) waiting for new work to do */
@@ -107,18 +106,6 @@ struct simple_work_queue {
 	wait_queue_head_t start_waiters;
 	/** Worker thread status (boolean) */
 	bool started;
-
-	/** List of delayed work items; usually only one, if any */
-	struct kvdo_work_item_list delayed_items;
-	/**
-	 * Timer for pulling delayed work items off their list and submitting
-	 * them to run.
-	 *
-	 * If the spinlock "lock" above is not held, this timer is scheduled
-	 * (or currently firing and the callback about to acquire the lock)
-	 * iff delayed_items is nonempty.
-	 **/
-	struct timer_list delayed_items_timer;
 
 	/**
 	 * Timestamp (ns) from the submitting thread that decided to wake us

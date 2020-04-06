@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/workQueue.h#12 $
  */
 
 #ifndef ALBIREO_WORK_QUEUE_H
@@ -57,13 +57,6 @@ struct kvdo_work_item {
 	 * enqueued.
 	 */
 	struct kvdo_work_queue *my_queue;
-	/**
-	 * Time at which to execute in jiffies for a delayed work item, or zero
-	 * to queue for execution ASAP.
-	 **/
-	Jiffies execution_time;
-	/** List management for delayed or expired work items */
-	struct kvdo_work_item *next;
 	/**
 	 * Time of enqueueing, in ns, for recording queue (waiting) time stats
 	 */
@@ -200,23 +193,6 @@ void setup_work_item(struct kvdo_work_item *item,
  **/
 void enqueue_work_queue(struct kvdo_work_queue *queue,
 			struct kvdo_work_item *item);
-
-/**
- * Add a work item to a work queue, to be run at a later point in time.
- *
- * Currently delayed work items are used only in a very limited fashion -- at
- * most one at a time for any of the work queue types that use them -- and some
- * shortcuts have been taken that assume that that's the case. Multiple delayed
- * work items should work, but they will execute in the order they were
- * enqueued.
- *
- * @param queue            The queue handle
- * @param item             The work item to be processed
- * @param execution_time   When to run the work item (jiffies)
- **/
-void enqueue_work_queue_delayed(struct kvdo_work_queue *queue,
-				struct kvdo_work_item *item,
-				Jiffies execution_time);
 
 /**
  * Shut down a work queue's worker thread.
