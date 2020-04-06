@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/types.h#43 $
  */
 
 #ifndef TYPES_H
@@ -160,7 +160,7 @@ typedef enum __attribute__((packed)) {
 	VIO_READ_WRITE_MASK = VIO_READ_MODIFY_WRITE,
 	VIO_FLUSH_BEFORE = 4,
 	VIO_FLUSH_AFTER = 8,
-} VIOOperation;
+} vio_operation;
 
 /**
  * vio types for statistics and instrumentation.
@@ -178,7 +178,7 @@ typedef enum __attribute__((packed)) {
 	VIO_TYPE_SLAB_SUMMARY,
 	VIO_TYPE_SUPER_BLOCK,
 	VIO_TYPE_TEST,
-} VIOType;
+} vio_type;
 
 /**
  * The current operation on a physical block (from the point of view of the
@@ -189,7 +189,7 @@ typedef enum __attribute__((packed)) {
 	DATA_INCREMENT = 1,
 	BLOCK_MAP_DECREMENT = 2,
 	BLOCK_MAP_INCREMENT = 3,
-} JournalOperation;
+} journal_operation;
 
 /**
  * Partition IDs are encoded in the volume layout in the super block.
@@ -199,34 +199,34 @@ typedef enum __attribute__((packed)) {
 	BLOCK_ALLOCATOR_PARTITION = 1,
 	RECOVERY_JOURNAL_PARTITION = 2,
 	SLAB_SUMMARY_PARTITION = 3,
-} PartitionID;
+} partition_id;
 
 /**
- * Check whether a VIOType is for servicing an external data request.
+ * Check whether a vio_type is for servicing an external data request.
  *
- * @param vio_type  The VIOType to check
+ * @param vio_type  The vio_type to check
  **/
-static inline bool is_data_vio_type(VIOType vio_type)
+static inline bool is_data_vio_type(vio_type vio_type)
 {
 	return (vio_type == VIO_TYPE_DATA);
 }
 
 /**
- * Check whether a VIOType is for compressed block writes
+ * Check whether a vio_type is for compressed block writes
  *
- * @param vio_type  The VIOType to check
+ * @param vio_type  The vio_type to check
  **/
-static inline bool is_compressed_write_vio_type(VIOType vio_type)
+static inline bool is_compressed_write_vio_type(vio_type vio_type)
 {
 	return (vio_type == VIO_TYPE_COMPRESSED_BLOCK);
 }
 
 /**
- * Check whether a VIOType is for metadata
+ * Check whether a vio_type is for metadata
  *
- * @param vio_type  The VIOType to check
+ * @param vio_type  The vio_type to check
  **/
-static inline bool is_metadata_vio_type(VIOType vio_type)
+static inline bool is_metadata_vio_type(vio_type vio_type)
 {
 	return ((vio_type != VIO_TYPE_UNINITIALIZED) &&
 		!is_data_vio_type(vio_type) &&
@@ -242,7 +242,7 @@ typedef enum __attribute__((packed)) {
 	VIO_PRIORITY_COMPRESSED_DATA = VIO_PRIORITY_DATA,
 	VIO_PRIORITY_METADATA,
 	VIO_PRIORITY_HIGH,
-} VIOPriority;
+} vio_priority;
 
 /**
  * Metadata types for the vdo.
@@ -250,7 +250,7 @@ typedef enum __attribute__((packed)) {
 typedef enum __attribute__((packed)) {
 	VDO_METADATA_RECOVERY_JOURNAL = 1,
 	VDO_METADATA_SLAB_JOURNAL,
-} VDOMetadataType;
+} vdo_metadata_type;
 
 /**
  * The possible write policy values.
@@ -278,14 +278,14 @@ typedef enum {
 	 * The appropriate policy is chosen based on the underlying device.
 	 */
 	WRITE_POLICY_AUTO,
-} WritePolicy;
+} write_policy;
 
 typedef enum {
 	ZONE_TYPE_ADMIN,
 	ZONE_TYPE_JOURNAL,
 	ZONE_TYPE_LOGICAL,
 	ZONE_TYPE_PHYSICAL,
-} ZoneType;
+} zone_type;
 
 /**
  * A position in the block map where a block map entry is stored.
@@ -359,7 +359,7 @@ struct vdo_load_config {
 	/** the page cache size, in pages */
 	PageCount cache_size;
 	/** whether writes are synchronous */
-	WritePolicy write_policy;
+	write_policy write_policy;
 	/**
 	 * the maximum age of a dirty block map page in recovery journal blocks
 	 */

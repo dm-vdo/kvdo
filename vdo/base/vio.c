@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.c#18 $
  */
 
 #include "vio.h"
@@ -41,8 +41,8 @@ void free_vio(struct vio **vio_ptr)
 
 /**********************************************************************/
 void initialize_vio(struct vio *vio,
-		    VIOType type,
-		    VIOPriority priority,
+		    vio_type type,
+		    vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
 		    PhysicalLayer *layer)
@@ -128,7 +128,7 @@ void launch_metadata_vio(struct vio *vio,
 			 PhysicalBlockNumber physical,
 			 vdo_action *callback,
 			 vdo_action *error_handler,
-			 VIOOperation operation)
+			 vio_operation operation)
 {
 	vio->operation = operation;
 	vio->physical = physical;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#4 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/lockCounter.h#5 $
  */
 
 #ifndef LOCK_COUNTER_H
@@ -81,7 +81,7 @@ void free_lock_counter(struct lock_counter **lock_counter_ptr);
  * @return <code>true</code> if the specified lock has references (is locked)
  **/
 bool is_locked(struct lock_counter *lock_counter, BlockCount lock_number,
-	       ZoneType zone_type) __attribute__((warn_unused_result));
+	       zone_type zone_type) __attribute__((warn_unused_result));
 
 /**
  * Initialize the value of the journal zone's counter for a given lock. This
@@ -104,7 +104,7 @@ void initialize_lock_count(struct lock_counter *counter, BlockCount lock_number,
  * @param zoneID       The ID of the zone acquiring the reference
  **/
 void acquire_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, ZoneType zone_type,
+				  BlockCount lock_number, zone_type zone_type,
 				  ZoneCount zoneID);
 
 /**
@@ -117,7 +117,7 @@ void acquire_lock_count_reference(struct lock_counter *counter,
  * @param zone_id      The ID of the zone releasing the reference
  **/
 void release_lock_count_reference(struct lock_counter *counter,
-				  BlockCount lock_number, ZoneType zone_type,
+				  BlockCount lock_number, zone_type zone_type,
 				  ZoneCount zone_id);
 
 /**

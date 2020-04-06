@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#15 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.h#16 $
  */
 
 #ifndef RECOVERY_JOURNAL_H
@@ -116,13 +116,13 @@
  **/
 
 /**
- * Return whether a given JournalOperation is an increment type.
+ * Return whether a given journal_operation is an increment type.
  *
  * @param operation  The operation in question
  *
  * @return true if the type is an increment type
  **/
-static inline bool is_increment_operation(JournalOperation operation)
+static inline bool is_increment_operation(journal_operation operation)
 {
 	return ((operation == DATA_INCREMENT)
 		|| (operation == BLOCK_MAP_INCREMENT));
@@ -135,7 +135,7 @@ static inline bool is_increment_operation(JournalOperation operation)
  *
  * @return The name of the operation
  **/
-const char *get_journal_operation_name(JournalOperation operation)
+const char *get_journal_operation_name(journal_operation operation)
 	__attribute__((warn_unused_result));
 
 /**
@@ -335,7 +335,7 @@ void add_recovery_journal_entry(struct recovery_journal *journal,
  **/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      SequenceNumber sequence_number,
-					      ZoneType zone_type,
+					      zone_type zone_type,
 					      ZoneCount zone_id);
 
 
@@ -351,7 +351,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
  **/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      SequenceNumber sequence_number,
-					      ZoneType zone_type,
+					      zone_type zone_type,
 					      ZoneCount zone_id);
 
 /**

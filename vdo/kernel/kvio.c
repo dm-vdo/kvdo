@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#30 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kvio.c#31 $
  */
 
 #include "kvio.h"
@@ -255,8 +255,8 @@ static noinline bool sample_this_vio(struct kvio *kvio,
 /**********************************************************************/
 void initialize_kvio(struct kvio *kvio,
 		     struct kernel_layer *layer,
-		     VIOType vio_type,
-		     VIOPriority priority,
+		     vio_type vio_type,
+		     vio_priority priority,
 		     void *parent,
 		     struct bio *bio)
 {
@@ -309,8 +309,8 @@ void initialize_kvio(struct kvio *kvio,
  **/
 __attribute__((warn_unused_result)) static int
 make_metadata_kvio(struct kernel_layer *layer,
-		   VIOType vio_type,
-		   VIOPriority priority,
+		   vio_type vio_type,
+		   vio_priority priority,
 		   void *parent,
 		   struct bio *bio,
 		   struct metadata_kvio **metadata_kvio_ptr)
@@ -383,8 +383,8 @@ static int make_compressed_write_kvio(struct kernel_layer *layer,
 
 /**********************************************************************/
 int kvdo_create_metadata_vio(PhysicalLayer *layer,
-			     VIOType vio_type,
-			     VIOPriority priority,
+			     vio_type vio_type,
+			     vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr)

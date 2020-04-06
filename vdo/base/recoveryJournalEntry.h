@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#6 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournalEntry.h#7 $
  */
 
 #ifndef RECOVERY_JOURNAL_ENTRY_H
@@ -40,7 +40,7 @@
 struct recovery_journal_entry {
 	struct block_map_slot slot;
 	struct data_location mapping;
-	JournalOperation operation;
+	journal_operation operation;
 };
 
 /** The packed, on-disk representation of a recovery journal entry. */
@@ -51,7 +51,7 @@ typedef union __attribute__((packed)) {
 		 * Bits 15..12:  The four highest bits of the 36-bit physical
 		 * block number of the block map tree page Bits 11..2:   The
 		 * 10-bit block map page slot number Bits 1..0:    The 2-bit
-		 * JournalOperation of the entry
+		 * journal_operation of the entry
 		 **/
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 		unsigned operation : 2;

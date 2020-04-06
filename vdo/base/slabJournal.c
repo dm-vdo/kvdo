@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#45 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournal.c#46 $
  */
 
 #include "slabJournalInternals.h"
@@ -791,7 +791,7 @@ void commit_slab_journal_tail(struct slab_journal *journal)
 void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			       slab_journal_payload *payload,
 			       slab_block_number sbn,
-			       JournalOperation operation)
+			       journal_operation operation)
 {
 	JournalEntryCount entry_number = tail_header->entry_count++;
 	if (operation == BLOCK_MAP_INCREMENT) {
@@ -837,7 +837,7 @@ decode_slab_journal_entry(struct packed_slab_journal_block *block,
  **/
 static void add_entry(struct slab_journal *journal,
 		      PhysicalBlockNumber pbn,
-		      JournalOperation operation,
+		      journal_operation operation,
 		      const struct journal_point *recovery_point)
 {
 	int result =
@@ -879,7 +879,7 @@ static void add_entry(struct slab_journal *journal,
 /**********************************************************************/
 bool attempt_replay_into_slab_journal(struct slab_journal *journal,
 				      PhysicalBlockNumber pbn,
-				      JournalOperation operation,
+				      journal_operation operation,
 				      struct journal_point *recovery_point,
 				      struct vdo_completion *parent)
 {

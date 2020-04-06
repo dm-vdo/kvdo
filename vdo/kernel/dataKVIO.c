@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#55 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dataKVIO.c#56 $
  */
 
 #include "dataKVIO.h"
@@ -883,7 +883,7 @@ static void kvdo_continue_discard_kvio(struct vdo_completion *completion)
 	data_kvio->isPartial = (data_kvio->remaining_discard < VDO_BLOCK_SIZE);
 	data_kvio->offset = 0;
 
-	VIOOperation operation;
+	vio_operation operation;
 
 	if (data_kvio->isPartial) {
 		operation = VIO_READ_MODIFY_WRITE;
@@ -945,7 +945,7 @@ int kvdo_launch_data_kvio_from_bio(struct kernel_layer *layer,
 	 */
 	struct kvio *kvio = &data_kvio->kvio;
 	vdo_action *callback = kvdo_complete_data_kvio;
-	VIOOperation operation = VIO_WRITE;
+	vio_operation operation = VIO_WRITE;
 	bool is_trim = false;
 
 	if (is_discard_bio(bio)) {

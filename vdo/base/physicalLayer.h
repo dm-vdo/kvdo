@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#22 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/physicalLayer.h#23 $
  */
 
 #ifndef PHYSICAL_LAYER_H
@@ -114,8 +114,8 @@ typedef int extent_writer(PhysicalLayer *layer,
  * @return VDO_SUCCESS or an error
  **/
 typedef int metadata_vio_creator(PhysicalLayer *layer,
-			         VIOType vioType,
-			         VIOPriority priority,
+			         vio_type vioType,
+			         vio_priority priority,
 			         void *parent,
 			         char *data,
 			         struct vio **vioPtr);
@@ -279,7 +279,7 @@ typedef void flush_complete(struct vdo_flush **vdoFlush);
  *
  * @return the write policy of the layer
  **/
-typedef WritePolicy write_policy_getter(PhysicalLayer *layer);
+typedef write_policy write_policy_getter(PhysicalLayer *layer);
 
 /**
  * A function to create an object that can be enqueued to run in a specified

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#82 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelLayer.c#83 $
  */
 
 #include "kernelLayer.h"
@@ -479,7 +479,7 @@ void destroy_vio(struct vio **vio_ptr)
 }
 
 /**********************************************************************/
-static WritePolicy kvdoGetWritePolicy(PhysicalLayer *common)
+static write_policy kvdoGetWritePolicy(PhysicalLayer *common)
 {
 	struct kernel_layer *layer = as_kernel_layer(common);
 	return get_kvdo_write_policy(&layer->kvdo);

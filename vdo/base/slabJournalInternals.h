@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/slabJournalInternals.h#18 $
  */
 
 #ifndef SLAB_JOURNAL_INTERNALS_H
@@ -45,7 +45,7 @@
 /** A single slab journal entry */
 struct slab_journal_entry {
 	slab_block_number sbn;
-	JournalOperation operation;
+	journal_operation operation;
 };
 
 /** A single slab journal entry in its on-disk form */
@@ -87,7 +87,7 @@ struct slab_journal_block_header {
 	/** Recovery journal point for last entry */
 	struct journal_point recovery_point;
 	/** Metadata type */
-	VDOMetadataType metadata_type;
+	vdo_metadata_type metadata_type;
 	/** Whether this block contains block map increments */
 	bool has_block_map_increments;
 	/** The number of entries in the block */
@@ -132,7 +132,7 @@ typedef union __attribute__((packed)) {
 		SequenceNumber sequence_number;
 		struct packed_journal_point recovery_point;
 		Nonce nonce;
-		VDOMetadataType metadata_type;
+		vdo_metadata_type metadata_type;
 		bool has_block_map_increments;
 		JournalEntryCount entry_count;
 	} little_endian;
@@ -293,7 +293,7 @@ get_slab_journal_block_offset(struct slab_journal *journal, SequenceNumber seque
 void encode_slab_journal_entry(struct slab_journal_block_header *tail_header,
 			       slab_journal_payload *payload,
 			       slab_block_number sbn,
-			       JournalOperation operation);
+			       journal_operation operation);
 
 /**
  * Decode a slab journal entry.

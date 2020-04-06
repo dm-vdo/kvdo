@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#10 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/extent.c#11 $
  */
 
 #include "extent.h"
@@ -33,7 +33,8 @@
 #include "vioWrite.h"
 
 /**********************************************************************/
-int create_extent(PhysicalLayer *layer, VIOType vio_type, VIOPriority priority,
+int create_extent(PhysicalLayer *layer, vio_type vio_type,
+		  vio_priority priority,
 		  BlockCount block_count, char *data,
 		  struct vdo_extent **extent_ptr)
 {
@@ -102,7 +103,7 @@ void free_extent(struct vdo_extent **extent_ptr)
  **/
 static void launchMetadataExtent(struct vdo_extent *extent,
 				 PhysicalBlockNumber start_block,
-				 BlockCount count, VIOOperation operation)
+				 BlockCount count, vio_operation operation)
 {
 	reset_completion(&extent->completion);
 	if (count > extent->count) {

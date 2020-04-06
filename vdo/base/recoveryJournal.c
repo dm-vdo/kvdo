@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#48 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/recoveryJournal.c#49 $
  */
 
 #include "recoveryJournal.h"
@@ -70,7 +70,7 @@ enum {
 };
 
 /**********************************************************************/
-const char *get_journal_operation_name(JournalOperation operation)
+const char *get_journal_operation_name(journal_operation operation)
 {
 	switch (operation) {
 	case DATA_DECREMENT:
@@ -1300,7 +1300,7 @@ static void reap_recovery_journal(struct recovery_journal *journal)
 /**********************************************************************/
 void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 					      SequenceNumber sequence_number,
-					      ZoneType zone_type,
+					      zone_type zone_type,
 					      ZoneCount zone_id)
 {
 	if (sequence_number == 0) {
@@ -1316,7 +1316,7 @@ void acquire_recovery_journal_block_reference(struct recovery_journal *journal,
 /**********************************************************************/
 void release_recovery_journal_block_reference(struct recovery_journal *journal,
 					      SequenceNumber sequence_number,
-					      ZoneType zone_type,
+					      zone_type zone_type,
 					      ZoneCount zone_id)
 {
 	if (sequence_number == 0) {

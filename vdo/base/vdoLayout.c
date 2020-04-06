@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#8 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoLayout.c#9 $
  */
 
 #include "vdoLayout.h"
@@ -34,7 +34,7 @@
 
 #include "statusCodes.h"
 
-static const PartitionID REQUIRED_PARTITIONS[] = {
+static const partition_id REQUIRED_PARTITIONS[] = {
 	BLOCK_MAP_PARTITION,
 	BLOCK_ALLOCATOR_PARTITION,
 	RECOVERY_JOURNAL_PARTITION,
@@ -129,7 +129,7 @@ make_vdo_fixed_layout(BlockCount physical_blocks,
  * @return The offset of the partition (in blocks)
  **/
 __attribute__((warn_unused_result)) static BlockCount
-get_partition_offset(struct vdo_layout *layout, PartitionID partition_id)
+get_partition_offset(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_offset(get_vdo_partition(layout,
 								   partition_id));
@@ -229,7 +229,7 @@ void free_vdo_layout(struct vdo_layout **vdo_layout_ptr)
  * @return The desired partition
  **/
 __attribute__((warn_unused_result)) static struct partition *
-retrieve_partition(struct fixed_layout *layout, PartitionID id)
+retrieve_partition(struct fixed_layout *layout, partition_id id)
 {
 	struct partition *partition;
 	int result = get_partition(layout, id, &partition);
@@ -240,7 +240,7 @@ retrieve_partition(struct fixed_layout *layout, PartitionID id)
 
 /**********************************************************************/
 struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
-				    PartitionID id)
+				    partition_id id)
 {
 	return retrieve_partition(vdo_layout->layout, id);
 }
@@ -255,7 +255,7 @@ struct partition *get_vdo_partition(struct vdo_layout *vdo_layout,
  * @return The requested partition
  **/
 __attribute__((warn_unused_result)) static struct partition *
-get_partition_from_next_layout(struct vdo_layout *vdo_layout, PartitionID id)
+get_partition_from_next_layout(struct vdo_layout *vdo_layout, partition_id id)
 {
 	ASSERT_LOG_ONLY(vdo_layout->next_layout != NULL,
 			"vdo_layout is prepared to grow");
@@ -265,13 +265,13 @@ get_partition_from_next_layout(struct vdo_layout *vdo_layout, PartitionID id)
 /**
  * Get the size of a given partition.
  *
- * @param layout       The layout containing the partition
+ * @param layout        The layout containing the partition
  * @param partition_id  The partition ID whose size to find
  *
  * @return The size of the partition (in blocks)
  **/
 __attribute__((warn_unused_result)) static BlockCount
-get_partition_size(struct vdo_layout *layout, PartitionID partition_id)
+get_partition_size(struct vdo_layout *layout, partition_id partition_id)
 {
 	return get_fixed_layout_partition_size(get_vdo_partition(layout,
 								 partition_id));
@@ -418,7 +418,7 @@ void finish_vdo_layout_growth(struct vdo_layout *vdo_layout)
 
 /**********************************************************************/
 void copy_partition(struct vdo_layout *layout,
-		    PartitionID partition_id,
+		    partition_id partition_id,
 		    struct vdo_completion *parent)
 {
 	copy_partition_async(layout->copy_completion,

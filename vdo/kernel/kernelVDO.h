@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#17 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.h#18 $
  */
 
 #ifndef KERNEL_VDO_H
@@ -184,7 +184,7 @@ void get_kvdo_statistics(struct kvdo *kvdo,
  *
  * @return  the write policy in effect
  */
-WritePolicy get_kvdo_write_policy(struct kvdo *kvdo);
+write_policy get_kvdo_write_policy(struct kvdo *kvdo);
 
 /**
  * Dump base code status information to the kernel log for debugging.

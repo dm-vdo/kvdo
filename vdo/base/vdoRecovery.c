@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#54 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoRecovery.c#55 $
  */
 
 #include "vdoRecoveryInternals.h"
@@ -261,7 +261,7 @@ before_recovery_point(const struct recovery_point *first,
 static void prepare_sub_task(struct recovery_completion *recovery,
 			     vdo_action callback,
 			     vdo_action error_handler,
-			     ZoneType zone_type)
+			     zone_type zone_type)
 {
 	const struct thread_config *thread_config =
 		get_thread_config(recovery->vdo);

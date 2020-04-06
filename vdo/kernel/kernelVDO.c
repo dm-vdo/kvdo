@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#44 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/kernelVDO.c#45 $
  */
 
 /*
@@ -545,7 +545,7 @@ int kvdo_resize_logical(struct kvdo *kvdo, BlockCount logical_count)
 }
 
 /**********************************************************************/
-WritePolicy get_kvdo_write_policy(struct kvdo *kvdo)
+write_policy get_kvdo_write_policy(struct kvdo *kvdo)
 {
 	return get_write_policy(kvdo->vdo);
 }

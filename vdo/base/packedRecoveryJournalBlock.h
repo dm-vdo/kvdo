@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#7 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/packedRecoveryJournalBlock.h#8 $
  */
 
 #ifndef PACKED_RECOVERY_JOURNAL_BLOCK_H
@@ -38,7 +38,7 @@ struct recovery_block_header {
 	JournalEntryCount entry_count; // Number of entries written
 	uint8_t check_byte; // The protection check byte
 	uint8_t recovery_count; // Number of recoveries completed
-	VDOMetadataType metadata_type; // Metadata type
+	vdo_metadata_type metadata_type; // Metadata type
 };
 
 /**
@@ -98,7 +98,7 @@ union packed_journal_header {
 		SequenceNumber slab_journal_head;
 		SequenceNumber sequence_number;
 		Nonce nonce;
-		VDOMetadataType metadata_type;
+		vdo_metadata_type metadata_type;
 		JournalEntryCount entry_count;
 		BlockCount logical_blocks_used;
 		BlockCount block_map_data_blocks;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#16 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vio.h#17 $
  */
 
 #ifndef VIO_H
@@ -49,13 +49,13 @@ struct vio {
 	PhysicalBlockNumber physical;
 
 	/* The type of request this vio is servicing */
-	VIOOperation operation;
+	vio_operation operation;
 
 	/* The queueing priority of the vio operation */
-	VIOPriority priority;
+	vio_priority priority;
 
 	/* The vio type is used for statistics and instrumentation. */
-	VIOType type;
+	vio_type type;
 
 	/* Used for logging and debugging */
 	struct trace *trace;
@@ -99,8 +99,8 @@ static inline struct vdo_completion *vio_as_completion(struct vio *vio)
  * @return VDO_SUCCESS or an error
  **/
 static inline int create_vio(PhysicalLayer *layer,
-			     VIOType vio_type,
-			     VIOPriority priority,
+			     vio_type vio_type,
+			     vio_priority priority,
 			     void *parent,
 			     char *data,
 			     struct vio **vio_ptr)
@@ -128,8 +128,8 @@ void free_vio(struct vio **vio_ptr);
  * @param layer     The layer for this vio
  **/
 void initialize_vio(struct vio *vio,
-		    VIOType type,
-		    VIOPriority priority,
+		    vio_type type,
+		    vio_priority priority,
 		    struct vdo_completion *parent,
 		    struct vdo *vdo,
 		    PhysicalLayer *layer);
@@ -279,7 +279,7 @@ void launch_metadata_vio(struct vio *vio,
 			 PhysicalBlockNumber physical,
 			 vdo_action *callback,
 			 vdo_action *error_handler,
-			 VIOOperation operation);
+			 vio_operation operation);
 
 /**
  * Launch a metadata read vio.

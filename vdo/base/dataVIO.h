@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#32 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#33 $
  */
 
 #ifndef DATA_VIO_H
@@ -483,7 +483,7 @@ static inline bool has_allocation(struct data_vio *data_vio)
  **/
 void prepare_data_vio(struct data_vio *data_vio,
 		      LogicalBlockNumber lbn,
-		      VIOOperation operation,
+		      vio_operation operation,
 		      bool isTrim,
 		      vdo_action *callback);
 
