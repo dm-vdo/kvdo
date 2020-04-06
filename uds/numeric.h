@@ -16,62 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/numeric.h#2 $
  */
 
 #ifndef NUMERIC_H
 #define NUMERIC_H 1
 
 #include "compiler.h"
-#include "typeDefs.h"
 
-#if !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__) \
-  || !defined(__BYTE_ORDER__)
-#error "GCC byte order macros not defined?"
-#endif
-
-#ifdef __x86_64__
-/*
- * __builtin_bswap16 should work fine here too, but check for a
- * performance impact before changing it, just to be safe.
- */
-#define bswap_16(x) \
-  (__extension__                                                        \
-   ({ register unsigned short int __v, __x = (unsigned short int) (x);  \
-     __asm__ ("rorw $8, %w0"                                            \
-              : "=r" (__v)                                              \
-              : "0" (__x)                                               \
-              : "cc");                                                  \
-     __v; }))
-#else
-#define bswap_16(x) __builtin_bswap16(x)
-#endif
-
-/*
- * Define a type describing an integer value that is only byte-aligned
- * and may explicitly alias other types.  GCC keeps getting better
- * about type-based alias analysis (both for optimization and for
- * warnings), so simply casting a pointer to pointer-to-uintXX_t isn't
- * good enough.
- *
- * C is okay with defining the structures directly in a cast, but
- * C++ is not, and we use this header in some C++ code internally.
- */
-#define UNALIGNED_WRAPPER(TYPE)                 \
-  unaligned_wrap_##TYPE
-#define UNALIGNED_WRAPPER_DEF(TYPE)                                 \
-  typedef struct __attribute__((packed, may_alias)) { TYPE value; } \
-  UNALIGNED_WRAPPER(TYPE)
-UNALIGNED_WRAPPER_DEF(int64_t);
-UNALIGNED_WRAPPER_DEF(uint64_t);
-UNALIGNED_WRAPPER_DEF(int32_t);
-UNALIGNED_WRAPPER_DEF(uint32_t);
-UNALIGNED_WRAPPER_DEF(uint16_t);
-
-#define GET_UNALIGNED(TYPE,ADDR)                        \
-  (((const UNALIGNED_WRAPPER(TYPE) *)(ADDR))->value)
-#define PUT_UNALIGNED(TYPE,ADDR,VALUE)                  \
-  (((UNALIGNED_WRAPPER(TYPE) *)(ADDR))->value = (VALUE))
+#include <asm/unaligned.h>
 
 /**
  * Find the minimum of two ints.
@@ -186,11 +139,6 @@ static INLINE uint64_t minUInt64(uint64_t a, uint64_t b)
 }
 
 /**
- * Multiply two uint64_t and check for overflow. Does division.
- **/
-bool multiplyWouldOverflow(uint64_t a, uint64_t b);
-
-/**
  * Extract a 64 bit unsigned number from a buffer stored in
  * big-endian representation.
  *
@@ -199,13 +147,9 @@ bool multiplyWouldOverflow(uint64_t a, uint64_t b);
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint64_t getUInt64BE(const byte* data)
+static INLINE uint64_t getUInt64BE(const uint8_t* data)
 {
-  uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  return num;
+  return get_unaligned_be64(data);
 }
 
 /**
@@ -217,12 +161,12 @@ static INLINE uint64_t getUInt64BE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt64BE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint64_t   *decoded)
+static INLINE void decodeUInt64BE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint64_t      *decoded)
 {
-  *decoded = getUInt64BE(buffer + *offset);
-  *offset += sizeof(uint64_t);
+  *decoded  = getUInt64BE(buffer + *offset);
+  *offset  += sizeof(uint64_t);
 }
 
 /**
@@ -232,12 +176,9 @@ static INLINE void decodeUInt64BE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt64BE(byte* data, uint64_t num)
+static INLINE void storeUInt64BE(uint8_t* data, uint64_t num)
 {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  PUT_UNALIGNED(uint64_t, data, num);
+  put_unaligned_be64(num, data);
 }
 
 /**
@@ -249,7 +190,7 @@ static INLINE void storeUInt64BE(byte* data, uint64_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt64BE(byte     *data,
+static INLINE void encodeUInt64BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint64_t  toEncode)
 {
@@ -266,13 +207,9 @@ static INLINE void encodeUInt64BE(byte     *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint32_t getUInt32BE(const byte* data)
+static INLINE uint32_t getUInt32BE(const uint8_t* data)
 {
-  uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  return num;
+  return get_unaligned_be32(data);
 }
 
 /**
@@ -284,9 +221,10 @@ static INLINE uint32_t getUInt32BE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt32BE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint32_t   *decoded)
+static INLINE void decodeUInt32BE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint32_t      *decoded)
+
 {
   *decoded = getUInt32BE(buffer + *offset);
   *offset += sizeof(uint32_t);
@@ -299,12 +237,9 @@ static INLINE void decodeUInt32BE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt32BE(byte* data, uint32_t num)
+static INLINE void storeUInt32BE(uint8_t* data, uint32_t num)
 {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  PUT_UNALIGNED(uint32_t, data, num);
+  put_unaligned_be32(num, data);
 }
 
 /**
@@ -316,7 +251,7 @@ static INLINE void storeUInt32BE(byte* data, uint32_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt32BE(byte     *data,
+static INLINE void encodeUInt32BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint32_t  toEncode)
 {
@@ -333,13 +268,9 @@ static INLINE void encodeUInt32BE(byte     *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint16_t getUInt16BE(const byte* data)
+static INLINE uint16_t getUInt16BE(const uint8_t* data)
 {
-  uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = bswap_16(num);
-#endif
-  return num;
+  return get_unaligned_be16(data);
 }
 
 /**
@@ -351,9 +282,9 @@ static INLINE uint16_t getUInt16BE(const byte* data)
  *                extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt16BE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint16_t   *decoded)
+static INLINE void decodeUInt16BE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint16_t      *decoded)
 {
   *decoded = getUInt16BE(buffer + *offset);
   *offset += sizeof(uint16_t);
@@ -366,12 +297,9 @@ static INLINE void decodeUInt16BE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt16BE(byte* data, uint16_t num)
+static INLINE void storeUInt16BE(uint8_t* data, uint16_t num)
 {
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  num = bswap_16(num);
-#endif
-  PUT_UNALIGNED(uint16_t, data, num);
+  put_unaligned_be16(num, data);
 }
 
 /**
@@ -383,7 +311,7 @@ static INLINE void storeUInt16BE(byte* data, uint16_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt16BE(byte     *data,
+static INLINE void encodeUInt16BE(uint8_t  *data,
                                   size_t   *offset,
                                   uint16_t  toEncode)
 {
@@ -400,13 +328,9 @@ static INLINE void encodeUInt16BE(byte     *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE int64_t getInt64LE(const byte* data)
+static INLINE int64_t getInt64LE(const uint8_t* data)
 {
-  int64_t num = GET_UNALIGNED(int64_t, data);
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  return num;
+  return get_unaligned_le64(data);
 }
 
 /**
@@ -418,9 +342,9 @@ static INLINE int64_t getInt64LE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeInt64LE(const byte *buffer,
-                                 size_t     *offset,
-                                 int64_t   *decoded)
+static INLINE void decodeInt64LE(const uint8_t *buffer,
+                                 size_t        *offset,
+                                 int64_t       *decoded)
 {
   *decoded = getInt64LE(buffer + *offset);
   *offset += sizeof(int64_t);
@@ -433,12 +357,9 @@ static INLINE void decodeInt64LE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeInt64LE(byte* data, int64_t num)
+static INLINE void storeInt64LE(uint8_t* data, int64_t num)
 {
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  PUT_UNALIGNED(int64_t, data, num);
+  put_unaligned_le64(num, data);
 }
 
 /**
@@ -450,7 +371,7 @@ static INLINE void storeInt64LE(byte* data, int64_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeInt64LE(byte    *data,
+static INLINE void encodeInt64LE(uint8_t *data,
                                  size_t  *offset,
                                  int64_t  toEncode)
 {
@@ -467,13 +388,9 @@ static INLINE void encodeInt64LE(byte    *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint64_t getUInt64LE(const byte* data)
+static INLINE uint64_t getUInt64LE(const uint8_t* data)
 {
-  uint64_t num = GET_UNALIGNED(uint64_t, data);
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  return num;
+  return get_unaligned_le64(data);
 }
 
 /**
@@ -485,9 +402,9 @@ static INLINE uint64_t getUInt64LE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt64LE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint64_t   *decoded)
+static INLINE void decodeUInt64LE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint64_t      *decoded)
 {
   *decoded = getUInt64LE(buffer + *offset);
   *offset += sizeof(uint64_t);
@@ -500,12 +417,9 @@ static INLINE void decodeUInt64LE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt64LE(byte* data, uint64_t num)
+static INLINE void storeUInt64LE(uint8_t* data, uint64_t num)
 {
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap64(num);
-#endif
-  PUT_UNALIGNED(uint64_t, data, num);
+  put_unaligned_le64(num, data);
 }
 
 /**
@@ -517,7 +431,7 @@ static INLINE void storeUInt64LE(byte* data, uint64_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt64LE(byte     *data,
+static INLINE void encodeUInt64LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint64_t  toEncode)
 {
@@ -534,13 +448,9 @@ static INLINE void encodeUInt64LE(byte     *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE int32_t getInt32LE(const byte* data)
+static INLINE int32_t getInt32LE(const uint8_t* data)
 {
-  int32_t num = GET_UNALIGNED(int32_t, data);
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  return num;
+  return get_unaligned_le32(data);
 }
 
 /**
@@ -552,9 +462,9 @@ static INLINE int32_t getInt32LE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeInt32LE(const byte *buffer,
-                                 size_t     *offset,
-                                 int32_t   *decoded)
+static INLINE void decodeInt32LE(const uint8_t *buffer,
+                                 size_t        *offset,
+                                 int32_t       *decoded)
 {
   *decoded = getInt32LE(buffer + *offset);
   *offset += sizeof(int32_t);
@@ -567,12 +477,9 @@ static INLINE void decodeInt32LE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeInt32LE(byte* data, int32_t num)
+static INLINE void storeInt32LE(uint8_t* data, int32_t num)
 {
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  PUT_UNALIGNED(int32_t, data, num);
+  put_unaligned_le32(num, data);
 }
 
 /**
@@ -584,7 +491,7 @@ static INLINE void storeInt32LE(byte* data, int32_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeInt32LE(byte    *data,
+static INLINE void encodeInt32LE(uint8_t *data,
                                  size_t  *offset,
                                  int32_t  toEncode)
 {
@@ -602,13 +509,9 @@ static INLINE void encodeInt32LE(byte    *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint32_t getUInt32LE(const byte* data)
+static INLINE uint32_t getUInt32LE(const uint8_t* data)
 {
-  uint32_t num = GET_UNALIGNED(uint32_t, data);
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  return num;
+  return get_unaligned_le32(data);
 }
 
 /**
@@ -620,9 +523,9 @@ static INLINE uint32_t getUInt32LE(const byte* data)
  * @param offset  A pointer to the offset into the buffer at which to extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt32LE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint32_t   *decoded)
+static INLINE void decodeUInt32LE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint32_t      *decoded)
 {
   *decoded = getUInt32LE(buffer + *offset);
   *offset += sizeof(uint32_t);
@@ -635,12 +538,9 @@ static INLINE void decodeUInt32LE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt32LE(byte* data, uint32_t num)
+static INLINE void storeUInt32LE(uint8_t* data, uint32_t num)
 {
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = __builtin_bswap32(num);
-#endif
-  PUT_UNALIGNED(uint32_t, data, num);
+  put_unaligned_le32(num, data);
 }
 
 /**
@@ -652,7 +552,7 @@ static INLINE void storeUInt32LE(byte* data, uint32_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt32LE(byte     *data,
+static INLINE void encodeUInt32LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint32_t  toEncode)
 {
@@ -669,13 +569,9 @@ static INLINE void encodeUInt32LE(byte     *data,
  * @return The extracted quantity
  **/
 __attribute__((warn_unused_result))
-static INLINE uint16_t getUInt16LE(const byte* data)
+static INLINE uint16_t getUInt16LE(const uint8_t* data)
 {
-  uint16_t num = GET_UNALIGNED(uint16_t, data);
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = bswap_16(num);
-#endif
-  return num;
+  return get_unaligned_le16(data);
 }
 
 /**
@@ -688,9 +584,9 @@ static INLINE uint16_t getUInt16LE(const byte* data)
  *                extract
  * @param decoded A pointer to hold the extracted number
  **/
-static INLINE void decodeUInt16LE(const byte *buffer,
-                                  size_t     *offset,
-                                  uint16_t   *decoded)
+static INLINE void decodeUInt16LE(const uint8_t *buffer,
+                                  size_t        *offset,
+                                  uint16_t      *decoded)
 {
   *decoded = getUInt16LE(buffer + *offset);
   *offset += sizeof(uint16_t);
@@ -702,12 +598,9 @@ static INLINE void decodeUInt16LE(const byte *buffer,
  * @param data The buffer in which to store the number
  * @param num  The number to store
  **/
-static INLINE void storeUInt16LE(byte* data, uint16_t num)
+static INLINE void storeUInt16LE(uint8_t* data, uint16_t num)
 {
-#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-  num = bswap_16(num);
-#endif
-  PUT_UNALIGNED(uint16_t, data, num);
+  put_unaligned_le16(num, data);
 }
 
 /**
@@ -719,7 +612,7 @@ static INLINE void storeUInt16LE(byte* data, uint16_t num)
  * @param offset   A pointer to the offset at which to start encoding
  * @param toEncode The number to encode
  **/
-static INLINE void encodeUInt16LE(byte     *data,
+static INLINE void encodeUInt16LE(uint8_t  *data,
                                   size_t   *offset,
                                   uint16_t  toEncode)
 {

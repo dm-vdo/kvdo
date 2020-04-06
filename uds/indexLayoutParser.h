@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayoutParser.h#2 $
  */
 
 #ifndef INDEX_LAYOUT_PARSER_H
@@ -25,20 +25,20 @@
 #include "typeDefs.h"
 
 typedef enum {
-  LP_STRING    = 0x001,
-  LP_UINT64    = 0x002,
-  LP_TYPE_MASK = 0x0FF,
-  LP_DEFAULT   = 0x100,
+	LP_STRING = 0x001,
+	LP_UINT64 = 0x002,
+	LP_TYPE_MASK = 0x0FF,
+	LP_DEFAULT = 0x100,
 } LPType;
 
 typedef struct layoutParameter {
-  const char *name;
-  LPType      type;
-  union {
-    char     **str;
-    uint64_t  *num;
-  } value;
-  bool        seen;
+	const char *name;
+	LPType type;
+	union {
+		char **str;
+		uint64_t *num;
+	} value;
+	bool seen;
 } LayoutParameter;
 
 /**
@@ -66,6 +66,6 @@ typedef struct layoutParameter {
  *      UDS_INDEX_NAME_REQUIRED for all parsing errors.
  **/
 int parseLayoutString(char *info, LayoutParameter *params, size_t count)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 #endif // INDEX_LAYOUT_PARSER_H

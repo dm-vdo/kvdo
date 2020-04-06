@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexLayout.h#2 $
  */
 
 #ifndef INDEX_LAYOUT_H
@@ -47,11 +47,11 @@ typedef struct indexLayout IndexLayout;
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexLayout(const char              *name,
-                    bool                     newLayout,
-                    const UdsConfiguration   config,
-                    IndexLayout            **layoutPtr)
-  __attribute__((warn_unused_result));
+int makeIndexLayout(const char *name,
+		    bool newLayout,
+		    const UdsConfiguration config,
+		    IndexLayout **layoutPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Construct an index layout using an IOFactory.  This method is common to all
@@ -68,13 +68,13 @@ int makeIndexLayout(const char              *name,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int makeIndexLayoutFromFactory(IOFactory               *factory,
-                               off_t                    offset,
-                               uint64_t                 namedSize,
-                               bool                     newLayout,
-                               const UdsConfiguration   config,
-                               IndexLayout            **layoutPtr)
-  __attribute__((warn_unused_result));
+int makeIndexLayoutFromFactory(IOFactory *factory,
+			       off_t offset,
+			       uint64_t namedSize,
+			       bool newLayout,
+			       const UdsConfiguration config,
+			       IndexLayout **layoutPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Decrement the use count of an index layout.  If the count goes to zero, free
@@ -86,15 +86,15 @@ void putIndexLayout(IndexLayout **layoutPtr);
 
 /*****************************************************************************/
 int cancelIndexSave(IndexLayout *layout, unsigned int saveSlot)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /*****************************************************************************/
 int commitIndexSave(IndexLayout *layout, unsigned int saveSlot)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /*****************************************************************************/
 int discardIndexSaves(IndexLayout *layout, bool all)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Find the latest index save slot.
@@ -106,10 +106,10 @@ int discardIndexSaves(IndexLayout *layout, bool all)
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int findLatestIndexSaveSlot(IndexLayout  *layout,
-                            unsigned int *numZonesPtr,
-                            unsigned int *slotPtr)
-  __attribute__((warn_unused_result));
+int findLatestIndexSaveSlot(IndexLayout *layout,
+			    unsigned int *numZonesPtr,
+			    unsigned int *slotPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Get another reference to an index layout, incrementing it's use count.
@@ -130,12 +130,12 @@ void getIndexLayout(IndexLayout *layout, IndexLayout **layoutPtr);
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openIndexBufferedReader(IndexLayout     *layout,
-                            unsigned int     slot,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedReader **readerPtr)
-  __attribute__((warn_unused_result));
+int openIndexBufferedReader(IndexLayout *layout,
+			    unsigned int slot,
+			    RegionKind kind,
+			    unsigned int zone,
+			    BufferedReader **readerPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Open a BufferedWriter for a specified state, kind, and zone.
@@ -148,12 +148,12 @@ int openIndexBufferedReader(IndexLayout     *layout,
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openIndexBufferedWriter(IndexLayout     *layout,
-                            unsigned int     slot,
-                            RegionKind       kind,
-                            unsigned int     zone,
-                            BufferedWriter **writerPtr)
-  __attribute__((warn_unused_result));
+int openIndexBufferedWriter(IndexLayout *layout,
+			    unsigned int slot,
+			    RegionKind kind,
+			    unsigned int zone,
+			    BufferedWriter **writerPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Obtain the nonce to be used to store or validate the loading of volume index
@@ -164,7 +164,7 @@ int openIndexBufferedWriter(IndexLayout     *layout,
  * @return The nonce to use.
  **/
 uint64_t getVolumeNonce(IndexLayout *layout)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Obtain a dm_bufio_client for the specified index volume.
@@ -176,11 +176,11 @@ uint64_t getVolumeNonce(IndexLayout *layout)
  *
  * @return UDS_SUCCESS or an error code.
  **/
-int openVolumeBufio(IndexLayout             *layout,
-                    size_t                   blockSize,
-                    unsigned int             reservedBuffers,
-                    struct dm_bufio_client **clientPtr)
-  __attribute__((warn_unused_result));
+int openVolumeBufio(IndexLayout *layout,
+		    size_t blockSize,
+		    unsigned int reservedBuffers,
+		    struct dm_bufio_client **clientPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Read the index configuration, and verify that it matches the given
@@ -192,7 +192,7 @@ int openVolumeBufio(IndexLayout             *layout,
  * @return UDS_SUCCESS or an error code
  **/
 int verifyIndexConfig(IndexLayout *layout, UdsConfiguration config)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Determine which index save slot to use for a new index save.
@@ -207,11 +207,11 @@ int verifyIndexConfig(IndexLayout *layout, UdsConfiguration config)
  *
  * @return UDS_SUCCESS or an error code
  **/
-int setupIndexSaveSlot(IndexLayout   *layout,
-                       unsigned int   numZones,
-                       IndexSaveType  saveType,
-                       unsigned int  *saveSlotPtr)
-  __attribute__((warn_unused_result));
+int setupIndexSaveSlot(IndexLayout *layout,
+		       unsigned int numZones,
+		       IndexSaveType saveType,
+		       unsigned int *saveSlotPtr)
+	__attribute__((warn_unused_result));
 
 /**
  * Write the index configuration.
@@ -222,7 +222,7 @@ int setupIndexSaveSlot(IndexLayout   *layout,
  * @return UDS_SUCCESS or an error code
  **/
 int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the index state buffer
@@ -233,7 +233,7 @@ int writeIndexConfig(IndexLayout *layout, UdsConfiguration config)
  * @return UDS_SUCCESS or an error code
  **/
 Buffer *getIndexStateBuffer(IndexLayout *layout, unsigned int slot)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 /**
  * Get the index version parameters.
@@ -243,6 +243,6 @@ Buffer *getIndexStateBuffer(IndexLayout *layout, unsigned int slot)
  * @return the index version parameters.
  **/
 const struct index_version *getIndexVersion(IndexLayout *layout)
-  __attribute__((warn_unused_result));
+	__attribute__((warn_unused_result));
 
 #endif // INDEX_LAYOUT_H
