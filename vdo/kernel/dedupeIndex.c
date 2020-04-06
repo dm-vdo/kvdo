@@ -16,10 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#42 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/kernel/dedupeIndex.c#43 $
  */
 
 #include "dedupeIndex.h"
+
+#include <linux/ratelimit.h>
+
 #include "logger.h"
 #include "memoryAlloc.h"
 #include "murmur/MurmurHash3.h"
@@ -61,15 +64,12 @@ typedef enum {
 	IS_OPENED = 2,
 } index_state;
 
-enum { DEDUPE_TIMEOUT_REPORT_INTERVAL = 1000,
-};
-
 // Data managing the reporting of UDS timeouts
 struct periodic_event_reporter {
 	uint64_t last_reported_value;
 	const char *format;
 	atomic64_t value;
-	Jiffies reporting_interval; // jiffies
+	struct ratelimit_state ratelimiter;
 	/*
 	 * Just an approximation.  If nonzero, then either the work item has
 	 * been queued to run, or some other thread currently has
@@ -312,16 +312,26 @@ static void finish_index_operation(UdsRequest *uds_request)
 	}
 }
 
-/*****************************************************************************/
+/**
+ * Must be called holding pending_lock
+ **/
 static void start_expiration_timer(struct dedupe_index *index,
-				   struct data_kvio *data_kvio)
+				   unsigned long expiration)
 {
 	if (!index->started_timer) {
 		index->started_timer = true;
-		mod_timer(&index->pending_timer,
-			  get_albireo_timeout(
-				  data_kvio->dedupe_context.submission_time));
+		mod_timer(&index->pending_timer, expiration);
 	}
+}
+
+/**
+ * Must be called holding pending_lock
+ **/
+static void start_expiration_timer_for_kvio(struct dedupe_index *index,
+					    struct data_kvio *data_kvio)
+{
+	start_expiration_timer(index, get_albireo_timeout(
+		data_kvio->dedupe_context.submission_time));
 }
 
 /*****************************************************************************/
@@ -335,7 +345,7 @@ static void start_index_operation(struct kvdo_work_item *item)
 	spin_lock_bh(&index->pending_lock);
 	list_add_tail(&dedupe_context->pending_list, &index->pending_head);
 	dedupe_context->is_pending = true;
-	start_expiration_timer(index, data_kvio);
+	start_expiration_timer_for_kvio(index, data_kvio);
 	spin_unlock_bh(&index->pending_lock);
 
 	UdsRequest *uds_request = &dedupe_context->uds_request;
@@ -354,15 +364,33 @@ uint64_t get_dedupe_timeout_count(struct dedupe_index *index)
 }
 
 /**********************************************************************/
-static void report_events(struct periodic_event_reporter *reporter)
+static void report_events(struct periodic_event_reporter *reporter,
+			  bool ratelimit)
 {
 	atomic_set(&reporter->work_item_queued, 0);
 	uint64_t new_value = atomic64_read(&reporter->value);
 	uint64_t difference = new_value - reporter->last_reported_value;
 
 	if (difference != 0) {
-		logDebug(reporter->format, difference);
-		reporter->last_reported_value = new_value;
+		if (!ratelimit || __ratelimit(&reporter->ratelimiter)) {
+			logDebug(reporter->format, difference);
+			reporter->last_reported_value = new_value;
+		} else {
+			/**
+			 * Turn on a backup timer that will fire after the
+			 * current interval. Just in case the last index
+			 * request in a while times out; we want to report
+			 * the dedupe timeouts in a timely manner in such cases
+			 **/
+			struct dedupe_index *index =
+				container_of(reporter,
+					     struct dedupe_index,
+					     timeout_reporter);
+			spin_lock_bh(&index->pending_lock);
+			start_expiration_timer(index,
+				jiffies + reporter->ratelimiter.interval + 1);
+			spin_unlock_bh(&index->pending_lock);
+		}
 	}
 }
 
@@ -371,14 +399,13 @@ static void report_events_work(struct kvdo_work_item *item)
 {
 	struct periodic_event_reporter *reporter =
 		container_of(item, struct periodic_event_reporter, work_item);
-	report_events(reporter);
+	report_events(reporter, true);
 }
 
 /**********************************************************************/
 static void
 init_periodic_event_reporter(struct periodic_event_reporter *reporter,
 			     const char *format,
-			     unsigned long reporting_interval,
 			     struct kernel_layer *layer)
 {
 	setup_work_item(&reporter->work_item,
@@ -386,29 +413,32 @@ init_periodic_event_reporter(struct periodic_event_reporter *reporter,
 			NULL,
 			CPU_Q_ACTION_EVENT_REPORTER);
 	reporter->format = format;
-	reporter->reporting_interval = msecs_to_jiffies(reporting_interval);
 	reporter->layer = layer;
+	ratelimit_default_init(&reporter->ratelimiter);
+	// Since we will save up the timeouts that would have been reported
+	// but were ratelimited, we don't need to report ratelimiting.
+	ratelimit_set_flags(&reporter->ratelimiter, RATELIMIT_MSG_ON_RELEASE);
 }
 
 /**
- * Record and eventually report that a dedupe request reached its expiration
- * time without getting an answer, so we timed it out.
+ * Record and eventually report that some dedupe requests reached their
+ * expiration time without getting answers, so we timed them out.
  *
  * This is called in a timer context, so it shouldn't do the reporting
  * directly.
  *
  * @param reporter       The periodic event reporter
+ * @param timeouts       How many requests were timed out.
  **/
-static void report_dedupe_timeout(struct periodic_event_reporter *reporter)
+static void report_dedupe_timeouts(struct periodic_event_reporter *reporter,
+				   unsigned int                    timeouts)
 {
-	atomic64_inc(&reporter->value);
+	atomic64_add(timeouts, &reporter->value);
 	int oldWorkItemQueued = atomic_xchg(&reporter->work_item_queued, 1);
 
 	if (oldWorkItemQueued == 0) {
-		enqueue_work_queue_delayed(reporter->layer->cpu_queue,
-					   &reporter->work_item,
-					   jiffies +
-					   reporter->reporting_interval);
+		enqueue_work_queue(reporter->layer->cpu_queue,
+				   &reporter->work_item);
 	}
 }
 
@@ -416,7 +446,8 @@ static void report_dedupe_timeout(struct periodic_event_reporter *reporter)
 static void
 stop_periodic_event_reporter(struct periodic_event_reporter *reporter)
 {
-	report_events(reporter);
+	report_events(reporter, false);
+	ratelimit_state_exit(&reporter->ratelimiter);
 }
 
 /*****************************************************************************/
@@ -446,7 +477,7 @@ static void timeout_index_operations(unsigned long arg)
 			&data_kvio->dedupe_context;
 		if (earliest_submission_allowed <=
 		    dedupe_context->submission_time) {
-			start_expiration_timer(index, data_kvio);
+			start_expiration_timer_for_kvio(index, data_kvio);
 			break;
 		}
 		list_del(&dedupe_context->pending_list);
@@ -454,6 +485,7 @@ static void timeout_index_operations(unsigned long arg)
 		list_add_tail(&dedupe_context->pending_list, &expiredHead);
 	}
 	spin_unlock_bh(&index->pending_lock);
+	unsigned int timed_out = 0;
 	while (!list_empty(&expiredHead)) {
 		struct data_kvio *data_kvio =
 			list_first_entry(&expiredHead,
@@ -468,9 +500,10 @@ static void timeout_index_operations(unsigned long arg)
 			dedupe_context->status = ETIMEDOUT;
 			invoke_dedupe_callback(data_kvio);
 			atomic_dec(&index->active);
-			report_dedupe_timeout(&index->timeout_reporter);
+			timed_out++;
 		}
 	}
+	report_dedupe_timeouts(&index->timeout_reporter, timed_out);
 }
 
 /*****************************************************************************/
@@ -1032,7 +1065,6 @@ int make_dedupe_index(struct dedupe_index **index_ptr,
 	// UDS Timeout Reporter
 	init_periodic_event_reporter(&index->timeout_reporter,
 				     "UDS index timeout on %llu requests",
-				     DEDUPE_TIMEOUT_REPORT_INTERVAL,
 				     layer);
 
 	*index_ptr = index;
