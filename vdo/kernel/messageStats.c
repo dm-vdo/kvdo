@@ -153,7 +153,7 @@ int write_block_allocator_statistics(char *prefix,
        }
        /** The total number of slabs from which blocks may be allocated */
        result = write_uint64_t("slabCount : ",
-                               stats->slabCount,
+                               stats->slab_count,
                                ", ",
                                buf,
                                maxlen);
@@ -162,7 +162,7 @@ int write_block_allocator_statistics(char *prefix,
        }
        /** The total number of slabs from which blocks have ever been allocated */
        result = write_uint64_t("slabsOpened : ",
-                               stats->slabsOpened,
+                               stats->slabs_opened,
                                ", ",
                                buf,
                                maxlen);
@@ -171,7 +171,7 @@ int write_block_allocator_statistics(char *prefix,
        }
        /** The number of times since loading that a slab has been re-opened */
        result = write_uint64_t("slabsReopened : ",
-                               stats->slabsReopened,
+                               stats->slabs_reopened,
                                ", ",
                                buf,
                                maxlen);

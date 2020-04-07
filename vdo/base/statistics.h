@@ -29,11 +29,11 @@ enum {
 
 struct block_allocator_statistics {
   /** The total number of slabs from which blocks may be allocated */
-  uint64_t slabCount;
+  uint64_t slab_count;
   /** The total number of slabs from which blocks have ever been allocated */
-  uint64_t slabsOpened;
+  uint64_t slabs_opened;
   /** The number of times since loading that a slab has been re-opened */
-  uint64_t slabsReopened;
+  uint64_t slabs_reopened;
 };
 
 /**

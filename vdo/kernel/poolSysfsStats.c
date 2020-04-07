@@ -331,7 +331,7 @@ static ssize_t pool_stats_allocator_slab_count_show(struct kernel_layer *layer, 
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabCount);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slab_count);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -348,7 +348,7 @@ static ssize_t pool_stats_allocator_slabs_opened_show(struct kernel_layer *layer
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabsOpened);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_opened);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
@@ -365,7 +365,7 @@ static ssize_t pool_stats_allocator_slabs_reopened_show(struct kernel_layer *lay
 	ssize_t retval;
 	mutex_lock(&layer->statsMutex);
 	get_kvdo_statistics(&layer->kvdo, &layer->vdo_stats_storage);
-	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabsReopened);
+	retval = sprintf(buf, "%llu\n", layer->vdo_stats_storage.allocator.slabs_reopened);
 	mutex_unlock(&layer->statsMutex);
 	return retval;
 }
