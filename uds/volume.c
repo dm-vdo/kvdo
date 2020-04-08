@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.c#4 $
  */
 
 #include "volume.h"
@@ -763,7 +763,7 @@ static int donateIndexPageLocked(Volume             *volume,
 
   // Exchange the scratch page with the cache page
   swapVolumePages(&page->cp_pageData, scratchPage);
-  
+
   result = initChapterIndexPage(volume, getPageData(&page->cp_pageData),
                                 physicalChapter, indexPageNumber,
                                 &page->cp_indexPage);
@@ -1203,7 +1203,7 @@ int findVolumeChapterBoundariesImpl(unsigned int  chapterLimit,
  **/
 __attribute__((warn_unused_result))
 static int allocateVolume(const Configuration  *config,
-                          IndexLayout          *layout,
+                          struct index_layout  *layout,
                           unsigned int          readQueueMaxSize,
                           unsigned int          zoneCount,
                           Volume              **newVolume)
@@ -1213,7 +1213,7 @@ static int allocateVolume(const Configuration  *config,
   if (result != UDS_SUCCESS) {
     return result;
   }
-  volume->nonce = getVolumeNonce(layout);
+  volume->nonce = get_volume_nonce(layout);
   // It is safe to call freeVolume now to clean up and close the volume
 
   result = copyGeometry(config->geometry, &volume->geometry);
@@ -1245,7 +1245,7 @@ static int allocateVolume(const Configuration  *config,
     return result;
   }
 
-  result = makeRadixSorter(config->geometry->recordsPerPage,
+  result = make_radix_sorter(config->geometry->recordsPerPage,
                            &volume->radixSorter);
   if (result != UDS_SUCCESS) {
     freeVolume(volume);
@@ -1285,7 +1285,7 @@ static int allocateVolume(const Configuration  *config,
 
 /**********************************************************************/
 int makeVolume(const Configuration          *config,
-               IndexLayout                  *layout,
+               struct index_layout          *layout,
                const struct uds_parameters  *userParams,
                unsigned int                  readQueueMaxSize,
                unsigned int                  zoneCount,
@@ -1376,7 +1376,7 @@ void freeVolume(Volume *volume)
   destroyCond(&volume->readThreadsReadDoneCond);
   destroyMutex(&volume->readThreadsMutex);
   freeIndexPageMap(volume->indexPageMap);
-  freeRadixSorter(volume->radixSorter);
+  free_radix_sorter(volume->radixSorter);
   FREE(volume->geometry);
   FREE(volume->recordPointers);
   FREE(volume);

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volume.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volume.h#3 $
  */
 
 #ifndef VOLUME_H
@@ -73,7 +73,7 @@ typedef struct volume {
   /* A single page's records, for sorting */
   const UdsChunkRecord **recordPointers;
   /* For sorting record pages */
-  RadixSorter           *radixSorter;
+  struct radix_sorter   *radixSorter;
   /* The sparse chapter index cache */
   SparseCache           *sparseCache;
   /* The page cache */
@@ -112,7 +112,7 @@ typedef struct volume {
  * @return          UDS_SUCCESS or an error code
  **/
 int makeVolume(const Configuration          *config,
-               IndexLayout                  *layout,
+               struct index_layout	    *layout,
                const struct uds_parameters  *userParams,
                unsigned int                  readQueueMaxSize,
                unsigned int                  zoneCount,

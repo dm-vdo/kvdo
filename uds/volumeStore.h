@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/volumeStore.h#2 $
  */
 
 #ifndef VOLUME_STORE_H
@@ -29,7 +29,7 @@
 #include <linux/dm-bufio.h>
 
 struct geometry;
-struct indexLayout;
+struct index_layout;
 
 
 struct volume_store {
@@ -89,7 +89,7 @@ int initializeVolumePage(const struct geometry *geometry,
  * @param bytesPerPage     The number of bytes in a volume page
  **/
 int openVolumeStore(struct volume_store *volumeStore,
-                    struct indexLayout  *layout,
+                    struct index_layout *layout,
                     unsigned int         reservedBuffers,
                     size_t               bytesPerPage)
   __attribute__((warn_unused_result));

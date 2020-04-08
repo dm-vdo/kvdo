@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.h#2 $
  */
 
 #ifndef INDEX_STATE_H
@@ -48,15 +48,15 @@ typedef enum {
  * state.
  **/
 typedef struct indexState {
-  struct indexLayout *layout;
-  unsigned int        zoneCount;  // number of index zones to use
-  unsigned int        loadZones;
-  unsigned int        loadSlot;
-  unsigned int        saveSlot;
-  unsigned int        count;     // count of registered entries (<= length)
-  unsigned int        length;    // total span of array allocation
-  bool                saving;    // incremental save in progress
-  IndexComponent     *entries[]; // array of index component entries
+  struct index_layout *layout;
+  unsigned int         zoneCount;  // number of index zones to use
+  unsigned int         loadZones;
+  unsigned int         loadSlot;
+  unsigned int         saveSlot;
+  unsigned int         count;     // count of registered entries (<= length)
+  unsigned int         length;    // total span of array allocation
+  bool                 saving;    // incremental save in progress
+  IndexComponent      *entries[]; // array of index component entries
 } IndexState;
 
 /**
@@ -69,7 +69,7 @@ typedef struct indexState {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexState(struct indexLayout  *layout,
+int makeIndexState(struct index_layout *layout,
                    unsigned int         numZones,
                    unsigned int         maxComponents,
                    IndexState         **statePtr)

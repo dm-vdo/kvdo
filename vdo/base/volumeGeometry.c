@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#13 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/volumeGeometry.c#14 $
  */
 
 #include "volumeGeometry.h"
@@ -447,7 +447,7 @@ int compute_index_blocks(struct index_config *index_config,
 	}
 
 	uint64_t index_bytes;
-	result = udsComputeIndexSize(uds_configuration, 0, &index_bytes);
+	result = uds_compute_index_size(uds_configuration, 0, &index_bytes);
 	udsFreeConfiguration(uds_configuration);
 	if (result != UDS_SUCCESS) {
 		return logErrorWithStringError(result,

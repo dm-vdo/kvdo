@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/util/radixSort.h#2 $
  */
 
 #ifndef RADIX_SORT_H
@@ -27,26 +27,26 @@
  * large object can be reused as many times as desired.  There is no
  * further heap usage by the sorting.
  */
-typedef struct radixSorter RadixSorter;
+struct radix_sorter;
 
 /**
- * Reserve the heap storage needed by the radixSort routine.  The amount of
+ * Reserve the heap storage needed by the radix_sort routine.  The amount of
  * heap space is logarithmically proportional to the number of keys.
  *
  * @param count   The maximum number of keys to be sorted
- * @param sorter  The RadixSorter object is returned here
+ * @param sorter  The struct radix_sorter object is returned here
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeRadixSorter(unsigned int count, RadixSorter **sorter)
-  __attribute__((warn_unused_result));
+int make_radix_sorter(unsigned int count, struct radix_sorter **sorter)
+	__attribute__((warn_unused_result));
 
 /**
- * Free the heap storage needed by the radixSort routine.
+ * Free the heap storage needed by the radix_sort routine.
  *
- * @param sorter  The RadixSorter object to free
+ * @param sorter  The struct radix_sorter object to free
  **/
-void freeRadixSorter(RadixSorter *sorter);
+void free_radix_sorter(struct radix_sorter *sorter);
 
 /**
  * Sort pointers to fixed-length keys (arrays of bytes) using a radix sort.
@@ -61,10 +61,9 @@ void freeRadixSorter(RadixSorter *sorter);
  *
  * @return UDS_SUCCESS or an error code
  **/
-int radixSort(RadixSorter         *sorter,
-              const unsigned char *keys[],
-              unsigned int         count,
-              unsigned short       length)
-  __attribute__((warn_unused_result));
+int radix_sort(struct radix_sorter *sorter,
+	       const unsigned char *keys[],
+	       unsigned int count,
+	       unsigned short length) __attribute__((warn_unused_result));
 
 #endif /* RADIX_SORT_H */

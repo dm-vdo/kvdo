@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.h#2 $
  */
 
 #ifndef INDEX_H
@@ -37,16 +37,16 @@
 typedef struct indexCheckpoint IndexCheckpoint;
 
 typedef struct index {
-  bool               existed;
-  bool               hasSavedOpenChapter;
-  LoadType           loadedType;
-  IndexLoadContext  *loadContext;
-  IndexLayout       *layout;
-  IndexState        *state;
-  MasterIndex       *masterIndex;
-  Volume            *volume;
-  unsigned int       zoneCount;
-  IndexZone        **zones;
+  bool                  existed;
+  bool                  hasSavedOpenChapter;
+  LoadType              loadedType;
+  IndexLoadContext     *loadContext;
+  struct index_layout  *layout;
+  IndexState           *state;
+  MasterIndex          *masterIndex;
+  Volume               *volume;
+  unsigned int          zoneCount;
+  IndexZone           **zones;
 
   /*
    * ATTENTION!!!
@@ -83,7 +83,7 @@ typedef struct index {
  *
  * @return         UDS_SUCCESS or an error code
  **/
-int makeIndex(IndexLayout                  *layout,
+int makeIndex(struct index_layout          *layout,
               const Configuration          *config,
               const struct uds_parameters  *userParams,
               unsigned int                  zoneCount,
@@ -99,7 +99,7 @@ int makeIndex(IndexLayout                  *layout,
  * that there are no index requests in progress.
  *
  * Some users follow saveIndex immediately with a freeIndex.  But some tests
- * use the IndexLayout to modify the saved index.  The Index will then have
+ * use index_layout to modify the saved index.  The Index will then have
  * some cached information that does not reflect these updates.
  *
  * @param index   The index to save

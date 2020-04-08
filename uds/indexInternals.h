@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.h#2 $
  */
 
 #ifndef INDEX_INTERNALS_H
@@ -40,7 +40,7 @@
  *
  * @return UDS_SUCCESS or an error code
  **/
-int allocateIndex(IndexLayout                  *layout,
+int allocateIndex(struct index_layout          *layout,
                   const Configuration          *config,
                   const struct uds_parameters  *userParams,
                   unsigned int                  zoneCount,

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexInternals.c#3 $
  */
 
 #include "indexInternals.h"
@@ -38,7 +38,7 @@
 static const unsigned int MAX_COMPONENT_COUNT = 4;
 
 /**********************************************************************/
-int allocateIndex(IndexLayout                  *layout,
+int allocateIndex(struct index_layout          *layout,
                   const Configuration          *config,
                   const struct uds_parameters  *userParams,
                   unsigned int                  zoneCount,
@@ -68,7 +68,7 @@ int allocateIndex(IndexLayout                  *layout,
   }
   setIndexCheckpointFrequency(index->checkpoint, checkpoint_frequency);
 
-  getIndexLayout(layout, &index->layout);
+  get_index_layout(layout, &index->layout);
   index->zoneCount = zoneCount;
 
   result = ALLOCATE(index->zoneCount, IndexZone *, "zones",
@@ -140,6 +140,6 @@ void releaseIndex(Index *index)
 
   freeIndexState(&index->state);
   freeIndexCheckpoint(index->checkpoint);
-  putIndexLayout(&index->layout);
+  put_index_layout(&index->layout);
   FREE(index);
 }

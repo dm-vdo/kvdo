@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#2 $
+ * $Id: //eng/uds-releases/krusty/kernelLinux/uds/indexLayoutLinuxKernel.c#4 $
  */
 
 #include "indexLayout.h"
@@ -24,31 +24,32 @@
 #include "memoryAlloc.h"
 
 /*****************************************************************************/
-int makeIndexLayout(const char *name,
-		    bool newLayout,
-		    const UdsConfiguration config,
-		    IndexLayout **layoutPtr)
+int make_index_layout(const char *name,
+		      bool new_layout,
+		      const UdsConfiguration config,
+		      struct index_layout **layout_ptr)
 {
 	char *dev = NULL;
 	uint64_t offset = 0;
 	uint64_t size = 0;
 
-	LayoutParameter parameterTable[] = {
+	LayoutParameter parameter_table[] = {
 		{ "dev", LP_STRING | LP_DEFAULT, { .str = &dev } },
 		{ "offset", LP_UINT64, { .num = &offset } },
 		{ "size", LP_UINT64, { .num = &size } },
 	};
-	size_t numParameters = sizeof(parameterTable) / sizeof(*parameterTable);
+	size_t num_parameters =
+		sizeof(parameter_table) / sizeof(*parameter_table);
 
 	char *params = NULL;
 	int result =
-		duplicateString(name, "makeIndexLayout parameters", &params);
+		duplicateString(name, "make_index_layout parameters", &params);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
 
 	// note dev will be set to memory owned by params
-	result = parseLayoutString(params, parameterTable, numParameters);
+	result = parseLayoutString(params, parameter_table, num_parameters);
 	if (result != UDS_SUCCESS) {
 		FREE(params);
 		return result;
@@ -60,13 +61,13 @@ int makeIndexLayout(const char *name,
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	IndexLayout *layout;
-	result = makeIndexLayoutFromFactory(
-		factory, offset, size, newLayout, config, &layout);
+	struct index_layout *layout;
+	result = make_index_layout_from_factory(
+		factory, offset, size, new_layout, config, &layout);
 	putIOFactory(factory);
 	if (result != UDS_SUCCESS) {
 		return result;
 	}
-	*layoutPtr = layout;
+	*layout_ptr = layout;
 	return UDS_SUCCESS;
 }

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexComponent.c#2 $
  */
 
 #include "indexComponent.h"
@@ -712,7 +712,7 @@ int discardIndexComponent(IndexComponent *component)
 
   unsigned int numZones = 0;
   unsigned int saveSlot = 0;
-  int result = findLatestIndexSaveSlot(component->state->layout, &numZones,
+  int result = find_latest_index_save_slot(component->state->layout, &numZones,
                                        &saveSlot);
   if (result != UDS_SUCCESS) {
     return result;

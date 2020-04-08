@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/uds.h#2 $
+ * $Id: //eng/uds-releases/krusty/src/uds/uds.h#3 $
  */
 
 /**
@@ -339,9 +339,9 @@ void udsFreeConfiguration(UdsConfiguration conf);
  * @return UDS_SUCCESS or an error code.
  **/
 UDS_ATTR_WARN_UNUSED_RESULT
-int udsComputeIndexSize(const UdsConfiguration  config,
-                        unsigned int            numCheckpoints,
-                        uint64_t               *indexSize);
+int uds_compute_index_size(const UdsConfiguration  config,
+                           unsigned int            numCheckpoints,
+                           uint64_t               *indexSize);
 
 /**
  * Opens an index session.

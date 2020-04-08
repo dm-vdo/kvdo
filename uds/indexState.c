@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexState.c#3 $
  */
 
 #include "indexState.h"
@@ -28,10 +28,10 @@
 #include "memoryAlloc.h"
 
 /*****************************************************************************/
-int makeIndexState(IndexLayout   *layout,
-                   unsigned int   numZones,
-                   unsigned int   maxComponents,
-                   IndexState   **statePtr)
+int makeIndexState(struct index_layout  *layout,
+                   unsigned int          numZones,
+                   unsigned int          maxComponents,
+                   IndexState          **statePtr)
 {
   if (maxComponents == 0) {
     return logErrorWithStringError(
@@ -147,8 +147,8 @@ static const char *indexSaveTypeName(IndexSaveType saveType)
 /*****************************************************************************/
 int loadIndexState(IndexState *state, bool *replayPtr)
 {
-  int result = findLatestIndexSaveSlot(state->layout, &state->loadZones,
-                                       &state->loadSlot);
+  int result = find_latest_index_save_slot(state->layout, &state->loadZones,
+                                           &state->loadSlot);
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -184,8 +184,8 @@ int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
     return logErrorWithStringError(UDS_BAD_STATE,
                                    "already saving the index state");
   }
-  int result = setupIndexSaveSlot(state->layout, state->zoneCount, saveType,
-                                  &state->saveSlot);
+  int result = setup_index_save_slot(state->layout, state->zoneCount, saveType,
+                                     &state->saveSlot);
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot prepare index %s",
                                    indexSaveTypeName(saveType));
@@ -205,7 +205,7 @@ int prepareToSaveIndexState(IndexState *state, IndexSaveType saveType)
 static int completeIndexSaving(IndexState *state)
 {
   state->saving = false;
-  int result = commitIndexSave(state->layout, state->saveSlot);
+  int result = commit_index_save(state->layout, state->saveSlot);
   state->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot commit index state");
@@ -216,7 +216,7 @@ static int completeIndexSaving(IndexState *state)
 /*****************************************************************************/
 static int cleanupSave(IndexState *state)
 {
-  int result = cancelIndexSave(state->layout, state->saveSlot);
+  int result = cancel_index_save(state->layout, state->saveSlot);
   state->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result, "cannot cancel index save");
@@ -458,7 +458,7 @@ int abortIndexStateCheckpoint(IndexState *state)
 /*****************************************************************************/
 int discardIndexStateData(IndexState *state)
 {
-  int result = discardIndexSaves(state->layout, true);
+  int result = discard_index_saves(state->layout, true);
   state->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
@@ -471,7 +471,7 @@ int discardIndexStateData(IndexState *state)
 /*****************************************************************************/
 int discardLastIndexStateSave(IndexState *state)
 {
-  int result = discardIndexSaves(state->layout, false);
+  int result = discard_index_saves(state->layout, false);
   state->saveSlot = UINT_MAX;
   if (result != UDS_SUCCESS) {
     return logErrorWithStringError(result,
@@ -485,7 +485,7 @@ int discardLastIndexStateSave(IndexState *state)
 Buffer *getStateIndexStateBuffer(IndexState *state, IOAccessMode mode)
 {
   unsigned int slot = mode == IO_READ ? state->loadSlot : state->saveSlot;
-  return getIndexStateBuffer(state->layout, slot);
+  return get_index_state_buffer(state->layout, slot);
 }
 
 /*****************************************************************************/
@@ -494,8 +494,8 @@ int openStateBufferedReader(IndexState      *state,
                             unsigned int     zone,
                             BufferedReader **readerPtr)
 {
-  return openIndexBufferedReader(state->layout, state->loadSlot, kind, zone,
-                                 readerPtr);
+  return open_index_buffered_reader(state->layout, state->loadSlot, kind, zone,
+                                    readerPtr);
 }
 
 /*****************************************************************************/
@@ -504,6 +504,6 @@ int openStateBufferedWriter(IndexState      *state,
                             unsigned int     zone,
                             BufferedWriter **writerPtr)
 {
-  return openIndexBufferedWriter(state->layout, state->saveSlot, kind, zone,
-                                 writerPtr);
+  return open_index_buffered_writer(state->layout, state->saveSlot, kind, zone,
+                                    writerPtr);
 }

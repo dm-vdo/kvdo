@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/index.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/index.c#3 $
  */
 
 #include "index.h"
@@ -184,7 +184,7 @@ static int rebuildIndex(Index *index)
 }
 
 /**********************************************************************/
-int makeIndex(IndexLayout                  *layout,
+int makeIndex(struct index_layout          *layout,
               const Configuration          *config,
               const struct uds_parameters  *userParams,
               unsigned int                  zoneCount,
@@ -201,7 +201,7 @@ int makeIndex(IndexLayout                  *layout,
 
   index->loadContext = loadContext;
 
-  uint64_t nonce = getVolumeNonce(layout);
+  uint64_t nonce = get_volume_nonce(layout);
   result = makeMasterIndex(config, zoneCount, nonce, &index->masterIndex);
   if (result != UDS_SUCCESS) {
     freeIndex(index);
@@ -222,7 +222,7 @@ int makeIndex(IndexLayout                  *layout,
     return result;
   }
 
-  result = makeChapterWriter(index, getIndexVersion(layout),
+  result = makeChapterWriter(index, get_index_version(layout),
                              &index->chapterWriter);
   if (result != UDS_SUCCESS) {
     freeIndex(index);

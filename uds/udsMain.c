@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/udsMain.c#3 $
  */
 
 #include "uds.h"
@@ -192,13 +192,13 @@ int udsCreateIndexSession(struct uds_index_session **session)
 /**********************************************************************/
 static
 int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
-                                     IndexLayout                 *layout,
+                                     struct index_layout         *layout,
                                      const struct uds_parameters *userParams,
                                      LoadType                     loadType)
 {
   int result = ((loadType == LOAD_CREATE)
-                ? writeIndexConfig(layout, &indexSession->userConfig)
-                : verifyIndexConfig(layout, &indexSession->userConfig));
+                ? write_index_config(layout, &indexSession->userConfig)
+                : verify_index_config(layout, &indexSession->userConfig));
   if (result != UDS_SUCCESS) {
     return result;
   }
@@ -210,7 +210,7 @@ int initializeIndexSessionWithLayout(struct uds_index_session    *indexSession,
     return result;
   }
 
-  // Zero the stats for the new index. 
+  // Zero the stats for the new index.
   memset(&indexSession->stats, 0, sizeof(indexSession->stats));
 
   result = makeIndexRouter(layout, indexConfig, userParams, loadType,
@@ -232,16 +232,16 @@ static int initializeIndexSession(struct uds_index_session    *indexSession,
                                   const struct uds_parameters *userParams,
                                   LoadType                     loadType)
 {
-  IndexLayout *layout;
-  int result = makeIndexLayout(name, loadType == LOAD_CREATE,
-                               &indexSession->userConfig, &layout);
+  struct index_layout *layout;
+  int result = make_index_layout(name, loadType == LOAD_CREATE,
+                                 &indexSession->userConfig, &layout);
   if (result != UDS_SUCCESS) {
     return result;
   }
 
   result = initializeIndexSessionWithLayout(indexSession, layout, userParams,
                                             loadType);
-  putIndexLayout(&layout);
+  put_index_layout(&layout);
   return result;
 }
 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#1 $
+ * $Id: //eng/uds-releases/krusty/src/uds/indexRouter.h#2 $
  */
 
 #ifndef INDEX_ROUTER_H
@@ -48,7 +48,7 @@ struct indexRouter {
 /**
  * Construct and initialize an IndexRouter instance.
  *
- * @param layout       the IndexLayout that describes the stored index
+ * @param layout       the index_layout that describes the stored index
  * @param config       the configuration to use
  * @param userParams   the index session parameters.  If NULL, the default
  *                     session parameters will be used.
@@ -59,7 +59,7 @@ struct indexRouter {
  *
  * @return UDS_SUCCESS or an error code
  **/
-int makeIndexRouter(IndexLayout                  *layout,
+int makeIndexRouter(struct index_layout          *layout,
                     const Configuration          *config,
                     const struct uds_parameters  *userParams,
                     LoadType                      loadType,
