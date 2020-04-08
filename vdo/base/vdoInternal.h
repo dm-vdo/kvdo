@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#29 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/vdoInternal.h#30 $
  */
 
 #ifndef VDO_INTERNAL_H
@@ -43,9 +43,9 @@
  **/
 struct atomic_error_statistics {
 	// Dedupe path error stats
-	Atomic64 invalidAdvicePBNCount;
-	Atomic64 noSpaceErrorCount;
-	Atomic64 readOnlyErrorCount;
+	Atomic64 invalid_advice_pbn_count;
+	Atomic64 no_space_error_count;
+	Atomic64 read_only_error_count;
 };
 
 struct vdo {
