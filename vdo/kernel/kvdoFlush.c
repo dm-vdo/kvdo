@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvdoFlush.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvdoFlush.c#4 $
  */
 
 #include "kvdoFlush.h"
@@ -94,6 +94,8 @@ static void initializeKVDOFlush(KVDOFlush *kvdoFlush, KernelLayer *layer)
 static void enqueueKVDOFlush(KVDOFlush *kvdoFlush)
 {
   setupWorkItem(&kvdoFlush->workItem, kvdoFlushWork, NULL, REQ_Q_ACTION_FLUSH);
+  ASSERT_LOG_ONLY((getKernelLayerState(kvdoFlush->layer) != LAYER_STARTING),
+                  "not STARTING when enqueueing KVDOFlush");
   KVDO *kvdo = &kvdoFlush->layer->kvdo;
   enqueueKVDOWork(kvdo, &kvdoFlush->workItem,
                   getPackerZoneThread(getThreadConfig(kvdo->vdo)));

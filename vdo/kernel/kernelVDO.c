@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#4 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelVDO.c#5 $
  */
 
 #include "kernelVDOInternals.h"
@@ -189,32 +189,11 @@ void dumpKVDOWorkQueue(KVDO *kvdo)
 }
 
 /**********************************************************************/
-typedef struct {
-  KvdoWorkItem       workItem;
-  KVDO              *kvdo;
-  void              *data;
-  struct completion *completion;
-} SyncQueueWork;
-
-/**
- * Initiate an arbitrary asynchronous base-code operation and wait for
- * it.
- *
- * An async queue operation is performed and we wait for completion.
- *
- * @param kvdo       The kvdo data handle
- * @param action     The operation to perform
- * @param data       Unique data that can be used by the operation
- * @param threadID   The thread on which to perform the operation
- * @param completion The completion to wait on
- *
- * @return VDO_SUCCESS of an error code
- **/
-static void performKVDOOperation(KVDO              *kvdo,
-                                 KvdoWorkFunction   action,
-                                 void              *data,
-                                 ThreadID           threadID,
-                                 struct completion *completion)
+void performKVDOOperation(KVDO              *kvdo,
+                          KvdoWorkFunction   action,
+                          void              *data,
+                          ThreadID           threadID,
+                          struct completion *completion)
 {
   SyncQueueWork  sync;
 
@@ -255,6 +234,10 @@ bool setKVDOCompressing(KVDO *kvdo, bool enableCompression)
   struct completion compressWait;
   VDOCompressData data;
   data.enable = enableCompression;
+  KernelLayer *layer = container_of(kvdo, KernelLayer, kvdo);
+  // This should never happen while STARTING, and it could produce a threading
+  // race if it did.
+  BUG_ON(getKernelLayerState(layer) == LAYER_STARTING);
   performKVDOOperation(kvdo, setCompressingWork, &data,
                        getPackerZoneThread(getThreadConfig(kvdo->vdo)),
                        &compressWait);
@@ -440,8 +423,43 @@ void enqueueKVIO(KVIO             *kvio,
 {
   ThreadID threadID = vioAsCompletion(kvio->vio)->callbackThreadID;
   BUG_ON(threadID >= kvio->layer->kvdo.initializedThreadCount);
+
+  // During load (STARTING), treat the base code as single threaded [VDO-4833].
+  if (getKernelLayerState(kvio->layer) == LAYER_STARTING) {
+    threadID = 0;
+  }
+
   launchKVIO(kvio, work, statsFunction, action,
              kvio->layer->kvdo.threads[threadID].requestQueue);
+}
+
+/**********************************************************************/
+void kvdoInvokeCallback(VDOCompletion *completion)
+{
+  KernelLayer   *layer      = asKernelLayer(completion->layer);
+  /*
+   * In order to avoid threading issues during recovery (VDO-4833), in the
+   * STARTING state, all completions are enqueued on thread 0, and we lie about
+   * the current thread ID so that base code thread assertions don't fire.
+   */
+  if (getKernelLayerState(layer) != LAYER_STARTING) {
+    /*
+     * When not in the starting state, we need to requeue completions
+     * which were enqueued on thread 0 during load, but normally wouldn't be,
+     * and now must run on the correct thread. Hence, we call invokeCallback()
+     * instead of runCallback(). This will do a requeue if we are on the wrong
+     * thread.
+     */
+    invokeCallback(completion);
+    return;
+  }
+
+  KVDOThread *thread = getWorkQueuePrivateData();
+  ASSERT_LOG_ONLY(thread->threadID == 0,
+                  "Base code callback running on thread 0 when STARTING");
+  thread->threadID = completion->callbackThreadID;
+  runCallback(completion);
+  thread->threadID = 0;
 }
 
 /**********************************************************************/
@@ -450,7 +468,7 @@ static void kvdoEnqueueWork(KvdoWorkItem *workItem)
   KvdoEnqueueable *kvdoEnqueueable = container_of(workItem,
                                                   KvdoEnqueueable,
                                                   workItem);
-  runCallback(kvdoEnqueueable->enqueueable.completion);
+  kvdoInvokeCallback(kvdoEnqueueable->enqueueable.completion);
 }
 
 /**********************************************************************/
@@ -475,6 +493,10 @@ void kvdoEnqueue(Enqueueable *enqueueable)
   setupWorkItem(&kvdoEnqueueable->workItem, kvdoEnqueueWork,
                 (KvdoWorkFunction) enqueueable->completion->callback,
                 REQ_Q_ACTION_COMPLETION);
+  if (getKernelLayerState(layer) == LAYER_STARTING) {
+    threadID = 0;
+  }
+
   enqueueKVDOThreadWork(&layer->kvdo.threads[threadID],
                         &kvdoEnqueueable->workItem);
 }
@@ -493,7 +515,9 @@ ThreadID kvdoGetCurrentThreadID(void)
     KernelLayer *kernelLayer = asKernelLayer(getPhysicalLayer());
     BUG_ON(&kernelLayer->kvdo != kvdo);
     BUG_ON(threadID >= kvdo->initializedThreadCount);
-    BUG_ON(thread != &kvdo->threads[threadID]);
+    if (getKernelLayerState(kernelLayer) != LAYER_STARTING) {
+      BUG_ON(thread != &kvdo->threads[threadID]);
+    }
   }
   return threadID;
 }

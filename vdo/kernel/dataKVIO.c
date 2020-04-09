@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#13 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/dataKVIO.c#14 $
  */
 
 #include "dataKVIO.h"
@@ -586,7 +586,11 @@ static int kvdoCreateKVIOFromBio(KernelLayer  *layer,
 /**********************************************************************/
 static void launchDataKVIOWork(KvdoWorkItem *item)
 {
-  runCallback(vioAsCompletion(workItemAsKVIO(item)->vio));
+  VDOCompletion *completion = vioAsCompletion(workItemAsKVIO(item)->vio);
+  KernelLayer   *layer      = asKernelLayer(completion->layer);
+  ASSERT_LOG_ONLY((getKernelLayerState(layer) != LAYER_STARTING),
+                  "not STARTING when launching DataKVIO work");
+  runCallback(completion);
 }
 
 /**

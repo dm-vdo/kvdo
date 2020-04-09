@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.c#3 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kvio.c#4 $
  */
 
 #include "kvio.h"
@@ -31,6 +31,7 @@
 
 #include "bio.h"
 #include "ioSubmitter.h"
+#include "kernelVDOInternals.h"
 #include "kvdoFlush.h"
 #include "readCache.h"
 
@@ -42,8 +43,7 @@
  **/
 static void kvdoHandleVIOCallback(KvdoWorkItem *item)
 {
-  KVIO *kvio = workItemAsKVIO(item);
-  runCallback(vioAsCompletion(kvio->vio));
+  kvdoInvokeCallback(vioAsCompletion(workItemAsKVIO(item)->vio));
 }
 
 /**********************************************************************/

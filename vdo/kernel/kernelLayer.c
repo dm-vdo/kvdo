@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#17 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.c#18 $
  */
 
 #include "kernelLayer.h"
@@ -40,6 +40,7 @@
 #include "deviceRegistry.h"
 #include "instanceNumber.h"
 #include "ioSubmitterInternals.h"
+#include "kernelVDOInternals.h"
 #include "kvdoFlush.h"
 #include "kvio.h"
 #include "murmur/MurmurHash3.h"
@@ -987,6 +988,7 @@ void freeKernelLayer(KernelLayer *layer)
     logError("re-entered freeKernelLayer while stopping");
     break;
 
+  case LAYER_STARTING:
   case LAYER_RUNNING:
   case LAYER_SUSPENDED:
     stopKernelLayer(layer);
@@ -1080,6 +1082,21 @@ static void poolStatsRelease(struct kobject *kobj)
   complete(&layer->statsShutdown);
 }
 
+/**
+ * After flushing thread 0's work queue by dint of passing through it, set
+ * the layer's state to running in order to indicate that load is complete, and
+ * the base code can be multi-threaded. This is part of the fix for VDO-4833.
+ *
+ * @param item  The work item
+ **/
+static void setKernelLayerRunning(KvdoWorkItem *item)
+{
+  SyncQueueWork *work  = container_of(item, SyncQueueWork, workItem);
+  KernelLayer   *layer = container_of(work->kvdo, KernelLayer, kvdo);
+  setKernelLayerState(layer, LAYER_RUNNING);
+  complete(work->completion);
+}
+
 /**********************************************************************/
 int startKernelLayer(KernelLayer          *layer,
                      const VDOLoadConfig  *loadConfig,
@@ -1087,7 +1104,7 @@ int startKernelLayer(KernelLayer          *layer,
 {
   ASSERT_LOG_ONLY(getKernelLayerState(layer) == LAYER_CPU_QUEUE_INITIALIZED,
                   "startKernelLayer may only be invoked after initialization");
-  setKernelLayerState(layer, LAYER_RUNNING);
+  setKernelLayerState(layer, LAYER_STARTING);
 
   int result = startKVDO(&layer->kvdo, &layer->common, loadConfig,
                          layer->vioTraceRecording, reason);
@@ -1095,6 +1112,16 @@ int startKernelLayer(KernelLayer          *layer,
     stopKernelLayer(layer);
     return result;
   }
+
+  /*
+   * In order to fix the threading bug (VDO-4833), the base code is treated as
+   * single threaded during load. Now that load is complete, drain thread 0's
+   * queue and then set the state to running to indicate that the base code is
+   * now multi-threaded.
+   */
+  struct completion runningWait;
+  performKVDOOperation(&layer->kvdo, setKernelLayerRunning, NULL, 0,
+                       &runningWait);
 
   static struct kobj_type statsDirectoryKobjType = {
     .release       = poolStatsRelease,
@@ -1155,6 +1182,7 @@ int stopKernelLayer(KernelLayer *layer)
   switch (getKernelLayerState(layer)) {
   case LAYER_SUSPENDED:
   case LAYER_RUNNING:
+  case LAYER_STARTING:
     setKernelLayerState(layer, LAYER_STOPPING);
     stopDedupeIndex(layer->dedupeIndex);
     // fall through
@@ -1212,7 +1240,7 @@ int prepareToResizePhysical(KernelLayer *layer, BlockCount physicalCount)
       // If we don't trap this case, mapToSystemError() will remap it to -EIO,
       // which is misleading and ahistorical.
       return -EINVAL;
-    } else { 
+    } else {
       return result;
     }
   }

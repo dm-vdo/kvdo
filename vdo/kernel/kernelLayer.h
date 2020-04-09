@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.h#8 $
+ * $Id: //eng/vdo-releases/magnesium/src/c++/vdo/kernel/kernelLayer.h#9 $
  */
 
 #ifndef KERNELLAYER_H
@@ -56,6 +56,7 @@ typedef enum {
   LAYER_CPU_QUEUE_INITIALIZED,
   LAYER_BIO_ACK_QUEUE_INITIALIZED,
   LAYER_BIO_DATA_INITIALIZED,
+  LAYER_STARTING,
   LAYER_RUNNING,
   LAYER_SUSPENDED,
   LAYER_STOPPING,
