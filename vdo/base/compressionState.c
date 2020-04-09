@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#11 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/compressionState.c#12 $
  */
 
 #include "compressionStateInternals.h"
@@ -30,10 +30,11 @@ static const uint32_t MAY_NOT_COMPRESS_MASK = 0x80000000;
 /**********************************************************************/
 struct vio_compression_state get_compression_state(struct data_vio *data_vio)
 {
-	uint32_t packedValue = atomicLoad32(&data_vio->compression.state);
+	uint32_t packed = atomic_read(&data_vio->compression.state);
+	smp_rmb();
 	return (struct vio_compression_state) {
-		.status = packedValue & STATUS_MASK,
-		.may_not_compress = ((packedValue & MAY_NOT_COMPRESS_MASK) != 0),
+		.status = packed & STATUS_MASK,
+		.may_not_compress = ((packed & MAY_NOT_COMPRESS_MASK) != 0),
 	};
 }
 
@@ -57,8 +58,16 @@ bool set_compression_state(struct data_vio *data_vio,
 			   struct vio_compression_state state,
 			   struct vio_compression_state new_state)
 {
-	return compareAndSwap32(&data_vio->compression.state, packState(state),
-				packState(new_state));
+	uint32_t expected = packState(state);
+	uint32_t replacement = packState(new_state);
+
+	// Extra barriers because this was original developed using
+	// a CAS operation that implicitly had them.
+	smp_mb__before_atomic();
+	uint32_t actual = atomic_cmpxchg(&data_vio->compression.state,
+					 expected, replacement);
+	smp_mb__after_atomic();
+	return (expected == actual);
 }
 
 /**

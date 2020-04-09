@@ -16,11 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA. 
  *
- * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#33 $
+ * $Id: //eng/linux-vdo/src/c++/vdo/base/dataVIO.h#34 $
  */
 
 #ifndef DATA_VIO_H
 #define DATA_VIO_H
+
+#include "atomicDefs.h"
 
 #include "allocatingVIO.h"
 #include "atomic.h"
@@ -125,7 +127,7 @@ struct compression_state {
 	 * This field should be accessed through the getCompressionState() and
 	 * setCompressionState() methods. It should not be accessed directly.
 	 */
-	Atomic32 state;
+	atomic_t state;
 
 	/* The compressed size of this block */
 	uint16_t size;
